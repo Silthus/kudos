@@ -18,7 +18,7 @@ import { rewardOf, rewardsKeyedFrom } from "../progression/rewards";
 import { teammatesOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf } from "./crates";
 import { finishQuest } from "./finish";
-import { questsLiveIn } from "./flag";
+import { journeyShippedAt, questsLiveIn } from "./flag";
 import { journeyStepOpenedBy, journeyStepValidator, type JourneyStep } from "./step";
 
 export const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
@@ -57,7 +57,7 @@ export const activateJourney = internalMutation({
   args: { event: unlockOpenedEventValidator },
   handler: async (ctx, { event: { workspace, member, feature, at } }) => {
     const step = journeyStepOpenedBy(feature);
-    if (step === null || !(await questsLiveIn(ctx, workspace)) || (await activationOf(ctx, member, step)) !== null) return;
+    if (step === null || !(await questsLiveIn(ctx, workspace)) || (await isLeftToTheJoin(ctx, workspace, at)) || (await activationOf(ctx, member, step)) !== null) return;
     const activation = await activated(ctx, member, step, at, journey);
     const finishedAt = await finishedOnActivation(ctx, workspace, activation);
     if (finishedAt !== null) await finish(ctx, workspace, activation, finishedAt);
@@ -121,6 +121,10 @@ async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent) {
   if (someoneNew === null || event.at < someoneNew.activatedAt || (await isFinished(ctx, someoneNew))) return;
   const lastThanked = await lastThankedBefore(ctx, event.awards);
   if ([...lastThanked.values()].includes(null)) await finish(ctx, event.workspace, someoneNew, event.at);
+}
+
+async function isLeftToTheJoin(ctx: QueryCtx, workspace: string, openedAt: number) {
+  return openedAt < (await journeyShippedAt(ctx, workspace))!;
 }
 
 async function recheckLater(ctx: MutationCtx, workspace: string, member: MemberId, at: number) {

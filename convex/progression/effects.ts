@@ -1,5 +1,5 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { awardsGivenBy, type AwardId } from "../engine/awards";
+import { awardAt, type AwardId } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import type { EffectsRecord, Side } from "./progress";
 
@@ -16,12 +16,9 @@ export async function isRecorded(ctx: QueryCtx, award: AwardId, side: Side) {
 }
 
 export async function gaveThoughtfulKudos(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<boolean> {
-  for (const award of await awardsGivenBy(ctx, giver, atOrBefore)) {
-    const given = await ctx.db
-      .query("effectsRecords")
-      .withIndex("by_award", (q) => q.eq("award", award).eq("side", "giver"))
-      .first();
-    if (given?.gate?.thoughtful === true) return true;
+  const given = ctx.db.query("effectsRecords").withIndex("by_member_side", (q) => q.eq("member", giver).eq("side", "giver"));
+  for await (const { gate, award } of given) {
+    if (gate?.thoughtful === true && ((await awardAt(ctx, award)) ?? Infinity) <= atOrBefore) return true;
   }
   return false;
 }

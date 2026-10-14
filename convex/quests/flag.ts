@@ -15,6 +15,10 @@ export async function questsLiveIn(ctx: MutationCtx, workspace: string): Promise
   return true;
 }
 
+export async function journeyShippedAt(ctx: QueryCtx, workspace: string): Promise<number | null> {
+  return (await journeyLaunchIn(ctx, workspace))?.at ?? null;
+}
+
 async function launchJourney(ctx: MutationCtx, workspace: string) {
   const launch = await ctx.db.insert("journeyLaunches", { workspace, at: Date.now() });
   await ctx.scheduler.runAfter(0, internal.quests.join.joinJourneyPage, { launch });

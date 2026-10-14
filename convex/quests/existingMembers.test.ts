@@ -6,7 +6,9 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { internal } from "../_generated/api";
+import type { KudosGivenEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -16,6 +18,7 @@ const finishedFirstThanks = "✅ You finished a Journey step: Give a kudos that 
 const finishedSomeoneNew = "✅ You finished a Journey step: Thank someone you haven't thanked before. You earned *30 XP*.";
 const firstThanksReward = { xp: 10, coins: 0, item: null };
 const someoneNewReward = { xp: 30, coins: 0, item: null };
+const saysWhyDecision = { gate: { version: 1, thoughtful: true, words: 7 } };
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -116,6 +119,47 @@ describe("P91: members already playing join the Journey once, when it ships", ()
     expect(journeyDmsTo("U_ALICE")).toHaveLength(1);
   });
 
+  test("an award recorded without a gate decision doesn't finish first-thanks, and the member's next kudos that says why finishes it once", async () => {
+    const { t, alice, bob } = await membersBeforeTheJourney();
+    await recordedWithoutDecision(t, await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { at: Date.now() })));
+
+    await questsTurnOn(t);
+    await hourlySweep(t);
+
+    expect((await journeyOf(t, "U_ALICE")).find(({ step }) => step === "first-thanks")?.finishedAt).toBeNull();
+    expect(journeyDmsTo("U_ALICE")).toEqual([]);
+
+    const later = aMinuteLater();
+    const saidWhy = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: saysWhyDecision, at: later }));
+    for (const delivery of [1, 2]) await t.mutation(internal.quests.journey.followJourney, { event: saidWhy });
+    await settle(t);
+
+    expect((await journeyOf(t, "U_ALICE")).find(({ step }) => step === "first-thanks")?.finishedAt).toBe(later);
+    expect(await rewardKeysOf(t, "U_ALICE")).toEqual(["journey:first-thanks"]);
+  });
+
+  test("a Leaderboard opening from before the Journey shipped, delivered after it, activates someone-new from the ship moment and counts no kudos before it", async () => {
+    const { t, alice, bob } = await membersBeforeTheJourney();
+    const openedAt = Date.now();
+    await t.run((ctx) => ctx.db.insert("unlocks", { member: alice, feature: "leaderboard", readyAt: openedAt, openedAt }));
+    aMinuteLater();
+    await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { at: Date.now() }));
+
+    await questsTurnOn(t);
+    const shipped = aMinuteLater();
+    await t.mutation(internal.quests.journey.activateJourney, { event: { type: "unlockOpened", workspace: "T1", member: alice, feature: "leaderboard", at: openedAt } });
+    await settle(t);
+
+    expect((await journeyOf(t, "U_ALICE")).find(({ step }) => step === "someone-new")).toEqual({
+      step: "someone-new",
+      activatedAt: shipped,
+      reward: someoneNewReward,
+      catalogueVersion: "1",
+      finishedAt: null,
+      openedAt: null,
+    });
+  });
+
   test("a member who joins the workspace after the Journey ships follows the schedule, even before the join has run", async () => {
     const t = await workspaceWith("U_ALICE", "U_BOB");
     await unlocksShippedBeforeAnyoneJoined(t);
@@ -145,6 +189,21 @@ describe("P91: the Journey's join stays within Convex's limits", () => {
     await settle(t);
     expect(await activationCount(t)).toBe(150);
   });
+  test("a member's join reads within Convex's limits however many kudos they gave before the Journey shipped", async () => {
+    const { t, alice, bob } = await membersBeforeTheJourney({ transactionLimits: true });
+    for (let batch = 0; batch < 5; batch += 1) {
+      await t.run(async (ctx) => {
+        for (let kudos = 0; kudos < 820; kudos += 1) await recordWithoutDecisionIn(ctx, await kudosGivenEventWithAward(ctx, alice, bob, { at: Date.now() }));
+      });
+    }
+    await t.mutation(internal.progression.progression.recordEffects, { event: await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: saysWhyDecision, at: Date.now() })) });
+
+    await questsTurnOn(t);
+    const shipped = aMinuteLater();
+    await hourlySweep(t);
+
+    expect((await journeyOf(t, "U_ALICE")).find(({ step }) => step === "first-thanks")?.finishedAt).toBe(shipped);
+  }, 120_000);
 });
 
 async function workspaceWith(...users: string[]) {
@@ -154,6 +213,26 @@ async function workspaceWith(...users: string[]) {
     for (const user of users) await ctx.db.insert("members", { workspace: "T1", user, kind: "member" });
   });
   return t;
+}
+
+async function membersBeforeTheJourney(options: { transactionLimits?: boolean } = {}) {
+  const t = await unlocksShippedBeforeAnyoneJoined(await flagsLoaded(testBackend(options)));
+  const [alice, bob] = await t.run(async (ctx) => {
+    await ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 });
+    await ctx.db.insert("members", { workspace: "T1", user: "U_CAROL", kind: "member" });
+    return [await ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }), await ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member" })];
+  });
+  return { t, alice: alice!, bob: bob! };
+}
+
+async function recordedWithoutDecision(t: Backend, event: KudosGivenEvent) {
+  await t.run((ctx) => recordWithoutDecisionIn(ctx, event));
+}
+
+async function recordWithoutDecisionIn(ctx: Parameters<Parameters<Backend["run"]>[0]>[0], event: KudosGivenEvent) {
+  for (const { award, giver } of event.awards) {
+    await ctx.db.insert("effectsRecords", { award, side: "giver", member: giver, day: event.day, baseXp: 10, gate: null, catalogueVersion: "1" });
+  }
 }
 
 async function questsTurnOn(t: Backend) {

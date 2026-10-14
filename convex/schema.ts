@@ -122,7 +122,7 @@ export default defineSchema({
     emoji: v.array(v.string()),
   }).index("by_message", ["workspace", "conversation", "message"]),
 
-  effectsRecords: defineTable(effectsRecordValidator).index("by_award", ["award", "side"]),
+  effectsRecords: defineTable(effectsRecordValidator).index("by_award", ["award", "side"]).index("by_member_side", ["member", "side"]),
 
   rewardRecords: defineTable(rewardRecordValidator).index("by_member_key", ["member", "key"]),
 

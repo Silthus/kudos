@@ -66,12 +66,8 @@ export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: 
   return lastThanked;
 }
 
-export async function awardsGivenBy(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<AwardId[]> {
-  const awards = await ctx.db
-    .query("awards")
-    .withIndex("by_giver", (q) => q.eq("giver", giver))
-    .collect();
-  return awards.filter(({ at }) => at <= atOrBefore).map(({ _id }) => _id);
+export async function awardAt(ctx: QueryCtx, award: AwardId): Promise<number | null> {
+  return (await ctx.db.get(award))?.at ?? null;
 }
 
 export async function firstThanksOf(ctx: QueryCtx, giver: MemberId): Promise<number[]> {
