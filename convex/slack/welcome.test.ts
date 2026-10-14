@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus, networkFailure, rateLimitedFor, slackError } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsOnForEveryone, onForEmails, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
-import { post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
+import { post, settle, settleUntil, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { readBlocks, type Block } from "../../testing/slackInteractions";
 import { emoji, mention, messageEvent, section, type MessageOptions } from "../../testing/slackMessages";
@@ -229,6 +229,23 @@ describe("QM9: the welcome is rendered at delivery", { timeout: 30_000 }, () => 
       `section: ${allowance}`,
       `section: ${websiteLine}`,
       "actions: [See your progress] | Open App Home",
+    ]);
+  });
+
+  test("a retry renders the kudos emoji in force at its attempt and keeps who thanked the member", async () => {
+    const t = await workspace();
+    slack.answering("chat.postMessage", rateLimitedFor(30), rateLimitedFor(30));
+    await post(t, [section(mention("U_BOB"), emoji("taco"))], { user: "U_ALICE" });
+    await settleUntil(t, new Date(now.getTime() + 10_000));
+
+    await setWorkspaceSettings(t, { kudosEmoji: "pizza" });
+    await settle(t);
+
+    const [, retry] = slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "U_BOB");
+    expect(readBlocks(retry!.blocks as Block[]).slice(0, 3)).toEqual([
+      "section: 🎉 *<@U_ALICE> just thanked you with a kudos!*",
+      `section: ${welcomeLine}`,
+      `section: ${recipientsStep.replace(":taco:", ":pizza:")}`,
     ]);
   });
 });
