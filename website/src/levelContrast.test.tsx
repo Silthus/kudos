@@ -64,6 +64,19 @@ describe("WS312 WS339 V24: the first-kudos nudge's icon and its frame meet 3:1 i
   }
 });
 
+describe("WS313 WS339 V24: the hero's spend link glyph meets 3:1 in both modes", () => {
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      renderApp(shellFixtures.memberWithEveryFeatureOpen);
+      const spend = within(screen.getByRole("main")).getByRole("link", { name: "Spend 2 skill points" });
+      const glyph = spend.querySelector("svg")!;
+      expect(glyph).toHaveClass("text-completed-foreground");
+      const measured = ["background", "muted"].map((surface) => ({ surface, ratio: contrast(mode, "completed-foreground", surface) }));
+      expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});
+
 function railGraphics() {
   renderApp(shellFixtures.memberWithEveryPanelOpen, fixedLeaderboard(leaderboardFixtures.midBoard), undefined, fixedQuests(questsFixtures.week));
   const quests = within(screen.getByRole("main")).getByRole("region", { name: "Quests this week" });

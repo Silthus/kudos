@@ -1,4 +1,6 @@
 import { useId } from "react";
+import { buttonVariants } from "@posthog/quill";
+import { AppLink } from "../AppLink";
 import { useCountUp } from "../countUp";
 import { heroRingAttributes, heroXpBarAttributes } from "../crates/RewardFlight";
 import { MemberFace } from "../Face";
@@ -6,8 +8,11 @@ import { LevelRing, levelShare } from "../LevelRing";
 import { MaxLine } from "../Max";
 import { PageTitle } from "../PageTitle";
 import { hasGivenNoKudos } from "./FirstKudosNudge";
+import { pageOf } from "../features";
 import { SlackLink } from "../SlackLink";
 import type { MemberProfile, Progression } from "../shell";
+import { SkillPointGlyph } from "../skills/glyphs";
+import { skillPointsText } from "../skills/perkWords";
 
 export function Hero({ member }: { member: MemberProfile }) {
   const { progression } = member;
@@ -35,6 +40,7 @@ export function Hero({ member }: { member: MemberProfile }) {
         <p className="mt-2 text-xs text-muted-foreground tabular-nums">
           You've given {member.lifetime.given.toLocaleString()} kudos and received {member.lifetime.received.toLocaleString()}.
         </p>
+        {hasSkillPointsToSpend(member) && <SpendSkillPoints points={member.skillPoints} />}
         <div className="mt-4 w-full border-t pt-4">
           <MaxLine>{weekInWords(member.thisWeek)}</MaxLine>
         </div>
@@ -102,6 +108,19 @@ function KudosLeftToday({ allowance: { left, base, refillsAt } }: { allowance: M
         Refills at <time dateTime={refill.toISOString()}>{refill.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time>
       </span>
     </div>
+  );
+}
+
+function hasSkillPointsToSpend(member: MemberProfile): member is MemberProfile & { skillPoints: number } {
+  return member.skillPoints !== null && member.skillPoints > 0;
+}
+
+function SpendSkillPoints({ points }: { points: number }) {
+  return (
+    <AppLink href={pageOf("skillTree").href} className={`mt-4 ${buttonVariants({ variant: "outline" })}`}>
+      <SkillPointGlyph className="size-4" />
+      Spend {skillPointsText(points)}
+    </AppLink>
   );
 }
 

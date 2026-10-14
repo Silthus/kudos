@@ -1,0 +1,19 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/hero-spend/website
+
+ ❯ |website| src/HomePage.test.tsx (34 tests | 4 failed) 7888ms
+   ❯ WS313 V4: spending skill points from the hero (6)
+     × offers Spend 2 skill points as an outline link to /skills after the allowance row, while the Skill tree panel keeps its count 246ms
+     × offers Spend 1 skill point as an outline link to /skills after the allowance row, while the Skill tree panel keeps its count 173ms
+     × keeps the page's one primary action on the hero's Slack link, or on the first-kudos nudge while it shows 273ms
+     × leads to the Skill tree page 129ms
+ ❯ |website| src/levelContrast.test.tsx (20 tests | 2 failed) 14515ms
+   ❯ WS313 WS339 V24: the hero's spend link glyph meets 3:1 in both modes (2)
+     × in light 1904ms
+     × in dark 274ms
+
+ Test Files  2 failed (2)
+      Tests  6 failed | 48 passed (54)
+   Start at  17:03:33
+   Duration  17.80s (tests 79%, import 11%, environment 6%, transform 4%, setup 1%)
+
