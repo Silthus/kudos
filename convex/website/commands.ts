@@ -1,11 +1,13 @@
 import { v } from "convex/values";
 import { runCommand } from "../commands/commands";
 import { republish } from "../feedback/homes";
+import { isOnTheBoards } from "../leaderboard/visibility";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
 import type { Refusal } from "../progression/purchases";
 import { perkValidator } from "../progression/tree";
 import { journeyStartedFor, questsApplyTo } from "../quests/flag";
-import { questValidator } from "../quests/step";
+import { questValidator, weeklyQuestValidator } from "../quests/step";
+import { swappedSlotIn } from "../quests/weekly";
 import { featureValidator } from "../unlocks/feature";
 import { unlockPathShownTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
@@ -13,13 +15,17 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { workspaceLaunchDueIn } from "./flag";
 import { memberMutation } from "./memberMutation";
 import type { VerifiedMember } from "./memberQuery";
-import { featurePageOf, unlockPathOf } from "./unlockPath";
+import { featurePageOf, leaderboardStateOf, unlockPathOf } from "./unlockPath";
 
 export type CommandAnswer = { kind: "opened" } | { kind: "refused" };
+
+export type SwapAnswer = { kind: "swapped" } | { kind: "refused" };
 
 export type PurchaseRefusal = "owned" | "level" | "requires" | "points" | "not-open";
 
 export type PurchaseAnswer = { kind: "bought" } | { kind: "refused"; reason: PurchaseRefusal | null };
+
+export type VisibilityAnswer = { kind: "set"; visible: boolean } | { kind: "refused" };
 
 const opened: CommandAnswer = { kind: "opened" };
 const refused: CommandAnswer = { kind: "refused" };
@@ -43,6 +49,17 @@ export const openQuestCrate = memberMutation({
     if ((await crateOpeningOf(ctx, me.member, rewardKeyOf(quest))) === null) return refused;
     await republish(ctx, me.member);
     return opened;
+  },
+});
+
+export const swapQuest = memberMutation({
+  args: { quest: weeklyQuestValidator },
+  handler: async (ctx, me, person, { quest }): Promise<SwapAnswer> => {
+    if (!(await questsOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
+    await runCommand(ctx, me.workspace, person, { type: "rerollQuest", quest }, `website:swapQuest:${me.member}:${quest.week}:${quest.slot}`);
+    if ((await swappedSlotIn(ctx, me.member, quest.week)) !== quest.slot) return refused;
+    await republish(ctx, me.member);
+    return { kind: "swapped" };
   },
 });
 
@@ -71,6 +88,18 @@ export const buyPerk = memberMutation({
   },
 });
 
+export const setBoardVisibility = memberMutation({
+  args: { visible: v.boolean() },
+  handler: async (ctx, me, person, { visible }): Promise<VisibilityAnswer> => {
+    if (!(await boardOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
+    const before = await isOnTheBoards(ctx, me.member);
+    await runCommand(ctx, me.workspace, person, { type: "setLeaderboardVisibility", visible }, `website:setBoardVisibility:${me.member}`);
+    const stored = await isOnTheBoards(ctx, me.member);
+    if (stored !== before) await republish(ctx, me.member);
+    return { kind: "set", visible: stored };
+  },
+});
+
 function queryOnly({ db, ...rest }: MutationCtx): QueryCtx {
   return { ...rest, db: { get: db.get.bind(db), query: db.query.bind(db), normalizeId: db.normalizeId.bind(db), system: db.system } };
 }
@@ -85,6 +114,10 @@ async function treeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember
   return featurePageOf(await unlockPathOf(ctx, me), "skillTree").kind === "open" && (await noLaunchWaitsFor(ctx, me));
 }
 
+async function boardOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
+  return (await leaderboardStateOf(ctx, me, await unlockPathOf(ctx, me))).kind === "open" && (await noLaunchWaitsFor(ctx, me));
+}
+
 async function launchesRecordedFor(ctx: QueryCtx, me: VerifiedMember) {
   return (await unlockPathShownTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
 }
@@ -92,6 +125,10 @@ async function launchesRecordedFor(ctx: QueryCtx, me: VerifiedMember) {
 async function noLaunchWaitsFor(ctx: QueryCtx, me: VerifiedMember) {
   if (await workspaceLaunchDueIn(ctx, me.workspace)) return false;
   return !(await questsApplyTo(ctx, me.member)) || (await journeyStartedFor(ctx, me.member)) !== null;
+}
+
+async function questsOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
+  return (await questsLaunchedFor(ctx, me)) && (await stateOf(ctx, me.member, "quests")) === "open";
 }
 
 async function questsLaunchedFor(ctx: QueryCtx, me: VerifiedMember) {

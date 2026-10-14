@@ -56,6 +56,13 @@
   stroke-width: 5;
 }
 
+.crate-edge {
+  fill: none;
+  stroke: var(--crate-edge, transparent);
+  stroke-width: 11;
+  stroke-linejoin: round;
+}
+
 .crate-glyph-line {
   stroke-width: 1.5;
 }
@@ -106,7 +113,8 @@
 
 .moment-scrim {
   background: color-mix(in oklab, var(--band-night) 96%, transparent);
-  color: #ffffff;
+  color: var(--band-night-ink);
+  --crate-edge: var(--band-night-edge);
 }
 
 .moment-scrim:focus-visible {
@@ -138,6 +146,9 @@
   }
   .moment-end {
     animation: moment-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .moment-scrim[data-motion="full"] .moment-line {
+    animation: moment-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) var(--line-delay, 0s) both;
   }
 }
 
@@ -247,5 +258,158 @@
   to {
     opacity: 0.7;
     transform: translate(-50%, -50%) scale(1) rotate(24deg);
+  }
+}
+
+.reward-flight {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.reward-flight-chip,
+.reward-flight-particle {
+  position: absolute;
+  animation: reward-flight 0.7s cubic-bezier(0.5, 0, 0.7, 1) var(--delay, 0ms) both;
+}
+
+.reward-flight-chip {
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  white-space: nowrap;
+  border-radius: 9999px;
+  background: var(--foreground);
+  color: var(--background);
+  box-shadow: 0 0 0 2px var(--card);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.reward-flight-particle {
+  left: calc(50% - var(--size, 6px) / 2 + var(--spread, 0px));
+  top: calc(50% - var(--size, 6px) / 2);
+  width: var(--size, 6px);
+  height: var(--size, 6px);
+  border-radius: 9999px;
+  background: var(--foreground);
+  box-shadow: 0 0 0 2px var(--card);
+}
+
+@keyframes reward-flight {
+  from {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(calc(var(--flight-x) * 0.3), calc(var(--flight-y) * 0.7 + var(--arc, -40px))) scale(0.9);
+    opacity: 1;
+  }
+  85% {
+    transform: translate(calc((var(--flight-x) - var(--spread, 0px)) * 0.9), calc(var(--flight-y) * 0.92)) scale(0.6);
+    opacity: 1;
+  }
+  to {
+    transform: translate(calc(var(--flight-x) - var(--spread, 0px)), var(--flight-y)) scale(0.4);
+    opacity: 0;
+  }
+}
+
+.reward-landed {
+  animation: reward-landed 0.32s ease-out;
+}
+
+@keyframes reward-landed {
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+[data-xp-bar].reward-landed {
+  animation: reward-bar-landed 0.4s ease-out;
+}
+
+@keyframes reward-bar-landed {
+  40% {
+    transform: scaleY(1.5);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--foreground) 25%, transparent);
+  }
+}
+
+.reward-filling [data-arc] {
+  animation: reward-fill-arc 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.reward-filling [data-xp-fill] {
+  animation: reward-fill-bar 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes reward-fill-arc {
+  from {
+    stroke-dasharray: var(--reward-from) 100;
+  }
+}
+
+@keyframes reward-fill-bar {
+  from {
+    width: calc(var(--reward-from) * 1%);
+  }
+}
+
+.reward-levelling [data-arc] {
+  animation: reward-level-arc 1.2s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+
+.reward-levelling [data-xp-fill] {
+  animation: reward-level-bar 1.2s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+
+@keyframes reward-level-arc {
+  from {
+    stroke-dasharray: var(--reward-from) 100;
+  }
+  45%,
+  49.9% {
+    stroke-dasharray: 100 100;
+  }
+  50% {
+    stroke-dasharray: 0 100;
+  }
+}
+
+@keyframes reward-level-bar {
+  from {
+    width: calc(var(--reward-from) * 1%);
+  }
+  45%,
+  49.9% {
+    width: 100%;
+  }
+  50% {
+    width: 0%;
+  }
+}
+
+.reward-faded {
+  animation: moment-fade 0.2s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reward-flight {
+    visibility: hidden;
+  }
+
+  .reward-flight-chip,
+  .reward-flight-particle,
+  .reward-landed {
+    animation: none;
+  }
+
+  .reward-filling :is([data-arc], [data-xp-fill]),
+  .reward-levelling :is([data-arc], [data-xp-fill]),
+  [data-xp-bar].reward-landed {
+    animation: none;
   }
 }

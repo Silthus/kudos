@@ -2,6 +2,7 @@ import { act, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
+import { navEntryNames as screenNav } from "./test/screensNav";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 beforeEach(() => {
@@ -16,12 +17,6 @@ function main() {
   return screen.getByRole("main");
 }
 
-function screenNav() {
-  return within(screen.getByRole("navigation", { name: "Screens" }))
-    .getAllByRole("link")
-    .map((link) => link.textContent);
-}
-
 function dialog() {
   return screen.queryByRole("dialog");
 }
@@ -31,18 +26,18 @@ describe("WS81: the pages join the nav, the home and the crate", () => {
 
   it("lists each open feature with a web page in schedule order", () => {
     renderApp(shellFixtures.memberWithEveryFeatureOpen);
-    expect(screenNav()).toEqual(["Home", "Leaderboard", "Book", "Skill tree"]);
+    expect(screenNav()).toEqual(["Profile", "Leaderboard", "Book", "Skill tree"]);
   });
 
   it.each([
-    ["Skill tree", "/skills", "Spend skill points on perks you choose."],
-    ["Book", "/book", "See the tiers you've earned."],
-  ])("links the home's open %s card to its page with its sentence and no count", (name, href, sentence) => {
+    ["Skill tree", "Open the Skill tree", "/skills", "2 skill points to spend"],
+    ["Book", "Open the Book", "/book", "See the tiers you've earned."],
+  ])("links the home's open %s panel to its page under its line", (name, link, href, line) => {
     renderApp(shellFixtures.memberWithEveryFeatureOpen);
-    const card = within(within(main()).getByRole("region", { name: "Open" })).getByRole("link", { name: new RegExp(name) });
-    expect(card).toHaveAttribute("href", href);
-    expect(card).toHaveTextContent(sentence);
-    expect(card).not.toHaveTextContent(/\d|Slack/);
+    const panel = within(main()).getByRole("region", { name });
+    expect(within(panel).getByRole("link", { name: link })).toHaveAttribute("href", href);
+    expect(panel).toHaveTextContent(line);
+    expect(panel).not.toHaveTextContent(/Slack/);
   });
 
   it("no longer points the open Skill tree to Slack's App Home", () => {
@@ -67,7 +62,7 @@ describe("WS82: the Book's card names only what has shipped", () => {
   it("says the Book holds achievements, and names no stickers or albums", () => {
     visit("/");
     renderApp(shellFixtures.memberWaitingForTheBook);
-    const card = within(main()).getByRole("heading", { level: 3, name: "Book" }).closest("article")!;
+    const card = within(main()).getByRole("region", { name: "Book" });
     expect(card).toHaveTextContent("Achievements you earn as you thank colleagues and they thank you.");
     expect(main()).not.toHaveTextContent(/sticker|album/i);
   });

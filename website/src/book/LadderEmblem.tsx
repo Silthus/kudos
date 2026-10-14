@@ -1,6 +1,7 @@
 import { HedgehogExplorer, HedgehogHandClasp, HedgehogHeart, HedgehogHourglass, HedgehogOrganized, HedgehogStar, HedgehogSuccess } from "@posthog/brand/hoggies";
 import type { Hoggie } from "../features";
-import type { LadderCard } from "../shell";
+import type { LadderCard, TierId } from "../shell";
+import { Rosette } from "./Rosette";
 
 const emblems: Record<LadderCard["ladder"], Hoggie> = {
   generosity: HedgehogHeart,
@@ -12,11 +13,18 @@ const emblems: Record<LadderCard["ladder"], Hoggie> = {
   "old-friends": HedgehogHandClasp,
 };
 
-export function LadderEmblem({ ladder, earned }: { ladder: LadderCard["ladder"]; earned: boolean }) {
-  const Hog = emblems[ladder];
+export function LadderEmblem({ ladder, best, size = 72 }: { ladder: LadderCard["ladder"]; best: TierId | null; size?: number }) {
+  const Hog = emblemOf(ladder);
   return (
-    <span data-emblem={earned ? "earned" : "silhouette"} aria-hidden="true" className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted">
-      <Hog size={56} title="" className={earned ? "translate-y-1" : "book-silhouette translate-y-1"} />
+    <span data-emblem={best === null ? "silhouette" : "earned"} aria-hidden="true" className="relative grid shrink-0 place-items-center" style={{ width: size, height: size }}>
+      <Rosette tier={best} />
+      <span className="absolute inset-[15%] grid place-items-center overflow-hidden rounded-full">
+        <Hog size={Math.round(size * 0.8)} title="" className={`max-w-none translate-y-[8%] ${best === null ? "book-silhouette" : ""}`} />
+      </span>
     </span>
   );
+}
+
+function emblemOf(ladder: string): Hoggie {
+  return Object.hasOwn(emblems, ladder) ? emblems[ladder as LadderCard["ladder"]] : HedgehogStar;
 }

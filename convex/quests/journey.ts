@@ -11,6 +11,7 @@ import {
   type KudosGivenEvent,
 } from "../bus/events";
 import type { DayKey } from "../engine/allowance";
+import type { MessageRef } from "../engine/messageEvent";
 import { firstThanksOf, givenBetween, lastThankedBefore, lastThankedBy, type DatedAward } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { notifyQuestFinished } from "../feedback/notify";
@@ -111,25 +112,25 @@ export async function journeyStepsApplyingIn(ctx: QueryCtx, workspace: string): 
   return steps;
 }
 
-export async function finishFirstQuestOnWeeklyFinished(ctx: MutationCtx, workspace: string, member: MemberId, at: number): Promise<JourneyActivation | null> {
+export async function finishFirstQuestOnWeeklyFinished(ctx: MutationCtx, workspace: string, member: MemberId, at: number, cause?: MessageRef): Promise<JourneyActivation | null> {
   const firstQuest = await activationOf(ctx, member, "first-quest");
-  return firstQuest !== null && firstQuest.activatedAt <= at ? finishedOrNull(ctx, workspace, firstQuest, at) : null;
+  return firstQuest !== null && firstQuest.activatedAt <= at ? finishedOrNull(ctx, workspace, firstQuest, at, cause) : null;
 }
 
 async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<JourneyActivation | null> {
   const firstThanks = await activated(ctx, event.workspace, event.giver, "first-thanks", event.at, catalogue);
-  return gateDecisionOf(event.annotations)?.thoughtful === true ? finishedOrNull(ctx, event.workspace, firstThanks, event.at) : null;
+  return gateDecisionOf(event.annotations)?.thoughtful === true ? finishedOrNull(ctx, event.workspace, firstThanks, event.at, event.message) : null;
 }
 
 async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent): Promise<JourneyActivation | null> {
   const someoneNew = await activationOf(ctx, event.giver, "someone-new");
   if (someoneNew === null || event.at < someoneNew.activatedAt || (await isFinished(ctx, someoneNew))) return null;
   const lastThanked = await lastThankedBefore(ctx, event.awards);
-  return [...lastThanked.values()].includes(null) ? finishedOrNull(ctx, event.workspace, someoneNew, event.at) : null;
+  return [...lastThanked.values()].includes(null) ? finishedOrNull(ctx, event.workspace, someoneNew, event.at, event.message) : null;
 }
 
-async function finishedOrNull(ctx: MutationCtx, workspace: string, activation: JourneyActivation, at: number): Promise<JourneyActivation | null> {
-  return (await finish(ctx, workspace, activation, at)) ? activation : null;
+async function finishedOrNull(ctx: MutationCtx, workspace: string, activation: JourneyActivation, at: number, cause?: MessageRef): Promise<JourneyActivation | null> {
+  return (await finish(ctx, workspace, activation, at, cause)) ? activation : null;
 }
 
 async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent): Promise<JourneyActivation | null> {
@@ -138,9 +139,16 @@ async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent): Promise
   if (!(await journeyStepAppliesIn(ctx, event.workspace, "two-days")) || (await isFinished(ctx, twoDays))) return null;
   const counted = twoDays.sayingWhy;
   const days = new Set<DayKey>([event.day, ...(counted === undefined ? [] : [counted.day]), ...(await daysSayingWhyBeforeActivation(ctx, twoDays, event.at))]);
-  if (days.size >= daysSayingWhyToFinishTwoDays) return finishedOrNull(ctx, event.workspace, twoDays, Math.max(event.at, counted?.at ?? event.at));
+  if (days.size >= daysSayingWhyToFinishTwoDays) {
+    const { at, cause } = finishOfTwoDays(event, counted);
+    return finishedOrNull(ctx, event.workspace, twoDays, at, cause);
+  }
   if (counted === undefined) await ctx.db.patch(twoDays._id, { sayingWhy: { day: event.day, at: event.at } });
   return null;
+}
+
+function finishOfTwoDays({ at, message }: KudosGivenEvent, counted: JourneyActivation["sayingWhy"]): { at: number; cause?: MessageRef } {
+  return counted !== undefined && counted.at > at ? { at: counted.at } : { at, cause: message };
 }
 
 async function daysSayingWhyBeforeActivation(ctx: QueryCtx, activation: Doc<"journeySteps">, until: number): Promise<DayKey[]> {
@@ -278,14 +286,14 @@ export async function activated(ctx: MutationCtx, workspace: string, member: Mem
   return activation;
 }
 
-async function finish(ctx: MutationCtx, workspace: string, activation: JourneyActivation, at: number): Promise<boolean> {
-  if (!(await finishSilently(ctx, workspace, activation, at))) return false;
+async function finish(ctx: MutationCtx, workspace: string, activation: JourneyActivation, at: number, cause?: MessageRef): Promise<boolean> {
+  if (!(await finishSilently(ctx, workspace, activation, at, cause))) return false;
   await notifyQuestFinished(ctx, activation.member, { kind: "journey", step: activation.step }, activation.reward.xp);
   return true;
 }
 
-export function finishSilently(ctx: MutationCtx, workspace: string, { member, step, reward, catalogueVersion }: JourneyActivation, at: number): Promise<boolean> {
-  return finishQuest(ctx, workspace, member, { kind: "journey", step }, { reward, catalogueVersion }, at);
+export function finishSilently(ctx: MutationCtx, workspace: string, { member, step, reward, catalogueVersion }: JourneyActivation, at: number, cause?: MessageRef): Promise<boolean> {
+  return finishQuest(ctx, workspace, member, { kind: "journey", step }, { reward, catalogueVersion }, at, cause);
 }
 
 function activationOf(ctx: QueryCtx, member: MemberId, step: JourneyStep) {

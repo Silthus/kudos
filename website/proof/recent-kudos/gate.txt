@@ -1,0 +1,61 @@
+pnpm gate via fleet heavy on c40db9f0 (merged with main at 63692f5)
+      totality oracle "the website shows only shipped features" over getMyProfile with skill-tree off for a member past level 5, with skill-tree on for a member at level 5, with everyone-board off, and with no feature shipped; getSkillTree and getMyProfile's skillPoints with the tree's ship flag switched off after a member opened the tree and bought spark, and with that flag on before unlocks launched: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: featureCardsOf listed every scheduled feature instead of unlocks' shipped ones
+      refuted 2026-10-14: getSkillTree read progression's memberPerksOf whatever the page state instead of the flag-gated perksOf read
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  a website board row carries only what a board shows  invariant
+      totality oracle "a website board row carries only what a board shows" over getLeaderboard's board with a member who left the boards seen by themselves and by another member, a member who only received, a former member, and a member without a display name: verified 2026-10-13
+      crossing browser -> domain
+      refuted 2026-10-13: getLeaderboard's rows also carried the member's ID
+      kinds read: 2 shapes apply, 2 declared, 0 dismissed
+  a member's activity holds only kudos they gave or received  invariant
+      totality oracle "AT14 AT28: a member's activity holds only kudos they gave or received" over getActivity and getRecentKudos in both directions for a member beside a private-channel kudos between two other members and one kudos to the member: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: awardsReceivedNewestFirst read the whole recipient index instead of the member's own awards
+      kinds read: 2 shapes apply, 2 declared, 0 dismissed
+  the spotlight draws only public, said-why kudos of the member's workspace  invariant
+      totality oracle "AT31 AT34: the spotlight draws only public, said-why kudos of the member's workspace" over getSpotlight from a seed and through Next beside a private-channel kudos, a bare kudos, a kudos that gave nothing, a backfilled kudos with unknown visibility and another workspace's kudos, after an edit drops the reason, after a deletion in Slack, after the author leaves Slack, and while and after a giver or recipient leaves the leaderboards: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: drawableKudosOf no longer required the kudos text's visibility to be public
+      kinds read: 2 shapes apply, 2 declared, 0 dismissed
+Welcome  convex/welcome/Welcome.spec.md
+  welcomed at most once  invariant
+      totality oracle "a member is welcomed at most once, whatever Slack redelivers and whichever awards follow" over the welcome messages sent for a first Given award, a redelivery of the Slack event that gave it, and later awards that name the same members as giver or recipient: verified 2026-10-13
+      refuted 2026-10-13: removed the isWelcomed check in welcomeNewMembers
+      kinds message, state: 15 shapes apply, 2 declared, 13 dismissed
+Workspace  convex/workspace/Workspace.spec.md
+  only admins set the announcement channel  invariant
+      totality oracle "P69: only workspace admins and owners set the announcement channel" over setAnnouncementChannel commands from a member who isn't an admin, sent as a channel pick and as a button the member never saw, and from an admin removed by a later user_change: verified 2026-10-13
+      crossing slack-request -> domain
+      refuted 2026-10-13: setAnnouncementChannel no longer checked that the member is an admin
+      kinds identity, state: 10 shapes apply, 1 declared, 9 dismissed
+Website  website/Website.spec.md
+  a kudos message renders as text  invariant
+      totality oracle "a kudos message renders as text" over KudosMessage in website/src/activity/KudosMessage.tsx, the one renderer every surface hands a Message to, for text segments holding a script tag, an img tag with an onerror handler and HTML entities, and links with javascript: and data: URLs, with live links and clamped: verified 2026-10-14
+      crossing domain -> browser
+      refuted 2026-10-14: let isWebAddress accept every scheme
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
+20 components, 126 bullets: 126 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T13:44:37.238Z (750 runs)
+defects: 23 recorded, 20 closed (4 guarded, 16 decided, 0 with neither); 0 guard failures
+RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:13  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:16  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:18  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:15  "super kudos"  rejected for chime-in; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:24  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:25  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:29  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:56  "badge"  rejected for achievement; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:56  "badge"  rejected for achievement; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:56  "badge"  rejected for achievement; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:57  "super kudos"  rejected for chime-in; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
+ADVISORY       255 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 90, contract 31, receipt 31, panel 25, zone 22; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (710 files), 17 in records
+exit 0

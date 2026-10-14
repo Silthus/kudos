@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
-import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
+import { FakeSlack, isWelcome, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, readBlocks, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { settle, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, messageChangedEvent, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { notifyJourneyJoined, notifyQuestFinished, notifyWeeklyQuestFinished } from "../feedback/notify";
@@ -92,6 +92,7 @@ describe("SW13 SW14 SW18: the success reply ends its extras line with a link to 
 describe("SW16: replies other than a success and public messages carry no link", () => {
   test("the over-allowance and invalid replies, the edited-message reply and the public reply name no website page", async () => {
     const t = await workspaceDeciding("xp-levels", "website", "everyone-board");
+    await setWorkspaceSettings(t, { announcementChannel: "C_NEWS" });
     await giveKudos(t, "U_ALICE", ["U_BOB"], 11);
     await giveKudos(t, "U_ALICE", ["U_ALICE"]);
     await giveKudos(t, "U_ALICE", ["U_BOB"], 2);
@@ -105,23 +106,24 @@ describe("SW16: replies other than a success and public messages carry no link",
 });
 
 describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after its own checks, while the website is open", () => {
-  test("the welcome DM's last line links to the website, after the App Home link", async () => {
+  test("the welcome DM links to the website with See your progress, before the App Home link", async () => {
     const t = await workspaceDeciding("website");
 
     await giveKudos(t, "U_ALICE", ["U_BOB"]);
 
     const welcome = welcomeLinesTo("U_ALICE");
-    expect(welcome.at(-2)).toBe("<slack://app?team=T1&id=A_KUDOS&tab=home|Open App Home>");
-    expect(welcome.at(-1)).toBe(`<${siteUrl}/|Open HedgeHug on the web>`);
+    expect(welcome.at(-2)).toBe(`<${siteUrl}/|See your progress>`);
+    expect(welcome.at(-1)).toBe("<slack://app?team=T1&id=A_KUDOS&tab=home|Open App Home>");
   });
 
-  test.each(closed)("$condition, the welcome DM ends with the App Home link, as today", async ({ flags, env = {} }) => {
+  test.each(closed)("$condition, the welcome DM ends with the App Home link and has no website", async ({ flags, env = {} }) => {
     stubbed(env);
     const t = await workspaceDeciding(...flags);
 
     await giveKudos(t, "U_ALICE", ["U_BOB"]);
 
     expect(welcomeLinesTo("U_ALICE").at(-1)).toBe("<slack://app?team=T1&id=A_KUDOS&tab=home|Open App Home>");
+    expect(welcomeLinesTo("U_ALICE").join("\n")).not.toContain(siteUrl);
   });
 
   test("the level-up DM's last line links to the member's level on the web", async () => {
@@ -291,12 +293,12 @@ function channelPosts() {
 }
 
 function welcomeLinesTo(user: string) {
-  const welcome = slack.callsTo("chat.postMessage").find(({ channel, text }) => channel === user && String(text).startsWith("👋 Welcome"));
+  const welcome = slack.callsTo("chat.postMessage").find(({ channel, text }) => channel === user && isWelcome({ text }));
   return String(welcome?.text).split("\n");
 }
 
 function dmsTo(user: string) {
-  return slack.callsTo("chat.postMessage").filter(({ channel, text }) => channel === user && !String(text).startsWith("👋 Welcome"));
+  return slack.callsTo("chat.postMessage").filter(({ channel, text }) => channel === user && !isWelcome({ text }));
 }
 
 function readDm(dm: Record<string, unknown>) {

@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { HedgehogExplorer, HedgehogMoney, HedgehogOrganized, HedgehogReading, HedgehogStar, HedgehogWizard } from "@posthog/brand/hoggies";
 import { IconBook, IconListTree, IconStar, IconTarget } from "@posthog/icons";
+import { perkOf } from "../../convex/progression/tree";
 import type { Screen } from "./route";
 import type { Feature, MemberProfile } from "./shell";
 
@@ -9,8 +10,6 @@ export type Hoggie = ComponentType<{ size?: number; title?: string; className?: 
 export type About = { sentence: string; Hog: Hoggie };
 
 export type WebPage = { screen: Screen; href: string; sentence: string; Icon: ComponentType<{ className?: string }> };
-
-export type OpenWebPage = WebPage & { feature: Feature; name: string };
 
 const plainNames: Record<Feature, string> = {
   quests: "Quests",
@@ -21,7 +20,9 @@ const plainNames: Record<Feature, string> = {
   hedgehogs: "Hedgehogs",
 };
 
-export const plainFeatures = Object.entries(plainNames).map(([feature, name]) => ({ feature: feature as Feature, name }));
+export function plainNameOf(feature: Feature): string {
+  return plainNames[feature];
+}
 
 const about: Record<Feature, About> = {
   quests: { sentence: "Weekly quests of your own.", Hog: HedgehogOrganized },
@@ -32,27 +33,42 @@ const about: Record<Feature, About> = {
   hedgehogs: { sentence: "Hedgehogs to collect, and one to pick as your avatar.", Hog: HedgehogExplorer },
 };
 
-const webPages: Partial<Record<Feature, WebPage>> = {
+const webPages = {
   leaderboard: { screen: "leaderboard", href: "/leaderboard", sentence: "See who's thanking colleagues this week.", Icon: IconStar },
   quests: { screen: "quests", href: "/quests", sentence: "Your quests this week.", Icon: IconTarget },
   book: { screen: "book", href: "/book", sentence: "See the tiers you've earned.", Icon: IconBook },
   skillTree: { screen: "skills", href: "/skills", sentence: "Spend skill points on perks you choose.", Icon: IconListTree },
+} satisfies Partial<Record<Feature, WebPage>>;
+
+export type PagedFeature = keyof typeof webPages;
+
+const spark = perkOf("spark");
+
+const waits: Record<PagedFeature, string[]> = {
+  quests: ["Three quests of your own each week, new every Monday", "Swap one of them once a week", "XP for each quest you finish"],
+  leaderboard: ["Who's thanking colleagues most this week, this month and of all time", "Only kudos given count, never kudos received"],
+  book: ["Achievements for the thanks you give and the thanks you get", "Bronze, silver, gold and diamond tiers on every ladder"],
+  skillTree: ["Your first skill point to spend, and one more each level", `${spark.name}: ${spark.copy}`],
 };
+
+export function waitsOf(feature: Feature): string[] {
+  return hasWebPage(feature) ? waits[feature] : [];
+}
 
 export function aboutOf(feature: Feature): About {
   return about[feature];
 }
 
 export function webPageOf(feature: Feature): WebPage | undefined {
+  return hasWebPage(feature) ? webPages[feature] : undefined;
+}
+
+export function pageOf(feature: PagedFeature): WebPage {
   return webPages[feature];
 }
 
-export function openWebPagesOf({ features, leaderboard }: Pick<MemberProfile, "features" | "leaderboard">): OpenWebPage[] {
-  const open = features ?? (leaderboard.kind === "open" ? [{ feature: "leaderboard" as const, name: plainNames.leaderboard, state: "open" as const }] : []);
-  return open.flatMap(({ feature, name, state }) => {
-    const page = webPageOf(feature);
-    return state === "open" && page !== undefined ? [{ ...page, feature, name }] : [];
-  });
+function hasWebPage(feature: Feature): feature is PagedFeature {
+  return feature in webPages;
 }
 
 export function readyFeaturesOf({ features }: Pick<MemberProfile, "features">) {

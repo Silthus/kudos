@@ -1,0 +1,11 @@
+1. **Fixed:** Notices now update a separate status region, leaving the atomic thank-you region unchanged. The old thank-you is no longer included in the notice announcement.
+
+2. **Fixed:** Each completed attempt increments `attempts`, replacing the notice span or failed-draw Max line even when its text repeats. The buttons remain outside keyed content, preserving focus during repeated outcomes.
+
+3. **Fixed:** Resolved and rejected reads check their captured mount. Abandoned attempts stop without following skipped answers or updating state. StrictMode’s active attempt independently clears `drawing` when it settles.
+
+No new findings. The status region mounts empty, and changing thank-yous does not remount the Next button.
+
+Source review only; tests could not run because dependencies are absent.
+
+VERDICT: ship

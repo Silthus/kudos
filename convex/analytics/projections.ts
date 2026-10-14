@@ -51,6 +51,7 @@ export type ProductEvent = {
     | "leaderboard left"
     | "leaderboard joined"
     | "primary group picked"
+    | "profile card viewed"
     | "$feature_flag_called";
   subject: { member: MemberId };
   at: number;
@@ -62,7 +63,8 @@ export type UsageFact =
   | { kind: "commandUsed"; workspace: string; member: MemberId; alias: boolean; result: KudosCommandResult; at: number }
   | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: ViewedBoard; period: Period; surface: LeaderboardSurface; at: number }
   | { kind: "leaderboardVisibilityChanged"; workspace: string; member: MemberId; visible: boolean; at: number }
-  | { kind: "primaryGroupPicked"; workspace: string; member: MemberId; surface: PickSurface; at: number };
+  | { kind: "primaryGroupPicked"; workspace: string; member: MemberId; surface: PickSurface; at: number }
+  | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number };
 
 export type PickSurface = "welcome" | "settings";
 
@@ -223,5 +225,7 @@ export function projectUsage(fact: UsageFact): ProductEvent {
       return { event: fact.visible ? "leaderboard joined" : "leaderboard left", subject, at: fact.at, properties: {} };
     case "primaryGroupPicked":
       return { event: "primary group picked", subject, at: fact.at, properties: { surface: fact.surface } };
+    case "profileCardViewed":
+      return { event: "profile card viewed", subject, at: fact.at, properties: { own: fact.own, surface: fact.surface } };
   }
 }

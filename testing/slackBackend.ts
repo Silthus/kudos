@@ -1,11 +1,13 @@
 import staticHostingComponent from "@convex-dev/static-hosting/test";
 import postHogComponent from "@posthog/convex/test";
 import { convexTest } from "convex-test";
+import type { GenericDatabaseReader } from "convex/server";
 import { vi } from "vitest";
+import type { DataModel } from "../convex/_generated/dataModel";
 import schema from "../convex/schema";
 import { modules } from "../convex/test.setup";
 import { signedRequest } from "./signedSlack";
-import { memberEvent, messageChangedEvent, messageDeletedEvent, messageEvent, type EditOptions, type MessageOptions, type RichElement } from "./slackMessages";
+import { memberEvent, messageChangedEvent, messageDeletedEvent, messageEvent, threadParentDeletedEvent, type DeletionOptions, type EditOptions, type MessageOptions, type RichElement } from "./slackMessages";
 
 export type Backend = ReturnType<typeof testBackend>;
 
@@ -27,8 +29,12 @@ export async function edit(t: Backend, blocks: RichElement[], options: EditOptio
   return t.fetch("/slack/events", await signedRequest(messageChangedEvent(blocks, options)));
 }
 
-export async function deleteMessage(t: Backend, options: Parameters<typeof messageDeletedEvent>[0] = {}) {
+export async function deleteMessage(t: Backend, options: DeletionOptions = {}) {
   return t.fetch("/slack/events", await signedRequest(messageDeletedEvent(options)));
+}
+
+export async function deleteThreadParent(t: Backend, options: DeletionOptions = {}) {
+  return t.fetch("/slack/events", await signedRequest(threadParentDeletedEvent(options)));
 }
 
 export async function memberChanged(t: Backend, ...event: Parameters<typeof memberEvent>) {
@@ -60,6 +66,31 @@ export async function settleUntil(t: Backend, until: Date) {
   }
 }
 
+export async function convexStops(t: Backend, functionName: string) {
+  await t.run(async (ctx) => {
+    for (const job of await pendingJobsOf(ctx, functionName)) await ctx.scheduler.cancel(job._id);
+  });
+}
+
+export function pendingJobs(t: Backend, functionName: string) {
+  return t.run(async (ctx) => (await pendingJobsOf(ctx, functionName)).length);
+}
+
+async function pendingJobsOf(ctx: { db: GenericDatabaseReader<DataModel> }, functionName: string) {
+  return (await ctx.db.system.query("_scheduled_functions").collect()).filter((job) => job.name === functionName && job.state.kind === "pending");
+}
+
+export async function setWorkspaceSettings(t: Backend, settings: { kudosEmoji?: string; announcementChannel?: string }, workspace = "T1") {
+  await t.run(async (ctx) => {
+    const row = await ctx.db
+      .query("workspaces")
+      .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
+      .unique();
+    if (row === null) await ctx.db.insert("workspaces", { workspace, ...settings });
+    else await ctx.db.patch(row._id, settings);
+  });
+}
+
 export async function kudosReceived(t: Backend, user: string) {
   const awards = await awardsTo(t, user);
   return awards.reduce((sum, award) => sum + award.kudos, 0);
@@ -86,9 +117,12 @@ export async function kudosSpent(t: Backend) {
   });
 }
 
-export async function everythingStored(t: Backend) {
+type Table = keyof typeof schema.tables;
+
+export async function everythingStored(t: Backend, { except = [] }: { except?: Table[] } = {}) {
+  const tables = (Object.keys(schema.tables) as Table[]).filter((table) => !except.includes(table));
   return t.run(async (ctx) => {
-    const tables = await Promise.all(Object.keys(schema.tables).map((table) => ctx.db.query(table as keyof typeof schema.tables).collect()));
-    return tables.flat();
+    const rows = await Promise.all(tables.map((table) => ctx.db.query(table).collect()));
+    return rows.flat();
   });
 }

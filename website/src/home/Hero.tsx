@@ -1,21 +1,24 @@
 import { useId } from "react";
+import { useCountUp } from "../countUp";
+import { heroRingAttributes, heroXpBarAttributes } from "../crates/RewardFlight";
 import { MemberFace } from "../Face";
 import { LevelRing, levelShare } from "../LevelRing";
 import { MaxLine } from "../Max";
 import { PageTitle } from "../PageTitle";
+import { hasGivenNoKudos } from "./FirstKudosNudge";
 import { SlackLink } from "../SlackLink";
 import type { MemberProfile, Progression } from "../shell";
 
 export function Hero({ member }: { member: MemberProfile }) {
   const { progression } = member;
   return (
-    <section aria-labelledby="home-title" className="hud-panel relative flex flex-col items-center gap-6 rounded-xl border bg-card p-6 text-center sm:flex-row sm:gap-7 sm:text-left">
+    <section aria-labelledby="home-title" className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:gap-7 sm:py-4 sm:text-left">
       <MemberFace face={member.face} className="size-32" />
       {progression !== null && <HeroRing progression={progression} />}
       <div className="flex w-full min-w-0 flex-1 flex-col items-center sm:items-start">
         <span className="hud-label">Character</span>
         <div className="mt-1 max-w-full">
-          <PageTitle tab="Home" id="home-title" size="hero">
+          <PageTitle tab="Profile" id="home-title" size="hero">
             {member.name ?? "You"}
           </PageTitle>
         </div>
@@ -23,7 +26,7 @@ export function Hero({ member }: { member: MemberProfile }) {
           Thank someone for work you noticed. Mention them in a Slack message with :{member.kudosEmoji}: and say what they did.
         </p>
         <div className="mt-3">
-          <SlackLink chatUrl={member.chatUrl} variant="primary" size="lg">
+          <SlackLink chatUrl={member.chatUrl} variant={hasGivenNoKudos(member) ? "outline" : "primary"} size="lg">
             Thank someone in Slack
           </SlackLink>
         </div>
@@ -42,7 +45,7 @@ export function Hero({ member }: { member: MemberProfile }) {
 
 function HeroRing({ progression }: { progression: Progression }) {
   return (
-    <LevelRing progression={progression} size={120} stroke={12}>
+    <LevelRing progression={progression} size={120} stroke={12} marker={heroRingAttributes()}>
       <span className="flex flex-col items-center gap-1 leading-none">
         <span className="hud-label">Level</span>
         <span className="hud-display text-4xl font-bold tabular-nums">{progression.level}</span>
@@ -55,6 +58,7 @@ function XpBar({ progression }: { progression: Progression }) {
   const xpId = useId();
   const toNextId = useId();
   const { level, xp, levelStartsAt, nextLevelAt, xpToNextLevel } = progression;
+  const counted = useCountUp(xp);
   return (
     <div className="mt-4 w-full">
       <div
@@ -64,12 +68,13 @@ function XpBar({ progression }: { progression: Progression }) {
         aria-valuemax={nextLevelAt}
         aria-valuenow={xp}
         className="h-3 w-full overflow-hidden rounded-full border border-muted-foreground p-px"
+        {...heroXpBarAttributes()}
       >
-        <div className="h-full rounded-full bg-foreground" style={{ width: `${levelShare(progression)}%` }} />
+        <div data-xp-fill className="h-full rounded-full bg-foreground" style={{ width: `${levelShare(progression)}%` }} />
       </div>
       <div className="mt-1.5 flex justify-between gap-3 text-xs text-muted-foreground tabular-nums">
         <span id={xpId}>
-          <span className="font-medium text-foreground">{xp.toLocaleString()}</span> XP
+          <span className="font-medium text-foreground">{counted.toLocaleString()}</span> XP
         </span>
         <span id={toNextId}>
           <span className="font-medium text-foreground">{xpToNextLevel.toLocaleString()} XP</span> to level {level + 1}

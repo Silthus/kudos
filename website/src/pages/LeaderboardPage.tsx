@@ -8,13 +8,14 @@ import { Podium } from "../leaderboard/Podium";
 import { SidePanels } from "../leaderboard/SidePanels";
 import { storyOf, type Story } from "../leaderboard/story";
 import { viewerLineOf } from "../leaderboard/ViewerLine";
-import type { Leaderboard } from "../shell";
+import type { Leaderboard, ShellActions } from "../shell";
+import type { SpotlightDraw } from "../spotlightRead";
 import { PageTitle } from "../PageTitle";
 import type { Period } from "../shell";
 
-type LeaderboardPageProps = { board: Leaderboard; period: Period; onChoosePeriod: (period: Period) => void };
+type LeaderboardPageProps = { board: Leaderboard; period: Period; drawSpotlight: SpotlightDraw; onChoosePeriod: (period: Period) => void; onSetBoardVisibility: ShellActions["setBoardVisibility"] };
 
-export function LeaderboardPage({ board, period, onChoosePeriod }: LeaderboardPageProps) {
+export function LeaderboardPage({ board, period, drawSpotlight, onChoosePeriod, onSetBoardVisibility }: LeaderboardPageProps) {
   const story = storyOf(board);
   return (
     <div className="flex flex-col gap-5">
@@ -37,7 +38,7 @@ export function LeaderboardPage({ board, period, onChoosePeriod }: LeaderboardPa
           </section>
           {story !== undefined && <BoardList key={board.period} board={board} after={viewerLineOf(board)} />}
         </div>
-        <SidePanels board={board} />
+        <SidePanels board={board} drawSpotlight={drawSpotlight} onSetBoardVisibility={onSetBoardVisibility} />
       </div>
     </div>
   );
@@ -47,7 +48,7 @@ function RankedBoard({ board, story }: { board: Leaderboard; story: Story }) {
   return (
     <>
       <div className="flex flex-col gap-2">
-        <PageTitle tab="Leaderboard">{story.headline}</PageTitle>
+        <PageTitle tab="Leaderboard" size="headline">{story.headline}</PageTitle>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{story.deck}</p>
       </div>
       <Podium board={board} />

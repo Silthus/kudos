@@ -36,18 +36,23 @@ export const frontDoorLinksOf = internalQuery({
   args: { workspace: v.string(), user: v.string() },
   returns: v.union(frontDoorLinksValidator, v.null()),
   handler: async (ctx, { workspace, user }): Promise<FrontDoorLinks | null> => {
-    const site = siteOriginFor(workspace);
-    if (site === null) return null;
     const person = await lookup(ctx, workspace, user);
     const me = person?.kind === "member" ? { workspace, user, member: person.member } : undefined;
-    const door = await doorFor(ctx, me?.member);
-    if (door === null) return null;
-    const origin = door === "page" ? site : `${site}${signInEntry}`;
+    const origin = await websiteOriginFor(ctx, workspace, me?.member);
+    if (origin === null) return null;
     const open = me === undefined ? [] : await openFeaturesOf(ctx, me);
     const pages = open.flatMap((feature) => listedLinkOf(origin, feature));
     return { origin, pages };
   },
 });
+
+export async function websiteOriginFor(ctx: QueryCtx, workspace: string, member: MemberId | undefined): Promise<string | null> {
+  const site = siteOriginFor(workspace);
+  if (site === null) return null;
+  const door = await doorFor(ctx, member);
+  if (door === null) return null;
+  return door === "page" ? site : `${site}${signInEntry}`;
+}
 
 type Door = "page" | "sign-in";
 

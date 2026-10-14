@@ -6,7 +6,7 @@ import { tellTiersEarned } from "../feedback/tierNotices";
 import { isOpened } from "../feedback/unlockFilter";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { countAward, countingOf, countOf } from "./counting";
-import { achievementsApplyIn, achievementsLiveIn, bookLaunchedAt } from "./flag";
+import { achievementsLiveIn, bookAppliesIn, bookLaunchedAt } from "./flag";
 import { ladders, ladderOf, type LadderId, type PromisedReward, type Tier, type TierId, type TierRef } from "./ladders";
 import { laddersCountedLiveIn, replayWhatIsNew } from "./replay";
 import { earnedTiersOf, type EarnedTier } from "./tiers";
@@ -46,7 +46,7 @@ export const achievementsOf = internalQuery({
 
 export async function achievementFactsOf(ctx: QueryCtx, member: MemberId): Promise<AchievementFacts | null> {
   const { workspace } = await chatUserOf(ctx, member);
-  if (!(await achievementsApplyIn(ctx, workspace)) || (await bookLaunchedAt(ctx, workspace)) === null) return null;
+  if (!(await bookAppliesIn(ctx, workspace))) return null;
   return bookFactsOf(ctx, member);
 }
 

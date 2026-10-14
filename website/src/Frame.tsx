@@ -1,38 +1,92 @@
-import type { ComponentType, ReactNode } from "react";
+import { useCallback, useId, useState, type ReactNode } from "react";
 import { HedgehogHeart } from "@posthog/brand/hoggies";
-import { IconHome } from "@posthog/icons";
-import { AccountMenu } from "./AccountMenu";
-import { AppLink } from "./AppLink";
+import { IconLeave } from "@posthog/icons";
+import { Button } from "@posthog/quill";
+import { AppLink, useNavigate } from "./AppLink";
 import { ReadyPill, ReadyPillFailure } from "./crates/ReadyPill";
-import { isShownOn, type ReadyCrate } from "./crates/readyCrates";
-import { openWebPagesOf } from "./features";
+import { hudAvatarAttributes, skillPointChipAttributes } from "./crates/RewardFlight";
+import { useCountUp } from "./countUp";
+import { useMoments } from "./crates/moments";
+import { featureCrateOf, isShownOn, type ReadyCrate } from "./crates/readyCrates";
+import { LeveledFace } from "./LeveledFace";
+import { levelRingName } from "./LevelRing";
+import { ScreenNav, usePopIn } from "./nav/ScreenNav";
+import { CommandPalette } from "./palette/CommandPalette";
+import { commandsOf, type Shell } from "./palette/commands";
+import { paletteShortcut, usePaletteShortcut } from "./palette/shortcut";
 import type { Screen } from "./route";
 import type { MemberProfile } from "./shell";
 import { SkillPointGlyph } from "./skills/glyphs";
 import { chipName } from "./skills/perkWords";
+import { useTheme } from "./theme";
 import { ThemeControl } from "./ThemeControl";
 
 type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; current?: Screen; busy: boolean; inert?: boolean; onSignOut?: () => void; children: ReactNode };
 
 export function Frame({ member, ready = [], current, busy, inert, onSignOut, children }: FrameProps) {
-  const first = ready[0];
+  const palette = usePalette(member !== undefined && !inert);
   return (
-    <div className="hud-root flex min-h-screen flex-col" inert={inert}>
-      <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md">
-        <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6">
-          <Wordmark />
-          {member && <ScreenNav current={current} member={member} />}
-          <div className="ml-auto flex items-center gap-2 max-sm:gap-1.5">
-            {member && member.skillPoints !== null && <SkillPointChip points={member.skillPoints} />}
-            {member && <ReadyPill crates={ready} />}
-            <ThemeControl />
-            {member && onSignOut && <AccountMenu member={member} onSignOut={onSignOut} />}
+    <>
+      <div className="hud-root flex min-h-screen flex-col" inert={inert || palette.open}>
+        <header className="sticky top-0 z-40 border-b bg-card/85 shadow-[0_1px_0_0_color-mix(in_oklab,var(--foreground)_4%,transparent)] backdrop-blur-md">
+          <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-lg:gap-y-1 max-lg:pt-2 max-sm:gap-x-2 md:px-6">
+            <Wordmark />
+            {member && <ScreenNav current={current} member={member} />}
+            <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2 max-sm:gap-1.5">
+              {member && <PaletteChip onOpen={palette.toggle} />}
+              {member && member.skillPoints !== null && <SkillPointChip points={member.skillPoints} />}
+              {member && <ReadyPill crates={ready} />}
+              {member && <Avatar member={member} />}
+              <ThemeControl />
+              {member && onSignOut && <SignOut onSignOut={onSignOut} />}
+            </div>
+            {member && <ReadyPillFailure crates={ready.filter((crate) => !isShownOn(crate, current))} />}
           </div>
-          {member && first !== undefined && !isShownOn(first, current) && <ReadyPillFailure first={first} />}
-        </div>
-      </header>
-      <main aria-busy={busy || undefined} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8">{children}</main>
-    </div>
+        </header>
+        <main aria-busy={busy || undefined} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8">{children}</main>
+      </div>
+      {palette.open && member && <MemberPalette member={member} onSignOut={onSignOut} onClose={palette.close} />}
+    </>
+  );
+}
+
+function usePalette(available: boolean) {
+  const [open, setOpen] = useState(false);
+  const toggle = useCallback(() => setOpen((wasOpen) => !wasOpen), []);
+  const close = useCallback(() => setOpen(false), []);
+  usePaletteShortcut(toggle, { enabled: available, palette: paletteElement });
+  return { open: open && available, toggle, close };
+}
+
+function MemberPalette({ member, onSignOut, onClose }: { member: MemberProfile; onSignOut?: () => void; onClose: () => void }) {
+  const navigate = useNavigate();
+  const moments = useMoments();
+  const { choice, choose } = useTheme();
+  const shell: Shell = {
+    go: navigate,
+    openCrate: (card) => moments?.open(featureCrateOf(card)),
+    theme: choice,
+    chooseTheme: choose,
+    signOut: () => onSignOut?.(),
+  };
+  return <CommandPalette commands={commandsOf(member)} shell={shell} onClose={onClose} />;
+}
+
+function paletteElement() {
+  return document.querySelector('[role="dialog"][aria-label="Command palette"]');
+}
+
+function PaletteChip({ onOpen }: { onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label="Open the command palette"
+      title="Command palette"
+      className="hidden h-8 items-center whitespace-nowrap rounded-full border border-dashed border-muted-foreground px-2.5 font-mono text-[11px] text-muted-foreground transition-colors hover:border-primary hover:text-foreground sm:inline-flex"
+    >
+      {paletteShortcut()}
+    </button>
   );
 }
 
@@ -40,7 +94,7 @@ function Wordmark() {
   return (
     <AppLink href="/" aria-label="HedgeHug, home" className="flex items-center gap-2.5 rounded-md">
       <HedgehogHeart size={34} title="" className="shrink-0" />
-      <span className="flex flex-col leading-none">
+      <span className="flex flex-col leading-none max-sm:hidden">
         <span className="hud-display text-lg font-bold">HedgeHug</span>
         <span className="text-[10px] text-muted-foreground">Thanks a Hog</span>
       </span>
@@ -49,40 +103,38 @@ function Wordmark() {
 }
 
 function SkillPointChip({ points }: { points: number }) {
+  const { className: popIn = "", onAnimationEnd } = usePopIn("skillTree", "chip");
+  const counted = useCountUp(points);
   return (
-    <AppLink href="/skills" aria-label={chipName(points)} className="inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums hover:bg-fill-hover">
-      <SkillPointGlyph />
-      {points}
+    <span onAnimationEnd={onAnimationEnd} className={`inline-flex ${popIn}`}>
+      <AppLink href="/skills" aria-label={chipName(points)} className="inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums hover:bg-fill-hover" {...skillPointChipAttributes()}>
+        <SkillPointGlyph />
+        {counted}
+      </AppLink>
+    </span>
+  );
+}
+
+function Avatar({ member }: { member: MemberProfile }) {
+  const levelId = useId();
+  const { progression } = member;
+  return (
+    <AppLink href="/" aria-label={avatarName(member)} aria-describedby={progression !== null ? levelId : undefined} className="rounded-full" {...hudAvatarAttributes()}>
+      <LeveledFace member={member} className="size-8" />
+      {progression !== null && <span id={levelId} hidden>{levelRingName(progression)}</span>}
     </AppLink>
   );
 }
 
-function ScreenNav({ current, member }: { current?: Screen; member: MemberProfile }) {
-  return (
-    <nav aria-label="Screens" className="mx-auto flex items-center gap-0.5 max-sm:order-last max-sm:mx-0 max-sm:w-full max-sm:pb-1">
-      <ScreenLink href="/" current={current === "home"} Icon={IconHome}>
-        Home
-      </ScreenLink>
-      {openWebPagesOf(member).map(({ screen, href, name, Icon }) => (
-        <ScreenLink key={href} href={href} current={current === screen} Icon={Icon}>
-          {name}
-        </ScreenLink>
-      ))}
-    </nav>
-  );
+function avatarName({ name, progression }: MemberProfile) {
+  const who = name ?? "Your profile";
+  return progression === null ? who : `${who}, level ${progression.level}`;
 }
 
-type ScreenLinkProps = { href: string; current: boolean; Icon: ComponentType<{ className?: string }>; children: ReactNode };
-
-function ScreenLink({ href, current, Icon, children }: ScreenLinkProps) {
+function SignOut({ onSignOut }: { onSignOut: () => void }) {
   return (
-    <AppLink
-      href={href}
-      aria-current={current ? "page" : undefined}
-      className={`relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium ${current ? "text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 max-sm:after:-bottom-1 after:rounded-full after:bg-primary" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
-    >
-      <Icon className="size-4" />
-      {children}
-    </AppLink>
+    <Button variant="outline" size="icon" aria-label="Sign out" title="Sign out" onClick={onSignOut}>
+      <IconLeave />
+    </Button>
   );
 }

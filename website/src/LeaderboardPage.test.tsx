@@ -1,9 +1,10 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import type { BoardRead } from "./boardRead";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
-import { shellFixtures, type Leaderboard, type MyLeaderboard, type Period } from "./shell";
+import { shellFixtures, type Leaderboard, type MyLeaderboard, type Period, type VisibilityReply } from "./shell";
 import { renderApp } from "./test/renderApp";
+import { navEntryNames } from "./test/screensNav";
 import { fakeSystemTheme } from "./test/systemTheme";
 import { watchTheViewerRow } from "./test/viewerRow";
 
@@ -30,25 +31,25 @@ function pageTitle() {
 }
 
 describe("WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string", () => {
-  it("shows Home and Leaderboard in the screen nav while the board is open, with the current one marked", () => {
+  it("shows Profile and Leaderboard in the screen nav while the board is open, with the current one marked", () => {
     visit("/leaderboard");
     renderApp(withTheBoard, fixedLeaderboard(leaderboardFixtures.midBoard));
     const leaderboard = within(screens()).getByRole("link", { name: "Leaderboard" });
     expect(leaderboard).toHaveAttribute("href", "/leaderboard");
     expect(leaderboard).toHaveAttribute("aria-current", "page");
-    expect(within(screens()).getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current");
+    expect(within(screens()).getByRole("link", { name: "Profile" })).not.toHaveAttribute("aria-current");
     expect(document.title).toBe("HedgeHug · Leaderboard");
   });
 
-  it("marks Home as current at the root", () => {
+  it("marks Profile as current at the root", () => {
     renderApp(withTheBoard);
-    expect(within(screens()).getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+    expect(within(screens()).getByRole("link", { name: "Profile" })).toHaveAttribute("aria-current", "page");
     expect(within(screens()).getByRole("link", { name: "Leaderboard" })).not.toHaveAttribute("aria-current");
   });
 
   it("shows no Leaderboard item while the board is off", () => {
     renderApp(shellFixtures.member);
-    expect(within(screens()).getAllByRole("link").map((link) => link.textContent)).toEqual(["Home"]);
+    expect(navEntryNames()).toEqual(["Profile"]);
   });
 
   it("renders the not-found page when the read answers not-found", () => {
@@ -114,48 +115,52 @@ describe("WS37 WS1: the leaderboard lives at /leaderboard, with the period in th
     expect(pageTitle()).toHaveFocus();
     expect(document.title).toBe("HedgeHug · Leaderboard");
 
-    await user.click(within(screens()).getByRole("link", { name: "Home" }));
+    await user.click(within(screens()).getByRole("link", { name: "Profile" }));
     expect(window.location.pathname).toBe("/");
     expect(pageTitle()).toHaveTextContent("Sam Example");
     expect(pageTitle()).toHaveFocus();
   });
 });
 
-describe("WS38: the home's leaderboard card", () => {
-  it("is a plain card linking to the leaderboard while the board is open, with no rank or count", () => {
-    renderApp(withTheBoard);
-    const card = within(main()).getByRole("link", { name: /Leaderboard/ });
-    expect(card).toHaveAttribute("href", "/leaderboard");
-    expect(card).toHaveTextContent("See who's thanking colleagues this week.");
-    expect(card).not.toHaveTextContent(/\d|Locked/);
+describe("WS38 WS110: the home's Leaderboard panel", () => {
+  function leaderboardPanel() {
+    return within(main()).getByRole("region", { name: "Leaderboard" });
+  }
+
+  it("is Where you stand, linking to the leaderboard, while the board is open", () => {
+    renderApp(withTheBoard, fixedLeaderboard(leaderboardFixtures.midBoard));
+    const standing = within(main()).getByRole("region", { name: "Where you stand" });
+    expect(within(standing).getByRole("link", { name: "Open the leaderboard" })).toHaveAttribute("href", "/leaderboard");
+    expect(standing).not.toHaveTextContent(/Locked/);
   });
 
-  it("stays locked, with the other cards, while the board is off", () => {
+  it("stays locked, with the other panels, while the board is off", () => {
     renderApp(shellFixtures.member);
-    expect(within(main()).queryByRole("link", { name: /Leaderboard/ })).not.toBeInTheDocument();
-    expect(within(main()).getByRole("heading", { level: 3, name: "Leaderboard" }).parentElement).toHaveTextContent("Locked");
+    expect(within(leaderboardPanel()).queryByRole("link")).not.toBeInTheDocument();
+    expect(leaderboardPanel()).toHaveTextContent("Locked");
   });
 });
 
 describe("WS52: the leaderboard page waits for its unlock", () => {
   it.each([
-    { state: "locked", visitor: shellFixtures.memberWaitingForTheBoard, answer: { kind: "locked", level: 3 } as const, says: "Leaderboard opens at level 3." },
-    { state: "ready", visitor: shellFixtures.memberWithTheBoardReady, answer: { kind: "ready" } as const, says: "Unlocks: LeaderboardIt opens the boards." },
-  ])("says what the $state leaderboard waits for in place of the board, with no Leaderboard nav item", ({ visitor, answer, says }) => {
+    { state: "locked", visitor: shellFixtures.memberWaitingForTheBoard, answer: { kind: "locked", level: 3 } as const, says: "Unlocks at level 3", entry: "Leaderboard, locked. Unlocks at level 3" },
+    { state: "ready", visitor: shellFixtures.memberWithTheBoardReady, answer: { kind: "ready" } as const, says: "Leaderboard is ready", entry: "Leaderboard: unlock ready. Open its crate" },
+  ])("says what the $state leaderboard waits for in place of the board, with its nav entry in that state and no link", ({ visitor, answer, says, entry }) => {
     visit("/leaderboard");
     renderApp(visitor, (period) => (period && answer));
     expect(pageTitle()).toHaveTextContent("Leaderboard");
     expect(document.title).toBe("HedgeHug · Leaderboard");
     expect(main()).toHaveTextContent(says);
-    expect(within(screens()).getAllByRole("link").map((link) => link.textContent)).toEqual(["Home"]);
+    expect(navEntryNames()[1]).toBe(entry);
+    expect(within(screens()).queryByRole("link", { name: "Leaderboard" })).not.toBeInTheDocument();
     expect(within(main()).queryByRole("region", { name: /Everyone/ })).not.toBeInTheDocument();
     expect(within(main()).queryByRole("list")).not.toBeInTheDocument();
   });
 
-  it("sends a locked member home", () => {
+  it("sends a locked member back to their profile", () => {
     visit("/leaderboard");
     renderApp(shellFixtures.memberWaitingForTheBoard, (period) => (period && { kind: "locked", level: 3 }));
-    expect(within(main()).getByRole("link", { name: "Go to Home" })).toHaveAttribute("href", "/");
+    expect(within(main()).getByRole("link", { name: "Back to your profile" })).toHaveAttribute("href", "/");
   });
 
   it("moves focus to the board's title when the ready leaderboard opens under the open page", () => {
@@ -384,13 +389,39 @@ describe("WS34 V19: teammates show their Slack faces", () => {
     expect(within(podiumSpots()[1]!).getByText("AL")).toBeInTheDocument();
     expect(within(within(main()).getByText("Ivy Quinn").closest("li")!).getByText("IQ")).toBeInTheDocument();
   });
+
+  it("shows initials at once for a picture that already failed in the tab, and keeps a picture that already loaded", () => {
+    pictureAlreadySettled({ [ada]: "failed", [ivy]: "loaded" });
+
+    showBoard(leaderboardFixtures.withTeammatesFaces);
+
+    expect(document.querySelectorAll(`img[src="${ada}"]`)).toHaveLength(0);
+    expect(within(podiumSpots()[1]!).getByText("AL")).toBeInTheDocument();
+    const ivyRow = within(main()).getByText("Ivy Quinn").closest("li")!;
+    expect(ivyRow.querySelector(`img[src="${ivy}"]`)).toBeInTheDocument();
+    expect(within(ivyRow).queryByText("IQ")).not.toBeInTheDocument();
+  });
 });
 
+function pictureAlreadySettled(pictures: Record<string, "failed" | "loaded">) {
+  const settledAs = (image: HTMLImageElement) => pictures[image.getAttribute("src") ?? ""];
+  const complete = vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockImplementation(function (this: HTMLImageElement) {
+    return settledAs(this) !== undefined;
+  });
+  const naturalWidth = vi.spyOn(HTMLImageElement.prototype, "naturalWidth", "get").mockImplementation(function (this: HTMLImageElement) {
+    return settledAs(this) === "loaded" ? 192 : 0;
+  });
+  onTestFinished(() => {
+    complete.mockRestore();
+    naturalWidth.mockRestore();
+  });
+}
+
 describe("WS42: the list shows the rest of G17's window below the podium", () => {
-  it("lists the window after the podium in order, with one … where positions are skipped", () => {
+  it("lists the window after the podium in order, with the skipped positions behind Show more lines", () => {
     showBoard(leaderboardFixtures.midBoard);
     expect(linesOf(boardList())).toEqual([
-      "…Positions skipped",
+      "Show 2 more above",
       "Rank 6: 6FMFay Mensah14",
       "Rank 7: 7GPGus Park13",
       "Rank 8: 8HSHal Sato12",
@@ -398,6 +429,7 @@ describe("WS42: the list shows the rest of G17's window below the podium", () =>
       "Rank 10: 10IQIvy Quinn10",
       "Rank 11: 11JVJo Vogt9",
       "Rank 12: 12KHKai Hale8",
+      "Show 1 more below",
     ]);
   });
 
@@ -419,12 +451,6 @@ describe("WS42: the list shows the rest of G17's window below the podium", () =>
     expect(other.querySelector("[data-you-ring]")).toBeNull();
   });
 
-  it("reads the gap as skipped positions and hides the ellipsis from screen readers", () => {
-    showBoard(leaderboardFixtures.midBoard);
-    const gap = within(boardList()).getAllByRole("listitem")[0]!;
-    expect(within(gap).getByText("…")).toHaveAttribute("aria-hidden", "true");
-    expect(within(gap).getByText("Positions skipped")).toHaveClass("sr-only");
-  });
 
   it("shows the column header only over lines, never over the join line alone", () => {
     showBoard(leaderboardFixtures.notRanked);
@@ -447,12 +473,6 @@ describe("WS42: the list shows the rest of G17's window below the podium", () =>
     const slack = within(main()).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" });
     expect(slack).toHaveAttribute("href", "https://app.slack.com/client/T1");
     expect(slack).toHaveAttribute("target", "_blank");
-  });
-
-  it("tells a viewer who left the boards where to change that, in place of their row", () => {
-    showBoard(leaderboardFixtures.left);
-    expect(within(main()).getByText("You're not on the leaderboards. You can change that in Settings in Slack.")).toBeInTheDocument();
-    expect(within(main()).queryByText("You")).not.toBeInTheDocument();
   });
 });
 
@@ -557,7 +577,7 @@ describe("WS43: the whole board and Jump to me", () => {
     await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
     within(main()).getByRole("button", { name: "Back to my spot" }).focus();
     await user.keyboard("{Enter}");
-    expect(linesOf(boardList())).toHaveLength(8);
+    expect(linesOf(boardList())).toHaveLength(9);
     expect(within(main()).getByRole("button", { name: "Show the whole board" })).toHaveFocus();
   });
 
@@ -597,13 +617,131 @@ describe("WS43: the whole board and Jump to me", () => {
     await user.click(within(main()).getByRole("button", { name: "Back to my spot" }));
 
     expect(within(main()).queryByRole("region", { name: "The whole board" })).not.toBeInTheDocument();
-    expect(linesOf(boardList())).toHaveLength(10);
+    expect(ranksIn(boardList())).toEqual([3, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
     expect(pageTitle()).toHaveFocus();
   });
 
   it("offers no whole board when the window already shows every row", () => {
     showBoard(leaderboardFixtures.viewerLeads);
     expect(within(main()).queryByRole("button", { name: "Show the whole board" })).not.toBeInTheDocument();
+  });
+});
+
+function ranksIn(list: HTMLElement) {
+  return linesOf(list).map((line) => Number(/^Rank (\d+)/.exec(line ?? "")?.[1] ?? line));
+}
+
+function showMore(side: "above" | "below") {
+  return within(main()).queryByRole("button", { name: new RegExp(`^Show \\d+ more ${side}$`) });
+}
+
+function lineAt(position: number) {
+  return within(boardList()).getAllByRole("listitem").find((line) => line.textContent?.startsWith(`Rank ${position}:`));
+}
+
+describe("WS320: Show 5 more grows the window in place", () => {
+  it("offers five more on each side of a viewer in the middle, and fewer once fewer are hidden", async () => {
+    const { user } = showBoard(leaderboardFixtures.longBoardViewerInTheMiddle);
+    expect(showMore("above")).toHaveAccessibleName("Show 5 more above");
+    expect(showMore("below")).toHaveAccessibleName("Show 5 more below");
+    expect(within(main()).getByText("No. 12–18 of 30")).toBeInTheDocument();
+
+    await user.click(showMore("above")!);
+    expect(ranksIn(boardList())).toEqual([Number.NaN, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, Number.NaN]);
+    expect(lineAt(7)).toHaveFocus();
+    expect(showMore("above")).toHaveAccessibleName("Show 3 more above");
+    expect(within(main()).getByText("No. 7–18 of 30")).toBeInTheDocument();
+
+    await user.click(showMore("above")!);
+    expect(lineAt(4)).toHaveFocus();
+    expect(showMore("above")).not.toBeInTheDocument();
+    expect(ranksIn(boardList()).slice(0, 2)).toEqual([4, 5]);
+  });
+
+  it("steps down to the last row, moving focus to the first revealed row each time", async () => {
+    const { user } = showBoard(leaderboardFixtures.longBoardViewerInTheMiddle);
+    showMore("below")!.focus();
+    await user.keyboard("{Enter}");
+    expect(lineAt(19)).toHaveFocus();
+    expect(showMore("below")).toHaveAccessibleName("Show 5 more below");
+
+    await user.click(showMore("below")!);
+    expect(lineAt(24)).toHaveFocus();
+    expect(showMore("below")).toHaveAccessibleName("Show 2 more below");
+
+    await user.click(showMore("below")!);
+    expect(lineAt(29)).toHaveFocus();
+    expect(showMore("below")).not.toBeInTheDocument();
+    expect(ranksIn(boardList()).slice(-2)).toEqual([29, 30]);
+    expect(within(main()).getByText("No. 12–30 of 30")).toBeInTheDocument();
+  });
+
+  it("offers only rows below at the top of the board", () => {
+    showBoard(leaderboardFixtures.longBoardViewerAtTheTop);
+    expect(showMore("above")).not.toBeInTheDocument();
+    expect(showMore("below")).toHaveAccessibleName("Show 5 more below");
+    expect(ranksIn(boardList())[0]).toBe(4);
+  });
+
+  it("offers only rows above at the bottom of the board", () => {
+    showBoard(leaderboardFixtures.longBoardViewerAtTheBottom);
+    expect(showMore("above")).toHaveAccessibleName("Show 5 more above");
+    expect(showMore("below")).not.toBeInTheDocument();
+  });
+
+  it("grows the board below the podium for a viewer who isn't on it", async () => {
+    const { user } = showBoard(leaderboardFixtures.leftALongBoard);
+    await user.click(showMore("below")!);
+    expect(linesOf(boardList())[0]).toContain("Dev Rao");
+    expect(ranksIn(boardList())).toEqual([3, 5, 6, 7, 8, Number.NaN]);
+    expect(document.activeElement).toBe(within(boardList()).getAllByRole("listitem")[0]);
+    expect(within(main()).getByText("No. 4–8 of 12")).toBeInTheDocument();
+  });
+
+  it("keeps Show the whole board and Back to my spot once every row is shown", async () => {
+    watchTheViewerRow();
+    Element.prototype.scrollTo = () => undefined;
+    const { user } = showBoard(leaderboardFixtures.midBoard);
+    await user.click(showMore("above")!);
+    await user.click(showMore("below")!);
+    expect(within(main()).getByText("No. 4–13 of 13")).toBeInTheDocument();
+
+    await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
+    await user.click(within(main()).getByRole("button", { name: "Back to my spot" }));
+    expect(showMore("above")).toHaveAccessibleName("Show 2 more above");
+    expect(within(main()).getByText("No. 6–12 of 13")).toBeInTheDocument();
+  });
+
+  it("moves focus only on a press, never when a live update brings a revealed row back", async () => {
+    let board: Leaderboard = leaderboardFixtures.longBoardViewerInTheMiddle;
+    visit("/leaderboard");
+    const { user, showVisitor } = renderApp(withTheBoard, (period) => period && { ...board, period });
+    await user.click(showMore("above")!);
+    expect(lineAt(7)).toHaveFocus();
+
+    const thisMonth = within(main()).getByRole("button", { name: "This month" });
+    thisMonth.focus();
+    const firstWindow = board.window;
+    board = { ...board, window: [1, 2, 3, 22, 23, 24, 25, 26, 27, 28] };
+    showVisitor(withTheBoard);
+    board = { ...board, window: firstWindow };
+    showVisitor(withTheBoard);
+    expect(lineAt(7)).toBeInTheDocument();
+    expect(thisMonth).toHaveFocus();
+  });
+
+  it("restores the first window from Back to my spot", async () => {
+    watchTheViewerRow();
+    Element.prototype.scrollTo = () => undefined;
+    const { user } = showBoard(leaderboardFixtures.longBoardViewerInTheMiddle);
+    await user.click(showMore("above")!);
+    await user.click(showMore("below")!);
+    await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
+    expect(within(wholeBoard()).getAllByRole("listitem")).toHaveLength(30);
+
+    await user.click(within(main()).getByRole("button", { name: "Back to my spot" }));
+    expect(ranksIn(boardList()).slice(1, -1)).toEqual([12, 13, 14, 15, 16, 17, 18]);
+    expect(showMore("above")).toHaveAccessibleName("Show 5 more above");
   });
 });
 
@@ -654,21 +792,165 @@ describe("WS45: only you see these", () => {
   });
 });
 
-describe("WS46: how it counts", () => {
-  it.each([
-    { who: "on the boards", answer: leaderboardFixtures.midBoard, status: "You're on the leaderboards." },
-    { who: "off the boards", answer: leaderboardFixtures.left, status: "You're off the leaderboards." },
-  ])("says what counts and shows the setting as a read-only status for a viewer $who", ({ answer, status }) => {
-    showBoard(answer);
-    const panel = within(main()).getByRole("region", { name: "How it counts" });
-    expect(panel).toHaveTextContent("Only kudos given count. Kudos received, XP and levels never rank anyone.");
-    expect(panel).toHaveTextContent(status);
-    expect(panel).toHaveTextContent("Settings in Slack's App Home");
-    expect(within(panel).queryByRole("switch")).not.toBeInTheDocument();
-    expect(within(panel).queryByRole("checkbox")).not.toBeInTheDocument();
-    expect(within(panel).queryByRole("button")).not.toBeInTheDocument();
+describe("WS322: how it counts", () => {
+  it("says what never ranks anyone, achievements included, and no longer sends anyone to Settings in Slack", () => {
+    showBoard(leaderboardFixtures.midBoard);
+    const panel = howItCounts();
+    expect(panel).toHaveTextContent("Only kudos given count. Kudos received, XP, levels and achievements never rank anyone.");
+    expect(main()).not.toHaveTextContent(/Settings in Slack/);
   });
 });
+
+describe("WS321: the visibility switch", () => {
+  it.each([
+    { who: "on the boards", answer: leaderboardFixtures.midBoard, checked: true },
+    { who: "off the boards", answer: leaderboardFixtures.left, checked: false },
+  ])("is a switch named Show me on the leaderboards, checked from the read for a viewer $who", ({ answer, checked }) => {
+    showBoard(answer);
+    const visibility = visibilitySwitch();
+    expect(visibility).toHaveAccessibleName("Show me on the leaderboards");
+    if (checked) expect(visibility).toBeChecked();
+    else expect(visibility).not.toBeChecked();
+    expect(visibility).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("sends the flipped setting once, and is disabled while the call is pending", async () => {
+    const pending = answerLater();
+    const { user, setBoardVisibility } = switchWith(leaderboardFixtures.midBoard, () => pending.answer);
+
+    await user.click(visibilitySwitch());
+
+    expect(setBoardVisibility).toHaveBeenCalledExactlyOnceWith(false);
+    expect(visibilitySwitch()).toHaveAttribute("aria-disabled", "true");
+    await user.click(visibilitySwitch());
+    expect(setBoardVisibility).toHaveBeenCalledTimes(1);
+
+    await act(async () => pending.resolve({ kind: "set", visible: false }));
+    expect(visibilitySwitch()).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("keeps its position from the read, never from the value sent, until the read moves", async () => {
+    const { user, showBoardAnswer } = switchWith(leaderboardFixtures.midBoard, async () => ({ kind: "set", visible: false }));
+
+    await user.click(visibilitySwitch());
+    await act(async () => undefined);
+    expect(visibilitySwitch()).toBeChecked();
+
+    showBoardAnswer(leaderboardFixtures.left);
+    expect(visibilitySwitch()).not.toBeChecked();
+  });
+
+  it.each<{ answer: VisibilityReply; from: Leaderboard; to: Leaderboard; says: string }>([
+    { answer: { kind: "set", visible: false }, from: leaderboardFixtures.midBoard, to: leaderboardFixtures.left, says: "You're off the leaderboards." },
+    { answer: { kind: "set", visible: true }, from: leaderboardFixtures.left, to: leaderboardFixtures.midBoard, says: "You're on the leaderboards." },
+  ])("says $says politely once the read shows the setting the answer $answer.kind", async ({ answer, from, to, says }) => {
+    const { user, showBoardAnswer } = switchWith(from, async () => answer);
+
+    await user.click(visibilitySwitch());
+    await act(async () => undefined);
+    expect(within(howItCounts()).getByRole("status")).toBeEmptyDOMElement();
+
+    showBoardAnswer(to);
+    expect(within(howItCounts()).getByRole("status")).toHaveTextContent(says);
+  });
+
+  it("drops the set line once another tab or Slack moves the setting back", async () => {
+    const { user, showBoardAnswer } = switchWith(leaderboardFixtures.midBoard, async () => ({ kind: "set", visible: false }));
+    await user.click(visibilitySwitch());
+    showBoardAnswer(leaderboardFixtures.left);
+    expect(within(howItCounts()).getByRole("status")).toHaveTextContent("You're off the leaderboards.");
+
+    showBoardAnswer(leaderboardFixtures.midBoard);
+
+    expect(within(howItCounts()).getByRole("status")).toBeEmptyDOMElement();
+    expect(visibilitySwitch()).toBeChecked();
+  });
+
+  it("says That couldn't be changed politely after a refusal", async () => {
+    const { user } = switchWith(leaderboardFixtures.midBoard, async () => ({ kind: "refused" }));
+
+    await user.click(visibilitySwitch());
+
+    expect(await within(howItCounts()).findByRole("status")).toHaveTextContent("That couldn't be changed.");
+  });
+
+  it("says Couldn't reach HedgeHug after an error and never sends again by itself", async () => {
+    const { user, setBoardVisibility } = switchWith(leaderboardFixtures.left, async () => Promise.reject(new Error("socket closed")));
+
+    await user.click(visibilitySwitch());
+
+    expect(await within(howItCounts()).findByRole("status")).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
+    expect(setBoardVisibility).toHaveBeenCalledExactlyOnceWith(true);
+    expect(visibilitySwitch()).not.toHaveAttribute("aria-disabled");
+    expect(visibilitySwitch()).not.toBeChecked();
+  });
+
+  it("drops a failure line once the read shows the setting the member asked for, as when a slow call lands after all", async () => {
+    const { user, showBoardAnswer } = switchWith(leaderboardFixtures.midBoard, async () => Promise.reject(new Error("no answer in time")));
+    await user.click(visibilitySwitch());
+    expect(await within(howItCounts()).findByRole("status")).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
+
+    showBoardAnswer(leaderboardFixtures.left);
+
+    expect(within(howItCounts()).getByRole("status")).toBeEmptyDOMElement();
+  });
+
+  it.each<{ answer: () => Promise<VisibilityReply>; says: string; reads: Leaderboard[] }>([
+    { answer: async () => Promise.reject(new Error("no answer in time")), says: "Couldn't reach HedgeHug. Try again.", reads: [leaderboardFixtures.left, leaderboardFixtures.midBoard] },
+    { answer: async () => ({ kind: "set", visible: false }), says: "You're off the leaderboards.", reads: [leaderboardFixtures.left, leaderboardFixtures.midBoard, leaderboardFixtures.left] },
+  ])("retires the line $says once the read has moved past it, so a later change elsewhere never brings it back", async ({ answer, reads }) => {
+    const { user, showBoardAnswer } = switchWith(leaderboardFixtures.midBoard, answer);
+    await user.click(visibilitySwitch());
+    await act(async () => undefined);
+
+    reads.forEach(showBoardAnswer);
+
+    expect(within(howItCounts()).getByRole("status")).toBeEmptyDOMElement();
+  });
+
+  it("says nothing after a denial, which the profile's read shows instead", async () => {
+    const { user } = switchWith(leaderboardFixtures.midBoard, async () => ({ kind: "signed-out" }));
+
+    await user.click(visibilitySwitch());
+    await act(async () => undefined);
+
+    expect(within(howItCounts()).getByRole("status")).toBeEmptyDOMElement();
+  });
+
+  it("tells a viewer who left the boards how to come back, in place of their row", () => {
+    showBoard(leaderboardFixtures.left);
+    expect(within(main()).getByText(`You're off the board by choice. Switch on "Show me on the leaderboards" to come back.`)).toBeInTheDocument();
+    expect(within(main()).queryByText("You")).not.toBeInTheDocument();
+  });
+});
+
+function howItCounts() {
+  return within(main()).getByRole("region", { name: "How it counts" });
+}
+
+function visibilitySwitch() {
+  return within(howItCounts()).getByRole("switch", { name: "Show me on the leaderboards" });
+}
+
+function switchWith(answer: Leaderboard, setBoardVisibility: (visible: boolean) => Promise<VisibilityReply>) {
+  visit("/leaderboard");
+  let shown = answer;
+  const spy = vi.fn(setBoardVisibility);
+  const view = renderApp(withTheBoard, (period) => (period && shown), { setBoardVisibility: spy });
+  const showBoardAnswer = (next: Leaderboard) => {
+    shown = next;
+    view.showVisitor(withTheBoard);
+  };
+  return { ...view, setBoardVisibility: spy, showBoardAnswer };
+}
+
+function answerLater() {
+  let resolve: (answer: VisibilityReply) => void = () => undefined;
+  const answer = new Promise<VisibilityReply>((settle) => {
+    resolve = settle;
+  });
+  return { answer, resolve };
+}
 
 function crowned(spot: HTMLElement) {
   return spot.querySelector("[data-crown]") !== null;

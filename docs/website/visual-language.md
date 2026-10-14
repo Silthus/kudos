@@ -55,7 +55,8 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
   - a collectable on the shelf
   - an emblem that identifies something: an achievement ladder, a Book category, or the crest of a group that maps to no team
   - one illustration per empty state, locked teaser, error page or moment
-  - the HedgeHug logo, the `HedgehogHeart`: beside the wordmark in the header, above the name on the sign-in and closed pages, and as the favicon
+  - the HedgeHug logo, the `HedgehogHeart`: beside the wordmark in the header, above the name on the closed page, and as the favicon
+  - the `HedgehogHandClasp` above the name on the sign-in card (WS309)
 
   Beside the logo, there are no hedgehogs in page headers.
 - **V18. Max is the one hedgehog that speaks.** He narrates the home insight line, which states facts and never forecasts, and he writes the copy of empty states and errors. Max is never collectable and never anyone's avatar.

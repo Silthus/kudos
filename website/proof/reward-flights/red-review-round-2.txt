@@ -1,0 +1,156 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/reward-flights
+
+ ❯ |website| src/crates/rewards.test.tsx (2 tests | 2 failed) 15ms
+   ❯ #354 review: a crate's share of the skill points on their way (2)
+     × gives the Skill tree crate only the points no XP on its way earned, with the Skill tree crate first 13ms
+     × gives the Skill tree crate only the points no XP on its way earned, with the Journey crate first 1ms
+ ❯ |website| src/rewardFlights.test.tsx (11 tests | 1 failed) 2762ms
+   ❯ #354 review round 2: fills restart and count-ups stop for reduced motion (1)
+     × shows the hero's XP at once when reduced motion is turned on while it counts up 216ms
+ ❯ |website| src/QuestsPage.test.tsx (58 tests | 5 failed) 25124ms
+   ❯ WS315 E184: the reward flies into the HUD level ring once a Claim's reveal closes (14)
+     × restarts the fill for a second reward that lands while the first one's fill still plays 302ms
+     × stops at once, with no bump or fill, when the browser cancels it, as turning on reduced motion mid-flight does 5005ms
+     × never flies under reduced motion, and shows the XP at once with a short fade 5002ms
+     × lands a queued flight at once when reduced motion is turned on before it starts 5003ms
+     × flies only after a Claim, not after the ready pill opens a crate 5002ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/QuestsPage.test.tsx > WS315 E184: the reward flies into the HUD level ring once a Claim's reveal closes > restarts the fill for a second reward that lands while the first one's fill still plays
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"reward-filling"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  reward-filling[39m
+Received:
+[31m  hud-root flex min-h-screen flex-col[39m
+ ❯ src/QuestsPage.test.tsx:486:21
+    484|     act(() => vi.advanceTimersByTime(900));
+    485|
+    486|     expect(frame()).toHaveClass("reward-filling");
+       |                     ^
+    487|     vi.useRealTimers();
+    488|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  |website| src/QuestsPage.test.tsx > WS315 E184: the reward flies into the HUD level ring once a Claim's reveal closes > stops at once, with no bump or fill, when the browser cancels it, as turning on reduced motion mid-flight does
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ src/QuestsPage.test.tsx:490:3
+    488|   });
+    489|
+    490|   it("stops at once, with no bump or fill, when the browser cancels it…
+       |   ^
+    491|     const { user } = claimOn();
+    492|     await claimAndClose(user);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  |website| src/QuestsPage.test.tsx > WS315 E184: the reward flies into the HUD level ring once a Claim's reveal closes > never flies under reduced motion, and shows the XP at once with a short fade
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ src/QuestsPage.test.tsx:500:3
+    498|   });
+    499|
+    500|   it("never flies under reduced motion, and shows the XP at once with …
+       |   ^
+    501|     preferReducedMotion();
+    502|     const { user } = claimOn();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  |website| src/QuestsPage.test.tsx > WS315 E184: the reward flies into the HUD level ring once a Claim's reveal closes > lands a queued flight at once when reduced motion is turned on before it starts
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ src/QuestsPage.test.tsx:513:3
+    511|   });
+    512|
+    513|   it("lands a queued flight at once when reduced motion is turned on b…
+       |   ^
+    514|     const answers: (() => void)[] = [];
+    515|     const openQuestCrate = () => new Promise<OpenAnswer>((resolve) => …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  |website| src/QuestsPage.test.tsx > WS315 E184: the reward flies into the HUD level ring once a Claim's reveal closes > flies only after a Claim, not after the ready pill opens a crate
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ src/QuestsPage.test.tsx:536:3
+    534|   });
+    535|
+    536|   it("flies only after a Claim, not after the ready pill opens a crate…
+       |   ^
+    537|     const { user } = claimOn();
+    538|     await user.click(screen.getByRole("button", { name: /ready/ }));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  |website| src/rewardFlights.test.tsx > #354 review round 2: fills restart and count-ups stop for reduced motion > shows the hero's XP at once when reduced motion is turned on while it counts up
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAccessibleName()[22m
+
+Expected element to have accessible name:
+[32m  50 XP 10 XP to level 3[39m
+Received:
+[31m  42 XP 10 XP to level 3[39m
+ ❯ src/rewardFlights.test.tsx:238:21
+    236|     act(() => vi.advanceTimersByTime(40));
+    237|
+    238|     expect(xpBar()).toHaveAccessibleName("50 XP 10 XP to level 3");
+       |                     ^
+    239|   });
+    240| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  |website| src/crates/rewards.test.tsx > #354 review: a crate's share of the skill points on their way > gives the Skill tree crate only the points no XP on its way earned, with the Skill tree crate first
+AssertionError: expected [ 2, 1 ] to deeply equal [ 1, 1 ]
+
+- Expected
++ Received
+
+  [
+-   1,
++   2,
+    1,
+  ]
+
+ ❯ src/crates/rewards.test.tsx:20:79
+     18|   ] as const)("gives the Skill tree crate only the points no XP on its…
+     19|     const onTheWay = crates.map((crate) => ({ crate, landed: [] }));
+     20|     expect(rewardsOf(member, onTheWay).map(({ skillPoints }) => skillP…
+       |                                                                               ^
+     21|     expect(withTheRewardsHeld(member, onTheWay).skillPoints).toBe(0);
+     22|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  |website| src/crates/rewards.test.tsx > #354 review: a crate's share of the skill points on their way > gives the Skill tree crate only the points no XP on its way earned, with the Journey crate first
+AssertionError: expected [ 1, 2 ] to deeply equal [ 1, 1 ]
+
+- Expected
++ Received
+
+  [
+    1,
+-   1,
++   2,
+  ]
+
+ ❯ src/crates/rewards.test.tsx:20:79
+     18|   ] as const)("gives the Skill tree crate only the points no XP on its…
+     19|     const onTheWay = crates.map((crate) => ({ crate, landed: [] }));
+     20|     expect(rewardsOf(member, onTheWay).map(({ skillPoints }) => skillP…
+       |                                                                               ^
+     21|     expect(withTheRewardsHeld(member, onTheWay).skillPoints).toBe(0);
+     22|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  8 failed | 63 passed (71)
+   Start at  13:44:53
+   Duration  27.24s (tests 85%, import 7%, environment 4%, transform 3%, setup 1%)
+

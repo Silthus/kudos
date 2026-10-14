@@ -89,11 +89,11 @@ describe("POST /slack/events", () => {
     ]);
   });
 
-  test("R49: the receipt and the processing step share one transaction", async () => {
+  test("R49 AT11: the receipt and the processing step share one transaction, and the failure is rethrown without its message", async () => {
     const t = testBackend();
     await withAuthorTwiceInTheDirectory(t);
 
-    await expect(postSigned(t, eventCallback("T1", "Ev1"))).rejects.toThrow("unique() query returned more than one result from table members");
+    await expect(postSigned(t, eventCallback("T1", "Ev1"))).rejects.toThrow("message withheld: it may quote kudos text (Error)");
 
     expect(await receiptsIn(t)).toEqual([]);
   });

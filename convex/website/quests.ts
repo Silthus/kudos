@@ -18,6 +18,7 @@ export type QuestKind = "Say why" | "Reach out" | "Join in";
 
 export type QuestSlot = {
   slot: number;
+  quest: WeeklyQuest;
   kind: QuestKind;
   goal: string;
   progress: { done: number; target: number };
@@ -30,7 +31,9 @@ export type QuestSlot = {
 
 export type WaitingCrate = { goal: string; week: WeekKey; reward: { xp: number }; crate: WeeklyQuest; seen: string };
 
-export type QuestsAnswer = { kind: "not-found" } | { kind: "locked"; level: number } | { kind: "ready" } | { kind: "quests"; slots: QuestSlot[]; waiting: WaitingCrate[]; chatUrl: string };
+export type WeekSwap = { used: boolean; available: boolean };
+
+export type QuestsAnswer = { kind: "not-found" } | { kind: "locked"; level: number } | { kind: "ready" } | { kind: "quests"; slots: QuestSlot[]; swap: WeekSwap; waiting: WaitingCrate[]; chatUrl: string };
 
 export type JourneyStep = {
   step: JourneyQuest["step"];
@@ -58,6 +61,7 @@ export const getQuests = memberQuery(async (ctx, me): Promise<QuestsAnswer> => {
   return {
     kind: "quests",
     slots: week === null ? [] : await Promise.all(week.slots.map((slot) => questSlotOf(me, week, slot))),
+    swap: { used: week?.swap != null, available: week?.swapAvailable ?? false },
     waiting: await Promise.all((await unopenedCratesOf(ctx, me.member, at)).map((crate) => waitingCrateOf(me, crate))),
     chatUrl: workspaceLink(me.workspace),
   };
@@ -73,6 +77,7 @@ async function questSlotOf(me: VerifiedMember, { swap }: DrawnWeek, facts: Drawn
   const state = crateStateOf(facts, "in-progress");
   return {
     slot,
+    quest: crate,
     kind: kindLabels[questOf(quest).kind],
     goal,
     progress: { done: progress, target },

@@ -40,7 +40,7 @@ export const subscribers: Registry = {
   journeyStepActivated: [internal.analytics.subscribers.recordJourneyStepActivated],
   achievementEarned: [internal.analytics.subscribers.recordAchievementEarned],
   perkBought: [internal.analytics.subscribers.recordPerkBought],
-  memberLeft: [internal.quests.journey.recheckSomeoneNew],
+  memberLeft: [internal.quests.journey.recheckSomeoneNew, internal.engine.kudosText.forgetWordsOfLeaver],
   memberRejoined: [internal.quests.journey.recheckRejoined],
   primaryGroupChanged: [],
   awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed],

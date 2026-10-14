@@ -4,8 +4,6 @@ import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
-const lockedFeatures = ["Quests", "Leaderboard", "Book", "Skill tree", "Coins", "Hedgehogs"];
-
 beforeEach(() => {
   fakeSystemTheme(false);
 });
@@ -35,7 +33,7 @@ describe("WS98 WS101: the hero is the character header, leading with the member 
     expect(title).toHaveTextContent(/^Sam Example$/);
     expect(title).toHaveClass("hud-display");
     expect(comesBefore(within(hero()).getByText("Character"), title)).toBe(true);
-    expect(document.title).toBe("HedgeHug · Home");
+    expect(document.title).toBe("HedgeHug · Profile");
   });
 
   it("titles the sheet You when the sign-in carried no name", () => {
@@ -99,6 +97,53 @@ describe("WS98 WS101: the hero is the character header, leading with the member 
   });
 });
 
+describe("WS311 V2: the open hero", () => {
+  it("drops the card's border, background and corner marks for E's open header spacing", () => {
+    renderApp(shellFixtures.memberAtLevel7);
+    const hero = within(main()).getByRole("region", { name: "Sam Example" });
+    for (const frame of ["hud-panel", "border", "bg-card", "rounded-xl", "p-6"]) expect(hero).not.toHaveClass(frame);
+    expect(hero).toHaveClass("sm:py-4", "sm:gap-7", "sm:items-center");
+  });
+});
+
+describe("WS312 V4: the first-kudos nudge", () => {
+  function nudge() {
+    return within(main()).queryByRole("region", { name: "Give your first kudos in Slack" });
+  }
+
+  function hero() {
+    return within(main()).getByRole("region", { name: "Sam Example" });
+  }
+
+  function primaries() {
+    return [...document.querySelectorAll(".quill-button--variant-primary")];
+  }
+
+  it("shows under the hero while the member has given no kudos, teaching with their kudos emoji, with the page's one primary action", () => {
+    renderApp({ ...shellFixtures.memberBeforeTheirFirstKudos, kudosEmoji: "sparkles" });
+    expect(nudge()).toBeInTheDocument();
+    expect(comesBefore(hero(), nudge()!)).toBe(true);
+    expect(nudge()!.querySelector("svg[aria-hidden='true']")).not.toBeNull();
+    expect(nudge()).toHaveTextContent("Mention a teammate in a Slack message with :sparkles: and say why in five words or more. Every kudos earns XP toward level 2.");
+    const action = within(nudge()!).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" });
+    expect(action).toHaveAttribute("href", "https://app.slack.com/client/T1");
+    expect(primaries()).toEqual([action]);
+    expect(within(hero()).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" })).toHaveClass("quill-button--variant-outline");
+  });
+
+  it("promises no XP while the member's progression isn't shown", () => {
+    renderApp({ ...shellFixtures.memberBeforeTheirFirstKudos, progression: null });
+    expect(within(nudge()!).getByText("Mention a teammate in a Slack message with :taco: and say why in five words or more.")).toBeInTheDocument();
+    expect(nudge()!.textContent).not.toMatch(/xp|level/i);
+  });
+
+  it("goes once the member has given a kudos, handing the one primary action back to the hero", () => {
+    renderApp({ ...shellFixtures.memberBeforeTheirFirstKudos, lifetime: { given: 1, received: 0 } });
+    expect(nudge()).not.toBeInTheDocument();
+    expect(primaries()).toEqual([within(hero()).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" })]);
+  });
+});
+
 describe("WS100: the counters table goes", () => {
   it("shows no Your kudos table on the home", () => {
     renderApp(shellFixtures.memberAtLevel7);
@@ -137,31 +182,18 @@ describe("WS21 V19: the member's face", () => {
 describe("WS18: what teammates see, and received kudos staying private", () => {
   it("shows the member's profile card as their face and name, saying the kudos they receive stay private", () => {
     renderApp(shellFixtures.member);
-    const card = within(main()).getByRole("region", { name: "Your profile card" });
+    const card = within(main()).getByRole("region", { name: "What teammates see" });
     expect(within(card).getByText("Sam Example")).toBeInTheDocument();
     expect(within(card).getByText("SE")).toBeInTheDocument();
-    expect(card).toHaveTextContent("The kudos you receive stay private.");
+    expect(card).toHaveTextContent("Everyone can see this card. Your XP and the kudos you receive stay with you.");
     expect(card.textContent).not.toMatch(/\d/);
   });
 });
 
-describe("WS19: the later features are plain locked cards", () => {
-  it("shows each later feature locked, with its name and one sentence, and no level, progress or crate", () => {
-    renderApp(shellFixtures.member);
-    const locked = within(main()).getByRole("region", { name: "Still locked" });
-    const cards = within(locked).getAllByRole("article");
-    expect(cards.map((card) => within(card).getByRole("heading").textContent)).toEqual(lockedFeatures);
-    for (const card of cards) {
-      expect(within(card).getByText("Locked")).toBeInTheDocument();
-      expect(card.textContent).not.toMatch(/\d|level|ready|open|crate|xp/i);
-    }
-    expect(within(locked).queryByRole("progressbar")).not.toBeInTheDocument();
-    expect(within(locked).queryByRole("button")).not.toBeInTheDocument();
-  });
-
+describe("WS19 WS106: the later features are plain locked panels", () => {
   it("shows no level or XP anywhere until the facts carry them", () => {
     renderApp(shellFixtures.member);
-    expect(main().textContent).not.toMatch(/\blevel\b|\bXP\b/i);
+    expect(main().textContent).not.toMatch(/\blevel\b|\bLv\b|\d XP/i);
   });
 });
 
@@ -189,8 +221,8 @@ describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while pr
     renderApp(shellFixtures.member);
     expect(screen.queryByRole("img", { name: /^Level/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Account menu for Sam Example" })).not.toHaveAccessibleDescription();
-    expect(document.body.textContent).not.toMatch(/\blevel\b|\bXP\b/i);
+    expect(within(screen.getByRole("banner")).getByRole("link", { name: "Sam Example" })).not.toHaveAccessibleDescription();
+    expect(document.body.textContent).not.toMatch(/\blevel\b|\bLv\b|\d XP/i);
     expect(within(hero()).getByText("1", { selector: ".hud-display" })).toHaveTextContent(/^1\/3$/);
     expect(within(hero()).getByText("You've given 14 kudos and received 9.")).toBeInTheDocument();
   });
@@ -224,7 +256,7 @@ describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while pr
 
   it("rings the avatar in the HUD with the hero's ring at its size, named and described as the hero ring, with the level number beside the face", () => {
     renderApp(shellFixtures.memberAtLevel7);
-    const avatar = screen.getByRole("button", { name: "Account menu for Sam Example" });
+    const avatar = within(screen.getByRole("banner")).getByRole("link", { name: "Sam Example, level 7" });
     expect(avatar).toHaveAccessibleDescription("Level 7, 500 XP to level 8");
     const ring = within(avatar).getByRole("img", { name: "Level 7, 500 XP to level 8" });
     expect(arcOf(ring)).toHaveAttribute("pathLength", "100");
@@ -233,12 +265,13 @@ describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while pr
     expect(within(ring).getByText("7")).toHaveClass("hud-display");
   });
 
-  it("shows Level n on the profile card beside the name, and still no received count", () => {
+  it("shows Lv n on the profile card beside the name, read as Level n, and still no received count", () => {
     renderApp(shellFixtures.memberAtLevel7);
-    const card = within(main()).getByRole("region", { name: "Your profile card" });
-    expect(within(card).getByText("Level 7")).toBeInTheDocument();
+    const card = within(main()).getByRole("region", { name: "What teammates see" });
+    expect(within(card).getByText("Lv 7")).toBeInTheDocument();
+    expect(within(card).getByText("Level 7")).toHaveClass("sr-only");
     expect(within(card).getByText("Sam Example")).toBeInTheDocument();
-    expect(card.textContent!.replace("Level 7", "")).not.toMatch(/\d/);
+    expect(card.textContent!.replace("Lv 7", "").replace("Level 7", "")).not.toMatch(/\d/);
   });
 
   it("shows no skill points, coins, ready pill or crates past level 5", () => {
@@ -246,6 +279,6 @@ describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while pr
     const banner = screen.getByRole("banner");
     expect(banner.textContent).not.toMatch(/skill|coin|ready|crate/i);
     expect(hero().textContent).not.toMatch(/skill|coin|ready|crate/i);
-    expect(within(main()).getByRole("region", { name: "Your profile card" }).textContent).not.toMatch(/skill|coin|ready|crate/i);
+    expect(within(main()).getByRole("region", { name: "What teammates see" }).textContent).not.toMatch(/skill|coin|ready|crate/i);
   });
 });

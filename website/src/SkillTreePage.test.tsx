@@ -4,6 +4,7 @@ import { Root } from "./Root";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { shellFixtures, type CommandAnswer, type MemberProfile, type MySkillTree } from "./shell";
 import { renderApp } from "./test/renderApp";
+import { navEntryNames as screenNav } from "./test/screensNav";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 const withTheTree = shellFixtures.memberWithEveryFeatureOpen;
@@ -40,18 +41,12 @@ function details() {
   return within(main()).getByRole("region", { name: "Perk details" });
 }
 
-function screenNav() {
-  return within(screen.getByRole("navigation", { name: "Screens" }))
-    .getAllByRole("link")
-    .map((link) => link.textContent);
-}
-
 function drawer() {
   return screen.queryByRole("dialog");
 }
 
 function yourPerks() {
-  return within(main()).getByRole("region", { name: "Your perks" });
+  return within(main()).getByRole("region", { name: /^Your perks/ });
 }
 
 function showTree(answer: MySkillTree, member: MemberProfile = withTheTree) {
@@ -77,7 +72,7 @@ describe("WS85: /skills shows the tree while the Skill tree is open", () => {
     [skillTreeFixtures.noPointsLeft, "No skill points to spend"],
   ])("says how many skill points are left to spend in the header", (answer, line) => {
     showTree(answer);
-    expect(within(screen.getByRole("heading", { level: 1 }).closest("header")!).getByText(line)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 }).closest("header")!).toHaveTextContent(line);
   });
 
   it("holds one band per shipped row headed Level {level}, with that row's perks in order", () => {
@@ -86,9 +81,8 @@ describe("WS85: /skills shows the tree while the Skill tree is open", () => {
     expect(nodes().map((node) => node.getAttribute("aria-label")!.split(".")[0])).toEqual(["Spark", "Rhythm", "Circle"]);
   });
 
-  it("frames each perk as a game object with corner marks, its name and its cost while it isn't owned", () => {
+  it("shows each perk with its name and its cost while it isn't owned", () => {
     showTree(skillTreeFixtures.sparkOwned);
-    expect(nodeOf("Rhythm")).toHaveClass("hud-panel");
     expect(nodeOf("Rhythm")).toHaveTextContent("Rhythm");
     expect(within(nodeOf("Rhythm")).getByTestId("perk-cost")).toHaveTextContent("1");
     expect(within(nodeOf("Spark")).queryByTestId("perk-cost")).toBeNull();
@@ -156,7 +150,7 @@ describe("WS85: /skills shows the tree while the Skill tree is open", () => {
     expect(within(details()).getByRole("heading", { level: 2 })).toHaveTextContent("Spark");
   });
 
-  it("shows no later rows, coins, perk count or Upgraded legend", () => {
+  it("shows no later rows, coins, E's 14 perks or Upgraded legend", () => {
     showTree(skillTreeFixtures.sparkOwned);
     expect(main()).not.toHaveTextContent(/coin|of 14|Upgraded|Level 10/i);
   });
@@ -258,23 +252,23 @@ describe("WS80: /skills follows its read", () => {
     expect(pageTitle()).toHaveTextContent("Page not found");
   });
 
-  it("says Max's Skill tree opens at level 5. with Go to Home while locked, and has no nav item", () => {
+  it("shows the locked page, Unlocks at level 5, with Back to your profile while locked, and lists it locked in the nav", () => {
     showTree(skillTreeFixtures.locked, shellFixtures.memberWithTheBoardOpened);
     expect(pageTitle()).toHaveTextContent("Skill tree");
     expect(document.title).toBe("HedgeHug · Skill tree");
-    expect(main()).toHaveTextContent("Skill tree opens at level 5.");
-    expect(within(main()).getByRole("link", { name: "Go to Home" })).toHaveAttribute("href", "/");
+    expect(pageTitle()).toHaveTextContent("Unlocks at level 5");
+    expect(within(main()).getByRole("link", { name: "Back to your profile" })).toHaveAttribute("href", "/");
     expect(within(main()).queryByRole("button")).toBeNull();
-    expect(screenNav()).not.toContain("Skill tree");
+    expect(screenNav()).toContain("Skill tree, locked. Unlocks at level 5");
   });
 
   it("shows its crate in place with a primary Open while ready, and opens it through openFeature", async () => {
     const openFeature = vi.fn(async (): Promise<CommandAnswer> => ({ kind: "opened" }));
     const { user } = renderApp(shellFixtures.memberWithTheSkillTreeReady, undefined, { openFeature }, undefined, undefined, fixedSkillTree(skillTreeFixtures.ready));
-    const crate = within(main()).getByRole("heading", { name: "Unlocks: Skill tree" }).closest("article")!;
+    const crate = within(main()).getByRole("heading", { level: 1, name: "Skill tree is ready" }).closest("section")!;
     const open = within(crate).getByRole("button", { name: "Open" });
     expect(open).toHaveClass("quill-button--variant-primary");
-    expect(screenNav()).not.toContain("Skill tree");
+    expect(screenNav()).toContain("Skill tree: unlock ready. Open its crate");
 
     await user.click(open);
 

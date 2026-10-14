@@ -1,13 +1,14 @@
-import { v } from "convex/values";
+import { v, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
-import { ReportableError, typeOf } from "../analytics/exceptions";
-import { awaitedUsers, recheck, type Observation } from "../engine/engine";
+import { ReportableError, typeOf, withholdingWords } from "../analytics/exceptions";
+import { awaitedUsers, recheck, takeStrandedChecks, type Observation } from "../engine/engine";
 import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import { republishOnRoleChange } from "../feedback/homes";
 import { directoryRecordArgs, lookup, record, type DirectoryEntry, type DirectoryRecord } from "../workspace/directory";
 import type { MemberProfile } from "../workspace/memberProfile";
+import { convexActionTimeLimitMs, strandedPerSweep } from "./strandedJobs";
 import { readSlack, slackErrorCodeOf } from "./webApi";
 
 type SlackUser = {
@@ -46,13 +47,44 @@ export async function checkDirectoryLater(ctx: MutationCtx, ref: MessageRef, obs
   await ctx.scheduler.runAfter(observation.retryInMs, internal.slack.directory.checkDirectory, { ref, attempt: observation.attempt });
 }
 
+const failedCheckRetriesMs = [10, 60, 300, 1800].map((seconds) => seconds * 1000);
+
+const checkDirectoryArgs = { ref: messageRefValidator, attempt: v.int64(), failures: v.optional(v.number()) };
+
 export const checkDirectory = observedAction({
-  args: { ref: messageRefValidator, attempt: v.int64() },
-  handler: async (ctx, { ref, attempt }) => {
-    const users = await ctx.runQuery(internal.slack.directory.usersAwaited, { ref, attempt });
-    if (users === null) return;
-    for (const user of users) await lookUpUser(ctx, ref.workspace, user);
-    await ctx.runMutation(internal.slack.directory.recheckMessage, { ref, attempt });
+  args: checkDirectoryArgs,
+  handler: async (ctx, args) => {
+    try {
+      await checkPeopleOf(ctx, args.ref, args.attempt);
+    } catch (error) {
+      await checkAgainAfterFailure(ctx, args);
+      throw error;
+    }
+  },
+});
+
+async function checkPeopleOf(ctx: ActionCtx, ref: MessageRef, attempt: bigint) {
+  const users = await ctx.runQuery(internal.slack.directory.usersAwaited, { ref, attempt });
+  if (users === null) return;
+  for (const user of users) await lookUpUser(ctx, ref.workspace, user);
+  await ctx.runMutation(internal.slack.directory.recheckMessage, { ref, attempt });
+}
+
+async function checkAgainAfterFailure(ctx: ActionCtx, { ref, attempt, failures = 0 }: ObjectType<typeof checkDirectoryArgs>) {
+  const retryInMs = failedCheckRetriesMs[failures];
+  if (retryInMs === undefined) return;
+  await ctx.scheduler.runAfter(retryInMs, internal.slack.directory.checkDirectory, { ref, attempt, failures: failures + 1 });
+}
+
+const checkTries = failedCheckRetriesMs.length + 1;
+const strandedAfterMs = failedCheckRetriesMs.reduce((total, retryMs) => total + retryMs, 0) + checkTries * convexActionTimeLimitMs;
+
+export const recheckStranded = internalMutation({
+  args: {},
+  handler: async (ctx): Promise<void> => {
+    const { checkAgain, pageWasFull } = await takeStrandedChecks(ctx, Date.now() - strandedAfterMs, strandedPerSweep);
+    for (const { ref, attempt } of checkAgain) await ctx.scheduler.runAfter(0, internal.slack.directory.checkDirectory, { ref, attempt });
+    if (pageWasFull) await ctx.scheduler.runAfter(0, internal.slack.directory.recheckStranded, {});
   },
 });
 
@@ -66,11 +98,13 @@ export const usersAwaited = internalQuery({
   handler: (ctx, { ref, attempt }) => awaitedUsers(ctx, ref, attempt),
 });
 
+const recheckArgs = { ref: messageRefValidator, attempt: v.int64() };
+
 export const recheckMessage = internalMutation({
-  args: { ref: messageRefValidator, attempt: v.int64() },
-  handler: async (ctx, { ref, attempt }) => {
+  args: recheckArgs,
+  handler: withholdingWords(async (ctx: MutationCtx, { ref, attempt }: ObjectType<typeof recheckArgs>) => {
     await checkDirectoryLater(ctx, ref, await recheck(ctx, ref, attempt));
-  },
+  }),
 });
 
 export const refreshPerson = internalMutation({

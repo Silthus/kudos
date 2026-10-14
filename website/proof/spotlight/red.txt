@@ -1,0 +1,25 @@
+     × reads getSpotlight with one seed and shows the giver, every recipient, the words and the date 1286ms
+     × sits above the board's other side panels 1099ms
+     × shows the whole message with live links and Edited, and every recipient as supplied 1209ms
+     × names four people as two and 2 others, and dates a kudos from another year with its year 1065ms
+     × opens the kudos in Slack in a new tab, naming whose kudos it is 1094ms
+     × shows no Slack link while the permalink is null 1069ms
+     × shows no XP, rank, count or Said why 1048ms
+     × follows skipped answers at once with their own after, showing nothing in between 1128ms
+     × draws nothing again while the board changes period 1344ms
+     × reads after the shown kudos and shows the next one 1053ms
+     × makes the message area a polite atomic live region only after the first press 1068ms
+     × holds the shown kudos and marks Next aria-disabled while the next answer loads 1050ms
+     × says That's the only one so far when the answer's after is the shown one 1311ms
+     × follows skipped answers after Next, then shows the kudos past them 1116ms
+     × stops after ten skipped answers, keeps the kudos, and resumes from the last skip on the next press 1051ms
+     × keeps the kudos after a failed draw, says so, and reads after the shown kudos again on the next press 1068ms
+     × never re-renders the panel with another kudos without a press 1082ms
+     × shows Max's line and a Try again that draws a fresh seed after an error 1076ms
+     × stops after ten skipped answers, and Try again resumes from the last skip 2034ms
+     × shows Max's line and no Next while the draw answers empty 1045ms
+     × shows no panel and leaves no gap while the draw answers not-found 1053ms
+     × drops a draw answered after its mount ended, keeping the current mount's thank-you 1053ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 22 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  22 failed | 3 passed (25)

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, isWelcome } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -14,6 +14,7 @@ import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const dayMs = 24 * 60 * 60_000;
+const aLaunchReplayingFifteenKudosOnFourLaddersMs = 30_000;
 const form = { contentType: "application/x-www-form-urlencoded" };
 const bookReady = "*Book* is ready. It opens achievements.";
 const tierOrder: TierId[] = ["bronze", "silver", "gold", "diamond"];
@@ -235,7 +236,7 @@ describe("P58 P59 P62: Connections, Dependability, Applause and Seasons count th
       ],
     });
     expect(await earnedTierRows(t, "U_ALICE", "connections")).toEqual(["bronze", "silver"]);
-  });
+  }, aLaunchReplayingFifteenKudosOnFourLaddersMs);
 });
 
 describe("P58 P62: Old Friends counts thanking someone again 30 or more days after you last did", () => {
@@ -410,7 +411,7 @@ async function countedRows(t: Backend) {
 }
 
 function levelUpDmsTo(user: string) {
-  return slack.callsTo("chat.postMessage").filter(({ channel, text }) => channel === user && String(text).startsWith("🎉")) as Array<{ channel: string; text: string }>;
+  return slack.callsTo("chat.postMessage").filter(({ channel, text }) => channel === user && String(text).startsWith("🎉") && !isWelcome({ text })) as Array<{ channel: string; text: string }>;
 }
 
 function oldFriendsIn(book: AchievementFacts | null) {

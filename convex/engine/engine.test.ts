@@ -449,6 +449,7 @@ function kudosMessage(author: string, mentions: Mention[], emoji: string[], opti
     revision: BigInt(at) * 1000n,
     at,
     content: { mentions, emoji, text: "thanks" },
+    words: { segments: [{ kind: "text", text: "thanks" }], visibility: "public" },
   };
 }
 

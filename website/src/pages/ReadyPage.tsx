@@ -1,12 +1,23 @@
-import { Crate } from "../crates/Crate";
+import { OpenButton, useFeatureCrate } from "../crates/Crate";
+import { CrateArt } from "../crates/CrateArt";
+import { aboutOf } from "../features";
 import { PageTitle } from "../PageTitle";
 import type { FeatureCard } from "../shell";
 
 export function ReadyPage({ card }: { card: FeatureCard }) {
+  const crate = useFeatureCrate(card);
+  const { sentence, Hog } = aboutOf(card.feature);
   return (
-    <section className="mx-auto flex max-w-xl flex-col gap-6 py-10">
-      <PageTitle tab={card.name}>{card.name}</PageTitle>
-      <Crate card={card} heading="h2" open="primary" artWidth={128} />
+    <section className="hud-panel mx-auto w-full max-w-3xl overflow-hidden rounded-xl border shadow-sm">
+      <div className="night-band flex flex-col items-center gap-3 px-4 pb-10 pt-10 text-center md:pb-12 md:pt-14">
+        <PageTitle tab={card.name} size="headline">{`${card.name} is ready`}</PageTitle>
+        <p className="night-band-quiet max-w-md text-balance text-base">{sentence}</p>
+        <div className="mt-6 cursor-pointer" onClick={crate.open}>
+          <CrateArt phase="closed" width={200} Hog={Hog} nudge={crate.nudge} seen={card.seen} />
+        </div>
+        {crate.failure !== undefined && <p className="text-sm font-medium">{crate.failure}</p>}
+        <OpenButton crate={crate} variant="primary" size="lg" className="mt-2 h-11 px-6 text-base" />
+      </div>
     </section>
   );
 }

@@ -27,11 +27,15 @@ const now = new Date("2026-10-14T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
-const welcomeLines = [
-  "👋 Welcome to HedgeHug! Thank a teammate by mentioning them and adding :taco: to your message in any channel I'm in. Each :taco: gives everyone you mention 1 kudos.",
-  "You can give 3 kudos a day, and they refill at midnight in your time zone.",
-  "To add me to a channel, type `/hedgehug` there.",
-];
+const welcomeLine = "Welcome to HedgeHug, where we thank each other for the help that usually goes unnoticed.";
+const sayWhy = "Say why you're thanking them: it means more.";
+const greetingOf = {
+  U_ANN: ["🎉 *Your first kudos just landed with <@U_BOB>!*", welcomeLine, `👉 *Next step:* thank two more teammates this week. ${sayWhy}`],
+  U_BOB: ["🎉 *<@U_ANN> just thanked you with a kudos!*", welcomeLine, `👉 *Your first step:* thank someone who helped you lately. Mention them and add :taco: to your message in any channel I'm in. ${sayWhy}`],
+  U_DAN: ["🎉 *<@U_ANN> just thanked you with a kudos!*", welcomeLine, `👉 *Your first step:* thank someone who helped you lately. Mention them and add :taco: to your message in any channel I'm in. ${sayWhy}`],
+};
+type Welcomed = keyof typeof greetingOf;
+const allowance = "You have 3 kudos a day, and they refill at midnight your time.";
 const openAppHome = "<slack://app?team=T1&id=A_KUDOS&tab=home|Open App Home>";
 const pickQuestion = "Which group do you count for on the leaderboard?";
 
@@ -61,20 +65,13 @@ describe("GB19: the welcome message's group block", () => {
 
     await giveKudos(t, "U_ANN", "U_BOB");
 
-    expect(readBlocks(welcomeTo("U_ANN"))).toEqual([
-      `section: ${welcomeLines.join("\n")}`,
-      `section: ${pickQuestion}`,
-      "actions: [select: Zebras of Gardeners, Zebras] | Save",
-      `section: ${openAppHome}`,
-    ]);
-    expect(welcomeTextTo("U_ANN")).toBe([...welcomeLines, pickQuestion, openAppHome].join("\n"));
+    expect(readBlocks(welcomeTo("U_ANN"))).toEqual(welcomeBlocksOf("U_ANN", `section: ${pickQuestion}`, "actions: [select: Zebras of Gardeners, Zebras] | Save"));
+    expect(welcomeTextTo("U_ANN")).toBe(welcomeTextOf("U_ANN", pickQuestion));
 
     await saveInWelcome(t, "U_ANN", "Gardeners");
 
     expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Gardeners");
-    expect(welcomeUpdatesTo("U_ANN")).toEqual([
-      [`section: ${welcomeLines.join("\n")}`, "section: Saved. You count for Gardeners on the leaderboard. You can change it in App Home.", `section: ${openAppHome}`],
-    ]);
+    expect(welcomeUpdatesTo("U_ANN")).toEqual([welcomeBlocksOf("U_ANN", "section: Saved. You count for Gardeners on the leaderboard. You can change it in App Home.")]);
   });
 
   test("a member in one group reads which group they count for, with nothing to pick", async () => {
@@ -82,7 +79,7 @@ describe("GB19: the welcome message's group block", () => {
 
     await giveKudos(t, "U_ANN", "U_BOB");
 
-    expect(readBlocks(welcomeTo("U_BOB"))).toEqual([`section: ${welcomeLines.join("\n")}`, "section: You count for Gardeners on the leaderboard.", `section: ${openAppHome}`]);
+    expect(readBlocks(welcomeTo("U_BOB"))).toEqual(welcomeBlocksOf("U_BOB", "section: You count for Gardeners on the leaderboard."));
   });
 
   test("GB34: a group named with &, < and > reads as written in the welcome message", async () => {
@@ -99,7 +96,8 @@ describe("GB19: the welcome message's group block", () => {
 
     await giveKudos(t, "U_ANN", "U_DAN");
 
-    expect(slack.callsTo("chat.postMessage").find(({ channel }) => channel === "U_DAN")).toEqual({ channel: "U_DAN", text: [...welcomeLines, openAppHome].join("\n") });
+    expect(readBlocks(welcomeTo("U_DAN"))).toEqual(welcomeBlocksOf("U_DAN"));
+    expect(welcomeTextTo("U_DAN")).toBe(welcomeTextOf("U_DAN"));
   });
 
   test("saving a group the member left meanwhile stores nothing and asks for another one", async () => {
@@ -111,13 +109,7 @@ describe("GB19: the welcome message's group block", () => {
     await saveInWelcome(t, "U_ANN", "Gardeners");
 
     expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Zebras");
-    expect(welcomeUpdatesTo("U_ANN")).toEqual([
-      [
-        `section: ${welcomeLines.join("\n")}`,
-        "section: Gardeners isn't one of your groups anymore. Pick another one.\nYou count for Zebras on the leaderboard.",
-        `section: ${openAppHome}`,
-      ],
-    ]);
+    expect(welcomeUpdatesTo("U_ANN")).toEqual([welcomeBlocksOf("U_ANN", "section: Gardeners isn't one of your groups anymore. Pick another one.\nYou count for Zebras on the leaderboard.")]);
   });
 
   test("a pick reconciles the member first, so a membership the copy dropped before any page reached them is refused", async () => {
@@ -211,7 +203,8 @@ describe("GB3, GB29: where groups don't apply nothing changes", () => {
     await interact(t, "U_ANN", staleButtonOf({ type: "pickPrimaryGroup", group: await anyGroupId(t), surface: "welcome" }), { inMessage: welcomeMessageTo("U_ANN") });
     await interact(t, "U_ANN", { type: "static_select", action_id: JSON.stringify({ type: "pickPrimaryGroup", surface: "settings" }), selected_option: { value: await anyGroupId(t) } });
 
-    expect(slack.callsTo("chat.postMessage").find(({ channel }) => channel === "U_ANN")).toEqual({ channel: "U_ANN", text: [...welcomeLines, openAppHome].join("\n") });
+    expect(readBlocks(welcomeTo("U_ANN"))).toEqual(welcomeBlocksOf("U_ANN"));
+    expect(welcomeTextTo("U_ANN")).toBe(welcomeTextOf("U_ANN"));
     expect(groupLinesIn(publishedHome(slack, "U_ANN"))).toEqual([]);
     expect(await primaryGroupNameOf(t, "U_ANN")).toBe(before);
     expect(slack.callsTo("chat.update")).toEqual([]);
@@ -257,6 +250,14 @@ describe("GB33: primary group picked", () => {
     ]);
   });
 });
+
+function welcomeBlocksOf(user: Welcomed, ...groupBlocks: string[]) {
+  return [...greetingOf[user].map((line) => `section: ${line}`), `section: ${allowance}`, ...groupBlocks, "actions: Open App Home"];
+}
+
+function welcomeTextOf(user: Welcomed, ...groupLines: string[]) {
+  return [...greetingOf[user], allowance, ...groupLines, openAppHome].join("\n");
+}
 
 function hoursAfterNow(hours: number) {
   return new Date(now.getTime() + hours * 3_600_000);

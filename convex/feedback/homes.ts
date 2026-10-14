@@ -66,8 +66,8 @@ type Door = { frontDoor: boolean };
 
 const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices & Door) => boolean }> = [
   { tab: "leaderboard", shownWith: ({ leaderboard, frontDoor }) => leaderboard && !frontDoor },
-  { tab: "book", shownWith: ({ book }) => book },
-  { tab: "skillTree", shownWith: ({ skillTree }) => skillTree },
+  { tab: "book", shownWith: ({ book, frontDoor }) => book && !frontDoor },
+  { tab: "skillTree", shownWith: ({ skillTree, frontDoor }) => skillTree && !frontDoor },
   { tab: "settings", shownWith: ({ board, xp, groups }) => board || xp || groups !== null },
   { tab: "admin", shownWith: ({ sharedSettings, admin }) => sharedSettings && admin },
 ];

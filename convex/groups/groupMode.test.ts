@@ -38,7 +38,7 @@ afterEach(() => {
 const adminTabOnMain = [
   "actions: Profile | Settings | [Admin]",
   "header: Admin",
-  "section: I celebrate level ups in a thread under each kudos message. Pick a channel to post them there instead. [channels_select: none]",
+  "section: I don't celebrate level ups in public yet. Pick a channel to celebrate them there. [channels_select: none]",
   "divider",
   "context: Only workspace admins and owners see this tab.",
 ];
@@ -53,7 +53,7 @@ describe("GB27: the group mode in the Admin tab", { timeout: slackBoundaryTimeou
     expect(publishedHome(slack, "U_ALICE")).toEqual([
       "actions: Profile | Settings | [Admin]",
       "header: Admin",
-      "section: I celebrate level ups in a thread under each kudos message. Pick a channel to post them there instead. [channels_select: none]",
+      "section: I don't celebrate level ups in public yet. Pick a channel to celebrate them there. [channels_select: none]",
       "divider",
       "section: *Groups that count*",
       "actions: [Every group] | Only these groups",
