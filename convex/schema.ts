@@ -67,6 +67,7 @@ export default defineSchema({
     kudosEmoji: v.optional(v.string()),
     announcementChannel: v.optional(v.string()),
     url: v.optional(v.string()),
+    urlRequestedAt: v.optional(v.number()),
   }).index("by_workspace", ["workspace"]),
 
   members: defineTable({

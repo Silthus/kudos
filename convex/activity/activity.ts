@@ -2,14 +2,14 @@ import type { QueryCtx } from "../_generated/server";
 import { awardsReceivedNewestFirst, messagesGivenNewestFirst, type Before, type GivenMessageAwards, type ReceivedAward } from "../engine/awards";
 import { timeZoneOf, type MemberId } from "../workspace/directory";
 import type { Activity, ActivityEntry, KudosGiven, KudosReceived, RecentKudos } from "./entries";
-import { kudosFactsOf, personOf } from "./kudos";
+import { kudosFactsOf, mentionsOfOnePage, personOf, type Mentions } from "./kudos";
 import { beforeFor, decodePosition, encodePosition, newestFirst, ranks, type Position, type Rank } from "./position";
 
 export type Filter = "all" | "received" | "given";
 
 export type Direction = Exclude<Filter, "all">;
 
-type Pending = { position: Position; entry: () => Promise<ActivityEntry> };
+type Pending = { position: Position; entry: (mentions: Mentions) => Promise<ActivityEntry> };
 
 type Source = { rank: Rank; read: (ctx: QueryCtx, member: MemberId, before: Before, take: number) => Promise<Pending[]> };
 
@@ -23,7 +23,7 @@ const kudosReceived: Source = {
   read: async (ctx, member, before, take) =>
     (await firstOf(awardsReceivedNewestFirst(ctx, member, before), take)).map((award) => ({
       position: { at: award.at, rank: ranks.kudosReceived, created: award.created },
-      entry: () => receivedEntryOf(ctx, award),
+      entry: (mentions) => receivedEntryOf(ctx, mentions, award),
     })),
 };
 
@@ -32,7 +32,7 @@ const kudosGiven: Source = {
   read: async (ctx, member, before, take) =>
     (await firstOf(messagesGivenNewestFirst(ctx, member, before), take)).map((given) => ({
       position: { at: given.at, rank: ranks.kudosGiven, created: given.created },
-      entry: () => givenEntryOf(ctx, given),
+      entry: (mentions) => givenEntryOf(ctx, mentions, given),
     })),
 };
 
@@ -56,18 +56,19 @@ async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, after: Po
   const read = await Promise.all(sourcesOf[filter].map(({ rank, read }) => read(ctx, member, beforeFor(rank, after), size + 1)));
   const pending = read.flat().sort((one, other) => newestFirst(one.position, other.position));
   const page = pending.slice(0, size);
-  const entries = await Promise.all(page.map(({ entry }) => entry()));
+  const mentions = mentionsOfOnePage(ctx);
+  const entries = await Promise.all(page.map(({ entry }) => entry(mentions)));
   const last = page.at(-1);
   return { entries, after: pending.length > size && last !== undefined ? encodePosition(last.position) : null };
 }
 
-async function receivedEntryOf(ctx: QueryCtx, { award, message, giver, at, created }: ReceivedAward): Promise<KudosReceived> {
-  const [person, facts] = await Promise.all([personOf(ctx, giver), kudosFactsOf(ctx, message, award)]);
+async function receivedEntryOf(ctx: QueryCtx, mentions: Mentions, { award, message, giver, at, created }: ReceivedAward): Promise<KudosReceived> {
+  const [person, facts] = await Promise.all([personOf(ctx, giver), kudosFactsOf(ctx, mentions, message, award)]);
   return { kind: "kudosReceived", key: encodePosition({ at, rank: ranks.kudosReceived, created }), at, giver: person, ...facts };
 }
 
-async function givenEntryOf(ctx: QueryCtx, { first, message, awards, at, created }: GivenMessageAwards): Promise<KudosGiven> {
-  const [recipients, facts] = await Promise.all([Promise.all(awards.map(({ recipient }) => personOf(ctx, recipient))), kudosFactsOf(ctx, message, first)]);
+async function givenEntryOf(ctx: QueryCtx, mentions: Mentions, { first, message, awards, at, created }: GivenMessageAwards): Promise<KudosGiven> {
+  const [recipients, facts] = await Promise.all([Promise.all(awards.map(({ recipient }) => personOf(ctx, recipient))), kudosFactsOf(ctx, mentions, message, first)]);
   return { kind: "kudosGiven", key: encodePosition({ at, rank: ranks.kudosGiven, created }), at, recipients, kudos: awards[0]?.kudos ?? 0, ...facts, earned: null };
 }
 

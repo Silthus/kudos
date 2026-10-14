@@ -129,6 +129,22 @@ describe("AT12 AT13: a kudos entry's permalink", () => {
     expect(slack.callsTo("auth.test")).toHaveLength(1);
   });
 
+  test("asks Slack for the workspace's URL once, however many kudos land before the first answer", async () => {
+    await activityOn();
+
+    await post(t, thanksBob, { user: alice.user, ts: postedTs });
+    await post(t, thanksBob, { user: alice.user, ts: "1760435100.000200" });
+    await post(t, thanksBob, { user: alice.user, ts: "1760435200.000300" });
+    await settle(t);
+
+    expect(slack.callsTo("auth.test")).toHaveLength(1);
+    expect(await permalinksSeenBy(bob)).toEqual([
+      "https://kudos-test.slack.com/archives/C1/p1760435200000300",
+      "https://kudos-test.slack.com/archives/C1/p1760435100000200",
+      "https://kudos-test.slack.com/archives/C1/p1760435000000100",
+    ]);
+  });
+
   test("is null until the workspace's URL is known, and appears once a later kudos fetches it", async () => {
     await activityOn();
     slack.answering("auth.test", slackError("internal_error"));
@@ -418,6 +434,31 @@ describe("website reads pass one guard", () => {
 });
 
 describe("AT18: a page's reads are bounded", () => {
+  test("a page of kudos full of mentions stays within Convex's limits, repeated mentions resolved once", { timeout: 60_000 }, async () => {
+    t = testBackend({ transactionLimits: true });
+    await activityOn();
+    const me = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: bob.user, kind: "member", name: bob.name, asOf: 0 }));
+    const teammate = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: alice.user, kind: "member", name: alice.name, asOf: 0 }));
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 50; index++) {
+        const message = `1760435${String(index).padStart(3, "0")}.000100`;
+        const mentions = Array.from({ length: 100 }, (_, mentioned) => ({ kind: "person" as const, user: mentioned % 2 === 0 ? bob.user : `U_${index}_${mentioned}` }));
+        await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message, giver: teammate, recipient: me, kudos: 1, day: "2026-10-14", at: postedAt + index });
+        await ctx.db.insert("kudosTexts", { workspace: "T1", conversation: "C1", message, kind: "words", revision: 1n, author: alice.user, edited: false, segments: mentions, visibility: "public", gate: null });
+      }
+    });
+
+    const { entries } = await activityOf(await signedIn(bob), { filter: "received", limit: 50 });
+
+    expect(entries).toHaveLength(50);
+    const [newest] = entries;
+    if (newest?.kind !== "kudosReceived" || newest.message.kind !== "text") throw new Error("expected the newest kudos's words");
+    expect(newest.message.segments.slice(0, 2)).toEqual([
+      { kind: "person", name: "Bob Brandt" },
+      { kind: "person", name: "A teammate" },
+    ]);
+  });
+
   test("a page and the next stay within Convex's limits for a member with a long history inside one instant", { timeout: 60_000 }, async () => {
     t = testBackend({ transactionLimits: true });
     await activityOn();
