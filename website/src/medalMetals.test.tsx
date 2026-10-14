@@ -19,8 +19,8 @@ function metalIn(block: string, tier: string) {
   return hex;
 }
 
-function cardLightness(mode: "light" | "dark") {
-  const lightnesses = [...quillTokens.matchAll(/--card: oklch\(([\d.]+) calc/g)].map((match) => Number(match[1]));
+function lightnessOf(token: "card" | "muted", mode: "light" | "dark") {
+  const lightnesses = [...quillTokens.matchAll(new RegExp(`--${token}: oklch\\(([\\d.]+) calc`, "g"))].map((match) => Number(match[1]));
   return mode === "light" ? lightnesses[0]! : lightnesses[1]!;
 }
 
@@ -45,8 +45,17 @@ const modes = [
 describe("WS94 V24: each medal metal is a token with 3:1 against its card", () => {
   for (const { mode, block } of modes) {
     it.each(tiers)(`%s in ${mode}`, (tier) => {
-      const card = luminanceOfNeutralOklch(cardLightness(mode));
+      const card = luminanceOfNeutralOklch(lightnessOf("card", mode));
       expect(contrast(luminanceOfHex(metalIn(block, tier)), card)).toBeGreaterThanOrEqual(3);
+    });
+  }
+});
+
+describe("WS343 WS339: each medal metal holds 3:1 against the public card's muted end", () => {
+  for (const { mode, block } of modes) {
+    it.each(tiers)(`%s in ${mode}`, (tier) => {
+      const muted = luminanceOfNeutralOklch(lightnessOf("muted", mode));
+      expect(contrast(luminanceOfHex(metalIn(block, tier)), muted)).toBeGreaterThanOrEqual(3);
     });
   }
 });

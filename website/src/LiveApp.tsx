@@ -11,6 +11,7 @@ import type { BookShown } from "./bookRead";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
 import { useSocketUnreachable } from "./connection";
+import type { ProfileCardShown } from "./profileCardRead";
 import type { QuestsShown } from "./questsRead";
 import type { SkillTreeShown } from "./skillTreeRead";
 import type { Period, ShellActions, Visitor } from "./shell";
@@ -40,6 +41,7 @@ function LiveApp() {
       useQuests={(asking) => useLiveQuests(asking, unreachable)}
       useBook={(asking) => useLiveBook(asking, unreachable)}
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
+      useProfileCard={useLiveProfileCard}
     />
   );
 }
@@ -74,6 +76,13 @@ function useLiveSkillTree(asking: boolean, unreachable: boolean): SkillTreeShown
   if (skillTree instanceof Error) return { kind: "broken" };
   if (skillTree === undefined && unreachable) return { kind: "connecting" };
   return skillTree;
+}
+
+function useLiveProfileCard(asking: boolean): ProfileCardShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { card: { query: api.website.profileCard.getProfileCard, args: {} } } : {}), [asking]);
+  const { card } = useQueries(request);
+  if (card instanceof Error) return { kind: "broken" };
+  return card;
 }
 
 type Answers = { authLoading: boolean; redemptionFailed: boolean; unreachable: boolean; profile: MyProfile | undefined };
