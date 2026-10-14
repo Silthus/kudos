@@ -8,10 +8,10 @@ function subscribe(notify: () => void) {
   return () => query.removeEventListener("change", notify);
 }
 
-function isWide() {
+export function isWideScreen() {
   return window.matchMedia(wideScreen).matches;
 }
 
 export function useWideScreen() {
-  return useSyncExternalStore(subscribe, isWide);
+  return useSyncExternalStore(subscribe, isWideScreen);
 }

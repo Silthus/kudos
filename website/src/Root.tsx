@@ -9,20 +9,19 @@ import { ErrorPage } from "./pages/ErrorPage";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { builtShell, fixtureActions, type ShellState } from "./shell";
-import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
+import { fixtureSkillTreeFor } from "./skillTreeFixtures";
 
 const fixtureLeaderboard = fixedLeaderboard(leaderboardFixtures.midBoard);
 
 const fixtureQuests = fixedQuests(questsFixtures.weekWithLastWeeksCrate);
 
-const fixtureSkillTree = fixedSkillTree(skillTreeFixtures.sparkOwned);
 
 export function Root({ fixture, convexUrl }: { fixture?: string; convexUrl?: string }) {
   return <ShellBoundary>{fixture || !convexUrl ? <FixtureApp visitor={builtShell(fixture)} /> : <LiveShell client={new ConvexReactClient(convexUrl)} />}</ShellBoundary>;
 }
 
 function FixtureApp({ visitor }: { visitor: ShellState }) {
-  return <App visitor={visitor} actions={fixtureActions} useLeaderboard={fixtureLeaderboard} useQuests={fixtureQuests} useBook={fixtureBookFor(visitor)} useSkillTree={fixtureSkillTree} />;
+  return <App visitor={visitor} actions={fixtureActions} useLeaderboard={fixtureLeaderboard} useQuests={fixtureQuests} useBook={fixtureBookFor(visitor)} useSkillTree={fixtureSkillTreeFor(visitor)} />;
 }
 
 export function ShellBoundary({ children }: { children: ReactNode }) {

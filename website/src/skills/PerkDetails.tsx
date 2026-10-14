@@ -105,7 +105,8 @@ function PurchaseNotice({ perk, purchasing: { notice } }: { perk: PerkNode; purc
 
 function isShownBeside(notice: Notice, perk: PerkNode) {
   if (notice.perk !== perk.perk || notice.kind === "bought") return false;
-  return notice.kind === "unreachable" || perk.state !== "available";
+  if (notice.kind === "refused") return perk.state !== "available";
+  return perk.state !== "owned";
 }
 
 export function PurchaseAnnouncement({ purchasing }: { purchasing: Purchasing }) {

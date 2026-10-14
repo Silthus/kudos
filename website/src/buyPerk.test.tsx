@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { skillTreeFixtures } from "./skillTreeFixtures";
 import { shellFixtures, type BuyAnswer, type MemberProfile, type MySkillTree, type Purchase, type ShellState } from "./shell";
 import { renderApp } from "./test/renderApp";
-import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
+import { aWideScreenThatNarrows, fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 const withTheTree = shellFixtures.memberWithEveryFeatureOpen;
 
@@ -186,7 +186,10 @@ describe("WS87: a bought perk turns owned in place", () => {
     await waitFor(() => expect(within(reopened).getByRole("heading", { name: "Rhythm" })).toHaveFocus());
   });
 
-  it("says an unreachable server in the page while the drawer is closed", async () => {
+  it.each([
+    { outcome: "an unreachable server", answer: (pending: ReturnType<typeof answerLater>) => pending.fail(), says: "Couldn't reach HedgeHug. Try again." },
+    { outcome: "a refusal", answer: (pending: ReturnType<typeof answerLater>) => pending.settle({ kind: "refused", reason: "points" }), says: "That couldn't be bought. No skill points to spend." },
+  ])("reopens the perk's drawer to show $outcome when the drawer was closed before the answer", async ({ answer, says }) => {
     const pending = answerLater();
     const { user } = renderApp(withTheTree, undefined, { buyPerk: () => pending.answer }, undefined, undefined, theTree(skillTreeFixtures.withPoints).read);
     await user.click(nodeOf("Rhythm"));
@@ -194,8 +197,22 @@ describe("WS87: a bought perk turns owned in place", () => {
     await user.click(within(drawer).getByRole("button", { name: "Buy for 1 skill point" }));
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    await pending.fail();
-    expect(screen.getAllByRole("status").map((status) => status.textContent)).toContain("Couldn't reach HedgeHug. Try again.");
+    await answer(pending);
+    const reopened = await screen.findByRole("dialog", { name: "Rhythm" });
+    expect(within(reopened).getByRole("status")).toHaveTextContent(says);
+  });
+
+  it("opens the bought perk's drawer and focuses its heading when the screen narrowed while the purchase was sent", async () => {
+    const screenSize = aWideScreenThatNarrows();
+    const pending = answerLater();
+    const tree = theTree(skillTreeFixtures.withPoints);
+    renderApp(withTheTree, undefined, { buyPerk: () => pending.answer }, undefined, undefined, tree.read);
+    await act(async () => buyButton().click());
+    act(() => screenSize.narrow());
+    await pending.settle({ kind: "bought" });
+    const opened = await screen.findByRole("dialog", { name: "Spark" });
+    expect(within(opened).getByRole("status")).toHaveTextContent("You bought Spark.");
+    await waitFor(() => expect(within(opened).getByRole("heading", { name: "Spark" })).toHaveFocus());
   });
 });
 
@@ -237,10 +254,11 @@ describe("WS87: a refused purchase changes nothing and says why", () => {
     expect(buyButton()).toHaveAccessibleName("Buy for 1 skill point");
   });
 
-  it.each([null, "not-open"] as const)("gives no reason for a refusal at the gate (%s)", async (reason) => {
+  it.each([null, "not-open"] as const)("gives no reason for a refusal at the gate (%s), and keeps saying so beside the perk the read still sells", async (reason) => {
     const { user } = buyWith(async () => ({ kind: "refused", reason }));
     await user.click(buyButton());
     expect(announcement()).toHaveTextContent(/^That couldn't be bought\.$/);
+    expect(shownLinesIn(details())).toContain("That couldn't be bought.");
   });
 
   it("follows its own read to the ready page after a refusal at the gate", async () => {
@@ -271,6 +289,16 @@ describe("WS87: an error or no answer lets the member try again with the same re
     expect(details()).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
     expect(buyButton()).toHaveAccessibleName("Buy for 1 skill point");
     expect(buyButton()).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("drops the unreachable line once the read shows the purchase went through after all", async () => {
+    const pending = answerLater();
+    const { user, showTree } = buyWith(() => pending.answer);
+    await user.click(buyButton());
+    await pending.fail();
+    showTree(skillTreeFixtures.sparkOwned);
+    expect(within(details()).getByText("Owned since 13 Oct 2026")).toBeInTheDocument();
+    expect(shownLinesIn(details())).not.toContain("Couldn't reach HedgeHug. Try again.");
   });
 
   it("resends the same pair when Buy is pressed again on the same perk", async () => {

@@ -1,5 +1,5 @@
 import type { SkillTreeRead } from "./skillTreeRead";
-import type { MySkillTree, PerkNode, SkillTreeAnswer } from "./shell";
+import type { MySkillTree, PerkNode, ShellState, SkillTreeAnswer } from "./shell";
 
 const chatUrl = "https://app.slack.com/client/T1";
 
@@ -39,4 +39,23 @@ export const skillTreeFixtures = {
 
 export function fixedSkillTree(answer: MySkillTree): SkillTreeRead {
   return (asking) => (asking ? answer : undefined);
+}
+
+export function fixtureSkillTreeFor(visitor: ShellState): SkillTreeRead {
+  return fixedSkillTree(skillTreeAnswerFor(visitor));
+}
+
+function skillTreeAnswerFor(visitor: ShellState): MySkillTree {
+  if (visitor.kind !== "member") return skillTreeFixtures.notFound;
+  const card = visitor.features?.find(({ feature }) => feature === "skillTree");
+  if (card === undefined) return skillTreeFixtures.notFound;
+  if (card.state === "locked") return { kind: "locked", level: card.level };
+  if (card.state === "ready") return skillTreeFixtures.ready;
+  return openTreeWith(visitor.skillPoints ?? 0);
+}
+
+function openTreeWith(skillPoints: number): SkillTreeAnswer {
+  if (skillPoints === 0) return skillTreeFixtures.noPointsLeft;
+  if (skillPoints === 1) return skillTreeFixtures.sparkOwned;
+  return skillTreeFixtures.withPoints;
 }

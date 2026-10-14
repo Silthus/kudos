@@ -31,3 +31,26 @@ export function preferWideScreen() {
   const system = window.matchMedia;
   window.matchMedia = ((query: string) => (query === wideScreenQuery ? { ...system(query), media: query, matches: true } : system(query))) as typeof window.matchMedia;
 }
+
+export function aWideScreenThatNarrows() {
+  let wide = true;
+  const listeners = new Set<Listener>();
+  const system = window.matchMedia;
+  window.matchMedia = ((query: string) =>
+    query === wideScreenQuery
+      ? {
+          media: query,
+          get matches() {
+            return wide;
+          },
+          addEventListener: (_: string, listener: Listener) => listeners.add(listener),
+          removeEventListener: (_: string, listener: Listener) => listeners.delete(listener),
+        }
+      : system(query)) as unknown as typeof window.matchMedia;
+  return {
+    narrow() {
+      wide = false;
+      listeners.forEach((listener) => listener());
+    },
+  };
+}

@@ -1,14 +1,14 @@
 import { useRef, useState } from "react";
 import { attemptMessages } from "../crates/moments";
-import type { BuyAnswer, PerkNode, Purchase, ShellActions } from "../shell";
+import type { BuyAnswer, PerkNode, Purchase, PurchaseRefusal, ShellActions } from "../shell";
 import type { SelectedPerk } from "./PerkDetails";
 import { boughtText, refusedText } from "./perkWords";
 
-export type Notice = { kind: "bought" | "refused" | "unreachable"; perk: PerkNode["perk"]; text: string };
+export type Notice = { kind: "bought" | "refused" | "refused-without-reason" | "unreachable"; perk: PerkNode["perk"]; text: string };
 
 export type Purchasing = { buying: PerkNode["perk"] | undefined; notice: Notice | undefined; buy(selected: SelectedPerk): void };
 
-export function usePurchase(buyPerk: ShellActions["buyPerk"], onBought: (perk: PerkNode["perk"]) => void): Purchasing {
+export function usePurchase(buyPerk: ShellActions["buyPerk"], onAnswered: (notice: Notice) => void): Purchasing {
   const pending = useRef<Purchase | undefined>(undefined);
   const [buying, setBuying] = useState<PerkNode["perk"]>();
   const [notice, setNotice] = useState<Notice>();
@@ -20,8 +20,15 @@ export function usePurchase(buyPerk: ShellActions["buyPerk"], onBought: (perk: P
 
   const answered = (selected: SelectedPerk, answer: BuyAnswer) => {
     pending.current = undefined;
-    setNotice(noticeOf(selected, answer));
-    if (answer.kind === "bought") onBought(selected.perk.perk);
+    const notice = noticeOf(selected, answer);
+    setNotice(notice);
+    if (notice !== undefined) onAnswered(notice);
+  };
+
+  const unreachable = (perk: PerkNode["perk"]) => {
+    const notice: Notice = { kind: "unreachable", perk, text: attemptMessages.unreachable };
+    setNotice(notice);
+    onAnswered(notice);
   };
 
   const buy = async (selected: SelectedPerk) => {
@@ -31,7 +38,7 @@ export function usePurchase(buyPerk: ShellActions["buyPerk"], onBought: (perk: P
     try {
       answered(selected, await buyPerk(purchase));
     } catch {
-      setNotice({ kind: "unreachable", perk: purchase.perk, text: attemptMessages.unreachable });
+      unreachable(purchase.perk);
     } finally {
       setBuying(undefined);
     }
@@ -48,6 +55,10 @@ export function usePurchase(buyPerk: ShellActions["buyPerk"], onBought: (perk: P
 
 function noticeOf({ perk, level }: SelectedPerk, answer: BuyAnswer): Notice | undefined {
   if (answer.kind === "bought") return { kind: "bought", perk: perk.perk, text: boughtText(perk) };
-  if (answer.kind === "refused") return { kind: "refused", perk: perk.perk, text: refusedText(perk, level, answer.reason) };
+  if (answer.kind === "refused") return { kind: givesAReason(answer.reason) ? "refused" : "refused-without-reason", perk: perk.perk, text: refusedText(perk, level, answer.reason) };
   return undefined;
+}
+
+function givesAReason(reason: PurchaseRefusal | null) {
+  return reason !== null && reason !== "not-open";
 }

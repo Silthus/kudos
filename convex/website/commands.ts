@@ -82,12 +82,15 @@ function isUuid(request: string) {
 }
 
 async function treeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
-  if (featurePageOf(await unlockPathOf(ctx, me), "skillTree").kind !== "open") return false;
-  return launchesRecordedFor(ctx, me);
+  return featurePageOf(await unlockPathOf(ctx, me), "skillTree").kind === "open" && (await noLaunchWaitsFor(ctx, me));
 }
 
 async function launchesRecordedFor(ctx: QueryCtx, me: VerifiedMember) {
-  if ((await workspaceLaunchDueIn(ctx, me.workspace)) || !(await unlockPathShownTo(ctx, me.member))) return false;
+  return (await unlockPathShownTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
+}
+
+async function noLaunchWaitsFor(ctx: QueryCtx, me: VerifiedMember) {
+  if (await workspaceLaunchDueIn(ctx, me.workspace)) return false;
   return !(await questsApplyTo(ctx, me.member)) || (await journeyStartedFor(ctx, me.member)) !== null;
 }
 

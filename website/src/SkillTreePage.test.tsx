@@ -1,5 +1,6 @@
-import { act, fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Root } from "./Root";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { shellFixtures, type CommandAnswer, type MemberProfile, type MySkillTree } from "./shell";
 import { renderApp } from "./test/renderApp";
@@ -340,5 +341,26 @@ describe("WS84: the HUD's skill point chip", () => {
     await user.click(chip()!);
     expect(window.location.pathname).toBe("/skills");
     expect(pageTitle()).toHaveTextContent("Perks");
+  });
+});
+
+describe("WS80 WS85: the fixture build's /skills agrees with its member", () => {
+  it.each([
+    ["member-with-nothing-shipped", "Page not found"],
+    ["member-with-the-board-ready", "Skill tree"],
+    ["member-with-the-skill-tree-ready", "Skill tree"],
+    ["member-with-every-feature-open", "Perks"],
+  ])("%s shows %s", (fixture, title) => {
+    render(<Root fixture={fixture} />);
+    expect(pageTitle()).toHaveTextContent(title);
+  });
+
+  it.each([
+    ["member-with-every-feature-open", "2 skill points to spend"],
+    ["member-with-one-skill-point", "1 skill point to spend"],
+    ["member-with-no-skill-points-left", "No skill points to spend"],
+  ])("%s spends the points its HUD shows: %s", (fixture, points) => {
+    render(<Root fixture={fixture} />);
+    expect(main()).toHaveTextContent(points);
   });
 });

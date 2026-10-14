@@ -6,7 +6,7 @@ import { detailsHeadingId, PerkDetailsDrawer, PerkDetailsPanel, PurchaseAnnounce
 import { PerkTree } from "../skills/PerkTree";
 import { pointsToSpend } from "../skills/perkWords";
 import { usePurchase } from "../skills/purchase";
-import { useWideScreen } from "../skills/useWideScreen";
+import { isWideScreen, useWideScreen } from "../skills/useWideScreen";
 import { YourPerks } from "../skills/YourPerks";
 
 type Tree = Extract<SkillTreeAnswer, { kind: "tree" }>;
@@ -20,11 +20,15 @@ export function SkillTreePage({ tree, buyPerk }: SkillTreePageProps) {
   const [chosen, setChosen] = useState(() => selectedIn(tree.rows, undefined)?.perk.perk);
   const [drawer, setDrawer] = useState<DrawerState>("closed");
   const focusDetailsHeading = useDetailsHeadingFocus();
-  const purchasing = usePurchase(buyPerk, (bought) => {
-    setChosen(bought);
-    if (!wide) setDrawer("open-on-purchase");
-    focusDetailsHeading();
+  const purchasing = usePurchase(buyPerk, (notice) => {
+    setChosen(notice.perk);
+    if (notice.kind === "bought") showBought();
+    else if (!isWideScreen()) setDrawer((shown) => (shown === "closed" ? "open" : shown));
   });
+  const showBought = () => {
+    if (!isWideScreen()) setDrawer("open-on-purchase");
+    focusDetailsHeading();
+  };
   const nodes = useRef(new Map<PerkNode["perk"], HTMLButtonElement | null>());
   const selected = selectedIn(tree.rows, chosen);
   const select = (perk: PerkNode["perk"]) => {
