@@ -41,6 +41,20 @@ describe("the custom emoji sync keeps the workspace's custom emoji in the direct
     expect(await imagesOf(t, "partyparrot", "parrot", "taco", "tada")).toEqual({ partyparrot: parrotGif, parrot: parrotGif, taco: tacoPng, tada: undefined });
   });
 
+  test("an alias of an alias gets the original's image, and aliases that only name each other get none", async () => {
+    const t = testBackend();
+    slack
+      .withCustomEmoji("partyparrot", parrotGif)
+      .withCustomEmoji("parrot", "alias:partyparrot")
+      .withCustomEmoji("birb", "alias:parrot")
+      .withCustomEmoji("ping", "alias:pong")
+      .withCustomEmoji("pong", "alias:ping");
+
+    await sync(t);
+
+    expect(await imagesOf(t, "birb", "ping", "pong")).toEqual({ birb: parrotGif, ping: undefined, pong: undefined });
+  });
+
   test("it keeps only https images: an http image, a data image, an alias of a standard emoji and an alias of an unknown one get none", async () => {
     const t = testBackend();
     slack
@@ -111,7 +125,6 @@ describe("the custom emoji sync keeps the workspace's custom emoji in the direct
     const earlierSync = t.action(internal.slack.customEmoji.syncCustomEmoji, {});
     await earlier.reached;
 
-    vi.advanceTimersByTime(1_000);
     slack.withCustomEmoji("partyparrot", fasterParrotGif).withCustomEmoji("taco", tacoPng);
     await sync(t);
     earlier.release();
@@ -155,6 +168,20 @@ describe("emoji_changed brings the custom emoji up to date", () => {
 
     expect(slack.callsTo("emoji.list")).toHaveLength(1);
     expect(await imagesOf(t, "one", "five")).toEqual({ one: "https://emoji.slack-edge.com/T1/one/1.png", five: "https://emoji.slack-edge.com/T1/five/1.png" });
+  });
+
+  test("a change after a refresh that failed lists the emoji again once that refresh was due", async () => {
+    const t = testBackend();
+    slack.withCustomEmoji("partyparrot", parrotGif).answering("auth.test", slackError("internal_error"));
+    await emojiChanged(t, { subtype: "add", name: "partyparrot", value: parrotGif });
+    await settle(t);
+    expect(await imagesOf(t, "partyparrot")).toEqual({ partyparrot: undefined });
+
+    await emojiChanged(t, { subtype: "add", name: "taco", value: tacoPng });
+    slack.withCustomEmoji("taco", tacoPng);
+    await settle(t);
+
+    expect(await imagesOf(t, "partyparrot", "taco")).toEqual({ partyparrot: parrotGif, taco: tacoPng });
   });
 
   test("a change that arrives while a listing is under way lists the emoji again", async () => {

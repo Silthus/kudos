@@ -120,7 +120,7 @@ export default defineSchema({
     workspace: v.string(),
     begun: v.number(),
     written: v.optional(v.number()),
-    refreshRequestedAt: v.optional(v.number()),
+    refreshDueAt: v.optional(v.number()),
   }).index("by_workspace", ["workspace"]),
 
   kudosMessages: defineTable({

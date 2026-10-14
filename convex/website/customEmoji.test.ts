@@ -5,6 +5,7 @@ import { memberChanged, post, settle, testBackend, type Backend } from "../../te
 import { emoji, mention, section, text, unicodeEmoji } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
+import { mentionsOfOnePage, readableSegmentsOf } from "../activity/kudos";
 import type { ActivityEntry } from "./activity";
 
 const now = new Date("2026-10-14T10:00:00Z");
@@ -69,6 +70,27 @@ describe("a custom emoji in a kudos's words reads with its image", () => {
     slack.withoutCustomEmoji("taco");
     await syncCustomEmoji();
     expect(emojiIn(await activitySegmentsOf(bob))).toEqual([{ kind: "emoji", name: "taco" }]);
+  });
+
+  test("custom emoji share the page's lookups with mentions: one emoji named twice is one lookup, and past the last lookup an emoji reads its name alone", async () => {
+    slack.withCustomEmoji("taco", tacoPng).withCustomEmoji("partyparrot", parrotGif);
+    await syncCustomEmoji();
+
+    const read = await t.run((ctx) =>
+      readableSegmentsOf(mentionsOfOnePage(ctx, 2), "T1", [
+        { kind: "emoji", name: "taco" },
+        { kind: "group", group: "S_ONCALL" },
+        { kind: "emoji", name: "taco" },
+        { kind: "emoji", name: "partyparrot" },
+      ]),
+    );
+
+    expect(read).toEqual([
+      { kind: "emoji", name: "taco", image: tacoPng },
+      { kind: "group", handle: "group" },
+      { kind: "emoji", name: "taco", image: tacoPng },
+      { kind: "emoji", name: "partyparrot" },
+    ]);
   });
 });
 

@@ -16,6 +16,7 @@ const withoutScope = "missing_scope";
 const refreshAfterMs = 30_000;
 const keptPerWrite = 1_000;
 const maxAttempts = 3;
+const aliasHopsFollowed = 5;
 
 export function isEmojiChanged(event: { type: string }): event is EmojiChanged {
   return event.type === "emoji_changed";
@@ -27,7 +28,7 @@ export function emojiChangeOf(workspace: unknown, eventId: unknown) {
 }
 
 export async function refreshCustomEmojiLater(ctx: MutationCtx, workspace: string) {
-  if (await claimCustomEmojiRefresh(ctx, workspace)) await ctx.scheduler.runAfter(refreshAfterMs, internal.slack.customEmoji.syncCustomEmoji, {});
+  if (await claimCustomEmojiRefresh(ctx, workspace, refreshAfterMs)) await ctx.scheduler.runAfter(refreshAfterMs, internal.slack.customEmoji.syncCustomEmoji, {});
 }
 
 export const syncCustomEmoji = observedAction({
@@ -70,14 +71,15 @@ function customEmojiOf(listed: unknown): CustomEmoji[] {
   if (typeof listed !== "object" || listed === null || Array.isArray(listed)) throw new ReportableError("Slack emoji.list answered without an emoji list");
   const values = new Map(Object.entries(listed));
   return [...values].flatMap(([name, value]) => {
-    const image = imageOf(values, value);
+    const image = imageOf(values, value, aliasHopsFollowed);
     return image === undefined ? [] : [{ name, image }];
   });
 }
 
-function imageOf(values: Map<string, unknown>, value: unknown) {
+function imageOf(values: Map<string, unknown>, value: unknown, hopsLeft: number): string | undefined {
   const text = textOf(value);
-  return text?.startsWith(aliasPrefix) ? httpsUrlOf(values.get(text.slice(aliasPrefix.length))) : httpsUrlOf(text);
+  if (!text?.startsWith(aliasPrefix)) return httpsUrlOf(text);
+  return hopsLeft === 0 ? undefined : imageOf(values, values.get(text.slice(aliasPrefix.length)), hopsLeft - 1);
 }
 
 function httpsUrlOf(value: unknown) {

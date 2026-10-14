@@ -7,17 +7,17 @@ export const customEmojiValidator = v.object({ name: v.string(), image: v.string
 export type CustomEmoji = Infer<typeof customEmojiValidator>;
 
 const forgottenPerRun = 1_000;
-const refreshExpiresAfterMs = 10 * 60 * 1000;
 
 export async function customEmojiImageOf(ctx: QueryCtx, workspace: string, name: string): Promise<string | undefined> {
   return (await emojiRow(ctx, workspace, name))?.image;
 }
 
-export async function claimCustomEmojiRefresh(ctx: MutationCtx, workspace: string): Promise<boolean> {
+export async function claimCustomEmojiRefresh(ctx: MutationCtx, workspace: string, inMs: number): Promise<boolean> {
   const listings = await listingsRow(ctx, workspace);
-  if (isPending(listings?.refreshRequestedAt)) return false;
-  if (listings === null) await ctx.db.insert("customEmojiListings", { workspace, begun: 0, refreshRequestedAt: Date.now() });
-  else await ctx.db.patch(listings._id, { refreshRequestedAt: Date.now() });
+  if (listings?.refreshDueAt !== undefined && listings.refreshDueAt > Date.now()) return false;
+  const refreshDueAt = Date.now() + inMs;
+  if (listings === null) await ctx.db.insert("customEmojiListings", { workspace, begun: 0, refreshDueAt });
+  else await ctx.db.patch(listings._id, { refreshDueAt });
   return true;
 }
 
@@ -30,7 +30,7 @@ export const beginCustomEmojiListing = internalMutation({
       await ctx.db.insert("customEmojiListings", { workspace, begun: 1 });
       return 1;
     }
-    await ctx.db.patch(listings._id, { begun: listings.begun + 1, refreshRequestedAt: undefined });
+    await ctx.db.patch(listings._id, { begun: listings.begun + 1 });
     return listings.begun + 1;
   },
 });
@@ -64,10 +64,6 @@ async function keepOne(ctx: MutationCtx, workspace: string, { name, image }: Cus
   const row = await emojiRow(ctx, workspace, name);
   if (row === null) await ctx.db.insert("customEmoji", { workspace, name, image, listing });
   else await ctx.db.patch(row._id, { image, listing });
-}
-
-function isPending(requestedAt: number | undefined) {
-  return requestedAt !== undefined && Date.now() - requestedAt < refreshExpiresAfterMs;
 }
 
 function emojiRow(ctx: QueryCtx, workspace: string, name: string) {
