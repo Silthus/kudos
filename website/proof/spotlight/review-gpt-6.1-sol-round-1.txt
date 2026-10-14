@@ -1,0 +1,7 @@
+1. **Medium — website/src/leaderboard/Spotlight.tsx:16.** When `Next` returns the same kudos, the notice is appended inside the atomic live region containing the entire old thank-you. Screen readers announce that thank-you again alongside “That's the only one so far.” WS221 requires the notice **instead**. Fix: keep the visible snapshot, but make the atomic announcement contain either the new thank-you or the notice.
+
+2. **Medium — website/src/leaderboard/useSpotlight.ts:36.** Pressing `Next` again after an “only one” result or failure preserves the previous notice during loading and produces identical text afterward. The live region receives no content mutation, so subsequent outcomes are silent. Repeated failed `Try again` attempts have the same problem. Fix: update the announcement payload for every completed attempt, including repeated outcomes, while keeping its live-region container mounted.
+
+3. **Medium — website/src/leaderboard/useSpotlight.ts:72.** If the page unmounts while a read is pending and that read subsequently returns `skipped`, `attemptFrom` continues querying. A source-level reproduction issued nine further reads after unmount. StrictMode’s abandoned first attempt also continues this chain. WS219 requires late answers to be dropped. Fix: pass the mount’s cancellation state into `attemptFrom`, check it after every awaited answer, and stop before issuing another read.
+
+VERDICT: fix first
