@@ -246,8 +246,17 @@ async function awaitDirectory(ctx: MutationCtx, row: KudosMessageRow, users: Cha
     await ctx.db.patch(row._id, { state: "abandoned" });
     return { kind: "abandoned" };
   }
-  await ctx.db.patch(row._id, { checks: row.checks + 1 });
+  await ctx.db.patch(row._id, { checks: row.checks + 1, nextCheckAt: Date.now() + retryInMs });
   return { kind: "awaiting-directory", users, retryInMs, attempt: row.attempt };
+}
+
+export async function takeStrandedChecks(ctx: MutationCtx, dueBefore: number, limit: number): Promise<{ ref: MessageRef; attempt: bigint }[]> {
+  const stranded = await ctx.db
+    .query("kudosMessages")
+    .withIndex("by_state_and_next_check", (q) => q.eq("state", "awaiting-directory").lt("nextCheckAt", dueBefore))
+    .take(limit);
+  for (const row of stranded) await ctx.db.patch(row._id, { nextCheckAt: Date.now() });
+  return stranded.map((row) => ({ ref: refOf(row), attempt: row.attempt }));
 }
 
 async function tellGiver(ctx: MutationCtx, row: KudosMessageRow, outcome: Outcome, base: number) {

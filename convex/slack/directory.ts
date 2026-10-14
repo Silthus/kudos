@@ -3,11 +3,12 @@ import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { ReportableError, typeOf, withholdingWords } from "../analytics/exceptions";
-import { awaitedUsers, recheck, type Observation } from "../engine/engine";
+import { awaitedUsers, recheck, takeStrandedChecks, type Observation } from "../engine/engine";
 import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import { republishOnRoleChange } from "../feedback/homes";
 import { directoryRecordArgs, lookup, record, type DirectoryEntry, type DirectoryRecord } from "../workspace/directory";
 import type { MemberProfile } from "../workspace/memberProfile";
+import { convexActionTimeLimitMs, strandedPerSweep } from "./strandedJobs";
 import { readSlack, slackErrorCodeOf } from "./webApi";
 
 type SlackUser = {
@@ -74,6 +75,17 @@ async function checkAgainAfterFailure(ctx: ActionCtx, { ref, attempt, failures =
   if (retryInMs === undefined) return;
   await ctx.scheduler.runAfter(retryInMs, internal.slack.directory.checkDirectory, { ref, attempt, failures: failures + 1 });
 }
+
+const strandedAfterMs = failedCheckRetriesMs.reduce((total, retryMs) => total + retryMs, 0) + convexActionTimeLimitMs;
+
+export const recheckStranded = internalMutation({
+  args: {},
+  handler: async (ctx): Promise<void> => {
+    const stranded = await takeStrandedChecks(ctx, Date.now() - strandedAfterMs, strandedPerSweep);
+    for (const { ref, attempt } of stranded) await ctx.scheduler.runAfter(0, internal.slack.directory.checkDirectory, { ref, attempt });
+    if (stranded.length === strandedPerSweep) await ctx.scheduler.runAfter(0, internal.slack.directory.recheckStranded, {});
+  },
+});
 
 export const knows = internalQuery({
   args: { workspace: v.string(), user: v.string() },

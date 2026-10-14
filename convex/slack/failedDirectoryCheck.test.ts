@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signingSecret } from "../../testing/signedSlack";
-import { kudosReceived, kudosSpent, post, settle, testBackend } from "../../testing/slackBackend";
+import { convexStops, kudosReceived, kudosSpent, pendingJobs, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section } from "../../testing/slackMessages";
+import { internal } from "../_generated/api";
 
 const recheck = vi.hoisted(() => ({ failuresLeft: 0, tries: 0 }));
 
@@ -66,3 +67,96 @@ describe("a failed directory check is tried again", () => {
     expect(slack.reactionsOn("C1", postedTs)).toEqual([]);
   }, 30_000);
 });
+
+describe("a stranded directory check is checked again", () => {
+  test("a kudos whose directory check Convex stopped gives once the sweep finds it stranded", async () => {
+    const t = testBackend();
+
+    await post(t, [section(mention("U_BOB"), emoji("taco"))], { user: "U_EVE", ts: postedTs });
+    await convexStops(t, "slack/directory:checkDirectory");
+    await settle(t);
+    expect(await kudosReceived(t, "U_BOB")).toBe(0);
+
+    await sweepAt(t, minutesAfterPosting(47));
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
+    expect(slack.reactionsOn("C1", postedTs)).toEqual(["taco"]);
+  }, 30_000);
+
+  test("a kudos whose directory check failed all five tries gives once the sweep finds it stranded", async () => {
+    const t = testBackend();
+    recheck.failuresLeft = 5;
+
+    await post(t, [section(mention("U_BOB"), emoji("taco"))], { user: "U_EVE", ts: postedTs });
+    await settle(t);
+    expect(await kudosReceived(t, "U_BOB")).toBe(0);
+
+    await sweepAt(t, minutesAfterPosting(47));
+
+    expect(recheck.tries).toBe(6);
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
+  }, 30_000);
+
+  test("a check still within its failure retries and Convex's action time limit is left alone", async () => {
+    const t = testBackend();
+
+    await post(t, [section(mention("U_BOB"), emoji("taco"))], { user: "U_EVE", ts: postedTs });
+    await convexStops(t, "slack/directory:checkDirectory");
+    await sweepAt(t, minutesAfterPosting(46));
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(0);
+  }, 30_000);
+
+  test("a message waiting for its next directory check is left alone", async () => {
+    const t = testBackend();
+
+    await post(t, [section(mention("U_GHOST"), emoji("taco"))], { user: "U_EVE", ts: postedTs });
+    await settleUntil(t, minutesAfterPosting(90));
+    expect(lookupsOf("U_GHOST")).toBe(4);
+
+    await t.mutation(internal.slack.directory.recheckStranded, {});
+    await settleUntil(t, minutesAfterPosting(91));
+
+    expect(lookupsOf("U_GHOST")).toBe(4);
+  }, 30_000);
+
+  test("sweeping twice before the stranded check runs schedules it once", async () => {
+    const t = testBackend();
+
+    await post(t, [section(mention("U_BOB"), emoji("taco"))], { user: "U_EVE", ts: postedTs });
+    await convexStops(t, "slack/directory:checkDirectory");
+    vi.setSystemTime(minutesAfterPosting(47));
+    await t.mutation(internal.slack.directory.recheckStranded, {});
+    await t.mutation(internal.slack.directory.recheckStranded, {});
+
+    expect(await pendingJobs(t, "slack/directory:checkDirectory")).toBe(1);
+  }, 30_000);
+
+  test("more stranded messages than one page all give", async () => {
+    const t = testBackend();
+    const givers = Array.from({ length: 101 }, (_, index) => `U_GIVER${index}`);
+    for (const giver of givers) slack.withMember(giver);
+
+    for (const [index, giver] of givers.entries()) {
+      await post(t, [section(mention("U_BOB"), emoji("taco"))], { user: giver, ts: `${Math.floor(now.getTime() / 1000)}.${String(index).padStart(6, "0")}` });
+    }
+    await convexStops(t, "slack/directory:checkDirectory");
+    await sweepAt(t, minutesAfterPosting(47));
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(101);
+  }, 120_000);
+});
+
+function minutesAfterPosting(minutes: number) {
+  return new Date(now.getTime() + minutes * 60_000);
+}
+
+async function sweepAt(t: Backend, at: Date) {
+  vi.setSystemTime(at);
+  await t.mutation(internal.slack.directory.recheckStranded, {});
+  await settle(t);
+}
+
+function lookupsOf(user: string) {
+  return slack.callsTo("users.info").filter((args) => args.user === user).length;
+}

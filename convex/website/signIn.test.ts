@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus, rateLimitedFor } from "../../testing/fakeSlack";
-import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
+import { convexStops, settle, settleInTimeOrder, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
 import { aDeploymentForWorkspace, aMember, allowedWorkspace, switchWebsite } from "../../testing/website";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { SignedInProfile } from "../slack/signIn";
 import { rememberSignedInMember } from "./signIn";
@@ -45,6 +45,16 @@ function signIn(profile: SignedInProfile, existingUserId: Id<"users"> | null = n
 
 function users() {
   return t.run((ctx) => ctx.db.query("users").collect());
+}
+
+function minutesAfterSignIn(minutes: number) {
+  return new Date(now.getTime() + minutes * 60_000);
+}
+
+async function sweepAt(at: Date) {
+  vi.setSystemTime(at);
+  await t.mutation(internal.slack.verifyMember.retryStranded, {});
+  await settle(t);
 }
 
 async function profileOf(userId: Id<"users">) {
@@ -173,5 +183,54 @@ describe("WS8: a person the directory doesn't know yet is verified with users.in
     await settle(t);
 
     expect(slack.callsTo("users.info")).toEqual([]);
+  });
+});
+
+describe("a stranded verification is tried again", () => {
+  test("a verification Convex stopped is tried again once the sweep finds it stranded, and they read member", async () => {
+    slack.withMember("U_JUNO");
+    const userId = await signIn(juno);
+    await convexStops(t, "slack/verifyMember:verifyMember");
+    await settle(t);
+    expect(await profileOf(userId)).toEqual({ kind: "verifying" });
+
+    await sweepAt(minutesAfterSignIn(11));
+
+    expect((await profileOf(userId)).kind).toBe("member");
+  });
+
+  test("a verification whose try Convex may still be running is left alone", async () => {
+    slack.withMember("U_JUNO");
+    const userId = await signIn(juno);
+    await convexStops(t, "slack/verifyMember:verifyMember");
+
+    await sweepAt(minutesAfterSignIn(10));
+
+    expect(await profileOf(userId)).toEqual({ kind: "verifying" });
+    expect(slack.callsTo("users.info")).toEqual([]);
+  });
+
+  test("a verification waiting out a long Retry-After is left alone", async () => {
+    slack.withMember("U_JUNO").answering("users.info", rateLimitedFor(30 * 60));
+    await signIn(juno);
+    await settleUntil(t, minutesAfterSignIn(11));
+
+    await t.mutation(internal.slack.verifyMember.retryStranded, {});
+    await settleUntil(t, minutesAfterSignIn(12));
+
+    expect(slack.callsTo("users.info")).toHaveLength(1);
+  });
+
+  test("a stranded verification keeps the tries it already used", async () => {
+    slack.withMember("U_JUNO").answering("users.info", httpStatus(500), httpStatus(500), httpStatus(500));
+    const userId = await signIn(juno);
+    await settleInTimeOrder(t, { until: now.getTime() + 1000 });
+    await convexStops(t, "slack/verifyMember:verifyMember");
+
+    await sweepAt(minutesAfterSignIn(11));
+    await settleInTimeOrder(t);
+
+    expect(await profileOf(userId)).toEqual({ kind: "unverified" });
+    expect(slack.callsTo("users.info")).toHaveLength(3);
   });
 });

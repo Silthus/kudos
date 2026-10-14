@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, type ActionCtx, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { lookUpUser, type LookUp } from "./directory";
+import { convexActionTimeLimitMs, strandedPerSweep } from "./strandedJobs";
 
 export const verificationTries = 3;
 const firstRetryMs = 1000;
@@ -12,8 +13,9 @@ const personArgs = { workspace: v.string(), user: v.string() };
 export async function verifyLater(ctx: MutationCtx, workspace: string, user: string) {
   const earlier = await verificationOf(ctx, workspace, user);
   if (earlier?.state === "pending") return;
-  if (earlier === null) await ctx.db.insert("memberVerifications", { workspace, user, attempts: 0, state: "pending" });
-  else await ctx.db.patch(earlier._id, { attempts: 0, state: "pending" });
+  const fresh = { attempts: 0, state: "pending" as const, nextTryAt: Date.now() };
+  if (earlier === null) await ctx.db.insert("memberVerifications", { workspace, user, ...fresh });
+  else await ctx.db.patch(earlier._id, fresh);
   await ctx.scheduler.runAfter(0, internal.slack.verifyMember.verifyMember, { workspace, user });
 }
 
@@ -50,8 +52,23 @@ export const recordAttempt = internalMutation({
     if (found) return ctx.db.delete(verification._id);
     const attempts = verification.attempts + 1;
     if (attempts >= verificationTries) return ctx.db.patch(verification._id, { attempts, state: "failed" });
-    await ctx.db.patch(verification._id, { attempts });
     const waitMs = Math.max(retryAfterMs ?? 0, firstRetryMs * 2 ** (attempts - 1));
+    await ctx.db.patch(verification._id, { attempts, nextTryAt: Date.now() + waitMs });
     await ctx.scheduler.runAfter(waitMs, internal.slack.verifyMember.verifyMember, { workspace, user });
+  },
+});
+
+export const retryStranded = internalMutation({
+  args: {},
+  handler: async (ctx): Promise<void> => {
+    const stranded = await ctx.db
+      .query("memberVerifications")
+      .withIndex("by_state_and_next_try", (q) => q.eq("state", "pending").lt("nextTryAt", Date.now() - convexActionTimeLimitMs))
+      .take(strandedPerSweep);
+    for (const { _id, workspace, user } of stranded) {
+      await ctx.db.patch(_id, { nextTryAt: Date.now() });
+      await ctx.scheduler.runAfter(0, internal.slack.verifyMember.verifyMember, { workspace, user });
+    }
+    if (stranded.length === strandedPerSweep) await ctx.scheduler.runAfter(0, internal.slack.verifyMember.retryStranded, {});
   },
 });
