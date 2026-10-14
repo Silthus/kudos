@@ -1,11 +1,11 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ladders, type LadderId } from "../../convex/achievements/ladders";
 import { ladderCategories } from "./book/categories";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import type { BookRead } from "./bookRead";
 import { Root } from "./Root";
-import { shellFixtures, type CommandAnswer, type MyBook } from "./shell";
+import { shellFixtures, type CommandAnswer, type LadderCard, type MyBook } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
@@ -36,6 +36,14 @@ function tierOf(ladder: string, tierName: string) {
 
 function showBook(answer: MyBook, member = shellFixtures.memberWithTheBookOpened) {
   return renderApp(member, undefined, undefined, undefined, fixedBook(answer));
+}
+
+function openLadder(answer: Extract<MyBook, { kind: "book" }>, name: string) {
+  cleanup();
+  const ladder = answer.ladders.find((card) => card.name === name)!;
+  window.history.replaceState(null, "", `/book?page=${ladderCategories[ladder.ladder]}`);
+  showBook(answer);
+  return ladderCard(name);
 }
 
 describe("WS80: /book answers like the leaderboard", () => {
@@ -104,20 +112,14 @@ describe("WS92: the Book page", () => {
     expect(main()).toHaveTextContent("Tiers you earn by thanking colleagues and being thanked. Each one is yours for good.");
   });
 
-  it("shows one plain card per ladder in the read's order, each with its name and what it counts", () => {
-    showBook(bookFixtures.book);
-    const names = within(main())
-      .getAllByRole("heading", { level: 2 })
-      .map((heading) => heading.textContent);
-    expect(names).toEqual(["Generosity", "Recognition"]);
-    expect(ladderCard("Generosity")).toHaveTextContent("kudos given");
-    expect(ladderCard("Recognition")).toHaveTextContent("kudos received");
+  it("shows each ladder on its page as one plain card with its name and what it counts", () => {
+    expect(openLadder(bookFixtures.book, "Generosity")).toHaveTextContent("kudos given");
     expect(ladderCard("Generosity")).not.toHaveClass("hud-panel");
+    expect(openLadder(bookFixtures.book, "Recognition")).toHaveTextContent("kudos received");
   });
 
   it("lists the four tiers in order, each with its word and its name", () => {
-    showBook(bookFixtures.book);
-    const tiers = within(within(ladderCard("Generosity")).getByRole("list", { name: "Generosity tiers" })).getAllByRole("listitem");
+    const tiers = within(within(openLadder(bookFixtures.book, "Generosity")).getByRole("list", { name: "Generosity tiers" })).getAllByRole("listitem");
     expect(tiers.map((tier) => tier.textContent)).toEqual([
       expect.stringMatching(/^Bronze.*First Thanks/),
       expect.stringMatching(/^Silver.*Generous Soul/),
@@ -127,12 +129,12 @@ describe("WS92: the Book page", () => {
   });
 
   it("prints an earned tier's date in the member's time zone", () => {
-    showBook(bookFixtures.book);
+    openLadder(bookFixtures.book, "Generosity");
     expect(tierOf("Generosity", "First Thanks")).toHaveTextContent("Earned 14 Oct 2026");
   });
 
   it("shows the next tier with the count it needs and a neutral Next tag", () => {
-    showBook(bookFixtures.book);
+    openLadder(bookFixtures.book, "Generosity");
     const next = tierOf("Generosity", "Generous Soul");
     expect(next).toHaveTextContent("At 25");
     const tag = within(next).getByText("Next");
@@ -141,7 +143,7 @@ describe("WS92: the Book page", () => {
   });
 
   it("shows a later tier with only the count it needs", () => {
-    showBook(bookFixtures.book);
+    openLadder(bookFixtures.book, "Generosity");
     const later = tierOf("Generosity", "Heart of the Team");
     expect(later).toHaveTextContent("At 100");
     expect(within(later).queryByText("Next")).toBeNull();
@@ -149,40 +151,32 @@ describe("WS92: the Book page", () => {
   });
 
   it("exposes the way to the next tier as a neutral progressbar labelled count of at for the tier's name", () => {
-    showBook(bookFixtures.book);
-    const bar = within(ladderCard("Generosity")).getByRole("progressbar", { name: "3 of 25 for Generous Soul" });
+    const bar = within(openLadder(bookFixtures.book, "Generosity")).getByRole("progressbar", { name: "3 of 25 for Generous Soul" });
     expect(bar).toHaveAttribute("aria-valuenow", "3");
     expect(bar).toHaveAttribute("aria-valuemin", "0");
     expect(bar).toHaveAttribute("aria-valuemax", "25");
     expect(bar.outerHTML).not.toMatch(/primary|success|warning|danger/);
-    expect(within(ladderCard("Recognition")).getByRole("progressbar", { name: "0 of 1 for Noticed" })).toBeInTheDocument();
+    expect(within(openLadder(bookFixtures.book, "Recognition")).getByRole("progressbar", { name: "0 of 1 for Noticed" })).toBeInTheDocument();
   });
 
   it("shows a ladder with every tier earned with four dates and no Next tag", () => {
-    showBook(bookFixtures.everyTierEarned);
-    const card = ladderCard("Generosity");
+    const card = openLadder(bookFixtures.everyTierEarned, "Generosity");
     expect(within(card).queryByText("Next")).toBeNull();
     expect(within(card).getAllByRole("listitem").map((tier) => tier.textContent)).toEqual(["Bronze", "Silver", "Gold", "Diamond"].map((word) => expect.stringMatching(new RegExp(`^${word}.*Earned \\d{1,2} \\w+ 2026$`))));
   });
 
   it("shows a ladder's emblem in silhouette while no tier is earned", () => {
-    showBook(bookFixtures.book);
-    expect(ladderCard("Recognition").querySelector("[data-emblem]")).toHaveAttribute("data-emblem", "silhouette");
-    expect(ladderCard("Generosity").querySelector("[data-emblem]")).toHaveAttribute("data-emblem", "earned");
+    expect(openLadder(bookFixtures.book, "Recognition").querySelector("[data-emblem]")).toHaveAttribute("data-emblem", "silhouette");
+    expect(openLadder(bookFixtures.book, "Generosity").querySelector("[data-emblem]")).toHaveAttribute("data-emblem", "earned");
   });
 
   it("gives each medal one to four pips by tier, a sparkle only on gold and diamond, and an outline while unearned", () => {
-    showBook(bookFixtures.book);
+    openLadder(bookFixtures.book, "Generosity");
     const medalOf = (tierName: string) => tierOf("Generosity", tierName).querySelector("[data-medal]")!;
     expect(["First Thanks", "Generous Soul", "Heart of the Team", "Patron of Praise"].map((name) => medalOf(name).querySelectorAll("[data-pip]").length)).toEqual([1, 2, 3, 4]);
     expect(["First Thanks", "Generous Soul", "Heart of the Team", "Patron of Praise"].map((name) => medalOf(name).querySelector("[data-sparkle]") !== null)).toEqual([false, false, true, true]);
     expect(medalOf("First Thanks")).toHaveAttribute("data-medal", "earned");
     expect(medalOf("Generous Soul")).toHaveAttribute("data-medal", "outline");
-  });
-
-  it("never totals tiers, ranks ladders by the closest tier, names a reward, or names stickers and albums", () => {
-    showBook(bookFixtures.book);
-    expect(main()).not.toHaveTextContent(/tiers earned|of 8|closest|coin|emoji|hedgehog|reward|sticker|album|title/i);
   });
 });
 
@@ -331,11 +325,6 @@ describe("WS331: the Book's page index", () => {
     expect(pageTitle()).toHaveTextContent("Achievements");
     expect(within(bookPages()).getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
   });
-
-  it("keeps the overview's every ladder in catalogue order until the overview ships", () => {
-    showBookAt("/book");
-    expect(ladderNames()).toEqual(ladders.ladders.map(({ name }) => name));
-  });
 });
 
 describe("WS332: the Book's category pages", () => {
@@ -377,14 +366,6 @@ describe("WS332: the Book's category pages", () => {
 });
 
 
-function headlineOf(name: string) {
-  return within(ladderCard(name)).getByRole("heading", { level: 2, name }).parentElement!;
-}
-
-function rosetteOf(name: string) {
-  return ladderCard(name).querySelector("[data-rosette]")!;
-}
-
 function nextCells(name: string) {
   return within(within(ladderCard(name)).getByRole("list", { name: `${name} tiers` }))
     .getAllByRole("listitem")
@@ -393,25 +374,24 @@ function nextCells(name: string) {
 
 describe("WS333: ladder details", () => {
   it("names the highest earned tier and its date, in the member's time zone, beside each ladder's name, or Not started", () => {
-    showBook(bookFixtures.everyStage);
-    expect(headlineOf("Generosity")).toHaveTextContent("Bronze earned 14 Oct 2026");
-    expect(headlineOf("Dependability")).toHaveTextContent("Gold earned 22 Jul 2026");
-    expect(headlineOf("Connections")).toHaveTextContent("Diamond earned 8 Sept 2026");
-    expect(headlineOf("Recognition")).toHaveTextContent("Not started");
+    const headline = (name: string) => within(openLadder(bookFixtures.everyStage, name)).getByRole("heading", { level: 2, name }).parentElement!;
+    expect(headline("Generosity")).toHaveTextContent("Bronze earned 14 Oct 2026");
+    expect(headline("Dependability")).toHaveTextContent("Gold earned 22 Jul 2026");
+    expect(headline("Connections")).toHaveTextContent("Diamond earned 8 Sept 2026");
+    expect(headline("Recognition")).toHaveTextContent("Not started");
   });
 
   it("says under the bar how many are left to the next tier, by its name, from the read's at and count", () => {
-    showBook(bookFixtures.everyStage);
-    expect(ladderCard("Recognition")).toHaveTextContent("1 to go for Noticed");
-    expect(ladderCard("Generosity")).toHaveTextContent("22 to go for Generous Soul");
-    expect(ladderCard("Dependability")).toHaveTextContent("10 to go for Cornerstone");
-    const bar = within(ladderCard("Dependability")).getByRole("progressbar", { name: "240 of 250 for Cornerstone" });
-    expect(bar.compareDocumentPosition(within(ladderCard("Dependability")).getByText("10 to go for Cornerstone"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(openLadder(bookFixtures.everyStage, "Recognition")).toHaveTextContent("1 to go for Noticed");
+    expect(openLadder(bookFixtures.everyStage, "Generosity")).toHaveTextContent("22 to go for Generous Soul");
+    const dependability = openLadder(bookFixtures.everyStage, "Dependability");
+    expect(dependability).toHaveTextContent("10 to go for Cornerstone");
+    const bar = within(dependability).getByRole("progressbar", { name: "240 of 250 for Cornerstone" });
+    expect(bar.compareDocumentPosition(within(dependability).getByText("10 to go for Cornerstone"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it("shows Complete and a full neutral bar after the fourth tier, with nothing left to go", () => {
-    showBook(bookFixtures.everyStage);
-    const card = ladderCard("Connections");
+    const card = openLadder(bookFixtures.everyStage, "Connections");
     const bar = within(card).getByRole("progressbar", { name: "Complete, 31 different people thanked" });
     expect(bar).toHaveAttribute("aria-valuenow", "1");
     expect(bar).toHaveAttribute("aria-valuemax", "1");
@@ -423,22 +403,195 @@ describe("WS333: ladder details", () => {
   });
 
   it("rings one Next cell per incomplete ladder in the foreground colour, with no primary anywhere on a ladder", () => {
-    showBook(bookFixtures.everyLadder);
     const incomplete = ["Generosity", "Recognition", "Dependability", "Applause", "Seasons", "Old Friends"];
     for (const name of incomplete) {
+      const card = openLadder(bookFixtures.everyLadder, name);
       const cells = nextCells(name);
       expect(cells).toHaveLength(1);
       expect(cells[0]).toHaveClass("ring-foreground");
-      expect(ladderCard(name).outerHTML).not.toMatch(/primary/);
+      expect(card.outerHTML).not.toMatch(/primary/);
     }
+    openLadder(bookFixtures.everyLadder, "Dependability");
     expect(within(nextCells("Dependability")[0]!).getByText("Cornerstone")).toBeInTheDocument();
   });
 
   it("frames the emblem in a rosette of the highest earned tier's metal, with a static sparkle only for gold and diamond", () => {
-    showBook(bookFixtures.everyStage);
-    expect(["Generosity", "Recognition", "Connections", "Dependability"].map((name) => rosetteOf(name).getAttribute("data-rosette"))).toEqual(["bronze", "none", "diamond", "gold"]);
-    expect(["Generosity", "Recognition", "Connections", "Dependability"].map((name) => rosetteOf(name).querySelector("[data-sparkle]") !== null)).toEqual([false, false, true, true]);
-    expect(rosetteOf("Connections").closest("[aria-hidden='true']")).not.toBeNull();
+    const rosette = (name: string) => openLadder(bookFixtures.everyStage, name).querySelector("[data-rosette]")!;
+    expect(["Generosity", "Recognition", "Connections", "Dependability"].map((name) => rosette(name).getAttribute("data-rosette"))).toEqual(["bronze", "none", "diamond", "gold"]);
+    expect(["Generosity", "Recognition", "Connections", "Dependability"].map((name) => rosette(name).querySelector("[data-sparkle]") !== null)).toEqual([false, false, true, true]);
+    expect(rosette("Connections").closest("[aria-hidden='true']")).not.toBeNull();
     expect(ladderCard("Connections").innerHTML).not.toMatch(/animate|animation/);
+  });
+});
+
+
+function overview() {
+  return within(main()).getByRole("region", { name: "Your tiers" });
+}
+
+function closestNextTier() {
+  return within(main()).queryByRole("link", { name: /^Closest next tier/ });
+}
+
+function shelf() {
+  return within(main()).queryByRole("list", { name: "Recently earned" });
+}
+
+function shelved() {
+  return within(shelf()!).getAllByRole("listitem");
+}
+
+function categoryTiles() {
+  return within(within(main()).getByRole("list", { name: "Pages" })).getAllByRole("link");
+}
+
+const [generosityAtBronze, recognitionNotYet] = bookFixtures.book.ladders;
+
+function earnedOnly(ladders: LadderCard[]): MyBook {
+  return { ...bookFixtures.book, ladders };
+}
+
+describe("WS334: the Book's overview", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("says how many tiers of every shipped ladder the member has earned, with a neutral bar", () => {
+    showBookAt("/book");
+    expect(within(overview()).getByRole("heading", { level: 2 })).toHaveTextContent("14 of 28 tiers earned");
+    expect(overview()).toHaveTextContent("Across 7 ladders.");
+    const bar = within(overview()).getByRole("progressbar", { name: "14 of 28 tiers earned" });
+    expect(bar).toHaveAttribute("aria-valuenow", "14");
+    expect(bar).toHaveAttribute("aria-valuemax", "28");
+    expect(bar.outerHTML).not.toMatch(/primary|success|warning|danger/);
+  });
+
+  it("shows E's book-reading hedgehog", () => {
+    showBookAt("/book");
+    const hog = overview().querySelector("[data-hog='reading']");
+    expect(hog).toBeInTheDocument();
+    expect(hog!.closest("[aria-hidden='true']")).not.toBeNull();
+  });
+
+  it("leads to the ladder with the fewest left to its next tier, naming the tier and how many to go, with a neutral Next tag", () => {
+    showBookAt("/book");
+    const closest = closestNextTier()!;
+    expect(closest).toHaveAttribute("href", "/book?page=thanked");
+    expect(closest).toHaveTextContent("Noticed");
+    expect(closest).toHaveTextContent("Bronze · Recognition");
+    expect(closest).toHaveTextContent("1 to go");
+    expect(closest.querySelector("[data-emblem]")).toHaveAttribute("data-emblem", "silhouette");
+    expect(within(closest).getByText("Next").outerHTML).not.toMatch(/primary/);
+  });
+
+  it("breaks a tie for the closest next tier in catalogue order", () => {
+    showBookAt("/book", earnedOnly([{ ...generosityAtBronze!, count: 24 }, recognitionNotYet!]));
+    expect(closestNextTier()).toHaveTextContent("Generous Soul");
+    expect(closestNextTier()).toHaveAttribute("href", "/book?page=giving");
+  });
+
+  it("follows the closest next tier to its page without a reload", async () => {
+    const { user } = showBookAt("/book");
+    await user.click(closestNextTier()!);
+    expect(window.location.search).toBe("?page=thanked");
+    expect(pageTitle()).toHaveTextContent("Being thanked");
+  });
+
+  it("has no closest next tier once every ladder is complete", () => {
+    const complete = bookFixtures.everyTierEarned.ladders[0]!;
+    showBookAt("/book", earnedOnly([complete]));
+    expect(closestNextTier()).toBeNull();
+    expect(within(overview()).getByRole("heading", { level: 2 })).toHaveTextContent("4 of 4 tiers earned");
+  });
+
+  it("never shows a received total and never names another member", () => {
+    const recognitionNearSilver = { ...recognitionNotYet!, count: 23, tiers: recognitionNotYet!.tiers.map((tier, i) => (i === 0 ? { ...tier, earnedAt: Date.parse("2026-05-02T09:00:00Z") } : tier)), next: { tier: "silver" as const, at: 25 } };
+    showBookAt("/book", earnedOnly([{ ...generosityAtBronze!, count: 20 }, recognitionNearSilver]));
+    expect(closestNextTier()).toHaveTextContent("Appreciated");
+    expect(closestNextTier()).toHaveTextContent("2 to go");
+    expect(main()).not.toHaveTextContent(/23|received/);
+  });
+
+  it("names no reward, coin, sticker or album, and lists no ladder card", () => {
+    showBookAt("/book");
+    expect(main()).not.toHaveTextContent(/coin|emoji|reward|sticker|album/i);
+    expect(within(main()).queryAllByRole("article")).toEqual([]);
+  });
+
+  it("shelves the latest earned tier of each ladder, newest first, five on a wide screen, each with its medal and date", () => {
+    preferWideScreen();
+    showBookAt("/book");
+    expect(shelved().map((entry) => entry.textContent)).toEqual([
+      expect.stringMatching(/First Thanks.*Bronze · 14 Oct 2026/),
+      expect.stringMatching(/Constellation Maker.*Diamond · 8 Sept 2026/),
+      expect.stringMatching(/Old Friends.*Silver · 14 Aug 2026/),
+      expect.stringMatching(/Pillar.*Gold · 22 Jul 2026/),
+      expect.stringMatching(/Half-Year Hero.*Gold · 30 Jun 2026/),
+    ]);
+    expect(shelved().map((entry) => entry.querySelector("[data-rosette]")?.getAttribute("data-rosette"))).toEqual(["bronze", "diamond", "silver", "gold", "gold"]);
+    expect(shelved().map((entry) => entry.querySelectorAll("[data-medal='earned'] [data-pip]").length)).toEqual([1, 4, 2, 3, 3]);
+    expect(within(shelved()[1]!).getByRole("link")).toHaveAttribute("href", "/book?page=connections");
+    expect(main()).toHaveTextContent("Newest first");
+  });
+
+  it("shelves three on a narrow screen", () => {
+    showBookAt("/book");
+    expect(shelved().map((entry) => within(entry).getByRole("link").textContent)).toEqual([
+      expect.stringContaining("First Thanks"),
+      expect.stringContaining("Constellation Maker"),
+      expect.stringContaining("Old Friends"),
+    ]);
+  });
+
+  it("tags the newest New, as a static tag, while it was earned less than 7 days ago", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.parse("2026-10-20T22:29:59.999Z"));
+    showBookAt("/book");
+    const newest = shelved()[0]!;
+    expect(within(newest).getByText("New").outerHTML).not.toMatch(/primary|animate/);
+    expect(shelved().filter((entry) => within(entry).queryByText("New") !== null)).toEqual([newest]);
+  });
+
+  it("drops New once the newest was earned 7 days ago", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.parse("2026-10-20T22:30:00Z"));
+    showBookAt("/book");
+    expect(within(shelf()!).queryByText("New")).toBeNull();
+  });
+
+  it("tags only the newest New when two were earned this week", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.parse("2026-10-14T12:00:00Z"));
+    const recognitionYesterday = { ...recognitionNotYet!, count: 1, tiers: recognitionNotYet!.tiers.map((tier, i) => (i === 0 ? { ...tier, earnedAt: Date.parse("2026-10-13T09:00:00Z") } : tier)), next: { tier: "silver" as const, at: 25 } };
+    showBookAt("/book", earnedOnly([generosityAtBronze!, recognitionYesterday]));
+    expect(shelved().map((entry) => within(entry).queryByText("New") !== null)).toEqual([true, false]);
+    expect(shelved()[0]).toHaveTextContent("First Thanks");
+  });
+
+  it("has no shelf while no tier is earned", () => {
+    showBookAt("/book", earnedOnly([recognitionNotYet!]));
+    expect(shelf()).toBeNull();
+    expect(main()).not.toHaveTextContent("Recently earned");
+  });
+
+  it("gives each category that holds a ladder one tile, in E's order, with its art, its ladders' emblems, its tiers earned and a neutral bar", () => {
+    showBookAt("/book");
+    expect(categoryTiles().map((tile) => [tile.textContent, tile.getAttribute("href")])).toEqual([
+      [expect.stringMatching(/^Giving.*7 of 12/), "/book?page=giving"],
+      [expect.stringMatching(/^Being thanked.*0 of 4/), "/book?page=thanked"],
+      [expect.stringMatching(/^Connections.*6 of 8/), "/book?page=connections"],
+      [expect.stringMatching(/^Crowd.*1 of 4/), "/book?page=crowd"],
+    ]);
+    const giving = categoryTiles()[0]!;
+    expect(giving.querySelector("[data-hog='giving']")).not.toBeNull();
+    expect(giving.querySelectorAll("[data-emblem]")).toHaveLength(3);
+    const bar = giving.querySelector("[data-bar]")!;
+    expect(bar.closest("[aria-hidden='true']")).not.toBeNull();
+    expect(bar.outerHTML).not.toMatch(/primary|success|warning|danger/);
+  });
+
+  it("tiles only the categories that hold a ladder the read returns", () => {
+    showBookAt("/book", bookFixtures.book);
+    expect(categoryTiles().map((tile) => tile.getAttribute("href"))).toEqual(["/book?page=giving", "/book?page=thanked"]);
   });
 });

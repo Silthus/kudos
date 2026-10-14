@@ -1,4 +1,5 @@
-import { Medal, tierWords } from "../book/Medal";
+import { tierWords } from "../book/dates";
+import { Medal } from "../book/Medal";
 import { MemberFace } from "../Face";
 import type { ProfileCardShown } from "../profileCardRead";
 import type { Medal as CardMedal, MemberProfile } from "../shell";

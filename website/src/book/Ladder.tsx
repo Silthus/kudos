@@ -1,16 +1,17 @@
 import { IconCheck } from "@posthog/icons";
 import { Card, CardContent } from "@posthog/quill";
 import type { LadderCard, TierCard } from "../shell";
+import { Bar } from "./Bar";
+import { DateOf, tierWords } from "./dates";
 import { LadderEmblem } from "./LadderEmblem";
-import { Medal, tierWords } from "./Medal";
-
-
-type EarnedTier = TierCard & { earnedAt: number };
+import { Medal } from "./Medal";
+import { bestOf, isEarned, type EarnedTier } from "./progress";
+import { Tag } from "./Tag";
 
 export function Ladder({ ladder, timeZone }: { ladder: LadderCard; timeZone: string }) {
   const { name, counts, tiers, next } = ladder;
   const titleId = `ladder-${ladder.ladder}`;
-  const best = tiers.findLast(isEarned) ?? null;
+  const best = bestOf(ladder);
   return (
     <article aria-labelledby={titleId}>
       <Card>
@@ -39,10 +40,6 @@ export function Ladder({ ladder, timeZone }: { ladder: LadderCard; timeZone: str
       </Card>
     </article>
   );
-}
-
-function isEarned(tier: TierCard): tier is EarnedTier {
-  return tier.earnedAt !== null;
 }
 
 function LatestEarned({ tier, timeZone }: { tier: EarnedTier; timeZone: string }) {
@@ -88,14 +85,6 @@ function Complete({ count, counts }: { count: number; counts: string }) {
   );
 }
 
-function Bar({ label, value, max }: { label: string; value: number; max: number }) {
-  return (
-    <div role="progressbar" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={max} className="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px">
-      <div className="h-full rounded-full bg-muted-foreground" style={{ width: `${Math.min(100, (value / max) * 100)}%` }} />
-    </div>
-  );
-}
-
 function Tier({ tier, isNext, timeZone }: { tier: TierCard; isNext: boolean; timeZone: string }) {
   const earned = isEarned(tier);
   return (
@@ -106,7 +95,7 @@ function Tier({ tier, isNext, timeZone }: { tier: TierCard; isNext: boolean; tim
         <span className={`text-sm font-medium leading-tight ${earned || isNext ? "" : "text-muted-foreground"}`}>{tier.name}</span>
         <span className="text-xs tabular-nums text-muted-foreground">{isEarned(tier) ? <EarnedOn at={tier.earnedAt} timeZone={timeZone} /> : `At ${tier.at}`}</span>
       </div>
-      {isNext && <span className="absolute -top-2 right-2 rounded-full bg-foreground px-1.5 py-px text-[11px] font-semibold leading-tight text-background">Next</span>}
+      {isNext && <Tag className="absolute -top-2 right-2">Next</Tag>}
     </li>
   );
 }
@@ -123,9 +112,4 @@ function EarnedOn({ at, timeZone }: { at: number; timeZone: string }) {
       Earned <DateOf at={at} timeZone={timeZone} />
     </span>
   );
-}
-
-function DateOf({ at, timeZone }: { at: number; timeZone: string }) {
-  const date = new Date(at);
-  return <time dateTime={date.toISOString()}>{new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone }).format(date)}</time>;
 }
