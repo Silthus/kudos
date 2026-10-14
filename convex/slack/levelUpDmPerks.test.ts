@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
-import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
-import { blockActions, buttonIn, buttonInHome, publishedHomeBlocks, readBlocks, type Block, type BlockAction } from "../../testing/slackInteractions";
+import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEmails, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import type { FakePostHog, FlagDefinition } from "../../testing/fakePostHog";
+import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlocks, readBlocks, staleButtonOf, type Block, type BlockAction } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
@@ -13,6 +13,7 @@ const now = new Date("2026-10-14T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
 const inDm = { channel: "D_ALICE", ts: "1760349700.000200" };
 const siteUrl = "https://kudos-site.test";
+const alicesEmail = "alice@example.com";
 const buyOnTheWeb = `[link: Buy ${siteUrl}/skills]`;
 
 const sparkLine = "section: *Spark* · 1 skill point\n+5 XP the first time each day you thank someone and say why. [button: Buy]";
@@ -146,6 +147,19 @@ describe("each perk's purchase button in Slack links to the skill tree's page wh
     });
   });
 
+  test("for a member previewing the website while it is closed for the workspace, Buy links to the page's sign-in entry, as App Home's front door does", async () => {
+    slack.withMember("U_ALICE", { profile: { email: alicesEmail } });
+    const t = await skillTreeOpenedAtLevelFive("U_ALICE");
+    await websiteOpened(t, onForEmails("website", alicesEmail));
+
+    await reachLevelSix(t, "U_ALICE");
+    await clickInHome(t, "U_ALICE", staleButtonOf({ type: "showHomeTab", tab: "profile" }));
+
+    expect(accessoryBeside("*Rhythm*")).toMatchObject({ url: `${siteUrl}/sign-in/skills`, action_id: "website-link:buy:rhythm" });
+    expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Settings");
+    expect(urlOfHomeButton("Skill tree")).toBe(`${siteUrl}/sign-in/skills`);
+  });
+
   test("clicking a Buy link buys nothing and answers nothing, while a Buy left in an earlier DM still buys its perk", async () => {
     const t = await skillTreeOpenedAtLevelFive("U_ALICE");
     await reachLevelSix(t, "U_ALICE");
@@ -209,15 +223,20 @@ describe("P78 R34: the line a Buy answers with is checked again before each try"
 
 type PostedDm = Record<string, unknown>;
 
-async function websiteOpened(t: Backend) {
+async function websiteOpened(t: Backend, website: FlagDefinition = onForEveryone("website")) {
   vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
   vi.stubEnv("SITE_URL", siteUrl);
-  await flagsFromPostHog(t, postHog, ...["xp-levels", "unlocks", "skill-tree", "website"].map(onForEveryone));
+  await flagsFromPostHog(t, postHog, ...["xp-levels", "unlocks", "skill-tree"].map(onForEveryone), website);
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
 }
 
 function blocksBeside(text: string) {
   return blocksOf(lastDmTo("U_ALICE")).filter((block) => readBlocks([block])[0]?.startsWith(`section: ${text}`));
+}
+
+function urlOfHomeButton(label: string) {
+  const elements = publishedHomeBlocks(slack, "U_ALICE").flatMap((block) => (block.type === "actions" ? (block.elements as Array<{ text: { text: string }; url?: string }>) : []));
+  return elements.find(({ text }) => text.text === label)?.url;
 }
 
 function accessoryBeside(text: string) {

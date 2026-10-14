@@ -17,7 +17,7 @@ import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
-import { websiteOrigin } from "../website/link";
+import { websiteOriginFor } from "../website/link";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, purchaseReplyOf, readyCrateOf, tiersEarnedLines, type HomeAction } from "./home";
@@ -149,7 +149,7 @@ type QuestNotification = Extract<Notification, { kind: "quest-finished" | "journ
 
 async function deliveryFactsOf(ctx: QueryCtx, workspace: string, member: MemberId, told: Notification): Promise<DeliveryFacts> {
   return {
-    website: await websiteOrigin(ctx, workspace),
+    website: await websiteOriginFor(ctx, workspace, member),
     openTree: await openTreeOf(ctx, workspace, member, told),
     everyTierEarned: told.kind === "tiers-earned" ? await everyTierEarnedBy(ctx, member) : [],
   };
