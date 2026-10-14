@@ -295,6 +295,7 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   via: P91: members already playing join the Journey once, when it ships
   because: when the Journey ships, members already playing join it where they are (P91): a step whose feature they opened is active, and a step whose state is already true is finished at once (P90), so a member who already said why isn't asked to again; the moment is stored once and the join keyed by it, because a second join would pay a step twice or move when the others count from (P87), and the slice applies only once Unlocks launched, so the Leaderboard P77 keeps open for existing members activates someone-new
   refuted: the join no longer finished first-thanks from the member's stored gate decisions -> 4 of 5 cases failed: no member who had said why got first-thanks finished or a DM (2026-10-14)
+  refuted: the unlockOpened subscriber no longer left openings from before the ship moment to the join -> the delayed-opening case failed: someone-new became active at the opening and counted a kudos from before the moment (2026-10-14)
   kinds: message, state
   checklist: destination-confinement dismissed: the join sends nothing outside but each member's own DM through the adapter; questFinished, xpRecorded and levelReached go only to the in-process bus
   checklist: message-authenticity dismissed: the join is scheduled only by the mutation that stores the ship moment, never from outside
@@ -316,6 +317,7 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   via: P91: the Journey's join stays within Convex's limits
   because: Convex refuses a mutation that schedules more than 1000 functions and caps what one mutation reads, so a join over every member must page and join each member in a mutation of their own (#101, P78), and every member already playing must join (P91)
   refuted: a join page read 1000 members instead of 100 -> the 150-member case failed: one page scheduled 150 joins (2026-10-14)
+  refuted: first-thanks history read each award's giver effects record with an index range of its own -> the 4100-kudos case failed on Convex's index range limit, leaving first-thanks unfinished (2026-10-14)
   kinds: state
   checklist: revalidated-permission dismissed: no permission is involved; each join acts on the stored ship moment
   checklist: separation-of-duties dismissed: no approval policy applies
