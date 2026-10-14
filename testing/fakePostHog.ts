@@ -17,6 +17,7 @@ export type BatchRequest = {
   events: CapturedEvent[];
   startedAt: number;
   endedAt?: number;
+  status?: number;
 };
 
 export type FlagDefinition = {
@@ -72,6 +73,17 @@ export class FakePostHog {
     return this.events().filter(isPersonEvent);
   }
 
+  personOf(distinctId: string) {
+    const accepted = this.requests.filter(({ status }) => status !== undefined && status >= 200 && status < 300);
+    const person: Record<string, unknown> = {};
+    for (const { distinct_id, properties } of accepted.flatMap((request) => request.events).filter(isPersonEvent)) {
+      if (distinct_id !== distinctId) continue;
+      Object.assign(person, properties.$set);
+      for (const key of (properties.$unset as string[] | undefined) ?? []) delete person[key];
+    }
+    return person;
+  }
+
   owns(url: URL) {
     return url.origin === postHogHost;
   }
@@ -85,7 +97,9 @@ export class FakePostHog {
     this.requests.push(request);
     const answer = this.scripted.shift() ?? answersWith(200);
     try {
-      return await answer(init?.signal ?? undefined);
+      const response = await answer(init?.signal ?? undefined);
+      request.status = response.status;
+      return response;
     } finally {
       request.endedAt = Date.now();
     }

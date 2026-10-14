@@ -43,6 +43,22 @@ export async function userGroupsOf(ctx: QueryCtx, workspace: string, user: ChatU
     .toSorted((first, second) => first.handle.localeCompare(second.handle));
 }
 
+export async function userGroupsOfUser(ctx: QueryCtx, workspace: string, user: ChatUserId): Promise<string[]> {
+  const memberships = await ctx.db
+    .query("userGroupMembers")
+    .withIndex("by_user", (q) => q.eq("workspace", workspace).eq("user", user))
+    .collect();
+  return memberships.map(({ group }) => group);
+}
+
+export async function keptUserGroupHandlesIn(ctx: QueryCtx, workspace: string): Promise<Map<string, string>> {
+  const rows = await ctx.db
+    .query("userGroups")
+    .withIndex("by_group", (q) => q.eq("workspace", workspace))
+    .collect();
+  return new Map(rows.filter(keepsMembers).map(({ group, handle }) => [group, handle]));
+}
+
 export const keepUserGroups = internalMutation({
   args: { listed: v.array(userGroupValidator), scope: listingScopeValidator, asOf: v.number() },
   handler: async (ctx, { listed, scope, asOf }) => {

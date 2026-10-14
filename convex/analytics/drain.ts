@@ -5,7 +5,7 @@ import { internalAction, internalMutation, type MutationCtx } from "../_generate
 import { captureSettings, type Capture } from "./capture";
 import { postHogExceptionList } from "./exceptions";
 import { failuresLogged } from "./failures";
-import { forgetRecordedProfiles, isSuperseded } from "./person";
+import { forgetRecordedProfiles, withoutStalePersonEvents } from "./person";
 
 const batchSize = 100;
 const answerTimeoutMs = 10_000;
@@ -42,7 +42,7 @@ export const claim = internalMutation({
   handler: async (ctx, { generation }): Promise<Claim | null> => {
     const current = await ctx.db.query("analyticsDrain").first();
     if (current?.generation !== generation) return null;
-    const due = captureSettings() === null ? [] : await dueRows(ctx);
+    const due = captureSettings() === null ? [] : await withoutStalePersonEvents(ctx, await dueRows(ctx));
     if (due.length === 0) {
       await ctx.db.delete(current._id);
       await wakeDrain(ctx);
@@ -61,7 +61,7 @@ export const settle = internalMutation({
   handler: async (ctx, { token, rows, answer }) => {
     const now = Date.now();
     const leased = (await Promise.all(rows.map((id) => ctx.db.get(id)))).filter((row): row is OutboxRow => row?.lease === token && row.dueAt > now);
-    const held = answer === "delivered" ? leased : await withoutSuperseded(ctx, leased);
+    const held = answer === "delivered" ? leased : await withoutStalePersonEvents(ctx, leased);
     if (answer === "delivered") {
       for (const row of held) await ctx.db.delete(row._id);
     } else if (captureSettings() === null) {
@@ -99,7 +99,7 @@ async function cleanUpOutbox(ctx: MutationCtx) {
     .query("analyticsOutbox")
     .withIndex("by_state", (q) => q.eq("state", "pending").lte("_creationTime", now - pendingKeptForMs))
     .take(cleanUpBatchSize);
-  await giveUp(ctx, expired, "expired");
+  await giveUp(ctx, await withoutStalePersonEvents(ctx, expired), "expired");
   const forgotten = await ctx.db
     .query("analyticsOutbox")
     .withIndex("by_due", (q) => q.eq("state", "exhausted").lte("dueAt", now))
@@ -144,15 +144,6 @@ function dueRows(ctx: MutationCtx) {
     .query("analyticsOutbox")
     .withIndex("by_due", (q) => q.eq("state", "pending").lte("dueAt", Date.now()))
     .take(batchSize);
-}
-
-async function withoutSuperseded(ctx: MutationCtx, rows: OutboxRow[]) {
-  const kept: OutboxRow[] = [];
-  for (const row of rows) {
-    if (await isSuperseded(ctx, row)) await ctx.db.delete(row._id);
-    else kept.push(row);
-  }
-  return kept;
 }
 
 async function retryOrGiveUp(ctx: MutationCtx, rows: OutboxRow[]) {

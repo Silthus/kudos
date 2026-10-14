@@ -2,8 +2,8 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { chatUserOf, lookup, personFactsOf, type MemberId } from "../workspace/directory";
-import { userGroupsOf } from "../workspace/userGroups";
+import { chatUserOf, lookup, personFactsOf, type MemberId, type PersonFacts } from "../workspace/directory";
+import { keptUserGroupHandlesIn, userGroupsOfUser } from "../workspace/userGroups";
 import { captureSettings, type Capture, type Environment } from "./capture";
 import { wakeDrain } from "./drain";
 import { sharedPropertiesOf } from "./outbox";
@@ -24,8 +24,10 @@ const profileKeys = ["email", "name", "display_name", "title", "slack_user_id", 
 
 const personEvents: readonly string[] = ["$identify", "$set"];
 
-const catchUpBatchSize = 100;
 const peopleFollowedPerJob = 200;
+const identitiesCaughtUpPerPage = 10;
+const documentsReadPerFollowJob = 8_000;
+const documentsReadPerPerson = 6;
 
 type Identity = Doc<"analyticsIds">;
 type OutboxRow = Doc<"analyticsOutbox">;
@@ -35,7 +37,7 @@ export async function analyticsIdOf(ctx: MutationCtx, member: MemberId) {
   if (existing !== null) return existing;
   const analyticsId = crypto.randomUUID();
   await ctx.db.insert("analyticsIds", { member, analyticsId });
-  await followPerson(ctx, member);
+  await followMembersLater(ctx, [member]);
   return analyticsId;
 }
 
@@ -43,37 +45,55 @@ export async function existingAnalyticsId(ctx: QueryCtx, member: MemberId) {
   return (await identityOf(ctx, member))?.analyticsId ?? null;
 }
 
-export async function followPerson(ctx: MutationCtx, member: MemberId) {
-  const capture = captureSettings();
-  const identity = await identityOf(ctx, member);
-  if (capture === null || identity === null) return;
-  await recordProfileChange(ctx, capture, identity);
+export async function followMembersLater(ctx: MutationCtx, members: MemberId[]) {
+  if (captureSettings() === null) return;
+  const identified = [];
+  for (const member of members) if ((await identityOf(ctx, member)) !== null) identified.push(member);
+  for (const chunk of chunksOf(identified)) await ctx.scheduler.runAfter(0, internal.analytics.person.followMembers, { members: chunk });
 }
+
+export async function followPeopleLater(ctx: MutationCtx, workspace: string, users: string[]) {
+  if (captureSettings() === null) return;
+  for (const chunk of chunksOf(users)) await ctx.scheduler.runAfter(0, internal.analytics.person.followPeople, { workspace, users: chunk });
+}
+
+export const followMembers = internalMutation({
+  args: { members: v.array(v.id("members")) },
+  handler: async (ctx, { members }) => {
+    const capture = captureSettings();
+    if (capture === null) return;
+    const reader = new ProfileReader(ctx, capture);
+    const left = await followWithin(reader, members, async (member) => {
+      const identity = await identityOf(ctx, member);
+      if (identity !== null) await recordProfileChange(ctx, reader, identity);
+    });
+    if (left.length > 0) await ctx.scheduler.runAfter(0, internal.analytics.person.followMembers, { members: left });
+  },
+});
 
 export const followPeople = internalMutation({
   args: { workspace: v.string(), users: v.array(v.string()) },
   handler: async (ctx, { workspace, users }) => {
-    for (const user of users) {
+    const capture = captureSettings();
+    if (capture === null) return;
+    const reader = new ProfileReader(ctx, capture);
+    const left = await followWithin(reader, users, async (user) => {
       const facts = await lookup(ctx, workspace, user);
-      if (facts?.kind === "member") await followPerson(ctx, facts.member);
-    }
+      const identity = facts?.kind === "member" ? await identityOf(ctx, facts.member) : null;
+      if (identity !== null) await recordProfileChange(ctx, reader, identity);
+    });
+    if (left.length > 0) await ctx.scheduler.runAfter(0, internal.analytics.person.followPeople, { workspace, users: left });
   },
 });
-
-export async function followPeopleLater(ctx: MutationCtx, workspace: string, users: string[]) {
-  if (captureSettings() === null) return;
-  for (let start = 0; start < users.length; start += peopleFollowedPerJob) {
-    await ctx.scheduler.runAfter(0, internal.analytics.person.followPeople, { workspace, users: users.slice(start, start + peopleFollowedPerJob) });
-  }
-}
 
 export const catchUp = internalMutation({
   args: { cursor: v.optional(v.string()) },
   handler: async (ctx, { cursor }) => {
     const capture = captureSettings();
     if (capture === null) return;
-    const page = await ctx.db.query("analyticsIds").paginate({ cursor: cursor ?? null, numItems: catchUpBatchSize });
-    for (const identity of page.page) await recordProfileChange(ctx, capture, identity);
+    const reader = new ProfileReader(ctx, capture);
+    const page = await ctx.db.query("analyticsIds").paginate({ cursor: cursor ?? null, numItems: identitiesCaughtUpPerPage });
+    for (const identity of page.page) await recordProfileChange(ctx, reader, identity);
     if (!page.isDone) await ctx.scheduler.runAfter(0, internal.analytics.person.catchUp, { cursor: page.continueCursor });
   },
 });
@@ -82,37 +102,44 @@ export function requestCatchUp(ctx: MutationCtx) {
   return ctx.scheduler.runAfter(0, internal.analytics.person.catchUp, {});
 }
 
-export async function forgetRecordedProfiles(ctx: MutationCtx, rows: OutboxRow[]) {
-  for (const row of rows.filter(isPersonEvent)) {
-    const identity = await ctx.db
-      .query("analyticsIds")
-      .withIndex("by_analytics_id", (q) => q.eq("analyticsId", row.distinctId))
-      .unique();
-    if (identity !== null) await ctx.db.patch(identity._id, { profileFingerprint: null });
+export async function withoutStalePersonEvents(ctx: MutationCtx, rows: OutboxRow[]) {
+  const current: OutboxRow[] = [];
+  for (const row of rows) {
+    if (await isStale(ctx, row)) await ctx.db.delete(row._id);
+    else current.push(row);
   }
+  return current;
 }
 
-export async function isSuperseded(ctx: QueryCtx, row: OutboxRow) {
-  if (!isPersonEvent(row)) return false;
-  for (const event of personEvents) {
-    const sameKind = await ctx.db
-      .query("analyticsOutbox")
-      .withIndex("by_person_event", (q) => q.eq("distinctId", row.distinctId).eq("event", event))
-      .collect();
-    if (sameKind.some((other) => other._creationTime > row._creationTime)) return true;
+export async function forgetRecordedProfiles(ctx: MutationCtx, rows: OutboxRow[]) {
+  for (const row of rows.filter(isPersonEvent)) {
+    const identity = await identityWithAnalyticsId(ctx, row.distinctId);
+    if (identity !== null) await ctx.db.patch(identity._id, { profileFingerprint: null });
   }
-  return false;
 }
 
 function isPersonEvent({ event }: Pick<OutboxRow, "event">) {
   return personEvents.includes(event);
 }
 
-async function recordProfileChange(ctx: MutationCtx, capture: Capture, identity: Identity) {
-  const profile = await profileOf(ctx, capture.environment, identity.member);
+async function isStale(ctx: QueryCtx, row: OutboxRow) {
+  if (!isPersonEvent(row)) return false;
+  const identity = await identityWithAnalyticsId(ctx, row.distinctId);
+  return identity?.profileFingerprint !== row.person?.fingerprint;
+}
+
+async function followWithin<T>(reader: ProfileReader, people: T[], follow: (person: T) => Promise<void>) {
+  for (const [index, person] of people.entries()) {
+    if (index > 0 && reader.documentsRead >= documentsReadPerFollowJob) return people.slice(index);
+    await follow(person);
+  }
+  return [];
+}
+
+async function recordProfileChange(ctx: MutationCtx, reader: ProfileReader, identity: Identity) {
+  const profile = await reader.profileOf(identity.member);
   const fingerprint = await fingerprintOf(profile);
   if (identity.profileFingerprint === fingerprint) return;
-  await dropWaitingPersonEvents(ctx, identity.analyticsId);
   const { workspace } = await chatUserOf(ctx, identity.member);
   const firstTime = identity.profileFingerprint === undefined;
   await ctx.db.insert("analyticsOutbox", {
@@ -120,8 +147,8 @@ async function recordProfileChange(ctx: MutationCtx, capture: Capture, identity:
     event: firstTime ? "$identify" : "$set",
     distinctId: identity.analyticsId,
     timestamp: Date.now(),
-    properties: await sharedPropertiesOf(ctx, capture, workspace),
-    person: { set: profile, unset: firstTime ? [] : profileKeys.filter((key) => profile[key] === undefined) },
+    properties: await sharedPropertiesOf(ctx, reader.capture, workspace),
+    person: { set: profile, unset: firstTime ? [] : profileKeys.filter((key) => profile[key] === undefined), fingerprint },
     state: "pending",
     failures: 0,
     dueAt: Date.now(),
@@ -130,10 +157,41 @@ async function recordProfileChange(ctx: MutationCtx, capture: Capture, identity:
   await wakeDrain(ctx);
 }
 
-async function profileOf(ctx: QueryCtx, environment: Environment, member: MemberId): Promise<PersonProfile> {
-  const facts = await personFactsOf(ctx, member);
-  if (facts === null) return { environment };
-  const teams = (await userGroupsOf(ctx, facts.workspace, facts.user)).map(({ handle }) => handle);
+class ProfileReader {
+  documentsRead = 0;
+  private readonly handlesByWorkspace = new Map<string, Map<string, string>>();
+
+  constructor(
+    private readonly ctx: QueryCtx,
+    readonly capture: Capture,
+  ) {}
+
+  async profileOf(member: MemberId): Promise<PersonProfile> {
+    this.documentsRead += documentsReadPerPerson;
+    const facts = await personFactsOf(this.ctx, member);
+    if (facts === null) return { environment: this.capture.environment };
+    return { ...profileFieldsOf(facts), ...(await this.teamsOf(facts)), environment: this.capture.environment };
+  }
+
+  private async teamsOf({ workspace, user }: PersonFacts) {
+    const groups = await userGroupsOfUser(this.ctx, workspace, user);
+    const handles = await this.keptHandlesIn(workspace);
+    this.documentsRead += groups.length;
+    const teams = groups.flatMap((group) => handles.get(group) ?? []).toSorted((first, second) => first.localeCompare(second));
+    return teams.length > 0 ? { teams } : {};
+  }
+
+  private async keptHandlesIn(workspace: string) {
+    const known = this.handlesByWorkspace.get(workspace);
+    if (known !== undefined) return known;
+    const handles = await keptUserGroupHandlesIn(this.ctx, workspace);
+    this.documentsRead += handles.size;
+    this.handlesByWorkspace.set(workspace, handles);
+    return handles;
+  }
+}
+
+function profileFieldsOf(facts: PersonFacts) {
   return {
     ...(facts.email !== undefined && { email: facts.email }),
     ...(facts.realName !== undefined && { name: facts.realName }),
@@ -142,8 +200,6 @@ async function profileOf(ctx: QueryCtx, environment: Environment, member: Member
     slack_user_id: facts.user,
     slack_team_id: facts.workspace,
     is_admin: facts.admin,
-    ...(teams.length > 0 && { teams }),
-    environment,
   };
 }
 
@@ -153,19 +209,20 @@ async function fingerprintOf(profile: PersonProfile) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function dropWaitingPersonEvents(ctx: MutationCtx, distinctId: string) {
-  for (const event of personEvents) {
-    const waiting = await ctx.db
-      .query("analyticsOutbox")
-      .withIndex("by_person_event", (q) => q.eq("distinctId", distinctId).eq("event", event).eq("state", "pending"))
-      .collect();
-    for (const row of waiting) await ctx.db.delete(row._id);
-  }
+function chunksOf<T>(items: T[]) {
+  return Array.from({ length: Math.ceil(items.length / peopleFollowedPerJob) }, (_, index) => items.slice(index * peopleFollowedPerJob, (index + 1) * peopleFollowedPerJob));
 }
 
 function identityOf(ctx: QueryCtx, member: MemberId) {
   return ctx.db
     .query("analyticsIds")
     .withIndex("by_member", (q) => q.eq("member", member))
+    .unique();
+}
+
+function identityWithAnalyticsId(ctx: QueryCtx, analyticsId: string) {
+  return ctx.db
+    .query("analyticsIds")
+    .withIndex("by_analytics_id", (q) => q.eq("analyticsId", analyticsId))
     .unique();
 }

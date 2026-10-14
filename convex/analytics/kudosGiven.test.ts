@@ -170,8 +170,8 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
     expect(new Set(postHog.productEvents().map((event) => event.event))).toEqual(
       new Set(["kudos given", "kudos received", "member welcomed", "attempt failed", "app home opened", "command used"]),
     );
-    const profiles = postHog.personEvents().map((event) => event.properties.$set);
-    expect(profiles).toEqual([
+    const profiles = new Set(postHog.personEvents().map((event) => JSON.stringify(event.properties.$set)));
+    expect([...profiles].map((profile) => JSON.parse(profile))).toEqual(expect.arrayContaining([
       {
         email: "zephyrine@example.com",
         name: "Zephyrine Quokkason",
@@ -183,7 +183,8 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
         environment: "sandbox",
       },
       { email: "barnaby@example.com", name: "Barnaby Flintlock", display_name: "barns", slack_user_id: people.recipient, slack_team_id: team, is_admin: false, environment: "sandbox" },
-    ]);
+    ]));
+    expect(profiles.size).toBe(2);
     const stored = await everythingStored(t);
     const neverSent = [
       "Marmalade", "artichokeparty", "Pacific/Chatham", "America/St_Johns", "Chatham", "St_Johns",

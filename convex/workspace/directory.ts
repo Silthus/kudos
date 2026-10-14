@@ -4,7 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { ChatUserId } from "../engine/messageEvent";
 import { ReportableError } from "../analytics/exceptions";
-import { followPerson } from "../analytics/person";
+import { followMembersLater } from "../analytics/person";
 import { publish } from "../bus/publish";
 import { memberProfileFieldNames, memberProfileFields, type MemberProfile } from "./memberProfile";
 
@@ -81,12 +81,14 @@ export const nameMembersWithoutName = internalMutation({
 export const fillProfiles = internalMutation({
   args: { profiles: v.array(v.object({ workspace: v.string(), user: v.string(), profile: v.object(memberProfileFields), asOf: v.number() })) },
   handler: async (ctx, { profiles }) => {
+    const changed: MemberId[] = [];
     for (const { workspace, user, profile, asOf } of profiles) {
       const row = await memberRow(ctx, workspace, user);
       if (row?.kind !== "member" || isOlder(asOf, row.asOf) || isOlder(asOf, row.profileAsOf) || !differsFrom(row, profile)) continue;
       await ctx.db.patch(row._id, { ...profile, profileAsOf: asOf });
-      await followPerson(ctx, row._id);
+      changed.push(row._id);
     }
+    await followMembersLater(ctx, changed);
   },
 });
 
@@ -100,7 +102,7 @@ export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }:
   if (existing === null) await ctx.db.insert("members", row);
   else if (!isOlder(asOf, existing.asOf)) {
     await replace(ctx, existing, keepingNewerProfile(existing, row));
-    await followPerson(ctx, existing._id);
+    await followMembersLater(ctx, [existing._id]);
   }
 }
 

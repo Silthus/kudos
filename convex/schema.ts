@@ -307,7 +307,7 @@ export default defineSchema({
     timestamp: v.number(),
     properties: propertiesValidator,
     exception: v.optional(exceptionValidator),
-    person: v.optional(v.object({ set: personPropertiesValidator, unset: v.array(v.string()) })),
+    person: v.optional(v.object({ set: personPropertiesValidator, unset: v.array(v.string()), fingerprint: v.string() })),
     state: v.union(v.literal("pending"), v.literal("sending"), v.literal("exhausted")),
     failures: v.number(),
     dueAt: v.number(),
@@ -315,8 +315,7 @@ export default defineSchema({
     reason: v.optional(v.union(v.literal("rejected"), v.literal("exhausted"), v.literal("expired"))),
   })
     .index("by_state", ["state"])
-    .index("by_due", ["state", "dueAt"])
-    .index("by_person_event", ["distinctId", "event", "state"]),
+    .index("by_due", ["state", "dueAt"]),
 
   analyticsDrain: defineTable({
     job: v.id("_scheduled_functions"),

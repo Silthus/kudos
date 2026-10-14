@@ -46,7 +46,8 @@ describe("F7 F8: PostHog's person carries the member's profile", () => {
     await settle(t);
 
     const shared = { environment: "sandbox", workspace_key: expect.stringMatching(uuid), taxonomy_version: 1 };
-    expect(personEvents()).toEqual([
+    expect(personEvents()).toHaveLength(2);
+    expect(personEvents()).toEqual(expect.arrayContaining([
       {
         event: "$identify",
         distinct_id: distinctIdOf("kudos given"),
@@ -69,7 +70,7 @@ describe("F7 F8: PostHog's person carries the member's profile", () => {
         distinct_id: distinctIdOf("kudos received"),
         properties: { ...shared, $set: { slack_user_id: "U_BOB", slack_team_id: "T1", is_admin: false, environment: "sandbox" } },
       },
-    ]);
+    ]));
   });
 });
 
@@ -132,6 +133,7 @@ describe("F8: a newer person event replaces an older one still waiting", () => {
     await settleInTimeOrder(t);
 
     expect(titlesSentTo(await annsDistinctId(t))).toEqual(["Gardener", "Baker", "Chef"]);
+    expect(postHog.personOf(await annsDistinctId(t))).toMatchObject({ title: "Chef" });
     expect(await outboxRows(t)).toEqual([]);
   });
 
@@ -140,14 +142,101 @@ describe("F8: a newer person event replaces an older one still waiting", () => {
     await annGaveKudos(t);
 
     await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Baker" } }, { eventTs: later(1) });
+    await recordFollowedPeopleWithoutDraining(t);
     const inFlight = await claimAsTheDrain(t);
     await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Chef" } }, { eventTs: later(2) });
+    await recordFollowedPeopleWithoutDraining(t);
     await t.mutation(internal.analytics.drain.settle, { token: inFlight!.token, rows: inFlight!.rows.map((row) => row._id), answer: "failed" });
     await settleInTimeOrder(t);
 
     expect(titlesSentTo(await annsDistinctId(t))).toEqual(["Gardener", "Chef"]);
+    expect(postHog.personOf(await annsDistinctId(t))).toMatchObject({ title: "Chef" });
     expect(await outboxRows(t)).toEqual([]);
   });
+
+  test("O17: an older person event a dead drain held, released at its lease's expiry beside the newer one, never lands after it", async () => {
+    const t = testBackend();
+    await annGaveKudos(t);
+
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Baker" } }, { eventTs: later(1) });
+    await recordFollowedPeopleWithoutDraining(t);
+    await claimAsTheDrain(t);
+    await drainDies(t);
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Chef" } }, { eventTs: later(2) });
+    await recordFollowedPeopleWithoutDraining(t);
+    await drainDies(t);
+    vi.setSystemTime(Date.now() + 3 * 60_000);
+    await t.mutation(internal.analytics.drain.recover, {});
+    await settle(t);
+    await t.mutation(dailyCatchUp(), {});
+    await settle(t);
+
+    expect(postHog.personOf(await annsDistinctId(t))).toMatchObject({ title: "Chef" });
+  });
+
+  test("O17: a leaver's older profile, released after their unset was delivered, never brings their identifying keys back", async () => {
+    const t = testBackend();
+    await annGaveKudos(t);
+
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Baker" } }, { eventTs: later(1) });
+    await recordFollowedPeopleWithoutDraining(t);
+    await claimAsTheDrain(t);
+    await drainDies(t);
+    await memberChanged(t, "user_change", { id: "U_ANN", deleted: true }, { eventTs: later(2) });
+    await settleUntil(t, new Date(Date.now() + 30_000));
+    const unsetDelivered = postHog.personOf(await annsDistinctId(t));
+    vi.setSystemTime(Date.now() + 3 * 60_000);
+    await t.mutation(internal.analytics.drain.recover, {});
+    await settle(t);
+    await t.mutation(dailyCatchUp(), {});
+    await settle(t);
+
+    expect(unsetDelivered).toEqual({ environment: "sandbox" });
+    expect(postHog.personOf(await annsDistinctId(t))).toEqual({ environment: "sandbox" });
+  });
+});
+
+describe("Convex's limits: profiles of members in many user groups", () => {
+  test("following 200 people who are each in 25 user groups stays within Convex's transaction limits", async () => {
+    const t = testBackend({ transactionLimits: true });
+    const people = await crowdInUserGroups(t, { people: 200, groups: 25 });
+
+    await t.mutation(internal.analytics.person.followPeople, { workspace: "T1", users: people.map(({ user }) => user) });
+    await settle(t);
+
+    for (const { analyticsId } of people) expect(postHog.personOf(analyticsId).teams).toHaveLength(25);
+  }, 60_000);
+
+  test("following people whose memberships together pass Convex's 32,000 documents read spreads over several jobs", async () => {
+    const t = testBackend({ transactionLimits: true });
+    const people = await crowdInUserGroups(t, { people: 80, groups: 420 });
+
+    await t.mutation(internal.analytics.person.followPeople, { workspace: "T1", users: people.map(({ user }) => user) });
+    await settle(t);
+
+    for (const { analyticsId } of people) expect(postHog.personOf(analyticsId).teams).toHaveLength(420);
+  }, 120_000);
+
+  test("the catch-up over 100 people who are each in 50 user groups stays within Convex's transaction limits", async () => {
+    const t = testBackend({ transactionLimits: true });
+    const people = await crowdInUserGroups(t, { people: 100, groups: 50 });
+
+    await t.mutation(dailyCatchUp(), {});
+    await settle(t);
+
+    for (const { analyticsId } of people) expect(postHog.personOf(analyticsId).teams).toHaveLength(50);
+  }, 60_000);
+
+  test("F3: a backfill that changes 200 profiles of people each in 25 user groups stays within Convex's transaction limits", async () => {
+    const t = testBackend({ transactionLimits: true });
+    const people = await crowdInUserGroups(t, { people: 200, groups: 25 });
+    for (const { user } of people) slack.withMember(user, { profile: { email: `${user.toLowerCase()}@example.com` } });
+
+    await t.action(internal.slack.directory.fillMemberProfiles, {});
+    await settle(t);
+
+    for (const { user, analyticsId } of people) expect(postHog.personOf(analyticsId)).toMatchObject({ email: `${user.toLowerCase()}@example.com` });
+  }, 60_000);
 });
 
 describe("F9: catching up", () => {
@@ -218,21 +307,26 @@ describe("F7 F8: teams are the handles of the member's user groups", () => {
     const t = testBackend();
     await annGaveKudos(t);
     slack.withUserGroup("S_GARDEN", { handle: "gardeners", users: ["U_ANN"] }).withUserGroup("S_BAKE", { handle: "bakers", users: ["U_ANN", "U_BOB"] });
+    const [ann, bob] = [await annsDistinctId(t), await distinctIdOfMember(t, "U_BOB")];
     await syncUserGroups(t);
-    const synced = teamsSentTo(await annsDistinctId(t));
+    const synced = [postHog.personOf(ann).teams, postHog.personOf(bob).teams];
 
     slack.withUserGroup("S_BAKE", { handle: "bakers", users: ["U_BOB"] });
     await userGroupChanged(t, "subteam_members_changed", "S_BAKE");
     await settle(t);
+    const afterMembersChange = [postHog.personOf(ann).teams, postHog.personOf(bob).teams];
     slack.withUserGroup("S_GARDEN", { handle: "growers", users: ["U_ANN"] });
     await userGroupChanged(t, "subteam_updated", "S_GARDEN");
     await settle(t);
+    const afterRename = postHog.personOf(ann).teams;
     slack.withUserGroup("S_GARDEN", { handle: "growers", users: ["U_ANN"], disabled: true });
     await syncUserGroups(t);
 
-    expect(synced).toEqual([["bakers", "gardeners"]]);
-    expect(teamsSentTo(await annsDistinctId(t))).toEqual([["bakers", "gardeners"], ["gardeners"], ["growers"], "unset"]);
-    expect(teamsSentTo(await distinctIdOfMember(t, "U_BOB"))).toEqual([["bakers"]]);
+    expect(synced).toEqual([["bakers", "gardeners"], ["bakers"]]);
+    expect(afterMembersChange).toEqual([["gardeners"], ["bakers"]]);
+    expect(afterRename).toEqual(["growers"]);
+    expect(postHog.personOf(ann)).not.toHaveProperty("teams");
+    expect(postHog.personOf(bob).teams).toEqual(["bakers"]);
   });
 });
 
@@ -251,13 +345,6 @@ async function syncUserGroups(t: Backend) {
 
 async function userGroupChanged(t: Backend, ...event: Parameters<typeof userGroupEvent>) {
   return t.fetch("/slack/events", await signedRequest(userGroupEvent(...event)));
-}
-
-function teamsSentTo(distinctId: string) {
-  return personEventsOn(distinctId).flatMap(({ $set, $unset }) => {
-    if ($set.teams !== undefined) return [$set.teams];
-    return Array.isArray($unset) && $unset.includes("teams") ? ["unset"] : [];
-  });
 }
 
 async function annGaveKudos(t: Backend) {
@@ -290,6 +377,43 @@ async function distinctIdOfMember(t: Backend, user: string) {
 
 function titlesSentTo(distinctId: string) {
   return personEventsOn(distinctId).map(({ $set }) => $set.title);
+}
+
+async function crowdInUserGroups(t: Backend, { people, groups }: { people: number; groups: number }) {
+  const crowd = await t.run(async (ctx) => {
+    const inserted = [];
+    for (let index = 0; index < people; index += 1) {
+      const user = `U_CROWD_${index}`;
+      const member = await ctx.db.insert("members", { workspace: "T1", user, kind: "member", asOf: 0 });
+      const analyticsId = crypto.randomUUID();
+      await ctx.db.insert("analyticsIds", { member, analyticsId });
+      inserted.push({ user, analyticsId });
+    }
+    return inserted;
+  });
+  const groupsPerRun = Math.max(1, Math.floor(10_000 / people));
+  for (let first = 0; first < groups; first += groupsPerRun) {
+    await t.run(async (ctx) => {
+      for (let index = first; index < Math.min(groups, first + groupsPerRun); index += 1) {
+        const group = `S_CROWD_${index}`;
+        await ctx.db.insert("userGroups", { workspace: "T1", group, handle: `crowd-${index}`, name: `Crowd ${index}`, enabled: true, automatic: false, asOf: 0 });
+        for (const { user } of crowd) await ctx.db.insert("userGroupMembers", { workspace: "T1", group, user });
+      }
+    });
+  }
+  return crowd;
+}
+
+async function recordFollowedPeopleWithoutDraining(t: Backend) {
+  vi.advanceTimersByTime(0);
+  await t.finishInProgressScheduledFunctions();
+}
+
+async function drainDies(t: Backend) {
+  await t.run(async (ctx) => {
+    const drain = await ctx.db.query("analyticsDrain").first();
+    if (drain !== null) await ctx.scheduler.cancel(drain.job);
+  });
 }
 
 async function claimAsTheDrain(t: Backend) {
