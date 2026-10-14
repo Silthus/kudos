@@ -55,6 +55,7 @@ describe("O1 O2 O3: a kudos message that gives", () => {
           daily_allowance_opening: 3,
           daily_allowance_left: 1,
           default_kudos_emoji: true,
+          thoughtful: false,
         },
       },
       { event: "kudos received", properties: { ...shared, kudos: 1, retry: false } },
@@ -97,6 +98,50 @@ describe("O1 O2 O3: a kudos message that gives", () => {
 
     const [award] = await t.run((ctx) => ctx.db.query("awards").collect());
     expect(new Set(kudosEvents().map((event) => event.timestamp))).toEqual(new Set([new Date(award!.at).toISOString()]));
+  });
+});
+
+describe("E3: kudos given says whether the giver said why", () => {
+  test.each([
+    ["five words besides mentions and emoji", true, [section(text("thanks for the great fix "), mention("U_BOB"), emoji("taco"))]],
+    ["fewer than five words", false, [section(text("thanks for the fix "), mention("U_BOB"), emoji("taco"))]],
+  ])("%s sends thoughtful %s", async (_, thoughtful, blocks) => {
+    const t = testBackend();
+
+    await post(t, blocks);
+    await settle(t);
+
+    expect(kudosGivenProperties()).toMatchObject({ thoughtful });
+  });
+
+  test("a message stored without a gate decision before the gate shipped, given after it, sends thoughtful false", async () => {
+    slack = new FakeSlack().withMember("U_ALICE");
+    vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
+    const t = testBackend();
+    await post(t, [section(text("thanks for covering my on-call shift "), mention("U_DANA"), emoji("taco"))]);
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("kudosMessages").collect()) await ctx.db.patch(row._id, { annotations: {} });
+    });
+    slack.withMember("U_DANA");
+
+    await settle(t);
+
+    expect(kudosGivenProperties()).toMatchObject({ thoughtful: false });
+  });
+
+  test("O10: only the boolean leaves the deployment, never the word count the gate read", async () => {
+    const t = testBackend();
+
+    await post(t, [section(text("thanks for untangling the thirteen flaky deploy checks before the Friday release "), mention("U_BOB"), emoji("taco"))]);
+    await settle(t);
+
+    const [decision] = await t.run(async (ctx) => (await ctx.db.query("kudosMessages").collect()).map((row) => row.annotations.gate));
+    expect(decision).toEqual({ version: 1, thoughtful: true, words: 12 });
+    expect(kudosGivenProperties()).toMatchObject({ thoughtful: true });
+    expect(Object.values(kudosGivenProperties())).not.toContain(12);
+    const bodies = postHog.requests.map((request) => request.body).join("\n");
+    expect(bodies).not.toMatch(/"(words|gate|version)"/);
+    for (const word of ["untangling", "thirteen", "flaky", "deploy", "Friday", "release"]) expect(bodies).not.toContain(word);
   });
 });
 
@@ -173,6 +218,7 @@ describe("O10: never sent", () => {
     ];
     for (const value of forbidden) expect(bodies).not.toContain(value);
     expect(bodies).not.toMatch(/\b[UTCWB][A-Z0-9]{8,}\b/);
+    expect(bodies).not.toMatch(/"(words|gate)"/);
   });
 });
 
@@ -240,6 +286,12 @@ describe("O26: capture is off", () => {
     expect((await t.run((ctx) => ctx.db.query("awards").collect())).length).toBe(2);
   });
 });
+
+function kudosGivenProperties() {
+  const given = postHog.events().filter((event) => event.event === "kudos given");
+  expect(given).toHaveLength(1);
+  return given[0]!.properties;
+}
 
 function kudosEvents() {
   return postHog.events().filter((event) => event.event === "kudos given" || event.event === "kudos received");

@@ -2,6 +2,7 @@ import { v, type Infer } from "convex/values";
 import type { AttemptFailedEvent, KudosGivenEvent, MemberWelcomedEvent } from "../bus/events";
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
+import { gateDecisionOf } from "../progression/gate";
 import { defaultKudosEmoji } from "../workspace/settings";
 import type { MemberId } from "../workspace/directory";
 
@@ -49,6 +50,7 @@ function kudosGiven(event: KudosGivenEvent): ProductEvent {
       daily_allowance_opening: event.allowance.dailyOpening,
       daily_allowance_left: event.allowance.dailyLeft,
       default_kudos_emoji: event.kudosEmoji === defaultKudosEmoji(),
+      thoughtful: gateDecisionOf(event.annotations)?.thoughtful === true,
     },
   };
 }
