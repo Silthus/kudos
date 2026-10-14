@@ -1,0 +1,7 @@
+GPT-6.1 Sol (reasoning effort high), read-only codex exec over git diff origin/spec/website-2...cb69595, with spec/website-2.md as the oracle. Its answer:
+
+- **Major — [README.md:17](website/proof/sandbox-2/README.md:17):** The required production switch list is missing. Current sandbox-only targeting does not record how each flag opens production. Add each flag’s production condition, what it enables, and the WS53 prerequisite for `unlocks`.
+
+- **Minor — [README.md:13](website/proof/sandbox-2/README.md:13):** “The dry run … changed nothing but the Node version setting” is unsupported by the committed artifacts; `sandbox-deploy.txt` records only the actual deploy. Add a redacted dry-run log showing that change, or remove the claim.
+
+Both findings fixed in the next commit: the README lists each flag's production switch, and the unsupported dry-run line is gone.

@@ -1,0 +1,68 @@
+Signed-in reads on <sandbox> through the public queries, 2026-10-14T00:34:05Z, right after this ticket's deploy of spec/website-2 at 8ffdaa0.
+The session is the proof session described in README.md: convex run --identity '{"subject":"<user>|<session>","issuer":"https://<sandbox>.convex.site"}'.
+
+$ convex run website/profile:getMyProfile '{}' --identity <proof session>
+{
+  "allowance": {
+    "base": 3,
+    "left": 3,
+    "refillsAt": 1792015200000
+  },
+  "chatUrl": "https://app.slack.com/client/<sandbox workspace>",
+  "face": {
+    "initials": "?",
+    "kind": "initials"
+  },
+  "kind": "member",
+  "kudosEmoji": "hedgehog",
+  "leaderboard": "open",
+  "leaderboardLevel": 3,
+  "lifetime": {
+    "given": 0,
+    "received": 0
+  },
+  "progression": {
+    "level": 1,
+    "levelStartsAt": 0,
+    "nextLevelAt": 20,
+    "xp": 0,
+    "xpToNextLevel": 20
+  },
+  "thisWeek": {
+    "given": 0,
+    "received": 0
+  }
+}
+
+$ convex run website/leaderboard:getLeaderboard '{"period":"week"}' --identity <proof session>
+{
+  "chatUrl": "https://app.slack.com/client/<sandbox workspace>",
+  "improvement": null,
+  "kind": "board",
+  "onTheBoards": true,
+  "period": "week",
+  "rows": [],
+  "standing": {
+    "kind": "not-ranked"
+  },
+  "window": []
+}
+
+$ convex run website/leaderboard:getLeaderboard '{"period":"all"}' --identity <proof session>
+{
+  "chatUrl": "https://app.slack.com/client/<sandbox workspace>",
+  "improvement": null,
+  "kind": "board",
+  "onTheBoards": true,
+  "period": "all",
+  "rows": [],
+  "standing": {
+    "kind": "not-ranked"
+  },
+  "window": []
+}
+
+$ convex data unlockLaunches   (shipped features at the launch; workspace redacted)
+{"at":"2026-10-13T22:11:41.429Z","shipped":["leaderboard"]}
+$ convex data unlocks   (the one member's rows; ids redacted)
+{"feature":"leaderboard","readyAt":"2026-10-13T22:11:41.429Z","openedAt":"2026-10-13T22:11:41.429Z"}

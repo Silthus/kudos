@@ -9,7 +9,9 @@ import { seenKeyOf } from "./seen";
 
 export type UnlockPath = MemberUnlock[] | null;
 
-export type LeaderboardState = "off" | "locked" | "ready" | "open";
+export type LeaderboardState = { kind: "off" } | { kind: "locked"; level: number } | { kind: "ready" } | { kind: "open" };
+
+export type LeaderboardWaits = Extract<LeaderboardState, { kind: "locked" | "ready" }>;
 
 export type FeatureCard = MemberUnlock & Pick<ScheduledFeature, "name" | "opens" | "level"> & { seen: string };
 
@@ -19,8 +21,11 @@ export async function unlockPathOf(ctx: QueryCtx, me: VerifiedMember): Promise<U
 }
 
 export async function leaderboardStateOf(ctx: QueryCtx, me: VerifiedMember, path: UnlockPath): Promise<LeaderboardState> {
-  if (path === null) return (await everyoneBoardShownIn(ctx, me.workspace)) ? "open" : "off";
-  return path.find(({ feature }) => feature === "leaderboard")?.state ?? "off";
+  if (path === null) return (await everyoneBoardShownIn(ctx, me.workspace)) ? { kind: "open" } : { kind: "off" };
+  const state = path.find(({ feature }) => feature === "leaderboard")?.state;
+  if (state === undefined) return { kind: "off" };
+  if (state === "locked") return { kind: "locked", level: scheduled("leaderboard").level };
+  return { kind: state };
 }
 
 export async function featureCardsOf(me: VerifiedMember, path: UnlockPath): Promise<FeatureCard[] | null> {

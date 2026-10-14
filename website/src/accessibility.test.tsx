@@ -1,8 +1,9 @@
 import { act, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
-import { fixedLeaderboard, leaderboardFixtures, type LeaderboardRead, type MyLeaderboard } from "./leaderboardFixtures";
-import { shellFixtures, type OpenAnswer, type ShellState } from "./shell";
+import type { BoardRead } from "./boardRead";
+import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
+import { shellFixtures, type MyLeaderboard, type OpenAnswer, type ShellState } from "./shell";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
@@ -39,7 +40,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "error", path: "/", visitor: shellFixtures.error },
 ];
 
-function answering(board: MyLeaderboard): LeaderboardRead {
+function answering(board: MyLeaderboard): BoardRead {
   return board.kind === "board" ? fixedLeaderboard(board) : (period) => (period && board);
 }
 

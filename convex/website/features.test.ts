@@ -72,7 +72,7 @@ describe("the website's feature states are Unlocks' facts", () => {
     await turnOn();
     const { asSignedIn } = await signedInMember();
 
-    expect(await myProfile(asSignedIn)).toMatchObject({ features: null, leaderboard: "open" });
+    expect(await myProfile(asSignedIn)).toMatchObject({ features: null, leaderboard: { kind: "open" } });
   });
 
   test("WS55: a website read never runs the P77 launch, though xp-levels and unlocks are on", async () => {
@@ -95,7 +95,7 @@ describe("the website's feature states are Unlocks' facts", () => {
       expect(profile.features).toEqual([
         { feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 3, state: "locked", readyAt: null, openedAt: null, seen: expect.any(String) },
       ]);
-      expect(profile.leaderboard).toBe("locked");
+      expect(profile.leaderboard).toEqual({ kind: "locked", level: 3 });
     });
 
     test("WS56 WS57: a member at level 3 reads it ready since the moment their level made it ready", async () => {
@@ -106,7 +106,7 @@ describe("the website's feature states are Unlocks' facts", () => {
       const profile = await myProfile(asSignedIn);
 
       expect(leaderboardEntryOf(profile)).toMatchObject({ state: "ready", readyAt, openedAt: null });
-      expect(profile.leaderboard).toBe("ready");
+      expect(profile.leaderboard).toEqual({ kind: "ready" });
     });
 
     test("WS56 WS57: a member who opened it reads it open, with when", async () => {
@@ -117,7 +117,7 @@ describe("the website's feature states are Unlocks' facts", () => {
       const profile = await myProfile(asSignedIn);
 
       expect(leaderboardEntryOf(profile)).toMatchObject({ state: "open", readyAt: Date.parse("2026-10-14T09:00:00Z"), openedAt: now.getTime() });
-      expect(profile.leaderboard).toBe("open");
+      expect(profile.leaderboard).toEqual({ kind: "open" });
     });
   });
 
@@ -129,7 +129,7 @@ describe("the website's feature states are Unlocks' facts", () => {
     const profile = await myProfile(asSignedIn);
 
     expect(leaderboardEntryOf(profile)).toMatchObject({ state: "open", readyAt: now.getTime(), openedAt: now.getTime() });
-    expect(profile.leaderboard).toBe("open");
+    expect(profile.leaderboard).toEqual({ kind: "open" });
   });
 });
 
@@ -162,14 +162,14 @@ describe("the website shows only shipped features", () => {
     const profile = await myProfile(asSignedIn);
 
     expect(profile.features?.map((card) => card.feature)).toEqual(["skillTree"]);
-    expect(profile.leaderboard).toBe("off");
+    expect(profile.leaderboard).toEqual({ kind: "off" });
   });
 
   test("WS56 P78: with no feature shipped, features is an empty list, never the plain cards", async () => {
     await launchedThen("xp-levels", "unlocks");
     const { asSignedIn } = await signedInMember();
 
-    expect(await myProfile(asSignedIn)).toMatchObject({ features: [], leaderboard: "off" });
+    expect(await myProfile(asSignedIn)).toMatchObject({ features: [], leaderboard: { kind: "off" } });
   });
 });
 

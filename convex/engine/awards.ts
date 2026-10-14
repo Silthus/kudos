@@ -54,6 +54,51 @@ export async function awardsGivenBefore(ctx: QueryCtx, before: number, page: Pag
   return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day }) => ({ award: _id, giver, recipient, kudos, day })) };
 }
 
+export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<Map<MemberId, number>> {
+  const awards = await ctx.db
+    .query("awards")
+    .withIndex("by_giver", (q) => q.eq("giver", giver))
+    .collect();
+  const lastThanked = new Map<MemberId, number>();
+  for (const { recipient, at } of awards) {
+    if (at <= atOrBefore && at > (lastThanked.get(recipient) ?? -Infinity)) lastThanked.set(recipient, at);
+  }
+  return lastThanked;
+}
+
+export async function awardAt(ctx: QueryCtx, award: AwardId): Promise<number | null> {
+  return (await ctx.db.get(award))?.at ?? null;
+}
+
+export async function firstThanksOf(ctx: QueryCtx, giver: MemberId): Promise<number[]> {
+  const awards = await ctx.db
+    .query("awards")
+    .withIndex("by_giver", (q) => q.eq("giver", giver))
+    .collect();
+  const thanked = new Set<MemberId>();
+  const firsts: number[] = [];
+  for (const { recipient, at } of awards.sort((one, other) => one._creationTime - other._creationTime)) {
+    if (!thanked.has(recipient)) firsts.push(at);
+    thanked.add(recipient);
+  }
+  return firsts;
+}
+
+export async function lastThankedBefore(ctx: QueryCtx, awards: AwardWithId[]): Promise<Map<AwardId, number | null>> {
+  const lastThanked = new Map<AwardId, number | null>();
+  for (const { award, giver, recipient } of awards) {
+    const toRecipient = await ctx.db
+      .query("awards")
+      .withIndex("by_giver_recipient", (q) => q.eq("giver", giver).eq("recipient", recipient))
+      .collect();
+    const current = toRecipient.find(({ _id }) => _id === award);
+    if (current === undefined) continue;
+    const earlier = toRecipient.filter(({ _creationTime }) => _creationTime < current._creationTime);
+    lastThanked.set(award, earlier.length === 0 ? null : Math.max(...earlier.map(({ at }) => at)));
+  }
+  return lastThanked;
+}
+
 function sumOf(awards: Array<{ kudos: number }>) {
   return awards.reduce((sum, award) => sum + award.kudos, 0);
 }

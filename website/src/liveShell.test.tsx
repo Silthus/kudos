@@ -1,17 +1,21 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { ConvexProvider, type ConvexReactClient } from "convex/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
+import { leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures } from "./shell";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 const profileRead = vi.fn();
+const boardRead = vi.fn();
 const authActions = { signIn: vi.fn(), signOut: vi.fn() };
 const socket = { isWebSocketConnected: true };
 const auth = { isLoading: false, isAuthenticated: true };
 
-vi.mock("convex/react", () => ({
+vi.mock("convex/react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("convex/react")>()),
   ConvexReactClient: class {},
   useConvexAuth: () => ({ ...auth }),
   useConvexConnectionState: () => ({ ...socket }),
@@ -19,8 +23,29 @@ vi.mock("convex/react", () => ({
   useMutation: () => vi.fn(),
 }));
 
+const boardListeners = new Set<() => void>();
+
+function boardAnswers(answer: unknown) {
+  boardRead.mockReturnValue(answer);
+  act(() => boardListeners.forEach((notify) => notify()));
+}
+
+const boardWatch = {
+  watchQuery: () => ({
+    onUpdate: (notify: () => void) => {
+      boardListeners.add(notify);
+      return () => boardListeners.delete(notify);
+    },
+    localQueryResult: () => {
+      const answer = boardRead();
+      if (answer instanceof Error) throw answer;
+      return answer;
+    },
+  }),
+} as unknown as ConvexReactClient;
+
 vi.mock("@convex-dev/auth/react", () => ({
-  ConvexAuthProvider: ({ children }: { children: ReactNode }) => children,
+  ConvexAuthProvider: ({ children }: { children: ReactNode }) => <ConvexProvider client={boardWatch}>{children}</ConvexProvider>,
   useAuthActions: () => authActions,
 }));
 
@@ -45,6 +70,8 @@ afterEach(() => {
   socket.isWebSocketConnected = true;
   auth.isLoading = false;
   profileRead.mockReset();
+  boardRead.mockReset();
+  window.history.replaceState(null, "", "/");
   authActions.signIn.mockReset();
   authActions.signOut.mockReset();
 });
@@ -114,6 +141,47 @@ describe("WS20: a socket that never connects shows where the page stands, never 
     act(() => vi.advanceTimersByTime(60_000));
 
     expect(pageTitle()).toBeNull();
+  });
+});
+
+describe("WS20 WS36: the leaderboard read shows where the page stands, inside the HUD", () => {
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/leaderboard");
+    profileRead.mockReturnValue(shellFixtures.memberWithTheBoard);
+  });
+
+  it("marks the page busy while the board loads, and shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds", () => {
+    vi.useFakeTimers();
+    socket.isWebSocketConnected = false;
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+
+    expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "true");
+    act(() => vi.advanceTimersByTime(5_000));
+
+    expect(pageTitle()).toHaveTextContent("Can't reach HedgeHug");
+    expect(screen.getByRole("navigation", { name: "Screens" })).toBeInTheDocument();
+  });
+
+  it("shows the error page under the HUD when the board read fails, and Home still opens in place", async () => {
+    boardRead.mockReturnValue(new Error("Too many documents read"));
+    const { user } = renderLiveSite();
+
+    expect(await errorPage()).toBeInTheDocument();
+    await user.click(within(screen.getByRole("navigation", { name: "Screens" })).getByRole("link", { name: "Home" }));
+
+    expect(pageTitle()).not.toHaveTextContent("Something went wrong");
+    expect(window.location.pathname).toBe("/");
+  });
+
+  it("shows the board once a failed read answers again", async () => {
+    boardRead.mockReturnValue(new Error("Too many documents read"));
+    renderLiveSite();
+    expect(await errorPage()).toBeInTheDocument();
+
+    boardAnswers(leaderboardFixtures.midBoard);
+
+    expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
   });
 });
 

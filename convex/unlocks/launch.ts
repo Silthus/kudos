@@ -46,7 +46,7 @@ async function launch(ctx: MutationCtx, workspace: string) {
     .collect();
   for (const { _id: member, kind } of existing) {
     if (kind !== "member") continue;
-    for (const { feature } of shipped) await keepOpen(ctx, { workspace, member, at }, feature);
+    for (const { feature } of shipped) await keepOpen(ctx, { workspace, member, at, byLaunch: true }, feature);
   }
 }
 

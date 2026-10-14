@@ -10,7 +10,7 @@ import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, type LeaderboardState } from "./unlockPath";
 
 export type { Face } from "./faces";
-export type { FeatureCard } from "./unlockPath";
+export type { FeatureCard, LeaderboardState, LeaderboardWaits } from "./unlockPath";
 
 export type Kudos = { given: number; received: number };
 

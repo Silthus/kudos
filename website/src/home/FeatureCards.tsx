@@ -41,7 +41,7 @@ export function FeatureCards({ member }: { member: MemberProfile }) {
 }
 
 function PlainCards({ member }: { member: MemberProfile }) {
-  const leaderboardOpen = member.leaderboard === "open";
+  const leaderboardOpen = member.leaderboard.kind === "open";
   return (
     <>
       <CardGroup id="open-title" title="Open">

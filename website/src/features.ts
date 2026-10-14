@@ -35,7 +35,7 @@ export function webPageOf(feature: Feature): WebPage | undefined {
 }
 
 export function openWebPagesOf({ features, leaderboard }: Pick<MemberProfile, "features" | "leaderboard">): OpenWebPage[] {
-  const open = features ?? (leaderboard === "open" ? [{ feature: "leaderboard" as const, name: "Leaderboard", state: "open" as const }] : []);
+  const open = features ?? (leaderboard.kind === "open" ? [{ feature: "leaderboard" as const, name: "Leaderboard", state: "open" as const }] : []);
   return open.flatMap(({ feature, name, state }) => {
     const page = webPageOf(feature);
     return state === "open" && page !== undefined ? [{ ...page, feature, name }] : [];

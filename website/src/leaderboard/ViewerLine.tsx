@@ -1,6 +1,6 @@
-import type { Leaderboard } from "../leaderboardFixtures";
+import type { Leaderboard } from "../shell";
 import type { Period } from "../shell";
-import { ThankInSlack } from "./ThankInSlack";
+import { SlackLink } from "../SlackLink";
 
 const joinWords: Record<Period, string> = {
   week: "Give kudos this week to join the board.",
@@ -14,7 +14,9 @@ export function viewerLineOf(board: Leaderboard) {
   return (
     <div className={`${line} flex flex-wrap items-center justify-between gap-3`}>
       <p>{joinWords[board.period]}</p>
-      <ThankInSlack chatUrl={board.chatUrl} variant="outline" />
+      <SlackLink chatUrl={board.chatUrl} variant="outline">
+        Thank someone in Slack
+      </SlackLink>
     </div>
   );
 }

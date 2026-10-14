@@ -1,5 +1,5 @@
 import { IconGlobe } from "@posthog/icons";
-import type { Leaderboard } from "../leaderboardFixtures";
+import type { Leaderboard } from "../shell";
 
 export function BoardCard({ board }: { board: Leaderboard }) {
   return (

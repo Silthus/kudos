@@ -1,6 +1,7 @@
 import { act, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fixedLeaderboard, leaderboardFixtures, type LeaderboardRead } from "./leaderboardFixtures";
+import type { BoardRead } from "./boardRead";
+import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures, type CommandAnswer, type MemberProfile, type OpenAnswer, type ShellState } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
@@ -293,7 +294,7 @@ describe("WS66: seen state is kept per member and crate in this browser", () => 
 });
 
 describe("WS67: /leaderboard's ready state opens in place", () => {
-  const readyBoard: LeaderboardRead = (period) => (period && { kind: "ready" });
+  const readyBoard: BoardRead = (period) => (period && { kind: "ready" });
 
   function onTheReadyPage(openFeature = vi.fn(async (): Promise<CommandAnswer> => ({ kind: "opened" }))) {
     window.history.replaceState(null, "", "/leaderboard");
@@ -312,7 +313,7 @@ describe("WS67: /leaderboard's ready state opens in place", () => {
   it("becomes the board once opened, and returns focus to the page title when the reveal closes", async () => {
     const openFeature = vi.fn(async (): Promise<CommandAnswer> => ({ kind: "opened" }));
     window.history.replaceState(null, "", "/leaderboard");
-    let board: LeaderboardRead = readyBoard;
+    let board: BoardRead = readyBoard;
     const { user, showVisitor } = renderApp(ready, (period) => board(period), { openFeature });
     await user.click(within(main()).getByRole("button", { name: "Open" }));
     board = fixedLeaderboard(leaderboardFixtures.midBoard);

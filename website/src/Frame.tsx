@@ -31,12 +31,12 @@ export function Frame({ member, current, busy, inert, onSignOut, children }: Fra
 
 function Wordmark() {
   return (
-    <a href="/" className="flex items-center rounded-md">
+    <AppLink href="/" className="flex items-center rounded-md">
       <span className="flex flex-col leading-none">
         <span className="hud-display text-lg font-bold">HedgeHug</span>
         <span className="text-[10px] text-muted-foreground">Thanks a Hog</span>
       </span>
-    </a>
+    </AppLink>
   );
 }
 

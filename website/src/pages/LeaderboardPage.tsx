@@ -8,7 +8,7 @@ import { Podium } from "../leaderboard/Podium";
 import { SidePanels } from "../leaderboard/SidePanels";
 import { storyOf, type Story } from "../leaderboard/story";
 import { viewerLineOf } from "../leaderboard/ViewerLine";
-import type { Leaderboard } from "../leaderboardFixtures";
+import type { Leaderboard } from "../shell";
 import { PageTitle } from "../PageTitle";
 import type { Period } from "../shell";
 

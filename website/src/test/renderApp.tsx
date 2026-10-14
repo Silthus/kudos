@@ -3,15 +3,15 @@ import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
 import { vi } from "vitest";
 import { App } from "../App";
-import type { LeaderboardRead } from "../leaderboardFixtures";
+import type { BoardRead } from "../boardRead";
 import { ShellBoundary } from "../Root";
 import type { ShellActions, ShellState } from "../shell";
 
-const noBoard: LeaderboardRead = (period) => (period === undefined ? undefined : { kind: "not-found" });
+const noBoard: BoardRead = (period) => (period === undefined ? undefined : { kind: "not-found" });
 
 type Commands = Partial<Pick<ShellActions, "openFeature">>;
 
-export function renderApp(visitor: ShellState, readLeaderboard: LeaderboardRead = noBoard, commands: Commands = {}) {
+export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBoard, commands: Commands = {}) {
   const actions = { signIn: vi.fn(), signOut: vi.fn(), openFeature: vi.fn(commands.openFeature ?? (async () => ({ kind: "refused" }) as const)) };
   const user = userEvent.setup();
   const appFor = (state: ShellState) => (
