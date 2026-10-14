@@ -126,11 +126,6 @@ async function insertRow(ctx: MutationCtx, event: MessageEvent, revision: Revisi
   return (await ctx.db.get(id))!;
 }
 
-export async function threadOf(ctx: QueryCtx, ref: MessageRef): Promise<string> {
-  const row = await kudosMessageRow(ctx, ref);
-  return row?.threadRoot ?? ref.message;
-}
-
 export async function awaitedUsers(ctx: QueryCtx, ref: MessageRef, attempt: bigint): Promise<ChatUserId[] | null> {
   const row = await kudosMessageRow(ctx, ref);
   if (row?.state !== "awaiting-directory" || row.attempt !== attempt) return null;

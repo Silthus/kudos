@@ -4,7 +4,6 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { levelReachedEventValidator, type LevelReachedEvent } from "../bus/events";
 import { achievementsApplyIn } from "../achievements/flag";
-import { threadOf } from "../engine/engine";
 import type { MessageRef } from "../engine/messageEvent";
 import { progressSettingsOf } from "../progression/settings";
 import { questsApplyIn } from "../quests/flag";
@@ -32,8 +31,6 @@ export const publicReplyValidator = v.union(
 
 export type PublicSection = Infer<typeof publicSectionValidator>;
 
-type Destination = { channel: string; threadTs?: string };
-
 type Announced = { reached: { member: MemberId; level: number } } | { summary: Id<"tierSummaries"> };
 
 export const celebrateLevel = internalMutation({
@@ -48,10 +45,11 @@ export const celebrateLevel = internalMutation({
 });
 
 export async function setPublicSection(ctx: MutationCtx, ref: MessageRef, section: PublicSection) {
-  const destination = await destinationOf(ctx, ref);
-  const existing = await publicReplyRow(ctx, ref, destination);
+  const { announcementChannel: channel } = await settingsOf(ctx, ref.workspace);
+  if (channel === null) return;
+  const existing = await publicReplyRow(ctx, ref, channel);
   if (existing === null) {
-    const reply = await ctx.db.insert("publicReplies", { ...ref, ...destination, sections: [section], version: 1, shown: { state: "posting" } });
+    const reply = await ctx.db.insert("publicReplies", { ...ref, channel, sections: [section], version: 1, shown: { state: "posting" } });
     await deliver(ctx, reply);
     return;
   }
@@ -80,7 +78,7 @@ export const desired = internalQuery({
   handler: async (ctx, { reply }) => {
     const row = await ctx.db.get(reply);
     if (row === null) return null;
-    if (!(await xpLevelsShownIn(ctx, row.workspace)) || !(await isRewardShownIn(ctx, row))) return { ...row, sections: [] };
+    if (!(await isShownAtAll(ctx, row))) return { ...row, sections: [] };
     const bookApplies = await achievementsApplyIn(ctx, row.workspace);
     const shown = await Promise.all(row.sections.map((section) => (section.about !== "achievement" || bookApplies) && isShownPublicly(ctx, section)));
     return { ...row, sections: row.sections.filter((_, index) => shown[index]) };
@@ -135,12 +133,18 @@ export function linesOf(reply: Pick<Doc<"publicReplies">, "sections">): Line[] {
   return reply.sections.map(({ line }) => line);
 }
 
-export function threadTsOf(reply: Doc<"publicReplies">): string | undefined {
-  return "threadTs" in reply ? reply.threadTs : undefined;
+async function isShownAtAll(ctx: QueryCtx, row: Doc<"publicReplies">) {
+  return (await xpLevelsShownIn(ctx, row.workspace)) && (await isRewardShownIn(ctx, row)) && (await isInAnnouncementChannel(ctx, row));
 }
 
 async function isRewardShownIn(ctx: QueryCtx, row: Doc<"publicReplies">) {
   return !("reached" in row) || (await questsApplyIn(ctx, row.workspace));
+}
+
+async function isInAnnouncementChannel(ctx: QueryCtx, row: Doc<"publicReplies">) {
+  if (!("conversation" in row)) return true;
+  if (row.threadTs !== undefined) return false;
+  return row.channel !== row.conversation || row.conversation === (await settingsOf(ctx, row.workspace)).announcementChannel;
 }
 
 async function isShownPublicly(ctx: QueryCtx, { member }: PublicSection) {
@@ -156,21 +160,15 @@ function withSection(sections: PublicSection[], section: PublicSection) {
   return sections.some(({ key }) => key === section.key) ? replaced : [...sections, section];
 }
 
-async function destinationOf(ctx: QueryCtx, ref: MessageRef): Promise<Destination> {
-  const { announcementChannel } = await settingsOf(ctx, ref.workspace);
-  if (announcementChannel !== null) return { channel: announcementChannel };
-  return { channel: ref.conversation, threadTs: await threadOf(ctx, ref) };
-}
-
 async function deliver(ctx: MutationCtx, reply: Id<"publicReplies">) {
   await ctx.scheduler.runAfter(0, internal.slack.publicReplies.deliverPublicReply, { reply });
 }
 
-function publicReplyRow(ctx: QueryCtx, ref: MessageRef, { channel, threadTs }: Destination) {
+function publicReplyRow(ctx: QueryCtx, ref: MessageRef, channel: string) {
   return ctx.db
     .query("publicReplies")
     .withIndex("by_destination", (q) =>
-      q.eq("workspace", ref.workspace).eq("conversation", ref.conversation).eq("message", ref.message).eq("channel", channel).eq("threadTs", threadTs),
+      q.eq("workspace", ref.workspace).eq("conversation", ref.conversation).eq("message", ref.message).eq("channel", channel).eq("threadTs", undefined),
     )
     .unique();
 }

@@ -87,15 +87,16 @@ describe("the xp-levels flag hides the slice while it is off", () => {
 
   test("a public level notice Slack held back while the flag was on is not posted once it is off", async () => {
     const t = await workspaceDeciding("sandbox", onForEveryone(xpLevels));
-    slack.holdingBack("chat.postMessage", "C1", async () => {
+    await t.run(async (ctx) => ctx.db.patch((await ctx.db.query("workspaces").first())!._id, { announcementChannel: "C_NEWS" }));
+    slack.holdingBack("chat.postMessage", "C_NEWS", async () => {
       await flagsFromPostHog(t, postHog, offForEveryone(xpLevels));
       slack.answering("chat.postMessage", rateLimitedFor(30));
     });
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
-    expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "C1")).toHaveLength(1);
-    expect(slack.messagesIn("C1")).toEqual([]);
+    expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "C_NEWS")).toHaveLength(1);
+    expect(slack.messagesIn("C_NEWS")).toEqual([]);
   });
 
   test("a level-up DM Slack held back while the flag was on is not sent once it is off", async () => {

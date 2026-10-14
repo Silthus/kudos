@@ -143,10 +143,11 @@ describe("F18: what a channel shows or the workspace shares follows the workspac
     ["with the workspace decision on, it posts as before", onForTheWorkspace, ["🎉 <@U_ALICE> reached level 2."]],
   ])("%s", async (_, definitions, notices) => {
     const t = await workspaceDeciding(...definitions);
+    await t.run(async (ctx) => ctx.db.patch((await ctx.db.query("workspaces").first())!._id, { announcementChannel: "C_NEWS" }));
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
-    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(notices);
+    expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(notices);
   });
 
   test("a previewing admin sees no announcement-channel control, and the command refuses without writing", async () => {

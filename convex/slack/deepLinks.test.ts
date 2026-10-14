@@ -92,6 +92,7 @@ describe("SW13 SW14 SW18: the success reply ends its extras line with a link to 
 describe("SW16: replies other than a success and public messages carry no link", () => {
   test("the over-allowance and invalid replies, the edited-message reply and the public reply name no website page", async () => {
     const t = await workspaceDeciding("xp-levels", "website", "everyone-board");
+    await t.run(async (ctx) => ctx.db.patch((await ctx.db.query("workspaces").first())!._id, { announcementChannel: "C_NEWS" }));
     await giveKudos(t, "U_ALICE", ["U_BOB"], 11);
     await giveKudos(t, "U_ALICE", ["U_ALICE"]);
     await giveKudos(t, "U_ALICE", ["U_BOB"], 2);
