@@ -41,6 +41,8 @@ export async function emailOf(ctx: QueryCtx, member: MemberId): Promise<string |
   return row?.kind === "member" ? row.email : undefined;
 }
 
+export const namelessTeammate = "A teammate";
+
 export async function displayNameOf(ctx: QueryCtx, member: MemberId): Promise<string | undefined> {
   const row = await ctx.db.get(member);
   return row?.kind === "member" ? row.name : undefined;

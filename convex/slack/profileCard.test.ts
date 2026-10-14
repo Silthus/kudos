@@ -131,12 +131,20 @@ describe("PC2: text led by a mention that isn't one person answers the usage lin
     expect(await card(t, "U_ANN", text)).toBe(usageLine);
   });
 
-  test("/hedgehug and /hedgehug leaderboard keep today's behaviour while the flag is on", async () => {
+  test("/hedgehug and text not led by a mention keep today's behaviour while the flag is on", async () => {
     const t = await workspace();
 
     expect(await joinReplyTo(t, "U_ANN", "")).toEqual(joinedReplyFor);
     expect(await joinReplyTo(t, "U_ANN", "leaderboard")).toEqual(joinedReplyFor);
     expect(await joinReplyTo(t, "U_ANN", "hello <@U_BEA>")).toEqual(joinedReplyFor);
+  });
+
+  test("/hedgehug leaderboard shows the board while both flags are on", async () => {
+    const t = await workspace({ flags: [...everyFlag, "everyone-board"].map(onForEveryone) });
+    await reachesLevel(t, await memberOf(t, "U_ANN"), 3);
+    await opens(t, await memberOf(t, "U_ANN"), "leaderboard");
+
+    expect(await card(t, "U_ANN", "leaderboard")).toBe("Give kudos this week to join the board.");
   });
 });
 
