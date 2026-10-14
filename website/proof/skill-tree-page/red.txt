@@ -1,0 +1,1801 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/skill-tree-page
+
+ ❯ |website| src/SkillTreePage.test.tsx (35 tests | 29 failed) 3271ms
+   ❯ WS85: /skills shows the tree while the Skill tree is open (15)
+     × lives at /skills with the tab HedgeHug · Skill tree, the label Skill tree and the title Perks 196ms
+     × says how many skill points are left to spend in the header 41ms
+     × says how many skill points are left to spend in the header 38ms
+     × says how many skill points are left to spend in the header 28ms
+     × holds one band per shipped row headed Level {level}, with that row's perks in order 192ms
+     × frames each perk as a game object with corner marks, its name and its cost while it isn't owned 177ms
+     × names each node's state, never by colour alone: owned with a check mark, Can buy, or its reason 176ms
+     × names a node that isn't owned by its state and its cost 147ms
+     × names a node that isn't owned by its state and its cost 132ms
+     × names a node that isn't owned by its state and its cost 121ms
+     × keeps owned nodes neutral and leaves primary to the selection (V4) 118ms
+     × selects the first available perk on first load, with aria-pressed and a visible Selected label 120ms
+     × selects the first perk when none is available, keeping Selected apart from the owned check 123ms
+     × moves the selection with a click, Enter or Space 117ms
+   ❯ WS85 WS86: the selected perk's details (7)
+     × sit beside the tree on wide screens with the name, P94's copy word for word, the level and the cost 119ms
+     × say when an owned perk was bought 126ms
+     × point an available perk to Slack's App Home until buying ships, with the line a spent point never comes back 112ms
+     × give an unavailable perk's reason 118ms
+     × give an unavailable perk's reason 111ms
+     × give an unavailable perk's reason 110ms
+     × open in a drawer on narrow screens, which Esc closes with focus back on the node 114ms
+   ❯ WS85: Your perks and How perks work (4)
+     × lists the owned perks in purchase order, each with its P94 copy 110ms
+     × says perks show there once bought while none is owned 111ms
+     × says how perks work, word for word 111ms
+   ❯ WS80: /skills follows its read (4)
+     × is the not-found page while the read says not-found 20ms
+   ❯ WS84: the HUD's skill point chip (5)
+     × shows {n} with a glyph, named n skill points to spend, linking to /skills 39ms
+     × shows {n} with a glyph, named n skill points to spend, linking to /skills 58ms
+     × shows {n} with a glyph, named n skill points to spend, linking to /skills 37ms
+     × leads to the skill tree page 49ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 29 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > lives at /skills with the tab HedgeHug · Skill tree, the label Skill tree and the title Perks
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  Perks
+Received:
+  Skill tree
+ ❯ src/SkillTreePage.test.tsx:62:25
+     60|   it("lives at /skills with the tab HedgeHug · Skill tree, the label S…
+     61|     showTree(skillTreeFixtures.withPoints);
+     62|     expect(pageTitle()).toHaveTextContent("Perks");
+       |                         ^
+     63|     expect(document.title).toBe("HedgeHug · Skill tree");
+     64|     expect(within(main()).getByText("Skill tree", { selector: ".hud-la…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > says how many skill points are left to spend in the header
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > says how many skill points are left to spend in the header
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > says how many skill points are left to spend in the header
+TypeError: Expected container to be an Element, a Document or a DocumentFragment but got null.
+ ❯ checkContainerType ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/helpers.js:61:11
+ ❯ queryAllByText ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/queries/text.js:18:35
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:74:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/SkillTreePage.test.tsx:73:81
+     71|   ])("says how many skill points are left to spend in the header", (an…
+     72|     showTree(answer);
+     73|     expect(within(screen.getByRole("heading", { level: 1 }).closest("h…
+       |                                                                                 ^
+     74|   });
+     75|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > holds one band per shipped row headed Level {level}, with that row's perks in order
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Perk tree"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ perkTree src/SkillTreePage.test.tsx:27:25
+     25|
+     26| function perkTree() {
+     27|   return within(main()).getByRole("region", { name: "Perk tree" });
+       |                         ^
+     28| }
+     29|
+ ❯ src/SkillTreePage.test.tsx:78:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > frames each perk as a game object with corner marks, its name and its cost while it isn't owned
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Perk tree"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ perkTree src/SkillTreePage.test.tsx:27:25
+     25|
+     26| function perkTree() {
+     27|   return within(main()).getByRole("region", { name: "Perk tree" });
+       |                         ^
+     28| }
+     29|
+ ❯ nodeOf src/SkillTreePage.test.tsx:31:17
+ ❯ src/SkillTreePage.test.tsx:84:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > names each node's state, never by colour alone: owned with a check mark, Can buy, or its reason
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Perk tree"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ perkTree src/SkillTreePage.test.tsx:27:25
+     25|
+     26| function perkTree() {
+     27|   return within(main()).getByRole("region", { name: "Perk tree" });
+       |                         ^
+     28| }
+     29|
+ ❯ nodeOf src/SkillTreePage.test.tsx:31:17
+ ❯ src/SkillTreePage.test.tsx:92:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > names a node that isn't owned by its state and its cost
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > names a node that isn't owned by its state and its cost
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > names a node that isn't owned by its state and its cost
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Perk tree"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ perkTree src/SkillTreePage.test.tsx:27:25
+     25|
+     26| function perkTree() {
+     27|   return within(main()).getByRole("region", { name: "Perk tree" });
+       |                         ^
+     28| }
+     29|
+ ❯ nodeOf src/SkillTreePage.test.tsx:31:17
+ ❯ src/SkillTreePage.test.tsx:104:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > keeps owned nodes neutral and leaves primary to the selection (V4)
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Perk tree"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ perkTree src/SkillTreePage.test.tsx:27:25
+     25|
+     26| function perkTree() {
+     27|   return within(main()).getByRole("region", { name: "Perk tree" });
+       |                         ^
+     28| }
+     29|
+ ❯ nodeOf src/SkillTreePage.test.tsx:31:17
+ ❯ src/SkillTreePage.test.tsx:109:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > selects the first available perk on first load, with aria-pressed and a visible Selected label
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Perk tree"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ perkTree src/SkillTreePage.test.tsx:27:25
+     25|
+     26| function perkTree() {
+     27|   return within(main()).getByRole("region", { name: "Perk tree" });
+       |                         ^
+     28| }
+     29|
+ ❯ nodeOf src/SkillTreePage.test.tsx:31:17
+ ❯ src/SkillTreePage.test.tsx:114:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > selects the first perk when none is available, keeping Selected apart from the owned check
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Perk tree"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ perkTree src/SkillTreePage.test.tsx:27:25
+     25|
+     26| function perkTree() {
+     27|   return within(main()).getByRole("region", { name: "Perk tree" });
+       |                         ^
+     28| }
+     29|
+ ❯ nodeOf src/SkillTreePage.test.tsx:31:17
+ ❯ src/SkillTreePage.test.tsx:123:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > moves the selection with a click, Enter or Space
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Perk tree"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ perkTree src/SkillTreePage.test.tsx:27:25
+     25|
+     26| function perkTree() {
+     27|   return within(main()).getByRole("region", { name: "Perk tree" });
+       |                         ^
+     28| }
+     29|
+ ❯ nodeOf src/SkillTreePage.test.tsx:31:17
+ ❯ src/SkillTreePage.test.tsx:130:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > sit beside the tree on wide screens with the name, P94's copy word for word, the level and the cost
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Perk details"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ details src/SkillTreePage.test.tsx:39:25
+     37|
+     38| function details() {
+     39|   return within(main()).getByRole("region", { name: "Perk details" });
+       |                         ^
+     40| }
+     41|
+ ❯ src/SkillTreePage.test.tsx:152:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > say when an owned perk was bought
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Perk tree"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ perkTree src/SkillTreePage.test.tsx:27:25
+     25|
+     26| function perkTree() {
+     27|   return within(main()).getByRole("region", { name: "Perk tree" });
+       |                         ^
+     28| }
+     29|
+ ❯ nodeOf src/SkillTreePage.test.tsx:31:17
+ ❯ src/SkillTreePage.test.tsx:161:15
+ ❯ ../node_modules/.pnpm/@testing-library+react@16.3.3_@testing-library+dom@10.4.2_@types+react-dom@19.3.0_@type_7c75ab20cc4ac7e43eae238a37408170/node_modules/@testing-library/react/dist/act-compat.js:47:24
+ ❯ process.env.NODE_ENV.exports.act ../node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:890:22
+ ❯ ../node_modules/.pnpm/@testing-library+react@16.3.3_@testing-library+dom@10.4.2_@types+react-dom@19.3.0_@type_7c75ab20cc4ac7e43eae238a37408170/node_modules/@testing-library/react/dist/act-compat.js:46:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > point an available perk to Slack's App Home until buying ships, with the line a spent point never comes back
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Perk details"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ details src/SkillTreePage.test.tsx:39:25
+     37|
+     38| function details() {
+     39|   return within(main()).getByRole("region", { name: "Perk details" });
+       |                         ^
+     40| }
+     41|
+ ❯ src/SkillTreePage.test.tsx:168:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > give an unavailable perk's reason
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > give an unavailable perk's reason
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > give an unavailable perk's reason
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Perk tree"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ perkTree src/SkillTreePage.test.tsx:27:25
+     25|
+     26| function perkTree() {
+     27|   return within(main()).getByRole("region", { name: "Perk tree" });
+       |                         ^
+     28| }
+     29|
+ ❯ nodeOf src/SkillTreePage.test.tsx:31:17
+ ❯ src/SkillTreePage.test.tsx:181:15
+ ❯ ../node_modules/.pnpm/@testing-library+react@16.3.3_@testing-library+dom@10.4.2_@types+react-dom@19.3.0_@type_7c75ab20cc4ac7e43eae238a37408170/node_modules/@testing-library/react/dist/act-compat.js:47:24
+ ❯ process.env.NODE_ENV.exports.act ../node_modules/.pnpm/react@19.3.0/node_modules/react/cjs/react.development.js:890:22
+ ❯ ../node_modules/.pnpm/@testing-library+react@16.3.3_@testing-library+dom@10.4.2_@types+react-dom@19.3.0_@type_7c75ab20cc4ac7e43eae238a37408170/node_modules/@testing-library/react/dist/act-compat.js:46:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > open in a drawer on narrow screens, which Esc closes with focus back on the node
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Perk tree"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ perkTree src/SkillTreePage.test.tsx:27:25
+     25|
+     26| function perkTree() {
+     27|   return within(main()).getByRole("region", { name: "Perk tree" });
+       |                         ^
+     28| }
+     29|
+ ❯ nodeOf src/SkillTreePage.test.tsx:31:17
+ ❯ src/SkillTreePage.test.tsx:190:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: Your perks and How perks work > lists the owned perks in purchase order, each with its P94 copy
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Your perks"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ yourPerks src/SkillTreePage.test.tsx:47:25
+     45|
+     46| function yourPerks() {
+     47|   return within(main()).getByRole("region", { name: "Your perks" });
+       |                         ^
+     48| }
+     49|
+ ❯ src/SkillTreePage.test.tsx:205:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: Your perks and How perks work > says perks show there once bought while none is owned
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Your perks"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ yourPerks src/SkillTreePage.test.tsx:47:25
+     45|
+     46| function yourPerks() {
+     47|   return within(main()).getByRole("region", { name: "Your perks" });
+       |                         ^
+     48| }
+     49|
+ ❯ src/SkillTreePage.test.tsx:212:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS85: Your perks and How perks work > says how perks work, word for word
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "How perks work"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Skill tree":
+  <h1
+    class="hud-display text-2xl font-bold tracking-tight outline-none"
+    tabindex="-1"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Open Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <section
+    class="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center"
+  >
+    <svg
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 1000 1000"
+      width="112"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M853.72 923.91v-.15q0-.13-.03-.24l.02.24v.42zm8.53 1.1c0 3.5-1.3 6.86-2.92 9.77-2.06 3.66-5.14 6.52-8.2 9.09a63 63 0 0 1-8.16 5.51 102 102 0 0 1-9.14 4.66 158 158 0 0 1-9.5 3.95 213 213 0 0 1-19.22 6.28c-13 3.65-26.17 6.55-39.4 8.97-25.75 4.72-51.75 7.85-77.77 10.02a1274 1274 0 0 1-80.13 4.15q-16.98.35-33.97.36c-15.66 0-31.3-.24-46.94-.8-26.95-.96-53.88-2.44-80.77-4.82-26.56-2.35-53.1-5.4-79.46-9.73a792 792 0 0 1-39.82-7.47 454 454 0 0 1-37.45-9.57 354 354 0 0 1-19.6-6.64q-4.72-1.75-9.37-3.85c-2.98-1.36-5.98-2.7-8.89-4.26a126 126 0 0 1-9.46-5.58 62 62 0 0 1-8.09-6.44 30 30 0 0 1-6.13-7.94c-1.57-3.02-2.66-6.55-2.53-10.1.11-2.99.85-5.72 2.1-8.36a27 27 0 0 1 3.73-5.6c2.08-2.53 4.64-4.58 7.17-6.51 1.4-1.07 2.9-2 4.36-2.92q2.16-1.35 4.39-2.54a149 149 0 0 1 18.82-8.2c12.27-4.48 24.92-7.8 37.6-10.58q15.75-3.44 31.63-5.99h.08l1.23-.21.23-.04a783 783 0 0 1 34.71-4.7l.9-.1.2-.02.53-.05q17.47-1.97 34.95-3.3c26.96-2.04 53.95-3.22 80.96-3.64 1.24 0 2.46-.03 3.57-.05 13.91-.22 27.84-.14 41.76.04q19.6.25 39.19 1.09 40.48 1.7 80.85 5.56 20.02 1.93 39.98 4.62c13.41 1.8 26.81 3.8 40.15 6.2a688 688 0 0 1 40.38 8.4c12.9 3.13 25.75 6.7 38.32 11.24a218 218 0 0 1 19.34 8 126 126 0 0 1 8.59 4.58 80 80 0 0 1 4.04 2.53c1.42.95 2.87 1.9 4.2 3a97 97 0 0 1 4.26 3.67 34 34 0 0 1 3.37 3.72 25 25 0 0 1 4.88 9.74c.32 1.62.45 3.2.45 4.85z"
+        fill="#320601"
+        fill-opacity=".24"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        fill="#fff"
+      />
+      <path
+        d="M137.18 309.2a4.16 4.16 0 0 1 7.8 0l6.26 16.93a4.2 4.2 0 0 0 2.45 2.45l16.92 6.26a4.16 4.16 0 0 1 0 7.8l-16.92 6.26a4.2 4.2 0 0 0-2.45 2.46l-6.26 16.92a4.16 4.16 0 0 1-7.8 0l-6.26-16.92a4.2 4.2 0 0 0-2.46-2.46l-16.92-6.26a4.16 4.16 0 0 1 0-7.8l16.92-6.26a4.2 4.2 0 0 0 2.46-2.45zm56.76-45.96a4.16 4.16 0 0 1 7.8 0l3.76 10.17a4.2 4.2 0 0 0 2.46 2.46l10.16 3.76a4.16 4.16 0 0 1 0 7.8l-10.16 3.76a4.2 4.2 0 0 0-2.46 2.46l-3.76 10.17a4.16 4.16 0 0 1-7.8 0l-3.76-10.17a4.2 4.2 0 0 0-2.46-2.46l-10.17-3.76a4.16 4.16 0 0 1 0-7.8l10.17-3.76a4.2 4.2 0 0 0 2.46-2.46zm-43.21-53.04a4.16 4.16 0 0 1 7.8 0l2.6 7.03a4.2 4.2 0 0 0 2.46 2.46l7.02 2.6a4.16 4.16 0 0 1 0 7.8l-7.02 2.6a4.2 4.2 0 0 0-2.46 2.45l-2.6 7.03a4.16 4.16 0 0 1-7.8 0l-2.6-7.03a4.2 4.2 0 0 0-2.45-2.45l-7.03-2.6a4.16 4.16 0 0 1 0-7.8l7.03-2.6a4.2 4.2 0 0 0 2.45-2.46z"
+        stroke="#320601"
+        stroke-width="11.13"
+      />
+      <path
+        d="m272.47 560.32-.62-.06.89.13zm1.45.42s-.1-.02-.13-.04l.25.1-.12-.08zm77.81 19.27a4.6 4.6 0 0 0-3.1-5.6c-7.12-2.14-14.23-4.34-21.32-6.5l-35.3-10.75c-6.32-1.94-12.69-3.8-19-5.78l-.27-.1-.65-.2c-2.34-.7-4.9.73-5.6 3.05v.06q-.27 1.1-.08 2.14l1.98 1.12-.24-.15c.3.19.64.37.94.55l-.3-.18.07.03-.13-.07q-.04-.01-.07-.05h.02l-.08-.04-.2-.1c1.98 1.12 3.92 2.33 5.9 3.46q.53.25 1.01.61l5.1 1.54 32.81 10.01c10.95 3.34 21.91 6.73 32.88 10.03l.06.02a4.56 4.56 0 0 0 5.6-3.1zm-92.07-27.47h-.02l-.32-.19.38.2z"
+        fill="#320601"
+      />
+      <path
+        d="M277.3 553.94c-1-2.74-4.25-3.19-6.75-3.57-4.53-.87-9.21-.6-13.58.67q1.16.65 2.36 1.29.08.06.18.09l.49.27-.3-.16.04.02.07.03-.03-.01q1.7.91 3.4 1.86l-.06-.01.05.01q2.63 1.48 5.24 2.98l-.23-.15.94.55-.38-.22.13.07-.26-.14-.2-.11c1.53.87 3.03 1.8 4.55 2.68q.94.02 1.8-.34c2.12-.91 3.56-3.43 2.58-5.84zm-28.13 35.37.16.1.13.07z"
+        fill="#320601"
+      />
+      <path
+        d="M258.43 594.68c-.75-1.45-2.2-1.92-3.56-2.6-1.1-.17-2.12-.74-3.12-1.28q-1.1-.6-2.2-1.23l.23.12-.33-.18-.14-.07-.24-.15.07.04c-.89-.53-1.78-1.03-2.66-1.58l.14.1-.38-.24-.22-.13q-.05-.02-.1-.07l.1.07.04.02-.35-.22a139 139 0 0 1-7.74-5.11 30.7 30.7 0 0 0 10.41 16.52 17 17 0 0 0 4.84 2.54c1 .34 2 .25 2.85-.11 2.32-1 3.8-4.04 2.34-6.44z"
+        fill="#320601"
+      />
+      <path
+        d="M327.85 623.8q-.33-.08-.66-.2-.13-.02-.27-.09c-6.35-1.9-12.71-3.71-19.08-5.58l-35.4-10.4c-7.13-2.08-14.26-4.2-21.39-6.27a4.6 4.6 0 0 1-3.15-5.56 4.57 4.57 0 0 1 5.56-3.16h.06c11 3.17 21.98 6.44 32.97 9.67l32.92 9.64c3.61 1.06 7.22 2.09 10.83 3.18a4.6 4.6 0 0 1 3.15 5.57v.05a4.56 4.56 0 0 1-5.54 3.1z"
+        fill="#320601"
+      />
+      <path
+        d="M357.15 613.9c-6.38 8.44-17.43 12.45-27.76 10.58-2.53-.35-5.75-.78-6.79-3.5-1.47-3.54 2.29-7.4 5.84-5.9 5.62 1.36 11.83 1 16.72-2.28 11.32-7.38 10.3-20.22 1.22-29-1.6-1.65-4.25-1.65-5.35-3.75-2.03-3.27 1.43-7.82 5.13-6.6a17 17 0 0 1 4.86 2.48c11.2 8.76 15.93 26.46 6.15 37.97zm-80.95-51.64.22.05q-.1-.01-.22-.05"
+        fill="#320601"
+      />
+      <path
+        d="M281.01 561.82a4.6 4.6 0 0 0-1.54-6.22c-6.33-3.9-12.6-7.85-18.92-11.79l-31.3-19.53c-5.63-3.5-11.27-6.96-16.87-10.5l-.24-.16-.58-.37a4.56 4.56 0 0 0-6.18 1.51q0 .02-.04.04a4.6 4.6 0 0 0 1.54 6.22q4.78 3 9.58 5.96l29.11 18.16c8.87 5.53 17.7 11.1 26.59 16.59 1.6-.13 3.26.34 4.8.7l-.18-.03q1.5.36 3 .76.75-.53 1.25-1.32z"
+        fill="#320601"
+      />
+      <path
+        d="M180.66 514.9c8.42-6.4 20.13-7.29 29.58-2.72 2.32 1.02 5.34 2.29 5.6 5.19.48 3.79-4.18 6.51-7.2 4.1-5.03-2.83-11.11-4.15-16.71-2.29-12.9 4.07-15.37 16.7-8.98 27.6 1.09 2.02 3.63 2.73 4.13 5.06 1.07 3.69-3.48 7.15-6.7 4.97a18 18 0 0 ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/SkillTreePage.test.tsx:218:27
+    216|   it("says how perks work, word for word", () => {
+    217|     showTree(skillTreeFixtures.withPoints);
+    218|     expect(within(main()).getByRole("region", { name: "How perks work"…
+       |                           ^
+    219|   });
+    220|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS80: /skills follows its read > is the not-found page while the read says not-found
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  Page not found
+Received:
+  Skill tree
+ ❯ src/SkillTreePage.test.tsx:230:25
+    228|   it("is the not-found page while the read says not-found", () => {
+    229|     showTree(skillTreeFixtures.notFound);
+    230|     expect(pageTitle()).toHaveTextContent("Page not found");
+       |                         ^
+    231|   });
+    232|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > shows {n} with a glyph, named n skill points to spend, linking to /skills
+ FAIL  |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > shows {n} with a glyph, named n skill points to spend, linking to /skills
+ FAIL  |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > shows {n} with a glyph, named n skill points to spend, linking to /skills
+Error: expect(received).toHaveAccessibleName()
+
+received value must be an HTMLElement or an SVGElement.
+Received has type:  Null
+Received has value: null
+ ❯ src/SkillTreePage.test.tsx:270:20
+    268|     window.history.replaceState(null, "", "/");
+    269|     renderApp(member);
+    270|     expect(chip()).toHaveAccessibleName(name);
+       |                    ^
+    271|     expect(chip()).toHaveTextContent(count);
+    272|     expect(chip()).toHaveAttribute("href", "/skills");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/29]⎯
+
+ FAIL  |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > leads to the skill tree page
+AssertionError: expected '/' to be '/skills' // Object.is equality
+
+Expected: "/skills"
+Received: "/"
+
+ ❯ src/SkillTreePage.test.tsx:285:38
+    283|     const { user } = renderApp(withTheTree, undefined, undefined, unde…
+    284|     await user.click(chip()!);
+    285|     expect(window.location.pathname).toBe("/skills");
+       |                                      ^
+    286|     expect(pageTitle()).toHaveTextContent("Perks");
+    287|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/29]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  29 failed | 6 passed (35)
+   Start at  07:11:19
+   Duration  6.17s (tests 54%, import 21%, environment 13%, transform 10%, setup 2%)
+

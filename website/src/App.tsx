@@ -16,6 +16,7 @@ import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { FeatureInSlackPage } from "./pages/FeatureInSlackPage";
 import { FeatureWaitsPage } from "./pages/FeatureWaitsPage";
 import { QuestsPage } from "./pages/QuestsPage";
+import { SkillTreePage } from "./pages/SkillTreePage";
 import { NotAMemberPage } from "./pages/NotAMemberPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { SignedOutPage } from "./pages/SignedOutPage";
@@ -24,13 +25,14 @@ import { UnverifiedPage } from "./pages/UnverifiedPage";
 import { VerifyingPage } from "./pages/VerifyingPage";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival, useTitleFocusWhenTheFocusedElementGoes } from "./pageFocus";
 import type { QuestsRead, QuestsShown } from "./questsRead";
+import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
 import { hrefOf, useRoute, type Route } from "./route";
 import type { Feature, MemberProfile, Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome } from "./signInAttempt";
 
-type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead };
+type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useSkillTree: SkillTreeRead };
 
-export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
+export function App({ visitor, actions, useLeaderboard, useQuests, useSkillTree }: AppProps) {
   const { route, navigate, choosePeriod } = useRoute();
   const shown = useSignInOutcome(visitor);
   const member = shown.kind === "member" ? shown : undefined;
@@ -40,10 +42,12 @@ export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
   const onQuests = member !== undefined && route.page === "quests";
   const questsOpen = isQuestsOpenFor(member);
   const quests = useQuests(onQuests || questsOpen);
+  const onSkills = member !== undefined && route.page === "skills";
+  const skillTree = useSkillTree(onSkills);
   const moments = useCrateMoments(actions, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member), onQuests });
   const reveal = member !== undefined ? moments.reveal : undefined;
   const revealing = reveal !== undefined;
-  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : (pageOf(route, member) ?? shown.kind), { held: revealing });
+  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : onSkills ? skillTreePageOf(skillTree) : (pageOf(route, member) ?? shown.kind), { held: revealing });
   useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
@@ -60,9 +64,9 @@ export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
   return (
     <NavigateProvider value={arriveAt}>
       <MomentsProvider value={moments}>
-        <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined)} inert={revealing} onSignOut={actions.signOut}>
+        <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onSkills && skillTree === undefined)} inert={revealing} onSignOut={actions.signOut}>
           <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
-            <Page state={shown} route={route} board={board} quests={quests} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
+            <Page state={shown} route={route} board={board} quests={quests} skillTree={skillTree} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
           </ErrorBoundary>
         </Frame>
         {reveal !== undefined && member !== undefined && (
@@ -89,7 +93,7 @@ function stillAsking(state: ShellState) {
 }
 
 function pageOf(route: Route, member: MemberProfile | undefined) {
-  if (member === undefined || route.page === "home" || route.page === "leaderboard" || route.page === "quests" || route.page === "not-found") return undefined;
+  if (member === undefined || route.page === "home" || route.page === "leaderboard" || route.page === "quests" || route.page === "skills" || route.page === "not-found") return undefined;
   return `${route.page} ${cardOf(member, featureOn(route.page))?.state ?? "off"}`;
 }
 
@@ -105,6 +109,10 @@ function questsPageOf(quests: QuestsShown | undefined) {
   return quests === undefined ? "loading" : `quests ${quests.kind}`;
 }
 
+function skillTreePageOf(skillTree: SkillTreeShown | undefined) {
+  return skillTree === undefined ? "loading" : `skills ${skillTree.kind}`;
+}
+
 function useBoardWhileTheNextLoads(board: BoardAnswer | undefined, onTheBoard: boolean) {
   const lastShown = useRef<BoardAnswer | undefined>(undefined);
   if (!onTheBoard) lastShown.current = undefined;
@@ -117,12 +125,13 @@ type PageProps = {
   route: Route;
   board: BoardAnswer | undefined;
   quests: QuestsShown | undefined;
+  skillTree: SkillTreeShown | undefined;
   onChoosePeriod: (period: Period) => void;
   onSignIn: () => void;
   onSignOut: () => void;
 };
 
-function Page({ state, route, board, quests, onChoosePeriod, ...actions }: PageProps) {
+function Page({ state, route, board, quests, skillTree, onChoosePeriod, ...actions }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return null;
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
@@ -130,6 +139,7 @@ function Page({ state, route, board, quests, onChoosePeriod, ...actions }: PageP
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "home") return <HomePage member={state} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} {...actions} />;
+  if (route.page === "skills") return <SkillTreeAnswerPage member={state} skillTree={skillTree} {...actions} />;
   if (route.page !== "leaderboard") return <FeaturePage member={state} feature={featureOn(route.page)} />;
   if (board === undefined) return null;
   if (board.kind === "not-found") return <NotFoundPage />;
@@ -159,6 +169,16 @@ function QuestsAnswerPage({ member, quests, ...actions }: QuestsAnswerPageProps)
   if (quests.kind === "ready" || quests.kind === "locked") return <FeatureWaitsPage name="Quests" waiting={quests} readyCard={readyCardOf(member, "quests")} chatUrl={member.chatUrl} />;
   if (quests.kind !== "quests") return <AnswerPage answer={quests} {...actions} />;
   return <QuestsPage quests={quests} />;
+}
+
+type SkillTreeAnswerPageProps = { member: MemberProfile; skillTree: SkillTreeShown | undefined; onSignIn: () => void; onSignOut: () => void };
+
+function SkillTreeAnswerPage({ member, skillTree, ...actions }: SkillTreeAnswerPageProps) {
+  if (skillTree === undefined) return null;
+  if (skillTree.kind === "not-found") return <NotFoundPage />;
+  if (skillTree.kind === "ready" || skillTree.kind === "locked") return <FeatureWaitsPage name="Skill tree" waiting={skillTree} readyCard={readyCardOf(member, "skillTree")} chatUrl={member.chatUrl} />;
+  if (skillTree.kind !== "tree") return <AnswerPage answer={skillTree} {...actions} />;
+  return <SkillTreePage tree={skillTree} />;
 }
 
 type NotAMember = Exclude<ShellState, { kind: "member" | "loading" }>;

@@ -24,3 +24,10 @@ export function preferReducedMotion() {
   window.matchMedia = ((query: string) =>
     query === "(prefers-reduced-motion: reduce)" ? { ...system(query), media: query, matches: true } : system(query)) as typeof window.matchMedia;
 }
+
+export const wideScreenQuery = "(min-width: 64rem)";
+
+export function preferWideScreen() {
+  const system = window.matchMedia;
+  window.matchMedia = ((query: string) => (query === wideScreenQuery ? { ...system(query), media: query, matches: true } : system(query))) as typeof window.matchMedia;
+}

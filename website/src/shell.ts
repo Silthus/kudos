@@ -4,9 +4,11 @@ import type { CommandAnswer } from "../../convex/website/commands";
 import type { Denial } from "../../convex/website/memberQuery";
 import type { FeatureCard, JourneyStep, MemberProfile, MyProfile } from "../../convex/website/profile";
 import type { QuestsAnswer } from "../../convex/website/quests";
+import type { MySkillTree } from "../../convex/website/skillTree";
 
 export type { Face, FeatureCard, JourneyStep, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
 export type { QuestsAnswer, QuestSlot, WaitingCrate } from "../../convex/website/quests";
+export type { MySkillTree, PerkNode, SkillTreeAnswer, TreeRow } from "../../convex/website/skillTree";
 export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
 export type { Period } from "../../convex/leaderboard/periods";
 export type { CommandAnswer } from "../../convex/website/commands";
@@ -92,7 +94,11 @@ const memberWithTheBookOpened: MemberProfile = { ...member, ...onTheUnlockPath({
 
 const memberWithEveryFeatureReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...ready }, { ...skillTreeFeature, ...ready }) };
 
-const memberWithEveryFeatureOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...opened }) };
+const memberWithEveryFeatureOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...opened }), skillPoints: 2 };
+
+const memberWithOneSkillPoint: MemberProfile = { ...memberWithEveryFeatureOpen, skillPoints: 1 };
+
+const memberWithNoSkillPointsLeft: MemberProfile = { ...memberWithEveryFeatureOpen, skillPoints: 0 };
 
 const memberWithCoinsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...ready }) };
 
@@ -151,6 +157,8 @@ export const shellFixtures = {
   memberWithTheBookOpened,
   memberWithEveryFeatureReady,
   memberWithEveryFeatureOpen,
+  memberWithOneSkillPoint,
+  memberWithNoSkillPointsLeft,
   memberWithCoinsReady,
   memberWithCoinsOpened,
   memberWithNothingShipped,
@@ -183,6 +191,8 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-the-book-opened": shellFixtures.memberWithTheBookOpened,
   "member-with-every-feature-ready": shellFixtures.memberWithEveryFeatureReady,
   "member-with-every-feature-open": shellFixtures.memberWithEveryFeatureOpen,
+  "member-with-one-skill-point": shellFixtures.memberWithOneSkillPoint,
+  "member-with-no-skill-points-left": shellFixtures.memberWithNoSkillPointsLeft,
   "member-with-nothing-shipped": shellFixtures.memberWithNothingShipped,
   "member-level-1": shellFixtures.memberAtLevel1,
   "member-level-7": shellFixtures.memberAtLevel7,

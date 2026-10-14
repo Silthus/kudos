@@ -42,15 +42,6 @@ type FeaturePage = {
 
 const featurePages: FeaturePage[] = [
   {
-    path: "/skills",
-    feature: "skillTree",
-    name: "Skill tree",
-    level: 5,
-    locked: shellFixtures.memberWithTheBoardOpened,
-    ready: shellFixtures.memberWithTheSkillTreeReady,
-    opened: shellFixtures.memberWithEveryFeatureOpen,
-  },
-  {
     path: "/book",
     feature: "book",
     name: "Book",

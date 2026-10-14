@@ -9,6 +9,7 @@ import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
 import { useSocketUnreachable } from "./connection";
 import type { QuestsShown } from "./questsRead";
+import type { SkillTreeShown } from "./skillTreeRead";
 import type { Period, ShellActions, Visitor } from "./shell";
 import { forgetSignInStarted } from "./signInAttempt";
 
@@ -34,6 +35,7 @@ function LiveApp() {
       actions={actions}
       useLeaderboard={(period) => useLiveLeaderboard(period, unreachable)}
       useQuests={(asking) => useLiveQuests(asking, unreachable)}
+      useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
     />
   );
 }
@@ -52,6 +54,14 @@ function useLiveQuests(asking: boolean, unreachable: boolean): QuestsShown | und
   if (quests instanceof Error) return { kind: "broken" };
   if (quests === undefined && unreachable) return { kind: "connecting" };
   return quests;
+}
+
+function useLiveSkillTree(asking: boolean, unreachable: boolean): SkillTreeShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { skillTree: { query: api.website.skillTree.getSkillTree, args: {} } } : {}), [asking]);
+  const { skillTree } = useQueries(request);
+  if (skillTree instanceof Error) return { kind: "broken" };
+  if (skillTree === undefined && unreachable) return { kind: "connecting" };
+  return skillTree;
 }
 
 type Answers = { authLoading: boolean; redemptionFailed: boolean; unreachable: boolean; profile: MyProfile | undefined };

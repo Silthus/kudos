@@ -4,12 +4,13 @@ import { describe, expect, it } from "vitest";
 import type { BoardRead } from "./boardRead";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
-import { shellFixtures, type MyLeaderboard, type MyQuests, type OpenAnswer, type ShellState } from "./shell";
+import { shellFixtures, type MyLeaderboard, type MyQuests, type MySkillTree, type OpenAnswer, type ShellState } from "./shell";
+import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
-import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
+import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "./test/systemTheme";
 
-const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard; quests?: MyQuests }[] = [
+const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard; quests?: MyQuests; skillTree?: MySkillTree; wide?: boolean }[] = [
   { name: "loading", path: "/", visitor: shellFixtures.loading },
   { name: "connecting", path: "/", visitor: shellFixtures.connecting },
   { name: "closed", path: "/", visitor: shellFixtures.closed },
@@ -39,9 +40,13 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "home with two crates and the ready pill", path: "/", visitor: shellFixtures.memberWithEveryFeatureReady },
   { name: "empty leaderboard", path: "/leaderboard?period=all", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.empty },
   { name: "skill tree not found while it hasn't shipped", path: "/skills", visitor: shellFixtures.memberWaitingForTheBoard },
-  { name: "skill tree locked until level 5", path: "/skills", visitor: shellFixtures.memberWithTheBoardOpened },
-  { name: "skill tree ready to open in place", path: "/skills", visitor: shellFixtures.memberWithTheSkillTreeReady },
-  { name: "skill tree open, found in Slack", path: "/skills", visitor: shellFixtures.memberWithEveryFeatureOpen },
+  { name: "skill tree locked until level 5", path: "/skills", visitor: shellFixtures.memberWithTheBoardOpened, skillTree: skillTreeFixtures.locked },
+  { name: "skill tree ready to open in place", path: "/skills", visitor: shellFixtures.memberWithTheSkillTreeReady, skillTree: skillTreeFixtures.ready },
+  { name: "skill tree with points and nothing owned", path: "/skills", visitor: shellFixtures.memberWithEveryFeatureOpen, skillTree: skillTreeFixtures.withPoints },
+  { name: "skill tree with one perk owned, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithOneSkillPoint, skillTree: skillTreeFixtures.sparkOwned, wide: true },
+  { name: "skill tree with no skill points left, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithNoSkillPointsLeft, skillTree: skillTreeFixtures.noPointsLeft, wide: true },
+  { name: "skill tree below its row, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithNoSkillPointsLeft, skillTree: skillTreeFixtures.belowTheRow, wide: true },
+  { name: "skill tree with a perk that needs its base, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithOneSkillPoint, skillTree: skillTreeFixtures.needsABase, wide: true },
   { name: "book locked until level 4", path: "/book", visitor: shellFixtures.memberWaitingForTheBook },
   { name: "book ready to open in place", path: "/book", visitor: shellFixtures.memberWithTheBookReady },
   { name: "book open, found in Slack", path: "/book", visitor: shellFixtures.memberWithTheBookOpened },
@@ -72,8 +77,9 @@ describe("WS24: every page passes axe in light and dark", () => {
     for (const page of pages) {
       it(`${page.name} in ${dark ? "dark" : "light"}`, async () => {
         fakeSystemTheme(dark);
+        if (page.wide) preferWideScreen();
         window.history.replaceState(null, "", page.path);
-        const { container } = renderApp(page.visitor, page.board && answering(page.board), undefined, page.quests && fixedQuests(page.quests));
+        const { container } = renderApp(page.visitor, page.board && answering(page.board), undefined, page.quests && fixedQuests(page.quests), page.skillTree && fixedSkillTree(page.skillTree));
         expect(await violationsIn(container)).toEqual([]);
       });
     }
@@ -88,6 +94,15 @@ describe("WS24: every page passes axe in light and dark", () => {
       viewerRow.see({ visible: false, edge: "bottom" });
       getByRole("button", { name: "Jump to me" });
       expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+    });
+
+    it(`the skill tree's open perk drawer, portaled outside the landmarks, meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
+      fakeSystemTheme(dark);
+      window.history.replaceState(null, "", "/skills");
+      const { user, getByRole, findByRole } = renderApp(shellFixtures.memberWithEveryFeatureOpen, undefined, undefined, undefined, fixedSkillTree(skillTreeFixtures.withPoints));
+      await user.click(within(getByRole("region", { name: "Perk tree" })).getByRole("button", { name: /^Rhythm\./ }));
+      await findByRole("dialog", { name: "Rhythm" });
+      expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
     });
 
     it(`the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {

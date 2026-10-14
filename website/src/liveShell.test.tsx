@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
 import { leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures } from "./shell";
+import { skillTreeFixtures } from "./skillTreeFixtures";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 const profileRead = vi.fn();
@@ -184,6 +185,33 @@ describe("WS20 WS36: the leaderboard read shows where the page stands, inside th
     boardAnswers(leaderboardFixtures.midBoard);
 
     expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
+  });
+});
+
+describe("WS85: the skill tree page reads getSkillTree through the live shell", () => {
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/skills");
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryFeatureOpen);
+  });
+
+  it("marks the page busy while the tree loads, then shows it with the HUD's skill point chip", () => {
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+    expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "true");
+
+    boardAnswers(skillTreeFixtures.withPoints);
+
+    expect(pageTitle()).toHaveTextContent("Perks");
+    expect(within(screen.getByRole("region", { name: "Perk tree" })).getAllByRole("button")).toHaveLength(3);
+    expect(screen.getByRole("link", { name: "2 skill points to spend" })).toHaveAttribute("href", "/skills");
+  });
+
+  it("shows the error page under the HUD when the tree read fails", async () => {
+    boardRead.mockReturnValue(new Error("Too many documents read"));
+    renderLiveSite();
+
+    expect(await errorPage()).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Screens" })).toBeInTheDocument();
   });
 });
 
