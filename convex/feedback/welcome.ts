@@ -2,6 +2,7 @@ import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { bookAppliesIn } from "../achievements/flag";
+import { analyticsIdOf } from "../analytics/person";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { xpLevelsOnFor } from "../progression/xpLevels";
 import { questsApplyTo } from "../quests/flag";
@@ -28,7 +29,12 @@ const namedAtMost = 3;
 
 export async function requestWelcome(ctx: MutationCtx, member: MemberId, welcomed: WelcomedAs) {
   const { workspace, user } = await chatUserOf(ctx, member);
+  await decidedAsMemberAtDelivery(ctx, member);
   await ctx.scheduler.runAfter(0, internal.slack.welcome.deliverWelcome, { workspace, user, welcomed, attempt: 1 });
+}
+
+async function decidedAsMemberAtDelivery(ctx: MutationCtx, member: MemberId) {
+  await analyticsIdOf(ctx, member);
 }
 
 export const welcomeMessage = internalQuery({

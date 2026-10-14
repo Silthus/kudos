@@ -120,6 +120,8 @@ describe("QM6 QM7: the welcome has a version for a first recipient and one for a
     { flags: ["xp-levels", "unlocks", "quests"], line: `${earnsXp} As you level up you unlock weekly quests.` },
     { flags: ["xp-levels", "unlocks", "skill-tree"], line: `${earnsXp} As you level up you unlock a skill tree.` },
     { flags: ["xp-levels", "unlocks", "achievements"], line: `${earnsXp} As you level up you unlock the Book of achievements.` },
+    { flags: ["xp-levels", "unlocks", "quests", "skill-tree"], line: `${earnsXp} As you level up you unlock weekly quests and a skill tree.` },
+    { flags: ["xp-levels", "unlocks", "skill-tree", "achievements"], line: `${earnsXp} As you level up you unlock a skill tree and the Book of achievements.` },
     { flags: ["xp-levels", "unlocks", "quests", "achievements"], line: `${earnsXp} As you level up you unlock weekly quests and the Book of achievements.` },
   ])("with $flags on, the line after the welcome line is $line", async ({ flags, line }) => {
     const t = await workspace(...flags);
@@ -127,8 +129,8 @@ describe("QM6 QM7: the welcome has a version for a first recipient and one for a
     await giveKudos(t, "U_ALICE", ["U_BOB"]);
 
     for (const user of ["U_ALICE", "U_BOB"]) {
-      const lines = readWelcomeTo(user);
-      expect(lines.slice(2, -3)).toEqual(line === null ? [] : [`section: ${line}`]);
+      expect(readWelcomeTo(user).slice(2, -3)).toEqual(line === null ? [] : [`section: ${line}`]);
+      expect(String(welcomeTo(user)?.text).split("\n").slice(2, -3)).toEqual(line === null ? [] : [line]);
     }
   });
 
@@ -181,6 +183,17 @@ describe("QM8: the welcome's website line and See your progress follow the membe
     expect(readWelcomeTo("U_ALICE")).toContain(`section: ${websiteLine}`);
     expect(websiteButtonOf("U_BOB")).toBeUndefined();
     expect(readWelcomeTo("U_BOB")).not.toContain(`section: ${websiteLine}`);
+  });
+
+  test("a previewing recipient's welcome delivered before every other subscriber of that kudos still goes through the sign-in entry", async () => {
+    const t = await workspace();
+    await flagsFromPostHog(t, postHog, onForEmails("website", alicesEmail));
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+
+    await post(t, [section(mention("U_ALICE"), emoji("taco"))], { user: "U_BOB" });
+    await settleWithOtherSubscribersBehind(t);
+
+    expect(websiteButtonOf("U_ALICE")).toBe(`${siteUrl}/sign-in/`);
   });
 
   test.each([
@@ -245,7 +258,9 @@ describe("R42 R43 QM10: a member is welcomed once, ever, in pages", { timeout: 3
     const scheduledPerPage = await settleCountingWelcomePages(t);
 
     expect(attemptsPerUser()).toEqual(Object.fromEntries(["U_ALICE", ...recipients].map((user) => [user, 1])));
-    expect(await membersWelcomedEvents(t)).toBe(701);
+    const memberWelcomed = await memberWelcomedPerMember(t);
+    expect(memberWelcomed.size).toBe(701);
+    expect(new Set(memberWelcomed.values())).toEqual(new Set([1]));
     expect(scheduledPerPage.length).toBeGreaterThan(1);
     for (const scheduled of scheduledPerPage) expect(scheduled).toBeLessThan(1000);
   });
@@ -326,6 +341,26 @@ async function settleCountingWelcomePages(t: Backend) {
   throw new Error("the welcome pages never settled");
 }
 
+async function settleWithOtherSubscribersBehind(t: Backend) {
+  const behind: ScheduledJob[] = [];
+  for (let fired = 0; fired < 1000; fired += 1) {
+    await t.finishInProgressScheduledFunctions();
+    for (const job of (await scheduledJobs(t)).filter((job) => job.state.kind === "pending" && isOtherSubscriber(job))) {
+      await t.run((ctx) => ctx.scheduler.cancel(job._id));
+      behind.push(job);
+    }
+    if (vi.getTimerCount() === 0) break;
+    vi.advanceTimersToNextTimer();
+  }
+  for (const job of behind) await t.run((ctx) => ctx.scheduler.runAfter(0, job.name as never, job.args[0] as never));
+  await settle(t);
+}
+
+function isOtherSubscriber({ name, args }: ScheduledJob) {
+  const type = (args[0] as { event?: { type?: string } } | undefined)?.event?.type;
+  return (type === "kudosGiven" || type === "memberWelcomed") && name !== "welcome/welcome:welcomeNewMembers";
+}
+
 async function scheduledBy(t: Backend, page: ScheduledJob) {
   await t.run((ctx) => ctx.scheduler.cancel(page._id));
   const before = await scheduledJobs(t);
@@ -343,9 +378,13 @@ function scheduledJobs(t: Backend) {
   return t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
 }
 
-async function membersWelcomedEvents(t: Backend) {
-  const jobs = (await scheduledJobs(t)).filter((job) => job.name === "analytics/subscribers:recordMemberWelcomed");
-  return new Set(jobs.map((job) => (job.args[0] as { event: { member: string } }).event.member)).size;
+async function memberWelcomedPerMember(t: Backend) {
+  const perMember = new Map<string, number>();
+  for (const job of (await scheduledJobs(t)).filter(({ name }) => name === "analytics/subscribers:recordMemberWelcomed")) {
+    const { member } = (job.args[0] as { event: { member: string } }).event;
+    perMember.set(member, (perMember.get(member) ?? 0) + 1);
+  }
+  return perMember;
 }
 
 function welcomeTo(user: string) {
