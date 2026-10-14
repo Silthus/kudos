@@ -57,7 +57,7 @@ export type WeeklySlot = Slot & { goal: string; progress: number; target: number
 
 export type QuestSwap = { slot: number; replaced: QuestId; quest: QuestId; swappedAt: number };
 
-export type WaitingCrate = { crate: WeeklyQuest; goal: string; reward: Reward; finishedAt: number };
+export type UnopenedCrate = { crate: WeeklyQuest; goal: string; reward: Reward; finishedAt: number };
 
 export type DrawnWeek = Omit<WeeklyQuests, "slots" | "swapAvailable"> & { slots: Array<WeeklySlot & { crate: WeeklyQuest }> };
 
@@ -136,9 +136,9 @@ async function weeklySlotsOf(ctx: QueryCtx, draw: Draw, swap: Swap | null): Prom
   return slots;
 }
 
-export async function waitingCratesOf(ctx: QueryCtx, member: MemberId, at: number): Promise<WaitingCrate[]> {
+export async function waitingCratesOf(ctx: QueryCtx, member: MemberId, at: number): Promise<UnopenedCrate[]> {
   const thisWeek = weekKeyOf(at, await timeZoneOf(ctx, member));
-  const waiting: WaitingCrate[] = [];
+  const waiting: UnopenedCrate[] = [];
   for (const { key, xp, coins, item, at: finishedAt } of await rewardsKeyedFrom(ctx, member, rewardKeyPrefixOf("weekly"))) {
     const crate = weeklyQuestOfRewardKey(key);
     if (crate === null || crate.week >= thisWeek || (await crateOpeningOf(ctx, member, key)) !== null) continue;

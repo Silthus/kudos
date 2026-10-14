@@ -147,6 +147,14 @@ describe("WS73: /quests shows this week's quests while Quests is open", () => {
     expect(openSlack).toHaveAttribute("href", "https://app.slack.com/client/T1");
   });
 
+  it("WS73 V4: keeps one primary action when nothing was drawn and an earlier week's crate waits", () => {
+    showQuests({ ...questsFixtures.noDraw, waiting: questsFixtures.weekWithLastWeeksCrate.waiting });
+    const primaries = main().querySelectorAll(".quill-button--variant-primary");
+    expect(primaries).toHaveLength(1);
+    expect(primaries[0]).toHaveAccessibleName("Open");
+    expect(within(main()).getByRole("link", { name: "Open Slack (opens in a new tab)" })).toHaveClass("quill-button--variant-outline");
+  });
+
   it("explains how quests work in WS73's words", () => {
     showQuests(questsFixtures.week);
     const how = within(main()).getByRole("region", { name: "How quests work" });

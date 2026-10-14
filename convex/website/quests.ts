@@ -5,7 +5,7 @@ import { projectedJourneyOf, type ProjectedJourneyStep } from "../quests/journey
 import { journeyCopyOf } from "../quests/journeyCopy";
 import { questOf, type PoolQuest } from "../quests/pool";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
-import { drawnWeekOf, waitingCratesOf, type DrawnWeek, type WaitingCrate as FinishedCrate } from "../quests/weekly";
+import { drawnWeekOf, waitingCratesOf, type DrawnWeek, type UnopenedCrate } from "../quests/weekly";
 import { workspaceLink } from "../slack/workspaceLink";
 import { scheduled } from "../unlocks/schedule";
 import { followTheClock } from "./clock";
@@ -83,7 +83,7 @@ async function questSlotOf(me: VerifiedMember, { swap }: DrawnWeek, facts: Drawn
   };
 }
 
-async function waitingCrateOf(me: VerifiedMember, { crate, goal, reward }: FinishedCrate): Promise<WaitingCrate> {
+async function waitingCrateOf(me: VerifiedMember, { crate, goal, reward }: UnopenedCrate): Promise<WaitingCrate> {
   return { goal, reward: { xp: reward.xp }, crate, seen: await seenKeyOfCrate(me, crate) };
 }
 

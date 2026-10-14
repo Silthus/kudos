@@ -1,4 +1,4 @@
-import { readyFeaturesOf } from "../features";
+import { readyFeaturesOf, webPageOf } from "../features";
 import type { QuestsShown } from "../questsRead";
 import type { Screen } from "../route";
 import type { FeatureCard, MemberProfile, Quest } from "../shell";
@@ -28,8 +28,8 @@ export function readyCratesOf(member: MemberProfile, quests: QuestsShown | undef
 }
 
 export function isShownOn(crate: ReadyCrate, screen: Screen | undefined) {
-  const onTheHome = crate.kind === "feature" || crate.quest.kind === "journey";
-  return screen === (onTheHome ? "home" : "quests");
+  if (crate.kind === "feature") return screen === "home" || screen === webPageOf(crate.card.feature)?.screen;
+  return screen === (crate.quest.kind === "journey" ? "home" : "quests");
 }
 
 function questCratesOf({ journey }: MemberProfile, quests: QuestsShown | undefined) {

@@ -26,7 +26,7 @@ export function QuestsPage({ quests }: { quests: ThisWeek }) {
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
         <div className="flex min-w-0 flex-col gap-6">
-          {quests.slots.length === 0 ? <NoQuests chatUrl={quests.chatUrl} /> : <QuestCards slots={quests.slots} firstCrate={firstCrate} />}
+          {quests.slots.length === 0 ? <NoQuests chatUrl={quests.chatUrl} firstCrate={firstCrate} /> : <QuestCards slots={quests.slots} firstCrate={firstCrate} />}
           <WaitingToOpen waiting={quests.waiting} firstCrate={firstCrate} />
         </div>
         <HowQuestsWork />
@@ -112,12 +112,12 @@ function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate
   );
 }
 
-function NoQuests({ chatUrl }: { chatUrl: string }) {
+function NoQuests({ chatUrl, firstCrate }: { chatUrl: string } & FirstCrate) {
   return (
     <section aria-label="Your quests this week" className="flex flex-col items-center gap-4 rounded-xl border bg-card px-4 py-10 text-center">
       <HedgehogTownCrier size={96} title="" />
       <p className="text-sm text-muted-foreground">You have no quests this week.</p>
-      <SlackLink chatUrl={chatUrl} variant="primary">
+      <SlackLink chatUrl={chatUrl} variant={firstCrate === undefined ? "primary" : "outline"}>
         Open Slack
       </SlackLink>
     </section>

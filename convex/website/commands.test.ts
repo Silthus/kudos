@@ -203,13 +203,18 @@ describe("a website command never launches unlocks", () => {
     expect(publishedEvents()).toEqual([]);
   });
 
-  test("WS62 WS74 P91: with unlocks launched and no Journey launch, opening a ready Quests answers refused and neither launches the Journey nor joins anyone", async () => {
-    await launchedThen(...allFlags, "quests");
-    const { asSignedIn } = await withLevel(2);
+  const beforeTheJourneyLaunches: Array<{ condition: string; feature: Feature; arrange: () => Promise<{ asSignedIn: Pick<Backend, "mutation"> }> }> = [
+    { condition: "a ready Quests", feature: "quests", arrange: async () => (await launchedThen(...allFlags, "quests"), withLevel(3)) },
+    { condition: "a ready Leaderboard", feature: "leaderboard", arrange: async () => (await launchedThen(...allFlags, "quests"), withLevel(3)) },
+    { condition: "an open Leaderboard", feature: "leaderboard", arrange: () => openedThen(...allFlags, "quests") },
+  ];
+
+  test.each(beforeTheJourneyLaunches)("WS62 WS74 P91: with quests on, unlocks launched and no Journey launch, opening $condition answers refused and neither launches the Journey nor joins anyone", async ({ feature, arrange }) => {
+    const { asSignedIn } = await arrange();
     const before = await everythingWritten();
     vi.mocked(publish).mockClear();
 
-    expect(await openFeature(asSignedIn, "quests")).toEqual({ kind: "refused" });
+    expect(await openFeature(asSignedIn, feature)).toEqual({ kind: "refused" });
     expect(await everythingWritten()).toEqual(before);
     expect(before.tables.journeyLaunches).toEqual([]);
     expect(publishedEvents()).toEqual([]);

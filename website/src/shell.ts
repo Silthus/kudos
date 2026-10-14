@@ -5,7 +5,7 @@ import type { Denial } from "../../convex/website/memberQuery";
 import type { FeatureCard, JourneyStep, MemberProfile, MyProfile } from "../../convex/website/profile";
 import type { QuestsAnswer } from "../../convex/website/quests";
 
-export type { Face, FeatureCard, JourneyStep, LeaderboardWaits, MemberProfile, Progression } from "../../convex/website/profile";
+export type { Face, FeatureCard, JourneyStep, MemberProfile, Progression } from "../../convex/website/profile";
 export type { QuestsAnswer, QuestSlot, WaitingCrate } from "../../convex/website/quests";
 export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
 export type { Period } from "../../convex/leaderboard/periods";

@@ -11,8 +11,8 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: navigation to another Document
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -83,9 +83,9 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
  Test Files  90 passed (90)
-      Tests  1480 passed (1480)
-   Start at  04:50:51
-   Duration  48.04s (tests 73%, import 15%, environment 6%, transform 5%, setup 1%)
+      Tests  1484 passed (1484)
+   Start at  05:06:48
+   Duration  48.23s (tests 70%, import 15%, transform 8%, environment 6%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -376,8 +376,9 @@ Website reads  convex/website/WebsiteReads.spec.md
       refuted 2026-10-14: memberQuery's guard read the website flag through the seam's writing path instead of its read-only one
       kinds state, identity: 10 shapes apply, 1 declared, 11 dismissed
   a website command never launches unlocks  invariant
-      totality oracle "a website command never launches unlocks" over openFeature with xp-levels and unlocks on and no launch recorded; openFeature for a ready Quests with unlocks launched and no Journey launch; openQuestCrate with every flag on and no launch, and with unlocks launched and no Journey launch; each read through every table, every scheduled function and every published event: verified 2026-10-14
+      totality oracle "a website command never launches unlocks" over openFeature with xp-levels and unlocks on and no launch recorded; openFeature for a ready Quests, a ready Leaderboard and an open Leaderboard with quests on, unlocks launched and no Journey launch; openQuestCrate with every flag on and no launch, and with unlocks launched and no Journey launch; each read through every table, every scheduled function and every published event: verified 2026-10-14
       crossing browser -> domain
+      refuted 2026-10-14: openFeature checked the Journey's recorded launch only for Quests
       refuted 2026-10-14: openFeature checked only unlocks' gate for Quests, not the Journey's recorded launch
       refuted 2026-10-14: openQuestCrate checked only questsApplyIn, not the Journey's recorded launch
       refuted 2026-10-14: openFeature no longer checked WS55's gate before running openUnlock
@@ -458,7 +459,7 @@ Workspace  convex/workspace/Workspace.spec.md
 Website  website/Website.spec.md
   (no invariants)
 17 components, 78 bullets: 78 invariants, 0 requirements
-lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T04:50:34.727Z (427 runs)
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T05:03:22.851Z (430 runs)
 defects: 16 recorded, 14 closed (0 guarded, 14 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit

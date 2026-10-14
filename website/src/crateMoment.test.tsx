@@ -2,6 +2,7 @@ import { act, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BoardRead } from "./boardRead";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
+import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures, type CommandAnswer, type MemberProfile, type OpenAnswer, type ShellState } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
@@ -390,8 +391,8 @@ describe("WS68: the ready pill", () => {
     { outcome: "a refusal", answer: async () => ({ kind: "refused" }) as const, message: "That couldn't be opened." },
     { outcome: "an error", answer: async () => Promise.reject(new Error("socket closed")), message: "Couldn't reach HedgeHug. Try again." },
   ])("shows what went wrong beside the pill after $outcome, away from the home's crate", async ({ answer, message }) => {
-    window.history.replaceState(null, "", "/leaderboard");
-    const { user } = renderApp(shellFixtures.memberWithEveryFeatureReady, fixedLeaderboard(leaderboardFixtures.midBoard), { openFeature: answer });
+    window.history.replaceState(null, "", "/quests");
+    const { user } = renderApp(shellFixtures.memberWithEveryFeatureReady, undefined, { openFeature: answer });
     await user.click(pill()!);
     expect(within(screen.getByRole("banner")).getByText(message)).toBeVisible();
     expect(pill()).toHaveAccessibleName("2 ready");
@@ -402,6 +403,15 @@ describe("WS68: the ready pill", () => {
     await user.click(pill()!);
     expect(within(screen.getByRole("banner")).queryByText("That couldn't be opened.")).toBeNull();
     expect(within(crateNamed("Leaderboard")).getByText("That couldn't be opened.")).toBeVisible();
+  });
+
+  it("leaves a failure on a feature's own page to the crate shown there", async () => {
+    window.history.replaceState(null, "", "/quests");
+    const { user } = renderApp(shellFixtures.memberWithQuestsReady, undefined, { openFeature: async () => ({ kind: "refused" }) }, fixedQuests(questsFixtures.ready));
+    await user.click(pill()!);
+    expect(within(screen.getByRole("banner")).queryByText("That couldn't be opened.")).toBeNull();
+    const readyCrate = within(main()).getByRole("heading", { level: 2, name: "Unlocks: Quests" }).closest("article")!;
+    expect(within(readyCrate).getByText("That couldn't be opened.")).toBeVisible();
   });
 
   it("is gone while unlocks don't apply", () => {
