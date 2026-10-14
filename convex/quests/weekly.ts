@@ -2,6 +2,7 @@ import { v, type Infer } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { unlockOpenedEventValidator, type KudosGivenEvent } from "../bus/events";
+import { publish } from "../bus/publish";
 import { allowanceDay, allowanceLeft } from "../engine/allowance";
 import { awardIdValidator, lastThankedBefore, lastThankedBy } from "../engine/awards";
 import { republish } from "../feedback/homes";
@@ -127,7 +128,14 @@ export async function rerollQuest(ctx: MutationCtx, member: MemberId, { week, sl
   const replacement = await replacementFor(ctx, draw, at);
   if (replacement === null) return "refused";
   await ctx.db.insert("questSwaps", { member, week, swappedAt: at, replaced: replaced.quest, swappedIn: slotOf(slot, replacement) });
+  await publish(ctx, { type: "questSwapped", workspace, member, week, replaced: replaced.quest, swappedIn: replacement.quest.quest, at });
   return "swapped";
+}
+
+export async function poolQuestOf(ctx: QueryCtx, member: MemberId, { week, slot }: WeeklyQuest): Promise<QuestId | null> {
+  const draw = await drawOf(ctx, member, week);
+  if (draw === null) return null;
+  return slotsOf(draw, await swapOf(ctx, member, week)).find((drawn) => drawn.slot === slot)?.quest ?? null;
 }
 
 async function replacementFor(ctx: QueryCtx, { member, week, slots }: Draw, at: number): Promise<FeasibleQuest | null> {
@@ -175,7 +183,7 @@ async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, w
   for (const { award, recipient, day, at } of fresh) await ctx.db.insert("questProgress", { member, week, slot: slot.slot, quest: slot.quest, award, recipient, day, at });
   const before = questProgress(pooled, counted);
   const after = questProgress(pooled, [...counted, ...fresh]);
-  if (after === pooled.progress.target && (await finishQuest(ctx, event.workspace, member, quest, slot, event.at))) {
+  if (after === pooled.progress.target && (await finishQuest(ctx, event.workspace, member, quest, { ...slot, poolQuest: slot.quest }, event.at))) {
     await notifyWeeklyQuestFinished(ctx, member, quest, pooled.goal, slot.reward.xp);
     return "finished";
   }
@@ -241,6 +249,8 @@ async function drawFor(ctx: MutationCtx, member: MemberId, at: number, factsOf =
   const slots = drawFrom(member, week, await factsOf(ctx, member, at));
   if (slots.length === 0) return "nothing to draw";
   await ctx.db.insert("questDraws", { member, week, drawnAt: at, slots });
+  const { workspace } = await chatUserOf(ctx, member);
+  await publish(ctx, { type: "questsDrawn", workspace, member, week, quests: slots.map(({ quest }) => quest), at });
   return "drawn";
 }
 
