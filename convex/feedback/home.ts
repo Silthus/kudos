@@ -114,7 +114,7 @@ type ProfileFacts = Omit<Extract<ShownTab, { tab: "profile" }>, "tab">;
 
 function profileOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrates, journey }: ProfileFacts): HomeView {
   const progress = progression === null ? [] : [[...progressOf(progression), ...(unlocks === null ? [] : unlockLinesOf(unlocks))]];
-  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: false })];
+  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: false, website: null })];
   const earlier = earlierCrates === null || earlierCrates.length === 0 ? [] : [waitingToOpenLines(earlierCrates)];
   const steps = journey === null || journey.length === 0 ? [] : [journey.flatMap(journeyStepLines)];
   return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...earlier, ...steps, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
@@ -124,7 +124,7 @@ function summaryOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrat
   const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)])];
   const { origin } = links;
   const waiting = [...readyCratesOf(unlocks, origin), ...earlierCratesOf(earlierCrates, origin), ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...moreEarlierCrates(earlierCrates ?? [])];
-  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: true })];
+  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: true, website: origin })];
   return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
 }
 
@@ -343,19 +343,21 @@ function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
   return [...readyLines, ...nextLine];
 }
 
-function weeklyQuestLines({ week, slots, swapAvailable }: WeeklyQuests, { cratesShownApart }: { cratesShownApart: boolean }): HomeLine[] {
+type QuestRows = { cratesShownApart: boolean; website: string | null };
+
+function weeklyQuestLines({ week, slots, swapAvailable }: WeeklyQuests, rows: QuestRows): HomeLine[] {
   const asksToSayWhy = slots.some(({ quest, finishedAt }) => finishedAt === null && questOf(quest).progress.given.saysWhy);
   const condition: HomeLine[] = asksToSayWhy ? [{ kind: "hint", text: "Saying why counts when your message has 5 or more words besides mentions and emoji." }] : [];
-  return [{ kind: "text", text: bold("Quests this week") }, ...slots.map((slot) => weeklyQuestLine(week, slot, swapAvailable, cratesShownApart)), ...condition];
+  return [{ kind: "text", text: bold("Quests this week") }, ...slots.map((slot) => weeklyQuestLine(week, slot, { swapAvailable, ...rows })), ...condition];
 }
 
-function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot, swapAvailable: boolean, crateShownApart: boolean): HomeLine {
+function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot, { swapAvailable, cratesShownApart, website }: QuestRows & { swapAvailable: boolean }): HomeLine {
   if (finishedAt === null) {
     const text = `${goal} ${bold(`${progress}/${target}`)} · ${bold(`${reward.xp} XP`)}`;
-    return swapAvailable ? { kind: "action", text, action: swapQuest({ kind: "weekly", week, slot }) } : { kind: "text", text };
+    return swapAvailable ? { kind: "action", text, action: swapQuest({ kind: "weekly", week, slot }, website) } : { kind: "text", text };
   }
   const text = `✅ ${goal} ${earned(reward.xp)}`;
-  return openedAt === null && !crateShownApart ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }, null) } : { kind: "text", text };
+  return openedAt === null && !cratesShownApart ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }, null) } : { kind: "text", text };
 }
 
 function waitingToOpenLines(crates: UnopenedCrate[]): HomeLine[] {
@@ -381,8 +383,9 @@ export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp:
   return { text: `✅ You finished a quest: ${goal} ${earned(xp)}`, action: openCrate(quest, website) };
 }
 
-function swapQuest(quest: WeeklyQuest): HomeAction {
-  return { label: "Swap", command: { type: "rerollQuest", quest } };
+function swapQuest(quest: WeeklyQuest, website: string | null): HomeAction {
+  if (website === null) return { label: "Swap", command: { type: "rerollQuest", quest } };
+  return linkOnTheWeb({ label: "Swap", spoken: "Swap", id: `swap:${rewardKeyOf(quest)}` }, { page: "quests", quest: quest.slot }, website);
 }
 
 function openCrate(quest: Quest, website: string | null): HomeAction {
