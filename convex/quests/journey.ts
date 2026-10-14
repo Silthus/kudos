@@ -45,7 +45,7 @@ export const journeyActivationValidator = v.object({
   activatedAt: v.number(),
   reward: rewardValidator,
   catalogueVersion: v.string(),
-  sayingWhyOn: v.optional(v.string()),
+  sayingWhy: v.optional(v.object({ day: v.string(), at: v.number() })),
 });
 
 export type JourneyActivation = Infer<typeof journeyActivationValidator>;
@@ -137,9 +137,10 @@ async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent): Promise
   const twoDays = await activationOf(ctx, event.giver, "two-days");
   if (twoDays === null || event.at < twoDays.activatedAt || gateDecisionOf(event.annotations)?.thoughtful !== true) return null;
   if (!(await journeyStepAppliesIn(ctx, event.workspace, "two-days")) || (await isFinished(ctx, twoDays))) return null;
-  const days = new Set<DayKey>([event.day, ...(twoDays.sayingWhyOn === undefined ? [] : [twoDays.sayingWhyOn]), ...(await daysSayingWhyBeforeActivation(ctx, twoDays, event.at))]);
-  if (days.size >= daysSayingWhyToFinishTwoDays) return finishedOrNull(ctx, event.workspace, twoDays, event.at);
-  if (twoDays.sayingWhyOn === undefined) await ctx.db.patch(twoDays._id, { sayingWhyOn: event.day });
+  const counted = twoDays.sayingWhy;
+  const days = new Set<DayKey>([event.day, ...(counted === undefined ? [] : [counted.day]), ...(await daysSayingWhyBeforeActivation(ctx, twoDays, event.at))]);
+  if (days.size >= daysSayingWhyToFinishTwoDays) return finishedOrNull(ctx, event.workspace, twoDays, Math.max(event.at, counted?.at ?? event.at));
+  if (counted === undefined) await ctx.db.patch(twoDays._id, { sayingWhy: { day: event.day, at: event.at } });
   return null;
 }
 

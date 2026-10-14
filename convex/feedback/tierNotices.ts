@@ -136,7 +136,16 @@ async function wasOpenedBy(ctx: QueryCtx, member: MemberId, at: number) {
 
 async function wasOpenedBefore(ctx: QueryCtx, member: MemberId, at: number) {
   const openedAt = await openedAtOf(ctx, member, "book");
-  return openedAt !== null && openedAt < at;
+  return openedAt !== null && openedAt < at && !(await wasOpenedByLaunch(ctx, member, openedAt));
+}
+
+async function wasOpenedByLaunch(ctx: QueryCtx, member: MemberId, openedAt: number) {
+  const { workspace } = await chatUserOf(ctx, member);
+  const launch = await ctx.db
+    .query("unlockLaunches")
+    .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
+    .unique();
+  return launch !== null && launch.at === openedAt && launch.shipped.includes("book");
 }
 
 function isSameTier(one: TierRef, other: TierRef) {

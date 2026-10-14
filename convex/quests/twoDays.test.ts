@@ -174,6 +174,18 @@ describe("P90: two-days has its own finishing rule, never someone-new's", () => 
     expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
   });
 
+  test("Wednesday's kudosGiven followed late by Monday's finishes it dated Wednesday, the later of its two days", async () => {
+    const { t, alice, bob } = await membersInDirectory();
+    await opened(t, alice, "book", monday);
+    const first = await thoughtfulKudos(t, alice, bob, monday + minuteMs, "2026-10-12");
+    const second = await thoughtfulKudos(t, alice, bob, wednesday, "2026-10-14");
+
+    await followKudosGiven(t, second);
+    await followKudosGiven(t, first);
+
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
+  });
+
   test("a member who gave 4,100 kudos without saying why since the opening finishes it on the second day that says why, within Convex's transaction limits", async () => {
     const t = await bookShippedBeforeAnyoneJoined(await flagsLoaded(testBackend({ transactionLimits: true })));
     const [alice, bob] = await t.run(async (ctx) => {

@@ -98,7 +98,8 @@ describe("P62 P64 P65: a member whose Book is open when a batch completes gets o
     expect(tierLinesIn("C1")).toEqual([]);
   });
 
-  test("when unlocks launch with the Book already shipped and open the Book for everyone, each member gets the DM summary and the channel gets no notice", async () => {
+  test("when unlocks launch with the Book already shipped and open the Book for everyone, each member gets the DM summary and the channel gets no notice, then or at a later batch", async () => {
+    withoutLadder("recognition");
     const t = await workspaceRow("C_NEWS");
     await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), offForEveryone("unlocks"), onForEveryone("achievements"));
     await giveKudos(t, "U_ALICE", "U_BOB");
@@ -109,8 +110,15 @@ describe("P62 P64 P65: a member whose Book is open when a batch completes gets o
     await t.mutation(internal.unlocks.sweep.sweep, {});
     await settle(t);
 
-    expect(tierDmsTo("U_ALICE")).toEqual([bothBronzes]);
-    expect(tierDmsTo("U_BOB")).toHaveLength(1);
+    catalogue.ladders = [...shippedLadders];
+    vi.setSystemTime(Date.now() + 60_000);
+    await openHome(t, "U_ALICE");
+
+    expect(tierDmsTo("U_ALICE")).toEqual([
+      "🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given.",
+      "🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received.",
+    ]);
+    expect(tierDmsTo("U_BOB")).toHaveLength(2);
     expect(tierLinesEverywhere()).toEqual([]);
   });
 
@@ -188,6 +196,7 @@ describe("P62 P76: a tier is told once, whichever summary tells it", () => {
 
   test("a batch that completes while another is still replaying tells only its own tiers, and the other batch tells the rest when it completes", async () => {
     const t = await workspaceWithTheBook("C_NEWS");
+    vi.setSystemTime(Date.now() + 60_000);
     const alice = await memberWithTheBookOpen(t, "U_ALICE");
     vi.setSystemTime(Date.now() + 60_000);
     const [first, second] = await t.run(async (ctx) => [await ctx.db.insert("bookBatches", { workspace: "T1", at: Date.now() }), await ctx.db.insert("bookBatches", { workspace: "T1", at: Date.now() })]);
