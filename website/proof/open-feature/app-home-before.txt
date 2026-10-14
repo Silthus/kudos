@@ -1,0 +1,7 @@
+[Profile] | [Settings]
+Your kudos
+You have *3* kudos left today. You get *3* more at midnight.
+*Leaderboard* is ready. It opens the boards. | [Open]
+To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.
+To add me to a channel, type `/hedgehug` there.
+<http://127.0.0.1:4611/|Open HedgeHug on the web>
