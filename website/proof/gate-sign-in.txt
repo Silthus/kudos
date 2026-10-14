@@ -1,0 +1,140 @@
+$ pnpm typecheck && pnpm test && pnpm coherence
+$ tsc --noEmit && tsc --noEmit -p website
+$ vitest run
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/sign-in
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  34 passed (34)
+      Tests  456 passed (456)
+   Start at  20:32:42
+   Duration  6.21s (tests 49%, import 26%, transform 12%, environment 11%, setup 1%)
+
+$ coherence spec --check && coherence lexicon --check
+Kudos  Kudos.spec.md
+  trust levels: slack-request, browser, session, domain, operator
+  (no invariants)
+Analytics  convex/analytics/Analytics.spec.md
+  only allowlisted properties leave the deployment  invariant
+      totality oracle "no PostHog request carries the message, a name, a Slack or Convex ID, an emoji name or a time zone" over every PostHog request body the drain sends for a kudos message full of distinctive words, display names, a custom kudos emoji, time zones, Slack user, team, channel, message and thread IDs, run through the whole loop from a signed Slack request, followed by an Over allowance and an Invalid message from the same giver, their App Home opening and their /hedgehug in a named channel, checked against those values, every stored Convex document ID and any Slack-shaped ID: verified 2026-10-13
+      refuted 2026-10-13: the kudos given projection also forwarded the kudos emoji's name as kudos_emoji
+      kinds message, storage: 16 shapes apply, 1 declared, 15 dismissed
+  analytics never blocks the domain  invariant
+      totality oracle "PostHog answering 503 changes nothing Slack sees: the same awards, indicator and reply" over the HTTP answer, the awards and every call to Slack's API of a kudos message that gives, from a signed Slack request through the whole loop, with PostHog answering 2xx and with PostHog answering 503: verified 2026-10-13
+      refuted 2026-10-13: the private reply's delivery action called PostHog before sending and skipped the reply when PostHog didn't answer 2xx
+      kinds message, state: 15 shapes apply, 0 declared, 15 dismissed
+  an event keeps its identity across delivery attempts  invariant
+      totality oracle "O14: every retry sends the same UUID, name, distinct_id and timestamp as the first attempt" over every request the drain sends for one recorded kudos given and kudos received, through each failure PostHog can give short of rejection (429, 503, 401, a network error, no answer within 10 seconds) to the attempt it accepts, checked against the outbox rows as recorded: verified 2026-10-13
+      refuted 2026-10-13: a retried row was given a fresh UUID when settle rescheduled it
+      kinds message, state: 15 shapes apply, 0 declared, 15 dismissed
+  an error is reported once  invariant
+      totality oracle "O22 O23: an action that throws" over a scheduled action reached from a signed /hedgehug whose Slack call answers not_authed, followed by two failed-job sweeps, the PostHog requests the drain sends for it and the job's final state: verified 2026-10-13
+      refuted 2026-10-13: recordBoundaryException no longer wrote the reportedJobs row for the scheduled function it reported
+      kinds message: 8 shapes apply, 1 declared, 7 dismissed
+  only a reportable error sends its message  invariant
+      totality oracle "O10 O23: only a reportable error sends its message" over every PostHog request body the drain sends after a signed events request with malformed JSON, a signed events request whose arguments fail Convex's validation, and a /hedgehug whose Slack call throws a dependency error, each full of distinctive words, an emoji name and Slack-shaped IDs: verified 2026-10-13
+      refuted 2026-10-13: exceptionOf sent every Error's message, not only a ReportableError's
+      kinds message: 8 shapes apply, 1 declared, 7 dismissed
+  a flag answers its safe default whenever it can't be evaluated  invariant
+      totality oracle "a flag answers its safe default whenever it can't be evaluated" over reading a boolean and a variant flag in a mutation and in a query, with no key, an empty cache, definitions PostHog serves for other flags, an undeclared variant, a cohort condition, a sandbox-only condition without the environment, and a member without an analytics ID: verified 2026-10-13
+      refuted 2026-10-13: declaredValue returned PostHog's value unchecked
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+Bus  convex/bus/Bus.spec.md
+  (no invariants)
+Engine  convex/engine/Engine.spec.md
+  awards are insert-only  invariant
+      totality oracle "R18: awards are only ever inserted, never changed or deleted" over every module under convex/, outside its tests and the generated code: verified 2026-10-13
+      refuted 2026-10-13: added withdrawAward to the awards module, which deletes an award by id
+      kinds storage: 9 shapes apply, 0 declared, 9 dismissed
+  a message gives kudos at most once  invariant
+      totality oracle "R19: a message gives at most once" over a kudos message the engine observes twice, a retry Slack delivers twice, and a message that gave kudos and is then edited away from a kudos message and back into one: verified 2026-10-13
+      refuted 2026-10-13: observeEdit no longer treated a message that gave kudos as accepted
+      kinds message, revision: 9 shapes apply, 1 declared, 8 dismissed
+Feedback  convex/feedback/Feedback.spec.md
+  private replies reach only the giver  invariant
+      totality oracle "R33: replies reach only the giver" over every message the app asks Slack to send for a Given, an Over allowance and an Invalid kudos message, posted in a channel and in a thread: verified 2026-10-13
+      refuted 2026-10-13: sendPrivateReply posted the reply with chat.postMessage instead of chat.postEphemeral
+      kinds output, message: 12 shapes apply, 0 declared, 12 dismissed
+Parser  convex/parser/Parser.spec.md
+  (no invariants)
+Slack  convex/slack/Slack.spec.md
+  signed Slack requests only  invariant
+      totality oracle "R48: a request Slack did not sign gets 401 and records nothing" over the requests slackEvents receives unsigned, signed with another secret, with a body changed after signing or a byte order mark added in front of it, signed more than 5 minutes before or after now, and an unsigned URL verification: verified 2026-10-13
+      crossing slack-request -> domain
+      refuted 2026-10-13: readSignedBody returned the body whether or not the signature verified
+      kinds identity, credential: 8 shapes apply, 1 declared, 7 dismissed
+  signed Slack commands only  invariant
+      totality oracle "R48: a command Slack did not sign gets 401 and does nothing" over the commands slackCommands receives unsigned, signed with another secret, with a body changed after signing, and signed more than 5 minutes ago: verified 2026-10-13
+      crossing slack-request -> domain
+      kinds identity, credential: 8 shapes apply, 1 declared, 7 dismissed
+  the indicator converges  invariant
+      totality oracle "R32 R35: the indicator is retried until the message shows it" over indicator deliveries whose reactions.add or reactions.remove answers an error, an HTTP 5xx or a timeout, a timed-out add that landed, a removal Slack already made, and a desired indicator that changes while a delivery is retrying: verified 2026-10-13
+      refuted 2026-10-13: reactionStepsTo in convex/slack/delivery.ts never removes the app's earlier reactions
+      kinds message: 8 shapes apply, 4 declared, 4 dismissed
+  a private reply is tried at most 3 times  invariant
+      totality oracle "R35: a private reply is tried at most 3 times" over chat.postEphemeral answering an error, an HTTP 5xx, a 429 with Retry-After or a timeout after the reply landed, every time and twice before a success: verified 2026-10-13
+      refuted 2026-10-13: deliverPrivateReply in convex/slack/delivery.ts allowed 4 attempts instead of 3
+      kinds message: 8 shapes apply, 2 declared, 6 dismissed
+  a gone delivery stops for good  invariant
+      totality oracle "R35: a delivery whose message or channel is gone stops for good" over reactions.add and chat.postEphemeral answering message_not_found, channel_not_found and not_in_channel, and reactions.add answering is_archived, not_reactable and invalid_name: verified 2026-10-13
+      refuted 2026-10-13: attemptCall in convex/slack/delivery.ts no longer classified message_not_found, channel_not_found and not_in_channel as gone
+      kinds message: 8 shapes apply, 1 declared, 7 dismissed
+Website reads  convex/website/WebsiteReads.spec.md
+  the public surface is exact  invariant
+      totality oracle "WS10: the public surface is exact" over every Convex function every module of the deployment exports, outside convex/_generated: verified 2026-10-13
+      crossing browser -> domain
+      refuted 2026-10-13: made prepareWebsiteFlag a public mutation instead of an internal one
+      kinds read, identity: 5 shapes apply, 1 declared, 4 dismissed
+  website reads pass one guard  invariant
+      totality oracle "website reads pass one guard" over getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset: verified 2026-10-13
+      crossing browser -> domain
+      refuted 2026-10-13: memberQuery dropped the check that the session's workspace is the current SLACK_WORKSPACE_ID
+      kinds read, identity: 5 shapes apply, 1 declared, 4 dismissed
+  only the allowed workspace signs in, and only while open  invariant
+      totality oracle "WS3 WS6: only the allowed workspace signs in, and only while open" over the sign-in callback for a profile from another workspace, an empty Slack user, an unset SLACK_WORKSPACE_ID, and the flag off: verified 2026-10-13
+      crossing browser -> session
+      refuted 2026-10-13: rememberSignedInMember no longer refused while the website flag is off
+      kinds identity, credential: 8 shapes apply, 2 declared, 6 dismissed
+  accounts link only by the Slack pair  invariant
+      totality oracle "WS7: accounts link only by the Slack pair" over a first sign-in and a later sign-in of the same Slack pair with changed and dropped display claims: verified 2026-10-13
+      crossing browser -> session
+      refuted 2026-10-13: a later sign-in of the same Slack pair inserted a new user instead of updating the linked one
+      kinds identity: 3 shapes apply, 1 declared, 2 dismissed
+Welcome  convex/welcome/Welcome.spec.md
+  welcomed at most once  invariant
+      totality oracle "a member is welcomed at most once, whatever Slack redelivers and whichever awards follow" over the welcome messages sent for a first Given award, a redelivery of the Slack event that gave it, and later awards that name the same members as giver or recipient: verified 2026-10-13
+      refuted 2026-10-13: removed the isWelcomed check in welcomeNewMembers
+      kinds message, state: 15 shapes apply, 2 declared, 13 dismissed
+Workspace  convex/workspace/Workspace.spec.md
+  (no invariants)
+Website  website/Website.spec.md
+  (no invariants)
+11 components, 19 bullets: 19 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-13T20:17:36.661Z (110 runs)
+defects: 2 recorded, 2 closed (0 guarded, 2 decided, 0 with neither); 0 guard failures
+RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:13  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:16  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:18  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:15  "super kudos"  rejected for chime-in; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:24  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:25  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:29  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:56  "badge"  rejected for achievement; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:56  "badge"  rejected for achievement; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:56  "badge"  rejected for achievement; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:57  "super kudos"  rejected for chime-in; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
+ADVISORY       70 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): receipt 21, gate 14, zone 9, authority 6, contract 6; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (202 files), 17 in records
+fleet exit: 0

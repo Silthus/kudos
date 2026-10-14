@@ -1,3 +1,4 @@
+import staticHostingComponent from "@convex-dev/static-hosting/test";
 import postHogComponent from "@posthog/convex/test";
 import { convexTest } from "convex-test";
 import { vi } from "vitest";
@@ -14,6 +15,7 @@ const idleAfterMs = 200;
 export function testBackend({ transactionLimits = false }: { transactionLimits?: boolean } = {}) {
   const t = convexTest({ schema, modules, transactionLimits });
   postHogComponent.register(t);
+  staticHostingComponent.register(t);
   return t;
 }
 

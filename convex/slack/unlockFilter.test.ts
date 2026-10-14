@@ -153,6 +153,18 @@ describe("P76: a feature's lines wait for its opening", () => {
     expect(rowsOf(reply.text)).toEqual(boardRows);
   });
 
+  test("once the directory knows someone is not a member, such as a guest from another workspace, /hedgehug leaderboard gives them the board, never a level to reach", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "everyone-board");
+    slack.withMember("U_GUEST", { team_id: "T2" });
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_BOB", "U_ALICE", 1);
+    await leaderboardCommand(t, "U_GUEST");
+
+    const reply = await leaderboardCommand(t, "U_GUEST");
+
+    expect(rowsOf(reply.text)).toEqual(["🥇 <@U_BOB> · 1 kudos"]);
+  });
+
   test("with everyone-board off, a level 3 member's /hedgehug leaderboard answers as /hedgehug, and nothing names the Leaderboard", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks");
     const t = await workspaceWithAllowance(10);

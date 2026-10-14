@@ -24,6 +24,7 @@ describe("R45 R46: homeFacts reads what App Home shows", () => {
       left: 2,
       base: 3,
       kudosEmoji: "taco",
+      refillsAt: Date.parse("2026-10-14T00:00:00Z"),
       givenWeek: 1,
       receivedWeek: 2,
       given: 1,
@@ -44,12 +45,49 @@ describe("R45 R46: homeFacts reads what App Home shows", () => {
   });
 });
 
-async function withDirectory(people: Record<string, "member" | "not-a-member">) {
+describe("WS13: homeFacts carries when the member's allowance refills", () => {
+  test("the allowance refills at the member's next local midnight", async () => {
+    const t = await withDirectory({ U_ALICE: { kind: "member", timeZone: "America/New_York" } });
+
+    expect(await refillOf(t, "U_ALICE")).toBe(Date.parse("2026-10-14T04:00:00Z"));
+  });
+
+  test("a member without a time zone refills at midnight UTC", async () => {
+    const t = await withDirectory({ U_ALICE: "member" });
+
+    expect(await refillOf(t, "U_ALICE")).toBe(Date.parse("2026-10-14T00:00:00Z"));
+  });
+
+  test("a member whose local midnight has just passed refills at the midnight after", async () => {
+    vi.setSystemTime(new Date("2026-10-13T22:00:00Z"));
+    const t = await withDirectory({ U_ALICE: { kind: "member", timeZone: "Europe/Berlin" } });
+
+    expect(await refillOf(t, "U_ALICE")).toBe(Date.parse("2026-10-14T22:00:00Z"));
+  });
+
+  test("the night the clocks go back, the allowance refills at local midnight, not 24 hours after the last one", async () => {
+    vi.setSystemTime(new Date("2026-10-25T12:00:00Z"));
+    const t = await withDirectory({ U_ALICE: { kind: "member", timeZone: "Europe/Berlin" } });
+
+    expect(await refillOf(t, "U_ALICE")).toBe(Date.parse("2026-10-25T23:00:00Z"));
+  });
+});
+
+type Person = "member" | "not-a-member" | { kind: "member"; timeZone: string };
+
+async function withDirectory(people: Record<string, Person>) {
   const t = testBackend();
   await t.run(async (ctx) => {
-    for (const [user, kind] of Object.entries(people)) await ctx.db.insert("members", { workspace: "T1", user, kind });
+    for (const [user, person] of Object.entries(people)) {
+      await ctx.db.insert("members", { workspace: "T1", user, ...(typeof person === "string" ? { kind: person } : person) });
+    }
   });
   return t;
+}
+
+async function refillOf(t: Backend, user: string) {
+  const facts = await factsOf(t, user);
+  return facts?.kind === "member" ? facts.refillsAt : undefined;
 }
 
 async function give(t: Backend, giver: string, recipient: string, kudos: number, message: string) {

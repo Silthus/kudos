@@ -1,0 +1,34 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website
+
+ ❯ |convex| convex/website/hosting.test.ts (5 tests | 1 failed) 109ms
+   ❯ WS25: every HTML response carries the strict Content Security Policy header (3)
+     × a deep SPA path like /profile answers HTML with the same policy as / 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/hosting.test.ts > WS25: every HTML response carries the strict Content Security Policy header > a deep SPA path like /profile answers HTML with the same policy as /
+AssertionError: expected 'text/plain' to match /^text\/html/html
+
+- Expected:
+/^text\/html/
+
++ Received:
+"text/plain"
+
+ ❯ convex/website/hosting.test.ts:70:50
+     68|     const deepPath = await t.fetch("/profile", { method: "GET" });
+     69|
+     70|     expect(deepPath.headers.get("Content-Type")).toMatch(/^text\/html/…
+       |                                                  ^
+     71|     expect(cspOf(deepPath).get("default-src")).toEqual(["'self'"]);
+     72|     expect(deepPath.headers.get("Content-Security-Policy")).toBe(root.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  21:56:17
+   Duration  618ms (transform 43%, import 28%, tests 20%, environment 8%, worker 1%)
+

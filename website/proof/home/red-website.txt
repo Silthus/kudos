@@ -1,0 +1,338 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/home
+
+ ❯ |website| src/HomePage.test.tsx (9 tests | 8 failed) 453ms
+   ❯ WS17: the home leads with thanking, then the allowance and the counters (5)
+     × shows the member's face and name and a headline inviting them to thank a colleague 297ms
+     × offers one action, thanking someone in Slack, which opens the member's workspace 36ms
+     × puts the kudos left out of the base and the refill in one quiet line after the action 25ms
+     × has Max state this week's thanks in words, without forecasting 17ms
+     × follows with the counters, this week and in total, given and received, in tabular figures 19ms
+   ❯ WS18: what teammates see, and received kudos staying private (1)
+     × shows the member's profile card as their face and name, saying the kudos they receive stay private 15ms
+   ❯ WS19: the later features are plain locked cards (2)
+     × shows each later feature locked, with its name and one sentence, and no level, progress or crate 17ms
+   ❯ WS20: a quiet week (1)
+     × has Max point back to thanking someone in Slack, with the one action and no reward 13ms
+ ❯ |website| src/App.test.tsx (12 tests | 1 failed) 734ms
+   ❯ WS1 WS3 WS16 WS20: the shell renders each page from its visitor state (8)
+     × frames a member's home with the wordmark, Home as the only nav item, the theme control and the avatar menu 43ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/App.test.tsx > WS1 WS3 WS16 WS20: the shell renders each page from its visitor state > frames a member's home with the wordmark, Home as the only nav item, the theme control and the avatar menu
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  Thank someone for work you noticed[39m
+Received:
+[31m  Welcome, Sam Example[39m
+ ❯ src/App.test.tsx:67:25
+     65|     expect(within(banner).getByRole("group", { name: "Theme" })).toBeI…
+     66|     expect(within(banner).getByRole("button", { name: "Account menu fo…
+     67|     expect(pageTitle()).toHaveTextContent("Thank someone for work you …
+       |                         ^
+     68|     expect(document.title).toBe("HedgeHug · Home");
+     69|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS17: the home leads with thanking, then the allowance and the counters > shows the member's face and name and a headline inviting them to thank a colleague
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Thank someone for work you noticed"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Welcome, Sam Example":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m>[39m
+    [0mWelcome, Sam Example[0m
+  [36m</h1>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:28:33
+     26|   it("shows the member's face and name and a headline inviting them to…
+     27|     renderApp(shellFixtures.member);
+     28|     const hero = within(main()).getByRole("region", { name: "Thank som…
+       |                                 ^
+     29|     expect(within(hero).getByText("Sam Example")).toBeInTheDocument();
+     30|     expect(within(hero).getByText("SE")).toBeInTheDocument();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS17: the home leads with thanking, then the allowance and the counters > offers one action, thanking someone in Slack, which opens the member's workspace
+TestingLibraryElementError: Unable to find an accessible element with the role "link" and name "Thank someone in Slack"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Welcome, Sam Example":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m>[39m
+    [0mWelcome, Sam Example[0m
+  [36m</h1>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ thankInSlack src/HomePage.test.tsx:18:25
+     16|
+     17| function thankInSlack() {
+     18|   return within(main()).getByRole("link", { name: "Thank someone in Sl…
+       |                         ^
+     19| }
+     20|
+ ❯ src/HomePage.test.tsx:37:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS17: the home leads with thanking, then the allowance and the counters > puts the kudos left out of the base and the refill in one quiet line after the action
+TestingLibraryElementError: Unable to find an element with the text: /1 of 3 kudos left today/. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m>[39m
+    [0mWelcome, Sam Example[0m
+  [36m</h1>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:45:38
+     43|   it("puts the kudos left out of the base and the refill in one quiet …
+     44|     renderApp(shellFixtures.member);
+     45|     const allowance = within(main()).getByText(/1 of 3 kudos left toda…
+       |                                      ^
+     46|     expect(allowance).toHaveTextContent(/Refills at/);
+     47|     expect(allowance.querySelector("time")).toHaveAttribute("dateTime"…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS17: the home leads with thanking, then the allowance and the counters > has Max state this week's thanks in words, without forecasting
+TestingLibraryElementError: Unable to find an element with the text: This week you gave 2 kudos and received 1.. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m>[39m
+    [0mWelcome, Sam Example[0m
+  [36m</h1>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:53:27
+     51|   it("has Max state this week's thanks in words, without forecasting",…
+     52|     renderApp(shellFixtures.member);
+     53|     expect(within(main()).getByText("This week you gave 2 kudos and re…
+       |                           ^
+     54|   });
+     55|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS17: the home leads with thanking, then the allowance and the counters > follows with the counters, this week and in total, given and received, in tabular figures
+TestingLibraryElementError: Unable to find an accessible element with the role "table" and name "Your kudos"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Welcome, Sam Example":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m>[39m
+    [0mWelcome, Sam Example[0m
+  [36m</h1>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:58:37
+     56|   it("follows with the counters, this week and in total, given and rec…
+     57|     renderApp(shellFixtures.member);
+     58|     const counters = within(main()).getByRole("table", { name: "Your k…
+       |                                     ^
+     59|     const rows = within(counters).getAllByRole("row").map((row) => row…
+     60|     expect(rows).toEqual(["This weekIn total", "Given214", "Received19…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS18: what teammates see, and received kudos staying private > shows the member's profile card as their face and name, saying the kudos they receive stay private
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Your profile card"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Welcome, Sam Example":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m>[39m
+    [0mWelcome, Sam Example[0m
+  [36m</h1>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:69:33
+     67|   it("shows the member's profile card as their face and name, saying t…
+     68|     renderApp(shellFixtures.member);
+     69|     const card = within(main()).getByRole("region", { name: "Your prof…
+       |                                 ^
+     70|     expect(within(card).getByText("Sam Example")).toBeInTheDocument();
+     71|     expect(within(card).getByText("SE")).toBeInTheDocument();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS19: the later features are plain locked cards > shows each later feature locked, with its name and one sentence, and no level, progress or crate
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Still locked"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Welcome, Sam Example":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m>[39m
+    [0mWelcome, Sam Example[0m
+  [36m</h1>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:80:35
+     78|   it("shows each later feature locked, with its name and one sentence,…
+     79|     renderApp(shellFixtures.member);
+     80|     const locked = within(main()).getByRole("region", { name: "Still l…
+       |                                   ^
+     81|     const cards = within(locked).getAllByRole("article");
+     82|     expect(cards.map((card) => within(card).getByRole("heading").textC…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS20: a quiet week > has Max point back to thanking someone in Slack, with the one action and no reward
+TestingLibraryElementError: Unable to find an element with the text: No kudos yet this week. Thank someone in Slack for something they did.. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold tracking-tight outline-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m>[39m
+    [0mWelcome, Sam Example[0m
+  [36m</h1>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:100:27
+     98|   it("has Max point back to thanking someone in Slack, with the one ac…
+     99|     renderApp(shellFixtures.memberWithAQuietWeek);
+    100|     expect(within(main()).getByText("No kudos yet this week. Thank som…
+       |                           ^
+    101|     expect(within(main()).queryByText(/This week you gave/)).not.toBeI…
+    102|     expect(within(main()).getAllByRole("link")).toEqual([thankInSlack(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  2 failed | 4 passed (6)
+      Tests  9 failed | 59 passed (68)
+   Start at  20:41:44
+   Duration  5.44s (tests 40%, import 36%, environment 14%, transform 7%, setup 3%)
+

@@ -1,0 +1,41 @@
+$ curl -sSI <sandbox site>/
+HTTP/2 200 
+date: Tue, 13 Oct 2026 21:26:41 GMT
+content-type: text/html; charset=utf-8
+cache-control: public, max-age=0, must-revalidate
+content-security-policy: default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://<sandbox>.convex.cloud wss://<sandbox>.convex.cloud; img-src 'self' https://avatars.slack-edge.com https://res.cloudinary.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+convex-usher: usher
+etag: "kg2dvr1rkaaj8gtnfs4fjj1bzx8g61d5"
+via: 1.1 Caddy
+x-content-type-options: nosniff
+cf-cache-status: DYNAMIC
+server: cloudflare
+cf-ray: a4a16c8d4bc5b2e1-ATL
+alt-svc: h3=":443"; ma=86400
+
+$ curl -sS <sandbox site>/ | head -c 600
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HedgeHug</title>
+    <script type="module" crossorigin src="/assets/index-D0ojxZUa.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DMnLxKC9.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+
+$ curl -sSI <sandbox site>/profile   # SPA deep link
+HTTP/2 200 
+content-type: text/html; charset=utf-8
+content-security-policy: default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://<sandbox>.convex.cloud wss://<sandbox>.convex.cloud; img-src 'self' https://avatars.slack-edge.com https://res.cloudinary.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+x-content-type-options: nosniff
+$ curl -sS <sandbox site>/.well-known/openid-configuration
+{"issuer":"https://<sandbox>.convex.site","jwks_uri":"https://<sandbox>.convex.site/.well-known/jwks.json","authorization_endpoint":"https://<sandbox>.convex.site/oauth/authorize"}
+$ curl -sS <sandbox site>/.well-known/jwks.json  # summarised: key count and type
+{ keys: 1, kty: 'RSA', use: 'sig', alg: undefined }
+$ curl -sS -o /dev/null -w '%{http_code}' <sandbox site>/slack/events  # Slack routes still ahead of static hosting
+401

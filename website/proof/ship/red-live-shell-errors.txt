@@ -1,0 +1,565 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website
+
+ ❯ |website| src/liveShell.test.tsx (3 tests | 3 failed) 2464ms
+   ❯ WS20: the live site shows the error page when a call fails (3)
+     × a profile read that fails on the server shows the error page, not a blank page 17ms
+     × a sign-in that can't start shows the error page and forgets the attempt 1136ms
+     × a sign-out that fails shows the error page 1310ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/liveShell.test.tsx > WS20: the live site shows the error page when a call fails > a profile read that fails on the server shows the error page, not a blank page
+Error: Server Error
+ ❯ src/liveShell.test.tsx:48:13
+     46|   it("a profile read that fails on the server shows the error page, no…
+     47|     profileRead.mockImplementation(() => {
+     48|       throw new Error("Server Error");
+       |             ^
+     49|     });
+     50|
+ ❯ useQuery src/liveShell.test.tsx:15:19
+ ❯ LiveApp src/LiveApp.tsx:19:19
+ ❯ Object.react_stack_bottom_frame ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28571:20
+ ❯ renderWithHooks ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:8030:22
+ ❯ updateFunctionComponent ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:10569:19
+ ❯ beginWork ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:12205:18
+ ❯ runWithFiberInDEV ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13
+ ❯ performUnitOfWork ../node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  |website| src/liveShell.test.tsx > WS20: the live site shows the error page when a call fails > a sign-in that can't start shows the error page and forgets the attempt
+TestingLibraryElementError: Unable to find role="heading" and name "Something went wrong"
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"hud-root flex min-h-screen flex-col"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 md:px-6"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"flex items-center rounded-md"[39m
+            [33mhref[39m=[32m"/"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"flex flex-col leading-none"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"hud-display text-lg font-bold"[39m
+              [36m>[39m
+                [0mHedgeHug[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"text-[10px] text-muted-foreground"[39m
+              [36m>[39m
+                [0mThanks a Hog[0m
+              [36m</span>[39m
+            [36m</span>[39m
+          [36m</a>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ml-auto flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Theme"[39m
+              [33mclass[39m=[32m"flex items-center gap-0.5 rounded-full border bg-card p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Use system setting"[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"[39m
+                [33mtitle[39m=[32m"Use system setting"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"LemonIcon size-4"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"100%"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33mclip-rule[39m=[32m"evenodd"[39m
+                    [33md[39m=[32m"M3 5.75A2.75 2.75 0 0 1 5.75 3h12.5A2.75 2.75 0 0 1 21 5.75V16h1.25a.75.75 0 0 1 .75.75v1.5A2.75 2.75 0 0 1 20.25 21H3.75A2.75 2.75 0 0 1 1 18.25v-1.5a.75.75 0 0 1 .75-.75H3V5.75ZM4.5 16h15V5.75c0-.69-.56-1.25-1.25-1.25H5.75c-.69 0-1.25.56-1.25 1.25V16Zm-2 1.5v.75c0 .69.56 1.25 1.25 1.25h16.5c.69 0 1.25-.56 1.25-1.25v-.75h-19Z"[39m
+                    [33mfill-rule[39m=[32m"evenodd"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-full bg-primary text-primary-foreground"[39m
+                  [33mdata-selected-mark[39m=[32m"true"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"LemonIcon size-2.5"[39m
+                    [33mfill[39m=[32m"currentColor"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"100%"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<g[39m
+                      [33mclip-path[39m=[32m"url(#icon/check__a)"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33mclip-rule[39m=[32m"evenodd"[39m
+                        [33md[39m=[32m"M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"[39m
+                        [33mfill-rule[39m=[32m"evenodd"[39m
+                      [36m/>[39m
+                    [36m</g>[39m
+                    [36m<defs>[39m
+                      [36m<clippath[39m
+                        [33mid[39m=[32m"icon/check__a"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M0 0h20v18H0z"[39m
+                          [33mtransform[39m=[32m"translate(2 3)"[39m
+                        [36m/>[39m
+                      [36m</clippath>[39m
+                    [36m</defs>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Light"[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"[39m
+                [33mtitle[39m=[32m"Light"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"LemonIcon size-4"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"100%"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M12.0002 3.79083V2.26758M5.8418 18.6586L4.7647 19.7357M12.0002 22.7327V21.2094M19.2353 5.26468L18.1582 6.34179M20.709 12.5001H22.2322M18.1582 18.6586L19.2353 19.7357M1.76758 12.5001H3.29083M4.76462 5.26462L5.84173 6.34173M15.7123 8.78781C17.7626 10.8381 17.7626 14.1622 15.7123 16.2124C13.6621 18.2627 10.3379 18.2627 8.28769 16.2124C6.23744 14.1622 6.23744 10.8381 8.28769 8.78781C10.3379 6.73756 13.6621 6.73756 15.7123 8.78781Z"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.5"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Dark"[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"[39m
+                [33mtitle[39m=[32m"Dark"[39m
+           ...
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"hud-root flex min-h-screen flex-col"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 md:px-6"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"flex items-center rounded-md"[39m
+            [33mhref[39m=[32m"/"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"flex flex-col leading-none"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"hud-display text-lg font-bold"[39m
+              [36m>[39m
+                [0mHedgeHug[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"text-[10px] text-muted-foreground"[39m
+              [36m>[39m
+                [0mThanks a Hog[0m
+              [36m</span>[39m
+            [36m</span>[39m
+          [36m</a>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ml-auto flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Theme"[39m
+              [33mclass[39m=[32m"flex items-center gap-0.5 rounded-full border bg-card p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Use system setting"[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"[39m
+                [33mtitle[39m=[32m"Use system setting"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"LemonIcon size-4"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"100%"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33mclip-rule[39m=[32m"evenodd"[39m
+                    [33md[39m=[32m"M3 5.75A2.75 2.75 0 0 1 5.75 3h12.5A2.75 2.75 0 0 1 21 5.75V16h1.25a.75.75 0 0 1 .75.75v1.5A2.75 2.75 0 0 1 20.25 21H3.75A2.75 2.75 0 0 1 1 18.25v-1.5a.75.75 0 0 1 .75-.75H3V5.75ZM4.5 16h15V5.75c0-.69-.56-1.25-1.25-1.25H5.75c-.69 0-1.25.56-1.25 1.25V16Zm-2 1.5v.75c0 .69.56 1.25 1.25 1.25h16.5c.69 0 1.25-.56 1.25-1.25v-.75h-19Z"[39m
+                    [33mfill-rule[39m=[32m"evenodd"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-full bg-primary text-primary-foreground"[39m
+                  [33mdata-selected-mark[39m=[32m"true"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"LemonIcon size-2.5"[39m
+                    [33mfill[39m=[32m"currentColor"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"100%"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<g[39m
+                      [33mclip-path[39m=[32m"url(#icon/check__a)"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33mclip-rule[39m=[32m"evenodd"[39m
+                        [33md[39m=[32m"M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"[39m
+                        [33mfill-rule[39m=[32m"evenodd"[39m
+                      [36m/>[39m
+                    [36m</g>[39m
+                    [36m<defs>[39m
+                      [36m<clippath[39m
+                        [33mid[39m=[32m"icon/check__a"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M0 0h20v18H0z"[39m
+                          [33mtransform[39m=[32m"translate(2 3)"[39m
+                        [36m/>[39m
+                      [36m</clippath>[39m
+                    [36m</defs>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Light"[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"[39m
+                [33mtitle[39m=[32m"Light"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"LemonIcon size-4"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"100%"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M12.0002 3.79083V2.26758M5.8418 18.6586L4.7647 19.7357M12.0002 22.7327V21.2094M19.2353 5.26468L18.1582 6.34179M20.709 12.5001H22.2322M18.1582 18.6586L19.2353 19.7357M1.76758 12.5001H3.29083M4.76462 5.26462L5.84173 6.34173M15.7123 8.78781C17.7626 10.8381 17.7626 14.1622 15.7123 16.2124C13.6621 18.2627 10.3379 18.2627 8.28769 16.2124C6.23744 14.1622 6.23744 10.8381 8.28769 8.78781C10.3379 6.73756 13.6621 6.73756 15.7123 8.78781Z"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"1.5"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Dark"[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-foreground"[39m
+                [33mtitle[39m=[32m"Dark"[39m
+           ...
+ ❯ waitForWrapper ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ errorPage src/liveShell.test.tsx:30:17
+     28|
+     29| function errorPage() {
+     30|   return screen.findByRole("heading", { level: 1, name: "Something wen…
+       |                 ^
+     31| }
+     32|
+ ❯ src/liveShell.test.tsx:64:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  |website| src/liveShell.test.tsx > WS20: the live site shows the error page when a call fails > a sign-out that fails shows the error page
+TestingLibraryElementError: Unable to find role="heading" and name "Something went wrong"
+
+Ignored nodes: comments, script, style
+[36m<body[39m
+  [33mstyle[39m=[32m""[39m
+[36m>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"hud-root flex min-h-screen flex-col"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 md:px-6"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"flex items-center rounded-md"[39m
+            [33mhref[39m=[32m"/"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"flex flex-col leading-none"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"hud-display text-lg font-bold"[39m
+              [36m>[39m
+                [0mHedgeHug[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"text-[10px] text-muted-foreground"[39m
+              [36m>[39m
+                [0mThanks a Hog[0m
+              [36m</span>[39m
+            [36m</span>[39m
+          [36m</a>[39m
+          [36m<nav[39m
+            [33maria-label[39m=[32m"Screens"[39m
+            [33mclass[39m=[32m"mx-auto flex items-center gap-0.5"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33maria-current[39m=[32m"page"[39m
+              [33mclass[39m=[32m"relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 after:rounded-full after:bg-primary"[39m
+              [33mhref[39m=[32m"/"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"LemonIcon size-4"[39m
+                [33mfill[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"100%"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33mclip-rule[39m=[32m"evenodd"[39m
+                  [33md[39m=[32m"M12.162 3.12a.25.25 0 0 0-.324 0l-7.25 6.152a.25.25 0 0 0-.088.191v9.787c0 .138.112.25.25.25h4a.25.25 0 0 0 .25-.25v-3.5c0-.966.784-1.75 1.75-1.75h2.5c.966 0 1.75.784 1.75 1.75v3.5c0 .138.112.25.25.25h4a.25.25 0 0 0 .25-.25V9.463a.25.25 0 0 0-.088-.19l-7.25-6.152Zm-1.294-1.143a1.75 1.75 0 0 1 2.264 0l7.25 6.152c.392.332.618.82.618 1.334v9.787A1.75 1.75 0 0 1 19.25 21h-4a1.75 1.75 0 0 1-1.75-1.75v-3.5a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25v3.5A1.75 1.75 0 0 1 8.75 21h-4A1.75 1.75 0 0 1 3 19.25V9.463c0-.514.226-1.002.618-1.334l7.25-6.152Z"[39m
+                  [33mfill-rule[39m=[32m"evenodd"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [0mHome[0m
+            [36m</a>[39m
+          [36m</nav>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ml-auto flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Theme"[39m
+              [33mclass[39m=[32m"flex items-center gap-0.5 rounded-full border bg-card p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Use system setting"[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"[39m
+                [33mtitle[39m=[32m"Use system setting"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"LemonIcon size-4"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"100%"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33mclip-rule[39m=[32m"evenodd"[39m
+                    [33md[39m=[32m"M3 5.75A2.75 2.75 0 0 1 5.75 3h12.5A2.75 2.75 0 0 1 21 5.75V16h1.25a.75.75 0 0 1 .75.75v1.5A2.75 2.75 0 0 1 20.25 21H3.75A2.75 2.75 0 0 1 1 18.25v-1.5a.75.75 0 0 1 .75-.75H3V5.75ZM4.5 16h15V5.75c0-.69-.56-1.25-1.25-1.25H5.75c-.69 0-1.25.56-1.25 1.25V16Zm-2 1.5v.75c0 .69.56 1.25 1.25 1.25h16.5c.69 0 1.25-.56 1.25-1.25v-.75h-19Z"[39m
+                    [33mfill-rule[39m=[32m"evenodd"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-full bg-primary text-primary-foreground"[39m
+                  [33mdata-selected-mark[39m=[32m"true"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"LemonIcon size-2.5"[39m
+                    [33mfill[39m=[32m"currentColor"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"100%"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<g[39m
+                      [33mclip-path[39m=[32m"url(#icon/check__a)"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33mclip-rule[39m=[32m"evenodd"[39m
+                        [33md[39m=[32m"M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"[39m
+                        [33mfill-rule[39m=[32m"evenodd"[39m
+                      [36m/>[39m
+                    [36m</g>[39m
+                    [36m<defs>[39m
+                      [36m<clippath[39m
+                        [33mid[39m=[32m"icon/check__a"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M0 0h20v18H0z"[39m
+                          [33mtransform[39m=[32m"translate(2 3)"[39m
+                        [36m/>[39m
+                      [36m</clippath>[39m
+                    [36m</defs>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Light"[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-...
+
+Ignored nodes: comments, script, style
+[36m<body[39m
+  [33mstyle[39m=[32m""[39m
+[36m>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"hud-root flex min-h-screen flex-col"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 md:px-6"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"flex items-center rounded-md"[39m
+            [33mhref[39m=[32m"/"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"flex flex-col leading-none"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"hud-display text-lg font-bold"[39m
+              [36m>[39m
+                [0mHedgeHug[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"text-[10px] text-muted-foreground"[39m
+              [36m>[39m
+                [0mThanks a Hog[0m
+              [36m</span>[39m
+            [36m</span>[39m
+          [36m</a>[39m
+          [36m<nav[39m
+            [33maria-label[39m=[32m"Screens"[39m
+            [33mclass[39m=[32m"mx-auto flex items-center gap-0.5"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33maria-current[39m=[32m"page"[39m
+              [33mclass[39m=[32m"relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 after:rounded-full after:bg-primary"[39m
+              [33mhref[39m=[32m"/"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"LemonIcon size-4"[39m
+                [33mfill[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"100%"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33mclip-rule[39m=[32m"evenodd"[39m
+                  [33md[39m=[32m"M12.162 3.12a.25.25 0 0 0-.324 0l-7.25 6.152a.25.25 0 0 0-.088.191v9.787c0 .138.112.25.25.25h4a.25.25 0 0 0 .25-.25v-3.5c0-.966.784-1.75 1.75-1.75h2.5c.966 0 1.75.784 1.75 1.75v3.5c0 .138.112.25.25.25h4a.25.25 0 0 0 .25-.25V9.463a.25.25 0 0 0-.088-.19l-7.25-6.152Zm-1.294-1.143a1.75 1.75 0 0 1 2.264 0l7.25 6.152c.392.332.618.82.618 1.334v9.787A1.75 1.75 0 0 1 19.25 21h-4a1.75 1.75 0 0 1-1.75-1.75v-3.5a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25v3.5A1.75 1.75 0 0 1 8.75 21h-4A1.75 1.75 0 0 1 3 19.25V9.463c0-.514.226-1.002.618-1.334l7.25-6.152Z"[39m
+                  [33mfill-rule[39m=[32m"evenodd"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [0mHome[0m
+            [36m</a>[39m
+          [36m</nav>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ml-auto flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Theme"[39m
+              [33mclass[39m=[32m"flex items-center gap-0.5 rounded-full border bg-card p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Use system setting"[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-primary bg-fill-selected text-foreground"[39m
+                [33mtitle[39m=[32m"Use system setting"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"LemonIcon size-4"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"100%"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33mclip-rule[39m=[32m"evenodd"[39m
+                    [33md[39m=[32m"M3 5.75A2.75 2.75 0 0 1 5.75 3h12.5A2.75 2.75 0 0 1 21 5.75V16h1.25a.75.75 0 0 1 .75.75v1.5A2.75 2.75 0 0 1 20.25 21H3.75A2.75 2.75 0 0 1 1 18.25v-1.5a.75.75 0 0 1 .75-.75H3V5.75ZM4.5 16h15V5.75c0-.69-.56-1.25-1.25-1.25H5.75c-.69 0-1.25.56-1.25 1.25V16Zm-2 1.5v.75c0 .69.56 1.25 1.25 1.25h16.5c.69 0 1.25-.56 1.25-1.25v-.75h-19Z"[39m
+                    [33mfill-rule[39m=[32m"evenodd"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-full bg-primary text-primary-foreground"[39m
+                  [33mdata-selected-mark[39m=[32m"true"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"LemonIcon size-2.5"[39m
+                    [33mfill[39m=[32m"currentColor"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"100%"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<g[39m
+                      [33mclip-path[39m=[32m"url(#icon/check__a)"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33mclip-rule[39m=[32m"evenodd"[39m
+                        [33md[39m=[32m"M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"[39m
+                        [33mfill-rule[39m=[32m"evenodd"[39m
+                      [36m/>[39m
+                    [36m</g>[39m
+                    [36m<defs>[39m
+                      [36m<clippath[39m
+                        [33mid[39m=[32m"icon/check__a"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M0 0h20v18H0z"[39m
+                          [33mtransform[39m=[32m"translate(2 3)"[39m
+                        [36m/>[39m
+                      [36m</clippath>[39m
+                    [36m</defs>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Light"[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"relative flex size-7 items-center justify-center rounded-full border transition-colors border-transparent text-muted-foreground hover:bg-fill-hover hover:text-...
+ ❯ waitForWrapper ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ errorPage src/liveShell.test.tsx:30:17
+     28|
+     29| function errorPage() {
+     30|   return screen.findByRole("heading", { level: 1, name: "Something wen…
+       |                 ^
+     31| }
+     32|
+ ❯ src/liveShell.test.tsx:76:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed (3)
+   Start at  21:54:45
+   Duration  4.23s (tests 59%, import 23%, environment 10%, transform 4%, setup 2%)
+

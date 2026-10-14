@@ -13,6 +13,18 @@ export function allowanceDay(at: number, timeZone: string | undefined): DayKey {
   return new Intl.DateTimeFormat("en-CA", { timeZone: timeZone ?? "UTC" }).format(at);
 }
 
+export function nextAllowanceDayStart(at: number, timeZone: string | undefined) {
+  const today = allowanceDay(at, timeZone);
+  let stillToday = at;
+  let tomorrow = at + 2 * dayMs;
+  while (tomorrow - stillToday > 1) {
+    const middle = Math.floor((stillToday + tomorrow) / 2);
+    if (allowanceDay(middle, timeZone) === today) stillToday = middle;
+    else tomorrow = middle;
+  }
+  return tomorrow;
+}
+
 export function weekOf(day: DayKey): Week {
   const date = Date.parse(`${day}T00:00:00Z`);
   const daysSinceMonday = (new Date(date).getUTCDay() + 6) % 7;

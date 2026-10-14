@@ -1,0 +1,14 @@
+WS15 live proof: an open home turns to the new day on the clock's cron tick, without another kudos or a reload.
+
+Disposable local backend on 127.0.0.1:3510/3511, mock Slack issuer on 3512. A member in Europe/Moscow
+(local midnight 21:00Z) signed in through Convex Auth in the browser and spent all 3 kudos at 20:53:42Z.
+The page stayed open in one tab the whole time (performance navigation entries: 1).
+
+20:53:43Z  "0 of 3 kudos left today · Refills at 9:00 PM"  refill 2026-10-13T21:00:00.000Z   (clock-1-before-midnight.png)
+20:55:37Z  cron "tick the website clock" ticks (websiteClock.tick = 2026-10-13T20:55:37.248Z)
+21:00:00Z  the member's local midnight
+21:00:24Z  "0 of 3 kudos left today · Refills at 9:00 PM"  refill 2026-10-13T21:00:00.000Z   (clock-2-after-midnight-before-tick.png)
+           the open subscription still holds yesterday's cached answer
+21:10:37Z  cron "tick the website clock" ticks
+21:11:23Z  "3 of 3 kudos left today · Refills at 9:00 PM"  refill 2026-10-14T21:00:00.000Z   (clock-3-after-cron-tick.png)
+           the same open page turned to the new day, with no kudos and no new page request

@@ -1,0 +1,26 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/sign-in
+
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS26: the routes coexist > the Slack route still refuses an unsigned request 583ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS26: the routes coexist > the sign-in route is Convex Auth's, not the static catch-all 638ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS5 L-W1: a member signs in with Slack > Slack is asked for openid profile in the deployment's workspace, with state and nonce, and the member lands home 825ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS6: eight refusals create no session > sign-in with a foreign workspace gets no code 608ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS6: eight refusals create no session > sign-in with a wrong nonce gets no code 598ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS6: eight refusals create no session > sign-in with another client's token gets no code 596ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS6: eight refusals create no session > sign-in with a tampered state gets no code 592ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS6: eight refusals create no session > sign-in with a missing state cookie gets no code 594ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS6: eight refusals create no session > sign-in with login CSRF, with neither state nor cookies gets no code 615ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS6: eight refusals create no session > a one-time code can't be redeemed twice 654ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS6: eight refusals create no session > a code stolen from the redirect is useless without the browser's verifier 645ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS3: while the website is closed, nobody signs in and every session reads closed > the callback refuses while the flag is off 1153ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS3: while the website is closed, nobody signs in and every session reads closed > switched off between initiation and the callback, the callback refuses 1185ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS3: while the website is closed, nobody signs in and every session reads closed > switched off between the callback and redeeming the code, the session reads closed 1212ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS3: while the website is closed, nobody signs in and every session reads closed > switched off after sign-in, an existing session and one refreshed later both read closed 1227ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS8: a person the directory doesn't know yet is verified > after three failed lookups the person reads unverified, never a member 3722ms
+ ✓ |handshake| testing/handshake/signIn.handshake.ts > WS9: sessions > a refreshed session reads the member, and after sign-out a still-unexpired token reads signed out 728ms
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  20:25:40
+   Duration  17.01s (tests 99%, import 1%)
+

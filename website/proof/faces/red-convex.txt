@@ -1,0 +1,268 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/faces
+
+ ❯ |convex| convex/companyProfiles/faces.test.ts (18 tests | 18 failed) 79ms
+   ❯ WS21 V19 V21: a member's face is their company profile cutout on its colour (6)
+     × a member whose Slack real name matches exactly one company profile reads its cutout on its colour 48ms
+     × a member matches whatever the case, accents and spacing of either name 3ms
+     × a member signed in without a full name matches by their given and family names 2ms
+     × a person listed on two teams is one company profile 2ms
+     × a profile without a colour sits on posthog.com's neutral tan 2ms
+     × every page of the team pages is read 2ms
+   ❯ WS21 V19 V21: without exactly one company profile the face falls back (4)
+     × two company profiles with the member's name fall back to the Slack picture 2ms
+     × no company profile with the member's name falls back to the Slack picture, then initials 1ms
+     × a profile whose cutout isn't a Cloudinary PNG is no face 4ms
+     × a profile gone from posthog.com no longer matches after the next good read 2ms
+   ❯ WS22: a failed posthog.com read keeps the previous profiles (8)
+     × a read that answers an error status keeps the previous profiles and logs a fixed code 2ms
+     × a read that answers a network failure keeps the previous profiles and logs a fixed code 1ms
+     × a read that answers a body that isn't JSON keeps the previous profiles and logs a fixed code 1ms
+     × a read that answers a team without its profiles keeps the previous profiles and logs a fixed code 1ms
+     × a read that answers a profile without a last name keeps the previous profiles and logs a fixed code 1ms
+     × a read that answers no pagination keeps the previous profiles and logs a fixed code 1ms
+     × a read that answers no profiles at all keeps the previous profiles and logs a fixed code 1ms
+     × a read that fails on a later page keeps the previous profiles 1ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 18 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: a member's face is their company profile cutout on its colour > a member whose Slack real name matches exactly one company profile reads its cutout on its colour
+Error: Could not find module for: "companyProfiles/sync"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.actionFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2215:36
+ ❯ action node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2259:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as action] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ syncCompanyProfiles convex/companyProfiles/faces.test.ts:37:12
+ ❯ convex/companyProfiles/faces.test.ts:50:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/18]⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: a member's face is their company profile cutout on its colour > a member matches whatever the case, accents and spacing of either name
+Error: Could not find module for: "companyProfiles/sync"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.actionFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2215:36
+ ❯ action node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2259:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as action] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ syncCompanyProfiles convex/companyProfiles/faces.test.ts:37:12
+ ❯ convex/companyProfiles/faces.test.ts:57:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/18]⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: a member's face is their company profile cutout on its colour > a member signed in without a full name matches by their given and family names
+Error: Could not find module for: "companyProfiles/sync"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.actionFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2215:36
+ ❯ action node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2259:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as action] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ syncCompanyProfiles convex/companyProfiles/faces.test.ts:37:12
+ ❯ convex/companyProfiles/faces.test.ts:64:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/18]⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: a member's face is their company profile cutout on its colour > a person listed on two teams is one company profile
+Error: Could not find module for: "companyProfiles/sync"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.actionFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2215:36
+ ❯ action node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2259:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as action] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ syncCompanyProfiles convex/companyProfiles/faces.test.ts:37:12
+ ❯ convex/companyProfiles/faces.test.ts:71:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/18]⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: a member's face is their company profile cutout on its colour > a profile without a colour sits on posthog.com's neutral tan
+Error: Could not find module for: "companyProfiles/sync"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.actionFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2215:36
+ ❯ action node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2259:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as action] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ syncCompanyProfiles convex/companyProfiles/faces.test.ts:37:12
+ ❯ convex/companyProfiles/faces.test.ts:78:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/18]⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: a member's face is their company profile cutout on its colour > every page of the team pages is read
+Error: Could not find module for: "companyProfiles/sync"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.actionFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2215:36
+ ❯ action node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2259:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as action] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ syncCompanyProfiles convex/companyProfiles/faces.test.ts:37:12
+ ❯ convex/companyProfiles/faces.test.ts:85:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/18]⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: without exactly one company profile the face falls back > two company profiles with the member's name fall back to the Slack picture
+Error: Could not find module for: "companyProfiles/sync"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.actionFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2215:36
+ ❯ action node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2259:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as action] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ syncCompanyProfiles convex/companyProfiles/faces.test.ts:37:12
+ ❯ convex/companyProfiles/faces.test.ts:94:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/18]⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: without exactly one company profile the face falls back > no company profile with the member's name falls back to the Slack picture, then initials
+Error: Could not find module for: "companyProfiles/sync"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.actionFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2215:36
+ ❯ action node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2259:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as action] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ syncCompanyProfiles convex/companyProfiles/faces.test.ts:37:12
+ ❯ convex/companyProfiles/faces.test.ts:101:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/18]⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: without exactly one company profile the face falls back > a profile whose cutout isn't a Cloudinary PNG is no face
+Error: Could not find module for: "companyProfiles/sync"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.actionFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2215:36
+ ❯ action node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2259:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as action] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ syncCompanyProfiles convex/companyProfiles/faces.test.ts:37:12
+ ❯ convex/companyProfiles/faces.test.ts:109:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/18]⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: without exactly one company profile the face falls back > a profile gone from posthog.com no longer matches after the next good read
+Error: Could not find module for: "companyProfiles/sync"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.actionFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2215:36
+ ❯ action node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2259:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as action] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ syncCompanyProfiles convex/companyProfiles/faces.test.ts:37:12
+ ❯ convex/companyProfiles/faces.test.ts:116:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/18]⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS22: a failed posthog.com read keeps the previous profiles > a read that answers an error status keeps the previous profiles and logs a fixed code
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS22: a failed posthog.com read keeps the previous profiles > a read that answers a network failure keeps the previous profiles and logs a fixed code
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS22: a failed posthog.com read keeps the previous profiles > a read that answers a body that isn't JSON keeps the previous profiles and logs a fixed code
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS22: a failed posthog.com read keeps the previous profiles > a read that answers a team without its profiles keeps the previous profiles and logs a fixed code
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS22: a failed posthog.com read keeps the previous profiles > a read that answers a profile without a last name keeps the previous profiles and logs a fixed code
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS22: a failed posthog.com read keeps the previous profiles > a read that answers no pagination keeps the previous profiles and logs a fixed code
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS22: a failed posthog.com read keeps the previous profiles > a read that answers no profiles at all keeps the previous profiles and logs a fixed code
+Error: Could not find module for: "companyProfiles/sync"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.actionFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2215:36
+ ❯ action node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2259:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as action] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ syncCompanyProfiles convex/companyProfiles/faces.test.ts:37:12
+ ❯ convex/companyProfiles/faces.test.ts:140:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/18]⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS22: a failed posthog.com read keeps the previous profiles > a read that fails on a later page keeps the previous profiles
+Error: Could not find module for: "companyProfiles/sync"
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1550:19
+    1548|         const module = modulesWithoutExtension[prefix + path];
+    1549|         if (module === undefined) {
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+       |                   ^
+    1551|         }
+    1552|         return await module();
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2487:76
+ ❯ Object.actionFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2215:36
+ ❯ action node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2259:41
+ ❯ node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:80
+ ❯ Object.result.<computed> [as action] node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:1971:56
+ ❯ syncCompanyProfiles convex/companyProfiles/faces.test.ts:37:12
+ ❯ convex/companyProfiles/faces.test.ts:152:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/18]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  18 failed (18)
+   Start at  21:20:00
+   Duration  636ms (transform 43%, import 31%, tests 17%, environment 9%, worker 1%)
+

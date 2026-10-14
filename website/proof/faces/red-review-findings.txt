@@ -1,0 +1,67 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/faces
+
+ ❯ |convex| convex/companyProfiles/faces.test.ts (22 tests | 3 failed) 208ms
+   ❯ WS21 V19 V21: without exactly one company profile the face falls back (5)
+     × two people with the member's name fall back even when only one of them has a cutout 11ms
+   ❯ WS22: a failed posthog.com read keeps the previous profiles (10)
+     × a later page that declares fewer pages than the first keeps the previous profiles as malformed 5ms
+     × a later page that answers as the first page again keeps the previous profiles as malformed 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS21 V19 V21: without exactly one company profile the face falls back > two people with the member's name fall back even when only one of them has a cutout
+AssertionError: expected { colour: '#8567FF', …(2) } to deeply equal { kind: 'slack', …(1) }
+
+- Expected
++ Received
+
+  {
+-   "image": "https://avatars.slack-edge.com/wren.png",
+-   "kind": "slack",
++   "colour": "#8567FF",
++   "image": "https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/wren.png",
++   "kind": "company-profile",
+  }
+
+ ❯ convex/companyProfiles/faces.test.ts:119:32
+    117|     await syncCompanyProfiles();
+    118|
+    119|     expect(await faceOf(wren)).toEqual({ kind: "slack", image: wren.im…
+       |                                ^
+    120|   });
+    121|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS22: a failed posthog.com read keeps the previous profiles > a later page that declares fewer pages than the first keeps the previous profiles as malformed
+ FAIL  |convex| convex/companyProfiles/faces.test.ts > WS22: a failed posthog.com read keeps the previous profiles > a later page that answers as the first page again keeps the previous profiles as malformed
+AssertionError: expected { …(2) } to deeply equal { kind: 'company-profile', …(2) }
+
+- Expected
++ Received
+
+  {
+-   "colour": "#8567FF",
+-   "image": "https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/wren.png",
+-   "kind": "company-profile",
++   "image": "https://avatars.slack-edge.com/wren.png",
++   "kind": "slack",
+  }
+
+ ❯ convex/companyProfiles/faces.test.ts:178:32
+    176|     await syncCompanyProfiles();
+    177|
+    178|     expect(await faceOf(wren)).toEqual(wrensFace);
+       |                                ^
+    179|     expect(warn).toHaveBeenCalledWith("companyProfiles.read_failed", {…
+    180|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 19 passed (22)
+   Start at  21:30:22
+   Duration  718ms (transform 37%, tests 33%, import 23%, environment 6%)
+

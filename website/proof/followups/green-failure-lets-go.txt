@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/followups/website
+
+
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+   Start at  22:56:08
+   Duration  2.22s (import 45%, tests 20%, environment 20%, transform 9%, setup 4%)
+

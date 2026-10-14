@@ -7,9 +7,10 @@ import { progressSettingsOf } from "../progression/settings";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { questsApplyIn } from "../quests/flag";
 import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type WeeklyQuest } from "../quests/step";
-import { featureValidator } from "../unlocks/feature";
+import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedIn, unlocksShownTo } from "../unlocks/launch";
-import { scheduled, shippedIn, type ScheduledFeature } from "../unlocks/schedule";
+import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
+import { stateOf } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, readyCrateOf, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
@@ -90,14 +91,19 @@ function levelReachedLines({ level, skillPoints, xpToNextLevel }: Extract<Notifi
 async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification> {
   if (isAboutQuests(notification)) return notification;
   if (!(await unlocksAppliedIn(ctx, workspace))) return { ...notification, ready: [] };
-  const shipped = (await shippedIn(ctx, workspace)).map(({ feature }) => feature);
-  const ready = notification.ready.filter((feature) => shipped.includes(feature));
+  const ready = await stillReady(ctx, member, notification.ready);
   if (notification.kind !== "level-reached" || notification.skillPoints === null) return { ...notification, ready };
   return { ...notification, ready, skillPoints: await whenOpened(ctx, member, "skillTree", notification.skillPoints) };
 }
 
 function isAboutQuests(notification: Notification): notification is Extract<Notification, { kind: "quest-finished" | "journey-joined" | "weekly-quest-finished" }> {
   return notification.kind === "quest-finished" || notification.kind === "journey-joined" || notification.kind === "weekly-quest-finished";
+}
+
+async function stillReady(ctx: QueryCtx, member: MemberId, features: Feature[]) {
+  const ready: Feature[] = [];
+  for (const feature of features) if ((await stateOf(ctx, member, feature)) === "ready") ready.push(feature);
+  return ready;
 }
 
 function featuresOf(ready: ScheduledFeature[]) {

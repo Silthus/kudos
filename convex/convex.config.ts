@@ -1,3 +1,4 @@
+import staticHosting from "@convex-dev/static-hosting/convex.config.js";
 import posthog from "@posthog/convex/convex.config.js";
 import { defineApp } from "convex/server";
 import { v } from "convex/values";
@@ -17,5 +18,7 @@ app.use(posthog, {
     POSTHOG_PERSONAL_API_KEY: app.env.POSTHOG_PERSONAL_API_KEY,
   },
 });
+
+app.use(staticHosting);
 
 export default app;

@@ -1,0 +1,19 @@
+codex
+**Minor — [website/src/signInAttempt.ts:35](/home/coder/dev/kudos-wt/sign-in/website/src/signInAttempt.ts:35): a completed sign-in leaves an earlier failure latched.**
+
+A failed return sets `unfinished=true`. If another tab subsequently signs in, Convex Auth synchronizes the token and this page becomes `member`. Because `returnedFromSignIn` is already false, the effect never clears `unfinished`. Signing out then incorrectly shows “Sign-in didn’t finish.”
+
+This contradicts **WS6**: that message describes an unfinished sign-in, whereas this sign-in completed successfully. I reproduced the actual hook sequence: `loading → signed-out → member → signed-out`; the final output was `sign-in-unfinished`.
+
+Clear the failure state when authentication succeeds, independently of the pending-return marker. Extend [signIn.test.tsx:69](/home/coder/dev/kudos-wt/sign-in/website/src/signIn.test.tsx:69) with this sequence; its current direct transition to `member` never exercises a latched failure.
+
+The `openid profile` scope pin is correct and tested on the actual authorization URL. No confirmed security, backend-race or Slack-token defects found.
+
+**Verdict: one minor React-state defect; no blocker or major findings.**
+tokens used
+78,348
+**Minor — [website/src/signInAttempt.ts:35](/home/coder/dev/kudos-wt/sign-in/website/src/signInAttempt.ts:35): a completed sign-in leaves an earlier failure latched.**
+
+A failed return sets `unfinished=true`. If another tab subsequently signs in, Convex Auth synchronizes the token and this page becomes `member`. Because `returnedFromSignIn` is already false, the effect never clears `unfinished`. Signing out then incorrectly shows “Sign-in didn’t finish.”
+
+This contradicts **WS6**: that message describes an unfinished sign-in, whereas this sign-in completed successfully. I reproduced the actual hook sequence: `loading → signed-out → member → signed-out`; the final output was `sign-in-unfinished`.

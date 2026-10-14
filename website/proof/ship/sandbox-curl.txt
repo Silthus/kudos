@@ -1,0 +1,15 @@
+# Sandbox after deploying 6518213 by hand (deployment written <sandbox>)
+## GET /
+HTTP/2 200 
+content-type: text/html; charset=utf-8
+cache-control: public, max-age=0, must-revalidate
+content-security-policy: default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://<sandbox>.convex.cloud wss://<sandbox>.convex.cloud; img-src 'self' https://avatars.slack-edge.com https://res.cloudinary.com; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+x-content-type-options: nosniff
+## index.html links Quill's stylesheet under its id
+<link rel="stylesheet" id="quill-scroll-area-shadows" href="/quill-scroll-area-shadows-0.3.0-beta.30.css" />
+## the versioned stylesheet
+HTTP/2 200 
+content-type: text/css; charset=utf-8
+cache-control: public, max-age=14400
+x-content-type-options: nosniff
+bytes: 1987
