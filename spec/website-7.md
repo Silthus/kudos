@@ -371,45 +371,45 @@ Each ticket rewrites its part of `website/Website.spec.md` and `convex/website/W
 Each ticket is a sub-issue of map #57 and its own pull request from `main` (WS336). Casting: UI and commands on Opus 5.5 (high), reviewed by GPT-6.1 Sol (high); tickets 2, 3, 15, 17, 20, 22 and 33 also get a Fable 5.1 design spot check. The order puts the most visible gaps first.
 
 **Now, on `main`:**
-1. **The header fits a phone** (WS300). The overflow defect alone: the rail, the compact bar, its classes, and the browser width proof. Blocked by nothing.
-2. **The HUD nav, as in variant E** (WS301–WS304), with `navEntriesOf`. Blocked by 1.
-3. **The command palette** (WS305–WS308). Blocked by 2.
-4. **The sign-in card and display titles** (WS309, WS310) for the pages on `main`. Blocked by nothing.
-5. **The open hero and the first-kudos nudge** (WS311, WS312). Blocked by #238, the last open home ticket.
-6. **Quest art, `Claim`, the reward flight and quest links** (WS314–WS316). Blocked by nothing.
-7. **Swap on the website** (WS318, WS319). Blocked by 6 and 12.
-8. **The Journey's next step as the bonus quest**, on `/quests` and in the home's quest rows (WS317). Blocked by 6 and #238.
-9. **Show 5 more on the board** (WS320). Blocked by nothing.
-10. **Show me on the leaderboards, on the web** (WS321, WS322). Blocked by 12.
-11. **The locked and ready pages and the richer reveal** (WS323–WS325). Blocked by 2, for `navEntriesOf`.
-12. **The website's launch check covers the Book's launch** (WS335). A defect in the shared gate on `main`: `workspaceLaunchDueIn` counts the Book's launch, with a test that `openFeature`, `openQuestCrate` and App Home's republish after them record no `bookLaunches` row while it is due. Blocked by nothing.
+1. [#268](https://github.com/Silthus/kudos/issues/268) **The header fits a phone** (WS300). The overflow defect alone: the rail, the compact bar, its classes, and the browser width proof. Blocked by nothing.
+2. [#269](https://github.com/Silthus/kudos/issues/269) **The HUD nav, as in variant E** (WS301–WS304), with `navEntriesOf`. Blocked by 1.
+3. [#270](https://github.com/Silthus/kudos/issues/270) **The command palette** (WS305–WS308). Blocked by 2.
+4. [#271](https://github.com/Silthus/kudos/issues/271) **The sign-in card and display titles** (WS309, WS310) for the pages on `main`. Blocked by nothing.
+5. [#272](https://github.com/Silthus/kudos/issues/272) **The open hero and the first-kudos nudge** (WS311, WS312). Blocked by #238, the last open home ticket.
+6. [#273](https://github.com/Silthus/kudos/issues/273) **Quest art, `Claim`, the reward flight and quest links** (WS314–WS316). Blocked by nothing.
+7. [#288](https://github.com/Silthus/kudos/issues/288) **Swap on the website** (WS318, WS319). Blocked by 6 and 12.
+8. [#274](https://github.com/Silthus/kudos/issues/274) **The Journey's next step as the bonus quest**, on `/quests` and in the home's quest rows (WS317). Blocked by 6 and #238.
+9. [#275](https://github.com/Silthus/kudos/issues/275) **Show 5 more on the board** (WS320). Blocked by nothing.
+10. [#289](https://github.com/Silthus/kudos/issues/289) **Show me on the leaderboards, on the web** (WS321, WS322). Blocked by 12.
+11. [#276](https://github.com/Silthus/kudos/issues/276) **The locked and ready pages and the richer reveal** (WS323–WS325). Blocked by 2, for `navEntriesOf`.
+12. [#277](https://github.com/Silthus/kudos/issues/277) **The website's launch check covers the Book's launch** (WS335). A defect in the shared gate on `main`: `workspaceLaunchDueIn` counts the Book's launch, with a test that `openFeature`, `openQuestCrate` and App Home's republish after them record no `bookLaunches` row while it is due. Blocked by nothing.
 
 **After ship #193:**
-13. **Spending points from the hero** (WS313). Blocked by #193 and 5.
-14. **The compact skill tree** (WS326–WS330). Blocked by #193.
-15. **The Book's index and category pages** (WS331, WS332). Blocked by #193.
-16. **Ladder details** (WS333). Blocked by #193.
-17. **The Book's overview** (WS334). Blocked by 15 and 16.
+13. [#278](https://github.com/Silthus/kudos/issues/278) **Spending points from the hero** (WS313). Blocked by #193 and 5.
+14. [#279](https://github.com/Silthus/kudos/issues/279) **The compact skill tree** (WS326–WS330). Blocked by #193.
+15. [#280](https://github.com/Silthus/kudos/issues/280) **The Book's index and category pages** (WS331, WS332). Blocked by #193.
+16. [#281](https://github.com/Silthus/kudos/issues/281) **Ladder details** (WS333). Blocked by #193.
+17. [#290](https://github.com/Silthus/kudos/issues/290) **The Book's overview** (WS334). Blocked by 15 and 16.
 
 **Cross-map, after map #1 ships the facts.** Each is blocked in text by the map #1 ticket, never natively, so map #1's tickets are untouched, and natively by the website tickets it builds on. Each starts only once its facts are on `main`.
-18. **The hedgehog avatar** (WS340). After #96.
-19. **The inventory, read only, and the coins chip** (WS341). After #30 and #31.
-20. **The character panel and equipping**, including the inventory's own equip, take-off and slot choice, staying on its side (E101–E108, E117–E119, E126) (WS341). After #31; blocked by 19, and its hedgehog slot by 18.
-21. **Buying kudos emoji in the inventory** (WS341). After #30 and #31; blocked by 19.
-22. **The hedgehog shelf, read only** (WS342). After #96; blocked by 18.
-23. **The new-hedgehog reveal** (WS342). After #96; blocked by 22.
-24. **Equipping a hedgehog from the shelf** (WS342). After #96; blocked by 20 and 22.
-25. **Buying a hedgehog on the shelf** (WS342). After #96 and #30; blocked by 21 and 22.
-26. **The public card's group and medals** (WS343). After #53 and #52.
-27. **Group boards on the leaderboard** (WS344). After #52.
-28. **Group rows in `Where you stand`** (WS344). After #52; blocked by 27 and #238.
-29. **The group quest** (WS344). After #52; blocked by 6.
-30. **The later perk rows and upgrades** (WS345). After #30 and #39; blocked by 14.
-31. **The upgrade-aware ledger and `Switch on for today`** (WS345). After #39; blocked by 30.
-32. **The sticker albums' index and read** (WS346). After #54; blocked by 15.
-33. **Album spreads, team photos and completion** (WS346). After #54; blocked by 32.
-34. **Tier rewards and the achievement page** (WS347). After #30, #31 and #96; blocked by 16.
-35. **Quest rewards beyond XP** (WS348). After #30, #31 or #96, for whichever reward kind ships; blocked by 6.
+18. [#282](https://github.com/Silthus/kudos/issues/282) **The hedgehog avatar** (WS340). After #96.
+19. [#283](https://github.com/Silthus/kudos/issues/283) **The inventory, read only, and the coins chip** (WS341). After #30 and #31.
+20. [#291](https://github.com/Silthus/kudos/issues/291) **The character panel and equipping**, including the inventory's own equip, take-off and slot choice, staying on its side (E101–E108, E117–E119, E126) (WS341). After #31; blocked by 19, and its hedgehog slot by 18.
+21. [#292](https://github.com/Silthus/kudos/issues/292) **Buying kudos emoji in the inventory** (WS341). After #30 and #31; blocked by 19.
+22. [#293](https://github.com/Silthus/kudos/issues/293) **The hedgehog shelf, read only** (WS342). After #96; blocked by 18.
+23. [#298](https://github.com/Silthus/kudos/issues/298) **The new-hedgehog reveal** (WS342). After #96; blocked by 22.
+24. [#299](https://github.com/Silthus/kudos/issues/299) **Equipping a hedgehog from the shelf** (WS342). After #96; blocked by 20 and 22.
+25. [#300](https://github.com/Silthus/kudos/issues/300) **Buying a hedgehog on the shelf** (WS342). After #96 and #30; blocked by 21 and 22.
+26. [#284](https://github.com/Silthus/kudos/issues/284) **The public card's group and medals** (WS343). After #53 and #52.
+27. [#285](https://github.com/Silthus/kudos/issues/285) **Group boards on the leaderboard** (WS344). After #52.
+28. [#294](https://github.com/Silthus/kudos/issues/294) **Group rows in `Where you stand`** (WS344). After #52; blocked by 27 and #238.
+29. [#286](https://github.com/Silthus/kudos/issues/286) **The group quest** (WS344). After #52; blocked by 6.
+30. [#295](https://github.com/Silthus/kudos/issues/295) **The later perk rows and upgrades** (WS345). After #30 and #39; blocked by 14.
+31. [#301](https://github.com/Silthus/kudos/issues/301) **The upgrade-aware ledger and `Switch on for today`** (WS345). After #39; blocked by 30.
+32. [#296](https://github.com/Silthus/kudos/issues/296) **The sticker albums' index and read** (WS346). After #54; blocked by 15.
+33. [#302](https://github.com/Silthus/kudos/issues/302) **Album spreads, team photos and completion** (WS346). After #54; blocked by 32.
+34. [#297](https://github.com/Silthus/kudos/issues/297) **Tier rewards and the achievement page** (WS347). After #30, #31 and #96; blocked by 16.
+35. [#287](https://github.com/Silthus/kudos/issues/287) **Quest rewards beyond XP** (WS348). After #30, #31 or #96, for whichever reward kind ships; blocked by 6.
 
 **Extra scope for open tickets** (the conductor adds it, or the ticket that lands second does it):
 - **#238:** the `Quests this week` row of a finished quest reads `Claim` (E074) and links to `/quests?quest={slot}` (WS315, WS316); the `left` line's Settings sentence follows WS321.
