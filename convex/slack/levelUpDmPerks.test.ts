@@ -6,11 +6,14 @@ import { blockActions, buttonIn, buttonInHome, publishedHomeBlocks, readBlocks, 
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { internal } from "../_generated/api";
 import { standingOf } from "../progression/progression";
 
 const now = new Date("2026-10-14T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
 const inDm = { channel: "D_ALICE", ts: "1760349700.000200" };
+const siteUrl = "https://kudos-site.test";
+const buyOnTheWeb = `[link: Buy ${siteUrl}/skills]`;
 
 const sparkLine = "section: *Spark* · 1 skill point\n+5 XP the first time each day you thank someone and say why. [button: Buy]";
 const rhythmLine = "section: *Rhythm* · 1 skill point\n+2 XP each time you thank someone and say why, once per person a day. [button: Buy]";
@@ -119,6 +122,46 @@ describe("P19 P94: the level-up DM's Buy asks before it spends, and the DM names
   });
 });
 
+describe("each perk's Buy in Slack links to the Skill tree page while the website is open", { timeout: 30_000 }, () => {
+  test("reaching level 6 offers each perk with a Buy that links to /skills, names the perk and the page for screen readers, and asks nothing", async () => {
+    const t = await skillTreeOpenedAtLevelFive("U_ALICE");
+    await websiteOpened(t);
+
+    await reachLevelSix(t, "U_ALICE");
+
+    expect(readBlocks(blocksOf(lastDmTo("U_ALICE")))).toEqual([
+      "section: 🎉 You reached level 6! You have 2 skill points to spend.",
+      "section: Level 7 is 500 XP away.",
+      sparkLine.replace("[button: Buy]", buyOnTheWeb),
+      rhythmLine.replace("[button: Buy]", buyOnTheWeb),
+      circleLine.replace("[button: Buy]", buyOnTheWeb),
+      `section: <${siteUrl}/|See your level on the web>`,
+    ]);
+    expect(accessoryBeside("*Rhythm*")).toEqual({
+      type: "button",
+      text: { type: "plain_text", text: "Buy" },
+      url: `${siteUrl}/skills`,
+      action_id: "website-link:buy:rhythm",
+      accessibility_label: "Buy Rhythm on HedgeHug's Skill tree page",
+    });
+  });
+
+  test("clicking a Buy link buys nothing and answers nothing, while a Buy left in an earlier DM still buys its perk", async () => {
+    const t = await skillTreeOpenedAtLevelFive("U_ALICE");
+    await reachLevelSix(t, "U_ALICE");
+    const staleBuy = buyButtonInDm("rhythm");
+    await websiteOpened(t);
+    await withXp(t, "U_ALICE", 1490);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    await clickInDm(t, "U_ALICE", buttonIn(blocksBeside("*Spark*"), "Buy"));
+    await clickInDm(t, "U_ALICE", staleBuy);
+
+    expect(await perksOwnedBy(t, "U_ALICE")).toEqual(["rhythm"]);
+    expect(repliesIn(inDm.channel)).toEqual(["You bought Rhythm."]);
+  });
+});
+
 describe("P76: before the Skill tree is opened, the level-up DM is today's", () => {
   test("a member who hasn't opened the Skill tree reaches level 6 and gets a DM with no skill points and no Buy", async () => {
     const t = await levelFiveMember("U_ALICE");
@@ -165,6 +208,21 @@ describe("P78 R34: the line a Buy answers with is checked again before each try"
 });
 
 type PostedDm = Record<string, unknown>;
+
+async function websiteOpened(t: Backend) {
+  vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+  vi.stubEnv("SITE_URL", siteUrl);
+  await flagsFromPostHog(t, postHog, ...["xp-levels", "unlocks", "skill-tree", "website"].map(onForEveryone));
+  await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+}
+
+function blocksBeside(text: string) {
+  return blocksOf(lastDmTo("U_ALICE")).filter((block) => readBlocks([block])[0]?.startsWith(`section: ${text}`));
+}
+
+function accessoryBeside(text: string) {
+  return blocksBeside(text)[0]?.accessory;
+}
 
 async function skillTreeOpenedAtLevelFive(user: string) {
   const t = await levelFiveMember(user);

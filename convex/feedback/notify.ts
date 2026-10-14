@@ -111,7 +111,7 @@ function renderNotification(notification: Notification, { website, openTree, eve
   if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned);
   const crates = notification.ready.map((feature) => readyCrateOf(scheduled(feature), website));
   if (notification.kind !== "level-reached") return crates;
-  return [...levelReachedLines(notification, openTree), ...crates, ...perkOffersOf(openTree)];
+  return [...levelReachedLines(notification, openTree), ...crates, ...perkOffersOf(openTree, website)];
 }
 
 function levelReachedLines({ level, skillPoints, xpToNextLevel }: Extract<Notification, { kind: "level-reached" }>, openTree: MemberPerks | null) {
@@ -123,8 +123,8 @@ function skillPointsTold(level: number, skillPoints: number | null, openTree: Me
   return skillPoints !== null && level >= skillTreeLevel ? ` You have ${skillPointsOf(skillPoints)} saved for the skill tree.` : "";
 }
 
-function perkOffersOf(openTree: MemberPerks | null): NotificationLine[] {
-  return (openTree?.perks ?? []).filter(({ state }) => state === "buyable").map(perkOfferOf);
+function perkOffersOf(openTree: MemberPerks | null, website: string | null): NotificationLine[] {
+  return (openTree?.perks ?? []).filter(({ state }) => state === "buyable").map((perk) => perkOfferOf(perk, website));
 }
 
 async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification | null> {
