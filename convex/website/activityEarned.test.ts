@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { journeyShippedBeforeAnyoneJoined, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { anIdInHalfOf, journeyShippedBeforeAnyoneJoined, onForEveryone, onForHalf, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonInHome } from "../../testing/slackInteractions";
 import { signedRequest } from "../../testing/signedSlack";
 import { appHomeOpened, emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSession, switchWebsite } from "../../testing/website";
-import { api } from "../_generated/api";
+import { api, components, internal } from "../_generated/api";
 import type { PerkId } from "../progression/tree";
 import type { QuestId } from "../quests/pool";
 import type { Activity, ActivityEntry } from "./activity";
@@ -183,6 +183,18 @@ describe("AT25: the perk bonuses each given kudos earned", () => {
   });
 });
 
+describe("AT25 SW5: bonus XP is XP, shown only where the member sees XP", () => {
+  test("with xp-levels on in the workspace decision but off in the giver's, neither the reply nor the timeline shows the bonus the kudos paid", { timeout: 60_000 }, async () => {
+    await aliceOwning("spark");
+    await xpLevelsOnInTheWorkspaceOnly();
+
+    await thank([bob], saysWhy);
+
+    expect(gainsLinesTo(alice).join("\n")).not.toContain("bonus");
+    expect(givenEntries(await activityOf(alice, { filter: "given" })).map(({ earned }) => earned)).toEqual([null]);
+  });
+});
+
 describe("AT25 AT26 SW5: each part follows the member's view at read time", () => {
   test("with xp-levels off for the member, no levelUp entries appear and earned is null", async () => {
     await switchWebsite(t, postHog, true, ...progression);
@@ -270,14 +282,14 @@ describe("AT18: a page's reads are bounded", () => {
     ]);
   });
 
-  test("pages of 1,000 recipients whose words mention 2,000 different people, with a bonus paid on every award, stay within Convex's limits, skipping and repeating none", { timeout: 120_000 }, async () => {
+  test("pages of 800 recipients whose words mention 2,000 different people, each message finishing every quest and paying a bonus on every award, stay within Convex's limits, skipping and repeating none", { timeout: 120_000 }, async () => {
     t = testBackend({ transactionLimits: true });
-    await switchWebsite(t, postHog, true, ...skillTree);
-    await unlocksShippedBeforeAnyoneJoined(t);
+    await switchWebsite(t, postHog, true, ...skillTree, "quests");
+    await journeyShippedBeforeAnyoneJoined(t);
     const at = now.getTime();
     const messages = 50;
-    const recipientsEach = 20;
-    const mentionsEach = 50;
+    const recipientsEach = 16;
+    const mentionsEach = 40;
     const me = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: alice.user, kind: "member", name: alice.name, asOf: 0 }));
     const thanked = await t.run(async (ctx) => {
       const ids = [];
@@ -285,9 +297,12 @@ describe("AT18: a page's reads are bounded", () => {
       return ids;
     });
     const spark = [{ source: "spark" as const, xp: 5 }];
+    await drawFor(alice.user, ["say-why-twice", "say-why-three-days", "two-new"]);
+    const everyQuest = ["weekly:2026-10-12:0", "weekly:2026-10-12:1", "weekly:2026-10-12:2", "journey:first-thanks", "journey:first-quest", "journey:someone-new", "journey:two-days"];
     await t.run(async (ctx) => {
       for (let index = 0; index < messages; index++) {
         const message = `1760350${String(index).padStart(3, "0")}.000100`;
+        for (const key of everyQuest) await ctx.db.insert("rewardRecords", { member: me, key, xp: 20, coins: 0, item: null, catalogueVersion: "1", at, cause: { workspace: "T1", conversation: "C1", message } });
         const segments = Array.from({ length: mentionsEach }, (_, mentioned) => ({ kind: "person" as const, user: `U_MENTIONED_${index}_${mentioned}` }));
         await ctx.db.insert("kudosTexts", { workspace: "T1", conversation: "C1", message, kind: "words", revision: 1n, author: alice.user, edited: false, segments, visibility: "public", gate: null });
         for (const recipient of thanked) {
@@ -303,6 +318,7 @@ describe("AT18: a page's reads are bounded", () => {
     const entries = [...first.entries, ...next.entries];
     expect(entries.map(({ at }) => at)).toEqual(Array.from({ length: messages }, (_, index) => at + messages - 1 - index));
     expect(entries.map((entry) => (entry.kind === "kudosGiven" ? entry.earned?.bonuses.map(({ xp }) => xp) : entry.kind))).toEqual(Array(messages).fill([5 * recipientsEach]));
+    expect(entries.map((entry) => (entry.kind === "kudosGiven" ? entry.earned?.questsDone.length : entry.kind))).toEqual(Array(messages).fill(everyQuest.length));
   });
 });
 
@@ -320,6 +336,20 @@ async function aliceOwning(...perks: PerkId[]) {
   await unlocksShippedBeforeAnyoneJoined(t);
   await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: alice.user, kind: "member", name: alice.name, asOf: 0 }));
   await perksBoughtBy(alice, ...perks);
+}
+
+async function xpLevelsOnInTheWorkspaceOnly() {
+  const [inside, outside] = [await anIdInHalfOf("xp-levels", true), await anIdInHalfOf("xp-levels", false)];
+  await t.run(async (ctx) => {
+    const member = (await ctx.db.query("members").collect()).find((row) => row.user === alice.user)!._id;
+    for (const row of await ctx.db.query("workspaceKeys").collect()) await ctx.db.delete(row._id);
+    for (const row of await ctx.db.query("analyticsIds").collect()) if (row.member === member) await ctx.db.delete(row._id);
+    await ctx.db.insert("workspaceKeys", { workspace: "T1", workspaceKey: inside });
+    await ctx.db.insert("analyticsIds", { member, analyticsId: outside });
+  });
+  postHog.withFlags(...skillTree.filter((key) => key !== "xp-levels").map(onForEveryone), onForEveryone("website"), onForHalf("xp-levels"));
+  await t.action(components.posthog.lib.refreshFlagDefinitions, {});
+  await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
 }
 
 async function perksBoughtBy({ user }: { user: string }, ...perks: PerkId[]) {

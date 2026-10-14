@@ -1,7 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import { awardsReceivedNewestFirst, messagesGivenNewestFirst, type Before, type GivenMessageAwards, type MessageAward, type ReceivedAward } from "../engine/awards";
 import { bonusRecordedWith } from "../progression/effects";
-import { bonusGainsShownIn, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
+import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
 import { catalogue } from "../progression/catalogue";
 import { giverXpOf } from "../progression/progression";
 import { perkOf } from "../progression/tree";
@@ -31,7 +31,7 @@ type PageSize = { min: number; max: number; usual: number };
 const activityPage: PageSize = { min: 1, max: 50, usual: 20 };
 const recentPage: PageSize = { min: 1, max: 10, usual: 5 };
 
-export const recipientsPerPage = 800;
+export const recipientsPerPage = 700;
 
 const levelUps: Source = {
   rank: ranks.levelUp,
@@ -135,7 +135,7 @@ async function bonusesEarnedBy(ctx: QueryCtx, awards: MessageAward[]): Promise<B
 
 async function gainsShownTo(ctx: QueryCtx, member: MemberId): Promise<GainsShown> {
   const { workspace } = await chatUserOf(ctx, member);
-  const [xp, quests, bonuses] = await Promise.all([xpGainsShownTo(ctx, workspace, member), questGainsShownTo(ctx, workspace, member), bonusGainsShownIn(ctx, workspace)]);
+  const [xp, quests, bonuses] = await Promise.all([xpGainsShownTo(ctx, workspace, member), questGainsShownTo(ctx, workspace, member), bonusGainsShownTo(ctx, workspace, member)]);
   return { xp, quests, bonuses };
 }
 

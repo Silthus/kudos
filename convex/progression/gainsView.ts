@@ -12,6 +12,6 @@ export function questGainsShownTo(ctx: QueryCtx, workspace: string, member: Memb
   return member === null ? questsApplyIn(ctx, workspace) : questsApplyTo(ctx, member);
 }
 
-export function bonusGainsShownIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
-  return skillTreeAppliesIn(ctx, workspace);
+export async function bonusGainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null): Promise<boolean> {
+  return (await xpGainsShownTo(ctx, workspace, member)) && (await skillTreeAppliesIn(ctx, workspace));
 }
