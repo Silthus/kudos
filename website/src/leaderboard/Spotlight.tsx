@@ -45,8 +45,8 @@ function ThankYou({ kudos: { giver, recipients, message, at, permalink }, notice
 
 function OpenInSlack({ permalink, giver }: { permalink: string; giver: string }) {
   return (
-    <a href={permalink} target="_blank" rel="noreferrer" className="inline-flex min-h-6 items-center gap-1 font-medium text-foreground underline underline-offset-4">
-      Open in Slack<span className="sr-only">{`: the kudos from ${giver} (opens in a new tab)`}</span>
+    <a href={permalink} target="_blank" rel="noreferrer" aria-label={`Open in Slack: the kudos from ${giver} (opens in a new tab)`} className="inline-flex min-h-6 items-center gap-1 font-medium text-foreground underline underline-offset-4">
+      Open in Slack
       <IconExternal aria-hidden="true" className="size-3.5" />
     </a>
   );

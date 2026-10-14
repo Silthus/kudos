@@ -10,6 +10,7 @@ import { leaderboardFixtures } from "./leaderboardFixtures";
 import { recentKudosFixtures } from "./recentKudosFixtures";
 import { shellFixtures } from "./shell";
 import { skillTreeFixtures } from "./skillTreeFixtures";
+import { spotlightFixtures } from "./spotlightFixtures";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 const profileRead = vi.fn();
@@ -56,8 +57,11 @@ const watchedQueries: string[] = [];
 
 const subscriptions = new Set<{ query: string; args: unknown }>();
 
+const oneShotRead = vi.fn<(read: { query: string; args: unknown }) => Promise<unknown>>();
+
 const boardWatch = {
   url: "https://happy-hog-123.convex.cloud",
+  query: (query: FunctionReference<"query">, args: unknown) => oneShotRead({ query: getFunctionName(query), args }),
   watchQuery: (query: FunctionReference<"query">, args: unknown) => {
     watchedQueries.push(getFunctionName(query));
     return {
@@ -115,6 +119,7 @@ afterEach(() => {
   openFeatureCall.mockReset();
   buyPerkCall.mockReset();
   sentOverHttp.mockReset();
+  oneShotRead.mockReset();
 });
 
 describe("WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change", () => {
@@ -301,6 +306,46 @@ describe("WS200 WS207: the Recent kudos card reads getRecentKudos through the li
 
     expect(within(screen.getByRole("main")).queryByRole("region", { name: "Recent kudos" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Sam Example" })).toBeInTheDocument();
+  });
+});
+
+describe("WS219: the spotlight draws through the live shell with one-shot getSpotlight reads", () => {
+  const { pairing, onboarding } = spotlightFixtures;
+
+  function spotlightDraws() {
+    return oneShotRead.mock.calls.map(([read]) => read).filter(({ query }) => query === "website/activity:getSpotlight");
+  }
+
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/leaderboard");
+    profileRead.mockReturnValue(shellFixtures.memberWithTheBoard);
+    boardRead.mockReturnValue(leaderboardFixtures.midBoard);
+  });
+
+  it("draws once per board visit with a seed, never subscribes, keeps the thank-you while the board updates, and reads after it on Next", async () => {
+    oneShotRead.mockImplementation(async ({ args }) => (typeof args === "object" && args !== null && "after" in args ? onboarding : pairing));
+    const { user } = renderLiveSite();
+    const panel = await screen.findByRole("region", { name: "A thank-you from your workspace" });
+    expect(panel).toHaveTextContent("Ada Lindqvist thanked Bo Okafor");
+    expect(spotlightDraws()).toEqual([{ query: "website/activity:getSpotlight", args: { seed: expect.any(Number) } }]);
+    expect(watchedQueries).not.toContain("website/activity:getSpotlight");
+
+    boardAnswers(leaderboardFixtures.midBoardAfterAClimb);
+    expect(spotlightDraws()).toHaveLength(1);
+
+    await user.click(within(panel).getByRole("button", { name: "Next" }));
+    expect(await within(panel).findByText("Cleo Marchetti thanked Dev Rao and Eli Brandt")).toBeInTheDocument();
+    expect(spotlightDraws().at(-1)).toEqual({ query: "website/activity:getSpotlight", args: { after: pairing.after } });
+  });
+
+  it("ends a draw the server never answers after ten seconds, with Max's line and Try again", async () => {
+    vi.useFakeTimers();
+    oneShotRead.mockImplementation(() => new Promise(() => undefined));
+    renderLiveSite();
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    const panel = screen.getByRole("region", { name: "A thank-you from your workspace" });
+    expect(panel).toHaveTextContent("Couldn't find a thank-you just now.");
+    expect(within(panel).getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 });
 
