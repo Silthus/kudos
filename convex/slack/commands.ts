@@ -9,8 +9,9 @@ import { renderEveryoneBoard, renderFullBoardLink, renderLeaderboardUsage } from
 import type { Line } from "../feedback/segments";
 import { periodValidator, type Period } from "../leaderboard/periods";
 import { lookup } from "../workspace/directory";
-import { attemptArgs, failedAttempt, slackTextOf, tryAtMostThreeTimes, type Retry } from "./delivery";
-import { lookUpUser, type LookUp } from "./directory";
+import { answerCommand, onceKnown, replyPrivately, type Viewer } from "./commandReplies";
+import { attemptArgs } from "./delivery";
+import { cardRequestOf, cardViewedValidator, recordProfileCardViewedWithoutBlocking } from "./profileCardCommand";
 import { readSignedBody } from "./signature";
 import { callSlack, type SlackAnswer } from "./webApi";
 
@@ -24,14 +25,18 @@ const viewedValidator = v.object({ period: periodValidator, arrivedAt: v.number(
 
 const leaderboardViewedArgs = { workspace: v.string(), user: v.string(), ...viewedValidator.fields };
 
-type Viewer = { workspace: string; user: string };
-
 export const slackCommands = observedHttpAction(async (ctx, request) => {
   const arrivedAt = Date.now();
   const body = await readSignedBody(request);
   if (body === null) return new Response(null, { status: 401 });
 
   const command = new URLSearchParams(new TextDecoder().decode(body));
+  const cardRequest = cardRequestOf(command.get("text") ?? "");
+  if (cardRequest !== null) {
+    const reply = await ctx.runMutation(internal.slack.profileCardCommand.profileCardReply, { ...viewerOf(command), arrivedAt, request: cardRequest, responseUrl: field(command, "response_url") });
+    if (reply.shown) return reply.lines === null ? new Response(null, { status: 200 }) : replyPrivately(reply.lines);
+  }
+
   const [argument, ...rest] = argumentsOf(command);
   if (argument === "leaderboard") {
     const viewer = viewerOf(command);
@@ -75,24 +80,6 @@ export const reportCommandUsed = observedAction({
   },
 });
 
-async function onceKnown(ctx: ActionCtx, attempt: number, viewer: Viewer, then: () => Promise<unknown>, tryAgain: (retry: NonNullable<Retry>) => Promise<unknown>) {
-  await tryAtMostThreeTimes(
-    attempt,
-    async (attempt) => {
-      const person = await knownOrLookedUp(ctx, viewer);
-      if (person.kind === "failed") return failedAttempt(attempt, person.retryAfterMs);
-      await then();
-      return null;
-    },
-    tryAgain,
-  );
-}
-
-async function knownOrLookedUp(ctx: ActionCtx, { workspace, user }: Viewer): Promise<LookUp> {
-  if (await ctx.runQuery(internal.slack.directory.knows, { workspace, user })) return { kind: "found" };
-  return lookUpUser(ctx, workspace, user);
-}
-
 export const recordCommandUsed = internalMutation({
   args: commandUsedArgs,
   handler: async (ctx, { workspace, user, alias, arrivedAt, result }) => {
@@ -122,11 +109,23 @@ function recordLeaderboardViewedWithoutBlocking(ctx: ActionCtx, { workspace, use
   return recordUsageWithoutBlocking(() => ctx.runMutation(internal.slack.commands.recordLeaderboardViewed, { workspace, user, ...viewed }));
 }
 
-const exposureOf = { "everyone-board": internal.leaderboard.flag.exposeEveryoneBoard, unlocks: internal.unlocks.launch.exposeUnlocks };
+const exposureOf = {
+  "everyone-board": internal.leaderboard.flag.exposeEveryoneBoard,
+  unlocks: internal.unlocks.launch.exposeUnlocks,
+  "profile-card": internal.profileCard.flag.exposeProfileCard,
+};
 
 export const exposeOnceKnown = observedAction({
-  args: { workspace: v.string(), user: v.string(), flag: v.union(v.literal("everyone-board"), v.literal("unlocks")), shown: v.boolean(), viewed: v.optional(viewedValidator), ...attemptArgs },
-  handler: async (ctx, { attempt = 1, flag, viewed, ...seen }) => {
+  args: {
+    workspace: v.string(),
+    user: v.string(),
+    flag: v.union(v.literal("everyone-board"), v.literal("unlocks"), v.literal("profile-card")),
+    shown: v.boolean(),
+    viewed: v.optional(viewedValidator),
+    cardViewed: v.optional(cardViewedValidator),
+    ...attemptArgs,
+  },
+  handler: async (ctx, { attempt = 1, flag, viewed, cardViewed, ...seen }) => {
     await onceKnown(
       ctx,
       attempt,
@@ -134,8 +133,9 @@ export const exposeOnceKnown = observedAction({
       async () => {
         await ctx.runMutation(exposureOf[flag], seen);
         if (viewed) await recordLeaderboardViewedWithoutBlocking(ctx, seen, viewed);
+        if (cardViewed) await recordProfileCardViewedWithoutBlocking(ctx, { workspace: seen.workspace, user: seen.user, ...cardViewed });
       },
-      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.commands.exposeOnceKnown, { ...seen, flag, ...(viewed && { viewed }), attempt: retry.attempt }),
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.commands.exposeOnceKnown, { ...seen, flag, ...(viewed && { viewed }), ...(cardViewed && { cardViewed }), attempt: retry.attempt }),
     );
   },
 });
@@ -159,10 +159,6 @@ function periodOf(rest: string[]): Period | null {
   return rest.length === 1 && periods.includes(argument as Period) ? (argument as Period) : null;
 }
 
-function replyPrivately(lines: Line[]) {
-  return Response.json({ response_type: "ephemeral", text: slackTextOf(lines) });
-}
-
 function argumentsOf(command: URLSearchParams) {
   return (command.get("text") ?? "").trim().split(/\s+/).filter((word) => word !== "");
 }
@@ -179,15 +175,6 @@ function resultOfJoining(answer: SlackAnswer, inDirectMessage: boolean): KudosCo
   if (inDirectMessage) return "direct-message";
   if (unjoinableChannelErrors.has(answer.error)) return "private-channel";
   throw new ReportableError(`Slack conversations.join failed: ${answer.error}`);
-}
-
-async function answerCommand(responseUrl: string, text: string) {
-  const response = await fetch(responseUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json; charset=utf-8" },
-    body: JSON.stringify({ response_type: "ephemeral", text }),
-  });
-  if (!response.ok) throw new ReportableError(`Slack response_url answered HTTP ${response.status}`);
 }
 
 function viewerOf(command: URLSearchParams): Viewer {
