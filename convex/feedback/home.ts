@@ -21,7 +21,7 @@ import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
 import { questCratePageOf, readyCratePageOf, urlOf, type Page } from "../website/routes";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
-import { renderEveryoneBoard } from "./leaderboard";
+import { renderBoards } from "./leaderboard";
 import { openTheWebsite, productName, skillPointsOf, slashCommand } from "./naming";
 import type { Line } from "./segments";
 import { unopenedTextOf } from "./unlockFilter";
@@ -99,7 +99,7 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
     case "profile":
       return profileOf(facts, shown);
     case "leaderboard":
-      return { title: "Leaderboard", groups: [[periodChoices(shown.period), { kind: "lines", lines: renderEveryoneBoard(shown.board, shown.period) }]] };
+      return { title: "Leaderboard", groups: leaderboardGroups(shown) };
     case "book":
       return { title: "Book", groups: bookGroups(shown) };
     case "skillTree":
@@ -109,6 +109,11 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
     case "admin":
       return { title: "Admin", groups: adminGroups(shown) };
   }
+}
+
+function leaderboardGroups({ period, board, groups }: Extract<ShownTab, { tab: "leaderboard" }>): HomeLine[][] {
+  const [first = [], ...rest] = renderBoards(groups, board, period);
+  return [[periodChoices(period), { kind: "lines", lines: first }], ...rest.map((lines): HomeLine[] => [{ kind: "lines", lines }])];
 }
 
 type ProfileFacts = Omit<Extract<ShownTab, { tab: "profile" }>, "tab">;

@@ -39,7 +39,7 @@ function climbOf(id: string, before: number | undefined, now: number): Array<[st
   return before !== undefined && before > now ? [[id, before - now]] : [];
 }
 
-function windowOf(ranked: number, viewerPosition: number): number[] {
+export function windowOf(ranked: number, viewerPosition: number): number[] {
   if (viewerPosition === 0) return positions(1, Math.min(topPositions, ranked));
   if (viewerPosition <= lastPositionShowingTheFirstTen) return positions(1, Math.min(mostRows, ranked));
   const aroundViewer = positions(viewerPosition - positionsAroundViewer, Math.min(viewerPosition + positionsAroundViewer, ranked));

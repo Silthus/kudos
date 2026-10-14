@@ -5,8 +5,9 @@ import { observedAction, observedHttpAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import { type KudosCommandResult, renderKudosCommandReply } from "../feedback/kudosCommand";
-import { renderEveryoneBoard, renderFullBoardLink, renderLeaderboardUsage } from "../feedback/leaderboard";
+import { renderBoards, renderFullBoardLink, renderLeaderboardUsage } from "../feedback/leaderboard";
 import type { Line } from "../feedback/segments";
+import { boardsShownTo } from "../leaderboard/boards";
 import { periodValidator, type Period } from "../leaderboard/periods";
 import { lookup } from "../workspace/directory";
 import { attemptArgs, failedAttempt, slackTextOf, tryAtMostThreeTimes, type Retry } from "./delivery";
@@ -105,7 +106,8 @@ export const recordLeaderboardViewed = internalMutation({
   args: leaderboardViewedArgs,
   handler: async (ctx, { workspace, user, period, arrivedAt }) => {
     const person = await lookup(ctx, workspace, user);
-    if (person?.kind === "member") await recordUsage(ctx, { kind: "leaderboardViewed", workspace, member: person.member, board: "everyone", period, surface: "command", at: arrivedAt });
+    if (person?.kind !== "member") return;
+    for (const board of await boardsShownTo(ctx, person.member)) await recordUsage(ctx, { kind: "leaderboardViewed", workspace, member: person.member, board, period, surface: "command", at: arrivedAt });
   },
 });
 
@@ -146,9 +148,11 @@ async function leaderboardReply(ctx: ActionCtx, viewer: Viewer, rest: string[]):
   if (unopened !== null) return { lines: unopened, period: null };
   const period = periodOf(rest);
   if (period === null) return { lines: renderLeaderboardUsage(), period: null };
-  const view = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, { workspace: viewer.workspace, viewer: viewer.user, period });
+  const groups = await ctx.runQuery(internal.leaderboard.groupBoards.groupsBoardOf, { workspace: viewer.workspace, viewer: viewer.user, period });
+  const everyone = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, { workspace: viewer.workspace, viewer: viewer.user, period });
   const website = await ctx.runQuery(internal.website.link.websiteLinkOf, { workspace: viewer.workspace, page: { page: "leaderboard", period } });
-  return { lines: [...renderEveryoneBoard(view, period), ...renderFullBoardLink(website)], period };
+  const boards = renderBoards(groups, everyone, period).flatMap((board, index) => (index === 0 ? board : [[], ...board]));
+  return { lines: [...boards, ...renderFullBoardLink(website)], period };
 }
 
 const periods: readonly Period[] = ["week", "month", "all"];

@@ -38,6 +38,7 @@ describe("GB12: group totals follow attribution", { timeout: 30_000 }, () => {
 
     const totals = await groupTotals(t);
     expect(totals).toEqual(await totalsFoldedFromAttributions(t));
+    expect(await groupPeriodTotals(t)).toEqual(await groupPeriodTotalsFoldedFromAttributions(t));
     expect(Object.keys(totals).filter((key) => key.endsWith(":all"))).toEqual([`${zebras}:${ann}:all`, `${zebras}:${bob}:all`, `${gardeners}:${ann}:all`]);
   });
 });
@@ -108,6 +109,21 @@ type TotalsByKey = Record<string, { kudos: number; runningTotal?: number[] }>;
 async function groupTotals(t: Backend): Promise<TotalsByKey> {
   const rows = await t.run((ctx) => ctx.db.query("attributedTotals").take(100));
   return Object.fromEntries(rows.map(({ group, member, period, kudos, runningTotal }: Doc<"attributedTotals">) => [`${group}:${member}:${period}`, { kudos, ...(runningTotal && { runningTotal }) }]));
+}
+
+async function groupPeriodTotals(t: Backend): Promise<Record<string, number>> {
+  const rows = await t.run((ctx) => ctx.db.query("attributedGroupTotals").take(100));
+  return Object.fromEntries(rows.map(({ group, period, kudos }) => [`${group}:${period}`, kudos]));
+}
+
+async function groupPeriodTotalsFoldedFromAttributions(t: Backend): Promise<Record<string, number>> {
+  const attributions = await t.run((ctx) => ctx.db.query("attributions").take(100));
+  const folded: Record<string, number> = {};
+  for (const { group, day, kudos } of attributions) {
+    if (group === null) continue;
+    for (const period of ["week", "month"] as const) folded[`${group}:${keyOf(period, day)}`] = (folded[`${group}:${keyOf(period, day)}`] ?? 0) + kudos;
+  }
+  return folded;
 }
 
 async function totalsFoldedFromAttributions(t: Backend): Promise<TotalsByKey> {

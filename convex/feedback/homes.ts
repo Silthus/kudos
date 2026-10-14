@@ -4,6 +4,9 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { bookFactsOf, type AchievementFacts } from "../achievements/achievements";
 import { achievementsApplyIn, achievementsShownTo } from "../achievements/flag";
 import { xpRecordedEventValidator } from "../bus/events";
+import type { GroupId } from "../groups/groups";
+import { groupBoardsOf } from "../leaderboard/groupBoards";
+import type { GroupsBoard } from "../leaderboard/groupsBoard";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
@@ -28,7 +31,7 @@ export type HomeTab = Infer<typeof homeTabValidator>;
 
 export type ShownTab =
   | { tab: "profile"; progression: ToldProgression | null; unlocks: UnlocksHome | null; quests: WeeklyQuests | null; earlierCrates: UnopenedCrate[] | null; journey: JourneyStepFacts[] | null }
-  | { tab: "leaderboard"; period: Period; board: EveryoneBoardView }
+  | { tab: "leaderboard"; period: Period; board: EveryoneBoardView; groups: GroupsBoard<GroupId> | null }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
   | { tab: "skillTree"; perks: MemberPerks }
   | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null; achievements: boolean }
@@ -147,7 +150,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         journey: slices.quests ? await journeyOf(ctx, viewer.member) : null,
       };
     case "leaderboard":
-      return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period) };
+      return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period), groups: (await groupBoardsOf(ctx, viewer.workspace, viewer.user, period)).groups };
     case "book":
       return { tab, book: await bookFactsOf(ctx, viewer.member), timeZone: (await ctx.db.get(viewer.member))?.timeZone };
     case "skillTree":

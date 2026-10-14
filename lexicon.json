@@ -530,6 +530,10 @@
     {
       "name": "group total",
       "definition": "The kudos one member gave for one group in one period (week, month or all time), with the period's running total by day for a week or month, fed only by awardsAttributed, exactly once per kudos message (GB12, GB30). A cache: it can be rebuilt from the attributions."
+    },
+    {
+      "name": "group board",
+      "definition": "One of the boards above the Everyone board where groups apply to the viewer and groups are available: the Groups board, which ranks every group that is the current primary group of at least 3 members by the kudos attributed to it in the period per current primary member, then participation, total and name, with the viewer's group's line and the most improved group; and the My group board, which ranks the members of the viewer's primary group by the kudos they gave for it (GB13–GB17)."
     }
   ]
 }

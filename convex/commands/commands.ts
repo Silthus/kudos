@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { reportLeaderboardViewed, reportLeaderboardVisibilityChanged } from "../analytics/isolatedUsage";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
+import { boardsShownTo } from "../leaderboard/boards";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
@@ -79,8 +80,8 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
   }
 }
 
-function leaderboardViewedInAppHome(ctx: MutationCtx, workspace: string, member: MemberId, period: Period) {
-  return reportLeaderboardViewed(ctx, { workspace, member, board: "everyone", period, surface: "app-home", at: Date.now() });
+async function leaderboardViewedInAppHome(ctx: MutationCtx, workspace: string, member: MemberId, period: Period) {
+  for (const board of await boardsShownTo(ctx, member)) await reportLeaderboardViewed(ctx, { workspace, member, board, period, surface: "app-home", at: Date.now() });
 }
 
 function conforms(validator: GenericValidator, value: unknown): boolean {
