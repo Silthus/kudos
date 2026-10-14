@@ -18,10 +18,18 @@ export const flagSeamCheck = { key: "kudos-flag-seam-check", subject: "member", 
 
 const postHog = new PostHog(components.posthog);
 
-export async function flag<V extends FlagValue, S extends SubjectKind>(ctx: QueryCtx | MutationCtx, read: Flag<V, S>, subject: SubjectOf<S>): Promise<V> {
+export function flag<V extends FlagValue, S extends SubjectKind>(ctx: QueryCtx | MutationCtx, read: Flag<V, S>, subject: SubjectOf<S>): Promise<V> {
+  return evaluated(ctx, read, () => distinctIdOf(ctx, subject));
+}
+
+export function flagWithoutWriting<V extends FlagValue, S extends SubjectKind>(ctx: QueryCtx | MutationCtx, read: Flag<V, S>, subject: SubjectOf<S>): Promise<V> {
+  return evaluated(ctx, read, () => existingDistinctIdOf(ctx, subject));
+}
+
+async function evaluated<V extends FlagValue>(ctx: QueryCtx | MutationCtx, read: Flag<V>, distinctIdOfSubject: () => Promise<string | null>): Promise<V> {
   if (!flagsKeySet()) return read.safeDefault;
   try {
-    const distinctId = await distinctIdOf(ctx, subject);
+    const distinctId = await distinctIdOfSubject();
     if (distinctId === null) return read.safeDefault;
     const value = await postHog.getFeatureFlag(ctx, { key: read.key, distinctId, personProperties: personProperties() });
     return declaredValue(read, value);
@@ -62,8 +70,12 @@ function flagsKeySet() {
 }
 
 async function distinctIdOf(ctx: QueryCtx | MutationCtx, subject: SubjectOf<SubjectKind>) {
-  if ("member" in subject) return canWrite(ctx) ? analyticsIdOf(ctx, subject.member) : existingAnalyticsId(ctx, subject.member);
-  return canWrite(ctx) ? workspaceKeyOf(ctx, subject.workspace) : existingWorkspaceKey(ctx, subject.workspace);
+  if (!canWrite(ctx)) return existingDistinctIdOf(ctx, subject);
+  return "member" in subject ? analyticsIdOf(ctx, subject.member) : workspaceKeyOf(ctx, subject.workspace);
+}
+
+function existingDistinctIdOf(ctx: QueryCtx, subject: SubjectOf<SubjectKind>) {
+  return "member" in subject ? existingAnalyticsId(ctx, subject.member) : existingWorkspaceKey(ctx, subject.workspace);
 }
 
 function canWrite(ctx: QueryCtx | MutationCtx): ctx is MutationCtx {

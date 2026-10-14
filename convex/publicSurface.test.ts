@@ -14,7 +14,7 @@ describe("WS10: the public surface is exact", () => {
       }
     }
 
-    expect(publicFunctions.sort()).toEqual(["./auth.ts:isAuthenticated", "./auth.ts:signIn", "./auth.ts:signOut", "./website/leaderboard.ts:getLeaderboard", "./website/profile.ts:getMyProfile"]);
+    expect(publicFunctions.sort()).toEqual(["./auth.ts:isAuthenticated", "./auth.ts:signIn", "./auth.ts:signOut", "./website/commands.ts:openFeature", "./website/leaderboard.ts:getLeaderboard", "./website/profile.ts:getMyProfile"]);
   });
 });
 

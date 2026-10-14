@@ -33,6 +33,6 @@ async function featureCardOf(me: VerifiedMember, unlock: MemberUnlock): Promise<
   return { ...unlock, name, opens, level, seen: await seenKeyOf(me.member, `feature:${unlock.feature}`) };
 }
 
-async function unlocksApplyIn(ctx: QueryCtx, workspace: string) {
+export async function unlocksApplyIn(ctx: QueryCtx, workspace: string) {
   return (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
 }

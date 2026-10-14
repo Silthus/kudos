@@ -1,6 +1,6 @@
 # Website reads
 
-The website's signed-in reads, the sign-in callback, and the link App Home shows, `${SITE_URL}/` with no identity, only while the website flag is on, SITE_URL is set and the App Home is the deployment's workspace: every website query is built on memberQuery, which answers closed while the website flag is off, signed-out without a live session of the deployment's workspace, and verifying, unverified or not-a-member until the directory knows the person as a member, and calls its handler only with a verified member taken from the session, never from arguments; getMyProfile answers that member with their own homeFacts (kudos left, when they refill, given and received this week and in total) beside their sign-in name, their face (their company profile cutout on its colour when exactly one company profile matches their Slack real name, else their sign-in picture, else initials), and, only while the xp-levels flag is on for the workspace, their level and XP from progression's own read with the thresholds of their level and the next, and reads the website clock, a row a cron ticks every 15 minutes, so an open home turns to the new day and the new week without another kudos; getMyProfile also says whether the Everyone board is off, locked, ready or open, and, only while unlocks apply, lists each shipped feature in the schedule's order with its name, what it opens, its level, the member's state, when it became ready and when it was opened from unlocks' own read, and an opaque key per member and crate that carries no ID, the leaderboard's answer following its entry, and getLeaderboard answers one period's Everyone board as the leaderboard module's rankedBoardOf gives it to that member (every ranked row with its position, rank, tie, display name or "A teammate", face and kudos given, the window's positions, their standing and their improvement line), not-found while the everyone-board flag is off for the workspace, reading that flag without an exposure and following the same clock, and, while unlocks apply (xp-levels on and unlocks' query-safe unlocksAppliedIn true), locked with the level or ready with no board facts until the member has opened the Leaderboard, never running unlocks' launch; the sign-in callback refuses while the flag is off and links an account only by the Slack pair; a daily job deletes the verifier a sign-in that never came back from Slack left behind, once it is a day old.
+The website's signed-in reads, the sign-in callback, and the link App Home shows, `${SITE_URL}/` with no identity, only while the website flag is on, SITE_URL is set and the App Home is the deployment's workspace: every website query is built on memberQuery, which answers closed while the website flag is off, signed-out without a live session of the deployment's workspace, and verifying, unverified or not-a-member until the directory knows the person as a member, and calls its handler only with a verified member taken from the session, never from arguments; getMyProfile answers that member with their own homeFacts (kudos left, when they refill, given and received this week and in total) beside their sign-in name, their face (their company profile cutout on its colour when exactly one company profile matches their Slack real name, else their sign-in picture, else initials), and, only while the xp-levels flag is on for the workspace, their level and XP from progression's own read with the thresholds of their level and the next, and reads the website clock, a row a cron ticks every 15 minutes, so an open home turns to the new day and the new week without another kudos; getMyProfile also says whether the Everyone board is off, locked, ready or open, and, only while unlocks apply, lists each shipped feature in the schedule's order with its name, what it opens, its level, the member's state, when it became ready and when it was opened from unlocks' own read, and an opaque key per member and crate that carries no ID, the leaderboard's answer following its entry, and getLeaderboard answers one period's Everyone board as the leaderboard module's rankedBoardOf gives it to that member (every ranked row with its position, rank, tie, display name or "A teammate", face and kudos given, the window's positions, their standing and their improvement line), not-found while the everyone-board flag is off for the workspace, reading that flag without an exposure and following the same clock, and, while unlocks apply (xp-levels on and unlocks' query-safe unlocksAppliedIn true), locked with the level or ready with no board facts until the member has opened the Leaderboard, never running unlocks' launch; openFeature, the website's one command, passes the same guard as a mutation that writes nothing until the member is verified, reading the website flag without making a workspace key, refuses unless unlocks apply so it never runs unlocks' launch, then runs Commands' openUnlock for the signed-in member with the feature as its only argument and answers opened only when unlocks' own read finds the feature open afterwards, scheduling App Home's republish as a Slack click does; the sign-in callback refuses while the flag is off and links an account only by the Slack pair; a daily job deletes the verifier a sign-in that never came back from Slack left behind, once it is a day old.
 
 ## entrances
 - query getMyProfile: a browser asks for the signed-in person's own website answer, with no arguments
@@ -9,6 +9,10 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
 
 - query getLeaderboard: a browser asks for one period's Everyone board as the signed-in member sees it, with the period as its only argument
   handler: getLeaderboard in convex/website/leaderboard.ts
+  trust: browser
+
+- mutation openFeature: a browser asks to open one ready feature for the signed-in member, with the feature as its only argument
+  handler: openFeature in convex/website/commands.ts
   trust: browser
 
 ## invariants
@@ -38,6 +42,67 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   checklist: redaction dismissed: a denial carries only its kind, never a profile of zeros or another member's facts
   checklist: canonical-encoding dismissed: the directory is keyed by Slack's workspace and user ids exactly as the sign-in claims carry them
   checklist: identity-continuity dismissed: a session belongs to one Slack pair for its whole life; a changed workspace reads signed-out rather than carrying over
+- website commands pass one guard: A website command answers closed while the website flag is off or its workspace key doesn't exist yet, signed-out without a live session of the deployment's current workspace, verifying, unverified or not-a-member until the directory knows the person as a member, exactly as a read does, and writes nothing at all with any denial; it reaches its handler only with that verified member, taken from the session, and an argument never names a member.
+  over: openFeature with the website flag off, the flag on with a flags key but no workspace key, no session, a signed-out session, an unknown person being verified, a failed verification, a member user_change deactivates, and a member named beside the feature, each read through every table and every scheduled function
+  via: website commands pass one guard
+  because: a mutation is the first public function that can write, so a denial that wrote a workspace key, an exposure or a scheduled job would let anyone on the internet change state through a closed or signed-out call; the guard is memberQuery's in the same order and reads the website flag through the seam's read-only path (WS61, WS11)
+  crossing: browser -> domain
+  entrances: mutation openFeature
+  kinds: state, identity
+  checklist: scoped-reads declared as website reads pass one guard
+  checklist: capability-authorization dismissed: the session token authorizes only acting as the signed-in member, and the guard rechecks its live session row and the directory on every call rather than trusting the token
+  checklist: revalidated-permission dismissed: the flag, the session and the directory are read in the same mutation that runs the command, so no permission is carried from an earlier check
+  checklist: redaction dismissed: a denial carries only its kind
+  checklist: canonical-encoding dismissed: the directory is keyed by Slack's workspace and user ids exactly as the sign-in claims carry them
+  checklist: identity-continuity dismissed: a session belongs to one Slack pair for its whole life; a changed workspace answers signed-out
+  checklist: separation-of-duties dismissed: no approval policy applies; a member opens their own feature with one action (P73)
+  checklist: legal-state-succession dismissed: a denial moves no state, and the guard itself writes nothing
+  checklist: supersession-safety dismissed: the guard writes nothing, so nothing late can publish a different value
+  checklist: worker-fencing dismissed: no worker runs the guard; each call is one mutation
+  checklist: commit-ordered-effects dismissed: a denial issues no effect and schedules nothing
+  checklist: resumption-coverage dismissed: no batch operation resumes
+- a website command never launches unlocks: While unlocks don't apply to the workspace (xp-levels off, the unlocks flag off, or no launch recorded), openFeature answers refused without running a command, so a website call never records unlocks' launch, writes no unlocks row and publishes no event.
+  over: openFeature with xp-levels and unlocks on and no launch recorded, read through every table, every scheduled function and every published event
+  via: a website command never launches unlocks
+  because: unlocks' launch grandfathers every member at once and belongs to Slack until the product owner switches unlocks on (P77, WS62); a website call that reached openUnlock before the launch would run it through unlocksLiveIn
+  crossing: browser -> domain
+  entrances: mutation openFeature
+  kinds: state
+  checklist: revalidated-permission dismissed: the gate is read in the same mutation that would run the command
+  checklist: commit-ordered-effects dismissed: a refusal issues no effect at all
+  checklist: separation-of-duties dismissed: no approval policy applies; a member opens their own feature with one action (P73)
+  checklist: legal-state-succession dismissed: a refusal moves no state
+  checklist: supersession-safety dismissed: a refusal writes nothing
+  checklist: worker-fencing dismissed: no worker runs the command; each call is one mutation
+  checklist: resumption-coverage dismissed: no batch operation resumes
+- a website command is a D17 command: openFeature changes domain tables only through Commands' runCommand: opening a ready feature leaves exactly the domain tables and events a Slack App Home Open of the same feature leaves, besides Slack's receipt, the analytics outbox and scheduled functions, with generated IDs normalised; a locked, unshipped or gated-off feature answers refused and an already open one answers opened, each changing no domain table besides the exposure Slack's click sends; a doubled open opens once and answers opened again; after opened, App Home's republish is scheduled.
+  over: openFeature for a ready Leaderboard against receiveHomeClick's Open of the same feature, a Leaderboard locked at level 1, an unshipped Skill tree past level 5, a ready and an open Leaderboard with unlocks or xp-levels switched off after the launch, an already open Leaderboard, a doubled open, and App Home's republished view after it
+  via: a website command is a D17 command
+  because: Unlocks alone decides what may open (D17, P73, WS62, WS64); a website path that wrote its own state could open what Slack still holds, and the reveal must follow only what Unlocks recorded
+  crossing: browser -> domain
+  entrances: mutation openFeature
+  kinds: state
+  checklist: revalidated-permission dismissed: Unlocks reads readiness, the ship flag and its gate in the same mutation that opens
+  checklist: legal-state-succession declared as a ready or opened feature is kept for good
+  checklist: supersession-safety dismissed: opening writes openedAt once in its own transaction, and a second open keeps the first
+  checklist: commit-ordered-effects dismissed: unlockOpened goes to the in-process bus after commit and App Home's republish is a scheduled function of the same mutation
+  checklist: worker-fencing dismissed: no worker owns a member's unlocks; Convex serializes the mutations that touch one row
+  checklist: resumption-coverage dismissed: no batch operation resumes
+  checklist: separation-of-duties dismissed: no approval policy applies; a member opens their own feature with one action (P73)
+- opening on the website grants nothing: openFeature opening a ready feature writes only that feature's openedAt and publishes only unlockOpened, besides the exposure Slack's click sends, so Unlocks' opening grants nothing holds through the website: XP, progress and every other record are as they were.
+  over: every table of the schema and every published event, before and after openFeature opens a ready Leaderboard for a member with XP and a level
+  via: opening on the website grants nothing
+  because: a crate only reveals what is already recorded (P92); if opening on the website granted anything, a member could earn by clicking in a browser what Slack never pays
+  crossing: browser -> domain
+  entrances: mutation openFeature
+  kinds: state
+  checklist: legal-state-succession declared as a ready or opened feature is kept for good
+  checklist: commit-ordered-effects dismissed: opening issues no external effect besides the scheduled App Home republish
+  checklist: revalidated-permission dismissed: Unlocks reads readiness, the ship flag and its gate in the same mutation that opens
+  checklist: separation-of-duties dismissed: no approval policy applies; a member opens their own feature with one action (P73)
+  checklist: supersession-safety dismissed: openedAt is written once in its own transaction, and a second open keeps the first
+  checklist: worker-fencing dismissed: no worker owns a member's unlocks; Convex serializes the mutations that touch one row
+  checklist: resumption-coverage dismissed: no batch operation resumes
 - a member's home shows only their own facts: getMyProfile's member answer is the signed-in member's own homeFacts with their own sign-in name and picture, never another member's facts.
   over: getMyProfile for a member beside members who gave and received kudos, before and after a kudos lands, and across the member's midnight and the week's turn on a clock tick
   via: WS13 WS15 WS18: a member's home answer projects their own homeFacts
