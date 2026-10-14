@@ -1,4 +1,4 @@
-import { ladders, type Ladder } from "../../convex/achievements/ladders";
+import { ladderOf, ladders, type LadderId } from "../../convex/achievements/ladders";
 import type { BookRead } from "./bookRead";
 import type { LadderCard, MyBook, ShellState, TierCard } from "./shell";
 
@@ -36,15 +36,31 @@ const generosityComplete: LadderCard = {
   next: null,
 };
 
-function notStarted({ ladder, name, counts, tiers }: Ladder): LadderCard {
-  return { ladder, name, counts, count: 0, tiers: tiers.map(({ tier, name, count }) => ({ tier, name, at: count, earnedAt: null })), next: { tier: "bronze", at: tiers[0]!.count } };
+function climbed(id: LadderId, count: number, earnedOn: string[] = []): LadderCard {
+  const { ladder, name, counts, tiers } = ladderOf(id);
+  const cards = tiers.map(({ tier, name, count: at }, i) => ({ tier, name, at, earnedAt: earnedOn[i] === undefined ? null : Date.parse(earnedOn[i]) }));
+  const next = cards.find(({ earnedAt }) => earnedAt === null);
+  return { ladder, name, counts, count, tiers: cards, next: next === undefined ? null : { tier: next.tier, at: next.at } };
 }
 
-const everyShippedLadder = ladders.ladders.map((ladder) => (ladder.ladder === "generosity" ? generosityAtBronze : notStarted(ladder)));
+const ladderAtEveryStage = {
+  generosity: generosityAtBronze,
+  recognition: recognitionNotYet,
+  connections: climbed("connections", 31, ["2026-02-03T09:00:00Z", "2026-03-10T09:00:00Z", "2026-05-19T09:00:00Z", "2026-09-08T09:00:00Z"]),
+  dependability: climbed("dependability", 240, ["2026-01-20T09:00:00Z", "2026-03-04T09:00:00Z", "2026-07-21T22:30:00Z"]),
+  applause: climbed("applause", 7, ["2026-06-11T09:00:00Z"]),
+  seasons: climbed("seasons", 8, ["2026-01-30T09:00:00Z", "2026-03-31T09:00:00Z", "2026-06-30T09:00:00Z"]),
+  "old-friends": climbed("old-friends", 4, ["2026-04-02T09:00:00Z", "2026-08-14T09:00:00Z"]),
+} satisfies Record<LadderId, LadderCard>;
+
+const everyShippedLadder = ladders.ladders.map(({ ladder }) => ladderAtEveryStage[ladder]);
+
+const everyStage = (["generosity", "recognition", "connections", "dependability"] as const).map((ladder) => ladderAtEveryStage[ladder]);
 
 export const bookFixtures = {
   book: { kind: "book", ladders: [generosityAtBronze, recognitionNotYet], timeZone: "Europe/Berlin" },
   everyLadder: { kind: "book", ladders: everyShippedLadder, timeZone: "Europe/Berlin" },
+  everyStage: { kind: "book", ladders: everyStage, timeZone: "Europe/Berlin" },
   everyTierEarned: { kind: "book", ladders: [generosityComplete, recognitionNotYet], timeZone: "Europe/Berlin" },
   locked: { kind: "locked", level: 4 },
   ready: { kind: "ready" },

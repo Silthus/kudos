@@ -1,0 +1,9 @@
+ ✓ |website| src/levelContrast.test.tsx > WS333 WS339 V24: the rosettes and the Next rings meet 3:1 against their card in both modes > in light 806ms
+ ✓ |website| src/levelContrast.test.tsx > WS333 WS339 V24: the rosettes and the Next rings meet 3:1 against their card in both modes > in dark 1175ms
+ ✓ |website| src/BookPage.test.tsx > WS333: ladder details > names the highest earned tier and its date, in the member's time zone, beside each ladder's name, or Not started 149ms
+ ✓ |website| src/BookPage.test.tsx > WS333: ladder details > says under the bar how many are left to the next tier, by its name, from the read's at and count 222ms
+ ✓ |website| src/BookPage.test.tsx > WS333: ladder details > shows Complete and a full neutral bar after the fourth tier, with nothing left to go 106ms
+ ✓ |website| src/BookPage.test.tsx > WS333: ladder details > rings one Next cell per incomplete ladder in the foreground colour, with no primary anywhere on a ladder 415ms
+ ✓ |website| src/BookPage.test.tsx > WS333: ladder details > frames the emblem in a rosette of the highest earned tier's metal, with a static sparkle only for gold and diamond 165ms
+ Test Files  2 passed (2)
+      Tests  56 passed (56)

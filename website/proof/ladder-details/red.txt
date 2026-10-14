@@ -1,0 +1,73 @@
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > is the not-found page while getBook answers not-found 611ms
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > says Max's Book opens at level 4. with Go to Home while getBook answers locked 261ms
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > shows the Book's crate in place with a primary Open while getBook answers ready, and opens it through openFeature 968ms
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > becomes the Book once opened, with focus on its title when the reveal closes 803ms
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > asks getBook only on /book 156ms
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > marks the page busy while getBook loads 47ms
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > follows a denial to its page 126ms
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > lives at /book with the tab HedgeHug · Book, the label Book, the title Achievements and its one line 157ms
+ ✓ |website| src/levelContrast.test.tsx > WS112 V24: the ring, the XP bar and the pips meet 3:1 against their surface in both modes > in light 2242ms
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > shows one plain card per ladder in the read's order, each with its name and what it counts 187ms
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > lists the four tiers in order, each with its word and its name 447ms
+ ✓ |website| src/levelContrast.test.tsx > WS112 V24: the ring, the XP bar and the pips meet 3:1 against their surface in both modes > in dark 1437ms
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > prints an earned tier's date in the member's time zone 279ms
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > shows the next tier with the count it needs and a neutral Next tag 299ms
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > shows a later tier with only the count it needs 459ms
+ ✓ |website| src/levelContrast.test.tsx > WS339 V24: the Show more chevrons meet 3:1 against the board's card in both modes > in light 464ms
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > exposes the way to the next tier as a neutral progressbar labelled count of at for the tier's name 357ms
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > shows a ladder with every tier earned with four dates, no bar and no Next tag 295ms
+ ✓ |website| src/levelContrast.test.tsx > WS339 V24: the Show more chevrons meet 3:1 against the board's card in both modes > in dark 1094ms
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > shows a ladder's emblem in silhouette while no tier is earned 344ms
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > gives each medal one to four pips by tier, a sparkle only on gold and diamond, and an outline while unearned 542ms
+ ✓ |website| src/levelContrast.test.tsx > WS339 V24: the Book index's stripe and the page picker meet 3:1 against their card in both modes > in light 792ms
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > never totals tiers, ranks ladders by the closest tier, names a reward, or names stickers and albums 109ms
+ ✓ |website| src/BookPage.test.tsx > WS81: the Book's nav entry follows the page > marks Book current in the nav while the Book is shown 139ms
+ ✓ |website| src/BookPage.test.tsx > WS80 WS81: the fixture build's /book agrees with its member > member-with-nothing-shipped shows Page not found 27ms
+ ✓ |website| src/levelContrast.test.tsx > WS339 V24: the Book index's stripe and the page picker meet 3:1 against their card in both modes > in dark 541ms
+ × |website| src/levelContrast.test.tsx > WS333 WS339 V24: the rosettes and the Next rings meet 3:1 against their card in both modes > in light 374ms
+ × |website| src/levelContrast.test.tsx > WS333 WS339 V24: the rosettes and the Next rings meet 3:1 against their card in both modes > in dark 278ms
+ ✓ |website| src/BookPage.test.tsx > WS80 WS81: the fixture build's /book agrees with its member > member-waiting-for-the-book shows Book 80ms
+ ✓ |website| src/BookPage.test.tsx > WS80 WS81: the fixture build's /book agrees with its member > member-with-the-book-ready shows Book 59ms
+ ✓ |website| src/BookPage.test.tsx > WS80 WS81: the fixture build's /book agrees with its member > member-with-the-book-opened shows Achievements 1595ms
+ ✓ |website| src/BookPage.test.tsx > WS80 WS81: the fixture build's /book agrees with its member > shows the locked sentence for a member waiting for the Book, and the crate for one whose Book is ready 185ms
+ ✓ |website| src/BookPage.test.tsx > WS331: the Book's page index > shows a Book pages column on a wide screen: the Book, Overview, then each category in E's order 889ms
+ ✓ |website| src/BookPage.test.tsx > WS331: the Book's page index > marks the current page, and only it, with the stripe in primary 1190ms
+ ✓ |website| src/BookPage.test.tsx > WS331: the Book's page index > gives each category its emblem and the overview none 1731ms
+ ✓ |website| src/BookPage.test.tsx > WS331: the Book's page index > lists only the categories that hold a ladder the read returns 234ms
+ ✓ |website| src/BookPage.test.tsx > WS331: the Book's page index > is a native select with option groups on a narrow screen 423ms
+ ✓ |website| src/BookPage.test.tsx > WS331: the Book's page index > follows the select to a category without a reload, moving focus to its title 564ms
+ ✓ |website| src/BookPage.test.tsx > WS331: the Book's page index > follows an index entry without a reload, moving focus to the page's title, and back with the browser 2324ms
+ ✓ |website| src/BookPage.test.tsx > WS331: the Book's page index > serves the overview at /book, turning ?page=overview into /book 1389ms
+ ✓ |website| src/BookPage.test.tsx > WS331: the Book's page index > shows the overview for a page it doesn't know, at /book 230ms
+ ✓ |website| src/BookPage.test.tsx > WS331: the Book's page index > shows the overview for a category whose ladders the read doesn't return 158ms
+ ✓ |website| src/BookPage.test.tsx > WS331: the Book's page index > keeps the overview's every ladder in catalogue order until the overview ships 210ms
+ ✓ |website| src/BookPage.test.tsx > WS332: the Book's category pages > /book?page=giving shows Giving with its blurb and its ladders in catalogue order 135ms
+ ✓ |website| src/BookPage.test.tsx > WS332: the Book's category pages > /book?page=thanked shows Being thanked with its blurb and its ladders in catalogue order 75ms
+ ✓ |website| src/BookPage.test.tsx > WS332: the Book's category pages > /book?page=connections shows Connections with its blurb and its ladders in catalogue order 119ms
+ ✓ |website| src/BookPage.test.tsx > WS332: the Book's category pages > /book?page=crowd shows Crowd with its blurb and its ladders in catalogue order 138ms
+ ✓ |website| src/BookPage.test.tsx > WS332: the Book's category pages > names no unshipped thing on any page: no albums, no chime-ins 292ms
+ ✓ |website| src/BookPage.test.tsx > WS332: the Book's category pages > keys every shipped ladder to a category 1ms
+ ✓ |website| src/BookPage.test.tsx > WS332: the Book's category pages > puts a ladder a newer backend returns, with no category yet, on the last category that holds a ladder 45ms
+ ✓ |website| src/BookPage.test.tsx > WS332: the Book's category pages > keeps the read's order when a ladder with no category comes before the last category's own 85ms
+ × |website| src/BookPage.test.tsx > WS333: ladder details > names the highest earned tier and its date, in the member's time zone, beside each ladder's name, or Not started 128ms
+ × |website| src/BookPage.test.tsx > WS333: ladder details > says under the bar how many are left to the next tier, by its name, from the read's at and count 140ms
+ × |website| src/BookPage.test.tsx > WS333: ladder details > shows Complete and a full neutral bar after the fourth tier, with nothing left to go 814ms
+ × |website| src/BookPage.test.tsx > WS333: ladder details > rings one Next cell per incomplete ladder in the foreground colour, with no primary anywhere on a ladder 190ms
+ × |website| src/BookPage.test.tsx > WS333: ladder details > frames the emblem in a rosette of the highest earned tier's metal, with a static sparkle only for gold and diamond 247ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/BookPage.test.tsx > WS333: ladder details > names the highest earned tier and its date, in the member's time zone, beside each ladder's name, or Not started
+Error: expect(element).toHaveTextContent()
+ FAIL  |website| src/BookPage.test.tsx > WS333: ladder details > says under the bar how many are left to the next tier, by its name, from the read's at and count
+Error: expect(element).toHaveTextContent()
+ FAIL  |website| src/BookPage.test.tsx > WS333: ladder details > shows Complete and a full neutral bar after the fourth tier, with nothing left to go
+TestingLibraryElementError: Unable to find an accessible element with the role "progressbar" and name "Complete"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ FAIL  |website| src/BookPage.test.tsx > WS333: ladder details > rings one Next cell per incomplete ladder in the foreground colour, with no primary anywhere on a ladder
+Error: expect(element).toHaveClass("ring-foreground")
+ FAIL  |website| src/BookPage.test.tsx > WS333: ladder details > frames the emblem in a rosette of the highest earned tier's metal, with a static sparkle only for gold and diamond
+TypeError: Cannot read properties of null (reading 'getAttribute')
+ FAIL  |website| src/levelContrast.test.tsx > WS333 WS339 V24: the rosettes and the Next rings meet 3:1 against their card in both modes > in light
+ FAIL  |website| src/levelContrast.test.tsx > WS333 WS339 V24: the rosettes and the Next rings meet 3:1 against their card in both modes > in dark
+AssertionError: expected Set{} to deeply equal Set{ 'medal-bronze', …(5) }
+ Test Files  2 failed (2)
+      Tests  7 failed | 49 passed (56)
