@@ -208,6 +208,12 @@ export default defineSchema({
     shipped: v.array(featureValidator),
   }).index("by_workspace", ["workspace"]),
 
+  previewMoments: defineTable({
+    member: v.id("members"),
+    moment: v.literal("unlocks"),
+    at: v.number(),
+  }).index("by_member_moment", ["member", "moment"]),
+
   levelUps: defineTable({
     member: v.id("members"),
     level: v.number(),

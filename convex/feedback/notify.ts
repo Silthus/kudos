@@ -8,7 +8,7 @@ import { xpLevelsOnFor, xpLevelsShownTo } from "../progression/xpLevels";
 import { questsApplyIn } from "../quests/flag";
 import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type WeeklyQuest } from "../quests/step";
 import { featureValidator, type Feature } from "../unlocks/feature";
-import { unlocksAppliedIn, unlocksShownTo } from "../unlocks/launch";
+import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
@@ -69,7 +69,7 @@ export const linesStillWanted = internalQuery({
     const { workspace } = await chatUserOf(ctx, member);
     if (!(await xpLevelsOnFor(ctx, member)) || !(await wantsDms(ctx, member))) return null;
     if (isAboutQuests(notification) && !(await questsApplyIn(ctx, workspace))) return null;
-    const lines = renderNotification(await stillToldOf(ctx, workspace, member, notification));
+    const lines = renderNotification(await stillToldOf(ctx, member, notification));
     return lines.length === 0 ? null : lines;
   },
 });
@@ -88,9 +88,9 @@ function levelReachedLines({ level, skillPoints, xpToNextLevel }: Extract<Notifi
   return [headline, `Level ${level + 1} is ${xpToNextLevel} XP away.`];
 }
 
-async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification> {
+async function stillToldOf(ctx: QueryCtx, member: MemberId, notification: Notification): Promise<Notification> {
   if (isAboutQuests(notification)) return notification;
-  if (!(await unlocksAppliedIn(ctx, workspace))) return { ...notification, ready: [] };
+  if (!(await unlocksAppliedTo(ctx, member))) return { ...notification, ready: [] };
   const ready = await stillReady(ctx, member, notification.ready);
   if (notification.kind !== "level-reached" || notification.skillPoints === null) return { ...notification, ready };
   return { ...notification, ready, skillPoints: await whenOpened(ctx, member, "skillTree", notification.skillPoints) };
