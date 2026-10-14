@@ -116,8 +116,8 @@ describe("E1 P77: the launch's openings", () => {
     expect(await jobsNamed(t, "drawWeeklyQuests", "activateJourney")).toEqual([]);
   });
 
-  test("a launch over 600 members schedules fewer than 1000 jobs, and every opening is sent", async () => {
-    const t = await flagsFromPostHog(testBackend(), postHog, ...flagsOn("quests", "leaderboard"));
+  test("a launch over 600 members schedules fewer than 1000 jobs and stays within Convex's limits, and every opening is sent", async () => {
+    const t = await flagsFromPostHog(testBackend({ transactionLimits: true }), postHog, ...flagsOn("quests", "leaderboard"));
     await membersExist(t, ...Array.from({ length: 600 }, (_, index) => `U_${index}`));
 
     await t.mutation(internal.unlocks.sweep.sweep, {});
