@@ -1,0 +1,233 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { FakeSlack } from "../../testing/fakeSlack";
+import { unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { testBackend, type Backend } from "../../testing/slackBackend";
+import { opens, reachesLevel } from "../../testing/unlocks";
+import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../../testing/website";
+import { api, internal } from "../_generated/api";
+import { buyPerk } from "../progression/perks";
+import type { PerkId } from "../progression/tree";
+import { workspaceLink } from "../slack/workspaceLink";
+import type { MemberId } from "../workspace/directory";
+import type { MemberProfile } from "./profile";
+import type { MySkillTree } from "./skillTree";
+
+const now = new Date("2026-10-14T10:00:00Z");
+const juno = { user: "U_JUNO", name: "Juno Whitlock" };
+const treeFlags = ["xp-levels", "unlocks", "skill-tree"];
+const levelFive = 600;
+const levelSix = 1000;
+
+const spark = { perk: "spark", name: "Spark", copy: "+5 XP the first time each day you thank someone and say why.", cost: { skillPoints: 1 }, requires: null } as const;
+const rhythm = { perk: "rhythm", name: "Rhythm", copy: "+2 XP each time you thank someone and say why, once per person a day.", cost: { skillPoints: 1 }, requires: null } as const;
+const circle = { perk: "circle", name: "Circle", copy: "+5 XP the first time each week you thank a person and say why.", cost: { skillPoints: 1 }, requires: null } as const;
+const available = { state: "available", reason: null, ownedAt: null } as const;
+
+let postHog: FakePostHog;
+let t: Backend;
+
+beforeEach(() => {
+  vi.useFakeTimers({ now });
+  aDeploymentForWorkspace();
+  postHog = new FakePostHog();
+  vi.stubGlobal("fetch", routedFetch(postHog, new FakeSlack().fetch));
+  t = testBackend();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
+
+function flagsOn(...keys: string[]) {
+  return switchWebsite(t, postHog, true, ...keys);
+}
+
+async function treeShipped() {
+  await flagsOn(...treeFlags);
+  await unlocksShippedBeforeAnyoneJoined(t);
+}
+
+async function signedInMember() {
+  const member = await aMember(t, juno.user);
+  const { asSignedIn } = await aSession(t, juno);
+  return { member, asSignedIn };
+}
+
+async function withXp(member: MemberId, xp: number) {
+  await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp, pointsSpent: 0 }));
+}
+
+async function treeOpenFor(member: MemberId, xp: number) {
+  await withXp(member, xp);
+  await reachesLevel(t, member, 5);
+  await opens(t, member, "skillTree");
+}
+
+async function buys(member: MemberId, perk: PerkId) {
+  expect(await t.run((ctx) => buyPerk(ctx, member, perk, `test:${perk}`))).toEqual({ kind: "bought", perk });
+}
+
+function skillTreeOf(asSignedIn: Pick<Backend, "query">): Promise<MySkillTree> {
+  return asSignedIn.query(api.website.skillTree.getSkillTree, {});
+}
+
+async function skillPointsIn(asSignedIn: Pick<Backend, "query">): Promise<MemberProfile["skillPoints"]> {
+  const profile = await asSignedIn.query(api.website.profile.getMyProfile, {});
+  if (profile.kind !== "member") throw new Error(`expected a member, got ${profile.kind}`);
+  return profile.skillPoints;
+}
+
+async function expectProgressionsFacts(member: MemberId, tree: MySkillTree) {
+  const perks = await t.query(internal.progression.perks.perksOf, { member });
+  if (tree.kind !== "tree" || perks === null) throw new Error(`expected a tree beside perksOf, got ${tree.kind}`);
+  expect(tree.skillPoints).toBe(perks.skillPoints);
+  const nodes = tree.rows.flatMap((row) => row.perks.map((node) => ({ ...node, row: row.level })));
+  expect(nodes.map(({ perk, name, copy, cost, row }) => ({ perk, name, copy, skillPoints: cost.skillPoints, row }))).toEqual(
+    perks.perks.map(({ perk, name, copy, skillPoints, row }) => ({ perk, name, copy, skillPoints, row })),
+  );
+  expect(nodes.map(({ perk, ownedAt }) => ({ perk, ownedAt }))).toEqual(perks.perks.map(({ perk, boughtAt }) => ({ perk, ownedAt: boughtAt })));
+}
+
+describe("WS80 WS83: the skill tree read waits for the Skill tree's unlock", () => {
+  beforeEach(treeShipped);
+
+  test("a member at level 1 reads it locked at level 5, with no facts, and no skill points", async () => {
+    const { asSignedIn } = await signedInMember();
+
+    expect(await skillTreeOf(asSignedIn)).toEqual({ kind: "locked", level: 5 });
+    expect(await skillPointsIn(asSignedIn)).toBeNull();
+  });
+
+  test("a member at level 5 who hasn't opened the Skill tree reads it ready, with no facts, and no skill points", async () => {
+    const { member, asSignedIn } = await signedInMember();
+    await withXp(member, levelFive);
+    await reachesLevel(t, member, 5);
+
+    expect(await skillTreeOf(asSignedIn)).toEqual({ kind: "ready" });
+    expect(await skillPointsIn(asSignedIn)).toBeNull();
+  });
+});
+
+describe("WS83 WS84: the skill tree read projects progression's perksOf", () => {
+  beforeEach(treeShipped);
+
+  test("a member with points and no perks reads every first-row perk available, and the HUD's points equal the tree's", async () => {
+    const { member, asSignedIn } = await signedInMember();
+    await treeOpenFor(member, levelSix);
+
+    const tree = await skillTreeOf(asSignedIn);
+
+    expect(tree).toEqual({
+      kind: "tree",
+      skillPoints: 2,
+      rows: [{ level: 5, perks: [{ ...spark, ...available }, { ...rhythm, ...available }, { ...circle, ...available }] }],
+      chatUrl: workspaceLink("T1"),
+    });
+    await expectProgressionsFacts(member, tree);
+    expect(await skillPointsIn(asSignedIn)).toBe(2);
+  });
+
+  test("a member who owns spark reads it owned since they bought it, and the rest still available", async () => {
+    const { member, asSignedIn } = await signedInMember();
+    await treeOpenFor(member, levelSix);
+    await buys(member, "spark");
+
+    const tree = await skillTreeOf(asSignedIn);
+
+    expect(tree).toMatchObject({
+      skillPoints: 1,
+      rows: [{ level: 5, perks: [{ ...spark, state: "owned", reason: null, ownedAt: now.getTime() }, { ...rhythm, ...available }, { ...circle, ...available }] }],
+    });
+    await expectProgressionsFacts(member, tree);
+    expect(await skillPointsIn(asSignedIn)).toBe(1);
+  });
+
+  test("a member with no points left reads the perks they don't own unavailable for points, and the HUD shows 0", async () => {
+    const { member, asSignedIn } = await signedInMember();
+    await treeOpenFor(member, levelFive);
+    await buys(member, "rhythm");
+
+    const tree = await skillTreeOf(asSignedIn);
+
+    const forPoints = { state: "unavailable", reason: "points", ownedAt: null } as const;
+    expect(tree).toMatchObject({
+      skillPoints: 0,
+      rows: [{ level: 5, perks: [{ ...spark, ...forPoints }, { ...rhythm, state: "owned", reason: null, ownedAt: now.getTime() }, { ...circle, ...forPoints }] }],
+    });
+    await expectProgressionsFacts(member, tree);
+    expect(await skillPointsIn(asSignedIn)).toBe(0);
+  });
+});
+
+describe("P77 WS83: the launch opens the Skill tree for a member who was there", () => {
+  test("a member the launch opened the Skill tree for below level 5 reads every perk unavailable for its level", async () => {
+    await flagsOn(...treeFlags);
+    const { member, asSignedIn } = await signedInMember();
+    await unlocksShippedBeforeAnyoneJoined(t);
+
+    const tree = await skillTreeOf(asSignedIn);
+
+    const forLevel = { state: "unavailable", reason: "level", ownedAt: null } as const;
+    expect(tree).toMatchObject({ skillPoints: 0, rows: [{ level: 5, perks: [{ ...spark, ...forLevel }, { ...rhythm, ...forLevel }, { ...circle, ...forLevel }] }] });
+    await expectProgressionsFacts(member, tree);
+    expect(await skillPointsIn(asSignedIn)).toBe(0);
+  });
+});
+
+describe("the website shows only shipped features", () => {
+  test("WS80 WS84 P78: with skill-tree off, a member who owns spark reads the skill tree not-found and no skill points", async () => {
+    await treeShipped();
+    const { member, asSignedIn } = await signedInMember();
+    await treeOpenFor(member, levelSix);
+    await buys(member, "spark");
+    await flagsOn("xp-levels", "unlocks");
+
+    expect(await skillTreeOf(asSignedIn)).toEqual({ kind: "not-found" });
+    expect(await skillPointsIn(asSignedIn)).toBeNull();
+  });
+
+  test("WS79 WS80: while unlocks don't apply, the skill tree is not-found though skill-tree is on", async () => {
+    await flagsOn(...treeFlags);
+    const { asSignedIn } = await signedInMember();
+
+    expect(await skillTreeOf(asSignedIn)).toEqual({ kind: "not-found" });
+    expect(await skillPointsIn(asSignedIn)).toBeNull();
+    expect(await t.run((ctx) => ctx.db.query("unlockLaunches").collect())).toEqual([]);
+  });
+});
+
+describe("website reads pass one guard", () => {
+  test("getSkillTree reads closed while the website flag is off, even with the Skill tree open", async () => {
+    await treeShipped();
+    const { member, asSignedIn } = await signedInMember();
+    await treeOpenFor(member, levelSix);
+    await switchWebsite(t, postHog, false, ...treeFlags);
+
+    expect(await skillTreeOf(asSignedIn)).toEqual({ kind: "closed" });
+  });
+
+  test("getSkillTree reads signed out without a session", async () => {
+    await treeShipped();
+
+    expect(await skillTreeOf(t)).toEqual({ kind: "signed-out" });
+  });
+
+  test("getSkillTree reads not-a-member for a former member with a live session", async () => {
+    await treeShipped();
+    await aMember(t, juno.user, "not-a-member");
+    const { asSignedIn } = await aSession(t, juno);
+
+    expect(await skillTreeOf(asSignedIn)).toEqual({ kind: "not-a-member" });
+  });
+
+  test("an argument that names another member is rejected by the validator", async () => {
+    await treeShipped();
+    const { asSignedIn } = await signedInMember();
+    const withAnotherMember = { user: "U_ROWAN" } as unknown as Record<string, never>;
+
+    await expect(asSignedIn.query(api.website.skillTree.getSkillTree, withAnotherMember)).rejects.toThrow(/user/);
+  });
+});

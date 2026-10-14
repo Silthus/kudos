@@ -15,6 +15,21 @@ export const onInTheSandboxOnly = (key: string): FlagDefinition => ({
   filters: { groups: [{ properties: [{ key: "environment", type: "person", value: ["sandbox"], operator: "exact" }], rollout_percentage: 100 }] },
 });
 
+export const onForHalf = (key: string): FlagDefinition => ({ key, filters: { groups: [{ properties: [], rollout_percentage: 50 }] } });
+
+export async function anIdInHalfOf(flag: string, inside: boolean) {
+  for (let attempt = 0; ; attempt++) {
+    const id = `id-${inside ? "in" : "out"}-${attempt}`;
+    if ((await rolloutHashOf(flag, id)) <= 0.5 === inside) return id;
+  }
+}
+
+async function rolloutHashOf(flag: string, distinctId: string) {
+  const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(`${flag}.${distinctId}`));
+  const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return parseInt(hex.slice(0, 15), 16) / 0xfffffffffffffff;
+}
+
 export const onForEmails = (key: string, ...emails: string[]): FlagDefinition => ({
   key,
   filters: { groups: [{ properties: [{ key: "email", type: "person", value: emails, operator: "exact" }], rollout_percentage: 100 }] },

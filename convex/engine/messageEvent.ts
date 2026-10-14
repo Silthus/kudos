@@ -37,7 +37,7 @@ export const messageEventValidator = v.object({
   revision: v.int64(),
   at: v.number(),
   content: v.object({ mentions: v.array(mentionValidator), emoji: v.array(v.string()), text: v.string() }),
-  words: v.optional(wordsValidator),
+  words: wordsValidator,
 });
 
 export const fetchedMessageValidator = v.object({

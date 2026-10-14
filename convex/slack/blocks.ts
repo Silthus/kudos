@@ -1,7 +1,11 @@
-import type { Confirmation, HomeAction } from "../feedback/home";
+import type { CommandAction, Confirmation, HomeAction, LinkAction } from "../feedback/home";
 import { encodeHomeAction } from "./interactivity";
 
-export function buttonOf({ label, command, accessibilityLabel, confirm }: HomeAction) {
+export function buttonOf(action: HomeAction) {
+  return "url" in action ? linkButtonOf(action) : commandButtonOf(action);
+}
+
+function commandButtonOf({ label, command, accessibilityLabel, confirm }: CommandAction) {
   const action = encodeHomeAction(command);
   return {
     type: "button",
@@ -11,6 +15,14 @@ export function buttonOf({ label, command, accessibilityLabel, confirm }: HomeAc
     ...(accessibilityLabel !== undefined && { accessibility_label: accessibilityLabel }),
     ...(confirm !== undefined && { confirm: confirmationOf(confirm) }),
   };
+}
+
+function linkButtonOf({ label, url, accessibilityLabel, id }: LinkAction) {
+  return urlButtonOf({ label, url, actionId: `website-link:${id}`, accessibilityLabel });
+}
+
+export function urlButtonOf({ label, url, actionId, accessibilityLabel }: { label: string; url: string; actionId: string; accessibilityLabel?: string }) {
+  return { type: "button", text: plainText(label), url, action_id: actionId, ...(accessibilityLabel !== undefined && { accessibility_label: accessibilityLabel }) };
 }
 
 function confirmationOf({ title, text, confirm, deny }: Confirmation) {

@@ -5,7 +5,7 @@ import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/se
 import { chatUserOf, emailOf, type MemberId } from "../workspace/directory";
 import { captureSettings, environmentSetting } from "./capture";
 import { existingWorkspaceKey, record, workspaceKeyOf } from "./outbox";
-import { analyticsIdOf, existingAnalyticsId } from "./person";
+import { analyticsIdOf, existingAnalyticsId, recordAnalyticsId } from "./person";
 
 type FlagValue = string | boolean;
 
@@ -21,6 +21,22 @@ export function memberDecision<V extends FlagValue>(ctx: QueryCtx | MutationCtx,
   return evaluated(ctx, read, () => memberSubject(ctx, member));
 }
 
+export function memberDecisionWithoutWriting<V extends FlagValue>(ctx: QueryCtx | MutationCtx, read: Flag<V>, member: MemberId): Promise<V> {
+  return evaluated(ctx, read, () => existingMemberSubject(ctx, member));
+}
+
+type DecisionToKeep<V> = { value: V; keep: () => Promise<void> };
+
+export async function memberDecisionBeforeWriting<V extends FlagValue>(ctx: MutationCtx, read: Flag<V>, member: MemberId): Promise<DecisionToKeep<V>> {
+  const existing = await existingAnalyticsId(ctx, member);
+  const analyticsId = existing ?? crypto.randomUUID();
+  const value = await evaluated(ctx, read, async () => ({ distinctId: analyticsId, email: await emailOf(ctx, member) }));
+  const keep = async () => {
+    if (existing === null) await recordAnalyticsId(ctx, member, analyticsId);
+  };
+  return { value, keep };
+}
+
 export function workspaceDecision<V extends FlagValue>(ctx: QueryCtx | MutationCtx, read: Flag<V>, workspace: string): Promise<V> {
   return evaluated(ctx, read, () => workspaceSubject(ctx, workspace));
 }
@@ -30,7 +46,12 @@ export function workspaceDecisionWithoutWriting<V extends FlagValue>(ctx: QueryC
 }
 
 async function memberSubject(ctx: QueryCtx | MutationCtx, member: MemberId): Promise<Subject | null> {
-  const analyticsId = canWrite(ctx) ? await analyticsIdOf(ctx, member) : await existingAnalyticsId(ctx, member);
+  if (!canWrite(ctx)) return existingMemberSubject(ctx, member);
+  return { distinctId: await analyticsIdOf(ctx, member), email: await emailOf(ctx, member) };
+}
+
+async function existingMemberSubject(ctx: QueryCtx, member: MemberId): Promise<Subject | null> {
+  const analyticsId = await existingAnalyticsId(ctx, member);
   if (analyticsId === null) return existingWorkspaceSubject(ctx, (await chatUserOf(ctx, member)).workspace);
   return { distinctId: analyticsId, email: await emailOf(ctx, member) };
 }

@@ -93,6 +93,16 @@ describe("F8: the person follows the directory", () => {
     ]);
   });
 
+  test("a changed Slack picture changes nothing on the person", async () => {
+    const t = testBackend();
+    await annGaveKudos(t);
+
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, image_192: "https://avatars.example.com/ann-192.png" } }, { eventTs: later(1) });
+    await settle(t);
+
+    expect(personEventsOn(await annsDistinctId(t)).slice(1)).toEqual([]);
+  });
+
   test("a change back to an earlier profile is a change", async () => {
     const t = testBackend();
     await annGaveKudos(t);
@@ -225,9 +235,9 @@ describe("O18 F9: an older person event that fails once a newer one was recorded
     postHog.answering(() => new Promise<Response>((resolve) => (fail = () => resolve(new Response(null, { status: 503 })))));
 
     await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Baker" } }, { eventTs: later(1) });
-    await settleInTimeOrder(t, { until: Date.now() + 5_000 });
+    await settleInTimeOrder(t, { until: Date.now() + 5_000, whileFunctionsRun: true });
     await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Chef" } }, { eventTs: later(2) });
-    await settleInTimeOrder(t, { until: Date.now() + 1_000 });
+    await settleInTimeOrder(t, { until: Date.now() + 1_000, whileFunctionsRun: true });
     fail();
     await settleInTimeOrder(t);
     postHogAppliedLast(requestThatSentTitle("Baker"));
@@ -247,14 +257,14 @@ describe("O18 F9: a person event a dead drain sent may still have landed", () =>
     postHog.answering(stallsUntilReleased().answer);
 
     await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Baker" } }, { eventTs: later(1) });
-    await settleInTimeOrder(t, { until: Date.now() + 10_000 });
+    await settleInTimeOrder(t, { until: Date.now() + 10_000, whileFunctionsRun: true });
     await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Chef" } }, { eventTs: later(2) });
-    await settleInTimeOrder(t, { until: Date.now() + 3 * 60_000 });
+    await settleInTimeOrder(t, { until: Date.now() + 3 * 60_000, whileFunctionsRun: true });
     const chefDelivered = postHog.personOf(await annsDistinctId(t)).title;
     postHogAppliedLast(requestThatSentTitle("Baker"));
     const afterTheLateBaker = postHog.personOf(await annsDistinctId(t)).title;
     await t.mutation(dailyCatchUp(), {});
-    await settleInTimeOrder(t);
+    await settleInTimeOrder(t, { whileFunctionsRun: true });
 
     expect([chefDelivered, afterTheLateBaker]).toEqual(["Chef", "Baker"]);
     expect(postHog.personOf(await annsDistinctId(t))).toMatchObject({ title: "Chef" });
@@ -269,9 +279,9 @@ describe("O17: a person event a drain sent after losing its claim", () => {
     postHog.answering(stalled.answer);
 
     await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Baker" } }, { eventTs: later(1) });
-    await settleInTimeOrder(t, { until: Date.now() + 10_000 });
+    await settleInTimeOrder(t, { until: Date.now() + 10_000, whileFunctionsRun: true });
     await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Chef" } }, { eventTs: later(2) });
-    await settleInTimeOrder(t, { until: Date.now() + 3 * 60_000 });
+    await settleInTimeOrder(t, { until: Date.now() + 3 * 60_000, whileFunctionsRun: true });
     const chefDelivered = postHog.personOf(await annsDistinctId(t)).title;
     vi.setSystemTime(Date.now() + 1_000);
     stalled.release();

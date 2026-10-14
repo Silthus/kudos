@@ -43,14 +43,23 @@ export async function unlocksOpenedFor(ctx: MutationCtx, workspace: string, memb
 }
 
 export async function unlocksLiveIn(ctx: MutationCtx, workspace: string): Promise<boolean> {
-  if (!(await xpLevelsShownIn(ctx, workspace)) || !(await workspaceDecision(ctx, unlocksFlag, workspace))) return false;
+  if (!(await unlocksOnIn(ctx, workspace))) return false;
   if ((await launchIn(ctx, workspace)) === null) await launch(ctx, workspace);
   await achievementsLiveIn(ctx, workspace);
   return true;
 }
 
+export async function unlocksPreviewedBy(ctx: MutationCtx, member: MemberId): Promise<void> {
+  const { workspace } = await chatUserOf(ctx, member);
+  if (!(await unlocksOnIn(ctx, workspace))) await unlocksOpenedFor(ctx, workspace, member);
+}
+
 export async function unlockPathShownIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
   return (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
+}
+
+export async function unlockPathShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return (await xpLevelsOnFor(ctx, member)) && (await unlocksAppliedTo(ctx, member));
 }
 
 export async function unlocksAppliedIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
@@ -61,6 +70,14 @@ export async function unlocksAppliedTo(ctx: QueryCtx, member: MemberId): Promise
   if (!(await memberDecision(ctx, unlocksFlag, member))) return false;
   const { workspace } = await chatUserOf(ctx, member);
   return (await launchIn(ctx, workspace)) !== null || (await previewMomentOf(ctx, member, "unlocks")) !== null;
+}
+
+export async function unlocksLaunchDueIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
+  return (await unlocksOnIn(ctx, workspace)) && (await launchIn(ctx, workspace)) === null;
+}
+
+async function unlocksOnIn(ctx: QueryCtx, workspace: string) {
+  return (await xpLevelsShownIn(ctx, workspace)) && (await workspaceDecision(ctx, unlocksFlag, workspace));
 }
 
 async function unlocksOnFor(ctx: MutationCtx, member: MemberId) {

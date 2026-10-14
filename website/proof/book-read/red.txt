@@ -1,0 +1,40 @@
+# Red: getBook stubbed to answer not-found, the public surface test without getBook, on b34d708 plus the new tests
+     × only HTTP routes, Convex Auth's signIn, signOut and isAuthenticated, and the website's signed-in functions are public 604ms
+     × a member at level 1 reads the Book locked at level 4, with no achievement fact 25ms
+     × a member at level 4 who hasn't opened the Book reads it ready, with no achievement fact 25ms
+     × once the member opens the Book, getBook answers their ladders 28ms
+     × P60: a member with nothing earned reads every shipped ladder in catalogue order, each tier unearned and the next its bronze 27ms
+     × P59: earned tiers carry the dates they were earned, and next is the first tier not earned 44ms
+     × with all four tiers earned, next is null 35ms
+     × every ladder's value is achievementsOf's fact read directly 38ms
+     × timeZone is the member's zone from the directory 20ms
+     × a member the directory knows no zone for reads UTC, the zone their days count in 24ms
+     × WS90 WS91 P78: with only Generosity and Recognition shipped, getBook holds exactly those ladders and no reward 28ms
+     × a member reads their own counts and tiers, never a teammate's 39ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |convex| convex/publicSurface.test.ts > WS10: the public surface is exact > only HTTP routes, Convex Auth's signIn, signOut and isAuthenticated, and the website's signed-in functions are public
+AssertionError: expected [ './auth.ts:isAuthenticated', …(8) ] to deeply equal [ './auth.ts:isAuthenticated', …(7) ]
+- Expected
++ Received
+ FAIL  |convex| convex/website/book.test.ts > WS80 WS90: getBook follows the Book's unlock > a member at level 1 reads the Book locked at level 4, with no achievement fact
+AssertionError: expected { kind: 'not-found' } to deeply equal { kind: 'locked', level: 4 }
+- Expected
++ Received
+ FAIL  |convex| convex/website/book.test.ts > WS80 WS90: getBook follows the Book's unlock > a member at level 4 who hasn't opened the Book reads it ready, with no achievement fact
+AssertionError: expected { kind: 'not-found' } to deeply equal { kind: 'ready' }
+- Expected
++ Received
+ FAIL  |convex| convex/website/book.test.ts > WS80 WS90: getBook follows the Book's unlock > once the member opens the Book, getBook answers their ladders
+AssertionError: expected { kind: 'not-found' } to match object { kind: 'book' }
+- Expected
++ Received
+ FAIL  |convex| convex/website/book.test.ts > WS90: getBook reads achievementsOf's facts > P60: a member with nothing earned reads every shipped ladder in catalogue order, each tier unearned and the next its bronze
+ FAIL  |convex| convex/website/book.test.ts > WS90: getBook reads achievementsOf's facts > P59: earned tiers carry the dates they were earned, and next is the first tier not earned
+ FAIL  |convex| convex/website/book.test.ts > WS90: getBook reads achievementsOf's facts > with all four tiers earned, next is null
+ FAIL  |convex| convex/website/book.test.ts > WS90: getBook reads achievementsOf's facts > every ladder's value is achievementsOf's fact read directly
+ FAIL  |convex| convex/website/book.test.ts > WS90: getBook reads achievementsOf's facts > timeZone is the member's zone from the directory
+ FAIL  |convex| convex/website/book.test.ts > WS90: getBook reads achievementsOf's facts > a member the directory knows no zone for reads UTC, the zone their days count in
+ FAIL  |convex| convex/website/book.test.ts > the Book names nothing unshipped > WS90 WS91 P78: with only Generosity and Recognition shipped, getBook holds exactly those ladders and no reward
+ FAIL  |convex| convex/website/book.test.ts > WS93: your own Book only > a member reads their own counts and tiers, never a teammate's
+ Test Files  2 failed (2)
+      Tests  12 failed | 6 passed (18)

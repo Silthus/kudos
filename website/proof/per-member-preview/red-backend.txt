@@ -1,0 +1,119 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/per-member-flags
+
+ ❯ |convex| convex/website/preview.test.ts (11 tests | 6 failed) 204ms
+   ❯ F26: signing in admits on the workspace decision or the member's own (4)
+     × while the website is closed for the workspace, the member it names by email signs in, sends their website exposure once, and reads their profile 53ms
+     × signing in runs the previewing member's due preview moments, and never the unlocks launch or the Journey launch 4ms
+     × with the website on for the workspace, a member signs in with their website exposure and no preview moment runs 9ms
+   ❯ F27: a signed-in member's reads follow their own decision (3)
+     × with the website on for everyone, each member's pages follow their own XP, board, unlocks and quests decisions 45ms
+   ❯ F29: a session from before the preview (2)
+     × the previewer's first command sends the website exposure and runs the preview moment, so their Open works 24ms
+   ❯ F28: App Home's way in for a previewer (2)
+     × while the website is closed for the workspace, the previewer's App Home links to the direct sign-in entry of each page, and another member's has no link 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/preview.test.ts > F26: signing in admits on the workspace decision or the member's own > while the website is closed for the workspace, the member it names by email signs in, sends their website exposure once, and reads their profile
+ FAIL  |convex| convex/website/preview.test.ts > F26: signing in admits on the workspace decision or the member's own > signing in runs the previewing member's due preview moments, and never the unlocks launch or the Journey launch
+ FAIL  |convex| convex/website/preview.test.ts > F28: App Home's way in for a previewer > while the website is closed for the workspace, the previewer's App Home links to the direct sign-in entry of each page, and another member's has no link
+Error: the website is closed, so nobody signs in
+ ❯ rememberSignedInMember convex/website/signIn.ts:11:40
+      9|
+     10| export async function rememberSignedInMember(ctx: GenericMutationCtx<D…
+     11|   if (!(await websiteOpen(ctx))) throw new Error("the website is close…
+       |                                        ^
+     12|   const signedIn = allowedSignIn(profile);
+     13|   const chatIdentity = { workspace: signedIn.chatWorkspace, user: sign…
+ ❯ invokeFunction node_modules/.pnpm/convex@1.46.0_react@19.3.0/node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeMutation node_modules/.pnpm/convex@1.46.0_react@19.3.0/node_modules/convex/src/server/impl/registration_impl.ts:70:18
+ ❯ runMutationWithHandler node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2060:31
+ ❯ handler node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2266:24
+ ❯ invokeFunction node_modules/.pnpm/convex@1.46.0_react@19.3.0/node_modules/convex/src/server/impl/registration_impl.ts:90:14
+ ❯ invokeAction node_modules/.pnpm/convex@1.46.0_react@19.3.0/node_modules/convex/src/server/impl/registration_impl.ts:513:18
+ ❯ run node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2281:31
+ ❯ run node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2293:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  |convex| convex/website/preview.test.ts > F26: signing in admits on the workspace decision or the member's own > with the website on for the workspace, a member signs in with their website exposure and no preview moment runs
+AssertionError: expected [] to deeply equal [ { …(2) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "member": "0000000000000000000010000members",
+-     "value": true,
+-   },
+- ]
++ []
+
+ ❯ convex/website/preview.test.ts:140:38
+    138|     await signIn(bob);
+    139|
+    140|     expect(await websiteExposures()).toEqual([{ member, value: true }]…
+       |                                      ^
+    141|     expect(await previewMoments()).toEqual([]);
+    142|     expect(await rowsOf("unlockLaunches")).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  |convex| convex/website/preview.test.ts > F27: a signed-in member's reads follow their own decision > with the website on for everyone, each member's pages follow their own XP, board, unlocks and quests decisions
+AssertionError: expected { allowance: { base: 3, …(2) }, …(11) } to match object { kind: 'member', …(2) }
+(18 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "kind": "member",
+    "leaderboard": {
+-     "kind": "open",
++     "kind": "off",
+    },
+-   "progression": ObjectContaining {
+-     "level": Any<Number>,
+-   },
++   "progression": null,
+  }
+
+ ❯ convex/website/preview.test.ts:177:27
+    175|     const bobsProfile = await myProfile(asBob);
+    176|
+    177|     expect(alicesProfile).toMatchObject({ kind: "member", progression:…
+       |                           ^
+    178|     expect(alicesProfile).toMatchObject({ features: expect.arrayContai…
+    179|     expect(bobsProfile).toMatchObject({ kind: "member", progression: n…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  |convex| convex/website/preview.test.ts > F29: a session from before the preview > the previewer's first command sends the website exposure and runs the preview moment, so their Open works
+AssertionError: expected { kind: 'closed' } to deeply equal { kind: 'opened' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "opened",
++   "kind": "closed",
+  }
+
+ ❯ convex/website/preview.test.ts:194:43
+    192|     const { asSignedIn } = await aSession(t, { user: alice.user });
+    193|
+    194|     expect(await openFeature(asSignedIn)).toEqual({ kind: "opened" });
+       |                                           ^
+    195|     expect(await websiteExposures()).toEqual([{ member, value: true }]…
+    196|     expect(await previewMoments()).toContainEqual({ member, moment: "u…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 5 passed (11)
+   Start at  08:11:11
+   Duration  1.05s (transform 51%, import 22%, tests 22%, environment 5%)
+

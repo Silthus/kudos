@@ -2,16 +2,17 @@ import type { QueryCtx } from "../_generated/server";
 import { homeFacts } from "../engine/home";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
-import { xpLevelsShownIn } from "../progression/xpLevels";
+import { xpLevelsOnFor } from "../progression/xpLevels";
 import { workspaceLink } from "../slack/workspaceLink";
 import { followTheClock } from "./clock";
 import { faceOf, type Face } from "./faces";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 import { journeyStepsOf, type JourneyStep } from "./quests";
-import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, type LeaderboardState } from "./unlockPath";
+import { skillPointsOf } from "./skillTree";
+import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, type FeaturePage } from "./unlockPath";
 
 export type { Face } from "./faces";
-export type { FeatureCard, LeaderboardState } from "./unlockPath";
+export type { FeatureCard, FeaturePage, PageWaits } from "./unlockPath";
 export type { JourneyStep } from "./quests";
 
 export type Kudos = { given: number; received: number };
@@ -27,10 +28,11 @@ export type MemberProfile = {
   thisWeek: Kudos;
   lifetime: Kudos;
   chatUrl: string;
-  leaderboard: LeaderboardState;
+  leaderboard: FeaturePage;
   features: FeatureCard[] | null;
   journey: JourneyStep[] | null;
   progression: Progression | null;
+  skillPoints: number | null;
 };
 
 export type MyProfile = Denial | MemberProfile;
@@ -53,11 +55,12 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     features: await featureCardsOf(me, path),
     journey: await journeyStepsOf(ctx, me),
     progression: await progressionOf(ctx, me),
+    skillPoints: await skillPointsOf(ctx, me, path),
   };
 });
 
 async function progressionOf(ctx: QueryCtx, me: VerifiedMember): Promise<Progression | null> {
-  if (!(await xpLevelsShownIn(ctx, me.workspace))) return null;
+  if (!(await xpLevelsOnFor(ctx, me.member))) return null;
   const { level, xp, xpToNextLevel } = await progressionHomeOf(ctx, me.member);
   return { level, xp, levelStartsAt: xpToReach(level), nextLevelAt: xpToReach(level + 1), xpToNextLevel };
 }

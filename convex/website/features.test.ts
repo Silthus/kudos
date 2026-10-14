@@ -173,6 +173,45 @@ describe("the website shows only shipped features", () => {
   });
 });
 
+describe("WS79: a feature page follows its entry, beside an unchanged leaderboard", () => {
+  function pagesOf({ features, leaderboard }: MemberProfile) {
+    const skillTree = features?.find((card) => card.feature === "skillTree");
+    return { skillTree: skillTree && { state: skillTree.state, level: skillTree.level }, leaderboard };
+  }
+
+  test("with skill-tree on and unlocks not applying, there is no Skill tree entry and the leaderboard is WS30's", async () => {
+    await flagsOn("everyone-board", "xp-levels", "skill-tree");
+    const { asSignedIn } = await signedInMember();
+
+    expect(pagesOf(await myProfile(asSignedIn))).toEqual({ skillTree: undefined, leaderboard: { kind: "open" } });
+  });
+
+  describe("while unlocks apply and skill-tree is on", () => {
+    beforeEach(() => launchedThen(...allFlags, "skill-tree"));
+
+    test("a member at level 1 reads the Skill tree locked at level 5 and the leaderboard locked at level 3", async () => {
+      const { asSignedIn } = await signedInMember();
+
+      expect(pagesOf(await myProfile(asSignedIn))).toEqual({ skillTree: { state: "locked", level: 5 }, leaderboard: { kind: "locked", level: 3 } });
+    });
+
+    test("a member at level 5 reads both ready", async () => {
+      const { member, asSignedIn } = await signedInMember();
+      await reachesLevel(t, member, 5);
+
+      expect(pagesOf(await myProfile(asSignedIn))).toEqual({ skillTree: { state: "ready", level: 5 }, leaderboard: { kind: "ready" } });
+    });
+
+    test("a member who opened the Skill tree reads it open, and the unopened leaderboard still ready", async () => {
+      const { member, asSignedIn } = await signedInMember();
+      await reachesLevel(t, member, 5);
+      await opens(t, member, "skillTree");
+
+      expect(pagesOf(await myProfile(asSignedIn))).toEqual({ skillTree: { state: "open", level: 5 }, leaderboard: { kind: "ready" } });
+    });
+  });
+});
+
 describe("WS66: a crate's seen key is opaque and per member", () => {
   test("two members' keys for the same crate differ, stay the same across reads, and carry no ID", async () => {
     await launchedThen(...allFlags);

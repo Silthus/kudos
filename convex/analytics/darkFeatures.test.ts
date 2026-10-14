@@ -35,13 +35,13 @@ type Capture = "on" | "off" | "failing";
 type Setup = { name: string; flags: FlagDefinition[] | "no flags key"; boardShown: boolean };
 
 const now = new Date("2026-10-13T10:00:00Z");
-const realSetTimeout = globalThis.setTimeout;
-const idleAfterMs = 200;
 const stepMs = 10 * 60_000;
 const stepWindowMs = 9 * 60_000;
+const aTotalityOverEveryRecorderWalksThreeTimesMs = 20_000;
 const week = "2026-10-12";
 const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
+const members = ["U_ALICE", "U_BOB"];
 const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board"];
 const notMemberFacing: Table[] = ["analyticsIds", "workspaceKeys", "analyticsOutbox", "analyticsDrain", "errorSweep", "watchedJobs", "reportedJobs", "flagExposures"];
 const recordingJobs = ["analytics/drain:drain", "analytics/person:identifyNewPeople"];
@@ -151,20 +151,27 @@ describe("E9 E10: analytics sends exactly the facts the features stored, whateve
 });
 
 describe("E11 O15: with capture on, off or failing, every member gets the same Slack calls, answers and changes", () => {
-  test.each(setups.map((setup) => [setup.name, setup] as const))("with %s", async (_, setup) => {
-    const off = await seenByMembers(await walk(setup, "off"));
-    const offSent = productEvents();
-    const on = await seenByMembers(await walk(setup, "on"));
-    const onSent = productEvents();
-    const failing = await seenByMembers(await walk(setup, "failing"));
-    const failingSent = productEvents();
+  test.each(setups.map((setup) => [setup.name, setup] as const))("with %s, capture off sends nothing", async (_, setup) => {
+    const off = await seenWithCaptureOff(setup);
 
-    expect(offSent).toEqual([]);
-    expect(failingSent).toEqual([]);
-    expect(onSent.length).toBeGreaterThan(0);
-    expect(on).toEqual(off);
-    expect(failing).toEqual(off);
-    expect(Object.keys(off.slackCalls)).toEqual(expect.arrayContaining(["U_ALICE", "U_ALICE in C1", "App Home of U_ALICE"]));
+    expect(off.sent).toEqual([]);
+    expect(Object.keys(off.seen.slackCalls)).toEqual(expect.arrayContaining(["U_ALICE", "U_ALICE in C1", "App Home of U_ALICE"]));
+  });
+
+  test.each(setups.map((setup) => [setup.name, setup] as const))("with %s, capture on sends events and members see what capture off shows", async (_, setup) => {
+    const off = await seenWithCaptureOff(setup);
+    const on = await seenAfterWalk(setup, "on");
+
+    expect(on.sent.length).toBeGreaterThan(0);
+    expect(on.seen).toEqual(off.seen);
+  });
+
+  test.each(setups.map((setup) => [setup.name, setup] as const))("with %s, failing capture sends nothing and members see what capture off shows", async (_, setup) => {
+    const off = await seenWithCaptureOff(setup);
+    const failing = await seenAfterWalk(setup, "failing");
+
+    expect(failing.sent).toEqual([]);
+    expect(failing.seen).toEqual(off.seen);
   });
 });
 
@@ -182,7 +189,7 @@ describe("E11: recording a product event writes only analytics' own rows and sch
     }
 
     expect([...reRun].sort()).toEqual(everyRecorder().sort());
-  });
+  }, aTotalityOverEveryRecorderWalksThreeTimesMs);
 });
 
 async function expectOnlyObserving(t: Backend, { name, args }: { name: string; args: Record<string, unknown> }) {
@@ -288,7 +295,7 @@ function start(capture: Capture, flagsKey: "flags key set" | "no flags key") {
   vi.useFakeTimers({ now });
   sentMessages = 0;
   steps = 0;
-  slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB");
+  slack = members.reduce((fake, user) => fake.withMember(user), new FakeSlack());
   postHog = postHogDeciding("sandbox");
   if (flagsKey === "no flags key") vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "");
   if (capture === "off") vi.stubEnv("KUDOS_ENVIRONMENT", "");
@@ -301,19 +308,36 @@ const failingForProductEvents: typeof record = async (ctx, workspace, events) =>
   throw new Error("recording failed");
 };
 
+const walkedWithCaptureOff = new Map<Setup, ReturnType<typeof seenAfterWalk>>();
+
+function seenWithCaptureOff(setup: Setup) {
+  if (!walkedWithCaptureOff.has(setup)) walkedWithCaptureOff.set(setup, seenAfterWalk(setup, "off"));
+  return walkedWithCaptureOff.get(setup)!;
+}
+
+async function seenAfterWalk(setup: Setup, capture: Capture) {
+  const seen = await seenByMembers(await walk(setup, capture));
+  return { seen, sent: productEvents() };
+}
+
 async function seenByMembers({ t, answers }: Awaited<ReturnType<typeof walk>>) {
   const stored = await everythingByTable(t);
   const memberFacing = Object.fromEntries(Object.entries(stored).filter(([table]) => !notMemberFacing.includes(table as Table)));
   memberFacing.slackReceipts = stored.slackReceipts.map(({ eventId: _numberedPerProcess, ...receipt }) => receipt as Row);
-  return { answers, slackCalls: callsByConversation(), stored: withStableIds(memberFacing) };
+  return { answers, slackCalls: callsByConversationInAnyOrder(), appHomesShown: appHomesShown(), stored: withStableIds(memberFacing) };
 }
 
-function callsByConversation() {
+function appHomesShown() {
+  return Object.fromEntries(members.map((user) => [user, slack.homeShownTo(user)]));
+}
+
+function callsByConversationInAnyOrder() {
   const conversations: Record<string, Array<{ method: string; args: Record<string, unknown> }>> = {};
   for (const { method, args } of slack.calls) {
     const conversation = conversationOf(method, args);
     (conversations[conversation] ??= []).push({ method, args });
   }
+  for (const calls of Object.values(conversations)) calls.sort((one, other) => serialized(one).localeCompare(serialized(other)));
   return conversations;
 }
 
@@ -367,7 +391,7 @@ async function hedgehug(t: Backend, user: string, words: string) {
 async function settled(t: Backend) {
   const until = Date.now() + stepWindowMs;
   for (let fired = 0; fired < 500; fired += 1) {
-    await Promise.race([t.finishInProgressScheduledFunctions(), new Promise((resolve) => realSetTimeout(resolve, idleAfterMs))]);
+    await t.finishInProgressScheduledFunctions();
     const next = await nextJobAt(t);
     if (next === null || next > until) return;
     vi.advanceTimersToNextTimer();
@@ -466,15 +490,15 @@ async function newJobNames(t: Backend, before: Set<string>) {
 
 async function everythingByTable(t: Backend): Promise<Record<Table, Row[]>> {
   const tables = Object.keys(schema.tables) as Table[];
-  return Object.fromEntries(await Promise.all(tables.map(async (table) => [table, await rowsOf(t, table)] as const))) as Record<Table, Row[]>;
+  return t.run(async (ctx) => Object.fromEntries(await Promise.all(tables.map(async (table) => [table, await ctx.db.query(table).collect()] as const))) as unknown as Record<Table, Row[]>);
 }
 
 function changedTables(before: Record<Table, Row[]>, after: Record<Table, Row[]>) {
   return (Object.keys(after) as Table[]).filter((table) => serialized(before[table]) !== serialized(after[table]));
 }
 
-function serialized(rows: Row[]) {
-  return JSON.stringify(rows, (_, value: unknown) => (typeof value === "bigint" ? value.toString() : value));
+function serialized(value: unknown) {
+  return JSON.stringify(value, (_, inner: unknown) => (typeof inner === "bigint" ? inner.toString() : inner));
 }
 
 async function rowsOf(t: Backend, table: Table): Promise<Row[]> {

@@ -35,7 +35,6 @@ export type KudosText =
   | { kind: "unavailable"; reason: "deleted" | "removed" | "not-captured" };
 
 export async function keepWords(ctx: MutationCtx, event: MessageEvent, annotations: Annotations) {
-  if (event.words === undefined) return;
   const row = await kudosTextRow(ctx, event.ref);
   if (row !== null && !mayStoreWordsOver(row, event.revision)) return;
   await write(ctx, row, {

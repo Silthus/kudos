@@ -6,7 +6,7 @@ import { workspaceLink } from "../slack/workspaceLink";
 import { followTheClock } from "./clock";
 import { faceOf, teammateOf, type Face } from "./faces";
 import { memberQuery, type Denial } from "./memberQuery";
-import { leaderboardStateOf, unlockPathOf, type LeaderboardWaits } from "./unlockPath";
+import { leaderboardStateOf, unlockPathOf, type PageWaits } from "./unlockPath";
 
 export type LeaderboardRow = { position: number; rank: number; tied: boolean; name: string; face: Face; kudos: number; you: boolean };
 
@@ -21,7 +21,7 @@ export type Leaderboard = {
   onTheBoards: boolean;
 };
 
-export type LeaderboardAnswer = { kind: "not-found" } | LeaderboardWaits | Leaderboard;
+export type LeaderboardAnswer = { kind: "not-found" } | PageWaits | Leaderboard;
 
 export type MyLeaderboard = Denial | LeaderboardAnswer;
 
@@ -47,7 +47,7 @@ export const getLeaderboard = memberQuery({
   },
 });
 
-function leaderboardRowOf({ position, rank, tied, name, kudos, viewer }: RankedRow, myFace: Face): LeaderboardRow {
-  const teammate = teammateOf(name);
+function leaderboardRowOf({ position, rank, tied, name, picture, kudos, viewer }: RankedRow, myFace: Face): LeaderboardRow {
+  const teammate = teammateOf(name, picture);
   return { position, rank, tied, name: teammate.name, face: viewer ? myFace : teammate.face, kudos, you: viewer };
 }

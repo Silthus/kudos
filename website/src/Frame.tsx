@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from "react";
+import { HedgehogHeart } from "@posthog/brand/hoggies";
 import { IconHome } from "@posthog/icons";
 import { AccountMenu } from "./AccountMenu";
 import { AppLink } from "./AppLink";
@@ -7,6 +8,8 @@ import { isShownOn, type ReadyCrate } from "./crates/readyCrates";
 import { openWebPagesOf } from "./features";
 import type { Screen } from "./route";
 import type { MemberProfile } from "./shell";
+import { SkillPointGlyph } from "./skills/glyphs";
+import { chipName } from "./skills/perkWords";
 import { ThemeControl } from "./ThemeControl";
 
 type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; current?: Screen; busy: boolean; inert?: boolean; onSignOut?: () => void; children: ReactNode };
@@ -20,6 +23,7 @@ export function Frame({ member, ready = [], current, busy, inert, onSignOut, chi
           <Wordmark />
           {member && <ScreenNav current={current} member={member} />}
           <div className="ml-auto flex items-center gap-2 max-sm:gap-1.5">
+            {member && member.skillPoints !== null && <SkillPointChip points={member.skillPoints} />}
             {member && <ReadyPill crates={ready} />}
             <ThemeControl />
             {member && onSignOut && <AccountMenu member={member} onSignOut={onSignOut} />}
@@ -34,11 +38,21 @@ export function Frame({ member, ready = [], current, busy, inert, onSignOut, chi
 
 function Wordmark() {
   return (
-    <AppLink href="/" className="flex items-center rounded-md">
+    <AppLink href="/" aria-label="HedgeHug, home" className="flex items-center gap-2.5 rounded-md">
+      <HedgehogHeart size={34} title="" className="shrink-0" />
       <span className="flex flex-col leading-none">
         <span className="hud-display text-lg font-bold">HedgeHug</span>
         <span className="text-[10px] text-muted-foreground">Thanks a Hog</span>
       </span>
+    </AppLink>
+  );
+}
+
+function SkillPointChip({ points }: { points: number }) {
+  return (
+    <AppLink href="/skills" aria-label={chipName(points)} className="inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums hover:bg-fill-hover">
+      <SkillPointGlyph />
+      {points}
     </AppLink>
   );
 }

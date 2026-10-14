@@ -1,0 +1,27 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/buy-perk/website
+
+ ❯ |website| src/buyPerk.test.tsx (30 tests | 1 failed | 29 skipped) 211ms
+   ❯ WS87: a refused purchase changes nothing and says why (9)
+     × drops the refusal's line once the read shows the perk can be bought again 210ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/buyPerk.test.tsx > WS87: a refused purchase changes nothing and says why > drops the refusal's line once the read shows the perk can be bought again
+AssertionError: expected [ …(3) ] to not include 'That couldn\'t be bought. No skill po…'
+ ❯ src/buyPerk.test.tsx:207:41
+    205|     await later.settle({ kind: "refused", reason: "points" });
+    206|     showTree(skillTreeFixtures.withOnePoint);
+    207|     expect(shownLinesIn(details())).not.toContain("That couldn't be bo…
+       |                                         ^
+    208|     expect(buyButton()).toHaveAccessibleName("Buy for 1 skill point");
+    209|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 29 skipped (30)
+   Start at  08:00:01
+   Duration  2.17s (import 49%, environment 21%, transform 16%, tests 10%, setup 5%)
+

@@ -1,0 +1,60 @@
+# pnpm gate on spec/website-4 at c10ab6d merged with origin/main at 2f30796, before the fix
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: a Skill tree still locked at level 1 answers refused with no reason before any command and writes nothing at all
+AssertionError: expected { tables: { …(68) }, …(1) } to deeply equal { tables: { …(68) }, scheduled: [] }
+
+- Expected
++ Received
+
+@@ -1,11 +1,31 @@
+  {
+-   "scheduled": [],
++   "scheduled": [
++     {
++       "_creationTime": 1791972000000.0059,
++       "_id": "000000010006_scheduled_functions",
++       "args": [
++         {},
++       ],
++       "name": "analytics/person:identifyNewPeople",
++       "scheduledTime": 1791972000000,
++       "state": {
++         "kind": "pending",
++       },
++     },
++   ],
+    "tables": {
+      "allowanceSpending": [],
+      "analyticsDrain": [],
+-     "analyticsIds": [],
++     "analyticsIds": [
++       {
++         "_creationTime": 1791972000000.005,
++         "_id": "00000000000000010005analyticsIds",
++         "analyticsId": "f28857a7-8464-469e-9986-de70ef701443",
++         "member": "0000000000000000000010002members",
++       },
++     ],
+      "analyticsOutbox": [],
+      "authAccounts": [],
+      "authRateLimits": [],
+      "authRefreshTokens": [],
+      "authSessions": [
+
+ ❯ convex/website/buyPerk.test.ts:343:39
+    341|     expect(await buyPerk(asSignedIn)).toEqual({ kind: "refused", reaso…
+    342|
+    343|     expect(await everythingWritten()).toEqual(before);
+       |                                       ^
+    344|     expect(publishedEvents()).toEqual([]);
+    345|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 138 passed (139)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed | 138 passed (139)
+      Tests  1 failed | 2247 passed (2248)
+exit=1

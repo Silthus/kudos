@@ -1,35 +1,38 @@
-import { useCallback, useRef, type ReactNode } from "react";
+import { useCallback, useRef } from "react";
 import { NavigateProvider } from "./AppLink";
 import { MomentAnnouncement } from "./crates/MomentAnnouncement";
-import { MomentsProvider, useCrateMoments } from "./crates/moments";
+import { MomentsProvider, useCrateMoments, useMembersShown } from "./crates/moments";
 import { readyCratesOf } from "./crates/readyCrates";
 import { RevealDialog } from "./crates/RevealDialog";
 import type { BoardAnswer, BoardRead } from "./boardRead";
+import type { BookRead, BookShown } from "./bookRead";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { Frame } from "./Frame";
 import { ClosedPage } from "./pages/ClosedPage";
 import { ConnectingPage } from "./pages/ConnectingPage";
 import { ErrorPage } from "./pages/ErrorPage";
 import { HomePage } from "./pages/HomePage";
+import { BookPage } from "./pages/BookPage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
+import { FeatureWaitsPage } from "./pages/FeatureWaitsPage";
 import { QuestsPage } from "./pages/QuestsPage";
-import { ReadyPage } from "./pages/ReadyPage";
+import { SkillTreePage } from "./pages/SkillTreePage";
 import { NotAMemberPage } from "./pages/NotAMemberPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { SignedOutPage } from "./pages/SignedOutPage";
 import { SignInUnfinishedPage } from "./pages/SignInUnfinishedPage";
 import { UnverifiedPage } from "./pages/UnverifiedPage";
 import { VerifyingPage } from "./pages/VerifyingPage";
-import { WaitsPage } from "./pages/WaitsPage";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival, useTitleFocusWhenTheFocusedElementGoes } from "./pageFocus";
 import type { QuestsRead, QuestsShown } from "./questsRead";
+import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
 import { hrefOf, useRoute, type Route } from "./route";
 import type { Feature, MemberProfile, Period, ShellActions, ShellState } from "./shell";
-import { rememberSignInStarted, useSignInOutcome } from "./signInAttempt";
+import { rememberSignInStarted, useSignInOutcome, useSignInWhenAsked } from "./signInAttempt";
 
-type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead };
+type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useSkillTree: SkillTreeRead };
 
-export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
+export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useSkillTree }: AppProps) {
   const { route, navigate, choosePeriod } = useRoute();
   const shown = useSignInOutcome(visitor);
   const member = shown.kind === "member" ? shown : undefined;
@@ -39,10 +42,15 @@ export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
   const onQuests = member !== undefined && route.page === "quests";
   const questsOpen = isQuestsOpenFor(member);
   const quests = useQuests(onQuests || questsOpen);
+  const onBook = member !== undefined && route.page === "book";
+  const book = useBook(onBook);
+  const onSkills = member !== undefined && route.page === "skills";
+  const skillTree = useSkillTree(onSkills);
+  const membersShown = useMembersShown(cratesOf(member));
   const moments = useCrateMoments(actions, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member), onQuests });
   const reveal = member !== undefined ? moments.reveal : undefined;
   const revealing = reveal !== undefined;
-  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : shown.kind, { held: revealing });
+  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : onBook ? bookPageOf(book) : onSkills ? skillTreePageOf(skillTree) : shown.kind, { held: revealing });
   useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
@@ -56,12 +64,14 @@ export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
     rememberSignInStarted();
     actions.signIn(hrefOf(route));
   }, [actions, route]);
+  const takingToSlack = useSignInWhenAsked(shown, signIn);
+  const page: ShellState = takingToSlack ? { kind: "loading" } : shown;
   return (
     <NavigateProvider value={arriveAt}>
       <MomentsProvider value={moments}>
-        <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined)} inert={revealing} onSignOut={actions.signOut}>
+        <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined)} inert={revealing} onSignOut={actions.signOut}>
           <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
-            <Page state={shown} route={route} board={board} quests={quests} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
+            <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSignIn={signIn} onSignOut={actions.signOut} />
           </ErrorBoundary>
         </Frame>
         {reveal !== undefined && member !== undefined && (
@@ -87,12 +97,24 @@ function stillAsking(state: ShellState) {
   return state.kind === "loading" || state.kind === "connecting";
 }
 
+function cardOf(member: MemberProfile, feature: Feature) {
+  return member.features?.find((entry) => entry.feature === feature);
+}
+
 function boardPageOf(board: BoardAnswer | undefined) {
   return board === undefined ? "loading" : `leaderboard ${board.kind}`;
 }
 
 function questsPageOf(quests: QuestsShown | undefined) {
   return quests === undefined ? "loading" : `quests ${quests.kind}`;
+}
+
+function bookPageOf(book: BookShown | undefined) {
+  return book === undefined ? "loading" : `book ${book.kind}`;
+}
+
+function skillTreePageOf(skillTree: SkillTreeShown | undefined) {
+  return skillTree === undefined ? "loading" : `skills ${skillTree.kind}`;
 }
 
 function useBoardWhileTheNextLoads(board: BoardAnswer | undefined, onTheBoard: boolean) {
@@ -107,12 +129,16 @@ type PageProps = {
   route: Route;
   board: BoardAnswer | undefined;
   quests: QuestsShown | undefined;
+  book: BookShown | undefined;
+  skillTree: SkillTreeShown | undefined;
+  membersShown: number;
   onChoosePeriod: (period: Period) => void;
+  onBuyPerk: ShellActions["buyPerk"];
   onSignIn: () => void;
   onSignOut: () => void;
 };
 
-function Page({ state, route, board, quests, onChoosePeriod, ...actions }: PageProps) {
+function Page({ state, route, board, quests, book, skillTree, membersShown, onChoosePeriod, onBuyPerk, ...actions }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return null;
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
@@ -120,12 +146,18 @@ function Page({ state, route, board, quests, onChoosePeriod, ...actions }: PageP
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "home") return <HomePage member={state} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} {...actions} />;
+  if (route.page === "book") return <BookAnswerPage member={state} book={book} {...actions} />;
+  if (route.page === "skills") return <SkillTreeAnswerPage key={membersShown} member={state} skillTree={skillTree} onBuyPerk={onBuyPerk} {...actions} />;
   if (board === undefined) return null;
   if (board.kind === "not-found") return <NotFoundPage />;
-  if (board.kind === "ready") return <ReadyPageOf member={state} feature="leaderboard" orElse={<WaitsPage name="Leaderboard" waiting={board} chatUrl={state.chatUrl} />} />;
-  if (board.kind === "locked") return <WaitsPage name="Leaderboard" waiting={board} chatUrl={state.chatUrl} />;
+  if (board.kind === "ready" || board.kind === "locked") return <FeatureWaitsPage name="Leaderboard" waiting={board} readyCard={readyCardOf(state, "leaderboard")} chatUrl={state.chatUrl} />;
   if (board.kind !== "board") return <AnswerPage answer={board} {...actions} />;
   return <LeaderboardPage board={board} period={route.period} onChoosePeriod={onChoosePeriod} />;
+}
+
+function readyCardOf(member: MemberProfile, feature: Feature) {
+  const card = cardOf(member, feature);
+  return card?.state === "ready" ? card : undefined;
 }
 
 type QuestsAnswerPageProps = { member: MemberProfile; quests: QuestsShown | undefined; onSignIn: () => void; onSignOut: () => void };
@@ -133,15 +165,29 @@ type QuestsAnswerPageProps = { member: MemberProfile; quests: QuestsShown | unde
 function QuestsAnswerPage({ member, quests, ...actions }: QuestsAnswerPageProps) {
   if (quests === undefined) return null;
   if (quests.kind === "not-found") return <NotFoundPage />;
-  if (quests.kind === "ready") return <ReadyPageOf member={member} feature="quests" orElse={<WaitsPage name="Quests" waiting={quests} chatUrl={member.chatUrl} />} />;
-  if (quests.kind === "locked") return <WaitsPage name="Quests" waiting={quests} chatUrl={member.chatUrl} />;
+  if (quests.kind === "ready" || quests.kind === "locked") return <FeatureWaitsPage name="Quests" waiting={quests} readyCard={readyCardOf(member, "quests")} chatUrl={member.chatUrl} />;
   if (quests.kind !== "quests") return <AnswerPage answer={quests} {...actions} />;
   return <QuestsPage quests={quests} />;
 }
 
-function ReadyPageOf({ member, feature, orElse }: { member: MemberProfile; feature: Feature; orElse: ReactNode }) {
-  const card = member.features?.find((entry) => entry.feature === feature && entry.state === "ready");
-  return card === undefined ? orElse : <ReadyPage card={card} />;
+type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; onSignIn: () => void; onSignOut: () => void };
+
+function BookAnswerPage({ member, book, ...actions }: BookAnswerPageProps) {
+  if (book === undefined) return null;
+  if (book.kind === "not-found") return <NotFoundPage />;
+  if (book.kind === "ready" || book.kind === "locked") return <FeatureWaitsPage name="Book" waiting={book} readyCard={readyCardOf(member, "book")} chatUrl={member.chatUrl} />;
+  if (book.kind !== "book") return <AnswerPage answer={book} {...actions} />;
+  return <BookPage book={book} />;
+}
+
+type SkillTreeAnswerPageProps = { member: MemberProfile; skillTree: SkillTreeShown | undefined; onBuyPerk: ShellActions["buyPerk"]; onSignIn: () => void; onSignOut: () => void };
+
+function SkillTreeAnswerPage({ member, skillTree, onBuyPerk, ...actions }: SkillTreeAnswerPageProps) {
+  if (skillTree === undefined) return null;
+  if (skillTree.kind === "not-found") return <NotFoundPage />;
+  if (skillTree.kind === "ready" || skillTree.kind === "locked") return <FeatureWaitsPage name="Skill tree" waiting={skillTree} readyCard={readyCardOf(member, "skillTree")} chatUrl={member.chatUrl} />;
+  if (skillTree.kind !== "tree") return <AnswerPage answer={skillTree} {...actions} />;
+  return <SkillTreePage tree={skillTree} buyPerk={onBuyPerk} />;
 }
 
 type NotAMember = Exclude<ShellState, { kind: "member" | "loading" }>;

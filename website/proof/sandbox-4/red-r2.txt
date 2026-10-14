@@ -1,0 +1,21 @@
+# pnpm gate after merging origin/main at 12a0f95 (with 8d48641's picture field), before the fix
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/slack/frontDoor.test.ts > each crate's Open in Slack links to the page where it opens while the website is open > a ready feature with no page on the route list links to the home, where its crate waits
+AssertionError: expected [ …(19) ] to include 'section: *Skill tree* is ready. [link…'
+ ❯ convex/slack/frontDoor.test.ts:328:45
+    326|     await openHome(t, "U_ALICE");
+    327|
+    328|     expect(publishedHome(slack, "U_ALICE")).toContain(`section: *Skill…
+       |                                             ^
+    329|     expect(accessoryBeside("*Skill tree* is ready.")).toMatchObject({ …
+    330|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 138 passed (139)
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed | 138 passed (139)
+      Tests  1 failed | 2268 passed (2269)
+exit=1

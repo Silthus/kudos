@@ -43,16 +43,17 @@ export async function settle(t: Backend) {
   await t.finishAllScheduledFunctions(vi.runAllTimers);
 }
 
-export async function settleInTimeOrder(t: Backend, { until = Infinity, maxTimers = 200 } = {}) {
+export async function settleInTimeOrder(t: Backend, { until = Infinity, maxTimers = 200, whileFunctionsRun = false } = {}) {
   for (let fired = 0; fired < maxTimers; fired += 1) {
-    await Promise.race([
-      t.finishInProgressScheduledFunctions(),
-      new Promise((resolve) => realSetTimeout(resolve, idleAfterMs)),
-    ]);
+    await (whileFunctionsRun ? finishedOrIdle(t) : t.finishInProgressScheduledFunctions());
     if (vi.getTimerCount() === 0 || Date.now() >= until) return;
     vi.advanceTimersToNextTimer();
   }
   throw new Error(`settleInTimeOrder: more than ${maxTimers} timers fired`);
+}
+
+function finishedOrIdle(t: Backend) {
+  return Promise.race([t.finishInProgressScheduledFunctions(), new Promise((resolve) => realSetTimeout(resolve, idleAfterMs))]);
 }
 
 export async function settleUntil(t: Backend, until: Date) {

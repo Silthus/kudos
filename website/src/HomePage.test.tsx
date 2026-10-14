@@ -4,7 +4,7 @@ import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
-const lockedFeatures = ["Quests", "Leaderboard", "Sticker book and achievements", "Skill tree", "Coins", "Hedgehogs"];
+const lockedFeatures = ["Quests", "Leaderboard", "Book", "Skill tree", "Coins", "Hedgehogs"];
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -22,44 +22,88 @@ function comesBefore(first: Element, second: Element) {
   return Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
 }
 
-describe("WS17: the home leads with thanking, then the allowance and the counters", () => {
-  it("shows the member's face and name and a headline inviting them to thank a colleague", () => {
+describe("WS98 WS101: the hero is the character header, leading with the member and the invitation", () => {
+  function hero() {
+    return within(main()).getByRole("region", { name: "Sam Example" });
+  }
+
+  it("shows the member's face as the portrait, and Character over their name as the page title in RoundHog", () => {
     renderApp(shellFixtures.member);
-    const hero = within(main()).getByRole("region", { name: "Thank someone for work you noticed" });
-    expect(within(hero).getByText("Sam Example")).toBeInTheDocument();
-    expect(within(hero).getByText("SE")).toBeInTheDocument();
-    expect(within(hero).getByRole("heading", { level: 1 })).toHaveTextContent("Thank someone for work you noticed");
-    expect(within(hero).getByText(/Mention them in a Slack message with :taco:/)).toBeInTheDocument();
+    expect(within(hero()).getByText("SE")).toHaveClass("size-32");
+    expect(within(hero()).getByText("Character")).toHaveClass("hud-label");
+    const title = within(hero()).getByRole("heading", { level: 1 });
+    expect(title).toHaveTextContent(/^Sam Example$/);
+    expect(title).toHaveClass("hud-display");
+    expect(comesBefore(within(hero()).getByText("Character"), title)).toBe(true);
+    expect(document.title).toBe("HedgeHug · Home");
   });
 
-  it("offers one action, thanking someone in Slack, which opens the member's workspace", () => {
+  it("titles the sheet You when the sign-in carried no name", () => {
+    const { name: _, ...withoutName } = shellFixtures.member;
+    renderApp({ ...withoutName, face: { kind: "initials", initials: "?" } });
+    expect(within(main()).getByRole("region", { name: "You" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/^You$/);
+  });
+
+  it("invites the member to thank someone directly under the name, with the one action, which opens the member's workspace", () => {
     renderApp(shellFixtures.member);
+    const invitation = within(hero()).getByText("Thank someone for work you noticed. Mention them in a Slack message with :taco: and say what they did.");
+    expect(comesBefore(within(hero()).getByRole("heading", { level: 1 }), invitation)).toBe(true);
+    expect(comesBefore(invitation, thankInSlack())).toBe(true);
     expect(thankInSlack()).toHaveAttribute("href", "https://app.slack.com/client/T1");
     expect(thankInSlack()).toHaveAttribute("target", "_blank");
     expect(within(main()).getAllByRole("link")).toEqual([thankInSlack()]);
     expect(within(main()).queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("puts the kudos left out of the base and the refill in one quiet line after the action", () => {
-    renderApp(shellFixtures.member);
-    const allowance = within(main()).getByText(/1 of 3 kudos left today/);
-    expect(allowance).toHaveTextContent(/Refills at/);
-    expect(allowance.querySelector("time")).toHaveAttribute("dateTime", "2026-10-14T00:00:00.000Z");
-    expect(comesBefore(thankInSlack(), allowance)).toBe(true);
+  it("puts the invitation and the action before the XP bar and every counter, and Max last", () => {
+    renderApp(shellFixtures.memberAtLevel7);
+    const inOrder = [
+      within(hero()).getByRole("heading", { level: 1 }),
+      thankInSlack(),
+      within(hero()).getByRole("progressbar"),
+      within(hero()).getByText("Kudos left today"),
+      within(hero()).getByText("You've given 14 kudos and received 9."),
+      within(hero()).getByText("This week you gave 2 kudos and received 1."),
+    ];
+    for (const [earlier, later] of inOrder.slice(0, -1).map((element, at) => [element, inOrder[at + 1]!])) {
+      expect(comesBefore(earlier!, later!)).toBe(true);
+    }
   });
 
-  it("has Max state this week's thanks in words, without forecasting", () => {
+  it("shows the kudos left today as the hero's one big number, a pip per kudos of the base, and the refill", () => {
     renderApp(shellFixtures.member);
-    expect(within(main()).getByText("This week you gave 2 kudos and received 1.")).toBeInTheDocument();
+    expect(within(hero()).getByText("Kudos left today")).toHaveClass("hud-label");
+    expect(within(hero()).getByText("1", { selector: ".hud-display" })).toHaveTextContent(/^1\/3$/);
+    const pips = within(hero()).getByRole("img", { name: "1 of 3 kudos left today" });
+    expect(pips.children).toHaveLength(3);
+    const refill = within(hero()).getByText(/^Refills at/);
+    expect(refill.querySelector("time")).toHaveAttribute("dateTime", "2026-10-14T00:00:00.000Z");
   });
 
-  it("follows with the counters, this week and in total, given and received, in tabular figures", () => {
+  it.each([
+    [0, ["spent", "spent", "spent"]],
+    [1, ["left", "spent", "spent"]],
+    [3, ["left", "left", "left"]],
+  ] as const)("fills a pip for each of %i kudos left and outlines each spent one", (left, pips) => {
+    renderApp({ ...shellFixtures.member, allowance: { ...shellFixtures.member.allowance, left } });
+    const allowance = within(hero()).getByRole("img", { name: `${left} of 3 kudos left today` });
+    const shown = [...allowance.children].map((pip) => (pip.classList.contains("bg-foreground") ? "left" : pip.classList.contains("border-muted-foreground") ? "spent" : "unpainted"));
+    expect(shown).toEqual(pips);
+  });
+
+  it("states the lifetime totals in one quiet line and Max's line on this week, unchanged", () => {
     renderApp(shellFixtures.member);
-    const counters = within(main()).getByRole("table", { name: "Your kudos" });
-    const rows = within(counters).getAllByRole("row").map((row) => row.textContent);
-    expect(rows).toEqual(["This weekIn total", "Given214", "Received19"]);
-    expect(counters).toHaveClass("tabular-nums");
-    expect(comesBefore(thankInSlack(), counters)).toBe(true);
+    expect(within(hero()).getByText("You've given 14 kudos and received 9.")).not.toHaveClass("hud-display");
+    expect(within(hero()).getByText("This week you gave 2 kudos and received 1.")).toBeInTheDocument();
+  });
+});
+
+describe("WS100: the counters table goes", () => {
+  it("shows no Your kudos table on the home", () => {
+    renderApp(shellFixtures.memberAtLevel7);
+    expect(within(main()).queryByRole("table")).not.toBeInTheDocument();
+    expect(main()).not.toHaveTextContent("Your kudos");
   });
 });
 
@@ -127,61 +171,66 @@ describe("WS20: a quiet week", () => {
     expect(within(main()).getByText("No kudos yet this week, so thank someone in Slack for something they did.")).toBeInTheDocument();
     expect(within(main()).queryByText(/This week you gave/)).not.toBeInTheDocument();
     expect(within(main()).getAllByRole("link")).toEqual([thankInSlack()]);
-    const hero = within(main()).getByRole("region", { name: "Thank someone for work you noticed" });
+    const hero = within(main()).getByRole("region", { name: "Sam Example" });
     expect(hero.textContent).not.toMatch(/reward|earn|coin|xp/i);
   });
 });
 
-describe("WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present", () => {
+describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while progression is present", () => {
   function hero() {
-    return within(main()).getByRole("region", { name: "Thank someone for work you noticed" });
+    return within(main()).getByRole("region", { name: "Sam Example" });
   }
 
-  it("keeps the first slice's home, with no ring, level line or bar, while progression is null", () => {
+  function arcOf(ring: Element) {
+    return ring.querySelector("svg [data-arc]");
+  }
+
+  it("keeps the ring and the XP bar out, and the rest of the hero standing, while progression is null", () => {
     renderApp(shellFixtures.member);
     expect(screen.queryByRole("img", { name: /^Level/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Account menu for Sam Example" })).not.toHaveAccessibleDescription();
     expect(document.body.textContent).not.toMatch(/\blevel\b|\bXP\b/i);
-  });
-
-  it("rings the member's face in the hero with their level, named Level n, the number in RoundHog", () => {
-    renderApp(shellFixtures.memberAtLevel7);
-    const ring = within(hero()).getByRole("img", { name: "Level 7" });
-    expect(within(ring).getByText("SE")).toBeInTheDocument();
-    expect(within(ring).getByText("7")).toHaveClass("hud-display");
-  });
-
-  it("rings the avatar in the HUD with the level, which the account menu button reads as its description", () => {
-    renderApp(shellFixtures.memberAtLevel7);
-    const avatar = screen.getByRole("button", { name: "Account menu for Sam Example" });
-    expect(avatar).toHaveAccessibleDescription("Level 7");
-    expect(within(avatar).getByText("7")).toHaveClass("hud-display");
+    expect(within(hero()).getByText("1", { selector: ".hud-display" })).toHaveTextContent(/^1\/3$/);
+    expect(within(hero()).getByText("You've given 14 kudos and received 9.")).toBeInTheDocument();
   });
 
   it.each([
-    ["at level 1", shellFixtures.memberAtLevel1, "Level 1 · 20 XP to level 2", { min: "0", max: "20", now: "0", filled: "0%" }],
-    ["past level 5", shellFixtures.memberAtLevel7, "Level 7 · 500 XP to level 8", { min: "1500", max: "2100", now: "1600", filled: `${(100 / 600) * 100}%` }],
-  ])("says the level and the XP to the next one %s in one quiet line with a bar from the level's start to the next", (_, member, line, { min, max, now, filled }) => {
+    ["at level 1", shellFixtures.memberAtLevel1, "Level 1, 20 XP to level 2", "1", "0 100"],
+    ["past level 5", shellFixtures.memberAtLevel7, "Level 7, 500 XP to level 8", "7", `${100 / 6} 100`],
+  ] as const)("draws the level ring %s filled to the level's share, one image named for the level and the XP to the next, with Level over the number in RoundHog", (_, member, name, level, dashes) => {
     renderApp(member);
-    const bar = within(hero()).getByRole("progressbar", { name: line });
+    const ring = within(hero()).getByRole("img", { name });
+    expect(within(ring).getByText("Level")).toHaveClass("hud-label");
+    expect(within(ring).getByText(level)).toHaveClass("hud-display");
+    expect(arcOf(ring)).toHaveAttribute("pathLength", "100");
+    expect(arcOf(ring)).toHaveAttribute("stroke-dasharray", dashes);
+    expect(ring).toHaveStyle({ width: "120px", height: "120px" });
+  });
+
+  it.each([
+    ["at level 1", shellFixtures.memberAtLevel1, ["0 XP", "20 XP to level 2"], { min: "0", max: "20", now: "0", filled: "0%" }],
+    ["past level 5", shellFixtures.memberAtLevel7, ["1,600 XP", "500 XP to level 8"], { min: "1500", max: "2100", now: "1600", filled: `${100 / 6}%` }],
+  ] as const)("shows a full-width XP bar %s from the level's start to the next, labelled by the XP and the XP to the next level", (_, member, [xp, toNext], { min, max, now, filled }) => {
+    renderApp(member);
+    const bar = within(hero()).getByRole("progressbar", { name: `${xp} ${toNext}` });
     expect(bar).toHaveAttribute("aria-valuemin", min);
     expect(bar).toHaveAttribute("aria-valuemax", max);
     expect(bar).toHaveAttribute("aria-valuenow", now);
+    expect(bar).toHaveClass("w-full");
     expect(bar.firstElementChild).toHaveStyle({ width: filled });
-    expect(within(hero()).getByText(line).tagName).toBe("P");
+    expect(within(hero()).getByText(xp.replace(" XP", "")).closest(".tabular-nums")).not.toBeNull();
   });
 
-  it("puts the level line after thanking and the allowance, before Max, and never as the hero's heading", () => {
+  it("rings the avatar in the HUD with the hero's ring at its size, named and described as the hero ring, with the level number beside the face", () => {
     renderApp(shellFixtures.memberAtLevel7);
-    const line = within(hero()).getByText("Level 7 · 500 XP to level 8");
-    const allowance = within(hero()).getByText(/1 of 3 kudos left today/);
-    const max = within(hero()).getByText("This week you gave 2 kudos and received 1.");
-    expect(comesBefore(thankInSlack(), allowance)).toBe(true);
-    expect(comesBefore(allowance, line)).toBe(true);
-    expect(comesBefore(line, max)).toBe(true);
-    expect(within(hero()).getByRole("heading", { level: 1 })).toHaveTextContent("Thank someone for work you noticed");
-    expect(line).not.toHaveClass("hud-display");
+    const avatar = screen.getByRole("button", { name: "Account menu for Sam Example" });
+    expect(avatar).toHaveAccessibleDescription("Level 7, 500 XP to level 8");
+    const ring = within(avatar).getByRole("img", { name: "Level 7, 500 XP to level 8" });
+    expect(arcOf(ring)).toHaveAttribute("pathLength", "100");
+    expect(arcOf(ring)).toHaveAttribute("stroke-dasharray", `${100 / 6} 100`);
+    expect(within(ring).getByText("SE")).toBeInTheDocument();
+    expect(within(ring).getByText("7")).toHaveClass("hud-display");
   });
 
   it("shows Level n on the profile card beside the name, and still no received count", () => {

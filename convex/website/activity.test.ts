@@ -104,6 +104,17 @@ describe("AT14 AT15 AT21 AT22: a member's activity", () => {
       },
     ]);
   });
+
+  test("AT20 WS34: shows a teammate's Slack picture as their face, as the leaderboard does", async () => {
+    await activityOn();
+    slack.withMember(alice.user, { real_name: alice.name, tz: "Europe/Berlin", profile: { image_192: "https://avatars.slack-edge.com/alice_192.png" } });
+
+    await post(t, [section(text(`thanks ${reason} `), mention(bob.user), text(" "), emoji("taco"))], { user: alice.user, ts: postedTs });
+    await settle(t);
+
+    const [entry] = (await activityOf(await signedIn(bob), { filter: "received" })).entries;
+    expect(entry).toMatchObject({ giver: { name: "Alice Archer", face: { kind: "slack", image: "https://avatars.slack-edge.com/alice_192.png", initials: "AA" } } });
+  });
 });
 
 describe("AT12 AT13: a kudos entry's permalink", () => {

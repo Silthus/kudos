@@ -15,7 +15,7 @@ const now = new Date("2026-10-13T10:00:00Z");
 const siteUrl = "https://kudos-site.test";
 const ref = { workspace: "T1", conversation: "C1", message: "1760349600.000100" };
 const givenToBob: Given = { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [], awards: [{ kudos: 1 }] };
-const leaderboardReady = "section: *Leaderboard* is ready. It opens the boards. [button: Open]";
+const leaderboardReady = `section: *Leaderboard* is ready. It opens the boards. [link: Open ${siteUrl}/leaderboard]`;
 const openLeaderboardCommand = JSON.stringify({ type: "openUnlock", feature: "leaderboard" });
 const openLeaderboard = { type: "button", action_id: openLeaderboardCommand, value: openLeaderboardCommand } as const;
 const form = { contentType: "application/x-www-form-urlencoded" };
@@ -179,7 +179,9 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
 
     await notified(t, (ctx) => notifyQuestFinished(ctx, alice, { kind: "journey", step: "first-thanks" }, 50));
 
-    expect(lastLineOf(dmsTo("U_ALICE"))).toEqual([`section: <${siteUrl}/|See your Journey on the web>`]);
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([
+      [`section: ✅ You finished a Journey step: Give a kudos that says why. You earned *50 XP*. [link: Open ${siteUrl}/]`, `section: <${siteUrl}/|See your Journey on the web>`],
+    ]);
   });
 
   test("the Journey joined DM links to the Journey on the web once, as its last line", async () => {
@@ -188,9 +190,13 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
 
     await notified(t, (ctx) => notifyJourneyJoined(ctx, alice, [{ quest: { kind: "journey", step: "first-thanks" }, xp: 50 }, { quest: { kind: "journey", step: "someone-new" }, xp: 50 }]));
 
-    const [joined] = dmsTo("U_ALICE").map(readDm);
-    expect(joined?.filter((line) => line.includes(siteUrl))).toEqual([`section: <${siteUrl}/|See your Journey on the web>`]);
-    expect(joined?.at(-1)).toBe(`section: <${siteUrl}/|See your Journey on the web>`);
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([
+      [
+        `section: ✅ You finished a Journey step: Give a kudos that says why. You earned *50 XP*. [link: Open ${siteUrl}/]`,
+        `section: ✅ You finished a Journey step: Thank someone you haven't thanked before. You earned *50 XP*. [link: Open ${siteUrl}/]`,
+        `section: <${siteUrl}/|See your Journey on the web>`,
+      ],
+    ]);
   });
 
   test("a finished weekly quest's DM links to the quests on the web", async () => {
@@ -199,7 +205,9 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
 
     await notified(t, (ctx) => notifyWeeklyQuestFinished(ctx, alice, weeklyQuest, "Give kudos on two days.", 20));
 
-    expect(lastLineOf(dmsTo("U_ALICE"))).toEqual([`section: <${siteUrl}/quests|See your quests on the web>`]);
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([
+      [`section: ✅ You finished a quest: Give kudos on two days. You earned *20 XP*. [link: Open ${siteUrl}/quests]`, `section: <${siteUrl}/quests|See your quests on the web>`],
+    ]);
   });
 
   test.each(closed)("$condition, a quest DM has no link", async ({ flags, env = {} }) => {
@@ -295,6 +303,3 @@ function readDm(dm: Record<string, unknown>) {
   return dm.blocks === undefined ? String(dm.text).split("\n") : readBlocks(dm.blocks as Block[]);
 }
 
-function lastLineOf(dms: Array<Record<string, unknown>>) {
-  return dms.map(readDm).map((lines) => lines.at(-1));
-}

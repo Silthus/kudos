@@ -1,0 +1,302 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/buy-perk
+
+ ❯ |convex| convex/website/buyPerk.test.ts (29 tests | 15 failed) 699ms
+   ❯ website commands pass one guard (10)
+     × WS88: a request that isn't a UUID ("") is rejected and writes nothing 21ms
+     × WS88: a request that isn't a UUID ("not-a-uuid") is rejected and writes nothing 14ms
+     × WS88: a request that isn't a UUID ("website:someone:else") is rejected and writes nothing 14ms
+     × WS88: a request that isn't a UUID ("0d6f2c1e-8a4b-4c3d-9e2f-1a2b3c4d5e6fx") is rejected and writes nothing 14ms
+   ❯ a website command is a D17 command (13)
+     × WS88: an available perk is bought for its skill point, and App Home's republish is scheduled 13ms
+     × WS88: the purchase is stored under the key website:{member}:{request} 11ms
+     × WS88: App Home's republished Skill tree tab shows the perk owned 93ms
+     × WS88: an owned perk is refused with the reason owned, storing only the refusal 18ms
+     × WS88: with no skill points left, a perk is refused with the reason points, storing only the refusal 14ms
+     × WS88: a refusal at the gate stores nothing, so the same request buys once the gate opens 12ms
+     × WS88 P19: a stored refusal replays with its reason after a level up, and a fresh request buys 12ms
+     × WS89 WS64: buying on the website leaves the domain tables and events App Home's Buy leaves, besides Slack's receipt 35ms
+   ❯ a skill point bought on the website is spent once (3)
+     × WS87 WS88 P19: the same request twice buys once and answers bought twice 16ms
+     × WS88: two requests for two perks with one skill point buy one 12ms
+     × WS88: a website request never replays a Slack Buy whose event carries the same string 23ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 15 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS88: a request that isn't a UUID ("") is rejected and writes nothing
+ FAIL  |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS88: a request that isn't a UUID ("not-a-uuid") is rejected and writes nothing
+ FAIL  |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS88: a request that isn't a UUID ("website:someone:else") is rejected and writes nothing
+ FAIL  |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS88: a request that isn't a UUID ("0d6f2c1e-8a4b-4c3d-9e2f-1a2b3c4d5e6fx") is rejected and writes nothing
+AssertionError: promise resolved "{ kind: 'refused', reason: null }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "kind": "refused",
++   "reason": null,
+  }
+
+ ❯ convex/website/buyPerk.test.ts:213:56
+    211|     const before = await everythingWritten();
+    212|
+    213|     await expect(buyPerk(asSignedIn, "spark", request)).rejects.toThro…
+       |                                                        ^
+    214|     expect(await everythingWritten()).toEqual(before);
+    215|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/15]⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: an available perk is bought for its skill point, and App Home's republish is scheduled
+AssertionError: expected { kind: 'refused', reason: null } to deeply equal { kind: 'bought' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "bought",
++   "kind": "refused",
++   "reason": null,
+  }
+
+ ❯ convex/website/buyPerk.test.ts:266:39
+    264|     vi.mocked(publish).mockClear();
+    265|
+    266|     expect(await buyPerk(asSignedIn)).toEqual({ kind: "bought" });
+       |                                       ^
+    267|
+    268|     expect(await perksOwnedBy(member)).toMatchObject([{ perk: "spark",…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/15]⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: the purchase is stored under the key website:{member}:{request}
+AssertionError: expected [] to match object [ { …(3) } ]
+
+- Expected
++ Received
+
+- [
+-   {
+-     "key": "website:0000000000000000000010002members:0d6f2c1e-8a4b-4c3d-9e2f-1a2b3c4d5e6f",
+-     "member": "0000000000000000000010002members",
+-     "outcome": {
+-       "kind": "bought",
+-       "perk": "spark",
+-     },
+-   },
+- ]
++ []
+
+ ❯ convex/website/buyPerk.test.ts:281:20
+    279|
+    280|     const stored = await t.run((ctx) => ctx.db.query("perkPurchases").…
+    281|     expect(stored).toMatchObject([{ member, key: `website:${member}:${…
+       |                    ^
+    282|   });
+    283|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/15]⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: App Home's republished Skill tree tab shows the perk owned
+AssertionError: expected 2 to be greater than 2
+ ❯ convex/website/buyPerk.test.ts:295:51
+    293|     await settle(t);
+    294|
+    295|     expect(slack.callsTo("views.publish").length).toBeGreaterThan(publ…
+       |                                                   ^
+    296|     expect(buyButtonsInHome()).not.toContain("spark");
+    297|     expect(publishedHomeBlocks(slack, juno.user).map((block) => JSON.s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/15]⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: an owned perk is refused with the reason owned, storing only the refusal
+AssertionError: expected { kind: 'refused', reason: null } to deeply equal { kind: 'refused', reason: 'owned' }
+
+- Expected
++ Received
+
+  {
+    "kind": "refused",
+-   "reason": "owned",
++   "reason": null,
+  }
+
+ ❯ convex/website/buyPerk.test.ts:309:39
+    307|     vi.mocked(publish).mockClear();
+    308|
+    309|     expect(await buyPerk(asSignedIn)).toEqual({ kind: "refused", reaso…
+       |                                       ^
+    310|
+    311|     expectOnlyTheRefusalStored(before, await everythingWritten(), { ki…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/15]⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: with no skill points left, a perk is refused with the reason points, storing only the refusal
+AssertionError: expected { kind: 'refused', reason: null } to deeply equal { kind: 'refused', reason: 'points' }
+
+- Expected
++ Received
+
+  {
+    "kind": "refused",
+-   "reason": "points",
++   "reason": null,
+  }
+
+ ❯ convex/website/buyPerk.test.ts:321:49
+    319|     vi.mocked(publish).mockClear();
+    320|
+    321|     expect(await buyPerk(asSignedIn, "rhythm")).toEqual({ kind: "refus…
+       |                                                 ^
+    322|
+    323|     expectOnlyTheRefusalStored(before, await everythingWritten(), { ki…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/15]⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: a refusal at the gate stores nothing, so the same request buys once the gate opens
+AssertionError: expected { kind: 'refused', reason: null } to deeply equal { kind: 'bought' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "bought",
++   "kind": "refused",
++   "reason": null,
+  }
+
+ ❯ convex/website/buyPerk.test.ts:355:39
+    353|     await flagsOn(...treeFlags);
+    354|
+    355|     expect(await buyPerk(asSignedIn)).toEqual({ kind: "bought" });
+       |                                       ^
+    356|     expect(await perksOwnedBy(member)).toMatchObject([{ perk: "spark" …
+    357|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/15]⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88 P19: a stored refusal replays with its reason after a level up, and a fresh request buys
+AssertionError: expected { kind: 'refused', reason: null } to deeply equal { kind: 'refused', reason: 'points' }
+
+- Expected
++ Received
+
+  {
+    "kind": "refused",
+-   "reason": "points",
++   "reason": null,
+  }
+
+ ❯ convex/website/buyPerk.test.ts:363:49
+    361|     const { member, asSignedIn } = await aMemberWithTheTreeOpen();
+    362|     await buyPerk(asSignedIn, "spark", secondRequest);
+    363|     expect(await buyPerk(asSignedIn, "rhythm")).toEqual({ kind: "refus…
+       |                                                 ^
+    364|
+    365|     await withXp(member, levelSix);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/15]⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS89 WS64: buying on the website leaves the domain tables and events App Home's Buy leaves, besides Slack's receipt
+AssertionError: expected { kind: 'refused', reason: null } to deeply equal { kind: 'bought' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "bought",
++   "kind": "refused",
++   "reason": null,
+  }
+
+ ❯ convex/website/buyPerk.test.ts:384:51
+    382|
+    383|     const websiteSide = await anOpenTreeIn(t);
+    384|     expect(await buyPerk(websiteSide.asSignedIn)).toEqual({ kind: "bou…
+       |                                                   ^
+    385|     const fromWebsite = { tables: await everyTable(t), events: publish…
+    386|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/15]⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > a skill point bought on the website is spent once > WS87 WS88 P19: the same request twice buys once and answers bought twice
+AssertionError: expected { kind: 'refused', reason: null } to deeply equal { kind: 'bought' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "bought",
++   "kind": "refused",
++   "reason": null,
+  }
+
+ ❯ convex/website/buyPerk.test.ts:401:39
+    399|     expect(await skillPointsOf(member)).toBe(2);
+    400|
+    401|     expect(await buyPerk(asSignedIn)).toEqual({ kind: "bought" });
+       |                                       ^
+    402|     vi.setSystemTime(now.getTime() + 60_000);
+    403|     expect(await buyPerk(asSignedIn)).toEqual({ kind: "bought" });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/15]⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > a skill point bought on the website is spent once > WS88: two requests for two perks with one skill point buy one
+AssertionError: expected [ …(2) ] to deeply equal [ { kind: 'bought' }, …(1) ]
+
+- Expected
++ Received
+
+  [
+    {
+-     "kind": "bought",
++     "kind": "refused",
++     "reason": null,
+    },
+    {
+      "kind": "refused",
+-     "reason": "points",
++     "reason": null,
+    },
+  ]
+
+ ❯ convex/website/buyPerk.test.ts:416:21
+    414|     const answers = [await buyPerk(asSignedIn, "spark", firstRequest),…
+    415|
+    416|     expect(answers).toEqual([{ kind: "bought" }, { kind: "refused", re…
+       |                     ^
+    417|     expect(await perksOwnedBy(member)).toMatchObject([{ perk: "spark" …
+    418|     expect(await skillPointsOf(member)).toBe(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/15]⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > a skill point bought on the website is spent once > WS88: a website request never replays a Slack Buy whose event carries the same string
+AssertionError: expected { kind: 'refused', reason: null } to deeply equal { kind: 'bought' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "bought",
++   "kind": "refused",
++   "reason": null,
+  }
+
+ ❯ convex/website/buyPerk.test.ts:428:49
+    426|     await t.mutation(internal.slack.receipts.receiveHomeClick, { works…
+    427|
+    428|     expect(await buyPerk(asSignedIn, "rhythm")).toEqual({ kind: "bough…
+       |                                                 ^
+    429|     expect((await perksOwnedBy(member)).map(({ perk }) => perk)).toEqu…
+    430|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/15]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  15 failed | 14 passed (29)
+   Start at  07:41:00
+   Duration  1.56s (tests 48%, transform 34%, import 15%, environment 3%)
+

@@ -194,6 +194,7 @@ describe("WS13 WS15 WS18: a member's home answer projects their own homeFacts", 
       features: null,
       journey: null,
       progression: null,
+      skillPoints: null,
     });
   });
 
@@ -310,6 +311,7 @@ async function give(t: Backend, giver: string, recipient: string, kudos: number,
       revision: BigInt(at.getTime()) * 1000n,
       at: at.getTime(),
       content: { mentions: [{ kind: "person", user: recipient }], emoji: Array(kudos).fill("taco"), text: "thanks for the review" },
+      words: { segments: [{ kind: "text", text: "thanks for the review" }], visibility: "public" },
     }),
   );
 }

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
+import { signInEntry } from "../../convex/website/routes";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
 
-export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests" } | { page: "not-found" };
+export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests" } | { page: "book" } | { page: "skills" } | { page: "not-found" };
 
 export type Screen = Exclude<Route["page"], "not-found">;
 
@@ -10,6 +11,8 @@ const routeAt = {
   "/": () => ({ page: "home" }),
   "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search) }),
   "/quests": () => ({ page: "quests" }),
+  "/skills": () => ({ page: "skills" }),
+  "/book": () => ({ page: "book" }),
 } satisfies Record<string, (search: string) => Route>;
 
 type ServedPath = keyof typeof routeAt;
@@ -17,13 +20,19 @@ type ServedPath = keyof typeof routeAt;
 export const servedPaths = Object.keys(routeAt) as ServedPath[];
 
 export function routeOf({ pathname, search }: { pathname: string; search: string }): Route {
-  const served = servedPaths.find((path) => path === pathname);
+  const served = servedPaths.find((path) => path === withoutTheSignInEntry(pathname));
   return served === undefined ? { page: "not-found" } : routeAt[served](search);
+}
+
+export function withoutTheSignInEntry(pathname: string) {
+  if (pathname !== signInEntry && !pathname.startsWith(`${signInEntry}/`)) return pathname;
+  return `/${pathname.slice(signInEntry.length).replace(/^\/+/, "")}`;
 }
 
 export function hrefOf(route: Route) {
   if (route.page === "leaderboard") return leaderboardHref(route.period);
-  return route.page === "quests" ? "/quests" : "/";
+  if (route.page === "home" || route.page === "not-found") return "/";
+  return `/${route.page}`;
 }
 
 export function leaderboardHref(period: Period) {

@@ -11,6 +11,11 @@ function row(position: number, rank: number, name: string, kudos: number, { tied
   return { position, rank, tied, name, face: me ? you : { kind: "initials", initials }, kudos, you: me };
 }
 
+const teammatesPictures: Record<string, string> = {
+  "Ada Lindqvist": "https://avatars.slack-edge.com/ada_192.png",
+  "Ivy Quinn": "https://secure.gravatar.com/avatar/ivy.jpg?s=192",
+};
+
 const board = { kind: "board", period: "week", chatUrl: "https://app.slack.com/client/T1", onTheBoards: true } as const;
 
 const midBoard: Leaderboard = {
@@ -93,9 +98,17 @@ const leftALongBoard: Leaderboard = {
   rows: midBoard.rows.filter((row) => !row.you).map((row, i) => ({ ...row, position: i + 1, rank: row.rank > 9 ? row.rank - 1 : row.rank })),
 };
 
+const withTeammatesFaces: Leaderboard = {
+  ...midBoard,
+  rows: midBoard.rows.map((row) => {
+    const picture = teammatesPictures[row.name];
+    return picture === undefined ? row : { ...row, face: { kind: "slack", image: picture, initials: row.face.initials } };
+  }),
+};
+
 const empty: Leaderboard = { ...board, period: "all", rows: [], window: [], standing: { kind: "not-ranked" }, improvement: null };
 
-export const leaderboardFixtures = { midBoard, midBoardAfterAClimb, viewerLeads, sharedLead, tiedBelowTheLead, notRanked, left, leftALongBoard, empty } as const satisfies Record<string, Leaderboard>;
+export const leaderboardFixtures = { midBoard, midBoardAfterAClimb, withTeammatesFaces, viewerLeads, sharedLead, tiedBelowTheLead, notRanked, left, leftALongBoard, empty } as const satisfies Record<string, Leaderboard>;
 
 export function fixedLeaderboard(answer: Leaderboard): BoardRead {
   return (period) => (period === undefined ? undefined : { ...answer, period });

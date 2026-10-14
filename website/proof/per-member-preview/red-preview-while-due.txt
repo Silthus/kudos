@@ -1,0 +1,43 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/per-member-flags
+
+ ❯ |convex| convex/website/preview.test.ts (16 tests | 1 failed | 15 skipped) 278ms
+   ❯ F26 F27 F28 F29: a member previews the website by their own decision (16)
+     ❯ F21: a previewer's command never records a workspace launch the flag's switch made due (3)
+       × unlocks and quests switched on for the workspace after an unlocks preview: the previewer's command starts no Journey preview, and nothing it schedules records a launch 277ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/preview.test.ts > F26 F27 F28 F29: a member previews the website by their own decision > F21: a previewer's command never records a workspace launch the flag's switch made due > unlocks and quests switched on for the workspace after an unlocks preview: the previewer's command starts no Journey preview, and nothing it schedules records a launch
+AssertionError: expected [ { …(2) }, { …(2) } ] to deeply equal [ { …(2) } ]
+
+- Expected
++ Received
+
+  [
+    {
+      "member": "0000000000000000000010000members",
+      "moment": "unlocks",
+    },
++   {
++     "member": "0000000000000000000010000members",
++     "moment": "journey",
++   },
+  ]
+
+ ❯ convex/website/preview.test.ts:263:38
+    261|       await settle(t);
+    262|
+    263|       expect(await previewMoments()).toEqual([{ member, moment: "unloc…
+       |                                      ^
+    264|       expect(await rowsOf("unlockLaunches")).toEqual([]);
+    265|       expect(await rowsOf("journeyLaunches")).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 15 skipped (16)
+   Start at  09:01:31
+   Duration  1.19s (transform 49%, tests 25%, import 21%, environment 4%)
+

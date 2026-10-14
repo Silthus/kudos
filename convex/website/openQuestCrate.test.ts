@@ -6,7 +6,7 @@ import { journeyShippedBeforeAnyoneJoined, unlocksShippedBeforeAnyoneJoined } fr
 import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { buttonInHome } from "../../testing/slackInteractions";
 import { opens, reachesLevel } from "../../testing/unlocks";
-import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../../testing/website";
+import { aDeploymentForWorkspace, aMember, aSession, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
 import { publish } from "../bus/publish";
 import { allowanceDay } from "../engine/allowance";
@@ -65,7 +65,7 @@ async function questsApplyIn(backend: Backend = t) {
 async function aTeamIn(backend: Backend = t) {
   const member = await aMember(backend, juno.user);
   const teammate = await aMember(backend, rowan.user);
-  const { asSignedIn, sessionId } = await aSession(backend, juno);
+  const { asSignedIn, sessionId } = await aSignedInSession(backend, juno);
   return { backend, member, teammate, asSignedIn, sessionId };
 }
 
@@ -148,7 +148,8 @@ describe("website commands pass one guard", () => {
     test("with a flags key but no workspace key yet, the open answers closed and makes no key", async () => {
       postHog.withFlags({ key: "website", filters: { groups: [{ properties: [], rollout_percentage: 100 }] } });
       await t.action(components.posthog.lib.refreshFlagDefinitions, {});
-      const { asSignedIn } = await aTeamIn();
+      await aMember(t, juno.user);
+      const { asSignedIn } = await aSession(t, juno);
       const before = await everythingWritten();
 
       expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "closed" });
@@ -215,6 +216,17 @@ describe("a website command never launches unlocks", () => {
     expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "refused" });
     expect(await everythingWritten()).toEqual(before);
     expect(before.tables.journeyLaunches).toEqual([]);
+    expect(publishedEvents()).toEqual([]);
+  });
+  test("WS74: with achievements on, the Journey launched and no Book launch, a finished step's open answers refused and doesn't launch the Book", async () => {
+    const { asSignedIn } = await aFinishedJourneyStepIn();
+    await flagsOn(t, ...questsFlags, "achievements");
+    const before = await everythingWritten();
+    vi.mocked(publish).mockClear();
+
+    expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "refused" });
+    expect(await everythingWritten()).toEqual(before);
+    expect(before.tables.bookLaunches).toEqual([]);
     expect(publishedEvents()).toEqual([]);
   });
 });

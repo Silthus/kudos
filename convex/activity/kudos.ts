@@ -6,7 +6,7 @@ import type { MessageRef, WordSegment } from "../engine/messageEvent";
 import { gateRecordedWith } from "../progression/effects";
 import { permalinkOf } from "../slack/permalink";
 import { nameless, teammateOf } from "../website/faces";
-import { displayNameOf, displayNameOfUser, type MemberId } from "../workspace/directory";
+import { displayNameOfUser, nameAndPictureOf, type MemberId } from "../workspace/directory";
 import { workspaceUrlOf } from "../workspace/url";
 import { userGroupHandleOf } from "../workspace/userGroups";
 import type { Channel, Message, Person, Segment } from "./entries";
@@ -43,7 +43,8 @@ export async function kudosFactsOf(ctx: QueryCtx, mentions: Mentions, ref: Messa
 }
 
 export async function personOf(ctx: QueryCtx, member: MemberId): Promise<Person> {
-  return teammateOf(await displayNameOf(ctx, member));
+  const { name, picture } = await nameAndPictureOf(ctx, member);
+  return teammateOf(name, picture);
 }
 
 async function wordsAndChannelOf(ctx: QueryCtx, mentions: Mentions, ref: MessageRef): Promise<{ channel: Channel; message: Message }> {

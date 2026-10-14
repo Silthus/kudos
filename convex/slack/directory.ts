@@ -20,7 +20,7 @@ type SlackUser = {
   tz?: string;
   name?: string;
   real_name?: string;
-  profile?: { display_name?: string; real_name?: string; email?: string; title?: string };
+  profile?: { display_name?: string; real_name?: string; email?: string; title?: string; image_72?: string; image_192?: string };
 };
 
 export type MemberChanged = { type: "team_join" | "user_change"; user: SlackUser; event_ts: string };
@@ -188,7 +188,21 @@ function profileOf({ profile, real_name }: SlackUser): MemberProfile {
   const realName = textOf(profile?.real_name) ?? textOf(real_name);
   const displayName = textOf(profile?.display_name);
   const title = textOf(profile?.title);
-  return { ...(email && { email }), ...(realName && { realName }), ...(displayName && { displayName }), ...(title && { title }) };
+  const picture = httpsAddressOf(profile?.image_192) ?? httpsAddressOf(profile?.image_72);
+  return { ...(email && { email }), ...(realName && { realName }), ...(displayName && { displayName }), ...(title && { title }), ...(picture && { picture }) };
+}
+
+function httpsAddressOf(value: unknown) {
+  const text = textOf(value);
+  return text !== undefined && isHttpsAddress(text) ? text : undefined;
+}
+
+function isHttpsAddress(text: string) {
+  try {
+    return new URL(text).protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function displayNameOf(user: SlackUser) {
