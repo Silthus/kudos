@@ -61,6 +61,17 @@ describe("P63 P64 P76: a tier you earn is told by DM and celebrated in the annou
     expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "C1")).toEqual([]);
   });
 
+  test("QM1: the tiers a kudos posted in a thread earns are celebrated at the announcement channel's top level, and the kudos message's conversation gets nothing", async () => {
+    const t = await workspace({ announcementChannel: "C_NEWS" });
+    await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
+
+    await giveKudos(t, "U_ALICE", "U_BOB", { threadTs: "1760349000.000100" });
+
+    expect(publicPostsIn("C_NEWS").map(({ thread_ts }) => thread_ts)).toEqual([undefined]);
+    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks and First Chapter.", "🏅 <@U_BOB> earned Noticed."]);
+    expect(publicPostsIn("C1")).toEqual([]);
+  });
+
   test("a member who hasn't opened the Book gets no DM and no public line, and the member who has still does", async () => {
     const t = await workspace({ announcementChannel: "C_NEWS" });
     await membersWithTheBookOpen(t, "U_ALICE");

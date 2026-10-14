@@ -46,7 +46,7 @@ Feedback: the indicator on each kudos message as desired state and the private r
   refuted: the desired public reply showed a reply stored with a thread again -> the three stored-thread tests found it posted or edited (2026-10-14)
   because: QM1 to QM3 answer a member who found a level notice under someone else's message noisy: while no announcement channel was picked, the routing fell back to the thread under the kudos message, so a celebration meant for everyone landed in a conversation about work; replies stored that way before the fix must stay where they are rather than be posted or edited there
   kinds: message, output
-  checklist: destination-confinement dismissed: the routing answers the workspace's announcement channel or nothing, and the desired reply shows nothing for a stored reply outside it, so no destination comes from the kudos message
+  checklist: destination-confinement dismissed: the routing answers the workspace's announcement channel or nothing, and the desired reply shows nothing for a stored reply with a thread or in its kudos message's own conversation while that isn't the announcement channel, so no destination comes from the kudos message
   checklist: message-authenticity dismissed: the reply is outbound; the kudos message behind it is verified by the Slack adapter's signed Slack requests only
   checklist: redaction dismissed: a section holds only the app's copy and a member mention, never the kudos message's text, as before
   checklist: input-validation dismissed: sections are set from levelReached and Achievements' tiers, which Convex validates at each subscriber's boundary
