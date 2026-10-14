@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { FakeSlack, landsButTimesOut, slackError, type ScriptedAnswer } from "../../testing/fakeSlack";
 import { signingSecret } from "../../testing/signedSlack";
-import { everythingStored, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { everythingStored, post, setWorkspaceSettings, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { LevelReachedEvent } from "../bus/events";
@@ -37,7 +37,7 @@ describe("P64: the public level notice", () => {
     expect(slack.messagesIn("C1")).toEqual([{ channel: "C1", ts: expect.any(String), threadTs: postedTs, text: "🎉 <@U_ALICE> reached level 2." }]);
   });
 
-  test("R45: a recipient's notice states only their progress, never the giver or the thank-you, and no text is stored", async () => {
+  test("R45 AT1: a recipient's notice states only their progress, never the giver or the thank-you, whose words are only in the kudos text", async () => {
     const t = await flagsLoaded(testBackend());
     await withXp(t, "U_BOB", 15);
 
@@ -45,7 +45,7 @@ describe("P64: the public level notice", () => {
     await settle(t);
 
     expect(slack.messagesIn("C1").map((message) => message.text)).toEqual(["🎉 <@U_BOB> reached level 2."]);
-    const stored = JSON.stringify(await everythingStored(t), (_, value) => (typeof value === "bigint" ? String(value) : value));
+    const stored = JSON.stringify(await everythingStored(t, { except: ["kudosTexts"] }), (_, value) => (typeof value === "bigint" ? String(value) : value));
     expect(stored).not.toContain("rescuing");
   });
 });
@@ -191,7 +191,7 @@ describe("P64: a change of route", () => {
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
     await settle(t);
     const [threadReply] = slack.messagesIn("C1");
-    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", announcementChannel: "C1" }));
+    await setWorkspaceSettings(t, { announcementChannel: "C1" });
 
     await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_BOB", 2) });
     await settle(t);

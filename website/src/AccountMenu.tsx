@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@posthog/quill";
+import { hudAvatarAttributes } from "./crates/RewardFlight";
 import { LeveledFace } from "./LeveledFace";
 import { levelRingName } from "./LevelRing";
 import type { MemberProfile } from "./shell";
@@ -13,6 +14,7 @@ export function AccountMenu({ member, onSignOut }: { member: MemberProfile; onSi
         aria-label={`Account menu for ${member.name ?? "you"}`}
         aria-describedby={progression !== null ? levelId : undefined}
         className="rounded-full"
+        {...hudAvatarAttributes()}
       >
         <LeveledFace member={member} className="size-8" />
         {progression !== null && <span id={levelId} hidden>{levelRingName(progression)}</span>}
