@@ -7,7 +7,7 @@ import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
-import { contrast, websiteDirectory } from "./test/themeContrast";
+import { contrast, websiteDirectory, type Mode } from "./test/themeContrast";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 function paintsOf(element: Element) {
@@ -136,6 +136,32 @@ describe("WS339 V24: the Book index's stripe and the page picker meet 3:1 agains
         elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
       );
       expect(measured.map(({ paint }) => paint)).toEqual(expect.arrayContaining(["muted-foreground", "primary"]));
+      expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});
+
+function ladderGraphics() {
+  window.history.replaceState(null, "", "/book");
+  renderApp(shellFixtures.memberWithTheBookOpened, undefined, undefined, undefined, fixedBook(bookFixtures.everyLadder));
+  const ladders = screen.getByRole("main");
+  return [
+    { part: "each rosette's rim, ring and sparkle", surfaces: ["card"], elements: [...ladders.querySelectorAll("[data-rosette] [stroke^='var(']")] },
+    { part: "each Next cell's ring", surfaces: ["card"], elements: [...ladders.querySelectorAll(".ring-foreground")] },
+  ];
+}
+
+describe("WS333 WS339 V24: the rosettes and the Next rings meet 3:1 against their card in both modes", () => {
+  beforeEach(() => {
+    fakeSystemTheme(false);
+  });
+
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      const measured = ladderGraphics().flatMap(({ part, surfaces, elements }) =>
+        elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
+      );
+      expect(new Set(measured.map(({ paint }) => paint))).toEqual(new Set(["medal-bronze", "medal-silver", "medal-gold", "medal-diamond", "muted-foreground", "foreground"]));
       expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
     });
   }

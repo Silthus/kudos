@@ -94,7 +94,7 @@ describe("O22: an HTTP route whose mutation throws", () => {
   test("records one $exception and Slack gets a failure, so it redelivers", async () => {
     const t = testBackend();
 
-    const answer = t.fetch("/slack/events", await signedRequest(eventWithANumberForAChannel()));
+    const answer = t.fetch("/slack/events", await signedRequest(homeOpeningWithANumberForAUser()));
 
     await expect(answer).rejects.toThrow("[reported]");
     await settle(t);
@@ -119,7 +119,7 @@ describe("O22: an error whose message quotes the marker", () => {
 describe("O10 O23: only a reportable error sends its message", () => {
   test.each<[string, (t: Backend) => Promise<unknown>, string]>([
     ["malformed JSON", (t) => postSigned(t, "/slack/events", `{"type":"event_callback","team_id":"T0QUOKKAWS" Marmalade Zephyrine quokka`), "SyntaxError"],
-    ["a Convex argument validation error", (t) => postSigned(t, "/slack/events", eventWithANumberForAChannel()), "Error"],
+    ["a Convex argument validation error", (t) => postSigned(t, "/slack/events", homeOpeningWithANumberForAUser()), "Error"],
     [
       "a dependency error whose input holds distinctive text and Slack IDs",
       async (t) => {
@@ -201,7 +201,7 @@ describe("O24 O29: with native error reporting on", () => {
     slack.answering("conversations.join", slackError("not_authed"));
 
     await hedgehug(t);
-    await postSigned(t, "/slack/events", eventWithANumberForAChannel()).catch(() => {});
+    await postSigned(t, "/slack/events", homeOpeningWithANumberForAUser()).catch(() => {});
     await settle(t);
     await sweepTwice(t);
 
@@ -213,10 +213,13 @@ describe("O24 O29: with native error reporting on", () => {
 
 const thanksBob = [section(text("thanks "), mention("U_BOB"), text(" "), emoji("taco"))];
 
-function eventWithANumberForAChannel() {
-  return messageEvent([section(text("Marmalade Zephyrine says thanks for the quokka migration "), mention("U0ZEPHYRINE"), emoji("artichokeparty"))], {
-    team: "T0QUOKKAWS",
-    extra: { channel: 404 },
+function homeOpeningWithANumberForAUser() {
+  return JSON.stringify({
+    type: "event_callback",
+    team_id: "T0QUOKKAWS",
+    event_id: "EvMarmalade Zephyrine quokka artichokeparty",
+    event_time: 1760349600,
+    event: { type: "app_home_opened", user: 404, channel: "C0MARMALADE", tab: "home", event_ts: "1760349600.000200" },
   });
 }
 
