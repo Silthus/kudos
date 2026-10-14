@@ -1,13 +1,19 @@
 import { IconTarget } from "@posthog/icons";
 import { Button } from "@posthog/quill";
+import { useEffect, useRef } from "react";
 import type { LeaderboardRow } from "../shell";
 import { BoardFace, RankWords, YouLabel } from "./BoardFace";
 
-export function BoardLine({ row, focusable = false }: { row: LeaderboardRow; focusable?: boolean }) {
+export function BoardLine({ row, focusable = false, takesFocus = false }: { row: LeaderboardRow; focusable?: boolean; takesFocus?: boolean }) {
+  const line = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    if (takesFocus) line.current?.focus();
+  }, [takesFocus]);
   return (
     <li
+      ref={line}
       data-you={row.you || undefined}
-      tabIndex={focusable && row.you ? -1 : undefined}
+      tabIndex={takesFocus || (focusable && row.you) ? -1 : undefined}
       className={`grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 border-t px-3 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset ${row.you ? "bg-fill-selected shadow-[inset_3px_0_0_var(--primary)]" : ""}`}
     >
       <RankWords row={row} />
