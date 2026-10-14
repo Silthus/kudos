@@ -23,10 +23,10 @@ export function ReadyPill({ crates }: { crates: ReadyCrate[] }) {
   );
 }
 
-export function ReadyPillFailure({ first }: { first: ReadyCrate | undefined }) {
+export function ReadyPillFailure({ crates }: { crates: ReadyCrate[] }) {
   const moments = useMoments();
-  const attempt = first && moments?.attemptOf(first);
-  if (attempt === undefined || attempt === "opening") return null;
+  const attempt = crates.map((crate) => moments?.attemptOf(crate)).find((tried) => tried === "refused" || tried === "unreachable");
+  if (attempt === undefined) return null;
   return <p className="order-last w-full pb-2 text-right text-xs font-medium max-sm:text-left">{attemptMessages[attempt]}</p>;
 }
 

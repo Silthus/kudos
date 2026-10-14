@@ -4,6 +4,7 @@ import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures, type MemberProfile } from "./shell";
 import { renderApp } from "./test/renderApp";
+import { navEntryNames } from "./test/screensNav";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 beforeEach(() => {
@@ -111,10 +112,9 @@ describe("WS97 WS102: one panel per shipped feature, in its slot", () => {
     ]);
   });
 
-  it("leaves the nav unchanged: Home and each open feature with a web page", () => {
+  it("lists the same features in the nav, each in the state its panel shows (WS301)", () => {
     renderApp(shellFixtures.memberAcrossTheSheet);
-    const nav = within(screen.getByRole("navigation", { name: "Screens" })).getAllByRole("link");
-    expect(nav.map((link) => link.textContent)).toEqual(["Home", "Quests", "Book"]);
+    expect(navEntryNames()).toEqual(["Profile", "Quests", "Leaderboard: unlock ready. Open its crate", "Book", "Skill tree, locked. Unlocks at level 5"]);
   });
 });
 
