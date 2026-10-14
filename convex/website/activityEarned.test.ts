@@ -269,6 +269,41 @@ describe("AT18: a page's reads are bounded", () => {
       [5 * recipientsEach, 2 * recipientsEach, 5 * recipientsEach],
     ]);
   });
+
+  test("pages of 1,000 recipients whose words mention 2,000 different people, with a bonus paid on every award, stay within Convex's limits, skipping and repeating none", { timeout: 120_000 }, async () => {
+    t = testBackend({ transactionLimits: true });
+    await switchWebsite(t, postHog, true, ...skillTree);
+    await unlocksShippedBeforeAnyoneJoined(t);
+    const at = now.getTime();
+    const messages = 50;
+    const recipientsEach = 20;
+    const mentionsEach = 50;
+    const me = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: alice.user, kind: "member", name: alice.name, asOf: 0 }));
+    const thanked = await t.run(async (ctx) => {
+      const ids = [];
+      for (let index = 0; index < recipientsEach; index++) ids.push(await ctx.db.insert("members", { workspace: "T1", user: `U_${index}`, kind: "member", asOf: 0 }));
+      return ids;
+    });
+    const spark = [{ source: "spark" as const, xp: 5 }];
+    await t.run(async (ctx) => {
+      for (let index = 0; index < messages; index++) {
+        const message = `1760350${String(index).padStart(3, "0")}.000100`;
+        const segments = Array.from({ length: mentionsEach }, (_, mentioned) => ({ kind: "person" as const, user: `U_MENTIONED_${index}_${mentioned}` }));
+        await ctx.db.insert("kudosTexts", { workspace: "T1", conversation: "C1", message, kind: "words", revision: 1n, author: alice.user, edited: false, segments, visibility: "public", gate: null });
+        for (const recipient of thanked) {
+          const award = await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message, giver: me, recipient, kudos: 1, day: "2026-10-13", at: at + index });
+          await ctx.db.insert("effectsRecords", { award, member: me, side: "giver", day: "2026-10-13", baseXp: 10, gate: { version: 1, thoughtful: true }, catalogueVersion: "1", bonus: spark });
+        }
+      }
+    });
+
+    const first = await activityOf(alice, { filter: "given", limit: messages });
+    const next = first.cursor === null ? { entries: [] } : await activityOf(alice, { filter: "given", limit: messages, cursor: first.cursor });
+
+    const entries = [...first.entries, ...next.entries];
+    expect(entries.map(({ at }) => at)).toEqual(Array.from({ length: messages }, (_, index) => at + messages - 1 - index));
+    expect(entries.map((entry) => (entry.kind === "kudosGiven" ? entry.earned?.bonuses.map(({ xp }) => xp) : entry.kind))).toEqual(Array(messages).fill([5 * recipientsEach]));
+  });
 });
 
 async function thank(recipients: Array<{ user: string }>, words = saysWhy): Promise<number> {

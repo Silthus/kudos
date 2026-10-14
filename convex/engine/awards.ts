@@ -222,7 +222,9 @@ export const fromTheNewest: Before = { at: Infinity, created: Infinity };
 
 export type ReceivedAward = { award: AwardId; message: MessageRef; giver: MemberId; kudos: number; at: number; created: number };
 
-export type GivenMessageAwards = { first: AwardId; message: MessageRef; awards: Array<{ award: AwardId; recipient: MemberId; kudos: number }>; at: number; created: number };
+export type MessageAward = { award: AwardId; recipient: MemberId; kudos: number };
+
+export type GivenMessageAwards = { first: AwardId; message: MessageRef; awards: MessageAward[]; at: number; created: number };
 
 export type AtRange = { kind: "instant"; at: number; createdBefore?: number } | { kind: "older"; than?: number };
 

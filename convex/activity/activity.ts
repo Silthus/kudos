@@ -1,5 +1,5 @@
 import type { QueryCtx } from "../_generated/server";
-import { awardsReceivedNewestFirst, messagesGivenNewestFirst, type Before, type GivenMessageAwards, type ReceivedAward } from "../engine/awards";
+import { awardsReceivedNewestFirst, messagesGivenNewestFirst, type Before, type GivenMessageAwards, type MessageAward, type ReceivedAward } from "../engine/awards";
 import { bonusRecordedWith } from "../progression/effects";
 import { bonusGainsShownIn, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
 import { catalogue } from "../progression/catalogue";
@@ -31,7 +31,7 @@ type PageSize = { min: number; max: number; usual: number };
 const activityPage: PageSize = { min: 1, max: 50, usual: 20 };
 const recentPage: PageSize = { min: 1, max: 10, usual: 5 };
 
-export const recipientsPerPage = 1_000;
+export const recipientsPerPage = 800;
 
 const levelUps: Source = {
   rank: ranks.levelUp,
@@ -128,7 +128,7 @@ async function earnedBy(ctx: QueryCtx, { member, gainsShown }: Viewer, { message
   return { xp: shown.xp ? giverXpOf(awards) : null, questsDone, bonuses };
 }
 
-async function bonusesEarnedBy(ctx: QueryCtx, awards: GivenMessageAwards["awards"]): Promise<BonusEarned[]> {
+async function bonusesEarnedBy(ctx: QueryCtx, awards: MessageAward[]): Promise<BonusEarned[]> {
   const paid = await bonusRecordedWith(ctx, awards.map(({ award }) => award));
   return paid.map(({ source, xp }) => ({ perk: { id: source, name: perkOf(source).name }, why: catalogue.bonuses[source].why, xp }));
 }
