@@ -155,16 +155,14 @@ function ladderLines({ ladder, name, count, tiers, next }: LadderFacts, timeZone
   return [{ kind: "text", text: `${bold(name)} · ${bold(count)} ${countsOf(ladder, count)}` }, ...earnedLines, ...nextLine];
 }
 
-export function tiersEarnedLines(tiers: TierRef[]): string[] {
-  const earned = tiers.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).`);
-  const ladders = [...new Set(tiers.map(({ ladder }) => ladder))];
-  return [...earned, ...ladders.flatMap((ladder) => nextTierLine(ladder, tiers.filter((ref) => ref.ladder === ladder)))];
+export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[]): string[] {
+  const earnedLines = told.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).`);
+  const ladders = [...new Set(told.map(({ ladder }) => ladder))];
+  return [...earnedLines, ...ladders.flatMap((ladder) => nextTierLine(ladder, [...told, ...everyTierEarned]))];
 }
 
-function nextTierLine(ladder: TierRef["ladder"], told: TierRef[]): string[] {
-  const { tiers } = ladderOf(ladder);
-  const highest = Math.max(...told.map(({ tier }) => tiers.findIndex((entry) => entry.tier === tier)));
-  const next = tiers[highest + 1];
+function nextTierLine(ladder: TierRef["ladder"], earned: TierRef[]): string[] {
+  const next = ladderOf(ladder).tiers.find(({ tier }) => !earned.some((ref) => ref.ladder === ladder && ref.tier === tier));
   return next === undefined ? [] : [`Next: ${next.name} at ${next.count} ${countsOf(ladder, next.count)}.`];
 }
 
