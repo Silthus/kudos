@@ -100,6 +100,7 @@ import type * as progression_skillTreeFlag from "../progression/skillTreeFlag.js
 import type * as progression_tree from "../progression/tree.js";
 import type * as progression_xpLevels from "../progression/xpLevels.js";
 import type * as quests_crates from "../quests/crates.js";
+import type * as quests_crateRewardsFlag from "../quests/crateRewardsFlag.js";
 import type * as quests_finish from "../quests/finish.js";
 import type * as quests_finishedBy from "../quests/finishedBy.js";
 import type * as quests_flag from "../quests/flag.js";
@@ -280,6 +281,7 @@ declare const fullApi: ApiFromModules<{
   "progression/tree": typeof progression_tree;
   "progression/xpLevels": typeof progression_xpLevels;
   "quests/crates": typeof quests_crates;
+  "quests/crateRewardsFlag": typeof quests_crateRewardsFlag;
   "quests/finish": typeof quests_finish;
   "quests/finishedBy": typeof quests_finishedBy;
   "quests/flag": typeof quests_flag;

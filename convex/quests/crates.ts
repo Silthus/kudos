@@ -1,9 +1,10 @@
 import { v } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
+import { appliedRewardValidator } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
 import { journeyStepValidator, type JourneyQuest, type Quest, type WeeklyQuest } from "./step";
 
-export const crateOpeningValidator = v.object({ member: v.id("members"), key: v.string(), at: v.number() });
+export const crateOpeningValidator = v.object({ member: v.id("members"), key: v.string(), at: v.number(), applied: v.optional(appliedRewardValidator) });
 
 export const pendingCrateValidator = v.object({ member: v.id("members"), key: v.string() });
 

@@ -8,6 +8,9 @@ import type { DomainEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import schema from "../schema";
 import type { MemberId } from "../workspace/directory";
+import { recordReward } from "../progression/progression";
+import { balanceOf } from "../wallet/wallet";
+import { crateOpeningOf } from "./crates";
 import { openQuestCrate } from "./open";
 
 vi.mock("../bus/publish", async (importOriginal) => {
@@ -35,8 +38,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("P92: opening a crate grants nothing", () => {
-  test("opening a finished step's crate writes only one crate opening beside its reward record, and publishes only questOpened", async () => {
+describe("CR3 P92: opening a crate applies its held reward once", () => {
+  test("opening a crate whose reward counted at its finish writes only one crate opening beside its reward record, without what it applied, and publishes only questOpened", async () => {
     const { t, alice } = await withFinishedFirstThanks();
     const before = await everyTable(t);
     vi.mocked(publish).mockClear();
@@ -46,12 +49,54 @@ describe("P92: opening a crate grants nothing", () => {
 
     const after = await everyTable(t);
     expect({ ...after, crateOpenings: [] }).toEqual(before);
-    expect(after.crateOpenings).toEqual([expect.objectContaining({ member: alice, key: "journey:first-thanks", at: openedAt })]);
+    expect(after.crateOpenings).toEqual([{ _id: expect.anything(), _creationTime: expect.any(Number), member: alice, key: "journey:first-thanks", at: openedAt }]);
     expect(published()).toEqual([{ type: "questOpened", workspace: "T1", member: alice, quest: firstThanks, at: openedAt }]);
   });
 
-  test("a second open, a week later, writes nothing and publishes nothing, and the crate keeps its first opening", async () => {
-    const { t, alice } = await withFinishedFirstThanks();
+  test("opening a held reward's crate adds its XP and coins once, stores what it applied on the crate opening, and publishes xpRecorded, levelReached, then questOpened", async () => {
+    const { t, alice } = await withFinishedFirstThanks("crate-rewards");
+    await t.run((ctx) => recordReward(ctx, "T1", { member: alice, key: "weekly:2026-10-12:0", xp: 15, coins: 3, item: null, catalogueVersion: "1", at: finishedAt }));
+    const before = await everyTable(t);
+    vi.mocked(publish).mockClear();
+    vi.setSystemTime(openedAt);
+
+    expect(await open(t, alice)).toBe("done");
+
+    const after = await everyTable(t);
+    expect({ ...after, crateOpenings: [], memberProgress: [], wallets: [] }).toEqual({ ...before, memberProgress: [], wallets: [] });
+    const from = { xp: 15, level: 1, coins: 3, skillPoints: 0 };
+    const to = { xp: 25, level: 2, coins: 3, skillPoints: 0 };
+    expect(after.crateOpenings).toEqual([expect.objectContaining({ member: alice, key: "journey:first-thanks", at: openedAt, applied: { xp: 10, coins: 0, from, to } })]);
+    expect(after.memberProgress).toEqual([expect.objectContaining({ member: alice, xp: 25, pointsSpent: 0 })]);
+    expect(after.wallets).toEqual(before.wallets);
+    expect(published()).toEqual([
+      { type: "xpRecorded", workspace: "T1", member: alice, at: openedAt },
+      { type: "levelReached", workspace: "T1", member: alice, level: 2, skillPointsGained: 0, skillPoints: 0, xpToNextLevel: 75, at: openedAt },
+      { type: "questOpened", workspace: "T1", member: alice, quest: firstThanks, at: openedAt },
+    ]);
+  });
+
+  test("a held weekly reward's open credits its coins through the wallet", async () => {
+    const { t, alice } = await withFinishedFirstThanks("crate-rewards");
+    const weekly = { kind: "weekly", week: "2026-10-12", slot: 0 } as const;
+    await t.run((ctx) => recordReward(ctx, "T1", { member: alice, key: "weekly:2026-10-12:0", xp: 20, coins: 7, item: null, catalogueVersion: "1", at: finishedAt, held: true }));
+
+    expect(await t.run((ctx) => openQuestCrate(ctx, alice, weekly))).toBe("done");
+
+    expect(await t.run((ctx) => balanceOf(ctx, alice))).toBe(7);
+    expect((await t.run((ctx) => crateOpeningOf(ctx, alice, "weekly:2026-10-12:0")))?.applied).toEqual({
+      xp: 20,
+      coins: 7,
+      from: { xp: 0, level: 1, coins: 0, skillPoints: 0 },
+      to: { xp: 20, level: 2, coins: 7, skillPoints: 0 },
+    });
+  });
+
+  test.each([
+    ["counted at its finish", []],
+    ["held", ["crate-rewards"]],
+  ])("a second open of a crate whose reward %s, a week later, writes nothing and publishes nothing, and the crate keeps its first opening", async (_, flags) => {
+    const { t, alice } = await withFinishedFirstThanks(...flags);
     vi.setSystemTime(openedAt);
     await open(t, alice);
     const before = await everyTable(t);
@@ -91,7 +136,8 @@ describe("P85: only a finished crate of the member's own opens", () => {
   });
 });
 
-async function withFinishedFirstThanks() {
+async function withFinishedFirstThanks(...flags: string[]) {
+  flagsOnForEveryone(new FakeSlack().fetch, "xp-levels", "unlocks", "quests", ...flags);
   const t = await flagsLoaded(testBackend());
   const [alice, bob] = await t.run(async (ctx) => [
     await ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }),

@@ -332,8 +332,8 @@ describe("a website command is a D17 command", () => {
   });
 });
 
-describe("opening on the website grants nothing", () => {
-  test("P92: opening a finished step's crate writes only one crate opening, with the XP and every other record as they were", async () => {
+describe("opening on the website applies what Slack's open applies", () => {
+  test("P92 CR4: opening a finished step's crate whose reward counted at its finish writes only one crate opening, with the XP and every other record as they were", async () => {
     const { member, asSignedIn } = await aFinishedJourneyStepIn();
     const before = await everyTable();
     vi.mocked(publish).mockClear();
@@ -346,7 +346,50 @@ describe("opening on the website grants nothing", () => {
     expect(before.crateOpenings).toEqual([]);
     expect(publishedEvents()).toEqual([{ type: "questOpened", workspace: "T1", member, quest: firstThanks, at: now.getTime() }]);
   });
+
+  test("CR3: opening a held crate on the website leaves the tables and events Slack's Open of it leaves, applying its XP once", async () => {
+    const slackSide = await aHeldJourneyStepIn(testBackend());
+    vi.mocked(publish).mockClear();
+    await openFromAppHome(slackSide.backend);
+    const fromSlack = { tables: await everyTable(slackSide.backend), events: publishedEvents() };
+
+    const websiteSide = await aHeldJourneyStepIn(t);
+    vi.mocked(publish).mockClear();
+    expect(await openQuestCrate(websiteSide.asSignedIn)).toEqual({ kind: "opened" });
+    const fromWebsite = { tables: await everyTable(t), events: publishedEvents() };
+
+    expect(comparable(fromWebsite, websiteSide)).toEqual(comparable(fromSlack, slackSide));
+    expect(fromWebsite.events).toEqual([
+      { type: "xpRecorded", workspace: "T1", member: websiteSide.member, at: now.getTime() },
+      { type: "questOpened", workspace: "T1", member: websiteSide.member, quest: firstThanks, at: now.getTime() },
+    ]);
+    expect(fromWebsite.tables.memberProgress).toMatchObject([{ member: websiteSide.member, xp: 10 }]);
+  });
+
+  test("CR3: a website open after Slack's Open of a held crate applies nothing", async () => {
+    const { backend, asSignedIn } = await aHeldJourneyStepIn();
+    await openFromAppHome(backend);
+    const before = await everyTable();
+    vi.mocked(publish).mockClear();
+
+    expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "opened" });
+
+    expect(await everyTable()).toEqual(before);
+    expect(publishedEvents()).toEqual([]);
+  });
 });
+
+async function aHeldJourneyStepIn(backend: Backend = t) {
+  await flagsOn(backend, ...questsFlags, "crate-rewards");
+  await journeyShippedBeforeAnyoneJoined(backend);
+  const team = await aTeamIn(backend);
+  await thanks(backend, team.member, team.teammate);
+  return team;
+}
+
+function openFromAppHome(backend: Backend) {
+  return backend.mutation(internal.slack.receipts.receiveHomeClick, { workspace: "T1", eventId: "Ev_OPEN", user: juno.user, commands: [{ type: "openQuestCrate", quest: firstThanks }] });
+}
 
 type Side = { member: MemberId; teammate: MemberId };
 

@@ -198,10 +198,10 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   checklist: worker-fencing dismissed: no worker owns a member's purchases; Convex serializes the mutations that touch the member's progress
   checklist: resumption-coverage dismissed: no batch operation resumes
   checklist: separation-of-duties dismissed: no approval policy applies; a member buys their own perk with one action (WS87)
-- opening on the website grants nothing: openFeature opening a ready feature writes only that feature's openedAt and publishes only unlockOpened, besides the exposure Slack's click sends, so Unlocks' opening grants nothing holds through the website: XP, progress and every other record are as they were; openQuestCrate opening a finished quest's crate writes only one crate opening and publishes only questOpened, so the quests module's opening a crate grants nothing holds through the website too.
-  over: every table of the schema and every published event, before and after openFeature opens a ready Leaderboard for a member with XP and a level, and before and after openQuestCrate opens a finished Journey step's crate
-  via: opening on the website grants nothing
-  because: a crate only reveals what is already recorded (P92); if opening on the website granted anything, a member could earn by clicking in a browser what Slack never pays
+- opening on the website applies what Slack's open applies: openFeature opening a ready feature writes only that feature's openedAt and publishes only unlockOpened, besides the exposure Slack's click sends, so Unlocks' opening grants nothing holds through the website: XP, progress and every other record are as they were; openQuestCrate opening a finished quest's crate whose reward counted at its finish writes only one crate opening and publishes only questOpened, and opening a held one leaves the same tables and events Slack's Open of it leaves, applying its reward once, so the quests module's opening a crate applies its held reward once holds through the website too, and a website open after a Slack open applies nothing.
+  over: every table of the schema and every published event, before and after openFeature opens a ready Leaderboard for a member with XP and a level, before and after openQuestCrate opens a finished Journey step's crate, a held one beside Slack's Open of the same crate on another backend, and a website open after Slack's Open
+  via: opening on the website applies what Slack's open applies
+  because: only a held reward's crate applies anything, and only once (CR3, CR4); if opening on the website did other than Slack's Open, a member could earn by clicking in a browser what Slack never pays, or be paid twice across the two
   crossing: browser -> domain
   entrances: mutation openFeature, mutation openQuestCrate
   refuted: openQuestCrate also gave the member 10 XP when it opened a crate -> the every-table assertion failed on memberProgress (2026-10-14)
