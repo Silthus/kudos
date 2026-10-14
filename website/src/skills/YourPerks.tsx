@@ -5,9 +5,12 @@ export function YourPerks({ rows }: { rows: TreeRow[] }) {
   const owned = ownedInPurchaseOrder(rows);
   return (
     <section aria-labelledby="your-perks-title" className="hud-panel relative flex flex-col gap-3 rounded-xl border bg-card p-4">
-      <h2 id="your-perks-title" className="hud-label">
-        Your perks
-      </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 id="your-perks-title" className="hud-label">
+          {`Your perks · ${owned.length} active`}
+        </h2>
+        <p className="text-xs text-muted-foreground">Permanent · always on.</p>
+      </div>
       {owned.length === 0 ? (
         <p className="text-sm text-muted-foreground">Perks you buy show here, and they're yours for good.</p>
       ) : (
