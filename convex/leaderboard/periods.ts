@@ -30,8 +30,12 @@ export function keyOf(period: Period, day: DayKey): PeriodKey {
   }
 }
 
+export function lastPeriodUpToTheSameDay(period: ComparedPeriod, today: DayKey): Days {
+  return period === "week" ? lastWeekUpTo(today) : lastMonthUpTo(today);
+}
+
 export function sameDayLastPeriod(period: ComparedPeriod, today: DayKey): SameDay {
-  const { first, last } = period === "week" ? lastWeekUpTo(today) : lastMonthUpTo(today);
+  const { first, last } = lastPeriodUpToTheSameDay(period, today);
   return { key: keyOf(period, first), day: dayOfPeriod(period, last) };
 }
 

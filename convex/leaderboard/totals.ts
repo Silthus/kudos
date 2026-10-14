@@ -8,7 +8,7 @@ import type { MessageRef } from "../engine/messageEvent";
 import { lookup, type MemberId } from "../workspace/directory";
 import { board, placesClimbed, ranking, type BoardView, type Entry } from "./board";
 import { improvement, type Improvement } from "./improvement";
-import { dayOfPeriod, keyOf, periodOfKey, periods, periodValidator, sameDayLastPeriod, type ComparedPeriod, type Period, type PeriodKey } from "./periods";
+import { dayOfPeriod, keyOf, lastPeriodUpToTheSameDay, periodOfKey, periods, periodValidator, sameDayLastPeriod, type ComparedPeriod, type Days, type Period, type PeriodKey } from "./periods";
 import { totalUpTo, withKudosOn, type RunningTotal } from "./runningTotal";
 import { isOnTheBoards } from "./visibility";
 
@@ -139,8 +139,22 @@ async function totalsOf(ctx: QueryCtx, workspace: string, period: PeriodKey): Pr
 async function totalsUpToTheSameDay(ctx: QueryCtx, workspace: string, period: ComparedPeriod, today: DayKey): Promise<KudosByMember> {
   const { key, day } = sameDayLastPeriod(period, today);
   const totals = await totalsIn(ctx, workspace, key);
-  const upToTheSameDay = await Promise.all(totals.map(async (total) => [total.member, totalUpTo((await runningTotalOf(ctx, total)) ?? [], day)] as const));
-  return new Map(upToTheSameDay);
+  if (!totals.every(hasRunningTotal)) return dayTotalsUpToTheSameDay(ctx, workspace, lastPeriodUpToTheSameDay(period, today));
+  return new Map(totals.map((total) => [total.member, totalUpTo(total.runningTotal, day)]));
+}
+
+async function dayTotalsUpToTheSameDay(ctx: QueryCtx, workspace: string, { first, last }: Days): Promise<KudosByMember> {
+  const days = await ctx.db
+    .query("givenByDay")
+    .withIndex("by_workspace_day", (q) => q.eq("workspace", workspace).gte("day", first).lte("day", last))
+    .collect();
+  const kudosByMember: KudosByMember = new Map();
+  for (const { member, kudos } of days) kudosByMember.set(member, (kudosByMember.get(member) ?? 0) + kudos);
+  return kudosByMember;
+}
+
+function hasRunningTotal(total: Total): total is Total & { runningTotal: RunningTotal } {
+  return total.runningTotal !== undefined;
 }
 
 function totalsIn(ctx: QueryCtx, workspace: string, period: PeriodKey) {
@@ -150,11 +164,7 @@ function totalsIn(ctx: QueryCtx, workspace: string, period: PeriodKey) {
     .collect();
 }
 
-async function runningTotalOf(ctx: QueryCtx, total: Total) {
-  return total.runningTotal ?? (await runningTotalFromDays(ctx, total));
-}
-
-async function runningTotalFromDays(ctx: QueryCtx, { member, period: key }: Total): Promise<RunningTotal | undefined> {
+async function runningTotalFromDays(ctx: MutationCtx, { member, period: key }: Total): Promise<RunningTotal | undefined> {
   const period = periodOfKey(key);
   if (period === null) return undefined;
   const days = await ctx.db
