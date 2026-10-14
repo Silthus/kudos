@@ -23,6 +23,7 @@ import { questCratePageOf, readyCratePageOf, urlOf, type Page } from "../website
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { renderEveryoneBoard } from "./leaderboard";
 import { openTheWebsite, productName, skillPointsOf, slashCommand } from "./naming";
+import { medals } from "./medals";
 import type { Line } from "./segments";
 import { unopenedTextOf } from "./unlockFilter";
 
@@ -52,8 +53,6 @@ export type HomeLine =
 type MemberHome = Extract<HomeFacts, { kind: "member" }>;
 
 const tabLabels: Record<HomeTab, string> = { profile: "Profile", leaderboard: "Leaderboard", book: "Book", skillTree: "Skill tree", settings: "Settings", admin: "Admin" };
-
-const medals: Record<TierId, string> = { bronze: "🥉", silver: "🥈", gold: "🥇", diamond: "💎" };
 
 const periods: Array<{ period: Period; label: string }> = [
   { period: "week", label: "This week" },

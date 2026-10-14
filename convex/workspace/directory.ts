@@ -41,6 +41,11 @@ export async function emailOf(ctx: QueryCtx, member: MemberId): Promise<string |
   return row?.kind === "member" ? row.email : undefined;
 }
 
+export async function displayNameOf(ctx: QueryCtx, member: MemberId): Promise<string | undefined> {
+  const row = await ctx.db.get(member);
+  return row?.kind === "member" ? row.name : undefined;
+}
+
 export type PersonFacts = { workspace: string; user: ChatUserId; admin: boolean } & MemberProfile;
 
 export async function personFactsOf(ctx: QueryCtx, member: MemberId): Promise<PersonFacts | null> {
