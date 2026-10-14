@@ -158,10 +158,9 @@ describe("WS92: the Book page", () => {
     expect(within(ladderCard("Recognition")).getByRole("progressbar", { name: "0 of 1 for Noticed" })).toBeInTheDocument();
   });
 
-  it("shows a ladder with every tier earned with four dates, no bar and no Next tag", () => {
+  it("shows a ladder with every tier earned with four dates and no Next tag", () => {
     showBook(bookFixtures.everyTierEarned);
     const card = ladderCard("Generosity");
-    expect(within(card).queryByRole("progressbar")).toBeNull();
     expect(within(card).queryByText("Next")).toBeNull();
     expect(within(card).getAllByRole("listitem").map((tier) => tier.textContent)).toEqual(["Bronze", "Silver", "Gold", "Diamond"].map((word) => expect.stringMatching(new RegExp(`^${word}.*Earned \\d{1,2} \\w+ 2026$`))));
   });
@@ -374,5 +373,72 @@ describe("WS332: the Book's category pages", () => {
     const newer = { ...generosity, ladder: "team-spirit" as LadderId, name: "Team Spirit" };
     showBookAt("/book?page=thanked", { ...bookFixtures.book, ladders: [generosity, newer, recognition] });
     expect(ladderNames()).toEqual(["Team Spirit", "Recognition"]);
+  });
+});
+
+
+function headlineOf(name: string) {
+  return within(ladderCard(name)).getByRole("heading", { level: 2, name }).parentElement!;
+}
+
+function rosetteOf(name: string) {
+  return ladderCard(name).querySelector("[data-rosette]")!;
+}
+
+function nextCells(name: string) {
+  return within(within(ladderCard(name)).getByRole("list", { name: `${name} tiers` }))
+    .getAllByRole("listitem")
+    .filter((cell) => within(cell).queryByText("Next") !== null);
+}
+
+describe("WS333: ladder details", () => {
+  it("names the highest earned tier and its date, in the member's time zone, beside each ladder's name, or Not started", () => {
+    showBook(bookFixtures.everyStage);
+    expect(headlineOf("Generosity")).toHaveTextContent("Bronze earned 14 Oct 2026");
+    expect(headlineOf("Dependability")).toHaveTextContent("Gold earned 22 Jul 2026");
+    expect(headlineOf("Connections")).toHaveTextContent("Diamond earned 8 Sept 2026");
+    expect(headlineOf("Recognition")).toHaveTextContent("Not started");
+  });
+
+  it("says under the bar how many are left to the next tier, by its name, from the read's at and count", () => {
+    showBook(bookFixtures.everyStage);
+    expect(ladderCard("Recognition")).toHaveTextContent("1 to go for Noticed");
+    expect(ladderCard("Generosity")).toHaveTextContent("22 to go for Generous Soul");
+    expect(ladderCard("Dependability")).toHaveTextContent("10 to go for Cornerstone");
+    const bar = within(ladderCard("Dependability")).getByRole("progressbar", { name: "240 of 250 for Cornerstone" });
+    expect(bar.compareDocumentPosition(within(ladderCard("Dependability")).getByText("10 to go for Cornerstone"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it("shows Complete and a full neutral bar after the fourth tier, with nothing left to go", () => {
+    showBook(bookFixtures.everyStage);
+    const card = ladderCard("Connections");
+    const bar = within(card).getByRole("progressbar", { name: "Complete, 31 different people thanked" });
+    expect(bar).toHaveAttribute("aria-valuenow", "1");
+    expect(bar).toHaveAttribute("aria-valuemax", "1");
+    expect(bar.outerHTML).not.toMatch(/primary|success|warning|danger/);
+    expect(card).toHaveTextContent("Complete");
+    expect(bar.parentElement).toHaveTextContent(/^31$/);
+    expect(card).not.toHaveTextContent(/to go/);
+    expect(nextCells("Connections")).toEqual([]);
+  });
+
+  it("rings one Next cell per incomplete ladder in the foreground colour, with no primary anywhere on a ladder", () => {
+    showBook(bookFixtures.everyLadder);
+    const incomplete = ["Generosity", "Recognition", "Dependability", "Applause", "Seasons", "Old Friends"];
+    for (const name of incomplete) {
+      const cells = nextCells(name);
+      expect(cells).toHaveLength(1);
+      expect(cells[0]).toHaveClass("ring-foreground");
+      expect(ladderCard(name).outerHTML).not.toMatch(/primary/);
+    }
+    expect(within(nextCells("Dependability")[0]!).getByText("Cornerstone")).toBeInTheDocument();
+  });
+
+  it("frames the emblem in a rosette of the highest earned tier's metal, with a static sparkle only for gold and diamond", () => {
+    showBook(bookFixtures.everyStage);
+    expect(["Generosity", "Recognition", "Connections", "Dependability"].map((name) => rosetteOf(name).getAttribute("data-rosette"))).toEqual(["bronze", "none", "diamond", "gold"]);
+    expect(["Generosity", "Recognition", "Connections", "Dependability"].map((name) => rosetteOf(name).querySelector("[data-sparkle]") !== null)).toEqual([false, false, true, true]);
+    expect(rosetteOf("Connections").closest("[aria-hidden='true']")).not.toBeNull();
+    expect(ladderCard("Connections").innerHTML).not.toMatch(/animate|animation/);
   });
 });

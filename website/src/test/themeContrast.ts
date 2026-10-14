@@ -54,6 +54,14 @@ const encoded = (channel: number) => (channel <= 0.0031308 ? 12.92 * channel : 1
 
 const decoded = (channel: number) => (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
 
+function linearRgbOf(colour: string): Rgb {
+  return colour.startsWith("#") ? linearRgbOfHex(colour) : linearRgbOfOklch(colour);
+}
+
+function linearRgbOfHex(hex: string): Rgb {
+  return [1, 3, 5].map((at) => decoded(parseInt(hex.slice(at, at + 2), 16) / 255)) as Rgb;
+}
+
 function over(paint: Rgb, opacity: number, backdrop: Rgb): Rgb {
   return paint.map((channel, i) => decoded(opacity * encoded(channel) + (1 - opacity) * encoded(backdrop[i]!))) as Rgb;
 }
@@ -68,12 +76,12 @@ function ratio(one: number, two: number) {
 
 export function contrast(mode: Mode, paint: string, surface: string) {
   const tokens = declarationsIn(mode);
-  const [one, two] = [paint, surface].map((name) => luminanceOf(linearRgbOfOklch(resolve(tokens, name)))) as [number, number];
+  const [one, two] = [paint, surface].map((name) => luminanceOf(linearRgbOf(resolve(tokens, name)))) as [number, number];
   return ratio(one, two);
 }
 
 export function contrastAtOpacity(mode: Mode, paint: string, surface: string, { opacity, backdrop }: { opacity: number; backdrop: string }) {
   const tokens = declarationsIn(mode);
-  const [ink, ground, behind] = [paint, surface, backdrop].map((name) => linearRgbOfOklch(resolve(tokens, name))) as [Rgb, Rgb, Rgb];
+  const [ink, ground, behind] = [paint, surface, backdrop].map((name) => linearRgbOf(resolve(tokens, name))) as [Rgb, Rgb, Rgb];
   return ratio(luminanceOf(over(ink, opacity, behind)), luminanceOf(over(ground, opacity, behind)));
 }
