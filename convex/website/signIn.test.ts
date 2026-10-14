@@ -6,6 +6,7 @@ import { aDeploymentForWorkspace, aMember, allowedWorkspace, switchWebsite } fro
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import type { SignedInProfile } from "../slack/signIn";
+import { strandedPerSweep } from "../slack/strandedJobs";
 import { rememberSignedInMember } from "./signIn";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -197,6 +198,32 @@ describe("a stranded verification is tried again", () => {
     await sweepAt(minutesAfterSignIn(11));
 
     expect((await profileOf(userId)).kind).toBe("member");
+  });
+
+  test("sweeping twice before the stranded try runs asks Slack once", async () => {
+    slack.withMember("U_JUNO");
+    await signIn(juno);
+    await convexStops(t, "slack/verifyMember:verifyMember");
+    vi.setSystemTime(minutesAfterSignIn(11));
+
+    await t.mutation(internal.slack.verifyMember.retryStranded, {});
+    await t.mutation(internal.slack.verifyMember.retryStranded, {});
+    await settle(t);
+
+    expect(slack.callsTo("users.info")).toHaveLength(1);
+  });
+
+  test("more stranded verifications than one page are all tried again", async () => {
+    const people = Array.from({ length: strandedPerSweep + 1 }, (_, index) => `U_PERSON${index}`);
+    for (const person of people) {
+      slack.withMember(person);
+      await signIn({ ...juno, id: `${allowedWorkspace}/${person}`, chatUser: person });
+    }
+    await convexStops(t, "slack/verifyMember:verifyMember");
+
+    await sweepAt(minutesAfterSignIn(11));
+
+    expect(slack.callsTo("users.info").map((args) => args.user).sort()).toEqual([...people].sort());
   });
 
   test("a verification whose try Convex may still be running is left alone", async () => {
