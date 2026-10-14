@@ -1,0 +1,7 @@
+     × says That's the only one so far when the answer's after is the shown one 1131ms
+     × says a repeated outcome again on every press, as a new line in the status 1094ms
+     × stops after ten skipped answers, keeps the kudos, and resumes from the last skip on the next press 1092ms
+     × keeps the kudos after a failed draw, says so, and reads after the shown kudos again on the next press 1108ms
+     × follows no skipped answer that arrives after the board unmounts 222ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  5 failed | 22 passed (27)

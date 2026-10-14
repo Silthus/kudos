@@ -17,6 +17,7 @@ import type { QuestsShown } from "./questsRead";
 import type { Direction, RecentKudosShown } from "./recentKudosRead";
 import type { SkillTreeShown } from "./skillTreeRead";
 import type { ActivityFilter } from "./route";
+import type { SpotlightDraw } from "./spotlightRead";
 import type { Period, ShellActions, Visitor } from "./shell";
 import { forgetSignInStarted } from "./signInAttempt";
 
@@ -36,6 +37,7 @@ function LiveApp() {
   const profile = useQuery(api.website.profile.getMyProfile, {});
   const actions = useLiveActions(() => setSignInFailed(true));
   const readActivity = useLiveActivityRead();
+  const drawSpotlight = useLiveSpotlight();
   if (signInFailed) throw new Error("The sign-in didn't start.");
   return (
     <App
@@ -49,6 +51,7 @@ function LiveApp() {
       useRecentKudos={useLiveRecentKudos}
       useActivityWatch={useLiveActivityWatch}
       readActivity={readActivity}
+      drawSpotlight={drawSpotlight}
     />
   );
 }
@@ -96,6 +99,11 @@ function useLiveRecentKudos(direction: Direction): RecentKudosShown | undefined 
   const request = useMemo((): RequestForQueries => ({ recent: { query: api.website.activity.getRecentKudos, args: { direction, limit: 3 } } }), [direction]);
   const { recent } = useQueries(request);
   return recent instanceof Error ? { kind: "broken" } : recent;
+}
+
+function useLiveSpotlight(): SpotlightDraw {
+  const convex = useConvex();
+  return useCallback((ask) => answerWithin(commandAnswerBudgetMs, convex.query(api.website.activity.getSpotlight, ask)), [convex]);
 }
 
 const activityPage = 20;
