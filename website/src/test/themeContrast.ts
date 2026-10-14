@@ -31,6 +31,15 @@ function resolve(tokens: Map<string, string>, name: string): string {
     .replace(/calc\(([\d.]+) \* ([\d.]+)\)/g, (_, a: string, b: string) => String(Number(a) * Number(b)));
 }
 
+function luminanceOf(colour: string) {
+  return colour.startsWith("#") ? luminanceOfHex(colour) : luminanceOfOklch(colour);
+}
+
+function luminanceOfHex(hex: string) {
+  const [red, green, blue] = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16) / 255).map((channel) => (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)) as [number, number, number];
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+
 function luminanceOfOklch(colour: string) {
   const match = /^oklch\(([\d.]+) ([\d.]+) ([\d.]+)\)$/.exec(colour);
   if (match === null) throw new Error(`${colour} is not an oklch colour`);
@@ -49,6 +58,6 @@ function luminanceOfOklch(colour: string) {
 
 export function contrast(mode: Mode, paint: string, surface: string) {
   const tokens = declarationsIn(mode);
-  const [one, two] = [paint, surface].map((name) => luminanceOfOklch(resolve(tokens, name))) as [number, number];
+  const [one, two] = [paint, surface].map((name) => luminanceOf(resolve(tokens, name))) as [number, number];
   return (Math.max(one, two) + 0.05) / (Math.min(one, two) + 0.05);
 }

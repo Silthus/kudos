@@ -56,6 +56,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "book ready to open in place", path: "/book", visitor: shellFixtures.memberWithTheBookReady, book: bookFixtures.ready },
   { name: "book with a ladder at bronze and a ladder not started", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.book },
   { name: "book with every tier of a ladder earned", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyTierEarned },
+  { name: "book with ladders unstarted, part-way, one tier from complete and complete", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyStage },
   { name: "book's overview with its page index, on a wide screen", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, wide: true },
   { name: "book's Giving page with its page index, on a wide screen", path: "/book?page=giving", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, wide: true },
   { name: "book's Crowd page with its page picker", path: "/book?page=crowd", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder },

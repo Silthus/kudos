@@ -11,7 +11,7 @@ import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 function paintsOf(element: Element) {
   const fromStroke = [...(element.getAttribute("stroke") ?? "").matchAll(/var\(--([\w-]+)\)/g)].map((match) => match[1]!);
-  const fromClasses = [...element.classList].flatMap((name) => /^(?:before:)?(?:bg|border|text)-((?:muted-)?foreground|primary)$/.exec(name)?.[1] ?? []);
+  const fromClasses = [...element.classList].flatMap((name) => /^(?:before:)?(?:bg|border|text|ring)-((?:muted-)?foreground|primary)$/.exec(name)?.[1] ?? []);
   const paints = [...fromStroke, ...fromClasses];
   if (paints.length === 0) throw new Error(`<${element.tagName.toLowerCase()} class="${element.className}"> paints with no theme token`);
   return paints;
@@ -108,6 +108,32 @@ describe("WS339 V24: the Book index's stripe and the page picker meet 3:1 agains
         elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
       );
       expect(measured.map(({ paint }) => paint)).toEqual(expect.arrayContaining(["muted-foreground", "primary"]));
+      expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});
+
+function ladderGraphics() {
+  window.history.replaceState(null, "", "/book");
+  renderApp(shellFixtures.memberWithTheBookOpened, undefined, undefined, undefined, fixedBook(bookFixtures.everyLadder));
+  const ladders = screen.getByRole("main");
+  return [
+    { part: "each rosette's rim, ring and sparkle", surfaces: ["card"], elements: [...ladders.querySelectorAll("[data-rosette] [stroke^='var(']")] },
+    { part: "each Next cell's ring", surfaces: ["card"], elements: [...ladders.querySelectorAll(".ring-foreground")] },
+  ];
+}
+
+describe("WS333 WS339 V24: the rosettes and the Next rings meet 3:1 against their card in both modes", () => {
+  beforeEach(() => {
+    fakeSystemTheme(false);
+  });
+
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      const measured = ladderGraphics().flatMap(({ part, surfaces, elements }) =>
+        elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
+      );
+      expect(new Set(measured.map(({ paint }) => paint))).toEqual(new Set(["medal-bronze", "medal-silver", "medal-gold", "medal-diamond", "muted-foreground", "foreground"]));
       expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
     });
   }
