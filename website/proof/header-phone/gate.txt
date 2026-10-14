@@ -16,6 +16,8 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: navigation to another Document
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -105,11 +107,43 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
- Test Files  133 passed (133)
-      Tests  2095 passed (2095)
-   Start at  10:49:27
-   Duration  93.80s (tests 84%, import 9%, transform 4%, environment 3%)
+ Test Files  143 passed (143)
+      Tests  2335 passed (2335)
+   Start at  10:58:33
+   Duration  119.69s (tests 84%, import 9%, transform 4%, environment 3%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -522,7 +556,7 @@ Website reads  convex/website/WebsiteReads.spec.md
       refuted 2026-10-14: added /quests to the backend's routeList without adding it to the website router
       kinds output: 5 shapes apply, 1 declared, 4 dismissed
   one function builds every website link  invariant
-      totality oracle "SW11: one function builds every website link" over websiteLinkOf while the website is open, for the root, the Leaderboard's three periods, the Quests page, and the two pages not listed yet: verified 2026-10-14
+      totality oracle "SW11: one function builds every website link" over websiteLinkOf while the website is open, for the root, the Leaderboard's three periods, the Quests page, and the `/skills` and `/book` pages: verified 2026-10-14
       refuted 2026-10-14: routeOf answered an unlisted page's own path instead of the root
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
   a deep link shows only while the website is open  invariant
@@ -536,28 +570,37 @@ Website reads  convex/website/WebsiteReads.spec.md
       refuted 2026-10-13: made prepareWebsiteFlag a public mutation instead of an internal one
       kinds read, identity: 5 shapes apply, 1 declared, 4 dismissed
   website reads pass one guard  invariant
-      totality oracle "website reads pass one guard" over getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getQuests with the flag off, no session, a former member, and an argument that names another member: verified 2026-10-14
+      totality oracle "website reads pass one guard" over getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getQuests with the flag off, no session, a former member, and an argument that names another member; getBook with the website flag off, no session, a former member, and an argument that names another member; getSkillTree with the flag off, no session, a former member, and an argument that names another member: verified 2026-10-14
       crossing browser -> domain
       refuted 2026-10-13: memberQuery dropped the check that the session's workspace is the current SLACK_WORKSPACE_ID
       kinds read, identity: 5 shapes apply, 1 declared, 4 dismissed
   website commands pass one guard  invariant
-      totality oracle "website commands pass one guard" over openFeature with the website flag off, the flag on with a flags key but no workspace key, no session, a signed-out session, an unknown person being verified, a failed verification, a member user_change deactivates, and a member named beside the feature, each read through every table and every scheduled function; openQuestCrate for a finished Journey step with the website flag off, the flag on with a flags key but no workspace key, no session, a signed-out session, a member user_change deactivates, and a member named beside the quest: verified 2026-10-14
+      totality oracle "website commands pass one guard" over openFeature with the website flag off, the flag on with a flags key but no workspace key, no session, a signed-out session, an unknown person being verified, a failed verification, a member user_change deactivates, and a member named beside the feature, each read through every table and every scheduled function; openQuestCrate for a finished Journey step with the website flag off, the flag on with a flags key but no workspace key, no session, a signed-out session, a member user_change deactivates, and a member named beside the quest; buyPerk for an open tree with the website flag off, the flag on with a flags key but no workspace key, no session, a signed-out session, a member user_change deactivates, a member named beside the perk, and a request that isn't a UUID: verified 2026-10-14
       crossing browser -> domain
       refuted 2026-10-14: memberQuery's guard read the website flag through the seam's writing path instead of its read-only one
       kinds state, identity: 10 shapes apply, 1 declared, 11 dismissed
   a website command never launches unlocks  invariant
-      totality oracle "a website command never launches unlocks" over openFeature with xp-levels and unlocks on and no launch recorded; openFeature for a ready Quests, a ready Leaderboard and an open Leaderboard with quests on, unlocks launched and no Journey launch; openQuestCrate with every flag on and no launch, and with unlocks launched and no Journey launch; each read through every table, every scheduled function and every published event: verified 2026-10-14
+      totality oracle "a website command never launches unlocks" over openFeature with xp-levels and unlocks on and no launch recorded; openFeature for a ready Quests, a ready Leaderboard and an open Leaderboard with quests on, unlocks launched and no Journey launch; openQuestCrate with every flag on and no launch, and with unlocks launched and no Journey launch; openFeature for a ready Leaderboard and openQuestCrate for a finished Journey step with achievements on and no Book launch; buyPerk with xp-levels, unlocks and skill-tree on and no launch, and for an open tree with quests on and no Journey launch, and with achievements on and no Book launch; each read through every table, every scheduled function and every published event: verified 2026-10-14
       crossing browser -> domain
+      refuted 2026-10-14: buyPerk checked only the tree feature's entry on the unlock path, not the Journey's and the Book's recorded launches
+      refuted 2026-10-14: openFeature and openQuestCrate didn't check the Book's recorded launch
       refuted 2026-10-14: openFeature checked the Journey's recorded launch only for Quests
       refuted 2026-10-14: openFeature checked only unlocks' gate for Quests, not the Journey's recorded launch
       refuted 2026-10-14: openQuestCrate checked only questsApplyIn, not the Journey's recorded launch
+      refuted 2026-10-14: workspaceLaunchDueIn left out the Book's launch
       refuted 2026-10-14: openFeature no longer checked WS55's gate before running openUnlock
       kinds state: 7 shapes apply, 0 declared, 7 dismissed
   a website command is a D17 command  invariant
-      totality oracle "a website command is a D17 command" over openFeature for a ready Leaderboard against receiveHomeClick's Open of the same feature, a Leaderboard locked at level 1, an unshipped Skill tree past level 5, a ready and an open Leaderboard with unlocks or xp-levels switched off after the launch, an already open Leaderboard, a doubled open, and App Home's republished view after it; openQuestCrate for a finished Journey step against receiveHomeClick's Open of the same step, a finished weekly quest, an active step, an unfinished and a never-drawn weekly quest, a finished step with each flag switched off, a doubled open, and App Home's republished view after it: verified 2026-10-14
+      totality oracle "a website command is a D17 command" over openFeature for a ready Leaderboard against receiveHomeClick's Open of the same feature, a Leaderboard locked at level 1, an unshipped Skill tree past level 5, a ready and an open Leaderboard with unlocks or xp-levels switched off after the launch, an already open Leaderboard, a doubled open, and App Home's republished view after it; openQuestCrate for a finished Journey step against receiveHomeClick's Open of the same step, a finished weekly quest, an active step, an unfinished and a never-drawn weekly quest, a finished step with each flag switched off, a doubled open, and App Home's republished view after it; buyPerk for an available perk against receiveHomeClick's Buy of the same perk, the stored key, App Home's republished tree tab, an owned perk, no skill points left, a ready, a locked and a gated-off tree, the same request after the gate opens, a stored refusal after a level up, and a perk above the level, one missing its prerequisite and a retired one: verified 2026-10-14
       crossing browser -> domain
+      refuted 2026-10-14: buyPerk answered progression's below-row refusal as points
       refuted 2026-10-14: openQuestCrate answered opened without reading the quests module's crate opening
       refuted 2026-10-14: openFeature answered opened without reading unlocks' state after the command
+      kinds state: 7 shapes apply, 1 declared, 6 dismissed
+  a skill point bought on the website is spent once  invariant
+      totality oracle "a skill point bought on the website is spent once" over buyPerk for one request sent twice with two skill points, two requests for two perks with one skill point, and a request whose string a Slack Buy's event ID carries, each read through perksOwned, the member's skill points and every published perkBought: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: buyPerk built the purchase key with the call's time appended
       kinds state: 7 shapes apply, 1 declared, 6 dismissed
   opening on the website grants nothing  invariant
       totality oracle "opening on the website grants nothing" over every table of the schema and every published event, before and after openFeature opens a ready Leaderboard for a member with XP and a level, and before and after openQuestCrate opens a finished Journey step's crate: verified 2026-10-14
@@ -569,6 +612,11 @@ Website reads  convex/website/WebsiteReads.spec.md
       totality oracle "quests are invisible where they don't apply" over getQuests and getMyProfile with quests, xp-levels or unlocks switched off after a member finished a quest and a Journey step, and with every flag on and nothing launched: verified 2026-10-14
       crossing browser -> domain
       refuted 2026-10-14: journeyStepsOf no longer checked questsApplyIn before listing the Journey
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  the Book names nothing unshipped  invariant
+      totality oracle "the Book names nothing unshipped" over getBook with only the catalogue's first two ladders shipped, for a member who earned all four tiers on both: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: getBook passed each tier's promised rewards from achievementsOf through to the answer
       kinds read: 2 shapes apply, 1 declared, 1 dismissed
   a member's home shows only their own facts  invariant
       totality oracle "WS13 WS15 WS18: a member's home answer projects their own homeFacts" over getMyProfile for a member beside members who gave and received kudos, before and after a kudos lands, and across the member's midnight and the week's turn on a clock tick: verified 2026-10-13
@@ -586,9 +634,11 @@ Website reads  convex/website/WebsiteReads.spec.md
       refuted 2026-10-13: rememberSignedInMember no longer refused while the website flag is off
       kinds identity, credential: 8 shapes apply, 2 declared, 6 dismissed
   a member previews the website by their own decision  invariant
-      totality oracle "F26 F27 F28 F29: a member previews the website by their own decision" over the sign-in callback, getMyProfile, getLeaderboard, getQuests, openFeature and App Home's front door links for a member an email condition names and a member it doesn't, a person the directory doesn't know, a session from before the preview, the website on for everyone with the other flags on for one email, the website on for the workspace but off in one member's own decision, and unlocks or quests switched on for the workspace after a preview, before its launch is recorded: verified 2026-10-14
+      totality oracle "F26 F27 F28 F29: a member previews the website by their own decision" over the sign-in callback, getMyProfile, getLeaderboard, getQuests, openFeature and App Home's front door links for a member an email condition names and a member it doesn't, a person the directory doesn't know, a session from before the preview, the website on for everyone with the other flags on for one email, the website on for the workspace but off in one member's own decision, and unlocks or quests switched on for the workspace after a preview, before its launch is recorded; getSkillTree and buyPerk for a member whose own unlocks decision is off while the workspace's is on; a previewer's sign-in while the Book's launch is due: verified 2026-10-14
       crossing browser -> session
       refuted 2026-10-14: memberQuery's guard read the website flag's workspace decision instead of the member's own
+      refuted 2026-10-14: unlockPathOf read the workspace's unlock path instead of the member's own
+      refuted 2026-10-14: workspaceLaunchDueIn left out the Book's launch
       kinds identity, state: 10 shapes apply, 2 declared, 8 dismissed
   accounts link only by the Slack pair  invariant
       totality oracle "WS7: accounts link only by the Slack pair" over a first sign-in and a later sign-in of the same Slack pair with changed and dropped display claims: verified 2026-10-13
@@ -611,9 +661,10 @@ Website reads  convex/website/WebsiteReads.spec.md
       refuted 2026-10-14: featureCardsOf read every feature as locked instead of unlocks' state
       kinds read: 2 shapes apply, 1 declared, 1 dismissed
   the website shows only shipped features  invariant
-      totality oracle "the website shows only shipped features" over getMyProfile with skill-tree off for a member past level 5, with skill-tree on for a member at level 5, with everyone-board off, and with no feature shipped: verified 2026-10-14
+      totality oracle "the website shows only shipped features" over getMyProfile with skill-tree off for a member past level 5, with skill-tree on for a member at level 5, with everyone-board off, and with no feature shipped; getSkillTree and getMyProfile's skillPoints with the tree's ship flag switched off after a member opened the tree and bought spark, and with that flag on before unlocks launched: verified 2026-10-14
       crossing browser -> domain
       refuted 2026-10-14: featureCardsOf listed every scheduled feature instead of unlocks' shipped ones
+      refuted 2026-10-14: getSkillTree read progression's memberPerksOf whatever the page state instead of the flag-gated perksOf read
       kinds read: 2 shapes apply, 1 declared, 1 dismissed
   a website board row carries only what a board shows  invariant
       totality oracle "a website board row carries only what a board shows" over getLeaderboard's board with a member who left the boards seen by themselves and by another member, a member who only received, a former member, and a member without a display name: verified 2026-10-13
@@ -633,9 +684,9 @@ Workspace  convex/workspace/Workspace.spec.md
       kinds identity, state: 10 shapes apply, 1 declared, 9 dismissed
 Website  website/Website.spec.md
   (no invariants)
-18 components, 112 bullets: 112 invariants, 0 requirements
-lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T08:42:44.623Z (626 runs)
-defects: 19 recorded, 16 closed (1 guarded, 15 decided, 0 with neither); 0 guard failures
+18 components, 114 bullets: 114 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T10:16:45.688Z (647 runs)
+defects: 20 recorded, 17 closed (2 guarded, 15 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:13  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
@@ -653,6 +704,6 @@ RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       184 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 65, receipt 30, contract 22, zone 15, promise 11; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (559 files), 17 in records
+ADVISORY       213 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 85, receipt 30, contract 22, zone 21, panel 13; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (596 files), 17 in records
 exit 0
