@@ -1,0 +1,3 @@
+1. **Low — [convex/website/WebsiteReads.spec.md:191](/home/coder/dev/kudos-wt/skill-tree-read/convex/website/WebsiteReads.spec.md:191).** The spec still says the profile answer carries “never skill points”; line 182 repeats that restriction, and line 185 cites superseded WS51. When the Skill tree is open, `getMyProfile` correctly returns `skillPoints`, contradicting these declarations. **Fix:** scope the exclusion to the `progression` object and document top-level `skillPoints` under WS84’s open-page gate.
+
+Verdict: one documentation issue; no functional defects found in either diff. Vitest could not start because the sandbox is read-only.

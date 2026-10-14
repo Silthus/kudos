@@ -13,3 +13,4 @@
   5. With `skill-tree` switched off, `getSkillTree` reads `not-found` and `skillPoints` is `null`, while the owned perks stay (P5). The one `unlockLaunches` row is step 2's, and no `journeyLaunches` row exists.
 
 This ticket changes no page. The Skill tree's page and the HUD's chip come with #188, so no screenshot applies here.
+- **Review:** [`review-gpt-6.1-sol.md`](review-gpt-6.1-sol.md). One round of GPT-6.1 Sol (high), read-only, over the ticket's commit and the merge's conflict resolutions, with the spec as the oracle. Its one finding held: `WebsiteReads.spec.md` still said the profile never carries skill points. The invariant now scopes that to the `progression` object and names `skillPoints` under WS84. Vitest couldn't start in its read-only sandbox, so the local gate is the run of record.

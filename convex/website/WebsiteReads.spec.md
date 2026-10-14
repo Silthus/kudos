@@ -179,16 +179,16 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   kinds: read
   checklist: scoped-reads declared as website reads pass one guard
   checklist: redaction dismissed: the answer carries only the member's own counts, emoji, refill time, name and face, and a link to the workspace in Slack; it never names another member
-- level and XP are invisible while xp-levels is off: getMyProfile's member answer carries no progression while the xp-levels flag is off for the workspace, and while it is on carries exactly the member's own level, XP, the XP their level starts at and the next level starts at, and the XP still to go, from progression's own read, never skill points.
+- level and XP are invisible while xp-levels is off: getMyProfile's member answer carries no progression while the xp-levels flag is off for the workspace, and while it is on carries exactly the member's own level, XP, the XP their level starts at and the next level starts at, and the XP still to go, from progression's own read; the progression it carries never holds skill points, which reach the answer only as its own skillPoints while the member has opened the tree (WS84).
   over: getMyProfile for a member with XP while xp-levels is off, while it is on at level 1, exactly on a level's threshold and past level 5, beside another member with more XP, and switched off under an open session
   via: level and XP are invisible while xp-levels is off
-  because: the website never shows more than Slack does and never derives a level or a threshold from XP, so level and XP reach the browser only through progression's own read and only while Slack shows them too (WS47, WS51, WS13, P79)
+  because: the website never shows more than Slack does and never derives a level or a threshold from XP, so level and XP reach the browser only through progression's own read and only while Slack shows them too (WS47, WS13, P79; WS84 replaces WS51's skill points)
   crossing: browser -> domain
   entrances: query getMyProfile
   refuted: progressionOf no longer returned null while xp-levels is off -> a member with XP read their progression while the flag was off (2026-10-13)
   kinds: read
   checklist: scoped-reads declared as website reads pass one guard
-  checklist: redaction dismissed: the answer carries only the member's own level and XP figures, never skill points, coins or another member's progress
+  checklist: redaction dismissed: the progression carries only the member's own level and XP figures, never skill points, coins or another member's progress
 - only the allowed workspace signs in, and only while open: A sign-in creates or updates an account only for a profile of the deployment's SLACK_WORKSPACE_ID with a non-empty Slack user, and only while the website flag is on.
   over: the sign-in callback for a profile from another workspace, an empty Slack user, an unset SLACK_WORKSPACE_ID, and the flag off
   via: WS3 WS6: only the allowed workspace signs in, and only while open
