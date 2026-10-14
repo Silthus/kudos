@@ -195,7 +195,8 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
 
     const quests = questsIn(publishedHome(slack, "U_ALICE"));
     expect(quests[0]).toBe("section: *Quests this week*");
-    expect(quests.slice(1, 4)).toEqual([expect.stringMatching(/ \*0\/\d\* · \*20 XP\*$/), expect.stringMatching(/ \*0\/\d\* · \*20 XP\*$/), expect.stringMatching(/ \*0\/\d\* · \*20 XP\*$/)]);
+    const freshQuest = expect.stringMatching(/ \*0\/\d\* · \*20 XP\*( \[button: Swap\])?$/);
+    expect(quests.slice(1, 4)).toEqual([freshQuest, freshQuest, freshQuest]);
     expect(quests.filter((line) => line.includes("✅"))).toEqual([]);
     expect(await t.run(async (ctx) => standingOf(ctx, await memberOf(ctx, "U_ALICE")))).toEqual(standing);
 

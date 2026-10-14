@@ -11,7 +11,7 @@ import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { crateOpeningValidator } from "./quests/crates";
 import { journeyActivationValidator } from "./quests/journey";
-import { questDrawValidator, questProgressValidator } from "./quests/weekly";
+import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
 import { featureValidator } from "./unlocks/feature";
 
 export default defineSchema({
@@ -129,6 +129,8 @@ export default defineSchema({
   journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
 
   questDraws: defineTable(questDrawValidator).index("by_member_week", ["member", "week"]),
+
+  questSwaps: defineTable(questSwapValidator).index("by_member_week", ["member", "week"]),
 
   questProgress: defineTable(questProgressValidator).index("by_member_week_slot", ["member", "week", "slot"]),
 

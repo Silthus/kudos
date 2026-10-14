@@ -63,7 +63,7 @@ describe("P80 P76: a member who opens Quests gets 3 quests for this week on App 
     expect(title).toBe("section: *Quests this week*");
     expect(goals).toHaveLength(3);
     expect(new Set(goals).size).toBe(3);
-    for (const goal of goals) expect(goalsFeasibleWithOneTeammateAlreadyThanked).toContain(goal);
+    for (const goal of goals) expect(goalsFeasibleWithOneTeammateAlreadyThanked.map((line) => `${line} [button: Swap]`)).toContain(goal);
     expect(rest.at(-1)).toBe("context: Saying why counts when your message has 5 or more words besides mentions and emoji.");
     expect(publishedHome(slack, "U_ALICE")).not.toContain(questsReady);
   });
@@ -92,13 +92,13 @@ describe("P84 P85 P63: a member's kudos finish a weekly quest, recorded at once 
 
     await giveKudos(t, "U_ALICE", "U_BOB", "thanks");
     expect(questsIn(publishedHome(slack, "U_ALICE")).slice(1, 4)).toEqual([
-      `section: ${twoDays} *0/2* · *20 XP*`,
-      `section: ${threeTimes} *0/3* · *20 XP*`,
-      `section: ${notIn30Days} *0/1* · *20 XP*`,
+      `section: ${twoDays} *0/2* · *20 XP* [button: Swap]`,
+      `section: ${threeTimes} *0/3* · *20 XP* [button: Swap]`,
+      `section: ${notIn30Days} *0/1* · *20 XP* [button: Swap]`,
     ]);
 
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
-    expect(questsIn(publishedHome(slack, "U_ALICE")).slice(1, 3)).toEqual([`section: ${twoDays} *1/2* · *20 XP*`, `section: ${threeTimes} *1/3* · *20 XP*`]);
+    expect(questsIn(publishedHome(slack, "U_ALICE")).slice(1, 3)).toEqual([`section: ${twoDays} *1/2* · *20 XP* [button: Swap]`, `section: ${threeTimes} *1/3* · *20 XP* [button: Swap]`]);
 
     vi.setSystemTime(wednesday);
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy, wednesday);
@@ -108,7 +108,7 @@ describe("P84 P85 P63: a member's kudos finish a weekly quest, recorded at once 
     expect(readBlocks(questDmsTo("U_ALICE")[0]!.blocks as Block[])).toEqual([`section: ${finishedDm} [button: Open]`]);
     expect(questsIn(publishedHome(slack, "U_ALICE")).slice(1, 3)).toEqual([
       `section: ✅ ${twoDays} You earned *20 XP*. [button: Open]`,
-      `section: ${threeTimes} *2/3* · *20 XP*`,
+      `section: ${threeTimes} *2/3* · *20 XP* [button: Swap]`,
     ]);
   });
 

@@ -7,7 +7,8 @@ import { periodValidator } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import { setProgressSettings } from "../progression/settings";
 import { openQuestCrate } from "../quests/crates";
-import { questValidator } from "../quests/step";
+import { questValidator, weeklyQuestValidator } from "../quests/step";
+import { rerollQuest } from "../quests/weekly";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { featureValidator } from "../unlocks/feature";
 import { openUnlock } from "../unlocks/unlocks";
@@ -21,6 +22,7 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("setAnnouncementChannel"), channel: v.union(v.string(), v.null()) }),
   v.object({ type: v.literal("openUnlock"), feature: featureValidator }),
   v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
+  v.object({ type: v.literal("rerollQuest"), quest: weeklyQuestValidator }),
 );
 
 export type Command = Infer<typeof commandValidator>;
@@ -53,6 +55,9 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return;
     case "openQuestCrate":
       await openQuestCrate(ctx, member, command.quest);
+      return;
+    case "rerollQuest":
+      await rerollQuest(ctx, member, command.quest);
       return;
   }
 }
