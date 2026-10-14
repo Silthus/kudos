@@ -256,7 +256,9 @@ async function activateOpenedSteps(ctx: MutationCtx, workspace: string, member: 
   for (const step of await journeyStepsApplyingIn(ctx, workspace)) {
     const feature = featureOpening(step);
     const openedAt = feature === null ? null : await openedAtOf(ctx, member, feature);
-    if (openedAt !== null && openedAt > shippedAt) await activateOpened(ctx, workspace, member, step, openedAt);
+    if (openedAt === null) continue;
+    if (openedAt > shippedAt) await activateOpened(ctx, workspace, member, step, openedAt);
+    else if (step === "two-days") await activateOpened(ctx, workspace, member, step, shippedAt);
   }
 }
 
