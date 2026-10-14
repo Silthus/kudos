@@ -68,6 +68,7 @@ export default defineSchema({
     admin: v.optional(v.boolean()),
     ...memberProfileFields,
     asOf: v.optional(v.number()),
+    profileAsOf: v.optional(v.number()),
   })
     .index("by_user", ["workspace", "user"])
     .index("by_admin", ["workspace", "admin"]),

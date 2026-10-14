@@ -8,7 +8,7 @@ import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import { republishOnRoleChange } from "../feedback/homes";
 import { directoryRecordArgs, lookup, record, type DirectoryEntry, type DirectoryRecord } from "../workspace/directory";
 import type { MemberProfile } from "../workspace/memberProfile";
-import { readSlack } from "./webApi";
+import { readSlack, slackErrorCodeOf } from "./webApi";
 
 type SlackUser = {
   id: string;
@@ -31,12 +31,13 @@ export function isMemberChanged(event: { type: string }): event is MemberChanged
   return event.type === "team_join" || event.type === "user_change";
 }
 
-export function directoryRecordOfEvent(workspace: string, event: MemberChanged): DirectoryRecord {
-  return directoryRecordOf(workspace, event.user, Number(event.event_ts) * 1000);
+export function directoryRecordOfEvent(workspace: string, event: MemberChanged): DirectoryRecord | null {
+  const id = textOf(event.user.id);
+  return id === undefined ? null : directoryRecordOf(workspace, id, event.user, Number(event.event_ts) * 1000);
 }
 
-function directoryRecordOf(workspace: string, user: SlackUser, asOf: number): DirectoryRecord {
-  return { workspace, user: user.id, entry: directoryEntryOf(user, workspace), asOf };
+function directoryRecordOf(workspace: string, id: string, user: SlackUser, asOf: number): DirectoryRecord {
+  return { workspace, user: id, entry: directoryEntryOf({ ...user, id }, workspace), asOf };
 }
 
 export async function checkDirectoryLater(ctx: MutationCtx, ref: MessageRef, observation: Observation) {
@@ -90,7 +91,7 @@ export const fillMissingNames = observedAction({
     let cursor = "";
     do {
       const page = await readSlack<UsersPage>("users.list", { limit: "200", ...(cursor && { cursor }) });
-      if (!page.ok) throw new ReportableError(`Slack users.list failed: ${page.error}`);
+      if (!page.ok) throw new ReportableError(`Slack users.list failed: ${slackErrorCodeOf(page.error)}`);
       await ctx.runMutation(internal.workspace.directory.nameMembersWithoutName, { names: page.members.flatMap(memberNameOf) });
       cursor = page.response_metadata?.next_cursor ?? "";
     } while (cursor !== "");
@@ -104,7 +105,7 @@ export const fillMemberProfiles = observedAction({
     do {
       const asOf = Date.now();
       const page = await readSlack<UsersPage>("users.list", { limit: "200", ...(cursor && { cursor }) });
-      if (!page.ok) throw new ReportableError(`Slack users.list failed: ${page.error}`);
+      if (!page.ok) throw new ReportableError(`Slack users.list failed: ${slackErrorCodeOf(page.error)}`);
       await ctx.runMutation(internal.workspace.directory.fillProfiles, { profiles: page.members.flatMap((user) => memberProfileOf(user, asOf)) });
       cursor = page.response_metadata?.next_cursor ?? "";
     } while (cursor !== "");
@@ -112,15 +113,21 @@ export const fillMemberProfiles = observedAction({
 });
 
 function memberProfileOf(user: SlackUser, asOf: number) {
-  const workspace = user.team_id ?? "";
-  const entry = directoryEntryOf(user, workspace);
-  return entry.kind === "member" ? [{ workspace, user: user.id, profile: profileOf(user), asOf }] : [];
+  const listed = listedMemberOf(user);
+  return listed === null ? [] : [{ workspace: listed.workspace, user: listed.id, profile: profileOf(user), asOf }];
 }
 
 function memberNameOf(user: SlackUser) {
-  const workspace = user.team_id ?? "";
+  const listed = listedMemberOf(user);
+  return listed?.entry.kind === "member" && listed.entry.name ? [{ workspace: listed.workspace, user: listed.id, name: listed.entry.name }] : [];
+}
+
+function listedMemberOf(user: SlackUser) {
+  const id = textOf(user.id);
+  const workspace = textOf(user.team_id);
+  if (id === undefined || workspace === undefined) return null;
   const entry = directoryEntryOf(user, workspace);
-  return entry.kind === "member" && entry.name ? [{ workspace, user: user.id, name: entry.name }] : [];
+  return entry.kind === "member" ? { id, workspace, entry } : null;
 }
 
 export type LookUp = { kind: "found" } | { kind: "failed"; retryAfterMs?: number };
@@ -139,7 +146,8 @@ async function askSlackAbout(ctx: ActionCtx, workspace: string, user: string, ke
   const askedAt = Date.now();
   const answer = await usersInfo(user);
   if (!answer?.ok) return { kind: "failed", ...(answer?.retryAfterMs !== undefined && { retryAfterMs: answer.retryAfterMs }) };
-  await ctx.runMutation(keep, directoryRecordOf(workspace, answer.user, askedAt));
+  if (typeof answer.user !== "object" || answer.user === null) return { kind: "failed" };
+  await ctx.runMutation(keep, directoryRecordOf(workspace, user, answer.user, askedAt));
   return { kind: "found" };
 }
 
@@ -156,21 +164,28 @@ function directoryEntryOf(user: SlackUser, workspace: string): DirectoryEntry {
   if (user.is_bot || user.id === slackbot) return { kind: "bot" };
   if (user.deleted || user.team_id !== workspace) return { kind: "not-a-member" };
   const name = displayNameOf(user);
+  const timeZone = textOf(user.tz);
   return {
     kind: "member",
     ...(name && { name }),
-    ...(user.tz && { timeZone: user.tz }),
+    ...(timeZone && { timeZone }),
     ...((user.is_admin || user.is_owner) && { admin: true }),
     ...profileOf(user),
   };
 }
 
-function profileOf(user: SlackUser): MemberProfile {
-  const realName = user.profile?.real_name || user.real_name;
-  const { email, display_name: displayName, title } = user.profile ?? {};
+function profileOf({ profile, real_name }: SlackUser): MemberProfile {
+  const email = textOf(profile?.email);
+  const realName = textOf(profile?.real_name) ?? textOf(real_name);
+  const displayName = textOf(profile?.display_name);
+  const title = textOf(profile?.title);
   return { ...(email && { email }), ...(realName && { realName }), ...(displayName && { displayName }), ...(title && { title }) };
 }
 
 function displayNameOf(user: SlackUser) {
-  return user.profile?.display_name || user.profile?.real_name || user.real_name || user.name;
+  return textOf(user.profile?.display_name) ?? textOf(user.profile?.real_name) ?? textOf(user.real_name) ?? textOf(user.name);
+}
+
+function textOf(value: unknown) {
+  return typeof value === "string" && value !== "" ? value : undefined;
 }

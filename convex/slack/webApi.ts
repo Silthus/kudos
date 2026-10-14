@@ -5,6 +5,7 @@ export type SlackFailure = { ok: false; error: string; retryAfterMs?: number };
 export type SlackAnswer<Data = object> = ({ ok: true; warning?: string } & Data) | SlackFailure;
 
 const tooManyRequests = 429;
+const slackErrorCode = /^[a-z][a-z0-9_.]*$/;
 const answerTimeoutMs = 10_000;
 
 export async function callSlack<Data = object>(method: string, args: Record<string, unknown>): Promise<SlackAnswer<Data>> {
@@ -33,6 +34,10 @@ async function answerOf<Answer>(method: string, response: Response): Promise<Ans
   } catch {
     throw new ReportableError(`Slack ${method} answered a body that isn't JSON`);
   }
+}
+
+export function slackErrorCodeOf(error: unknown) {
+  return typeof error === "string" && slackErrorCode.test(error) ? error : "an unexpected error";
 }
 
 function retryAfterMsOf(response: Response) {

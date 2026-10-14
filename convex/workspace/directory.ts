@@ -5,7 +5,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import type { ChatUserId } from "../engine/messageEvent";
 import { ReportableError } from "../analytics/exceptions";
 import { publish } from "../bus/publish";
-import { memberProfileFields, type MemberProfile } from "./memberProfile";
+import { memberProfileFieldNames, memberProfileFields, type MemberProfile } from "./memberProfile";
 
 export type MemberId = Id<"members">;
 
@@ -69,20 +69,37 @@ export const fillProfiles = internalMutation({
   handler: async (ctx, { profiles }) => {
     for (const { workspace, user, profile, asOf } of profiles) {
       const row = await memberRow(ctx, workspace, user);
-      if (row?.kind === "member" && !isOlder(asOf, row.asOf) && differsFrom(row, profile)) await ctx.db.patch(row._id, profile);
+      if (row?.kind !== "member" || isOlder(asOf, row.asOf) || isOlder(asOf, row.profileAsOf) || !differsFrom(row, profile)) continue;
+      await ctx.db.patch(row._id, { ...profile, profileAsOf: asOf });
     }
   },
 });
 
 function differsFrom(row: Doc<"members">, profile: MemberProfile) {
-  return Object.entries(profile).some(([field, value]) => row[field as keyof MemberProfile] !== value);
+  return memberProfileFieldNames.some((field) => profile[field] !== undefined && row[field] !== profile[field]);
 }
 
 export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }: DirectoryRecord) {
   const row = { workspace, user, timeZone: undefined, asOf, ...entry };
   const existing = await memberRow(ctx, workspace, user);
   if (existing === null) await ctx.db.insert("members", row);
-  else if (!isOlder(asOf, existing.asOf)) await replace(ctx, existing, row);
+  else if (!isOlder(asOf, existing.asOf)) await replace(ctx, existing, keepingNewerProfile(existing, row));
+}
+
+type MemberRow = WithoutSystemFields<Doc<"members">>;
+
+function keepingNewerProfile(existing: Doc<"members">, row: MemberRow): MemberRow {
+  if (existing.kind !== "member" || row.kind !== "member" || !isOlder(row.asOf ?? 0, existing.profileAsOf)) return row;
+  return { ...withoutProfile(row), ...profileOf(existing), profileAsOf: existing.profileAsOf };
+}
+
+function withoutProfile(row: MemberRow): MemberRow {
+  const isProfileField = (field: string) => (memberProfileFieldNames as string[]).includes(field);
+  return Object.fromEntries(Object.entries(row).filter(([field]) => !isProfileField(field))) as MemberRow;
+}
+
+function profileOf(row: Doc<"members">): MemberProfile {
+  return Object.fromEntries(memberProfileFieldNames.flatMap((field) => (row[field] === undefined ? [] : [[field, row[field]]])));
 }
 
 export async function currentMembersOf(ctx: QueryCtx, workspace: string): Promise<MemberId[]> {
@@ -97,7 +114,7 @@ export async function teammatesOf(ctx: QueryCtx, workspace: string, member: Memb
   return (await currentMembersOf(ctx, workspace)).filter((teammate) => teammate !== member);
 }
 
-async function replace(ctx: MutationCtx, existing: Doc<"members">, row: WithoutSystemFields<Doc<"members">>) {
+async function replace(ctx: MutationCtx, existing: Doc<"members">, row: MemberRow) {
   await ctx.db.replace(existing._id, row);
   const membership = { workspace: row.workspace, member: existing._id, at: Date.now() };
   if (existing.kind === "member" && row.kind !== "member") await publish(ctx, { type: "memberLeft", ...membership });

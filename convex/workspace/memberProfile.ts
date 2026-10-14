@@ -8,3 +8,5 @@ export const memberProfileFields = {
 };
 
 export type MemberProfile = ObjectType<typeof memberProfileFields>;
+
+export const memberProfileFieldNames = Object.keys(memberProfileFields) as (keyof MemberProfile)[];

@@ -135,6 +135,53 @@ describe("F3: the backfill fills every known member's profile from users.list", 
     expect(await directoryRowOf(t, "U_CAROL")).toBeNull();
   });
 
+  test("a member event older than the backfill's page leaves the backfilled profile, and still applies its other fields", async () => {
+    const t = testBackend();
+    await memberChanged(t, "team_join", { id: "U_ANN", profile: { email: "old.ann@example.com" } }, { eventTs: `${now.getTime() / 1000 - 120}` });
+    slack.withMember("U_ANN", { profile: annsProfile });
+    await t.action(internal.slack.directory.fillMemberProfiles, {});
+
+    await memberChanged(t, "user_change", { id: "U_ANN", tz: "Europe/Berlin", profile: { email: "old.ann@example.com" } }, { eventTs: earlierTs });
+
+    expect(await profileOf(t, "U_ANN")).toEqual(annStored);
+    expect((await directoryRowOf(t, "U_ANN"))?.timeZone).toBe("Europe/Berlin");
+  });
+
+  test("a member event newer than the backfill's page replaces the backfilled profile", async () => {
+    const t = testBackend();
+    await memberChanged(t, "team_join", { id: "U_ANN" }, { eventTs: earlierTs });
+    slack.withMember("U_ANN", { profile: annsProfile });
+    await t.action(internal.slack.directory.fillMemberProfiles, {});
+
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: { email: "ann.example@example.com" } }, { eventTs: `${now.getTime() / 1000 + 60}` });
+
+    expect(await profileOf(t, "U_ANN")).toEqual({ email: "ann.example@example.com" });
+  });
+
+  test("a backfill whose page Slack answered before another backfill's changes nothing that one wrote", async () => {
+    const t = testBackend();
+    await memberChanged(t, "team_join", { id: "U_ANN" }, { eventTs: earlierTs });
+    let answerTheFirstPage = () => {};
+    const firstPageAnswered = new Promise<void>((resolve) => (answerTheFirstPage = resolve));
+    let firstPageAsked = () => {};
+    const firstPageReached = new Promise<void>((resolve) => (firstPageAsked = resolve));
+    slack.answering("users.list", async () => {
+      firstPageAsked();
+      await firstPageAnswered;
+      return Response.json({ ok: true, members: [{ id: "U_ANN", team_id: "T1", profile: { email: "old.ann@example.com" } }], response_metadata: { next_cursor: "" } });
+    });
+    const firstRun = t.action(internal.slack.directory.fillMemberProfiles, {});
+    await firstPageReached;
+    vi.setSystemTime(now.getTime() + 60_000);
+    slack.withMember("U_ANN", { profile: annsProfile });
+
+    await t.action(internal.slack.directory.fillMemberProfiles, {});
+    answerTheFirstPage();
+    await firstRun;
+
+    expect(await profileOf(t, "U_ANN")).toEqual(annStored);
+  });
+
   test("a second run changes nothing", async () => {
     const t = testBackend();
     await memberChanged(t, "team_join", { id: "U_ANN" }, { eventTs: earlierTs });
@@ -168,6 +215,61 @@ describe("F6: a Slack answer that can hold a profile is never logged", () => {
 
     expect(everythingLogged()).not.toMatch(/dave|U_ALICE/i);
     expect(everythingLogged()).toContain("slack.users_info_failed");
+  });
+
+  test("a users.info answer with a field of the wrong type keeps the member and logs nothing of the answer", async () => {
+    const t = testBackend();
+    slack.withMember("U_DAVE", { tz: 123, profile: { email: "dave@example.com", real_name: "Dave Example", title: 7 } } as never);
+
+    await post(t, [section(mention("U_DAVE"), emoji("taco"))]);
+    await settle(t);
+
+    expect(await profileOf(t, "U_DAVE")).toEqual({ email: "dave@example.com", realName: "Dave Example" });
+    expect(everythingLogged()).not.toMatch(/dave/i);
+  });
+
+  test("a users.info answer naming a user ID of the wrong type keeps the person asked about", async () => {
+    const t = testBackend();
+    slack.answering("users.info", () => Response.json({ ok: true, user: { id: 42, team_id: "T1", profile: { email: "alice@example.com" } } }));
+    slack.withMember("U_DAVE", { profile: { email: "dave@example.com" } });
+
+    await post(t, [section(mention("U_DAVE"), emoji("taco"))]);
+    await settle(t);
+
+    expect(await profileOf(t, "U_ALICE")).toEqual({ email: "alice@example.com" });
+    expect(everythingLogged()).not.toMatch(/alice@|dave@/i);
+  });
+
+  test("a signed member event naming a user ID of the wrong type is acknowledged and logs nothing of it", async () => {
+    const t = testBackend();
+
+    const response = await memberChanged(t, "user_change", { id: 42, profile: { email: "dave@example.com", title: "Baker" } });
+
+    expect(response.status).toBe(200);
+    expect(await t.run((ctx) => ctx.db.query("members").collect())).toEqual([]);
+    expect(everythingLogged()).not.toMatch(/dave|baker/i);
+  });
+
+  test("a signed member event that isn't JSON fails without quoting it", async () => {
+    const t = testBackend();
+    const body = "email=dave%40example.com&type=event_callback&team_id=T1";
+
+    const failure = await t.fetch("/slack/events", await signedRequest(body)).then(() => null, (error: unknown) => String(error));
+
+    expect(failure).toContain("SyntaxError");
+    expect(failure).not.toMatch(/dave/i);
+    expect(everythingLogged()).not.toMatch(/dave/i);
+  });
+
+  test("a users.list refusal whose error isn't a Slack error code fails the backfill without quoting it", async () => {
+    const t = testBackend();
+    slack.answering("users.list", () => Response.json({ ok: false, error: "dave@example.com Dave Example" }));
+
+    const failure = await t.action(internal.slack.directory.fillMemberProfiles, {}).then(() => null, (error: unknown) => String(error));
+
+    expect(failure).toContain("users.list");
+    expect(failure).not.toMatch(/dave/i);
+    expect(everythingLogged()).not.toMatch(/dave/i);
   });
 
   test("a malformed users.list answer fails the backfill without quoting it", async () => {
