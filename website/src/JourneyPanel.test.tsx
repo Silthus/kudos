@@ -58,11 +58,11 @@ describe("WS72: the Journey panel on the home", () => {
     expect(journey()).not.toHaveTextContent(/\d+ of \d+|step \d|thoughtful|claim/i);
   });
 
-  it("is a game object with corner marks, after the hero and before the feature cards", () => {
-    renderApp(shellFixtures.memberWithQuests);
+  it("is a game object with corner marks, after the hero and before the main column's feature panels", () => {
+    renderApp({ ...shellFixtures.memberWithEveryPanelOpen, journey: shellFixtures.memberWithQuests.journey });
     expect(journey()).toHaveClass("hud-panel");
     expect(comesBefore(within(main()).getByRole("region", { name: "Sam Example" }), journey())).toBe(true);
-    expect(comesBefore(journey(), within(main()).getByRole("region", { name: "Open" }))).toBe(true);
+    expect(comesBefore(journey(), within(main()).getByRole("region", { name: "Book" }))).toBe(true);
   });
 
   it("is absent while quests don't apply", () => {
@@ -71,25 +71,28 @@ describe("WS72: the Journey panel on the home", () => {
   });
 });
 
-describe("WS72 WS58: the Quests card on the home", () => {
-  it("links an open Quests to /quests with Your quests this week., and no count", () => {
+function questsPanel() {
+  return within(main()).getByRole("region", { name: "Quests" });
+}
+
+describe("WS72 WS105: the Quests panel on the home", () => {
+  it("links an open Quests to /quests under Your quests this week., and no count", () => {
     renderApp(shellFixtures.memberWithQuests);
-    const card = within(within(main()).getByRole("region", { name: "Open" })).getByRole("link", { name: /Quests/ });
-    expect(card).toHaveAttribute("href", "/quests");
-    expect(card).toHaveTextContent("Your quests this week.");
-    expect(card).not.toHaveTextContent(/\d/);
+    expect(within(questsPanel()).getByRole("link", { name: "See all quests" })).toHaveAttribute("href", "/quests");
+    expect(questsPanel()).toHaveTextContent("Your quests this week.");
+    expect(questsPanel()).not.toHaveTextContent(/\d/);
   });
 
   it("WS75: describes a locked Quests by the quests a member gets, with no group quest", () => {
     renderApp(shellFixtures.memberStartingTheJourney);
-    const card = within(within(main()).getByRole("region", { name: "Still locked" })).getByRole("heading", { name: "Quests" }).closest("article")!;
+    const card = questsPanel();
     expect(card).toHaveTextContent("Weekly quests of your own.");
     expect(card).not.toHaveTextContent(/group/i);
   });
 
   it("goes to /quests with Enter, moving focus to the page title", async () => {
     const { user } = renderApp(shellFixtures.memberWithQuests);
-    within(within(main()).getByRole("region", { name: "Open" })).getByRole("link", { name: /Quests/ }).focus();
+    within(questsPanel()).getByRole("link", { name: "See all quests" }).focus();
     await user.keyboard("{Enter}");
     expect(window.location.pathname).toBe("/quests");
     expect(screen.getByRole("heading", { level: 1 })).toHaveFocus();

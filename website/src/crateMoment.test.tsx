@@ -57,13 +57,13 @@ async function openTheCrate(answer: OpenAnswer = { kind: "opened" }, visitor: Sh
 describe("WS65: a ready feature is a closed crate", () => {
   it("labels the crate with what it unlocks and what it opens, with one outline Open on the home", () => {
     renderApp(ready);
-    expect(within(main()).getByRole("region", { name: "Ready for you" })).toContainElement(crate());
+    expect(within(main()).getByRole("region", { name: "Leaderboard" })).toContainElement(crate());
     expect(crate()).toHaveTextContent("It opens the boards.");
     expect(crate()).not.toHaveTextContent("Open it in Slack's App Home");
     expect(within(crate()).getAllByRole("button")).toEqual([openButton()]);
     expect(openButton()).toHaveAccessibleName("Open");
     expect(openButton()).toHaveClass("quill-button--variant-outline");
-    expect(crate()).toHaveClass("hud-panel");
+    expect(within(main()).getByRole("region", { name: "Leaderboard" })).toHaveClass("hud-panel");
   });
 });
 
@@ -93,11 +93,11 @@ describe("WS66: the reveal follows the server", () => {
     expect(reveal).not.toHaveTextContent(/XP|coin|\d+ ready/i);
   });
 
-  it("points a feature without a web page to Slack's App Home from the end state", async () => {
+  it("points a feature without a web page or a home panel to Slack's App Home from the end state, opened from the ready pill", async () => {
     const coinsReady = shellFixtures.memberWithCoinsReady;
     const { user } = renderApp(coinsReady, undefined, { openFeature: async () => ({ kind: "opened" }) });
-    const coins = within(main()).getByRole("heading", { level: 3, name: "Unlocks: Coins and inventory" }).closest("article")!;
-    await user.click(within(coins).getByRole("button", { name: "Open" }));
+    expect(within(main()).queryByRole("heading", { name: "Unlocks: Coins and inventory" })).toBeNull();
+    await user.click(within(screen.getByRole("banner")).getByRole("button", { name: "1 ready" }));
     await user.keyboard("{Escape}");
     const toSlack = within(dialog()!).getByRole("link", { name: "Find it in Slack's App Home. (opens in a new tab)" });
     expect(toSlack).toHaveAttribute("href", coinsReady.chatUrl);
@@ -174,7 +174,7 @@ describe("WS66: the reveal follows the server", () => {
     await user.keyboard("{Escape}");
     await user.click(within(dialog()!).getByRole("button", { name: "Done" }));
     expect(dialog()).toBeNull();
-    expect(document.activeElement).toBe(within(main()).getByRole("link", { name: /Leaderboard/ }));
+    expect(document.activeElement).toBe(within(main()).getByRole("link", { name: "Open the leaderboard" }));
   });
 
   it("closes from the end state with Esc", async () => {
@@ -475,7 +475,7 @@ describe("WS75: the keyboard path", () => {
     await user.tab();
     await user.keyboard("{Enter}");
     expect(dialog()).toBeNull();
-    expect(document.activeElement).toBe(within(main()).getByRole("link", { name: /Leaderboard/ }));
+    expect(document.activeElement).toBe(within(main()).getByRole("link", { name: "Open the leaderboard" }));
   });
 
   it("opens the pill's crate with Space", async () => {
