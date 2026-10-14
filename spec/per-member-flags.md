@@ -4,6 +4,8 @@
 >
 > A GPT-6.1 Sol review found 13 issues (1 blocker); all were fixed before publishing ("Review" under "Further Notes").
 >
+> **Amended on 2026-10-14 by Michael's decision 15** (quoted under "Further Notes", Coherence `d-84e4cabe`, ticket [#198](https://github.com/Silthus/kudos/issues/198)): PostHog's person for a member carries their whole profile, not only `email` (F7, F8, F10, F11, user story 10).
+>
 > Sources: Michael's decision (map decision 14, quoted under "Further Notes"), the PostHog spec ([#69](https://github.com/Silthus/kudos/issues/69), [`spec/posthog.md`](https://github.com/Silthus/kudos/blob/docs/spec-posthog/spec/posthog.md), O7–O10 and O25–O36), the flag seam and every flag declared on `main` at `980210e`, the unlocks launch (P77) and the Journey join (P91), the record-dark calls of the XP and Everyone board gates (Coherence `d-0eb89fc6`), the Slack directory, the website's flag and sign-in (WS rules on `docs/spec-website`), and map decisions 11, 13 and 14.
 
 ## Problem Statement
@@ -12,11 +14,11 @@ Michael can switch a HedgeHug feature on for a whole environment, and nothing sm
 
 ## Solution
 
-HedgeHug learns each member's email from Slack, keeps it in the directory, and sends it to PostHog as the person property `email` of the member's analytics ID. It is the one identifying property PostHog ever receives. Every member-facing flag is then evaluated for the member who would see it, with `environment` and `email` as person properties, so a PostHog release condition `email = someone@example.com` turns a feature on for that one person.
+HedgeHug learns each member's email from Slack, keeps it in the directory, and sends it to PostHog as the person property `email` of the member's analytics ID, beside the rest of their profile (name, display name, title, Slack IDs, whether they are an admin, their teams). These person properties are the only identifying data PostHog ever receives, and they never ride on an event. Every member-facing flag is then evaluated for the member who would see it, with `environment` and `email` as person properties, so a PostHog release condition `email = someone@example.com` turns a feature on for that one person.
 
 A flag now has two answers. The **member decision** answers for one member and decides everything that member sees or does. The **workspace decision** answers for the workspace and decides only what is shared: what a channel shows, what a person HedgeHug doesn't know sees, and the moments that happen once for the whole workspace (the unlocks launch, the Journey launch). A member who is on while their workspace is off is **previewing**: they see the feature as everyone will, and nobody else sees, receives or earns anything because of it.
 
-When a member leaves the workspace, or Slack stops giving their email, it leaves the directory and PostHog's person.
+When a member leaves the workspace, their profile leaves the directory and PostHog's person; when Slack stops giving their email, the email does.
 
 ## User Stories
 
@@ -32,7 +34,7 @@ When a member leaves the workspace, or Slack stops giving their email, it leaves
 
 **Email in PostHog**
 9. As Michael, I want each member's email on their PostHog person, so that I can find a member and target them in PostHog's flag editor.
-10. As a member, I want my email to be the only thing that identifies me in PostHog, never my name, Slack ID or what I wrote, so that analytics stays as private as it can while still letting Michael preview features with me.
+10. As Michael, I want each member's PostHog person to carry their profile (email, name, display name, title, Slack user and team ID, whether they are an admin, their teams), so that I can filter and analyse by person and by team in PostHog. As a member, I want what I wrote never to reach PostHog, so that analytics never reads my kudos.
 11. As a member, I want my email never to appear in an event's properties, an error or a log line, so that only the person profile holds it.
 12. As a member, I want PostHog to follow when my Slack email changes, so that a preview condition keeps meaning me.
 13. As a member who leaves the workspace, I want my email removed from HedgeHug and from my PostHog person, so that it doesn't outlive my membership.
@@ -63,11 +65,18 @@ Each rule is a testable statement; tests cite it (`F7`). Core loop rules are cit
 
 ### Email in PostHog (amends O7, O10 and O12)
 
-- **F7. The one identifying property.** O10 is amended: a member's email is sent to PostHog as the person property `email` of their analytics ID, and nowhere else. It never appears in a product event's properties, an exception, a log line or a log export. Nothing else in O10 changes: message text, mentions, Slack IDs, names, display names, titles, avatars, time zones, emoji names, Slack bodies, secrets and Convex document IDs stay never-sent. O7 is amended only so far: the analytics ID is still never derived from an email, and F8's person events are the only ones that carry both.
-- **F8. PostHog's email follows the directory.** While capture is on (O26), whenever the directory's email for a member differs from the last one recorded for their analytics ID, the analytics module records one person event in the outbox, in the mutation that changed the directory (O13), with O2's properties and no others: `$identify` with `$set: { email }` the first time; `$set` with `$set: { email }` when it changed; `$set` with `$unset: ["email"]` when it went away, because the member left (F5) or Slack stopped giving it (F2). A repeated value records nothing; a change back to an earlier value is a change.
-- **F9. Catching up.** A daily pass, and the backfill (F3), record the person event missing for every analytics ID whose last recorded email differs from the directory's, including members who left while capture was off, so PostHog converges within a day of capture being on. A person event that is given up (O19: rejected, exhausted or expired) clears what was recorded for its analytics ID, so the next pass records it again.
-- **F10. What leaving removes.** Leaving removes the email from the member's PostHog person (F8), and so from flag targeting and PostHog's person list. Deleting the person and their events from PostHog, which also removes any copy of the email PostHog kept with events ingested while it was set, is data deletion and stays with "Operating it" on map #1 (it needs a key with person-write scope).
-- **F11. O12 is amended:** besides the numbers, booleans and fixed values a taxonomy addition lists, a member's person may hold `email`, and only through F8.
+- **F7. The person profile.** O10 is amended: a member's profile is sent to PostHog as the person properties of their analytics ID, and nowhere else:
+  - `email`, `name` (Slack's real name), `display_name` and `title`, each when the directory holds it;
+  - `slack_user_id` and `slack_team_id`;
+  - `is_admin` (a workspace admin or owner);
+  - `teams`: the handles of the member's user groups that the directory keeps members for, sorted, when they are in any;
+  - `environment`.
+
+  None of them appears in a product event's properties, an exception, a log line or a log export, and they ride only in F8's person events. The rest of O10 stands: message text, mentions, avatars, time zones, emoji names, Slack bodies, secrets and Convex document IDs stay never-sent, and channel, message and thread IDs too. O7 is amended only so far: the analytics ID is still never derived from the profile, and F8's person events are the only ones that carry both.
+- **F8. PostHog's person follows the directory.** While capture is on (O26), whenever a member's profile (F7) differs from the last one recorded for their analytics ID, the analytics module records one person event in the outbox, with O2's properties and no others: `$identify` with `$set` of every key the profile has, the first time; `$set` with `$set` of every key it has and `$unset` of every key it lacks, when anything changed. A key goes away when Slack stops giving it (F2), and a member who left (F5) keeps only `environment`, so leaving unsets every identifying key. A repeated profile records nothing; a change back to an earlier one is a change. The first time is the mutation that creates the analytics ID; a change is recorded in the mutation that changed the directory (O13), and a change to a user group's members in a job it schedules for the people whose teams changed. A newer person event for an analytics ID replaces an older one still waiting in the outbox, so PostHog never ends on an older profile.
+- **F9. Catching up.** A daily pass, after the daily user group sync, and the backfill (F3), record the person event missing for every analytics ID whose last recorded profile differs from the directory's, including members who left while capture was off, so PostHog converges within a day of capture being on. A user group renamed while it keeps members runs the pass too. A person event that is given up (O19: rejected, exhausted or expired) clears what was recorded for its analytics ID, so the next pass records it again.
+- **F10. What leaving removes.** Leaving removes the email and every other identifying key from the member's PostHog person (F8), and so from flag targeting and PostHog's person list. Deleting the person and their events from PostHog, which also removes any copy of the profile PostHog kept with events ingested while it was set, is data deletion and stays with "Operating it" on map #1 (it needs a key with person-write scope).
+- **F11. O12 is amended:** besides the numbers, booleans and fixed values a taxonomy addition lists, a member's person may hold F7's profile keys, and only through F8.
 
 ### Two decisions per flag (amends O33 and O34)
 
@@ -108,7 +117,7 @@ Each rule is a testable statement; tests cite it (`F7`). Core loop rules are cit
 
 - **Slack adapter (extended).** The Slack user it reads gains `profile.email`; its directory entry for a member carries `email` when Slack gave one (F1, F2). It gains the backfill action over `users.list` (F3), paging like the existing name fill. Both manifests gain `users:read.email` (F4); the manifest test pins it. The `users.info` failure log stops printing the error and the user ID (F6).
 - **Workspace directory (extended).** A member entry and row gain an optional `email`. Recording an entry whose email differs from the stored one, including a member leaving or an email disappearing, tells the analytics module in the same mutation (F5, F8). It stays the only owner of the email; no other module stores a copy.
-- **Analytics (extended).** Records the `$identify` and `$set` person events in the outbox (F8) and remembers, per analytics ID, a one-way fingerprint of the email last recorded (or that none is), never the email itself, so a repeated value records nothing. Giving up a person event clears that fingerprint (F9). A daily cron runs the catch-up pass (F9). The flag seam gains the two decisions (F12–F14).
+- **Analytics (extended).** Records the `$identify` and `$set` person events in the outbox (F8) and remembers, per analytics ID, a one-way fingerprint of the profile last recorded (or that none is), never the profile itself, so a repeated profile records nothing. It reads the profile from the directory and the member's user groups (F7). Giving up a person event clears that fingerprint (F9). A daily cron runs the catch-up pass (F9). The flag seam gains the two decisions (F12–F14).
 - **Each flag's module (changed).** `xp-levels`, `everyone-board`, `unlocks`, `quests` and the ship flags move their member-facing reads to the member decision and keep the workspace decision only where F18, F19 and F21 say. The public level notice learns whether a reward reached the level and which feature paid it (F18). The Admin tab's shared settings and the `/hedgehug` command that changes the announcement channel ask the workspace decision (F18). Unlocks and quests gain the preview moment and add only missing facts at the workspace moment (F22, F23).
 - **Website (changed, by the website map).** F26–F29. See "What changes for the website map" below.
 
@@ -129,7 +138,7 @@ The preview moment is one stored row per member and moment, written in the mutat
 
 ### Data (sketch)
 
-`members.email` (optional, member rows only); `analyticsIds` gains the fingerprint of the last email recorded; `previewMoments` (member, moment: `unlocks` or `journey`, at). None of them holds O10's other data. No new environment variable.
+`members.email` (optional, member rows only); `analyticsIds` gains the fingerprint of the last profile recorded; `previewMoments` (member, moment: `unlocks` or `journey`, at). None of them holds O10's other data. No new environment variable.
 
 ### No gate ticket
 
@@ -152,7 +161,7 @@ The website's backend lives in `convex/website/` and is the website map's. Its f
 - **A good test enters at a seam and checks what a member or Michael could observe**: the Slack calls and views HedgeHug makes for two members in one workspace, the rows another function reads, and the requests PostHog receives. It never mocks the seam: flag definitions are served by the fake PostHog's definitions endpoint and evaluated by the real component, as the existing flag tests do.
 - **Seams, highest first:**
   1. **The Slack boundary** (signed requests through the HTTP router with `convex-test`, the `fetch` stub answering Slack and PostHog): an `email` condition naming one of two members shows the feature to that member alone in App Home, commands, DMs and replies; the other member's Slack calls are byte-for-byte what they are with the flag off; a public level notice stays plain, also for a level a previewed quest reward reached; a previewing admin can't change the announcement channel (F16–F20, F15 for the unchanged case). `user_change`, `team_join` and `users.info` with and without `profile.email`, a malformed answer, and a member leaving (F1–F6).
-  2. **The analytics module's functions**: the seam's two decisions with an `email` condition, a member without email, a member without an analytics ID in a query, and the workspace decision never matching `email` (F12–F14); `$identify`, `$set` and `$unset` recorded once per change through the outbox and the drain, nothing with capture off and the catch-up afterwards, a given-up person event recorded again, and never an email in any other event, exception or log (F7–F9, extending the existing O10 test that scans every PostHog request body).
+  2. **The analytics module's functions**: the seam's two decisions with an `email` condition, a member without email, a member without an analytics ID in a query, and the workspace decision never matching `email` (F12–F14); `$identify`, `$set` and `$unset` recorded once per change through the outbox and the drain, nothing with capture off and the catch-up afterwards, a given-up person event recorded again, and never a profile key in any other event, exception or log (F7–F9, extending the existing O10 test that scans every PostHog request body).
   3. **The unlocks and quests modules**: the preview moment for a previewing member, the workspace moment afterwards adding only a feature or Journey step that became due since, a member who isn't previewing earning, drawing and opening nothing, and a preview ending (F21–F24).
 - **Prior art:** `convex/analytics/flags.test.ts`, the `*Flag.test.ts` files in `convex/slack`, the P77 test in `unlocksFlag.test.ts`, `quests/existingMembers.test.ts`, the fake PostHog and its flag fixtures in `testing/`, and the directory tests behind `unknownPeople.test.ts`.
 - **Invented addresses only.** Every test and proof uses addresses under `example.com`. No real email appears in a test, a fixture, a commit, a pull request or an issue.
@@ -171,6 +180,8 @@ The website's backend lives in `convex/website/` and is the website map's. Its f
 ## Further Notes
 
 **Michael's decision** (2026-10-14, in map #1's conductor thread, verbatim): "And for the preview list, please do send member mail addresses to PostHog so we can enable flags on a per-user basis, not just on a per-workspace basis, directly in PostHog." It amends O10 (F7), O12 (F11) and O34 (F13). Coherence records it as `d-95bd1bd3`, and the calls below as `d-c540549c`, `d-fbf026bf`, `d-78653214`, `d-54f92e49`, `d-bd597104`, `d-6cd17786`, `d-681c4915`, `d-f44f6457`, `d-9e9b6a20`, `d-fde0c1df` and `d-c0674c41`, each citing it.
+
+**Michael's decision 15** (2026-10-14, in map #1's conductor thread, verbatim): "Please make sure that you add name, mail, and so on to the people properties, and their Slack user ID and also teams, so we can properly filter, get some analytics data going, and so on." It widens F7 from `email` alone to the whole profile, and with it F8, F10, F11 and user story 10; message text stays never-sent, and event properties stay as they are. Coherence records it as `d-84e4cabe`.
 
 **Calls this spec makes (accepted with it, each at the recommendation)**
 1. **Two decisions, not one subject per flag** (F12). The member decision decides all member-facing behavior; the workspace decision decides only shared things. Over moving every flag to the member subject alone, which would let a preview start the unlocks and Journey launches for the whole workspace and pay hidden members Journey rewards.
