@@ -38,6 +38,12 @@ Fable checked the screenshots against E and the visual language. Its findings an
 - **The tier medals' new glint sparkle fell to ≈1.4:1 against the metal disk it overlaps in dark:** **fixed** by keeping slice 4's card fill on the medal sparkle.
 - **The Complete row's count was hidden from screen readers:** **fixed**, the bar is named `Complete, 31 different people thanked`, and the test asserts that name.
 
+[`review-round-3.md`](review-round-3.md): no findings.
+
+## Gate
+
+[`gate.txt`](gate.txt): `~/dev/fleet/fleet heavy -- pnpm gate` on `b190b47` (this branch with `origin/main` and #237 merged): typecheck, 146 test files and 2,447 tests passed, Coherence's spec and lexicon checks, exit 0. Red: [`red.txt`](red.txt) on `d6ab2a4`; green: [`green.txt`](green.txt).
+
 ## Manual pass (V24)
 
 - **Focus order:** unchanged. The ladder details add no focusable element.
