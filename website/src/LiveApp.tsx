@@ -15,6 +15,7 @@ import type { ProfileCardShown } from "./profileCardRead";
 import type { QuestsShown } from "./questsRead";
 import type { Direction, RecentKudosShown } from "./recentKudosRead";
 import type { SkillTreeShown } from "./skillTreeRead";
+import type { SpotlightDraw } from "./spotlightRead";
 import type { Period, ShellActions, Visitor } from "./shell";
 import { forgetSignInStarted } from "./signInAttempt";
 
@@ -33,6 +34,7 @@ function LiveApp() {
   const unreachable = useSocketUnreachable();
   const profile = useQuery(api.website.profile.getMyProfile, {});
   const actions = useLiveActions(() => setSignInFailed(true));
+  const drawSpotlight = useLiveSpotlight();
   if (signInFailed) throw new Error("The sign-in didn't start.");
   return (
     <App
@@ -44,6 +46,7 @@ function LiveApp() {
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
       useProfileCard={useLiveProfileCard}
       useRecentKudos={useLiveRecentKudos}
+      drawSpotlight={drawSpotlight}
     />
   );
 }
@@ -91,6 +94,11 @@ function useLiveRecentKudos(direction: Direction): RecentKudosShown | undefined 
   const request = useMemo((): RequestForQueries => ({ recent: { query: api.website.activity.getRecentKudos, args: { direction, limit: 3 } } }), [direction]);
   const { recent } = useQueries(request);
   return recent instanceof Error ? { kind: "broken" } : recent;
+}
+
+function useLiveSpotlight(): SpotlightDraw {
+  const convex = useConvex();
+  return useCallback((ask) => answerWithin(commandAnswerBudgetMs, convex.query(api.website.activity.getSpotlight, ask)), [convex]);
 }
 
 type Answers = { authLoading: boolean; redemptionFailed: boolean; unreachable: boolean; profile: MyProfile | undefined };

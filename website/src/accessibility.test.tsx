@@ -10,6 +10,8 @@ import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { fixedRecentKudos, recentKudosFixtures } from "./recentKudosFixtures";
 import { shellFixtures, type MyBook, type MyLeaderboard, type MyProfileCard, type MyQuests, type BuyAnswer, type MyRecentKudos, type MySkillTree, type OpenAnswer, type ShellState, type VisibilityReply } from "./shell";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
+import { spotlightFixtures } from "./spotlightFixtures";
+import type { SpotlightDraw } from "./spotlightRead";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "./test/systemTheme";
@@ -212,6 +214,33 @@ describe("WS223: every state of the Recent kudos card passes axe in light and da
         expect(getByRole("region", { name: "Recent kudos" })).toHaveTextContent(state.shows);
         expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
       });
+    }
+  }
+});
+
+const { pairing, onboarding } = spotlightFixtures;
+
+const spotlightStates: { name: string; draw: SpotlightDraw; pressNext?: true; shows: string }[] = [
+  { name: "with one thank-you", draw: async () => pairing, shows: "Ada Lindqvist thanked Bo Okafor" },
+  { name: "with a changed thank-you after Next", draw: async (ask) => ("seed" in ask ? pairing : onboarding), pressNext: true, shows: "Cleo Marchetti thanked Dev Rao and Eli Brandt" },
+  { name: "with the only thank-you so far", draw: async () => pairing, pressNext: true, shows: "That's the only one so far." },
+  { name: "after a failed Next", draw: async (ask) => ("seed" in ask ? pairing : Promise.reject(new Error("socket closed"))), pressNext: true, shows: "Couldn't find another thank-you. Try again." },
+  { name: "empty", draw: async () => ({ kind: "empty" }), shows: "Thank-yous from public channels show here." },
+  { name: "after a failed first draw", draw: async () => Promise.reject(new Error("socket closed")), shows: "Couldn't find a thank-you just now." },
+];
+
+describe("WS223: every state of the spotlight passes axe in light and dark", () => {
+  for (const dark of [false, true]) {
+    for (const state of spotlightStates) {
+      it(`the spotlight ${state.name} in ${dark ? "dark" : "light"}`, async () => {
+        fakeSystemTheme(dark);
+        window.history.replaceState(null, "", "/leaderboard");
+        const { user, container, findByRole } = renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leaderboardFixtures.midBoard), undefined, undefined, undefined, undefined, undefined, undefined, state.draw);
+        const spotlight = await findByRole("region", { name: "A thank-you from your workspace" });
+        if (state.pressNext) await user.click(within(spotlight).getByRole("button", { name: "Next" }));
+        await waitFor(() => expect(spotlight).toHaveTextContent(state.shows));
+        expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+      }, axeOnAWholePage);
     }
   }
 });
