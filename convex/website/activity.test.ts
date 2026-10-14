@@ -291,7 +291,7 @@ describe("AT23 AT24 AT27: what a kudos entry says", () => {
     await memberChanged(t, "user_change", { id: alice.user, team_id: "T1", deleted: true });
     await settle(t);
 
-    expect(await messageSeenBy(bob)).toEqual({ message: { kind: "unavailable", reason: "removed" }, channel: { visibility: "public" }, saidWhy: true });
+    expect(await messageSeenBy(bob)).toEqual({ message: { kind: "unavailable", reason: "removed" }, channel: { visibility: "private" }, saidWhy: true });
     const [entry] = (await activityOf(await signedIn(bob), { filter: "all" })).entries;
     expect(entry).toMatchObject({ giver: { name: "A teammate", face: { kind: "initials", initials: "?" } } });
   });

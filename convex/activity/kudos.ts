@@ -6,7 +6,7 @@ import type { MessageRef, WordSegment } from "../engine/messageEvent";
 import { gateRecordedWith } from "../progression/effects";
 import { permalinkOf } from "../slack/permalink";
 import { teammateOf } from "../website/faces";
-import { displayNameOf, displayNameOfUser, lookup, type MemberId } from "../workspace/directory";
+import { displayNameOf, displayNameOfUser, type MemberId } from "../workspace/directory";
 import { workspaceUrlOf } from "../workspace/url";
 import { userGroupHandleOf } from "../workspace/userGroups";
 import type { Channel, Message, Person, Segment } from "./entries";
@@ -30,7 +30,6 @@ async function wordsAndChannelOf(ctx: QueryCtx, ref: MessageRef): Promise<{ chan
   const text = await wordsOf(ctx, ref);
   if (text.kind === "unavailable") return { channel: privateChannel, message: { kind: "unavailable", reason: text.reason } };
   const channel: Channel = { visibility: text.visibility === "public" ? "public" : "private" };
-  if ((await lookup(ctx, ref.workspace, text.author))?.kind !== "member") return { channel, message: { kind: "unavailable", reason: "removed" } };
   const segments = await Promise.all(text.segments.map((segment) => readableSegmentOf(ctx, ref.workspace, segment)));
   return { channel, message: { kind: "text", segments, edited: text.edited } };
 }
