@@ -11,6 +11,7 @@ import type { QuestId } from "../quests/pool";
 
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
 const saturday = Date.parse("2026-10-17T10:00:00Z");
+const nextMonday = Date.parse("2026-10-19T10:00:00Z");
 const siteUrl = "https://kudos-site.test";
 const form = { contentType: "application/x-www-form-urlencoded" };
 const saysWhy = "thanks for untangling the release notes today";
@@ -192,6 +193,52 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(publishedHome(slack, "U_ALICE").filter((line) => line.includes("Give a kudos that says why."))).toEqual([]);
   });
 
+  test("P85: after the Monday turn, last week's unopened crate waits in the summary before the Journey's, and Open opens it", async () => {
+    const t = await workspace(...everyFlag, "website");
+    await levelThreeWithQuestsDrawn(t);
+    await openReadyFeatures(t);
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    vi.setSystemTime(nextMonday);
+
+    await openHome(t, "U_ALICE");
+
+    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
+      `section: ✅ ${sayWhy} [button: Open]`,
+      "section: ✅ Give a kudos that says why. [button: Open]",
+      "section: ✅ Finish a weekly quest. [button: Open]",
+      "section: ✅ Thank someone you haven't thanked before. [button: Open]",
+    ]);
+
+    await send(t, buttonBeside(`✅ ${sayWhy}`, "Open"));
+
+    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
+      "section: ✅ Give a kudos that says why. [button: Open]",
+      "section: ✅ Finish a weekly quest. [button: Open]",
+      "section: ✅ Thank someone you haven't thanked before. [button: Open]",
+    ]);
+  });
+
+  test("P85: with 7 crates waiting from earlier weeks, the summary shows the oldest 5 and how many more", async () => {
+    const t = await workspace(...everyFlag, "website");
+    await levelThreeWithQuestsDrawn(t);
+    await openReadyFeatures(t);
+    await waitingFromAnEarlierWeek(t, "U_ALICE", 7);
+
+    await openHome(t, "U_ALICE");
+
+    const crate = `section: ✅ ${sayWhy} [button: Open]`;
+    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
+      crate,
+      crate,
+      crate,
+      crate,
+      crate,
+      "section: ✅ Give a kudos that says why. [button: Open]",
+      "section: ✅ Thank someone you haven't thanked before. [button: Open]",
+      "context: 2 more crates from earlier weeks wait to open.",
+    ]);
+  });
+
   const todaysHome = [
     "actions: [Profile] | Leaderboard | Settings",
     "header: Your kudos",
@@ -268,6 +315,21 @@ async function drawFor(t: Backend, user: string, quests: QuestId[]) {
   await t.run((ctx) => ctx.db.insert("questDraws", { member, week: "2026-10-12", drawnAt: Date.now(), slots }));
 }
 
+async function waitingFromAnEarlierWeek(t: Backend, user: string, crates: number) {
+  const week = "2026-10-05";
+  const reward = { xp: 20, coins: 0, item: null };
+  const slots = Array.from({ length: crates }, (_, slot) => ({ slot, quest: "say-why" as QuestId, reward, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
+  const member = await memberOf(t, user);
+  await t.run(async (ctx) => {
+    await ctx.db.insert("questDraws", { member, week, drawnAt: Date.parse(`${week}T00:00:00Z`), slots });
+    for (const { slot } of slots) {
+      const key = `weekly:${week}:${slot}`;
+      await ctx.db.insert("rewardRecords", { member, key, ...reward, catalogueVersion: "1", at: Date.parse("2026-10-07T10:00:00Z") + slot });
+      await ctx.db.insert("pendingCrates", { member, key });
+    }
+  });
+}
+
 async function memberOf(t: Backend, user: string) {
   const row = await t.run((ctx) =>
     ctx.db
@@ -298,6 +360,11 @@ async function levelReached(t: Backend, user: string, level: number) {
 function buttonBeside(text: string, label: string) {
   const blocks = publishedHomeBlocks(slack, "U_ALICE").filter((block) => readBlocks([block]).some((line) => line.includes(text)));
   return blockActions("U_ALICE", buttonIn(blocks, label));
+}
+
+function waitingIn(home: string[]) {
+  const start = home.indexOf("divider") + 1;
+  return home.slice(start, home.indexOf("divider", start));
 }
 
 function questsIn(home: string[]) {

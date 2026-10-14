@@ -3,7 +3,7 @@ import type { MyQuests, QuestSlot, QuestsAnswer, WaitingCrate } from "./shell";
 
 const chatUrl = "https://app.slack.com/client/T1";
 
-const thisWeek = "2026-W42";
+const thisWeek = "2026-10-12";
 
 const inProgress: QuestSlot = {
   slot: 0,
@@ -41,7 +41,9 @@ const openedAndSwapped: QuestSlot = {
   seen: "d90a12",
 };
 
-const lastWeeksCrate: WaitingCrate = { goal: "Thank someone and say why on 2 different days.", reward: { xp: 20 }, crate: { kind: "weekly", week: "2026-W41", slot: 0 }, seen: "e3b5c8" };
+const lastWeeksCrate: WaitingCrate = { goal: "Thank someone and say why on 2 different days.", week: "2026-10-05", reward: { xp: 20 }, crate: { kind: "weekly", week: "2026-10-05", slot: 0 }, seen: "e3b5c8" };
+
+const twoWeeksAgosCrateOfTheSameQuest: WaitingCrate = { ...lastWeeksCrate, week: "2026-09-28", crate: { kind: "weekly", week: "2026-09-28", slot: 2 }, seen: "a7f2c1" };
 
 const week: QuestsAnswer = { kind: "quests", slots: [inProgress, finished, openedAndSwapped], waiting: [], chatUrl };
 
@@ -54,6 +56,7 @@ export const questsFixtures = {
   week,
   weekWithAFinishedQuestEach: { ...week, slots: [{ ...finished, slot: 0, crate: { kind: "weekly", week: thisWeek, slot: 0 }, seen: "f0e1d2" }, finished] },
   weekWithLastWeeksCrate: { ...week, waiting: [lastWeeksCrate] },
+  weekWithTheSameQuestWaitingFromTwoWeeks: { ...week, waiting: [twoWeeksAgosCrateOfTheSameQuest, lastWeeksCrate] },
   twoQuests: { ...week, slots: [inProgress, finished] },
   nextWeek,
   noDraw: { kind: "quests", slots: [], waiting: [], chatUrl },
