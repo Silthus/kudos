@@ -185,12 +185,43 @@ describe("#354: a Journey crate's XP flies into the hero's XP bar", () => {
     const { user } = openJourneyCrate(atLevel2);
     placeAt(xpBar(), { x: 300, y: 300, width: 400, height: 12 });
     await user.click(within(journeyCrate()).getByRole("button", { name: "Open" }));
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+    vi.useFakeTimers();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
 
     expect(flight()).toBeNull();
     expect(xpBar()).toHaveAttribute("aria-valuenow", "50");
     expect(xpBar()).toHaveClass("reward-faded");
     expect(frame()).not.toHaveClass("reward-filling");
+  });
+});
+
+describe("#354 review: the held values stay true through motion changes and late XP", () => {
+  it("lands the skill point at once with a fade when reduced motion is turned on while the level turns over", async () => {
+    const { user } = openJourneyCrate(intoTheSixthLevel);
+    await openAndClose(user, journeyCrate());
+    vi.useFakeTimers();
+    landAll(flight()!);
+    preferReducedMotion();
+    act(() => vi.advanceTimersByTime(600));
+
+    expect(flight()).toBeNull();
+    expect(skillPointChip()).toHaveTextContent("2");
+    expect(skillPointChip()).toHaveClass("reward-faded");
+  });
+
+  it("keeps holding the skill point the flight set out with when more XP arrives before it lands", async () => {
+    const { user, showVisitor } = openJourneyCrate(intoTheSixthLevel);
+    await openAndClose(user, journeyCrate());
+    vi.useFakeTimers();
+    landAll(flight()!);
+    act(() => vi.advanceTimersByTime(600));
+    showVisitor({ ...intoTheSixthLevel, progression: { ...intoTheSixthLevel.progression!, xp: 1030, xpToNextLevel: 470 } });
+
+    expect(flight()).toHaveTextContent("+1 skill point");
+    expect(skillPointChip()).toHaveTextContent("1");
+    expect(skillPointChip()).toHaveAccessibleName("1 skill point to spend");
+    landAll(flight()!);
+    expect(skillPointChip()).toHaveAccessibleName("2 skill points to spend");
   });
 });
 

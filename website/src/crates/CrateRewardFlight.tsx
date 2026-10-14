@@ -3,29 +3,38 @@ import { levelShare } from "../LevelRing";
 import { prefersReducedMotion } from "../reducedMotion";
 import type { MemberProfile } from "../shell";
 import { skillPointsText } from "../skills/perkWords";
-import type { Flight, Reveal } from "./moments";
-import { rewardKinds, rewardOf, withTheRewardHeld, type Reward, type RewardKind } from "./rewards";
+import type { Flight } from "./moments";
+import { crossesALevel, type Reward, type RewardKind } from "./rewards";
 import { heroRing, hudAvatar, levelDisplay, rewardChipOrigin, RewardFlight, settle, skillPointChip, xpDisplay, type Arrival, type Origin } from "./RewardFlight";
 
 type Hop = { kind: RewardKind; amount: string; source: () => Origin | undefined; target: () => HTMLElement | null };
 
-type CrateRewardFlightProps = { flight: Flight; member: MemberProfile; onRewardLanded: (kind: RewardKind) => void; onLanded: () => void };
+type CrateRewardFlightProps = {
+  flight: Flight;
+  reward: Reward;
+  shown: MemberProfile;
+  onCharted: (reward: Reward) => void;
+  onRewardLanded: (kind: RewardKind) => void;
+  onLanded: () => void;
+};
 
 const levellingMs = 1300;
 
 const levelTurnsOverMs = 600;
 
-export function CrateRewardFlight({ flight, member, onRewardLanded, onLanded }: CrateRewardFlightProps) {
-  const memberNow = useRef(member);
-  memberNow.current = member;
-  const [reduced] = useState(prefersReducedMotion);
-  const [reward] = useState(() => rewardOf(flight.crate, member));
+export function CrateRewardFlight({ flight, reward: rewardNow, shown, onCharted, onRewardLanded, onLanded }: CrateRewardFlightProps) {
+  const shownNow = useRef(shown);
+  shownNow.current = shown;
+  const [reward] = useState(rewardNow);
   const [hops] = useState(() => hopsOf(flight, reward));
   const [hop, setHop] = useState(0);
   const [levellingUp, levelUp] = useState(false);
   const finished = useRef(false);
   const turnover = useRef<ReturnType<typeof setTimeout>>(undefined);
   const current = hops[hop];
+  const still = prefersReducedMotion();
+
+  useLayoutEffect(() => onCharted(reward), [onCharted, reward]);
 
   const finish = useCallback(() => {
     if (finished.current) return;
@@ -34,10 +43,10 @@ export function CrateRewardFlight({ flight, member, onRewardLanded, onLanded }: 
   }, [onLanded]);
 
   useLayoutEffect(() => {
-    if (current !== undefined && !reduced) return;
-    if (reduced) fadeIn(hops);
+    if (current !== undefined && !still) return;
+    fadeIn(hops.slice(hop));
     finish();
-  }, [current, reduced, hops, finish]);
+  }, [current, still, hops, hop, finish]);
 
   useEffect(() => () => clearTimeout(turnover.current), []);
 
@@ -49,7 +58,7 @@ export function CrateRewardFlight({ flight, member, onRewardLanded, onLanded }: 
         setHop((landed) => landed + 1);
       };
       settle(target, ["reward-landed"]);
-      if (current.kind !== "xp" || !fillFrom(target, memberNow.current, reward)) return land();
+      if (current.kind !== "xp" || !fillFrom(target, shownNow.current, reward.xp)) return land();
       levelUp(true);
       turnover.current = setTimeout(() => {
         levelUp(false);
@@ -62,18 +71,8 @@ export function CrateRewardFlight({ flight, member, onRewardLanded, onLanded }: 
 
   const onHopLanded = useCallback((how: Arrival) => how === "cancelled" && finish(), [finish]);
 
-  if (current === undefined || reduced || levellingUp) return null;
+  if (current === undefined || still || levellingUp) return null;
   return <RewardFlight key={hop} source={current.source} target={current.target} amount={current.amount} onArrived={onArrived} onLanded={onHopLanded} />;
-}
-
-export function rewardOnTheWay(reveal: Reveal | undefined, flight: Flight | undefined) {
-  if (flight !== undefined) return { crate: flight.crate, held: rewardKinds.filter((kind) => !flight.landed.includes(kind)) };
-  return reveal?.claimed !== undefined ? { crate: reveal.crate, held: rewardKinds } : undefined;
-}
-
-export function withTheRewardOnTheWayHeld(member: MemberProfile, onTheWay: ReturnType<typeof rewardOnTheWay>) {
-  if (onTheWay === undefined) return member;
-  return withTheRewardHeld(member, rewardOf(onTheWay.crate, member), onTheWay.held);
 }
 
 function hopsOf({ crate, from }: Flight, { xp, skillPoints }: Reward): Hop[] {
@@ -84,11 +83,10 @@ function hopsOf({ crate, from }: Flight, { xp, skillPoints }: Reward): Hop[] {
   return [xpHop, pointsHop].filter((hop) => hop !== undefined);
 }
 
-function fillFrom(target: HTMLElement, member: MemberProfile, reward: Reward) {
-  const before = withTheRewardHeld(member, reward, ["xp"]).progression;
+function fillFrom(target: HTMLElement, { progression: before }: MemberProfile, xp: number) {
   const frame = target.closest<HTMLElement>(".hud-root");
-  if (before === null || member.progression === null || frame === null) return false;
-  const levelling = before.level < member.progression.level;
+  if (before === null || frame === null) return false;
+  const levelling = crossesALevel(before, xp);
   frame.style.setProperty("--reward-from", String(levelShare(before)));
   settle(frame, [levelling ? "reward-levelling" : "reward-filling"], levellingMs);
   return levelling;

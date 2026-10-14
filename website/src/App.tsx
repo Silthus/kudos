@@ -4,7 +4,8 @@ import { MomentAnnouncement } from "./crates/MomentAnnouncement";
 import { MomentsProvider, useCrateMoments, useMembersShown } from "./crates/moments";
 import { readyCratesOf } from "./crates/readyCrates";
 import { RevealDialog } from "./crates/RevealDialog";
-import { CrateRewardFlight, rewardOnTheWay, withTheRewardOnTheWayHeld } from "./crates/CrateRewardFlight";
+import { CrateRewardFlight } from "./crates/CrateRewardFlight";
+import { rewardsOf, withTheRewardsHeld } from "./crates/rewards";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import type { BookRead, BookShown } from "./bookRead";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -52,7 +53,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   const moments = useCrateMoments(actions, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member), onQuests });
   const reveal = member !== undefined ? moments.reveal : undefined;
   const revealing = reveal !== undefined;
-  const memberShown = member === undefined ? undefined : withTheRewardOnTheWayHeld(member, rewardOnTheWay(reveal, moments.flight));
+  const memberShown = member === undefined ? undefined : withTheRewardsHeld(member, moments.onTheWay);
   useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : onBook ? bookPageOf(book) : onSkills ? skillTreePageOf(skillTree) : shown.kind, { held: revealing });
   useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
@@ -86,7 +87,9 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
         {reveal !== undefined && member !== undefined && (
           <RevealDialog key={reveal.crate.seen} {...reveal} chatUrl={member.chatUrl} questsOpen={questsOpen} onFinish={moments.finish} onClose={moments.close} />
         )}
-        {moments.flight !== undefined && member !== undefined && <CrateRewardFlight key={moments.flight.crate.seen} flight={moments.flight} member={member} onRewardLanded={moments.landed} onLanded={moments.land} />}
+        {moments.flight !== undefined && member !== undefined && memberShown !== undefined && (
+          <CrateRewardFlight key={moments.flight.crate.seen} flight={moments.flight} reward={rewardsOf(member, moments.onTheWay)[0]!} shown={memberShown} onCharted={moments.chart} onRewardLanded={moments.landed} onLanded={moments.land} />
+        )}
         <MomentAnnouncement text={moments.announcement} />
       </MomentsProvider>
     </NavigateProvider>

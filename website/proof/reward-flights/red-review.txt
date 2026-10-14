@@ -1,0 +1,115 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/reward-flights
+
+ ❯ |website| src/rewardFlights.test.tsx (10 tests | 2 failed) 14577ms
+   ❯ #354 review: the held values stay true through motion changes and late XP (2)
+     × lands the skill point at once with a fade when reduced motion is turned on while the level turns over 2151ms
+     × keeps holding the skill point the flight set out with when more XP arrives before it lands 986ms
+ ❯ |website| src/QuestsPage.test.tsx (57 tests | 1 failed) 29107ms
+   ❯ WS315 E184: the reward flies into the HUD level ring once a Claim's reveal closes (13)
+     × holds both rewards of two Claims pressed together and releases them in turn, never rewinding the ring 1242ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/QuestsPage.test.tsx > WS315 E184: the reward flies into the HUD level ring once a Claim's reveal closes > holds both rewards of two Claims pressed together and releases them in turn, never rewinding the ring
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAccessibleName()[22m
+
+Expected element to have accessible name:
+[32m  Level 2, 50 XP to level 3[39m
+Received:
+[31m  Level 2, 30 XP to level 3[39m
+ ❯ src/QuestsPage.test.tsx:459:25
+    457|     }
+    458|
+    459|     expect(levelRing()).toHaveAccessibleName("Level 2, 50 XP to level …
+       |                         ^
+    460|     landAll(flight()!);
+    461|     expect(levelRing()).toHaveAccessibleName("Level 2, 30 XP to level …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  |website| src/rewardFlights.test.tsx > #354 review: the held values stay true through motion changes and late XP > lands the skill point at once with a fade when reduced motion is turned on while the level turns over
+AssertionError: expected <span …(4)>…(7)</span> to be null
+
+- Expected:
+null
+
++ Received:
+<span
+  aria-hidden="true"
+  class="reward-flight"
+  data-reward-flight="true"
+  style="left: 0px; top: 0px; width: 0px; height: 0px; --flight-x: 0px; --flight-y: 0px;"
+>
+  <span
+    class="reward-flight-chip"
+    data-particle="true"
+    style="--delay: 260ms;"
+  >
+    +1 skill point
+  </span>
+  <span
+    class="reward-flight-particle"
+    data-particle="true"
+    style="--delay: 0ms; --arc: -48px; --spread: 0px; --size: 6px;"
+  />
+  <span
+    class="reward-flight-particle"
+    data-particle="true"
+    style="--delay: 40ms; --arc: -64px; --spread: -18px; --size: 4px;"
+  />
+  <span
+    class="reward-flight-particle"
+    data-particle="true"
+    style="--delay: 80ms; --arc: -36px; --spread: 16px; --size: 8px;"
+  />
+  <span
+    class="reward-flight-particle"
+    data-particle="true"
+    style="--delay: 120ms; --arc: -56px; --spread: -8px; --size: 4px;"
+  />
+  <span
+    class="reward-flight-particle"
+    data-particle="true"
+    style="--delay: 160ms; --arc: -30px; --spread: 22px; --size: 6px;"
+  />
+  <span
+    class="reward-flight-particle"
+    data-particle="true"
+    style="--delay: 200ms; --arc: -70px; --spread: 6px; --size: 8px;"
+  />
+</span>
+
+ ❯ src/rewardFlights.test.tsx:207:22
+    205|     act(() => vi.advanceTimersByTime(600));
+    206|
+    207|     expect(flight()).toBeNull();
+       |                      ^
+    208|     expect(skillPointChip()).toHaveTextContent("2");
+    209|     expect(skillPointChip()).toHaveClass("reward-faded");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  |website| src/rewardFlights.test.tsx > #354 review: the held values stay true through motion changes and late XP > keeps holding the skill point the flight set out with when more XP arrives before it lands
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAccessibleName()[22m
+
+Expected element to have accessible name:
+[32m  1 skill point to spend[39m
+Received:
+[31m  2 skill points to spend[39m
+ ❯ src/rewardFlights.test.tsx:222:30
+    220|     expect(flight()).toHaveTextContent("+1 skill point");
+    221|     expect(skillPointChip()).toHaveTextContent("1");
+    222|     expect(skillPointChip()).toHaveAccessibleName("1 skill point to sp…
+       |                              ^
+    223|     landAll(flight()!);
+    224|     expect(skillPointChip()).toHaveAccessibleName("2 skill points to s…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 64 passed (67)
+   Start at  13:28:23
+   Duration  57.44s (tests 45%, import 26%, transform 22%, environment 7%, setup 2%)
+

@@ -6,27 +6,40 @@ export type RewardKind = "xp" | "skillPoints";
 
 export type Reward = Record<RewardKind, number>;
 
-export const rewardKinds: RewardKind[] = ["xp", "skillPoints"];
+export type OnTheWay = { crate: ReadyCrate; landed: RewardKind[]; reward?: Reward };
 
-const nothing: Reward = { xp: 0, skillPoints: 0 };
-
-export function rewardOf(crate: ReadyCrate, { progression, skillPoints }: MemberProfile): Reward {
-  if (crate.kind === "feature") return { ...nothing, skillPoints: crate.card.feature === "skillTree" ? (skillPoints ?? 0) : 0 };
-  if (progression === null || skillPoints === null) return { ...nothing, xp: crate.xp };
-  return { xp: crate.xp, skillPoints: Math.min(skillPoints, pointsEarnedBy(progression, crate.xp)) };
+export function rewardsOf(member: MemberProfile, onTheWay: OnTheWay[]): Reward[] {
+  let xpLandingLater = 0;
+  const lastFirst = [...onTheWay].reverse().map((item) => {
+    const reward = item.reward ?? rewardOf(item.crate, member, xpLandingLater);
+    if (!item.landed.includes("xp")) xpLandingLater += reward.xp;
+    return reward;
+  });
+  return lastFirst.reverse();
 }
 
-export function withTheRewardHeld(member: MemberProfile, reward: Reward, held: RewardKind[]): MemberProfile {
+export function withTheRewardsHeld(member: MemberProfile, onTheWay: OnTheWay[]): MemberProfile {
+  if (onTheWay.length === 0) return member;
+  const rewards = rewardsOf(member, onTheWay);
+  const held = (kind: RewardKind) => onTheWay.reduce((sum, { landed }, at) => (landed.includes(kind) ? sum : sum + rewards[at]![kind]), 0);
   const { progression, skillPoints } = member;
   return {
     ...member,
-    progression: held.includes("xp") && progression !== null ? progressionBefore(progression, reward.xp) : progression,
-    skillPoints: held.includes("skillPoints") && skillPoints !== null ? skillPoints - reward.skillPoints : skillPoints,
+    progression: progression === null ? null : progressionBefore(progression, held("xp")),
+    skillPoints: skillPoints === null ? null : Math.max(0, skillPoints - held("skillPoints")),
   };
 }
 
-function pointsEarnedBy(progression: Progression, reward: number) {
-  return skillPointsEarnedAt(progression.level) - skillPointsEarnedAt(progressionBefore(progression, reward).level);
+export function crossesALevel({ xp, nextLevelAt }: Progression, reward: number) {
+  return xp + reward >= nextLevelAt;
+}
+
+function rewardOf(crate: ReadyCrate, { progression, skillPoints }: MemberProfile, xpLandingLater: number): Reward {
+  if (crate.kind === "feature") return { xp: 0, skillPoints: crate.card.feature === "skillTree" ? (skillPoints ?? 0) : 0 };
+  if (progression === null || skillPoints === null) return { xp: crate.xp, skillPoints: 0 };
+  const levelOnceLanded = progressionBefore(progression, xpLandingLater).level;
+  const levelBefore = progressionBefore(progression, xpLandingLater + crate.xp).level;
+  return { xp: crate.xp, skillPoints: skillPointsEarnedAt(levelOnceLanded) - skillPointsEarnedAt(levelBefore) };
 }
 
 function progressionBefore(progression: Progression, reward: number): Progression {

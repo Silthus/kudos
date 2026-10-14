@@ -325,6 +325,8 @@ function claimOn(answer: MyQuests = questsFixtures.week) {
 
 const claimer = shellFixtures.memberWithQuestsAtLevel2;
 
+const nearLevel3 = { ...claimer, progression: { level: 2, xp: 90, levelStartsAt: 20, nextLevelAt: 100, xpToNextLevel: 10 } };
+
 function levelRing() {
   return within(avatar()).getByRole("img", { name: /^Level / });
 }
@@ -430,7 +432,7 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
   it("flies each of two Claims pressed together, one after the other", async () => {
     const answers: (() => void)[] = [];
     const openQuestCrate = () => new Promise<OpenAnswer>((resolve) => answers.push(() => resolve({ kind: "opened" })));
-    const { user } = renderApp(claimer, undefined, { openQuestCrate }, fixedQuests(questsFixtures.weekWithAFinishedQuestEach));
+    const { user } = renderApp(nearLevel3, undefined, { openQuestCrate }, fixedQuests(questsFixtures.weekWithAFinishedQuestEach));
     for (const claim of within(questCards()).getAllByRole("button", { name: "Claim" })) await user.click(claim);
     await act(async () => answers.forEach((answer) => answer()));
     for (let reveal = 0; reveal < 2; reveal++) {
@@ -442,6 +444,26 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
     expect(flight()).not.toBeNull();
     landAll(flight()!);
     expect(flight()).toBeNull();
+  });
+
+  it("holds both rewards of two Claims pressed together and releases them in turn, never rewinding the ring", async () => {
+    const answers: (() => void)[] = [];
+    const openQuestCrate = () => new Promise<OpenAnswer>((resolve) => answers.push(() => resolve({ kind: "opened" })));
+    const { user } = renderApp(nearLevel3, undefined, { openQuestCrate }, fixedQuests(questsFixtures.weekWithAFinishedQuestEach));
+    for (const claim of within(questCards()).getAllByRole("button", { name: "Claim" })) await user.click(claim);
+    await act(async () => answers.forEach((answer) => answer()));
+    for (let reveal = 0; reveal < 2; reveal++) {
+      await user.keyboard("{Escape}");
+      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+    }
+
+    expect(levelRing()).toHaveAccessibleName("Level 2, 50 XP to level 3");
+    landAll(flight()!);
+    expect(levelRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
+    expect(flight()).not.toBeNull();
+    expect(levelRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
+    landAll(flight()!);
+    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
   });
 
   it("stops at once, with no bump or fill, when the browser cancels it, as turning on reduced motion mid-flight does", async () => {
