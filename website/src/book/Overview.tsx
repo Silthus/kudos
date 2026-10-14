@@ -118,7 +118,7 @@ function ShelfItem({ entry: { ladder, tier }, fresh, href, timeZone }: { entry: 
         </span>
         <span className="mt-4 w-full text-balance break-words px-1 text-sm font-medium leading-tight">{tier.name}</span>
         <span className="mt-0.5 flex w-full flex-wrap justify-center gap-x-1 px-1 text-[11px] leading-tight tabular-nums text-muted-foreground">
-          <span>{tierWords[tier.tier]} ·</span>
+          <span>{tierWords[tier.tier]} ·</span>{" "}
           <span>{dateWords(tier.earnedAt, timeZone)}</span>
         </span>
       </AppLink>
