@@ -71,7 +71,7 @@ export function CommandPalette({ commands, shell, onClose }: { commands: Command
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center px-3 pt-[12vh] sm:pt-[16vh]">
-      <div data-palette-backdrop aria-hidden="true" onClick={onClose} className="palette-fade absolute inset-0 bg-neutral-950/30 backdrop-blur-[3px] dark:bg-neutral-950/60" />
+      <div data-palette-backdrop aria-hidden="true" onClick={onClose} className="palette-fade absolute inset-0 bg-neutral-950/40 dark:bg-neutral-950/60" />
       <div role="dialog" aria-modal="true" aria-label="Command palette" className="hud-panel palette-rise relative flex max-h-[80vh] w-full max-w-xl flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-2xl">
         <label className="flex items-center gap-3 border-b px-4 py-3">
           <span aria-hidden="true" className="hud-display shrink-0 text-lg font-bold text-primary">
