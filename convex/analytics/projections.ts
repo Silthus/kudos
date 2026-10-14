@@ -1,5 +1,5 @@
 import { v, type Infer } from "convex/values";
-import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent, QuestsDrawnEvent, QuestSwappedEvent } from "../bus/events";
+import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent, QuestFinishedEvent, QuestsDrawnEvent, QuestSwappedEvent } from "../bus/events";
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
 import { gateDecisionOf } from "../progression/gate";
@@ -19,6 +19,7 @@ export type ProductEvent = {
     | "level reached"
     | "quest drawn"
     | "quest swapped"
+    | "quest finished"
     | "app home opened"
     | "command used"
     | "$feature_flag_called";
@@ -111,6 +112,16 @@ export function projectQuestsDrawn(event: QuestsDrawnEvent): ProductEvent[] {
 
 export function projectQuestSwapped(event: QuestSwappedEvent): ProductEvent {
   return { event: "quest swapped", subject: { member: event.member }, at: event.at, properties: { replaced: event.replaced, quest: event.swappedIn } };
+}
+
+export function projectQuestFinished(event: QuestFinishedEvent): ProductEvent {
+  const quest = event.quest.kind === "journey" ? event.quest.step : event.poolQuest;
+  return {
+    event: "quest finished",
+    subject: { member: event.member },
+    at: event.at,
+    properties: { kind: event.quest.kind, ...(quest === undefined ? {} : { quest }), ...(event.reward === undefined ? {} : { xp: event.reward.xp, coins: event.reward.coins }) },
+  };
 }
 
 export function projectUsage(fact: UsageFact): ProductEvent {

@@ -91,7 +91,12 @@ export type UnlockOpenedEvent = Infer<typeof unlockOpenedEventValidator>;
 
 const questFields = { workspace: v.string(), member: v.id("members"), quest: questValidator, at: v.number() };
 
-export const questFinishedEventValidator = v.object({ type: v.literal("questFinished"), ...questFields });
+export const questFinishedEventValidator = v.object({
+  type: v.literal("questFinished"),
+  ...questFields,
+  poolQuest: v.optional(questIdValidator),
+  reward: v.optional(v.object({ xp: v.number(), coins: v.number() })),
+});
 
 export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields });
 

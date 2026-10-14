@@ -177,7 +177,7 @@ async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, w
   for (const { award, recipient, day, at } of fresh) await ctx.db.insert("questProgress", { member, week, slot: slot.slot, quest: slot.quest, award, recipient, day, at });
   const before = questProgress(pooled, counted);
   const after = questProgress(pooled, [...counted, ...fresh]);
-  if (after === pooled.progress.target && (await finishQuest(ctx, event.workspace, member, quest, slot, event.at))) {
+  if (after === pooled.progress.target && (await finishQuest(ctx, event.workspace, member, quest, { ...slot, poolQuest: slot.quest }, event.at))) {
     await notifyWeeklyQuestFinished(ctx, member, quest, pooled.goal, slot.reward.xp);
     return "finished";
   }

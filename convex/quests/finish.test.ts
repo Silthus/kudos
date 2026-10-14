@@ -56,7 +56,9 @@ describe("P84 P87: a weekly quest's progress and finish are recorded once", () =
 
     expect(await weeklyRewardRecords(t)).toEqual([{ key: "weekly:2026-10-12:0", xp: 20, coins: 0, item: null, catalogueVersion: "1", at: event.at }]);
     expect(await t.run((ctx) => standingOf(ctx, alice))).toEqual({ xp: kudosXp + weeklyQuestXp + firstThanksXp, level: 2, skillPoints: 0 });
-    expect(publishedWeeklyFinishes()).toEqual([{ type: "questFinished", workspace: "T1", member: alice, quest: { kind: "weekly", week: "2026-10-12", slot: 0 }, at: event.at }]);
+    expect(publishedWeeklyFinishes()).toEqual([
+      { type: "questFinished", workspace: "T1", member: alice, quest: { kind: "weekly", week: "2026-10-12", slot: 0 }, poolQuest: "say-why", reward: { xp: 20, coins: 0 }, at: event.at },
+    ]);
     expect(await progressOf(t, alice)).toEqual([
       { quest: "say-why", progress: 1, finishedAt: event.at, openedAt: null },
       { quest: "say-why-twice", progress: 1, finishedAt: null, openedAt: null },

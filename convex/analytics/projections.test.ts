@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { awardId, kudosGivenEvent } from "../../testing/busEvents";
-import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, QuestsDrawnEvent, QuestSwappedEvent } from "../bus/events";
+import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, QuestFinishedEvent, QuestsDrawnEvent, QuestSwappedEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
-import { projectAttemptFailed, projectKudosGiven, projectLevelReached, projectMemberWelcomed, projectQuestsDrawn, projectQuestSwapped, projectUsage } from "./projections";
+import { projectAttemptFailed, projectKudosGiven, projectLevelReached, projectMemberWelcomed, projectQuestFinished, projectQuestsDrawn, projectQuestSwapped, projectUsage } from "./projections";
 
 const alice = "alice" as MemberId;
 const bob = "bob" as MemberId;
@@ -145,6 +145,21 @@ describe("E1: quest drawn and quest swapped", () => {
     const swapped: QuestSwappedEvent = { type: "questSwapped", workspace: "T1", member: bob, week: "2026-10-12", replaced: "say-why-twice", swappedIn: "say-why-two-days", at };
 
     expect(projectQuestSwapped(swapped)).toEqual({ event: "quest swapped", subject: { member: bob }, at, properties: { replaced: "say-why-twice", quest: "say-why-two-days" } });
+  });
+});
+
+describe("E1 E5: quest finished", () => {
+  const weekly = { kind: "weekly", week: "2026-10-12", slot: 1 } as const;
+  const firstThanks = { kind: "journey", step: "first-thanks" } as const;
+  const reward = { xp: 20, coins: 0 };
+
+  test.each<[string, Omit<QuestFinishedEvent, "type" | "workspace" | "member" | "at">, Record<string, string | number>]>([
+    ["a weekly quest is named by its pool ID", { quest: weekly, poolQuest: "say-why-two-days", reward }, { kind: "weekly", quest: "say-why-two-days", xp: 20, coins: 0 }],
+    ["a Journey step is named by its step", { quest: firstThanks, reward: { xp: 10, coins: 0 } }, { kind: "journey", quest: "first-thanks", xp: 10, coins: 0 }],
+    ["a weekly quest queued before the deploy has only its kind", { quest: weekly }, { kind: "weekly" }],
+    ["a Journey step queued before the deploy has its kind and step", { quest: firstThanks }, { kind: "journey", quest: "first-thanks" }],
+  ])("%s, on the member at the fact's time", (_, fields, properties) => {
+    expect(projectQuestFinished({ type: "questFinished", workspace: "T1", member: bob, at, ...fields })).toEqual({ event: "quest finished", subject: { member: bob }, at, properties });
   });
 });
 
