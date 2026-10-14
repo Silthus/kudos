@@ -104,3 +104,6 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: legal-state-succession dismissed: the announcement channel is set to the value a permitted click carries; a refused click writes nothing
   checklist: supersession-safety dismissed: the decision is read fresh in the click's mutation, so a picker from an older App Home is judged by today's decision
   checklist: worker-fencing dismissed: one mutation reads the decision and writes the setting; no lease or ownership applies
+  checklist: revalidated-permission dismissed: the click's own mutation reads the workspace decision and the admin role fresh, whatever App Home the picker came from; the role check is only admins set the announcement channel
+  checklist: separation-of-duties dismissed: flags are switched in PostHog by the owner, outside this deployment; no approval policy applies to the setting
+  checklist: resumption-coverage dismissed: no batch operation resumes; each notice and click is decided once in its own mutation
