@@ -526,6 +526,10 @@
     {
       "name": "permalink",
       "definition": "Slack's link to one message, built from the workspace's URL, the channel and the message's ts, with the thread root for a thread reply, never from a Slack call per message."
+    },
+    {
+      "name": "spotlight",
+      "definition": "One drawable kudos shown on the leaderboard page with its words, giver, recipients and Slack permalink: a Given kudos from a public channel whose current words said why, by a member, with nobody on it off the leaderboards; drawn at random from the member's own workspace, and Next walks every drawable kudos once before any repeat."
     }
   ]
 }

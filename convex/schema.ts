@@ -8,7 +8,7 @@ import { exceptionValidator } from "./analytics/exceptions";
 import { awardIdValidator } from "./engine/awards";
 import { personPropertiesValidator, propertiesValidator } from "./analytics/projections";
 import { kudosTextValidator } from "./engine/kudosText";
-import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
+import { annotationsValidator, mentionValidator, messageRefValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
 import { publicReplyValidator } from "./feedback/publicReplies";
 import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
@@ -128,6 +128,10 @@ export default defineSchema({
   }).index("by_message", ["workspace", "conversation", "message"]),
 
   kudosTexts: defineTable(kudosTextValidator).index("by_message", ["workspace", "conversation", "message"]).index("by_author", ["workspace", "author"]),
+
+  spotlightDraws: defineTable({ ...messageRefValidator.fields, position: v.number() })
+    .index("by_position", ["workspace", "position"])
+    .index("by_message", ["workspace", "conversation", "message"]),
 
   awards: defineTable({
     workspace: v.string(),

@@ -482,6 +482,15 @@ async function rowsOf(t: Backend, table: Table): Promise<Row[]> {
 }
 
 function withStableIds(stored: Record<string, Row[]>) {
+  return withLabelledIds(withDrawPositionsHidden(stored));
+}
+
+function withDrawPositionsHidden(stored: Record<string, Row[]>): Record<string, Row[]> {
+  const hidden = (row: Row) => ({ ...row, position: typeof row.position === "number" && row.position >= 0 && row.position < 1 ? "random in [0, 1)" : row.position });
+  return { ...stored, ...(stored.spotlightDraws && { spotlightDraws: stored.spotlightDraws.map(hidden) }) };
+}
+
+function withLabelledIds(stored: Record<string, Row[]>) {
   const labels = new Map<string, string>();
   for (const [table, rows] of Object.entries(stored)) rows.forEach((row, index) => labels.set(row._id, `${table}#${index}`));
   const relabelled = (value: unknown): unknown => {

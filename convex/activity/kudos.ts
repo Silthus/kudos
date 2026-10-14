@@ -50,8 +50,11 @@ async function wordsAndChannelOf(ctx: QueryCtx, mentions: Mentions, ref: Message
   const text = await wordsOf(ctx, ref);
   if (text.kind === "unavailable") return { channel: privateChannel, message: { kind: "unavailable", reason: text.reason } };
   const channel: Channel = { visibility: text.visibility === "public" ? "public" : "private" };
-  const segments = await Promise.all(text.segments.map((segment) => readableSegmentOf(mentions, ref.workspace, segment)));
-  return { channel, message: { kind: "text", segments, edited: text.edited } };
+  return { channel, message: { kind: "text", segments: await readableSegmentsOf(mentions, ref.workspace, text.segments), edited: text.edited } };
+}
+
+export function readableSegmentsOf(mentions: Mentions, workspace: string, segments: WordSegment[]): Promise<Segment[]> {
+  return Promise.all(segments.map((segment) => readableSegmentOf(mentions, workspace, segment)));
 }
 
 async function readableSegmentOf(mentions: Mentions, workspace: string, segment: WordSegment): Promise<Segment> {
@@ -72,7 +75,7 @@ function broadcastSegmentOf(range: string): Segment {
   return known === undefined ? { kind: "text", text: `@${range}` } : { kind: "broadcast", range: known };
 }
 
-async function permalinkOfMessage(ctx: QueryCtx, ref: MessageRef): Promise<string | null> {
+export async function permalinkOfMessage(ctx: QueryCtx, ref: MessageRef): Promise<string | null> {
   const workspaceUrl = await workspaceUrlOf(ctx, ref.workspace);
   return workspaceUrl === null ? null : permalinkOf(workspaceUrl, ref, await threadRootOf(ctx, ref));
 }

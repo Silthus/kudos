@@ -8,6 +8,7 @@ import { lookup, type MemberFacts, type MemberId } from "../workspace/directory"
 import { settingsOf } from "../workspace/settings";
 import { allowanceDay, dailyAllowance, type DayKey } from "./allowance";
 import { insertAwards, type Award } from "./awards";
+import { keepSpotlightUpToDate } from "./spotlight";
 import { forgetDeleted, forgetWords, hasKudosText, keepFetchedWords, keepWords, removeWords } from "./kudosText";
 import type { Annotations, ChatUserId, FetchedMessage, Mention, MessageDeleted, MessageEvent, MessageRef } from "./messageEvent";
 import { annotationsOf, fingerprintOf, kudosMessageOf, type KudosMessage, type ParseContext } from "../parser/parser";
@@ -34,6 +35,10 @@ type Member = Extract<MemberFacts, { kind: "member" }>;
 const directoryCheckDelaysMs = [0, 1, 5, 30, 120, 360].map((minutes) => minutes * 60_000);
 
 export async function observe(ctx: MutationCtx, event: MessageEvent | MessageDeleted): Promise<Observation> {
+  return keepingSpotlightUpToDate(ctx, event.ref, observeMessage(ctx, event));
+}
+
+async function observeMessage(ctx: MutationCtx, event: MessageEvent | MessageDeleted): Promise<Observation> {
   if (event.kind === "deleted") return observeDeletion(ctx, event);
   const existing = await kudosMessageRow(ctx, event.ref);
   if (existing !== null && event.revision <= existing.revision) {
@@ -56,6 +61,10 @@ export async function observe(ctx: MutationCtx, event: MessageEvent | MessageDel
 }
 
 export async function hydrate(ctx: MutationCtx, fetched: FetchedMessage): Promise<Hydration> {
+  return keepingSpotlightUpToDate(ctx, fetched.ref, hydrateMessage(ctx, fetched));
+}
+
+async function hydrateMessage(ctx: MutationCtx, fetched: FetchedMessage): Promise<Hydration> {
   const row = await kudosMessageRow(ctx, fetched.ref);
   if (row?.state !== "given") return refused("not-given");
   if (fetched.revision < row.revision) return refused("stale-revision");
@@ -70,6 +79,12 @@ export async function hydrate(ctx: MutationCtx, fetched: FetchedMessage): Promis
 
 async function followFetchedRevision(ctx: MutationCtx, row: KudosMessageRow, { revision, content }: FetchedMessage) {
   await ctx.db.patch(row._id, { revision, content: { mentions: content.mentions, emoji: content.emoji } });
+}
+
+async function keepingSpotlightUpToDate<T>(ctx: MutationCtx, ref: MessageRef, change: Promise<T>): Promise<T> {
+  const result = await change;
+  await keepSpotlightUpToDate(ctx, ref);
+  return result;
 }
 
 function refused(why: Extract<Hydration, { kind: "refused" }>["why"]): Hydration {
@@ -198,6 +213,10 @@ export async function awaitedUsers(ctx: QueryCtx, ref: MessageRef, attempt: bigi
 }
 
 export async function recheck(ctx: MutationCtx, ref: MessageRef, attempt: bigint): Promise<Observation> {
+  return keepingSpotlightUpToDate(ctx, ref, recheckMessage(ctx, ref, attempt));
+}
+
+async function recheckMessage(ctx: MutationCtx, ref: MessageRef, attempt: bigint): Promise<Observation> {
   const row = await kudosMessageRow(ctx, ref);
   if (row === null || row.state !== "awaiting-directory") return { kind: "ignored", why: "unchanged" };
   if (row.attempt !== attempt) return { kind: "ignored", why: "stale-revision" };

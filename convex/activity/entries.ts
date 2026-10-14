@@ -49,3 +49,8 @@ export type ActivityEntry = KudosReceived | KudosGiven | LevelUp;
 export type Activity = { kind: "activity"; entries: ActivityEntry[]; cursor: string | null; timeZone: string | null };
 
 export type RecentKudos = { kind: "recent"; entries: Array<KudosReceived | KudosGiven> };
+
+export type Spotlight =
+  | { kind: "empty" }
+  | { kind: "skipped"; after: string }
+  | { kind: "kudos"; after: string; at: number; giver: Person; recipients: Person[]; permalink: string | null; message: Extract<Message, { kind: "text" }> };

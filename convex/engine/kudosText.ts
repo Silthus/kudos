@@ -6,6 +6,7 @@ import { memberLeftEventValidator, type MemberLeftEvent } from "../bus/events";
 import { withholdingWords } from "../analytics/exceptions";
 import { gateDecisionOf, gateDecisionValidator } from "../progression/gate";
 import { chatUserOf, lookup } from "../workspace/directory";
+import { dropFromSpotlight } from "./spotlightDraws";
 import { messageRefValidator, visibilityValidator, wordSegmentValidator, type Annotations, type FetchedMessage, type MessageEvent, type MessageRef } from "./messageEvent";
 
 export const forgetPageSize = 10;
@@ -66,7 +67,7 @@ export async function keepFetchedWords(ctx: MutationCtx, fetched: FetchedMessage
 
 export async function forgetWords(ctx: MutationCtx, ref: MessageRef) {
   const row = await kudosTextRow(ctx, ref);
-  if (row?.kind === "words") await ctx.db.replace(row._id, { ...ref, kind: "tombstone", why: "no-longer-kudos" });
+  if (row?.kind === "words") await write(ctx, row, { ...ref, kind: "tombstone", why: "no-longer-kudos" });
 }
 
 export async function removeWords(ctx: MutationCtx, ref: MessageRef) {
@@ -133,7 +134,7 @@ export async function forgetWordsInWorkspace(ctx: MutationCtx, { workspace, curs
 }
 
 async function remove(ctx: MutationCtx, row: KudosTextRow) {
-  if (row.kind === "words") await ctx.db.replace(row._id, { ...refOf(row), kind: "tombstone", why: "removed" });
+  if (row.kind === "words") await write(ctx, row, { ...refOf(row), kind: "tombstone", why: "removed" });
 }
 
 async function hasLeft(ctx: QueryCtx, workspace: string, author: string) {
@@ -141,7 +142,7 @@ async function hasLeft(ctx: QueryCtx, workspace: string, author: string) {
   return facts !== undefined && facts.kind !== "member";
 }
 
-function refOf({ workspace, conversation, message }: KudosTextRow): MessageRef {
+function refOf({ workspace, conversation, message }: MessageRef): MessageRef {
   return { workspace, conversation, message };
 }
 
@@ -153,6 +154,7 @@ function mayStoreWordsOver(row: KudosTextRow, revision: bigint) {
 async function write(ctx: MutationCtx, row: KudosTextRow | null, value: Infer<typeof kudosTextValidator>) {
   if (row === null) await ctx.db.insert("kudosTexts", value);
   else await ctx.db.replace(row._id, value);
+  if (value.kind === "tombstone") await dropFromSpotlight(ctx, refOf(value));
 }
 
 async function kudosTextRow(ctx: QueryCtx, ref: MessageRef) {

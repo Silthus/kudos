@@ -41,6 +41,10 @@ export async function emailOf(ctx: QueryCtx, member: MemberId): Promise<string |
   return row?.kind === "member" ? row.email : undefined;
 }
 
+export async function isMember(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return (await ctx.db.get(member))?.kind === "member";
+}
+
 export async function displayNameOf(ctx: QueryCtx, member: MemberId): Promise<string | undefined> {
   const row = await ctx.db.get(member);
   return row?.kind === "member" ? row.name : undefined;
