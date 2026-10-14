@@ -1,0 +1,18 @@
+ ✓ |website| src/compactSkillTree.test.tsx > WS326: the header counts the perks owned and shows the resource chips > says {owned} of {total} perks owned, with the total from the read, never E's 14 1444ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS326: the header counts the perks owned and shows the resource chips > says {owned} of {total} perks owned, with the total from the read, never E's 14 1521ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS326: the header counts the perks owned and shows the resource chips > says {owned} of {total} perks owned, with the total from the read, never E's 14 102ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS326: the header counts the perks owned and shows the resource chips > shows the skill points to spend and LV {n} as chips beside it, the level spoken as Level {n} 98ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS326: the header counts the perks owned and shows the resource chips > shows no level chip while progression is null 982ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS327: the legend above the tree > names Owned, Can buy and Locked, each beside its node look in small, before the first row 85ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS328: compact square nodes > shows each perk as a square with its icon, its name as a caption, and its cost as a pill with the skill point glyph while not owned 596ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS328: compact square nodes > gives an available node E's strong outline in the foreground colour, with no badge 65ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS328: compact square nodes > keeps primary on exactly one node, the selection's ring and its Selected tag, while several can be bought (D2, V4) 73ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS328: compact square nodes > moves the one primary node with the selection 424ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS329: Your perks counts the active perks > heads the ledger Your perks · 0 active and says the perks are permanent and always on 69ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS329: Your perks counts the active perks > heads the ledger Your perks · 2 active and says the perks are permanent and always on 57ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS330: a one-off purchase pop > pops the bought node once after bought, and no other 1036ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS330: a one-off purchase pop > doesn't pop when the purchase is refused 128ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS330: a one-off purchase pop > never pops under reduced motion 596ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS339 V24: the states' outlines, fills and marks meet 3:1 against the card in both modes > in light 197ms
+ ✓ |website| src/compactSkillTree.test.tsx > WS339 V24: the states' outlines, fills and marks meet 3:1 against the card in both modes > in dark 445ms
+      Tests  17 passed (17)
