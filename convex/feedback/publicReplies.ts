@@ -6,7 +6,7 @@ import { levelReachedEventValidator, type LevelReachedEvent } from "../bus/event
 import { threadOf } from "../engine/engine";
 import type { MessageRef } from "../engine/messageEvent";
 import { progressSettingsOf } from "../progression/settings";
-import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
+import { xpLevelsShownIn } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { segmentValidator, type Line } from "./replies";
@@ -34,7 +34,7 @@ type Destination = { channel: string; threadTs?: string };
 export const celebrateLevel = internalMutation({
   args: { event: levelReachedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    if (!(await xpLevelsShownTo(ctx, event.member))) return;
+    if (!(await xpLevelsShownIn(ctx, event.workspace))) return;
     const { user } = await chatUserOf(ctx, event.member);
     const section = levelSection(event.member, user, event.level);
     if (event.message === undefined) await announceRewardedLevel(ctx, event, section);

@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { exposed, workspaceDecision, type Flag } from "../analytics/flags";
-import { xpLevels, xpLevelsShownTo } from "../progression/xpLevels";
+import { xpLevels, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
 import { shippedIn } from "./schedule";
 import { keepOpen } from "./unlocks";
@@ -11,6 +11,7 @@ export const unlocksFlag = { key: "unlocks", safeDefault: false, values: [false,
 export async function unlocksShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
   if (!(await xpLevelsShownTo(ctx, member))) return false;
   const { workspace } = await chatUserOf(ctx, member);
+  if (!(await xpLevelsShownIn(ctx, workspace))) return false;
   const live = await unlocksLiveIn(ctx, workspace);
   await exposed(ctx, unlocksFlag, member, live);
   return live;
