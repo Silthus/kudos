@@ -1,0 +1,136 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/reward-flights
+
+ ❯ |website| src/rewardFlights.test.tsx (8 tests | 7 failed) 7050ms
+   ❯ #354: a Journey crate's XP flies into the hero's XP bar (6)
+     × flies +{xp} XP from the Journey crate to the hero's XP bar while the bar is on screen 1484ms
+     × lands on the HUD level ring when the hero's XP bar is scrolled out of view 1077ms
+     × holds the hero and the HUD short of the reward from the reveal until it lands, then fills both from the old share 1022ms
+     × across a level-up, holds the old level, then completes the ring and starts the new level without ever filling backwards 449ms
+     × then flies the skill point the level-up earned from the XP bar to the HUD skill point chip, which counts up 1726ms
+     × never flies under reduced motion: the bar shows the read's XP at once with a short fade 523ms
+   ❯ #354: the Skill tree crate's skill points fly onto the HUD chip (2)
+     × shows the chip at 0 from the reveal, flies +{n} skill point from the crate onto it, and counts up once it lands 434ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/rewardFlights.test.tsx > #354: a Journey crate's XP flies into the hero's XP bar > flies +{xp} XP from the Journey crate to the hero's XP bar while the bar is on screen
+Error: [2mexpect([22m[31mreceived[39m[2m).toHaveTextContent()[22m
+
+[31mreceived[39m value must be a Node.
+Received has type:  Null
+Received has value: [31mnull[39m
+ ❯ src/rewardFlights.test.tsx:102:22
+    100|     await openAndClose(user, journeyCrate());
+    101|
+    102|     expect(flight()).toHaveTextContent("+20 XP");
+       |                      ^
+    103|     expect(courseOf(flight()!)).toEqual({ left: "100px", top: "500px",…
+    104|     landAll(flight()!);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  |website| src/rewardFlights.test.tsx > #354: a Journey crate's XP flies into the hero's XP bar > lands on the HUD level ring when the hero's XP bar is scrolled out of view
+TypeError: Cannot read properties of null (reading 'style')
+ ❯ courseOf src/rewardFlights.test.tsx:78:23
+     76|
+     77| function courseOf(chip: HTMLElement) {
+     78|   return { left: chip.style.left, top: chip.style.top, x: chip.style.g…
+       |                       ^
+     79| }
+     80|
+ ❯ src/rewardFlights.test.tsx:116:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  |website| src/rewardFlights.test.tsx > #354: a Journey crate's XP flies into the hero's XP bar > holds the hero and the HUD short of the reward from the reveal until it lands, then fills both from the old share
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAccessibleName()[22m
+
+Expected element to have accessible name:
+[32m  Level 2, 30 XP to level 3[39m
+Received:
+[31m  Level 2, 10 XP to level 3[39m
+ ❯ src/rewardFlights.test.tsx:125:23
+    123|     expect(xpBar()).toHaveAttribute("aria-valuenow", "50");
+    124|     await user.click(within(journeyCrate()).getByRole("button", { name…
+    125|     expect(hudRing()).toHaveAccessibleName("Level 2, 30 XP to level 3"…
+       |                       ^
+    126|     await user.keyboard("{Escape}");
+    127|     await user.click(within(screen.getByRole("dialog")).getByRole("but…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  |website| src/rewardFlights.test.tsx > #354: a Journey crate's XP flies into the hero's XP bar > across a level-up, holds the old level, then completes the ring and starts the new level without ever filling backwards
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAccessibleName()[22m
+
+Expected element to have accessible name:
+[32m  Level 2, 10 XP to level 3[39m
+Received:
+[31m  Level 3, 190 XP to level 4[39m
+ ❯ src/rewardFlights.test.tsx:145:24
+    143|     await user.click(within(screen.getByRole("dialog")).getByRole("but…
+    144|
+    145|     expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3…
+       |                        ^
+    146|     expect(xpBar()).toHaveAttribute("aria-valuenow", "90");
+    147|     landAll(flight()!);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  |website| src/rewardFlights.test.tsx > #354: a Journey crate's XP flies into the hero's XP bar > then flies the skill point the level-up earned from the XP bar to the HUD skill point chip, which counts up
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  1[39m
+Received:
+[31m  2[39m
+ ❯ src/rewardFlights.test.tsx:160:30
+    158|     placeAt(skillPointChip(), { x: 900, y: 12, width: 48, height: 32 }…
+    159|
+    160|     expect(skillPointChip()).toHaveTextContent("1");
+       |                              ^
+    161|     landAll(flight()!);
+    162|     expect(flight()).toHaveTextContent("+1 skill point");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  |website| src/rewardFlights.test.tsx > #354: a Journey crate's XP flies into the hero's XP bar > never flies under reduced motion: the bar shows the read's XP at once with a short fade
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"reward-faded"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  reward-faded[39m
+Received:
+[31m  h-3 w-full overflow-hidden rounded-full border border-muted-foreground p-px[39m
+ ❯ src/rewardFlights.test.tsx:184:21
+    182|     expect(flight()).toBeNull();
+    183|     expect(xpBar()).toHaveAttribute("aria-valuenow", "50");
+    184|     expect(xpBar()).toHaveClass("reward-faded");
+       |                     ^
+    185|     expect(frame()).not.toHaveClass("reward-filling");
+    186|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  |website| src/rewardFlights.test.tsx > #354: the Skill tree crate's skill points fly onto the HUD chip > shows the chip at 0 from the reveal, flies +{n} skill point from the crate onto it, and counts up once it lands
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  0[39m
+Received:
+[31m  1[39m
+ ❯ src/rewardFlights.test.tsx:201:30
+    199|     await user.click(within(panel).getByRole("button", { name: "Open" …
+    200|     showVisitor(shown);
+    201|     expect(skillPointChip()).toHaveTextContent("0");
+       |                              ^
+    202|     await user.keyboard("{Escape}");
+    203|     await user.click(within(screen.getByRole("dialog")).getByRole("but…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 1 passed (8)
+   Start at  12:46:54
+   Duration  13.82s (tests 52%, import 26%, transform 12%, environment 8%, setup 1%)
+

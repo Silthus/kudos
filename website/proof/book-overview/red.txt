@@ -1,0 +1,17 @@
+     × says how many tiers of every shipped ladder the member has earned, with a neutral bar 1020ms
+     × shows E's book-reading hedgehog 798ms
+     × leads to the ladder with the fewest left to its next tier, naming the tier and how many to go, with a neutral Next tag 135ms
+     × breaks a tie for the closest next tier in catalogue order 57ms
+     × follows the closest next tier to its page without a reload 157ms
+     × has no closest next tier once every ladder is complete 158ms
+     × never shows a received total and never names another member 43ms
+     × names no reward, coin, sticker or album, and lists no ladder card 204ms
+     × shelves the latest earned tier of each ladder, newest first, five on a wide screen, each with its medal and date 204ms
+     × shelves three on a narrow screen 142ms
+     × tags the newest New, as a static tag, while it was earned less than 7 days ago 132ms
+     × drops New once the newest was earned 7 days ago 139ms
+     × tags only the newest New when two were earned this week 52ms
+     × gives each category that holds a ladder one tile, in E's order, with its art, its ladders' emblems, its tiers earned and a neutral bar 753ms
+     × tiles only the categories that hold a ladder the read returns 218ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 15 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  15 failed | 1 passed | 48 skipped (64)

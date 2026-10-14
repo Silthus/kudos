@@ -21,7 +21,7 @@ afterEach(() => {
 const { threeReceived, threeGiven, nothingYet } = recentKudosFixtures;
 
 function homeWith(read: RecentKudosRead) {
-  return renderApp(shellFixtures.memberWithEveryPanelOpen, undefined, undefined, fixedQuests(questsFixtures.week), undefined, undefined, read);
+  return renderApp(shellFixtures.memberWithEveryPanelOpen, undefined, undefined, fixedQuests(questsFixtures.week), undefined, undefined, undefined, read);
 }
 
 function homeAnswering(received: RecentKudosShown | undefined, given: RecentKudosShown | undefined = threeGiven) {

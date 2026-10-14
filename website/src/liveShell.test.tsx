@@ -244,6 +244,14 @@ describe("WS111: the home's rail reads through the live shell", () => {
     expect(subscriptionsTo("website/quests:getQuests")).toEqual([{}]);
   });
 
+  it("WS343: subscribes once to the member's own profile card on the home", () => {
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelOpen);
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+
+    expect(subscriptionsTo("website/profileCard:getProfileCard")).toEqual([{}]);
+  });
+
   it("subscribes to no board while the Leaderboard is locked", () => {
     profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelLocked);
     boardRead.mockReturnValue(undefined);
@@ -368,7 +376,7 @@ describe("WS87: the skill tree page buys through the live shell's buyPerk", () =
   });
 });
 
-describe("WS90 WS92: the live site reads the Book on /book", () => {
+describe("WS90 WS334: the live site reads the Book on /book", () => {
   beforeEach(() => {
     window.history.replaceState(null, "", "/book");
     profileRead.mockReturnValue(shellFixtures.memberWithTheBookOpened);
@@ -378,7 +386,7 @@ describe("WS90 WS92: the live site reads the Book on /book", () => {
     boardRead.mockReturnValue(bookFixtures.book);
     renderLiveSite();
     expect(pageTitle()).toHaveTextContent("Achievements");
-    expect(screen.getByRole("heading", { level: 2, name: "Generosity" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "1 of 8 tiers earned" })).toBeInTheDocument();
   });
 
   it("shows the error page under the HUD when the Book read fails", async () => {

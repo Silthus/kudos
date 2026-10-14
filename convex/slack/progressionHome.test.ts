@@ -94,7 +94,7 @@ describe("P63 P65: a setting takes effect on the next notice or DM, and repeatin
     await interact(t, "U_ALICE", mute);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(slack.messagesIn("C1")).toEqual([]);
+    expect(slack.messagesIn("C_NEWS")).toEqual([]);
     expect(dmsTo("U_ALICE")).toEqual(["🎉 You reached level 2!\nLevel 3 is 80 XP away."]);
     expect(publishedHome(slack, "U_ALICE")).toContain("section: I don't post public notices about you. [button: Unmute notices]");
   });
@@ -108,7 +108,7 @@ describe("P63 P65: a setting takes effect on the next notice or DM, and repeatin
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(dmsTo("U_ALICE")).toEqual([]);
-    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+    expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
     expect(publishedHome(slack, "U_ALICE")).toContain("section: I don't send you DMs. [button: Turn on DMs]");
   });
 
@@ -123,7 +123,7 @@ describe("P63 P65: a setting takes effect on the next notice or DM, and repeatin
 
     expect(replayed.status).toBe(200);
     expect(publishedHome(slack, "U_ALICE")).toContain("section: I celebrate your level ups in public. [button: Mute notices]");
-    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+    expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
   });
 });
 
@@ -142,7 +142,7 @@ describe("P65: levels are public, so a Hide level click from an App Home publish
       "section: I celebrate your level ups in public. [button: Mute notices]",
       "section: I send you a DM when you reach a level. [button: Turn off DMs]",
     ]);
-    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+    expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
   });
 });
 
@@ -218,7 +218,7 @@ describe("P69: the Admin tab", () => {
     expect(publishedHome(slack, "U_ALICE")).toEqual([
       "actions: Profile | Settings | [Admin]",
       "header: Admin",
-      "section: I celebrate level ups in a thread under each kudos message. Pick a channel to post them there instead. [channels_select: none]",
+      "section: I don't celebrate level ups in public yet. Pick a channel to celebrate them there. [channels_select: none]",
       "divider",
       "context: Only workspace admins and owners see this tab.",
     ]);
@@ -242,7 +242,7 @@ describe("P69: the Admin tab", () => {
     expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Settings | Admin");
   });
 
-  test("picking a channel sends the next level-up notice there and shows it picked with a way back to threads", async () => {
+  test("QM4: picking a channel sends the next level-up notice there and shows it picked with a way to stop posting", async () => {
     const t = await adminTabOpen("U_ALICE");
 
     await interact(t, "U_ALICE", channelPickerInHome(slack, "U_ALICE", "C_NEWS"));
@@ -254,7 +254,7 @@ describe("P69: the Admin tab", () => {
       "actions: Profile | Settings | [Admin]",
       "header: Admin",
       "section: I celebrate level ups in this channel. [channels_select: C_NEWS]",
-      "section: Or celebrate them in a thread under each kudos message again. [button: Use threads]",
+      "section: Or stop celebrating them in public. [button: Stop posting]",
       "divider",
       "context: Only workspace admins and owners see this tab.",
     ]);
@@ -271,15 +271,15 @@ describe("P69: the Admin tab", () => {
     expect(publishedHome(slack, "U_CAROL")).toContain("section: I celebrate level ups in this channel. [channels_select: C_NEWS]");
   });
 
-  test("going back to threads sends the next level-up notice under its kudos message again", async () => {
+  test("QM4: Stop posting clears the channel, so the next level up is celebrated nowhere in public, and the picker asks for a channel again", async () => {
     const t = await adminTabOpen("U_ALICE");
     await interact(t, "U_ALICE", channelPickerInHome(slack, "U_ALICE", "C_NEWS"));
 
-    await click(t, "U_ALICE", "Use threads");
+    await click(t, "U_ALICE", "Stop posting");
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(slack.messagesIn("C_NEWS")).toEqual([]);
-    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+    expect(publicPosts()).toEqual([]);
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: I don't celebrate level ups in public yet. Pick a channel to celebrate them there. [channels_select: none]");
   });
 
   test("an admin removed in Slack while an Admin tab publish is in flight is left without the Admin tab", async () => {
@@ -307,8 +307,30 @@ describe("P69: only workspace admins and owners set the announcement channel", (
     await interact(t, "U_BOB", { type: "button", action_id: "x", value: JSON.stringify({ type: "setAnnouncementChannel", channel: "C_NEWS" }) });
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(slack.messagesIn("C_NEWS")).toEqual([]);
-    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+    expect(publicPosts()).toEqual([]);
+  });
+
+  test("QM4: a member who isn't an admin can't stop posting, even with a crafted click", async () => {
+    const t = await adminTabOpen("U_ALICE");
+    await interact(t, "U_ALICE", channelPickerInHome(slack, "U_ALICE", "C_NEWS"));
+    await openHome(t, "U_BOB");
+
+    await interact(t, "U_BOB", { type: "button", action_id: "x", value: JSON.stringify({ type: "setAnnouncementChannel", channel: null }) });
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+  });
+
+  test("QM4: an admin removed in Slack can no longer stop posting", async () => {
+    const t = await adminTabOpen("U_ALICE");
+    await interact(t, "U_ALICE", channelPickerInHome(slack, "U_ALICE", "C_NEWS"));
+    const stopPosting = buttonInHome(slack, "U_ALICE", "Stop posting");
+    await memberChanged(t, "user_change", { id: "U_ALICE" });
+
+    await interact(t, "U_ALICE", stopPosting);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
   });
 
   test("an admin removed in Slack can no longer set the announcement channel", async () => {
@@ -375,12 +397,12 @@ describe("R42: an interaction Slack did not sign gets 401 and does nothing", () 
     expect(response.status).toBe(401);
     expect(slack.calls.slice(callsBefore)).toEqual([]);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
-    expect(slack.messagesIn("C1").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+    expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
   });
 });
 
 async function settingsOpen(user: string) {
-  const t = await workspaceWithAllowance(10);
+  const t = await workspaceWithAllowance(10, { announcementChannel: "C_NEWS" });
   await giveKudos(t, user, "U_BOB", 1);
   await openHome(t, user);
   await click(t, user, "Settings");
@@ -423,13 +445,17 @@ function progressionOf(home: string[]) {
   return home.slice(start, home.indexOf("divider", start));
 }
 
+function publicPosts() {
+  return slack.callsTo("chat.postMessage").filter(({ channel }) => !String(channel).startsWith("U"));
+}
+
 function dmsTo(user: string) {
   return slack.messagesIn(user).map(({ text }) => String(text)).filter((text) => text.startsWith("🎉 You reached level"));
 }
 
-async function workspaceWithAllowance(baseAllowance: number) {
+async function workspaceWithAllowance(baseAllowance: number, settings: { announcementChannel?: string } = {}) {
   const t = await flagsLoaded(testBackend());
-  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance }));
+  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance, ...settings }));
   return t;
 }
 

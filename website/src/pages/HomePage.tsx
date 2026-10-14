@@ -15,7 +15,7 @@ export function HomePage({ member, reads, useRecentKudos }: { member: MemberProf
         <MainColumnPanels member={member} />
       </div>
       <div className="flex min-w-0 flex-col gap-6">
-        <ProfileCardPanel member={member} />
+        <ProfileCardPanel member={member} card={reads.card} />
         <RecentKudosCard useRecentKudos={useRecentKudos} />
         <RightRailPanels member={member} reads={reads} />
       </div>

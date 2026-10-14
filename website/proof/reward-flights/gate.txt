@@ -1,0 +1,10 @@
+# ~/dev/fleet/fleet heavy -- pnpm gate on c8f4ef7 (origin/main b57ada5 merged)
+$ pnpm typecheck && pnpm test && pnpm coherence
+$ tsc --noEmit && tsc --noEmit -p website
+$ vitest run
+ Test Files  162 passed (162)
+      Tests  2855 passed (2855)
+   Duration  176.85s (tests 82%, import 11%, environment 4%, transform 2%, setup 1%)
+$ coherence spec --check && coherence lexicon --check
+0 rejected names, 0 unknown nouns (689 files), 17 in records
+exit 0

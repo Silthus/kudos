@@ -308,23 +308,19 @@ function changeOf(key: keyof ProgressSettings, value: boolean): Partial<Progress
 
 function adminGroups({ announcementChannel, achievements }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
   const what = celebrated(achievements);
-  const channelLines = announcementChannel === null ? threadLines(what) : announcementChannelLines(what, announcementChannel);
+  const channelLines = announcementChannel === null ? noChannelLines(what) : announcementChannelLines(what, announcementChannel);
   return [channelLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
 }
 
-function threadLines(what: string): HomeLine[] {
-  const text = `I celebrate ${what} in a thread under each kudos message. Pick a channel to post them there instead.`;
+function noChannelLines(what: string): HomeLine[] {
+  const text = `I don't celebrate ${what} in public yet. Pick a channel to celebrate them there.`;
   return [{ kind: "pick-channel", text, picked: null, picks: "setAnnouncementChannel" }];
 }
 
 function announcementChannelLines(what: string, channel: string): HomeLine[] {
   return [
     { kind: "pick-channel", text: `I celebrate ${what} in this channel.`, picked: channel, picks: "setAnnouncementChannel" },
-    {
-      kind: "action",
-      text: "Or celebrate them in a thread under each kudos message again.",
-      action: { label: "Use threads", command: { type: "setAnnouncementChannel", channel: null } },
-    },
+    { kind: "action", text: "Or stop celebrating them in public.", action: { label: "Stop posting", command: { type: "setAnnouncementChannel", channel: null } } },
   ];
 }
 

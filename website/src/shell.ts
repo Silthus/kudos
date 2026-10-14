@@ -6,12 +6,14 @@ import type { Denial } from "../../convex/website/memberQuery";
 import type { FeatureCard, JourneyStep, MemberProfile, MyProfile } from "../../convex/website/profile";
 import type { QuestsAnswer } from "../../convex/website/quests";
 import type { BookAnswer } from "../../convex/website/book";
+import type { ProfileCardAnswer } from "../../convex/website/profileCard";
 import type { MySkillTree } from "../../convex/website/skillTree";
 
 export type { Face, FeatureCard, JourneyStep, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
 export type { QuestsAnswer, QuestSlot, WaitingCrate, WeekSwap } from "../../convex/website/quests";
 export type { BookAnswer, LadderCard, TierCard } from "../../convex/website/book";
 export type { TierId } from "../../convex/achievements/ladders";
+export type { Medal } from "../../convex/profileCard/profileCard";
 export type { MySkillTree, PerkNode, SkillTreeAnswer, TreeRow } from "../../convex/website/skillTree";
 export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
 export type { Period } from "../../convex/leaderboard/periods";
@@ -33,6 +35,8 @@ export type VisibilityReply = VisibilityAnswer | Denial;
 export type MyQuests = QuestsAnswer | Denial;
 
 export type MyBook = BookAnswer | Denial;
+
+export type MyProfileCard = ProfileCardAnswer | Denial;
 
 export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } | { kind: "sign-in-unfinished" };
 
@@ -165,6 +169,14 @@ const memberWithQuests: MemberProfile = { ...member, ...onTheUnlockPath({ ...que
 
 const memberWithQuestsAtLevel2: MemberProfile = { ...memberWithQuests, progression: { level: 2, xp: 50, levelStartsAt: 20, nextLevelAt: 60, xpToNextLevel: 10 } };
 
+const memberCrossingIntoLevel6: MemberProfile = {
+  ...member,
+  ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...opened }),
+  journey: journeyUnderway,
+  skillPoints: 2,
+  progression: { level: 6, xp: 1010, levelStartsAt: 1000, nextLevelAt: 1500, xpToNextLevel: 490 },
+};
+
 const memberWithAQuietWeek: MemberProfile = { ...member, thisWeek: { given: 0, received: 0 } };
 
 const memberAtLevel1: MemberProfile = { ...member, progression: { level: 1, xp: 0, levelStartsAt: 0, nextLevelAt: 20, xpToNextLevel: 20 } };
@@ -211,6 +223,7 @@ export const shellFixtures = {
   memberWithQuestsReady,
   memberWithQuests,
   memberWithQuestsAtLevel2,
+  memberCrossingIntoLevel6,
   error: { kind: "broken" },
 } as const satisfies Record<string, ShellState>;
 
@@ -246,6 +259,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-quests-ready": shellFixtures.memberWithQuestsReady,
   "member-with-quests": shellFixtures.memberWithQuests,
   "member-with-quests-at-level-2": shellFixtures.memberWithQuestsAtLevel2,
+  "member-crossing-into-level-6": shellFixtures.memberCrossingIntoLevel6,
   error: shellFixtures.error,
 };
 
