@@ -4,6 +4,7 @@ import type { BoardRead } from "./boardRead";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures, type Leaderboard, type MyLeaderboard, type Period, type VisibilityReply } from "./shell";
 import { renderApp } from "./test/renderApp";
+import { navEntryNames } from "./test/screensNav";
 import { fakeSystemTheme } from "./test/systemTheme";
 import { watchTheViewerRow } from "./test/viewerRow";
 
@@ -30,25 +31,25 @@ function pageTitle() {
 }
 
 describe("WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string", () => {
-  it("shows Home and Leaderboard in the screen nav while the board is open, with the current one marked", () => {
+  it("shows Profile and Leaderboard in the screen nav while the board is open, with the current one marked", () => {
     visit("/leaderboard");
     renderApp(withTheBoard, fixedLeaderboard(leaderboardFixtures.midBoard));
     const leaderboard = within(screens()).getByRole("link", { name: "Leaderboard" });
     expect(leaderboard).toHaveAttribute("href", "/leaderboard");
     expect(leaderboard).toHaveAttribute("aria-current", "page");
-    expect(within(screens()).getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current");
+    expect(within(screens()).getByRole("link", { name: "Profile" })).not.toHaveAttribute("aria-current");
     expect(document.title).toBe("HedgeHug · Leaderboard");
   });
 
-  it("marks Home as current at the root", () => {
+  it("marks Profile as current at the root", () => {
     renderApp(withTheBoard);
-    expect(within(screens()).getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+    expect(within(screens()).getByRole("link", { name: "Profile" })).toHaveAttribute("aria-current", "page");
     expect(within(screens()).getByRole("link", { name: "Leaderboard" })).not.toHaveAttribute("aria-current");
   });
 
   it("shows no Leaderboard item while the board is off", () => {
     renderApp(shellFixtures.member);
-    expect(within(screens()).getAllByRole("link").map((link) => link.textContent)).toEqual(["Home"]);
+    expect(navEntryNames()).toEqual(["Profile"]);
   });
 
   it("renders the not-found page when the read answers not-found", () => {
@@ -114,7 +115,7 @@ describe("WS37 WS1: the leaderboard lives at /leaderboard, with the period in th
     expect(pageTitle()).toHaveFocus();
     expect(document.title).toBe("HedgeHug · Leaderboard");
 
-    await user.click(within(screens()).getByRole("link", { name: "Home" }));
+    await user.click(within(screens()).getByRole("link", { name: "Profile" }));
     expect(window.location.pathname).toBe("/");
     expect(pageTitle()).toHaveTextContent("Sam Example");
     expect(pageTitle()).toHaveFocus();
@@ -142,23 +143,24 @@ describe("WS38 WS110: the home's Leaderboard panel", () => {
 
 describe("WS52: the leaderboard page waits for its unlock", () => {
   it.each([
-    { state: "locked", visitor: shellFixtures.memberWaitingForTheBoard, answer: { kind: "locked", level: 3 } as const, says: "Leaderboard opens at level 3." },
-    { state: "ready", visitor: shellFixtures.memberWithTheBoardReady, answer: { kind: "ready" } as const, says: "Unlocks: LeaderboardIt opens the boards." },
-  ])("says what the $state leaderboard waits for in place of the board, with no Leaderboard nav item", ({ visitor, answer, says }) => {
+    { state: "locked", visitor: shellFixtures.memberWaitingForTheBoard, answer: { kind: "locked", level: 3 } as const, says: "Leaderboard opens at level 3.", entry: "Leaderboard, locked. Unlocks at level 3" },
+    { state: "ready", visitor: shellFixtures.memberWithTheBoardReady, answer: { kind: "ready" } as const, says: "Unlocks: LeaderboardIt opens the boards.", entry: "Leaderboard: unlock ready. Open its crate" },
+  ])("says what the $state leaderboard waits for in place of the board, with its nav entry in that state and no link", ({ visitor, answer, says, entry }) => {
     visit("/leaderboard");
     renderApp(visitor, (period) => (period && answer));
     expect(pageTitle()).toHaveTextContent("Leaderboard");
     expect(document.title).toBe("HedgeHug · Leaderboard");
     expect(main()).toHaveTextContent(says);
-    expect(within(screens()).getAllByRole("link").map((link) => link.textContent)).toEqual(["Home"]);
+    expect(navEntryNames()[1]).toBe(entry);
+    expect(within(screens()).queryByRole("link", { name: "Leaderboard" })).not.toBeInTheDocument();
     expect(within(main()).queryByRole("region", { name: /Everyone/ })).not.toBeInTheDocument();
     expect(within(main()).queryByRole("list")).not.toBeInTheDocument();
   });
 
-  it("sends a locked member home", () => {
+  it("sends a locked member back to their profile", () => {
     visit("/leaderboard");
     renderApp(shellFixtures.memberWaitingForTheBoard, (period) => (period && { kind: "locked", level: 3 }));
-    expect(within(main()).getByRole("link", { name: "Go to Home" })).toHaveAttribute("href", "/");
+    expect(within(main()).getByRole("link", { name: "Back to your profile" })).toHaveAttribute("href", "/");
   });
 
   it("moves focus to the board's title when the ready leaderboard opens under the open page", () => {

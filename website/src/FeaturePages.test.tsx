@@ -2,6 +2,7 @@ import { act, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
+import { navEntryNames as screenNav } from "./test/screensNav";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 beforeEach(() => {
@@ -16,12 +17,6 @@ function main() {
   return screen.getByRole("main");
 }
 
-function screenNav() {
-  return within(screen.getByRole("navigation", { name: "Screens" }))
-    .getAllByRole("link")
-    .map((link) => link.textContent);
-}
-
 function dialog() {
   return screen.queryByRole("dialog");
 }
@@ -31,7 +26,7 @@ describe("WS81: the pages join the nav, the home and the crate", () => {
 
   it("lists each open feature with a web page in schedule order", () => {
     renderApp(shellFixtures.memberWithEveryFeatureOpen);
-    expect(screenNav()).toEqual(["Home", "Leaderboard", "Book", "Skill tree"]);
+    expect(screenNav()).toEqual(["Profile", "Leaderboard", "Book", "Skill tree"]);
   });
 
   it.each([

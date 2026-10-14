@@ -10,8 +10,6 @@ export type About = { sentence: string; Hog: Hoggie };
 
 export type WebPage = { screen: Screen; href: string; sentence: string; Icon: ComponentType<{ className?: string }> };
 
-export type OpenWebPage = WebPage & { feature: Feature; name: string };
-
 const plainNames: Record<Feature, string> = {
   quests: "Quests",
   leaderboard: "Leaderboard",
@@ -57,14 +55,6 @@ export function pageOf(feature: PagedFeature): WebPage {
 
 function hasWebPage(feature: Feature): feature is PagedFeature {
   return feature in webPages;
-}
-
-export function openWebPagesOf({ features, leaderboard }: Pick<MemberProfile, "features" | "leaderboard">): OpenWebPage[] {
-  const open = features ?? (leaderboard.kind === "open" ? [{ feature: "leaderboard" as const, name: plainNames.leaderboard, state: "open" as const }] : []);
-  return open.flatMap(({ feature, name, state }) => {
-    const page = webPageOf(feature);
-    return state === "open" && page !== undefined ? [{ ...page, feature, name }] : [];
-  });
 }
 
 export function readyFeaturesOf({ features }: Pick<MemberProfile, "features">) {
