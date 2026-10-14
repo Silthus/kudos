@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { mentionValidator, type Annotations, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
-import { couldEarnMoreBySayingWhy } from "../progression/perks";
+import { couldEarnMoreBySayingWhy, skillTreeAppliesIn } from "../progression/perks";
 import { questsApplyIn, questsExposedTo } from "../quests/flag";
 import type { JourneyStep } from "../quests/step";
 import { lookup } from "../workspace/directory";
@@ -75,7 +75,8 @@ export const privateReply = internalQuery({
     if (row === null) return null;
     const { questsDone, hint, ...stored } = row;
     const questsStillApply = questsDone !== undefined && (await questsApplyIn(ctx, row.workspace));
-    const extras = extrasLineOf([...(questsStillApply ? [questsDone] : []), ...(hint ? [hint] : [])]);
+    const skillTreeStillApplies = hint !== undefined && (await skillTreeAppliesIn(ctx, row.workspace));
+    const extras = extrasLineOf([...(questsStillApply ? [questsDone] : []), ...(skillTreeStillApplies ? [hint] : [])]);
     return { ...stored, lines: extras ? [...row.lines, extras] : row.lines };
   },
 });

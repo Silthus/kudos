@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, messageChangedEvent, messageEvent, section, text } from "../../testing/slackMessages";
+import { replyPrivately, type Reply } from "../feedback/replies";
 import type { PerkId } from "../progression/tree";
 import type { QuestId } from "../quests/pool";
 import type { MemberId } from "../workspace/directory";
@@ -14,6 +15,8 @@ const aMinuteLater = `${now.getTime() / 1000 + 60}.000100`;
 const saysWhy = "thanks for untangling the release notes today";
 const given = "<@U_BOB> got 1 kudos from you. You have 9 kudos left today.";
 const hint = "Add why they earned it to earn more.";
+const ref = { workspace: "T1", conversation: "C1", message: ts };
+const givenWithoutWhy: Reply = { kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [] }, base: 10, annotations: { gate: { version: 1, thoughtful: false, words: 1 } } };
 
 let slack: FakeSlack;
 
@@ -59,6 +62,31 @@ describe("P15 P71 P95: the success reply asks a giver who owns a perk to say why
     await send(t, messageChangedEvent([section(mention("U_BOB"), text(" thanks "), emoji("taco"))], { user: "U_ALICE", ts, editedTs: aMinuteLater }));
 
     expect(successRepliesToAlice()).toEqual([[given, hint]]);
+  });
+});
+
+describe("P15: the hint adds no wait and shows only while the skill tree applies", () => {
+  test("where Quests doesn't apply, a reply with the hint is scheduled for delivery at once and never held", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
+    const { t } = await workspaceWhereAliceOwns("spark");
+
+    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", givenWithoutWhy));
+
+    const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+    const forReplies = scheduled.filter(({ name }) => name.startsWith("slack/delivery:") || name.startsWith("feedback/replies:"));
+    expect(forReplies.map(({ name, scheduledTime }) => ({ name, inMs: scheduledTime - Date.now() }))).toEqual([{ name: "slack/delivery:deliverPrivateReply", inMs: 0 }]);
+    expect(await t.run(async (ctx) => (await ctx.db.query("privateReplies").collect()).map(({ held, hint }) => ({ held, hint })))).toEqual([{ held: undefined, hint: [{ text: hint }] }]);
+  });
+
+  test("a reply written with the hint is sent without it once the skill tree stops applying before Slack takes it", async () => {
+    const postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
+    const { t } = await workspaceWhereAliceOwns("spark");
+    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", givenWithoutWhy));
+
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("skill-tree"));
+    await settle(t);
+
+    expect(successRepliesToAlice()).toEqual([[given]]);
   });
 });
 
