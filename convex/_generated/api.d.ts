@@ -137,6 +137,7 @@ import type * as slack_receipts from "../slack/receipts.js";
 import type * as slack_richText from "../slack/richText.js";
 import type * as slack_signIn from "../slack/signIn.js";
 import type * as slack_signature from "../slack/signature.js";
+import type * as slack_strandedJobs from "../slack/strandedJobs.js";
 import type * as slack_userGroups from "../slack/userGroups.js";
 import type * as slack_verifyMember from "../slack/verifyMember.js";
 import type * as slack_webApi from "../slack/webApi.js";
@@ -316,6 +317,7 @@ declare const fullApi: ApiFromModules<{
   "slack/richText": typeof slack_richText;
   "slack/signIn": typeof slack_signIn;
   "slack/signature": typeof slack_signature;
+  "slack/strandedJobs": typeof slack_strandedJobs;
   "slack/userGroups": typeof slack_userGroups;
   "slack/verifyMember": typeof slack_verifyMember;
   "slack/webApi": typeof slack_webApi;
