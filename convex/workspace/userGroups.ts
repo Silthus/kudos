@@ -104,7 +104,7 @@ export const keepUserGroupMembers = internalMutation({
     if (row === null || !keepsMembers(row) || isOlder(asOf, row.membersAsOf)) return;
     const changed = await replaceMembers(ctx, key, users);
     await followPeopleLater(ctx, key.workspace, changed);
-    await ctx.db.patch(row._id, { membersAsOf: asOf, members: users.length });
+    await ctx.db.patch(row._id, { membersAsOf: asOf, members: users.length, ...(changed.length > 0 && { changedAt: Date.now() }) });
     await reconcileLater(ctx, key.workspace, [...new Set([...changed, ...users])]);
   },
 });
@@ -123,8 +123,11 @@ async function followPeopleWhoLeftGroups(ctx: MutationCtx, memberships: Doc<"use
 async function keepUserGroup(ctx: MutationCtx, group: UserGroup, asOf: number): Promise<UserGroupChange> {
   const row = await userGroupRow(ctx, group);
   if (row !== null && isOlder(asOf, row.asOf)) return "unchanged";
-  if (row === null) await ctx.db.insert("userGroups", { ...group, asOf });
-  else await ctx.db.patch(row._id, { ...group, asOf });
+  const changedAt = row === null || keepsMembers(row) !== keepsMembers(group) ? Date.now() : row.changedAt;
+  const { members, ...described } = group;
+  const kept = { ...described, asOf, changedAt, ...(!isOlder(asOf, row?.membersAsOf) && members !== undefined && { members }) };
+  if (row === null) await ctx.db.insert("userGroups", kept);
+  else await ctx.db.patch(row._id, kept);
   if (row === null || !keepsMembers(row)) return "unchanged";
   if (!keepsMembers(group)) return "stopped-keeping-members";
   return row.handle === group.handle ? "unchanged" : "renamed";

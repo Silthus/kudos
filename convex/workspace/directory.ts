@@ -102,7 +102,7 @@ export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }:
   const existing = await memberRow(ctx, workspace, user);
   if (existing === null) {
     await ctx.db.insert("members", row);
-    await reconcileUser(ctx, workspace, user);
+    await reconcileUser(ctx, workspace, user, Date.now());
   } else if (!isOlder(asOf, existing.asOf)) {
     await replace(ctx, existing, keepingNewerProfile(existing, row));
     await followMembersLater(ctx, [existing._id]);
@@ -142,7 +142,7 @@ async function replace(ctx: MutationCtx, existing: Doc<"members">, row: MemberRo
   const membership = { workspace: row.workspace, member: existing._id, at: Date.now() };
   if (existing.kind === "member" && row.kind !== "member") await publish(ctx, { type: "memberLeft", ...membership });
   if (existing.kind !== "member" && row.kind === "member") await publish(ctx, { type: "memberRejoined", ...membership });
-  if ((existing.kind === "member") !== (row.kind === "member")) await reconcileMember(ctx, existing._id);
+  if ((existing.kind === "member") !== (row.kind === "member")) await reconcileMember(ctx, existing._id, Date.now());
 }
 
 export function isOlder(asOf: number, known: number | undefined) {
