@@ -1,0 +1,40 @@
+-         "rewards": [],
+-         "seen": null,
+          "tier": "silver",
+        },
+        {
+          "at": 6,
+          "earnedAt": null,
+          "name": "Long Memory",
+-         "rewards": [],
+-         "seen": null,
+          "tier": "gold",
+        },
+        {
+          "at": 12,
+          "earnedAt": null,
+          "name": "Evergreen",
+-         "rewards": [],
+-         "seen": null,
+          "tier": "diamond",
+        },
+      ],
+    },
+  ]
+
+ ❯ convex/website/book.test.ts:379:26
+    377|     expect(ladderIn(book, "generosity")).toMatchObject({ count: 3, nex…
+    378|     expect(ladderIn(book, "recognition")).toMatchObject({ count: 0, ne…
+    379|     expect(book.ladders).toEqual((await domainFactsOf(member)).map(asW…
+       |                          ^
+    380|   });
+    381| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 13 passed (21)
+   Start at  16:53:36
+   Duration  3.09s (tests 46%, transform 39%, import 13%, environment 2%)
+

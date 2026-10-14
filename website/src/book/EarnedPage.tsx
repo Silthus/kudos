@@ -85,7 +85,7 @@ function NothingEarnedYet() {
 
 function Actions({ children }: { children?: ReactNode }) {
   return (
-    <div className="flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
       {children}
       <AppLink href={bookHref("overview")} className={`${buttonVariants({ variant: "primary" })} sm:ml-auto`}>
         See achievements
