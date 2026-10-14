@@ -178,6 +178,30 @@ describe("CO2: giving coins on the giver's qualifying recognitions", () => {
   });
 });
 
+describe("CO4: treasurer and banker coin lines on the giver's qualifying recognitions", () => {
+  const giving = { source: "giving", coins: 4 };
+  const treasurer = { source: "treasurer", coins: 2 };
+  const banker = { source: "banker", coins: 4 };
+  const today = "2026-10-13";
+
+  test.each([
+    ["treasurer adds 2 coins", ["treasurer"], kudosGiven([[bob, 1]], thoughtful), [], [[giving, treasurer]]],
+    ["banker replaces treasurer's line with 4 coins", ["treasurer", "banker"], kudosGiven([[bob, 1]], thoughtful), [], [[giving, banker]]],
+    ["with every perk, the XP lines stay XP and the coin line stays coins", ["spark", "rhythm", "circle", "flame", "cadence", "bridge", "treasurer", "banker"], kudosGiven([[bob, 1]], thoughtful), [], [[giving, banker]]],
+    ["treasurer pays on every recognition, not only the day's first", ["treasurer"], kudosGiven([[bob, 1]], thoughtful), [{ recipient: carol, day: today }], [[giving, treasurer]]],
+    ["a multi-kudos award pays treasurer once", ["treasurer"], kudosGiven([[bob, 3]], thoughtful), [], [[giving, treasurer]]],
+    ["Bob and Carol in one message pay treasurer for each", ["treasurer"], kudosGiven([[bob, 1], [carol, 1]], thoughtful), [], [[giving, treasurer], [giving, treasurer]]],
+    ["Bob again the same day earns no perk coins", ["treasurer", "banker"], kudosGiven([[bob, 1]], thoughtful), [{ recipient: bob, day: today }], [[]]],
+    ["a kudos that doesn't say why earns no perk coins", ["treasurer"], kudosGiven([[bob, 1]], notThoughtful), [], [[]]],
+  ] satisfies Array<[string, PerkId[], KudosGivenEvent, ThoughtfulAward[], unknown[][]]>)("%s", (_, perks, event, earlier, lines) => {
+    const { effects, state } = progress(starting(alice), event, catalogue, { perks, earlier });
+
+    expect(effects.map(({ coins }) => coins ?? [])).toEqual(lines);
+    expect(effects.flatMap(({ bonus = [] }) => bonus).filter(({ source }) => source === "treasurer" || source === "banker")).toEqual([]);
+    expect(state.xp).toBe(effects.reduce((sum, { baseXp, bonus = [] }) => sum + baseXp + bonus.reduce((total, { xp }) => total + xp, 0), 0));
+  });
+});
+
 describe("CO3: receiving coins on the recipient's thoughtful awards", () => {
   const receiving = { source: "receiving", coins: 2 };
   const otherGivers = (count: number) => Array.from({ length: count }, (_, giver) => `giver-${giver}` as Id<"members">);

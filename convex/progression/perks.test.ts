@@ -153,7 +153,10 @@ describe("P79: perksOf tells the website what the member owns and what each perk
       { perk: "flame", coins: 150, upgrades: "spark", state: "buyable" },
       { perk: "cadence", coins: 200, upgrades: "rhythm", state: "needs-prerequisite" },
       { perk: "bridge", coins: 150, upgrades: "circle", state: "needs-prerequisite" },
+      { perk: "treasurer", coins: 0, upgrades: null, state: "buyable" },
+      { perk: "banker", coins: 250, upgrades: "treasurer", state: "below-row" },
     ]);
+    expect(perks?.perks.find(({ perk }) => perk === "banker")).toMatchObject({ name: "Banker", row: 9, skillPoints: 2, requires: "treasurer", copy: "Treasurer gives +4 🪙 instead of +2." });
     expect(perks?.perks.find(({ perk }) => perk === "flame")).toMatchObject({ name: "Flame", row: 7, skillPoints: 1, requires: "spark", copy: "Spark gives +8 XP instead of +5." });
   });
 
@@ -169,10 +172,11 @@ describe("P79: perksOf tells the website what the member owns and what each perk
   test.each([
     ["coins off", [], "open"],
     ["Coins not opened", ["coins"], "ready"],
-  ] as const)("CO25: with %s, unowned upgrades aren't listed and an owned one is listed as owned without its coin price", async (_, coinsOn, coins) => {
+  ] as const)("CO25: with %s, unowned coin perks aren't listed and owned ones are listed as owned without their coin price", async (_, coinsOn, coins) => {
     postHog = flagsOnForEveryone(new FakeSlack().fetch, ...allFlags, ...coinsOn);
     const { t, alice } = await memberWith({ xp: levelSeven, tree: "open", owns: "rhythm", coins });
     await t.run((ctx) => ctx.db.insert("perksOwned", { member: alice, perk: "cadence", boughtAt: 0, catalogueVersion: "2" }));
+    await t.run((ctx) => ctx.db.insert("perksOwned", { member: alice, perk: "treasurer", boughtAt: 0, catalogueVersion: "2" }));
 
     const perks = await t.query(internal.progression.perks.perksOf, { member: alice });
 
@@ -181,6 +185,7 @@ describe("P79: perksOf tells the website what the member owns and what each perk
       { perk: "rhythm", coins: 0, state: "owned" },
       { perk: "circle", coins: 0, state: "buyable" },
       { perk: "cadence", coins: 0, state: "owned" },
+      { perk: "treasurer", coins: 0, state: "owned" },
     ]);
   });
 

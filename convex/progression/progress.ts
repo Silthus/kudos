@@ -13,7 +13,7 @@ export const bonusLineValidator = v.object({ source: perkValidator, xp: v.number
 
 export type BonusLine = Infer<typeof bonusLineValidator>;
 
-export const coinLineValidator = v.object({ source: v.union(v.literal("giving"), v.literal("receiving")), coins: v.number() });
+export const coinLineValidator = v.object({ source: v.union(v.literal("giving"), v.literal("receiving"), perkValidator), coins: v.number() });
 
 export type CoinLine = Infer<typeof coinLineValidator>;
 
@@ -111,7 +111,8 @@ export function effectsFor(
     }
     const recognition = recognitionOf(award.recipient, day, given);
     given.push({ day, recipient: award.recipient });
-    return [withLines(record, { bonus: bonusLinesOf(recognition, perks, catalogue), coins: givingCoinsOf(recognition, catalogue) })];
+    const paying = perksPaying(recognition, perks, catalogue);
+    return [withLines(record, { bonus: xpLinesOf(paying), coins: [...givingCoinsOf(recognition, catalogue), ...coinLinesOf(paying)] })];
   });
 }
 
@@ -123,13 +124,23 @@ function withLines(record: EffectsRecord, { bonus = [], coins = [] }: Pick<Effec
   return { ...record, ...(bonus.length > 0 && { bonus }), ...(coins.length > 0 && { coins }) };
 }
 
-function bonusLinesOf(recognition: Recognition | null, perks: PerkId[], catalogue: Catalogue): BonusLine[] {
+type Paying = { perk: PerkId; bonus: Bonus };
+
+function perksPaying(recognition: Recognition | null, perks: PerkId[], catalogue: Catalogue): Paying[] {
   if (recognition === null) return [];
   const bonusOf = (perk: PerkId): Bonus => catalogue.bonuses[perk];
   const replaced = perks.flatMap((perk) => bonusOf(perk).replaces ?? []);
   return (Object.keys(catalogue.bonuses) as PerkId[])
     .filter((perk) => perks.includes(perk) && !replaced.includes(perk) && recognition[bonusOf(perk).on])
-    .map((perk) => ({ source: perk, xp: bonusOf(perk).xp }));
+    .map((perk) => ({ perk, bonus: bonusOf(perk) }));
+}
+
+function xpLinesOf(paying: Paying[]): BonusLine[] {
+  return paying.flatMap(({ perk, bonus }) => ("xp" in bonus ? [{ source: perk, xp: bonus.xp }] : []));
+}
+
+function coinLinesOf(paying: Paying[]): CoinLine[] {
+  return paying.flatMap(({ perk, bonus }) => ("coins" in bonus ? [{ source: perk, coins: bonus.coins }] : []));
 }
 
 function givingCoinsOf(recognition: Recognition | null, catalogue: Catalogue): CoinLine[] {

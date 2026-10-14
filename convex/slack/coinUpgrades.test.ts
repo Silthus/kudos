@@ -26,6 +26,8 @@ const circleCopy = "+5 XP the first time each week you thank a person and say wh
 const flameCopy = "Spark gives +8 XP instead of +5.";
 const cadenceCopy = "Rhythm gives +3 XP instead of +2.";
 const bridgeCopy = "Circle gives +8 XP instead of +5 when the person isn't in your primary group. Without a primary group, everyone counts.";
+const treasurerCopy = "+2 🪙 each time you thank someone and say why, once per person a day.";
+const bankerCopy = "Treasurer gives +4 🪙 instead of +2.";
 
 const treeOn = [onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("skill-tree")];
 const previewedByAlice = [...treeOn, onForEmails("coins", alicesEmail)];
@@ -68,7 +70,7 @@ describe("CO22 CO23 CO24: a level-7 member with Coins open buys flame with a ski
     expect((await giverRecordsOf(t, "U_ALICE")).at(-1)?.bonus).toEqual([{ source: "flame", xp: 8 }]);
   });
 
-  test("the Skill tree tab lists the three upgrades with their price beside the perks they upgrade, and each Buy asks before it spends both", async () => {
+  test("the Skill tree tab lists the upgrades and the coin perks with their prices", async () => {
     const t = await aliceWithTheTreeOpen({ owns: ["spark", "rhythm", "circle"], coins: 200 });
 
     await openSkillTreeTab(t, "U_ALICE");
@@ -83,6 +85,10 @@ describe("CO22 CO23 CO24: a level-7 member with Coins open buys flame with a ski
       "context: You need 1 skill point.",
       `section: *Bridge* · 1 skill point · 150 🪙\n${bridgeCopy}`,
       "context: You need 1 skill point.",
+      `section: *Treasurer* · 1 skill point\n${treasurerCopy}`,
+      "context: You need 1 skill point.",
+      `section: *Banker* · 2 skill points · 250 🪙\n${bankerCopy}`,
+      "context: It opens at level 9.",
     ]);
   });
 
@@ -207,6 +213,129 @@ describe("CO14 CO22 CO25: upgrades exist only where coins are visible, and owned
   });
 });
 
+describe("CO4 CO22: treasurer and banker pay more coins on every thank-you that says why", { timeout: 30_000 }, () => {
+  const giving = { source: "giving", coins: 4 };
+
+  test("with treasurer, a kudos that says why records 4 + 2 coins and replies +6 🪙", async () => {
+    const t = await aliceWithTheTreeOpen({ owns: ["treasurer"], coins: coinsEarnedOnTheWay });
+    const before = await balanceRecordedFor(t, "U_ALICE");
+
+    vi.setSystemTime(tuesday + dayMs);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
+
+    expect((await giverRecordsOf(t, "U_ALICE")).at(-1)?.coins).toEqual([giving, { source: "treasurer", coins: 2 }]);
+    expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP · +6 🪙"]);
+    expect(await balanceRecordedFor(t, "U_ALICE")).toBe(before + 6);
+  });
+
+  test("with banker, a kudos that says why records 4 + 4 coins, no treasurer line, and replies +8 🪙", async () => {
+    const t = await aliceWithTheTreeOpen({ owns: ["treasurer", "banker"], coins: 250, level: 9 });
+    const before = await balanceRecordedFor(t, "U_ALICE");
+
+    vi.setSystemTime(tuesday + dayMs);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
+
+    expect((await giverRecordsOf(t, "U_ALICE")).at(-1)?.coins).toEqual([giving, { source: "banker", coins: 4 }]);
+    expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP · +8 🪙"]);
+    expect(await balanceRecordedFor(t, "U_ALICE")).toBe(before + 8);
+  });
+
+  test("a second kudos to the same person that day earns no perk coins", async () => {
+    const t = await aliceWithTheTreeOpen({ owns: ["treasurer"], coins: coinsEarnedOnTheWay });
+    vi.setSystemTime(tuesday + dayMs);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
+    const before = await balanceRecordedFor(t, "U_ALICE");
+
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
+
+    expect((await giverRecordsOf(t, "U_ALICE")).at(-1)?.coins).toBeUndefined();
+    expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_BOB> got 1 kudos from you. You have 8 kudos left today.", "+10 XP"]);
+    expect(await balanceRecordedFor(t, "U_ALICE")).toBe(before);
+  });
+
+  test("Buy on treasurer spends a skill point and no coins", async () => {
+    const t = await aliceWithTheTreeOpen({ coins: coinsEarnedOnTheWay });
+    await openSkillTreeTab(t, "U_ALICE");
+
+    await click(t, "U_ALICE", buyButtonOf("treasurer"));
+
+    expect(await purchasesOf(t)).toEqual([{ kind: "bought", perk: "treasurer" }]);
+    expect(await walletOf(t, "U_ALICE")).toEqual({ balance: coinsEarnedOnTheWay });
+    expect(await standing(t, "U_ALICE")).toMatchObject({ skillPoints: 2 });
+    expect(buyButtonElementOf("treasurer")).toBeUndefined();
+  });
+
+  test("Buy on banker with treasurer, two skill points and 250 🪙 debits both and grants it", async () => {
+    const t = await aliceWithTheTreeOpen({ owns: ["treasurer"], coins: 250, level: 9 });
+
+    await click(t, "U_ALICE", buyButtonOf("banker"));
+
+    expect(await purchasesOf(t)).toEqual([{ kind: "bought", perk: "treasurer" }, { kind: "bought", perk: "banker" }]);
+    expect(await perksOwnedBy(t, "U_ALICE")).toEqual(["treasurer", "banker"]);
+    expect(await walletOf(t, "U_ALICE")).toEqual({ balance: 0 });
+    expect(await standing(t, "U_ALICE")).toMatchObject({ level: 9, skillPoints: 2 });
+  });
+
+  test.each([
+    ["without treasurer", { owns: [], coins: 250 }, "needs-prerequisite"],
+    ["with too few coins", { owns: ["treasurer"], coins: 249 }, "no-coins"],
+  ] satisfies Array<[string, Pick<Alice, "owns" | "coins">, string]>)("Buy on banker %s is refused and changes nothing", async (_, alice, reason) => {
+    const t = await aliceWithTheTreeOpen({ ...alice, level: 9 });
+    const before = await treeTables(t);
+
+    await click(t, "U_ALICE", buyButtonOf("banker"));
+
+    expect((await purchasesOf(t)).at(-1)).toEqual({ kind: "refused", perk: "banker", reason });
+    expect(await treeTables(t)).toEqual(before);
+  });
+
+  test("with Coins not opened yet, a stale Buy on treasurer answers coins-not-open and changes nothing", async () => {
+    const t = await aliceWithTheTreeOpen({ coins: coinsEarnedOnTheWay, coinsOpen: false });
+    const before = await treeTables(t);
+
+    await click(t, "U_ALICE", buyButtonOf("treasurer"));
+
+    expect(await purchasesOf(t)).toEqual([{ kind: "refused", perk: "treasurer", reason: "coins-not-open" }]);
+    expect(await treeTables(t)).toEqual(before);
+  });
+
+  test("with coins off, the Skill tree tab lists neither, and a stale Buy on treasurer owns nothing and stores no outcome", async () => {
+    const t = await aliceWithTheTreeOpen({ coins: coinsEarnedOnTheWay, flags: coinsOff });
+    const before = await treeTables(t);
+
+    await click(t, "U_ALICE", buyButtonOf("treasurer"));
+    await openSkillTreeTab(t, "U_ALICE");
+
+    expect(await purchasesOf(t)).toEqual([]);
+    expect(await treeTables(t)).toEqual(before);
+    expect(publishedHome(slack, "U_ALICE").join("\n")).not.toMatch(/Treasurer|Banker|🪙/);
+  });
+
+  test("once coins turn off, an owned treasurer stays listed as owned and keeps paying 2 coins", async () => {
+    const t = await aliceWithTheTreeOpen({ owns: ["treasurer"], coins: coinsEarnedOnTheWay });
+
+    await flagsFromPostHog(t, postHog, ...coinsOff);
+    await openSkillTreeTab(t, "U_ALICE");
+    vi.setSystemTime(tuesday + dayMs);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
+
+    expect(publishedHome(slack, "U_ALICE")).toContain(`section: ✅ *Treasurer* · Owned\n${treasurerCopy}`);
+    expect((await giverRecordsOf(t, "U_ALICE")).at(-1)?.coins).toEqual([giving, { source: "treasurer", coins: 2 }]);
+    expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP"]);
+  });
+
+  test("where the skill tree doesn't apply, an owned treasurer writes no perk coin line", async () => {
+    const t = await aliceWithTheTreeOpen({ owns: ["treasurer"], coins: coinsEarnedOnTheWay });
+
+    await flagsFromPostHog(t, postHog, ...previewedByAlice.filter(({ key }) => key !== "skill-tree"), offForEveryone("skill-tree"));
+    vi.setSystemTime(tuesday + dayMs);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
+
+    expect((await giverRecordsOf(t, "U_ALICE")).at(-1)?.coins).toEqual([giving]);
+    expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP · +4 🪙"]);
+  });
+});
+
 type Alice = { owns?: PerkId[]; coins: number; coinsOpen?: boolean; flags?: FlagDefinition[]; level?: number };
 
 async function aliceWithTheTreeOpen({ owns = [], coins, coinsOpen = true, flags = previewedByAlice, level = 7 }: Alice) {
@@ -216,8 +345,8 @@ async function aliceWithTheTreeOpen({ owns = [], coins, coinsOpen = true, flags 
   await giveKudos(t, "U_ALICE", ["U_CAROL"], saysWhy);
   await click(t, "U_ALICE", staleButtonOf({ type: "openUnlock", feature: "skillTree" }));
   if (coinsOpen) await click(t, "U_ALICE", staleButtonOf({ type: "openUnlock", feature: "coins" }));
-  for (const perk of owns) await click(t, "U_ALICE", staleButtonOf({ type: "buyPerk", perk }));
   await savings(t, "U_ALICE", coins - coinsEarnedOnTheWay);
+  for (const perk of owns) await click(t, "U_ALICE", staleButtonOf({ type: "buyPerk", perk }));
   return t;
 }
 

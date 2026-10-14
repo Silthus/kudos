@@ -6,7 +6,7 @@ import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import type { PurchaseOutcome, Refusal } from "../progression/purchases";
-import { isCoinPerk, perkOf, type Perk } from "../progression/tree";
+import { hasCoinPrice, perkOf, type Perk } from "../progression/tree";
 import type { ProgressSettings } from "../progression/settings";
 import type { JourneyStepFacts } from "../quests/journey";
 import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
@@ -224,14 +224,14 @@ export function perkOfferOf(perk: Perk): { text: string; action: HomeAction } {
 }
 
 function purchaseConfirmationOf({ name, skillPoints, coins }: Perk): Confirmation {
-  const text = isCoinPerk({ coins })
+  const text = hasCoinPrice({ coins })
     ? `This spends ${skillPointsOf(skillPoints)} and ${coinsOf(coins)}. Skill points and coins are never refunded.`
     : `This spends ${skillPointsOf(skillPoints)}. Skill points are never refunded.`;
   return { title: `Buy ${name}?`, text, confirm: "Buy", deny: "Cancel" };
 }
 
 function perkTextOf({ name, skillPoints, coins, copy }: Perk) {
-  const price = isCoinPerk({ coins }) ? `${skillPointsOf(skillPoints)} · ${coinsOf(coins)}` : skillPointsOf(skillPoints);
+  const price = hasCoinPrice({ coins }) ? `${skillPointsOf(skillPoints)} · ${coinsOf(coins)}` : skillPointsOf(skillPoints);
   return `${bold(name)} · ${price}\n${copy}`;
 }
 

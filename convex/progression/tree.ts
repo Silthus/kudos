@@ -1,6 +1,6 @@
 import { v, type Infer } from "convex/values";
 
-export const perkValidator = v.union(v.literal("spark"), v.literal("rhythm"), v.literal("circle"), v.literal("flame"), v.literal("cadence"), v.literal("bridge"));
+export const perkValidator = v.union(v.literal("spark"), v.literal("rhythm"), v.literal("circle"), v.literal("flame"), v.literal("cadence"), v.literal("bridge"), v.literal("treasurer"), v.literal("banker"));
 
 export type PerkId = Infer<typeof perkValidator>;
 
@@ -22,9 +22,11 @@ export const tree = [
     requires: "circle",
     copy: "Circle gives +8 XP instead of +5 when the person isn't in your primary group. Without a primary group, everyone counts.",
   },
+  { perk: "treasurer", name: "Treasurer", row: 7, skillPoints: 1, coins: 0, upgrades: null, requires: null, copy: "+2 🪙 each time you thank someone and say why, once per person a day." },
+  { perk: "banker", name: "Banker", row: 9, skillPoints: 2, coins: 250, upgrades: "treasurer", requires: "treasurer", copy: "Treasurer gives +4 🪙 instead of +2." },
 ] as const satisfies readonly Perk[];
 
-export type Bonus = { xp: number; on: "the day's first recognition" | "every recognition" | "the week's first recognition of the recipient"; replaces?: PerkId };
+export type Bonus = ({ xp: number } | { coins: number }) & { on: "the day's first recognition" | "every recognition" | "the week's first recognition of the recipient"; replaces?: PerkId };
 
 export const bonuses = {
   spark: { xp: 5, on: "the day's first recognition" },
@@ -33,12 +35,20 @@ export const bonuses = {
   flame: { xp: 8, on: "the day's first recognition", replaces: "spark" },
   cadence: { xp: 3, on: "every recognition", replaces: "rhythm" },
   bridge: { xp: 8, on: "the week's first recognition of the recipient", replaces: "circle" },
+  treasurer: { coins: 2, on: "every recognition" },
+  banker: { coins: 4, on: "every recognition", replaces: "treasurer" },
 } as const satisfies Record<PerkId, Bonus>;
 
 export function perkOf(perk: PerkId): Perk {
   return tree.find((entry) => entry.perk === perk)!;
 }
 
-export function isCoinPerk({ coins }: Pick<Perk, "coins">): boolean {
+const perksPayingCoins = (Object.keys(bonuses) as PerkId[]).filter((perk) => "coins" in bonuses[perk]);
+
+export function isCoinPerk({ perk, coins }: Pick<Perk, "perk" | "coins">): boolean {
+  return hasCoinPrice({ coins }) || perksPayingCoins.includes(perk);
+}
+
+export function hasCoinPrice({ coins }: Pick<Perk, "coins">): boolean {
   return coins > 0;
 }

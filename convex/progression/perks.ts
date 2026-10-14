@@ -100,7 +100,8 @@ function treeStateOf(unlock: UnlockState): TreeFacts["tree"] {
   return unlock === "open" || unlock === "ready" ? unlock : "locked";
 }
 
-function perkStateOf({ perk, row, skillPoints, coins, requires, retired }: Perk, facts: TreeFacts): PerkState {
+function perkStateOf(treePerk: Perk, facts: TreeFacts): PerkState {
+  const { perk, row, skillPoints, coins, requires, retired } = treePerk;
   const owns = (id: PerkId) => facts.owned.some((owned) => owned.perk === id);
   if (facts.tree !== "open") return `tree-${facts.tree}`;
   if (owns(perk)) return "owned";
@@ -108,7 +109,7 @@ function perkStateOf({ perk, row, skillPoints, coins, requires, retired }: Perk,
   if (facts.level < row) return "below-row";
   if (requires !== null && !owns(requires)) return "needs-prerequisite";
   if (facts.skillPoints < skillPoints) return "no-skill-points";
-  if (isCoinPerk({ coins }) && !facts.coins.open) return "coins-not-open";
+  if (isCoinPerk(treePerk) && !facts.coins.open) return "coins-not-open";
   if (facts.coins.balance < coins) return "no-coins";
   return "buyable";
 }
