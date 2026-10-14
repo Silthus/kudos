@@ -1,5 +1,5 @@
 import { v, type Infer } from "convex/values";
-import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent, QuestFinishedEvent, QuestsDrawnEvent, QuestSwappedEvent } from "../bus/events";
+import type { AttemptFailedEvent, JourneyStepActivatedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent, QuestFinishedEvent, QuestsDrawnEvent, QuestSwappedEvent } from "../bus/events";
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
 import { gateDecisionOf } from "../progression/gate";
@@ -20,6 +20,7 @@ export type ProductEvent = {
     | "quest drawn"
     | "quest swapped"
     | "quest finished"
+    | "journey step activated"
     | "app home opened"
     | "command used"
     | "$feature_flag_called";
@@ -122,6 +123,10 @@ export function projectQuestFinished(event: QuestFinishedEvent): ProductEvent {
     at: event.at,
     properties: { kind: event.quest.kind, ...(quest === undefined ? {} : { quest }), ...(event.reward === undefined ? {} : { xp: event.reward.xp, coins: event.reward.coins }) },
   };
+}
+
+export function projectJourneyStepActivated(event: JourneyStepActivatedEvent): ProductEvent {
+  return { event: "journey step activated", subject: { member: event.member }, at: event.at, properties: { step: event.step } };
 }
 
 export function projectUsage(fact: UsageFact): ProductEvent {

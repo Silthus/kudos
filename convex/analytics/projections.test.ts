@@ -1,8 +1,18 @@
 import { describe, expect, test } from "vitest";
 import { awardId, kudosGivenEvent } from "../../testing/busEvents";
-import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, QuestFinishedEvent, QuestsDrawnEvent, QuestSwappedEvent } from "../bus/events";
+import type { AttemptFailedEvent, JourneyStepActivatedEvent, KudosGivenEvent, LevelReachedEvent, QuestFinishedEvent, QuestsDrawnEvent, QuestSwappedEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
-import { projectAttemptFailed, projectKudosGiven, projectLevelReached, projectMemberWelcomed, projectQuestFinished, projectQuestsDrawn, projectQuestSwapped, projectUsage } from "./projections";
+import {
+  projectAttemptFailed,
+  projectJourneyStepActivated,
+  projectKudosGiven,
+  projectLevelReached,
+  projectMemberWelcomed,
+  projectQuestFinished,
+  projectQuestsDrawn,
+  projectQuestSwapped,
+  projectUsage,
+} from "./projections";
 
 const alice = "alice" as MemberId;
 const bob = "bob" as MemberId;
@@ -145,6 +155,14 @@ describe("E1: quest drawn and quest swapped", () => {
     const swapped: QuestSwappedEvent = { type: "questSwapped", workspace: "T1", member: bob, week: "2026-10-12", replaced: "say-why-twice", swappedIn: "say-why-two-days", at };
 
     expect(projectQuestSwapped(swapped)).toEqual({ event: "quest swapped", subject: { member: bob }, at, properties: { replaced: "say-why-twice", quest: "say-why-two-days" } });
+  });
+});
+
+describe("E1: journey step activated", () => {
+  test.each<JourneyStepActivatedEvent["step"]>(["first-thanks", "first-quest", "someone-new"])("activating %s lists only its step, on the member at the activation's time", (step) => {
+    const activated: JourneyStepActivatedEvent = { type: "journeyStepActivated", workspace: "T1", member: bob, step, at };
+
+    expect(projectJourneyStepActivated(activated)).toEqual({ event: "journey step activated", subject: { member: bob }, at, properties: { step } });
   });
 });
 
