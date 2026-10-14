@@ -405,6 +405,15 @@ describe("WS68: the ready pill", () => {
     expect(within(crateNamed("Leaderboard")).getByText("That couldn't be opened.")).toBeVisible();
   });
 
+  it("shows what went wrong beside the pill on a page that isn't any screen", async () => {
+    window.history.replaceState(null, "", "/nowhere");
+    const everyReady = shellFixtures.memberWithEveryFeatureReady;
+    const onlySkillTreeReady = { ...everyReady, features: everyReady.features!.filter(({ feature }) => feature === "skillTree") };
+    const { user } = renderApp(onlySkillTreeReady, undefined, { openFeature: async () => ({ kind: "refused" }) });
+    await user.click(pill()!);
+    expect(within(screen.getByRole("banner")).getByText("That couldn't be opened.")).toBeVisible();
+  });
+
   it("leaves a failure on a feature's own page to the crate shown there", async () => {
     window.history.replaceState(null, "", "/quests");
     const { user } = renderApp(shellFixtures.memberWithQuestsReady, undefined, { openFeature: async () => ({ kind: "refused" }) }, fixedQuests(questsFixtures.ready));

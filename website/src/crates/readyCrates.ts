@@ -28,7 +28,7 @@ export function readyCratesOf(member: MemberProfile, quests: QuestsShown | undef
 }
 
 export function isShownOn(crate: ReadyCrate, screen: Screen | undefined) {
-  if (crate.kind === "feature") return screen === "home" || screen === webPageOf(crate.card.feature)?.screen;
+  if (crate.kind === "feature") return screen === "home" || (screen !== undefined && screen === webPageOf(crate.card.feature)?.screen);
   return screen === (crate.quest.kind === "journey" ? "home" : "quests");
 }
 

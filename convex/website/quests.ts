@@ -5,7 +5,7 @@ import { projectedJourneyOf, type ProjectedJourneyStep } from "../quests/journey
 import { journeyCopyOf } from "../quests/journeyCopy";
 import { questOf, type PoolQuest } from "../quests/pool";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
-import { drawnWeekOf, waitingCratesOf, type DrawnWeek, type UnopenedCrate } from "../quests/weekly";
+import { drawnWeekOf, unopenedCratesOf, type DrawnWeek, type UnopenedCrate } from "../quests/weekly";
 import { workspaceLink } from "../slack/workspaceLink";
 import { scheduled } from "../unlocks/schedule";
 import { followTheClock } from "./clock";
@@ -57,7 +57,7 @@ export const getQuests = memberQuery(async (ctx, me): Promise<QuestsAnswer> => {
   return {
     kind: "quests",
     slots: week === null ? [] : await Promise.all(week.slots.map((slot) => questSlotOf(me, week, slot))),
-    waiting: await Promise.all((await waitingCratesOf(ctx, me.member, at)).map((crate) => waitingCrateOf(me, crate))),
+    waiting: await Promise.all((await unopenedCratesOf(ctx, me.member, at)).map((crate) => waitingCrateOf(me, crate))),
     chatUrl: workspaceLink(me.workspace),
   };
 });

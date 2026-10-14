@@ -136,15 +136,15 @@ async function weeklySlotsOf(ctx: QueryCtx, draw: Draw, swap: Swap | null): Prom
   return slots;
 }
 
-export async function waitingCratesOf(ctx: QueryCtx, member: MemberId, at: number): Promise<UnopenedCrate[]> {
+export async function unopenedCratesOf(ctx: QueryCtx, member: MemberId, at: number): Promise<UnopenedCrate[]> {
   const thisWeek = weekKeyOf(at, await timeZoneOf(ctx, member));
-  const waiting: UnopenedCrate[] = [];
+  const unopened: UnopenedCrate[] = [];
   for (const { key, xp, coins, item, at: finishedAt } of await rewardsKeyedFrom(ctx, member, rewardKeyPrefixOf("weekly"))) {
     const crate = weeklyQuestOfRewardKey(key);
     if (crate === null || crate.week >= thisWeek || (await crateOpeningOf(ctx, member, key)) !== null) continue;
-    waiting.push({ crate, goal: await goalOf(ctx, member, crate), reward: { xp, coins, item }, finishedAt });
+    unopened.push({ crate, goal: await goalOf(ctx, member, crate), reward: { xp, coins, item }, finishedAt });
   }
-  return waiting.sort((one, other) => one.finishedAt - other.finishedAt);
+  return unopened.sort((one, other) => one.finishedAt - other.finishedAt);
 }
 
 async function goalOf(ctx: QueryCtx, member: MemberId, { week, slot }: WeeklyQuest): Promise<string> {

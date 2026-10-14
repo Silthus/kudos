@@ -83,9 +83,9 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
  Test Files  90 passed (90)
-      Tests  1484 passed (1484)
-   Start at  05:06:48
-   Duration  48.23s (tests 70%, import 15%, transform 8%, environment 6%, setup 1%)
+      Tests  1485 passed (1485)
+   Start at  05:13:49
+   Duration  45.35s (tests 72%, import 14%, transform 6%, environment 6%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
