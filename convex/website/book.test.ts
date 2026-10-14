@@ -98,7 +98,7 @@ function asWebsiteReadsIt({ ladder, name, counts, count, tiers, next }: LadderFa
     name,
     counts,
     count,
-    tiers: tiers.map(({ tier, name, count, earnedAt }) => ({ tier, name, at: count, earnedAt })),
+    tiers: tiers.map(({ tier, name, count, earnedAt }) => ({ tier, name, at: count, earnedAt, seen: earnedAt === null ? null : expect.any(String), rewards: [] })),
     next: nextTier === undefined ? null : { tier: nextTier.tier, at: nextTier.count },
   };
 }
@@ -199,10 +199,10 @@ describe("WS90: getBook reads achievementsOf's facts", () => {
       counts: "kudos given",
       count: 0,
       tiers: [
-        { tier: "bronze", name: "First Thanks", at: 1, earnedAt: null },
-        { tier: "silver", name: "Generous Soul", at: 25, earnedAt: null },
-        { tier: "gold", name: "Heart of the Team", at: 100, earnedAt: null },
-        { tier: "diamond", name: "Patron of Praise", at: 500, earnedAt: null },
+        { tier: "bronze", name: "First Thanks", at: 1, earnedAt: null, seen: null, rewards: [] },
+        { tier: "silver", name: "Generous Soul", at: 25, earnedAt: null, seen: null, rewards: [] },
+        { tier: "gold", name: "Heart of the Team", at: 100, earnedAt: null, seen: null, rewards: [] },
+        { tier: "diamond", name: "Patron of Praise", at: 500, earnedAt: null, seen: null, rewards: [] },
       ],
       next: { tier: "bronze", at: 1 },
     });
@@ -288,7 +288,78 @@ describe("the Book names nothing unshipped", () => {
     const book = await openBook(asSignedIn);
 
     expect(book.ladders.map(({ ladder }) => ladder)).toEqual(["generosity", "recognition"]);
-    expect(JSON.stringify(book)).not.toMatch(/reward|coins|kudosEmoji|hedgehog|catalogueVersion/i);
+    expect(book.ladders.flatMap(({ tiers }) => tiers.flatMap(({ rewards }) => rewards))).toEqual([]);
+    expect(JSON.stringify(book)).not.toMatch(/coins|kudosEmoji|hedgehog|catalogueVersion/i);
+  });
+});
+
+describe("WS347 WS91 CO29: each tier's reward, once its kind is shown", () => {
+  async function coinsOpenFor(member: MemberId) {
+    await flagsOn(...bookFlags, "coins");
+    await reachesLevel(t, member, 6);
+    await opens(t, member, "coins");
+  }
+
+  test("with Coins open, every tier carries its coin reward, earned or not, and only the coins", async () => {
+    await bookShipped();
+    const { member, asSignedIn } = await signedIn();
+    const teammate = await aMember(t, rowan.user);
+    await bookOpenFor(member);
+    await coinsOpenFor(member);
+    await thanks(member, teammate, 1);
+
+    const generosity = ladderIn(await openBook(asSignedIn), "generosity");
+
+    expect(generosity?.tiers.map(({ tier, earnedAt, rewards }) => ({ tier, earned: earnedAt !== null, rewards }))).toEqual([
+      { tier: "bronze", earned: true, rewards: [{ kind: "coins", coins: 10 }] },
+      { tier: "silver", earned: false, rewards: [] },
+      { tier: "gold", earned: false, rewards: [] },
+      { tier: "diamond", earned: false, rewards: [{ kind: "coins", coins: 100 }] },
+    ]);
+  });
+
+  test("CO26: with the coins flag on but Coins not open yet, no tier carries a reward", async () => {
+    await bookShipped();
+    await flagsOn(...bookFlags, "coins");
+    const { member, asSignedIn } = await signedIn();
+    await bookOpenFor(member);
+
+    const book = await openBook(asSignedIn);
+
+    expect(book.ladders.flatMap(({ tiers }) => tiers.flatMap(({ rewards }) => rewards))).toEqual([]);
+  });
+});
+
+describe("WS347: an earned tier's seen key", () => {
+  test("each earned tier has its own seen key, the same on every read; an unearned tier has none", async () => {
+    await bookShipped();
+    const { member, asSignedIn } = await signedIn();
+    const teammate = await aMember(t, rowan.user);
+    await bookOpenFor(member);
+    await thanks(member, teammate, 25);
+
+    const keysOf = async () => ladderIn(await openBook(asSignedIn), "generosity")?.tiers.map(({ seen }) => seen);
+    const [bronze, silver, gold, diamond] = (await keysOf()) ?? [];
+
+    expect(bronze).toMatch(/^[0-9a-f]{32}$/);
+    expect(silver).toMatch(/^[0-9a-f]{32}$/);
+    expect(bronze).not.toBe(silver);
+    expect([gold, diamond]).toEqual([null, null]);
+    expect(await keysOf()).toEqual([bronze, silver, null, null]);
+  });
+
+  test("the same tier earned by a teammate has another key, so a shared browser shows each member's page once", async () => {
+    await bookShipped();
+    const juno_ = await signedIn(juno);
+    const rowan_ = await signedIn(rowan);
+    await bookOpenFor(juno_.member);
+    await bookOpenFor(rowan_.member);
+    await thanks(juno_.member, rowan_.member, 1);
+    await thanks(rowan_.member, juno_.member, 1);
+
+    const bronzeKeyOf = async (asSignedIn: Pick<Backend, "query">) => ladderIn(await openBook(asSignedIn), "generosity")?.tiers[0]?.seen;
+
+    expect(await bronzeKeyOf(juno_.asSignedIn)).not.toBe(await bronzeKeyOf(rowan_.asSignedIn));
   });
 });
 

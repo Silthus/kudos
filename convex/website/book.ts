@@ -1,12 +1,16 @@
 import type { QueryCtx } from "../_generated/server";
-import { achievementFactsOf, type LadderFacts } from "../achievements/achievements";
+import { achievementFactsOf, type LadderFacts, type RewardFacts, type TierFacts } from "../achievements/achievements";
 import type { LadderId, TierId } from "../achievements/ladders";
 import { dayZoneOf } from "../engine/allowance";
-import { lookup } from "../workspace/directory";
+import { coinsVisibleTo } from "../wallet/visibility";
+import { lookup, type MemberId } from "../workspace/directory";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
+import { seenKeyOf } from "./seen";
 import { featurePageOf, unlockPathOf, type PageWaits } from "./unlockPath";
 
-export type TierCard = { tier: TierId; name: string; at: number; earnedAt: number | null };
+export type TierReward = { kind: "coins"; coins: number };
+
+export type TierCard = { tier: TierId; name: string; at: number; earnedAt: number | null; seen: string | null; rewards: TierReward[] };
 
 export type LadderCard = { ladder: LadderId; name: string; counts: string; count: number; tiers: TierCard[]; next: { tier: TierId; at: number } | null };
 
@@ -18,13 +22,25 @@ export const getBook = memberQuery(async (ctx, me): Promise<BookAnswer> => {
   if (page.kind !== "open") return page;
   const facts = await achievementFactsOf(ctx, me.member);
   if (facts === null) return { kind: "not-found" };
-  return { kind: "book", ladders: facts.ladders.map(ladderCardOf), timeZone: await timeZoneOf(ctx, me) };
+  const shown = { member: me.member, coins: await coinsVisibleTo(ctx, me.member) };
+  return { kind: "book", ladders: await Promise.all(facts.ladders.map((ladder) => ladderCardOf(ladder, shown))), timeZone: await timeZoneOf(ctx, me) };
 });
 
-function ladderCardOf({ ladder, name, counts, count, tiers, next }: LadderFacts): LadderCard {
-  const cards = tiers.map(({ tier, name, count: at, earnedAt }) => ({ tier, name, at, earnedAt }));
+type Shown = { member: MemberId; coins: boolean };
+
+async function ladderCardOf({ ladder, name, counts, count, tiers, next }: LadderFacts, shown: Shown): Promise<LadderCard> {
+  const cards = await Promise.all(tiers.map((tier) => tierCardOf(ladder, tier, shown)));
   const nextCard = cards.find(({ tier }) => tier === next);
   return { ladder, name, counts, count, tiers: cards, next: nextCard === undefined ? null : { tier: nextCard.tier, at: nextCard.at } };
+}
+
+async function tierCardOf(ladder: LadderId, { tier, name, count: at, earnedAt, rewards }: TierFacts, shown: Shown): Promise<TierCard> {
+  const seen = earnedAt === null ? null : await seenKeyOf(shown.member, `tier:${ladder}:${tier}:${earnedAt}`);
+  return { tier, name, at, earnedAt, seen, rewards: rewards.flatMap((reward) => rewardShown(reward, shown)) };
+}
+
+function rewardShown(reward: RewardFacts, shown: Shown): TierReward[] {
+  return reward.kind === "coins" && shown.coins ? [{ kind: "coins", coins: reward.coins }] : [];
 }
 
 async function timeZoneOf(ctx: QueryCtx, { workspace, user }: VerifiedMember): Promise<string> {

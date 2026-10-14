@@ -11,6 +11,7 @@ import { dateWords, tierWords } from "./dates";
 import { LadderEmblem } from "./LadderEmblem";
 import { Medal } from "./Medal";
 import { bestOf, closestNextOf, isNew, recentlyEarned, tiersEarned, type ClosestNext, type Shelved } from "./progress";
+import { RewardGains, rewardsSaid } from "./Rewards";
 import { Tag } from "./Tag";
 
 type OverviewProps = { ladders: LadderCard[]; timeZone: string };
@@ -109,7 +110,7 @@ function ShelfItem({ entry: { ladder, tier }, fresh, href, timeZone, wide }: { e
     <li className="min-w-0">
       <AppLink
         href={href}
-        aria-label={`${tier.name}, ${tierWords[tier.tier]} ${ladder.name}, earned ${dateWords(tier.earnedAt, timeZone)}${fresh ? ", new" : ""}`}
+        aria-label={`${tier.name}, ${tierWords[tier.tier]} ${ladder.name}, earned ${dateWords(tier.earnedAt, timeZone)}${fresh ? ", new" : ""}${rewardNamed(tier)}`}
         className="flex flex-col items-center rounded-lg pb-1 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <span className="relative">
@@ -118,9 +119,18 @@ function ShelfItem({ entry: { ladder, tier }, fresh, href, timeZone, wide }: { e
         </span>
         <span className="mt-4 line-clamp-2 w-full text-balance break-words px-1 text-sm font-medium leading-tight">{tier.name}</span>
         <EarnedLine tier={tier} timeZone={timeZone} wide={wide} />
+        {tier.rewards.length > 0 && (
+          <span className="mt-1 flex flex-wrap justify-center gap-x-2 text-[11px] leading-tight tabular-nums text-muted-foreground">
+            <RewardGains rewards={tier.rewards} />
+          </span>
+        )}
       </AppLink>
     </li>
   );
+}
+
+function rewardNamed({ rewards }: Shelved["tier"]) {
+  return rewards.length === 0 ? "" : `, reward ${rewardsSaid(rewards)}`;
 }
 
 function EarnedLine({ tier, timeZone, wide }: { tier: Shelved["tier"]; timeZone: string; wide: boolean }) {

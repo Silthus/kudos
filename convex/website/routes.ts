@@ -5,7 +5,7 @@ import type { pageValidator } from "./link";
 
 export type Page = Infer<typeof pageValidator>;
 
-export const routeList: readonly string[] = ["/", "/leaderboard", "/quests", "/skills", "/book", "/activity"];
+export const routeList: readonly string[] = ["/", "/leaderboard", "/quests", "/skills", "/book", "/book/earned", "/activity"];
 
 export const signInEntry = "/sign-in";
 

@@ -6,6 +6,7 @@ import { DateOf, tierWords } from "./dates";
 import { LadderEmblem } from "./LadderEmblem";
 import { Medal } from "./Medal";
 import { bestOf, isEarned, type EarnedTier } from "./progress";
+import { RewardLine } from "./Rewards";
 import { Tag } from "./Tag";
 
 export function Ladder({ ladder, timeZone }: { ladder: LadderCard; timeZone: string }) {
@@ -94,6 +95,7 @@ function Tier({ tier, isNext, timeZone }: { tier: TierCard; isNext: boolean; tim
         <span className="text-xs font-medium text-muted-foreground">{tierWords[tier.tier]}</span>
         <span className={`text-sm font-medium leading-tight ${earned || isNext ? "" : "text-muted-foreground"}`}>{tier.name}</span>
         <span className="text-xs tabular-nums text-muted-foreground">{isEarned(tier) ? <EarnedOn at={tier.earnedAt} timeZone={timeZone} /> : `At ${tier.at}`}</span>
+        <RewardLine rewards={tier.rewards} />
       </div>
       {isNext && <Tag className="absolute -top-2 right-2">Next</Tag>}
     </li>
