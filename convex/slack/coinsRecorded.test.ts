@@ -151,6 +151,38 @@ describe("CO5 CO9: the same kudosGiven delivered twice records each side once an
   }, 30_000);
 });
 
+describe("CO1 CO5: a kudos to more members than one mutation records every one of them, once", () => {
+  test("thanking 250 people records a receiving line for each and credits each once, and a redelivery writes nothing", async () => {
+    const recipients = Array.from({ length: 250 }, (_, index) => `U_R${index + 1}`);
+    const t = await workspaceWithFlagsOff(...recipients);
+    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", baseAllowance: 1_000 }));
+    const held = holdingKudosGiven();
+    await thank(t, "U_ALICE", recipients, saysWhy, "2026-10-14T09:00:00Z");
+    const [kudosGiven] = held;
+
+    for (let delivery = 0; delivery < 2; delivery += 1) {
+      await t.mutation(internal.progression.progression.recordEffects, { event: kudosGiven! });
+      await settleInTimeOrder(t);
+    }
+
+    expect(await recipientLinesOf(t, recipients)).toEqual(recipients.map(() => [receiving]));
+    expect(await coinsOn(t, "U_ALICE")).toEqual(recipients.map(() => [giving]));
+    expect(await t.run(async (ctx) => (await ctx.db.query("wallets").collect()).map(({ balance }) => balance).sort((a, b) => a - b))).toEqual([...recipients.map(() => 2), 1_000]);
+  }, 120_000);
+});
+
+async function recipientLinesOf(t: Backend, users: string[]) {
+  return t.run(async (ctx) => {
+    const records = await ctx.db.query("effectsRecords").collect();
+    const lines = [];
+    for (const user of users) {
+      const member = await memberOf(ctx, user);
+      lines.push(records.filter((record) => record.member === member).map(({ coins }) => coins ?? []));
+    }
+    return lines.map((perRecord) => perRecord.flat());
+  });
+}
+
 async function workspaceWithFlagsOff(...givers: string[]) {
   slack = withMembers(givers);
   vi.stubGlobal("fetch", slack.fetch);
