@@ -16,10 +16,11 @@ The profile card: one member's name, level and best four medals, computed live b
   checklist: circuit-breaker-policy dismissed: no failure history diverts or suppresses a call
   checklist: declared-target-coverage dismissed: the card is sent to one viewer; nothing fans out
 - a card follows what has shipped, except an own card's medals wait for the Book: A profile card's level shows while `xp-levels` is on in the workspace decision and its medals while the Book applies and is launched there, whatever the viewer's or the member's unlocks, except that a member's own card shows no medals until they have opened the Book; reading a card launches nothing.
-  over: own and teammate cards before and after the member opened the Book, a teammate's card neither member unlocked, tiers earned while notices were held back, `achievements` off, `achievements` just turned on with no Book launch recorded, and `xp-levels` off
+  over: own and teammate cards before and after the member opened the Book, an opened own card whose member's own achievements decision is off, a teammate's card neither member unlocked, tiers earned while notices were held back, `achievements` off, `achievements` just turned on with no Book launch recorded, and `xp-levels` off
   via: PC9: a card follows what has shipped, except an own card's medals wait for the Book
   because: every viewer must see the same card of a teammate (P76, PC9), and P76 keeps a member's own progress about a feature silent until they open it; a card that launched the Book would ship it to the workspace from a read
   refuted: medalsShownIn waited for the member's own Book opening on every card, a teammate's included -> 2 of 6 tests failed, a teammate's card without the medals they earned (2026-10-14)
+  refuted: medalsShownIn read the member's Book opening through Unlocks' stateOf, which follows the member's own achievements decision -> the own card opened while the Book applied lost its medals once that decision turned off (2026-10-14)
   kinds: read
   checklist: scoped-reads dismissed: the card reads one member's tiers, level and Book opening, named by the mention in the command's own workspace; the flags it reads are that workspace's decisions
   checklist: redaction declared as a profile card shows only name, level and medals
