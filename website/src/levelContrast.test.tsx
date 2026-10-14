@@ -6,7 +6,7 @@ import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
-import { contrast, websiteDirectory } from "./test/themeContrast";
+import { contrast, websiteDirectory, type Mode } from "./test/themeContrast";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 function paintsOf(element: Element) {

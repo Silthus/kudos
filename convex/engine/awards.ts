@@ -97,12 +97,12 @@ export async function awardsInWorkspace(ctx: QueryCtx, workspace: string, page: 
   return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day, at }) => ({ award: _id, giver, recipient, kudos, day, at })) };
 }
 
-export async function awardsOfMessage(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<GivenAward[]> {
+export async function awardsOfMessage(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<Array<GivenAward & { at: number }>> {
   const awards = await ctx.db
     .query("awards")
     .withIndex("by_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
     .collect();
-  return awards.map(({ _id, giver, recipient, kudos, day }) => ({ award: _id, giver, recipient, kudos, day }));
+  return awards.map(({ _id, giver, recipient, kudos, day, at }) => ({ award: _id, giver, recipient, kudos, day, at }));
 }
 
 export async function dayThankedBefore(ctx: QueryCtx, award: AwardId): Promise<DayKey | null> {
@@ -212,6 +212,68 @@ async function givenMessageOf(ctx: QueryCtx, first: AwardRow): Promise<GivenMess
   return { workspace, message: { workspace, conversation, message }, giver, awards, day };
 }
 
-function messageKey({ workspace, conversation, message }: AwardRow) {
+function messageKey({ workspace, conversation, message }: Pick<AwardRow, "workspace" | "conversation" | "message">) {
   return JSON.stringify([workspace, conversation, message]);
+}
+
+export type Before = { at: number; created: number };
+
+export const fromTheNewest: Before = { at: Infinity, created: Infinity };
+
+export type ReceivedAward = { award: AwardId; message: MessageRef; giver: MemberId; kudos: number; at: number; created: number };
+
+export type GivenMessageAwards = { first: AwardId; message: MessageRef; awards: Array<{ recipient: MemberId; kudos: number }>; at: number; created: number };
+
+export type AtRange = { kind: "instant"; at: number; createdBefore?: number } | { kind: "older"; than?: number };
+
+export async function* awardsReceivedNewestFirst(ctx: QueryCtx, recipient: MemberId, before: Before): AsyncGenerator<ReceivedAward> {
+  for (const range of rangesBefore(before)) {
+    const rows = ctx.db
+      .query("awards")
+      .withIndex("by_recipient_at", (q) => {
+        const received = q.eq("recipient", recipient);
+        if (range.kind === "older") return range.than === undefined ? received : received.lt("at", range.than);
+        return range.createdBefore === undefined ? received.eq("at", range.at) : received.eq("at", range.at).lt("_creationTime", range.createdBefore);
+      })
+      .order("desc");
+    for await (const row of rows) yield { award: row._id, message: refOf(row), giver: row.giver, kudos: row.kudos, at: row.at, created: row._creationTime };
+  }
+}
+
+export async function* messagesGivenNewestFirst(ctx: QueryCtx, giver: MemberId, before: Before): AsyncGenerator<GivenMessageAwards> {
+  let current: GivenMessageAwards | null = null;
+  for await (const row of awardsGivenNewestFirst(ctx, giver, before)) {
+    if (current !== null && messageKey(row) !== messageKey(current.message)) {
+      yield current;
+      current = null;
+    }
+    current ??= { first: row._id, message: refOf(row), awards: [], at: row.at, created: row._creationTime };
+    current.awards.unshift({ recipient: row.recipient, kudos: row.kudos });
+    current.first = row._id;
+    current.created = row._creationTime;
+  }
+  if (current !== null) yield current;
+}
+
+async function* awardsGivenNewestFirst(ctx: QueryCtx, giver: MemberId, before: Before): AsyncGenerator<AwardRow> {
+  for (const range of rangesBefore(before)) {
+    yield* ctx.db
+      .query("awards")
+      .withIndex("by_giver_at", (q) => {
+        const given = q.eq("giver", giver);
+        if (range.kind === "older") return range.than === undefined ? given : given.lt("at", range.than);
+        return range.createdBefore === undefined ? given.eq("at", range.at) : given.eq("at", range.at).lt("_creationTime", range.createdBefore);
+      })
+      .order("desc");
+  }
+}
+
+export function rangesBefore({ at, created }: Before): AtRange[] {
+  if (at === Infinity) return [{ kind: "older" }];
+  const sameInstant: AtRange[] = created === -Infinity ? [] : [{ kind: "instant", at, ...(created !== Infinity && { createdBefore: created }) }];
+  return [...sameInstant, { kind: "older", than: at }];
+}
+
+function refOf({ workspace, conversation, message }: Pick<AwardRow, "workspace" | "conversation" | "message">): MessageRef {
+  return { workspace, conversation, message };
 }

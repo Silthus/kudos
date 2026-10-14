@@ -4,7 +4,9 @@ import { bookHref, categoryAsked, type CategoryId } from "./book/categories";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
 
-export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests" } | { page: "book"; bookPage: BookPageId } | { page: "skills" } | { page: "not-found" };
+export type QuestTarget = number | "journey";
+
+export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests"; quest?: QuestTarget } | { page: "book"; bookPage: BookPageId } | { page: "skills" } | { page: "not-found" };
 
 export type BookPageId = CategoryId | "overview";
 
@@ -13,7 +15,7 @@ export type Screen = Exclude<Route["page"], "not-found">;
 const routeAt = {
   "/": () => ({ page: "home" }),
   "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search) }),
-  "/quests": () => ({ page: "quests" }),
+  "/quests": (search) => ({ page: "quests", quest: questIn(search) }),
   "/skills": () => ({ page: "skills" }),
   "/book": (search) => ({ page: "book", bookPage: categoryAsked(search) }),
 } satisfies Record<string, (search: string) => Route>;
@@ -34,9 +36,14 @@ export function withoutTheSignInEntry(pathname: string) {
 
 export function hrefOf(route: Route) {
   if (route.page === "leaderboard") return leaderboardHref(route.period);
+  if (route.page === "quests") return questsHref(route.quest);
   if (route.page === "book") return bookHref(route.bookPage);
   if (route.page === "home" || route.page === "not-found") return "/";
   return `/${route.page}`;
+}
+
+export function questsHref(quest?: QuestTarget) {
+  return quest === undefined ? "/quests" : `/quests?quest=${quest}`;
 }
 
 export function leaderboardHref(period: Period) {
@@ -46,6 +53,12 @@ export function leaderboardHref(period: Period) {
 function periodIn(search: string): Period {
   const asked = new URLSearchParams(search).get("period");
   return periods.find(({ period }) => period === asked)?.period ?? "week";
+}
+
+function questIn(search: string): QuestTarget | undefined {
+  const asked = new URLSearchParams(search).get("quest");
+  if (asked === "journey") return asked;
+  return asked !== null && /^\d+$/.test(asked) ? Number(asked) : undefined;
 }
 
 function currentRoute() {
