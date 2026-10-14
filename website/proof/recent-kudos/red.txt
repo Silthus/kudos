@@ -1,0 +1,71 @@
+Red: the new tests at d172b7a, before the change
+ ❯ |website| src/KudosMessage.test.tsx (14 tests | 14 failed) 131ms
+     × renders text in strong, em, s and code for each flag it carries 24ms
+     × renders people, groups, channels and broadcasts as plain styled text, never links 3ms
+     × renders an emoji as its unicode, else as its name between colons 3ms
+     × renders a break as a line break 6ms
+     × links an http or https URL in a new tab, showing its label or else its URL 79ms
+     × renders a link with any other scheme, or no URL at all, as its text 2ms
+     × renders every link as text when clamped, so nothing focusable hides behind the clamp 1ms
+     × renders an unavailable message, deleted, as one muted italic line 2ms
+     × renders an unavailable message, removed, as one muted italic line 1ms
+     × renders an unavailable message, not-captured, as one muted italic line 3ms
+     × adds a muted Edited after the words of an edited message 1ms
+     × renders nothing for a segment kind it doesn't know 1ms
+     × keeps markup, entities and unsafe links as text with live links 1ms
+     × keeps markup, entities and unsafe links as text clamped 1ms
+ ❯ |website| src/liveShell.test.tsx (28 tests | 1 failed | 13 skipped) 2150ms
+     × subscribes once to the last three kudos received across re-renders, then to the last three given once switched 622ms
+ ❯ |website| src/accessibility.test.tsx (226 tests | 4 failed | 216 skipped) 5654ms
+     × the card given, to one, two and five teammates in light 406ms
+     × the card empty, given in light 399ms
+     × the card given, to one, two and five teammates in dark 790ms
+     × the card empty, given in dark 406ms
+ ❯ |website| src/RecentKudosCard.test.tsx (21 tests | 19 failed) 7917ms
+     × puts the card directly after What teammates see and before the Quests panel 593ms
+     × is a plain card labelled Recent kudos, private to the member, with no corner marks 336ms
+     × selects Received on every load, in a switch with radio semantics 246ms
+     × moves between Received and Given with the arrow keys, one always selected 214ms
+     × keeps Given selected when it is clicked again 240ms
+     × keeps the last rows and the switch in place, busy, while the other direction loads 279ms
+     × lists the kudos received in the read's order, each with the giver's face, who thanked you and when 631ms
+     × lists the kudos given with the first recipient's face, up to two more behind it, and who you thanked 304ms
+     × shows the words clamped to two lines, links as text, and Edited after an edited message 1715ms
+     × holds no link, XP, quest, Said why tag or channel 255ms
+     × shows a date from an earlier year with its year 254ms
+     × drops an entry of a kind it doesn't know, with no placeholder 652ms
+     × says where received kudos will show, and never asks anyone to thank the member 250ms
+     × says where given kudos will show, with what each one earned 401ms
+     × names ["Ana"] as a list 268ms
+     × names ["Ana","Ben"] as a list 310ms
+     × names ["Ana","Ben","Cleo"] as a list 253ms
+     × names ["Ana","Ben","Cleo","Dan"] as a list 234ms
+     × goes away once the read answers not found 283ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 38 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > renders text in strong, em, s and code for each flag it carries
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > renders people, groups, channels and broadcasts as plain styled text, never links
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > renders an emoji as its unicode, else as its name between colons
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > renders a break as a line break
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > links an http or https URL in a new tab, showing its label or else its URL
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > renders a link with any other scheme, or no URL at all, as its text
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > renders every link as text when clamped, so nothing focusable hides behind the clamp
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > renders an unavailable message, deleted, as one muted italic line
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > renders an unavailable message, removed, as one muted italic line
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > renders an unavailable message, not-captured, as one muted italic line
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > adds a muted Edited after the words of an edited message
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > renders nothing for a segment kind it doesn't know
+ FAIL  |website| src/KudosMessage.test.tsx > a kudos message renders as text > keeps markup, entities and unsafe links as text with live links
+ FAIL  |website| src/KudosMessage.test.tsx > a kudos message renders as text > keeps markup, entities and unsafe links as text clamped
+ FAIL  |website| src/RecentKudosCard.test.tsx > WS205: the Recent kudos card sits under What teammates see > puts the card directly after What teammates see and before the Quests panel
+ FAIL  |website| src/RecentKudosCard.test.tsx > WS206: its frame > is a plain card labelled Recent kudos, private to the member, with no corner marks
+ FAIL  |website| src/RecentKudosCard.test.tsx > WS206: its frame > selects Received on every load, in a switch with radio semantics
+ FAIL  |website| src/RecentKudosCard.test.tsx > WS206: its frame > moves between Received and Given with the arrow keys, one always selected
+ FAIL  |website| src/RecentKudosCard.test.tsx > WS206: its frame > keeps Given selected when it is clicked again
+ FAIL  |website| src/RecentKudosCard.test.tsx > WS206: its frame > keeps the last rows and the switch in place, busy, while the other direction loads
+ FAIL  |website| src/RecentKudosCard.test.tsx > WS207: its rows > lists the kudos received in the read's order, each with the giver's face, who thanked you and when
+ FAIL  |website| src/RecentKudosCard.test.tsx > WS207: its rows > lists the kudos given with the first recipient's face, up to two more behind it, and who you thanked
+ FAIL  |website| src/RecentKudosCard.test.tsx > WS207: its rows > shows the words clamped to two lines, links as text, and Edited after an edited message
+ Test Files  4 failed (4)
+      Tests  38 failed | 22 passed | 229 skipped (289)
+ FAIL  |website| src/RecentKudosCard.test.tsx > WS207: its rows > holds no link, XP, quest, Said why tag or channel
+ FAIL  |website| src/RecentKudosCard.test.tsx > WS207: its rows > shows a date from an earlier year with its year
