@@ -1,0 +1,760 @@
+
+ RUN  v5.0.3 <main>/website
+
+ ❯ |website| src/HomePage.test.tsx (28 tests | 3 failed | 24 skipped) 967ms
+   ❯ WS311 V2: the open hero (1)
+     × drops the card's border, background and corner marks for E's open header spacing 422ms
+   ❯ WS312 V4: the first-kudos nudge (3)
+     × shows under the hero while the member has given no kudos, teaching with their kudos emoji, with the page's one primary action 206ms
+     × promises no XP while the member's progression isn't shown 163ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ❯ |website| src/levelContrast.test.tsx (18 tests | 2 failed | 12 skipped) 3082ms
+   ❯ WS312 WS339 V24: the first-kudos nudge's icon and its frame meet 3:1 in both modes (2)
+     × in light 652ms
+     × in dark 550ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS311 V2: the open hero > drops the card's border, background and corner marks for E's open header spacing
+Error: [2mexpect([22m[31melement[39m[2m).not.toHaveClass([22m[32m[32m"hud-panel"[32m[39m[2m)[22m
+
+Expected the element not to have class:
+[32m  hud-panel[39m
+Received:
+[31m  hud-panel relative flex flex-col items-center gap-6 rounded-xl border bg-card p-6 text-center sm:flex-row sm:gap-7 sm:text-left[39m
+ ❯ src/HomePage.test.tsx:104:99
+    102|     renderApp(shellFixtures.memberAtLevel7);
+    103|     const hero = within(main()).getByRole("region", { name: "Sam Examp…
+    104|     for (const frame of ["hud-panel", "border", "bg-card", "rounded-xl…
+       |                                                                                                   ^
+    105|     expect(hero).toHaveClass("sm:py-4", "sm:gap-7", "sm:items-center");
+    106|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS312 V4: the first-kudos nudge > shows under the hero while the member has given no kudos, teaching with their kudos emoji, with the page's one primary action
+Error: [2mexpect([22m[31mreceived[39m[2m).toBeInTheDocument()[22m
+
+[31mreceived[39m value must be an HTMLElement or an SVGElement.
+Received has type:  Null
+Received has value: [31mnull[39m
+ ❯ src/HomePage.test.tsx:124:21
+    122|   it("shows under the hero while the member has given no kudos, teachi…
+    123|     renderApp({ ...shellFixtures.memberBeforeTheirFirstKudos, kudosEmo…
+    124|     expect(nudge()).toBeInTheDocument();
+       |                     ^
+    125|     expect(comesBefore(hero(), nudge()!)).toBe(true);
+    126|     expect(nudge()!.querySelector("svg[aria-hidden='true']")).not.toBe…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS312 V4: the first-kudos nudge > promises no XP while the member's progression isn't shown
+TypeError: Expected container to be an Element, a Document or a DocumentFragment but got null.
+ ❯ checkContainerType ../../..<branch>/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/helpers.js:61:11
+ ❯ queryAllByText ../../..<branch>/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/queries/text.js:18:35
+ ❯ ../../..<branch>/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:74:17
+ ❯ ../../..<branch>/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../..<branch>/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/HomePage.test.tsx:136:29
+    134|   it("promises no XP while the member's progression isn't shown", () =…
+    135|     renderApp({ ...shellFixtures.memberBeforeTheirFirstKudos, progress…
+    136|     expect(within(nudge()!).getByText("Mention a teammate in a Slack m…
+       |                             ^
+    137|     expect(nudge()!.textContent).not.toMatch(/xp|level/i);
+    138|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  |website| src/levelContrast.test.tsx > WS312 WS339 V24: the first-kudos nudge's icon and its frame meet 3:1 in both modes > in light
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Give your first kudos in Slack"
+
+Here are the accessible roles:
+
+  region:
+
+  Name "Sam Example":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"home-title"[39m
+    [33mclass[39m=[32m"hud-panel relative flex flex-col items-center gap-6 rounded-xl border bg-card p-6 text-center sm:flex-row sm:gap-7 sm:text-left"[39m
+  [36m/>[39m
+
+  Name "Book":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"book-panel-title"[39m
+    [33mclass[39m=[32m"relative flex flex-col gap-3 rounded-xl border bg-card p-4 "[39m
+  [36m/>[39m
+
+  Name "Skill tree":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"skillTree-panel-title"[39m
+    [33mclass[39m=[32m"relative flex flex-col gap-3 rounded-xl border bg-card p-4 "[39m
+  [36m/>[39m
+
+  Name "What teammates see":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"profile-card-panel-title"[39m
+    [33mclass[39m=[32m"relative flex flex-col gap-3 rounded-xl border bg-card p-4 "[39m
+  [36m/>[39m
+
+  Name "Quests":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"quests-panel-title"[39m
+    [33mclass[39m=[32m"relative flex flex-col gap-3 rounded-xl border bg-card p-4 "[39m
+  [36m/>[39m
+
+  Name "Leaderboard":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"leaderboard-panel-title"[39m
+    [33mclass[39m=[32m"relative flex flex-col gap-3 rounded-xl border bg-card p-4 "[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  img:
+
+  Name "Level 1, 20 XP to level 2":
+  [36m<span[39m
+    [33maria-label[39m=[32m"Level 1, 20 XP to level 2"[39m
+    [33mclass[39m=[32m"relative inline-flex shrink-0 items-center justify-center"[39m
+    [33mdata-hero-ring[39m=[32m""[39m
+    [33mrole[39m=[32m"img"[39m
+    [33mstyle[39m=[32m"width: 120px; height: 120px;"[39m
+  [36m/>[39m
+
+  Name "1 of 3 kudos left today":
+  [36m<span[39m
+    [33maria-label[39m=[32m"1 of 3 kudos left today"[39m
+    [33mclass[39m=[32m"inline-flex items-center gap-1"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Sam Example":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display font-bold outline-none text-4xl leading-none wrap-anywhere"[39m
+    [33mid[39m=[32m"home-title"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Book":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"book-panel-title"[39m
+  [36m/>[39m
+
+  Name "Skill tree":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"skillTree-panel-title"[39m
+  [36m/>[39m
+
+  Name "What teammates see":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"profile-card-panel-title"[39m
+  [36m/>[39m
+
+  Name "Quests":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"quests-panel-title"[39m
+  [36m/>[39m
+
+  Name "Leaderboard":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"leaderboard-panel-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"mt-3 text-sm text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"mt-2 text-xs text-muted-foreground tabular-nums"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"flex items-center gap-3 text-sm"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Thank someone in Slack (opens in a new tab)":
+  [36m<a[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"[39m
+    [33mhref[39m=[32m"https://app.slack.com/client/T1"[39m
+    [33mrel[39m=[32m"noreferrer"[39m
+    [33mtarget[39m=[32m"_blank"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "0 XP 20 XP to level 2":
+  [36m<div[39m
+    [33maria-labelledby[39m=[32m"_r_d_ _r_e_"[39m
+    [33maria-valuemax[39m=[32m"20"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"0"[39m
+    [33mclass[39m=[32m"h-3 w-full overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mdata-xp-bar[39m=[32m""[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  [36m<time[39m
+    [33mdatetime[39m=[32m"2026-10-14T00:00:00.000Z"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex min-w-0 flex-col gap-6"[39m
+    [36m>[39m
+      [36m<section[39m
+        [33maria-labelledby[39m=[32m"home-title"[39m
+        [33mclass[39m=[32m"hud-panel relative flex flex-col items-center gap-6 rounded-xl border bg-card p-6 text-center sm:flex-row sm:gap-7 sm:text-left"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-32"[39m
+        [36m>[39m
+          [0mSE[0m
+        [36m</span>[39m
+        [36m<span[39m
+          [33maria-label[39m=[32m"Level 1, 20 XP to level 2"[39m
+          [33mclass[39m=[32m"relative inline-flex shrink-0 items-center justify-center"[39m
+          [33mdata-hero-ring[39m=[32m""[39m
+          [33mrole[39m=[32m"img"[39m
+          [33mstyle[39m=[32m"width: 120px; height: 120px;"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33mclass[39m=[32m"absolute inset-0 -rotate-90"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"120"[39m
+            [33mviewBox[39m=[32m"0 0 120 120"[39m
+            [33mwidth[39m=[32m"120"[39m
+          [36m>[39m
+            [36m<circle[39m
+              [33mcx[39m=[32m"60"[39m
+              [33mcy[39m=[32m"60"[39m
+              [33mr[39m=[32m"59.5"[39m
+              [33mstroke[39m=[32m"var(--muted-foreground)"[39m
+              [33mstroke-width[39m=[32m"1"[39m
+            [36m/>[39m
+            [36m<circle[39m
+              [33mcx[39m=[32m"60"[39m
+              [33mcy[39m=[32m"60"[39m
+              [33mr[39m=[32m"48.5"[39m
+              [33mstroke[39m=[32m"var(--muted-foreground)"[39m
+              [33mstroke-width[39m=[32m"1"[39m
+            [36m/>[39m
+            [36m<circle[39m
+              [33mcx[39m=[32m"60"[39m
+              [33mcy[39m=[32m"60"[39m
+              [33mdata-arc[39m=[32m"true"[39m
+              [33mpathLength[39m=[32m"100"[39m
+              [33mr[39m=[32m"54"[39m
+              [33mstroke[39m=[32m"var(--foreground)"[39m
+              [33mstroke-dasharray[39m=[32m"0 100"[39m
+              [33mstroke-width[39m=[32m"10"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"flex flex-col items-center gap-1 leading-none"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"hud-label"[39m
+            [36m>[39m
+              [0mLevel[0m
+            [36m</span>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"hud-display text-4xl font-bold tabular-nums"[39m
+            [36m>[39m
+              [0m1[0m
+            [36m</span>[39m
+          [36m</span>[39m
+        [36m</span>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex w-full min-w-0 flex-1 flex-col items-center sm:items-start"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"hud-label"[39m
+          [36m>[39m
+            [0mCharacter[0m
+          [36m</span>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"mt-1 max-w-full"[39m
+          [36m>[39m
+            [36m<h1[39m
+              [33mclass[39m=[32m"hud-display font-bold outline-none text-4xl leading-none wrap-anywhere"[39m
+              [33mid[39m=[32m"home-title"[39m
+              [33mtabindex[39m=[32m"-1"[39m
+            [36m>[39m
+              [0mSam Example[0m
+            [36m</h1>[39m
+          [36m</div>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"mt-3 text-sm text-muted-foreground"[39m
+          [36m>[39m
+            [0mThank someone for work you noticed. Mention them in a Slack message with :[0m
+            [0mtaco[0m
+            [0m: and say what they did.[0m
+          [36m</p>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"mt-3"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"[39m
+              [33mhref[39m=[32m"https://app.slack.com/client/T1"[39m
+              [33mrel[39m=[32m"noreferrer"[39m
+              [33mtarget[39m=[32m"_blank"[39m
+            [36m>[39m
+              [0mThank someone in Slack[0m
+              [0m [0m
+              [36m<span[39m
+                [33mclass[39m=[32m"sr-only"[39m
+              [36m>[39m
+                [0m(opens in a new tab)[0m
+              [36m</span>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"LemonIcon size-4"[39m
+                [33mfill[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"100%"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33mclip-rule[39m=[32m"evenodd"[39m
+                  [33md[39m=[32m"M13 3.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V5.56l-7.97 7.97a.75.75 0 1 1-1.06-1.06l7.97-7.97h-4.69a.75.75 0 0 1-.75-.75ZM5.324 5H9.25a.75.75 0 1 1 0 1.5h-3.9c-.292 0-.467 0-.596.011a.628.628 0 0 0-.12.018.25.25 0 0 0-.105.104.626.626 0 0 0-.018.121c-.01.13-.011.304-.011.596v11.3c0 .292 0 .467.011.596a.625.625 0 0 0 .018.12.25.25 0 0 0 .104.105.638.638 0 0 0 .121.018c.13.01.304.011.596.011h11.3c.292 0 .467 0 .596-.011a.636.636 0 0 0 .12-.018.25.25 0 0 0 .105-.105.636.636 0 0 0 .018-.12c.01-.13.011-.304.011-.596V14a.75.75 0 0 1 1.5 0v4.676c0 .258 0 .494-.016.692a1.775 1.775 0 0 1-.175.677 1.75 1.75 0 0 1-.765.764c-.23.118-.463.157-.676.175-.198.016-.434.016-.692.016H5.324c-.258 0-.494 0-.692-.016a1.775 1.775 0 0 1-.676-.175 1.75 1.75 0 0 1-.765-.765 1.774 1.774 0 0 1-.175-.676A9.053 9.053 0 0 1 3 18.676V7.324c0-.258 0-.494.016-.692.018-.213.057-.446.175-.676a1.75 1.75 0 0 1 .765-.765c.23-.118.463-.157.676-.175C4.83 5 5.066 5 5.324 5ZM17.47 19.37v-.002Zm-.1.1h-.003Zm-12.74 0h.002Zm-.1-.102a.02.02 0 0 1 0 .001Zm0-12.737v.001Zm.102-.102h-.001Z"[39m
+                  [33mfill-rule[39m=[32m"evenodd"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</a>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"mt-4 w-full"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-labelledby[39m=[32m"_r_d_ _r_...
+ ❯ Object.getElementError ../../..<branch>/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../..<branch>/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../..<branch>/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../..<branch>/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/levelContrast.test.tsx:54:54
+     52|     it(`in ${mode}`, () => {
+     53|       renderApp(shellFixtures.memberBeforeTheirFirstKudos);
+     54|       const nudge = within(screen.getByRole("main")).getByRole("region…
+       |                                                      ^
+     55|       const icon = nudge.querySelector("svg")!;
+     56|       const parts = [
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  |website| src/levelContrast.test.tsx > WS312 WS339 V24: the first-kudos nudge's icon and its frame meet 3:1 in both modes > in dark
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Give your first kudos in Slack"
+
+Here are the accessible roles:
+
+  region:
+
+  Name "Sam Example":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"home-title"[39m
+    [33mclass[39m=[32m"hud-panel relative flex flex-col items-center gap-6 rounded-xl border bg-card p-6 text-center sm:flex-row sm:gap-7 sm:text-left"[39m
+  [36m/>[39m
+
+  Name "Book":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"book-panel-title"[39m
+    [33mclass[39m=[32m"relative flex flex-col gap-3 rounded-xl border bg-card p-4 "[39m
+  [36m/>[39m
+
+  Name "Skill tree":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"skillTree-panel-title"[39m
+    [33mclass[39m=[32m"relative flex flex-col gap-3 rounded-xl border bg-card p-4 "[39m
+  [36m/>[39m
+
+  Name "What teammates see":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"profile-card-panel-title"[39m
+    [33mclass[39m=[32m"relative flex flex-col gap-3 rounded-xl border bg-card p-4 "[39m
+  [36m/>[39m
+
+  Name "Quests":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"quests-panel-title"[39m
+    [33mclass[39m=[32m"relative flex flex-col gap-3 rounded-xl border bg-card p-4 "[39m
+  [36m/>[39m
+
+  Name "Leaderboard":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"leaderboard-panel-title"[39m
+    [33mclass[39m=[32m"relative flex flex-col gap-3 rounded-xl border bg-card p-4 "[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  img:
+
+  Name "Level 1, 20 XP to level 2":
+  [36m<span[39m
+    [33maria-label[39m=[32m"Level 1, 20 XP to level 2"[39m
+    [33mclass[39m=[32m"relative inline-flex shrink-0 items-center justify-center"[39m
+    [33mdata-hero-ring[39m=[32m""[39m
+    [33mrole[39m=[32m"img"[39m
+    [33mstyle[39m=[32m"width: 120px; height: 120px;"[39m
+  [36m/>[39m
+
+  Name "1 of 3 kudos left today":
+  [36m<span[39m
+    [33maria-label[39m=[32m"1 of 3 kudos left today"[39m
+    [33mclass[39m=[32m"inline-flex items-center gap-1"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Sam Example":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display font-bold outline-none text-4xl leading-none wrap-anywhere"[39m
+    [33mid[39m=[32m"home-title"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Book":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"book-panel-title"[39m
+  [36m/>[39m
+
+  Name "Skill tree":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"skillTree-panel-title"[39m
+  [36m/>[39m
+
+  Name "What teammates see":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"profile-card-panel-title"[39m
+  [36m/>[39m
+
+  Name "Quests":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"quests-panel-title"[39m
+  [36m/>[39m
+
+  Name "Leaderboard":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"leaderboard-panel-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"mt-3 text-sm text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"mt-2 text-xs text-muted-foreground tabular-nums"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"flex items-center gap-3 text-sm"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Thank someone in Slack (opens in a new tab)":
+  [36m<a[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"[39m
+    [33mhref[39m=[32m"https://app.slack.com/client/T1"[39m
+    [33mrel[39m=[32m"noreferrer"[39m
+    [33mtarget[39m=[32m"_blank"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "0 XP 20 XP to level 2":
+  [36m<div[39m
+    [33maria-labelledby[39m=[32m"_r_i_ _r_j_"[39m
+    [33maria-valuemax[39m=[32m"20"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"0"[39m
+    [33mclass[39m=[32m"h-3 w-full overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mdata-xp-bar[39m=[32m""[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  [36m<time[39m
+    [33mdatetime[39m=[32m"2026-10-14T00:00:00.000Z"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex min-w-0 flex-col gap-6"[39m
+    [36m>[39m
+      [36m<section[39m
+        [33maria-labelledby[39m=[32m"home-title"[39m
+        [33mclass[39m=[32m"hud-panel relative flex flex-col items-center gap-6 rounded-xl border bg-card p-6 text-center sm:flex-row sm:gap-7 sm:text-left"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-32"[39m
+        [36m>[39m
+          [0mSE[0m
+        [36m</span>[39m
+        [36m<span[39m
+          [33maria-label[39m=[32m"Level 1, 20 XP to level 2"[39m
+          [33mclass[39m=[32m"relative inline-flex shrink-0 items-center justify-center"[39m
+          [33mdata-hero-ring[39m=[32m""[39m
+          [33mrole[39m=[32m"img"[39m
+          [33mstyle[39m=[32m"width: 120px; height: 120px;"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33mclass[39m=[32m"absolute inset-0 -rotate-90"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"120"[39m
+            [33mviewBox[39m=[32m"0 0 120 120"[39m
+            [33mwidth[39m=[32m"120"[39m
+          [36m>[39m
+            [36m<circle[39m
+              [33mcx[39m=[32m"60"[39m
+              [33mcy[39m=[32m"60"[39m
+              [33mr[39m=[32m"59.5"[39m
+              [33mstroke[39m=[32m"var(--muted-foreground)"[39m
+              [33mstroke-width[39m=[32m"1"[39m
+            [36m/>[39m
+            [36m<circle[39m
+              [33mcx[39m=[32m"60"[39m
+              [33mcy[39m=[32m"60"[39m
+              [33mr[39m=[32m"48.5"[39m
+              [33mstroke[39m=[32m"var(--muted-foreground)"[39m
+              [33mstroke-width[39m=[32m"1"[39m
+            [36m/>[39m
+            [36m<circle[39m
+              [33mcx[39m=[32m"60"[39m
+              [33mcy[39m=[32m"60"[39m
+              [33mdata-arc[39m=[32m"true"[39m
+              [33mpathLength[39m=[32m"100"[39m
+              [33mr[39m=[32m"54"[39m
+              [33mstroke[39m=[32m"var(--foreground)"[39m
+              [33mstroke-dasharray[39m=[32m"0 100"[39m
+              [33mstroke-width[39m=[32m"10"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"flex flex-col items-center gap-1 leading-none"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"hud-label"[39m
+            [36m>[39m
+              [0mLevel[0m
+            [36m</span>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"hud-display text-4xl font-bold tabular-nums"[39m
+            [36m>[39m
+              [0m1[0m
+            [36m</span>[39m
+          [36m</span>[39m
+        [36m</span>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex w-full min-w-0 flex-1 flex-col items-center sm:items-start"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"hud-label"[39m
+          [36m>[39m
+            [0mCharacter[0m
+          [36m</span>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"mt-1 max-w-full"[39m
+          [36m>[39m
+            [36m<h1[39m
+              [33mclass[39m=[32m"hud-display font-bold outline-none text-4xl leading-none wrap-anywhere"[39m
+              [33mid[39m=[32m"home-title"[39m
+              [33mtabindex[39m=[32m"-1"[39m
+            [36m>[39m
+              [0mSam Example[0m
+            [36m</h1>[39m
+          [36m</div>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"mt-3 text-sm text-muted-foreground"[39m
+          [36m>[39m
+            [0mThank someone for work you noticed. Mention them in a Slack message with :[0m
+            [0mtaco[0m
+            [0m: and say what they did.[0m
+          [36m</p>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"mt-3"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"[39m
+              [33mhref[39m=[32m"https://app.slack.com/client/T1"[39m
+              [33mrel[39m=[32m"noreferrer"[39m
+              [33mtarget[39m=[32m"_blank"[39m
+            [36m>[39m
+              [0mThank someone in Slack[0m
+              [0m [0m
+              [36m<span[39m
+                [33mclass[39m=[32m"sr-only"[39m
+              [36m>[39m
+                [0m(opens in a new tab)[0m
+              [36m</span>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"LemonIcon size-4"[39m
+                [33mfill[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"100%"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33mclip-rule[39m=[32m"evenodd"[39m
+                  [33md[39m=[32m"M13 3.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V5.56l-7.97 7.97a.75.75 0 1 1-1.06-1.06l7.97-7.97h-4.69a.75.75 0 0 1-.75-.75ZM5.324 5H9.25a.75.75 0 1 1 0 1.5h-3.9c-.292 0-.467 0-.596.011a.628.628 0 0 0-.12.018.25.25 0 0 0-.105.104.626.626 0 0 0-.018.121c-.01.13-.011.304-.011.596v11.3c0 .292 0 .467.011.596a.625.625 0 0 0 .018.12.25.25 0 0 0 .104.105.638.638 0 0 0 .121.018c.13.01.304.011.596.011h11.3c.292 0 .467 0 .596-.011a.636.636 0 0 0 .12-.018.25.25 0 0 0 .105-.105.636.636 0 0 0 .018-.12c.01-.13.011-.304.011-.596V14a.75.75 0 0 1 1.5 0v4.676c0 .258 0 .494-.016.692a1.775 1.775 0 0 1-.175.677 1.75 1.75 0 0 1-.765.764c-.23.118-.463.157-.676.175-.198.016-.434.016-.692.016H5.324c-.258 0-.494 0-.692-.016a1.775 1.775 0 0 1-.676-.175 1.75 1.75 0 0 1-.765-.765 1.774 1.774 0 0 1-.175-.676A9.053 9.053 0 0 1 3 18.676V7.324c0-.258 0-.494.016-.692.018-.213.057-.446.175-.676a1.75 1.75 0 0 1 .765-.765c.23-.118.463-.157.676-.175C4.83 5 5.066 5 5.324 5ZM17.47 19.37v-.002Zm-.1.1h-.003Zm-12.74 0h.002Zm-.1-.102a.02.02 0 0 1 0 .001Zm0-12.737v.001Zm.102-.102h-.001Z"[39m
+                  [33mfill-rule[39m=[32m"evenodd"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</a>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"mt-4 w-full"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33maria-labelledby[39m=[32m"_r_i_ _r_...
+ ❯ Object.getElementError ../../..<branch>/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../..<branch>/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../..<branch>/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../..<branch>/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/levelContrast.test.tsx:54:54
+     52|     it(`in ${mode}`, () => {
+     53|       renderApp(shellFixtures.memberBeforeTheirFirstKudos);
+     54|       const nudge = within(screen.getByRole("main")).getByRole("region…
+       |                                                      ^
+     55|       const icon = nudge.querySelector("svg")!;
+     56|       const parts = [
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  2 failed | 1 passed (3)
+      Tests  5 failed | 31 passed | 250 skipped (286)
+   Start at  14:29:42
+   Duration  17.27s (tests 48%, import 33%, transform 9%, environment 7%, setup 3%)
+
