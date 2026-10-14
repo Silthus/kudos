@@ -93,6 +93,19 @@ async function aLongHistory(giver: MemberId, recipient: MemberId, awards: number
   }
 }
 
+async function openedCratesIn(member: MemberId, week: string, crates: number) {
+  const at = Date.parse("2026-10-07T10:00:00Z");
+  for (let batch = 0; batch * 2100 < crates; batch++) {
+    await t.run(async (ctx) => {
+      for (let slot = batch * 2100; slot < Math.min(crates, (batch + 1) * 2100); slot++) {
+        const key = `weekly:${week}:${slot}`;
+        await ctx.db.insert("rewardRecords", { member, key, xp: 20, coins: 0, item: null, catalogueVersion: "1", at });
+        await ctx.db.insert("crateOpenings", { member, key, at });
+      }
+    });
+  }
+}
+
 async function opensCrate(member: MemberId, quest: Quest) {
   expect(await t.run((ctx) => openQuestCrate(ctx, member, quest))).toBe("done");
 }
@@ -337,6 +350,22 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     vi.setSystemTime(nextMonday);
 
     expect((await openQuests(asSignedIn)).waiting[0]!.seen).toBe(finished);
+  });
+});
+
+describe("P85: the pending-crate index lists every crate still waiting, within Convex's limits", () => {
+  beforeEach(questsApply);
+
+  test("a member with thousands of crates opened in earlier weeks still reads what waits within Convex's read limits", async () => {
+    t = testBackend({ transactionLimits: true });
+    await questsApply();
+    const { member, asSignedIn, teammate } = await aTeam();
+    await questsOpenFor(member, "say-why");
+    await thanks(member, teammate.member);
+    await openedCratesIn(member, "2026-10-05", 4_200);
+    vi.setSystemTime(nextMonday);
+
+    expect((await openQuests(asSignedIn)).waiting.map(({ crate }) => crate)).toEqual([{ kind: "weekly", week: thisWeek, slot: 0 }]);
   });
 });
 

@@ -5,6 +5,8 @@ import type { Quest, WeeklyQuest } from "./step";
 
 export const crateOpeningValidator = v.object({ member: v.id("members"), key: v.string(), at: v.number() });
 
+export const pendingCrateValidator = v.object({ member: v.id("members"), key: v.string() });
+
 export function rewardKeyOf(quest: Quest) {
   return quest.kind === "journey" ? `${rewardKeyPrefixOf("journey")}${quest.step}` : `${rewardKeyPrefixOf("weekly")}${quest.week}:${quest.slot}`;
 }

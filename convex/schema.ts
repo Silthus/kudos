@@ -18,7 +18,7 @@ import { purchaseOutcomeValidator } from "./progression/purchases";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
-import { crateOpeningValidator } from "./quests/crates";
+import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { journeyActivationValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
 import { featureValidator } from "./unlocks/feature";
@@ -228,6 +228,13 @@ export default defineSchema({
   questProgress: defineTable(questProgressValidator).index("by_member_week_slot", ["member", "week", "slot"]),
 
   crateOpenings: defineTable(crateOpeningValidator).index("by_member_key", ["member", "key"]),
+
+  pendingCrates: defineTable(pendingCrateValidator).index("by_member_key", ["member", "key"]),
+
+  pendingCratesBackfill: defineTable({
+    cursor: v.union(v.string(), v.null()),
+    isDone: v.boolean(),
+  }),
 
   effectsBackfill: defineTable({
     before: v.number(),

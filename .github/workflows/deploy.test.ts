@@ -20,6 +20,7 @@ const deployments = [
     trigger: "only a run started by hand deploys, never a push or a pull request",
     on: { workflow_dispatch: null },
     secret: "CONVEX_DEPLOY_KEY_SANDBOX",
+    backfill: `pnpm exec convex run quests/pendingCrates:backfillPendingCrates '{"restart":true}'`,
   },
   {
     name: "production",
@@ -27,26 +28,35 @@ const deployments = [
     trigger: "only a push to main deploys, never a pull request",
     on: { push: { branches: ["main"] } },
     secret: "CONVEX_DEPLOY_KEY_PRODUCTION",
+    backfill: "pnpm exec convex run quests/pendingCrates:backfillPendingCrates",
   },
 ];
 
-describe.each(deployments)("deploying the $name deployment", ({ name, file, trigger, on, secret }) => {
+describe.each(deployments)("deploying the $name deployment", ({ name, file, trigger, on, secret, backfill }) => {
   const workflow = parse(readFileSync(new URL(`./${file}`, import.meta.url), "utf8")) as Workflow;
   const steps = Object.values(workflow.jobs).flatMap((job) => job.steps);
   const deployStep = steps.find((step) => step.run?.includes("convex deploy"));
   const uploadStep = steps.find((step) => step.run?.includes("static-hosting upload"));
   const prepareStep = steps.find((step) => step.run?.includes("website/flag:prepareWebsiteFlag"));
   const faceSyncStep = steps.find((step) => step.run?.includes("companyProfiles/sync:syncCompanyProfiles"));
-  const keyedSteps = [deployStep, uploadStep, prepareStep, faceSyncStep];
+  const pendingCratesStep = steps.find((step) => step.run?.includes("quests/pendingCrates:backfillPendingCrates"));
+  const keyedSteps = [deployStep, pendingCratesStep, uploadStep, prepareStep, faceSyncStep];
 
   test(trigger, () => {
     expect(workflow.on).toEqual(on);
   });
 
-  test("WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the website upload, prepareWebsiteFlag and the face sync", () => {
+  test("WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the pending-crate backfill, the website upload, prepareWebsiteFlag and the face sync", () => {
     for (const step of keyedSteps) expect(step?.env).toEqual({ CONVEX_DEPLOY_KEY: `\${{ secrets.${secret} }}` });
     const elsewhere = [workflow.env, ...Object.values(workflow.jobs).map((job) => job.env), ...steps.filter((step) => !keyedSteps.includes(step))];
     expect(JSON.stringify(elsewhere)).not.toContain("secrets.");
+  });
+
+  test("P85: every deploy backfills the pending-crate index last, so a failing backfill never holds back the website, and runs it whenever the backend deployed", () => {
+    expect(steps.at(-1)).toBe(pendingCratesStep);
+    expect(pendingCratesStep?.run).toBe(backfill);
+    expect(pendingCratesStep?.if).toBe(`\${{ !cancelled() && steps.${deployStep?.id}.outcome == 'success' && steps.tip.outputs.current == 'true' }}`);
+    expect(deployStep?.id).toBe("deploy");
   });
 
   test("WS27: after convex deploy, the website is built against this deployment and uploaded to its static hosting", () => {
@@ -84,6 +94,8 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
   test("a run the branch has already moved past deploys nothing, so a rerun never rolls the deployment back", () => {
     const tipCheck = steps[steps.indexOf(deployStep!) - 1];
     expect(tipCheck?.run).toContain('git ls-remote origin "$GITHUB_REF"');
-    for (const step of keyedSteps) expect(step?.if).toBe(`steps.${tipCheck?.id}.outputs.current == 'true'`);
+    const tipIsCurrent = `steps.${tipCheck?.id}.outputs.current == 'true'`;
+    for (const step of keyedSteps.filter((step) => step !== pendingCratesStep)) expect(step?.if).toBe(tipIsCurrent);
+    expect(pendingCratesStep?.if).toContain(`&& ${tipIsCurrent} }}`);
   });
 });
