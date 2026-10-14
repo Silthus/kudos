@@ -1,3 +1,4 @@
+import { FirstKudosNudge, hasGivenNoKudos } from "../home/FirstKudosNudge";
 import { Hero } from "../home/Hero";
 import { MainColumnPanels, RightRailPanels, type RailReads } from "../home/FeaturePanels";
 import { JourneyPanel } from "../home/JourneyPanel";
@@ -13,6 +14,7 @@ export function HomePage({ member, reads, useRecentKudos }: { member: MemberProf
       <div className="flex min-w-0 flex-col gap-6">
         <TabsWhileActivityAnswers useRecentKudos={useRecentKudos} />
         <Hero member={member} />
+        {hasGivenNoKudos(member) && <FirstKudosNudge member={member} />}
         <JourneyPanel journey={member.journey} />
         <MainColumnPanels member={member} />
       </div>
