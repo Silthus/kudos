@@ -1,0 +1,17 @@
+{
+  "backend": "disposable local backend on 127.0.0.1:4610/4611, mock Slack issuer on 127.0.0.1:4612",
+  "flags": "MOCK_FLAGS_ON=everyone-board,xp-levels,unlocks on the mock, beside website; KUDOS_ENVIRONMENT=sandbox; no PostHog project read or written",
+  "launch": "feedback/unlockFilter:unopenedReplyOf for U_NOBODY before anyone joined: one unlockLaunches row, shipped [\"leaderboard\"]",
+  "calls": [
+    { "step": "locked, the browser's own session", "call": "website/commands:openFeature {\"feature\":\"leaderboard\"}", "answer": { "status": "success", "value": { "kind": "refused" } } },
+    { "step": "locked, no session", "call": "website/commands:openFeature {\"feature\":\"leaderboard\"}", "answer": { "status": "success", "value": { "kind": "signed-out" } } },
+    { "step": "ready (unlocks/unlocks:makeReady for level 3), the browser's own session", "call": "website/commands:openFeature {\"feature\":\"leaderboard\"}", "answer": { "status": "success", "value": { "kind": "opened" } } },
+    { "step": "the same call again", "call": "website/commands:openFeature {\"feature\":\"leaderboard\"}", "answer": { "status": "success", "value": { "kind": "opened" } } },
+    { "step": "a member named beside the feature", "call": "website/commands:openFeature {\"feature\":\"leaderboard\",\"member\":\"<Juno's member ID>\"}", "answer": { "status": "error", "message": "ArgumentValidationError: Object contains extra field `member` that is not in the validator." } }
+  ],
+  "after": {
+    "unlockLaunches": "still the one row from the launch",
+    "unlocks": "one Leaderboard row with readyAt and openedAt set once (the second call kept the first openedAt)",
+    "appHome": "see app-home-before.txt and app-home-after.txt"
+  }
+}

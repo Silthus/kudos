@@ -1,0 +1,81 @@
+     × only HTTP routes, Convex Auth's signIn, signOut and isAuthenticated, and the website's signed-in functions are public 450ms
+       × with the website flag off, a member's open answers closed 70ms
+       × with a flags key but no workspace key yet, the open answers closed and makes no key 5ms
+       × without a session, the open answers signed-out 8ms
+       × with a signed-out session, a ready member's open answers signed-out 9ms
+       × a person the directory is still verifying answers verifying 5ms
+       × a person whose verification failed answers unverified 8ms
+       × a ready member who left the workspace answers not-a-member 40ms
+     × WS61: the feature is the only argument, so no call names a member 10ms
+     × WS62 P77: with xp-levels and unlocks on and no launch recorded, the open answers refused and launches nothing 3ms
+     × WS62: a ready Leaderboard opens for good, and App Home's republish is scheduled 7ms
+     × WS62: App Home's republished view no longer offers the Leaderboard's crate 8ms
+     × WS63: a doubled open opens once and answers opened again, keeping the first time 8ms
+     × WS62: a Leaderboard still locked at level 1 answers refused and changes no domain table 5ms
+     × WS62: a Skill tree that hasn't shipped, for a… answers refused and changes no domain table 9ms
+     × WS62: a ready Leaderboard with unlocks switch… answers refused and changes no domain table 7ms
+     × WS62: a ready Leaderboard with xp-levels swit… answers refused and changes no domain table 6ms
+     × WS62: an open Leaderboard with unlocks switch… answers refused and changes no domain table 8ms
+     × WS62: an open Leaderboard with xp-levels swit… answers refused and changes no domain table 6ms
+     × WS62 WS63: an already open Leaderboard answers opened and changes no domain table 10ms
+     × WS64: opening on the website leaves the domain tables and events Slack's Open leaves, besides Slack's receipt 17ms
+     × P92: opening a ready Leaderboard writes only its openedAt, with the XP and every other record as they were 7ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 22 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |convex| convex/publicSurface.test.ts > WS10: the public surface is exact > only HTTP routes, Convex Auth's signIn, signOut and isAuthenticated, and the website's signed-in functions are public
+AssertionError: expected [ './auth.ts:isAuthenticated', …(4) ] to deeply equal [ './auth.ts:isAuthenticated', …(5) ]
+ FAIL  |convex| convex/website/commands.test.ts > website commands pass one guard > WS61: a denial answers as a read does and writes nothing at all > with the website flag off, a member's open answers closed
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > website commands pass one guard > WS61: a denial answers as a read does and writes nothing at all > with a flags key but no workspace key yet, the open answers closed and makes no key
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > website commands pass one guard > WS61: a denial answers as a read does and writes nothing at all > without a session, the open answers signed-out
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > website commands pass one guard > WS61: a denial answers as a read does and writes nothing at all > with a signed-out session, a ready member's open answers signed-out
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > website commands pass one guard > WS61: a denial answers as a read does and writes nothing at all > a person the directory is still verifying answers verifying
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > website commands pass one guard > WS61: a denial answers as a read does and writes nothing at all > a person whose verification failed answers unverified
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > website commands pass one guard > WS61: a denial answers as a read does and writes nothing at all > a ready member who left the workspace answers not-a-member
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > website commands pass one guard > WS61: the feature is the only argument, so no call names a member
+AssertionError: expected [Function] to throw error matching /member/ but got 'Could not find module for: "website/c…'
+"Could not find module for: \"website/commands\""
+ FAIL  |convex| convex/website/commands.test.ts > a website command never launches unlocks > WS62 P77: with xp-levels and unlocks on and no launch recorded, the open answers refused and launches nothing
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > a website command is a D17 command > WS62: a ready Leaderboard opens for good, and App Home's republish is scheduled
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > a website command is a D17 command > WS62: App Home's republished view no longer offers the Leaderboard's crate
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > a website command is a D17 command > WS63: a doubled open opens once and answers opened again, keeping the first time
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > a website command is a D17 command > WS62: a Leaderboard still locked at level 1 answers refused and changes no domain table
+ FAIL  |convex| convex/website/commands.test.ts > a website command is a D17 command > WS62: a Skill tree that hasn't shipped, for a… answers refused and changes no domain table
+ FAIL  |convex| convex/website/commands.test.ts > a website command is a D17 command > WS62: a ready Leaderboard with unlocks switch… answers refused and changes no domain table
+ FAIL  |convex| convex/website/commands.test.ts > a website command is a D17 command > WS62: a ready Leaderboard with xp-levels swit… answers refused and changes no domain table
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > a website command is a D17 command > WS62: an open Leaderboard with unlocks switch… answers refused and changes no domain table
+ FAIL  |convex| convex/website/commands.test.ts > a website command is a D17 command > WS62: an open Leaderboard with xp-levels swit… answers refused and changes no domain table
+AssertionError: expected 'refused' to be 'done' // Object.is equality
+ FAIL  |convex| convex/website/commands.test.ts > a website command is a D17 command > WS62 WS63: an already open Leaderboard answers opened and changes no domain table
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > a website command is a D17 command > WS64: opening on the website leaves the domain tables and events Slack's Open leaves, besides Slack's receipt
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ FAIL  |convex| convex/website/commands.test.ts > opening on the website grants nothing > P92: opening a ready Leaderboard writes only its openedAt, with the XP and every other record as they were
+Error: Could not find module for: "website/commands"
+    1550|             throw new Error(`Could not find module for: "${path}"`);
+ Test Files  2 failed (2)
+      Tests  22 failed (22)

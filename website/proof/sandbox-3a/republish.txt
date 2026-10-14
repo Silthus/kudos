@@ -1,0 +1,7 @@
+The sandbox's scheduled functions after the website calls (convex data _scheduled_functions --order desc, read 2026-10-14T02:09:35Z), newest first, App Home only:
+
+2026-10-14T02:09:24.531Z slack/appHome.js:publishHome success
+2026-10-14T02:09:24.278Z slack/appHome.js:publishHome success
+
+One publishHome per `opened` answer (02:09:24.496Z and 02:09:24.741Z): openFeature scheduled App Home's republish after each, and both jobs completed without scheduling a retry. publishHome catches a failed views.publish itself, so a completed job doesn't show that Slack accepted the view; Slack's own acknowledgement isn't visible from this devbox.
+flagExposures gained no row: the member's `unlocks` exposure was already recorded at 2026-10-13T22:11:58Z, and the seam records an exposure once per member, flag and value.

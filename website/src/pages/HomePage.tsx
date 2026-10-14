@@ -1,6 +1,6 @@
 import { Counters } from "../home/Counters";
 import { Hero } from "../home/Hero";
-import { LockedFeatures } from "../home/LockedFeatures";
+import { FeatureCards } from "../home/FeatureCards";
 import { ProfileCardPanel } from "../home/ProfileCardPanel";
 import type { MemberProfile } from "../shell";
 
@@ -14,7 +14,7 @@ export function HomePage({ member }: { member: MemberProfile }) {
         </div>
         <ProfileCardPanel member={member} />
       </div>
-      <LockedFeatures member={member} />
+      <FeatureCards member={member} />
     </div>
   );
 }

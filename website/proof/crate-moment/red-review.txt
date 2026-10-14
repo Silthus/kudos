@@ -1,0 +1,20 @@
+     × plays each crate's first reveal in full when two answers arrive together
+     × drops the reveal when the member signs out, and shows none on the next sign-in
+     × ignores an answer that arrives after the member signed out
+     × keeps focus in the dialog after Replay under reduced motion, so Esc still closes it
+     × keeps the dialog open when Go to opens in another tab
+     × stops nudging once Open is pressed, and stays still after an error
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > plays each crate's first reveal in full when two answers arrive together
+TestingLibraryElementError: Unable to find an accessible element with the role "heading" and name "Leaderboard is open"
+ FAIL  |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > drops the reveal when the member signs out, and shows none on the next sign-in
+AssertionError: expected <div role="dialog" …(5)>…(1)</div> to be null
+ Test Files  1 failed (1)
+      Tests  6 failed | 29 passed (35)
+ FAIL  |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > ignores an answer that arrives after the member signed out
+AssertionError: expected <div role="dialog" …(5)>…(1)</div> to be null
+ FAIL  |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > keeps focus in the dialog after Replay under reduced motion, so Esc still closes it
+ FAIL  |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > keeps the dialog open when Go to opens in another tab
+AssertionError: expected null not to be null
+ FAIL  |website| src/crateMoment.test.tsx > WS65 WS66: the crate nudges once, and never while it opens > stops nudging once Open is pressed, and stays still after an error
+AssertionError: expected <span aria-hidden="true" …(4)>…(5)</span> to be null

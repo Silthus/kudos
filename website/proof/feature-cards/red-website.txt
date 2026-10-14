@@ -1,0 +1,124 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/feature-cards
+
+ ❯ |website| src/FeatureCards.test.tsx (11 tests | 5 failed) 1495ms
+   ❯ WS58: the home's feature cards read the member's unlock path (7)
+     × shows a locked shipped feature with Unlocks' name and its level, and no feature that hasn't shipped 332ms
+     × teases no progress on a locked card: no levels to go, bar, button or link 127ms
+     × puts a ready feature under Ready for you, saying to open it in Slack's App Home, before what is still locked 110ms
+     × points an open feature without a web page to Slack's App Home, with one action that opens the workspace 115ms
+     × shows no feature group when nothing has shipped, never the plain locked cards 116ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > shows a locked shipped feature with Unlocks' name and its level, and no feature that hasn't shipped
+AssertionError: expected [ 'Quests', 'Leaderboard', …(4) ] to deeply equal [ 'Leaderboard' ]
+
+- Expected
++ Received
+
+  [
++   "Quests",
+    "Leaderboard",
++   "Sticker book and achievements",
++   "Skill tree",
++   "Coins",
++   "Hedgehogs",
+  ]
+
+ ❯ src/FeatureCards.test.tsx:47:41
+     45|     renderApp(shellFixtures.memberWaitingForTheBoard);
+     46|     expect(featureGroups()).toEqual(["Still locked"]);
+     47|     expect(cardNamesIn("Still locked")).toEqual(["Leaderboard"]);
+       |                                         ^
+     48|     expect(cardOf("Leaderboard")).toHaveTextContent("Unlocks at level …
+     49|     expect(cardOf("Leaderboard")).toHaveTextContent("See where you and…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > teases no progress on a locked card: no levels to go, bar, button or link
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  Unlocks at level 5[39m
+Received:
+[31m  Skill treeLockedPerks you choose with skill points.[39m
+ ❯ src/FeatureCards.test.tsx:56:18
+     54|     renderApp(shellFixtures.memberWithTheBoardReady);
+     55|     const card = cardOf("Skill tree");
+     56|     expect(card).toHaveTextContent("Unlocks at level 5");
+       |                  ^
+     57|     expect(card).not.toHaveTextContent(/to go|ready|open/i);
+     58|     expect(within(card).queryByRole("progressbar")).not.toBeInTheDocum…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > puts a ready feature under Ready for you, saying to open it in Slack's App Home, before what is still locked
+AssertionError: expected [ 'Still locked' ] to deeply equal [ 'Ready for you', 'Still locked' ]
+
+- Expected
++ Received
+
+  [
+-   "Ready for you",
+    "Still locked",
+  ]
+
+ ❯ src/FeatureCards.test.tsx:65:29
+     63|   it("puts a ready feature under Ready for you, saying to open it in S…
+     64|     renderApp(shellFixtures.memberWithTheBoardReady);
+     65|     expect(featureGroups()).toEqual(["Ready for you", "Still locked"]);
+       |                             ^
+     66|     expect(cardNamesIn("Ready for you")).toEqual(["Leaderboard"]);
+     67|     expect(cardOf("Leaderboard")).toHaveTextContent("Ready for you. Op…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > points an open feature without a web page to Slack's App Home, with one action that opens the workspace
+AssertionError: expected [ 'Leaderboard' ] to deeply equal [ 'Leaderboard', 'Skill tree' ]
+
+- Expected
++ Received
+
+  [
+    "Leaderboard",
+-   "Skill tree",
+  ]
+
+ ❯ src/FeatureCards.test.tsx:82:33
+     80|   it("points an open feature without a web page to Slack's App Home, w…
+     81|     renderApp(shellFixtures.memberWithEveryFeatureOpen);
+     82|     expect(cardNamesIn("Open")).toEqual(["Leaderboard", "Skill tree"]);
+       |                                 ^
+     83|     const card = cardOf("Skill tree");
+     84|     expect(card).toHaveTextContent("Open. Find it in Slack's App Home.…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > shows no feature group when nothing has shipped, never the plain locked cards
+AssertionError: expected [ 'Still locked' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "Still locked",
++ ]
+
+ ❯ src/FeatureCards.test.tsx:93:29
+     91|   it("shows no feature group when nothing has shipped, never the plain…
+     92|     renderApp(shellFixtures.memberWithNothingShipped);
+     93|     expect(featureGroups()).toEqual([]);
+       |                             ^
+     94|     expect(within(main()).queryAllByRole("article")).toEqual([]);
+     95|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 6 passed (11)
+   Start at  00:28:33
+   Duration  3.72s (tests 41%, import 33%, environment 14%, transform 8%, setup 3%)
+

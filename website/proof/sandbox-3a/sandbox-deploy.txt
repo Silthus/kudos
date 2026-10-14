@@ -1,0 +1,104 @@
+$ git rev-parse HEAD
+f3481bc4704c1b1dad1ec2771261a8c459106bd6
+exit 0
+$ git rev-parse origin/main
+0c40c116fda00db6ee88a6dba4f1c789c28d32bf
+exit 0
+$ date -u
+Wed Oct 14 02:07:08 UTC 2026
+exit 0
+$ pnpm exec convex deploy -y
+▌ Deploying code to deployment:
+▌ [Production] <team>:<sandbox project>:production (prod) (dashboard: <redacted>)
+▌ └─ https://<sandbox>.convex.cloud
+- Deploying to https://<sandbox>.convex.cloud...
+
+Convex AI files are not installed. Run npx convex ai-files install to get started or npx convex ai-files disable to hide this message.
+✔ No large indexes are deleted by this push
+Uploading functions to Convex...
+Generating TypeScript bindings...
+Running TypeScript...
+Pushing code to your Convex deployment...
+Schema validation complete.
+Finalizing push...
+✔ Deleted table indexes:
+  [-] awards.by_giver_recipient   giver, recipient, _creationTime
+  [-] privateReplies.by_held_message   workspace, conversation, message, held, _creationTime
+  [-] journeyLaunches.by_workspace   workspace, _creationTime
+  [-] questSwaps.by_member_week   member, week, _creationTime
+  [-] publicReplies.by_level_reached   reached.member, reached.level, _creationTime
+  [-] questDraws.by_member_week   member, week, _creationTime
+  [-] journeySteps.by_member_step   member, step, _creationTime
+  [-] crateOpenings.by_member_key   member, key, _creationTime
+  [-] effectsRecords.by_member_side   member, side, _creationTime
+  [-] rewardRecords.by_member_key   member, key, _creationTime
+  [-] questProgress.by_member_week_slot   member, week, slot, _creationTime
+✔ Deployed Convex functions to https://<sandbox>.convex.cloud
+exit 0
+$ pnpm exec static-hosting upload --build --build-command pnpm website:build --dist website/dist
+🔨 Building for development...
+   Build command: pnpm website:build
+   VITE_CONVEX_URL=https://<sandbox>.convex.cloud
+   STATIC_HOSTING_BASE_PATH=/
+
+$ pnpm --dir website build
+$ vite build
+vite v8.3.4 building client environment for production...
+transforming...
+✓ 3224 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                0.55 kB │ gzip:     0.32 kB
+dist/assets/inter-vietnamese-wght-normal-CBcvBZtf.woff2       10.25 kB
+dist/assets/inter-greek-ext-wght-normal-DlzME5K_.woff2        11.23 kB
+dist/assets/inter-cyrillic-wght-normal-DqGufNeO.woff2         18.74 kB
+dist/assets/inter-greek-wght-normal-CkhJZR-_.woff2            18.99 kB
+dist/assets/inter-cyrillic-ext-wght-normal-BOeWTOD4.woff2     25.96 kB
+dist/assets/inter-latin-wght-normal-Dx4kXJAl.woff2            48.25 kB
+dist/assets/inter-latin-ext-wght-normal-DO1Apj_S.woff2        85.06 kB
+dist/assets/RoundHog-Bold-B1xHlSPP.woff2                     121.67 kB
+dist/assets/index-DGv7D6ym.css                               203.44 kB │ gzip:    30.62 kB
+dist/assets/index-Bql5XEs3.js                              2,800.71 kB │ gzip: 1,079.62 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 760ms
+
+🚀 Deploying to development environment
+🔒 Using secure internal functions (requires Convex CLI auth)
+Uploading 13 files with deployment ID: <id>
+Component: staticHosting
+
+  Generating 13 upload URLs...
+  [1/13] /assets/inter-cyrillic-wght-normal-DqGufNeO.woff2 (storage)
+  [2/13] /assets/inter-cyrillic-ext-wght-normal-BOeWTOD4.woff2 (storage)
+  [3/13] /assets/RoundHog-Bold-B1xHlSPP.woff2 (storage)
+  [4/13] /assets/index-DGv7D6ym.css (storage)
+  [5/13] /assets/index-Bql5XEs3.js (storage)
+  [6/13] /assets/inter-greek-wght-normal-CkhJZR-_.woff2 (storage)
+  [7/13] /assets/inter-greek-ext-wght-normal-DlzME5K_.woff2 (storage)
+  [8/13] /assets/inter-latin-wght-normal-Dx4kXJAl.woff2 (storage)
+  [9/13] /assets/inter-latin-ext-wght-normal-DO1Apj_S.woff2 (storage)
+  [10/13] /assets/inter-vietnamese-wght-normal-CBcvBZtf.woff2 (storage)
+  [11/13] /index.html (storage/html)
+  [12/13] /quill-scroll-area-shadows-0.3.0-beta.30.css (storage)
+  [13/13] /theme-eb6b27e0.js (storage)
+  Staging manifest chunk 1/1...
+  Publishing deployment...
+
+Cleaned up 13 old storage file(s) from previous deployments
+
+✨ Upload complete!
+
+Your app is now available at: https://<sandbox>.convex.site
+exit 0
+$ pnpm exec convex run website/flag:prepareWebsiteFlag
+exit 0
+$ pnpm exec convex run companyProfiles/sync:syncCompanyProfiles
+exit 0
+$ date -u
+Wed Oct 14 02:07:21 UTC 2026
+exit 0

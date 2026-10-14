@@ -3,13 +3,13 @@ import { FakePostHog, routedFetch, type FlagDefinition } from "../../testing/fak
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsFromPostHog as flagsLoadedFromPostHog, onForEveryone, onInTheSandboxOnly, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { testBackend, type Backend } from "../../testing/slackBackend";
+import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aSession } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { countGiven, everyoneBoardOf } from "../leaderboard/totals";
 import type { Period } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
-import { openUnlock } from "../unlocks/unlocks";
 import type { Leaderboard, MyLeaderboard } from "./leaderboard";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
@@ -537,15 +537,11 @@ function unlocksLaunched() {
 }
 
 async function reachesLevelThree(user: string) {
-  const member = await memberIdOf(user);
-  const message = { workspace: "T1", conversation: "C1", message: `level-3-${user}` };
-  const event = { type: "levelReached" as const, workspace: "T1", member, level: 3, skillPointsGained: 0, skillPoints: 0, xpToNextLevel: 200, message, at: Date.now() };
-  await t.mutation(internal.unlocks.unlocks.makeReady, { event });
+  await reachesLevel(t, await memberIdOf(user), 3);
 }
 
 async function opensTheLeaderboard(user: string) {
-  const member = await memberIdOf(user);
-  expect(await t.run((ctx) => openUnlock(ctx, member, "leaderboard"))).toBe("done");
+  await opens(t, await memberIdOf(user), "leaderboard");
 }
 
 async function leavesTheBoards(user: string) {

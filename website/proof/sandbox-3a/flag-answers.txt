@@ -1,0 +1,23 @@
+$ vitest run --config <proof config: node, include website/proof/sandbox-3a/*.proof.ts> --reporter verbose --silent false website/proof/sandbox-3a/flagAnswers.proof.ts   (definitions and workspace keys read from each deployment, keys passed by env, never printed)
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/sandbox-proof-3a
+
+stdout | website/proof/sandbox-3a/flagAnswers.proof.ts > <sandbox> answers true for every slice flag under its own environment and workspace key
+<sandbox> KUDOS_ENVIRONMENT=sandbox {"website":true,"everyone-board":true,"xp-levels":true,"unlocks":true}
+
+stdout | website/proof/sandbox-3a/flagAnswers.proof.ts > <production> answers false for every slice flag under its own environment and workspace key
+<production> KUDOS_ENVIRONMENT=production {"website":false,"everyone-board":false,"xp-levels":false,"unlocks":false}
+
+stdout | website/proof/sandbox-3a/flagAnswers.proof.ts > <production> read as if it were the san… answers true for every slice flag under its own environment and workspace key
+<production> read as if it were the sandbox KUDOS_ENVIRONMENT=sandbox {"website":true,"everyone-board":true,"xp-levels":true,"unlocks":true}
+
+ ✓ website/proof/sandbox-3a/flagAnswers.proof.ts > <sandbox> answers true for every slice flag under its own environment and workspace key 8ms
+ ✓ website/proof/sandbox-3a/flagAnswers.proof.ts > <production> answers false for every slice flag under its own environment and workspace key 1ms
+ ✓ website/proof/sandbox-3a/flagAnswers.proof.ts > <production> read as if it were the san… answers true for every slice flag under its own environment and workspace key 1ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  02:08:19
+   Duration  377ms (transform 67%, import 28%, tests 4%, worker 1%)
+
+exit 0
