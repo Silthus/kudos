@@ -22,11 +22,3 @@ export async function gaveThoughtfulKudos(ctx: QueryCtx, giver: MemberId, atOrBe
   }
   return false;
 }
-
-export async function saidWhy(ctx: QueryCtx, award: AwardId): Promise<boolean> {
-  const given = await ctx.db
-    .query("effectsRecords")
-    .withIndex("by_award", (q) => q.eq("award", award).eq("side", "giver"))
-    .first();
-  return given?.gate?.thoughtful === true;
-}

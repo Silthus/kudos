@@ -33,7 +33,7 @@ beforeEach(() => {
   vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
-  slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB").withMember("U_CAROL");
+  slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB");
   flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "quests");
   sentMessages = 0;
 });
@@ -164,7 +164,7 @@ describe("P81: once a week, a member swaps one unfinished quest for a feasible q
   test("a finished quest never shows Swap, while the unfinished ones still do", async () => {
     const t = await openedQuests(sayingWhyThreeWays);
 
-    await giveKudos(t, "U_ALICE", "U_CAROL", saysWhy);
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
     expect(questsIn(publishedHome(slack, "U_ALICE")).slice(1, 4)).toEqual([
       `section: ✅ ${sayWhy} You earned *20 XP*. [button: Open]`,
@@ -204,7 +204,7 @@ describe("P81: a week swaps one unfinished quest at most", () => {
   test("a Swap left on a quest that has since finished writes nothing", async () => {
     const t = await openedQuests(sayingWhyThreeWays);
     const stale = publishedHomeBlocks(slack, "U_ALICE");
-    await giveKudos(t, "U_ALICE", "U_CAROL", saysWhy);
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
     const before = await questState(t);
 
     await send(t, blockActions("U_ALICE", swapIn(stale, sayWhy)));

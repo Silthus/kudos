@@ -65,7 +65,7 @@ describe("P88 P89: opening Quests or the Leaderboard shows its Journey step, and
     expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([firstThanksDone, firstQuestActive]);
 
     const later = aMinuteLater();
-    await giveKudos(t, "U_ALICE", "U_CAROL", saysWhy);
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
     expect(await rewardRecordsOf(t, "journey:first-quest")).toEqual([{ key: "journey:first-quest", xp: 20, catalogueVersion: "1", at: later }]);
     expect(journeyDmsTo("U_ALICE").map(({ text }) => text)).toEqual([expect.stringContaining("Give a kudos that says why"), finishedFirstQuest]);
@@ -152,6 +152,27 @@ describe("P90: a Journey step that opens with a feature counts only what follows
 
     expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([]);
     expect(journeyIn(publishedHome(slack, "U_ALICE")).at(-1)).toBe(someoneNewActive);
+  });
+
+  test("someone-new: App Home's publish that runs before the opening's subscriber activates it at the opening and finishes it with what followed", async () => {
+    const t = await workspace();
+    await directoryKnows(t, "U_BOB");
+    await directoryKnows(t, "U_CAROL");
+    await leaderboardReady(t, "U_ALICE");
+    const alice = await memberOf(t, "U_ALICE");
+    const openedAt = aMinuteLater();
+    await t.run(async (ctx) => {
+      const unlock = (await ctx.db.query("unlocks").collect()).find((row) => row.member === alice && row.feature === "leaderboard")!;
+      await ctx.db.patch(unlock._id, { openedAt });
+    });
+    const thanked = aMinuteLater();
+    await giveKudos(t, "U_ALICE", "U_BOB", "thanks");
+
+    aMinuteLater();
+    await openHome(t, "U_ALICE");
+
+    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "1", at: thanked }]);
+    expect(await t.run(async (ctx) => (await ctx.db.query("journeySteps").collect()).find((row) => row.member === alice && row.step === "someone-new")?.activatedAt)).toBe(openedAt);
   });
 
   test("someone-new: a kudosGiven for a kudos to someone new made before the Leaderboard opened, delivered after, doesn't finish it", async () => {

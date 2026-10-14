@@ -165,7 +165,7 @@ describe("O35: turning the slice off and on again loses nothing", () => {
 });
 
 describe("P88 O35: a feature opened while quests is off", () => {
-  test("activates its Journey step once quests is back, counting from then", async () => {
+  test("activates its Journey step at the opening once quests is back", async () => {
     const withBoard = [...allOn(), onForEveryone("everyone-board")];
     const t = await launchedWorkspaceDeciding("sandbox", ...withBoard);
     await t.run((ctx) => questsLiveIn(ctx, "T1"));

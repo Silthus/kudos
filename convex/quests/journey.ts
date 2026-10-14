@@ -183,16 +183,16 @@ export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<Journe
 export async function activeJourneyOf(ctx: MutationCtx, member: MemberId): Promise<JourneyStepFacts[]> {
   const at = Date.now();
   await activated(ctx, member, "first-thanks", at, journey);
-  await activateStepsOpenedWhileDark(ctx, member, at);
+  await activateOpenedSteps(ctx, member);
   return journeyOf(ctx, member);
 }
 
-async function activateStepsOpenedWhileDark(ctx: MutationCtx, member: MemberId, at: number) {
+async function activateOpenedSteps(ctx: MutationCtx, member: MemberId) {
   const { workspace } = await chatUserOf(ctx, member);
   for (const { step } of journey.steps) {
     const feature = featureOpening(step);
     const openedAt = feature === null ? null : await openedAtOf(ctx, member, feature);
-    if (openedAt !== null && !(await isLeftToTheJoin(ctx, workspace, openedAt))) await activateOpened(ctx, workspace, member, step, at);
+    if (openedAt !== null && !(await isLeftToTheJoin(ctx, workspace, openedAt))) await activateOpened(ctx, workspace, member, step, openedAt);
   }
 }
 
