@@ -89,11 +89,13 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const openFeature = useMutation(api.website.commands.openFeature);
   const openQuestCrate = useMutation(api.website.commands.openQuestCrate);
   const buyPerk = useMutation(api.website.commands.buyPerk);
+  const setBoardVisibility = useMutation(api.website.commands.setBoardVisibility);
   return useMemo(
     () => ({
       openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
       openQuestCrate: (quest) => answerWithin(commandAnswerBudgetMs, openQuestCrate({ quest })),
       buyPerk: ({ perk, request }) => answerWithin(commandAnswerBudgetMs, buyPerk({ perk, request })),
+      setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -101,6 +103,6 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, setBoardVisibility, onSignInFailure],
   );
 }

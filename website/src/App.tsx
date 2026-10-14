@@ -71,7 +71,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
       <MomentsProvider value={moments}>
         <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined)} inert={revealing} onSignOut={actions.signOut}>
           <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
-            <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSignIn={signIn} onSignOut={actions.signOut} />
+            <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSetBoardVisibility={actions.setBoardVisibility} onSignIn={signIn} onSignOut={actions.signOut} />
           </ErrorBoundary>
         </Frame>
         {reveal !== undefined && member !== undefined && (
@@ -134,11 +134,12 @@ type PageProps = {
   membersShown: number;
   onChoosePeriod: (period: Period) => void;
   onBuyPerk: ShellActions["buyPerk"];
+  onSetBoardVisibility: ShellActions["setBoardVisibility"];
   onSignIn: () => void;
   onSignOut: () => void;
 };
 
-function Page({ state, route, board, quests, book, skillTree, membersShown, onChoosePeriod, onBuyPerk, ...actions }: PageProps) {
+function Page({ state, route, board, quests, book, skillTree, membersShown, onChoosePeriod, onBuyPerk, onSetBoardVisibility, ...actions }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return null;
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
@@ -152,7 +153,7 @@ function Page({ state, route, board, quests, book, skillTree, membersShown, onCh
   if (board.kind === "not-found") return <NotFoundPage />;
   if (board.kind === "ready" || board.kind === "locked") return <FeatureWaitsPage name="Leaderboard" waiting={board} readyCard={readyCardOf(state, "leaderboard")} chatUrl={state.chatUrl} />;
   if (board.kind !== "board") return <AnswerPage answer={board} {...actions} />;
-  return <LeaderboardPage board={board} period={route.period} onChoosePeriod={onChoosePeriod} />;
+  return <LeaderboardPage board={board} period={route.period} onChoosePeriod={onChoosePeriod} onSetBoardVisibility={onSetBoardVisibility} />;
 }
 
 function readyCardOf(member: MemberProfile, feature: Feature) {

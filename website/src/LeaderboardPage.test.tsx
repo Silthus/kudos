@@ -1,8 +1,8 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import type { BoardRead } from "./boardRead";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
-import { shellFixtures, type Leaderboard, type MyLeaderboard, type Period } from "./shell";
+import { shellFixtures, type Leaderboard, type MyLeaderboard, type Period, type VisibilityReply } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 import { watchTheViewerRow } from "./test/viewerRow";
@@ -443,12 +443,6 @@ describe("WS42: the list shows the rest of G17's window below the podium", () =>
     expect(slack).toHaveAttribute("href", "https://app.slack.com/client/T1");
     expect(slack).toHaveAttribute("target", "_blank");
   });
-
-  it("tells a viewer who left the boards where to change that, in place of their row", () => {
-    showBoard(leaderboardFixtures.left);
-    expect(within(main()).getByText("You're not on the leaderboards. You can change that in Settings in Slack.")).toBeInTheDocument();
-    expect(within(main()).queryByText("You")).not.toBeInTheDocument();
-  });
 });
 
 function placeEachLine({ height, scrollerHeight }: { height: number; scrollerHeight: number }) {
@@ -767,21 +761,120 @@ describe("WS45: only you see these", () => {
   });
 });
 
-describe("WS46: how it counts", () => {
-  it.each([
-    { who: "on the boards", answer: leaderboardFixtures.midBoard, status: "You're on the leaderboards." },
-    { who: "off the boards", answer: leaderboardFixtures.left, status: "You're off the leaderboards." },
-  ])("says what counts and shows the setting as a read-only status for a viewer $who", ({ answer, status }) => {
-    showBoard(answer);
-    const panel = within(main()).getByRole("region", { name: "How it counts" });
-    expect(panel).toHaveTextContent("Only kudos given count. Kudos received, XP and levels never rank anyone.");
-    expect(panel).toHaveTextContent(status);
-    expect(panel).toHaveTextContent("Settings in Slack's App Home");
-    expect(within(panel).queryByRole("switch")).not.toBeInTheDocument();
-    expect(within(panel).queryByRole("checkbox")).not.toBeInTheDocument();
-    expect(within(panel).queryByRole("button")).not.toBeInTheDocument();
+describe("WS322: how it counts", () => {
+  it("says what never ranks anyone, achievements included, and no longer sends anyone to Settings in Slack", () => {
+    showBoard(leaderboardFixtures.midBoard);
+    const panel = howItCounts();
+    expect(panel).toHaveTextContent("Only kudos given count. Kudos received, XP, levels and achievements never rank anyone.");
+    expect(main()).not.toHaveTextContent(/Settings in Slack/);
   });
 });
+
+describe("WS321: the visibility switch", () => {
+  it.each([
+    { who: "on the boards", answer: leaderboardFixtures.midBoard, checked: true },
+    { who: "off the boards", answer: leaderboardFixtures.left, checked: false },
+  ])("is a switch named Show me on the leaderboards, checked from the read for a viewer $who", ({ answer, checked }) => {
+    showBoard(answer);
+    const visibility = visibilitySwitch();
+    expect(visibility).toHaveAccessibleName("Show me on the leaderboards");
+    if (checked) expect(visibility).toBeChecked();
+    else expect(visibility).not.toBeChecked();
+    expect(visibility).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("sends the flipped setting once, and is disabled while the call is pending", async () => {
+    const pending = answerLater();
+    const { user, setBoardVisibility } = switchWith(leaderboardFixtures.midBoard, () => pending.answer);
+
+    await user.click(visibilitySwitch());
+
+    expect(setBoardVisibility).toHaveBeenCalledExactlyOnceWith(false);
+    expect(visibilitySwitch()).toHaveAttribute("aria-disabled", "true");
+    await user.click(visibilitySwitch());
+    expect(setBoardVisibility).toHaveBeenCalledTimes(1);
+
+    await act(async () => pending.resolve({ kind: "set", visible: false }));
+    expect(visibilitySwitch()).not.toHaveAttribute("aria-disabled");
+  });
+
+  it("keeps its position from the read, never from the value sent, until the read moves", async () => {
+    const { user, showBoardAnswer } = switchWith(leaderboardFixtures.midBoard, async () => ({ kind: "set", visible: false }));
+
+    await user.click(visibilitySwitch());
+    await act(async () => undefined);
+    expect(visibilitySwitch()).toBeChecked();
+
+    showBoardAnswer(leaderboardFixtures.left);
+    expect(visibilitySwitch()).not.toBeChecked();
+  });
+
+  it.each<{ answer: VisibilityReply; says: string }>([
+    { answer: { kind: "set", visible: false }, says: "You're off the leaderboards." },
+    { answer: { kind: "set", visible: true }, says: "You're on the leaderboards." },
+    { answer: { kind: "refused" }, says: "That couldn't be changed." },
+  ])("says $says politely after the answer $answer.kind", async ({ answer, says }) => {
+    const { user } = switchWith(leaderboardFixtures.midBoard, async () => answer);
+
+    await user.click(visibilitySwitch());
+
+    expect(await within(howItCounts()).findByRole("status")).toHaveTextContent(says);
+  });
+
+  it("says Couldn't reach HedgeHug after an error and never sends again by itself", async () => {
+    const { user, setBoardVisibility } = switchWith(leaderboardFixtures.left, async () => Promise.reject(new Error("socket closed")));
+
+    await user.click(visibilitySwitch());
+
+    expect(await within(howItCounts()).findByRole("status")).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
+    expect(setBoardVisibility).toHaveBeenCalledExactlyOnceWith(true);
+    expect(visibilitySwitch()).not.toHaveAttribute("aria-disabled");
+    expect(visibilitySwitch()).not.toBeChecked();
+  });
+
+  it("says nothing after a denial, which the profile's read shows instead", async () => {
+    const { user } = switchWith(leaderboardFixtures.midBoard, async () => ({ kind: "signed-out" }));
+
+    await user.click(visibilitySwitch());
+    await act(async () => undefined);
+
+    expect(within(howItCounts()).getByRole("status")).toBeEmptyDOMElement();
+  });
+
+  it("tells a viewer who left the boards how to come back, in place of their row", () => {
+    showBoard(leaderboardFixtures.left);
+    expect(within(main()).getByText(`You're off the board by choice. Switch on "Show me on the leaderboards" to come back.`)).toBeInTheDocument();
+    expect(within(main()).queryByText("You")).not.toBeInTheDocument();
+  });
+});
+
+function howItCounts() {
+  return within(main()).getByRole("region", { name: "How it counts" });
+}
+
+function visibilitySwitch() {
+  return within(howItCounts()).getByRole("switch", { name: "Show me on the leaderboards" });
+}
+
+function switchWith(answer: Leaderboard, setBoardVisibility: (visible: boolean) => Promise<VisibilityReply>) {
+  visit("/leaderboard");
+  let shown = answer;
+  const spy = vi.fn(setBoardVisibility);
+  const view = renderApp(withTheBoard, (period) => (period && shown), { setBoardVisibility: spy });
+  const showBoardAnswer = (next: Leaderboard) => {
+    shown = next;
+    view.showVisitor(withTheBoard);
+  };
+  return { ...view, setBoardVisibility: spy, showBoardAnswer };
+}
+
+function answerLater() {
+  let resolve: (answer: VisibilityReply) => void = () => undefined;
+  const answer = new Promise<VisibilityReply>((settle) => {
+    resolve = settle;
+  });
+  return { answer, resolve };
+}
 
 function crowned(spot: HTMLElement) {
   return spot.querySelector("[data-crown]") !== null;
