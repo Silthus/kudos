@@ -4,6 +4,7 @@ import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { GroupChoice } from "../groups/pick";
 import type { GroupId, GroupRef } from "../groups/groups";
+import type { GroupModeFacts } from "../groups/groupMode";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
@@ -50,6 +51,7 @@ export type HomeLine =
   | { kind: "action"; text: string; action: HomeAction }
   | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] }
   | { kind: "pick-group"; text: string; groups: GroupRef[]; picked: GroupId }
+  | { kind: "pick-groups"; groups: GroupModeFacts["groups"]; picked: GroupModeFacts["allowlist"] }
   | { kind: "link"; label: string; url: string }
   | { kind: "links"; links: Array<{ label: string; url: string }> };
 
@@ -311,10 +313,23 @@ function changeOf(key: keyof ProgressSettings, value: boolean): Partial<Progress
   return { [key]: value };
 }
 
-function adminGroups({ announcementChannel, achievements }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
+function adminGroups({ announcementChannel, achievements, groupMode }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
   const what = celebrated(achievements);
   const channelLines = announcementChannel === null ? threadLines(what) : announcementChannelLines(what, announcementChannel);
-  return [channelLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+  const groupModeLines = groupMode === null ? [] : [groupModeLinesOf(groupMode)];
+  return [channelLines, ...groupModeLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+}
+
+function groupModeLinesOf({ mode, groups, allowlist }: GroupModeFacts): HomeLine[] {
+  const modes: HomeLine = {
+    kind: "choices",
+    choices: [
+      { label: "Every group", command: { type: "setGroupMode", mode: "all" }, selected: mode === "all" },
+      { label: "Only these groups", command: { type: "setGroupMode", mode: "allowlist" }, selected: mode === "allowlist" },
+    ],
+  };
+  const picker: HomeLine[] = mode === "allowlist" ? [{ kind: "pick-groups", groups, picked: allowlist }] : [];
+  return [{ kind: "text", text: bold("Groups that count") }, modes, ...picker];
 }
 
 function threadLines(what: string): HomeLine[] {

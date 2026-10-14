@@ -14,6 +14,7 @@ type Element = {
   options?: Option[];
   option_groups?: Array<{ label: TextObject; options: Option[] }>;
   initial_option?: Option;
+  initial_options?: Option[];
 };
 export type Block = { type: string; block_id?: string; text?: TextObject; fields?: TextObject[]; elements?: Array<TextObject | Element>; accessory?: Element };
 type HomeView = { type: string; blocks: Block[] };
@@ -21,7 +22,8 @@ type HomeView = { type: string; blocks: Block[] };
 export type BlockAction =
   | { type: "button"; action_id: string; value?: string; block_id?: string }
   | { type: "channels_select"; action_id: string; selected_channel: string | null; block_id?: string }
-  | { type: "static_select"; action_id: string; selected_option: { value: string }; block_id?: string };
+  | { type: "static_select"; action_id: string; selected_option: { value: string }; block_id?: string }
+  | { type: "multi_static_select"; action_id: string; selected_options: Option[]; block_id?: string };
 
 export type MessageState = Record<string, Record<string, { type: "static_select"; selected_option: { value: string } | null }>>;
 
@@ -71,6 +73,21 @@ export function channelPickerInHome(slack: FakeSlack, user: string, channel: str
   return { type: "channels_select", action_id: picker!.action_id!, selected_channel: channel };
 }
 
+export function groupPickerInHome(slack: FakeSlack, user: string, ...picked: string[]): BlockAction {
+  const picker = publishedHomeBlocks(slack, user)
+    .flatMap(elementsOf)
+    .find((element) => element.type === "multi_static_select");
+  expect(picker, `a group picker in ${user}'s App Home`).toBeDefined();
+  const options = optionsOf(picker!);
+  const selected = picked.map((name) => options.find(({ text }) => text.text === name));
+  expect(selected, `${picked.join(", ")} among the picker's options`).not.toContain(undefined);
+  return { type: "multi_static_select", action_id: picker!.action_id!, selected_options: selected as Option[] };
+}
+
+export function optionsOf(element: Element): Option[] {
+  return element.options ?? (element.option_groups ?? []).flatMap(({ options }) => options);
+}
+
 let interactions = 0;
 
 export type ClickedMessage = { channel: string; ts: string };
@@ -116,6 +133,7 @@ function readBlock(block: Block) {
 
 function readButton(button: Element) {
   if (button.type === "static_select") return readSelect(button);
+  if (button.type === "multi_static_select") return `[multi_static_select: ${(button.initial_options ?? []).map(({ text }) => plainText(text)).join(", ") || "none"}]`;
   const label = plainText(button.text);
   return button.style === "primary" ? `[${label}]` : label;
 }

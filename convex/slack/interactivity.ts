@@ -3,7 +3,14 @@ import { observedHttpAction } from "../analytics/boundary";
 import { commandOf, type Command } from "../commands/commands";
 import { readSignedBody } from "./signature";
 
-type Action = { type: string; action_id: string; value?: string; selected_channel?: string | null; selected_option?: { value: string } | null };
+type Action = {
+  type: string;
+  action_id: string;
+  value?: string;
+  selected_channel?: string | null;
+  selected_option?: { value: string } | null;
+  selected_options?: Array<{ value: string }>;
+};
 
 type Selections = Record<string, string>;
 
@@ -50,6 +57,7 @@ function commandsOf(action: Action, selections: Selections): Command[] {
 
 function selectCommandOf(action: Action): unknown {
   if (action.type === "channels_select") return { type: action.action_id, channel: action.selected_channel ?? null };
+  if (action.type === "multi_static_select") return { type: action.action_id, mode: "allowlist", allowlist: (action.selected_options ?? []).map(({ value }) => value) };
   if (action.type !== "static_select" || action.selected_option == null) return null;
   const command = parsed(action.action_id);
   return isObject(command) ? { ...command, group: action.selected_option.value } : null;
