@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { signInAsk } from "../../convex/website/routes";
+import { withoutTheSignInEntry } from "./route";
 import type { ShellState } from "./shell";
 
 const storageKey = "hedgehug.signInStarted";
@@ -73,11 +73,10 @@ export function useSignInWhenAsked(state: ShellState, signIn: () => void): boole
 }
 
 function signInAskedInTheAddress() {
-  return new URLSearchParams(window.location.search).has(signInAsk);
+  return withoutTheSignInEntry(window.location.pathname) !== window.location.pathname;
 }
 
 function dropTheSignInAsk() {
-  const address = new URL(window.location.href);
-  address.searchParams.delete(signInAsk);
-  window.history.replaceState(null, "", address.pathname + address.search);
+  const { pathname, search } = window.location;
+  window.history.replaceState(null, "", withoutTheSignInEntry(pathname) + search);
 }

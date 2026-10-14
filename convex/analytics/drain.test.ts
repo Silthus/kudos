@@ -91,7 +91,7 @@ describe("O18: a batch PostHog doesn't accept is retried", () => {
     postHog.answering(...Array(7).fill(failure));
 
     await recordKudosGiven(t);
-    await settleInTimeOrder(t);
+    await settleInTimeOrder(t, { whileFunctionsRun: true });
 
     const delays = postHog.requests.slice(1).map((retry, index) => (retry.startedAt - postHog.requests[index]!.endedAt!) / minutes(1));
     expect(delays).toEqual([1, 5, 30, 120, 360]);
@@ -207,7 +207,7 @@ describe("O16 O17: leases", () => {
     await recordKudosGiven(t);
     const recordedAt = Date.now();
 
-    await settleInTimeOrder(t, { until: recordedAt + minutes(3) });
+    await settleInTimeOrder(t, { until: recordedAt + minutes(3), whileFunctionsRun: true });
     expect(postHog.requests).toHaveLength(2);
     expect(postHog.requests[1]!.startedAt - recordedAt).toBeLessThanOrEqual(minutes(3));
 

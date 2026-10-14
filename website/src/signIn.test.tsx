@@ -163,9 +163,9 @@ describe("F28: a link from Slack that asks to sign in", () => {
   }
 
   it.each([
-    { address: "/?sign-in", destination: "/" },
-    { address: "/quests?sign-in", destination: "/quests" },
-    { address: "/leaderboard?period=month&sign-in", destination: "/leaderboard?period=month" },
+    { address: "/sign-in/", destination: "/" },
+    { address: "/sign-in/quests", destination: "/quests" },
+    { address: "/sign-in/leaderboard?period=month", destination: "/leaderboard?period=month" },
   ])("on the closed website, $address starts Slack's sign-in once, returning to $destination", async ({ address, destination }) => {
     arriveAt(address);
     const { actions, showVisitor } = renderApp(shellFixtures.loading);
@@ -177,7 +177,7 @@ describe("F28: a link from Slack that asks to sign in", () => {
   });
 
   it("shows no closed page while it takes the visitor to Slack", async () => {
-    arriveAt("/quests?sign-in");
+    arriveAt("/sign-in/quests");
     const { actions } = renderApp(shellFixtures.closed);
 
     await waitFor(() => expect(actions.signIn).toHaveBeenCalledOnce());
@@ -185,14 +185,14 @@ describe("F28: a link from Slack that asks to sign in", () => {
   });
 
   it("starts Slack's sign-in for a signed-out visitor too", async () => {
-    arriveAt("/quests?sign-in");
+    arriveAt("/sign-in/quests");
     const { actions } = renderApp(shellFixtures.signedOut);
 
     await waitFor(() => expect(actions.signIn).toHaveBeenCalledWith("/quests"));
   });
 
   it("leaves a signed-in member on the page and drops the ask from the address", async () => {
-    arriveAt("/?sign-in");
+    arriveAt("/sign-in/");
     const { actions } = renderApp(shellFixtures.member);
 
     await waitFor(() => expect(currentAddress()).toBe("/"));
@@ -204,7 +204,7 @@ describe("F28: a link from Slack that asks to sign in", () => {
     { later: shellFixtures.closed, title: "Not open yet" },
     { later: shellFixtures.signedOut, title: /^Sign in$/ },
   ])("shows a member who arrived with the ask the page their later $later.kind answer calls for", async ({ later, title }) => {
-    arriveAt("/?sign-in");
+    arriveAt("/sign-in/");
     const { actions, showVisitor } = renderApp(shellFixtures.member);
     await waitFor(() => expect(currentAddress()).toBe("/"));
 
@@ -215,7 +215,7 @@ describe("F28: a link from Slack that asks to sign in", () => {
   });
 
   it("never starts a sign-in again after one that didn't finish", async () => {
-    arriveAt("/?sign-in");
+    arriveAt("/sign-in/");
     const { actions } = renderApp(shellFixtures.signInUnfinished);
 
     await waitFor(() => expect(currentAddress()).toBe("/"));

@@ -1,9 +1,32 @@
-import type { HomeAction } from "../feedback/home";
+import type { CommandAction, Confirmation, HomeAction, LinkAction } from "../feedback/home";
 import { encodeHomeAction } from "./interactivity";
 
-export function buttonOf({ label, command }: HomeAction) {
+export function buttonOf(action: HomeAction) {
+  return "url" in action ? linkButtonOf(action) : commandButtonOf(action);
+}
+
+function commandButtonOf({ label, command, accessibilityLabel, confirm }: CommandAction) {
   const action = encodeHomeAction(command);
-  return { type: "button", text: plainText(label), action_id: action, value: action };
+  return {
+    type: "button",
+    text: plainText(label),
+    action_id: action,
+    value: action,
+    ...(accessibilityLabel !== undefined && { accessibility_label: accessibilityLabel }),
+    ...(confirm !== undefined && { confirm: confirmationOf(confirm) }),
+  };
+}
+
+function linkButtonOf({ label, url, accessibilityLabel, id }: LinkAction) {
+  return urlButtonOf({ label, url, actionId: `website-link:${id}`, accessibilityLabel });
+}
+
+export function urlButtonOf({ label, url, actionId, accessibilityLabel }: { label: string; url: string; actionId: string; accessibilityLabel?: string }) {
+  return { type: "button", text: plainText(label), url, action_id: actionId, ...(accessibilityLabel !== undefined && { accessibility_label: accessibilityLabel }) };
+}
+
+function confirmationOf({ title, text, confirm, deny }: Confirmation) {
+  return { title: plainText(title), text: plainText(text), confirm: plainText(confirm), deny: plainText(deny) };
 }
 
 export function mrkdwn(text: string) {

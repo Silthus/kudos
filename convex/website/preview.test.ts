@@ -318,9 +318,9 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       const alicesLinks = await t.query(internal.website.link.frontDoorLinksOf, { workspace: allowedWorkspace, user: alice.user });
       const bobsLinks = await t.query(internal.website.link.frontDoorLinksOf, { workspace: allowedWorkspace, user: bob.user });
 
-      expect(alicesLinks).toEqual({ home: `${siteUrl}/?sign-in`, pages: [
-          { label: "Quests", url: `${siteUrl}/quests?sign-in` },
-          { label: "Leaderboard", url: `${siteUrl}/leaderboard?sign-in` },
+      expect(alicesLinks).toEqual({ origin: `${siteUrl}/sign-in`, pages: [
+          { label: "Quests", url: `${siteUrl}/sign-in/quests` },
+          { label: "Leaderboard", url: `${siteUrl}/sign-in/leaderboard` },
         ],
       });
       expect(bobsLinks).toBeNull();
@@ -330,7 +330,7 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       await aMemberWithEmail(bob);
       await flagsServed(onForEveryone("website"));
 
-      expect(await t.query(internal.website.link.frontDoorLinksOf, { workspace: allowedWorkspace, user: bob.user })).toEqual({ home: `${siteUrl}/`, pages: [] });
+      expect(await t.query(internal.website.link.frontDoorLinksOf, { workspace: allowedWorkspace, user: bob.user })).toEqual({ origin: siteUrl, pages: [] });
     });
   });
 });

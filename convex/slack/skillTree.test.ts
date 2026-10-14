@@ -80,6 +80,43 @@ describe("P19 P67 P94: a level-5 member buys a first-row perk from App Home's Sk
   });
 });
 
+describe("P19 P94: Buy asks before it spends, names its perk, and the points line goes once there's nothing left to buy", () => {
+  test("each Buy asks for a confirmation saying skill points are never refunded, and names its perk for screen readers", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
+    const t = await levelFiveMember("U_ALICE");
+    await click(t, "U_ALICE", "Open");
+
+    await click(t, "U_ALICE", "Skill tree");
+
+    expect(buyButtonElementOf("spark")).toMatchObject(buyButtonNaming("Spark"));
+    expect(buyButtonElementOf("rhythm")).toMatchObject(buyButtonNaming("Rhythm"));
+    expect(buyButtonElementOf("circle")).toMatchObject(buyButtonNaming("Circle"));
+  });
+
+  test("a level-8 member who owns every perk sees no skill point to spend on the Skill tree tab or on Profile", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
+    const t = await levelFiveMember("U_ALICE");
+    await click(t, "U_ALICE", "Open");
+    await ownsEveryPerkAtLevelEight(t, "U_ALICE");
+
+    await click(t, "U_ALICE", "Skill tree");
+
+    expect(await standing(t, "U_ALICE")).toEqual({ xp: 2100, level: 8, skillPoints: 1 });
+    expect(publishedHome(slack, "U_ALICE")).toEqual([
+      "actions: Profile | [Skill tree] | Settings",
+      "header: Skill tree",
+      `section: ✅ *Spark* · Owned\n${sparkCopy}`,
+      `section: ✅ *Rhythm* · Owned\n${rhythmCopy}`,
+      `section: ✅ *Circle* · Owned\n${circleCopy}`,
+      condition,
+    ]);
+
+    await click(t, "U_ALICE", "Profile");
+
+    expect(publishedHome(slack, "U_ALICE").join("\n")).not.toContain("to spend");
+  });
+});
+
 describe("P19 D17: Slack's Buy keys its purchase in a space no other entrance shares", () => {
   test("a Buy click stores its outcome under slack: and the click's trigger, apart from the website's website:{member}:{request} keys", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
@@ -158,6 +195,36 @@ function buyButtonOf(perk: string): BlockAction {
   const block = blocks.find((candidate) => candidate.accessory?.value === JSON.stringify({ type: "buyPerk", perk }));
   expect(block, `a Buy button for ${perk}`).toBeDefined();
   return buttonIn([block!], "Buy");
+}
+
+function buyButtonElementOf(perk: string) {
+  return publishedHomeBlocks(slack, "U_ALICE").find((candidate) => candidate.accessory?.value === JSON.stringify({ type: "buyPerk", perk }))?.accessory;
+}
+
+function buyButtonNaming(perk: string) {
+  return {
+    type: "button",
+    text: { type: "plain_text", text: "Buy" },
+    accessibility_label: `Buy ${perk}`,
+    confirm: {
+      title: { type: "plain_text", text: `Buy ${perk}?` },
+      text: { type: "plain_text", text: "This spends 1 skill point. Skill points are never refunded." },
+      confirm: { type: "plain_text", text: "Buy" },
+      deny: { type: "plain_text", text: "Cancel" },
+    },
+  };
+}
+
+async function ownsEveryPerkAtLevelEight(t: Backend, user: string) {
+  const member = await memberOf(t, user);
+  await t.run(async (ctx) => {
+    const progress = await ctx.db
+      .query("memberProgress")
+      .withIndex("by_member", (q) => q.eq("member", member))
+      .unique();
+    await ctx.db.patch(progress!._id, { xp: 2100, pointsSpent: 3 });
+    for (const perk of ["spark", "rhythm", "circle"] as const) await ctx.db.insert("perksOwned", { member, perk, boughtAt: Date.now(), catalogueVersion: "1" });
+  });
 }
 
 async function levelFiveMember(user: string) {
