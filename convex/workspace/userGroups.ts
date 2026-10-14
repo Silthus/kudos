@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { ReportableError } from "../analytics/exceptions";
+import { reconcileLater } from "../groups/reconcile";
 import { followPeopleLater, requestCatchUp } from "../analytics/person";
 import type { ChatUserId } from "../engine/messageEvent";
 import { isOlder } from "./directory";
@@ -34,14 +35,18 @@ export function keepsMembers({ enabled, automatic }: Pick<UserGroup, "enabled" |
 }
 
 export async function userGroupsOf(ctx: QueryCtx, workspace: string, user: ChatUserId): Promise<MembersUserGroup[]> {
+  return (await userGroupRowsOf(ctx, workspace, user))
+    .map(({ group, handle, name }) => ({ group, handle, name }))
+    .toSorted((first, second) => first.handle.localeCompare(second.handle));
+}
+
+export async function userGroupRowsOf(ctx: QueryCtx, workspace: string, user: ChatUserId): Promise<Doc<"userGroups">[]> {
   const memberships = await ctx.db
     .query("userGroupMembers")
     .withIndex("by_user", (q) => q.eq("workspace", workspace).eq("user", user))
     .collect();
   const groups = await Promise.all(memberships.map(({ group }) => userGroupRow(ctx, { workspace, group })));
-  return groups
-    .flatMap((row) => (row !== null && keepsMembers(row) ? [{ group: row.group, handle: row.handle, name: row.name }] : []))
-    .toSorted((first, second) => first.handle.localeCompare(second.handle));
+  return groups.filter((row): row is Doc<"userGroups"> => row !== null && keepsMembers(row));
 }
 
 export async function userGroupsOfUser(ctx: QueryCtx, workspace: string, user: ChatUserId): Promise<string[]> {
@@ -100,7 +105,9 @@ export const keepUserGroupMembers = internalMutation({
   handler: async (ctx, { users, asOf, ...key }) => {
     const row = await userGroupRow(ctx, key);
     if (row === null || !keepsMembers(row) || isOlder(asOf, row.membersAsOf)) return;
-    await followPeopleLater(ctx, key.workspace, await replaceMembers(ctx, key, users));
+    const changed = await replaceMembers(ctx, key, users);
+    await followPeopleLater(ctx, key.workspace, changed);
+    await reconcileLater(ctx, key.workspace, changed);
     await ctx.db.patch(row._id, { membersAsOf: asOf });
   },
 });
@@ -110,7 +117,10 @@ type UserGroupChange = "unchanged" | "stopped-keeping-members" | "renamed";
 async function followPeopleWhoLeftGroups(ctx: MutationCtx, memberships: Doc<"userGroupMembers">[]) {
   const usersByWorkspace = new Map<string, Set<ChatUserId>>();
   for (const { workspace, user } of memberships) usersByWorkspace.set(workspace, (usersByWorkspace.get(workspace) ?? new Set()).add(user));
-  for (const [workspace, users] of usersByWorkspace) await followPeopleLater(ctx, workspace, [...users]);
+  for (const [workspace, users] of usersByWorkspace) {
+    await followPeopleLater(ctx, workspace, [...users]);
+    await reconcileLater(ctx, workspace, [...users]);
+  }
 }
 
 async function keepUserGroup(ctx: MutationCtx, group: UserGroup, asOf: number): Promise<UserGroupChange> {

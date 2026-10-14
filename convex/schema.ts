@@ -9,6 +9,7 @@ import { awardIdValidator } from "./engine/awards";
 import { personPropertiesValidator, propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
+import { primaryGroupCauseValidator } from "./groups/cause";
 import { publicReplyValidator } from "./feedback/publicReplies";
 import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
 import { gainsValidator } from "./feedback/replies";
@@ -99,6 +100,30 @@ export default defineSchema({
   })
     .index("by_group", ["workspace", "group", "user"])
     .index("by_user", ["workspace", "user"]),
+
+  memberGroups: defineTable({
+    workspace: v.string(),
+    member: v.id("members"),
+    groups: v.array(v.id("userGroups")),
+    primary: v.union(v.id("userGroups"), v.null()),
+  })
+    .index("by_member", ["member"])
+    .index("by_primary", ["primary"]),
+
+  primaryGroupHistory: defineTable({
+    workspace: v.string(),
+    member: v.id("members"),
+    from: v.union(v.id("userGroups"), v.null()),
+    group: v.union(v.id("userGroups"), v.null()),
+    cause: primaryGroupCauseValidator,
+    at: v.number(),
+  }).index("by_member_at", ["member", "at"]),
+
+  groupSizes: defineTable({
+    workspace: v.string(),
+    group: v.id("userGroups"),
+    members: v.number(),
+  }).index("by_group", ["group"]),
 
   kudosMessages: defineTable({
     workspace: v.string(),

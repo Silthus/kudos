@@ -41,6 +41,7 @@ export const subscribers: Registry = {
   perkBought: [internal.analytics.subscribers.recordPerkBought],
   memberLeft: [internal.quests.journey.recheckSomeoneNew],
   memberRejoined: [internal.quests.journey.recheckRejoined],
+  primaryGroupChanged: [],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {
