@@ -19,6 +19,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
 - the route list is the paths the router serves: The backend's route list holds exactly the paths the website's router serves, so a website link Slack shows never opens the not-found page, and a page that ships adds its path to both in one change.
   over: routeList in convex/website/routes.ts and servedPaths in website/src/route.ts, the list routeOf matches a path against
   via: SW10: the route list is the paths the router serves
+  refuted: added /quests to the backend's routeList without adding it to the website router -> the contract test failed listing /quests (2026-10-14)
   because: a link to a path the router doesn't serve lands a member on the not-found page, and a path added to the router alone would leave its links on Home; the website map adds /quests, /skills and /book to both lists in the pull requests that ship them (SW9, SW10)
   kinds: output
   checklist: destination-confinement dismissed: the list names paths on the deployment's own SITE_URL; no destination comes from input
@@ -29,6 +30,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
 - one function builds every website link: websiteLinkOf answers SITE_URL plus the asked page's route, the Leaderboard keeping its period and a page not on the route list resolving to Home, and answers nothing while the website flag is off, SITE_URL is unset or blank, or the workspace isn't the deployment's workspace.
   over: websiteLinkOf for Home, the Leaderboard's three periods, the unlisted Quests, Skill tree and Book, a SITE_URL ending in a slash, the website flag off, SITE_URL blank and another workspace
   via: SW11: one function builds every website link
+  refuted: websiteLinkOf answered SITE_URL plus the route without reading the website flag -> the flag-off case answered a link instead of none (2026-10-14)
   because: a link shown while the website is closed, or to a page it doesn't serve, leads a member to a closed or not-found page, so every link is decided in one place from the flag, SITE_URL, the workspace and the route list (SW11, SW13, SW17)
   kinds: output
   checklist: destination-confinement dismissed: the origin is the deployment's own SITE_URL and the path comes from the route list; no part of the URL is taken from input
