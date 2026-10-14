@@ -69,6 +69,17 @@ Feedback: the indicator on each kudos message as desired state and the private r
   checklist: commit-ordered-effects dismissed: the filter reads unlock state in the mutation or query that renders the DM or App Home, and the DM's delivery is scheduled in that mutation and runs only after it commits
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
   checklist: declared-target-coverage dismissed: a DM and an App Home each have exactly one target, the member they are about
+- the gains line shows only what its giver can see: A Given success reply's gains line is rendered at each delivery attempt from the facts stored with the reply, never frozen when it is written: its XP part shows only while `xp-levels` is on for the giver when Slack takes the reply, its quest parts only while Quests still applies, and with `xp-levels` off and no quest done the ephemeral is byte-for-byte the reply before the gains line existed.
+  over: the ephemerals the app asks Slack to post for a kudos to two people with `xp-levels` off, and for a success reply held for Quests whose giver's `xp-levels` turns off before its release
+  via: SW5 SW8: the gains line shows only what its giver can see when Slack takes the reply
+  refuted: gainsShownIn showed the XP part whatever xp-levels said at delivery -> 2 of 2 tests failed on their assertions: the reply with xp-levels off was no longer today's, and the held reply named +10 XP after xp-levels turned off (2026-10-14)
+  because: SW5 keeps a held or retried reply from showing XP a member can no longer see (F24), and SW8 and SW25 keep production byte-for-byte unchanged until Michael switches `xp-levels` on; a gains line frozen when written would name XP after a preview ends
+  kinds: output
+  checklist: destination-confinement dismissed: the reply goes only to its giver, as private replies reach only the giver says; the gains line changes what it says, never where it goes
+  checklist: redaction dismissed: the gains line holds only numbers and quest goals from the app's own copy, never the kudos message's text
+  checklist: commit-ordered-effects dismissed: the gains are stored in the evaluation's or the release's transaction, and the delivery that renders them runs only after it commits
+  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
+  checklist: declared-target-coverage dismissed: a reply has exactly one target, the giver
 - a success reply held for Quests is never lost: Where Quests applies, a success reply held for Quests' kudosGiven subscriber goes out once, with its quests done on the gains line when the subscriber releases it and with none 10 seconds after the kudos when nobody does, and where Quests doesn't apply the reply's delivery is scheduled by the kudos' own mutation, as before.
   over: a held success reply nobody releases, before and after 10 seconds, and a kudos with quests off whose delivery is read from the scheduled functions right after its request, at the Slack boundary
   via: P71 R36: a success reply held for Quests is never lost

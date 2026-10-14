@@ -50,7 +50,15 @@ describe("SW1 SW2: the gains line says what a kudos earned its giver", () => {
   });
 });
 
-describe("SW5: each delivery decides again whether the XP part shows", () => {
+describe("SW5 SW8: the gains line shows only what its giver can see when Slack takes the reply", () => {
+  test("with xp-levels off and no quest done, the ephemeral Slack is asked to post is byte-for-byte today's", async () => {
+    const t = await workspaceDeciding(offForEveryone(xpLevels));
+
+    await giveKudos(t, "U_ALICE", ["U_BOB", "U_CAROL"]);
+
+    expect(slack.callsTo("chat.postEphemeral")).toEqual([{ channel: "C1", user: "U_ALICE", text: "<@U_BOB> and <@U_CAROL> got 1 kudos from you. You have 8 kudos left today." }]);
+  });
+
   test("a reply held for Quests whose giver's xp-levels turns off before its release goes out with no XP part", async () => {
     const t = await unlocksShippedBeforeAnyoneJoined(await workspaceDeciding(onForEveryone(xpLevels), onForEveryone("unlocks"), onForEveryone("quests")));
     await memberInserted(t, "U_ALICE");
@@ -62,24 +70,16 @@ describe("SW5: each delivery decides again whether the XP part shows", () => {
 
     expect(successRepliesTo("U_ALICE")).toEqual([["<@U_BOB> got 1 kudos from you. You have 9 kudos left today."]]);
   });
+});
 
-  test("O36: the mutation that writes the reply sends the giver's xp-levels exposure, with the value it read", async () => {
+describe("O36: xp-levels exposure", () => {
+  test("the mutation that writes the reply sends the giver's xp-levels exposure, with the value it read", async () => {
     const t = await workspaceDeciding(onForEveryone(xpLevels));
     const alice = await memberInserted(t, "U_ALICE");
 
     await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: givenToBob, base: 10 }));
 
     expect(await xpLevelsExposuresIn(t)).toEqual([{ member: alice, value: true }]);
-  });
-});
-
-describe("SW8: with xp-levels off and no quest done, the success reply is today's", () => {
-  test("the ephemeral Slack is asked to post is byte-for-byte today's", async () => {
-    const t = await workspaceDeciding(offForEveryone(xpLevels));
-
-    await giveKudos(t, "U_ALICE", ["U_BOB", "U_CAROL"]);
-
-    expect(slack.callsTo("chat.postEphemeral")).toEqual([{ channel: "C1", user: "U_ALICE", text: "<@U_BOB> and <@U_CAROL> got 1 kudos from you. You have 8 kudos left today." }]);
   });
 });
 
