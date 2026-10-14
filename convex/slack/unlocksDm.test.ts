@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
-import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
+import { FakeSlack, isWelcome, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonIn, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -330,7 +330,7 @@ async function xpOf(t: Backend, user: string, xp: number) {
 }
 
 function dmsTo(user: string): PostedDm[] {
-  return slack.callsTo("chat.postMessage").filter(({ channel, text }) => channel === user && !String(text).startsWith("👋 Welcome"));
+  return slack.callsTo("chat.postMessage").filter(({ channel, text }) => channel === user && !isWelcome({ text }));
 }
 
 function blocksOf(dm: PostedDm) {

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, isWelcome } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -411,7 +411,7 @@ async function countedRows(t: Backend) {
 }
 
 function levelUpDmsTo(user: string) {
-  return slack.callsTo("chat.postMessage").filter(({ channel, text }) => channel === user && String(text).startsWith("🎉")) as Array<{ channel: string; text: string }>;
+  return slack.callsTo("chat.postMessage").filter(({ channel, text }) => channel === user && String(text).startsWith("🎉") && !isWelcome({ text })) as Array<{ channel: string; text: string }>;
 }
 
 function oldFriendsIn(book: AchievementFacts | null) {
