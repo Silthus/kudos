@@ -21,7 +21,9 @@ const plainNames: Record<Feature, string> = {
   hedgehogs: "Hedgehogs",
 };
 
-export const plainFeatures = Object.entries(plainNames).map(([feature, name]) => ({ feature: feature as Feature, name }));
+export function plainNameOf(feature: Feature): string {
+  return plainNames[feature];
+}
 
 const about: Record<Feature, About> = {
   quests: { sentence: "Weekly quests of your own.", Hog: HedgehogOrganized },
@@ -32,19 +34,29 @@ const about: Record<Feature, About> = {
   hedgehogs: { sentence: "Hedgehogs to collect, and one to pick as your avatar.", Hog: HedgehogExplorer },
 };
 
-const webPages: Partial<Record<Feature, WebPage>> = {
+const webPages = {
   leaderboard: { screen: "leaderboard", href: "/leaderboard", sentence: "See who's thanking colleagues this week.", Icon: IconStar },
   quests: { screen: "quests", href: "/quests", sentence: "Your quests this week.", Icon: IconTarget },
   book: { screen: "book", href: "/book", sentence: "See the tiers you've earned.", Icon: IconBook },
   skillTree: { screen: "skills", href: "/skills", sentence: "Spend skill points on perks you choose.", Icon: IconListTree },
-};
+} satisfies Partial<Record<Feature, WebPage>>;
+
+export type PagedFeature = keyof typeof webPages;
 
 export function aboutOf(feature: Feature): About {
   return about[feature];
 }
 
 export function webPageOf(feature: Feature): WebPage | undefined {
+  return hasWebPage(feature) ? webPages[feature] : undefined;
+}
+
+export function pageOf(feature: PagedFeature): WebPage {
   return webPages[feature];
+}
+
+function hasWebPage(feature: Feature): feature is PagedFeature {
+  return feature in webPages;
 }
 
 export function openWebPagesOf({ features, leaderboard }: Pick<MemberProfile, "features" | "leaderboard">): OpenWebPage[] {
