@@ -73,7 +73,7 @@ Feedback: the indicator on each kudos message as desired state and the private r
   over: the ephemerals the app asks Slack to post for a kudos to two people with `xp-levels` off, and for a success reply held for Quests whose giver's `xp-levels` turns off before its release
   via: SW5 SW8: the gains line shows only what its giver can see when Slack takes the reply
   refuted: gainsShownIn showed the XP part whatever xp-levels said at delivery -> 2 of 2 tests failed on their assertions: the reply with xp-levels off was no longer today's, and the held reply named +10 XP after xp-levels turned off (2026-10-14)
-  because: SW5 keeps a held or retried reply from showing XP a member can no longer see (F24), and SW8 and SW25 keep production byte-for-byte unchanged until Michael switches `xp-levels` on; a gains line frozen when written would name XP after a preview ends
+  because: SW5 keeps a held or retried reply from showing XP a member can no longer see (F24), and SW8 and SW25 keep production byte-for-byte unchanged until `xp-levels` is switched on; a gains line frozen when written would name XP after a preview ends
   kinds: output
   checklist: destination-confinement dismissed: the reply goes only to its giver, as private replies reach only the giver says; the gains line changes what it says, never where it goes
   checklist: redaction dismissed: the gains line holds only numbers and quest goals from the app's own copy, never the kudos message's text
