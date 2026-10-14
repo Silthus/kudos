@@ -13,6 +13,7 @@ import { answerWithin } from "./commandAnswer";
 import { useSocketUnreachable } from "./connection";
 import type { ProfileCardShown } from "./profileCardRead";
 import type { QuestsShown } from "./questsRead";
+import type { Direction, RecentKudosShown } from "./recentKudosRead";
 import type { SkillTreeShown } from "./skillTreeRead";
 import type { Period, ShellActions, Visitor } from "./shell";
 import { forgetSignInStarted } from "./signInAttempt";
@@ -42,6 +43,7 @@ function LiveApp() {
       useBook={(asking) => useLiveBook(asking, unreachable)}
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
       useProfileCard={useLiveProfileCard}
+      useRecentKudos={useLiveRecentKudos}
     />
   );
 }
@@ -83,6 +85,12 @@ function useLiveProfileCard(asking: boolean): ProfileCardShown | undefined {
   const { card } = useQueries(request);
   if (card instanceof Error) return { kind: "broken" };
   return card;
+}
+
+function useLiveRecentKudos(direction: Direction): RecentKudosShown | undefined {
+  const request = useMemo((): RequestForQueries => ({ recent: { query: api.website.activity.getRecentKudos, args: { direction, limit: 3 } } }), [direction]);
+  const { recent } = useQueries(request);
+  return recent instanceof Error ? { kind: "broken" } : recent;
 }
 
 type Answers = { authLoading: boolean; redemptionFailed: boolean; unreachable: boolean; profile: MyProfile | undefined };
