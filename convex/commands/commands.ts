@@ -5,7 +5,8 @@ import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHo
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
-import { buyPerk, type PurchaseOutcome } from "../progression/perks";
+import { buyPerk } from "../progression/perks";
+import type { PurchaseOutcome } from "../progression/purchases";
 import { setProgressSettings } from "../progression/settings";
 import { perkValidator } from "../progression/tree";
 import { openQuestCrate } from "../quests/crates";

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import { notificationValidator, type NotificationLine } from "../feedback/notify";
-import { purchaseOutcomeValidator } from "../progression/perks";
+import { purchaseOutcomeValidator } from "../progression/purchases";
 import { buttonOf, mrkdwn } from "./blocks";
 import { attemptArgs, sendOnce, tryAtMostThreeTimes } from "./delivery";
 

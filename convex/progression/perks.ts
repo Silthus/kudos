@@ -1,4 +1,4 @@
-import { v, type Infer } from "convex/values";
+import { v } from "convex/values";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { exposed, flag } from "../analytics/flags";
 import { publish } from "../bus/publish";
@@ -8,26 +8,9 @@ import { chatUserOf, type MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
 import { spendSkillPoints, standingOf } from "./progression";
 import { skillTreeFlag } from "./skillTreeFlag";
-import { perkOf, perkValidator, type Perk, type PerkId } from "./tree";
+import type { PurchaseOutcome, Refusal } from "./purchases";
+import { perkOf, type Perk, type PerkId } from "./tree";
 import { xpLevelsShownIn } from "./xpLevels";
-
-export const refusalValidator = v.union(
-  v.literal("tree-locked"),
-  v.literal("tree-ready"),
-  v.literal("owned"),
-  v.literal("below-row"),
-  v.literal("needs-prerequisite"),
-  v.literal("no-skill-points"),
-);
-
-export type Refusal = Infer<typeof refusalValidator>;
-
-export const purchaseOutcomeValidator = v.union(
-  v.object({ kind: v.literal("bought"), perk: perkValidator }),
-  v.object({ kind: v.literal("refused"), perk: perkValidator, reason: refusalValidator }),
-);
-
-export type PurchaseOutcome = Infer<typeof purchaseOutcomeValidator>;
 
 export type PerkState = "buyable" | Refusal;
 
