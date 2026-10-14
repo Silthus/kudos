@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, answersWith, postHogHost, projectToken, routedFetch } from "../../testing/fakePostHog";
+import { FakePostHog, answersWith, flagsKey, postHogHost, projectToken, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
+import { flagsFromPostHog, onForEveryone } from "../../testing/flags";
+import { blockActions, buttonInHome } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section, slashCommand, text } from "../../testing/slackMessages";
@@ -170,7 +172,8 @@ describe("O7 O8: identity", () => {
 
 describe("O10: never sent", () => {
   test("no PostHog request carries the message, a name, a Slack or Convex ID, an emoji name or a time zone", async () => {
-    const t = testBackend();
+    vi.stubEnv("POSTHOG_PERSONAL_API_KEY", flagsKey);
+    const t = await flagsFromPostHog(testBackend(), postHog, onForEveryone("everyone-board"));
     const team = "T0QUOKKAWS";
     const channel = "C0MARMALADE";
     const people = { giver: "U0ZEPHYRINE", recipient: "U0BARNABY77" };
@@ -196,17 +199,19 @@ describe("O10: never sent", () => {
     await post(t, [section(text("Marmalade note to Zephyrine herself "), mention(people.giver), emoji("artichokeparty"))], { ...fromZephyrine, ts: "1760349602.626262" });
     await settle(t);
     await t.fetch("/slack/events", await signedRequest(appHomeOpened(people.giver, { team })));
-    await t.fetch(
-      "/slack/commands",
-      await signedRequest(slashCommand({ channel_id: channel, channel_name: "marmalade-quokkas" }, { team, user: people.giver, responseUrl: `https://hooks.slack.com/commands/${team}/1/quokka` }), {
-        contentType: "application/x-www-form-urlencoded",
-      }),
-    );
+    const commandInChannel = slashCommand({ channel_id: channel, channel_name: "marmalade-quokkas" }, { team, user: people.giver, responseUrl: `https://hooks.slack.com/commands/${team}/1/quokka` });
+    const form = { contentType: "application/x-www-form-urlencoded" };
+    await t.fetch("/slack/commands", await signedRequest(commandInChannel, form));
+    await settle(t);
+    await t.fetch("/slack/interactivity", await signedRequest(blockActions(people.giver, buttonInHome(slack, people.giver, "Leaderboard"), { team }), form));
+    const leaderboardCommand = new URLSearchParams(commandInChannel);
+    leaderboardCommand.set("text", "leaderboard month");
+    await t.fetch("/slack/commands", await signedRequest(leaderboardCommand.toString(), form));
     await settle(t);
 
     const bodies = postHog.requests.map((request) => request.body).join("\n");
     expect(new Set(postHog.events().map((event) => event.event))).toEqual(
-      new Set(["kudos given", "kudos received", "member welcomed", "level reached", "attempt failed", "app home opened", "command used"]),
+      new Set(["kudos given", "kudos received", "member welcomed", "level reached", "attempt failed", "app home opened", "command used", "leaderboard viewed", "$feature_flag_called"]),
     );
     const stored = await everythingStored(t);
     const forbidden = [

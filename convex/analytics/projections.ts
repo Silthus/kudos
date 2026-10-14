@@ -2,6 +2,7 @@ import { v, type Infer } from "convex/values";
 import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent } from "../bus/events";
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
+import type { Period } from "../leaderboard/periods";
 import { gateDecisionOf } from "../progression/gate";
 import { defaultKudosEmoji } from "../workspace/settings";
 import type { MemberId } from "../workspace/directory";
@@ -19,6 +20,7 @@ export type ProductEvent = {
     | "level reached"
     | "app home opened"
     | "command used"
+    | "leaderboard viewed"
     | "$feature_flag_called";
   subject: { member: MemberId };
   at: number;
@@ -27,7 +29,12 @@ export type ProductEvent = {
 
 export type UsageFact =
   | { kind: "appHomeOpened"; workspace: string; member: MemberId; at: number }
-  | { kind: "commandUsed"; workspace: string; member: MemberId; alias: boolean; result: KudosCommandResult; at: number };
+  | { kind: "commandUsed"; workspace: string; member: MemberId; alias: boolean; result: KudosCommandResult; at: number }
+  | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: "everyone"; period: Period; surface: LeaderboardSurface; at: number };
+
+export type LeaderboardSurface = "app-home" | "command";
+
+const surfaceNames: Record<LeaderboardSurface, string> = { "app-home": "app home", command: "command" };
 
 const outcomeNames: Record<AttemptFailedEvent["outcome"], string> = { "over-allowance": "over allowance", invalid: "invalid" };
 
@@ -105,11 +112,12 @@ export function projectLevelReached(event: LevelReachedEvent): ProductEvent {
 
 export function projectUsage(fact: UsageFact): ProductEvent {
   const subject = { member: fact.member };
-  if (fact.kind === "appHomeOpened") return { event: "app home opened", subject, at: fact.at, properties: {} };
-  return {
-    event: "command used",
-    subject,
-    at: fact.at,
-    properties: { command: "hedgehug", alias: fact.alias, result: commandResultNames[fact.result] },
-  };
+  switch (fact.kind) {
+    case "appHomeOpened":
+      return { event: "app home opened", subject, at: fact.at, properties: {} };
+    case "commandUsed":
+      return { event: "command used", subject, at: fact.at, properties: { command: "hedgehug", alias: fact.alias, result: commandResultNames[fact.result] } };
+    case "leaderboardViewed":
+      return { event: "leaderboard viewed", subject, at: fact.at, properties: { board: fact.board, period: fact.period, surface: surfaceNames[fact.surface] } };
+  }
 }

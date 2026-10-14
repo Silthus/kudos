@@ -147,3 +147,18 @@ describe("O3: usage facts", () => {
     });
   });
 });
+
+describe("E2: leaderboard viewed", () => {
+  test.each([
+    ["week", "app-home", "app home"],
+    ["month", "app-home", "app home"],
+    ["all", "command", "command"],
+  ] as const)("a view of the Everyone board for %s from %s lists exactly its board, period and surface", (period, surface, surfaceName) => {
+    expect(projectUsage({ kind: "leaderboardViewed", workspace: "T1", member: bob, board: "everyone", period, surface, at })).toEqual({
+      event: "leaderboard viewed",
+      subject: { member: bob },
+      at,
+      properties: { board: "everyone", period, surface: surfaceName },
+    });
+  });
+});
