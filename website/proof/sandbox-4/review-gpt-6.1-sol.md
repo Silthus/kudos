@@ -28,3 +28,48 @@ Run with `codex exec -m gpt-6.1-sol -c model_reasoning_effort=high --sandbox rea
 6. **Minor, fixed.** The tables file carries the proof user's session and refresh-token rows, with creation and expiry times and no IDs or tokens.
 7. **Minor, fixed.** [`public-functions.txt`](public-functions.txt) lists each deployment's public functions from `convex function-spec`, read-only: production has `getMyProfile` and lacks `getSkillTree`, `getBook` and `buyPerk`.
 8. **Minor, fixed.** This file.
+
+# Round 2, on a frozen copy of `ca06e81`
+
+The same command, over the read-only gate (`06d7e56`), the front-door test (`2e56706`) and the README. A faulty retry check reran it, so three answers came back. Each, verbatim:
+
+## Answer 1
+
+No product-code findings. `queryOnly` preserves Convex’s required reader methods, `db.system`, and context members. First-ID flag differences follow F14’s query fallback: the gate matches the page, and D17 still decides the purchase. `/skills` is correct; `frontDoor.test.ts:333` retains the reachable Journey-to-home coverage.
+
+- **Minor — [README.md:3](website/proof/sandbox-4/README.md:3):** “Every artifact” was captured on the final deploy contradicts the earlier committed flag answers and review/test logs. **Fix:** limit the claim to refreshed sandbox calls, snapshots and screenshots; identify historical evidence separately.
+- **Minor — [README.md:51](website/proof/sandbox-4/README.md:51), [review-gpt-6.1-sol.md:28](website/proof/sandbox-4/review-gpt-6.1-sol.md:28):** Session timestamps now support existence and expiry, but both snapshots follow session creation. They cannot establish append-only setup, so disposition 6 remains partly unresolved. **Fix:** add sanitized pre-creation evidence with stable pseudonyms, or remove the append-only claim and qualify the disposition.
+
+## Answer 2
+
+No product-code findings in `queryOnly` or the `/skills` expectation. Convex 1.46’s reader methods and context members are preserved. Without an analytics ID, query and mutation flag decisions can differ; WS88 requires the page’s query-safe gate first.
+
+- **Minor — convex/slack/frontDoor.test.ts:320:** The changed expectation is correct, but no test now covers a ready feature whose page is unlisted falling back to home. The Journey test uses a different helper. **Fix:** retain `/skills` coverage and add an unlisted-route fallback case.
+
+- **Minor — website/proof/sandbox-4/README.md:11:** Workspace fallback occurs only without an analytics ID; identified members retain their member decision, including email conditions. **Fix:** qualify the explanation.
+
+- **Minor — website/proof/sandbox-4/README.md:51:** “Two appended refresh-token rows with the same expiry” contradicts the snapshots, which show additional refresh rows expiring November 13. A pre-creation snapshot is also absent, so append-only creation remains unproven despite disposition 6. **Fix:** distinguish the manually created rows from later refreshes and provide before/after evidence, or remove the unsupported claim.
+
+- **Minor — website/proof/sandbox-4/README.md:3:** “Every artifact” captured on the final deploy at 09:06–09:10 is false: flag definitions are from 08:16, and earlier red/green logs remain. **Fix:** scope this statement to the fresh sandbox captures.
+
+## Answer 3
+
+`queryOnly`’s Convex reader construction is sound, and `/skills` is the correct destination. Three findings:
+
+- **Major — [commands.ts:95](convex/website/commands.ts:95):** The Journey guard checks workspace flags, but D17 evaluates member flags. With Quests enabled only for the buyer’s email and no Journey start recorded, `buyPerk` succeeds and `showHomeTab → questsLiveFor` starts their preview and joins the Journey. Reproduced with the actual handlers, both with and without an existing analytics ID: `bought`, a new Journey preview, and `first-thanks` activation. This violates WS62’s prohibition on website-triggered joins. **Fix:** preflight the member-scoped side effects without writing, including first-ID/email targeting, and refuse before D17 if it would start the Journey.
+
+- **Minor — [frontDoor.test.ts:320](convex/slack/frontDoor.test.ts:320):** Updating the expectation removes the ready-feature fallback coverage. The remaining Journey-to-home test uses `questCratePageOf`, bypassing `readyCratePageOf`’s no-page fallback. **Fix:** retain `/skills` and add a focused ready-feature case without a listed page.
+
+- **Minor — [README.md:3](website/proof/sandbox-4/README.md:3):** “Every artifact” coming from the final deploy at 09:06–09:10 is incorrect: the flag artifacts and review red/green artifacts were committed before that deploy. **Fix:** limit this provenance statement to the final sandbox screenshots and call/table captures, and distinguish earlier evidence.
+
+## Dispositions, round 2
+
+1. **`queryOnly` and `/skills`:** all three answers found the reader construction sound and `/skills` correct.
+2. **Major (answer 3), not fixed here, a follow-up for #193.** The finding is plausible from the code, though I didn't reproduce it: `questsLiveFor` runs a member's Journey preview moment (`previewOnce`, which joins them) when their member decision is on and the workspace has no Journey launch. The website's gate checks the workspace's decisions and launches, so a member previewing `quests` through an email condition could have their preview moment run by `buyPerk`'s D17 command. The Book's preview has the same shape.
+   - **It is shared:** `openFeature` and `openQuestCrate`, already on `main`, have the same workspace-scoped gate.
+   - **It isn't reachable today:** every flag answers on at workspace level on both deployments ([`flag-answers.txt`](flag-answers.txt)), so the gate already requires the workspace's launches. No preview moment runs after a workspace launch is recorded.
+   - **The fix needs a member-scoped preflight** that reads the member decision, email included, without writing a first analytics ID. That belongs in map #1's flag seam, and must land before a flag the website's commands reach gets an email-only condition (#204).
+3. **Minor (answers 2 and 3), rejected:** coverage of a ready feature whose page isn't listed. On `spec/website-4` every feature with a crate (Quests, Leaderboard, Book, Skill tree) has a listed page, so the fallback has no real instance. The invariant *one function builds every website link* still covers an unlisted page resolving to the root.
+4. **Minor (answer 2), fixed:** the README now says the gate falls back to the workspace's decision only for a member with no analytics ID.
+5. **Minor (all), fixed:** the README scopes which artifacts come from the final deploy.
+6. **Minor (answers 1 and 2), fixed:** the README separates the session rows this ticket imported from the refresh tokens Convex Auth added, and says there is no read from before the session's creation.

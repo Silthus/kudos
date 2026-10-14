@@ -1,6 +1,6 @@
 # Slice 4 on the sandbox: the skill tree, the Book and buying a perk (#192)
 
-WS78–WS96 and WS27, on the shared sandbox. This ticket merged `origin/main` into `spec/website-4` twice, fixed what each merge broke, and landed the result at `a9a5e37`. That commit holds `main` at `12a0f95`, past map #1's `8d48641` (the members' `picture` field). It deployed `a9a5e37` to the sandbox through the `deploy-sandbox.yml` workflow ([run 38539157304](https://github.com/Silthus/kudos/actions/runs/38539157304)), which finished at 2026-10-14T09:05:46Z. Every artifact below was taken on that deploy, from 09:06Z to 09:10Z. **The sandbox runs `a9a5e37`.**
+WS78–WS96 and WS27, on the shared sandbox. This ticket merged `origin/main` into `spec/website-4` twice, fixed what each merge broke, and landed the result at `a9a5e37`. That commit holds `main` at `12a0f95`, past map #1's `8d48641` (the members' `picture` field). It deployed `a9a5e37` to the sandbox through the `deploy-sandbox.yml` workflow ([run 38539157304](https://github.com/Silthus/kudos/actions/runs/38539157304)), which finished at 2026-10-14T09:05:46Z. The screenshots, the website's calls, their log, the table snapshots after the deploy, and the public reads and function lists were taken on that deploy, from 09:06Z to 09:10Z. The flag definitions were read at 08:16Z, and the red, green and review artifacts come from the fixes along the way. **The sandbox runs `a9a5e37`.**
 
 Two earlier deploys from this ticket, `98e76fa` and `31d1bc8`, came before the review fix and before `8d48641`. They are superseded. Nothing was deployed to production, and no flag's targeting changed.
 
@@ -8,7 +8,7 @@ Two earlier deploys from this ticket, `98e76fa` and `31d1bc8`, came before the r
 
 **1. `buyPerk`'s gate wrote an analytics ID.** The first merge brought #225's per-member flags. Since #225, a member decision evaluated in a mutation gives a member with no analytics ID their first one. `buyPerk`'s gate read the unlock path through the mutation's context, so a refusal at the gate wrote that ID and scheduled `identifyNewPeople`.
 - WS88 says the gate checks "with query-safe reads". The invariant says a refusal at the gate "writes nothing and stores nothing".
-- The gate now reads through a read-only view of the context (`queryOnly` in `convex/website/commands.ts`). A member decision there falls back to the workspace's, as it does in `getMyProfile`, so the gate decides on the same answer the page shows.
+- The gate now reads through a read-only view of the context (`queryOnly` in `convex/website/commands.ts`). For a member with an analytics ID, the gate still reads their member decision, email conditions included. Only a member with no analytics ID yet falls back to the workspace's decision, as `getMyProfile` does, so the gate decides on the same answer the page shows.
 - Red: [`red-merge.txt`](red-merge.txt) is the gate on the merged tree, and [`red-r1.txt`](red-r1.txt) is the test file. Green: [`green-r1.txt`](green-r1.txt), 29 of 29.
 - A first attempt narrowed the test instead. The review rejected it, rightly (see [`review-gpt-6.1-sol.md`](review-gpt-6.1-sol.md)).
 
@@ -48,7 +48,7 @@ The schema push printed `No indexes are deleted by this push` and `Schema valida
 
 ## The sandbox, signed in
 
-A proof session signed the browser in, as in #136, #146 and #150. It is one `authSessions` row for #136's proof user, created 08:23Z and expiring 10:23Z, and two appended `authRefreshTokens` rows with the same expiry. The tables file lists them with no IDs or tokens. The sandbox's own Convex Auth refresh then issued the browser's tokens. The proof user has no name or picture, so the face shows `?` and the card shows `You`.
+A proof session signed the browser in, as in #136, #146 and #150. This ticket ran `convex import --append` three times: one `authSessions` row for #136's proof user, created 08:23Z and expiring 10:23Z, and two `authRefreshTokens` rows with the same expiry. The sandbox's own Convex Auth refresh then issued the browser's tokens, adding the refresh-token rows with a 30-day expiry that the tables file also lists. Those are bound to the session, which expires at 10:23Z. The tables file shows each row with no IDs or tokens; it has no read from before the session's creation. The proof user has no name or picture, so the face shows `?` and the card shows `You`.
 
 | Page | Light | Dark |
 |---|---|---|
@@ -86,4 +86,4 @@ The open states also hold on the landed tree: the gate on `a9a5e37` runs every t
 
 ## Review
 
-GPT-6.1 Sol (high), read-only, on a frozen copy of `9a0b907`, with the spec, the ticket and the brief as the oracle: [`review-gpt-6.1-sol.md`](review-gpt-6.1-sol.md), with each finding's disposition. One major finding (the gate) was fixed in product code. Three more were evidence gaps in this README, now closed. Part of one (the owner's first name) was rejected with its reason.
+GPT-6.1 Sol (high), read-only, on a frozen copy of `9a0b907`, with the spec, the ticket and the brief as the oracle: [`review-gpt-6.1-sol.md`](review-gpt-6.1-sol.md), with each finding's disposition. Round 1: one major finding (the gate) was fixed in product code. Three more were evidence gaps in this README, now closed. Part of one (the owner's first name) was rejected with its reason. Round 2, on `ca06e81`, found no fault in the fix. One answer raised a major gap shared by every website command, which a preview flag can reach: it is a follow-up for #193, with the reason it isn't reachable today.
