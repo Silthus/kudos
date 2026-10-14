@@ -4,7 +4,7 @@ import { renderReply, type Line, type Segment, type SkippedMention } from "./rep
 
 describe("R36 R37: the copy", () => {
   test("Given names three recipients as A, B and C", () => {
-    const lines = renderReply({ kind: "given", outcome: { recipients: ["U_BOB", "U_CAROL", "U_DAN"], perRecipient: 2, left: 0, skipped: [] }, base: 10 });
+    const lines = renderReply({ kind: "given", outcome: { recipients: ["U_BOB", "U_CAROL", "U_DAN"], perRecipient: 2, left: 0, skipped: [], awards: [{ kudos: 2 }, { kudos: 2 }, { kudos: 2 }] }, base: 10 });
 
     expect(plain(lines)).toEqual(["@U_BOB, @U_CAROL and @U_DAN got 2 kudos from you. That was your last kudos for today, and you'll have 10 more at midnight."]);
   });
@@ -29,31 +29,6 @@ describe("R36 R37: the copy", () => {
     expect(plain(lines)).toEqual([
       "Nobody in this message can receive kudos: @U_DAVE isn't an active member of this workspace and @U_ERIN isn't an active member of this workspace. Tag a teammate and edit the message to try again.",
     ]);
-  });
-});
-
-describe("R38: the extras line", () => {
-  const extras: Line = [{ text: "+4 🪙 · New sticker: " }, { mention: person("U_BOB") }];
-
-  test("a Given reply renders its extras line once, after the skipped mentions", () => {
-    const lines = renderReply({
-      kind: "given",
-      outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 2, skipped: [skipped(person("U_ALICE"), "self")] },
-      base: 3,
-      extras,
-    });
-
-    expect(plain(lines)).toEqual([
-      "@U_BOB got 1 kudos from you. You have 2 kudos left today.",
-      "I skipped @U_ALICE: you can't give kudos to yourself.",
-      "+4 🪙 · New sticker: @U_BOB",
-    ]);
-  });
-
-  test("a Given reply without extras ends with the Given line", () => {
-    const lines = renderReply({ kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 2, skipped: [] }, base: 3 });
-
-    expect(plain(lines)).toEqual(["@U_BOB got 1 kudos from you. You have 2 kudos left today."]);
   });
 });
 

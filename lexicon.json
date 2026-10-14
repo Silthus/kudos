@@ -432,6 +432,10 @@
       "definition": "A member's once-a-week replacement of one unfinished weekly quest with a feasible quest not in that week's draw, stored for good with the replaced quest, the new quest and the facts that made it feasible (P81, the spec's reroll)."
     },
     {
+      "name": "gains line",
+      "definition": "The parts of a Given success reply's extras line that say what the kudos earned its giver, in one order joined with ' · ': the base XP the whole message gave them (+{xp} XP, from Progression's one function the effects records use) and each quest it finished with its own reward (Quest done: {goal} (+{xp} XP)); stored as facts when the reply is written and shown at each delivery only as far as the giver can still see them (SW1-SW5, amending P71)."
+    },
+    {
       "name": "route list",
       "definition": "The website pages Slack may link to, each as SITE_URL plus its route: exactly the paths the website's router serves, kept equal to the router's own list by a contract test (SW9, SW10). A page that isn't listed yet resolves to Home."
     },
