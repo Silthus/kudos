@@ -1,0 +1,26 @@
+I’ll read the ticket, spec, diff and relevant handlers, then report findings supported by the files. I’ll make no network calls and run no tests or builds.
+exec
+/bin/bash -lc 'cat /home/coder/.agents/skills/code-review/SKILL.md' in /home/coder/dev/kudos-wt/activity-sandbox
+ succeeded in 0ms:
+---
+name: code-review
+description: "Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes: Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/spec asked for?). Runs both reviews in parallel sub-agents and reports them side by side. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to \"review since X\"."
+---
+
+Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
+
+- **Standards**: does the code conform to this repo's documented coding standards?
+- **Spec**: does the code faithfully implement the originating issue / spec?
+
+Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings.
+
+The issue tracker should have been provided to you. If not, tell the user to run `/setup-matt-pocock-skills`.
+
+## Process
+
+GPT-6.1 Sol review, round 1 (codex exec, read-only, high), every finding fixed:
+1. medium, private-channel edit/delete missing -> fixed: amend.mts edited and deleted two private kudos on the sandbox; drive.mts now does both channels.
+2. medium, screenshot matrix gaps unnamed -> fixed: added Given at 390 px (card and filter), load more in light and 390 px, private deleted and edited; the remaining single-mode shots are named in the README.
+3. low, bare `@member` in gate.txt -> fixed: wrapped in backticks.
+4. low, emoji follow-up is a driver artifact -> accepted: dropped from follow-ups; the driver now sends the Unicode, and the private edit shows the emoji.
+5. low, production-reads.txt omits the owner exception -> fixed.

@@ -1,0 +1,1258 @@
+{
+ "recent-received": {
+  "entries": [
+   {
+    "at": 1791995654447,
+    "channel": {
+     "visibility": "public"
+    },
+    "giver": {
+     "face": {
+      "initials": "DB",
+      "kind": "initials"
+     },
+     "name": "Drew Bramble"
+    },
+    "key": "1791995654447_2_1791996254376.4043",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " for answering every question in the launch channel today"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   },
+   {
+    "at": 1791895448943,
+    "channel": {
+     "visibility": "private"
+    },
+    "giver": {
+     "face": {
+      "initials": "CM",
+      "kind": "initials"
+     },
+     "name": "Casey Moss"
+    },
+    "key": "1791895448943_2_1791996248517.2239",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " quietly, for pairing on the flaky deploy until it was green"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   },
+   {
+    "at": 1791891846692,
+    "channel": {
+     "visibility": "public"
+    },
+    "giver": {
+     "face": {
+      "initials": "BT",
+      "kind": "initials"
+     },
+     "name": "Blake Thorn"
+    },
+    "key": "1791891846692_2_1791996246653.1296",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " for pairing on the flaky deploy until it was green"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   }
+  ],
+  "kind": "recent"
+ },
+ "recent-given": {
+  "entries": [
+   {
+    "at": 1791899051024,
+    "channel": {
+     "visibility": "public"
+    },
+    "earned": {
+     "bonuses": [],
+     "questsDone": [],
+     "xp": 20
+    },
+    "key": "1791899051024_1_1791996250395.586",
+    "kind": "kudosGiven",
+    "kudos": 1,
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Blake Thorn"
+      },
+      {
+       "kind": "person",
+       "name": "Casey Moss"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " right back at you for pairing on the flaky deploy until it was green"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "recipients": [
+     {
+      "face": {
+       "initials": "BT",
+       "kind": "initials"
+      },
+      "name": "Blake Thorn"
+     },
+     {
+      "face": {
+       "initials": "CM",
+       "kind": "initials"
+      },
+      "name": "Casey Moss"
+     }
+    ],
+    "saidWhy": true
+   },
+   {
+    "at": 1791812645214,
+    "channel": {
+     "visibility": "public"
+    },
+    "earned": {
+     "bonuses": [],
+     "questsDone": [],
+     "xp": 20
+    },
+    "key": "1791812645214_1_1791996244777.8582",
+    "kind": "kudosGiven",
+    "kudos": 1,
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Blake Thorn"
+      },
+      {
+       "kind": "person",
+       "name": "Casey Moss"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " right back at you for the calm review that caught the off-by-one"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "recipients": [
+     {
+      "face": {
+       "initials": "BT",
+       "kind": "initials"
+      },
+      "name": "Blake Thorn"
+     },
+     {
+      "face": {
+       "initials": "CM",
+       "kind": "initials"
+      },
+      "name": "Casey Moss"
+     }
+    ],
+    "saidWhy": true
+   },
+   {
+    "at": 1791726241900,
+    "channel": {
+     "visibility": "public"
+    },
+    "earned": {
+     "bonuses": [],
+     "questsDone": [],
+     "xp": 30
+    },
+    "key": "1791726241900_1_1791996240963.0632",
+    "kind": "kudosGiven",
+    "kudos": 1,
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Blake Thorn"
+      },
+      {
+       "kind": "person",
+       "name": "Casey Moss"
+      },
+      {
+       "kind": "person",
+       "name": "Drew Bramble"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " right back at you for writing the onboarding notes I wish I'd had"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "recipients": [
+     {
+      "face": {
+       "initials": "BT",
+       "kind": "initials"
+      },
+      "name": "Blake Thorn"
+     },
+     {
+      "face": {
+       "initials": "CM",
+       "kind": "initials"
+      },
+      "name": "Casey Moss"
+     },
+     {
+      "face": {
+       "initials": "DB",
+       "kind": "initials"
+      },
+      "name": "Drew Bramble"
+     }
+    ],
+    "saidWhy": true
+   }
+  ],
+  "kind": "recent"
+ },
+ "activity-p1": {
+  "cursor": "1791373417229_2_1791996216566.8557",
+  "entries": [
+   {
+    "at": 1791995654447,
+    "channel": {
+     "visibility": "public"
+    },
+    "giver": {
+     "face": {
+      "initials": "DB",
+      "kind": "initials"
+     },
+     "name": "Drew Bramble"
+    },
+    "key": "1791995654447_2_1791996254376.4043",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " for answering every question in the launch channel today"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   },
+   {
+    "at": 1791899051024,
+    "channel": {
+     "visibility": "public"
+    },
+    "earned": {
+     "bonuses": [],
+     "questsDone": [],
+     "xp": 20
+    },
+    "key": "1791899051024_1_1791996250395.586",
+    "kind": "kudosGiven",
+    "kudos": 1,
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Blake Thorn"
+      },
+      {
+       "kind": "person",
+       "name": "Casey Moss"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " right back at you for pairing on the flaky deploy until it was green"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "recipients": [
+     {
+      "face": {
+       "initials": "BT",
+       "kind": "initials"
+      },
+      "name": "Blake Thorn"
+     },
+     {
+      "face": {
+       "initials": "CM",
+       "kind": "initials"
+      },
+      "name": "Casey Moss"
+     }
+    ],
+    "saidWhy": true
+   },
+   {
+    "at": 1791895448943,
+    "channel": {
+     "visibility": "private"
+    },
+    "giver": {
+     "face": {
+      "initials": "CM",
+      "kind": "initials"
+     },
+     "name": "Casey Moss"
+    },
+    "key": "1791895448943_2_1791996248517.2239",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " quietly, for pairing on the flaky deploy until it was green"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   },
+   {
+    "at": 1791891846692,
+    "channel": {
+     "visibility": "public"
+    },
+    "giver": {
+     "face": {
+      "initials": "BT",
+      "kind": "initials"
+     },
+     "name": "Blake Thorn"
+    },
+    "key": "1791891846692_2_1791996246653.1296",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " for pairing on the flaky deploy until it was green"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   },
+   {
+    "at": 1791812645214,
+    "channel": {
+     "visibility": "public"
+    },
+    "earned": {
+     "bonuses": [],
+     "questsDone": [],
+     "xp": 20
+    },
+    "key": "1791812645214_1_1791996244777.8582",
+    "kind": "kudosGiven",
+    "kudos": 1,
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Blake Thorn"
+      },
+      {
+       "kind": "person",
+       "name": "Casey Moss"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " right back at you for the calm review that caught the off-by-one"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "recipients": [
+     {
+      "face": {
+       "initials": "BT",
+       "kind": "initials"
+      },
+      "name": "Blake Thorn"
+     },
+     {
+      "face": {
+       "initials": "CM",
+       "kind": "initials"
+      },
+      "name": "Casey Moss"
+     }
+    ],
+    "saidWhy": true
+   },
+   {
+    "at": 1791805443434,
+    "channel": {
+     "visibility": "public"
+    },
+    "giver": {
+     "face": {
+      "initials": "BT",
+      "kind": "initials"
+     },
+     "name": "Blake Thorn"
+    },
+    "key": "1791805443434_2_1791996242898.6333",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " for the calm review that caught the off-by-one"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   },
+   {
+    "at": 1791726241900,
+    "channel": {
+     "visibility": "public"
+    },
+    "earned": {
+     "bonuses": [],
+     "questsDone": [],
+     "xp": 30
+    },
+    "key": "1791726241900_1_1791996240963.0632",
+    "kind": "kudosGiven",
+    "kudos": 1,
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Blake Thorn"
+      },
+      {
+       "kind": "person",
+       "name": "Casey Moss"
+      },
+      {
+       "kind": "person",
+       "name": "Drew Bramble"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " right back at you for writing the onboarding notes I wish I'd had"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "recipients": [
+     {
+      "face": {
+       "initials": "BT",
+       "kind": "initials"
+      },
+      "name": "Blake Thorn"
+     },
+     {
+      "face": {
+       "initials": "CM",
+       "kind": "initials"
+      },
+      "name": "Casey Moss"
+     },
+     {
+      "face": {
+       "initials": "DB",
+       "kind": "initials"
+      },
+      "name": "Drew Bramble"
+     }
+    ],
+    "saidWhy": true
+   },
+   {
+    "at": 1791722638949,
+    "channel": {
+     "visibility": "private"
+    },
+    "giver": {
+     "face": {
+      "initials": "CM",
+      "kind": "initials"
+     },
+     "name": "Casey Moss"
+    },
+    "key": "1791722638949_2_1791996238962.026",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": false
+   },
+   {
+    "at": 1791719037942,
+    "channel": {
+     "visibility": "public"
+    },
+    "giver": {
+     "face": {
+      "initials": "BT",
+      "kind": "initials"
+     },
+     "name": "Blake Thorn"
+    },
+    "key": "1791719037942_2_1791996237069.3535",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " for writing the onboarding notes I wish I'd had"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   },
+   {
+    "at": 1791639835550,
+    "channel": {
+     "visibility": "public"
+    },
+    "earned": {
+     "bonuses": [],
+     "questsDone": [],
+     "xp": 20
+    },
+    "key": "1791639835550_1_1791996235032.6262",
+    "kind": "kudosGiven",
+    "kudos": 1,
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Blake Thorn"
+      },
+      {
+       "kind": "person",
+       "name": "Casey Moss"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "recipients": [
+     {
+      "face": {
+       "initials": "BT",
+       "kind": "initials"
+      },
+      "name": "Blake Thorn"
+     },
+     {
+      "face": {
+       "initials": "CM",
+       "kind": "initials"
+      },
+      "name": "Casey Moss"
+     }
+    ],
+    "saidWhy": false
+   },
+   {
+    "at": 1791632633650,
+    "channel": {
+     "visibility": "public"
+    },
+    "giver": {
+     "face": {
+      "initials": "BT",
+      "kind": "initials"
+     },
+     "name": "Blake Thorn"
+    },
+    "key": "1791632633650_2_1791996233065.6687",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " for staying late to get the release notes right"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   },
+   {
+    "at": 1791553431809,
+    "channel": {
+     "visibility": "public"
+    },
+    "earned": {
+     "bonuses": [],
+     "questsDone": [],
+     "xp": 20
+    },
+    "key": "1791553431809_1_1791996231144.6316",
+    "kind": "kudosGiven",
+    "kudos": 1,
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Blake Thorn"
+      },
+      {
+       "kind": "person",
+       "name": "Casey Moss"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " right back at you for the clearest bug report this quarter"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "recipients": [
+     {
+      "face": {
+       "initials": "BT",
+       "kind": "initials"
+      },
+      "name": "Blake Thorn"
+     },
+     {
+      "face": {
+       "initials": "CM",
+       "kind": "initials"
+      },
+      "name": "Casey Moss"
+     }
+    ],
+    "saidWhy": true
+   },
+   {
+    "at": 1791549830004,
+    "channel": {
+     "visibility": "private"
+    },
+    "giver": {
+     "face": {
+      "initials": "CM",
+      "kind": "initials"
+     },
+     "name": "Casey Moss"
+    },
+    "key": "1791549830004_2_1791996229253.9817",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " quietly, for the clearest bug report this quarter"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   },
+   {
+    "at": 1791546227534,
+    "channel": {
+     "visibility": "public"
+    },
+    "giver": {
+     "face": {
+      "initials": "BT",
+      "kind": "initials"
+     },
+     "name": "Blake Thorn"
+    },
+    "key": "1791546227534_2_1791996227373.4807",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " for the clearest bug report this quarter"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   },
+   {
+    "at": 1791467026290,
+    "channel": {
+     "visibility": "public"
+    },
+    "earned": {
+     "bonuses": [],
+     "questsDone": [],
+     "xp": 30
+    },
+    "key": "1791467026290_1_1791996225472.1511",
+    "kind": "kudosGiven",
+    "kudos": 1,
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Blake Thorn"
+      },
+      {
+       "kind": "person",
+       "name": "Casey Moss"
+      },
+      {
+       "kind": "person",
+       "name": "Drew Bramble"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " right back at you for unblocking the design review with a quick prototype"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "recipients": [
+     {
+      "face": {
+       "initials": "BT",
+       "kind": "initials"
+      },
+      "name": "Blake Thorn"
+     },
+     {
+      "face": {
+       "initials": "CM",
+       "kind": "initials"
+      },
+      "name": "Casey Moss"
+     },
+     {
+      "face": {
+       "initials": "DB",
+       "kind": "initials"
+      },
+      "name": "Drew Bramble"
+     }
+    ],
+    "saidWhy": true
+   },
+   {
+    "at": 1791459824455,
+    "channel": {
+     "visibility": "public"
+    },
+    "giver": {
+     "face": {
+      "initials": "BT",
+      "kind": "initials"
+     },
+     "name": "Blake Thorn"
+    },
+    "key": "1791459824455_2_1791996223591.5154",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " for unblocking the design review with a quick prototype"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   },
+   {
+    "at": 1791380620954,
+    "kind": "levelUp",
+    "level": 3
+   },
+   {
+    "at": 1791380620954,
+    "channel": {
+     "visibility": "public"
+    },
+    "earned": {
+     "bonuses": [],
+     "questsDone": [],
+     "xp": 20
+    },
+    "key": "1791380620954_1_1791996220981.265",
+    "kind": "kudosGiven",
+    "kudos": 1,
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Blake Thorn"
+      },
+      {
+       "kind": "person",
+       "name": "Casey Moss"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " right back at you for taking the on-call swap without a second thought"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "recipients": [
+     {
+      "face": {
+       "initials": "BT",
+       "kind": "initials"
+      },
+      "name": "Blake Thorn"
+     },
+     {
+      "face": {
+       "initials": "CM",
+       "kind": "initials"
+      },
+      "name": "Casey Moss"
+     }
+    ],
+    "saidWhy": true
+   },
+   {
+    "at": 1791377019204,
+    "channel": {
+     "visibility": "private"
+    },
+    "giver": {
+     "face": {
+      "initials": "CM",
+      "kind": "initials"
+     },
+     "name": "Casey Moss"
+    },
+    "key": "1791377019204_2_1791996218453.8467",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " quietly, for taking the on-call swap without a second thought"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   },
+   {
+    "at": 1791373417229,
+    "channel": {
+     "visibility": "public"
+    },
+    "giver": {
+     "face": {
+      "initials": "BT",
+      "kind": "initials"
+     },
+     "name": "Blake Thorn"
+    },
+    "key": "1791373417229_2_1791996216566.8557",
+    "kind": "kudosReceived",
+    "message": {
+     "edited": false,
+     "kind": "text",
+     "segments": [
+      {
+       "kind": "person",
+       "name": "Avery Hedge"
+      },
+      {
+       "kind": "text",
+       "text": " "
+      },
+      {
+       "kind": "emoji",
+       "name": "hedgehog"
+      },
+      {
+       "kind": "text",
+       "text": " for taking the on-call swap without a second thought"
+      }
+     ]
+    },
+    "permalink": "<workspace permalink>",
+    "saidWhy": true
+   }
+  ],
+  "kind": "activity",
+  "timeZone": "Europe/Berlin"
+ },
+ "spotlight-seed": {
+  "after": "0.0032422266284787282_1791996254376.409",
+  "at": 1791995654447,
+  "giver": {
+   "face": {
+    "initials": "DB",
+    "kind": "initials"
+   },
+   "name": "Drew Bramble"
+  },
+  "kind": "kudos",
+  "message": {
+   "edited": false,
+   "kind": "text",
+   "segments": [
+    {
+     "kind": "person",
+     "name": "Avery Hedge"
+    },
+    {
+     "kind": "text",
+     "text": " "
+    },
+    {
+     "kind": "emoji",
+     "name": "hedgehog"
+    },
+    {
+     "kind": "text",
+     "text": " for answering every question in the launch channel today"
+    }
+   ]
+  },
+  "permalink": "<workspace permalink>",
+  "recipients": [
+   {
+    "face": {
+     "initials": "AH",
+     "kind": "initials"
+    },
+    "name": "Avery Hedge"
+   }
+  ]
+ }
+}
