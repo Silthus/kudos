@@ -17,4 +17,4 @@ The same backend, redeployed at `8c0226e` with the site rebuilt:
 6. She signed out from the account menu. The page shows "Not open yet", not the blank page review round 2 found (`head-signed-out-after-ask-light.png`).
 7. She opened `/leaderboard?period=month&sign-in`. The site started Sign in with Slack and brought her back to the month's board (`head-month-board-after-sign-in-dark.png`).
 
-The gate on `8c0226e`: `gate-8c0226e.txt`. The launch refusal round 1 added (a flag switched on for the workspace after a preview) is proven in `convex/website/preview.test.ts`; its red run is `red-launch-due.txt`, and the stuck page's red run is `red-stuck-blank.txt`.
+The gate on `8c0226e`: `gate-8c0226e.txt`. The launch refusal round 1 added (a flag switched on for the workspace after a preview) is proven in `convex/website/preview.test.ts`; its red run is `red-launch-due.txt`; round 2 added that no preview moment runs while such a launch is due (`red-preview-while-due.txt`, gate on `5993dd3`: `gate-5993dd3.txt`); the stuck page's red run is `red-stuck-blank.txt`.
