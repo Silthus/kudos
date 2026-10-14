@@ -8,7 +8,8 @@ import {
   unlockOpenedEventValidator,
   type KudosGivenEvent,
 } from "../bus/events";
-import { firstThanksOf, lastThankedBefore, lastThankedBy } from "../engine/awards";
+import type { DayKey } from "../engine/allowance";
+import { firstThanksOf, givenBetween, lastThankedBefore, lastThankedBy, type DatedAward } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { notifyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
@@ -17,7 +18,7 @@ import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf } from "./crates";
 import { finishQuest } from "./finish";
-import { journeyShippedAt, questsLiveIn } from "./flag";
+import { journeyShippedAt, journeyStepAppliesIn, questsLiveIn } from "./flag";
 import { featureOpening, journeyStepOpenedBy, journeyStepValidator, type JourneyStep } from "./step";
 
 export const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
@@ -32,6 +33,7 @@ export const journey = {
     { step: "first-thanks", reward: { xp: 10, coins: 0, item: null } },
     { step: "first-quest", reward: { xp: 20, coins: 0, item: null } },
     { step: "someone-new", reward: { xp: 30, coins: 0, item: null } },
+    { step: "two-days", reward: { xp: 30, coins: 0, item: null } },
   ],
 } as const satisfies JourneyCatalogue;
 
@@ -47,11 +49,13 @@ export type JourneyActivation = Infer<typeof journeyActivationValidator>;
 
 const membersPerRecheck = 100;
 
+const daysSayingWhyToFinishTwoDays = 2;
+
 export const activateJourney = internalMutation({
   args: { event: unlockOpenedEventValidator },
   handler: async (ctx, { event: { workspace, member, feature, at } }) => {
     const step = journeyStepOpenedBy(feature);
-    if (step === null || !(await questsLiveIn(ctx, workspace)) || (await isLeftToTheJoin(ctx, workspace, at))) return;
+    if (step === null || !(await questsLiveIn(ctx, workspace)) || !(await journeyStepAppliesIn(ctx, workspace, step)) || (await isLeftToTheJoin(ctx, workspace, at))) return;
     if (await activateOpened(ctx, workspace, member, step, at)) await republish(ctx, member);
   },
 });
@@ -98,7 +102,14 @@ export async function advanceJourney(ctx: MutationCtx, event: KudosGivenEvent, c
   const finished: JourneyStep[] = [];
   if (await advanceFirstThanks(ctx, event, catalogue)) finished.push("first-thanks");
   if (await advanceSomeoneNew(ctx, event)) finished.push("someone-new");
+  if (await advanceTwoDays(ctx, event)) finished.push("two-days");
   return finished;
+}
+
+export async function journeyStepsApplyingIn(ctx: QueryCtx, workspace: string): Promise<JourneyStep[]> {
+  const steps: JourneyStep[] = [];
+  for (const { step } of journey.steps) if (await journeyStepAppliesIn(ctx, workspace, step)) steps.push(step);
+  return steps;
 }
 
 export async function finishFirstQuestOnWeeklyFinished(ctx: MutationCtx, workspace: string, member: MemberId, at: number): Promise<boolean> {
@@ -118,6 +129,14 @@ async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent): Prom
   return [...lastThanked.values()].includes(null) && (await finish(ctx, event.workspace, someoneNew, event.at));
 }
 
+async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent): Promise<boolean> {
+  const twoDays = await activationOf(ctx, event.giver, "two-days");
+  if (twoDays === null || event.at < twoDays.activatedAt || gateDecisionOf(event.annotations)?.thoughtful !== true) return false;
+  if (!(await journeyStepAppliesIn(ctx, event.workspace, "two-days")) || (await isFinished(ctx, twoDays))) return false;
+  const days = new Set<DayKey>([event.day, ...(await sayingWhyBetween(ctx, twoDays, event.at)).map(({ day }) => day)]);
+  return days.size >= daysSayingWhyToFinishTwoDays && (await finish(ctx, event.workspace, twoDays, event.at));
+}
+
 async function isLeftToTheJoin(ctx: QueryCtx, workspace: string, openedAt: number) {
   return openedAt < (await journeyShippedAt(ctx, workspace))!;
 }
@@ -127,9 +146,29 @@ async function recheckLater(ctx: MutationCtx, workspace: string, member: MemberI
 }
 
 export async function finishedOnActivation(ctx: QueryCtx, workspace: string, activation: JourneyActivation): Promise<number | null> {
-  if (activation.step === "first-thanks") return null;
-  if (activation.step === "first-quest") return firstWeeklyQuestFinishedSince(ctx, activation);
-  return (await firstThanksSince(ctx, activation)) ?? ((await hasThankedEveryone(ctx, workspace, activation.member, activation.activatedAt)) ? activation.activatedAt : null);
+  switch (activation.step) {
+    case "first-thanks":
+      return null;
+    case "first-quest":
+      return firstWeeklyQuestFinishedSince(ctx, activation);
+    case "someone-new":
+      return (await firstThanksSince(ctx, activation)) ?? ((await hasThankedEveryone(ctx, workspace, activation.member, activation.activatedAt)) ? activation.activatedAt : null);
+    case "two-days":
+      return secondDaySayingWhyOf(await sayingWhyBetween(ctx, activation, Infinity));
+  }
+}
+
+async function sayingWhyBetween(ctx: QueryCtx, { member, activatedAt }: JourneyActivation, until: number): Promise<DatedAward[]> {
+  return (await givenBetween(ctx, member, activatedAt, until)).filter(({ annotations }) => gateDecisionOf(annotations)?.thoughtful === true);
+}
+
+function secondDaySayingWhyOf(sayingWhy: DatedAward[]): number | null {
+  const days = new Set<DayKey>();
+  for (const { day, at } of sayingWhy) {
+    days.add(day);
+    if (days.size === daysSayingWhyToFinishTwoDays) return at;
+  }
+  return null;
 }
 
 async function firstWeeklyQuestFinishedSince(ctx: QueryCtx, { member, activatedAt }: JourneyActivation): Promise<number | null> {
@@ -167,8 +206,9 @@ async function isFinished(ctx: QueryCtx, { member, step }: JourneyActivation) {
 export type JourneyStepFacts = Omit<JourneyActivation, "member"> & { finishedAt: number | null; openedAt: number | null };
 
 export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<JourneyStepFacts[]> {
+  const { workspace } = await chatUserOf(ctx, member);
   const facts: JourneyStepFacts[] = [];
-  for (const { step } of journey.steps) {
+  for (const step of await journeyStepsApplyingIn(ctx, workspace)) {
     const activation = await activationOf(ctx, member, step);
     if (activation === null) continue;
     const { activatedAt, reward, catalogueVersion } = activation;
@@ -189,7 +229,7 @@ export async function activeJourneyOf(ctx: MutationCtx, member: MemberId): Promi
 async function activateOpenedSteps(ctx: MutationCtx, member: MemberId) {
   const { workspace } = await chatUserOf(ctx, member);
   const shippedAt = (await journeyShippedAt(ctx, workspace))!;
-  for (const { step } of journey.steps) {
+  for (const step of await journeyStepsApplyingIn(ctx, workspace)) {
     const feature = featureOpening(step);
     const openedAt = feature === null ? null : await openedAtOf(ctx, member, feature);
     if (openedAt !== null && openedAt > shippedAt) await activateOpened(ctx, workspace, member, step, openedAt);

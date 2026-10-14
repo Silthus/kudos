@@ -2,11 +2,12 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
 import { kudosGivenEventValidator } from "../bus/events";
 import { republish } from "../feedback/homes";
+import { tellTiersEarned } from "../feedback/tierNotices";
 import { isOpened } from "../feedback/unlockFilter";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { countAward, countingOf, countOf } from "./counting";
 import { achievementsApplyIn, achievementsLiveIn, bookLaunchedAt } from "./flag";
-import { ladders, ladderOf, type LadderId, type PromisedReward, type Tier, type TierId } from "./ladders";
+import { ladders, ladderOf, type LadderId, type PromisedReward, type Tier, type TierId, type TierRef } from "./ladders";
 import { laddersCountedLiveIn, replayWhatIsNew } from "./replay";
 import { earnedTiersOf, type EarnedTier } from "./tiers";
 
@@ -22,15 +23,20 @@ export const countKudosGiven = internalMutation({
     const shown = await achievementsLiveIn(ctx, event.workspace);
     if ((await bookLaunchedAt(ctx, event.workspace)) === null) return;
     await replayWhatIsNew(ctx, event.workspace);
-    const counted = new Set<MemberId>();
+    const counted = new Map<MemberId, TierRef[]>();
     for (const ladder of await laddersCountedLiveIn(ctx, event.workspace)) {
       for (const award of event.awards) {
         const dated = { ...award, at: event.at, day: event.day };
         const counting = countingOf(ladder, dated);
-        if (await countAward(ctx, event.workspace, counting, dated, { tiers: ladderOf(ladder).tiers })) counted.add(counting.member);
+        const earned = await countAward(ctx, event.workspace, counting, dated, { tiers: ladderOf(ladder).tiers, ...(!shown && { hidden: true }) });
+        if (earned !== null) counted.set(counting.member, [...(counted.get(counting.member) ?? []), ...earned]);
       }
     }
-    if (shown) for (const member of counted) if (await isOpened(ctx, member, "book")) await republish(ctx, member);
+    if (!shown) return;
+    for (const [member, earned] of counted) {
+      if (await isOpened(ctx, member, "book")) await republish(ctx, member);
+      await tellTiersEarned(ctx, { member, message: event.message, at: event.at, earned });
+    }
   },
 });
 

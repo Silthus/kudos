@@ -6,7 +6,7 @@ import { ReportableError } from "../analytics/exceptions";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import { type KudosCommandResult, renderKudosCommandReply } from "../feedback/kudosCommand";
 import { renderEveryoneBoard, renderLeaderboardUsage } from "../feedback/leaderboard";
-import type { Line } from "../feedback/replies";
+import type { Line } from "../feedback/segments";
 import type { Period } from "../leaderboard/periods";
 import { lookup } from "../workspace/directory";
 import { attemptArgs, failedAttempt, slackTextOf, tryAtMostThreeTimes } from "./delivery";

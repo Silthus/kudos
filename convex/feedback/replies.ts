@@ -1,8 +1,8 @@
-import { v, type Infer } from "convex/values";
+import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { mentionValidator, type Annotations, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
+import { type Annotations, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
 import { couldEarnMoreBySayingWhy } from "../progression/perks";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { questsApplyIn, questsExposedTo } from "../quests/flag";
@@ -10,10 +10,7 @@ import type { JourneyStep } from "../quests/step";
 import { lookup } from "../workspace/directory";
 import { journeyGoalOf } from "./home";
 
-export const segmentValidator = v.union(v.object({ text: v.string() }), v.object({ mention: mentionValidator }));
-
-export type Segment = Infer<typeof segmentValidator>;
-export type Line = Segment[];
+import type { Line, Segment } from "./segments";
 
 export type SkipReason = "self" | "bot" | "not-a-member" | "group-or-broadcast";
 export type SkippedMention = { mention: Mention; reason: SkipReason };

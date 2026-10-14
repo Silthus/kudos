@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { Mention } from "../engine/messageEvent";
-import { renderReply, type Line, type SkippedMention } from "./replies";
+import { renderReply, type SkippedMention } from "./replies";
+import type { Line } from "./segments";
 
 describe("R36 R37: the copy", () => {
   test("Given names three recipients as A, B and C", () => {

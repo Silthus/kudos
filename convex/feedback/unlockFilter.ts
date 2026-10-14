@@ -6,7 +6,7 @@ import { unlocksLiveIn, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, shippedIn, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { lookup, type MemberId } from "../workspace/directory";
-import type { Line } from "./replies";
+import type { Line } from "./segments";
 
 export async function whenOpened<T>(ctx: QueryCtx, member: MemberId, feature: Feature, told: T): Promise<T | null> {
   return (await isOpened(ctx, member, feature)) ? told : null;

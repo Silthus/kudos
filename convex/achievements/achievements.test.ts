@@ -66,6 +66,26 @@ describe("P59 P61 P93: a tier is earned once and never taken back", () => {
   });
 });
 
+describe("P76 P78: a tier earned while the Book doesn't apply is kept as never to be announced", () => {
+  test("a tier earned with achievements off is stored as hidden, and one earned with it on is not", async () => {
+    const { t, alice, bob } = await withMembers();
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("achievements"));
+    await count(t, await kudosGiven(t, alice, bob, { kudos: 1, at: now.getTime() }));
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"));
+
+    await count(t, await kudosGiven(t, alice, bob, { kudos: 24, at: now.getTime() + minuteMs }));
+
+    const tiers = await t.run((ctx) => ctx.db.query("earnedTiers").collect());
+    expect(tiers.map(({ member, ladder, tier, hidden }) => ({ member, ladder, tier, hidden }))).toEqual([
+      { member: alice, ladder: "generosity", tier: "bronze", hidden: true },
+      { member: bob, ladder: "recognition", tier: "bronze", hidden: true },
+      { member: alice, ladder: "seasons", tier: "bronze", hidden: true },
+      { member: alice, ladder: "generosity", tier: "silver", hidden: undefined },
+      { member: bob, ladder: "recognition", tier: "silver", hidden: undefined },
+    ]);
+  });
+});
+
 describe("P79: achievementsOf gives the website each ladder's facts", () => {
   test("it returns each ladder in catalogue order with its name, what it counts and its count, every tier in order with its name, threshold, earned time, catalogue version and promised rewards, and the next tier", async () => {
     const { t, alice, bob } = await withMembers();

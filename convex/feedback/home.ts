@@ -1,5 +1,5 @@
 import type { LadderFacts } from "../achievements/achievements";
-import { countsOf, type TierId } from "../achievements/ladders";
+import { countsOf, ladderOf, tierOf, type TierId, type TierRef } from "../achievements/ladders";
 import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { Period } from "../leaderboard/periods";
@@ -17,7 +17,7 @@ import type { UnlocksHome } from "../unlocks/unlocks";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { renderEveryoneBoard } from "./leaderboard";
 import { productName, skillPointsOf, slashCommand } from "./naming";
-import type { Line } from "./replies";
+import type { Line } from "./segments";
 import { unopenedTextOf } from "./unlockFilter";
 
 export type HomeView = { tabBar?: Choice[]; title: string; groups: HomeLine[][] };
@@ -82,7 +82,7 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
     case "settings":
       return { title: "Settings", groups: settingsGroups(shown) };
     case "admin":
-      return { title: "Admin", groups: adminGroups(shown.announcementChannel) };
+      return { title: "Admin", groups: adminGroups(shown) };
   }
 }
 
@@ -110,6 +110,19 @@ function ladderLines({ ladder, name, count, tiers, next }: LadderFacts, timeZone
   const nextTier = tiers.find(({ tier }) => tier === next);
   const nextLine: HomeLine[] = nextTier === undefined ? [] : [{ kind: "hint", text: `Next: ${bold(nextTier.name)} at ${nextTier.count} ${countsOf(ladder, nextTier.count)}.` }];
   return [{ kind: "text", text: `${bold(name)} · ${bold(count)} ${countsOf(ladder, count)}` }, ...earnedLines, ...nextLine];
+}
+
+export function tiersEarnedLines(tiers: TierRef[]): string[] {
+  const earned = tiers.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).`);
+  const ladders = [...new Set(tiers.map(({ ladder }) => ladder))];
+  return [...earned, ...ladders.flatMap((ladder) => nextTierLine(ladder, tiers.filter((ref) => ref.ladder === ladder)))];
+}
+
+function nextTierLine(ladder: TierRef["ladder"], told: TierRef[]): string[] {
+  const { tiers } = ladderOf(ladder);
+  const highest = Math.max(...told.map(({ tier }) => tiers.findIndex((entry) => entry.tier === tier)));
+  const next = tiers[highest + 1];
+  return next === undefined ? [] : [`Next: ${next.name} at ${next.count} ${countsOf(ladder, next.count)}.`];
 }
 
 function dateOf(at: number, timeZone: string | undefined) {
@@ -162,9 +175,10 @@ export function whyNotOf({ state, row, requires, skillPoints }: Perk & { state: 
   }
 }
 
-function settingsGroups({ onTheBoards, progress }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
+function settingsGroups({ onTheBoards, progress, achievements }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
   const leaderboard = onTheBoards === null ? [] : [leaderboardSwitch(onTheBoards)];
-  const progression = progress === null ? [] : [[setting(progress, "muteNotices"), setting(progress, "dms")]];
+  const copy = settingCopyOf(achievements);
+  const progression = progress === null ? [] : [[setting(copy, progress, "muteNotices"), setting(copy, progress, "dms")]];
   return [...leaderboard, ...progression];
 }
 
@@ -184,20 +198,26 @@ function leaderboardSwitch(onTheBoards: boolean): HomeLine[] {
 
 type SettingCopy = Record<"whenOn" | "whenOff", { text: string; label: string }>;
 
-const settingCopy: Record<keyof ProgressSettings, SettingCopy> = {
-  muteNotices: {
-    whenOn: { text: "I don't post public notices about you.", label: "Unmute notices" },
-    whenOff: { text: "I celebrate your level ups in public.", label: "Mute notices" },
-  },
-  dms: {
-    whenOn: { text: "I send you a DM when you reach a level.", label: "Turn off DMs" },
-    whenOff: { text: "I don't send you DMs.", label: "Turn on DMs" },
-  },
-};
+function settingCopyOf(achievements: boolean): Record<keyof ProgressSettings, SettingCopy> {
+  return {
+    muteNotices: {
+      whenOn: { text: "I don't post public notices about you.", label: "Unmute notices" },
+      whenOff: { text: `I celebrate your ${celebrated(achievements)} in public.`, label: "Mute notices" },
+    },
+    dms: {
+      whenOn: { text: achievements ? "I send you a DM when you reach a level or earn an achievement." : "I send you a DM when you reach a level.", label: "Turn off DMs" },
+      whenOff: { text: "I don't send you DMs.", label: "Turn on DMs" },
+    },
+  };
+}
 
-function setting(settings: ProgressSettings, key: keyof ProgressSettings): HomeLine {
+function celebrated(achievements: boolean) {
+  return achievements ? "level ups and achievements" : "level ups";
+}
+
+function setting(copy: Record<keyof ProgressSettings, SettingCopy>, settings: ProgressSettings, key: keyof ProgressSettings): HomeLine {
   const on = settings[key];
-  const { text, label } = settingCopy[key][on ? "whenOn" : "whenOff"];
+  const { text, label } = copy[key][on ? "whenOn" : "whenOff"];
   return { kind: "action", text, action: { label, command: { type: "setProgressSettings", ...changeOf(key, !on) } } };
 }
 
@@ -205,19 +225,20 @@ function changeOf(key: keyof ProgressSettings, value: boolean): Partial<Progress
   return { [key]: value };
 }
 
-function adminGroups(announcementChannel: string | null): HomeLine[][] {
-  const channelLines = announcementChannel === null ? threadLines() : announcementChannelLines(announcementChannel);
+function adminGroups({ announcementChannel, achievements }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
+  const what = celebrated(achievements);
+  const channelLines = announcementChannel === null ? threadLines(what) : announcementChannelLines(what, announcementChannel);
   return [channelLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
 }
 
-function threadLines(): HomeLine[] {
-  const text = "I celebrate level ups in a thread under each kudos message. Pick a channel to post them there instead.";
+function threadLines(what: string): HomeLine[] {
+  const text = `I celebrate ${what} in a thread under each kudos message. Pick a channel to post them there instead.`;
   return [{ kind: "pick-channel", text, picked: null, picks: "setAnnouncementChannel" }];
 }
 
-function announcementChannelLines(channel: string): HomeLine[] {
+function announcementChannelLines(what: string, channel: string): HomeLine[] {
   return [
-    { kind: "pick-channel", text: "I celebrate level ups in this channel.", picked: channel, picks: "setAnnouncementChannel" },
+    { kind: "pick-channel", text: `I celebrate ${what} in this channel.`, picked: channel, picks: "setAnnouncementChannel" },
     {
       kind: "action",
       text: "Or celebrate them in a thread under each kudos message again.",
@@ -264,6 +285,7 @@ const journeyGoals: Record<JourneyStep, { goal: string; condition?: string }> = 
   "first-thanks": { goal: "Give a kudos that says why.", condition: "It counts when your message has 5 or more words besides mentions and emoji." },
   "first-quest": { goal: "Finish a weekly quest." },
   "someone-new": { goal: "Thank someone you haven't thanked before." },
+  "two-days": { goal: "Give kudos that say why on 2 different days.", condition: "It counts when your message has 5 or more words besides mentions and emoji." },
 };
 
 export function journeyGoalOf(step: JourneyStep) {
