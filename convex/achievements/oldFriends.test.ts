@@ -83,6 +83,26 @@ describe("P62: Old Friends counts each pair's awards as their award order says",
     expect(await ladderOf(t, alice, "old-friends")).toEqual({ count: 1, earned: [{ tier: "bronze", earnedAt: again.at }] });
   });
 
+  test("three awards of one pair, the last two each 30 days after the one before, count both returns in either order", async () => {
+    const { t, alice, bob } = await withMembers();
+    await launch(t);
+    await settle(t);
+    const first = await given(t, alice, bob, daysAgo(80));
+    const again = await given(t, alice, bob, daysAgo(50));
+    const andAgain = await given(t, alice, bob, daysAgo(20));
+
+    await count(t, andAgain);
+    await count(t, again);
+    await count(t, first);
+
+    expect((await ladderOf(t, alice, "old-friends")).count).toBe(2);
+    expect(await countedAwardsOf(t, alice, "old-friends")).toEqual([
+      { award: andAgain.awards[0]!.award, count: 1 },
+      { award: again.awards[0]!.award, count: 2 },
+      { award: first.awards[0]!.award, count: 2 },
+    ]);
+  });
+
   test("a delayed subscriber of an older award does not count against a newer one", async () => {
     const { t, alice, bob } = await withMembers();
     await launch(t);
@@ -189,4 +209,9 @@ function withoutLadder(ladder: LadderId) {
 
 function shipped() {
   catalogue.ladders = [...shippedCatalogue.ladders];
+}
+
+async function countedAwardsOf(t: Backend, member: MemberId, ladder: LadderId) {
+  const rows = await t.run((ctx) => ctx.db.query("countedAwards").collect());
+  return rows.filter((row) => row.member === member && row.ladder === ladder).map(({ award, count }) => ({ award, count }));
 }
