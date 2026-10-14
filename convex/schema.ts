@@ -73,6 +73,25 @@ export default defineSchema({
     .index("by_user", ["workspace", "user"])
     .index("by_admin", ["workspace", "admin"]),
 
+  userGroups: defineTable({
+    workspace: v.string(),
+    group: v.string(),
+    handle: v.string(),
+    name: v.string(),
+    enabled: v.boolean(),
+    automatic: v.boolean(),
+    asOf: v.number(),
+    membersAsOf: v.optional(v.number()),
+  }).index("by_group", ["workspace", "group"]),
+
+  userGroupMembers: defineTable({
+    workspace: v.string(),
+    group: v.string(),
+    user: v.string(),
+  })
+    .index("by_group", ["workspace", "group", "user"])
+    .index("by_user", ["workspace", "user"]),
+
   kudosMessages: defineTable({
     workspace: v.string(),
     conversation: v.string(),
