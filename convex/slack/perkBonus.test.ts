@@ -25,12 +25,15 @@ const spark = { source: "spark", xp: 5 };
 const rhythm = { source: "rhythm", xp: 2 };
 const circle = { source: "circle", xp: 5 };
 
+const deliverForReal = vi.mocked(publish).getMockImplementation()!;
+
 let postHog: FakePostHog;
 let sentMessages = 0;
 
 beforeEach(() => {
   vi.useFakeTimers({ now: wednesdayNoonUtc });
   vi.mocked(publish).mockClear();
+  vi.mocked(publish).mockImplementation(deliverForReal);
   vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
@@ -130,6 +133,41 @@ describe("P8: the bonus is written once", () => {
   });
 });
 
+describe("P16 P21: which recognition is first follows award order, whatever order the subscriber records them in", () => {
+  test("when Carol's kudos is recorded before Bob's earlier one the same day, Bob's still earns spark and Carol's doesn't", async () => {
+    const { t } = await giverOwning("UTC", "spark", "rhythm", "circle");
+    const held = holdingKudosGiven();
+    await thank(t, "U_BOB", saysWhy, "2026-10-14T09:00:00Z");
+    await thank(t, "U_CAROL", saysWhy, "2026-10-14T10:00:00Z");
+    const [toBob, toCarol] = held;
+
+    await record(t, toCarol!);
+    await record(t, toBob!);
+
+    expect(await giverRecords(t)).toEqual([
+      { baseXp: 10, bonus: [rhythm, circle] },
+      { baseXp: 10, bonus: [spark, rhythm, circle] },
+    ]);
+  });
+
+  test("Monday's kudos to Bob, recorded only after Tuesday's and after buying circle, earns circle; Tuesday's, recorded before the purchase, doesn't", async () => {
+    const { t, alice } = await giverOwning("UTC", "spark", "rhythm");
+    const held = holdingKudosGiven();
+    await thank(t, "U_BOB", saysWhy, "2026-10-12T09:00:00Z");
+    await thank(t, "U_BOB", saysWhy, "2026-10-13T09:00:00Z");
+    const [monday, tuesday] = held;
+
+    await record(t, tuesday!);
+    expect(await t.run((ctx) => buyPerk(ctx, alice, "circle", "slack:trigger-1"))).toEqual({ kind: "bought", perk: "circle" });
+    await record(t, monday!);
+
+    expect(await giverRecords(t)).toEqual([
+      { baseXp: 10, bonus: [spark, rhythm] },
+      { baseXp: 10, bonus: [spark, rhythm, circle] },
+    ]);
+  });
+});
+
 describe("P17 P21 P9: a perk pays from its purchase on, and history is kept regardless of ownership", () => {
   test("a giver who thanked Bob and said why in the morning, then buys spark, gets rhythm but no spark for thanking Carol that afternoon, and the morning's record stays as it was", async () => {
     const { t, alice } = await giverOwning("UTC", "rhythm");
@@ -191,6 +229,20 @@ async function giverOwning(timeZone: string, ...perks: PerkId[]) {
     return alice;
   });
   return { t, alice };
+}
+
+function holdingKudosGiven() {
+  const held: KudosGivenEvent[] = [];
+  vi.mocked(publish).mockImplementation(async (ctx, event) => {
+    if (event.type === "kudosGiven") held.push(event);
+    else await deliverForReal(ctx, event);
+  });
+  return held;
+}
+
+async function record(t: Backend, event: KudosGivenEvent) {
+  await t.mutation(internal.progression.progression.recordEffects, { event });
+  await settle(t);
 }
 
 async function thank(t: Backend, recipient: string, words: string, at: string, kudos = 1) {

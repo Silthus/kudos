@@ -4,7 +4,7 @@ import { publish } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
 import type { AwardWithId } from "../engine/awards";
-import { insertEffects, isRecorded, thoughtfulAwardsInWeekOf } from "./effects";
+import { insertEffects, isRecorded, thoughtfulAwardsBefore } from "./effects";
 import { noGiving, progress, rewarded, sideOf, standing, xpToNextLevel, type Giving, type MemberProgress, type Progressed, type Standing } from "./progress";
 import { insertReward, rewardOf, type RewardRecord } from "./rewards";
 import { perksPayingIn } from "./skillTree";
@@ -23,9 +23,11 @@ export const recordEffects = internalMutation({
   },
 });
 
-async function givingOf(ctx: QueryCtx, { workspace, giver, day }: KudosGivenEvent, member: MemberId): Promise<Giving> {
-  if (member !== giver) return noGiving;
-  return { perks: await perksPayingIn(ctx, workspace, giver), earlier: await thoughtfulAwardsInWeekOf(ctx, giver, day) };
+async function givingOf(ctx: QueryCtx, { workspace, giver, day, awards }: KudosGivenEvent, member: MemberId): Promise<Giving> {
+  if (member !== giver || awards.length === 0) return noGiving;
+  const perks = await perksPayingIn(ctx, workspace, giver);
+  if (perks.length === 0) return noGiving;
+  return { perks, earlier: await thoughtfulAwardsBefore(ctx, giver, day, awards[0]!.award) };
 }
 
 export async function recordReward(ctx: MutationCtx, workspace: string, reward: RewardRecord): Promise<"recorded" | "already recorded"> {
