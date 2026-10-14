@@ -2,10 +2,10 @@ import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { exposed, memberDecision, memberDecisionBeforeWriting, memberDecisionWithoutWriting, workspaceDecision, workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
 import { workspaceKeyOf } from "../analytics/outbox";
-import { journeyPreviewedBy } from "../quests/flag";
+import { journeyLaunchDueIn, journeyPreviewedBy } from "../quests/flag";
 import { signInWorkspace } from "../slack/signIn";
-import { unlocksPreviewedBy } from "../unlocks/launch";
-import type { MemberId } from "../workspace/directory";
+import { unlocksLaunchDueIn, unlocksPreviewedBy } from "../unlocks/launch";
+import { chatUserOf, type MemberId } from "../workspace/directory";
 
 export const websiteFlag = { key: "website", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
@@ -35,7 +35,12 @@ export async function websiteAdmits(ctx: MutationCtx, member: MemberId): Promise
   return websiteShownTo(ctx, member);
 }
 
+export async function workspaceLaunchDueIn(ctx: MutationCtx, workspace: string): Promise<boolean> {
+  return (await unlocksLaunchDueIn(ctx, workspace)) || (await journeyLaunchDueIn(ctx, workspace));
+}
+
 async function runDuePreviewMoments(ctx: MutationCtx, member: MemberId) {
+  if (await workspaceLaunchDueIn(ctx, (await chatUserOf(ctx, member)).workspace)) return;
   await unlocksPreviewedBy(ctx, member);
   await journeyPreviewedBy(ctx, member);
 }

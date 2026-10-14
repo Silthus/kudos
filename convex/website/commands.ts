@@ -1,12 +1,13 @@
 import { runCommand } from "../commands/commands";
 import { republish } from "../feedback/homes";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
-import { journeyLaunchDueIn, journeyStartedFor, questsApplyTo } from "../quests/flag";
+import { journeyStartedFor, questsApplyTo } from "../quests/flag";
 import { questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
-import { unlockPathShownTo, unlocksLaunchDueIn } from "../unlocks/launch";
+import { unlockPathShownTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
 import type { MutationCtx } from "../_generated/server";
+import { workspaceLaunchDueIn } from "./flag";
 import { memberMutation } from "./memberMutation";
 import type { VerifiedMember } from "./memberQuery";
 
@@ -45,8 +46,4 @@ async function launchesRecordedFor(ctx: MutationCtx, me: VerifiedMember) {
 async function questsLaunchedFor(ctx: MutationCtx, me: VerifiedMember) {
   if (await workspaceLaunchDueIn(ctx, me.workspace)) return false;
   return (await questsApplyTo(ctx, me.member)) && (await journeyStartedFor(ctx, me.member)) !== null;
-}
-
-async function workspaceLaunchDueIn(ctx: MutationCtx, workspace: string) {
-  return (await unlocksLaunchDueIn(ctx, workspace)) || (await journeyLaunchDueIn(ctx, workspace));
 }

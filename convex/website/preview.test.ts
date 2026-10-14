@@ -251,6 +251,20 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       expect(await rowsOf("journeyLaunches")).toEqual([]);
     });
 
+    test("unlocks and quests switched on for the workspace after an unlocks preview: the previewer's command starts no Journey preview, and nothing it schedules records a launch", async () => {
+      const member = await aMemberWithEmail(alice);
+      await flagsServed(...everythingForAlice.filter(({ key }) => key !== "quests"));
+      const asAlice = await signedIn(alice);
+      await flagsServed(onForEmails("website", alice.email), ...everyFlagOn.filter(({ key }) => key !== "website"));
+
+      expect(await openFeature(asAlice)).toEqual({ kind: "refused" });
+      await settle(t);
+
+      expect(await previewMoments()).toEqual([{ member, moment: "unlocks" }]);
+      expect(await rowsOf("unlockLaunches")).toEqual([]);
+      expect(await rowsOf("journeyLaunches")).toEqual([]);
+    });
+
     test("quests switched on for the workspace after the preview, with unlocks launched: the previewer's open answers refused and records no Journey launch", async () => {
       await aMemberWithEmail(alice);
       await flagsServed(...everythingForAlice);
