@@ -157,6 +157,7 @@ import type * as workspace_memberProfile from "../workspace/memberProfile.js";
 import type * as workspace_settings from "../workspace/settings.js";
 import type * as workspace_url from "../workspace/url.js";
 import type * as workspace_userGroups from "../workspace/userGroups.js";
+import type * as workspace_wordDeletion from "../workspace/wordDeletion.js";
 
 import type {
   ApiFromModules,
@@ -314,6 +315,7 @@ declare const fullApi: ApiFromModules<{
   "workspace/settings": typeof workspace_settings;
   "workspace/url": typeof workspace_url;
   "workspace/userGroups": typeof workspace_userGroups;
+  "workspace/wordDeletion": typeof workspace_wordDeletion;
 }>;
 
 /**

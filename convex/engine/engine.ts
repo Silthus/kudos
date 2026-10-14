@@ -8,7 +8,7 @@ import { lookup, type MemberFacts, type MemberId } from "../workspace/directory"
 import { settingsOf } from "../workspace/settings";
 import { allowanceDay, dailyAllowance, type DayKey } from "./allowance";
 import { insertAwards, type Award } from "./awards";
-import { forgetDeleted, forgetWords, keepWords } from "./kudosText";
+import { forgetDeleted, forgetWords, keepWords, removeWords } from "./kudosText";
 import type { Annotations, ChatUserId, Mention, MessageDeleted, MessageEvent, MessageRef } from "./messageEvent";
 import { annotationsOf, fingerprintOf, kudosMessageOf, type KudosMessage, type ParseContext } from "../parser/parser";
 
@@ -103,7 +103,7 @@ async function observeFromNonMember(ctx: MutationCtx, row: KudosMessageRow | nul
   }
   const changesKudos = await changesKudosOf(ctx, event, row, context);
   await ctx.db.patch(row._id, withoutAnnotations(revision));
-  await forgetWords(ctx, event.ref);
+  await removeWords(ctx, event.ref);
   return changesKudos && hasOpenAttempt(row) ? withdraw(ctx, row) : notAMember;
 }
 
@@ -300,7 +300,7 @@ async function unknownUsers(ctx: QueryCtx, row: KudosMessageRow): Promise<ChatUs
 
 async function ignore(ctx: MutationCtx, row: KudosMessageRow, why: "not-a-member" | "ordinary-chat"): Promise<Observation> {
   await ctx.db.patch(row._id, { state: "watermark" });
-  await forgetWords(ctx, refOf(row));
+  await (why === "not-a-member" ? removeWords(ctx, refOf(row)) : forgetWords(ctx, refOf(row)));
   return { kind: "ignored", why };
 }
 

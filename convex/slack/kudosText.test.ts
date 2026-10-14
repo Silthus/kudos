@@ -5,10 +5,11 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { deleteMessage, deleteThreadParent, edit, everythingStored, kudosReceived, memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { broadcast, channel, codeBlock, emoji, link, list, mention, messageEvent, quote, section, text, unicodeEmoji, userGroup } from "../../testing/slackMessages";
 import { ReportableError } from "../analytics/exceptions";
-import { wordsOf } from "../engine/kudosText";
+import { internal } from "../_generated/api";
+import { forgetPageSize, wordsOf } from "../engine/kudosText";
 import type { WordSegment } from "../engine/messageEvent";
 
-const forced = vi.hoisted(() => ({ failure: false, adapterFailure: false }));
+const forced = vi.hoisted(() => ({ failure: false, adapterFailure: false, purgeFailure: false }));
 
 vi.mock("./richText", async (importOriginal) => {
   const original = await importOriginal<typeof import("./richText")>();
@@ -18,6 +19,17 @@ vi.mock("./richText", async (importOriginal) => {
       const segments = original.segmentsOf(...args);
       if (forced.adapterFailure) throw new ReportableError(`could not read ${textOf(segments)}`);
       return segments;
+    },
+  };
+});
+
+vi.mock("../workspace/directory", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../workspace/directory")>();
+  return {
+    ...original,
+    chatUserOf: async (...args: Parameters<typeof original.chatUserOf>) => {
+      if (forced.purgeFailure) throw new ReportableError(`could not forget ${reason}`);
+      return original.chatUserOf(...args);
     },
   };
 });
@@ -53,6 +65,7 @@ beforeEach(() => {
 afterEach(() => {
   forced.failure = false;
   forced.adapterFailure = false;
+  forced.purgeFailure = false;
   vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
@@ -214,7 +227,7 @@ describe("AT5: edited away", () => {
     await edit(t, [section(text("no emoji any more "), mention("U_BOB"))], { ts: postedTs, editedTs: "1760349660.000100" });
     await settle(t);
 
-    expect(await words(t)).toEqual({ kind: "unavailable", reason: "deleted" });
+    expect(await words(t)).toEqual({ kind: "unavailable", reason: "removed" });
     expect(await storedAndScheduled(t)).not.toContain(reason);
   });
 
@@ -296,6 +309,137 @@ describe("AT6: deleted in Slack", () => {
   });
 });
 
+describe("AT7: a member who leaves", () => {
+  const secondTs = "1760349660.000100";
+  const thanksAlice = [section(text("thanks for pairing on the migration "), mention("U_ALICE"), text(" "), emoji("taco"))];
+
+  test("has every word they wrote removed at once, and only the words that mention them stay", async () => {
+    const t = testBackend();
+    await post(t, thanksBob, { ts: postedTs });
+    await post(t, thanksBob, { ts: secondTs, channel: "C2" });
+    await post(t, thanksAlice, { ts: postedTs, user: "U_CAROL", channel: "C3" });
+    await settle(t);
+
+    await memberChanged(t, "user_change", { id: "U_ALICE", deleted: true });
+
+    expect(await words(t)).toEqual({ kind: "unavailable", reason: "removed" });
+    expect(await words(t, { conversation: "C2", message: secondTs })).toEqual({ kind: "unavailable", reason: "removed" });
+    expect(await words(t, { conversation: "C3" })).toMatchObject({ kind: "text", author: "U_CAROL" });
+  });
+
+  test("are purged, a later edit can't refill them, and the kudos stay", async () => {
+    const t = testBackend();
+    await post(t, thanksBob, { ts: postedTs });
+    await post(t, thanksBob, { ts: secondTs, channel: "C2" });
+    await settle(t);
+
+    await memberChanged(t, "user_change", { id: "U_ALICE", deleted: true });
+    await settle(t);
+    await memberChanged(t, "user_change", { id: "U_ALICE", deleted: false }, { eventTs: `${Date.now() / 1000 + 60}` });
+    await edit(t, [section(text("cheers again "), mention("U_BOB"), emoji("taco"))], { ts: postedTs, editedTs: "1760349720.000100" });
+    await settle(t);
+
+    expect(await words(t)).toEqual({ kind: "unavailable", reason: "removed" });
+    expect(await words(t, { conversation: "C2", message: secondTs })).toEqual({ kind: "unavailable", reason: "removed" });
+    expect(await storedAndScheduled(t)).not.toContain(reason);
+    expect(await storedAndScheduled(t)).not.toContain("cheers again");
+    expect(await kudosReceived(t, "U_BOB")).toBe(2);
+  });
+
+  test("whose edit arrives before the purge leaves a removed tombstone that a later edit can't refill", async () => {
+    const t = testBackend();
+    await post(t, thanksBob, { ts: postedTs });
+    await settle(t);
+
+    await memberChanged(t, "user_change", { id: "U_ALICE", deleted: true });
+    await edit(t, [section(text("edited while gone "), mention("U_BOB"), emoji("taco"))], { ts: postedTs, editedTs: "1760349660.000100" });
+    await settle(t);
+    await memberChanged(t, "user_change", { id: "U_ALICE", deleted: false }, { eventTs: `${Date.now() / 1000 + 60}` });
+    await edit(t, [section(text("cheers again "), mention("U_BOB"), emoji("taco"))], { ts: postedTs, editedTs: "1760349720.000100" });
+    await settle(t);
+
+    expect(await words(t)).toEqual({ kind: "unavailable", reason: "removed" });
+    expect(await storedAndScheduled(t)).not.toContain("cheers again");
+  });
+
+  test("who comes back has their new kudos stored again", async () => {
+    const t = testBackend();
+    await post(t, thanksBob, { ts: postedTs });
+    await settle(t);
+    await memberChanged(t, "user_change", { id: "U_ALICE", deleted: true });
+    await settle(t);
+
+    await memberChanged(t, "user_change", { id: "U_ALICE", deleted: false }, { eventTs: `${Date.now() / 1000 + 60}` });
+    await post(t, [section(text("welcome back thanks "), mention("U_BOB"), emoji("taco"))], { ts: secondTs, channel: "C2" });
+    await settle(t);
+
+    expect(await words(t, { conversation: "C2", message: secondTs })).toMatchObject({ kind: "text", segments: [{ kind: "text", text: "welcome back thanks " }, expect.anything(), expect.anything()] });
+    expect(await words(t)).toEqual({ kind: "unavailable", reason: "removed" });
+  });
+});
+
+describe("AT8: on request", () => {
+  test("a maintainer removes every word one member authored, and keeps storing their later kudos", async () => {
+    const t = testBackend();
+    await post(t, thanksBob, { ts: postedTs });
+    await post(t, thanksBob, { ts: postedTs, user: "U_CAROL", channel: "C2" });
+    await settle(t);
+
+    await t.mutation(internal.workspace.wordDeletion.forgetWordsOfMember, { workspace: "T1", user: "U_ALICE" });
+    await settle(t);
+    await post(t, [section(text("still thankful "), mention("U_BOB"), emoji("taco"))], { ts: "1760349660.000100", channel: "C3" });
+    await settle(t);
+
+    expect(await words(t)).toEqual({ kind: "unavailable", reason: "removed" });
+    expect(await words(t, { conversation: "C2" })).toMatchObject({ kind: "text", author: "U_CAROL" });
+    expect(await words(t, { conversation: "C3", message: "1760349660.000100" })).toMatchObject({ kind: "text", author: "U_ALICE" });
+    expect(await kudosReceived(t, "U_BOB")).toBe(3);
+  });
+
+  test("a maintainer removes one member's words of more messages than one page, within Convex's limits", async () => {
+    const t = testBackend({ transactionLimits: true });
+    const messages = Array.from({ length: forgetPageSize * 2 + 1 }, (_, index) => `1760349600.${String(index).padStart(6, "0")}`);
+    for (const ts of messages) await post(t, thanksBob, { ts });
+    await settle(t);
+
+    await t.mutation(internal.workspace.wordDeletion.forgetWordsOfMember, { workspace: "T1", user: "U_ALICE" });
+    await settle(t);
+
+    for (const ts of messages) expect(await words(t, { message: ts })).toEqual({ kind: "unavailable", reason: "removed" });
+    expect(await storedAndScheduled(t)).not.toContain(reason);
+  });
+
+  test("a maintainer empties a workspace of more messages than one page, within Convex's limits, and a later edit can't refill them", async () => {
+    const t = testBackend({ transactionLimits: true });
+    const messages = Array.from({ length: forgetPageSize * 2 + 1 }, (_, index) => `1760349600.${String(index).padStart(6, "0")}`);
+    for (const ts of messages) await post(t, thanksBob, { ts });
+    await settle(t);
+
+    await t.mutation(internal.workspace.wordDeletion.forgetWordsOfWorkspace, { workspace: "T1" });
+    await settle(t);
+    await edit(t, [section(text("cheers again "), mention("U_BOB"), emoji("taco"))], { ts: messages[0], editedTs: "1760349720.000100" });
+    await settle(t);
+
+    for (const ts of messages) expect(await words(t, { message: ts })).toEqual({ kind: "unavailable", reason: "removed" });
+    expect(await storedAndScheduled(t)).not.toContain(reason);
+    expect(await storedAndScheduled(t)).not.toContain("cheers again");
+  });
+
+  test("leaves another workspace's words", async () => {
+    const t = testBackend();
+    slack.withMember("U_DAN", { team_id: "T2" }).withMember("U_ERIN", { team_id: "T2" });
+    await post(t, thanksBob, { ts: postedTs });
+    await post(t, [section(text(`thanks ${reason} `), mention("U_ERIN"), text(" "), emoji("taco"))], { ts: postedTs, team: "T2", user: "U_DAN" });
+    await settle(t);
+
+    await t.mutation(internal.workspace.wordDeletion.forgetWordsOfWorkspace, { workspace: "T1" });
+    await settle(t);
+
+    expect(await words(t)).toEqual({ kind: "unavailable", reason: "removed" });
+    expect(await words(t, { workspace: "T2" })).toMatchObject({ kind: "text" });
+  });
+});
+
 describe("AT11: a malformed event never reaches the events mutation, whose argument check would quote the words", () => {
   test.each<[string, Parameters<typeof messageEvent>[1], ReturnType<typeof section>[]]>([
     ["a channel that isn't a string", { extra: { channel: 404 } }, thanksBob],
@@ -347,6 +491,7 @@ describe("AT40: only kudos messages' text is stored", () => {
   test.each<[string, (t: Backend) => Promise<unknown>]>([
     ["deleting it", (t) => deleteMessage(t, { ts: postedTs, previous: thanksBob })],
     ["editing it away", (t) => edit(t, [section(text(`${reason}, edited`), mention("U_BOB"))], { ts: postedTs, editedTs: "1760349660.000100" })],
+    ["its author leaving", (t) => memberChanged(t, "user_change", { id: "U_ALICE", deleted: true })],
   ])("%s leaves its words nowhere", async (_, forget) => {
     const t = testBackend();
     await post(t, thanksBob, { ts: postedTs });
@@ -431,6 +576,27 @@ describe("AT40: only kudos messages' text is stored", () => {
       expect(stringify(consoleLines)).not.toContain(reason);
     });
 
+    test("thrown in the purge of a member who leaves, as a reportable error, leaves no words in a job, the outbox, a captured exception or the console", async () => {
+      const t = testBackendOnce();
+      await post(t, thanksBob);
+      await settle(t);
+
+      forced.purgeFailure = true;
+      await memberChanged(t, "user_change", { id: "U_ALICE", deleted: true });
+      await settle(t);
+
+      expect(await stateOfJob(t, "engine/kudosText:forgetWordsOfLeaver")).toBe("failed");
+      const rerun = await t.mutation(internal.engine.kudosText.forgetWordsOfLeaver, { event: { type: "memberLeft", workspace: "T1", member: await memberIdOf(t, "U_ALICE"), at: Date.now() } }).then(
+        () => null,
+        (error: unknown) => error,
+      );
+      expect(String(rerun)).toContain("message withheld");
+      expect(String(rerun)).not.toContain(reason);
+      expect(await storedAndScheduled(t, { besideKudosText: true })).not.toContain(reason);
+      expect(postHog.requests.map((request) => request.body).join("\n")).not.toContain(reason);
+      expect(stringify(consoleLines)).not.toContain(reason);
+    });
+
     let backend: Backend | undefined;
 
     function testBackendOnce() {
@@ -464,6 +630,15 @@ async function storedAndScheduled(t: Backend, { besideKudosText = false } = {}) 
   const stored = besideKudosText ? await everythingStored(t, { except: ["kudosTexts"] }) : await everythingStored(t);
   const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
   return stringify([...stored, ...jobs]);
+}
+
+async function memberIdOf(t: Backend, user: string) {
+  return t.run(async (ctx) => (await ctx.db.query("members").withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user)).unique())!._id);
+}
+
+async function stateOfJob(t: Backend, name: string) {
+  const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return jobs.find((job) => job.name === name)?.state.kind;
 }
 
 function stringify(value: unknown) {
