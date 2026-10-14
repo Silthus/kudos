@@ -247,7 +247,7 @@ describe("WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the 
     auth.isLoading = false;
     rerender(<Root convexUrl="https://happy-hog-123.convex.cloud" />);
 
-    expect(pageTitle()).toHaveTextContent(/^Sign in$/);
+    expect(pageTitle()).toHaveTextContent(/^HedgeHug$/);
   });
 
   it("ignores a rejection elsewhere on a page that brought no code from Slack", () => {

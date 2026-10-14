@@ -14,6 +14,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "connecting", path: "/", visitor: shellFixtures.connecting },
   { name: "closed", path: "/", visitor: shellFixtures.closed },
   { name: "signed out", path: "/", visitor: shellFixtures.signedOut },
+  { name: "signed out from a deep link", path: "/leaderboard?period=month", visitor: shellFixtures.signedOut },
   { name: "sign-in didn't finish", path: "/", visitor: shellFixtures.signInUnfinished },
   { name: "checking membership", path: "/", visitor: shellFixtures.verifying },
   { name: "membership not checked", path: "/", visitor: shellFixtures.unverified },

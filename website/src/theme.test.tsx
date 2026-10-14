@@ -59,7 +59,7 @@ describe("V6: the theme control follows the system first, overrides it per brows
       throw new DOMException("Storage is disabled", "SecurityError");
     });
     const { user } = renderShell();
-    expect(screen.getByRole("heading", { level: 1, name: "Sign in" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "HedgeHug" })).toBeInTheDocument();
     expect(isDark()).toBe(true);
     await user.click(screen.getByRole("button", { name: "Light" }));
     expect(isDark()).toBe(false);
