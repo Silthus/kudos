@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { achievementsApplyIn } from "../achievements/flag";
 import { tierRefValidator, type TierRef } from "../achievements/ladders";
+import { coinsPaidFor, tierCoinsPaidTo, type TierCoinsPaid } from "../achievements/tierCoins";
 import { everyTierEarnedBy } from "../achievements/tiers";
 import type { LevelReachedEvent } from "../bus/events";
 import { skillTreeLevel } from "../progression/levels";
@@ -18,7 +19,10 @@ import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
 import { websiteOriginFor } from "../website/link";
+import { coinsApplyTo, coinsVisibleTo } from "../wallet/visibility";
+import { isCoinPerk, perkOf, type PerkId } from "../progression/tree";
 import { chatUserOf, type MemberId } from "../workspace/directory";
+import { coinsOpenedLineOf } from "./coins";
 import { deepLinkFrom, deepLinks, type DeepLink } from "./deepLinks";
 import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, purchaseReplyOf, readyCrateOf, tiersEarnedLines, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
@@ -37,6 +41,7 @@ export const notificationValidator = v.union(
   v.object({ kind: v.literal("journey-joined"), finished: v.array(v.object({ quest: journeyQuestValidator, xp: v.number() })) }),
   v.object({ kind: v.literal("weekly-quest-finished"), quest: weeklyQuestValidator, goal: v.string(), xp: v.number() }),
   v.object({ kind: v.literal("tiers-earned"), tiers: v.array(tierRefValidator) }),
+  v.object({ kind: v.literal("coins-opened"), balance: v.number() }),
 );
 
 export type Notification = Infer<typeof notificationValidator>;
@@ -50,6 +55,7 @@ const linkedPages = {
   "journey-joined": deepLinks.journey,
   "weekly-quest-finished": deepLinks.weeklyQuest,
   "tiers-earned": deepLinks.successReply,
+  "coins-opened": deepLinks.successReply,
 } satisfies Record<Notification["kind"], unknown>;
 
 export async function notifyLevelReached(ctx: MutationCtx, { member, level, skillPoints, xpToNextLevel }: LevelReachedEvent, ready: ScheduledFeature[]) {
@@ -99,17 +105,20 @@ export const purchaseReplyStillWanted = internalQuery({
   args: { member: v.id("members"), outcome: purchaseOutcomeValidator },
   handler: async (ctx, { member, outcome }): Promise<string | null> => {
     const { workspace } = await chatUserOf(ctx, member);
-    return (await skillTreeAppliesIn(ctx, workspace)) ? purchaseReplyOf(outcome) : null;
+    if (!(await skillTreeAppliesIn(ctx, workspace))) return null;
+    if (isCoinPerk(perkOf(outcome.perk)) && !(await coinsApplyTo(ctx, member))) return null;
+    return purchaseReplyOf(outcome);
   },
 });
 
-type DeliveryFacts = { website: string | null; openTree: MemberPerks | null; everyTierEarned: TierRef[] };
+type DeliveryFacts = { website: string | null; openTree: MemberPerks | null; everyTierEarned: TierRef[]; tierCoinsShown: TierCoinsPaid };
 
-function renderNotification(notification: Notification, { website, openTree, everyTierEarned }: DeliveryFacts): NotificationLine[] {
+function renderNotification(notification: Notification, { website, openTree, everyTierEarned, tierCoinsShown }: DeliveryFacts): NotificationLine[] {
   if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp, website)];
   if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp, website));
   if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp, website)];
-  if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned);
+  if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned, (ref) => coinsPaidFor(ref, tierCoinsShown));
+  if (notification.kind === "coins-opened") return [coinsOpenedLineOf(notification.balance)];
   const crates = notification.ready.map((feature) => readyCrateOf(scheduled(feature), website));
   if (notification.kind !== "level-reached") return crates;
   return [...levelReachedLines(notification, openTree), ...crates, ...perkOffersOf(openTree, website)];
@@ -125,12 +134,17 @@ function skillPointsTold(level: number, skillPoints: number | null, openTree: Me
 }
 
 function perkOffersOf(openTree: MemberPerks | null, website: string | null): NotificationLine[] {
-  return (openTree?.perks ?? []).filter(({ state }) => state === "buyable").map((perk) => perkOfferOf(perk, website));
+  return (openTree?.perks ?? []).filter(({ state }) => state === "buyable").map((perk) => perkOfferOf(perk, websiteDrawing(perk, website)));
+}
+
+function websiteDrawing({ perk }: { perk: PerkId }, website: string | null) {
+  return isCoinPerk(perkOf(perk)) ? null : website;
 }
 
 async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification | null> {
   if (isAboutQuests(notification)) return questsStillToldOf(ctx, workspace, member, notification);
   if (notification.kind === "tiers-earned") return (await isBookOpenIn(ctx, workspace, member)) ? notification : null;
+  if (notification.kind === "coins-opened") return (await coinsVisibleTo(ctx, member)) ? notification : null;
   if (!(await unlocksAppliedTo(ctx, member))) return { ...notification, ready: [] };
   const ready = await stillReady(ctx, member, notification.ready);
   if (notification.kind !== "level-reached" || notification.skillPoints === null) return { ...notification, ready };
@@ -153,6 +167,7 @@ async function deliveryFactsOf(ctx: QueryCtx, workspace: string, member: MemberI
     website,
     openTree: await openTreeOf(ctx, workspace, member, told),
     everyTierEarned: told.kind === "tiers-earned" ? await everyTierEarnedBy(ctx, member) : [],
+    tierCoinsShown: told.kind === "tiers-earned" && (await coinsVisibleTo(ctx, member)) ? await tierCoinsPaidTo(ctx, member) : new Map(),
   };
 }
 

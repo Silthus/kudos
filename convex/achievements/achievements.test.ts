@@ -101,11 +101,11 @@ describe("P79: achievementsOf gives the website each ladder's facts", () => {
           counts: "kudos given",
           count: 0,
           tiers: [
-            unearned("bronze", "First Thanks", 1, [{ kind: "coins", reward: "generosity-bronze-coins" }]),
+            unearned("bronze", "First Thanks", 1, [{ kind: "coins", reward: "generosity-bronze-coins", coins: 10 }]),
             unearned("silver", "Generous Soul", 25, [{ kind: "kudosEmoji", reward: "generosity-silver-kudos-emoji" }]),
             unearned("gold", "Heart of the Team", 100, [{ kind: "hedgehog", reward: "generosity-gold-hedgehog" }]),
             unearned("diamond", "Patron of Praise", 500, [
-              { kind: "coins", reward: "generosity-diamond-coins" },
+              { kind: "coins", reward: "generosity-diamond-coins", coins: 100 },
               { kind: "hedgehog", reward: "generosity-diamond-hedgehog" },
             ]),
           ],
@@ -117,11 +117,11 @@ describe("P79: achievementsOf gives the website each ladder's facts", () => {
           counts: "kudos received",
           count: 3,
           tiers: [
-            { tier: "bronze", name: "Noticed", count: 1, earnedAt: now.getTime(), catalogueVersion: "1", rewards: [{ kind: "coins", reward: "recognition-bronze-coins" }] },
+            { tier: "bronze", name: "Noticed", count: 1, earnedAt: now.getTime(), catalogueVersion: "1", rewards: [{ kind: "coins", reward: "recognition-bronze-coins", coins: 10, recordedAt: now.getTime() }] },
             unearned("silver", "Appreciated", 25, [{ kind: "kudosEmoji", reward: "recognition-silver-kudos-emoji" }]),
             unearned("gold", "Highly Valued", 100, [{ kind: "hedgehog", reward: "recognition-gold-hedgehog" }]),
             unearned("diamond", "Hall of Fame", 500, [
-              { kind: "coins", reward: "recognition-diamond-coins" },
+              { kind: "coins", reward: "recognition-diamond-coins", coins: 100 },
               { kind: "hedgehog", reward: "recognition-diamond-hedgehog" },
             ]),
           ],
@@ -157,11 +157,11 @@ describe("P79: achievementsOf gives the website each ladder's facts", () => {
           counts: "thanks again after 30+ days",
           count: 0,
           tiers: [
-            unearned("bronze", "Remembered", 1, [{ kind: "coins", reward: "old-friends-bronze-coins" }]),
+            unearned("bronze", "Remembered", 1, [{ kind: "coins", reward: "old-friends-bronze-coins", coins: 10 }]),
             unearned("silver", "Old Friends", 3, [{ kind: "kudosEmoji", reward: "old-friends-silver-kudos-emoji" }]),
             unearned("gold", "Long Memory", 6, [{ kind: "hedgehog", reward: "old-friends-gold-hedgehog" }]),
             unearned("diamond", "Evergreen", 12, [
-              { kind: "coins", reward: "old-friends-diamond-coins" },
+              { kind: "coins", reward: "old-friends-diamond-coins", coins: 100 },
               { kind: "hedgehog", reward: "old-friends-diamond-hedgehog" },
             ]),
           ],
@@ -244,7 +244,7 @@ function notStarted(ladder: LadderId, name: string, counts: string, tiers: Array
     counts,
     count: 0,
     tiers: [
-      { tier: "bronze", name: bronze![0], count: bronze![1], earnedAt: null, catalogueVersion: null, rewards: [{ kind: "coins", reward: `${ladder}-bronze-coins` }] },
+      { tier: "bronze", name: bronze![0], count: bronze![1], earnedAt: null, catalogueVersion: null, rewards: [{ kind: "coins", reward: `${ladder}-bronze-coins`, coins: 10 }] },
       { tier: "silver", name: silver![0], count: silver![1], earnedAt: null, catalogueVersion: null, rewards: [{ kind: "kudosEmoji", reward: `${ladder}-silver-kudos-emoji` }] },
       { tier: "gold", name: gold![0], count: gold![1], earnedAt: null, catalogueVersion: null, rewards: [{ kind: "hedgehog", reward: `${ladder}-gold-hedgehog` }] },
       {
@@ -254,7 +254,7 @@ function notStarted(ladder: LadderId, name: string, counts: string, tiers: Array
         earnedAt: null,
         catalogueVersion: null,
         rewards: [
-          { kind: "coins", reward: `${ladder}-diamond-coins` },
+          { kind: "coins", reward: `${ladder}-diamond-coins`, coins: 100 },
           { kind: "hedgehog", reward: `${ladder}-diamond-hedgehog` },
         ],
       },

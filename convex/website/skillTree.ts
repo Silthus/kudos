@@ -1,6 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import { treePerksOf, type MemberPerks, type PerkState } from "../progression/perks";
-import type { PerkId } from "../progression/tree";
+import { isCoinPerk, type PerkId } from "../progression/tree";
 import { workspaceLink } from "../slack/workspaceLink";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 import { featurePageOf, unlockPathOf, type PageWaits, type UnlockPath } from "./unlockPath";
@@ -55,7 +55,7 @@ function rowsOf(catalogue: CataloguePerk[]): TreeRow[] {
 }
 
 function isShown(perk: CataloguePerk): perk is ShownPerk {
-  return perk.state in nodeStates;
+  return perk.state in nodeStates && (perk.state === "owned" || !isCoinPerk(perk));
 }
 
 function nodeOf({ perk, name, copy, skillPoints, requires, state, boughtAt }: ShownPerk, catalogue: CataloguePerk[]): PerkNode {

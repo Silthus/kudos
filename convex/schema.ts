@@ -24,6 +24,7 @@ import { journeyActivationValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
 import { featureValidator } from "./unlocks/feature";
 import { memberProfileFields } from "./workspace/memberProfile";
+import { coinSpendValidator } from "./wallet/wallet";
 
 export default defineSchema({
   ...authTables,
@@ -211,6 +212,19 @@ export default defineSchema({
   rewardRecords: defineTable(rewardRecordValidator)
     .index("by_member_key", ["member", "key"])
     .index("by_member_cause", ["member", "cause.workspace", "cause.conversation", "cause.message"]),
+
+  receivingGivers: defineTable({
+    recipient: v.id("members"),
+    week: v.string(),
+    giver: v.id("members"),
+  }).index("by_recipient_week", ["recipient", "week"]),
+
+  wallets: defineTable({
+    member: v.id("members"),
+    balance: v.number(),
+  }).index("by_member", ["member"]),
+
+  coinSpends: defineTable(coinSpendValidator).index("by_member", ["member"]),
 
   journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
 
