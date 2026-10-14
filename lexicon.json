@@ -518,6 +518,14 @@
     {
       "name": "kudos text",
       "definition": "The stored words of a kudos message's newest revision: its text as segments in order, its channel's visibility, its author and that revision's gate decision. It is the only message text the app stores, kept while the message is a kudos message and replaced by a word-free tombstone when the message is edited away or deleted."
+    },
+    {
+      "name": "activity",
+      "definition": "A member's own timeline of the kudos they received and gave, newest first, with each kudos's words and Slack permalink, read only by that member on the website behind the activity flag."
+    },
+    {
+      "name": "permalink",
+      "definition": "Slack's link to one message, built from the workspace's URL, the channel and the message's ts, with the thread root for a thread reply, never from a Slack call per message."
     }
   ]
 }

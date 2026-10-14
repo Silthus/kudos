@@ -172,6 +172,10 @@ export async function threadOf(ctx: QueryCtx, ref: MessageRef): Promise<string> 
   return row?.threadRoot ?? ref.message;
 }
 
+export async function threadRootOf(ctx: QueryCtx, ref: MessageRef): Promise<string | null> {
+  return (await kudosMessageRow(ctx, ref))?.threadRoot ?? null;
+}
+
 export async function givenWithoutWords(ctx: QueryCtx, cursor: string | null, numItems: number) {
   const page = await ctx.db.query("kudosMessages").paginate({ cursor, numItems });
   const awaiting = await Promise.all(page.page.map(async (row) => ((await awaitsWords(ctx, row)) ? [refOf(row)] : [])));

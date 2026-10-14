@@ -63,6 +63,17 @@ export async function settleUntil(t: Backend, until: Date) {
   }
 }
 
+export async function setWorkspaceSettings(t: Backend, settings: { kudosEmoji?: string; announcementChannel?: string }, workspace = "T1") {
+  await t.run(async (ctx) => {
+    const row = await ctx.db
+      .query("workspaces")
+      .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
+      .unique();
+    if (row === null) await ctx.db.insert("workspaces", { workspace, ...settings });
+    else await ctx.db.patch(row._id, settings);
+  });
+}
+
 export async function kudosReceived(t: Backend, user: string) {
   const awards = await awardsTo(t, user);
   return awards.reduce((sum, award) => sum + award.kudos, 0);

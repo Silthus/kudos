@@ -82,7 +82,7 @@ describe("R33: the private reply", () => {
     expect(slack.callsTo("chat.postEphemeral")).toEqual([
       { channel: "C1", user: "U_ALICE", thread_ts: threadRoot, text: "<@U_BOB> and <@U_CAROL> got 1 kudos from you. You have 1 kudos left today." },
     ]);
-    expect(callsBesideWelcomes().map((call) => call.method).sort()).toEqual(["chat.postEphemeral", "reactions.add"]);
+    expect(callsBesideWelcomes().map((call) => call.method).sort()).toEqual(["auth.test", "chat.postEphemeral", "reactions.add"]);
     expect(welcomedPeople()).toEqual(["U_ALICE", "U_BOB", "U_CAROL"]);
   });
 

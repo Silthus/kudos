@@ -59,6 +59,12 @@ export class FakeSlack {
   private readonly callTimes = new Map<SlackCall, number>();
   private readonly holds: Array<{ method: string; about: string; meanwhile: () => Promise<void> }> = [];
   private readonly channelMessages = new Map<string, ChannelMessage[]>();
+  private workspaceUrl = "https://t1.slack.com/";
+
+  withWorkspaceUrl(url: string) {
+    this.workspaceUrl = url;
+    return this;
+  }
 
   withMember(id: string, options: Partial<SlackUser> = {}) {
     this.users.set(id, { id, team_id: "T1", ...options });
@@ -191,6 +197,7 @@ export class FakeSlack {
     if (method === "conversations.history") return this.history(args);
     if (method === "conversations.replies") return this.replies(args);
     if (method === "conversations.join") return { ok: true, channel: { id: field("channel") } };
+    if (method === "auth.test") return { ok: true, url: this.workspaceUrl, team: "Kudos Test", team_id: "T1", user: "kudos", user_id: "U_KUDOS_BOT", bot_id: "B_KUDOS" };
     return { ok: false, error: "unknown_method" };
   }
 
