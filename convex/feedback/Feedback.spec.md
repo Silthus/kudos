@@ -110,6 +110,7 @@ Feedback: the indicator on each kudos message as desired state and the private r
 - a level a previewed quest reward reaches is never announced: A level a member reaches through a quest or Journey reward while they preview quests through their email and `quests` is off in the workspace decision posts no public notice, even with an announcement channel picked, and the member still gets their level-up DM.
   over: the public notices the app asks Slack to post and the DMs to the member, for the level 2 the Journey's first-thanks step reaches for a member who previews quests through their email, in a workspace with an announcement channel picked and `xp-levels` and `unlocks` on for everyone
   via: F18: a level a previewed quest reward reaches
+  refuted: announceRewardedLevel no longer read whether quests applies in the workspace decision -> the test failed: the previewer's level 2 was posted in the announcement channel (2026-10-14)
   because: a level reached through a reward is announced in public only when the rewarding feature is on in the workspace decision too (`d-54f92e49`, F18), or the announcement channel would reveal a quests preview to every member
   kinds: output
   checklist: destination-confinement dismissed: the decision only withholds the notice; where a notice goes is decided by a rewarded level is announced once
