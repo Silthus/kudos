@@ -26,6 +26,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "home", path: "/", visitor: shellFixtures.member },
   { name: "home in a quiet week", path: "/", visitor: shellFixtures.memberWithAQuietWeek },
   { name: "home at level 1", path: "/", visitor: shellFixtures.memberAtLevel1 },
+  { name: "home before the member's first kudos", path: "/", visitor: shellFixtures.memberBeforeTheirFirstKudos },
   { name: "home past level 5", path: "/", visitor: shellFixtures.memberAtLevel7 },
   { name: "home for a member Slack didn't name", path: "/", visitor: { ...shellFixtures.memberAtLevel7, name: undefined } },
   { name: "not found", path: "/nowhere", visitor: shellFixtures.member },

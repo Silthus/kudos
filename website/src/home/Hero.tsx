@@ -5,13 +5,14 @@ import { MemberFace } from "../Face";
 import { LevelRing, levelShare } from "../LevelRing";
 import { MaxLine } from "../Max";
 import { PageTitle } from "../PageTitle";
+import { hasGivenNoKudos } from "./FirstKudosNudge";
 import { SlackLink } from "../SlackLink";
 import type { MemberProfile, Progression } from "../shell";
 
 export function Hero({ member }: { member: MemberProfile }) {
   const { progression } = member;
   return (
-    <section aria-labelledby="home-title" className="hud-panel relative flex flex-col items-center gap-6 rounded-xl border bg-card p-6 text-center sm:flex-row sm:gap-7 sm:text-left">
+    <section aria-labelledby="home-title" className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:gap-7 sm:py-4 sm:text-left">
       <MemberFace face={member.face} className="size-32" />
       {progression !== null && <HeroRing progression={progression} />}
       <div className="flex w-full min-w-0 flex-1 flex-col items-center sm:items-start">
@@ -25,7 +26,7 @@ export function Hero({ member }: { member: MemberProfile }) {
           Thank someone for work you noticed. Mention them in a Slack message with :{member.kudosEmoji}: and say what they did.
         </p>
         <div className="mt-3">
-          <SlackLink chatUrl={member.chatUrl} variant="primary" size="lg">
+          <SlackLink chatUrl={member.chatUrl} variant={hasGivenNoKudos(member) ? "outline" : "primary"} size="lg">
             Thank someone in Slack
           </SlackLink>
         </div>

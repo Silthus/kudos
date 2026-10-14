@@ -1,0 +1,48 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/open-hero/website
+
+ ❯ |website| src/HomePage.test.tsx (28 tests | 2 failed | 25 skipped) 446ms
+   ❯ WS312 V4: the first-kudos nudge (3)
+     × shows under the hero while the member has given no kudos, teaching with their kudos emoji, with the page's one primary action 218ms
+     × promises no XP while the member's progression isn't shown 112ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS312 V4: the first-kudos nudge > shows under the hero while the member has given no kudos, teaching with their kudos emoji, with the page's one primary action
+Error: [2mexpect([22m[31mreceived[39m[2m).toBeInTheDocument()[22m
+
+[31mreceived[39m value must be an HTMLElement or an SVGElement.
+Received has type:  Null
+Received has value: [31mnull[39m
+ ❯ src/HomePage.test.tsx:124:21
+    122|   it("shows under the hero while the member has given no kudos, teachi…
+    123|     renderApp({ ...shellFixtures.memberBeforeTheirFirstKudos, kudosEmo…
+    124|     expect(nudge()).toBeInTheDocument();
+       |                     ^
+    125|     expect(comesBefore(hero(), nudge()!)).toBe(true);
+    126|     expect(nudge()!.querySelector("svg[aria-hidden='true']")).not.toBe…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS312 V4: the first-kudos nudge > promises no XP while the member's progression isn't shown
+Error: [2mexpect([22m[31mreceived[39m[2m).toHaveTextContent()[22m
+
+[31mreceived[39m value must be a Node.
+Received has type:  Null
+Received has value: [31mnull[39m
+ ❯ src/HomePage.test.tsx:136:21
+    134|   it("promises no XP while the member's progression isn't shown", () =…
+    135|     renderApp({ ...shellFixtures.memberBeforeTheirFirstKudos, progress…
+    136|     expect(nudge()).toHaveTextContent(/five words or more\.$/);
+       |                     ^
+    137|     expect(nudge()!.textContent).not.toMatch(/xp|level/i);
+    138|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed | 25 skipped (28)
+   Start at  14:25:26
+   Duration  2.56s (import 42%, transform 18%, tests 18%, environment 17%, setup 4%)
+

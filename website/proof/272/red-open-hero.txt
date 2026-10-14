@@ -1,0 +1,32 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/open-hero/website
+
+ ❯ |website| src/HomePage.test.tsx (25 tests | 1 failed | 24 skipped) 222ms
+   ❯ WS311 V2: the open hero (1)
+     × drops the card's border, background and corner marks for E's open header spacing 221ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS311 V2: the open hero > drops the card's border, background and corner marks for E's open header spacing
+Error: [2mexpect([22m[31melement[39m[2m).not.toHaveClass([22m[32m[32m"hud-panel"[32m[39m[2m)[22m
+
+Expected the element not to have class:
+[32m  hud-panel[39m
+Received:
+[31m  hud-panel relative flex flex-col items-center gap-6 rounded-xl border bg-card p-6 text-center sm:flex-row sm:gap-7 sm:text-left[39m
+ ❯ src/HomePage.test.tsx:104:99
+    102|     renderApp(shellFixtures.memberAtLevel7);
+    103|     const hero = within(main()).getByRole("region", { name: "Sam Examp…
+    104|     for (const frame of ["hud-panel", "border", "bg-card", "rounded-xl…
+       |                                                                                                   ^
+    105|     expect(hero).toHaveClass("sm:py-4", "sm:gap-7", "sm:items-center");
+    106|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 24 skipped (25)
+   Start at  14:25:05
+   Duration  2.31s (import 47%, environment 20%, transform 19%, tests 10%, setup 4%)
+
