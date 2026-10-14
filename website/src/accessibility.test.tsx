@@ -5,7 +5,7 @@ import type { BoardRead } from "./boardRead";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
-import { shellFixtures, type MyBook, type MyLeaderboard, type MyQuests, type BuyAnswer, type MySkillTree, type OpenAnswer, type ShellState } from "./shell";
+import { shellFixtures, type MyBook, type MyLeaderboard, type MyQuests, type BuyAnswer, type MySkillTree, type OpenAnswer, type ShellState, type VisibilityReply } from "./shell";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
@@ -221,6 +221,28 @@ describe("WS24 WS87: every purchase state passes axe in light and dark", () => {
           await act(async () => undefined);
         }
         expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+      });
+    }
+  }
+});
+
+const visibilityStates: { name: string; answer: () => Promise<VisibilityReply> }[] = [
+  { name: "pending", answer: () => new Promise(() => undefined) },
+  { name: "set", answer: async () => ({ kind: "set", visible: false }) },
+  { name: "refused", answer: async () => ({ kind: "refused" }) },
+  { name: "unreachable", answer: async () => Promise.reject(new Error("socket closed")) },
+];
+
+describe("WS24 WS321: every visibility switch state passes axe in light and dark", () => {
+  for (const dark of [false, true]) {
+    for (const state of visibilityStates) {
+      it(`the switch ${state.name} in ${dark ? "dark" : "light"}`, async () => {
+        fakeSystemTheme(dark);
+        window.history.replaceState(null, "", "/leaderboard");
+        const { user, container, getByRole } = renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leaderboardFixtures.midBoard), { setBoardVisibility: state.answer });
+        await user.click(getByRole("switch", { name: "Show me on the leaderboards" }));
+        await act(async () => undefined);
+        expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
       });
     }
   }

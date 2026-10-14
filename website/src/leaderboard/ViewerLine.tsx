@@ -9,7 +9,7 @@ const joinWords: Record<Period, string> = {
 };
 
 export function viewerLineOf(board: Leaderboard) {
-  if (board.standing.kind === "left") return <p className={line}>You're not on the leaderboards. You can change that in Settings in Slack.</p>;
+  if (board.standing.kind === "left") return <p className={line}>You're off the board by choice. Switch on "Show me on the leaderboards" to come back.</p>;
   if (board.standing.kind === "ranked") return undefined;
   return (
     <div className={`${line} flex flex-wrap items-center justify-between gap-3`}>

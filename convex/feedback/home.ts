@@ -209,12 +209,18 @@ function skillTreeGroups(tree: MemberPerks): HomeLine[][] {
 function perkLines(perk: TreePerk): HomeLine[] {
   const { name, copy, state } = perk;
   if (state === "owned") return [{ kind: "text", text: `✅ ${bold(name)} · Owned\n${copy}` }];
-  if (state === "buyable") return [{ kind: "action", ...perkOfferOf(perk) }];
+  if (state === "buyable") return [{ kind: "action", ...perkOfferOf(perk, null) }];
   return [{ kind: "text", text: perkTextOf(perk) }, { kind: "hint", text: whyNotOf({ ...perk, state }) }];
 }
 
-export function perkOfferOf(perk: Perk): { text: string; action: HomeAction } {
-  return { text: perkTextOf(perk), action: { label: "Buy", command: { type: "buyPerk", perk: perk.perk }, accessibilityLabel: `Buy ${perk.name}`, confirm: purchaseConfirmationOf(perk) } };
+export function perkOfferOf(perk: Perk, website: string | null): { text: string; action: HomeAction } {
+  return { text: perkTextOf(perk), action: buyPerk(perk, website) };
+}
+
+function buyPerk(perk: Perk, website: string | null): HomeAction {
+  const spoken = `Buy ${perk.name}`;
+  if (website === null) return { label: "Buy", command: { type: "buyPerk", perk: perk.perk }, accessibilityLabel: spoken, confirm: purchaseConfirmationOf(perk) };
+  return linkOnTheWeb({ label: "Buy", spoken, id: `buy:${perk.perk}` }, { page: "skillTree" }, website);
 }
 
 function purchaseConfirmationOf({ name, skillPoints }: Perk): Confirmation {
@@ -399,7 +405,11 @@ function openUnlock(feature: Feature, website: string | null): HomeAction {
 }
 
 function openOnTheWeb(id: string, page: Page, website: string): LinkAction {
-  return { label: "Open", url: urlOf(website, page), accessibilityLabel: `Open on ${productName}'s ${pageNames[page.page]} page`, id };
+  return linkOnTheWeb({ label: "Open", spoken: "Open", id }, page, website);
+}
+
+function linkOnTheWeb({ label, spoken, id }: { label: string; spoken: string; id: string }, page: Page, website: string): LinkAction {
+  return { label, url: urlOf(website, page), accessibilityLabel: `${spoken} on ${productName}'s ${pageNames[page.page]} page`, id };
 }
 
 function totalsOf(kudos: KudosHome): HomeLine {
