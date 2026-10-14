@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from "react";
+import { useEffect, useRef, type ComponentType, type ReactNode } from "react";
 import { HedgehogHeart } from "@posthog/brand/hoggies";
 import { IconHome } from "@posthog/icons";
 import { AccountMenu } from "./AccountMenu";
@@ -19,10 +19,10 @@ export function Frame({ member, ready = [], current, busy, inert, onSignOut, chi
   return (
     <div className="hud-root flex min-h-screen flex-col" inert={inert}>
       <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md">
-        <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6">
+        <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-lg:gap-y-1 max-lg:pt-2 max-sm:gap-x-2 md:px-6">
           <Wordmark />
           {member && <ScreenNav current={current} member={member} />}
-          <div className="ml-auto flex items-center gap-2 max-sm:gap-1.5">
+          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2 max-sm:gap-1.5">
             {member && member.skillPoints !== null && <SkillPointChip points={member.skillPoints} />}
             {member && <ReadyPill crates={ready} />}
             <ThemeControl />
@@ -40,7 +40,7 @@ function Wordmark() {
   return (
     <AppLink href="/" aria-label="HedgeHug, home" className="flex items-center gap-2.5 rounded-md">
       <HedgehogHeart size={34} title="" className="shrink-0" />
-      <span className="flex flex-col leading-none">
+      <span className="flex flex-col leading-none max-sm:hidden">
         <span className="hud-display text-lg font-bold">HedgeHug</span>
         <span className="text-[10px] text-muted-foreground">Thanks a Hog</span>
       </span>
@@ -58,8 +58,14 @@ function SkillPointChip({ points }: { points: number }) {
 }
 
 function ScreenNav({ current, member }: { current?: Screen; member: MemberProfile }) {
+  const rail = useCurrentEntryInView(current);
   return (
-    <nav aria-label="Screens" className="mx-auto flex items-center gap-0.5 max-sm:order-last max-sm:mx-0 max-sm:w-full max-sm:pb-1">
+    <nav
+      ref={rail}
+      aria-label="Screens"
+      onFocus={(event) => bringIntoView(event.target)}
+      className="flex flex-nowrap items-center gap-0.5 max-lg:order-last max-lg:-mx-4 max-lg:w-[calc(100%+2rem)] max-lg:overflow-x-auto max-lg:px-3 max-lg:pb-1.5 max-lg:scroll-px-3 md:max-lg:-mx-6 md:max-lg:w-[calc(100%+3rem)] md:max-lg:px-5 lg:mx-auto"
+    >
       <ScreenLink href="/" current={current === "home"} Icon={IconHome}>
         Home
       </ScreenLink>
@@ -72,6 +78,19 @@ function ScreenNav({ current, member }: { current?: Screen; member: MemberProfil
   );
 }
 
+function useCurrentEntryInView(current: Screen | undefined) {
+  const rail = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const entry = rail.current?.querySelector('[aria-current="page"]');
+    if (entry) bringIntoView(entry);
+  }, [current]);
+  return rail;
+}
+
+function bringIntoView(entry: Element) {
+  entry.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+}
+
 type ScreenLinkProps = { href: string; current: boolean; Icon: ComponentType<{ className?: string }>; children: ReactNode };
 
 function ScreenLink({ href, current, Icon, children }: ScreenLinkProps) {
@@ -79,7 +98,7 @@ function ScreenLink({ href, current, Icon, children }: ScreenLinkProps) {
     <AppLink
       href={href}
       aria-current={current ? "page" : undefined}
-      className={`relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium ${current ? "text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 max-sm:after:-bottom-1 after:rounded-full after:bg-primary" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
+      className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] font-medium ${current ? "text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 after:rounded-full after:bg-primary max-lg:after:bottom-0" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
     >
       <Icon className="size-4" />
       {children}

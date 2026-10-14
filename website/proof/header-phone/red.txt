@@ -1,0 +1,16 @@
+ × |website| src/header.test.tsx > WS300: below lg the screen nav is a scroll rail that never wraps > scrolls sideways in one line instead of widening the page 193ms
+ ✓ |website| src/header.test.tsx > WS300: below lg the screen nav is a scroll rail that never wraps > is no focus trap: Tab moves through its entries in order and on past the rail 153ms
+ × |website| src/header.test.tsx > WS300: below lg the screen nav is a scroll rail that never wraps > brings the current entry into view on load, without animation 47ms
+ × |website| src/header.test.tsx > WS300: below sm the theme control is one button that cycles light, dark and system > names its current choice and the next, and cycles through all three 160ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/header.test.tsx > WS300: below lg the screen nav is a scroll rail that never wraps > scrolls sideways in one line instead of widening the page
+Error: expect(element).toHaveClass("max-lg:overflow-x-auto flex-nowrap")
+ FAIL  |website| src/header.test.tsx > WS300: below lg the screen nav is a scroll rail that never wraps > brings the current entry into view on load, without animation
+AssertionError: expected [] to include <a href="/leaderboard" …(2)>…(1)</a>
+ FAIL  |website| src/header.test.tsx > WS300: below sm the theme control is one button that cycles light, dark and system > names its current choice and the next, and cycles through all three
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name `/^Theme: /`
+      Tests  3 failed | 1 passed (4)
+     × brings each entry Tab reaches into view 108ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected [] to deeply equal [ …(2) ]
+      Tests  1 failed | 4 passed (5)

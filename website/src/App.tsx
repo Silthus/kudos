@@ -19,7 +19,7 @@ import { QuestsPage } from "./pages/QuestsPage";
 import { SkillTreePage } from "./pages/SkillTreePage";
 import { NotAMemberPage } from "./pages/NotAMemberPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
-import { SignedOutPage } from "./pages/SignedOutPage";
+import { SignedOutPage, SignInCard } from "./pages/SignedOutPage";
 import { SignInUnfinishedPage } from "./pages/SignInUnfinishedPage";
 import { UnverifiedPage } from "./pages/UnverifiedPage";
 import { VerifyingPage } from "./pages/VerifyingPage";
@@ -66,14 +66,19 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   }, [actions, route]);
   const takingToSlack = useSignInWhenAsked(shown, signIn);
   const page: ShellState = takingToSlack ? { kind: "loading" } : shown;
+  const signingIn = page.kind === "signed-out" && route.page !== "not-found";
   return (
     <NavigateProvider value={arriveAt}>
       <MomentsProvider value={moments}>
-        <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined)} inert={revealing} onSignOut={actions.signOut}>
-          <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
-            <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSignIn={signIn} onSignOut={actions.signOut} />
-          </ErrorBoundary>
-        </Frame>
+        {signingIn ? (
+          <SignedOutPage returnTo={hrefOf(route)} onSignIn={signIn} />
+        ) : (
+          <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined)} inert={revealing} onSignOut={actions.signOut}>
+            <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
+              <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSignIn={signIn} onSignOut={actions.signOut} />
+            </ErrorBoundary>
+          </Frame>
+        )}
         {reveal !== undefined && member !== undefined && (
           <RevealDialog key={reveal.crate.seen} {...reveal} chatUrl={member.chatUrl} questsOpen={questsOpen} onFinish={moments.finish} onClose={moments.close} />
         )}
@@ -201,7 +206,7 @@ function AnswerPage({ answer, onSignIn, onSignOut }: { answer: NotAMember; onSig
     case "closed":
       return <ClosedPage />;
     case "signed-out":
-      return <SignedOutPage onSignIn={onSignIn} />;
+      return <SignInCard onSignIn={onSignIn} />;
     case "sign-in-unfinished":
       return <SignInUnfinishedPage onSignIn={onSignIn} />;
     case "verifying":

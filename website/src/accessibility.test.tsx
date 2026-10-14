@@ -16,6 +16,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "connecting", path: "/", visitor: shellFixtures.connecting },
   { name: "closed", path: "/", visitor: shellFixtures.closed },
   { name: "signed out", path: "/", visitor: shellFixtures.signedOut },
+  { name: "signed out from a deep link", path: "/leaderboard?period=month", visitor: shellFixtures.signedOut },
   { name: "sign-in didn't finish", path: "/", visitor: shellFixtures.signInUnfinished },
   { name: "checking membership", path: "/", visitor: shellFixtures.verifying },
   { name: "membership not checked", path: "/", visitor: shellFixtures.unverified },
@@ -101,6 +102,16 @@ describe("WS24: every page passes axe in light and dark", () => {
       await user.click(getByRole("button", { name: "Show the whole board" }));
       viewerRow.see({ visible: false, edge: "bottom" });
       getByRole("button", { name: "Jump to me" });
+      expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+    });
+
+    it(`the board grown by Show 5 more above and below meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
+      fakeSystemTheme(dark);
+      window.history.replaceState(null, "", "/leaderboard");
+      const { user, container, getByRole } = renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leaderboardFixtures.longBoardViewerInTheMiddle));
+      await user.click(getByRole("button", { name: "Show 5 more above" }));
+      await user.click(getByRole("button", { name: "Show 5 more below" }));
+      getByRole("button", { name: "Show 3 more above" });
       expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
     });
 

@@ -28,7 +28,7 @@ function Overview() {
   return (
     <header className="flex flex-col gap-1">
       <span className="hud-label">Book</span>
-      <PageTitle tab="Book">Achievements</PageTitle>
+      <PageTitle tab="Book" size="display">Achievements</PageTitle>
       <p className="text-sm text-muted-foreground">Tiers you earn by thanking colleagues and being thanked. Each one is yours for good.</p>
     </header>
   );
@@ -38,7 +38,7 @@ function ChapterHeader({ chapter: { category } }: { chapter: Chapter }) {
   return (
     <header className="flex flex-col gap-1">
       <span className="hud-label">Achievements</span>
-      <PageTitle tab={`Book · ${category.name}`}>{category.name}</PageTitle>
+      <PageTitle tab={`Book · ${category.name}`} size="display">{category.name}</PageTitle>
       {category.blurb !== null && <p className="text-sm text-muted-foreground">{category.blurb}</p>}
     </header>
   );

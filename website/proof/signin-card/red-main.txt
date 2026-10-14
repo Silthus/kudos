@@ -1,0 +1,50 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/signin-card/website
+
+ ❯ |website| src/displayTitles.test.tsx (4 tests | 2 failed) 707ms
+   ❯ WS310: page titles take variant E's display sizes in RoundHog bold (4)
+     × sets /skills' title at E's text-4xl with no extra leading 105ms
+     × sets /book's title at E's text-4xl with no extra leading 95ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/displayTitles.test.tsx > WS310: page titles take variant E's display sizes in RoundHog bold > sets /skills' title at E's text-4xl with no extra leading
+Error: expect(element).toHaveClass("hud-display font-bold text-4xl leading-none")
+
+Expected the element to have class:
+  hud-display font-bold text-4xl leading-none
+Received:
+  hud-display font-bold outline-none text-2xl tracking-tight
+ ❯ src/displayTitles.test.tsx:35:25
+     33|     renderApp(shellFixtures.memberWithEveryFeatureOpen, undefined, und…
+     34|     expect(pageTitle()).toHaveTextContent("Perks");
+     35|     expect(pageTitle()).toHaveClass("hud-display", "font-bold", "text-…
+       |                         ^
+     36|   });
+     37|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |website| src/displayTitles.test.tsx > WS310: page titles take variant E's display sizes in RoundHog bold > sets /book's title at E's text-4xl with no extra leading
+Error: expect(element).toHaveClass("hud-display font-bold text-4xl leading-none")
+
+Expected the element to have class:
+  hud-display font-bold text-4xl leading-none
+Received:
+  hud-display font-bold outline-none text-2xl tracking-tight
+ ❯ src/displayTitles.test.tsx:42:25
+     40|     renderApp(shellFixtures.memberWithTheBookOpened, undefined, undefi…
+     41|     expect(pageTitle()).toHaveTextContent("Achievements");
+     42|     expect(pageTitle()).toHaveClass("hud-display", "font-bold", "text-…
+       |                         ^
+     43|   });
+     44|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  2 failed | 17 passed (19)
+   Start at  11:03:59
+   Duration  7.45s (import 37%, environment 22%, transform 19%, tests 15%, setup 6%)
+
