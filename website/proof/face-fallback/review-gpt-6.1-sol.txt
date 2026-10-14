@@ -1,0 +1,11 @@
+codex exec -m gpt-6.1-sol -c model_reasoning_effort=high --sandbox read-only (diff: git diff origin/main -- website, oracle: #397's body)
+
+## Prompt
+You are reviewing a small React fix in the repo at the current directory (read-only). The diff is in /tmp/i397-diff.patch; the ticket that is the oracle is /tmp/i397-issue.md.
+
+Defect: MemberFace (website/src/Face.tsx) shows a broken image when a member's picture already failed in the tab, because the image's error event fires before React attaches onError. The fix reads the mounted image's complete and naturalWidth in a layout effect and shows initials.
+
+Review for correctness against the ticket: false positives (e.g. an image complete with naturalWidth 0 that is not a failure, such as SVG without intrinsic size, or lazy/decoding states), SSR or React 19 strict-mode issues, key/remount behaviour when face.image changes, whether the test proves the defect and would fail without the fix, and code quality. Report only concrete findings with file:line, severity, and a failure scenario. If none hold, say "No findings".
+
+## Verdict
+No findings.
