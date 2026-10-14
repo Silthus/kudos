@@ -1,5 +1,5 @@
 import { screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import type { QuestsRead } from "./questsRead";
 import { shellFixtures, type MyQuests } from "./shell";
@@ -11,6 +11,10 @@ const withQuests = shellFixtures.memberWithQuests;
 beforeEach(() => {
   fakeSystemTheme(false);
   window.history.replaceState(null, "", "/quests");
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 function main() {
@@ -132,6 +136,22 @@ describe("WS73: /quests shows this week's quests while Quests is open", () => {
     expect(within(waiting).getByText("Quest reward · 20 XP")).toBeInTheDocument();
     expect(waiting).toHaveTextContent("Thank someone and say why on 2 different days.");
     expect(within(waiting).getByRole("button", { name: "Open" })).toHaveClass("quill-button--variant-outline");
+  });
+
+  it("WS73: tells two waiting crates of the same quest apart by the week each one is from, oldest first", () => {
+    showQuests(questsFixtures.weekWithTheSameQuestWaitingFromTwoWeeks);
+    const waiting = within(main()).getByRole("region", { name: "Waiting to open" });
+    expect(within(waiting).getAllByRole("article").map((crate) => crate.textContent)).toEqual([
+      expect.stringContaining("Week of Sep 28"),
+      expect.stringContaining("Week of Oct 5"),
+    ]);
+    expect(within(waiting).getByText("Week of Oct 5")).toHaveAttribute("datetime", "2026-10-05");
+  });
+
+  it("WS73: writes the week in the browser's language", () => {
+    vi.spyOn(navigator, "languages", "get").mockReturnValue(["en-GB"]);
+    showQuests(questsFixtures.weekWithLastWeeksCrate);
+    expect(within(main()).getByRole("region", { name: "Waiting to open" })).toHaveTextContent("Week of 5 Oct");
   });
 
   it("has no Waiting to open section while nothing from an earlier week waits", () => {
