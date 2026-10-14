@@ -161,8 +161,8 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 
  Test Files  148 passed (148)
       Tests  2466 passed (2466)
-   Start at  12:18:06
-   Duration  145.45s (tests 79%, import 12%, environment 4%, transform 4%, setup 1%)
+   Start at  12:26:20
+   Duration  130.14s (tests 83%, import 10%, environment 4%, transform 3%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
