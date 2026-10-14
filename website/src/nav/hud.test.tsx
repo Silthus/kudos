@@ -45,7 +45,7 @@ describe("WS301: the nav lists every shipped feature with a page, in schedule or
     expect(within(nav()).getByRole("link", { name: "Quests" })).toHaveAttribute("href", "/quests");
   });
 
-  it("makes a locked entry focusable but no link anywhere, with only the next unlock carrying the neutral Lv badge", () => {
+  it("makes a locked entry focusable but no link anywhere, with only the next unlock carrying the neutral Lv mark", () => {
     renderApp(everyState);
     const book = within(nav()).getByRole("link", { name: "Book, locked. Unlocks at level 8" });
     const skillTree = within(nav()).getByRole("link", { name: "Skill tree, locked. Unlocks at level 9" });
