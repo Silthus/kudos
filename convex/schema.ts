@@ -229,7 +229,7 @@ export default defineSchema({
 
   previewMoments: defineTable({
     member: v.id("members"),
-    moment: v.literal("unlocks"),
+    moment: v.union(v.literal("unlocks"), v.literal("journey")),
     at: v.number(),
   }).index("by_member_moment", ["member", "moment"]),
 

@@ -5,7 +5,7 @@ import type { LevelReachedEvent } from "../bus/events";
 import { skillTreeLevel } from "../progression/levels";
 import { progressSettingsOf } from "../progression/settings";
 import { xpLevelsOnFor, xpLevelsShownTo } from "../progression/xpLevels";
-import { questsApplyIn } from "../quests/flag";
+import { questsApplyTo } from "../quests/flag";
 import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type WeeklyQuest } from "../quests/step";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
@@ -66,9 +66,8 @@ export async function notify(ctx: MutationCtx, member: MemberId, notification: N
 export const linesStillWanted = internalQuery({
   args: { member: v.id("members"), notification: notificationValidator },
   handler: async (ctx, { member, notification }): Promise<NotificationLine[] | null> => {
-    const { workspace } = await chatUserOf(ctx, member);
     if (!(await xpLevelsOnFor(ctx, member)) || !(await wantsDms(ctx, member))) return null;
-    if (isAboutQuests(notification) && !(await questsApplyIn(ctx, workspace))) return null;
+    if (isAboutQuests(notification) && !(await questsApplyTo(ctx, member))) return null;
     const lines = renderNotification(await stillToldOf(ctx, member, notification));
     return lines.length === 0 ? null : lines;
   },

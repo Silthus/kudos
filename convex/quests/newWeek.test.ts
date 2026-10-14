@@ -264,8 +264,8 @@ describe("P80: the hourly sweep stays within Convex's limits and draws a week on
     flagsOnForEveryone(new FakeSlack().fetch, "xp-levels", "unlocks", "quests");
   });
 
-  test("for 105 members who opened Quests and 5 who didn't, each sweep mutation schedules at most 100 draws, and a second run draws nothing new", async () => {
-    const t = await flagsLoaded(testBackend());
+  test("for 105 members who opened Quests and 5 who didn't, each deciding quests for themselves, each sweep mutation schedules at most 100 draws within Convex's transaction limits, and a second run draws nothing new", async () => {
+    const t = await flagsLoaded(testBackend({ transactionLimits: true }));
     await unlocksShippedBeforeAnyoneJoined(t);
     const opened = await t.run(async (ctx) => {
       const members: MemberId[] = [];

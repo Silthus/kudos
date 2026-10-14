@@ -457,7 +457,7 @@
     },
     {
       "name": "preview moment",
-      "definition": "The once-per-member moment a preview gets in place of a workspace moment: the first mutation that shows a feature to a member whose workspace has no launch of it stores it once and, for unlocks, opens for that member alone every feature shipped in their member decision then, at that moment and without a DM (F22); the workspace moment later adds only what that member is missing (F23)"
+      "definition": "The once-per-member moment a preview gets in place of a workspace moment: the first mutation that shows a feature to a member whose workspace has no launch of it stores it once and, for unlocks, opens for that member alone every feature shipped in their member decision then, at that moment and without a DM, and for quests joins that member alone to the Journey as of that moment, as the Journey's join joins a member who existed at its ship moment (F22); the workspace moment later adds only what that member is missing (F23)"
     }
   ]
 }
