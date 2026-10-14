@@ -199,12 +199,12 @@ describe("WS207: its rows", () => {
     expect(rowAt(2)).toHaveTextContent("The words of this kudos are from before HedgeHug kept them.");
   });
 
-  it("holds no link, XP, quest, Said why tag or channel", async () => {
+  it("holds no link but See all activity, and no XP, quest, Said why tag or channel", async () => {
     const { user } = homeAnswering(threeReceived);
-    expect(within(card()).queryAllByRole("link")).toEqual([]);
+    expect(within(card()).getAllByRole("link").map((link) => link.textContent)).toEqual(["See all activity"]);
     await user.click(switchOption("Given"));
 
-    expect(within(card()).queryAllByRole("link")).toEqual([]);
+    expect(within(card()).getAllByRole("link").map((link) => link.textContent)).toEqual(["See all activity"]);
     expect(card().textContent).not.toMatch(/XP|quest|Said why|#|Slack/i);
   });
 

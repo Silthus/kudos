@@ -6,6 +6,7 @@ import type { FunctionArgs, FunctionReference, FunctionReturnType } from "convex
 import { api } from "../../convex/_generated/api";
 import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
+import type { ActivityRead, ActivityShown } from "./activityRead";
 import type { BoardAnswer } from "./boardRead";
 import type { BookShown } from "./bookRead";
 import { useCodeRedemptionFailed } from "./codeRedemption";
@@ -15,6 +16,7 @@ import type { ProfileCardShown } from "./profileCardRead";
 import type { QuestsShown } from "./questsRead";
 import type { Direction, RecentKudosShown } from "./recentKudosRead";
 import type { SkillTreeShown } from "./skillTreeRead";
+import type { ActivityFilter } from "./route";
 import type { Period, ShellActions, Visitor } from "./shell";
 import { forgetSignInStarted } from "./signInAttempt";
 
@@ -33,6 +35,7 @@ function LiveApp() {
   const unreachable = useSocketUnreachable();
   const profile = useQuery(api.website.profile.getMyProfile, {});
   const actions = useLiveActions(() => setSignInFailed(true));
+  const readActivity = useLiveActivityRead();
   if (signInFailed) throw new Error("The sign-in didn't start.");
   return (
     <App
@@ -44,6 +47,8 @@ function LiveApp() {
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
       useProfileCard={useLiveProfileCard}
       useRecentKudos={useLiveRecentKudos}
+      useActivityWatch={useLiveActivityWatch}
+      readActivity={readActivity}
     />
   );
 }
@@ -91,6 +96,19 @@ function useLiveRecentKudos(direction: Direction): RecentKudosShown | undefined 
   const request = useMemo((): RequestForQueries => ({ recent: { query: api.website.activity.getRecentKudos, args: { direction, limit: 3 } } }), [direction]);
   const { recent } = useQueries(request);
   return recent instanceof Error ? { kind: "broken" } : recent;
+}
+
+const activityPage = 20;
+
+function useLiveActivityWatch(filter: ActivityFilter | undefined): ActivityShown | undefined {
+  const request = useMemo((): RequestForQueries => (filter === undefined ? {} : { watch: { query: api.website.activity.getActivity, args: { filter, cursor: null, limit: activityPage } } }), [filter]);
+  const { watch } = useQueries(request);
+  return watch instanceof Error ? { kind: "broken" } : watch;
+}
+
+function useLiveActivityRead(): ActivityRead {
+  const convex = useConvex();
+  return useCallback(({ filter, cursor }) => convex.query(api.website.activity.getActivity, { filter, cursor, limit: activityPage }), [convex]);
 }
 
 type Answers = { authLoading: boolean; redemptionFailed: boolean; unreachable: boolean; profile: MyProfile | undefined };
