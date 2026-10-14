@@ -2,12 +2,13 @@ import { v, type Infer, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { memberLeftEventValidator } from "../bus/events";
+import { memberLeftEventValidator, type MemberLeftEvent } from "../bus/events";
+import { withholdingWords } from "../analytics/exceptions";
 import { gateDecisionOf, gateDecisionValidator } from "../progression/gate";
 import { chatUserOf, lookup } from "../workspace/directory";
 import { messageRefValidator, visibilityValidator, wordSegmentValidator, type Annotations, type MessageEvent, type MessageRef } from "./messageEvent";
 
-export const forgetPageSize = 100;
+export const forgetPageSize = 10;
 
 const key = messageRefValidator.fields;
 
@@ -53,6 +54,11 @@ export async function forgetWords(ctx: MutationCtx, ref: MessageRef) {
   if (row?.kind === "words") await ctx.db.replace(row._id, { ...ref, kind: "tombstone", why: "no-longer-kudos" });
 }
 
+export async function removeWords(ctx: MutationCtx, ref: MessageRef) {
+  const row = await kudosTextRow(ctx, ref);
+  if (row !== null) await remove(ctx, row);
+}
+
 export async function forgetDeleted(ctx: MutationCtx, ref: MessageRef) {
   const row = await kudosTextRow(ctx, ref);
   await write(ctx, row, { ...ref, kind: "tombstone", why: "deleted" });
@@ -69,17 +75,17 @@ export async function wordsOf(ctx: QueryCtx, ref: MessageRef): Promise<KudosText
 
 export const forgetWordsOfLeaver = internalMutation({
   args: { event: memberLeftEventValidator },
-  handler: async (ctx, { event: { workspace, member } }) => {
+  handler: withholdingWords(async (ctx: MutationCtx, { event: { workspace, member } }: { event: MemberLeftEvent }) => {
     const { user } = await chatUserOf(ctx, member);
     await forgetWordsAuthoredBy(ctx, { workspace, author: user });
-  },
+  }),
 });
 
 const authoredArgs = { workspace: v.string(), author: v.string() };
 
 export const forgetAuthoredWords = internalMutation({
   args: authoredArgs,
-  handler: forgetWordsAuthoredBy,
+  handler: withholdingWords(forgetWordsAuthoredBy),
 });
 
 export async function forgetWordsAuthoredBy(ctx: MutationCtx, { workspace, author }: ObjectType<typeof authoredArgs>) {
@@ -95,7 +101,7 @@ const workspaceArgs = { workspace: v.string(), cursor: v.union(v.string(), v.nul
 
 export const forgetWorkspaceWords = internalMutation({
   args: workspaceArgs,
-  handler: forgetWordsInWorkspace,
+  handler: withholdingWords(forgetWordsInWorkspace),
 });
 
 export async function forgetWordsInWorkspace(ctx: MutationCtx, { workspace, cursor }: ObjectType<typeof workspaceArgs>) {
