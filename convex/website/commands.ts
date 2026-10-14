@@ -3,7 +3,7 @@ import { republish } from "../feedback/homes";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
 import { journeyShippedAt, questsApplyIn } from "../quests/flag";
 import { questValidator } from "../quests/step";
-import { featureValidator } from "../unlocks/feature";
+import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlockPathShownIn } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
 import type { MutationCtx } from "../_generated/server";
@@ -17,7 +17,7 @@ const refused: CommandAnswer = { kind: "refused" };
 export const openFeature = memberMutation({
   args: { feature: featureValidator },
   handler: async (ctx, me, person, { feature }): Promise<CommandAnswer> => {
-    if (!(await unlockPathShownIn(ctx, me.workspace))) return refused;
+    if (!(await opensWithoutALaunch(ctx, me.workspace, feature))) return refused;
     await runCommand(ctx, me.workspace, person, { type: "openUnlock", feature });
     if ((await stateOf(ctx, me.member, feature)) !== "open") return refused;
     await republish(ctx, me.member);
@@ -35,6 +35,11 @@ export const openQuestCrate = memberMutation({
     return opened;
   },
 });
+
+async function opensWithoutALaunch(ctx: MutationCtx, workspace: string, feature: Feature) {
+  if (feature === "quests") return questsLaunchedIn(ctx, workspace);
+  return unlockPathShownIn(ctx, workspace);
+}
 
 async function questsLaunchedIn(ctx: MutationCtx, workspace: string) {
   return (await questsApplyIn(ctx, workspace)) && (await journeyShippedAt(ctx, workspace)) !== null;
