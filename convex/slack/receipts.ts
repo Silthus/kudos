@@ -9,6 +9,7 @@ import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
 import { directoryEntryValidator, lookup } from "../workspace/directory";
 import { recordPerson } from "./directory";
 import { reportHomeOpened } from "./appHome";
+import { refreshCustomEmojiLater } from "./customEmoji";
 import { processEvent } from "./processEvent";
 
 type Receipt = { workspace: string; eventId: string };
@@ -76,6 +77,15 @@ export const receiveUserGroupChanged = internalMutation({
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
     await ctx.scheduler.runAfter(0, internal.slack.userGroups.refreshUserGroup, { workspace: receipt.workspace, group });
+  },
+});
+
+export const receiveEmojiChanged = internalMutation({
+  args: { workspace: v.string(), eventId: v.string() },
+  handler: async (ctx, receipt) => {
+    if (await isRedelivered(ctx, receipt)) return;
+    await ctx.db.insert("slackReceipts", receipt);
+    await refreshCustomEmojiLater(ctx, receipt.workspace);
   },
 });
 

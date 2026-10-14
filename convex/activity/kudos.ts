@@ -6,6 +6,7 @@ import type { MessageRef, WordSegment } from "../engine/messageEvent";
 import { gateRecordedWith } from "../progression/effects";
 import { permalinkOf } from "../slack/permalink";
 import { nameless, teammateOf } from "../website/faces";
+import { customEmojiImageOf } from "../workspace/customEmoji";
 import { displayNameOfUser, nameAndPictureOf, type MemberId } from "../workspace/directory";
 import { workspaceUrlOf } from "../workspace/url";
 import { userGroupHandleOf } from "../workspace/userGroups";
@@ -19,12 +20,16 @@ const broadcastRanges = ["here", "channel", "everyone"] as const;
 
 export const mentionLookupsPerPage = 2_000;
 
-export type Mentions = { personName: (workspace: string, user: string) => Promise<string>; groupHandle: (workspace: string, group: string) => Promise<string> };
+export type Mentions = {
+  personName: (workspace: string, user: string) => Promise<string>;
+  groupHandle: (workspace: string, group: string) => Promise<string>;
+  emojiImage: (workspace: string, name: string) => Promise<string | undefined>;
+};
 
 export function mentionsOfOnePage(ctx: QueryCtx, lookupsAtMost = mentionLookupsPerPage): Mentions {
-  const looked = new Map<string, Promise<string>>();
-  const once = (key: string, fallback: string, lookUp: () => Promise<string | undefined>) => {
-    const known = looked.get(key);
+  const looked = new Map<string, Promise<string | undefined>>();
+  const once = <Answer extends string | undefined>(key: string, fallback: Answer, lookUp: () => Promise<string | undefined>) => {
+    const known = looked.get(key) as Promise<string | Answer> | undefined;
     if (known !== undefined) return known;
     if (looked.size >= lookupsAtMost) return Promise.resolve(fallback);
     const answer = lookUp().then((found) => found ?? fallback);
@@ -34,6 +39,7 @@ export function mentionsOfOnePage(ctx: QueryCtx, lookupsAtMost = mentionLookupsP
   return {
     personName: (workspace, user) => once(`person ${workspace} ${user}`, nameless, () => displayNameOfUser(ctx, workspace, user)),
     groupHandle: (workspace, group) => once(`group ${workspace} ${group}`, unknownGroupHandle, () => userGroupHandleOf(ctx, workspace, group)),
+    emojiImage: (workspace, name) => once(`emoji ${workspace} ${name}`, undefined, () => customEmojiImageOf(ctx, workspace, name)),
   };
 }
 
@@ -66,9 +72,16 @@ async function readableSegmentOf(mentions: Mentions, workspace: string, segment:
       return { kind: "group", handle: await mentions.groupHandle(workspace, segment.group) };
     case "broadcast":
       return broadcastSegmentOf(segment.range);
+    case "emoji":
+      return segment.unicode === undefined ? withImageOf(mentions, workspace, segment) : segment;
     default:
       return segment;
   }
+}
+
+async function withImageOf(mentions: Mentions, workspace: string, segment: Extract<WordSegment, { kind: "emoji" }>): Promise<Segment> {
+  const image = await mentions.emojiImage(workspace, segment.name);
+  return image === undefined ? segment : { ...segment, image };
 }
 
 function broadcastSegmentOf(range: string): Segment {

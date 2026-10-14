@@ -546,6 +546,10 @@
     {
       "name": "spotlight",
       "definition": "One drawable kudos shown on the leaderboard page with its words, giver, recipients and Slack permalink: a Given kudos from a public channel whose current words said why, by a member, with nobody on it off the leaderboards; drawn at random from the member's own workspace, and Next walks every drawable kudos once before any repeat."
+    },
+    {
+      "name": "custom emoji",
+      "definition": "An emoji a workspace added to Slack beyond the standard set, kept in the directory by name with its https image (an alias with its original's image), so the website can show it where a kudos's words name it."
     }
   ]
 }
