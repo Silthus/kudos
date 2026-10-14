@@ -62,6 +62,15 @@ export const receiveMemberChanged = internalMutation({
   },
 });
 
+export const receiveUserGroupChanged = internalMutation({
+  args: { workspace: v.string(), eventId: v.string(), group: v.string() },
+  handler: async (ctx, { group, ...receipt }) => {
+    if (await isRedelivered(ctx, receipt)) return;
+    await ctx.db.insert("slackReceipts", receipt);
+    await ctx.scheduler.runAfter(0, internal.slack.userGroups.refreshUserGroup, { workspace: receipt.workspace, group });
+  },
+});
+
 export const deleteExpired = internalMutation({
   args: {},
   handler: async (ctx) => {

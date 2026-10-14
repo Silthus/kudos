@@ -92,6 +92,7 @@ import type * as slack_rateLimits from "../slack/rateLimits.js";
 import type * as slack_receipts from "../slack/receipts.js";
 import type * as slack_signIn from "../slack/signIn.js";
 import type * as slack_signature from "../slack/signature.js";
+import type * as slack_userGroups from "../slack/userGroups.js";
 import type * as slack_verifyMember from "../slack/verifyMember.js";
 import type * as slack_webApi from "../slack/webApi.js";
 import type * as slack_welcome from "../slack/welcome.js";
@@ -119,6 +120,7 @@ import type * as welcome_welcome from "../welcome/welcome.js";
 import type * as workspace_directory from "../workspace/directory.js";
 import type * as workspace_memberProfile from "../workspace/memberProfile.js";
 import type * as workspace_settings from "../workspace/settings.js";
+import type * as workspace_userGroups from "../workspace/userGroups.js";
 
 import type {
   ApiFromModules,
@@ -211,6 +213,7 @@ declare const fullApi: ApiFromModules<{
   "slack/receipts": typeof slack_receipts;
   "slack/signIn": typeof slack_signIn;
   "slack/signature": typeof slack_signature;
+  "slack/userGroups": typeof slack_userGroups;
   "slack/verifyMember": typeof slack_verifyMember;
   "slack/webApi": typeof slack_webApi;
   "slack/welcome": typeof slack_welcome;
@@ -238,6 +241,7 @@ declare const fullApi: ApiFromModules<{
   "workspace/directory": typeof workspace_directory;
   "workspace/memberProfile": typeof workspace_memberProfile;
   "workspace/settings": typeof workspace_settings;
+  "workspace/userGroups": typeof workspace_userGroups;
 }>;
 
 /**

@@ -28,14 +28,23 @@ export function renderManifest(environment: Environment, siteUrl: string) {
     oauth_config: {
       redirect_urls: [route("/api/auth/callback/slack")],
       scopes: {
-        bot: ["channels:history", "groups:history", "reactions:write", "chat:write", "users:read", "users:read.email", "channels:join", "commands", "chat:write.public"],
+        bot: ["channels:history", "groups:history", "reactions:write", "chat:write", "users:read", "users:read.email", "usergroups:read", "channels:join", "commands", "chat:write.public"],
         user: ["openid", "profile"],
       },
     },
     settings: {
       event_subscriptions: {
         request_url: route("/slack/events"),
-        bot_events: ["app_home_opened", "message.channels", "message.groups", "team_join", "user_change"],
+        bot_events: [
+          "app_home_opened",
+          "message.channels",
+          "message.groups",
+          "subteam_created",
+          "subteam_members_changed",
+          "subteam_updated",
+          "team_join",
+          "user_change",
+        ],
       },
       interactivity: { is_enabled: true, request_url: route("/slack/interactivity") },
       org_deploy_enabled: false,
