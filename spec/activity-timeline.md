@@ -142,7 +142,7 @@ The words are the best part of a kudos, and the app has never kept them (R51). S
     - `name` is the perk's display name. `why` is one short line from the perk catalogue saying what the bonus pays for, such as "your first kudos of the day that said why" for spark. It never calls a kudos thoughtful (AT24).
     - The entry reads the bonus lines stored on the giver's effects records for the message's awards, through Progression. It never recomputes a payout, so a perk bought after a kudos never shows on it.
     - Records written before bonus lines existed hold none, so earlier kudos show no bonuses. There is no backfill.
-  - Each part follows the member's view at read time by the gains line's own rule (SW5): `xp` only while XP and levels are shown to the member; quests only while quests apply; bonuses only while the skill tree applies, as the reply's bonus parts do. `earned` is `null` when no part shows.
+  - Each part follows the member's view at read time by the gains line's own rule (SW5): `xp` only while XP and levels are shown to the member; quests only while quests apply; bonuses only while `xp` shows to the member and the skill tree applies, as the reply's bonus parts do, since bonus XP is XP. `earned` is `null` when no part shows.
 - **AT26. Level-up entry.** `{ kind: "levelUp", at, level }`, only while XP and levels are shown to the member (P76). A level-up recorded before `levelUps` existed has no entry: there is no backfill of level marks.
 - **AT27. The message.** Each kudos entry carries `message`:
   - `{ kind: "text", segments, edited }` while the kudos text row exists and its author is a member (AT7);
