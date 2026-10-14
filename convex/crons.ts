@@ -8,5 +8,6 @@ crons.interval("restart a stale analytics drain", { minutes: 10 }, internal.anal
 crons.daily("clean up the analytics outbox", { hourUTC: 3, minuteUTC: 15 }, internal.analytics.drain.cleanUp);
 crons.interval("sweep failed scheduled functions", { minutes: 15 }, internal.analytics.sweep.sweep);
 crons.interval("make features that shipped ready", { hours: 1 }, internal.unlocks.sweep.sweep, {});
+crons.interval("draw each member's new week of quests", { hours: 1 }, internal.quests.newWeek.sweep, {});
 
 export default crons;

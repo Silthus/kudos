@@ -213,7 +213,7 @@ describe("P81: a week swaps one unfinished quest at most", () => {
     expect(before.questSwaps).toEqual([]);
   });
 
-  test("a Swap left on last week's App Home writes nothing in the new week", async () => {
+  test("a Swap left on last week's App Home swaps nothing in the new week, and only draws the new week's quests", async () => {
     const t = await openedQuests(sayingWhyThreeWays);
     const lastWeek = publishedHomeBlocks(slack, "U_ALICE");
     vi.setSystemTime(nextMonday);
@@ -221,7 +221,9 @@ describe("P81: a week swaps one unfinished quest at most", () => {
 
     await send(t, blockActions("U_ALICE", swapIn(lastWeek, twice)));
 
-    expect(await questState(t)).toEqual(before);
+    const after = await questState(t);
+    expect({ ...after, questDraws: after.questDraws.slice(0, -1) }).toEqual(before);
+    expect(after.questDraws.at(-1)).toMatchObject({ week: "2026-10-19", drawnAt: Date.parse("2026-10-19T00:00:00Z") });
     expect(before.questSwaps).toEqual([]);
   });
 });

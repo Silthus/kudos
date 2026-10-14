@@ -9,7 +9,7 @@ import { isOnTheBoards } from "../leaderboard/visibility";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { questsApplyIn } from "../quests/flag";
 import { activeJourneyOf, type JourneyStepFacts } from "../quests/journey";
-import { weeklyQuestsOf, type WeeklyQuests } from "../quests/weekly";
+import { thisWeeksQuestsOf, type WeeklyQuests } from "../quests/weekly";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { unlocksShownTo } from "../unlocks/launch";
@@ -143,8 +143,8 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
   }
 }
 
-async function openedQuestsOf(ctx: QueryCtx, member: MemberId) {
-  return (await isOpened(ctx, member, "quests")) ? weeklyQuestsOf(ctx, member, Date.now()) : null;
+async function openedQuestsOf(ctx: MutationCtx, member: MemberId) {
+  return (await isOpened(ctx, member, "quests")) ? thisWeeksQuestsOf(ctx, member, Date.now()) : null;
 }
 
 async function toldProgressionOf(ctx: QueryCtx, member: MemberId): Promise<ToldProgression> {

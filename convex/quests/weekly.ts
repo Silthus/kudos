@@ -1,4 +1,5 @@
 import { v, type Infer } from "convex/values";
+import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { kudosGivenEventValidator, unlockOpenedEventValidator, type KudosGivenEvent } from "../bus/events";
 import { allowanceDay, allowanceLeft } from "../engine/allowance";
@@ -7,6 +8,7 @@ import { republish } from "../feedback/homes";
 import { notifyWeeklyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
 import { rewardOf } from "../progression/rewards";
+import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { crateOpeningOf, rewardKeyOf } from "./crates";
@@ -16,7 +18,7 @@ import { rewardValidator } from "./journey";
 import { feasibility, feasibleBecauseValidator, questIdValidator, questOf, questPool, type DrawFacts, type FeasibleBecause, type PoolQuest, type QuestId, type Recipient } from "./pool";
 import { counts, isRecipient, questProgress, type CountedAward, type QuestAward } from "./progress";
 import type { WeeklyQuest } from "./step";
-import { daysLeftInWeek, weekKeyOf, weekKeyOfDay, type WeekKey } from "./week";
+import { daysLeftInWeek, weekKeyOf, weekKeyOfDay, weekStartOf, type WeekKey } from "./week";
 
 const questsPerWeek = 3;
 
@@ -69,17 +71,35 @@ export const advanceWeeklyQuests = internalMutation({
   args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     if (!(await questsApplyIn(ctx, event.workspace))) return;
+    let shownChanged = (await drawWhenDue(ctx, event.giver, Date.now())) === "drawn";
     const draw = await drawOf(ctx, event.giver, weekKeyOfDay(event.day));
-    if (draw === null) return;
-    const swap = await swapOf(ctx, draw.member, draw.week);
-    const open = (await unfinishedSlotsOf(ctx, draw, slotsOf(draw, swap))).filter((slot) => event.at >= countsFrom(draw, swap, slot));
-    if (open.length === 0) return;
-    const awards = await questAwardsOf(ctx, event);
-    let shownChanged = false;
-    for (const slot of open) shownChanged = (await advanceSlot(ctx, event, draw, slot, awards)) || shownChanged;
+    if (draw !== null) {
+      const swap = await swapOf(ctx, draw.member, draw.week);
+      const open = (await unfinishedSlotsOf(ctx, draw, slotsOf(draw, swap))).filter((slot) => event.at >= countsFrom(draw, swap, slot));
+      const awards = open.length === 0 ? [] : await questAwardsOf(ctx, event);
+      for (const slot of open) shownChanged = (await advanceSlot(ctx, event, draw, slot, awards)) || shownChanged;
+    }
     if (shownChanged) await republish(ctx, event.giver);
   },
 });
+
+export const drawNewWeek = internalMutation({
+  args: { member: v.id("members") },
+  handler: async (ctx, { member }): Promise<void> => {
+    const { workspace } = await chatUserOf(ctx, member);
+    if (!(await questsApplyIn(ctx, workspace))) return;
+    if ((await drawWhenDue(ctx, member, Date.now())) === "drawn") await republish(ctx, member);
+  },
+});
+
+export async function thisWeeksQuestsOf(ctx: MutationCtx, member: MemberId, at: number): Promise<WeeklyQuests | null> {
+  await drawWhenDue(ctx, member, at);
+  return weeklyQuestsOf(ctx, member, at);
+}
+
+export async function awaitsThisWeeksDraw(ctx: QueryCtx, { _id: member, timeZone }: Doc<"members">, at: number): Promise<boolean> {
+  return (await openedAtOf(ctx, member, "quests")) !== null && (await drawOf(ctx, member, weekKeyOf(at, timeZone))) === null;
+}
 
 export async function weeklyQuestsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<WeeklyQuests | null> {
   const draw = await drawOf(ctx, member, weekKeyOf(at, await timeZoneOf(ctx, member)));
@@ -96,6 +116,7 @@ export async function rerollQuest(ctx: MutationCtx, member: MemberId, { week, sl
   const { workspace } = await chatUserOf(ctx, member);
   if (!(await questsApplyIn(ctx, workspace))) return "refused";
   const at = Date.now();
+  await drawWhenDue(ctx, member, at);
   if (week !== weekKeyOf(at, await timeZoneOf(ctx, member))) return "refused";
   const draw = await drawOf(ctx, member, week);
   if (draw === null || (await swapOf(ctx, member, week)) !== null) return "refused";
@@ -180,24 +201,41 @@ function weeklyQuest(week: WeekKey, { slot }: Slot): WeeklyQuest {
 }
 
 export async function drawFactsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<DrawFacts> {
+  const facts = await factsWithTheDayUnspent(ctx, member, at, at);
+  const kudosLeftToday = await allowanceLeft(ctx, member, allowanceDay(at, await timeZoneOf(ctx, member)), facts.dailyAllowance);
+  return { ...facts, kudosLeftToday };
+}
+
+function factsAtTheStartOf(ctx: QueryCtx, member: MemberId, weekStart: number): Promise<DrawFacts> {
+  return factsWithTheDayUnspent(ctx, member, weekStart, weekStart - 1);
+}
+
+async function factsWithTheDayUnspent(ctx: QueryCtx, member: MemberId, at: number, thankedUpTo: number): Promise<DrawFacts> {
   const { workspace } = await chatUserOf(ctx, member);
-  const timeZone = await timeZoneOf(ctx, member);
   const { baseAllowance } = await settingsOf(ctx, workspace);
   const teammates = await teammatesOf(ctx, workspace, member);
-  const lastThanked = await lastThankedBy(ctx, member, at);
+  const lastThanked = await lastThankedBy(ctx, member, thankedUpTo);
   const left = (to: Recipient) => teammates.filter((teammate) => isRecipient(to, lastThanked.get(teammate) ?? null, at)).length;
   return {
-    daysLeft: daysLeftInWeek(at, timeZone),
-    kudosLeftToday: await allowanceLeft(ctx, member, allowanceDay(at, timeZone), baseAllowance),
+    daysLeft: daysLeftInWeek(at, await timeZoneOf(ctx, member)),
+    kudosLeftToday: baseAllowance,
     dailyAllowance: baseAllowance,
     peopleLeft: { anyone: left("anyone"), "someone-new": left("someone-new"), "someone-not-thanked-in-30-days": left("someone-not-thanked-in-30-days") },
   };
 }
 
-async function drawFor(ctx: MutationCtx, member: MemberId, at: number): Promise<"drawn" | "nothing to draw"> {
+async function drawWhenDue(ctx: MutationCtx, member: MemberId, at: number): Promise<"drawn" | "nothing to draw"> {
+  const openedAt = await openedAtOf(ctx, member, "quests");
+  if (openedAt === null) return "nothing to draw";
+  const timeZone = await timeZoneOf(ctx, member);
+  const week = weekKeyOf(at, timeZone);
+  return weekKeyOf(openedAt, timeZone) === week ? drawFor(ctx, member, at) : drawFor(ctx, member, weekStartOf(week, timeZone), factsAtTheStartOf);
+}
+
+async function drawFor(ctx: MutationCtx, member: MemberId, at: number, factsOf = drawFactsOf): Promise<"drawn" | "nothing to draw"> {
   const week = weekKeyOf(at, await timeZoneOf(ctx, member));
   if ((await drawOf(ctx, member, week)) !== null) return "nothing to draw";
-  const slots = drawFrom(member, week, await drawFactsOf(ctx, member, at));
+  const slots = drawFrom(member, week, await factsOf(ctx, member, at));
   if (slots.length === 0) return "nothing to draw";
   await ctx.db.insert("questDraws", { member, week, drawnAt: at, slots });
   return "drawn";
