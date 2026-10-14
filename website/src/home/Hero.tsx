@@ -117,7 +117,7 @@ function hasSkillPointsToSpend(member: MemberProfile): member is MemberProfile &
 
 function SpendSkillPoints({ points }: { points: number }) {
   return (
-    <AppLink href={pageOf("skillTree").href} className={`mt-4 ${buttonVariants({ variant: "outline" })}`}>
+    <AppLink href={pageOf("skillTree").href} className={`mt-4 ${buttonVariants({ variant: "outline" })} border-muted-foreground`}>
       <SkillPointGlyph className="size-4" />
       Spend {skillPointsText(points)}
     </AppLink>
