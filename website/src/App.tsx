@@ -25,7 +25,7 @@ import { useTitleFocusAfterChange, useTitleFocusOnArrival, useTitleFocusWhenTheF
 import type { QuestsRead, QuestsShown } from "./questsRead";
 import { hrefOf, useRoute, type Route } from "./route";
 import type { Feature, MemberProfile, Period, ShellActions, ShellState } from "./shell";
-import { rememberSignInStarted, useSignInOutcome } from "./signInAttempt";
+import { rememberSignInStarted, useSignInOutcome, useSignInWhenAsked } from "./signInAttempt";
 
 type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead };
 
@@ -56,6 +56,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
     rememberSignInStarted();
     actions.signIn(hrefOf(route));
   }, [actions, route]);
+  useSignInWhenAsked(shown, signIn);
   return (
     <NavigateProvider value={arriveAt}>
       <MomentsProvider value={moments}>

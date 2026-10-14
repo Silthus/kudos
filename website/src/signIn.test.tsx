@@ -152,3 +152,59 @@ describe("WS9 WS16 WS24: signing out", () => {
     }
   });
 });
+
+describe("F28: a link from Slack that asks to sign in", () => {
+  function arriveAt(address: string) {
+    window.history.replaceState(null, "", address);
+  }
+
+  function currentAddress() {
+    return window.location.pathname + window.location.search;
+  }
+
+  it.each([
+    { address: "/?sign-in", destination: "/" },
+    { address: "/quests?sign-in", destination: "/quests" },
+    { address: "/leaderboard?period=month&sign-in", destination: "/leaderboard?period=month" },
+  ])("on the closed website, $address starts Slack's sign-in once, returning to $destination", async ({ address, destination }) => {
+    arriveAt(address);
+    const { actions, showVisitor } = renderApp(shellFixtures.loading);
+    showVisitor(shellFixtures.closed);
+
+    await waitFor(() => expect(actions.signIn).toHaveBeenCalledOnce());
+    expect(actions.signIn).toHaveBeenCalledWith(destination);
+    expect(currentAddress()).toBe(destination);
+  });
+
+  it("starts Slack's sign-in for a signed-out visitor too", async () => {
+    arriveAt("/quests?sign-in");
+    const { actions } = renderApp(shellFixtures.signedOut);
+
+    await waitFor(() => expect(actions.signIn).toHaveBeenCalledWith("/quests"));
+  });
+
+  it("leaves a signed-in member on the page and drops the ask from the address", async () => {
+    arriveAt("/?sign-in");
+    const { actions } = renderApp(shellFixtures.member);
+
+    await waitFor(() => expect(currentAddress()).toBe("/"));
+    expect(actions.signIn).not.toHaveBeenCalled();
+    expect(pageTitle()).not.toHaveTextContent(/^Sign in$/);
+  });
+
+  it("never starts a sign-in again after one that didn't finish", async () => {
+    arriveAt("/?sign-in");
+    const { actions } = renderApp(shellFixtures.signInUnfinished);
+
+    await waitFor(() => expect(currentAddress()).toBe("/"));
+    expect(actions.signIn).not.toHaveBeenCalled();
+  });
+
+  it("starts nothing on a page without the ask", async () => {
+    arriveAt("/quests");
+    const { actions } = renderApp(shellFixtures.closed);
+
+    expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(actions.signIn).not.toHaveBeenCalled();
+  });
+});
