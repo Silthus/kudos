@@ -1,7 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import { everyoneBoardShownIn } from "../leaderboard/flag";
-import { xpLevelsShownIn } from "../progression/xpLevels";
-import { unlocksAppliedIn } from "../unlocks/launch";
+import { unlockPathShownIn } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { unlocksOf, type MemberUnlock } from "../unlocks/unlocks";
 import type { VerifiedMember } from "./memberQuery";
@@ -36,8 +35,4 @@ export async function featureCardsOf(me: VerifiedMember, path: UnlockPath): Prom
 async function featureCardOf(me: VerifiedMember, unlock: MemberUnlock): Promise<FeatureCard> {
   const { name, opens, level } = scheduled(unlock.feature);
   return { ...unlock, name, opens, level, seen: await seenKeyOf(me.member, `feature:${unlock.feature}`) };
-}
-
-export async function unlockPathShownIn(ctx: QueryCtx, workspace: string) {
-  return (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
 }

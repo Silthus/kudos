@@ -232,8 +232,8 @@ describe("P77: launching unlocks for members already playing stays within Convex
   test.each([
     ["Quests and the Leaderboard both ship", ["xp-levels", "unlocks", "quests", "everyone-board"]],
     ["quests is dark and the Leaderboard ships", ["xp-levels", "unlocks", "everyone-board"]],
-  ])("when %s, launching for 1,200 members schedules nothing", async (_, flags) => {
-    const t = await launchedFor(1200, flags);
+  ])("when %s, launching for 101 members, one past a page of 100, schedules nothing", async (_, flags) => {
+    const t = await launchedFor(101, flags);
 
     expect(await scheduled(t)).toEqual({ total: 0, draws: 0, sweeps: 0, joins: 0 });
   });
