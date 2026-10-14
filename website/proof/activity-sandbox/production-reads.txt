@@ -1,0 +1,22 @@
+Production (affable-bat-254), read-only, 2026-10-14 16:40 UTC, main at a0cfba6 (deploy run of PR #401).
+Each live production session ran the three activity reads through `convex run --identity` (queries only, no writes).
+Only the answer's kind is kept; member IDs stay private.
+
+member#1 (the product owner) getRecentKudos -> recent
+member#1 (the product owner) getActivity    -> activity
+member#1 (the product owner) getSpotlight   -> empty
+member#2 (another member)    getRecentKudos -> not-found
+member#2 (another member)    getActivity    -> not-found
+member#2 (another member)    getSpotlight   -> not-found
+member#3 (another member)    getRecentKudos -> not-found
+member#3 (another member)    getActivity    -> not-found
+member#3 (another member)    getSpotlight   -> not-found
+member#4 (the product owner, second session) -> recent / activity / empty
+
+PostHog flag `activity` (958437), read-only:
+  group 1: person property environment = sandbox, 100%
+  group 2: person property email = the product owner's address, 100%
+  no production-wide condition
+
+So every production member except the product owner sees no card, no Activity tab, no /activity and no spotlight (WS201: each surface shows only while its read answers content).
+The product owner already previews all of it in production (F15).
