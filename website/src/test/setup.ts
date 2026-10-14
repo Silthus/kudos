@@ -9,3 +9,5 @@ afterEach(() => {
   document.documentElement.classList.remove("dark");
   window.history.replaceState(null, "", "/");
 });
+
+Element.prototype.scrollIntoView ??= function scrollIntoViewWithoutLayout() {};
