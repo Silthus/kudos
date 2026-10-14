@@ -1,0 +1,8 @@
+     × after swapped, waits for the read to show the new quest before it speaks or moves focus 316ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+Expected: "Swapped. Your new quest: Thank someone and say why on 2 different days."
+Received: "Swapped. Your new quest: Thank someone and say why on 2 different days.."
+      Tests  1 failed | 14 passed (15)
+     × after refused because the week's swap went to another quest, keeps the line on the card once Swap is gone 1127ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 15 passed (16)

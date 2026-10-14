@@ -222,7 +222,7 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     const { member, asSignedIn } = await signedIn();
     await questsOpenFor(member);
 
-    expect(await questsOf(asSignedIn)).toEqual({ kind: "quests", slots: [], waiting: [], chatUrl: workspaceLink("T1") });
+    expect(await questsOf(asSignedIn)).toEqual({ kind: "quests", slots: [], swap: { used: false, available: false }, waiting: [], chatUrl: workspaceLink("T1") });
   });
 
   test("P80: fewer than three drawn quests read as that many slots, in slot order, each in progress at 0", async () => {
@@ -230,8 +230,8 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     await questsOpenFor(member, "say-why-twice", "not-in-30-days");
 
     expect((await openQuests(asSignedIn)).slots).toEqual([
-      { slot: 0, kind: "Say why", goal: "Thank someone and say why, 2 times.", progress: { done: 0, target: 2 }, reward: { xp: 20 }, state: "in-progress", swapped: false, crate: null, seen: null },
-      { slot: 1, kind: "Reach out", goal: "Thank someone you haven't thanked in the last 30 days.", progress: { done: 0, target: 1 }, reward: { xp: 20 }, state: "in-progress", swapped: false, crate: null, seen: null },
+      { slot: 0, quest: { kind: "weekly", week: thisWeek, slot: 0 }, kind: "Say why", goal: "Thank someone and say why, 2 times.", progress: { done: 0, target: 2 }, reward: { xp: 20 }, state: "in-progress", swapped: false, crate: null, seen: null },
+      { slot: 1, quest: { kind: "weekly", week: thisWeek, slot: 1 }, kind: "Reach out", goal: "Thank someone you haven't thanked in the last 30 days.", progress: { done: 0, target: 1 }, reward: { xp: 20 }, state: "in-progress", swapped: false, crate: null, seen: null },
     ]);
   });
 
@@ -242,9 +242,10 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     await opensCrate(member, { kind: "weekly", week: thisWeek, slot: 0 });
 
     expect((await openQuests(asSignedIn)).slots).toEqual([
-      { slot: 0, kind: "Say why", goal: "Thank someone and say why.", progress: { done: 1, target: 1 }, reward: { xp: 20 }, state: "opened", swapped: false, crate: null, seen: expect.any(String) },
+      { slot: 0, quest: { kind: "weekly", week: thisWeek, slot: 0 }, kind: "Say why", goal: "Thank someone and say why.", progress: { done: 1, target: 1 }, reward: { xp: 20 }, state: "opened", swapped: false, crate: null, seen: expect.any(String) },
       {
         slot: 1,
+        quest: { kind: "weekly", week: thisWeek, slot: 1 },
         kind: "Reach out",
         goal: "Thank someone you haven't thanked before.",
         progress: { done: 1, target: 1 },
@@ -254,7 +255,7 @@ describe("WS70: getQuests reads the quests module's facts", () => {
         crate: { kind: "weekly", week: thisWeek, slot: 1 },
         seen: expect.any(String),
       },
-      { slot: 2, kind: "Say why", goal: "Thank someone and say why, 3 times.", progress: { done: 1, target: 3 }, reward: { xp: 20 }, state: "in-progress", swapped: false, crate: null, seen: null },
+      { slot: 2, quest: { kind: "weekly", week: thisWeek, slot: 2 }, kind: "Say why", goal: "Thank someone and say why, 3 times.", progress: { done: 1, target: 3 }, reward: { xp: 20 }, state: "in-progress", swapped: false, crate: null, seen: null },
     ]);
   });
 
@@ -269,6 +270,7 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     expect(slots.map(({ swapped }) => swapped)).toEqual([false, false, true]);
     expect(slots[2]).toEqual({
       slot: 2,
+      quest: { kind: "weekly", week: thisWeek, slot: 2 },
       kind: swappedIn.kind === "breadth" ? "Reach out" : "Say why",
       goal: swappedIn.goal,
       progress: { done: 0, target: swappedIn.progress.target },
@@ -298,14 +300,51 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     expect(slots.map(({ state }) => state)).toEqual(week!.slots.map(({ finishedAt, openedAt }) => (finishedAt === null ? "in-progress" : openedAt === null ? "finished" : "opened")));
   });
 
-  test("a member with a long history of kudos still reads this week's slots within Convex's read limits", async () => {
+  describe("WS319: the week's swap", () => {
+    test("before the swap, it is available and unused, as the quests module offers it", async () => {
+      const { member, asSignedIn } = await aTeam();
+      await questsOpenFor(member, "say-why", "say-why-twice", "say-why-three-times");
+
+      expect((await openQuests(asSignedIn)).swap).toEqual({ used: false, available: true });
+      expect((await domainFactsOf(member))!.week).toMatchObject({ swap: null, swapAvailable: true });
+    });
+
+    test("after the swap, it is used and no longer available", async () => {
+      const { member, asSignedIn } = await aTeam();
+      await questsOpenFor(member, "say-why", "say-why-twice", "say-why-three-times");
+      await swaps(member, 1);
+
+      expect((await openQuests(asSignedIn)).swap).toEqual({ used: true, available: false });
+    });
+
+    test("with every slot finished, it is neither used nor available", async () => {
+      const { member, asSignedIn, teammate } = await aTeam();
+      await questsOpenFor(member, "say-why", "someone-new");
+      await thanks(member, teammate.member);
+
+      expect((await openQuests(asSignedIn)).swap).toEqual({ used: false, available: false });
+    });
+
+    test("each slot's quest is the whole weekly quest the swap command takes", async () => {
+      const { member, asSignedIn } = await aTeam();
+      await questsOpenFor(member, "say-why", "say-why-twice", "say-why-three-times");
+      const { slots } = await openQuests(asSignedIn);
+
+      expect(await t.run((ctx) => rerollQuest(ctx, member, slots[1]!.quest))).toBe("swapped");
+      expect((await domainFactsOf(member))!.week!.swap).toMatchObject({ slot: 1, replaced: "say-why-twice" });
+    });
+  });
+
+  test("a member with a long history of kudos still reads this week's slots and swap within Convex's read limits", async () => {
     t = testBackend({ transactionLimits: true });
     await questsApply();
     const { member, asSignedIn, teammate } = await aTeam();
     await questsOpenFor(member, "say-why-twice");
     await aLongHistory(member, teammate.member, 33_000);
 
-    expect((await openQuests(asSignedIn)).slots).toEqual([expect.objectContaining({ slot: 0, state: "in-progress" })]);
+    const { slots, swap } = await openQuests(asSignedIn);
+    expect(slots).toEqual([expect.objectContaining({ slot: 0, state: "in-progress" })]);
+    expect(swap).toEqual({ used: false, available: true });
   });
 
   test("P85: after the Monday turn, last week's finished, unopened crate waits, and leaves once opened", async () => {

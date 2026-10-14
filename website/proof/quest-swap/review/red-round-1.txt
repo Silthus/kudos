@@ -1,0 +1,7 @@
+     × after refused, says the quest couldn't be swapped on its card 274ms
+     × after refused because the week's swap went to another quest, keeps the line on the card once Swap is gone 205ms
+     × after no answer, a swap that commits late clears the line, says the new quest and moves focus to it 187ms
+     × after the Monday turn, last week's line doesn't stay on the new week's quest in the same slot 167ms
+     × after an error, says HedgeHug couldn't be reached, and pressing Swap again sends the same quest 106ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  5 failed | 13 passed (18)
