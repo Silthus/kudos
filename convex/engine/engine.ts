@@ -8,8 +8,8 @@ import { lookup, type MemberFacts, type MemberId } from "../workspace/directory"
 import { settingsOf } from "../workspace/settings";
 import { allowanceDay, dailyAllowance, type DayKey } from "./allowance";
 import { insertAwards, type Award } from "./awards";
-import { forgetDeleted, forgetWords, keepWords } from "./kudosText";
-import type { Annotations, ChatUserId, Mention, MessageDeleted, MessageEvent, MessageRef } from "./messageEvent";
+import { forgetDeleted, forgetWords, hasKudosText, keepFetchedWords, keepWords } from "./kudosText";
+import type { Annotations, ChatUserId, FetchedMessage, Mention, MessageDeleted, MessageEvent, MessageRef } from "./messageEvent";
 import { annotationsOf, fingerprintOf, kudosMessageOf, type KudosMessage, type ParseContext } from "../parser/parser";
 
 export type Outcome =
@@ -25,6 +25,8 @@ export type Observation =
   | { kind: "deleted" }
   | { kind: "already-given"; toldGiver: boolean }
   | { kind: "evaluated"; outcome: Outcome };
+
+export type Hydration = { kind: "hydrated" } | { kind: "refused"; why: "not-given" | "stale-revision" | "not-a-member" | "ordinary-chat" | "already-known" };
 
 type KudosMessageRow = Doc<"kudosMessages">;
 type Member = Extract<MemberFacts, { kind: "member" }>;
@@ -51,6 +53,22 @@ export async function observe(ctx: MutationCtx, event: MessageEvent | MessageDel
   if (existing === null) return observeFirstRevision(ctx, event, revision, kudos !== null);
   const changesKudos = await changesKudosOf(ctx, event, existing, context);
   return observeEdit(ctx, existing, event, revision, { isKudosMessage: kudos !== null, changesKudos });
+}
+
+export async function hydrate(ctx: MutationCtx, fetched: FetchedMessage): Promise<Hydration> {
+  const row = await kudosMessageRow(ctx, fetched.ref);
+  if (row?.state !== "given") return refused("not-given");
+  if (fetched.revision < row.revision) return refused("stale-revision");
+  const author = await lookup(ctx, fetched.ref.workspace, fetched.author);
+  if (author?.kind !== "member") return refused("not-a-member");
+  const context = { workspace: fetched.ref.workspace, giver: author.member };
+  if ((await kudosMessageOf(ctx, fetched.content, context)) === null) return refused("ordinary-chat");
+  const kept = await keepFetchedWords(ctx, fetched, annotationsOf(fetched.content, context));
+  return kept ? { kind: "hydrated" } : refused("already-known");
+}
+
+function refused(why: Extract<Hydration, { kind: "refused" }>["why"]): Hydration {
+  return { kind: "refused", why };
 }
 
 async function observeDeletion(ctx: MutationCtx, { ref, wasKudosCandidate }: MessageDeleted): Promise<Observation> {
@@ -146,6 +164,22 @@ async function insertRow(ctx: MutationCtx, event: MessageEvent, revision: Revisi
 export async function threadOf(ctx: QueryCtx, ref: MessageRef): Promise<string> {
   const row = await kudosMessageRow(ctx, ref);
   return row?.threadRoot ?? ref.message;
+}
+
+export async function givenWithoutWords(ctx: QueryCtx, cursor: string | null, numItems: number) {
+  const page = await ctx.db.query("kudosMessages").paginate({ cursor, numItems });
+  const awaiting = await Promise.all(page.page.map(async (row) => ((await awaitsWords(ctx, row)) ? [refOf(row)] : [])));
+  return { refs: awaiting.flat(), cursor: page.continueCursor, isDone: page.isDone };
+}
+
+export async function threadOfGivenWithoutWords(ctx: QueryCtx, ref: MessageRef): Promise<{ threadRoot?: string } | null> {
+  const row = await kudosMessageRow(ctx, ref);
+  if (row === null || !(await awaitsWords(ctx, row))) return null;
+  return row.threadRoot === undefined ? {} : { threadRoot: row.threadRoot };
+}
+
+async function awaitsWords(ctx: QueryCtx, row: KudosMessageRow) {
+  return row.state === "given" && !(await hasKudosText(ctx, refOf(row)));
 }
 
 export async function awaitedUsers(ctx: QueryCtx, ref: MessageRef, attempt: bigint): Promise<ChatUserId[] | null> {

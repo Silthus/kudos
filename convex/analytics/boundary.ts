@@ -17,10 +17,10 @@ type Observation = { carriesWords?: boolean };
 
 const observedFunctions = new WeakSet<object>();
 
-export function observedAction<Args extends PropertyValidators, Output>(definition: ActionDefinition<Args, Output>) {
+export function observedAction<Args extends PropertyValidators, Output>(definition: ActionDefinition<Args, Output>, observation: Observation = {}) {
   const action = internalAction({
     args: definition.args,
-    handler: (ctx: ActionCtx, args: ObjectType<Args>): Promise<Output> => observed(ctx, () => actionOf(ctx), () => definition.handler(ctx, args)),
+    handler: (ctx: ActionCtx, args: ObjectType<Args>): Promise<Output> => observed(ctx, () => actionOf(ctx), () => definition.handler(ctx, args), observation),
   });
   observedFunctions.add(action);
   return action;

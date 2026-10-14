@@ -1,3 +1,5 @@
+import type { ChannelMessage } from "./slackMessages";
+
 export type SlackUser = {
   id: string;
   team_id: string;
@@ -56,6 +58,7 @@ export class FakeSlack {
   private readonly scripted = new Map<string, ScriptedAnswer[]>();
   private readonly callTimes = new Map<SlackCall, number>();
   private readonly holds: Array<{ method: string; about: string; meanwhile: () => Promise<void> }> = [];
+  private readonly channelMessages = new Map<string, ChannelMessage[]>();
 
   withMember(id: string, options: Partial<SlackUser> = {}) {
     this.users.set(id, { id, team_id: "T1", ...options });
@@ -69,6 +72,11 @@ export class FakeSlack {
 
   withoutUserGroup(id: string) {
     this.userGroups.delete(id);
+    return this;
+  }
+
+  withMessage(channel: string, message: ChannelMessage) {
+    this.channelMessages.set(channel, [...(this.channelMessages.get(channel) ?? []), message]);
     return this;
   }
 
@@ -180,6 +188,8 @@ export class FakeSlack {
     }
     if (method === "chat.postMessage") return this.postMessage(args);
     if (method === "chat.update") return this.updateMessage(args);
+    if (method === "conversations.history") return this.history(args);
+    if (method === "conversations.replies") return this.replies(args);
     if (method === "conversations.join") return { ok: true, channel: { id: field("channel") } };
     return { ok: false, error: "unknown_method" };
   }
@@ -203,7 +213,36 @@ export class FakeSlack {
     return { ok: true, channel: message.channel, ts: message.ts };
   }
 
+  private history(args: SlackArgs) {
+    const topLevel = this.messagesOf(String(args.channel)).filter((message) => message.thread_ts === undefined || message.thread_ts === message.ts);
+    const newestFirst = topLevel.filter((message) => isWithin(message.ts, args)).sort((a, b) => order(b.ts) - order(a.ts));
+    return { ok: true, messages: newestFirst.slice(0, Number(args.limit ?? 100)), has_more: false };
+  }
+
+  private replies(args: SlackArgs) {
+    const root = String(args.ts);
+    const thread = this.messagesOf(String(args.channel)).filter((message) => message.ts === root || message.thread_ts === root);
+    const parent = thread.find((message) => message.ts === root);
+    if (parent === undefined) return { ok: false, error: "thread_not_found" };
+    const replies = thread.filter((message) => message.ts !== root && isWithin(message.ts, args)).sort((a, b) => order(a.ts) - order(b.ts));
+    return { ok: true, messages: [parent, ...replies], has_more: false };
+  }
+
+  private messagesOf(channel: string) {
+    return this.channelMessages.get(channel) ?? [];
+  }
+
   private setReactions(channel: string, ts: string, reactions: string[]) {
     this.reactionsByMessage.set(`${channel}/${ts}`, reactions);
   }
+}
+
+function isWithin(ts: string, { oldest, latest, inclusive }: SlackArgs) {
+  const [from, to, at] = [order(String(oldest ?? "0")), order(String(latest ?? "9999999999.999999")), order(ts)];
+  return inclusive === "true" ? from <= at && at <= to : from < at && at < to;
+}
+
+function order(ts: string) {
+  const [seconds = "0", fraction = ""] = ts.split(".");
+  return Number(seconds) * 1_000_000 + Number(fraction.padEnd(6, "0").slice(0, 6));
 }

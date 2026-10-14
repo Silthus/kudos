@@ -40,6 +40,15 @@ export const messageEventValidator = v.object({
   words: v.optional(wordsValidator),
 });
 
+export const fetchedMessageValidator = v.object({
+  ref: messageRefValidator,
+  author: v.string(),
+  revision: v.int64(),
+  edited: v.boolean(),
+  content: messageEventValidator.fields.content,
+  segments: v.array(wordSegmentValidator),
+});
+
 export const messageDeletedValidator = v.object({ kind: v.literal("deleted"), ref: messageRefValidator, wasKudosCandidate: v.boolean() });
 
 export type ChatUserId = string;
@@ -48,6 +57,7 @@ export type Annotations = Infer<typeof annotationsValidator>;
 export type MessageRef = Infer<typeof messageRefValidator>;
 export type MessageEvent = Infer<typeof messageEventValidator>;
 export type MessageContent = MessageEvent["content"];
+export type FetchedMessage = Infer<typeof fetchedMessageValidator>;
 export type MessageDeleted = Infer<typeof messageDeletedValidator>;
 export type WordSegment = Infer<typeof wordSegmentValidator>;
 export type Words = Infer<typeof wordsValidator>;

@@ -95,6 +95,24 @@ export function messageChangedEvent(blocks: RichElement[], options: EditOptions 
   });
 }
 
+export type ChannelMessageOptions = { user?: string; ts?: string; threadTs?: string; editedTs?: string; subtype?: string };
+
+export type ChannelMessage = { ts: string; thread_ts?: string } & Record<string, unknown>;
+
+export function channelMessage(blocks: RichElement[], options: ChannelMessageOptions = {}): ChannelMessage {
+  const user = options.user ?? "U_ALICE";
+  return {
+    type: "message",
+    user,
+    ts: options.ts ?? "1760349600.000100",
+    text: "thanks for the help",
+    blocks: [{ type: "rich_text", block_id: "b1", elements: blocks }],
+    ...(options.threadTs && { thread_ts: options.threadTs }),
+    ...(options.editedTs && { edited: { user, ts: options.editedTs } }),
+    ...(options.subtype && { subtype: options.subtype }),
+  };
+}
+
 export type DeletionOptions = Pick<MessageOptions, "team" | "channel" | "ts" | "user"> & { previous?: RichElement[] };
 
 export function messageDeletedEvent(options: DeletionOptions = {}) {
