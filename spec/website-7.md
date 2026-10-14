@@ -491,7 +491,7 @@ Round 2 made 8 findings (7 major, 1 minor); 7 are fixed:
 - The hero's spend link is its own ticket after #193 (13), so the open hero and the nudge don't wait for it.
 - Swap's gate checks that Quests is open, beside `questsLaunchedFor` (WS318).
 
-Rejected in round 2, with reason: a flag flipped between a command and its scheduled App Home publish could let that publish record a launch. That is the same scheduled `republish` WS62 accepted for every website command. The window is one flag switch landing between a mutation and its publish, and the launch recorded then is the one Slack's next App Home open would record anyway. Every workspace launch is recorded in production today.
+Rejected in round 2, with reason: a flag flipped between a command and its scheduled App Home publish could let that publish record a launch. That is the same scheduled `republish` WS62 accepted for every website command. The window is one flag switch landing between a mutation and its publish, and the launch recorded then is the one Slack's next App Home open would record anyway. In production every flag involved is already on, so each launch runs on the first App Home open after its switch, from Slack.
 
 Rejected in round 1, with reason: the blocker that `memberMutation`'s admission writes before the command's gate. It runs only the member's own preview moments, which #204 shipped on purpose under map #1's per-member flags spec, and it already skips them while a workspace launch is due. WS335 now says so.
 
