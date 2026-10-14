@@ -1,11 +1,10 @@
+Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
 $ pnpm typecheck && pnpm test && pnpm coherence
 $ tsc --noEmit && tsc --noEmit -p website
 $ vitest run
 
  RUN  v5.0.3 /home/coder/dev/kudos-wt/header-phone
 
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -139,11 +138,15 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
  Test Files  143 passed (143)
-      Tests  2335 passed (2335)
-   Start at  10:58:33
-   Duration  119.69s (tests 84%, import 9%, transform 4%, environment 3%)
+      Tests  2346 passed (2346)
+   Start at  11:09:47
+   Duration  133.08s (tests 81%, import 12%, environment 4%, transform 3%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -705,5 +708,5 @@ RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 ADVISORY       213 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 85, receipt 30, contract 22, zone 21, panel 13; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (596 files), 17 in records
+0 rejected names, 0 unknown nouns (597 files), 17 in records
 exit 0
