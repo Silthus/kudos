@@ -317,6 +317,22 @@ describe("GB35: the Groups board at scale", () => {
     expect(board.groups?.improvement).toEqual({ best: 20 });
     expect(board.myGroup?.rows.map(({ kudos }) => kudos)).toEqual(Array.from({ length: 25 }, () => 10));
   }, 300_000);
+
+  test("one group of 1,500 members who all gave this month and last: the website's group boards and each of Slack's group boards read within Convex's transaction limits", async () => {
+    vi.setSystemTime(new Date("2026-10-31T10:00:00Z"));
+    postHog.withFlags(onForEveryone("groups"));
+    const t = await flagsLoaded(testBackend({ transactionLimits: true }));
+    const viewer = await oneGroupOf(t, 1_500);
+
+    const boards = await t.run((ctx) => groupBoardsOf(ctx, "T1", viewer, "month"));
+    const slackGroupsBoard = await t.query(internal.leaderboard.groupBoards.groupsBoardOf, { workspace: "T1", viewer, period: "month" });
+    const slackMyGroupBoard = await t.query(internal.leaderboard.myGroupBoard.myGroupBoardViewOf, { workspace: "T1", viewer, period: "month" });
+
+    expect(boards.groups?.rows).toEqual([expect.objectContaining({ name: "Everyone here", members: 1_500, kudos: 15_000 })]);
+    expect(boards.myGroup?.rows).toHaveLength(1_500);
+    expect(slackGroupsBoard).toEqual(boards.groups);
+    expect(slackMyGroupBoard?.board.rows.filter((row) => !("gap" in row))).toHaveLength(10);
+  }, 300_000);
 });
 
 type GroupsOf<N extends string, U extends string> = { groups: Record<N, GroupId>; members: Record<U, MemberId> };
@@ -367,6 +383,22 @@ async function groupsBoard(t: Backend, viewer: string, period: Period) {
 
 async function myGroupBoard(t: Backend, viewer: string, period: Period) {
   return (await t.run((ctx) => groupBoardsOf(ctx, "T1", viewer, period))).myGroup;
+}
+
+async function oneGroupOf(t: Backend, count: number) {
+  const group = await t.run((ctx) => aUserGroup(ctx, "Everyone here", count));
+  for (let first = 0; first < count; first += 500) {
+    await t.run(async (ctx) => {
+      for (let index = first; index < Math.min(first + 500, count); index += 1) {
+        const member = await aMemberOf(ctx, `U${String(index).padStart(4, "0")}`, group);
+        for (const month of ["2026-09", "2026-10"]) await ctx.db.insert("attributedTotals", { workspace: "T1", group, member, period: `month:${month}`, kudos: 10, runningTotal: [10] });
+      }
+    });
+  }
+  await t.run(async (ctx) => {
+    for (const month of ["2026-09", "2026-10"]) await ctx.db.insert("attributedGroupTotals", { workspace: "T1", group, period: `month:${month}`, kudos: 10 * count, runningTotal: [10 * count] });
+  });
+  return "U0300";
 }
 
 let groupIds: GroupId[] = [];

@@ -1,11 +1,15 @@
+import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { awardsAttributedEventValidator, type AwardsAttributedEvent } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
 import type { GroupId } from "../groups/groups";
-import { dayOfPeriod, keyOf, periods, type Period, type PeriodKey } from "./periods";
+import type { MemberId } from "../workspace/directory";
+import { dayOfPeriod, keyOf, periods, type Compared, type Period, type PeriodKey } from "./periods";
 import { withKudosOn } from "./runningTotal";
 
 type AttributedToGroup = AwardsAttributedEvent & { group: GroupId };
+
+export type MemberTotals = { member: MemberId; totals: Array<Doc<"attributedTotals">> };
 
 export const countAwardsAttributed = internalMutation({
   args: { event: awardsAttributedEventValidator },
@@ -41,6 +45,29 @@ export function groupPeriodTotalOf(ctx: QueryCtx, group: GroupId, period: Period
     .query("attributedGroupTotals")
     .withIndex("by_group_period", (q) => q.eq("group", group).eq("period", period))
     .unique();
+}
+
+export async function memberTotalsOf(ctx: QueryCtx, member: MemberId, group: GroupId, { now, before }: Compared): Promise<MemberTotals> {
+  const totals = await ctx.db
+    .query("attributedTotals")
+    .withIndex("by_member_group_period", (q) => q.eq("member", member).eq("group", group).gte("period", before?.key ?? now).lte("period", now))
+    .collect();
+  return { member, totals };
+}
+
+export async function groupMemberTotalsOf(ctx: QueryCtx, group: GroupId, members: MemberId[], { now, before }: Compared): Promise<MemberTotals[]> {
+  const periods = before === null ? [now] : [before.key, now];
+  const rows = (await Promise.all(periods.map((period) => groupPeriodRowsOf(ctx, group, period)))).flat();
+  const byMember = new Map<MemberId, Array<Doc<"attributedTotals">>>();
+  for (const row of rows) byMember.set(row.member, [...(byMember.get(row.member) ?? []), row]);
+  return members.map((member) => ({ member, totals: byMember.get(member) ?? [] }));
+}
+
+function groupPeriodRowsOf(ctx: QueryCtx, group: GroupId, period: PeriodKey) {
+  return ctx.db
+    .query("attributedTotals")
+    .withIndex("by_group_period", (q) => q.eq("group", group).eq("period", period))
+    .collect();
 }
 
 async function wasCounted(ctx: QueryCtx, { workspace, conversation, message }: MessageRef) {

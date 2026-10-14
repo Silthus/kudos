@@ -1,41 +1,49 @@
 import { v } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
 import { internalQuery, type QueryCtx } from "../_generated/server";
 import { allowanceDay, type DayKey } from "../engine/allowance";
 import { countsAsGroup, groupModeOf, groupsShownTo, memberGroupsOf, primaryMembersOf, userGroupsIn, type GroupId } from "../groups/groups";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
-import { groupPeriodTotalOf } from "./groupTotals";
+import { groupMemberTotalsOf, groupPeriodTotalOf, memberTotalsOf, type MemberTotals } from "./groupTotals";
 import { fewestMembersListed, groupsBoard, type GroupFacts, type GroupsBoard, type Tally } from "./groupsBoard";
-import { myGroupBoardOf, type MyGroupBoard } from "./myGroupBoard";
-import { keyOf, periodValidator, sameDayLastPeriod, type ComparedPeriod, type Period, type PeriodKey, type SameDay } from "./periods";
+import { myGroupBoardOf, type GroupKudos, type MyGroupBoard, type Viewer } from "./myGroupBoard";
+import { comparedOn, keyOf, periodValidator, type Compared, type ComparedPeriod, type Period, type PeriodKey, type SameDay } from "./periods";
 import { totalUpTo } from "./runningTotal";
 
 export type GroupBoards = { groups: GroupsBoard<GroupId> | null; myGroup: MyGroupBoard | null };
 
 type GroupMembers = { group: GroupId; name: string; members: MemberId[] };
 
-type Compared = { now: PeriodKey; before: SameDay | null };
-
 type Total = { kudos: number; runningTotal?: number[] };
 
-type MemberTotals = Array<Doc<"attributedTotals">>;
+type GroupRead = { facts: GroupFacts<GroupId>; kudos: GroupKudos };
+
+type GroupsBoardRead = { board: GroupsBoard<GroupId>; viewer: Viewer; compared: Compared; viewersGroup: GroupKudos | undefined };
 
 const nothing: Tally = { kudos: 0, givers: 0 };
 
 export const groupsBoardOf = internalQuery({
   args: { workspace: v.string(), viewer: v.string(), period: periodValidator },
-  handler: async (ctx, { workspace, viewer, period }) => (await groupBoardsOf(ctx, workspace, viewer, period)).groups,
+  handler: async (ctx, { workspace, viewer, period }) => (await groupsBoardReadOf(ctx, workspace, viewer, period))?.board ?? null,
 });
 
 export async function groupBoardsOf(ctx: QueryCtx, workspace: string, viewer: string, period: Period): Promise<GroupBoards> {
+  const read = await groupsBoardReadOf(ctx, workspace, viewer, period);
+  if (read === null) return { groups: null, myGroup: null };
+  const myGroup = read.viewersGroup === undefined ? null : await myGroupBoardOf(ctx, read.viewer, read.viewersGroup, read.compared);
+  return { groups: read.board, myGroup };
+}
+
+async function groupsBoardReadOf(ctx: QueryCtx, workspace: string, viewer: string, period: Period): Promise<GroupsBoardRead | null> {
   const person = await lookup(ctx, workspace, viewer);
-  if (person?.kind !== "member" || !(await groupsShownTo(ctx, person.member))) return { groups: null, myGroup: null };
+  if (person?.kind !== "member" || !(await groupsShownTo(ctx, person.member))) return null;
   const today = allowanceDay(Date.now(), person.timeZone);
-  const compared = { now: keyOf(period, today), before: period === "all" ? null : sameDayLastPeriod(period, today) };
-  const groups = await Promise.all((await countingGroupsWithPrimaryMembersIn(ctx, workspace)).map((group) => factsOf(ctx, group, compared)));
+  const compared = comparedOn(period, today);
   const viewerGroup = (await memberGroupsOf(ctx, person.member))?.primary ?? null;
+  const groups = await Promise.all((await countingGroupsWithPrimaryMembersIn(ctx, workspace)).map((group) => groupReadOf(ctx, group, compared, viewerGroup)));
   const best = period === "all" || viewerGroup === null ? null : await bestCompletedPeriod(ctx, viewerGroup, period, today);
-  return { groups: groupsBoard({ period, viewerGroup, best, groups }), myGroup: await myGroupBoardOf(ctx, { ...person, user: viewer }, period) };
+  const board = groupsBoard({ period, viewerGroup, best, groups: groups.map(({ facts }) => facts) });
+  const viewersGroup = groups.find(({ facts }) => facts.group === viewerGroup)?.kudos;
+  return { board, viewer: { user: viewer, member: person.member }, compared, viewersGroup };
 }
 
 export async function groupsBoardShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
@@ -55,8 +63,12 @@ async function countingGroupsWithPrimaryMembersIn(ctx: QueryCtx, workspace: stri
   return groups;
 }
 
-async function factsOf(ctx: QueryCtx, { group, name, members }: GroupMembers, { now, before }: Compared): Promise<GroupFacts<GroupId>> {
-  const memberTotals = await Promise.all(members.map((member) => memberTotalsOf(ctx, member, group, before?.key ?? now, now)));
+async function groupReadOf(ctx: QueryCtx, { group, name, members }: GroupMembers, compared: Compared, viewerGroup: GroupId | null): Promise<GroupRead> {
+  const memberTotals = group === viewerGroup ? await groupMemberTotalsOf(ctx, group, members, compared) : await Promise.all(members.map((member) => memberTotalsOf(ctx, member, group, compared)));
+  return { facts: await factsOf(ctx, { group, name, members }, memberTotals, compared), kudos: { group: { group, name }, members: memberTotals } };
+}
+
+async function factsOf(ctx: QueryCtx, { group, name, members }: GroupMembers, memberTotals: MemberTotals[], { now, before }: Compared): Promise<GroupFacts<GroupId>> {
   const nowTally = { kudos: kudosIn(await groupPeriodTotalOf(ctx, group, now)), givers: giversIn(memberTotals, now, kudosIn) };
   const beforeTally = before === null ? nothing : await tallyUpToTheSameDay(ctx, group, memberTotals, before);
   return { group, name, members: members.length, now: nowTally, before: beforeTally };
@@ -68,18 +80,11 @@ async function tallyUpToTheSameDay(ctx: QueryCtx, group: GroupId, memberTotals: 
 }
 
 function giversIn(memberTotals: MemberTotals[], period: PeriodKey, kudosOf: (total: Total | undefined) => number) {
-  return memberTotals.filter((totals) => kudosOf(totals.find((total) => total.period === period)) > 0).length;
+  return memberTotals.filter(({ totals }) => kudosOf(totals.find((total) => total.period === period)) > 0).length;
 }
 
 function kudosIn(total: Total | null | undefined) {
   return total?.kudos ?? 0;
-}
-
-function memberTotalsOf(ctx: QueryCtx, member: MemberId, group: GroupId, first: PeriodKey, last: PeriodKey): Promise<MemberTotals> {
-  return ctx.db
-    .query("attributedTotals")
-    .withIndex("by_member_group_period", (q) => q.eq("member", member).eq("group", group).gte("period", first).lte("period", last))
-    .collect();
 }
 
 async function bestCompletedPeriod(ctx: QueryCtx, group: GroupId, period: ComparedPeriod, today: DayKey) {

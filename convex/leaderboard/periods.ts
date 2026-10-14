@@ -15,6 +15,8 @@ export type SameDay = { key: PeriodKey; day: number };
 
 export type PeriodOfKey = { period: ComparedPeriod; days: Days };
 
+export type Compared = { now: PeriodKey; before: SameDay | null };
+
 export const periods: Period[] = ["week", "month", "all"];
 
 const dayMs = 24 * 60 * 60 * 1000;
@@ -28,6 +30,10 @@ export function keyOf(period: Period, day: DayKey): PeriodKey {
     case "all":
       return "all";
   }
+}
+
+export function comparedOn(period: Period, today: DayKey): Compared {
+  return { now: keyOf(period, today), before: period === "all" ? null : sameDayLastPeriod(period, today) };
 }
 
 export function lastPeriodUpToTheSameDay(period: ComparedPeriod, today: DayKey): Days {
