@@ -389,7 +389,7 @@ describe("WS216: loading more", () => {
   it("reads the next page once the end comes within a screen, and keeps focus where it is", async () => {
     const intersections = stubIntersections();
     const { pages } = await openedWith([aReceived("r1", now - minute)], { cursor: "c1" });
-    expect(intersections.observers.at(-1)?.options?.rootMargin).toBe("100% 0px");
+    expect(intersections.observers.at(-1)?.options?.rootMargin).toBe(`${window.innerHeight}px 0px`);
     const title = within(main()).getByRole("heading", { level: 1 });
     act(() => title.focus());
     await intersections.endComesNear();
@@ -532,6 +532,26 @@ describe("WS214: Show new activity", () => {
     await pages.answer(1, aPage([aReceived("new", now - minute, { giver: teammates.eli }), ...shown], null));
     expect(article("Eli Brandt thanked you")).toHaveFocus();
     expect(within(main()).queryByRole("button", { name: "Show new activity" })).not.toBeInTheDocument();
+  });
+
+  it("keeps focus on the page title while the newest page loads, and there when it fails", async () => {
+    const { user, pages } = await openedWatching(aPage([aReceived("new", now - minute, { giver: teammates.eli }), ...shown], null));
+    await pages.answer(0, aPage(shown, null));
+    await user.click(within(main()).getByRole("button", { name: "Show new activity" }));
+    const title = within(main()).getByRole("heading", { level: 1 });
+    expect(title).toHaveFocus();
+    await pages.fail(1);
+    expect(title).toHaveFocus();
+  });
+
+  it("forgets the focus it owed a failed Show new activity once the member changes the filter", async () => {
+    const { user, pages } = await openedWatching(aPage([aReceived("new", now - minute, { giver: teammates.eli }), ...shown], null));
+    await pages.answer(0, aPage(shown, null));
+    await user.click(within(main()).getByRole("button", { name: "Show new activity" }));
+    await pages.fail(1);
+    await user.click(filterOption("Given"));
+    await pages.answer(2, aPage([aGiven("g9", now - minute)], null));
+    expect(filterOption("Given")).toHaveFocus();
   });
 
   it("raises nothing while the watch holds what is shown", async () => {

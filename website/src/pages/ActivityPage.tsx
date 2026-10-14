@@ -7,6 +7,7 @@ import { entryIdOf, type TimelineState } from "../activity/timeline";
 import { useTimeline, type Timeline } from "../activity/useTimeline";
 import type { ActivityRead, ActivityShown } from "../activityRead";
 import { MemberTabs } from "../home/MemberTabs";
+import { focusPageTitle } from "../pageFocus";
 import { PageTitle } from "../PageTitle";
 import type { ActivityFilter } from "../route";
 
@@ -78,6 +79,7 @@ function TimelineView({ timeline, announce }: { timeline: Timeline; announce: An
   useNewActivityAnnounced(newActivity, announce);
   const showNew = () => {
     focusFirstOnLanding.current = true;
+    focusPageTitle();
     reset();
   };
   if (!state.landed) return <FirstPageWaiting state={state} onTryAgain={() => ask("button")} />;
@@ -161,7 +163,7 @@ function useNearTheEnd(end: RefObject<HTMLDivElement | null>, state: TimelineSta
   useEffect(() => {
     const target = end.current;
     if (state.status !== "idle" || target === null || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver((seen) => seen.some(({ isIntersecting }) => isIntersecting) && nearTheEnd.current(), { rootMargin: "100% 0px" });
+    const observer = new IntersectionObserver((seen) => seen.some(({ isIntersecting }) => isIntersecting) && nearTheEnd.current(), { rootMargin: `${window.innerHeight}px 0px` });
     observer.observe(target);
     return () => observer.disconnect();
   }, [end, state.status, state.entries.length, state.cursor]);
@@ -178,7 +180,11 @@ function useFocusAndWordsAfterEachRead(state: TimelineState, { list, loadMoreBut
     if (was === state) return;
     const place = list.current;
     const at = (selector: string) => place?.querySelector<HTMLElement>(selector) ?? null;
-    if (was.status === "first" && state.status === "failed") announce("Couldn't load your activity.");
+    if (was.filter !== state.filter) focusFirstOnLanding.current = false;
+    if (was.status === "first" && state.status === "failed") {
+      focusFirstOnLanding.current = false;
+      announce("Couldn't load your activity.");
+    }
     if (was.status === "first" && state.landed && focusFirstOnLanding.current) {
       focusFirstOnLanding.current = false;
       (at('[data-entry-index="0"]') ?? at("[data-timeline-empty]"))?.focus();
