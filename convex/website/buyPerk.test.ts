@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { anIdInHalfOf, onForEveryone, onForHalf, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { publishedHomeBlocks } from "../../testing/slackInteractions";
 import { opens, reachesLevel } from "../../testing/unlocks";
@@ -90,6 +90,21 @@ async function aMemberWithTheTreeReady() {
   await withXp(signedIn.member, levelFive);
   await reachesLevel(t, signedIn.member, 5);
   return signedIn;
+}
+
+function skillTree(caller: Pick<Backend, "query">) {
+  return caller.query(api.website.skillTree.getSkillTree, {});
+}
+
+async function unlocksOnForTheWorkspaceAndOffFor(member: MemberId) {
+  const workspaceKey = await anIdInHalfOf("unlocks", true);
+  const analyticsId = await anIdInHalfOf("unlocks", false);
+  await t.run(async (ctx) => {
+    for (const row of await ctx.db.query("workspaceKeys").collect()) await ctx.db.patch(row._id, { workspaceKey });
+    for (const row of await ctx.db.query("analyticsIds").collect()) if (row.member === member) await ctx.db.patch(row._id, { analyticsId });
+  });
+  postHog.withFlags(onForHalf("unlocks"), ...["website", "xp-levels", "skill-tree"].map(onForEveryone));
+  await t.action(components.posthog.lib.refreshFlagDefinitions, {});
 }
 
 function buyPerk(caller: Caller, perk: PerkId = "spark", request = firstRequest) {
@@ -472,3 +487,16 @@ function normalised(value: unknown, member: Id<"members">): unknown {
       .map(([key, field]) => [key, normalised(field, member)]),
   );
 }
+
+describe("F26 F27 F28 F29: a member previews the website by their own decision", () => {
+  test("F27: a member whose own unlocks decision is off, while the workspace's is on, reads no Skill tree, and their purchase answers refused with no reason and writes nothing at all", async () => {
+    await treeShipped();
+    const { member, asSignedIn } = await aMemberWithTheTreeOpen();
+    await unlocksOnForTheWorkspaceAndOffFor(member);
+    const before = await everythingWritten();
+
+    expect(await skillTree(asSignedIn)).toEqual({ kind: "not-found" });
+    expect(await buyPerk(asSignedIn)).toEqual({ kind: "refused", reason: null });
+    expect(await everythingWritten()).toEqual(before);
+  });
+});

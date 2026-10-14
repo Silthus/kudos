@@ -1,0 +1,40 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website-4
+
+ ❯ |convex| convex/website/preview.test.ts (17 tests | 1 failed | 16 skipped) 64ms
+   ❯ F26 F27 F28 F29: a member previews the website by their own decision (17)
+     ❯ F21: a previewer's command never records a workspace launch the flag's switch made due (4)
+       × achievements switched on for the workspace after unlocks launched: the previewer's sign-in runs no Journey preview, and their open answers refused and records no Book launch 63ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/preview.test.ts > F26 F27 F28 F29: a member previews the website by their own decision > F21: a previewer's command never records a workspace launch the flag's switch made due > achievements switched on for the workspace after unlocks launched: the previewer's sign-in runs no Journey preview, and their open answers refused and records no Book launch
+AssertionError: expected [ { …(2) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "member": "0000000000000000000010000members",
++     "moment": "journey",
++   },
++ ]
+
+ ❯ convex/website/preview.test.ts:288:38
+    286|       const asAlice = await signedIn(alice);
+    287|
+    288|       expect(await previewMoments()).toEqual([]);
+       |                                      ^
+    289|       expect(await openFeature(asAlice)).toEqual({ kind: "refused" });
+    290|       await settle(t);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 16 skipped (17)
+   Start at  10:11:07
+   Duration  798ms (transform 59%, import 26%, tests 9%, environment 6%)
+

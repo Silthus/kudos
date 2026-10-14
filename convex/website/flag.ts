@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { exposed, memberDecision, memberDecisionBeforeWriting, memberDecisionWithoutWriting, workspaceDecision, workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
+import { bookLaunchDueIn } from "../achievements/flag";
 import { workspaceKeyOf } from "../analytics/outbox";
 import { journeyLaunchDueIn, journeyPreviewedBy } from "../quests/flag";
 import { signInWorkspace } from "../slack/signIn";
@@ -36,7 +37,7 @@ export async function websiteAdmits(ctx: MutationCtx, member: MemberId): Promise
 }
 
 export async function workspaceLaunchDueIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
-  return (await unlocksLaunchDueIn(ctx, workspace)) || (await journeyLaunchDueIn(ctx, workspace));
+  return (await unlocksLaunchDueIn(ctx, workspace)) || (await journeyLaunchDueIn(ctx, workspace)) || (await bookLaunchDueIn(ctx, workspace));
 }
 
 async function runDuePreviewMoments(ctx: MutationCtx, member: MemberId) {
