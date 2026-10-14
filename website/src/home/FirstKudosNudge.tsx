@@ -18,7 +18,7 @@ export function FirstKudosNudge({ member }: { member: MemberProfile }) {
         </h2>
         <p className="text-sm text-muted-foreground">{teachingFor(member)}</p>
         <div className="mt-2">
-          <SlackLink chatUrl={member.chatUrl} variant="primary">
+          <SlackLink chatUrl={member.chatUrl} variant="primary" size="lg">
             Thank someone in Slack
           </SlackLink>
         </div>
