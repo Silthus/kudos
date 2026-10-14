@@ -8,7 +8,7 @@ import { PageLink, Panel } from "./Panel";
 const label = { id: "leaderboard", label: "Where you stand", aside: "This week" } as const;
 
 export function StandingPanel({ board }: { board: BoardAnswer | undefined }) {
-  if (board === undefined || board.kind === "connecting") return <Panel {...label} busy />;
+  if (board === undefined) return <Panel {...label} busy />;
   if (board.kind === "broken") return <Panel {...label}><PageLink feature="leaderboard" /></Panel>;
   if (board.kind !== "board") return null;
   return (

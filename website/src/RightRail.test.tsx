@@ -207,11 +207,17 @@ describe("WS111: every answer has one rendering", () => {
   ];
 
   describe.each(panels)("$name", ({ name, feature, show, link, locked, showOpen, row }) => {
-    it.each([["no answer yet", undefined], ["a socket that isn't connected", { kind: "connecting" } as const]])("shows its label busy, with no rows, for %s", (_, answer) => {
-      show(answer);
+    it("shows its label busy, with no rows, until the read answers", () => {
+      show(undefined);
       const busy = panel(name);
       expect(busy).toHaveAttribute("aria-busy", "true");
       expect(within(busy).queryAllByRole("link")).toEqual([]);
+    });
+
+    it("lets the frame say Can't reach HedgeHug once the socket has stayed unconnected without an answer, as on every page", () => {
+      show({ kind: "connecting" });
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Can't reach HedgeHug");
+      expect(queryPanel(name)).toBeNull();
     });
 
     it("shows the locked panel from the read's own answer while getMyProfile catches up", () => {

@@ -10,7 +10,7 @@ import { PageLink, Panel } from "./Panel";
 const label = { id: "quests", label: "Quests this week", aside: "New quests every Monday.", gameObject: true } as const;
 
 export function QuestsPanel({ quests }: { quests: QuestsShown | undefined }) {
-  if (quests === undefined || quests.kind === "connecting") return <Panel {...label} busy />;
+  if (quests === undefined) return <Panel {...label} busy />;
   if (quests.kind === "broken") return <Panel {...label}><PageLink feature="quests" /></Panel>;
   if (quests.kind !== "quests") return null;
   return (

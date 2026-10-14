@@ -159,7 +159,7 @@ function Page({ state, route, board, quests, book, skillTree, membersShown, onCh
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "not-found") return <NotFoundPage />;
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
-  if (route.page === "home") return <HomePage member={state} reads={{ quests, board }} />;
+  if (route.page === "home") return quests?.kind === "connecting" || board?.kind === "connecting" ? <ConnectingPage /> : <HomePage member={state} reads={{ quests, board }} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} {...actions} />;
   if (route.page === "book") return <BookAnswerPage member={state} book={book} page={route.bookPage} {...actions} />;
   if (route.page === "skills") return <SkillTreeAnswerPage key={membersShown} member={state} skillTree={skillTree} onBuyPerk={onBuyPerk} {...actions} />;
