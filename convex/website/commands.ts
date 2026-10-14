@@ -14,7 +14,7 @@ export const openFeature = memberMutation({
   args: { feature: featureValidator },
   handler: async (ctx, me, person, { feature }): Promise<CommandAnswer> => {
     if (!(await unlockPathShownIn(ctx, me.workspace))) return refused;
-    await runCommand(ctx, me.workspace, person, { type: "openUnlock", feature });
+    await runCommand(ctx, me.workspace, person, { type: "openUnlock", feature }, `website:openFeature:${me.member}:${feature}`);
     if ((await stateOf(ctx, me.member, feature)) !== "open") return refused;
     await republish(ctx, me.member);
     return opened;
