@@ -1,5 +1,5 @@
 import type { BookRead } from "./bookRead";
-import type { LadderCard, MyBook, TierCard } from "./shell";
+import type { LadderCard, MyBook, ShellState, TierCard } from "./shell";
 
 const at = (iso: string) => Date.parse(iso);
 
@@ -45,4 +45,16 @@ export const bookFixtures = {
 
 export function fixedBook(answer: MyBook): BookRead {
   return (asking) => (asking ? answer : undefined);
+}
+
+export function fixtureBookFor(visitor: ShellState): BookRead {
+  return fixedBook(bookAnswerFor(visitor));
+}
+
+function bookAnswerFor(visitor: ShellState): MyBook {
+  const card = visitor.kind === "member" ? visitor.features?.find(({ feature }) => feature === "book") : undefined;
+  if (card === undefined) return bookFixtures.notFound;
+  if (card.state === "locked") return { kind: "locked", level: card.level };
+  if (card.state === "ready") return bookFixtures.ready;
+  return bookFixtures.book;
 }

@@ -1,7 +1,8 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import type { BookRead } from "./bookRead";
+import { Root } from "./Root";
 import { shellFixtures, type CommandAnswer, type MyBook } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
@@ -189,5 +190,25 @@ describe("WS81: the Book's nav entry follows the page", () => {
     showBook(bookFixtures.book);
     await act(async () => undefined);
     expect(within(screen.getByRole("navigation", { name: "Screens" })).getByRole("link", { name: "Book" })).toHaveAttribute("aria-current", "page");
+  });
+});
+
+describe("WS80 WS81: the fixture build's /book agrees with its member", () => {
+  it.each([
+    ["member-with-nothing-shipped", "Page not found"],
+    ["member-waiting-for-the-book", "Book"],
+    ["member-with-the-book-ready", "Book"],
+    ["member-with-the-book-opened", "Achievements"],
+  ])("%s shows %s", (fixture, title) => {
+    render(<Root fixture={fixture} />);
+    expect(pageTitle()).toHaveTextContent(title);
+  });
+
+  it("shows the locked sentence for a member waiting for the Book, and the crate for one whose Book is ready", () => {
+    const waiting = render(<Root fixture="member-waiting-for-the-book" />);
+    expect(main()).toHaveTextContent("Book opens at level 4.");
+    waiting.unmount();
+    render(<Root fixture="member-with-the-book-ready" />);
+    expect(within(main()).getByRole("heading", { name: "Unlocks: Book" })).toBeInTheDocument();
   });
 });
