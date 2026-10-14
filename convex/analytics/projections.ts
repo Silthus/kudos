@@ -6,6 +6,7 @@ import type {
   LevelReachedEvent,
   MemberWelcomedEvent,
   QuestFinishedEvent,
+  QuestOpenedEvent,
   QuestsDrawnEvent,
   QuestSwappedEvent,
   UnlockOpenedEvent,
@@ -36,6 +37,7 @@ export type ProductEvent = {
     | "quest drawn"
     | "quest swapped"
     | "quest finished"
+    | "crate opened"
     | "journey step activated"
     | "app home opened"
     | "command used"
@@ -167,13 +169,21 @@ export function projectQuestSwapped(event: QuestSwappedEvent): ProductEvent {
 }
 
 export function projectQuestFinished(event: QuestFinishedEvent): ProductEvent {
-  const quest = event.quest.kind === "journey" ? event.quest.step : event.poolQuest;
   return {
     event: "quest finished",
     subject: { member: event.member },
     at: event.at,
-    properties: { kind: event.quest.kind, ...(quest === undefined ? {} : { quest }), ...(event.reward === undefined ? {} : { xp: event.reward.xp, coins: event.reward.coins }) },
+    properties: { ...questNamed(event), ...(event.reward === undefined ? {} : { xp: event.reward.xp, coins: event.reward.coins }) },
   };
+}
+
+export function projectQuestOpened(event: QuestOpenedEvent): ProductEvent {
+  return { event: "crate opened", subject: { member: event.member }, at: event.at, properties: questNamed(event) };
+}
+
+function questNamed({ quest, poolQuest }: QuestFinishedEvent | QuestOpenedEvent) {
+  const id = quest.kind === "journey" ? quest.step : poolQuest;
+  return { kind: quest.kind, ...(id === undefined ? {} : { quest: id }) };
 }
 
 export function projectJourneyStepActivated(event: JourneyStepActivatedEvent): ProductEvent {

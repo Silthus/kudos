@@ -7,7 +7,7 @@ import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import { setProgressSettings } from "../progression/settings";
-import { openQuestCrate } from "../quests/crates";
+import { openQuestCrate } from "../quests/open";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { rerollQuest } from "../quests/weekly";
 import { xpLevelsShownTo } from "../progression/xpLevels";

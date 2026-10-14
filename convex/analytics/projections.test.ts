@@ -6,6 +6,7 @@ import type {
   KudosGivenEvent,
   LevelReachedEvent,
   QuestFinishedEvent,
+  QuestOpenedEvent,
   QuestsDrawnEvent,
   QuestSwappedEvent,
   UnlockOpenedEvent,
@@ -21,6 +22,7 @@ import {
   projectLevelReached,
   projectMemberWelcomed,
   projectQuestFinished,
+  projectQuestOpened,
   projectQuestsDrawn,
   projectQuestSwapped,
   projectUnlockOpened,
@@ -239,6 +241,19 @@ describe("E1 E5: quest finished", () => {
     ["a Journey step queued before the deploy has its kind and step", { quest: firstThanks }, { kind: "journey", quest: "first-thanks" }],
   ])("%s, on the member at the fact's time", (_, fields, properties) => {
     expect(projectQuestFinished({ type: "questFinished", workspace: "T1", member: bob, at, ...fields })).toEqual({ event: "quest finished", subject: { member: bob }, at, properties });
+  });
+});
+
+describe("E1 E5: crate opened", () => {
+  const weekly = { kind: "weekly", week: "2026-10-12", slot: 1 } as const;
+  const someoneNew = { kind: "journey", step: "someone-new" } as const;
+
+  test.each<[string, Omit<QuestOpenedEvent, "type" | "workspace" | "member" | "at">, Record<string, string>]>([
+    ["a weekly quest's crate is named by its pool ID", { quest: weekly, poolQuest: "someone-new" }, { kind: "weekly", quest: "someone-new" }],
+    ["a Journey step's crate is named by its step, kind keeping it apart from the pool quest of the same ID", { quest: someoneNew }, { kind: "journey", quest: "someone-new" }],
+    ["a weekly crate queued before the deploy has only its kind", { quest: weekly }, { kind: "weekly" }],
+  ])("%s, on the member at the opening's time", (_, fields, properties) => {
+    expect(projectQuestOpened({ type: "questOpened", workspace: "T1", member: bob, at, ...fields })).toEqual({ event: "crate opened", subject: { member: bob }, at, properties });
   });
 });
 

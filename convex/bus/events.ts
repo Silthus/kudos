@@ -107,7 +107,7 @@ export const questFinishedEventValidator = v.object({
   reward: v.optional(v.object({ xp: v.number(), coins: v.number() })),
 });
 
-export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields });
+export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields, poolQuest: v.optional(questIdValidator) });
 
 const weekFields = { workspace: v.string(), member: v.id("members"), week: v.string(), at: v.number() };
 

@@ -6,6 +6,7 @@ import {
   levelReachedEventValidator,
   memberWelcomedEventValidator,
   questFinishedEventValidator,
+  questOpenedEventValidator,
   questsDrawnEventValidator,
   questSwappedEventValidator,
   unlockOpenedEventValidator,
@@ -21,6 +22,7 @@ import {
   projectLevelReached,
   projectMemberWelcomed,
   projectQuestFinished,
+  projectQuestOpened,
   projectQuestsDrawn,
   projectQuestSwapped,
   projectUnlockOpened,
@@ -95,6 +97,13 @@ export const recordQuestFinished = internalMutation({
   args: { event: questFinishedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectQuestFinished(event)]));
+  },
+});
+
+export const recordQuestOpened = internalMutation({
+  args: { event: questOpenedEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectQuestOpened(event)]));
   },
 });
 
