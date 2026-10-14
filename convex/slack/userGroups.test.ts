@@ -127,6 +127,17 @@ describe("an answer the directory can't trust changes nothing", () => {
     expect(await groupsOf(t, "U_ANN")).toEqual([gardeners]);
   });
 
+  test("a listing of more user groups than the directory keeps fails and keeps every user group", async () => {
+    const t = testBackend({ transactionLimits: true });
+    slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: ["U_ANN"] });
+    await sync(t);
+    for (let index = 0; index < 2_000; index += 1) slack.withUserGroup(`S_${index}`, { disabled: true });
+
+    await expect(t.action(internal.slack.userGroups.syncUserGroups, {})).rejects.toThrow("Slack usergroups.list answered more user groups than the directory keeps");
+
+    expect(await groupsOf(t, "U_ANN")).toEqual([gardeners]);
+  });
+
   test("a members list with an entry that isn't a user ID fails and keeps the members", async () => {
     const t = testBackend();
     slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: ["U_ANN", "U_BOB"] });

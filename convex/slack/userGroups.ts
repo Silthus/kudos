@@ -23,6 +23,7 @@ const membersListSpacingMs = 3_000;
 const membersListsPerRun = 100;
 const maxAttempts = 3;
 const maxMembersKept = 8_000;
+const maxUserGroupsKept = 2_000;
 const attemptArgs = { attempt: v.optional(v.number()) };
 
 export function isUserGroupChanged(event: { type: string }): event is UserGroupChanged {
@@ -110,6 +111,7 @@ async function userGroupsListed(): Promise<Listing> {
 
 function listedUserGroupsOf(listed: unknown): UserGroup[] {
   if (!Array.isArray(listed)) throw new ReportableError("Slack usergroups.list answered without a usergroups list");
+  if (listed.length > maxUserGroupsKept) throw new ReportableError("Slack usergroups.list answered more user groups than the directory keeps");
   const groups = listed.flatMap(userGroupOf);
   if (groups.length !== listed.length) throw new ReportableError("Slack usergroups.list answered a user group it doesn't describe");
   return groups;
