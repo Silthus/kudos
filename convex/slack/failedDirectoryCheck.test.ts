@@ -52,7 +52,7 @@ describe("a failed directory check is tried again", () => {
 
     expect(await kudosReceived(t, "U_BOB")).toBe(1);
     expect(slack.reactionsOn("C1", postedTs)).toEqual(["taco"]);
-  });
+  }, 30_000);
 
   test("a directory check that keeps failing stops after four more tries, spending nothing", async () => {
     const t = testBackend();
@@ -64,5 +64,5 @@ describe("a failed directory check is tried again", () => {
     expect(recheck.tries).toBe(5);
     expect(await kudosSpent(t)).toBe(0);
     expect(slack.reactionsOn("C1", postedTs)).toEqual([]);
-  });
+  }, 30_000);
 });

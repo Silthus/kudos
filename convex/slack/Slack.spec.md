@@ -137,6 +137,7 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
   over: a check whose recheck fails once, and a check whose recheck fails every time
   via: a failed directory check is tried again
   because: under load the recheck can exhaust Convex's write-conflict retries with the analytics drain and other rechecks; a failed action is never retried by Convex, so without its own retry the message waits as awaiting-directory forever and its kudos never gives (#382, df-1a6af5a1); the bound keeps a check that always fails from rescheduling itself forever
+  refuted: checkDirectory's failure retry ladder in convex/slack/directory.ts emptied -> both cases went red: the kudos never gave and the check ran once instead of 5 times (2026-10-14)
   kinds: message
   checklist: destination-confinement dismissed: the check asks only Slack's users.info at the one configured base URL, with no destination taken from input
   checklist: message-authenticity dismissed: the check is a scheduled job with only the message's ref and attempt in its arguments; the message it rechecks was verified by signed Slack requests only
