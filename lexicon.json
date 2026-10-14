@@ -469,7 +469,7 @@
     },
     {
       "name": "gains line",
-      "definition": "The parts of a Given success reply's extras line that say what the kudos earned its giver, in one order joined with ' · ': the base XP the whole message gave them (+{xp} XP, from Progression's one function the effects records use) and each quest it finished with its own reward (Quest done: {goal} (+{xp} XP)); stored as facts when the reply is written and shown at each delivery only as far as the giver can still see them (SW1-SW5, amending P71)."
+      "definition": "The parts of a Given success reply's extras line that say what the kudos earned its giver, in one order joined with ' · ': the base XP the whole message gave them (+{xp} XP, from Progression's one function the effects records use), each quest it finished with its own reward (Quest done: {goal} (+{xp} XP)), and the bonus each owned perk paid on it, summed over the message's awards ({perk} bonus (+{xp} XP)); stored as facts when the reply is written and shown at each delivery only as far as the giver can still see them, the bonus parts only while the skill tree applies (SW1-SW5, amending P71). The activity's given entries follow its parts and its view rule."
     },
     {
       "name": "route list",
