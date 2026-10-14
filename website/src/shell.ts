@@ -19,7 +19,7 @@ export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } |
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer> };
+export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer> };
 
 const member: MemberProfile = {
   kind: "member",

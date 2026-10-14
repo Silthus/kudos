@@ -70,8 +70,8 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   return useMemo(
     () => ({
       openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
-      signIn: () =>
-        void signIn("slack", { redirectTo: "/" }).catch(() => {
+      signIn: (returnTo) =>
+        void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
           onSignInFailure();
         }),

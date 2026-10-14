@@ -1,0 +1,8 @@
+# Two refreshes of the PostHog component's flag definitions against the handshake mock on a local backend (5210/5211, mock on 5212)
+$ npx --no -- convex run --component posthog lib:refreshFlagDefinitions {}  # twice
+{
+  "status": "updated"
+}
+{
+  "status": "unchanged"
+}
