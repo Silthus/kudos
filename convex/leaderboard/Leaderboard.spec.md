@@ -127,8 +127,8 @@ Leaderboard: totals of kudos given per member by day, week, month and all time, 
   checklist: worker-fencing dismissed: no worker owns a group total; Convex serializes the mutations that add to one row
   checklist: commit-ordered-effects dismissed: counting has no external effect
   checklist: resumption-coverage dismissed: a run that fails adds nothing and leaves no mark, so its retry counts the message once
-- a Groups board row never states a drop: Every ranked row of the Groups board carries its places climbed against the same board in the previous period up to the same day, a positive number, and nothing when the group fell, stayed, had no kudos attributed then, or the period is all time.
-  over: this week's and all time's Groups board from the pure board function, with groups that rose, fell, stayed and had no kudos attributed last week
+- a Groups board row never states a drop: Every ranked row of the Groups board carries its places climbed against the same board in the previous period up to the same day, a positive number, and nothing when the group fell or stayed, or the period is all time; a listed group with no kudos attributed then was on that board too.
+  over: this week's and all time's Groups board from the pure board function, with groups that rose, fell and stayed, and one that rose from no kudos attributed last week
   via: GB18: places climbed on the Groups board
   refuted: the Groups board's placesClimbed gave every group that had kudos attributed last period its position before minus its position now, a fall or a stay included -> 1 of the 2 tests failed on its assertion, Bees and Cats, which fell, reading negative places (2026-10-14)
   because: the website shows rank-change arrows to encourage (GB18, user story 46); a group row that said how far its group dropped would turn the board into the reproach the groups spec rules out (G18)

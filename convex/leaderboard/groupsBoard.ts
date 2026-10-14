@@ -45,7 +45,7 @@ export function groupsBoard<G extends string>({ period, groups, viewerGroup, bes
   const listed = groups.filter(({ members }) => members >= fewestMembersListed);
   const rows = placed(listed.map((facts) => scored(facts, facts.now)));
   const compared = period !== "all";
-  const climbed = compared ? placesClimbed(rows, placed(listed.filter(({ before }) => before.kudos > 0).map((facts) => scored(facts, facts.before)))) : new Map<G, number>();
+  const climbed = compared ? placesClimbed(rows, placed(listed.map((facts) => scored(facts, facts.before)))) : new Map<G, number>();
   const mine = rows.find(({ group }) => group === viewerGroup);
   const viewerFacts = listed.find(({ group }) => group === viewerGroup);
   return {

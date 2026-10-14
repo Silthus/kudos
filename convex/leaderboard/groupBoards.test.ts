@@ -42,12 +42,12 @@ describe("GB13, GB14, GB18: groupBoardsOf gives the website the Groups board", {
 
     expect(board).toEqual({
       rows: [
-        { position: 1, rank: 1, tied: false, group: groups.Ants, name: "Ants", perMember: 2, participation: 66, kudos: 6, members: 3, mine: true, climbed: null },
+        { position: 1, rank: 1, tied: false, group: groups.Ants, name: "Ants", perMember: 2, participation: 66, kudos: 6, members: 3, mine: true, climbed: 1 },
         { position: 2, rank: 2, tied: false, group: groups.Bees, name: "Bees", perMember: 0.8, participation: 25, kudos: 3, members: 4, mine: false, climbed: null },
       ],
       window: [1, 2],
       standing: { kind: "ranked", position: 1, rank: 1 },
-      improvement: { gain: 2 },
+      improvement: { gain: 2, places: 1 },
       mostImproved: { group: groups.Ants, name: "Ants", gain: 2 },
     });
   });

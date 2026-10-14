@@ -78,7 +78,7 @@ describe("GB13: the Groups board", () => {
 });
 
 describe("GB18: places climbed on the Groups board", () => {
-  test("a group that rose against last period up to the same day climbed; one that fell, stayed or gave nothing then didn't", () => {
+  test("a group that rose against last period up to the same day climbed; one that fell or stayed didn't", () => {
     const board = groupsBoard(facts([["Ants", 3, 30, 3, [3, 1]], ["Bees", 3, 20, 2, [9, 3]], ["Cats", 3, 10, 1, [6, 2]], ["Dogs", 3, 5, 1, [0, 0]]]));
 
     expect(board.rows.map(({ name, climbed }) => [name, climbed])).toEqual([
@@ -87,6 +87,16 @@ describe("GB18: places climbed on the Groups board", () => {
       ["Cats", null],
       ["Dogs", null],
     ]);
+  });
+
+  test("a listed group that had no kudos last period was on that board too, so rising from its place there is a climb", () => {
+    const board = groupsBoard(facts([["Ants", 3, 9, 3, [0, 0]], ["Bees", 3, 3, 1, [3, 1]]], { viewerGroup: "S_Ants" }));
+
+    expect(board.rows.map(({ name, climbed }) => [name, climbed])).toEqual([
+      ["Ants", 1],
+      ["Bees", null],
+    ]);
+    expect(board.improvement).toEqual({ gain: 3, places: 1 });
   });
 
   test("all time compares with nothing", () => {
