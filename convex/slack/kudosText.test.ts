@@ -389,6 +389,22 @@ describe("AT7: a member who leaves", () => {
     expect(await words(t, { conversation: "C2", message: secondTs })).toMatchObject({ kind: "text", segments: [{ kind: "text", text: "welcome back thanks " }, expect.anything(), expect.anything()] });
     expect(await words(t)).toEqual({ kind: "unavailable", reason: "removed" });
   });
+
+  test("whose purge bars the backfill from their earlier kudos after they come back, while another member's are filled and their new kudos stored live", async () => {
+    const t = testBackend();
+    await givenBeforeCapture(t, thanksBob, { ts: postedTs });
+    await givenBeforeCapture(t, thanksBob, { ts: postedTs, user: "U_CAROL", channel: "C2" });
+
+    await leaveAndComeBack(t);
+    await post(t, [section(text("welcome back thanks "), mention("U_BOB"), emoji("taco"))], { ts: secondTs, channel: "C3" });
+    await settle(t);
+    await backfill(t);
+
+    expect(await words(t)).toEqual({ kind: "unavailable", reason: "not-captured" });
+    expect(await words(t, { conversation: "C2" })).toMatchObject({ kind: "text", author: "U_CAROL", visibility: "unknown" });
+    expect(await words(t, { conversation: "C3", message: secondTs })).toMatchObject({ kind: "text", author: "U_ALICE" });
+    expect(slack.callsTo("conversations.history")).toEqual([expect.objectContaining({ channel: "C2" })]);
+  });
 });
 
 describe("AT8: on request", () => {
@@ -565,6 +581,17 @@ describe("AT40: only kudos messages' text is stored", () => {
     expect(await storedAndScheduled(t)).not.toContain(reason);
   });
 
+  test("its author leaving and coming back before the backfill leaves its words nowhere", async () => {
+    const t = testBackend();
+    await givenBeforeCapture(t, thanksBob, { ts: postedTs });
+
+    await leaveAndComeBack(t);
+    await backfill(t);
+
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
+    expect(await storedAndScheduled(t)).not.toContain(reason);
+  });
+
   describe("AT11: with capture on, a failure that would quote the words", () => {
     let postHog: FakePostHog;
     let consoleLines: unknown[][];
@@ -708,6 +735,13 @@ async function givenBeforeCapture(t: Backend, blocks: RichElement[], options: Me
   await settle(t);
   forced.beforeCapture = false;
   slack.withMessage(options.channel ?? "C1", channelMessage(blocks, options));
+}
+
+async function leaveAndComeBack(t: Backend) {
+  await memberChanged(t, "user_change", { id: "U_ALICE", deleted: true });
+  await settle(t);
+  await memberChanged(t, "user_change", { id: "U_ALICE", deleted: false }, { eventTs: `${Date.now() / 1000 + 60}` });
+  await settle(t);
 }
 
 async function backfill(t: Backend) {

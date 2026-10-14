@@ -97,6 +97,7 @@ export const forgetWordsOfLeaver = internalMutation({
   args: { event: memberLeftEventValidator },
   handler: withholdingWords(async (ctx: MutationCtx, { event: { workspace, member } }: { event: MemberLeftEvent }) => {
     const { user } = await chatUserOf(ctx, member);
+    await recordDeletionRequest(ctx, { workspace, author: user });
     await forgetWordsAuthoredBy(ctx, { workspace, author: user });
   }),
 });
