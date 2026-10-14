@@ -35,10 +35,23 @@ Each got a red test first ([red-sign-in-code.txt](red-sign-in-code.txt), [red-fo
 2. The footer read `No. undefined–undefined` for a viewer off the board, whose G17 window is the top three. It names the podium's positions now.
 3. Switching the period dropped focus to the page body while the next board loaded. The page keeps the last board and focus on the switch until the next one arrives.
 
+## The clock (WS36)
+
+[clock.txt](clock.txt): G18's line on an open board read `▲ 9` before Juno's midnight ([clock-1-before-midnight.png](clock-1-before-midnight.png)) and `▲ 4` from a fresh read after it, since last week's comparison moved a day. The preview browser closed the tab that held the page open before midnight, so the open page's turnover on the first cron tick is handed to #136.
+
+## Review
+
+One read-only GPT-6.1 Sol (high) review over the diff, with the spec as the oracle: [review-gpt-6.1-sol.txt](review-gpt-6.1-sol.txt).
+
+1. **Fixed (major, WS43):** `Jump to me` kept watching the old position's row after a live rank change. The observer now follows the viewer's position. Red: [red-review-viewer-row-moves.txt](red-review-viewer-row-moves.txt). The test fake now reports only on rows it still watches, as a real observer does.
+2. **Fixed (V5):** the podium's kudos and ranks, and the board card's title, used RoundHog. They are Inter with tabular figures now. Red: [red-review-display-type.txt](red-review-display-type.txt).
+3. **Fixed (V17):** the open leaderboard card carried a hedgehog. It shows the nav's star icon on a neutral tile.
+4. **Rejected (V24):** a check mark on the current nav item. The current page is a location, not a selection: the underline is a shape only the current item carries, beside `aria-current`, as the first slice's nav ships (WS16). Recorded with `coherence decide`.
+
 ## Tests
 
-- [red-website.txt](red-website.txt): the final `LeaderboardPage.test.tsx` and `accessibility.test.tsx` on the base tree `23e757f`: 48 fail.
-- [green-website.txt](green-website.txt): the same files on the landed tree, every test passing and none skipped.
+- [red-website.txt](red-website.txt): the final `LeaderboardPage.test.tsx` and `accessibility.test.tsx` on the base tree `23e757f`: 51 of 101 fail.
+- [green-website.txt](green-website.txt): the same files on the landed tree: all 101 pass, none skipped.
 - The gate: [gate.txt](gate.txt).
 
 ## V24's manual pass
