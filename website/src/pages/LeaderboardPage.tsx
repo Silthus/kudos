@@ -47,7 +47,7 @@ function RankedBoard({ board, story }: { board: Leaderboard; story: Story }) {
   return (
     <>
       <div className="flex flex-col gap-2">
-        <PageTitle tab="Leaderboard">{story.headline}</PageTitle>
+        <PageTitle tab="Leaderboard" size="headline">{story.headline}</PageTitle>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">{story.deck}</p>
       </div>
       <Podium board={board} />

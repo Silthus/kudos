@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/signin-card/website
+
+
+ Test Files  2 passed (2)
+      Tests  15 passed (15)
+   Start at  10:52:42
+   Duration  2.62s (import 45%, environment 19%, tests 19%, transform 13%, setup 4%)
+

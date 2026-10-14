@@ -1,0 +1,6 @@
+ ✓ |website| src/header.test.tsx > WS300: below lg the screen nav is a scroll rail that never wraps > scrolls sideways in one line instead of widening the page 241ms
+ ✓ |website| src/header.test.tsx > WS300: below lg the screen nav is a scroll rail that never wraps > is no focus trap: Tab moves through its entries in order and on past the rail 266ms
+ ✓ |website| src/header.test.tsx > WS300: below lg the screen nav is a scroll rail that never wraps > brings each entry Tab reaches into view 165ms
+ ✓ |website| src/header.test.tsx > WS300: below lg the screen nav is a scroll rail that never wraps > brings the current entry into view on load, without animation 54ms
+ ✓ |website| src/header.test.tsx > WS300: below sm the theme control is one button that cycles light, dark and system > names its current choice and the next, and cycles through all three 147ms
+      Tests  5 passed (5)

@@ -1,0 +1,12 @@
+     × says {owned} of {total} perks owned, with the total from the read, never E's 14 255ms
+     × says {owned} of {total} perks owned, with the total from the read, never E's 14 101ms
+     × says {owned} of {total} perks owned, with the total from the read, never E's 14 105ms
+     × shows the skill points to spend and LV {n} as chips beside it, the level spoken as Level {n} 55ms
+     × shows no level chip while progression is null 50ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/compactSkillTree.test.tsx > WS326: the header counts the perks owned and shows the resource chips > says {owned} of {total} perks owned, with the total from the read, never E's 14
+ FAIL  |website| src/compactSkillTree.test.tsx > WS326: the header counts the perks owned and shows the resource chips > says {owned} of {total} perks owned, with the total from the read, never E's 14
+ FAIL  |website| src/compactSkillTree.test.tsx > WS326: the header counts the perks owned and shows the resource chips > says {owned} of {total} perks owned, with the total from the read, never E's 14
+ FAIL  |website| src/compactSkillTree.test.tsx > WS326: the header counts the perks owned and shows the resource chips > shows the skill points to spend and LV {n} as chips beside it, the level spoken as Level {n}
+ FAIL  |website| src/compactSkillTree.test.tsx > WS326: the header counts the perks owned and shows the resource chips > shows no level chip while progression is null
+      Tests  5 failed (5)
