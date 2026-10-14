@@ -89,6 +89,10 @@ function perkStateOf({ perk, row, skillPoints, requires, retired }: Perk, facts:
   return "buyable";
 }
 
+export function ownsEveryPerk({ owned, perks }: MemberPerks): boolean {
+  return perks.every(({ perk, retired }) => retired === true || owned.some((each) => each.perk === perk));
+}
+
 function purchaseOf(ctx: QueryCtx, member: MemberId, key: string) {
   return ctx.db
     .query("perkPurchases")

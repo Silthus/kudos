@@ -90,14 +90,14 @@ describe("P15: the hint adds no wait and shows only while the skill tree applies
   });
 });
 
-describe("P15: no hint, and today's reply, otherwise", () => {
-  test("a kudos that says why", async () => {
+describe("P15: no hint otherwise", () => {
+  test("a kudos that says why shows the bonus it paid instead", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
     const { t } = await workspaceWhereAliceOwns("spark");
 
     await giveKudos(t, saysWhy);
 
-    expect(successRepliesToAlice()).toEqual([[given, "+10 XP"]]);
+    expect(successRepliesToAlice()).toEqual([[given, "+10 XP · Spark bonus (+5 XP)"]]);
   });
 
   test("a giver who owns no perk", async () => {

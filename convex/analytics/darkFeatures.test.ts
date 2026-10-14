@@ -175,10 +175,10 @@ describe("E11 O15: with capture on, off or failing, every member gets the same S
 });
 
 describe("E11: recording a product event writes only analytics' own rows and schedules only the drain and the identify job", () => {
-  test("re-running every recording job of two whole walks with every flag on, one of new members and one over members there before the launch, each with no analytics ID or workspace key yet", async () => {
+  test("re-running every recording job of three whole walks with every flag on, one of new members, one over members there before the launch and one through the skill tree and the Book, each with no analytics ID or workspace key yet", async () => {
     const reRun = new Set<string>();
 
-    for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch]) {
+    for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook]) {
       const { t } = await walked();
       for (const spy of [memberDecision, workspaceDecision, exposed, publish]) expect(vi.mocked(spy), "the walk reaches the spied seams").toHaveBeenCalled();
       for (const job of [...(await recordingJobsOf(t)), commandsLeaderboardView()]) {
@@ -225,6 +225,37 @@ async function walkOverMembersThereBeforeTheLaunch() {
   expect(eventsNamed("unlock opened").map(({ properties }) => properties.by)).toContain("launch");
   expect(eventsNamed("attempt failed")).toHaveLength(1);
   return { t };
+}
+
+async function walkThroughTheSkillTreeAndTheBook() {
+  start("on", "flags key set");
+  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "skill-tree", "achievements"].map(onForEveryone));
+  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
+  await journeyShippedBeforeAnyoneJoined(t);
+
+  await openHome(t, "U_ALICE");
+  await giveKudos(t, "U_ALICE", 1);
+  await skillTreeOpenAtLevelFive(t, "U_ALICE");
+  await act(t, "U_ALICE", { type: "buyPerk", perk: "spark" });
+
+  expect(eventsNamed("perk bought")).toHaveLength(1);
+  expect(eventsNamed("achievement earned")).not.toHaveLength(0);
+  return { t };
+}
+
+async function skillTreeOpenAtLevelFive(t: Backend, user: string) {
+  await t.run(async (ctx) => {
+    const member = (await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+      .unique())!._id;
+    const progress = await ctx.db
+      .query("memberProgress")
+      .withIndex("by_member", (q) => q.eq("member", member))
+      .unique();
+    await ctx.db.patch(progress!._id, { xp: 600 });
+    await ctx.db.insert("unlocks", { member, feature: "skillTree", readyAt: Date.now(), openedAt: Date.now() });
+  });
 }
 
 function everyRecorder() {
