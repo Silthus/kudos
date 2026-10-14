@@ -109,7 +109,7 @@ Groups: which of the workspace's user groups count as groups (an enabled user gr
   checklist: supersession-safety dismissed: the flag value is read fresh on every request; nothing stored records it except the exposure, which is per value
   checklist: worker-fencing dismissed: one mutation reads the flag and decides; no lease or ownership applies
   checklist: commit-ordered-effects dismissed: App Home is published, the welcome posted and the command answered after the mutation that read the flag commits
-  checklist: resumption-coverage dismissed: no batch resumes from a checkpoint; the welcome's decision travels with its delivery, so a retry posts what the request decided
+  checklist: resumption-coverage dismissed: no batch resumes from a checkpoint; the welcome's request decides only the flag for each member of its page, and a delivery the flag applied to decides groups again, with its own exposure, before it posts
   checklist: destination-confinement dismissed: the gate adds no destination; the welcome goes to the member, App Home to its viewer and the reply to the command's own response
   checklist: message-authenticity dismissed: every command, event and click is verified by the Slack signature before the gate is reached
   checklist: input-validation dismissed: the gate reads only the workspace and user Slack sent; a click's group ID is normalized before any read
@@ -118,7 +118,7 @@ Groups: which of the workspace's user groups count as groups (an enabled user gr
   checklist: keyed-ordering dismissed: the flag is read fresh on every request, so the order of requests does not change what a later one sees
   checklist: acknowledgment-barrier dismissed: the command acknowledges with its reply, and events and clicks are acknowledged before the gate runs in their scheduled functions
   checklist: retry-classification dismissed: reading the flag never throws (O33); a failure to read answers the safe default, so the gate adds no failure to classify
-- each groups decision sends one exposure per member and value: The mutation that decides what a member sees of groups, App Home's publish, the welcome's request, a pick, the group mode or the `/hedgehug leaderboard` reply before it reads the group boards, sends one `groups` exposure per member and value, and the member decision turns groups on for the member whose email it names and for nobody else.
+- each groups decision sends one exposure per member and value: The mutation that decides what a member sees of groups, App Home's publish, the welcome's request and its delivery, a pick, the group mode or the `/hedgehug leaderboard` reply before it reads the group boards, sends one `groups` exposure per member and value, and the member decision turns groups on for the member whose email it names and for nobody else.
   over: a member meeting groups in the welcome, every App Home tab and the replies while on, again while on, then twice while off, and a flag on for one member's email beside a member it doesn't name
   via: O36: the groups exposure
   refuted: groupsApplyTo decided the groups flag without sending its exposure -> both tests failed on their assertion, finding no groups exposure for the member (2026-10-14)

@@ -4,7 +4,7 @@ import { type FakePostHog, routedFetch, type FlagDefinition } from "../../testin
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, onInTheSandboxOnly, postHogDeciding, testBackendServing } from "../../testing/flags";
 import { blockActions, buttonIn, publishedHome, publishedHomeBlocks, readBlocks, staleButtonOf, type Block, type BlockAction, type ClickedMessage } from "../../testing/slackInteractions";
-import { memberChanged, settle, settleInTimeOrder, type Backend } from "../../testing/slackBackend";
+import { memberChanged, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 
@@ -90,6 +90,38 @@ describe("GB29: slice 1 is invisible where groups doesn't apply", { timeout: 120
     expect(slack.callsTo("chat.update")).toEqual([]);
     expect({ U_ANN: publishedHome(slack, "U_ANN"), U_AL: publishedHome(slack, "U_AL") }).toEqual(homesBefore);
     expect(postHog.productEvents().filter(({ event }) => event === "primary group picked")).toEqual([]);
+  });
+});
+
+describe("GB19, GB29: the welcome's groups decision", { timeout: 300_000 }, () => {
+  test("a welcome queued while groups applied but delivered after it turned off posts no group block and sends the off exposure", async () => {
+    const t = await workspaceOf(groups, [...slices, offForEveryone(groupsFlag)]);
+
+    await t.action(internal.slack.welcome.deliverWelcome, { workspace: "T1", user: "U_AL", groups: true, attempt: 1 });
+    await settle(t);
+
+    expect(welcomeLinesTo("U_AL")).not.toContain("count for");
+    expect(exposuresOf(await analyticsIdOf(t, "U_AL"))).toEqual([exposureOf(await analyticsIdOf(t, "U_AL"), false)]);
+  });
+
+  test("a kudos naming 100 new members welcomes each of them within Convex's limits, in a workspace of 400 user groups none of which counts", async () => {
+    const t = testBackend({ transactionLimits: true });
+    await flagsFromPostHog(t, postHog, ...slices, onForEveryone(groupsFlag));
+    const recipients = Array.from({ length: 100 }, (_, index) => `U_NEW${String(index).padStart(3, "0")}`);
+    for (const user of ["U_ALICE", ...recipients]) slack.withMember(user);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 100 });
+      await ctx.db.insert("groupSettings", { workspace: "T1", mode: "allowlist", allowlist: [] });
+      for (let index = 0; index < 400; index += 1) {
+        await ctx.db.insert("userGroups", { workspace: "T1", group: `S_${index}`, handle: `group-${index}`, name: `Group ${index}`, enabled: true, automatic: false, members: 1, asOf: 0, membersAsOf: 0 });
+      }
+    });
+
+    await t.fetch("/slack/events", await signedRequest(messageEvent([section(...recipients.map((user) => mention(user)), emoji("taco"))], { user: "U_ALICE" })));
+    await settle(t);
+
+    const welcomed = new Set(slack.callsTo("chat.postMessage").map(({ channel }) => channel));
+    expect(["U_ALICE", ...recipients].filter((user) => !welcomed.has(user))).toEqual([]);
   });
 });
 

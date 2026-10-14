@@ -3,7 +3,8 @@ import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { bookAppliesIn } from "../achievements/flag";
 import { analyticsIdOf } from "../analytics/person";
-import { groupsShownTo, isGroupsShownTo, primaryGroupOf, type GroupId, type GroupRef } from "../groups/groups";
+import { groupsApplyTo } from "../groups/flag";
+import { isGroupsShownTo, primaryGroupOf, type GroupId, type GroupRef } from "../groups/groups";
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";
 import { reconcileMember } from "../groups/reconcile";
 import { skillTreeAppliesIn } from "../progression/skillTree";
@@ -30,7 +31,7 @@ const namedAtMost = 3;
 export async function requestWelcome(ctx: MutationCtx, member: MemberId, welcomed: WelcomedAs) {
   const { workspace, user } = await chatUserOf(ctx, member);
   await decidedAsMemberAtDelivery(ctx, member);
-  const groups = await isGroupsShownTo(ctx, member);
+  const groups = await groupsApplyTo(ctx, member);
   await ctx.scheduler.runAfter(0, internal.slack.welcome.deliverWelcome, { workspace, user, welcomed, ...(groups && { groups }), attempt: 1 });
 }
 
@@ -68,7 +69,7 @@ export const welcomeGroupsOf = internalMutation({
   args: { workspace: v.string(), user: v.string(), pick: v.optional(welcomePickValidator) },
   handler: async (ctx, { workspace, user, pick }): Promise<WelcomeGroups | null> => {
     const person = await lookup(ctx, workspace, user);
-    if (person?.kind !== "member" || !(await groupsShownTo(ctx, person.member))) return null;
+    if (person?.kind !== "member" || !(await isGroupsShownTo(ctx, person.member))) return null;
     await reconcileMember(ctx, person.member);
     const choice = await groupChoiceOf(ctx, person.member);
     if (pick === undefined) return choice === null ? null : { lines: [isPicked(choice) ? pickQuestion : countsFor(choice.primary)], picker: pickerOf(choice) };
