@@ -11,6 +11,8 @@
 - The Leaderboard opened in place from the nav. Its empty board took focus on its title, with no `aria-busy` left. This month then moved the address to `/leaderboard?period=month` ([screenshot](sandbox-leaderboard-month-light.png)).
 - **Signed out** (an incognito tab), `/leaderboard` showed the [sign-in page](sandbox-signed-out-light.png).
 
+After round 2, `deploy-sandbox.yml` (run 38505947166) redeployed the sandbox from `b623f6a`, the reviewed head, and the check ran again. Signed in, the home rendered `Open` and `Still locked` with the status region mounted, and the Leaderboard opened from the nav. All time then moved the address to `/leaderboard?period=all` with no `aria-busy` and no error page. Signed out, the home showed Sign in.
+
 Nothing on the sandbox was written, cleared or migrated.
 
 ## Gate
