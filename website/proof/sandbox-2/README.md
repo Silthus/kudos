@@ -61,4 +61,7 @@ Showing the locked and ready states here would need a second member joining afte
 
 ## The clock on an open board (WS36, #134's follow-up)
 
-See [`clock.txt`](clock.txt).
+[`clock.txt`](clock.txt) covers two runs on a disposable local backend on 4410/4411. A clock proof needs a viewer whose midnight falls inside this ticket's window. The sandbox's one member's midnight is 22:00Z.
+
+- **Run 1** (Atlantic/Cape_Verde): the open page turned over at 01:00:44Z, a minute before the clock ticked. The mock serves flag definitions without an ETag, so the PostHog component rewrote its cached row every minute, and every flag-reading query re-ran. That run doesn't isolate the tick: [before](clock-1-before-midnight.png), [after](clock-1-after-midnight.png).
+- **Run 2** (America/Noronha), with the mock stopped so nothing else rewrote what the board reads: the open page, still on its first navigation, turned from `▲ 9` to `▲ 4 more kudos than this time last week` 85 ms after the 02:01:44Z tick, the first after Noa's midnight. Screenshots: [before](clock-2-before-midnight-dark.png), [after](clock-2-after-midnight-dark.png).
