@@ -2,11 +2,12 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
-import { ReportableError } from "../analytics/exceptions";
+import { ReportableError, typeOf } from "../analytics/exceptions";
 import { awaitedUsers, recheck, type Observation } from "../engine/engine";
 import { messageRefValidator, type MessageRef } from "../engine/messageEvent";
 import { republishOnRoleChange } from "../feedback/homes";
 import { directoryRecordArgs, lookup, record, type DirectoryEntry, type DirectoryRecord } from "../workspace/directory";
+import type { MemberProfile } from "../workspace/memberProfile";
 import { readSlack } from "./webApi";
 
 type SlackUser = {
@@ -19,7 +20,7 @@ type SlackUser = {
   tz?: string;
   name?: string;
   real_name?: string;
-  profile?: { display_name?: string; real_name?: string };
+  profile?: { display_name?: string; real_name?: string; email?: string; title?: string };
 };
 
 export type MemberChanged = { type: "team_join" | "user_change"; user: SlackUser; event_ts: string };
@@ -96,6 +97,26 @@ export const fillMissingNames = observedAction({
   },
 });
 
+export const fillMemberProfiles = observedAction({
+  args: {},
+  handler: async (ctx) => {
+    let cursor = "";
+    do {
+      const asOf = Date.now();
+      const page = await readSlack<UsersPage>("users.list", { limit: "200", ...(cursor && { cursor }) });
+      if (!page.ok) throw new ReportableError(`Slack users.list failed: ${page.error}`);
+      await ctx.runMutation(internal.workspace.directory.fillProfiles, { profiles: page.members.flatMap((user) => memberProfileOf(user, asOf)) });
+      cursor = page.response_metadata?.next_cursor ?? "";
+    } while (cursor !== "");
+  },
+});
+
+function memberProfileOf(user: SlackUser, asOf: number) {
+  const workspace = user.team_id ?? "";
+  const entry = directoryEntryOf(user, workspace);
+  return entry.kind === "member" ? [{ workspace, user: user.id, profile: profileOf(user), asOf }] : [];
+}
+
 function memberNameOf(user: SlackUser) {
   const workspace = user.team_id ?? "";
   const entry = directoryEntryOf(user, workspace);
@@ -126,7 +147,7 @@ async function usersInfo(user: string) {
   try {
     return await readSlack<{ user: SlackUser }>("users.info", { user });
   } catch (error) {
-    console.warn(`users.info failed for ${user}: ${error}`);
+    console.warn("slack.users_info_failed", { error: typeOf(error) });
     return null;
   }
 }
@@ -135,7 +156,19 @@ function directoryEntryOf(user: SlackUser, workspace: string): DirectoryEntry {
   if (user.is_bot || user.id === slackbot) return { kind: "bot" };
   if (user.deleted || user.team_id !== workspace) return { kind: "not-a-member" };
   const name = displayNameOf(user);
-  return { kind: "member", ...(name && { name }), ...(user.tz && { timeZone: user.tz }), ...((user.is_admin || user.is_owner) && { admin: true }) };
+  return {
+    kind: "member",
+    ...(name && { name }),
+    ...(user.tz && { timeZone: user.tz }),
+    ...((user.is_admin || user.is_owner) && { admin: true }),
+    ...profileOf(user),
+  };
+}
+
+function profileOf(user: SlackUser): MemberProfile {
+  const realName = user.profile?.real_name || user.real_name;
+  const { email, display_name: displayName, title } = user.profile ?? {};
+  return { ...(email && { email }), ...(realName && { realName }), ...(displayName && { displayName }), ...(title && { title }) };
 }
 
 function displayNameOf(user: SlackUser) {

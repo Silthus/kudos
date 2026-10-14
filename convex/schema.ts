@@ -14,6 +14,7 @@ import { crateOpeningValidator } from "./quests/crates";
 import { journeyActivationValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
 import { featureValidator } from "./unlocks/feature";
+import { memberProfileFields } from "./workspace/memberProfile";
 
 export default defineSchema({
   ...authTables,
@@ -65,6 +66,7 @@ export default defineSchema({
     name: v.optional(v.string()),
     timeZone: v.optional(v.string()),
     admin: v.optional(v.boolean()),
+    ...memberProfileFields,
     asOf: v.optional(v.number()),
   })
     .index("by_user", ["workspace", "user"])

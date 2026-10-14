@@ -28,7 +28,11 @@ export async function readSlack<Data>(method: string, args: Record<string, strin
 async function answerOf<Answer>(method: string, response: Response): Promise<Answer | SlackFailure> {
   if (response.status === tooManyRequests) return { ok: false, error: "ratelimited", retryAfterMs: retryAfterMsOf(response) };
   if (!response.ok) throw new ReportableError(`Slack ${method} answered HTTP ${response.status}`);
-  return (await response.json()) as Answer;
+  try {
+    return (await response.json()) as Answer;
+  } catch {
+    throw new ReportableError(`Slack ${method} answered a body that isn't JSON`);
+  }
 }
 
 function retryAfterMsOf(response: Response) {

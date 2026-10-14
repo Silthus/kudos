@@ -6,9 +6,9 @@ const siteUrl = "https://example-deployment.convex.site";
 describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => {
   const manifest = renderManifest(environment, siteUrl);
 
-  test("asks for every spec 1 bot scope up front", () => {
+  test("asks for every spec 1 bot scope up front, and users:read.email for the directory's member profiles (F4)", () => {
     expect(manifest.oauth_config.scopes.bot.toSorted()).toEqual(
-      ["channels:history", "channels:join", "chat:write", "chat:write.public", "commands", "groups:history", "reactions:write", "users:read"],
+      ["channels:history", "channels:join", "chat:write", "chat:write.public", "commands", "groups:history", "reactions:write", "users:read", "users:read.email"],
     );
   });
 

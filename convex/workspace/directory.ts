@@ -5,6 +5,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import type { ChatUserId } from "../engine/messageEvent";
 import { ReportableError } from "../analytics/exceptions";
 import { publish } from "../bus/publish";
+import { memberProfileFields, type MemberProfile } from "./memberProfile";
 
 export type MemberId = Id<"members">;
 
@@ -14,7 +15,7 @@ export type MemberFacts =
   | { kind: "not-a-member" };
 
 export const directoryEntryValidator = v.union(
-  v.object({ kind: v.literal("member"), name: v.optional(v.string()), timeZone: v.optional(v.string()), admin: v.optional(v.boolean()) }),
+  v.object({ kind: v.literal("member"), name: v.optional(v.string()), timeZone: v.optional(v.string()), admin: v.optional(v.boolean()), ...memberProfileFields }),
   v.object({ kind: v.literal("bot") }),
   v.object({ kind: v.literal("not-a-member") }),
 );
@@ -62,6 +63,20 @@ export const nameMembersWithoutName = internalMutation({
     }
   },
 });
+
+export const fillProfiles = internalMutation({
+  args: { profiles: v.array(v.object({ workspace: v.string(), user: v.string(), profile: v.object(memberProfileFields), asOf: v.number() })) },
+  handler: async (ctx, { profiles }) => {
+    for (const { workspace, user, profile, asOf } of profiles) {
+      const row = await memberRow(ctx, workspace, user);
+      if (row?.kind === "member" && !isOlder(asOf, row.asOf) && differsFrom(row, profile)) await ctx.db.patch(row._id, profile);
+    }
+  },
+});
+
+function differsFrom(row: Doc<"members">, profile: MemberProfile) {
+  return Object.entries(profile).some(([field, value]) => row[field as keyof MemberProfile] !== value);
+}
 
 export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }: DirectoryRecord) {
   const row = { workspace, user, timeZone: undefined, asOf, ...entry };

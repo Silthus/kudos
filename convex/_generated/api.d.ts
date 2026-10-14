@@ -117,6 +117,7 @@ import type * as website_signIn from "../website/signIn.js";
 import type * as website_unlockPath from "../website/unlockPath.js";
 import type * as welcome_welcome from "../welcome/welcome.js";
 import type * as workspace_directory from "../workspace/directory.js";
+import type * as workspace_memberProfile from "../workspace/memberProfile.js";
 import type * as workspace_settings from "../workspace/settings.js";
 
 import type {
@@ -235,6 +236,7 @@ declare const fullApi: ApiFromModules<{
   "website/unlockPath": typeof website_unlockPath;
   "welcome/welcome": typeof welcome_welcome;
   "workspace/directory": typeof workspace_directory;
+  "workspace/memberProfile": typeof workspace_memberProfile;
   "workspace/settings": typeof workspace_settings;
 }>;
 
