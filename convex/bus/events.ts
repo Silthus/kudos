@@ -2,6 +2,7 @@ import { v, type Infer } from "convex/values";
 import { ladderValidator, tierValidator } from "../achievements/ladders";
 import { awardIdValidator } from "../engine/awards";
 import { annotationsValidator, messageRefValidator } from "../engine/messageEvent";
+import { perkValidator } from "../progression/tree";
 import { questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
 import type { MemberId } from "../workspace/directory";
@@ -106,6 +107,10 @@ export const achievementEarnedEventValidator = v.object({
 
 export type AchievementEarnedEvent = Infer<typeof achievementEarnedEventValidator>;
 
+export const perkBoughtEventValidator = v.object({ type: v.literal("perkBought"), workspace: v.string(), member: v.id("members"), perk: perkValidator, at: v.number() });
+
+export type PerkBoughtEvent = Infer<typeof perkBoughtEventValidator>;
+
 const membershipFields = { workspace: v.string(), member: v.id("members"), at: v.number() };
 
 export const memberLeftEventValidator = v.object({ type: v.literal("memberLeft"), ...membershipFields });
@@ -131,6 +136,7 @@ export type DomainEvent =
   | QuestFinishedEvent
   | QuestOpenedEvent
   | AchievementEarnedEvent
+  | PerkBoughtEvent
   | MemberLeftEvent
   | MemberRejoinedEvent;
 

@@ -4,13 +4,12 @@ import { flag, type Flag } from "../analytics/flags";
 import { everyoneBoardFlag } from "../leaderboard/flag";
 import { questsFlag } from "../quests/questsFlag";
 import { skillTreeLevel } from "../progression/levels";
+import { skillTreeFlag } from "../progression/skillTreeFlag";
 import type { Feature } from "./feature";
 
 type ShipFlag = Flag<boolean, "workspace">;
 
 export type ScheduledFeature = { feature: Feature; level: number; name: string; opens: string; shipsWith: ShipFlag | null };
-
-export const skillTree = { key: "skill-tree", subject: "workspace", safeDefault: false, values: [false, true] } as const satisfies ShipFlag;
 
 export const schedule = {
   version: "1",
@@ -18,7 +17,7 @@ export const schedule = {
     { feature: "quests", level: 2, name: "Quests", opens: "your weekly quests", shipsWith: questsFlag },
     { feature: "leaderboard", level: 3, name: "Leaderboard", opens: "the boards", shipsWith: everyoneBoardFlag },
     { feature: "book", level: 4, name: "Book", opens: "achievements", shipsWith: achievementsFlag },
-    { feature: "skillTree", level: skillTreeLevel, name: "Skill tree", opens: "the tree and your first skill point", shipsWith: skillTree },
+    { feature: "skillTree", level: skillTreeLevel, name: "Skill tree", opens: "the tree and your first skill point", shipsWith: skillTreeFlag },
     { feature: "coins", level: 6, name: "Coins and inventory", opens: "the wallet, the store's kudos emoji and your emoji slots", shipsWith: null },
     { feature: "hedgehogs", level: 7, name: "Hedgehogs", opens: "the hedgehog collection, your avatar and the store's hedgehogs", shipsWith: null },
   ],

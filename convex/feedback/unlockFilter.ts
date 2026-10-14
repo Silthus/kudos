@@ -30,9 +30,12 @@ export const unopenedReplyOf = internalMutation({
   },
 });
 
-export function renderUnopenedReply({ name, level }: ScheduledFeature, state: "ready" | "locked"): Line[] {
-  const text = state === "ready" ? `${name} is ready for you. Open it in App Home.` : `${name} opens at level ${level}.`;
-  return [[{ text }]];
+export function renderUnopenedReply(feature: ScheduledFeature, state: "ready" | "locked"): Line[] {
+  return [[{ text: unopenedTextOf(feature, state) }]];
+}
+
+export function unopenedTextOf({ name, level }: ScheduledFeature, state: "ready" | "locked") {
+  return state === "ready" ? `${name} is ready for you. Open it in App Home.` : `${name} opens at level ${level}.`;
 }
 
 async function memberReplyOf(ctx: MutationCtx, member: MemberId, feature: Feature) {

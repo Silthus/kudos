@@ -5,7 +5,9 @@ import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHo
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
+import { buyPerk } from "../progression/perks";
 import { setProgressSettings } from "../progression/settings";
+import { perkValidator } from "../progression/tree";
 import { openQuestCrate } from "../quests/crates";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { rerollQuest } from "../quests/weekly";
@@ -23,6 +25,7 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("openUnlock"), feature: featureValidator }),
   v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
   v.object({ type: v.literal("rerollQuest"), quest: weeklyQuestValidator }),
+  v.object({ type: v.literal("buyPerk"), perk: perkValidator }),
 );
 
 export type Command = Infer<typeof commandValidator>;
@@ -31,7 +34,7 @@ export function commandOf(candidate: unknown): Command | null {
   return conforms(commandValidator, candidate) ? (candidate as Command) : null;
 }
 
-export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command) {
+export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, idempotencyKey: string) {
   const { member } = person;
   switch (command.type) {
     case "showHomeTab":
@@ -58,6 +61,10 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return;
     case "rerollQuest":
       await rerollQuest(ctx, member, command.quest);
+      return;
+    case "buyPerk":
+      await buyPerk(ctx, member, command.perk, idempotencyKey);
+      await showHomeTab(ctx, workspace, person, "skillTree");
       return;
   }
 }
