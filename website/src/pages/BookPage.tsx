@@ -9,7 +9,7 @@ export function BookPage({ book }: { book: YourBook }) {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
         <span className="hud-label">Book</span>
-        <PageTitle tab="Book">Achievements</PageTitle>
+        <PageTitle tab="Book" size="display">Achievements</PageTitle>
         <p className="text-sm text-muted-foreground">Tiers you earn by thanking colleagues and being thanked. Each one is yours for good.</p>
       </header>
       <div className="flex flex-col gap-4">
