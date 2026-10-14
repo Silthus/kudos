@@ -9,7 +9,7 @@ import { settingsOf } from "../workspace/settings";
 import { allowanceDay, dailyAllowance, type DayKey } from "./allowance";
 import { insertAwards, type Award } from "./awards";
 import { keepSpotlightUpToDate } from "./spotlight";
-import { forgetDeleted, forgetWords, hasKudosText, keepFetchedWords, keepWords, removeWords } from "./kudosText";
+import { deletionRequested, forgetDeleted, forgetWords, hasKudosText, keepFetchedWords, keepWords, removeWords } from "./kudosText";
 import type { Annotations, ChatUserId, FetchedMessage, Mention, MessageDeleted, MessageEvent, MessageRef } from "./messageEvent";
 import { annotationsOf, fingerprintOf, kudosMessageOf, type KudosMessage, type ParseContext } from "../parser/parser";
 
@@ -27,7 +27,7 @@ export type Observation =
   | { kind: "already-given"; toldGiver: boolean }
   | { kind: "evaluated"; outcome: Outcome };
 
-export type Hydration = { kind: "hydrated" } | { kind: "refused"; why: "not-given" | "stale-revision" | "not-a-member" | "ordinary-chat" | "already-known" };
+export type Hydration = { kind: "hydrated" } | { kind: "refused"; why: "not-given" | "stale-revision" | "not-a-member" | "ordinary-chat" | "already-known" | "deletion-requested" };
 
 type KudosMessageRow = Doc<"kudosMessages">;
 type Member = Extract<MemberFacts, { kind: "member" }>;
@@ -71,6 +71,7 @@ async function hydrateMessage(ctx: MutationCtx, fetched: FetchedMessage): Promis
   if (fetched.revision > row.revision) await followFetchedRevision(ctx, row, fetched);
   const author = await lookup(ctx, fetched.ref.workspace, fetched.author);
   if (author?.kind !== "member") return refused("not-a-member");
+  if (await deletionRequested(ctx, { workspace: fetched.ref.workspace, author: fetched.author })) return refused("deletion-requested");
   const context = { workspace: fetched.ref.workspace, giver: author.member };
   if ((await kudosMessageOf(ctx, fetched.content, context)) === null) return refused("ordinary-chat");
   const kept = await keepFetchedWords(ctx, fetched, annotationsOf(fetched.content, context));
@@ -203,7 +204,7 @@ export async function threadOfGivenWithoutWords(ctx: QueryCtx, ref: MessageRef):
 }
 
 async function awaitsWords(ctx: QueryCtx, row: KudosMessageRow) {
-  return row.state === "given" && !(await hasKudosText(ctx, refOf(row)));
+  return row.state === "given" && !(await hasKudosText(ctx, refOf(row))) && !(await deletionRequested(ctx, row));
 }
 
 export async function awaitedUsers(ctx: QueryCtx, ref: MessageRef, attempt: bigint): Promise<ChatUserId[] | null> {

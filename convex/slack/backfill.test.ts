@@ -169,6 +169,25 @@ describe("AT35: hydrate refuses", () => {
     expect(await storedAndScheduled(t)).not.toContain(reason);
   });
 
+  test.each<[string, (t: Backend) => Promise<unknown>]>([
+    ["its author", (t) => t.mutation(internal.workspace.wordDeletion.forgetWordsOfMember, { workspace: "T1", user: "U_ALICE" })],
+    ["its workspace", (t) => t.mutation(internal.workspace.wordDeletion.forgetWordsOfWorkspace, { workspace: "T1" })],
+  ])("a message whose words %s asked to delete while its answer was on the way", async (_, request) => {
+    const t = testBackend();
+    await givenBeforeCapture(t, thanksBob, { ts: topLevelTs });
+    const answer = slack.holdNext("conversations.history");
+
+    const run = t.action(internal.slack.backfill.backfillWords, {});
+    await answer.reached;
+    await request(t);
+    answer.release();
+    await run;
+    await settleInTimeOrder(t);
+
+    expect(await wordsAt(t, topLevelTs)).toEqual({ kind: "unavailable", reason: "not-captured" });
+    expect(await storedAndScheduled(t)).not.toContain(reason);
+  });
+
   test("a message whose author is no longer a member", async () => {
     const t = testBackend();
     await givenBeforeCapture(t, thanksBob, { ts: topLevelTs });
