@@ -29,6 +29,7 @@ export const subscribers: Registry = {
   questFinished: [{ subscriber: internal.quests.journey.finishFirstQuest, only: ({ quest }) => quest.kind === "weekly" }],
   questOpened: [],
   memberLeft: [internal.quests.journey.recheckSomeoneNew],
+  memberRejoined: [internal.quests.journey.recheckRejoined],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {

@@ -145,6 +145,23 @@ describe("P90: a Journey step that opens with a feature counts only what follows
     expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([]);
   });
 
+  test.each([
+    ["first-quest", "quests", (t: Backend, alice: MemberId) => t.mutation(internal.quests.journey.finishFirstQuest, { event: { type: "questFinished", workspace: "T1", member: alice, quest: { kind: "weekly", week: "2026-10-12", slot: 0 }, at: now.getTime() + minuteMs } })],
+    [
+      "someone-new",
+      "leaderboard",
+      async (t: Backend, alice: MemberId, bob: MemberId) => t.mutation(internal.quests.journey.followJourney, { event: await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { at: now.getTime() + minuteMs })) }),
+    ],
+  ] as const)("%s: what finishes it after the opening still counts when its event is read before the activation's subscriber runs", async (step, feature, finishing) => {
+    const { t, alice, bob } = await membersInDirectory();
+    await t.run((ctx) => ctx.db.insert("rewardRecords", { member: alice, key: "weekly:2026-10-12:0", xp: 20, coins: 0, item: null, catalogueVersion: "1", at: now.getTime() + minuteMs }));
+    await finishing(t, alice, bob);
+
+    await opened(t, alice, feature, now.getTime());
+
+    expect(await rewardRecordsOf(t, `journey:${step}`)).toEqual([{ key: `journey:${step}`, xp: step === "first-quest" ? 20 : 30, catalogueVersion: "1", at: now.getTime() + minuteMs }]);
+  });
+
   test("first-quest: a weekly quest finished before the step became active doesn't finish it", async () => {
     const { t, alice } = await membersInDirectory();
     await opened(t, alice, "quests", now.getTime());
@@ -157,6 +174,48 @@ describe("P90: a Journey step that opens with a feature counts only what follows
 });
 
 describe("P90: someone-new never strands a member", () => {
+  test("a member who left, and comes back after the last member they hadn't thanked left too, finishes someone-new on their return", async () => {
+    const t = await workspace();
+    await directoryKnows(t, "U_CAROL");
+    await giveKudos(t, "U_ALICE", "U_BOB", "thanks");
+    await leaderboardReady(t, "U_ALICE");
+    await openHome(t, "U_ALICE");
+    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Open"));
+    aMinuteLater();
+    await t.fetch("/slack/events", await signedRequest(memberEvent("user_change", { id: "U_ALICE", deleted: true })));
+    await t.fetch("/slack/events", await signedRequest(memberEvent("user_change", { id: "U_CAROL", deleted: true })));
+    await settle(t);
+    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([]);
+
+    const later = aMinuteLater();
+    await t.fetch("/slack/events", await signedRequest(memberEvent("user_change", { id: "U_ALICE" })));
+    await settle(t);
+
+    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "1", at: later }]);
+  });
+
+  test("a leave rechecks every member with someone-new active within Convex's limits, and finishes the one who has now thanked everyone", async () => {
+    const t = await flagsLoaded(testBackend({ transactionLimits: true }));
+    await unlocksShippedBeforeAnyoneJoined(t);
+    const [alice, leaving] = await t.run(async (ctx) => {
+      const members: MemberId[] = [];
+      for (let index = 0; index < 400; index += 1) members.push(await ctx.db.insert("members", { workspace: "T1", user: `U_${index}`, kind: "member" }));
+      for (const member of members) await ctx.db.insert("journeySteps", { member, step: "someone-new", activatedAt: now.getTime(), reward: { xp: 30, coins: 0, item: null }, catalogueVersion: "1" });
+      return members;
+    });
+    await t.run(async (ctx) => {
+      const members = await ctx.db.query("members").collect();
+      for (const { _id: recipient } of members) if (recipient !== alice && recipient !== leaving) await kudosGivenEventWithAward(ctx, alice!, recipient, { at: now.getTime() + minuteMs });
+    });
+    await t.run((ctx) => ctx.db.patch(leaving!, { kind: "not-a-member" }));
+
+    await t.mutation(internal.quests.journey.recheckSomeoneNew, { event: { type: "memberLeft", workspace: "T1", member: leaving!, at: now.getTime() + 2 * minuteMs } });
+    await settle(t);
+
+    const finished = await t.run(async (ctx) => (await ctx.db.query("rewardRecords").collect()).filter(({ key }) => key === "journey:someone-new").map(({ member }) => member));
+    expect(finished).toEqual([alice]);
+  }, 120_000);
+
   test("a member who already thanked every other member finishes someone-new when the Leaderboard opens", async () => {
     const t = await workspace();
     await giveKudos(t, "U_ALICE", "U_BOB", "thanks");

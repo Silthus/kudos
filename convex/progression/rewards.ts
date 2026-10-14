@@ -24,3 +24,10 @@ export function rewardOf(ctx: QueryCtx, member: MemberId, key: string) {
     .withIndex("by_member_key", (q) => q.eq("member", member).eq("key", key))
     .unique();
 }
+
+export function rewardsKeyedFrom(ctx: QueryCtx, member: MemberId, keyPrefix: string) {
+  return ctx.db
+    .query("rewardRecords")
+    .withIndex("by_member_key", (q) => q.eq("member", member).gte("key", keyPrefix).lt("key", `${keyPrefix}\uffff`))
+    .collect();
+}

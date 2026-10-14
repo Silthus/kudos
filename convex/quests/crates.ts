@@ -21,7 +21,11 @@ export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: 
 }
 
 export function rewardKeyOf(quest: Quest) {
-  return quest.kind === "journey" ? `journey:${quest.step}` : `weekly:${quest.week}:${quest.slot}`;
+  return quest.kind === "journey" ? `${rewardKeyPrefixOf("journey")}${quest.step}` : `${rewardKeyPrefixOf("weekly")}${quest.week}:${quest.slot}`;
+}
+
+export function rewardKeyPrefixOf(kind: Quest["kind"]) {
+  return `${kind}:`;
 }
 
 export function crateOpeningOf(ctx: QueryCtx, member: MemberId, key: string) {

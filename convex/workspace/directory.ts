@@ -84,7 +84,9 @@ export async function teammatesOf(ctx: QueryCtx, workspace: string, member: Memb
 
 async function replace(ctx: MutationCtx, existing: Doc<"members">, row: WithoutSystemFields<Doc<"members">>) {
   await ctx.db.replace(existing._id, row);
-  if (existing.kind === "member" && row.kind !== "member") await publish(ctx, { type: "memberLeft", workspace: row.workspace, member: existing._id, at: Date.now() });
+  const membership = { workspace: row.workspace, member: existing._id, at: Date.now() };
+  if (existing.kind === "member" && row.kind !== "member") await publish(ctx, { type: "memberLeft", ...membership });
+  if (existing.kind !== "member" && row.kind === "member") await publish(ctx, { type: "memberRejoined", ...membership });
 }
 
 function isOlder(asOf: number, known: number | undefined) {

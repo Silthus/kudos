@@ -1,13 +1,22 @@
-import { v, type Infer } from "convex/values";
+import { type Infer } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { kudosGivenEventValidator, memberLeftEventValidator, questFinishedEventValidator, unlockOpenedEventValidator, type KudosGivenEvent } from "../bus/events";
-import { lastThankedBefore, lastThankedBy } from "../engine/awards";
+import { v } from "convex/values";
+import { internal } from "../_generated/api";
+import {
+  kudosGivenEventValidator,
+  memberLeftEventValidator,
+  memberRejoinedEventValidator,
+  questFinishedEventValidator,
+  unlockOpenedEventValidator,
+  type KudosGivenEvent,
+} from "../bus/events";
+import { firstThanksOf, lastThankedBefore, lastThankedBy } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { notifyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
-import { rewardOf } from "../progression/rewards";
-import { currentMembersOf, teammatesOf, type MemberId } from "../workspace/directory";
-import { crateOpeningOf, rewardKeyOf } from "./crates";
+import { rewardOf, rewardsKeyedFrom } from "../progression/rewards";
+import { teammatesOf, type MemberId } from "../workspace/directory";
+import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf } from "./crates";
 import { finishQuest } from "./finish";
 import { questsApplyIn } from "./flag";
 import { journeyStepOpenedBy, journeyStepValidator, type JourneyQuest, type JourneyStep } from "./step";
@@ -42,12 +51,15 @@ export const followJourney = internalMutation({
   handler: (ctx, { event }) => advanceJourney(ctx, event, journey),
 });
 
+const membersPerRecheck = 100;
+
 export const activateJourney = internalMutation({
   args: { event: unlockOpenedEventValidator },
   handler: async (ctx, { event: { workspace, member, feature, at } }) => {
     const step = journeyStepOpenedBy(feature);
     if (step === null || !(await questsApplyIn(ctx, workspace)) || (await activationOf(ctx, member, step)) !== null) return;
     const activation = await activated(ctx, member, step, at, journey);
+    await finishWithWhatFollowed(ctx, workspace, activation);
     if (step === "someone-new") await finishOnceEveryoneIsThanked(ctx, workspace, activation, at);
     await republish(ctx, member);
   },
@@ -63,13 +75,33 @@ export const finishFirstQuest = internalMutation({
 });
 
 export const recheckSomeoneNew = internalMutation({
-  args: { event: memberLeftEventValidator },
-  handler: async (ctx, { event: { workspace, at } }) => {
-    if (!(await questsApplyIn(ctx, workspace))) return;
-    for (const member of await currentMembersOf(ctx, workspace)) {
-      const someoneNew = await activationOf(ctx, member, "someone-new");
-      if (someoneNew !== null) await finishOnceEveryoneIsThanked(ctx, workspace, someoneNew, at);
+  args: { event: memberLeftEventValidator, cursor: v.optional(v.string()) },
+  handler: async (ctx, { event, cursor }) => {
+    if (!(await questsApplyIn(ctx, event.workspace))) return;
+    const people = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", event.workspace))
+      .paginate({ numItems: membersPerRecheck, cursor: cursor ?? null });
+    for (const { _id: member, kind } of people.page) {
+      if (kind === "member" && (await isUnfinished(ctx, member, "someone-new"))) await recheckLater(ctx, event.workspace, member, event.at);
     }
+    if (!people.isDone) await ctx.scheduler.runAfter(0, internal.quests.journey.recheckSomeoneNew, { event, cursor: people.continueCursor });
+  },
+});
+
+export const recheckRejoined = internalMutation({
+  args: { event: memberRejoinedEventValidator },
+  handler: async (ctx, { event: { workspace, member, at } }) => {
+    if (await isUnfinished(ctx, member, "someone-new")) await recheckLater(ctx, workspace, member, at);
+  },
+});
+
+export const recheckSomeoneNewOf = internalMutation({
+  args: { workspace: v.string(), member: v.id("members"), at: v.number() },
+  handler: async (ctx, { workspace, member, at }) => {
+    if (!(await questsApplyIn(ctx, workspace))) return;
+    const someoneNew = await activationOf(ctx, member, "someone-new");
+    if (someoneNew !== null) await finishOnceEveryoneIsThanked(ctx, workspace, someoneNew, at);
   },
 });
 
@@ -89,6 +121,33 @@ async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent) {
   if (someoneNew === null || event.at < someoneNew.activatedAt || (await isFinished(ctx, someoneNew))) return;
   const lastThanked = await lastThankedBefore(ctx, event.awards);
   if ([...lastThanked.values()].includes(null)) await finish(ctx, event.workspace, someoneNew, event.at);
+}
+
+async function recheckLater(ctx: MutationCtx, workspace: string, member: MemberId, at: number) {
+  await ctx.scheduler.runAfter(0, internal.quests.journey.recheckSomeoneNewOf, { workspace, member, at });
+}
+
+async function finishWithWhatFollowed(ctx: MutationCtx, workspace: string, activation: JourneyActivation) {
+  const at = activation.step === "first-quest" ? await firstWeeklyQuestFinishedSince(ctx, activation) : activation.step === "someone-new" ? await firstThanksSince(ctx, activation) : null;
+  if (at !== null) await finish(ctx, workspace, activation, at);
+}
+
+async function firstWeeklyQuestFinishedSince(ctx: QueryCtx, { member, activatedAt }: JourneyActivation): Promise<number | null> {
+  const weekly = await rewardsKeyedFrom(ctx, member, rewardKeyPrefixOf("weekly"));
+  return earliest(weekly.map(({ at }) => at).filter((at) => at >= activatedAt));
+}
+
+async function firstThanksSince(ctx: QueryCtx, { member, activatedAt }: JourneyActivation): Promise<number | null> {
+  return earliest((await firstThanksOf(ctx, member)).filter((at) => at >= activatedAt));
+}
+
+function earliest(times: number[]): number | null {
+  return times.length === 0 ? null : Math.min(...times);
+}
+
+async function isUnfinished(ctx: QueryCtx, member: MemberId, step: JourneyStep) {
+  const activation = await activationOf(ctx, member, step);
+  return activation !== null && !(await isFinished(ctx, activation));
 }
 
 async function finishOnceEveryoneIsThanked(ctx: MutationCtx, workspace: string, someoneNew: JourneyActivation, at: number) {

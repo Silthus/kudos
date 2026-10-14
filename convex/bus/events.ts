@@ -94,9 +94,15 @@ export const questFinishedEventValidator = v.object({ type: v.literal("questFini
 
 export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields });
 
-export const memberLeftEventValidator = v.object({ type: v.literal("memberLeft"), workspace: v.string(), member: v.id("members"), at: v.number() });
+const membershipFields = { workspace: v.string(), member: v.id("members"), at: v.number() };
+
+export const memberLeftEventValidator = v.object({ type: v.literal("memberLeft"), ...membershipFields });
+
+export const memberRejoinedEventValidator = v.object({ type: v.literal("memberRejoined"), ...membershipFields });
 
 export type MemberLeftEvent = Infer<typeof memberLeftEventValidator>;
+
+export type MemberRejoinedEvent = Infer<typeof memberRejoinedEventValidator>;
 
 export type QuestFinishedEvent = Infer<typeof questFinishedEventValidator>;
 
@@ -112,7 +118,8 @@ export type DomainEvent =
   | UnlockOpenedEvent
   | QuestFinishedEvent
   | QuestOpenedEvent
-  | MemberLeftEvent;
+  | MemberLeftEvent
+  | MemberRejoinedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];
