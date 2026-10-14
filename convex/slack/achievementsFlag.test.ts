@@ -7,6 +7,7 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
+import { achievementsLiveIn } from "../achievements/flag";
 import { publish } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
 
@@ -139,6 +140,28 @@ describe("O35: turning the Book off and on again loses nothing", () => {
     expect(await toldRows(t)).toEqual(toldBefore.stored);
     expect(tierDmsTo("U_ALICE")).toEqual(toldBefore.dms);
     expect(tierLinesIn("C1")).toEqual(toldBefore.lines);
+  }, 30_000);
+});
+
+describe("a tier the Book's replay earns while the Book doesn't apply is never announced", () => {
+  test.each(bookTurnedOff)("$reason while the launch's replay still runs: a member who opens the Book once it is back gets no DM for the tier, and the Book shows it", async ({ flags }) => {
+    const t = await launchedWithoutTheBook(...allOn(offForEveryone(achievements)));
+    await membersWithHistory(t);
+    await giveKudos(t, "U_CAROL", "U_BOB", saysWhy);
+    await flagsFromPostHog(t, postHog, ...allOn());
+    await t.run((ctx) => achievementsLiveIn(ctx, "T1"));
+    await flagsFromPostHog(t, postHog, ...flags);
+    await settle(t);
+
+    await flagsFromPostHog(t, postHog, ...allOn());
+    await sweeps(t);
+    await openHome(t, "U_CAROL");
+    await send(t, blockActions("U_CAROL", buttonBeside(publishedHomeBlocks(slack, "U_CAROL"), "*Book* is ready", "Open")));
+    await send(t, blockActions("U_CAROL", buttonInHome(slack, "U_CAROL", "Book")));
+
+    expect(publishedHome(slack, "U_CAROL")).toContain("section: 🥉 *First Thanks* · earned Oct 14, 2026");
+    expect(tierDmsTo("U_CAROL")).toEqual([]);
+    expect(tierLinesIn("C1")).toEqual([]);
   }, 30_000);
 });
 
