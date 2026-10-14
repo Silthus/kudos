@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { AwardId, AwardWithId } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
-import { ladderOf, type LadderId } from "./ladders";
+import type { LadderId, Tier } from "./ladders";
 import type { BatchId } from "./replay";
 import { earnTier } from "./tiers";
 
@@ -18,12 +18,14 @@ export function countingOf(ladder: LadderId, award: AwardWithId): Counting {
   return { member: countedMember[ladder](award), ladder };
 }
 
-export async function countAward(ctx: MutationCtx, workspace: string, counting: Counting, award: DatedAward, batch?: BatchId): Promise<boolean> {
+export type Earning = { tiers: Tier[]; batch?: BatchId };
+
+export async function countAward(ctx: MutationCtx, workspace: string, counting: Counting, award: DatedAward, { tiers, batch }: Earning): Promise<boolean> {
   if (await isCounted(ctx, counting, award.award)) return false;
   const { before, after } = await addToCount(ctx, counting, award.kudos);
   await ctx.db.insert("countedAwards", { ...counting, award: award.award, count: after, at: award.at });
   const reaching = { workspace, ...counting, award: award.award, at: award.at, batch };
-  for (const tier of ladderOf(counting.ladder).tiers) if (before < tier.count && tier.count <= after) await earnTier(ctx, reaching, tier);
+  for (const tier of tiers) if (before < tier.count && tier.count <= after) await earnTier(ctx, reaching, tier);
   return true;
 }
 

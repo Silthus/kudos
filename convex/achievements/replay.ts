@@ -48,10 +48,10 @@ export const replayPage = internalMutation({
   args: { replay: v.id("bookReplays") },
   handler: async (ctx, { replay: id }): Promise<void> => {
     const replay = await ctx.db.get(id);
-    if (replay === null || replay.isDone) return;
+    if (replay === null || replay.isDone || !(await canRunNow(ctx, replay))) return;
     const { isDone, continueCursor } = replay.countsLadder ? await countHistory(ctx, replay) : await evaluateTiers(ctx, replay);
     await ctx.db.patch(id, { cursor: continueCursor, isDone });
-    if (isDone) await completeIfLast(ctx, replay.batch);
+    if (isDone) await finish(ctx, replay);
     else await ctx.scheduler.runAfter(0, internal.achievements.replay.replayPage, { replay: id });
   },
 });
@@ -66,9 +66,9 @@ function unevaluatedIn(replays: BookReplay[]): Unevaluated[] {
   });
 }
 
-async function countHistory(ctx: MutationCtx, { workspace, ladder, batch, cursor }: BookReplay): Promise<ReplayedPage> {
+async function countHistory(ctx: MutationCtx, { workspace, ladder, tiers, batch, cursor }: BookReplay): Promise<ReplayedPage> {
   const awards = await awardsInWorkspace(ctx, workspace, { cursor, numItems: awardsPerPage });
-  for (const award of awards.page) await countAward(ctx, workspace, countingOf(ladder, award), award, batch);
+  for (const award of awards.page) await countAward(ctx, workspace, countingOf(ladder, award), award, { tiers: tiersOf(ladder, tiers), batch });
   return awards;
 }
 
@@ -88,6 +88,25 @@ async function evaluateTiers(ctx: MutationCtx, { workspace, ladder, tiers, batch
 
 function tiersOf(ladder: LadderId, tiers: TierId[]) {
   return ladderOf(ladder).tiers.filter(({ tier }) => tiers.includes(tier));
+}
+
+async function finish(ctx: MutationCtx, replay: BookReplay) {
+  await completeIfLast(ctx, replay.batch);
+  if (!replay.countsLadder) return;
+  for (const { _id, countsLadder, isDone } of await replaysOf(ctx, replay)) {
+    if (!countsLadder && !isDone) await ctx.scheduler.runAfter(0, internal.achievements.replay.replayPage, { replay: _id });
+  }
+}
+
+async function canRunNow(ctx: QueryCtx, replay: BookReplay) {
+  return replay.countsLadder || (await replaysOf(ctx, replay)).some(({ countsLadder, isDone }) => countsLadder && isDone);
+}
+
+function replaysOf(ctx: QueryCtx, { workspace, ladder }: BookReplay) {
+  return ctx.db
+    .query("bookReplays")
+    .withIndex("by_workspace_ladder", (q) => q.eq("workspace", workspace).eq("ladder", ladder))
+    .collect();
 }
 
 async function completeIfLast(ctx: MutationCtx, batch: BatchId) {
