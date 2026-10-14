@@ -90,12 +90,21 @@ export const activityFixtures = {
   nothingYet: aPage([], null),
 } as const satisfies Record<string, Activity>;
 
-export const fixtureActivityWatch: ActivityWatch = (filter) => (filter === undefined ? undefined : onSide(activityFixtures.story, filter));
+const fixturePage = 3;
 
-export const fixtureReadActivity: ActivityRead = async ({ filter }) => onSide(activityFixtures.story, filter);
+export const fixtureActivityWatch: ActivityWatch = (filter) => (filter === undefined ? undefined : pageOf(filter, null));
 
-function onSide(answer: Activity, filter: ActivityFilter): Activity {
-  if (filter === "all") return answer;
+export const fixtureReadActivity: ActivityRead = async ({ filter, cursor }) => pageOf(filter, cursor);
+
+function pageOf(filter: ActivityFilter, cursor: string | null): Activity {
+  const entries = onSide(activityFixtures.story, filter);
+  const start = cursor === null ? 0 : Number(cursor);
+  const next = start + fixturePage;
+  return { ...activityFixtures.story, entries: entries.slice(start, next), cursor: next < entries.length ? String(next) : null };
+}
+
+function onSide(answer: Activity, filter: ActivityFilter) {
+  if (filter === "all") return answer.entries;
   const kind = filter === "received" ? "kudosReceived" : "kudosGiven";
-  return { ...answer, entries: answer.entries.filter((entry) => entry.kind === kind) };
+  return answer.entries.filter((entry) => entry.kind === kind);
 }

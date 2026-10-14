@@ -42,14 +42,19 @@ type KudosEntryProps = { face: ReactNode; headline: string; entry: KudosReceived
 function KudosEntry({ face, headline, entry, slackName, index, timeZone, children }: KudosEntryProps) {
   const headlineId = useId();
   return (
-    <article aria-labelledby={headlineId} tabIndex={-1} data-entry-index={index} className="relative grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring">
-      <div className="relative z-10 flex justify-center pt-3">{face}</div>
-      <div className="flex min-w-0 flex-col gap-2 rounded-xl border bg-card p-4 text-sm">
-        <div className="flex items-start justify-between gap-3">
-          <h3 id={headlineId} className="min-w-0 font-medium [overflow-wrap:anywhere]">
-            {headline}
-          </h3>
-          <When at={entry.at} timeZone={timeZone} />
+    <article aria-labelledby={headlineId} tabIndex={-1} data-entry-index={index} className="relative grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <div className="relative z-10 flex justify-center pt-6">
+        <span aria-hidden="true" className="size-2.5 rounded-full bg-muted-foreground ring-4 ring-background" />
+      </div>
+      <div className="flex min-w-0 flex-col gap-2.5 rounded-xl border bg-card p-4 text-sm">
+        <div className="flex items-start gap-3">
+          {face}
+          <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 pt-1.5">
+            <h3 id={headlineId} className="min-w-0 font-medium [overflow-wrap:anywhere]">
+              {headline}
+            </h3>
+            <When at={entry.at} timeZone={timeZone} />
+          </div>
         </div>
         <KudosMessage message={entry.message} clamped={false} />
         <Tags entry={entry} />
@@ -65,7 +70,7 @@ function LevelMark({ entry, index, timeZone }: { entry: LevelUp } & EntryProps) 
   return (
     <article aria-labelledby={headlineId} tabIndex={-1} data-entry-index={index} className="relative grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <div className="relative z-10 flex justify-center">
-        <span aria-hidden="true" className="hud-display flex size-9 items-center justify-center rounded-full border-2 border-foreground/70 bg-background text-base font-bold tabular-nums">
+        <span aria-hidden="true" className="hud-display flex size-10 items-center justify-center rounded-full border-2 border-foreground/70 bg-background text-base font-bold tabular-nums">
           {entry.level}
         </span>
       </div>
@@ -79,7 +84,7 @@ function LevelMark({ entry, index, timeZone }: { entry: LevelUp } & EntryProps) 
 
 function When({ at, timeZone }: { at: number; timeZone: string | undefined }) {
   return (
-    <time dateTime={new Date(at).toISOString()} className="mt-0.5 shrink-0 text-xs text-muted-foreground tabular-nums">
+    <time dateTime={new Date(at).toISOString()} className="shrink-0 text-xs text-muted-foreground tabular-nums">
       {timeOf(at, timeZone)}
     </time>
   );

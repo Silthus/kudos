@@ -33,7 +33,7 @@ export function ActivityPage({ filter, watch, readActivity, onChooseFilter }: Ac
   return (
     <div className="flex flex-col gap-6">
       <MemberTabs current="activity" />
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <header className="flex w-full max-w-3xl flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="flex max-w-xl flex-col gap-1">
           <span className="hud-label">Activity</span>
           <PageTitle tab="Activity" size="display">
@@ -83,7 +83,7 @@ function TimelineView({ timeline, announce }: { timeline: Timeline; announce: An
   if (!state.landed) return <FirstPageWaiting state={state} onTryAgain={() => ask("button")} />;
   const timeZone = zoneOf(state.timeZone);
   return (
-    <div ref={list} className="flex flex-col gap-4">
+    <div ref={list} className="flex w-full max-w-3xl flex-col gap-4">
       {newActivity && (
         <Button variant="outline" size="sm" className="self-center" onClick={showNew}>
           Show new activity
