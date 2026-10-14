@@ -1,4 +1,4 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { shellFixtures, type BuyAnswer, type MemberProfile, type MySkillTree } from "./shell";
@@ -168,6 +168,15 @@ describe("WS330: a one-off purchase pop", () => {
     expect(popped()).toEqual([nodeOf("Rhythm")]);
   });
 
+  it("drops the pop once it has played, so a later change of motion setting can't replay it", async () => {
+    const { user } = buy({ kind: "bought" });
+    await user.click(nodeOf("Rhythm"));
+    await user.click(within(main()).getByRole("button", { name: /^Buy/ }));
+    await act(async () => undefined);
+    fireEvent.animationEnd(within(nodeOf("Rhythm")).getByTestId("perk-square"));
+    expect(popped()).toEqual([]);
+  });
+
   it("doesn't pop when the purchase is refused", async () => {
     const { user } = buy({ kind: "refused", reason: "points" });
     await user.click(within(main()).getByRole("button", { name: /^Buy/ }));
@@ -197,15 +206,16 @@ describe("WS339 V24: the states' outlines, fills and marks meet 3:1 against the 
       { part: "the owned fill", element: squareOf("Spark") },
       { part: "the owned check mark", element: within(squareOf("Spark")).getByTestId("owned-check") },
       { part: "the Can buy outline", element: squareOf("Rhythm") },
+      { part: "the Locked outline", element: squareOf("Circle") },
       { part: "the lock mark", element: within(squareOf("Circle")).getByTestId("lock-mark") },
-      ...within(legend()).getAllByTestId("legend-swatch").slice(0, 2).map((element) => ({ part: "the legend's Owned and Can buy swatches", element })),
+      ...within(legend()).getAllByTestId("legend-swatch").map((element) => ({ part: "the legend's swatches", element })),
     ];
   }
 
   for (const mode of ["light", "dark"] as const) {
     it(`in ${mode}`, () => {
       const measured = stateGraphics().flatMap(({ part, element }) => tokenPaintsOf(element).map((paint) => ({ part, paint, ratio: contrast(mode, paint, "card") })));
-      expect(measured.length).toBeGreaterThanOrEqual(6);
+      expect(measured.length).toBeGreaterThanOrEqual(8);
       expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
     });
   }

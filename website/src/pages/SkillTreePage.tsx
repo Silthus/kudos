@@ -38,7 +38,7 @@ export function SkillTreePage({ tree, level, buyPerk }: SkillTreePageProps) {
       <TreeHeader tree={tree} level={level} />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <div className="flex min-w-0 flex-col gap-6">
-          {selected && <PerkTree rows={tree.rows} selected={selected.perk.perk} popped={popped} onSelect={select} onNode={(perk, node) => nodes.current.set(perk, node)} />}
+          {selected && <PerkTree rows={tree.rows} selected={selected.perk.perk} popped={popped} onPopped={() => setPopped(undefined)} onSelect={select} onNode={(perk, node) => nodes.current.set(perk, node)} />}
           <YourPerks rows={tree.rows} />
         </div>
         <div className="flex flex-col gap-6">

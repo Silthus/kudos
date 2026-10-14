@@ -8,6 +8,7 @@ type PerkTreeProps = {
   selected: PerkNode["perk"];
   popped: PerkNode["perk"] | undefined;
   onSelect: (perk: PerkNode["perk"]) => void;
+  onPopped: () => void;
   onNode: (perk: PerkNode["perk"], node: HTMLButtonElement | null) => void;
 };
 
@@ -30,13 +31,13 @@ export function PerkTree({ rows, ...nodes }: PerkTreeProps) {
 export const squareLooks: Record<PerkNode["state"], string> = {
   owned: "border-2 border-foreground bg-foreground text-background",
   available: "border-2 border-foreground bg-card text-foreground",
-  unavailable: "border border-border bg-muted text-muted-foreground",
+  unavailable: "border border-dashed border-muted-foreground bg-muted text-muted-foreground",
 };
 
 const legendLooks: Record<PerkNode["state"], string> = {
   owned: "bg-foreground",
   available: "border-[1.5px] border-foreground bg-card",
-  unavailable: "border border-border bg-muted",
+  unavailable: "border border-dashed border-muted-foreground bg-muted",
 };
 
 const legendEntries: [PerkNode["state"], string][] = [
@@ -73,6 +74,7 @@ function Band({ row, ...nodes }: { row: TreeRow } & Omit<PerkTreeProps, "rows">)
               level={row.level}
               selected={perk.perk === nodes.selected}
               popped={perk.perk === nodes.popped}
+              onPopped={nodes.onPopped}
               onSelect={() => nodes.onSelect(perk.perk)}
               nodeRef={(node) => nodes.onNode(perk.perk, node)}
             />
@@ -83,9 +85,9 @@ function Band({ row, ...nodes }: { row: TreeRow } & Omit<PerkTreeProps, "rows">)
   );
 }
 
-type NodeProps = { perk: PerkNode; level: number; selected: boolean; popped: boolean; onSelect: () => void; nodeRef: (node: HTMLButtonElement | null) => void };
+type NodeProps = { perk: PerkNode; level: number; selected: boolean; popped: boolean; onSelect: () => void; onPopped: () => void; nodeRef: (node: HTMLButtonElement | null) => void };
 
-function Node({ perk, level, selected, popped, onSelect, nodeRef }: NodeProps) {
+function Node({ perk, level, selected, popped, onSelect, onPopped, nodeRef }: NodeProps) {
   return (
     <button
       ref={nodeRef}
@@ -97,6 +99,7 @@ function Node({ perk, level, selected, popped, onSelect, nodeRef }: NodeProps) {
     >
       <span
         data-testid="perk-square"
+        onAnimationEnd={popped ? onPopped : undefined}
         className={`relative flex size-11 items-center justify-center rounded-lg transition-colors group-hover:brightness-95 ${squareLooks[perk.state]} ${selected ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : ""} ${popped ? "perk-pop" : ""}`}
       >
         <PerkIcon perk={perk.perk} />
