@@ -46,3 +46,18 @@ Variant E at the same state: the #259 audit's `research/prototype-fidelity/scree
   - `Swapping…` is `aria-disabled`, so focus stays on it.
   - The polite status region says `Swapped. Your new quest: {goal}`.
   - A refusal or an unreachable server is a visible line on the card.
+
+## Review round 1
+
+Two lanes reviewed a frozen copy of the PR: GPT-6.1 Sol (high) in `review/gpt-6.1-sol-round-1.md`, and a fresh-eyes Opus 5.5 reviewer that never saw the build.
+
+Fixed, each with a failing test first (`review/red-round-1.txt`):
+- A refusal or an unreachable server now also reaches the live region.
+- A swap that commits after the 10 s budget clears its `Try again`, announces the new quest and moves focus to it.
+- Lines and the pending swap are keyed by week and slot, so the Monday turn drops them.
+- When a refusal removes the pressed Swap, focus moves to the card's heading.
+- The P77 and P91 tests now have Quests open with a drawn week, so only the missing launch refuses. `review/refutation-launch-checks.txt`: with only the Quests-open check left, both fail, as does the Book test.
+
+Rejected, with a reason recorded in the Coherence journal:
+- **The fallback scan.** On a day when no undrawn quest for anyone fits, `swapAvailable` still reads the member's lifetime awards. It is reachable only past 32,000 awards from one giver. Slack's App Home publish and Swap already run the same scan for that member. Bounding it needs an awards index by giver, recipient and time in Quests' draw path. That is a follow-up.
+- **Republishing App Home after a refused swap at the Monday turn.** WS318 republishes after `swapped`, and the new-week sweep republishes after the draw.
