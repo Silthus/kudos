@@ -118,3 +118,13 @@ body {
 .dark .book-silhouette {
   filter: brightness(0) invert(1);
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .book-index-hog {
+    transition: transform 0.2s ease;
+  }
+
+  a:hover .book-index-hog {
+    transform: rotate(-8deg);
+  }
+}
