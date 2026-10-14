@@ -26,15 +26,14 @@ export const ladderCategories: Record<LadderCard["ladder"], CategoryId> = {
 export type Chapter = { category: Category; ladders: LadderCard[] };
 
 export function chaptersOf(ladders: readonly LadderCard[]): Chapter[] {
-  const keyed = categories.map((category) => ({ category, ladders: ladders.filter(({ ladder }) => ladderCategories[ladder] === category.id) })).filter(holdsALadder);
-  const unkeyed = ladders.filter(({ ladder }) => !Object.hasOwn(ladderCategories, ladder));
-  const last = keyed.at(-1);
-  if (last === undefined || unkeyed.length === 0) return keyed;
-  return [...keyed.slice(0, -1), { ...last, ladders: [...last.ladders, ...unkeyed] }];
+  const keyed = categories.filter(({ id }) => ladders.some((card) => keyOf(card) === id));
+  const fallback = keyed.at(-1)?.id;
+  const categoryOf = (card: LadderCard) => keyOf(card) ?? fallback;
+  return keyed.map((category) => ({ category, ladders: ladders.filter((card) => categoryOf(card) === category.id) }));
 }
 
-function holdsALadder({ ladders }: Chapter) {
-  return ladders.length > 0;
+function keyOf({ ladder }: LadderCard): CategoryId | undefined {
+  return Object.hasOwn(ladderCategories, ladder) ? ladderCategories[ladder] : undefined;
 }
 
 export function categoryAsked(search: string): CategoryId | "overview" {

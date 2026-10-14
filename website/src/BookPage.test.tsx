@@ -368,4 +368,11 @@ describe("WS332: the Book's category pages", () => {
     showBookAt("/book?page=thanked", { ...bookFixtures.book, ladders: [...bookFixtures.book.ladders, newer] });
     expect(ladderNames()).toEqual(["Recognition", "Team Spirit"]);
   });
+
+  it("keeps the read's order when a ladder with no category comes before the last category's own", () => {
+    const [generosity, recognition] = bookFixtures.book.ladders;
+    const newer = { ...generosity, ladder: "team-spirit" as LadderId, name: "Team Spirit" };
+    showBookAt("/book?page=thanked", { ...bookFixtures.book, ladders: [generosity, newer, recognition] });
+    expect(ladderNames()).toEqual(["Team Spirit", "Recognition"]);
+  });
 });
