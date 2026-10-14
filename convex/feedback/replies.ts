@@ -4,7 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { Award } from "../engine/awards";
 import { type Annotations, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
-import { couldEarnMoreBySayingWhy } from "../progression/perks";
+import { couldEarnMoreBySayingWhy, sayingWhyEarnsMore } from "../progression/perks";
 import { perkOf } from "../progression/tree";
 import { bonusLineValidator, type BonusLine } from "../progression/progress";
 import { giverLinesOf, giverXpOf } from "../progression/progression";
@@ -127,8 +127,8 @@ async function giverOf(ctx: QueryCtx, workspace: string, to: ChatUserId) {
   return person?.kind === "member" ? person.member : null;
 }
 
-async function isHintShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null) {
-  return (await skillTreeAppliesIn(ctx, workspace)) || (await areCoinsVisibleTo(ctx, member));
+function isHintShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null) {
+  return member === null ? skillTreeAppliesIn(ctx, workspace) : sayingWhyEarnsMore(ctx, member);
 }
 
 async function gainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null, { xp, coins = 0, questsDone = [], bonus = [] }: Gains): Promise<Required<Gains>> {

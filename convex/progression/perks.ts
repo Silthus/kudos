@@ -18,6 +18,10 @@ export type MemberPerks = { skillPoints: number; owned: OwnedPerk[]; perks: Arra
 
 export async function couldEarnMoreBySayingWhy(ctx: QueryCtx, member: MemberId, annotations: Annotations): Promise<boolean> {
   if (gateDecisionOf(annotations)?.thoughtful !== false) return false;
+  return sayingWhyEarnsMore(ctx, member);
+}
+
+export async function sayingWhyEarnsMore(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   return (await coinsVisibleTo(ctx, member)) || (await ownedPerksPayIn(ctx, member));
 }
 
