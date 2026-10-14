@@ -1,0 +1,4 @@
+unlockLaunches: 1
+journeyLaunches: 1
+bookLaunches: 0
+questSwaps: 1
