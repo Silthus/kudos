@@ -271,6 +271,48 @@ describe("GB9: a group mode change stamps the instants it causes", { timeout: sl
     expect(await primaryGroupNameAt(t, ann, switchedAt + 1_000)).toBe("Zebras");
   });
 
+  test("Ann's primary group left at one switch and her next group allowed at a later one leaves her with no group in between", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    const ann = await memberOf(t, "U_ANN");
+    const emptiedAt = Date.now();
+    await setGroupModeWithoutPages(t, "allowlist", []);
+    const zebrasAllowedAt = emptiedAt + 30_000;
+    vi.setSystemTime(zebrasAllowedAt);
+    await setGroupModeWithoutPages(t, "allowlist", await groupIdsOf(t, "Zebras"));
+
+    vi.setSystemTime(emptiedAt + 60_000);
+    await t.run((ctx) => reconcileMember(ctx, ann));
+
+    expect(await primaryGroupNameAt(t, ann, emptiedAt + 1_000)).toBeNull();
+    expect(await primaryGroupNameAt(t, ann, zebrasAllowedAt)).toBe("Zebras");
+  });
+
+  test("a group allowed again before Slack enables it again gives Bob his default no earlier than the instant it is enabled", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    const bob = await memberOf(t, "U_BOB");
+    await click(t, "U_ALICE", "Only these groups");
+    await interact(t, "U_ALICE", groupPickerInHome(slack, "U_ALICE"));
+    const joinedAt = Date.now() + 10_000;
+    vi.setSystemTime(joinedAt);
+    await t.mutation(internal.workspace.userGroups.keepUserGroupMembers, { workspace: "T1", group: "S_OWL", users: ["U_ANN", "U_BOB"], asOf: joinedAt });
+    vi.setSystemTime(joinedAt + 10_000);
+    await t.mutation(internal.workspace.userGroups.keepUserGroups, { listed: [owls({ enabled: false })], scope: { kind: "one-group", workspace: "T1", group: "S_OWL" }, asOf: joinedAt + 10_000 });
+    vi.setSystemTime(joinedAt + 20_000);
+    await setGroupModeWithoutPages(t, "allowlist", await groupIdsOf(t, "Owls"));
+    const enabledAt = joinedAt + 30_000;
+    vi.setSystemTime(enabledAt);
+    await t.mutation(internal.workspace.userGroups.keepUserGroups, { listed: [owls({ enabled: true })], scope: { kind: "one-group", workspace: "T1", group: "S_OWL" }, asOf: enabledAt });
+
+    await settleInTimeOrder(t);
+
+    expect(await primaryGroupNameAt(t, bob, enabledAt - 1)).toBeNull();
+    expect(await primaryGroupNameAt(t, bob, enabledAt)).toBe("Owls");
+  });
+
   test("a members list recorded while no group counted gives Bob his default no earlier than the instant groups count again", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
     const t = await workspaceWithGroups();

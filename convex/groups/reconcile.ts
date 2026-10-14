@@ -171,8 +171,16 @@ async function reconcile(ctx: MutationCtx, person: Doc<"members">, groupRows: Gr
   const joined = counting.filter(({ row: group }) => !(row?.groups ?? []).includes(group._id));
   const changedAt = from === null ? (cause?.at ?? latestChangeOf(joined.map(({ row }) => row))) : await departedAt(groupRows, from, cause);
   const primaryJoinedAt = joined.find(({ row }) => row._id === primary)?.joinedAt ?? changedAt;
-  const primaryAllowedAt = counting.find(({ row }) => row._id === primary)?.row.allowlistChangedAt ?? changedAt;
-  await recordChange(ctx, person, from, primary, from === null ? "default" : "fallback", Math.min(Date.now(), Math.max(changedAt, primaryJoinedAt, primaryAllowedAt)));
+  const primaryRow = counting.find(({ row }) => row._id === primary)?.row;
+  const arrivedAt = Math.min(Date.now(), Math.max(changedAt, primaryJoinedAt, primaryRow === undefined ? changedAt : countsSince(primaryRow)));
+  const changeCause = from === null ? "default" : "fallback";
+  const leftBeforeArriving = from !== null && primary !== null && arrivedAt > changedAt;
+  if (leftBeforeArriving) await recordChange(ctx, person, from, null, changeCause, changedAt);
+  await recordChange(ctx, person, leftBeforeArriving ? null : from, primary, changeCause, arrivedAt);
+}
+
+function countsSince({ allowlistChangedAt, changedAt }: Doc<"userGroups">): number {
+  return Math.max(allowlistChangedAt ?? Number.NEGATIVE_INFINITY, changedAt ?? Number.NEGATIVE_INFINITY);
 }
 
 async function departedAt(groupRows: GroupRows, from: GroupId, cause: Cause | undefined): Promise<number> {
