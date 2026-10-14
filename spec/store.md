@@ -126,7 +126,7 @@ Every member thanks people with the same one emoji, the workspace's. Coins pile 
 
 - **ST8. The loadout parse hook** (P38, D15). A new parse hook claims, for a known giver to whom the store is visible, the Slack emoji names in their loadout as kudos emoji. With the workspace emoji hook, a message's kudos emoji are the union of both. Each occurrence counts as one kudos per recipient and costs allowance exactly like the workspace's emoji. Where the store isn't visible to the giver, the hook claims nothing.
 - **ST9. Only the giver's loadout.** The hook reads the giver's loadout and nobody else's. A loadout emoji in someone else's message is an ordinary emoji. Recipients never need to own it.
-- **ST10. Edits and retries.** An edit is parsed with the giver's loadout at the edit, like the workspace emoji today. Awards already given stay given (ADR-0001), whatever the loadout later holds.
+- **ST10. Edits and retries.** An edit is parsed with the giver's loadout at the edit, like the workspace emoji today, and edit-to-retry still needs a change to the message's mentions or emoji: equipping an emoji doesn't turn an earlier message into kudos when it is edited without such a change. A pending attempt waiting for a directory recheck is parsed with the loadout when it is evaluated, so equipping in that window can change its cost; this is accepted, as it is for a change of the workspace emoji. Awards already given stay given (ADR-0001), whatever the loadout later holds.
 - **ST11. The event says which emoji came from the loadout.** `kudosGiven` gains an optional `loadoutEmoji: string[]`: the distinct kudos emoji in the message that the giver's loadout claimed, including one that is also the workspace's. It is empty or missing when the loadout claimed none. Its `kudosEmoji` field is unchanged.
 
 ### The store
@@ -144,7 +144,11 @@ Every member thanks people with the same one emoji, the workspace's. Coins pile 
 
 ### The Journey's last step
 
-- **ST19. `your-emoji`** (P89 step 5). It becomes active when the member opens Coins while the store is shown to them, or, for a member who opened Coins before that, when the store is first shown to them, through the Journey's join (P91). Its goal: `Give a kudos that says why with one of your kudos emoji.` Hint: `Your 🦔 already counts: use it in a kudos like the workspace's emoji. It counts when your message has 5 or more words besides mentions and emoji.` It finishes on the first kudos, given while it is active, whose gate decision is thoughtful and whose `loadoutEmoji` isn't empty. Its reward is `{ xp: 40, coins: 20, item: null }`, fixed when it becomes active. The Journey catalogue goes to version `2`. Finishing all five steps gives the Journey's hedgehog with #96, not here.
+- **ST19. `your-emoji`** (P89 step 5). It applies to a member while the store is visible to them and their Journey has started: a member predicate, not a workspace one, used alike for its activation, its progress, its App Home and website projection, its DM and its crate. Where it doesn't apply it is silent and unlisted; a reward it already recorded stays recorded (P87).
+  - **Activation** is stored once per member, idempotently, by the first of: the Coins opening, an App Home publish, or the Journey's `kudosGiven` subscriber, each finding it applies and unactivated. Its time is that moment, so a member who opened Coins before the store was shown to them is activated when it first is, never at their old opening. No DM.
+  - **Finishing.** The first `kudosGiven` whose gate decision is thoughtful and whose `loadoutEmoji` isn't empty finishes it, activating it in the same mutation if needed: the loadout hook claims only where the store is visible (ST8), so such a kudos proves the step applied when it was given, and no qualifying kudos is lost to a late activation.
+  - **Copy.** Goal: `Give a kudos that says why with one of your kudos emoji.` Hint, from the member's loadout: `:{first slotted emoji}: is in your slots: use it in a kudos like :{workspace emoji}:. It counts when your message has 5 or more words besides mentions and emoji.`, or, with every slot empty, `Put one of your kudos emoji in a slot in the Inventory tab first.`
+  - **Reward** `{ xp: 40, coins: 20, item: null }`, fixed at activation. The Journey catalogue goes to version `2`. Finishing all five steps gives the Journey's hedgehog with #96, not here.
 
 ### The flag
 
@@ -179,11 +183,11 @@ Every member thanks people with the same one emoji, the workspace's. Coins pile 
   type Inventory = {
     slots: Array<{ slot: Slot; item: ItemId | null }>;
     owned: Array<{ item: ItemId; arrivedAt: number }>;
-    catalogue: CatalogueItem[]; // every item listed in the member's workspace, owned or not, in catalogue order
+    catalogue: Array<CatalogueItem & { onSale: boolean }>; // see below, in catalogue order
   };
   ```
 
-  Tier items are in `catalogue` only while the Book is open (ST25). The balance stays `walletOf`'s (CO26).
+  `catalogue` holds every item the member owns or has in a slot, whatever its state (an unpicked custom emoji, a tier item before the Book opens), except custom items ST35 hides, so every ID in `slots` and `owned` has its name and art; plus every item listed in the member's workspace store; plus the tier items they don't own, only while the Book is open (ST25). `onSale` is true exactly for an item `buyItem` could sell them now if they had the coins. The balance stays `walletOf`'s (CO26).
 - **ST27. The commands.** D17 gains `buyItem { item }`, `equip { item, slot }` and `takeOff { slot }`. `buyItem` answers `ItemPurchaseOutcome = { kind: "bought"; item } | { kind: "refused"; item; reason: "coins-not-open" | "not-for-sale" | "owned" | "no-coins" }` and stores it by key (ST13). `equip` and `takeOff` store nothing and answer `{ kind: "equipped"; slot; item } | { kind: "takenOff"; slot } | { kind: "refused"; reason: "coins-not-open" | "not-owned" }`. Each answers null, writing nothing, where the store isn't shown (ST22). The website builds its own wrappers on `memberMutation` with WS335's gate: the `coins` feature open and no launch due.
 - **ST28. `achievementsOf(member)`.** Each silver tier's reward of kind `kudosEmoji` gains `item: { item, name, emoji, art }` and, on an earned tier, `recordedAt: number | null`, as CO28 does for coins. It is null only for a tier earned before the deploy whose backfill page hasn't run, which ST17 keeps from reaching a member. The website shows it only while `inventoryOf` isn't null.
 - **ST29. Quest and Journey facts.** The reward shape stays `{ xp, coins, item }`; `your-emoji` fills `xp: 40, coins: 20, item: null`. Weekly quests still name no items: quest item rewards come with #96, which adds kudos emoji and hedgehogs to the quest pool at once (P86).
@@ -192,11 +196,11 @@ Every member thanks people with the same one emoji, the workspace's. Coins pile 
 ### Admin custom emoji (stopping point 6b)
 
 - **ST31. Picking.** In the Admin tab, a workspace admin (from the directory) picks custom emoji from the workspace's own, through a searchable picker, under `Custom kudos emoji`. Aliases resolve to the emoji they alias. Picking or unpicking is a D17 command, `setCustomKudosEmoji { emoji: string[] }`, safe to repeat by state, refused for a non-admin.
-- **ST32. Custom items.** Each picked emoji is a store item in that workspace only: ID `custom:{name}`, its name as `:{name}:`, art `{ kind: "custom", url }` from Slack's list when picked, source `{ kind: "store", price: 100 }`. Everything in ST8–ST15 holds for it.
-- **ST33. Unpicking.** An unpicked emoji leaves the store. Members who own it keep it, in their collection and slots, and it still counts (P5). A custom emoji deleted in Slack stays owned; it simply never appears in a message again.
+- **ST32. Custom items.** Each picked emoji is a store item in that workspace only: ID `custom:{name}`, its name as `:{name}:`, art `{ kind: "custom", url }` from Slack's list, source `{ kind: "store", price: 100 }`. Everything in ST8–ST15 holds for it. The item is the name, because a message counts by name: if the workspace deletes the emoji and makes a new one under the same name, owners keep the item and it counts with the new art. The art URL is refreshed from Slack's list whenever an admin opens the Admin tab.
+- **ST33. Unpicking.** An unpicked emoji leaves the store. Members who own it keep it, in their collection and slots, and it still counts (P5). A custom emoji deleted in Slack stays owned; it counts again only if the workspace makes one under the same name.
 - **ST34. Scope.** The Slack app gains the bot scope `emoji:read` in both manifests. Until the product owner re-pastes them, the picker says `Reinstall the app to pick custom emoji.` and nothing else changes.
-- **ST35. The flag.** `custom-kudos-emoji`, a member decision for the admin's picker and a workspace decision for the store items, both needing `store` shown (ST20). It starts sandbox-only plus the product owner's email.
-- **ST36. The website.** `inventoryOf` lists custom items like any other. The website's image policy must allow Slack's custom emoji host before it shows their art.
+- **ST35. The flag.** `custom-kudos-emoji`, a member decision everywhere, needing the store shown to that member (ST20): the admin's picker, the custom items in a member's store and `inventoryOf`, buying and equipping them, and the loadout hook's claim of a custom emoji are all decided by the member's own decision. So an admin previewing alone can pick and buy, and nobody else sees a custom item. Where it is off for a member, their custom items are hidden and claim nothing, a slot holding one reads as empty and equipping into it replaces it, and they stay owned for when it is on again (F24). It starts sandbox-only plus the product owner's email.
+- **ST36. The website.** `inventoryOf` lists custom items like any other. Their art URLs are on `https://emoji.slack-edge.com`, which the website's `img-src` doesn't allow today; the website ticket that shows custom art adds it with a test. 6b's ticket checks that `emoji.list` answers on that host in the sandbox and names any other host it finds.
 
 ## Implementation Decisions
 
@@ -239,6 +243,22 @@ Every member thanks people with the same one emoji, the workspace's. Coins pile 
 - Selling items back, trading, gifting or refunds (ADR-0003).
 - Workspace-specific prices; a member uploading emoji.
 - Item properties on PostHog events; a later ticket adds `itemBought` to the progression events.
+
+## Review
+
+A GPT-6.1 Sol review (high) of the first draft found 1 blocker, 8 majors and 2 minors. Six were fixed here; five were rejected or narrowed with a reason:
+
+1. **Blocker: 6b's flag mixed a member decision with a workspace one**, so an email-only preview couldn't see its own pick, and a hidden custom emoji kept counting. Fixed: one member decision everywhere, hidden custom items claim nothing and stay owned (ST35).
+2. **Major: `your-emoji` had no activation path for members who opened Coins before the store shipped.** Fixed: lazy, idempotent, per-member activation at the moment it first applies (ST19).
+3. **Major: a kudos sent before the asynchronous activation would be lost.** Fixed: the qualifying kudos finishes the step and activates it in the same mutation (ST19).
+4. **Major: the step reused the Journey's workspace predicate**, which leaks after the flag turns off and hides an email-only preview. Fixed: a member predicate for every use of the step (ST19).
+5. **Major: an edit after equipping doesn't award an earlier message.** Rejected as a defect, made explicit: edit-to-retry still needs a change to mentions or emoji, as it does when the workspace emoji changes (ST10).
+6. **Major: a directory recheck reparses with the current loadout.** Accepted and documented (ST10): the window is short, the workspace emoji has the same race, and persisting each attempt's claims adds a table for little.
+7. **Major: owned items could lack names and art in `inventoryOf`.** Fixed: `catalogue` covers every owned or slotted item, with `onSale` (ST26).
+8. **Major: custom names are reusable.** Narrowed: the item is the name, because messages count by name; a remade emoji counts for its owners with refreshed art (ST32, ST33). A generation ID would let two items claim one name.
+9. **Major: WS347's earned-tier page has no event contract.** Rejected for this slice: the website conductor accepted `achievementsOf` with `(ladder, tier)` plus `earnedAt` as the seen key (CO28's note on #297); a tier DM's link to one tier's page is a website-map need, not a store rule.
+10. **Minor: the hint promised 🦔 after it was taken out.** Fixed: the hint reads the loadout (ST19).
+11. **Minor: split 6a into four ships.** Rejected: everything in 6a is dark behind one flag until the product owner turns it on, the silver backfill must finish before the flag anyway, and each ticket is already its own reviewed pull request into `spec/store`. Four gates and ships would add ceremony and no member-visible step.
 
 ## Further Notes
 
