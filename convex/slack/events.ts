@@ -21,8 +21,8 @@ export const slackEvents = observedHttpAction(async (ctx, request) => {
       at: envelope.event_time * 1000,
     });
   } else if (envelope.type === "event_callback" && isMemberChanged(envelope.event)) {
-    const directoryRecord = directoryRecordOfEvent(envelope.team_id, envelope.event);
-    if (directoryRecord !== null) await ctx.runMutation(internal.slack.receipts.receiveMemberChanged, { eventId: envelope.event_id, ...directoryRecord });
+    const memberChanged = directoryRecordOfEvent(envelope.team_id, envelope.event_id, envelope.event);
+    if (memberChanged !== null) await ctx.runMutation(internal.slack.receipts.receiveMemberChanged, memberChanged);
   } else if (envelope.type === "event_callback") {
     const event = messageEventOf(envelope);
     if (isMessage(envelope.event) && !mayGiveKudos(event)) return new Response(null, { status: 200 });

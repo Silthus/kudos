@@ -250,6 +250,26 @@ describe("F6: a Slack answer that can hold a profile is never logged", () => {
     expect(everythingLogged()).not.toMatch(/dave|baker/i);
   });
 
+  test("a users.info refusal carrying a retry delay that isn't a number fails verification without quoting it", async () => {
+    const t = testBackend();
+    slack.answering("users.info", () => Response.json({ ok: false, error: "user_not_found", retryAfterMs: "dave@example.com" }));
+
+    const failure = await t.action(internal.slack.verifyMember.verifyMember, { workspace: "T1", user: "U_DAVE" }).then(() => null, (error: unknown) => String(error));
+
+    expect(failure ?? "").not.toMatch(/dave@/i);
+    expect(everythingLogged()).not.toMatch(/dave@/i);
+  });
+
+  test("a signed member event whose event ID isn't a string is acknowledged and logs nothing of it", async () => {
+    const t = testBackend();
+    const body = JSON.stringify({ type: "event_callback", team_id: "T1", event_id: ["dave@example.com"], event: { type: "user_change", user: { id: "U_DAVE", team_id: "T1" }, event_ts: nowTs } });
+
+    const response = await t.fetch("/slack/events", await signedRequest(body));
+
+    expect(response.status).toBe(200);
+    expect(everythingLogged()).not.toMatch(/dave@/i);
+  });
+
   test("a signed member event that isn't JSON fails without quoting it", async () => {
     const t = testBackend();
     const body = "email=dave%40example.com&type=event_callback&team_id=T1";
@@ -263,7 +283,7 @@ describe("F6: a Slack answer that can hold a profile is never logged", () => {
 
   test("a users.list refusal whose error isn't a Slack error code fails the backfill without quoting it", async () => {
     const t = testBackend();
-    slack.answering("users.list", () => Response.json({ ok: false, error: "dave@example.com Dave Example" }));
+    slack.answering("users.list", () => Response.json({ ok: false, error: "dave.example" }));
 
     const failure = await t.action(internal.slack.directory.fillMemberProfiles, {}).then(() => null, (error: unknown) => String(error));
 

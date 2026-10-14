@@ -31,9 +31,10 @@ export function isMemberChanged(event: { type: string }): event is MemberChanged
   return event.type === "team_join" || event.type === "user_change";
 }
 
-export function directoryRecordOfEvent(workspace: string, event: MemberChanged): DirectoryRecord | null {
-  const id = textOf(event.user.id);
-  return id === undefined ? null : directoryRecordOf(workspace, id, event.user, Number(event.event_ts) * 1000);
+export function directoryRecordOfEvent(workspace: unknown, eventId: unknown, event: MemberChanged): (DirectoryRecord & { eventId: string }) | null {
+  const [team, id, receipt] = [textOf(workspace), textOf(event.user?.id), textOf(eventId)];
+  if (team === undefined || id === undefined || receipt === undefined) return null;
+  return { eventId: receipt, ...directoryRecordOf(team, id, event.user, Number(event.event_ts) * 1000) };
 }
 
 function directoryRecordOf(workspace: string, id: string, user: SlackUser, asOf: number): DirectoryRecord {
@@ -145,10 +146,15 @@ type Keep = typeof internal.workspace.directory.fillEntry | typeof internal.slac
 async function askSlackAbout(ctx: ActionCtx, workspace: string, user: string, keep: Keep): Promise<LookUp> {
   const askedAt = Date.now();
   const answer = await usersInfo(user);
-  if (!answer?.ok) return { kind: "failed", ...(answer?.retryAfterMs !== undefined && { retryAfterMs: answer.retryAfterMs }) };
+  if (!answer?.ok) return { kind: "failed", ...retryDelayOf(answer) };
   if (typeof answer.user !== "object" || answer.user === null) return { kind: "failed" };
   await ctx.runMutation(keep, directoryRecordOf(workspace, user, answer.user, askedAt));
   return { kind: "found" };
+}
+
+function retryDelayOf(refusal: { retryAfterMs?: unknown } | null) {
+  const retryAfterMs = refusal?.retryAfterMs;
+  return typeof retryAfterMs === "number" && Number.isFinite(retryAfterMs) ? { retryAfterMs } : {};
 }
 
 async function usersInfo(user: string) {
