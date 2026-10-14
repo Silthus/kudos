@@ -218,24 +218,31 @@ async function giveKudos(t: Backend, giver: string, recipient: string, words: st
   sentMessages += 1;
   const blocks = [section(mention(recipient), text(` ${words} `), emoji("taco"))];
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, team, ts: `${Date.now() / 1000 + sentMessages}.000100` })));
-  await settleInTimeOrder(t);
+  await settled(t);
 }
 
 async function openHome(t: Backend, user: string, team?: string) {
   await t.fetch("/slack/events", await signedRequest(appHomeOpened(user, { team })));
-  await settleInTimeOrder(t);
+  await settled(t);
 }
 
 async function send(t: Backend, interaction: string) {
   await t.fetch("/slack/interactivity", await signedRequest(interaction, form));
-  await settleInTimeOrder(t);
+  await settled(t);
 }
 
 async function sweepAt(t: Backend, at: number) {
   vi.setSystemTime(at);
   const job = crons.crons["draw each member's new week of quests"]!;
   await t.mutation(makeFunctionReference<"mutation">(job.name), {});
-  await settleInTimeOrder(t);
+  await settled(t);
+}
+
+async function settled(t: Backend) {
+  do {
+    await settleInTimeOrder(t);
+    await t.finishInProgressScheduledFunctions();
+  } while (vi.getTimerCount() > 0);
 }
 
 function draws(t: Backend) {
