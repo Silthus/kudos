@@ -18,7 +18,9 @@ import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
 import { websiteOrigin } from "../website/link";
+import { coinsVisibleTo } from "../wallet/visibility";
 import { chatUserOf, type MemberId } from "../workspace/directory";
+import { coinsOpenedLineOf } from "./coins";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, purchaseReplyOf, readyCrateOf, tiersEarnedLines, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
@@ -37,6 +39,7 @@ export const notificationValidator = v.union(
   v.object({ kind: v.literal("journey-joined"), finished: v.array(v.object({ quest: journeyQuestValidator, xp: v.number() })) }),
   v.object({ kind: v.literal("weekly-quest-finished"), quest: weeklyQuestValidator, goal: v.string(), xp: v.number() }),
   v.object({ kind: v.literal("tiers-earned"), tiers: v.array(tierRefValidator) }),
+  v.object({ kind: v.literal("coins-opened"), balance: v.number() }),
 );
 
 export type Notification = Infer<typeof notificationValidator>;
@@ -50,6 +53,7 @@ const linkedPages = {
   "journey-joined": deepLinks.journey,
   "weekly-quest-finished": deepLinks.weeklyQuest,
   "tiers-earned": deepLinks.successReply,
+  "coins-opened": deepLinks.successReply,
 } satisfies Record<Notification["kind"], unknown>;
 
 export async function notifyLevelReached(ctx: MutationCtx, { member, level, skillPoints, xpToNextLevel }: LevelReachedEvent, ready: ScheduledFeature[]) {
@@ -109,6 +113,7 @@ function renderNotification(notification: Notification, { website, openTree, eve
   if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp, website));
   if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp, website)];
   if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned);
+  if (notification.kind === "coins-opened") return [coinsOpenedLineOf(notification.balance)];
   const crates = notification.ready.map((feature) => readyCrateOf(scheduled(feature), website));
   if (notification.kind !== "level-reached") return crates;
   return [...levelReachedLines(notification, openTree), ...crates, ...perkOffersOf(openTree)];
@@ -130,6 +135,7 @@ function perkOffersOf(openTree: MemberPerks | null): NotificationLine[] {
 async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification | null> {
   if (isAboutQuests(notification)) return questsStillToldOf(ctx, workspace, member, notification);
   if (notification.kind === "tiers-earned") return (await isBookOpenIn(ctx, workspace, member)) ? notification : null;
+  if (notification.kind === "coins-opened") return (await coinsVisibleTo(ctx, member)) ? notification : null;
   if (!(await unlocksAppliedTo(ctx, member))) return { ...notification, ready: [] };
   const ready = await stillReady(ctx, member, notification.ready);
   if (notification.kind !== "level-reached" || notification.skillPoints === null) return { ...notification, ready };

@@ -7,13 +7,15 @@ import { type Annotations, type ChatUserId, type Mention, type MessageRef } from
 import { couldEarnMoreBySayingWhy } from "../progression/perks";
 import { perkOf } from "../progression/tree";
 import { bonusLineValidator, type BonusLine } from "../progression/progress";
-import { giverBonusOf, giverXpOf } from "../progression/progression";
+import { giverLinesOf, giverXpOf } from "../progression/progression";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { questsApplyIn, questsApplyTo, questsExposedTo } from "../quests/flag";
 import { journeyGoalOf } from "../quests/journeyCopy";
 import { journeyStepValidator } from "../quests/step";
+import { coinsShownTo, coinsVisibleTo } from "../wallet/visibility";
 import { lookup, type MemberId } from "../workspace/directory";
+import { coinsPartOf } from "./coins";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import type { Line, Segment } from "./segments";
 
@@ -24,7 +26,12 @@ export const questDoneValidator = v.union(
 
 export type QuestDone = Infer<typeof questDoneValidator>;
 
-export const gainsValidator = v.object({ xp: v.number(), questsDone: v.optional(v.array(questDoneValidator)), bonus: v.optional(v.array(bonusLineValidator)) });
+export const gainsValidator = v.object({
+  xp: v.number(),
+  coins: v.optional(v.number()),
+  questsDone: v.optional(v.array(questDoneValidator)),
+  bonus: v.optional(v.array(bonusLineValidator)),
+});
 
 type Gains = Infer<typeof gainsValidator>;
 
@@ -68,8 +75,9 @@ async function gainsWritten(ctx: MutationCtx, member: MemberId | undefined, ref:
   const xp = giverXpOf(outcome.awards);
   if (member === undefined) return { xp };
   await xpLevelsShownTo(ctx, member);
-  const bonus = await giverBonusOf(ctx, member, ref, annotations);
-  return { xp, ...(bonus.length > 0 && { bonus }) };
+  await coinsShownTo(ctx, member);
+  const { bonus, coins } = await giverLinesOf(ctx, member, ref, annotations);
+  return { xp, ...(coins > 0 && { coins }), ...(bonus.length > 0 && { bonus }) };
 }
 
 export async function releaseSuccessReply(ctx: MutationCtx, message: MessageRef, questsDone: QuestDone[]) {
@@ -91,8 +99,9 @@ export const privateReply = internalQuery({
     const row = await ctx.db.get(reply);
     if (row === null) return null;
     const { gains, hint, questsDone: _, ...stored } = row;
-    const hintShown = hint !== undefined && (await skillTreeAppliesIn(ctx, row.workspace)) ? hint : null;
-    const extrasLine = gains === undefined ? null : extrasLineOf(await gainsShownTo(ctx, row.workspace, row.to, gains), hintShown, await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
+    const giver = await giverOf(ctx, row.workspace, row.to);
+    const hintShown = hint !== undefined && (await isHintShownTo(ctx, row.workspace, giver)) ? hint : null;
+    const extrasLine = gains === undefined ? null : extrasLineOf(await gainsShownTo(ctx, row.workspace, giver, gains), hintShown, await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
     return { ...stored, lines: extrasLine === null ? row.lines : [...row.lines, extrasLine] };
   },
 });
@@ -113,11 +122,19 @@ async function deliver(ctx: MutationCtx, reply: Id<"privateReplies">) {
   await ctx.scheduler.runAfter(0, internal.slack.delivery.deliverPrivateReply, { reply });
 }
 
-async function gainsShownTo(ctx: QueryCtx, workspace: string, to: ChatUserId, { xp, questsDone = [], bonus = [] }: Gains): Promise<Required<Gains>> {
+async function giverOf(ctx: QueryCtx, workspace: string, to: ChatUserId) {
   const person = await lookup(ctx, workspace, to);
-  const member = person?.kind === "member" ? person.member : null;
+  return person?.kind === "member" ? person.member : null;
+}
+
+async function isHintShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null) {
+  return (await skillTreeAppliesIn(ctx, workspace)) || (await areCoinsVisibleTo(ctx, member));
+}
+
+async function gainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null, { xp, coins = 0, questsDone = [], bonus = [] }: Gains): Promise<Required<Gains>> {
   return {
     xp: (await isXpShownTo(ctx, workspace, member)) ? xp : 0,
+    coins: coins > 0 && (await areCoinsVisibleTo(ctx, member)) ? coins : 0,
     questsDone: questsDone.length > 0 && (await areQuestsShownTo(ctx, workspace, member)) ? questsDone : [],
     bonus: bonus.length > 0 && (await skillTreeAppliesIn(ctx, workspace)) ? bonus : [],
   };
@@ -131,9 +148,14 @@ function areQuestsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | n
   return member === null ? questsApplyIn(ctx, workspace) : questsApplyTo(ctx, member);
 }
 
-function extrasLineOf({ xp, questsDone, bonus }: Required<Gains>, hint: Line | null, link: DeepLink | null): Line | null {
+async function areCoinsVisibleTo(ctx: QueryCtx, member: MemberId | null) {
+  return member !== null && (await coinsVisibleTo(ctx, member));
+}
+
+function extrasLineOf({ xp, coins, questsDone, bonus }: Required<Gains>, hint: Line | null, link: DeepLink | null): Line | null {
   const parts: Line[] = [
     ...(xp > 0 ? [[{ text: `+${xp} XP` }]] : []),
+    ...(coins > 0 ? [[{ text: coinsPartOf(coins) }]] : []),
     ...questsDoneParts(questsDone),
     ...bonusParts(bonus),
     ...(hint === null ? [] : [hint]),

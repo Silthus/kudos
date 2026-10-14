@@ -20,6 +20,7 @@ import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
 import { questCratePageOf, readyCratePageOf, urlOf, type Page } from "../website/routes";
+import { inCoins } from "./coins";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { renderEveryoneBoard } from "./leaderboard";
 import { openTheWebsite, productName, skillPointsOf, slashCommand } from "./naming";
@@ -129,9 +130,10 @@ function summaryOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrat
   return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
 }
 
-function levelLineOf({ level, xpToNextLevel, skillPoints }: ToldProgression): HomeLine {
+function levelLineOf({ level, xpToNextLevel, skillPoints, coins }: ToldProgression): HomeLine {
   const skillTree = skillPoints === null || level < skillTreeLevel ? "" : ` · ${skillPointsOf(skillPoints)} to spend`;
-  return { kind: "text", text: `Level ${level} · ${xpToNextLevel} XP to level ${level + 1}${skillTree}` };
+  const wallet = coins === null ? "" : ` · ${inCoins(coins)}`;
+  return { kind: "text", text: `Level ${level} · ${xpToNextLevel} XP to level ${level + 1}${skillTree}${wallet}` };
 }
 
 function readyCratesOf(unlocks: UnlocksHome | null, website: string): HomeLine[] {
@@ -329,8 +331,9 @@ function allowanceOf({ left, base }: KudosHome): HomeLine {
   return { kind: "text", text };
 }
 
-function progressOf({ level, xpToNextLevel, skillPoints, skillTreeTab }: ToldProgression): HomeLine[] {
-  const levelFigures: HomeLine = { kind: "fields", fields: [figure("Level", level), figure(`XP to level ${level + 1}`, xpToNextLevel)] };
+function progressOf({ level, xpToNextLevel, skillPoints, skillTreeTab, coins }: ToldProgression): HomeLine[] {
+  const wallet = coins === null ? [] : [figure("Coins", inCoins(coins))];
+  const levelFigures: HomeLine = { kind: "fields", fields: [figure("Level", level), figure(`XP to level ${level + 1}`, xpToNextLevel), ...wallet] };
   if (skillPoints === null || level < skillTreeLevel) return [levelFigures];
   const spentWhere = skillTreeTab ? `to spend in the ${bold("Skill tree")} tab` : "saved for the skill tree";
   return [levelFigures, { kind: "text", text: `You have ${bold(skillPointsOf(skillPoints))} ${spentWhere}.` }];
@@ -426,7 +429,7 @@ function howToGive(kudosEmoji: string): HomeLine[] {
   ];
 }
 
-function figure(label: string, count: number) {
+function figure(label: string, count: number | string) {
   return `${bold(label)}\n${bold(count)}`;
 }
 

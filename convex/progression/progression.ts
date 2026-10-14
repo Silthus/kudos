@@ -38,12 +38,15 @@ async function givingOf(ctx: QueryCtx, { workspace, giver, day, awards }: GivenB
   return { perks: await perksPayingIn(ctx, workspace, giver), earlier: await thoughtfulAwardsBefore(ctx, giver, day, awards[0]!.award) };
 }
 
-export async function giverBonusOf(ctx: QueryCtx, giver: MemberId, message: MessageRef, annotations: Annotations): Promise<BonusLine[]> {
+export type GiverLines = { bonus: BonusLine[]; coins: number };
+
+export async function giverLinesOf(ctx: QueryCtx, giver: MemberId, message: MessageRef, annotations: Annotations): Promise<GiverLines> {
   const awards = await awardsOfMessage(ctx, message);
   const day = awards[0]?.day;
-  if (day === undefined) return [];
+  if (day === undefined) return { bonus: [], coins: 0 };
   const giving = await givingOf(ctx, { workspace: message.workspace, giver, day, awards }, giver);
-  return bonusPaidIn(effectsFor(giver, awards, { day, gate: gateDecisionOf(annotations) }, catalogue, giving));
+  const effects = effectsFor(giver, awards, { day, gate: gateDecisionOf(annotations) }, catalogue, giving);
+  return { bonus: bonusPaidIn(effects), coins: coinsIn(effects) };
 }
 
 export function giverXpOf(awards: Pick<Award, "kudos">[]): number {

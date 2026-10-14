@@ -3,6 +3,7 @@ import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/se
 import { ReportableError } from "../analytics/exceptions";
 import { perkValidator } from "../progression/tree";
 import type { MemberId } from "../workspace/directory";
+import { coinsVisibleTo } from "./visibility";
 
 export const spentForValidator = v.object({ perk: perkValidator });
 
@@ -16,7 +17,7 @@ export type Wallet = { balance: number };
 
 export const walletOf = internalQuery({
   args: { member: v.id("members") },
-  handler: async (ctx, { member }): Promise<Wallet> => ({ balance: await balanceOf(ctx, member) }),
+  handler: async (ctx, { member }): Promise<Wallet | null> => ((await coinsVisibleTo(ctx, member)) ? { balance: await balanceOf(ctx, member) } : null),
 });
 
 export async function balanceOf(ctx: QueryCtx, member: MemberId): Promise<number> {

@@ -7,7 +7,7 @@ import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { recordReward } from "../progression/progression";
 import type { MemberId } from "../workspace/directory";
-import { spend } from "./wallet";
+import { balanceOf as balanceRead, spend } from "./wallet";
 
 const saysWhy = "thanks for untangling the release notes";
 
@@ -117,7 +117,7 @@ describe("CO9 CO10: a member's balance equals their coin lines and reward coins 
   test("a member who never earned a coin has a balance of 0", async () => {
     const t = await withDirectory();
 
-    expect(await t.query(internal.wallet.wallet.walletOf, { member: await memberOf(t, "U_BOB") })).toEqual({ balance: 0 });
+    expect(await balanceOf(t, await memberOf(t, "U_BOB"))).toBe(0);
   }, 30_000);
 });
 
@@ -145,8 +145,8 @@ function spendOf(t: Backend, member: MemberId, coins: number) {
   return t.run((ctx) => spend(ctx, { member, coins, for: { perk: "spark" }, at: Date.now() }));
 }
 
-async function balanceOf(t: Backend, member: MemberId) {
-  return (await t.query(internal.wallet.wallet.walletOf, { member })).balance;
+function balanceOf(t: Backend, member: MemberId) {
+  return t.run((ctx) => balanceRead(ctx, member));
 }
 
 async function recordedCoinsOf(t: Backend, member: MemberId) {

@@ -3,6 +3,7 @@ import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/se
 import { publish } from "../bus/publish";
 import type { Annotations } from "../engine/messageEvent";
 import { stateOf, type UnlockState } from "../unlocks/unlocks";
+import { coinsVisibleTo } from "../wallet/visibility";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
 import { gateDecisionOf } from "./gate";
@@ -17,6 +18,10 @@ export type MemberPerks = { skillPoints: number; owned: OwnedPerk[]; perks: Arra
 
 export async function couldEarnMoreBySayingWhy(ctx: QueryCtx, member: MemberId, annotations: Annotations): Promise<boolean> {
   if (gateDecisionOf(annotations)?.thoughtful !== false) return false;
+  return (await coinsVisibleTo(ctx, member)) || (await ownedPerksPayIn(ctx, member));
+}
+
+async function ownedPerksPayIn(ctx: QueryCtx, member: MemberId) {
   const { workspace } = await chatUserOf(ctx, member);
   return (await skillTreeAppliesIn(ctx, workspace)) && (await ownsAPerk(ctx, member));
 }

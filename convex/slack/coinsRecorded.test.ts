@@ -7,6 +7,7 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
+import { balanceOf } from "../wallet/wallet";
 import type { MemberId } from "../workspace/directory";
 
 vi.mock("../bus/publish", async (importOriginal) => {
@@ -206,8 +207,7 @@ async function coinsOn(t: Backend, user: string) {
 async function balances(t: Backend, ...users: string[]) {
   const answers: Record<string, number> = {};
   for (const user of users) {
-    const member = await t.run((ctx) => memberOf(ctx, user));
-    answers[user] = (await t.query(internal.wallet.wallet.walletOf, { member })).balance;
+    answers[user] = await t.run(async (ctx) => balanceOf(ctx, await memberOf(ctx, user)));
   }
   return answers;
 }
