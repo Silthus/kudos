@@ -1,0 +1,19 @@
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > website commands pass one guard > WS61: a denial answers as a read does and writes nothing at all > with the website flag off, the switch answers closed
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > website commands pass one guard > WS61: a denial answers as a read does and writes nothing at all > without a session, the switch answers signed-out
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > website commands pass one guard > WS61: a denial answers as a read does and writes nothing at all > a member who left the workspace answers not-a-member
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > website commands pass one guard > WS61: the setting is the only argument, so no call names a member
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > a website command never launches unlocks > WS321 WS335 P77: with the boards, xp-levels and unlocks on and no unlocks launch, the switch answers refused and launches nothing
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > a website command never launches unlocks > WS321 WS335 P91: with quests on and no Journey launch, an open board's switch answers refused and neither launches the Journey nor joins anyone
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > a website command never launches unlocks > WS321 WS335: with achievements on and no Book launch, an open board's switch answers refused and doesn't launch the Book
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > a website command is a D17 command > WS321: a Leaderboard still locked at level 1 answers refused before D17 and writes nothing at all
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > a website command is a D17 command > WS321: a ready Leaderboard answers refused before D17 and writes nothing at all
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > a website command is a D17 command > WS321: the boards switched off while unlocks d… answers refused before D17 and writes nothing at all
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > a website command is a D17 command > WS321: an open Leaderboard on the unlock path switches, with the Journey and the Book launched
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > a website command is a D17 command > WS321: with the board open while unlocks don't apply, a member switches themselves off and on, answering the stored setting
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > a website command is a D17 command > WS321: App Home's republish is scheduled after a change, and a second identical call changes nothing and republishes nothing
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > a website command is a D17 command > WS321: switching on a member who was never off changes nothing and republishes nothing
+ ✓ |convex| convex/website/setBoardVisibility.test.ts > a website command is a D17 command > WS64 WS335: switching off on the website leaves the domain tables and events Slack's Settings switch leaves, besides Slack's receipt
+ Test Files  1 passed (1)
+      Tests  15 passed (15)
+ ✓ |convex| convex/publicSurface.test.ts > WS10: the public surface is exact > only HTTP routes, Convex Auth's signIn, signOut and isAuthenticated, and the website's signed-in functions are public 1287ms
+      Tests  1 passed (1)

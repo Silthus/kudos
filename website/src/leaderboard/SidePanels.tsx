@@ -2,9 +2,12 @@ import { IconLock } from "@posthog/icons";
 import { Card, CardContent } from "@posthog/quill";
 import type { ReactNode } from "react";
 import { improvementLine } from "../../../convex/leaderboard/improvementLine";
-import type { Leaderboard } from "../shell";
+import type { Leaderboard, ShellActions } from "../shell";
+import { VisibilitySwitch } from "./VisibilitySwitch";
 
-export function SidePanels({ board }: { board: Leaderboard }) {
+type SidePanelsProps = { board: Leaderboard; onSetBoardVisibility: ShellActions["setBoardVisibility"] };
+
+export function SidePanels({ board, onSetBoardVisibility }: SidePanelsProps) {
   const { improvement, period } = board;
   const line = improvement === null || period === "all" ? undefined : improvementLine(improvement, period);
   return (
@@ -15,8 +18,8 @@ export function SidePanels({ board }: { board: Leaderboard }) {
         </Panel>
       )}
       <Panel id="how-it-counts-title" label="How it counts">
-        <p className="text-muted-foreground">Only kudos given count. Kudos received, XP and levels never rank anyone.</p>
-        <p>{board.onTheBoards ? "You're on the leaderboards." : "You're off the leaderboards."} You can change this in Settings in Slack's App Home.</p>
+        <p className="text-muted-foreground">Only kudos given count. Kudos received, XP, levels and achievements never rank anyone.</p>
+        <VisibilitySwitch onTheBoards={board.onTheBoards} setBoardVisibility={onSetBoardVisibility} />
       </Panel>
     </div>
   );
