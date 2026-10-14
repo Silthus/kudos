@@ -175,6 +175,21 @@ describe("WS74 WS66: focus and the live region after a quest crate's reveal", ()
     expect(journeyStep()).toHaveFocus();
   });
 
+  it("WS24: moves focus to the page title when the opened crate's card leaves the read, as an earlier week's crate does once opened", async () => {
+    let answer: MyQuests = questsFixtures.weekWithLastWeeksCrate;
+    window.history.replaceState(null, "", "/quests");
+    const { user, showVisitor } = renderApp(withQuests, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, (asking) => (asking ? answer : undefined));
+    await user.click(openIn(within(main()).getByRole("region", { name: "Waiting to open" })));
+    answer = questsFixtures.week;
+    showVisitor({ ...withQuests });
+    expect(within(main()).queryByRole("region", { name: "Waiting to open" })).toBeNull();
+    await user.keyboard("{Escape}");
+    await user.click(within(dialog()!).getByRole("button", { name: "Done" }));
+
+    expect(dialog()).toBeNull();
+    expect(screen.getByRole("heading", { level: 1, name: "This week" })).toHaveFocus();
+  });
+
   it("opens a crate this member has seen on its end state, keyed by the read's seen key", async () => {
     markSeen("c41d77");
     const { user } = onQuests();

@@ -23,7 +23,7 @@ function StepItem(step: JourneyStep) {
   const { goal, hint, reward, state, seen } = step;
   const crate = questCrateOf(step);
   return (
-    <li className="flex flex-col gap-2 rounded-md py-3 first:pt-0 last:pb-0" {...questCrateHomeAttributes(seen)}>
+    <li className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0" {...questCrateHomeAttributes(seen)}>
       <h3 className={`text-sm font-medium ${state === "opened" ? "text-muted-foreground" : ""}`}>{goal}</h3>
       {state === "active" && (
         <>
