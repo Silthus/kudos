@@ -76,7 +76,7 @@ describe("F17 F22: quests previewed by one member's email", () => {
     expect(rows.crateOpenings).toEqual([{ user: "U_ALICE", key: `weekly:${thisWeek}:0` }]);
   });
 
-  test("the other member draws, joins and earns nothing, and their Slack calls are exactly those with quests off", async () => {
+  test("the other member draws, joins and earns nothing, and their Slack calls and App Home are exactly those with quests off", async () => {
     const whilePreviewed = await bobsSideOf(previewedByAlice);
     vi.clearAllTimers();
     const whileOff = await bobsSideOf(offForEveryoneElse);
@@ -226,7 +226,7 @@ async function bobsSideOf(definitions: FlagDefinition[]) {
   await giveKudos(t, "U_BOB", "U_CAROL", saysWhy);
   await openHome(t, "U_BOB");
   const rows = await questRows(t, "U_BOB");
-  return { conversations: conversationsOf(slack.calls.filter((call) => !isAbout(call, "U_ALICE"))), rows };
+  return { conversations: callsByConversationInAnyOrder(slack.calls.filter((call) => !isAbout(call, "U_ALICE"))), homeShown: slack.homeShownTo("U_BOB"), rows };
 }
 
 async function workspaceDeciding(...definitions: FlagDefinition[]) {
@@ -303,13 +303,14 @@ function namesTheSlice(line: string) {
   return /Quest|quest|Journey|Swap/.test(line);
 }
 
-function conversationsOf(calls: SlackCall[]) {
+function callsByConversationInAnyOrder(calls: SlackCall[]) {
   const byConversation = new Map<string, SlackCall[]>();
   for (const call of calls) {
     const { args } = call;
     const conversation = `${call.method} ${String(args.channel ?? args.user_id ?? args.user ?? args.users ?? "")}`;
     byConversation.set(conversation, [...(byConversation.get(conversation) ?? []), call]);
   }
+  for (const inConversation of byConversation.values()) inConversation.sort((one, other) => JSON.stringify(one).localeCompare(JSON.stringify(other)));
   return Object.fromEntries([...byConversation].sort(([a], [b]) => a.localeCompare(b)));
 }
 
