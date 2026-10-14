@@ -64,7 +64,7 @@ Rules continue the second slice's numbering, from `WS55`.
   - `seen` is the opaque per-member crate key WS66 uses.
 
   The website never compares the member's level with a feature's level, and never derives a state from XP (P79). A feature that hasn't shipped has no entry (P78). Basics is not a feature.
-- **WS57. The leaderboard answer follows its entry.** While unlocks apply, `getMyProfile.leaderboard` (WS52) is the leaderboard entry's `state`, or `"off"` when there is no entry. Both come from the same `unlocksOf` read, so the nav, the card and the page can't disagree. `getLeaderboard`'s answers stay WS52's, except its `ready` page (WS67).
+- **WS57. The leaderboard answer follows its entry.** While unlocks apply, `getMyProfile.leaderboard` (WS52) is `{ kind }` with the leaderboard entry's `state` as its kind, carrying the entry's `level` only while it is `locked`, or `{ kind: "off" }` when there is no entry. Both come from the same `unlocksOf` read, so the nav, the card and the page can't disagree. `getLeaderboard`'s answers stay WS52's, except its `ready` page (WS67).
 - **WS58. Cards in three groups** (V23, V2, V4). While `features` is present, the home's feature section replaces WS19's six plain cards with three groups, each in schedule order and each shown only when it has a card:
   - `Ready for you`: crates (WS64).
   - `Open`: a plain card for each open feature. It links to the feature's web page where the website has one (`/leaderboard`, and `/quests` from WS72) with the second slice's kind of one-sentence copy (WS38). For a feature without a web page, the card reads `Open. Find it in Slack's App Home.` with one action that opens the workspace in Slack.
@@ -260,7 +260,7 @@ export type JourneyStep = {
 };
 export type MemberProfile = {
   /* the first two slices' fields */
-  leaderboard: "off" | "locked" | "ready" | "open"; // WS52, from features while unlocks apply (WS57)
+  leaderboard: { kind: "off" | "ready" | "open" } | { kind: "locked"; level: number }; // WS52, from features while unlocks apply (WS57)
   features: FeatureCard[] | null;                  // WS56, null while unlocks don't apply
   journey: JourneyStep[] | null;                   // WS71, null while quests don't apply (ticket 5)
 };
