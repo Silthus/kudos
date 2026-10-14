@@ -1,17 +1,18 @@
 import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { exposed, flag, type Flag } from "../analytics/flags";
+import { exposed, memberDecision, workspaceDecision, type Flag } from "../analytics/flags";
 import { lookup, type MemberId } from "../workspace/directory";
 
-export const everyoneBoardFlag = { key: "everyone-board", subject: "workspace", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean, "workspace">;
+export const everyoneBoardFlag = { key: "everyone-board", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
 export function everyoneBoardShownIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<boolean> {
-  return flag(ctx, everyoneBoardFlag, { workspace });
+  return workspaceDecision(ctx, everyoneBoardFlag, workspace);
 }
 
 export async function isEveryoneBoardShownTo(ctx: MutationCtx, workspace: string, member: MemberId | undefined) {
-  const shown = await everyoneBoardShownIn(ctx, workspace);
-  if (member !== undefined) await exposed(ctx, everyoneBoardFlag, member, shown);
+  if (member === undefined) return everyoneBoardShownIn(ctx, workspace);
+  const shown = await memberDecision(ctx, everyoneBoardFlag, member);
+  await exposed(ctx, everyoneBoardFlag, member, shown);
   return shown;
 }
 
@@ -29,8 +30,8 @@ export const isEveryoneBoardShown = internalMutation({
 
 export const exposeEveryoneBoard = internalMutation({
   args: { ...viewerArgs, shown: v.boolean() },
-  handler: async (ctx, { workspace, user, shown }) => {
+  handler: async (ctx, { workspace, user }) => {
     const person = await lookup(ctx, workspace, user);
-    if (person?.kind === "member") await exposed(ctx, everyoneBoardFlag, person.member, shown);
+    if (person?.kind === "member") await isEveryoneBoardShownTo(ctx, workspace, person.member);
   },
 });

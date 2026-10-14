@@ -9,7 +9,7 @@ import { setProgressSettings } from "../progression/settings";
 import { openQuestCrate } from "../quests/crates";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { rerollQuest } from "../quests/weekly";
-import { xpLevelsShownTo } from "../progression/xpLevels";
+import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { featureValidator } from "../unlocks/feature";
 import { openUnlock } from "../unlocks/unlocks";
 import { setAnnouncementChannel } from "../workspace/settings";
@@ -48,7 +48,7 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return;
     }
     case "setAnnouncementChannel":
-      if ((await xpLevelsShownTo(ctx, member)) && (await setAnnouncementChannel(ctx, workspace, person, command.channel))) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
+      if ((await xpLevelsShownIn(ctx, workspace)) && (await setAnnouncementChannel(ctx, workspace, person, command.channel))) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
       return;
     case "openUnlock":
       await openUnlock(ctx, member, command.feature);

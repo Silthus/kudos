@@ -14,6 +14,11 @@ export const onInTheSandboxOnly = (key: string): FlagDefinition => ({
   filters: { groups: [{ properties: [{ key: "environment", type: "person", value: ["sandbox"], operator: "exact" }], rollout_percentage: 100 }] },
 });
 
+export const onForEmails = (key: string, ...emails: string[]): FlagDefinition => ({
+  key,
+  filters: { groups: [{ properties: [{ key: "email", type: "person", value: emails, operator: "exact" }], rollout_percentage: 100 }] },
+});
+
 export function postHogDeciding(environment: "sandbox" | "production" = "sandbox") {
   vi.stubEnv("POSTHOG_PROJECT_TOKEN", projectToken);
   vi.stubEnv("POSTHOG_PERSONAL_API_KEY", flagsKey);

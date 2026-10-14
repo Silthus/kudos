@@ -11,7 +11,7 @@ import { questsShownTo } from "../quests/flag";
 import { activeJourneyOf, type JourneyStepFacts } from "../quests/journey";
 import { thisWeeksQuestsOf, type WeeklyQuests } from "../quests/weekly";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
-import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
+import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { unlocksShownTo } from "../unlocks/launch";
 import { unlocksHomeOf, type UnlocksHome } from "../unlocks/unlocks";
 import { adminsIn, chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
@@ -34,7 +34,7 @@ export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoin
 
 export type HomeMember = Extract<MemberFacts, { kind: "member" }>;
 
-type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; quests: boolean; admin: boolean };
+type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; quests: boolean; admin: boolean; sharedSettings: boolean };
 
 type HomeSelection = { tab: HomeTab; period: Period };
 
@@ -43,7 +43,7 @@ const opensOn: HomeSelection = { tab: "profile", period: "week" };
 const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices) => boolean }> = [
   { tab: "leaderboard", shownWith: ({ leaderboard }) => leaderboard },
   { tab: "settings", shownWith: ({ board, xp }) => board || xp },
-  { tab: "admin", shownWith: ({ xp, admin }) => xp && admin },
+  { tab: "admin", shownWith: ({ sharedSettings, admin }) => sharedSettings && admin },
 ];
 
 export const shownHomeOf = internalMutation({
@@ -72,7 +72,7 @@ export async function selectLeaderboardPeriod(ctx: MutationCtx, member: MemberId
 export const refreshHomeOnXp = internalMutation({
   args: { event: xpRecordedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    if (await xpLevelsShownIn(ctx, event.workspace)) await republish(ctx, event.member);
+    if (await xpLevelsOnFor(ctx, event.member)) await republish(ctx, event.member);
   },
 });
 
@@ -87,8 +87,7 @@ export async function republishOnRoleChange(ctx: MutationCtx, before: MemberFact
   if (before === undefined || after === undefined || roleOf(before) === roleOf(after)) return;
   const member = before.kind === "member" ? before.member : after.kind === "member" ? after.member : null;
   if (member === null) return;
-  const { workspace } = await chatUserOf(ctx, member);
-  if (await xpLevelsShownIn(ctx, workspace)) await republish(ctx, member);
+  if (await xpLevelsOnFor(ctx, member)) await republish(ctx, member);
 }
 
 export async function republish(ctx: MutationCtx, member: MemberId) {
@@ -104,7 +103,8 @@ async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMe
   const xp = await xpLevelsShownTo(ctx, person.member);
   const unlocks = await unlocksShownTo(ctx, person.member);
   const quests = await questsShownTo(ctx, person.member);
-  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, admin: person.admin };
+  const sharedSettings = await xpLevelsShownIn(ctx, workspace);
+  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, admin: person.admin, sharedSettings };
 }
 
 async function isLeaderboardOpenTo(ctx: QueryCtx, member: MemberId, unlocksShown: boolean) {

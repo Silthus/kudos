@@ -1,15 +1,15 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { flag, type Flag } from "../analytics/flags";
+import { workspaceDecision, type Flag } from "../analytics/flags";
 import { everyoneBoardFlag } from "../leaderboard/flag";
 import { questsFlag } from "../quests/questsFlag";
 import { skillTreeLevel } from "../progression/levels";
 import type { Feature } from "./feature";
 
-type ShipFlag = Flag<boolean, "workspace">;
+type ShipFlag = Flag<boolean>;
 
 export type ScheduledFeature = { feature: Feature; level: number; name: string; opens: string; shipsWith: ShipFlag | null };
 
-export const skillTree = { key: "skill-tree", subject: "workspace", safeDefault: false, values: [false, true] } as const satisfies ShipFlag;
+export const skillTree = { key: "skill-tree", safeDefault: false, values: [false, true] } as const satisfies ShipFlag;
 
 export const schedule = {
   version: "1",
@@ -30,7 +30,7 @@ export function scheduled(feature: Feature): ScheduledFeature {
 export async function shippedIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<ScheduledFeature[]> {
   const shipped: ScheduledFeature[] = [];
   for (const entry of schedule.features) {
-    if (entry.shipsWith !== null && (await flag(ctx, entry.shipsWith, { workspace }))) shipped.push(entry);
+    if (entry.shipsWith !== null && (await workspaceDecision(ctx, entry.shipsWith, workspace))) shipped.push(entry);
   }
   return shipped;
 }

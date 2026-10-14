@@ -35,6 +35,11 @@ export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ wor
   return { workspace: row.workspace, user: row.user };
 }
 
+export async function emailOf(ctx: QueryCtx, member: MemberId): Promise<string | undefined> {
+  const row = await ctx.db.get(member);
+  return row?.kind === "member" ? row.email : undefined;
+}
+
 export async function adminsIn(ctx: QueryCtx, workspace: string): Promise<ChatUserId[]> {
   const members = await ctx.db
     .query("members")
