@@ -4,7 +4,7 @@ import { awardAt, givenEarlierInWeek, type AwardId } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import { gateDecisionOf } from "./gate";
 import type { GateDecision } from "./gate";
-import type { EffectsRecord, Side, ThoughtfulAward } from "./progress";
+import { bonusPaidIn, type BonusLine, type EffectsRecord, type Side, type ThoughtfulAward } from "./progress";
 
 export async function insertEffects(ctx: MutationCtx, effects: EffectsRecord[]) {
   for (const record of effects) await ctx.db.insert("effectsRecords", record);
@@ -19,11 +19,19 @@ export async function isRecorded(ctx: QueryCtx, award: AwardId, side: Side) {
 }
 
 export async function gateRecordedWith(ctx: QueryCtx, award: AwardId): Promise<GateDecision | null> {
-  const recorded = await ctx.db
+  return (await giverRecordOf(ctx, award))?.gate ?? null;
+}
+
+export async function bonusRecordedWith(ctx: QueryCtx, awards: AwardId[]): Promise<BonusLine[]> {
+  const recorded = await Promise.all(awards.map((award) => giverRecordOf(ctx, award)));
+  return bonusPaidIn(recorded.filter((record) => record !== null));
+}
+
+function giverRecordOf(ctx: QueryCtx, award: AwardId) {
+  return ctx.db
     .query("effectsRecords")
     .withIndex("by_award", (q) => q.eq("award", award).eq("side", "giver"))
     .first();
-  return recorded?.gate ?? null;
 }
 
 export async function thoughtfulAwardsBefore(ctx: QueryCtx, giver: MemberId, day: DayKey, award: AwardId): Promise<ThoughtfulAward[]> {
