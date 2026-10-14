@@ -15,7 +15,6 @@ const fixtureLeaderboard = fixedLeaderboard(leaderboardFixtures.midBoard);
 
 const fixtureQuests = fixedQuests(questsFixtures.weekWithLastWeeksCrate);
 
-
 export function Root({ fixture, convexUrl }: { fixture?: string; convexUrl?: string }) {
   return <ShellBoundary>{fixture || !convexUrl ? <FixtureApp visitor={builtShell(fixture)} /> : <LiveShell client={new ConvexReactClient(convexUrl)} />}</ShellBoundary>;
 }
