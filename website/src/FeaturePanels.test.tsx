@@ -1,13 +1,24 @@
 import { act, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
+import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures, type MemberProfile } from "./shell";
 import { renderApp } from "./test/renderApp";
+import { navEntryNames } from "./test/screensNav";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 beforeEach(() => {
   fakeSystemTheme(false);
   window.history.replaceState(null, "", "/");
 });
+
+const theWeeksBoard = fixedLeaderboard(leaderboardFixtures.midBoard);
+
+const theWeeksQuests = fixedQuests(questsFixtures.week);
+
+function withTheRailsReads(member: MemberProfile) {
+  return renderApp(member, theWeeksBoard, undefined, theWeeksQuests);
+}
 
 function main() {
   return screen.getByRole("main");
@@ -22,7 +33,7 @@ function hero() {
 }
 
 function profileCard() {
-  return panel("Your profile card");
+  return panel("What teammates see");
 }
 
 function panelsBeside(anchor: HTMLElement) {
@@ -44,9 +55,9 @@ function openLinksIn(region: HTMLElement) {
 
 describe("WS97 WS102: one panel per shipped feature, in its slot", () => {
   it("puts the Book and the Skill tree in the main column under the hero, and Quests then the Leaderboard in the rail under the profile card", () => {
-    renderApp(shellFixtures.memberAcrossTheSheet);
+    withTheRailsReads(shellFixtures.memberAcrossTheSheet);
     expect(panelsBeside(hero())).toEqual(["Book", "Skill tree"]);
-    expect(panelsBeside(profileCard())).toEqual(["Quests", "Leaderboard"]);
+    expect(panelsBeside(profileCard())).toEqual(["Quests this week", "Leaderboard"]);
   });
 
   it("keeps the Journey in the main column, between the hero and the Book", () => {
@@ -66,8 +77,8 @@ describe("WS97 WS102: one panel per shipped feature, in its slot", () => {
   });
 
   it("shows no panel for Coins, which have no slot until the inventory ships", () => {
-    renderApp(shellFixtures.memberWithCoinsOpened);
-    expect(panelsBeside(profileCard())).toEqual(["Leaderboard"]);
+    withTheRailsReads(shellFixtures.memberWithCoinsOpened);
+    expect(panelsBeside(profileCard())).toEqual(["Where you stand"]);
     expect(main()).not.toHaveTextContent(/Coins/);
   });
 
@@ -81,21 +92,29 @@ describe("WS97 WS102: one panel per shipped feature, in its slot", () => {
     expect(headings).not.toContain("Still locked");
   });
 
-  it("walks the keyboard from the hero's action through the main column's panels, then the rail's, in reading order", async () => {
-    const { user } = renderApp({ ...shellFixtures.memberWithEveryPanelOpen, chatUrl: "https://app.slack.com/client/T1" });
+  it("walks the keyboard from the hero's action through the main column's panels, then the rail's quest rows, standing row and links, in reading order", async () => {
+    const { user } = withTheRailsReads({ ...shellFixtures.memberWithEveryPanelOpen, chatUrl: "https://app.slack.com/client/T1" });
     within(hero()).getByRole("link", { name: /Thank someone in Slack/ }).focus();
     const path = [];
-    for (let step = 0; step < 4; step++) {
+    for (let step = 0; step < 8; step++) {
       await user.tab();
-      path.push(document.activeElement?.textContent);
+      path.push(document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent);
     }
-    expect(path).toEqual(["Open the Book", "Open the Skill tree", "See all quests", "Open the leaderboard"]);
+    expect(path).toEqual([
+      "Open the Book",
+      "Open the Skill tree",
+      "Thank someone and say why, 3 times.",
+      "Thank someone you haven't thanked before. Claim",
+      "Thank someone you haven't thanked in the last 30 days.",
+      "See all quests",
+      "Everyone this week: you're #9",
+      "Open the leaderboard",
+    ]);
   });
 
-  it("leaves the nav unchanged: Home and each open feature with a web page", () => {
+  it("lists the same features in the nav, each in the state its panel shows (WS301)", () => {
     renderApp(shellFixtures.memberAcrossTheSheet);
-    const nav = within(screen.getByRole("navigation", { name: "Screens" })).getAllByRole("link");
-    expect(nav.map((link) => link.textContent)).toEqual(["Home", "Quests", "Book"]);
+    expect(navEntryNames()).toEqual(["Profile", "Quests", "Leaderboard: unlock ready. Open its crate", "Book", "Skill tree, locked. Unlocks at level 5"]);
   });
 });
 
@@ -138,22 +157,20 @@ describe("WS104: a ready panel", () => {
   });
 
   it("opens the crate in place, then becomes the open panel and takes focus back after the reveal", async () => {
-    const { user, showVisitor } = renderApp(shellFixtures.memberWithTheBoardReady, undefined, { openFeature: async () => ({ kind: "opened" }) });
+    const { user, showVisitor } = renderApp(shellFixtures.memberWithTheBoardReady, theWeeksBoard, { openFeature: async () => ({ kind: "opened" }) });
     await user.click(within(panel("Leaderboard")).getByRole("button", { name: "Open" }));
     await act(async () => undefined);
     showVisitor(shellFixtures.memberWithTheBoardOpened);
     await user.keyboard("{Escape}");
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(panelsBeside(profileCard())).toEqual(["Leaderboard"]);
-    expect(document.activeElement).toBe(within(panel("Leaderboard")).getByRole("link", { name: "Open the leaderboard" }));
+    expect(panelsBeside(profileCard())).toEqual(["Where you stand"]);
+    expect(document.activeElement).toBe(within(panel("Where you stand")).getByRole("link", { name: "Open the leaderboard" }));
   });
 });
 
 describe("WS105: an open panel", () => {
   it.each([
-    ["Quests", "Your quests this week.", ["See all quests", "/quests"]],
-    ["Leaderboard", "See who's thanking colleagues this week.", ["Open the leaderboard", "/leaderboard"]],
     ["Book", "See the tiers you've earned.", ["Open the Book", "/book"]],
     ["Skill tree", "2 skill points to spend", ["Open the Skill tree", "/skills"]],
   ])("shows %s itself with one link to its page", (name, line, link) => {
@@ -196,9 +213,9 @@ describe("WS106: while unlocks don't apply", () => {
     expect(main()).not.toHaveTextContent(/Coins|Hedgehogs/);
   });
 
-  it("lets the Leaderboard slot follow getMyProfile.leaderboard", () => {
-    plainPanels(shellFixtures.memberWithTheBoard);
-    expect(openLinksIn(panel("Leaderboard"))).toEqual([["Open the leaderboard", "/leaderboard"]]);
+  it("lets the Leaderboard slot follow getMyProfile.leaderboard, as Where you stand while the board is open", () => {
+    renderApp(shellFixtures.memberWithTheBoard, theWeeksBoard);
+    expect(within(panel("Where you stand")).getByRole("link", { name: "Open the leaderboard" })).toHaveAttribute("href", "/leaderboard");
     expect(panel("Quests")).toHaveTextContent("Locked");
   });
 });

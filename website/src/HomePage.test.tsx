@@ -33,7 +33,7 @@ describe("WS98 WS101: the hero is the character header, leading with the member 
     expect(title).toHaveTextContent(/^Sam Example$/);
     expect(title).toHaveClass("hud-display");
     expect(comesBefore(within(hero()).getByText("Character"), title)).toBe(true);
-    expect(document.title).toBe("HedgeHug · Home");
+    expect(document.title).toBe("HedgeHug · Profile");
   });
 
   it("titles the sheet You when the sign-in carried no name", () => {
@@ -135,10 +135,10 @@ describe("WS21 V19: the member's face", () => {
 describe("WS18: what teammates see, and received kudos staying private", () => {
   it("shows the member's profile card as their face and name, saying the kudos they receive stay private", () => {
     renderApp(shellFixtures.member);
-    const card = within(main()).getByRole("region", { name: "Your profile card" });
+    const card = within(main()).getByRole("region", { name: "What teammates see" });
     expect(within(card).getByText("Sam Example")).toBeInTheDocument();
     expect(within(card).getByText("SE")).toBeInTheDocument();
-    expect(card).toHaveTextContent("The kudos you receive stay private.");
+    expect(card).toHaveTextContent("Everyone can see this card. Your XP and the kudos you receive stay with you.");
     expect(card.textContent).not.toMatch(/\d/);
   });
 });
@@ -146,7 +146,7 @@ describe("WS18: what teammates see, and received kudos staying private", () => {
 describe("WS19 WS106: the later features are plain locked panels", () => {
   it("shows no level or XP anywhere until the facts carry them", () => {
     renderApp(shellFixtures.member);
-    expect(main().textContent).not.toMatch(/\blevel\b|\bXP\b/i);
+    expect(main().textContent).not.toMatch(/\blevel\b|\bLv\b|\d XP/i);
   });
 });
 
@@ -174,8 +174,8 @@ describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while pr
     renderApp(shellFixtures.member);
     expect(screen.queryByRole("img", { name: /^Level/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Account menu for Sam Example" })).not.toHaveAccessibleDescription();
-    expect(document.body.textContent).not.toMatch(/\blevel\b|\bXP\b/i);
+    expect(within(screen.getByRole("banner")).getByRole("link", { name: "Sam Example" })).not.toHaveAccessibleDescription();
+    expect(document.body.textContent).not.toMatch(/\blevel\b|\bLv\b|\d XP/i);
     expect(within(hero()).getByText("1", { selector: ".hud-display" })).toHaveTextContent(/^1\/3$/);
     expect(within(hero()).getByText("You've given 14 kudos and received 9.")).toBeInTheDocument();
   });
@@ -209,7 +209,7 @@ describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while pr
 
   it("rings the avatar in the HUD with the hero's ring at its size, named and described as the hero ring, with the level number beside the face", () => {
     renderApp(shellFixtures.memberAtLevel7);
-    const avatar = screen.getByRole("button", { name: "Account menu for Sam Example" });
+    const avatar = within(screen.getByRole("banner")).getByRole("link", { name: "Sam Example, level 7" });
     expect(avatar).toHaveAccessibleDescription("Level 7, 500 XP to level 8");
     const ring = within(avatar).getByRole("img", { name: "Level 7, 500 XP to level 8" });
     expect(arcOf(ring)).toHaveAttribute("pathLength", "100");
@@ -218,12 +218,13 @@ describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while pr
     expect(within(ring).getByText("7")).toHaveClass("hud-display");
   });
 
-  it("shows Level n on the profile card beside the name, and still no received count", () => {
+  it("shows Lv n on the profile card beside the name, read as Level n, and still no received count", () => {
     renderApp(shellFixtures.memberAtLevel7);
-    const card = within(main()).getByRole("region", { name: "Your profile card" });
-    expect(within(card).getByText("Level 7")).toBeInTheDocument();
+    const card = within(main()).getByRole("region", { name: "What teammates see" });
+    expect(within(card).getByText("Lv 7")).toBeInTheDocument();
+    expect(within(card).getByText("Level 7")).toHaveClass("sr-only");
     expect(within(card).getByText("Sam Example")).toBeInTheDocument();
-    expect(card.textContent!.replace("Level 7", "")).not.toMatch(/\d/);
+    expect(card.textContent!.replace("Lv 7", "").replace("Level 7", "")).not.toMatch(/\d/);
   });
 
   it("shows no skill points, coins, ready pill or crates past level 5", () => {
@@ -231,6 +232,6 @@ describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while pr
     const banner = screen.getByRole("banner");
     expect(banner.textContent).not.toMatch(/skill|coin|ready|crate/i);
     expect(hero().textContent).not.toMatch(/skill|coin|ready|crate/i);
-    expect(within(main()).getByRole("region", { name: "Your profile card" }).textContent).not.toMatch(/skill|coin|ready|crate/i);
+    expect(within(main()).getByRole("region", { name: "What teammates see" }).textContent).not.toMatch(/skill|coin|ready|crate/i);
   });
 });
