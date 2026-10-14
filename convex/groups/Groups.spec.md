@@ -32,6 +32,7 @@ Groups: which of the workspace's user groups count as groups (an enabled user gr
 - only an admin where groups applies changes the group mode: A setGroupMode from a member who isn't a workspace admin or owner, or from an admin to whom the `groups` flag doesn't apply, changes neither the group mode nor anyone's primary group, and neither sees the group mode in the Admin tab.
   over: setGroupMode as a forged button and as a forged group picker selection from a member who isn't an admin, and as a forged button from an admin with `groups` off, each delivered as a signed Slack interaction after the group mode was set once
   via: GB26: only admins where `groups` applies set the group mode
+  refuted: setsGroupMode let a member through when they were an admin or the `groups` flag applied to them, instead of both -> 2 of 3 tests failed on their assertions: the forged setGroupMode from a member who isn't an admin set the group mode, and the admin with `groups` off saw it in the Admin tab (2026-10-14)
   because: GB26 and GB27: the group mode is shared by the whole workspace and decides which groups everyone's kudos count for, so a member who could forge it could archive every group, and the `groups` flag keeps the setting dark until it widens (GB29)
   kinds: identity, state
   checklist: capability-authorization dismissed: the command acts on the workspace the signed payload names, and setGroupMode reads the clicking member's admin role from the directory and the `groups` flag from their member decision in the same mutation
@@ -47,6 +48,7 @@ Groups: which of the workspace's user groups count as groups (an enabled user gr
 - in allowlist mode only the groups on the allowlist count: In allowlist mode a group that isn't on the allowlist is no member's counting group or primary group once its reconciliation ran, a member whose primary group left the allowlist falls back to the smallest allowed group they are in, and every group counts again when the mode goes back to every group, with the history kept.
   over: an admin switching to allowlist mode, picking two of three groups, picking none, switching back to every group and to allowlist mode again, delivered as signed Slack interactions, with each member's counting groups, primary group and history read after each step
   via: GB1, GB8: in allowlist mode only the groups an admin picks count
+  refuted: countsAsGroup counted every enabled custom group in allowlist mode too -> 4 of 5 tests failed on their assertions: the groups left out still counted, so no member fell back and picking none left groups available (2026-10-14)
   because: GB1, GB3, GB5 and GB8: the allowlist keeps interest groups and on-call aliases off the boards (call 8), so a group outside it that still counted would get kudos attributed and a place on the Groups board
   kinds: state
   checklist: revalidated-permission dismissed: no permission is involved; reconciliation reads the stored group mode itself
