@@ -1,6 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import { publish } from "../bus/publish";
 import {
   memberLeftEventValidator,
@@ -44,6 +45,7 @@ export const journeyActivationValidator = v.object({
   activatedAt: v.number(),
   reward: rewardValidator,
   catalogueVersion: v.string(),
+  sayingWhyOn: v.optional(v.string()),
 });
 
 export type JourneyActivation = Infer<typeof journeyActivationValidator>;
@@ -134,8 +136,14 @@ async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent): Promise
   const twoDays = await activationOf(ctx, event.giver, "two-days");
   if (twoDays === null || event.at < twoDays.activatedAt || gateDecisionOf(event.annotations)?.thoughtful !== true) return false;
   if (!(await journeyStepAppliesIn(ctx, event.workspace, "two-days")) || (await isFinished(ctx, twoDays))) return false;
-  const days = new Set<DayKey>([event.day, ...(await sayingWhyBetween(ctx, twoDays, event.at)).map(({ day }) => day)]);
-  return days.size >= daysSayingWhyToFinishTwoDays && (await finish(ctx, event.workspace, twoDays, event.at));
+  const days = new Set<DayKey>([event.day, ...(twoDays.sayingWhyOn === undefined ? [] : [twoDays.sayingWhyOn]), ...(await daysSayingWhyBeforeActivation(ctx, twoDays, event.at))]);
+  if (days.size >= daysSayingWhyToFinishTwoDays) return finish(ctx, event.workspace, twoDays, event.at);
+  if (twoDays.sayingWhyOn === undefined) await ctx.db.patch(twoDays._id, { sayingWhyOn: event.day });
+  return false;
+}
+
+async function daysSayingWhyBeforeActivation(ctx: QueryCtx, activation: Doc<"journeySteps">, until: number): Promise<DayKey[]> {
+  return (await sayingWhyBetween(ctx, activation, Math.min(until, activation._creationTime))).map(({ day }) => day);
 }
 
 async function isLeftToTheJoin(ctx: QueryCtx, workspace: string, openedAt: number) {

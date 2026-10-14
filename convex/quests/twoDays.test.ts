@@ -174,6 +174,28 @@ describe("P90: two-days has its own finishing rule, never someone-new's", () => 
     expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
   });
 
+  test("a member who gave 4,100 kudos without saying why since the opening finishes it on the second day that says why, within Convex's transaction limits", async () => {
+    const t = await bookShippedBeforeAnyoneJoined(await flagsLoaded(testBackend({ transactionLimits: true })));
+    const [alice, bob] = await t.run(async (ctx) => {
+      await ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 });
+      return [await ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }), await ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member" })];
+    });
+    await opened(t, alice!, "book", monday);
+    await followKudosGiven(t, await thoughtfulKudos(t, alice!, bob!, monday + minuteMs, "2026-10-12"));
+    for (let batch = 0; batch < 41; batch++) {
+      await t.run(async (ctx) => {
+        for (let index = 0; index < 100; index++) {
+          const at = tuesday + batch * 100 + index;
+          await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `${at}`, giver: alice!, recipient: bob!, kudos: 1, day: "2026-10-13", at });
+        }
+      });
+    }
+
+    await followKudosGiven(t, await thoughtfulKudos(t, alice!, bob!, wednesday, "2026-10-14"));
+
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
+  }, 120_000);
+
   test("kudos that say why on 2 days after the opening, read before the activation's subscriber runs, finish it at the second", async () => {
     const { t, alice, bob } = await membersInDirectory();
     await followKudosGiven(t, await thoughtfulKudos(t, alice, bob, monday + minuteMs, "2026-10-12"));
@@ -293,6 +315,23 @@ describe("P78: two-days exists only where the Book and quests both apply", () =>
     expect(await journeyStepsOf(t, alice)).toEqual(["first-thanks"]);
     expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([firstThanksDone]);
     expect(lastReplyTo("U_ALICE").join("\n")).not.toContain("2 different days");
+  });
+
+  test("a kudos that says why while the Book doesn't apply never counts: after it applies again, a second day only counts with another kudos that says why", async () => {
+    const t = await workspace();
+    await openBook(t, "U_ALICE");
+
+    await flagsFromPostHog(t, postHog, ...on("xp-levels", "unlocks", "quests"), offForEveryone("achievements"));
+    vi.setSystemTime(tuesday);
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await flagsFromPostHog(t, postHog, ...on("xp-levels", "unlocks", "quests", "achievements"));
+    vi.setSystemTime(wednesday);
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([]);
+    vi.setSystemTime(thursday);
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([expect.objectContaining({ at: thursday })]);
   });
 
   test("turned off after it finished, a stale Open on its crate writes nothing, and its DM delivered then says nothing of it", async () => {

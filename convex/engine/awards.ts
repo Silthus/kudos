@@ -123,7 +123,10 @@ export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: 
 export async function givenBetween(ctx: QueryCtx, giver: MemberId, since: number, until: number): Promise<DatedAward[]> {
   const awards = await ctx.db
     .query("awards")
-    .withIndex("by_giver", (q) => q.eq("giver", giver).gte("day", earliestDayAt(since)))
+    .withIndex("by_giver", (q) => {
+      const from = q.eq("giver", giver).gte("day", earliestDayAt(since));
+      return Number.isFinite(until) ? from.lte("day", latestDayAt(until)) : from;
+    })
     .collect();
   const between = awards.filter(({ at }) => at >= since && at <= until).sort((one, other) => one.at - other.at);
   return (await withStoredAnnotations(ctx, between)).map(({ award: { _id, day, at }, annotations }) => ({ award: _id, day, at, annotations }));
@@ -131,6 +134,10 @@ export async function givenBetween(ctx: QueryCtx, giver: MemberId, since: number
 
 function earliestDayAt(at: number): DayKey {
   return allowanceDay(at - dayMs, "UTC");
+}
+
+function latestDayAt(at: number): DayKey {
+  return allowanceDay(at + dayMs, "UTC");
 }
 
 export async function awardAt(ctx: QueryCtx, award: AwardId): Promise<number | null> {
