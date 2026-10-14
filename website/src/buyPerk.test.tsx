@@ -50,6 +50,10 @@ function announcement() {
   return within(details()).getByRole("status");
 }
 
+function shownLinesIn(region: HTMLElement) {
+  return [...region.querySelectorAll("p")].filter((line) => line.closest("[role=status]") === null).map((line) => line.textContent);
+}
+
 function theTree(answer: MySkillTree) {
   let shown = answer;
   return {
@@ -180,6 +184,17 @@ describe("WS87: a refused purchase changes nothing and says why", () => {
     expect(details()).toHaveTextContent(says);
     expect(buyButton()).toHaveAccessibleName("Buy for 1 skill point");
     expect(nodeOf(perk)).toHaveAccessibleName(`${perk}. Can buy. Costs 1 skill point.`);
+  });
+
+  it("keeps saying why in the perk's details when the read already shows it bought elsewhere", async () => {
+    const later = answerLater();
+    const { user, showTree } = buyWith(() => later.answer);
+    await user.click(buyButton());
+    showTree(skillTreeFixtures.sparkOwned);
+    await later.settle({ kind: "refused", reason: "owned" });
+    expect(within(details()).getByText("Owned since 13 Oct 2026")).toBeInTheDocument();
+    expect(shownLinesIn(details())).toContain("That couldn't be bought. You already own Spark.");
+    expect(announcement()).toHaveTextContent(/^That couldn't be bought\. You already own Spark\.$/);
   });
 
   it.each([null, "not-open"] as const)("gives no reason for a refusal at the gate (%s)", async (reason) => {

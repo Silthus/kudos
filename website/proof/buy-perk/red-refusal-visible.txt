@@ -1,0 +1,27 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/buy-perk/website
+
+ ❯ |website| src/buyPerk.test.tsx (29 tests | 1 failed | 28 skipped) 206ms
+   ❯ WS87: a refused purchase changes nothing and says why (8)
+     × keeps saying why in the perk's details when the read already shows it bought elsewhere 205ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/buyPerk.test.tsx > WS87: a refused purchase changes nothing and says why > keeps saying why in the perk's details when the read already shows it bought elsewhere
+AssertionError: expected [ …(2) ] to include 'That couldn\'t be bought. You already…'
+ ❯ src/buyPerk.test.tsx:196:37
+    194|     await later.settle({ kind: "refused", reason: "owned" });
+    195|     expect(within(details()).getByText("Owned since 13 Oct 2026")).toB…
+    196|     expect(shownLinesIn(details())).toContain("That couldn't be bought…
+       |                                     ^
+    197|     expect(announcement()).toHaveTextContent(/^That couldn't be bought…
+    198|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 28 skipped (29)
+   Start at  07:57:31
+   Duration  2.20s (import 49%, environment 20%, transform 16%, tests 10%, setup 5%)
+

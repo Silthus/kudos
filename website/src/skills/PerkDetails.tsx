@@ -21,6 +21,7 @@ export function PerkDetailsPanel({ perk, level, purchasing }: DetailsProps) {
       </h2>
       <Facts perk={perk} level={level} />
       <Outcome perk={perk} level={level} purchasing={purchasing} />
+      <PurchaseNotice perk={perk} purchasing={purchasing} />
       <PurchaseAnnouncement purchasing={purchasing} />
     </section>
   );
@@ -43,6 +44,7 @@ export function PerkDetailsDrawer({ perk, level, purchasing, open, onClose, retu
         </div>
         <DrawerFooter>
           <Outcome perk={perk} level={level} purchasing={purchasing} />
+          <PurchaseNotice perk={perk} purchasing={purchasing} />
           <PurchaseAnnouncement purchasing={purchasing} />
         </DrawerFooter>
       </DrawerContent>
@@ -80,7 +82,7 @@ function Outcome({ perk, level, purchasing }: DetailsProps) {
 }
 
 function BuyAction({ perk, level, purchasing }: DetailsProps) {
-  const { buying, notice } = purchasing;
+  const { buying } = purchasing;
   const busy = buying !== undefined;
   return (
     <div className="flex flex-col items-start gap-2">
@@ -92,9 +94,13 @@ function BuyAction({ perk, level, purchasing }: DetailsProps) {
       >
         {buying === perk.perk ? "Buying…" : `Buy for ${skillPointsText(perk.cost.skillPoints)}`}
       </Button>
-      {notice?.shownInDetails && notice.perk === perk.perk && <p className="text-xs font-medium">{notice.text}</p>}
     </div>
   );
+}
+
+function PurchaseNotice({ perk, purchasing: { notice } }: { perk: PerkNode; purchasing: Purchasing }) {
+  if (!notice?.shownInDetails || notice.perk !== perk.perk) return null;
+  return <p className="text-xs font-medium">{notice.text}</p>;
 }
 
 function PurchaseAnnouncement({ purchasing }: { purchasing: Purchasing }) {
