@@ -18,3 +18,13 @@ The same backend, redeployed at `8c0226e` with the site rebuilt:
 7. She opened `/leaderboard?period=month&sign-in`. The site started Sign in with Slack and brought her back to the month's board (`head-month-board-after-sign-in-dark.png`).
 
 The gate on `8c0226e`: `gate-8c0226e.txt`. The launch refusal round 1 added (a flag switched on for the workspace after a preview) is proven in `convex/website/preview.test.ts`; its red run is `red-launch-due.txt`; round 2 added that no preview moment runs while such a launch is due (`red-preview-while-due.txt`, gate on `5993dd3`: `gate-5993dd3.txt`); the stuck page's red run is `red-stuck-blank.txt`.
+
+## Final, on 31a3fd4 (merged with main)
+
+`main` changed App Home's front door to hand over its origin, and App Home builds the home link and every crate's Open from it. So the sign-in ask moved from a `?sign-in` query into a `/sign-in` path in front of the route: while the workspace decision is off, the front door's origin is the site plus `/sign-in`. The sections above show the earlier `?sign-in` form.
+
+8. A signed `app_home_opened` republished both App Homes. Alice's links are `/sign-in/`, `/sign-in/quests` and `/sign-in/leaderboard` (`merged-app-home-previewer.json`). Bob's has no website link (`merged-app-home-other-member.json`).
+9. In a fresh browser profile, Alice opened `/sign-in/quests`. The site started Sign in with Slack and brought her back to `/quests`, signed in (`merged-previewer-quests-light.png`, `merged-previewer-quests-dark.png`).
+10. She signed out, and Bob opened `/sign-in/`. The callback refused him and the page shows "Not open yet" at `/` (`merged-other-member-refused-dark.png`). The backend still held only Alice's account, and no `unlockLaunches` or `journeyLaunches` row.
+
+The gate on `31a3fd4`: `gate-31a3fd4.txt` (131 files, 2082 tests).
