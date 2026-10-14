@@ -25,18 +25,22 @@ describe("O3: kudos given", () => {
     ["a retry in a thread", { retry: true, inThread: true }, { retry: true, in_thread: true }],
     ["the default kudos emoji", { kudosEmoji: "taco" }, { default_kudos_emoji: true }],
     ["a workspace's own kudos emoji", { kudosEmoji: "pizza" }, { default_kudos_emoji: false }],
+    ["E3: a gate decision that says why", { annotations: { gate: { version: 1, thoughtful: true, words: 7 } } }, { thoughtful: true }],
+    ["E3: a gate decision that doesn't say why", { annotations: { gate: { version: 1, thoughtful: false, words: 2 } } }, { thoughtful: false }],
+    ["E3: no gate decision", { annotations: { note: "thanks for the quokka migration" } }, { thoughtful: false }],
   ])("%s", (_, overrides, expected) => {
     const [given] = projectKudosGiven(kudosGiven(overrides));
 
     expect(given).toMatchObject({ event: "kudos given", subject: { member: alice }, at, properties: expected });
   });
 
-  test("O11: kudos given lists exactly O3's properties", () => {
-    const [given] = projectKudosGiven(kudosGiven());
+  test("O11 E3: kudos given lists exactly O3's properties and thoughtful, never the gate's word count", () => {
+    const [given] = projectKudosGiven(kudosGiven({ annotations: { gate: { version: 1, thoughtful: true, words: 7 } } }));
 
     expect(Object.keys(given!.properties).sort()).toEqual(
-      ["daily_allowance_left", "daily_allowance_opening", "default_kudos_emoji", "in_thread", "kudos_per_recipient", "kudos_total", "recipients", "retry", "skipped_mentions"].sort(),
+      ["daily_allowance_left", "daily_allowance_opening", "default_kudos_emoji", "in_thread", "kudos_per_recipient", "kudos_total", "recipients", "retry", "skipped_mentions", "thoughtful"].sort(),
     );
+    expect(Object.values(given!.properties)).not.toContain(7);
   });
 });
 
