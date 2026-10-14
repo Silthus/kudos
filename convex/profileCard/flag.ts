@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { internalMutation, type MutationCtx } from "../_generated/server";
-import { exposed, memberDecision, workspaceDecision, type Flag } from "../analytics/flags";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { exposed, memberDecision, memberDecisionWithoutWriting, workspaceDecision, type Flag } from "../analytics/flags";
 import { lookup, type MemberId } from "../workspace/directory";
 
 export const profileCardFlag = { key: "profile-card", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
@@ -10,6 +10,10 @@ export async function isProfileCardShownTo(ctx: MutationCtx, workspace: string, 
   const shown = await memberDecision(ctx, profileCardFlag, member);
   await exposed(ctx, profileCardFlag, member, shown);
   return shown;
+}
+
+export function profileCardOpenTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecisionWithoutWriting(ctx, profileCardFlag, member);
 }
 
 export const exposeProfileCard = internalMutation({
