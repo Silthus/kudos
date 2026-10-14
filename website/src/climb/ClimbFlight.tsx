@@ -1,17 +1,28 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { fillFrom } from "../crates/CrateRewardFlight";
 import { isInView, RewardFlight, settle, xpDisplay, type Arrival, type Origin } from "../crates/RewardFlight";
+import { prefersReducedMotion } from "../reducedMotion";
 import type { MemberProfile } from "../shell";
 
 type ClimbFlightProps = { chips: number[]; shown: MemberProfile; onLanded: (xp: number) => void; onFinished: () => void };
 
-const staggerMs = 320;
+const staggerMs = 220;
+
+const spreadOfChip = [
+  { x: 0, y: 0 },
+  { x: 16, y: 20 },
+  { x: -16, y: 40 },
+  { x: 0, y: 60 },
+];
+
+const eachLandsWithinMs = 2000;
 
 export function ClimbFlight({ chips, shown, onLanded, onFinished }: ClimbFlightProps) {
   const shownNow = useRef(shown);
   shownNow.current = shown;
   const [launched, setLaunched] = useState(1);
   const [done, setDone] = useState<number[]>([]);
+  const landed = useRef(new Set<number>());
 
   useEffect(() => {
     if (launched >= chips.length) return;
@@ -25,16 +36,31 @@ export function ClimbFlight({ chips, shown, onLanded, onFinished }: ClimbFlightP
 
   const arrive = useCallback(
     (at: number, target: HTMLElement | undefined) => {
+      if (landed.current.has(at)) return;
+      landed.current.add(at);
       const xp = chips[at]!;
       if (target !== undefined) {
         fillFrom(target, shownNow.current, xp);
         settle(target, ["reward-landed"]);
       }
       onLanded(xp);
-      setDone((landed) => [...landed, at]);
+      setDone([...landed.current]);
     },
     [chips, onLanded],
   );
+
+  const landTheRest = useCallback(() => {
+    for (const at of chips.keys()) arrive(at, undefined);
+  }, [chips, arrive]);
+
+  useLayoutEffect(() => {
+    if (prefersReducedMotion()) landTheRest();
+  }, [landTheRest]);
+
+  useEffect(() => {
+    const deadline = setTimeout(landTheRest, chips.length * staggerMs + eachLandsWithinMs);
+    return () => clearTimeout(deadline);
+  }, [chips.length, landTheRest]);
 
   return chips.slice(0, launched).map((xp, at) => (done.includes(at) ? null : <Chip key={at} at={at} xp={xp} onArrive={arrive} />));
 }
@@ -49,7 +75,14 @@ function Chip({ at, xp, onArrive }: { at: number; xp: number; onArrive: (at: num
     [at, onArrive],
   );
   const onLanded = useCallback((how: Arrival) => how === "cancelled" && !arrived.current && onArrive(at, undefined), [at, onArrive]);
-  return <RewardFlight source={climbOrigin} target={xpDisplay} amount={`+${xp.toLocaleString()} XP`} onArrived={onArrived} onLanded={onLanded} />;
+  const source = useCallback(() => spreadOut(climbOrigin(), at), [at]);
+  return <RewardFlight source={source} target={xpDisplay} amount={`+${xp.toLocaleString()} XP`} onArrived={onArrived} onLanded={onLanded} />;
+}
+
+function spreadOut(origin: Origin | undefined, at: number): Origin | undefined {
+  if (origin === undefined) return undefined;
+  const { x, y } = spreadOfChip[at % spreadOfChip.length]!;
+  return { left: origin.left + x, top: origin.top + y, width: origin.width, height: origin.height };
 }
 
 function climbOrigin(): Origin | undefined {

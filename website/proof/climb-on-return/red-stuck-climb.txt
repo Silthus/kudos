@@ -1,0 +1,123 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/climb-on-return
+
+ ❯ |website| src/climbOnReturn.test.tsx (17 tests | 1 failed | 16 skipped) 332ms
+   ❯ #413: the climb on return (11)
+     × never leaves the header held short when a chip never lands, as when reduced motion turns on mid-climb 330ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: the climb on return > never leaves the header held short when a chip never lands, as when reduced motion turns on mid-climb
+AssertionError: expected [ <span …(4)>…(7)</span>, …(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   <span
++     aria-hidden="true"
++     class="reward-flight"
++     data-reward-flight="true"
++     style="left: 0px; top: 0px; width: 0px; height: 0px; --flight-x: 0px; --flight-y: 0px;"
++   >
++     <span
++       class="reward-flight-chip"
++       data-particle="true"
++       style="--delay: 260ms;"
++     >
++       +15 XP
++     </span>
++     <span
++       class="reward-flight-particle"
++       data-particle="true"
++       style="--delay: 0ms; --arc: -48px; --spread: 0px; --size: 6px;"
++     />
++     <span
++       class="reward-flight-particle"
++       data-particle="true"
++       style="--delay: 40ms; --arc: -64px; --spread: -18px; --size: 4px;"
++     />
++     <span
++       class="reward-flight-particle"
++       data-particle="true"
++       style="--delay: 80ms; --arc: -36px; --spread: 16px; --size: 8px;"
++     />
++     <span
++       class="reward-flight-particle"
++       data-particle="true"
++       style="--delay: 120ms; --arc: -56px; --spread: -8px; --size: 4px;"
++     />
++     <span
++       class="reward-flight-particle"
++       data-particle="true"
++       style="--delay: 160ms; --arc: -30px; --spread: 22px; --size: 6px;"
++     />
++     <span
++       class="reward-flight-particle"
++       data-particle="true"
++       style="--delay: 200ms; --arc: -70px; --spread: 6px; --size: 8px;"
++     />
++   </span>,
++   <span
++     aria-hidden="true"
++     class="reward-flight"
++     data-reward-flight="true"
++     style="left: 0px; top: 0px; width: 0px; height: 0px; --flight-x: 0px; --flight-y: 0px;"
++   >
++     <span
++       class="reward-flight-chip"
++       data-particle="true"
++       style="--delay: 260ms;"
++     >
++       +25 XP
++     </span>
++     <span
++       class="reward-flight-particle"
++       data-particle="true"
++       style="--delay: 0ms; --arc: -48px; --spread: 0px; --size: 6px;"
++     />
++     <span
++       class="reward-flight-particle"
++       data-particle="true"
++       style="--delay: 40ms; --arc: -64px; --spread: -18px; --size: 4px;"
++     />
++     <span
++       class="reward-flight-particle"
++       data-particle="true"
++       style="--delay: 80ms; --arc: -36px; --spread: 16px; --size: 8px;"
++     />
++     <span
++       class="reward-flight-particle"
++       data-particle="true"
++       style="--delay: 120ms; --arc: -56px; --spread: -8px; --size: 4px;"
++     />
++     <span
++       class="reward-flight-particle"
++       data-particle="true"
++       style="--delay: 160ms; --arc: -30px; --spread: 22px; --size: 6px;"
++     />
++     <span
++       class="reward-flight-particle"
++       data-particle="true"
++       style="--delay: 200ms; --arc: -70px; --spread: 6px; --size: 8px;"
++     />
++   </span>,
++ ]
+
+ ❯ src/climbOnReturn.test.tsx:198:23
+    196|     preferReducedMotion();
+    197|     wait(5000);
+    198|     expect(flights()).toEqual([]);
+       |                       ^
+    199|     expect(xpBar()).toHaveAttribute("aria-valuenow", "150");
+    200|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 16 skipped (17)
+   Start at  17:29:37
+   Duration  2.68s (import 44%, transform 22%, environment 17%, tests 13%, setup 4%)
+

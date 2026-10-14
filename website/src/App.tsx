@@ -112,7 +112,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
           <CrateRewardFlight key={moments.flight.crate.seen} flight={moments.flight} reward={rewards[0]!} shown={memberShown} onRewardLanded={moments.landed} onLanded={moments.land} />
         )}
         {climb.chips !== undefined && memberShown !== undefined && <ClimbFlight chips={climb.chips} shown={memberShown} onLanded={climb.landed} onFinished={climb.finish} />}
-        {levels.levelUp !== undefined && <LevelUpCelebration key={levels.levelUp.key} levelUp={levels.levelUp} onDone={levels.done} />}
+        {levels.levelUp !== undefined && memberShown !== undefined && <LevelUpCelebration key={levels.levelUp.key} levelUp={levels.levelUp} onDone={levels.done} />}
         <MomentAnnouncement text={moments.announcement} />
         <LevelUpAnnouncement text={levels.announcement} />
       </MomentsProvider>

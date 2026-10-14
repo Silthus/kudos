@@ -5,17 +5,21 @@ import { prefersReducedMotion } from "../reducedMotion";
 import { earnedLinesOf, type LevelUp } from "./useLevelUps";
 import "./levelUp.css";
 
-const playsForMs = 2400;
+const playsForMs = 2000;
 
-const staysStillForMs = 4000;
+const staysStillForMs = 3000;
 
 const burstMs = 1000;
 
 const sparkInks = ["var(--band-tangerine)", "var(--band-lemon)", "var(--band-blue)", "var(--foreground)"];
 
-const sparks = Array.from({ length: 16 }, (_, at) => ({
-  angle: (360 / 16) * at + (at % 2 === 0 ? 0 : 9),
-  distance: at % 3 === 0 ? 96 : at % 3 === 1 ? 72 : 120,
+const roomAboveTheRing = 150;
+
+const sparkCount = 24;
+
+const sparks = Array.from({ length: sparkCount }, (_, at) => ({
+  angle: (360 / sparkCount) * at + (at % 2 === 0 ? 0 : 6),
+  distance: at % 3 === 0 ? 150 : at % 3 === 1 ? 110 : 190,
   size: at % 4 === 0 ? 10 : 6,
   ink: sparkInks[at % sparkInks.length]!,
   delay: (at % 4) * 30,
@@ -24,14 +28,13 @@ const sparks = Array.from({ length: 16 }, (_, at) => ({
 export function LevelUpCelebration({ levelUp, onDone }: { levelUp: LevelUp; onDone: () => void }) {
   const [still] = useState(prefersReducedMotion);
   const [anchor, setAnchor] = useState<Origin>();
-  const [belowHeader, setBelowHeader] = useState<number>();
+  const [placement, setPlacement] = useState<CSSProperties>();
 
   useLayoutEffect(() => {
-    const header = document.querySelector("header")?.getBoundingClientRect();
-    if (header !== undefined && header.bottom > 0) setBelowHeader(header.bottom + 12);
+    const display = levelDisplay()?.getBoundingClientRect();
+    setPlacement(placementBy(display, document.querySelector("header")?.getBoundingClientRect()));
     if (still) return;
-    const display = levelDisplay();
-    if (display !== null) setAnchor(display.getBoundingClientRect());
+    if (display !== undefined) setAnchor(display);
     burstTheBar();
     dingTheLevel();
   }, [still]);
@@ -43,7 +46,7 @@ export function LevelUpCelebration({ levelUp, onDone }: { levelUp: LevelUp; onDo
 
   const lines = earnedLinesOf(levelUp);
   return (
-    <div data-level-up data-motion={still ? "reduced" : "full"} aria-hidden="true" className="level-up" style={belowHeader === undefined ? undefined : ({ "--below-header": `${belowHeader}px` } as CSSProperties)}>
+    <div data-level-up data-motion={still ? "reduced" : "full"} aria-hidden="true" className="level-up" style={placement}>
       {anchor !== undefined && <Burst at={anchor} />}
       <div className="level-up-card">
         <span className="level-up-kicker">You reached</span>
@@ -75,6 +78,12 @@ function Burst({ at }: { at: Origin }) {
       ))}
     </span>
   );
+}
+
+function placementBy(ring: Origin | undefined, header: Origin | undefined): CSSProperties | undefined {
+  const headerBottom = header === undefined ? 0 : header.top + header.height;
+  if (ring !== undefined && ring.top - headerBottom >= roomAboveTheRing) return { "--card-left": `${ring.left + ring.width / 2}px`, "--card-top": `${ring.top - 12}px`, "--card-lift": "-100%" } as CSSProperties;
+  return headerBottom > 0 ? ({ "--card-top": `${headerBottom + 12}px` } as CSSProperties) : undefined;
 }
 
 function burstTheBar() {

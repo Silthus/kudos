@@ -5,9 +5,9 @@
 .level-up-card {
   position: fixed;
   z-index: 50;
-  left: 50%;
-  top: var(--below-header, 4.5rem);
-  translate: -50% 0;
+  left: clamp(9rem, var(--card-left, 50%), calc(100vw - 9rem));
+  top: var(--card-top, 4.5rem);
+  translate: -50% var(--card-lift, 0);
   isolation: isolate;
   display: flex;
   width: max-content;
@@ -35,6 +35,13 @@
   background: radial-gradient(circle at 1px 1px, rgb(20 20 20 / 0.14) 1px, transparent 1.4px) 0 0 / 14px 14px;
 }
 
+.dark .level-up-card {
+  border-color: var(--band-night-ink);
+  box-shadow:
+    0 4px 0 0 rgb(255 255 255 / 0.18),
+    0 18px 40px -12px rgb(0 0 0 / 0.6);
+}
+
 .level-up-kicker {
   font-size: 0.6875rem;
   font-weight: 700;
@@ -44,14 +51,14 @@
 
 .level-up-headline {
   font-family: RoundHog, var(--font-sans);
-  font-size: 1.75rem;
+  font-size: 2.25rem;
   font-weight: 800;
-  line-height: 1;
+  letter-spacing: -0.02em;
+  line-height: 0.92;
 }
 
 .level-up-number {
   display: inline-block;
-  font-size: 2.75rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -90,8 +97,8 @@
 }
 
 .level-up-rays {
-  width: 260px;
-  height: 260px;
+  width: min(420px, 70vw);
+  height: min(420px, 70vw);
   translate: -50% -50%;
   background: repeating-conic-gradient(from 0deg, color-mix(in oklab, var(--band-lemon) 70%, transparent) 0 7deg, transparent 7deg 22deg);
   mask-image: radial-gradient(closest-side, #000 18%, transparent 72%);
@@ -101,7 +108,7 @@
   width: 80px;
   height: 80px;
   translate: -50% -50%;
-  border: 4px solid var(--band-tangerine);
+  border: 5px solid var(--band-tangerine);
 }
 
 .level-up-spark {
@@ -116,7 +123,7 @@
   .level-up[data-motion="full"] .level-up-card {
     animation:
       level-up-drop 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.25) both,
-      level-up-leave 0.3s ease-in 2.05s forwards;
+      level-up-leave 0.3s ease-in 1.7s forwards;
   }
   .level-up[data-motion="full"] .level-up-number {
     animation: level-up-stamp 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.4) 0.3s both;
@@ -125,7 +132,7 @@
     animation: level-up-chip 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3) var(--line-delay) both;
   }
   .level-up-rays {
-    animation: level-up-rays 1.1s cubic-bezier(0.15, 0.6, 0.2, 1) both;
+    animation: level-up-rays 1.4s cubic-bezier(0.15, 0.6, 0.2, 1) both;
   }
   .level-up-ring {
     animation: level-up-ring 0.8s cubic-bezier(0.1, 0.7, 0.3, 1) both;
@@ -218,7 +225,7 @@
   }
   100% {
     opacity: 0;
-    transform: scale(2.6);
+    transform: scale(3.4);
   }
 }
 

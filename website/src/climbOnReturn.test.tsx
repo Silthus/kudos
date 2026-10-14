@@ -77,6 +77,14 @@ function flights() {
   return [...document.querySelectorAll<HTMLElement>("[data-reward-flight]")];
 }
 
+function hudRing() {
+  return within(screen.getByRole("banner")).getByRole("img", { name: /^Level / });
+}
+
+function frame() {
+  return document.querySelector<HTMLElement>(".hud-root")!;
+}
+
 function celebration() {
   return document.querySelector<HTMLElement>("[data-level-up]");
 }
@@ -173,8 +181,8 @@ describe("#413: the climb on return", () => {
     visit(at(170), many);
 
     await readTheActivity();
-    wait(5000);
-    expect(flights().length).toBeLessThanOrEqual(4);
+    for (const _launch of [1, 2, 3]) wait(400);
+    expect(flights()).toHaveLength(4);
     expect(flights()[0]).toHaveTextContent("+45 XP");
   });
 
@@ -185,6 +193,54 @@ describe("#413: the climb on return", () => {
 
     await readTheActivity();
     expect(flights()).toHaveLength(1);
+  });
+
+  it("never leaves the header held short when a chip never lands, as when reduced motion turns on mid-climb", async () => {
+    visitedBefore(at(110));
+    visit(at(150));
+    await readTheActivity();
+    expect(flights()).not.toEqual([]);
+
+    preferReducedMotion();
+    wait(5000);
+    expect(flights()).toEqual([]);
+    expect(xpBar()).toHaveAttribute("aria-valuenow", "150");
+  });
+
+  it("lands every chip once at once when there is nowhere to fly from, and celebrates once", async () => {
+    visitedBefore(at(90));
+    window.history.replaceState(null, "", "/quests");
+    const activity = answering(sinceTheLastVisit);
+    renderApp(at(130), undefined, undefined, () => undefined, undefined, undefined, undefined, undefined, activity);
+
+    await readTheActivity();
+    wait(300);
+    expect(flights()).toEqual([]);
+    expect(screen.getByRole("link", { name: /^Sam Example, level/ })).toHaveAccessibleName("Sam Example, level 3");
+    expect(celebration()).toHaveTextContent("Level 3");
+    expect(levelAnnouncement()).toHaveTextContent("You reached level 3.");
+  });
+
+  it("lands a chip that can't fly once, so a live update after it shows the true totals", async () => {
+    visitedBefore(at(110));
+    window.history.replaceState(null, "", "/quests");
+    const activity = answering([]);
+    const { showVisitor } = renderApp(at(125), undefined, undefined, () => undefined, undefined, undefined, undefined, undefined, activity);
+    await readTheActivity();
+
+    showVisitor(at(150));
+    expect(hudRing()).toHaveAccessibleName("Level 3, 150 XP to level 4");
+  });
+
+  it("leaves no fill animation behind on the frame once the climb and its celebration are over", async () => {
+    visitedBefore(at(90));
+    visit(at(130));
+    await climbAll();
+    wait(3000);
+
+    expect(frame()).not.toHaveClass("reward-levelling");
+    expect(frame()).not.toHaveClass("reward-filling");
+    expect(frame()).not.toHaveClass("level-burst");
   });
 
   it("stays still when nothing grew since the last visit", async () => {
@@ -282,6 +338,26 @@ describe("#413: a level-up celebration worth the moment", () => {
     expect(celebration()).toHaveAttribute("data-motion", "reduced");
     expect(celebration()!.querySelector("[data-spark]")).toBeNull();
     expect(levelAnnouncement()).toHaveTextContent("You reached level 3.");
+  });
+
+  it("under reduced motion the calm card leaves within three seconds", async () => {
+    preferReducedMotion();
+    const { showVisitor } = visit(at(90));
+    await readTheActivity();
+    showVisitor(at(130));
+    wait(3000);
+    expect(celebration()).toBeNull();
+  });
+
+  it("never shows one member's celebration after they sign out", async () => {
+    const { showVisitor } = visit(at(90));
+    await readTheActivity();
+    showVisitor(at(130));
+    expect(celebration()).not.toBeNull();
+
+    showVisitor(shellFixtures.signedOut);
+    expect(celebration()).toBeNull();
+    expect(levelAnnouncement()).toHaveTextContent("");
   });
 
   for (const dark of [false, true]) {
