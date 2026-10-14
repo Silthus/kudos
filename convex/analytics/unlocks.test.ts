@@ -116,13 +116,15 @@ describe("E1 P77: the launch's openings", () => {
     expect(await jobsNamed(t, "drawWeeklyQuests", "activateJourney")).toEqual([]);
   });
 
-  test("a launch over 600 members schedules fewer than 1000 jobs and stays within Convex's limits, and every opening is sent", async () => {
+  test("a launch over 600 members schedules fewer than 1000 jobs, records its openings 1,000 to a job, far below Convex's 8,192 elements in an array, and every opening is sent", async () => {
     const t = await flagsFromPostHog(testBackend({ transactionLimits: true }), postHog, ...flagsOn("quests", "leaderboard"));
     await membersExist(t, ...Array.from({ length: 600 }, (_, index) => `U_${index}`));
 
     await t.mutation(internal.unlocks.sweep.sweep, {});
 
     expect(await pendingJobs(t)).toBeLessThan(1000);
+    const recordings = await jobsNamed(t, "recordUnlocksLaunched");
+    expect(recordings.map(({ args: [{ event }] }) => event.openings.length)).toEqual([1000, 200]);
     await settle(t);
     expect(unlockEvents().filter(({ properties }) => properties.by === "launch")).toHaveLength(1200);
   }, 60_000);

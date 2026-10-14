@@ -57,7 +57,13 @@ async function launch(ctx: MutationCtx, workspace: string) {
       if (await keepOpen(ctx, { workspace, member, at, byLaunch: true }, feature)) openings.push({ member, feature });
     }
   }
-  if (openings.length > 0) await publish(ctx, { type: "unlocksLaunched", workspace, openings, at });
+  for (const page of pagesOf(openings)) await publish(ctx, { type: "unlocksLaunched", workspace, openings: page, at });
+}
+
+const openingsPerEvent = 1000;
+
+function pagesOf(openings: UnlocksLaunchedEvent["openings"]) {
+  return Array.from({ length: Math.ceil(openings.length / openingsPerEvent) }, (_, page) => openings.slice(page * openingsPerEvent, (page + 1) * openingsPerEvent));
 }
 
 function launchIn(ctx: QueryCtx, workspace: string) {
