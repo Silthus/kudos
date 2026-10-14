@@ -10,8 +10,6 @@ The sandbox ran `spec/website-2` at `8ffdaa0`, which already holds `main` at `0c
 2. `static-hosting upload` built the site against the sandbox's own URL and published it.
 3. `prepareWebsiteFlag` and `syncCompanyProfiles` ran.
 
-The dry run before it changed nothing but the Node version setting.
-
 ## The flags (WS30, WS47)
 
 - [`flag-definitions.txt`](flag-definitions.txt): `website` (957148), `everyone-board` (956734), `xp-levels` (956733) and `unlocks` (956771), as each deployment had cached them. All four have one condition, `environment` exact `sandbox` at 100%.
@@ -21,6 +19,15 @@ The dry run before it changed nothing but the Node version setting.
   - A control reads production's definitions and key as if it were the sandbox and gets all four on. So production's off comes from the targeting, not from the safe default an unreadable flag would fall back to.
   - Both deployments were only read: the cached definitions, the environment and the workspace key.
 - [`public-reads.txt`](public-reads.txt): an anonymous `getMyProfile` answers `signed-out` on the sandbox, because the site is open there, and `closed` on production, because it is not.
+
+### The production switches
+
+In PostHog project 662840, each switch adds `production` to the flag's one `environment` condition. The site follows at the deployment's next flag-definitions refresh, and removing the value closes it again. The website creates no flag of its own: each piece opens in production exactly when Slack's own flag opens it there.
+
+1. **`website` (957148): the whole site** (WS2–WS4). First set `AUTH_SLACK_ID` and `AUTH_SLACK_SECRET` on production and apply #88's redirect URL and scopes (#115). Without them the site opens to a sign-in that can't finish.
+2. **`xp-levels` (956733): level and XP** on the home and the profile card (WS47). Slack's App Home shows them too. The website adds no switch of its own.
+3. **`everyone-board` (956734): the leaderboard page**, its nav item and the home's card (WS30). This is the same flag as Slack's Everyone board.
+4. **`unlocks` (956771): the leaderboard's locked and ready states** (WS52), once `xp-levels` is also on. WS53 is met: #137 is on `spec/website-2`, so this slice ships with the unlock gate. `unlocks` may get its production condition whenever map #1 opens unlocks in Slack.
 
 ## The sandbox, signed in
 
