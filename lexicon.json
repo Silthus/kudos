@@ -373,7 +373,7 @@
     },
     {
       "name": "flag",
-      "definition": "A switch declared once in code with its key, its subject (a member or the workspace), its values and a safe default, whose value PostHog decides per subject; a new member-facing slice ships behind one whose safe default is off"
+      "definition": "A switch declared once in code with its key, its values and a safe default, and no fixed subject; PostHog decides it twice, as a member decision and as a workspace decision; a new member-facing slice ships behind one whose safe default is off"
     },
     {
       "name": "exposure",
@@ -430,6 +430,14 @@
     {
       "name": "swap",
       "definition": "A member's once-a-week replacement of one unfinished weekly quest with a feasible quest not in that week's draw, stored for good with the replaced quest, the new quest and the facts that made it feasible (P81, the spec's reroll)."
+    },
+    {
+      "name": "member decision",
+      "definition": "A flag's answer for one member: evaluated on the member's analytics ID with the person properties environment and, when the directory holds one, email; in a query, for a member without an analytics ID, it is the workspace decision. It decides everything that one member sees, gets or does"
+    },
+    {
+      "name": "workspace decision",
+      "definition": "A flag's answer for the workspace: evaluated on the workspace key with the person property environment only, so an email condition never matches it. It decides only what the workspace shares: what a channel shows, what a person the directory doesn't know sees, and the moments that happen once for the whole workspace"
     }
   ]
 }
