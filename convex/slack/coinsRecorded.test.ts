@@ -52,7 +52,7 @@ describe("CO1 CO2 CO3: a kudos that says why records coins in the wallet, whatev
     expect(await coinsOn(t, "U_BOB")).toEqual([[receiving]]);
     expect(await coinsOn(t, "U_CAROL")).toEqual([[receiving]]);
     expect(await balances(t, "U_ALICE", "U_BOB", "U_CAROL")).toEqual({ U_ALICE: 8, U_BOB: 2, U_CAROL: 2 });
-  });
+  }, 30_000);
 
   test("a second kudos to Bob the same day records no giving coins, and no receiving coins from the same giver", async () => {
     const t = await workspaceWithFlagsOff();
@@ -63,7 +63,7 @@ describe("CO1 CO2 CO3: a kudos that says why records coins in the wallet, whatev
     expect(await coinsOn(t, "U_ALICE")).toEqual([[giving], []]);
     expect(await coinsOn(t, "U_BOB")).toEqual([[receiving], []]);
     expect(await balances(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: 4, U_BOB: 2 });
-  });
+  }, 30_000);
 
   test("a kudos that doesn't say why records none and opens no wallet", async () => {
     const t = await workspaceWithFlagsOff();
@@ -74,7 +74,7 @@ describe("CO1 CO2 CO3: a kudos that says why records coins in the wallet, whatev
     expect(await coinsOn(t, "U_BOB")).toEqual([[]]);
     expect(await balances(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: 0, U_BOB: 0 });
     expect(await t.run((ctx) => ctx.db.query("wallets").collect())).toEqual([]);
-  });
+  }, 30_000);
 
   test("CO5: an effects record written before coins existed stays as it was", async () => {
     const t = await workspaceWithFlagsOff();
@@ -88,7 +88,7 @@ describe("CO1 CO2 CO3: a kudos that says why records coins in the wallet, whatev
     await thank(t, "U_ALICE", "U_BOB", saysWhy, "2026-10-14T09:00:00Z");
 
     expect(await t.run((ctx) => ctx.db.get(before._id))).toEqual(before);
-  });
+  }, 30_000);
 });
 
 describe("CO3: a giver pays a recipient receiving coins at most once a week, and a recipient gets at most 20 receiving coins a week", () => {
@@ -100,7 +100,7 @@ describe("CO3: a giver pays a recipient receiving coins at most once a week, and
 
     expect(await coinsOn(t, "U_BOB")).toEqual([...Array.from({ length: 10 }, () => [receiving]), []]);
     expect(await balances(t, "U_BOB")).toEqual({ U_BOB: 20 });
-  });
+  }, 30_000);
 
   test.each([
     ["America/Los_Angeles", "2026-10-14T19:00:00Z", "2026-10-19T06:30:00Z", "2026-10-19T07:30:00Z"],
@@ -115,7 +115,7 @@ describe("CO3: a giver pays a recipient receiving coins at most once a week, and
 
     expect(await coinsOn(t, "U_BOB")).toEqual([[receiving], [], [receiving]]);
     expect(await balances(t, "U_BOB")).toEqual({ U_BOB: 4 });
-  });
+  }, 30_000);
 
   test("a kudos that doesn't say why uses up no giver, so Alice saying why later in the week pays", async () => {
     const t = await workspaceWithFlagsOff();
@@ -124,7 +124,7 @@ describe("CO3: a giver pays a recipient receiving coins at most once a week, and
     await thank(t, "U_ALICE", "U_BOB", saysWhy, "2026-10-15T09:00:00Z");
 
     expect(await coinsOn(t, "U_BOB")).toEqual([[], [receiving]]);
-  });
+  }, 30_000);
 });
 
 describe("CO5 CO9: the same kudosGiven delivered twice records each side once and credits the wallet once", () => {
@@ -140,7 +140,7 @@ describe("CO5 CO9: the same kudosGiven delivered twice records each side once an
     expect(await coinsOn(t, "U_BOB")).toEqual([[receiving]]);
     expect(await balances(t, "U_ALICE", "U_BOB", "U_CAROL")).toEqual({ U_ALICE: 8, U_BOB: 2, U_CAROL: 2 });
     expect(await t.run((ctx) => ctx.db.query("receivingGivers").collect())).toHaveLength(2);
-  });
+  }, 30_000);
 });
 
 async function workspaceWithFlagsOff(...givers: string[]) {

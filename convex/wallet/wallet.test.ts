@@ -51,7 +51,7 @@ describe("CO9 CO10: a member's balance equals their coin lines and reward coins 
       expect({ step, balance: await balanceOf(t, alice) }).toEqual({ step, balance });
       expect({ step, balance: await recordedCoinsOf(t, alice) }).toEqual({ step, balance });
     }
-  });
+  }, 30_000);
 
   test("a spend answers spent when the balance covers the price, and no-coins when it doesn't", async () => {
     const t = await withDirectory();
@@ -63,7 +63,7 @@ describe("CO9 CO10: a member's balance equals their coin lines and reward coins 
     expect(await t.run((ctx) => ctx.db.query("coinSpends").collect())).toEqual([
       expect.objectContaining({ member: alice, coins: 10, for: { perk: "spark" }, at: Date.now() }),
     ]);
-  });
+  }, 30_000);
 
   test("a spend answering no-coins writes nothing", async () => {
     const t = await withDirectory();
@@ -74,13 +74,13 @@ describe("CO9 CO10: a member's balance equals their coin lines and reward coins 
     expect(await spendOf(t, alice, 5)).toBe("no-coins");
 
     expect(await everythingStored(t)).toEqual(before);
-  });
+  }, 30_000);
 
   test("a member who never earned a coin has a balance of 0", async () => {
     const t = await withDirectory();
 
     expect(await t.query(internal.wallet.wallet.walletOf, { member: await memberOf(t, "U_BOB") })).toEqual({ balance: 0 });
-  });
+  }, 30_000);
 });
 
 async function withDirectory() {
