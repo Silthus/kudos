@@ -42,12 +42,12 @@ describe("WS80: /book answers like the leaderboard", () => {
     expect(pageTitle()).toHaveTextContent("Page not found");
   });
 
-  it("says Max's Book opens at level 4. with Go to Home while getBook answers locked", () => {
+  it("says Max's Book opens at level 4. with Back to your profile while getBook answers locked", () => {
     showBook(bookFixtures.locked, shellFixtures.memberWaitingForTheBook);
     expect(pageTitle()).toHaveTextContent("Book");
     expect(document.title).toBe("HedgeHug · Book");
     expect(main()).toHaveTextContent("Book opens at level 4.");
-    expect(within(main()).getByRole("link", { name: "Go to Home" })).toHaveAttribute("href", "/");
+    expect(within(main()).getByRole("link", { name: "Back to your profile" })).toHaveAttribute("href", "/");
   });
 
   it("shows the Book's crate in place with a primary Open while getBook answers ready, and opens it through openFeature", async () => {

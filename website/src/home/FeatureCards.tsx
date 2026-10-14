@@ -4,7 +4,8 @@ import { Card, CardContent } from "@posthog/quill";
 import { AppLink } from "../AppLink";
 import { Crate } from "../crates/Crate";
 import { featureCardAttributes } from "../crates/moments";
-import { aboutOf, openWebPagesOf, plainFeatures, webPageOf, type OpenWebPage } from "../features";
+import { aboutOf, plainFeatures, webPageOf, type OpenWebPage } from "../features";
+import { openFeaturePagesOf } from "../nav/entries";
 import type { Feature, FeatureCard, MemberProfile } from "../shell";
 import { SlackLink } from "../SlackLink";
 
@@ -38,7 +39,7 @@ function PlainCards({ member }: { member: MemberProfile }) {
   return (
     <>
       <CardGroup id="open-title" title="Open">
-        {openWebPagesOf(member).map((page) => (
+        {openFeaturePagesOf(member).map((page) => (
           <WebPageCard key={page.href} {...page} />
         ))}
       </CardGroup>

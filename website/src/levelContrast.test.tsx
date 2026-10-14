@@ -70,7 +70,7 @@ function paintsOf(element: Element) {
 function heroGraphics() {
   renderApp(shellFixtures.memberAtLevel7);
   const hero = within(screen.getByRole("main")).getByRole("region", { name: "Sam Example" });
-  const avatar = screen.getByRole("button", { name: "Account menu for Sam Example" });
+  const avatar = within(screen.getByRole("banner")).getByRole("link", { name: "Sam Example, level 7" });
   const bar = within(hero).getByRole("progressbar");
   return [
     { part: "the hero ring's arc and track", surfaces: ["card"], elements: [...within(hero).getByRole("img", { name: /^Level 7/ }).querySelectorAll("circle")] },
@@ -127,6 +127,38 @@ describe("WS339 V24: the Show more chevrons meet 3:1 against the board's card in
       const paints = showMoreChevrons();
       expect(paints).toHaveLength(2);
       expect(paints.filter((paint) => contrast(mode, paint, "card") < 3)).toEqual([]);
+    });
+  }
+});
+
+function navMarks() {
+  window.history.replaceState(null, "", "/quests");
+  renderApp(shellFixtures.memberWithEveryNavState);
+  const nav = screen.getByRole("navigation", { name: "Screens" });
+  const tokenOf = (element: Element, prefix: string) => [...element.classList].flatMap((name) => new RegExp(`^${prefix}-((?:muted-|primary-)?foreground|primary)$`).exec(name)?.[1] ?? []);
+  const pill = within(nav).getByRole("link", { name: "Quests" });
+  const next = within(nav).getByRole("link", { name: "Book, locked. Unlocks at level 4" });
+  const ready = within(nav).getByRole("button", { name: "Leaderboard: unlock ready. Open its crate" });
+  return [
+    { part: "the current entry's pill against the bar", paints: tokenOf(pill, "max-lg:bg"), surface: "card", least: 3 },
+    { part: "the pill's label and icon on the pill", paints: tokenOf(pill, "max-lg:text"), surface: "primary", least: 4.5 },
+    { part: "the next unlock's lock and label", paints: tokenOf(next, "text"), surface: "card", least: 4.5 },
+    { part: "the ready entry's crate glyph and label", paints: tokenOf(ready, "text"), surface: "card", least: 4.5 },
+  ];
+}
+
+describe("WS339 V24: the nav's pill, lock and crate meet their contrast against the bar in both modes", () => {
+  beforeEach(() => {
+    fakeSystemTheme(false);
+  });
+
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      const measured = navMarks().flatMap(({ part, paints, surface, least }) => {
+        expect(paints, part).toHaveLength(1);
+        return paints.map((paint) => ({ part, ratio: contrast(mode, paint, surface), least }));
+      });
+      expect(measured.filter(({ ratio, least }) => ratio < least)).toEqual([]);
     });
   }
 });

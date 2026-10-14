@@ -1,11 +1,13 @@
-import { useEffect, useRef, type ComponentType, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { HedgehogHeart } from "@posthog/brand/hoggies";
-import { IconHome } from "@posthog/icons";
-import { AccountMenu } from "./AccountMenu";
+import { IconLeave } from "@posthog/icons";
+import { Button } from "@posthog/quill";
 import { AppLink } from "./AppLink";
 import { ReadyPill, ReadyPillFailure } from "./crates/ReadyPill";
 import { isShownOn, type ReadyCrate } from "./crates/readyCrates";
-import { openWebPagesOf } from "./features";
+import { LeveledFace } from "./LeveledFace";
+import { levelRingName } from "./LevelRing";
+import { ScreenNav, usePopIn } from "./nav/ScreenNav";
 import type { Screen } from "./route";
 import type { MemberProfile } from "./shell";
 import { SkillPointGlyph } from "./skills/glyphs";
@@ -18,15 +20,16 @@ export function Frame({ member, ready = [], current, busy, inert, onSignOut, chi
   const first = ready[0];
   return (
     <div className="hud-root flex min-h-screen flex-col" inert={inert}>
-      <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b bg-card/85 shadow-[0_1px_0_0_color-mix(in_oklab,var(--foreground)_4%,transparent)] backdrop-blur-md">
         <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-lg:gap-y-1 max-lg:pt-2 max-sm:gap-x-2 md:px-6">
           <Wordmark />
           {member && <ScreenNav current={current} member={member} />}
           <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2 max-sm:gap-1.5">
             {member && member.skillPoints !== null && <SkillPointChip points={member.skillPoints} />}
             {member && <ReadyPill crates={ready} />}
+            {member && <Avatar member={member} />}
             <ThemeControl />
-            {member && onSignOut && <AccountMenu member={member} onSignOut={onSignOut} />}
+            {member && onSignOut && <SignOut onSignOut={onSignOut} />}
           </div>
           {member && first !== undefined && !isShownOn(first, current) && <ReadyPillFailure first={first} />}
         </div>
@@ -49,59 +52,37 @@ function Wordmark() {
 }
 
 function SkillPointChip({ points }: { points: number }) {
+  const popIn = usePopIn("skillTree");
   return (
-    <AppLink href="/skills" aria-label={chipName(points)} className="inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums hover:bg-fill-hover">
-      <SkillPointGlyph />
-      {points}
+    <span className={`inline-flex ${popIn}`}>
+      <AppLink href="/skills" aria-label={chipName(points)} className="inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums hover:bg-fill-hover">
+        <SkillPointGlyph />
+        {points}
+      </AppLink>
+    </span>
+  );
+}
+
+function Avatar({ member }: { member: MemberProfile }) {
+  const levelId = useId();
+  const { progression } = member;
+  return (
+    <AppLink href="/" aria-label={avatarName(member)} aria-describedby={progression !== null ? levelId : undefined} className="rounded-full">
+      <LeveledFace member={member} className="size-8" />
+      {progression !== null && <span id={levelId} hidden>{levelRingName(progression)}</span>}
     </AppLink>
   );
 }
 
-function ScreenNav({ current, member }: { current?: Screen; member: MemberProfile }) {
-  const rail = useCurrentEntryInView(current);
+function avatarName({ name, progression }: MemberProfile) {
+  const who = name ?? "Your profile";
+  return progression === null ? who : `${who}, level ${progression.level}`;
+}
+
+function SignOut({ onSignOut }: { onSignOut: () => void }) {
   return (
-    <nav
-      ref={rail}
-      aria-label="Screens"
-      onFocus={(event) => bringIntoView(event.target)}
-      className="flex flex-nowrap items-center gap-0.5 max-lg:order-last max-lg:-mx-4 max-lg:w-[calc(100%+2rem)] max-lg:overflow-x-auto max-lg:px-3 max-lg:pb-1.5 max-lg:scroll-px-3 md:max-lg:-mx-6 md:max-lg:w-[calc(100%+3rem)] md:max-lg:px-5 lg:mx-auto"
-    >
-      <ScreenLink href="/" current={current === "home"} Icon={IconHome}>
-        Home
-      </ScreenLink>
-      {openWebPagesOf(member).map(({ screen, href, name, Icon }) => (
-        <ScreenLink key={href} href={href} current={current === screen} Icon={Icon}>
-          {name}
-        </ScreenLink>
-      ))}
-    </nav>
-  );
-}
-
-function useCurrentEntryInView(current: Screen | undefined) {
-  const rail = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const entry = rail.current?.querySelector('[aria-current="page"]');
-    if (entry) bringIntoView(entry);
-  }, [current]);
-  return rail;
-}
-
-function bringIntoView(entry: Element) {
-  entry.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
-}
-
-type ScreenLinkProps = { href: string; current: boolean; Icon: ComponentType<{ className?: string }>; children: ReactNode };
-
-function ScreenLink({ href, current, Icon, children }: ScreenLinkProps) {
-  return (
-    <AppLink
-      href={href}
-      aria-current={current ? "page" : undefined}
-      className={`relative flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] font-medium ${current ? "text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 after:rounded-full after:bg-primary max-lg:after:bottom-0" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
-    >
-      <Icon className="size-4" />
-      {children}
-    </AppLink>
+    <Button variant="outline" size="icon-sm" aria-label="Sign out" title="Sign out" onClick={onSignOut}>
+      <IconLeave />
+    </Button>
   );
 }

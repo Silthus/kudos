@@ -15,6 +15,7 @@ export type Moments = {
   finish(crate: ReadyCrate): void;
   close(how: { returnFocus: boolean }): void;
   announcement: string;
+  openedHere(feature: Feature): boolean;
 };
 
 export const attemptMessages: Record<Exclude<Attempt, "opening">, string> = {
@@ -38,6 +39,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   const [attempts, setAttempts] = useState<Partial<Record<string, Attempt>>>({});
   const [reveals, setReveals] = useState<Reveal[]>([]);
   const [announcement, setAnnouncement] = useState("");
+  const [openedHere, setOpenedHere] = useState<Feature[]>([]);
   const sending = useRef(new Set<string>());
   const focusAfterClose = useRef<ReadyCrate | undefined>(undefined);
   const session = useRef(0);
@@ -51,6 +53,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     setAttempts({});
     setReveals([]);
     setAnnouncement("");
+    setOpenedHere([]);
   }, []);
 
   useEffect(() => {
@@ -78,6 +81,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
         const answer = await (crate.kind === "feature" ? commands.openFeature(crate.card.feature) : commands.openQuestCrate(crate.quest));
         if (session.current !== sentIn) return;
         if (answer.kind === "opened") setReveals((queued) => [...queued, { crate, seenBefore: hasSeen(seen), fromQuests }]);
+        if (answer.kind === "opened" && crate.kind === "feature") setOpenedHere((features) => [...features, crate.card.feature]);
         attemptIs(seen, answer.kind === "refused" ? "refused" : undefined);
         if (answer.kind === "refused") setAnnouncement(attemptMessages.refused);
       } catch {
@@ -119,6 +123,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     finish,
     close,
     announcement,
+    openedHere: (feature) => openedHere.includes(feature),
   };
 }
 

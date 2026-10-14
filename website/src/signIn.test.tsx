@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import type { UserEvent } from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures } from "./shell";
@@ -110,36 +110,11 @@ describe("WS6 WS24: signing in with Slack from the keyboard", () => {
 });
 
 describe("WS9 WS16 WS24: signing out", () => {
-  it("signs out from the avatar menu with the keyboard: Enter opens it on Sign out, Enter signs out", async () => {
+  it("signs out from the header's own Sign out button with the keyboard", async () => {
     const { user, actions } = renderApp(shellFixtures.member);
-    const menuButton = screen.getByRole("button", { name: "Account menu for Sam Example" });
-    await tabTo(user, menuButton);
-    await user.keyboard("{Enter}");
-    const signOut = await screen.findByRole("menuitem", { name: "Sign out" });
-    await waitFor(() => expect(signOut).toHaveFocus());
+    await tabTo(user, within(screen.getByRole("banner")).getByRole("button", { name: "Sign out" }));
     await user.keyboard("{Enter}");
     expect(actions.signOut).toHaveBeenCalledOnce();
-  });
-
-  it("opens the avatar menu with ArrowDown and closes it with Escape, returning focus to the avatar", async () => {
-    const { user, actions } = renderApp(shellFixtures.member);
-    const menuButton = screen.getByRole("button", { name: "Account menu for Sam Example" });
-    await tabTo(user, menuButton);
-    await user.keyboard("{ArrowDown}");
-    await waitFor(() => expect(screen.getByRole("menuitem", { name: "Sign out" })).toHaveFocus());
-    await user.keyboard("{Escape}");
-    await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
-    expect(menuButton).toHaveFocus();
-    expect(actions.signOut).not.toHaveBeenCalled();
-  });
-
-  it("closes the avatar menu when Tab moves focus out of it", async () => {
-    const { user } = renderApp(shellFixtures.member);
-    await tabTo(user, screen.getByRole("button", { name: "Account menu for Sam Example" }));
-    await user.keyboard("{Enter}");
-    await waitFor(() => expect(screen.getByRole("menuitem", { name: "Sign out" })).toHaveFocus());
-    await user.tab();
-    await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
   });
 
   it("signs out from the pages of a signed-in person who isn't a member", async () => {

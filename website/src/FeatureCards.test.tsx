@@ -2,6 +2,7 @@ import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
+import { navEntryNames as screenNav } from "./test/screensNav";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 beforeEach(() => {
@@ -25,12 +26,6 @@ function cardNamesIn(name: string) {
 
 function cardOf(name: string) {
   return within(main()).getByRole("heading", { level: 3, name }).closest("article")!;
-}
-
-function screenNav() {
-  return within(screen.getByRole("navigation", { name: "Screens" }))
-    .getAllByRole("link")
-    .map((link) => link.textContent);
 }
 
 function featureGroups() {
@@ -98,18 +93,5 @@ describe("WS58: the home's feature cards read the member's unlock path", () => {
     expect(featureGroups()).toEqual(["Still locked"]);
     expect(cardNamesIn("Still locked")).toEqual(["Quests", "Leaderboard", "Book", "Skill tree", "Coins", "Hedgehogs"]);
     expect(main()).not.toHaveTextContent(/Unlocks at level/);
-  });
-});
-
-describe("WS59: the nav lists Home and each open feature with a web page", () => {
-  it.each([
-    ["locked", shellFixtures.memberWaitingForTheBoard, ["Home"]],
-    ["ready", shellFixtures.memberWithTheBoardReady, ["Home"]],
-    ["open", shellFixtures.memberWithTheBoardOpened, ["Home", "Leaderboard"]],
-    ["open beside open Coins, which have no web page", shellFixtures.memberWithCoinsOpened, ["Home", "Leaderboard"]],
-  ])("while the Leaderboard is %s", (_, member, items) => {
-    renderApp(member);
-    expect(screenNav()).toEqual(items);
-    expect(screen.getByRole("navigation", { name: "Screens" })).not.toHaveTextContent(/Lv|level|lock/i);
   });
 });

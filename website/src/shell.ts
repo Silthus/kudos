@@ -116,6 +116,12 @@ const memberWithCoinsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ .
 
 const memberWithNothingShipped: MemberProfile = { ...member, ...onTheUnlockPath() };
 
+const memberWithEveryNavState: MemberProfile = {
+  ...member,
+  ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...locked }, { ...skillTreeFeature, ...locked }),
+  progression: { level: 3, xp: 130, levelStartsAt: 100, nextLevelAt: 220, xpToNextLevel: 90 },
+};
+
 const firstThanks = { step: "first-thanks", goal: "Give a kudos that says why.", hint: "It counts when your message has 5 or more words besides mentions and emoji.", reward: { xp: 10 } } as const;
 
 const firstQuest = { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 } } as const;
@@ -172,6 +178,7 @@ export const shellFixtures = {
   memberWithCoinsReady,
   memberWithCoinsOpened,
   memberWithNothingShipped,
+  memberWithEveryNavState,
   memberAtLevel1,
   memberAtLevel7,
   memberStartingTheJourney,
@@ -204,6 +211,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-one-skill-point": shellFixtures.memberWithOneSkillPoint,
   "member-with-no-skill-points-left": shellFixtures.memberWithNoSkillPointsLeft,
   "member-with-nothing-shipped": shellFixtures.memberWithNothingShipped,
+  "member-with-every-nav-state": shellFixtures.memberWithEveryNavState,
   "member-level-1": shellFixtures.memberAtLevel1,
   "member-level-7": shellFixtures.memberAtLevel7,
   "member-starting-the-journey": shellFixtures.memberStartingTheJourney,
