@@ -49,7 +49,7 @@ A proof session signed the browser in, as in #136 and #146: one `authSessions` r
 6. With a `member` beside the quest, the argument validator rejected the call before any handler ran. The log shows `ArgumentValidationError: Object contains extra field member`.
 7. App Home's republish ran after each `opened`: two `publishHome` jobs completed at 04:33:10Z ([`republish.txt`](republish.txt)). The member had no crate to drop, so this shows only that the republish runs.
 
-**The launch rules held.** The tables are identical before and after the website's calls: one `unlockLaunches` row, one `journeyLaunches` row, the same three `journeySteps`, one `crateOpenings` and one `rewardRecords` row. No launch, join or Journey job was scheduled after the deploy. The website added no launch and ran no join.
+**The launch rules held.** The tables are identical before and after the website's calls: one `unlockLaunches` row, one `journeyLaunches` row, the same three `journeySteps`, one `crateOpenings` and one `rewardRecords` row. No launch, join or Journey job was scheduled after the deploy. This ticket's website calls added no launch and ran no join. The sandbox's Journey launch predates them, so these calls can't show what `openFeature` would do without one (see `quests` under the switches below).
 
 ## Each check from #150, and where it is proven
 
@@ -72,4 +72,9 @@ In PostHog project 662840, each switch adds `production` to the flag's one `envi
 2. **`xp-levels` (956733):** level and XP on the home and the profile card. The same flag as Slack's levels.
 3. **`unlocks` (956771):** the unlock path, its crates, `openFeature` and the ready pill. The same flag as Slack's unlocks.
 4. **`website` (957148):** the whole site.
-5. **`quests` (957184), after `website`:** the Journey panel, `/quests`, its nav item, the quest crates and `openQuestCrate`. The same flag as Slack's quests. It needs `unlocks` on, since Quests opens through the unlock path at level 2. When it first turns on in production, the first quests mutation or hourly sweep records the Journey's launch and joins every existing member (P91). The website never does: `openQuestCrate` refuses until that launch is recorded (#149, call 1).
+5. **`quests` (957184), after `website`:** the Journey panel, `/quests`, its nav item, the quest crates and `openQuestCrate`. The same flag as Slack's quests. It needs `unlocks` on, since Quests opens through the unlock path at level 2. When it first turns on in production, the first quests mutation, App Home publish or hourly sweep records the Journey's launch and joins every existing member (P91). `openQuestCrate` refuses until that launch is recorded (#149, call 1). `openFeature({ feature: "quests" })` has no such check: the `unlockOpened` event it publishes reaches `drawWeeklyQuests` and `activateJourney`, and both call `questsLiveIn`, which records the launch if none exists. The kudos that makes a member's Quests ready also schedules `followKudosGiven`, which records the launch through `questsShownTo`, and the hourly sweep records it too, so the gap is a short window, but it is open (review finding 1, a follow-up for #152).
+
+## Gate and review
+
+- The gate on the landed tree: [`gate.txt`](gate.txt). This ticket adds no behaviour, so it has no red test of its own; the executable check is `flagAnswers.proof.ts`, 3 of 3 green on the deployments' real caches.
+- GPT-6.1 Sol (high), read-only, with the spec as the oracle: [`review-gpt-6.1-sol.txt`](review-gpt-6.1-sol.txt). One major finding, which holds: the README claimed the website never records the Journey's launch, but `openFeature({ feature: "quests" })` can, through the quests module's subscribers, while no launch exists. The claim is narrowed to `openQuestCrate`, and the gap is a follow-up for #152. This ticket changes no product code.
