@@ -1,0 +1,9 @@
+== Refutation 1: getQuests' bonus without the stored first-thanks check (convex/website/quests.ts) ==
+     × P88: a website-first member who hasn't joined reads no bonus, and the read joins nobody 22ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 5 passed | 31 skipped (37)
+
+== Refutation 2: a bonus crate not counted as shown on /quests (website/src/crates/readyCrates.ts) ==
+     × shows a failed Claim's line once, on the card, not again under the ready pill 275ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 69 skipped (70)

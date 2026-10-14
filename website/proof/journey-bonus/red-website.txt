@@ -1,0 +1,20 @@
+     × E076 WS317: ends with the Journey's next step as a row tagged New, linking to its card on /quests 95ms
+     × WS315 WS317: reads Claim on a finished bonus row, without New 91ms
+     × WS317: shows the bonus row in a week with nothing drawn 229ms
+     × shows a Bonus quest section after the personal quests, with the step as a card: New, its goal, its reward and the Journey's hedgehog 80ms
+     × shows the step's hint while it is active 865ms
+     × links Go to {name} to the step's feature page while that page is open for the member 330ms
+     × has no Go to link while the feature isn't open for the member 303ms
+     × has no Go to link while the step belongs to no feature 327ms
+     × has no Go to link while the feature's page is this page 318ms
+     × WS315: shows a finished step's crate with Claim and no New, primary as the page's first crate 200ms
+     × WS315: makes the bonus Claim outline while a personal quest's crate comes first 287ms
+     × WS74: Claim opens the step's own Journey crate through the reveal 184ms
+     × E184: flies the reward from the bonus card's chip once the Claim's reveal closes 186ms
+     × shows a failed Claim's line once, on the card, not again under the ready pill 176ms
+     × takes /quests?quest=journey to the bonus card once the answer lands 274ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 15 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  2 failed | 1 passed (3)
+      Tests  15 failed | 374 passed (389)
+
+[exited with code 0]
