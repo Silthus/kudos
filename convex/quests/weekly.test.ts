@@ -128,10 +128,10 @@ describe("P84 P85 P63: a member's kudos finish a weekly quest, recorded at once 
   });
 });
 
-describe("P71: the success reply names the quests its kudos finished", () => {
-  const twoTimesDone = "Quest done: Thank someone and say why, 2 times";
+describe("P71 SW3 SW4: the success reply's gains line names the quests its kudos finished, each with its reward", () => {
+  const twoTimesDone = "Quest done: Thank someone and say why, 2 times (+20 XP)";
 
-  test("the kudos that finishes a weekly quest or a Journey step names it in its success reply, and every other kudos names none", async () => {
+  test("the kudos that finishes a weekly quest or a Journey step names it on the gains line, and every other kudos names none", async () => {
     const t = await openedQuests(["say-why-twice", "say-why-three-days", "two-new"]);
 
     await giveKudos(t, "U_ALICE", "U_BOB", "thanks");
@@ -140,11 +140,22 @@ describe("P71: the success reply names the quests its kudos finished", () => {
     await giveKudos(t, "U_ALICE", "U_CAROL", saysWhy);
 
     expect(successRepliesTo("U_ALICE")).toEqual([
-      ["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "Quest done: Give a kudos that says why"],
-      ["<@U_BOB> got 1 kudos from you. You have 8 kudos left today."],
-      ["<@U_BOB> got 1 kudos from you. You have 7 kudos left today."],
-      ["<@U_CAROL> got 1 kudos from you. You have 6 kudos left today.", `${twoTimesDone} · Quest done: Finish a weekly quest`],
-      ["<@U_CAROL> got 1 kudos from you. You have 5 kudos left today."],
+      ["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP · Quest done: Give a kudos that says why (+10 XP)"],
+      ["<@U_BOB> got 1 kudos from you. You have 8 kudos left today.", "+10 XP"],
+      ["<@U_BOB> got 1 kudos from you. You have 7 kudos left today.", "+10 XP"],
+      ["<@U_CAROL> got 1 kudos from you. You have 6 kudos left today.", `+10 XP · ${twoTimesDone} · Quest done: Finish a weekly quest (+20 XP)`],
+      ["<@U_CAROL> got 1 kudos from you. You have 5 kudos left today.", "+10 XP"],
+    ]);
+  });
+
+  test("a kudos to two people that finishes a weekly quest and the Journey step it opens shows +20 XP and each quest's own reward on one line", async () => {
+    const t = await openedQuests(["say-why-twice", "say-why-three-days", "two-new"]);
+
+    await giveKudos(t, "U_ALICE", ["U_BOB", "U_CAROL"], saysWhy);
+
+    expect(successRepliesTo("U_ALICE").at(-1)).toEqual([
+      "<@U_BOB> and <@U_CAROL> got 1 kudos from you. You have 7 kudos left today.",
+      `+20 XP · ${twoTimesDone} · Quest done: Finish a weekly quest (+20 XP)`,
     ]);
   });
 
@@ -158,13 +169,13 @@ describe("P71: the success reply names the quests its kudos finished", () => {
     const naming = successRepliesTo("U_ALICE").filter((lines) => lines.some((line) => line.includes(twoTimesDone)));
     expect(naming).toHaveLength(1);
     expect(naming[0]![0]).toMatch(new RegExp(`^<@${await finishingRecipientOf(t)}> got 1 kudos from you`));
-    expect(naming[0]![1]).toBe(`${twoTimesDone} · Quest done: Finish a weekly quest`);
+    expect(naming[0]![1]).toBe(`+10 XP · ${twoTimesDone} · Quest done: Finish a weekly quest (+20 XP)`);
   });
 
 });
 
 describe("P71 R36: a success reply held for Quests is never lost", () => {
-  test("while quests is off, the success reply is today's, and the kudos' own request schedules its delivery", async () => {
+  test("while quests is off, the success reply has only its XP, and the kudos' own request schedules its delivery", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks");
     const t = await workspace();
 
@@ -174,13 +185,16 @@ describe("P71 R36: a success reply held for Quests is never lost", () => {
     expect(await pendingDeliveries(t)).toEqual(["slack/delivery:deliverPrivateReply"]);
     await settle(t);
 
-    expect(successRepliesTo("U_ALICE")).toEqual([["<@U_BOB> got 1 kudos from you. You have 9 kudos left today."], ["<@U_BOB> got 1 kudos from you. You have 8 kudos left today."]]);
+    expect(successRepliesTo("U_ALICE")).toEqual([
+      ["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP"],
+      ["<@U_BOB> got 1 kudos from you. You have 8 kudos left today.", "+10 XP"],
+    ]);
   });
 
-  test("a success reply held for Quests that nobody releases goes out unchanged 10 seconds later", async () => {
+  test("a success reply held for Quests that nobody releases goes out 10 seconds later with its XP and no quest", async () => {
     const t = await workspace();
     const ref = { workspace: "T1", conversation: "C1", message: "1760349600.000100" };
-    const given = { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [] };
+    const given = { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [], awards: [{ kudos: 1 }] };
     await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }));
 
     await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: given, base: 10, annotations: {} }));
@@ -189,7 +203,7 @@ describe("P71 R36: a success reply held for Quests is never lost", () => {
     expect(slack.ephemeralsTo("U_ALICE")).toEqual([]);
     await settle(t);
 
-    expect(successRepliesTo("U_ALICE")).toEqual([["<@U_BOB> got 1 kudos from you. You have 9 kudos left today."]]);
+    expect(successRepliesTo("U_ALICE")).toEqual([["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP"]]);
   });
 });
 
@@ -224,14 +238,14 @@ async function workspace() {
   return t;
 }
 
-async function giveKudos(t: Backend, giver: string, recipient: string, words: string, at = Date.now()) {
+async function giveKudos(t: Backend, giver: string, recipient: string | string[], words: string, at = Date.now()) {
   await sendKudos(t, giver, recipient, words, at);
   await settleInTimeOrder(t);
 }
 
-async function sendKudos(t: Backend, giver: string, recipient: string, words: string, at = Date.now()) {
+async function sendKudos(t: Backend, giver: string, recipient: string | string[], words: string, at = Date.now()) {
   sentMessages += 1;
-  const blocks = [section(mention(recipient), text(` ${words} `), emoji("taco"))];
+  const blocks = [section(...[recipient].flat().map((user) => mention(user)), text(` ${words} `), emoji("taco"))];
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${Math.floor(at / 1000) + sentMessages}.000100` })));
 }
 

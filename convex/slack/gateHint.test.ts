@@ -16,7 +16,7 @@ const saysWhy = "thanks for untangling the release notes today";
 const given = "<@U_BOB> got 1 kudos from you. You have 9 kudos left today.";
 const hint = "Add why they earned it to earn more.";
 const ref = { workspace: "T1", conversation: "C1", message: ts };
-const givenWithoutWhy: Reply = { kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [] }, base: 10, annotations: { gate: { version: 1, thoughtful: false, words: 1 } } };
+const givenWithoutWhy: Reply = { kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [], awards: [{ kudos: 1 }] }, base: 10, annotations: { gate: { version: 1, thoughtful: false, words: 1 } } };
 
 let slack: FakeSlack;
 
@@ -41,7 +41,7 @@ describe("P15 P71 P95: the success reply asks a giver who owns a perk to say why
 
     await giveKudos(t, "thanks");
 
-    expect(successRepliesToAlice()).toEqual([[given, hint]]);
+    expect(successRepliesToAlice()).toEqual([[given, `+10 XP · ${hint}`]]);
   });
 
   test("with a quest finished by the same kudos, the hint follows the Quest done part on the extras line", async () => {
@@ -51,7 +51,7 @@ describe("P15 P71 P95: the success reply asks a giver who owns a perk to say why
 
     await giveKudos(t, "thanks");
 
-    expect(successRepliesToAlice()).toEqual([[given, `Quest done: Thank someone you haven't thanked before · ${hint}`]]);
+    expect(successRepliesToAlice()).toEqual([[given, `+10 XP · Quest done: Thank someone you haven't thanked before (+20 XP) · ${hint}`]]);
   });
 
   test("a retry decides again: a kudos that said why over the allowance, edited into one that doesn't, gets the hint", async () => {
@@ -61,7 +61,7 @@ describe("P15 P71 P95: the success reply asks a giver who owns a perk to say why
 
     await send(t, messageChangedEvent([section(mention("U_BOB"), text(" thanks "), emoji("taco"))], { user: "U_ALICE", ts, editedTs: aMinuteLater }));
 
-    expect(successRepliesToAlice()).toEqual([[given, hint]]);
+    expect(successRepliesToAlice()).toEqual([[given, `+10 XP · ${hint}`]]);
   });
 });
 
@@ -86,7 +86,7 @@ describe("P15: the hint adds no wait and shows only while the skill tree applies
     await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("skill-tree"));
     await settle(t);
 
-    expect(successRepliesToAlice()).toEqual([[given]]);
+    expect(successRepliesToAlice()).toEqual([[given, "+10 XP"]]);
   });
 });
 
@@ -97,7 +97,7 @@ describe("P15: no hint, and today's reply, otherwise", () => {
 
     await giveKudos(t, saysWhy);
 
-    expect(successRepliesToAlice()).toEqual([[given]]);
+    expect(successRepliesToAlice()).toEqual([[given, "+10 XP"]]);
   });
 
   test("a giver who owns no perk", async () => {
@@ -106,7 +106,7 @@ describe("P15: no hint, and today's reply, otherwise", () => {
 
     await giveKudos(t, "thanks");
 
-    expect(successRepliesToAlice()).toEqual([[given]]);
+    expect(successRepliesToAlice()).toEqual([[given, "+10 XP"]]);
   });
 
   test("a workspace where the skill tree doesn't apply", async () => {
@@ -115,7 +115,7 @@ describe("P15: no hint, and today's reply, otherwise", () => {
 
     await giveKudos(t, "thanks");
 
-    expect(successRepliesToAlice()).toEqual([[given]]);
+    expect(successRepliesToAlice()).toEqual([[given, "+10 XP"]]);
   });
 });
 

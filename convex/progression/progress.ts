@@ -70,12 +70,16 @@ export function xpToNextLevel({ xp, level }: Standing): number {
   return xpToReach(level + 1) - xp;
 }
 
+export function baseXpOf(side: Side, { kudos }: Pick<Award, "kudos">, catalogue: Catalogue): number {
+  return catalogue.baseXp[side] * kudos;
+}
+
 function effectsFor(member: MemberId, awards: AwardWithId[], { day, gate }: Pick<EffectsRecord, "day" | "gate">, catalogue: Catalogue, { perks, earlier }: Giving): EffectsRecord[] {
   const given = [...earlier];
   return awards.flatMap((award) => {
     const side = sideOf(member, award);
     if (side === null) return [];
-    const record = { award: award.award, side, member, day, baseXp: catalogue.baseXp[side] * award.kudos, gate, catalogueVersion: catalogue.version };
+    const record = { award: award.award, side, member, day, baseXp: baseXpOf(side, award, catalogue), gate, catalogueVersion: catalogue.version };
     if (side === "recipient" || gate?.thoughtful !== true) return [record];
     const bonus = bonusLinesOf(award.recipient, day, perks, given, catalogue);
     given.push({ day, recipient: award.recipient });

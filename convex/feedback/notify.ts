@@ -17,6 +17,7 @@ import { unlocksAppliedIn, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
+import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, purchaseReplyOf, readyCrateOf, tiersEarnedLines, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
 import { isOpened, whenOpened } from "./unlockFilter";
@@ -38,7 +39,16 @@ export const notificationValidator = v.union(
 
 export type Notification = Infer<typeof notificationValidator>;
 
-export type NotificationLine = string | { text: string; action: HomeAction };
+export type NotificationLine = string | { text: string; action: HomeAction } | { link: DeepLink };
+
+const linkedPages = {
+  "level-reached": deepLinks.levelReached,
+  "features-shipped": deepLinks.featuresShipped,
+  "quest-finished": deepLinks.journey,
+  "journey-joined": deepLinks.journey,
+  "weekly-quest-finished": deepLinks.weeklyQuest,
+  "tiers-earned": deepLinks.successReply,
+} satisfies Record<Notification["kind"], unknown>;
 
 export async function notifyLevelReached(ctx: MutationCtx, { member, level, skillPoints, xpToNextLevel }: LevelReachedEvent, ready: ScheduledFeature[]) {
   if (!(await xpLevelsShownTo(ctx, member))) return;
@@ -76,7 +86,9 @@ export const linesStillWanted = internalQuery({
     if (!(await xpLevelsShownIn(ctx, workspace)) || !(await wantsDms(ctx, member))) return null;
     const told = await stillToldOf(ctx, workspace, member, notification);
     const lines = told === null ? [] : renderNotification(told, await openTreeOf(ctx, workspace, member, told));
-    return lines.length === 0 ? null : lines;
+    if (lines.length === 0) return null;
+    const link = await deepLinkOf(ctx, workspace, linkedPages[notification.kind]);
+    return link === null ? lines : [...lines, { link }];
   },
 });
 

@@ -3,9 +3,9 @@ import { kudosGivenEventValidator, membersNamedIn, type KudosGivenEvent } from "
 import { publish } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
-import type { AwardWithId } from "../engine/awards";
+import type { Award, AwardWithId } from "../engine/awards";
 import { insertEffects, isRecorded, thoughtfulAwardsBefore } from "./effects";
-import { noGiving, progress, rewarded, sideOf, standing, xpToNextLevel, type Giving, type MemberProgress, type Progressed, type Standing } from "./progress";
+import { baseXpOf, noGiving, progress, rewarded, sideOf, standing, xpToNextLevel, type Giving, type MemberProgress, type Progressed, type Standing } from "./progress";
 import { insertReward, rewardOf, type RewardRecord } from "./rewards";
 import { perksPayingIn } from "./skillTree";
 
@@ -28,6 +28,10 @@ async function givingOf(ctx: QueryCtx, { workspace, giver, day, awards }: KudosG
   const perks = await perksPayingIn(ctx, workspace, giver);
   if (perks.length === 0) return noGiving;
   return { perks, earlier: await thoughtfulAwardsBefore(ctx, giver, day, awards[0]!.award) };
+}
+
+export function giverXpOf(awards: Pick<Award, "kudos">[]): number {
+  return awards.reduce((sum, award) => sum + baseXpOf("giver", award, catalogue), 0);
 }
 
 export async function recordReward(ctx: MutationCtx, workspace: string, reward: RewardRecord): Promise<"recorded" | "already recorded"> {

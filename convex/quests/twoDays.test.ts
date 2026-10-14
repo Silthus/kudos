@@ -69,7 +69,7 @@ describe("P88 P89: opening the Book makes two-days active, and kudos that say wh
     expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
     expect(journeyDmsTo("U_ALICE").map(({ text }) => text)).toContain(finishedTwoDays);
     expect(readBlocks(journeyDmsTo("U_ALICE").at(-1)!.blocks as Block[])).toEqual([`section: ${finishedTwoDays} [button: Open]`]);
-    expect(lastReplyTo("U_ALICE").at(-1)).toBe("Quest done: Give kudos that say why on 2 different days");
+    expect(lastReplyTo("U_ALICE").at(-1)).toBe("+10 XP · Quest done: Give kudos that say why on 2 different days (+30 XP)");
     expect(journeyIn(publishedHome(slack, "U_ALICE")).at(-1)).toBe(twoDaysDone);
   });
 

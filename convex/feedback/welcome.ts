@@ -2,10 +2,11 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalQuery, type MutationCtx } from "../_generated/server";
 import { chatUserOf, type MemberId } from "../workspace/directory";
+import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import { settingsOf } from "../workspace/settings";
 import { productName, slashCommand } from "./naming";
 
-export type WelcomeMessage = { lines: string[]; openAppHome: string };
+export type WelcomeMessage = { lines: string[]; openAppHome: string; website: DeepLink | null };
 
 export async function requestWelcome(ctx: MutationCtx, member: MemberId) {
   const { workspace, user } = await chatUserOf(ctx, member);
@@ -24,6 +25,7 @@ export const welcomeMessage = internalQuery({
         `To add me to a channel, type \`${slashCommand}\` there.`,
       ],
       openAppHome: "Open App Home",
+      website: await deepLinkOf(ctx, workspace, deepLinks.welcome),
     };
   },
 });

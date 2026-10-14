@@ -11,6 +11,7 @@ import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
 import { publicReplyValidator } from "./feedback/publicReplies";
 import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
+import { gainsValidator } from "./feedback/replies";
 import { segmentValidator } from "./feedback/segments";
 import { periodValidator } from "./leaderboard/periods";
 import { purchaseOutcomeValidator } from "./progression/purchases";
@@ -150,6 +151,7 @@ export default defineSchema({
     lines: v.array(v.array(segmentValidator)),
     questsDone: v.optional(v.array(segmentValidator)),
     hint: v.optional(v.array(segmentValidator)),
+    gains: v.optional(gainsValidator),
     held: v.optional(v.literal(true)),
   }).index("by_held_message", ["workspace", "conversation", "message", "held"]),
 

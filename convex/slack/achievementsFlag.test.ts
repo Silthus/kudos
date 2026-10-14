@@ -187,7 +187,7 @@ describe("O36: achievements exposure", () => {
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
-    expect(await exposedIn(t)).toEqual([
+    expect((await exposedIn(t)).sort((one, other) => one.user.localeCompare(other.user))).toEqual([
       { user: "U_ALICE", value: true },
       { user: "U_BOB", value: true },
     ]);

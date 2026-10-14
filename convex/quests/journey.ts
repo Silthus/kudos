@@ -101,12 +101,9 @@ export const recheckSomeoneNewOf = internalMutation({
   },
 });
 
-export async function advanceJourney(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<JourneyStep[]> {
-  const finished: JourneyStep[] = [];
-  if (await advanceFirstThanks(ctx, event, catalogue)) finished.push("first-thanks");
-  if (await advanceSomeoneNew(ctx, event)) finished.push("someone-new");
-  if (await advanceTwoDays(ctx, event)) finished.push("two-days");
-  return finished;
+export async function advanceJourney(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<JourneyActivation[]> {
+  const finished = [await advanceFirstThanks(ctx, event, catalogue), await advanceSomeoneNew(ctx, event), await advanceTwoDays(ctx, event)];
+  return finished.filter((step) => step !== null);
 }
 
 export async function journeyStepsApplyingIn(ctx: QueryCtx, workspace: string): Promise<JourneyStep[]> {
@@ -115,31 +112,35 @@ export async function journeyStepsApplyingIn(ctx: QueryCtx, workspace: string): 
   return steps;
 }
 
-export async function finishFirstQuestOnWeeklyFinished(ctx: MutationCtx, workspace: string, member: MemberId, at: number): Promise<boolean> {
+export async function finishFirstQuestOnWeeklyFinished(ctx: MutationCtx, workspace: string, member: MemberId, at: number): Promise<JourneyActivation | null> {
   const firstQuest = await activationOf(ctx, member, "first-quest");
-  return firstQuest !== null && firstQuest.activatedAt <= at && (await finish(ctx, workspace, firstQuest, at));
+  return firstQuest !== null && firstQuest.activatedAt <= at ? finishedOrNull(ctx, workspace, firstQuest, at) : null;
 }
 
-async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<boolean> {
+async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<JourneyActivation | null> {
   const firstThanks = await activated(ctx, event.workspace, event.giver, "first-thanks", event.at, catalogue);
-  return gateDecisionOf(event.annotations)?.thoughtful === true && (await finish(ctx, event.workspace, firstThanks, event.at));
+  return gateDecisionOf(event.annotations)?.thoughtful === true ? finishedOrNull(ctx, event.workspace, firstThanks, event.at) : null;
 }
 
-async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent): Promise<boolean> {
+async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent): Promise<JourneyActivation | null> {
   const someoneNew = await activationOf(ctx, event.giver, "someone-new");
-  if (someoneNew === null || event.at < someoneNew.activatedAt || (await isFinished(ctx, someoneNew))) return false;
+  if (someoneNew === null || event.at < someoneNew.activatedAt || (await isFinished(ctx, someoneNew))) return null;
   const lastThanked = await lastThankedBefore(ctx, event.awards);
-  return [...lastThanked.values()].includes(null) && (await finish(ctx, event.workspace, someoneNew, event.at));
+  return [...lastThanked.values()].includes(null) ? finishedOrNull(ctx, event.workspace, someoneNew, event.at) : null;
 }
 
-async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent): Promise<boolean> {
+async function finishedOrNull(ctx: MutationCtx, workspace: string, activation: JourneyActivation, at: number): Promise<JourneyActivation | null> {
+  return (await finish(ctx, workspace, activation, at)) ? activation : null;
+}
+
+async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent): Promise<JourneyActivation | null> {
   const twoDays = await activationOf(ctx, event.giver, "two-days");
-  if (twoDays === null || event.at < twoDays.activatedAt || gateDecisionOf(event.annotations)?.thoughtful !== true) return false;
-  if (!(await journeyStepAppliesIn(ctx, event.workspace, "two-days")) || (await isFinished(ctx, twoDays))) return false;
+  if (twoDays === null || event.at < twoDays.activatedAt || gateDecisionOf(event.annotations)?.thoughtful !== true) return null;
+  if (!(await journeyStepAppliesIn(ctx, event.workspace, "two-days")) || (await isFinished(ctx, twoDays))) return null;
   const days = new Set<DayKey>([event.day, ...(twoDays.sayingWhyOn === undefined ? [] : [twoDays.sayingWhyOn]), ...(await daysSayingWhyBeforeActivation(ctx, twoDays, event.at))]);
-  if (days.size >= daysSayingWhyToFinishTwoDays) return finish(ctx, event.workspace, twoDays, event.at);
+  if (days.size >= daysSayingWhyToFinishTwoDays) return finishedOrNull(ctx, event.workspace, twoDays, event.at);
   if (twoDays.sayingWhyOn === undefined) await ctx.db.patch(twoDays._id, { sayingWhyOn: event.day });
-  return false;
+  return null;
 }
 
 async function daysSayingWhyBeforeActivation(ctx: QueryCtx, activation: Doc<"journeySteps">, until: number): Promise<DayKey[]> {
