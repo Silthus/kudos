@@ -6,6 +6,7 @@ import { blockActions, buttonInHome, publishedHome, type BlockAction } from "../
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { internal } from "../_generated/api";
 import type { Command } from "../commands/commands";
 import { recordUsage } from "./usage";
 
@@ -219,6 +220,7 @@ describe("E6 O15 O20: a view whose recording fails", () => {
 
     const tab = await click(t, "U_ALICE", "Leaderboard");
     const period = await click(t, "U_ALICE", "This month");
+    await sweepFailedJobs(t);
 
     expect([tab.status, period.status]).toEqual([200, 200]);
     expect(publishedHome(slack, "U_ALICE").slice(1, 3)).toEqual(["header: Leaderboard", "actions: This week | [This month] | All time"]);
@@ -257,6 +259,12 @@ async function interact(t: Backend, user: string, action: BlockAction) {
   const response = await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, action), form));
   await settle(t);
   return response;
+}
+
+async function sweepFailedJobs(t: Backend) {
+  vi.advanceTimersByTime(2 * 60_000);
+  await t.mutation(internal.analytics.sweep.sweep, {});
+  await settle(t);
 }
 
 async function leaderboardReadyForAlice(unlocks: ReturnType<typeof onForEveryone>) {
