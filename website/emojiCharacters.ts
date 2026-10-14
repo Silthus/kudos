@@ -29,12 +29,7 @@ export function emojiCharacters(): Plugin {
 function charactersByName() {
   const datasetPath = createRequire(import.meta.url).resolve("emoji-datasource/emoji.json");
   const dataset: DatasetEmoji[] = JSON.parse(readFileSync(datasetPath, "utf8"));
-  const entries = dataset.flatMap(({ unified, short_names, skin_variations = {} }) => short_names.flatMap((name) => [[name, characterOf(unified)], ...skinTonedOf(name, skin_variations)]));
-  return keepingTheFirstOfEachName(entries);
-}
-
-function keepingTheFirstOfEachName(entries: string[][]) {
-  return Object.fromEntries([...entries].reverse());
+  return Object.fromEntries(dataset.flatMap(({ unified, short_names, skin_variations = {} }) => short_names.flatMap((name) => [[name, characterOf(unified)], ...skinTonedOf(name, skin_variations)])));
 }
 
 function skinTonedOf(name: string, variations: SkinVariations) {
