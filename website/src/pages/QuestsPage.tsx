@@ -67,8 +67,8 @@ function QuestProgress({ done, target }: QuestSlot["progress"]) {
   const label = `${done} of ${target}`;
   return (
     <div className="flex items-center gap-2.5">
-      <div role="progressbar" aria-label={label} aria-valuenow={done} aria-valuemin={0} aria-valuemax={target} className="h-2 flex-1 overflow-hidden rounded-full bg-muted ring-1 ring-inset ring-border">
-        <div className="h-full rounded-full bg-foreground/70" style={{ width: `${Math.min(100, (done / target) * 100)}%` }} />
+      <div role="progressbar" aria-label={label} aria-valuenow={done} aria-valuemin={0} aria-valuemax={target} className="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px">
+        <div className="h-full rounded-full bg-muted-foreground" style={{ width: `${Math.min(100, (done / target) * 100)}%` }} />
       </div>
       <span aria-hidden="true" className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
         {label}
