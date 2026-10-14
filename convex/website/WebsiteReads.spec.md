@@ -48,6 +48,7 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   because: a mutation is the first public function that can write, so a denial that wrote a workspace key, an exposure or a scheduled job would let anyone on the internet change state through a closed or signed-out call; the guard is memberQuery's in the same order and reads the website flag through the seam's read-only path (WS61, WS11)
   crossing: browser -> domain
   entrances: mutation openFeature
+  refuted: memberQuery's guard read the website flag through the seam's writing path instead of its read-only one -> the call with a flags key but no workspace key made a key and answered refused instead of closed (2026-10-14)
   kinds: state, identity
   checklist: scoped-reads declared as website reads pass one guard
   checklist: capability-authorization dismissed: the session token authorizes only acting as the signed-in member, and the guard rechecks its live session row and the directory on every call rather than trusting the token
@@ -67,6 +68,7 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   because: unlocks' launch grandfathers every member at once and belongs to Slack until the product owner switches unlocks on (P77, WS62); a website call that reached openUnlock before the launch would run it through unlocksLiveIn
   crossing: browser -> domain
   entrances: mutation openFeature
+  refuted: openFeature no longer checked WS55's gate before running openUnlock -> the unlaunched workspace recorded unlocks' launch (2026-10-14)
   kinds: state
   checklist: revalidated-permission dismissed: the gate is read in the same mutation that would run the command
   checklist: commit-ordered-effects dismissed: a refusal issues no effect at all
@@ -81,6 +83,7 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   because: Unlocks alone decides what may open (D17, P73, WS62, WS64); a website path that wrote its own state could open what Slack still holds, and the reveal must follow only what Unlocks recorded
   crossing: browser -> domain
   entrances: mutation openFeature
+  refuted: openFeature answered opened without reading unlocks' state after the command -> the locked Leaderboard and the unshipped Skill tree answered opened (2026-10-14)
   kinds: state
   checklist: revalidated-permission dismissed: Unlocks reads readiness, the ship flag and its gate in the same mutation that opens
   checklist: legal-state-succession declared as a ready or opened feature is kept for good
@@ -95,6 +98,7 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   because: a crate only reveals what is already recorded (P92); if opening on the website granted anything, a member could earn by clicking in a browser what Slack never pays
   crossing: browser -> domain
   entrances: mutation openFeature
+  refuted: openFeature also gave the member 10 XP when it opened a feature -> the every-table assertion failed on memberProgress (2026-10-14)
   kinds: state
   checklist: legal-state-succession declared as a ready or opened feature is kept for good
   checklist: commit-ordered-effects dismissed: opening issues no external effect besides the scheduled App Home republish
