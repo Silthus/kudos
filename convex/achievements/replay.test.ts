@@ -279,6 +279,26 @@ describe("P62: a long history replays within Convex's transaction limits", () =>
   }, 120_000);
 });
 
+describe("P62: the replay rows every kudos and Unlocks mutation reads change only when a replay finishes", () => {
+  test("a page that leaves more to count writes no replay row, so mutations that read them don't conflict with every page, and the next page carries on where it stopped", async () => {
+    withoutLadders(...countedFromMarks, "recognition", "seasons", "old-friends");
+    const { t, alice, bob } = await withMembers();
+    await t.run(async (ctx) => {
+      for (let kudos = 0; kudos < 250; kudos++) await ctx.db.insert("awards", awardRow(alice, bob, { kudos: 1, at: daysAgo(30) + kudos }));
+    });
+    await launch(t);
+    const [generosity] = await replaysIn(t, "T1");
+
+    await t.mutation(internal.achievements.replay.replayPage, { replay: generosity!._id });
+
+    expect(await replaysIn(t, "T1")).toEqual([generosity]);
+    expect((await ladderOf(t, alice, "generosity")).count).toBe(100);
+    await settle(t);
+    expect((await ladderOf(t, alice, "generosity")).count).toBe(250);
+    expect((await replaysIn(t, "T1")).map(({ isDone }) => isDone)).toEqual([true]);
+  });
+});
+
 describe("P61 P62: a tier added to a ladder counted from marks is dated by the award that first reached it", () => {
   test("Connections bronze, added after the launch, is dated by the third person thanked, not by a later kudos to someone already thanked", async () => {
     withoutTier("bronze");

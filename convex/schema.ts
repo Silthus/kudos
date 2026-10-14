@@ -2,7 +2,7 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { ladderValidator } from "./achievements/ladders";
-import { bookReplayValidator } from "./achievements/replay";
+import { bookReplayCursorValidator, bookReplayValidator } from "./achievements/replay";
 import { earnedTierValidator } from "./achievements/tiers";
 import { exceptionValidator } from "./analytics/exceptions";
 import { awardIdValidator } from "./engine/awards";
@@ -210,6 +210,8 @@ export default defineSchema({
   }).index("by_workspace", ["workspace"]),
 
   bookReplays: defineTable(bookReplayValidator).index("by_workspace_ladder", ["workspace", "ladder"]).index("by_batch", ["batch"]),
+
+  bookReplayCursors: defineTable(bookReplayCursorValidator).index("by_replay", ["replay"]),
 
   earnedTiers: defineTable(earnedTierValidator).index("by_member_ladder_tier", ["member", "ladder", "tier"]),
 

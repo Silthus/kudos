@@ -14,9 +14,11 @@ export const bookReplayValidator = v.object({
   ladder: ladderValidator,
   tiers: v.array(tierValidator),
   countsLadder: v.boolean(),
-  cursor: v.union(v.string(), v.null()),
+  cursor: v.optional(v.union(v.string(), v.null())),
   isDone: v.boolean(),
 });
+
+export const bookReplayCursorValidator = v.object({ replay: v.id("bookReplays"), cursor: v.string() });
 
 export type BatchId = Id<"bookBatches">;
 
@@ -37,7 +39,7 @@ export async function replayWhatIsNew(ctx: MutationCtx, workspace: string): Prom
   if (unevaluated.length === 0) return;
   const batch = await ctx.db.insert("bookBatches", { workspace, at: Date.now() });
   for (const replay of unevaluated) {
-    const started = await ctx.db.insert("bookReplays", { workspace, batch, ...replay, cursor: null, isDone: false });
+    const started = await ctx.db.insert("bookReplays", { workspace, batch, ...replay, isDone: false });
     await ctx.scheduler.runAfter(0, internal.achievements.replay.replayPage, { replay: started });
   }
 }
@@ -53,10 +55,15 @@ export const replayPage = internalMutation({
     const replay = await ctx.db.get(id);
     if (replay === null || replay.isDone || !(await canRunNow(ctx, replay))) return;
     const earned = await earnedIn(ctx, replay);
-    const { isDone, continueCursor } = replay.countsLadder ? await countHistory(ctx, replay, earned) : await evaluateTiers(ctx, replay, earned);
-    await ctx.db.patch(id, { cursor: continueCursor, isDone });
-    if (isDone) await finish(ctx, replay);
-    else await ctx.scheduler.runAfter(0, internal.achievements.replay.replayPage, { replay: id });
+    const cursor = await cursorOf(ctx, id);
+    const { isDone, continueCursor } = replay.countsLadder ? await countHistory(ctx, replay, cursor, earned) : await evaluateTiers(ctx, replay, cursor, earned);
+    if (isDone) {
+      await ctx.db.patch(id, { isDone });
+      await finish(ctx, replay);
+    } else {
+      await saveCursor(ctx, id, continueCursor);
+      await ctx.scheduler.runAfter(0, internal.achievements.replay.replayPage, { replay: id });
+    }
   },
 });
 
@@ -74,13 +81,13 @@ async function earnedIn(ctx: QueryCtx, { workspace, batch }: BookReplay): Promis
   return { batch, ...(!(await achievementsApplyIn(ctx, workspace)) && { hidden: true }) };
 }
 
-async function countHistory(ctx: MutationCtx, { workspace, ladder, tiers, cursor }: BookReplay, earned: Earned): Promise<ReplayedPage> {
+async function countHistory(ctx: MutationCtx, { workspace, ladder, tiers }: BookReplay, cursor: string | null, earned: Earned): Promise<ReplayedPage> {
   const awards = await awardsInWorkspace(ctx, workspace, { cursor, numItems: awardsPerPage });
   for (const award of awards.page) await countAward(ctx, workspace, countingOf(ladder, award), award, { tiers: tiersOf(ladder, tiers), ...earned });
   return awards;
 }
 
-async function evaluateTiers(ctx: MutationCtx, { workspace, ladder, tiers, cursor }: BookReplay, earned: Earned): Promise<ReplayedPage> {
+async function evaluateTiers(ctx: MutationCtx, { workspace, ladder, tiers }: BookReplay, cursor: string | null, earned: Earned): Promise<ReplayedPage> {
   const members = await ctx.db
     .query("members")
     .withIndex("by_user", (q) => q.eq("workspace", workspace))
@@ -92,6 +99,23 @@ async function evaluateTiers(ctx: MutationCtx, { workspace, ladder, tiers, curso
     }
   }
   return members;
+}
+
+async function cursorOf(ctx: QueryCtx, replay: Id<"bookReplays">) {
+  return (await cursorRowOf(ctx, replay))?.cursor ?? null;
+}
+
+async function saveCursor(ctx: MutationCtx, replay: Id<"bookReplays">, cursor: string) {
+  const row = await cursorRowOf(ctx, replay);
+  if (row === null) await ctx.db.insert("bookReplayCursors", { replay, cursor });
+  else await ctx.db.patch(row._id, { cursor });
+}
+
+function cursorRowOf(ctx: QueryCtx, replay: Id<"bookReplays">) {
+  return ctx.db
+    .query("bookReplayCursors")
+    .withIndex("by_replay", (q) => q.eq("replay", replay))
+    .unique();
 }
 
 function tiersOf(ladder: LadderId, tiers: TierId[]) {
