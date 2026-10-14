@@ -104,13 +104,13 @@ Every member thanks people with the same one emoji, the workspace's. Coins pile 
   | Store, 100 🪙 | `kudos-emoji-balloon` | `:balloon:` 🎈 | Balloon |
   | Store, 100 🪙 | `kudos-emoji-cactus` | `:cactus:` 🌵 | Cactus |
   | Store, 100 🪙 | `kudos-emoji-trophy` | `:trophy:` 🏆 | Trophy |
-  | Generosity, silver | `kudos-emoji-gift` | `:gift:` 🎁 | Gift |
+  | Generosity, silver | `kudos-emoji-ribbon` | `:ribbon:` 🎀 | Ribbon |
   | Recognition, silver | `kudos-emoji-sparkling-heart` | `:sparkling_heart:` 💖 | Sparkling Heart |
   | Connections, silver | `kudos-emoji-jigsaw` | `:jigsaw:` 🧩 | Jigsaw |
   | Dependability, silver | `kudos-emoji-anchor` | `:anchor:` ⚓ | Anchor |
   | Applause, silver | `kudos-emoji-confetti` | `:confetti_ball:` 🎊 | Confetti |
   | Seasons, silver | `kudos-emoji-maple-leaf` | `:maple_leaf:` 🍁 | Maple Leaf |
-  | Old Friends, silver | `kudos-emoji-teddy-bear` | `:teddy_bear:` 🧸 | Teddy Bear |
+  | `old-friends`, silver | `kudos-emoji-teddy-bear` | `:teddy_bear:` 🧸 | Teddy Bear |
 
   The silver reward IDs on `main` (`{ladder}-silver-kudos-emoji`) map to these items. The cut and unshipped ladders get theirs when they ship. The list holds no emoji that is an everyday reaction (👍, ✅, 👀, 🎉, 🔥, ❤️, 🙏, 👏, ☕), because every emoji in a giver's loadout makes a message with a mention a kudos.
 - **ST3. Sources are disjoint** (P34). A tier's emoji is never sold, the starter is never sold, and a store emoji is never given by a tier.
@@ -140,7 +140,7 @@ Every member thanks people with the same one emoji, the workspace's. Coins pile 
 
 - **ST16. Silver tiers give their emoji.** Earning a silver tier writes, in the same mutation, one reward record `{ xp: 0, coins: 0, item: {itemId} }` keyed `tier:{ladder}-silver-kudos-emoji` at the tier's earned time, and adds the item to the collection with source `tier`. This happens whatever any flag says and whatever the member opened (CO1, P75).
 - **ST17. Granted back.** A one-off paged job writes the same record and collection row, once, for every silver tier earned before the deploy, with the time it ran. It tells nobody: the items wait in the collection. **The ship runs the job to completion in a deployment before `store` is created or switched on there.** A second run writes nothing, because the reward key exists (P87).
-- **ST18. The tier DM.** While the store is visible to the member, a silver tier's DM line says its emoji: `🏅 You earned Generous Soul (Generosity, silver). + :gift: Gift for your kudos emoji slots`. A batch summary (P62) says the same per tier. Otherwise the line is unchanged.
+- **ST18. The tier DM.** While the store is visible to the member, a silver tier's DM line says its emoji: `🏅 You earned Generous Soul (Generosity, silver). + :ribbon: Ribbon for your kudos emoji slots`. A batch summary (P62) says the same per tier. Otherwise the line is unchanged.
 
 ### The Journey's last step
 
@@ -195,8 +195,8 @@ Every member thanks people with the same one emoji, the workspace's. Coins pile 
 
 ### Admin custom emoji (stopping point 6b)
 
-- **ST31. Picking.** In the Admin tab, a workspace admin (from the directory) picks custom emoji from the workspace's own, through a searchable picker, under `Custom kudos emoji`. Aliases resolve to the emoji they alias. Picking or unpicking is a D17 command, `setCustomKudosEmoji { emoji: string[] }`, safe to repeat by state, refused for a non-admin.
-- **ST32. Custom items.** Each picked emoji is a store item in that workspace only: ID `custom:{name}`, its name as `:{name}:`, art `{ kind: "custom", url }` from Slack's list, source `{ kind: "store", price: 100 }`. Everything in ST8–ST15 holds for it. The item is the name, because a message counts by name: if the workspace deletes the emoji and makes a new one under the same name, owners keep the item and it counts with the new art. The art URL is refreshed from Slack's list whenever an admin opens the Admin tab.
+- **ST31. Picking.** In App Home's `Admin` tab, a workspace administrator (from the directory) picks custom emoji from the workspace's own, through a searchable picker, under `Custom kudos emoji`. Aliases resolve to the emoji they alias. Picking or unpicking is a D17 command, `setCustomKudosEmoji { emoji: string[] }`, safe to repeat by state, refused for a non-admin.
+- **ST32. Custom items.** Each picked emoji is a store item in that workspace only: ID `custom:{name}`, its name as `:{name}:`, art `{ kind: "custom", url }` from Slack's list, source `{ kind: "store", price: 100 }`. Everything in ST8–ST15 holds for it. The item is the name, because a message counts by name: if the workspace deletes the emoji and makes a new one under the same name, owners keep the item and it counts with the new art. The art URL is refreshed from Slack's list whenever an admin opens the `Admin` tab.
 - **ST33. Unpicking.** An unpicked emoji leaves the store. Members who own it keep it, in their collection and slots, and it still counts (P5). A custom emoji deleted in Slack stays owned; it counts again only if the workspace makes one under the same name.
 - **ST34. Scope.** The Slack app gains the bot scope `emoji:read` in both manifests. Until the product owner re-pastes them, the picker says `Reinstall the app to pick custom emoji.` and nothing else changes.
 - **ST35. The flag.** `custom-kudos-emoji`, a member decision everywhere, needing the store shown to that member (ST20): the admin's picker, the custom items in a member's store and `inventoryOf`, buying and equipping them, and the loadout hook's claim of a custom emoji are all decided by the member's own decision. So an admin previewing alone can pick and buy, and nobody else sees a custom item. Where it is off for a member, their custom items are hidden and claim nothing, a slot holding one reads as empty and equipping into it replaces it, and they stay owned for when it is on again (F24). It starts sandbox-only plus the product owner's email.
@@ -222,7 +222,7 @@ Every member thanks people with the same one emoji, the workspace's. Coins pile 
 
 - **Good tests** enter at the highest seam and check what a member or another module can observe: the Slack calls made, the events published, the records and the rows another module reads. Never private helpers.
 - **The Slack boundary is the main seam** (signed events and interactivity through the HTTP router with `convex-test`, Slack stubbed at `fetch`):
-  - after opening Coins with the store on, a message `@bob thanks for … :hedgehog:` is a kudos for Bob and costs one from the allowance; the same message from a member without the store is not a kudos;
+  - after opening Coins with the store on, a message `@bob thanks for … :hedgehog:` is a kudos for that recipient and costs one from the allowance; the same message from a member without the store is not a kudos;
   - a message holding the workspace's emoji and a loadout emoji costs two per recipient;
   - `Buy` with and without enough coins, twice with one trigger, and on an owned item;
   - `Put in slot` and `Take off`, then a message with the emoji in and out of the loadout;
@@ -240,7 +240,7 @@ Every member thanks people with the same one emoji, the workspace's. Coins pile 
 - Hedgehogs, the hedgehog slot, the Journey's hedgehog and quest item rewards (#96).
 - Chime-ins and P38's chime-in clause (chime-ins aren't built).
 - A per-message choice of emoji style, emoji on the leaderboard or the profile card, and any public line naming where an emoji came from.
-- Selling items back, trading, gifting or refunds (ADR-0003).
+- Selling items back, trading, giving away or refunds (ADR-0003).
 - Workspace-specific prices; a member uploading emoji.
 - Item properties on PostHog events; a later ticket adds `itemBought` to the progression events.
 
