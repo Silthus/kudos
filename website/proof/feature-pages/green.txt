@@ -1,0 +1,320 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/feature-pages
+
+ ✓ |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with xp-levels and unlocks off, before …, features is null and the leaderboard is WS30's 1115ms
+ ✓ |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with xp-levels on and unlocks off, befo…, features is null and the leaderboard is WS30's 97ms
+ ✓ |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with unlocks on and xp-levels off, befo…, features is null and the leaderboard is WS30's 12ms
+ ✓ |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with xp-levels and unlocks on, before t…, features is null and the leaderboard is WS30's 9ms
+ ✓ |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with xp-levels and unlocks switched off…, features is null and the leaderboard is WS30's 12ms
+ ✓ |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with xp-levels on and unlocks switched …, features is null and the leaderboard is WS30's 12ms
+ ✓ |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55 WS56: with unlocks on and xp-levels switched …, features is null and the leaderboard is WS30's 14ms
+ ✓ |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > WS55: a website read never runs the P77 launch, though xp-levels and unlocks are on 12ms
+ ✓ |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > while unlocks apply > WS56 WS57: a member at level 1 reads the shipped Leaderboard locked at level 3, with its name and what it opens 15ms
+ ✓ |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > while unlocks apply > WS56 WS57: a member at level 3 reads it ready since the moment their level made it ready 21ms
+ ✓ |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > while unlocks apply > WS56 WS57: a member who opened it reads it open, with when 27ms
+ ✓ |convex| convex/website/features.test.ts > the website's feature states are Unlocks' facts > P77: a member who was there at the launch reads the Leaderboard open from the launch 9ms
+ ✓ |convex| convex/website/features.test.ts > the website shows only shipped features > WS56 P78: with skill-tree off, a member past level 5 reads no Skill tree entry 17ms
+ ✓ |convex| convex/website/features.test.ts > the website shows only shipped features > WS56: with skill-tree on, a member at level 5 reads the Leaderboard and the Skill tree ready, in the schedule's order 17ms
+ ✓ |convex| convex/website/features.test.ts > the website shows only shipped features > WS57: with everyone-board off, there is no Leaderboard entry and the leaderboard reads off 11ms
+ ✓ |convex| convex/website/features.test.ts > the website shows only shipped features > WS56 P78: with no feature shipped, features is an empty list, never the plain cards 7ms
+ ✓ |convex| convex/website/features.test.ts > WS79: a feature page follows its entry, beside an unchanged leaderboard > with skill-tree on and unlocks not applying, there is no Skill tree entry and the leaderboard is WS30's 5ms
+ ✓ |convex| convex/website/features.test.ts > WS79: a feature page follows its entry, beside an unchanged leaderboard > while unlocks apply and skill-tree is on > a member at level 1 reads the Skill tree locked at level 5 and the leaderboard locked at level 3 12ms
+ ✓ |convex| convex/website/features.test.ts > WS79: a feature page follows its entry, beside an unchanged leaderboard > while unlocks apply and skill-tree is on > a member at level 5 reads both ready 20ms
+ ✓ |convex| convex/website/features.test.ts > WS79: a feature page follows its entry, beside an unchanged leaderboard > while unlocks apply and skill-tree is on > a member who opened the Skill tree reads it open, and the unopened leaderboard still ready 19ms
+ ✓ |convex| convex/website/features.test.ts > WS66: a crate's seen key is opaque and per member > two members' keys for the same crate differ, stay the same across reads, and carry no ID 26ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > is the not-found page while unlocks don't apply 241ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > is the not-found page while the feature hasn't shipped 73ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > says Max's Skill tree opens at level 5. with Go to Home while locked, and has no nav item 98ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in light 257ms
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > shows a locked shipped feature with Unlocks' name and its level, and no feature that hasn't shipped 517ms
+ ✓ |website| src/crateMoment.test.tsx > WS65: a ready feature is a closed crate > labels the crate with what it unlocks and what it opens, with one outline Open on the home 608ms
+ ✓ |website| src/HomePage.test.tsx > WS17: the home leads with thanking, then the allowance and the counters > shows the member's face and name and a headline inviting them to thank a colleague 522ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > shows its crate in place with a primary Open while ready, and opens it through openFeature 218ms
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > teases no progress on a locked card: no levels to go, bar, button or link 167ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > connecting in light 424ms
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > puts a ready feature's crate under Ready for you, before what is still locked 175ms
+ ✓ |website| src/HomePage.test.tsx > WS17: the home leads with thanking, then the allowance and the counters > offers one action, thanking someone in Slack, which opens the member's workspace 235ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > shows Opening… without a dialog until the server answers, then plays the reveal after opened 248ms
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > links an open feature with a web page to it, with WS38's sentence and no rank or count 135ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in light 239ms
+ ✓ |website| src/HomePage.test.tsx > WS17: the home leads with thanking, then the allowance and the counters > puts the kudos left out of the base and the refill in one quiet line after the action 213ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > becomes the open page once opened, with focus on its title when the reveal closes 457ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > is open: its sentence and one action that opens the workspace in Slack, until its own page ships 50ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > marks its nav item current while open 63ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /book follows its unlock > is the not-found page while unlocks don't apply 39ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in light 248ms
+ ✓ |website| src/HomePage.test.tsx > WS17: the home leads with thanking, then the allowance and the counters > has Max state this week's thanks in words, without forecasting 204ms
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > points an open feature without a web page to Slack's App Home, with one action that opens the workspace 99ms
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > shows no feature group when nothing has shipped, never the plain locked cards 51ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /book follows its unlock > is the not-found page while the feature hasn't shipped 106ms
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > keeps WS19's six plain locked cards while unlocks don't apply 280ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /book follows its unlock > says Max's Book opens at level 4. with Go to Home while locked, and has no nav item 145ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in light 213ms
+ ✓ |website| src/FeatureCards.test.tsx > WS59: the nav lists Home and each open feature with a web page > while the Leaderboard is locked 145ms
+ ✓ |website| src/FeatureCards.test.tsx > WS59: the nav lists Home and each open feature with a web page > while the Leaderboard is ready 58ms
+ ✓ |website| src/HomePage.test.tsx > WS17: the home leads with thanking, then the allowance and the counters > follows with the counters, this week and in total, given and received, in tabular figures 211ms
+ ✓ |website| src/FeatureCards.test.tsx > WS59: the nav lists Home and each open feature with a web page > while the Leaderboard is open 83ms
+ ✓ |website| src/FeatureCards.test.tsx > WS59: the nav lists Home and each open feature with a web page > while the Leaderboard is open beside open Quests, which have no web page 37ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /book follows its unlock > shows its crate in place with a primary Open while ready, and opens it through openFeature 141ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /book follows its unlock > becomes the open page once opened, with focus on its title when the reveal closes 196ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in light 277ms
+ ✓ |website| src/HomePage.test.tsx > WS21 V19: the member's face > shows the member's company profile cutout on its own colour in the hero, the profile card and the avatar menu 353ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /book follows its unlock > is open: its sentence and one action that opens the workspace in Slack, until its own page ships 35ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in light 241ms
+ ✓ |website| src/HomePage.test.tsx > WS21 V19: the member's face > falls back to the member's initials wherever a Slack picture fails to load 226ms
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /book follows its unlock > marks its nav item current while open 146ms
+ ✓ |website| src/FeaturePages.test.tsx > WS81: the pages join the nav, the home and the crate > lists each open feature with a web page in schedule order 75ms
+ ✓ |website| src/FeaturePages.test.tsx > WS81: the pages join the nav, the home and the crate > links the home's open Skill tree card to its page with its sentence and no count 57ms
+ ✓ |website| src/FeaturePages.test.tsx > WS81: the pages join the nav, the home and the crate > links the home's open Book card to its page with its sentence and no count 94ms
+ ✓ |website| src/HomePage.test.tsx > WS21 V19: the member's face > falls back to the member's initials wherever a company profile cutout fails to load 150ms
+ ✓ |website| src/FeaturePages.test.tsx > WS81: the pages join the nav, the home and the crate > no longer points the open Skill tree to Slack's App Home 33ms
+ ✓ |website| src/HomePage.test.tsx > WS18: what teammates see, and received kudos staying private > shows the member's profile card as their face and name, saying the kudos they receive stay private 170ms
+ ✓ |website| src/FeaturePages.test.tsx > WS81: the pages join the nav, the home and the crate > ends the Skill tree reveal on Go to its page 215ms
+ ✓ |website| src/HomePage.test.tsx > WS19: the later features are plain locked cards > shows each later feature locked, with its name and one sentence, and no level, progress or crate 264ms
+ ✓ |website| src/FeaturePages.test.tsx > WS81: the pages join the nav, the home and the crate > ends the Book reveal on Go to its page 199ms
+ ✓ |website| src/FeaturePages.test.tsx > WS82: the Book's card names only what has shipped > says the Book holds achievements, and names no stickers or albums 147ms
+ ✓ |website| src/HomePage.test.tsx > WS19: the later features are plain locked cards > shows no level or XP anywhere until the facts carry them 140ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > ends on the end state with the headline, the line, Go to and Done once the reveal has played 1990ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in light 202ms
+ ✓ |website| src/HomePage.test.tsx > WS20: a quiet week > has Max point back to thanking someone in Slack, with the one action and no reward 249ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > points a feature without a web page to Slack's App Home from the end state 227ms
+ ✓ |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > keeps the first slice's home, with no ring, level line or bar, while progression is null 137ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > plays no reveal after refused, and says so in the live region 259ms
+ ✓ |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > rings the member's face in the hero with their level, named Level n, the number in RoundHog 201ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > plays no reveal after a denial and ends Opening…, leaving the page to getMyProfile's own answer 153ms
+ ✓ |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > rings the avatar in the HUD with the level, which the account menu button reads as its description 192ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > closes the crate again after an error, says HedgeHug couldn't be reached, and lets the member retry 273ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > says the level and the XP to the next one at level 1 in one quiet line with a bar from the level's start to the next 264ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in light 962ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > skips to the end state with Esc 156ms
+ ✓ |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > says the level and the XP to the next one past level 5 in one quiet line with a bar from the level's start to the next 216ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > skips to the end state with Space 158ms
+ ✓ |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > puts the level line after thanking and the allowance, before Max, and never as the hero's heading 211ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > skips to the end state with a click anywhere on the reveal 178ms
+ ✓ |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > shows Level n on the profile card beside the name, and still no received count 125ms
+ ✓ |website| src/HomePage.test.tsx > WS47 WS48 WS49 WS50 WS51: level and XP on the home, only while progression is present > shows no skill points, coins, ready pill or crates past level 5 118ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > replays the reveal from the end state, and skips it again 211ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > shows the end state at once under reduced motion, fading in 114ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in a quiet week in light 899ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > moves focus into the dialog, and back to the feature's card, now open, when it closes 161ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > closes from the end state with Esc 148ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > announces what opened in a live region inside the modal dialog, where screen readers still read it 134ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > goes to the feature's page from the end state 241ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home at level 1 in light 763ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home past level 5 in light 712ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > plays each crate's first reveal in full when two answers arrive together 217ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > drops the reveal when the member signs out, and shows none on the next sign-in 141ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > ignores an answer that arrives after the member signed out 144ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > WS60: ignores an answer for the member shown before when another member replaces them without a sign-out 151ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > keeps a member's own crates through a ship that adds one, so their open still plays its reveal 100ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in light 164ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > keeps focus in the dialog after Replay under reduced motion, so Esc still closes it 147ms
+Not implemented: navigation to another Document
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard open in light 625ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > keeps the dialog open when Go to opens in another tab 138ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with the viewer mid-board in light 145ms
+ ✓ |website| src/crateMoment.test.tsx > WS65 WS66: the crate nudges once, and never while it opens > stops nudging once Open is pressed, and stays still after an error 100ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard led by the viewer in light 111ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with a shared lead in light 100ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: seen state is kept per member and crate in this browser > opens a crate this member has seen on its end state, with Replay, and never plays it by itself 214ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who isn't ranked in light 104ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: seen state is kept per member and crate in this browser > plays another member's first reveal in full in the same browser 178ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: seen state is kept per member and crate in this browser > keeps nothing but the opaque seen key in the browser 110ms
+ ✓ |website| src/crateMoment.test.tsx > WS67: /leaderboard's ready state opens in place > shows the crate with a primary Open in place of WS52's sentence 23ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who left in light 102ms
+ ✓ |website| src/crateMoment.test.tsx > WS67: /leaderboard's ready state opens in place > becomes the board once opened, and returns focus to the page title when the reveal closes 156ms
+ ✓ |website| src/crateMoment.test.tsx > WS67: /leaderboard's ready state opens in place > keeps WS52's sentence while the board is locked 23ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > counts what is ready to open, and is gone at zero 105ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > shows what went wrong beside the pill after a refusal, away from the home's crate 83ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard locked in light 285ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > shows what went wrong beside the pill after an error, away from the home's crate 56ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > is gone while unlocks don't apply 73ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > sends the guarded command for the first ready crate in schedule order and reveals only after opened 125ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > ends a refusal from the pill as the crate does, with no reveal 73ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > takes in a crate that becomes ready during the visit without opening a dialog by itself 58ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard ready and the skill tree locked in light 421ms
+ ✓ |website| src/crateMoment.test.tsx > WS75: the keyboard path > opens with Enter, skips with Esc, replays, and closes with Done, returning focus to the card 235ms
+ ✓ |website| src/crateMoment.test.tsx > WS75: the keyboard path > opens the pill's crate with Space 75ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard opened and the skill tree locked in light 342ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with every shipped feature open in light 239ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with no feature shipped in light 286ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard locked until level 3 in light 188ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard ready to open in place in light 164ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with two crates and the ready pill in light 442ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > empty leaderboard in light 227ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree not found while it hasn't shipped in light 186ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree locked until level 5 in light 178ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree ready to open in place in light 176ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree open, found in Slack in light 193ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book locked until level 4 in light 215ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book ready to open in place in light 144ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book open, found in Slack in light 119ms
+stderr | src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in light
+Error: This page failed to render.
+    at Page (/home/coder/dev/kudos-wt/feature-pages/website/src/App.tsx:110:38)
+    at Object.react_stack_bottom_frame (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28571:20)
+    at renderWithHooks (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:8030:22)
+    at updateFunctionComponent (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:10569:19)
+    at beginWork (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:12205:18)
+    at runWithFiberInDEV (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13)
+    at performUnitOfWork (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22)
+    at workLoopSync (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19004:41)
+    at renderRootSync (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18985:11)
+    at performWorkOnRoot (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18094:35) {
+  [stack]: [Getter/Setter],
+  [message]: 'This page failed to render.'
+}
+
+The above error occurred in the <Page> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the book locked in light 573ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in light 251ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in light 344ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in light 1587ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in dark 31ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > connecting in dark 163ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in dark 166ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in dark 166ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in dark 161ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in dark 166ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in dark 171ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in dark 161ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in dark 668ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in a quiet week in dark 680ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home at level 1 in dark 684ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home past level 5 in dark 666ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in dark 161ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard open in dark 611ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with the viewer mid-board in dark 129ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard led by the viewer in dark 94ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with a shared lead in dark 93ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who isn't ranked in dark 92ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who left in dark 96ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard locked in dark 268ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard ready and the skill tree locked in dark 411ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard opened and the skill tree locked in dark 339ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with every shipped feature open in dark 239ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with no feature shipped in dark 208ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard locked until level 3 in dark 163ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard ready to open in place in dark 108ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with two crates and the ready pill in dark 410ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > empty leaderboard in dark 209ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree not found while it hasn't shipped in dark 163ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree locked until level 5 in dark 164ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree ready to open in place in dark 163ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree open, found in Slack in dark 150ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book locked until level 4 in dark 165ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book ready to open in place in dark 123ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book open, found in Slack in dark 107ms
+stderr | src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in dark
+Error: This page failed to render.
+    at Page (/home/coder/dev/kudos-wt/feature-pages/website/src/App.tsx:110:38)
+    at Object.react_stack_bottom_frame (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:28571:20)
+    at renderWithHooks (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:8030:22)
+    at updateFunctionComponent (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:10569:19)
+    at beginWork (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:12205:18)
+    at runWithFiberInDEV (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:1048:13)
+    at performUnitOfWork (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19176:22)
+    at workLoopSync (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:19004:41)
+    at renderRootSync (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18985:11)
+    at performWorkOnRoot (/home/coder/dev/kudos-wt/feature-pages/node_modules/.pnpm/react-dom@19.3.0_react@19.3.0/node_modules/react-dom/cjs/react-dom-client.development.js:18094:35) {
+  [stack]: [Getter/Setter],
+  [message]: 'This page failed to render.'
+}
+
+The above error occurred in the <Page> component.
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+
+
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the book locked in dark 411ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in dark 177ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in dark 204ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in dark 1221ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate opening in light 477ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate refused in light 478ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate unreachable in light 483ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealing in light 517ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed in light 585ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed under reduced motion in light 575ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate opening in dark 466ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate refused in dark 478ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate unreachable in dark 483ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealing in dark 524ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed in dark 593ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed under reduced motion in dark 610ms
+
+ Test Files  6 passed (6)
+      Tests  202 passed (202)
+   Start at  03:20:11
+   Duration  36.13s (tests 63%, transform 15%, import 14%, environment 7%, setup 2%)
+
