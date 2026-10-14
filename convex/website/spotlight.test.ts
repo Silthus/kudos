@@ -287,6 +287,44 @@ describe("AT31 AT32: the spotlight stays within Convex's limits", () => {
     expect(await spotlightSeenBy(dave, { seed: 0 })).toEqual({ kind: "empty" });
     expect(await failedJobs()).toEqual([]);
   });
+
+  test("a kudos to hundreds of members still gives within Convex's limits, and joins the draw", { timeout: 120_000 }, async () => {
+    t = testBackend({ transactionLimits: true });
+    await spotlightOn();
+    const recipients = await knownMembers(820);
+    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", baseAllowance: 1_000 }));
+
+    await give([section(text(`thanks ${reason} `), ...recipients.flatMap((user) => [mention(user), text(" ")]), emoji("taco"))], { user: alice.user, ts: tsOn(0) });
+
+    expect((await failedJobs()).filter((job) => !job.startsWith("welcome/"))).toEqual([]);
+    expect(await spotlightSeenBy(dave, { seed: 0 })).toMatchObject({ kind: "kudos", recipients: expect.arrayContaining([{ name: "A teammate", face: expect.anything() }]) });
+  });
+
+  test("turning one kudos away and drawing one with hundreds of recipients and mentions stays within Convex's limits", { timeout: 120_000 }, async () => {
+    t = testBackend({ transactionLimits: true });
+    await spotlightOn();
+    const members = await knownMemberIds(816);
+    const hidden = members[0]!;
+    const drawnTo = members.slice(1);
+    await t.run(async (ctx) => {
+      const giver = await ctx.db.insert("members", { workspace: "T1", user: "U_GIVER", kind: "member", name: "Gus Giver", asOf: 0 });
+      await ctx.db.insert("leaderboardSettings", { member: hidden, visible: false });
+      const mentions = [...drawnTo.map((_, index) => ({ kind: "person" as const, user: `U_R${index + 1}` })), ...Array.from({ length: 1_185 }, (_, index) => ({ kind: "group" as const, group: `S_G${index}` }))];
+      const kudos = [
+        { message: tsOn(0), to: [...drawnTo.slice(0, 497), hidden], position: 0.1 },
+        { message: tsOn(1), to: drawnTo, position: 0.2 },
+      ];
+      for (const { message, to, position } of kudos) {
+        for (const recipient of to) await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message, giver, recipient, kudos: 1, day: "2026-10-14", at: firstTs * 1000 });
+        await ctx.db.insert("kudosTexts", { workspace: "T1", conversation: "C1", message, kind: "words", revision: 1n, author: "U_GIVER", edited: false, segments: [{ kind: "text", text: "thanks for the long reason given " }, ...mentions], visibility: "public", gate: { version: 1, thoughtful: true } });
+        await ctx.db.insert("spotlightDraws", { workspace: "T1", conversation: "C1", message, position });
+      }
+    });
+
+    const answer = await spotlightSeenBy(dave, { seed: 0 });
+
+    expect(answer.kind === "kudos" ? answer.recipients.length : answer).toBe(815);
+  });
 });
 
 describe("AT37: the spotlight behind the activity flag", () => {
@@ -338,6 +376,19 @@ async function manyRecipientKudosTo(count: number, recipients: number) {
     }
   });
   return hidden;
+}
+
+async function knownMembers(count: number) {
+  const users = Array.from({ length: count }, (_, index) => `U_R${index}`);
+  await t.run(async (ctx) => {
+    for (const user of users) await ctx.db.insert("members", { workspace: "T1", user, kind: "member", asOf: 0 });
+  });
+  return users;
+}
+
+async function knownMemberIds(count: number) {
+  await knownMembers(count);
+  return t.run(async (ctx) => (await ctx.db.query("members").collect()).filter((member) => member.user.startsWith("U_R")).map((member) => member._id));
 }
 
 async function failedJobs() {

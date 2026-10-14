@@ -17,16 +17,16 @@ const privateChannel: Channel = { visibility: "private" };
 const unknownGroupHandle = "group";
 const broadcastRanges = ["here", "channel", "everyone"] as const;
 
-const mentionLookupsPerPage = 2_000;
+export const mentionLookupsPerPage = 2_000;
 
 export type Mentions = { personName: (workspace: string, user: string) => Promise<string>; groupHandle: (workspace: string, group: string) => Promise<string> };
 
-export function mentionsOfOnePage(ctx: QueryCtx): Mentions {
+export function mentionsOfOnePage(ctx: QueryCtx, lookupsAtMost = mentionLookupsPerPage): Mentions {
   const looked = new Map<string, Promise<string>>();
   const once = (key: string, fallback: string, lookUp: () => Promise<string | undefined>) => {
     const known = looked.get(key);
     if (known !== undefined) return known;
-    if (looked.size >= mentionLookupsPerPage) return Promise.resolve(fallback);
+    if (looked.size >= lookupsAtMost) return Promise.resolve(fallback);
     const answer = lookUp().then((found) => found ?? fallback);
     looked.set(key, answer);
     return answer;

@@ -2,7 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import { drawFrom, type DrawableKudos } from "../engine/spotlight";
 import { beforeEveryDrawAt, type DrawPoint, type DrawWalk, type Drawn } from "../engine/spotlightDraws";
 import type { Spotlight } from "./entries";
-import { mentionsOfOnePage, permalinkOfMessage, personOf, readableSegmentsOf } from "./kudos";
+import { mentionLookupsPerPage, mentionsOfOnePage, permalinkOfMessage, personOf, readableSegmentsOf } from "./kudos";
 
 export type SpotlightFrom = { seed: number } | { after: string };
 
@@ -15,14 +15,14 @@ export async function spotlightOf(ctx: QueryCtx, workspace: string, from: Spotli
   const draw = await drawFrom(ctx, workspace, walk);
   if (draw.kind === "empty") return draw;
   if (draw.kind === "skipped") return { kind: "skipped", after: encodeCursor({ after: draw.at, through: walk.through }) };
-  return kudosAnswer(ctx, draw.drawn, draw.kudos);
+  return kudosAnswer(ctx, draw.drawn, draw.kudos, draw.mentionLookups);
 }
 
-async function kudosAnswer(ctx: QueryCtx, drawn: Drawn, { at, giver, recipients, segments, edited }: DrawableKudos): Promise<Spotlight> {
+async function kudosAnswer(ctx: QueryCtx, drawn: Drawn, { at, giver, recipients, segments, edited }: DrawableKudos, mentionLookups: number): Promise<Spotlight> {
   const [giverPerson, recipientPeople, readable, permalink] = await Promise.all([
     personOf(ctx, giver),
     Promise.all(recipients.map((recipient) => personOf(ctx, recipient))),
-    readableSegmentsOf(mentionsOfOnePage(ctx), drawn.ref.workspace, segments),
+    readableSegmentsOf(mentionsOfOnePage(ctx, Math.min(mentionLookups, mentionLookupsPerPage)), drawn.ref.workspace, segments),
     permalinkOfMessage(ctx, drawn.ref),
   ]);
   const after = encodeCursor({ after: drawn, through: drawn });
