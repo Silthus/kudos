@@ -22,13 +22,10 @@ export function SkillTreePage({ tree, buyPerk }: SkillTreePageProps) {
   const focusDetailsHeading = useDetailsHeadingFocus();
   const purchasing = usePurchase(buyPerk, (notice) => {
     setChosen(notice.perk);
-    if (notice.kind === "bought") showBought();
-    else if (!isWideScreen()) setDrawer((shown) => (shown === "closed" ? "open" : shown));
-  });
-  const showBought = () => {
+    if (notice.kind !== "bought") return;
     if (!isWideScreen()) setDrawer("open-on-purchase");
     focusDetailsHeading();
-  };
+  });
   const nodes = useRef(new Map<PerkNode["perk"], HTMLButtonElement | null>());
   const selected = selectedIn(tree.rows, chosen);
   const select = (perk: PerkNode["perk"]) => {
@@ -52,7 +49,7 @@ export function SkillTreePage({ tree, buyPerk }: SkillTreePageProps) {
           <HowPerksWork />
         </div>
       </div>
-      {!wide && drawer === "closed" && <PurchaseAnnouncement purchasing={purchasing} />}
+      {!wide && drawer === "closed" && <PurchaseAnnouncement purchasing={purchasing} shown />}
       {!wide && selected && <PerkDetailsDrawer {...selected} purchasing={purchasing} open={drawer !== "closed"} headingFirst={drawer === "open-on-purchase"} onClose={() => setDrawer("closed")} returnFocusTo={() => nodes.current.get(selected.perk.perk) ?? null} />}
     </div>
   );

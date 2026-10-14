@@ -44,7 +44,7 @@ export function refusedText(perk: PerkNode, level: number, reason: PurchaseRefus
   return why === undefined ? refused : `${refused} ${why}`;
 }
 
-function refusalReasonOf(perk: PerkNode, level: number, reason: PurchaseRefusal | null) {
+export function refusalReasonOf(perk: PerkNode, level: number, reason: PurchaseRefusal | null) {
   if (reason === "owned") return `You already own ${perk.name}.`;
   if (reason === "level" || reason === "requires" || reason === "points") return shortReasonOf({ ...perk, reason }, level);
   return undefined;

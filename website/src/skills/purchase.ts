@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
 import { attemptMessages } from "../crates/moments";
-import type { BuyAnswer, PerkNode, Purchase, PurchaseRefusal, ShellActions } from "../shell";
+import type { BuyAnswer, PerkNode, Purchase, ShellActions } from "../shell";
 import type { SelectedPerk } from "./PerkDetails";
-import { boughtText, refusedText } from "./perkWords";
+import { boughtText, refusalReasonOf, refusedText } from "./perkWords";
 
 export type Notice = { kind: "bought" | "refused" | "refused-without-reason" | "unreachable"; perk: PerkNode["perk"]; text: string };
 
@@ -55,10 +55,6 @@ export function usePurchase(buyPerk: ShellActions["buyPerk"], onAnswered: (notic
 
 function noticeOf({ perk, level }: SelectedPerk, answer: BuyAnswer): Notice | undefined {
   if (answer.kind === "bought") return { kind: "bought", perk: perk.perk, text: boughtText(perk) };
-  if (answer.kind === "refused") return { kind: givesAReason(answer.reason) ? "refused" : "refused-without-reason", perk: perk.perk, text: refusedText(perk, level, answer.reason) };
+  if (answer.kind === "refused") return { kind: refusalReasonOf(perk, level, answer.reason) === undefined ? "refused-without-reason" : "refused", perk: perk.perk, text: refusedText(perk, level, answer.reason) };
   return undefined;
-}
-
-function givesAReason(reason: PurchaseRefusal | null) {
-  return reason !== null && reason !== "not-open";
 }

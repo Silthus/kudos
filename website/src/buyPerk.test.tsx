@@ -189,7 +189,7 @@ describe("WS87: a bought perk turns owned in place", () => {
   it.each([
     { outcome: "an unreachable server", answer: (pending: ReturnType<typeof answerLater>) => pending.fail(), says: "Couldn't reach HedgeHug. Try again." },
     { outcome: "a refusal", answer: (pending: ReturnType<typeof answerLater>) => pending.settle({ kind: "refused", reason: "points" }), says: "That couldn't be bought. No skill points to spend." },
-  ])("reopens the perk's drawer to show $outcome when the drawer was closed before the answer", async ({ answer, says }) => {
+  ])("says $outcome visibly in the page's live region when the drawer was closed before the answer", async ({ answer, says }) => {
     const pending = answerLater();
     const { user } = renderApp(withTheTree, undefined, { buyPerk: () => pending.answer }, undefined, undefined, theTree(skillTreeFixtures.withPoints).read);
     await user.click(nodeOf("Rhythm"));
@@ -197,9 +197,11 @@ describe("WS87: a bought perk turns owned in place", () => {
     await user.click(within(drawer).getByRole("button", { name: "Buy for 1 skill point" }));
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    const status = within(main()).getByRole("status");
     await answer(pending);
-    const reopened = await screen.findByRole("dialog", { name: "Rhythm" });
-    expect(within(reopened).getByRole("status")).toHaveTextContent(says);
+    expect(status).toHaveTextContent(says);
+    expect(status).not.toHaveClass("sr-only");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("opens the bought perk's drawer and focuses its heading when the screen narrowed while the purchase was sent", async () => {

@@ -95,6 +95,5 @@ async function noLaunchWaitsFor(ctx: QueryCtx, me: VerifiedMember) {
 }
 
 async function questsLaunchedFor(ctx: QueryCtx, me: VerifiedMember) {
-  if (await workspaceLaunchDueIn(ctx, me.workspace)) return false;
-  return (await questsApplyTo(ctx, me.member)) && (await journeyStartedFor(ctx, me.member)) !== null;
+  return (await questsApplyTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
 }

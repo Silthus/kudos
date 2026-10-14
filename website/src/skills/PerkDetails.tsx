@@ -109,9 +109,9 @@ function isShownBeside(notice: Notice, perk: PerkNode) {
   return perk.state !== "owned";
 }
 
-export function PurchaseAnnouncement({ purchasing }: { purchasing: Purchasing }) {
+export function PurchaseAnnouncement({ purchasing, shown = false }: { purchasing: Purchasing; shown?: boolean }) {
   return (
-    <p role="status" className="sr-only">
+    <p role="status" className={shown ? "text-sm font-medium" : "sr-only"}>
       {purchasing.notice?.text}
     </p>
   );
