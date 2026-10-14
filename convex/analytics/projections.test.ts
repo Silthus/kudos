@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { awardId, kudosGivenEvent } from "../../testing/busEvents";
-import type { AttemptFailedEvent, KudosGivenEvent } from "../bus/events";
+import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
-import { projectAttemptFailed, projectKudosGiven, projectMemberWelcomed, projectUsage } from "./projections";
+import { projectAttemptFailed, projectKudosGiven, projectLevelReached, projectMemberWelcomed, projectUsage } from "./projections";
 
 const alice = "alice" as MemberId;
 const bob = "bob" as MemberId;
@@ -95,6 +95,31 @@ describe("O3: member welcomed", () => {
       subject: { member: bob },
       at,
       properties: { as },
+    });
+  });
+});
+
+describe("E1: level reached", () => {
+  const levelReached: LevelReachedEvent = {
+    type: "levelReached",
+    workspace: "T1",
+    member: bob,
+    level: 6,
+    skillPointsGained: 2,
+    skillPoints: 2,
+    xpToNextLevel: 500,
+    at,
+  };
+
+  test.each<[string, string, Partial<LevelReachedEvent>]>([
+    ["a kudos message", "kudos", { message: { workspace: "T1", conversation: "C1", message: "1760349600.000100" } }],
+    ["a reward record, which has no kudos message", "reward", {}],
+  ])("crossed by %s, it is via %s and lists exactly E1's properties, on the member at the fact's time", (_, via, overrides) => {
+    expect(projectLevelReached({ ...levelReached, ...overrides })).toEqual({
+      event: "level reached",
+      subject: { member: bob },
+      at,
+      properties: { level: 6, skill_points_gained: 2, via },
     });
   });
 });

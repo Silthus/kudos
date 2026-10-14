@@ -140,7 +140,7 @@ describe("O10: never sent", () => {
 
     await post(
       t,
-      [section(text("Marmalade gratitude, Zephyrine says thanks Barnaby Flintlock for the quokka migration "), mention(people.recipient), emoji("artichokeparty"))],
+      [section(text("Marmalade gratitude, Zephyrine says thanks Barnaby Flintlock for the quokka migration "), mention(people.recipient), emoji("artichokeparty"), emoji("artichokeparty"))],
       { ...fromZephyrine, ts: "1760349600.424242" },
     );
     await post(
@@ -161,7 +161,7 @@ describe("O10: never sent", () => {
 
     const bodies = postHog.requests.map((request) => request.body).join("\n");
     expect(new Set(postHog.events().map((event) => event.event))).toEqual(
-      new Set(["kudos given", "kudos received", "member welcomed", "attempt failed", "app home opened", "command used"]),
+      new Set(["kudos given", "kudos received", "member welcomed", "level reached", "attempt failed", "app home opened", "command used"]),
     );
     const stored = await everythingStored(t);
     const forbidden = [

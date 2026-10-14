@@ -1,5 +1,5 @@
 import { v, type Infer } from "convex/values";
-import type { AttemptFailedEvent, KudosGivenEvent, MemberWelcomedEvent } from "../bus/events";
+import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent } from "../bus/events";
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
 import { defaultKudosEmoji } from "../workspace/settings";
@@ -10,7 +10,15 @@ export const propertiesValidator = v.record(v.string(), v.union(v.string(), v.nu
 export type Properties = Infer<typeof propertiesValidator>;
 
 export type ProductEvent = {
-  event: "kudos given" | "kudos received" | "attempt failed" | "member welcomed" | "app home opened" | "command used" | "$feature_flag_called";
+  event:
+    | "kudos given"
+    | "kudos received"
+    | "attempt failed"
+    | "member welcomed"
+    | "level reached"
+    | "app home opened"
+    | "command used"
+    | "$feature_flag_called";
   subject: { member: MemberId };
   at: number;
   properties: Properties;
@@ -82,6 +90,15 @@ export function projectAttemptFailed(event: AttemptFailedEvent): ProductEvent {
 
 export function projectMemberWelcomed(event: MemberWelcomedEvent): ProductEvent {
   return { event: "member welcomed", subject: { member: event.member }, at: event.at, properties: { as: event.as } };
+}
+
+export function projectLevelReached(event: LevelReachedEvent): ProductEvent {
+  return {
+    event: "level reached",
+    subject: { member: event.member },
+    at: event.at,
+    properties: { level: event.level, skill_points_gained: event.skillPointsGained, via: event.message === undefined ? "reward" : "kudos" },
+  };
 }
 
 export function projectUsage(fact: UsageFact): ProductEvent {
