@@ -97,6 +97,53 @@ describe("WS98 WS101: the hero is the character header, leading with the member 
   });
 });
 
+describe("WS311 V2: the open hero", () => {
+  it("drops the card's border, background and corner marks for E's open header spacing", () => {
+    renderApp(shellFixtures.memberAtLevel7);
+    const hero = within(main()).getByRole("region", { name: "Sam Example" });
+    for (const frame of ["hud-panel", "border", "bg-card", "rounded-xl", "p-6"]) expect(hero).not.toHaveClass(frame);
+    expect(hero).toHaveClass("sm:py-4", "sm:gap-7", "sm:items-center");
+  });
+});
+
+describe("WS312 V4: the first-kudos nudge", () => {
+  function nudge() {
+    return within(main()).queryByRole("region", { name: "Give your first kudos in Slack" });
+  }
+
+  function hero() {
+    return within(main()).getByRole("region", { name: "Sam Example" });
+  }
+
+  function primaries() {
+    return [...document.querySelectorAll(".quill-button--variant-primary")];
+  }
+
+  it("shows under the hero while the member has given no kudos, teaching with their kudos emoji, with the page's one primary action", () => {
+    renderApp({ ...shellFixtures.memberBeforeTheirFirstKudos, kudosEmoji: "sparkles" });
+    expect(nudge()).toBeInTheDocument();
+    expect(comesBefore(hero(), nudge()!)).toBe(true);
+    expect(nudge()!.querySelector("svg[aria-hidden='true']")).not.toBeNull();
+    expect(nudge()).toHaveTextContent("Mention a teammate in a Slack message with :sparkles: and say why in five words or more. Every kudos earns XP toward level 2.");
+    const action = within(nudge()!).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" });
+    expect(action).toHaveAttribute("href", "https://app.slack.com/client/T1");
+    expect(primaries()).toEqual([action]);
+    expect(within(hero()).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" })).toHaveClass("quill-button--variant-outline");
+  });
+
+  it("promises no XP while the member's progression isn't shown", () => {
+    renderApp({ ...shellFixtures.memberBeforeTheirFirstKudos, progression: null });
+    expect(within(nudge()!).getByText("Mention a teammate in a Slack message with :taco: and say why in five words or more.")).toBeInTheDocument();
+    expect(nudge()!.textContent).not.toMatch(/xp|level/i);
+  });
+
+  it("goes once the member has given a kudos, handing the one primary action back to the hero", () => {
+    renderApp({ ...shellFixtures.memberBeforeTheirFirstKudos, lifetime: { given: 1, received: 0 } });
+    expect(nudge()).not.toBeInTheDocument();
+    expect(primaries()).toEqual([within(hero()).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" })]);
+  });
+});
+
 describe("WS100: the counters table goes", () => {
   it("shows no Your kudos table on the home", () => {
     renderApp(shellFixtures.memberAtLevel7);

@@ -181,6 +181,8 @@ const memberWithAQuietWeek: MemberProfile = { ...member, thisWeek: { given: 0, r
 
 const memberAtLevel1: MemberProfile = { ...member, progression: { level: 1, xp: 0, levelStartsAt: 0, nextLevelAt: 20, xpToNextLevel: 20 } };
 
+const memberBeforeTheirFirstKudos: MemberProfile = { ...memberAtLevel1, thisWeek: { given: 0, received: 0 }, lifetime: { given: 0, received: 0 } };
+
 const memberAtLevel7: MemberProfile = { ...member, progression: { level: 7, xp: 1600, levelStartsAt: 1500, nextLevelAt: 2100, xpToNextLevel: 500 } };
 
 export const shellFixtures = {
@@ -218,6 +220,7 @@ export const shellFixtures = {
   memberWithEveryPanelReady,
   memberWithEveryPanelOpen,
   memberAtLevel1,
+  memberBeforeTheirFirstKudos,
   memberAtLevel7,
   memberStartingTheJourney,
   memberWithQuestsReady,
@@ -254,6 +257,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-nothing-shipped": shellFixtures.memberWithNothingShipped,
   "member-with-every-nav-state": shellFixtures.memberWithEveryNavState,
   "member-level-1": shellFixtures.memberAtLevel1,
+  "member-before-their-first-kudos": shellFixtures.memberBeforeTheirFirstKudos,
   "member-level-7": shellFixtures.memberAtLevel7,
   "member-starting-the-journey": shellFixtures.memberStartingTheJourney,
   "member-with-quests-ready": shellFixtures.memberWithQuestsReady,
