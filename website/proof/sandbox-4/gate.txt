@@ -1,12 +1,9 @@
-Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
 $ pnpm typecheck && pnpm test && pnpm coherence
 $ tsc --noEmit && tsc --noEmit -p website
 $ vitest run
 
  RUN  v5.0.3 /home/coder/dev/kudos-wt/sandbox-proof-4
 
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -118,11 +115,13 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
  Test Files  139 passed (139)
-      Tests  2248 passed (2248)
-   Start at  08:41:14
-   Duration  99.62s (tests 83%, import 9%, environment 3%, transform 3%, setup 1%)
+      Tests  2269 passed (2269)
+   Start at  08:58:23
+   Duration  97.96s (tests 83%, import 9%, environment 4%, transform 3%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -242,9 +241,13 @@ Feedback  convex/feedback/Feedback.spec.md
       refuted 2026-10-14: tellBatchSummaries told every member with the Book open now, not only those who had opened it by the batch's completion
       kinds message, output: 12 shapes apply, 2 declared, 10 dismissed
   the front door needs a link to the website  invariant
-      totality oracle "SW19 SW20 SW21 SW22: App Home is the website's front door while the website's link function answers a link" over App Home for a member with every flag on at level 3 who opened Quests and the Leaderboard, last week's crate waiting after the Monday turn and its Open, 7 crates waiting from an earlier week, the same member before opening them, a member before unlocks apply with the Everyone board shown, a member at level 5, a remembered Leaderboard tab, the settings and announcement channel tabs of a workspace owner, an Open and a Swap clicked in the summary, and the member with every flag on while the website flag is off, SITE_URL is unset and the website is open for another workspace only: verified 2026-10-14
+      totality oracle "SW19 SW20 SW21 SW22: App Home is the website's front door while the website's link function answers a link" over App Home for a member with every flag on at level 3 who opened Quests and the Leaderboard, last week's crate waiting after the Monday turn and its stale `Open`, 7 crates waiting from an earlier week, the same member before opening them, a member before unlocks apply with the Everyone board shown, a member at level 5, a remembered Leaderboard tab, the settings and announcement channel tabs of a workspace owner, a Swap and a stale `Open` clicked in the summary, and the member with every flag on while the website flag is off, SITE_URL is unset and the website is open for another workspace only: verified 2026-10-14
       crossing slack-request -> domain
       refuted 2026-10-14: tabsBesideProfile showed the Leaderboard tab whenever the Leaderboard was shown, ignoring the front door
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
+  a crate's Open links to the page where it opens  invariant
+      totality oracle "each crate's Open in Slack links to the page where it opens while the website is open" over the App Home summary of a member with every flag on at level 3 with Quests and the Leaderboard ready, at level 5 with the skill tree ready, and with a weekly quest and Journey steps finished, and clicks on an `Open` link button and on the website button: verified 2026-10-14
+      crossing slack-request -> domain
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
   a feature's lines wait for its opening  invariant
       totality oracle "P76: a feature's lines wait for its opening" over the level-up DMs and App Home views the app asks Slack to send to a member reaching levels 5 and 6, with the skill tree unshipped, shipped and ready, and opened, and the member's stored skill points; and the App Home tab bar, the Leaderboard tab and the `/hedgehug leaderboard` reply for a member at level 1, at level 3 before opening and after opening the Leaderboard, with everyone-board on and off, and the board another member sees: verified 2026-10-13
@@ -651,8 +654,8 @@ Workspace  convex/workspace/Workspace.spec.md
       kinds identity, state: 10 shapes apply, 1 declared, 9 dismissed
 Website  website/Website.spec.md
   (no invariants)
-18 components, 112 bullets: 112 invariants, 0 requirements
-lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T07:47:46.670Z (631 runs)
+18 components, 113 bullets: 113 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T08:18:17.138Z (634 runs)
 defects: 19 recorded, 16 closed (1 guarded, 15 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
@@ -671,6 +674,6 @@ RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       207 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 83, receipt 30, contract 21, zone 21, panel 12; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (581 files), 17 in records
+ADVISORY       210 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 83, receipt 30, contract 22, zone 21, panel 13; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (584 files), 17 in records
 exit=0
