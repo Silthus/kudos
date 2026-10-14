@@ -92,7 +92,7 @@ describe("E7 E8: exactly once, and no history", () => {
     expect(levelsReached()).toHaveLength(1);
   });
 
-  test("the progression backfill sends no level reached for the levels earlier awards reach", async () => {
+  test("the progression backfill sends no level reached for the level an earlier award reaches", async () => {
     const t = testBackend();
     await t.run(async (ctx) => {
       const [giver, recipient] = await Promise.all(
@@ -101,9 +101,12 @@ describe("E7 E8: exactly once, and no history", () => {
       await insertAwards(ctx, { workspace: "T1", conversation: "C1", message: "earlier" }, [{ giver: giver!, recipient: recipient!, kudos: 3 }], "2026-09-01", Date.parse("2026-09-01"));
     });
 
-    await t.action(internal.progression.backfill.backfillEffects, {});
+    vi.setSystemTime(now.getTime() + 60 * 60 * 1000);
+
+    expect(await t.action(internal.progression.backfill.backfillEffects, {})).toEqual({ awards: 1, recorded: 2 });
     await settle(t);
 
+    expect(await t.run(async (ctx) => (await ctx.db.query("memberProgress").collect()).map(({ xp }) => xp).sort())).toEqual([15, 30]);
     expect(levelsReached()).toEqual([]);
   });
 });
