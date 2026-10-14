@@ -2,7 +2,7 @@
 
 > **Accepted on [#210](https://github.com/Silthus/kudos/issues/210) (2026-10-14) under the map's autonomous authority, every call at its recommendation.** This file lives on the branch `docs/slack-to-web` and is never merged. It amends P71 and P15 of the progression spec of record (`spec/progression.md` on `docs/spec-progression-v2` at `4bfc420`) and builds on the per-member flags spec (`spec/per-member-flags.md` on `docs/per-member-flags`, F16 and F28). Spec #209 (meaningful thank-yous) builds on its gains line.
 >
-> **Rule numbers.** Rules are cited as `SW1`–`SW26`. Progression rules are cited as `P71`, per-member flag rules as `F28`, website rules as `WS78`, core loop rules as `R36`.
+> **Rule numbers.** Rules are cited as `SW1`–`SW27`. Progression rules are cited as `P71`, per-member flag rules as `F28`, website rules as `WS78`, core loop rules as `R36`.
 >
 > Sources: Michael's three decisions (quoted under "Further Notes"); the code on `main` at `19223ef` (`convex/feedback/` replies, home, notify and welcome, `convex/slack/appHome.ts`, `convex/website/link.ts`, `website/src/route.ts` and `website/src/features.ts`); the route contract the website map (#57) relayed on #210; map #1's decisions 11, 14 and 17.
 
@@ -113,7 +113,7 @@ Meanwhile the website has grown a home, a leaderboard, and soon quests, a skill 
 ### App Home as the front door
 
 - **SW19. Two homes.** A member for whom the link function answers a Home link sees the front door (SW20–SW24). Everyone else, including a member whose decision is on while `SITE_URL` is unset, sees today's App Home, unchanged, so the front door never removes a tab without a working button in its place.
-- **SW20. Tabs.** The front door has Profile (the summary), then Settings and Admin when today's rules show them. A tab whose feature has a listed page is replaced by that page's button: the Leaderboard tab goes now, and the Skill tree and Book tabs (progression stopping point 4, #171) go once `/skills` and `/book` are listed. A remembered tab that is gone opens as Profile, as today's rule for a tab whose flag is off.
+- **SW20. Tabs.** The front door has Profile (the summary), then Settings and Admin when today's rules show them. A tab whose feature has a listed page is replaced by that page's button: the Leaderboard tab goes now, and the Skill tree and Book tabs (progression stopping point 4, #171) go once `/skills` and `/book` are listed. A remembered tab that is gone opens as Profile, as today's rule for a tab whose flag is off. *Amended by #335 (2026-10-14):* `/skills` and `/book` are listed (website ship #193), so the front door has no Skill tree or Book tab; a remembered one, or its tab switch clicked from an earlier view, opens as Profile. A member who sees today's App Home (SW19) keeps both tabs, with today's `Buy` command.
 - **SW21. The summary** shows what a member checks at a glance and what they can act on in one click, and nothing the website shows better. Top to bottom:
   1. The allowance line, as today.
   2. One level line while XP and levels are shown: `Level {n} · {xp} XP to level {n+1}`, with ` · {k} skill points to spend` from level 5 under today's P76 rule.
@@ -130,6 +130,7 @@ Meanwhile the website has grown a home, a leaderboard, and soon quests, a skill 
 ### Flags and shipping
 
 - **SW25. No new flag.** The gains line is gated by `xp-levels` (SW5); links and the front door by `website` (SW11, SW19). Both are dark in production today, so the ship changes nothing in production until Michael switches them, and with both off every Slack call is byte-for-byte today's. No gate ticket is needed.
+- **SW27. Buy funnels to the Skill tree page (#335).** While the link function answers a link, each perk's `Buy` in a level-up DM is a link button to `/skills`, labelled `Buy`, its accessibility label naming the perk and the page, with no confirmation, since a link spends nothing. A click on it runs no command. A `Buy` command left from an earlier DM or App Home view still buys its perk. While the link function answers nothing, `Buy` is today's command with its confirmation. Swap, Settings and Admin stay Slack buttons: the website has no page for them yet.
 - **SW26. Routes that ship later.** `/quests`, `/skills` and `/book` switch on when the website PR that adds each route also adds it to the list (SW10). The Skill tree and Book tabs, and the tier DM's Book link, need #171's code on `main`, so one follow-up ticket carries them after #171 ships.
 
 ## Implementation Decisions
@@ -199,5 +200,7 @@ Each call is recorded with `coherence decide` and cites Michael's decision `d-5c
 11. The Leaderboard tab gives way to a button now; the Skill tree and Book tabs follow once their routes are listed (SW20). (`d-f431ceb3`)
 12. No new flag and no gate ticket (SW25). (`d-bb843272`)
 13. The tier DM's Book link and the Skill tree and Book tabs ride one follow-up ticket after #171 (SW26). (`d-a53e3eeb`)
+14. *#335:* the Skill tree and Book tabs retire in the front door only; a member without a website link keeps them with today's `Buy` (SW20, SW19). (`d-9508589b`, `d-b88bdee8`)
+15. *#335:* `Buy` is a link to `/skills` with no confirmation and no anchor, since SW9 allows none (SW27). (`d-8af40a8d`)
 
 **Review.** A GPT-6.1 Sol review of the first draft found 7 majors and 2 minors, all fixed: the website-off rule contradicted the gains line (SW17 now covers links only); a decision without `SITE_URL` would have removed the Leaderboard tab with no button (SW19); the summary kept nearly all of today's Profile (SW21 now keeps only one-click actions and swappable quests); Journey DMs pointed at `/quests`, which a level-one member can't open (SW13); bare URLs couldn't admit a previewer under F28 (SW11); a held or retried reply froze XP and links (SW5, SW18); a link could resurrect an emptied DM (SW15); the contract test had no route list to compare on the website side (SW10); and the extras order was stated two ways (SW1).
