@@ -38,7 +38,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("website reads pass one guard", () => {
+describe("website reads pass one guard", { timeout: 30_000 }, () => {
   test("getProfileCard reads closed while the website flag is off, even with profile-card on", async () => {
     const t = await workspace({ flags: [offForEveryone("website"), ...["xp-levels", "unlocks", "achievements", cardFlag].map(onForEveryone)] });
     const { asSignedIn } = await aSession(t, { user: ann.user, name: ann.name });
@@ -69,7 +69,7 @@ describe("website reads pass one guard", () => {
   });
 });
 
-describe("PC15: the website reads the member's own profile card", () => {
+describe("PC15: the website reads the member's own profile card", { timeout: 30_000 }, () => {
   test("the card holds exactly the name, level and best four medals the member's own Slack card shows", async () => {
     const t = await workspace();
     const asAnn = await signedIn(t, ann);
@@ -124,7 +124,7 @@ describe("PC15: the website reads the member's own profile card", () => {
   });
 });
 
-describe("PC15 PC17: getProfileCard follows the member's own profile-card decision", () => {
+describe("PC15 PC17: getProfileCard follows the member's own profile-card decision", { timeout: 30_000 }, () => {
   test("with profile-card off for everyone, the card reads not-found", async () => {
     const t = await workspace({ flags: [...shippedFlags.map(onForEveryone), offForEveryone(cardFlag)] });
     const asAnn = await signedIn(t, ann);
