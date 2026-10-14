@@ -1,6 +1,8 @@
 import type { TierId } from "../shell";
 import { metalOf } from "./metal";
 
+export const tierWords: Record<TierId, string> = { bronze: "Bronze", silver: "Silver", gold: "Gold", diamond: "Diamond" };
+
 const pipsOf: Record<TierId, number> = { bronze: 1, silver: 2, gold: 3, diamond: 4 };
 
 const sparkles: ReadonlySet<TierId> = new Set(["gold", "diamond"]);

@@ -243,6 +243,14 @@ describe("WS111: the home's rail reads through the live shell", () => {
     expect(subscriptionsTo("website/quests:getQuests")).toEqual([{}]);
   });
 
+  it("WS343: subscribes once to the member's own profile card on the home", () => {
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelOpen);
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+
+    expect(subscriptionsTo("website/profileCard:getProfileCard")).toEqual([{}]);
+  });
+
   it("subscribes to no board while the Leaderboard is locked", () => {
     profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelLocked);
     boardRead.mockReturnValue(undefined);

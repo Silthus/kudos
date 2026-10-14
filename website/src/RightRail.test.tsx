@@ -4,7 +4,9 @@ import type { BoardAnswer, BoardRead } from "./boardRead";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import type { QuestsRead, QuestsShown } from "./questsRead";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
-import { shellFixtures, type Leaderboard, type MemberProfile } from "./shell";
+import { fixedProfileCard, profileCardFixtures } from "./profileCardFixtures";
+import type { ProfileCardRead } from "./profileCardRead";
+import { shellFixtures, type Leaderboard, type MemberProfile, type MyProfileCard } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
@@ -65,6 +67,78 @@ describe("WS107: What teammates see", () => {
     railOf(shellFixtures.member);
     const card = panel("What teammates see");
     expect(card.textContent).not.toMatch(/\d|Lv|\bteam\b|medal/i);
+  });
+});
+
+function cardShowing(answer: MyProfileCard, member: MemberProfile = everyPanelOpen) {
+  renderApp(member, undefined, undefined, undefined, undefined, undefined, fixedProfileCard(answer));
+  return panel("What teammates see");
+}
+
+function medalsOn(card: HTMLElement) {
+  return within(card)
+    .getAllByRole("listitem")
+    .map((medal) => ({ words: within(medal).getAllByText(/.+/).map((word) => word.textContent), metal: medal.querySelector("[data-medal='earned'] circle")?.getAttribute("fill") }));
+}
+
+const beforeTheBookOpens = "Teammates also see any medals you've earned. They show here once you open the Book.";
+
+describe("WS343 V16: the public card's best medals, as teammates see them in Slack", () => {
+  it("lists the card's best four medals best first, each in its tier's metal with the tier's word beside its name", () => {
+    const card = cardShowing(profileCardFixtures.bestFour);
+    expect(within(card).getByRole("list", { name: "Best medals" })).toBeInTheDocument();
+    expect(medalsOn(card)).toEqual([
+      { words: ["Patron of Praise", "Diamond"], metal: "var(--medal-diamond)" },
+      { words: ["Highly Valued", "Gold"], metal: "var(--medal-gold)" },
+      { words: ["Connector", "Silver"], metal: "var(--medal-silver)" },
+      { words: ["Regular", "Bronze"], metal: "var(--medal-bronze)" },
+    ]);
+  });
+
+  it("lists only the medals the card has", () => {
+    const card = cardShowing(profileCardFixtures.twoMedals);
+    expect(medalsOn(card).map(({ words }) => words[0])).toEqual(["Highly Valued", "Regular"]);
+  });
+
+  it("shows no medal list and no line about medals while the opened Book's card has none", () => {
+    const card = cardShowing(profileCardFixtures.noMedals);
+    expect(within(card).queryByRole("list")).not.toBeInTheDocument();
+    expect(card).not.toHaveTextContent(/medal/i);
+  });
+
+  it.each([
+    ["the profile card hasn't shipped to the member", profileCardFixtures.notFound],
+    ["the card read failed", { kind: "broken" } as const],
+  ])("keeps the card as it was, with no medals, while %s", (_, answer) => {
+    const card = cardShowing(answer as MyProfileCard, shellFixtures.memberWaitingForTheBook);
+    expect(within(card).queryByRole("list")).not.toBeInTheDocument();
+    expect(card).not.toHaveTextContent(/medal/i);
+    expect(card).toHaveTextContent("Everyone can see this card. Your XP and the kudos you receive stay with you.");
+  });
+
+  it.each([
+    ["locked", shellFixtures.memberWaitingForTheBook],
+    ["ready", shellFixtures.memberWithTheBookReady],
+  ])("says teammates see any medals earned, shown here once the Book opens, while the Book is %s", (_, member) => {
+    const card = cardShowing(profileCardFixtures.noMedals, member);
+    expect(within(card).queryByRole("list")).not.toBeInTheDocument();
+    expect(card).toHaveTextContent(beforeTheBookOpens);
+  });
+
+  it.each([
+    ["the Book hasn't shipped", shellFixtures.memberWithNothingShipped],
+    ["unlocks don't apply", { ...everyPanelOpen, features: null }],
+  ])("says nothing about medals while %s", (_, member) => {
+    const card = cardShowing(profileCardFixtures.noMedals, member);
+    expect(card).not.toHaveTextContent(/medal/i);
+  });
+
+  it("asks for the card only on the home", async () => {
+    const read = vi.fn<ProfileCardRead>(fixedProfileCard(profileCardFixtures.bestFour));
+    window.history.replaceState(null, "", "/leaderboard");
+    renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leaderboardFixtures.midBoard), undefined, undefined, undefined, undefined, read);
+    expect(read).toHaveBeenCalled();
+    expect(read).not.toHaveBeenCalledWith(true);
   });
 });
 

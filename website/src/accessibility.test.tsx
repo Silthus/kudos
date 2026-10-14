@@ -5,8 +5,9 @@ import type { BoardAnswer, BoardRead } from "./boardRead";
 import type { QuestsShown } from "./questsRead";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
+import { fixedProfileCard, profileCardFixtures } from "./profileCardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
-import { shellFixtures, type MyBook, type MyLeaderboard, type MyQuests, type BuyAnswer, type MySkillTree, type OpenAnswer, type ShellState, type VisibilityReply } from "./shell";
+import { shellFixtures, type MyBook, type MyLeaderboard, type MyProfileCard, type MyQuests, type BuyAnswer, type MySkillTree, type OpenAnswer, type ShellState, type VisibilityReply } from "./shell";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
@@ -142,7 +143,7 @@ describe("WS24: every page passes axe in light and dark", () => {
   }
 });
 
-const railStates: { name: string; board: BoardAnswer | undefined; quests: QuestsShown | undefined; visitor?: ShellState }[] = [
+const railStates: { name: string; board: BoardAnswer | undefined; quests: QuestsShown | undefined; visitor?: ShellState; card?: MyProfileCard }[] = [
   { name: "open, mid-board, with a quest in each state", board: leaderboardFixtures.midBoard, quests: questsFixtures.week },
   { name: "open, tied, with an empty week", board: leaderboardFixtures.tiedBelowTheLead, quests: questsFixtures.noDraw },
   { name: "open, leading the board with teammates' Slack faces", board: leaderboardFixtures.withTeammatesFaces, quests: questsFixtures.twoQuests },
@@ -153,6 +154,8 @@ const railStates: { name: string; board: BoardAnswer | undefined; quests: Quests
   { name: "locked by the reads before getMyProfile catches up", board: { kind: "locked", level: 3 }, quests: { kind: "locked", level: 2 } },
   { name: "ready by the reads before getMyProfile catches up", board: { kind: "ready" }, quests: { kind: "ready" } },
   { name: "at level 7", board: leaderboardFixtures.viewerLeads, quests: questsFixtures.week, visitor: { ...shellFixtures.memberWithEveryPanelOpen, progression: shellFixtures.memberAtLevel7.progression } },
+  { name: "with the best four medals on the public card", board: leaderboardFixtures.midBoard, quests: questsFixtures.week, card: profileCardFixtures.bestFour },
+  { name: "before the Book opens, saying teammates see any medals", board: undefined, quests: undefined, visitor: shellFixtures.memberWaitingForTheBook, card: profileCardFixtures.noMedals },
 ];
 
 describe("WS111 WS112: every state of the home's rail passes axe in light and dark", () => {
@@ -161,7 +164,7 @@ describe("WS111 WS112: every state of the home's rail passes axe in light and da
       it(`the rail ${state.name} in ${dark ? "dark" : "light"}`, async () => {
         fakeSystemTheme(dark);
         window.history.replaceState(null, "", "/");
-        const { container } = renderApp(state.visitor ?? shellFixtures.memberWithEveryPanelOpen, (period) => (period && state.board), undefined, (asking) => (asking ? state.quests : undefined));
+        const { container } = renderApp(state.visitor ?? shellFixtures.memberWithEveryPanelOpen, (period) => (period && state.board), undefined, (asking) => (asking ? state.quests : undefined), undefined, undefined, fixedProfileCard(state.card ?? profileCardFixtures.notFound));
         expect(await violationsIn(container)).toEqual([]);
       });
     }

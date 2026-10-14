@@ -1,10 +1,9 @@
 import { IconCheck } from "@posthog/icons";
 import { Card, CardContent } from "@posthog/quill";
-import type { LadderCard, TierCard, TierId } from "../shell";
+import type { LadderCard, TierCard } from "../shell";
 import { LadderEmblem } from "./LadderEmblem";
-import { Medal } from "./Medal";
+import { Medal, tierWords } from "./Medal";
 
-const tierWords: Record<TierId, string> = { bronze: "Bronze", silver: "Silver", gold: "Gold", diamond: "Diamond" };
 
 type EarnedTier = TierCard & { earnedAt: number };
 
