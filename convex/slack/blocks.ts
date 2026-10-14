@@ -1,14 +1,28 @@
-import type { HomeAction, LinkAction } from "../feedback/home";
+import type { CommandAction, Confirmation, HomeAction, LinkAction } from "../feedback/home";
 import { encodeHomeAction } from "./interactivity";
 
 export function buttonOf(action: HomeAction) {
-  if ("url" in action) return linkButtonOf(action);
-  const encoded = encodeHomeAction(action.command);
-  return { type: "button", text: plainText(action.label), action_id: encoded, value: encoded };
+  return "url" in action ? linkButtonOf(action) : commandButtonOf(action);
+}
+
+function commandButtonOf({ label, command, accessibilityLabel, confirm }: CommandAction) {
+  const action = encodeHomeAction(command);
+  return {
+    type: "button",
+    text: plainText(label),
+    action_id: action,
+    value: action,
+    ...(accessibilityLabel !== undefined && { accessibility_label: accessibilityLabel }),
+    ...(confirm !== undefined && { confirm: confirmationOf(confirm) }),
+  };
 }
 
 function linkButtonOf({ label, url, accessibilityLabel, id }: LinkAction) {
   return { type: "button", text: plainText(label), url, action_id: `website-link:${id}`, accessibility_label: accessibilityLabel };
+}
+
+function confirmationOf({ title, text, confirm, deny }: Confirmation) {
+  return { title: plainText(title), text: plainText(text), confirm: plainText(confirm), deny: plainText(deny) };
 }
 
 export function mrkdwn(text: string) {

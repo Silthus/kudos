@@ -1,10 +1,12 @@
 import { v, type Infer } from "convex/values";
 import type {
+  AchievementEarnedEvent,
   AttemptFailedEvent,
   JourneyStepActivatedEvent,
   KudosGivenEvent,
   LevelReachedEvent,
   MemberWelcomedEvent,
+  PerkBoughtEvent,
   QuestFinishedEvent,
   QuestOpenedEvent,
   QuestsDrawnEvent,
@@ -41,6 +43,8 @@ export type ProductEvent = {
     | "quest finished"
     | "crate opened"
     | "journey step activated"
+    | "perk bought"
+    | "achievement earned"
     | "app home opened"
     | "command used"
     | "leaderboard viewed"
@@ -190,6 +194,14 @@ function questNamed({ quest, poolQuest }: QuestFinishedEvent | QuestOpenedEvent)
 
 export function projectJourneyStepActivated(event: JourneyStepActivatedEvent): ProductEvent {
   return { event: "journey step activated", subject: { member: event.member }, at: event.at, properties: { step: event.step } };
+}
+
+export function projectPerkBought(event: PerkBoughtEvent): ProductEvent {
+  return { event: "perk bought", subject: { member: event.member }, at: event.at, properties: { perk: event.perk } };
+}
+
+export function projectAchievementEarned(event: AchievementEarnedEvent): ProductEvent {
+  return { event: "achievement earned", subject: { member: event.member }, at: event.at, properties: { ladder: event.ladder, tier: event.tier } };
 }
 
 export function projectUsage(fact: UsageFact): ProductEvent {

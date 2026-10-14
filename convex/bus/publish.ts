@@ -37,8 +37,8 @@ export const subscribers: Registry = {
   questsDrawn: [internal.analytics.subscribers.recordQuestsDrawn],
   questSwapped: [internal.analytics.subscribers.recordQuestSwapped],
   journeyStepActivated: [internal.analytics.subscribers.recordJourneyStepActivated],
-  achievementEarned: [],
-  perkBought: [],
+  achievementEarned: [internal.analytics.subscribers.recordAchievementEarned],
+  perkBought: [internal.analytics.subscribers.recordPerkBought],
   memberLeft: [internal.quests.journey.recheckSomeoneNew],
   memberRejoined: [internal.quests.journey.recheckRejoined],
 };

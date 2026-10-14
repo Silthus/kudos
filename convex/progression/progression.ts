@@ -2,10 +2,14 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { kudosGivenEventValidator, membersNamedIn, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
+import { awardsOfMessage } from "../engine/awards";
+import type { DayKey } from "../engine/allowance";
+import type { Annotations, MessageRef } from "../engine/messageEvent";
+import { gateDecisionOf } from "./gate";
 import { catalogue } from "./catalogue";
 import type { Award, AwardWithId } from "../engine/awards";
 import { insertEffects, isRecorded, thoughtfulAwardsBefore } from "./effects";
-import { baseXpOf, noGiving, progress, rewarded, sideOf, standing, xpToNextLevel, type Giving, type MemberProgress, type Progressed, type Standing } from "./progress";
+import { baseXpOf, bonusPaidIn, effectsFor, noGiving, progress, rewarded, sideOf, standing, xpToNextLevel, type BonusLine, type Giving, type MemberProgress, type Progressed, type Standing } from "./progress";
 import { insertReward, rewardOf, type RewardRecord } from "./rewards";
 import { perksPayingIn } from "./skillTree";
 
@@ -23,11 +27,21 @@ export const recordEffects = internalMutation({
   },
 });
 
-async function givingOf(ctx: QueryCtx, { workspace, giver, day, awards }: KudosGivenEvent, member: MemberId): Promise<Giving> {
+type GivenBy = { workspace: string; giver: MemberId; day: DayKey; awards: AwardWithId[] };
+
+async function givingOf(ctx: QueryCtx, { workspace, giver, day, awards }: GivenBy, member: MemberId): Promise<Giving> {
   if (member !== giver || awards.length === 0) return noGiving;
   const perks = await perksPayingIn(ctx, workspace, giver);
   if (perks.length === 0) return noGiving;
   return { perks, earlier: await thoughtfulAwardsBefore(ctx, giver, day, awards[0]!.award) };
+}
+
+export async function giverBonusOf(ctx: QueryCtx, giver: MemberId, message: MessageRef, annotations: Annotations): Promise<BonusLine[]> {
+  const awards = await awardsOfMessage(ctx, message);
+  const day = awards[0]?.day;
+  if (day === undefined) return [];
+  const giving = await givingOf(ctx, { workspace: message.workspace, giver, day, awards }, giver);
+  return bonusPaidIn(effectsFor(giver, awards, { day, gate: gateDecisionOf(annotations) }, catalogue, giving));
 }
 
 export function giverXpOf(awards: Pick<Award, "kudos">[]): number {

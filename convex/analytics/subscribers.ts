@@ -1,10 +1,12 @@
 import { internalMutation } from "../_generated/server";
 import {
+  achievementEarnedEventValidator,
   attemptFailedEventValidator,
   journeyStepActivatedEventValidator,
   kudosGivenEventValidator,
   levelReachedEventValidator,
   memberWelcomedEventValidator,
+  perkBoughtEventValidator,
   questFinishedEventValidator,
   questOpenedEventValidator,
   questsDrawnEventValidator,
@@ -16,11 +18,13 @@ import {
 import { failuresLogged } from "./failures";
 import { record } from "./outbox";
 import {
+  projectAchievementEarned,
   projectAttemptFailed,
   projectJourneyStepActivated,
   projectKudosGiven,
   projectLevelReached,
   projectMemberWelcomed,
+  projectPerkBought,
   projectQuestFinished,
   projectQuestOpened,
   projectQuestsDrawn,
@@ -111,6 +115,20 @@ export const recordJourneyStepActivated = internalMutation({
   args: { event: journeyStepActivatedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectJourneyStepActivated(event)]));
+  },
+});
+
+export const recordPerkBought = internalMutation({
+  args: { event: perkBoughtEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectPerkBought(event)]));
+  },
+});
+
+export const recordAchievementEarned = internalMutation({
+  args: { event: achievementEarnedEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectAchievementEarned(event)]));
   },
 });
 
