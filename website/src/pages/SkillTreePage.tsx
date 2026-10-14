@@ -36,7 +36,7 @@ export function SkillTreePage({ tree, buyPerk }: SkillTreePageProps) {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
         <span className="hud-label">Skill tree</span>
-        <PageTitle tab="Skill tree">Perks</PageTitle>
+        <PageTitle tab="Skill tree" size="display">Perks</PageTitle>
         <p className="text-sm text-muted-foreground">{pointsToSpend(tree.skillPoints)}</p>
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
