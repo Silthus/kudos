@@ -101,6 +101,16 @@ describe("WS24: every page passes axe in light and dark", () => {
       expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
     });
 
+    it(`the board grown by Show 5 more above and below meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
+      fakeSystemTheme(dark);
+      window.history.replaceState(null, "", "/leaderboard");
+      const { user, container, getByRole } = renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leaderboardFixtures.longBoardViewerInTheMiddle));
+      await user.click(getByRole("button", { name: "Show 5 more above" }));
+      await user.click(getByRole("button", { name: "Show 5 more below" }));
+      getByRole("button", { name: "Show 3 more above" });
+      expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+    });
+
     it(`the skill tree's open perk drawer, portaled outside the landmarks, meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
       fakeSystemTheme(dark);
       window.history.replaceState(null, "", "/skills");
