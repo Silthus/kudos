@@ -76,6 +76,44 @@ describe("CO9 CO10: a member's balance equals their coin lines and reward coins 
     expect(await everythingStored(t)).toEqual(before);
   }, 30_000);
 
+  test.each([
+    ["a negative price", -5],
+    ["a fraction of a coin", 1.5],
+    ["NaN", Number.NaN],
+  ])("a spend of %s is refused before it writes anything", async (_, coins) => {
+    const t = await withDirectory();
+    const alice = await memberOf(t, "U_ALICE");
+    await t.run((ctx) => rewardOf(ctx, alice, "tier:generosity-bronze-coins", 10));
+    const before = await everythingStored(t);
+
+    await expect(spendOf(t, alice, coins)).rejects.toThrow("not a whole number of coins");
+
+    expect(await everythingStored(t)).toEqual(before);
+  }, 30_000);
+
+  test.each([
+    ["a negative reward", -1],
+    ["a fraction of a coin", 0.5],
+  ])("%s is refused with its record, so the balance never parts from the records", async (_, coins) => {
+    const t = await withDirectory();
+    const alice = await memberOf(t, "U_ALICE");
+    const before = await everythingStored(t);
+
+    await expect(t.run((ctx) => rewardOf(ctx, alice, "weekly:2026-10-12:0", coins))).rejects.toThrow("not a whole number of coins");
+
+    expect(await everythingStored(t)).toEqual(before);
+  }, 30_000);
+
+  test("a spend of 0 coins answers spent and writes nothing", async () => {
+    const t = await withDirectory();
+    const alice = await memberOf(t, "U_ALICE");
+    const before = await everythingStored(t);
+
+    expect(await spendOf(t, alice, 0)).toBe("spent");
+
+    expect(await everythingStored(t)).toEqual(before);
+  }, 30_000);
+
   test("a member who never earned a coin has a balance of 0", async () => {
     const t = await withDirectory();
 

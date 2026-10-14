@@ -76,18 +76,25 @@ describe("CO1 CO2 CO3: a kudos that says why records coins in the wallet, whatev
     expect(await t.run((ctx) => ctx.db.query("wallets").collect())).toEqual([]);
   }, 30_000);
 
-  test("CO5: an effects record written before coins existed stays as it was", async () => {
+  test("CO5: redelivering an award whose records were written before coins existed writes and credits nothing", async () => {
     const t = await workspaceWithFlagsOff();
+    const held = holdingKudosGiven();
+    await thank(t, "U_ALICE", "U_BOB", saysWhy, "2026-10-14T09:00:00Z");
+    const [kudosGiven] = held;
     const before = await t.run(async (ctx) => {
-      const alice = await memberOf(ctx, "U_ALICE");
-      const award = await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: "1760000000.000001", giver: alice, recipient: alice, kudos: 1, day: "2026-10-13", at: 0 });
-      const id = await ctx.db.insert("effectsRecords", { award, side: "giver", member: alice, day: "2026-10-13", baseXp: 10, gate: { version: 1, thoughtful: true }, catalogueVersion: "1" });
-      return (await ctx.db.get(id))!;
+      const award = kudosGiven!.awards[0]!.award;
+      const day = kudosGiven!.day;
+      const gate = { version: 1, thoughtful: true };
+      await ctx.db.insert("effectsRecords", { award, side: "giver", member: kudosGiven!.giver, day, baseXp: 10, gate, catalogueVersion: "1" });
+      await ctx.db.insert("effectsRecords", { award, side: "recipient", member: kudosGiven!.awards[0]!.recipient, day, baseXp: 5, gate, catalogueVersion: "1" });
+      return ctx.db.query("effectsRecords").collect();
     });
 
-    await thank(t, "U_ALICE", "U_BOB", saysWhy, "2026-10-14T09:00:00Z");
+    await t.mutation(internal.progression.progression.recordEffects, { event: kudosGiven! });
 
-    expect(await t.run((ctx) => ctx.db.get(before._id))).toEqual(before);
+    expect(await t.run((ctx) => ctx.db.query("effectsRecords").collect())).toEqual(before);
+    expect(await balances(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: 0, U_BOB: 0 });
+    expect(await t.run((ctx) => ctx.db.query("receivingGivers").collect())).toEqual([]);
   }, 30_000);
 });
 

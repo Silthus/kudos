@@ -53,6 +53,7 @@ test("P10: every earlier award gets one record per side with base XP only, and n
     U_BOB: { xp: 45, level: 2, skillPoints: 0 },
     U_CAROL: { xp: 5, level: 1, skillPoints: 0 },
   });
+  expect(await t.run((ctx) => ctx.db.query("wallets").collect())).toEqual([]);
   expect(vi.mocked(publish)).not.toHaveBeenCalled();
   expect(slack.calls).toEqual([]);
 });
@@ -110,9 +111,10 @@ describe("P8: an award given around the backfill is counted once", () => {
 
     const live = (await effectsRecords(t)).filter(({ gate }) => gate !== null);
     expect(live).toEqual([
-      { member: "U_ALICE", side: "giver", baseXp: 10, gate: { version: 1, thoughtful: true }, catalogueVersion: "2", day: "2026-10-13" },
-      { member: "U_BOB", side: "recipient", baseXp: 5, gate: { version: 1, thoughtful: true }, catalogueVersion: "2", day: "2026-10-13" },
+      { member: "U_ALICE", side: "giver", baseXp: 10, gate: { version: 1, thoughtful: true }, catalogueVersion: "2", day: "2026-10-13", coins: [{ source: "giving", coins: 4 }] },
+      { member: "U_BOB", side: "recipient", baseXp: 5, gate: { version: 1, thoughtful: true }, catalogueVersion: "2", day: "2026-10-13", coins: [{ source: "receiving", coins: 2 }] },
     ]);
+    expect((await effectsRecords(t)).filter(({ gate }) => gate === null).flatMap(({ coins }) => coins ?? [])).toEqual([]);
     expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 605, level: 5, skillPoints: 1 }, U_BOB: { xp: 1195, level: 6, skillPoints: 2 } });
     expect(publishedEvents("levelReached").map(({ level }) => level)).toEqual([5]);
   });
@@ -199,13 +201,14 @@ async function effectsRecords(t: Backend) {
   return t.run(async (ctx) => {
     const records = await ctx.db.query("effectsRecords").collect();
     const readable = await Promise.all(
-      records.map(async ({ member, side, baseXp, gate, catalogueVersion, day }) => ({
+      records.map(async ({ member, side, baseXp, gate, catalogueVersion, day, coins }) => ({
         member: (await ctx.db.get(member))?.user,
         side,
         baseXp,
         gate,
         catalogueVersion,
         day,
+        coins,
       })),
     );
     return readable.sort((a, b) => `${a.member}${a.side}${a.baseXp}`.localeCompare(`${b.member}${b.side}${b.baseXp}`));
