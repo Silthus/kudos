@@ -1,7 +1,7 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { reportLeaderboardViewed } from "../analytics/isolatedUsage";
+import { reportLeaderboardViewed, reportLeaderboardVisibilityChanged } from "../analytics/isolatedUsage";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
@@ -47,7 +47,8 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       await leaderboardViewedInAppHome(ctx, workspace, member, command.period);
       return;
     case "setLeaderboardVisibility":
-      if (await isEveryoneBoardShownTo(ctx, workspace, member)) await setLeaderboardVisibility(ctx, member, command.visible);
+      if (!(await isEveryoneBoardShownTo(ctx, workspace, member))) return;
+      if (await setLeaderboardVisibility(ctx, member, command.visible)) await reportLeaderboardVisibilityChanged(ctx, { workspace, member, visible: command.visible, at: Date.now() });
       return;
     case "setProgressSettings": {
       const { type: _, ...changes } = command;

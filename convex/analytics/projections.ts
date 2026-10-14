@@ -40,6 +40,8 @@ export type ProductEvent = {
     | "app home opened"
     | "command used"
     | "leaderboard viewed"
+    | "leaderboard left"
+    | "leaderboard joined"
     | "$feature_flag_called";
   subject: { member: MemberId };
   at: number;
@@ -49,7 +51,8 @@ export type ProductEvent = {
 export type UsageFact =
   | { kind: "appHomeOpened"; workspace: string; member: MemberId; at: number }
   | { kind: "commandUsed"; workspace: string; member: MemberId; alias: boolean; result: KudosCommandResult; at: number }
-  | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: "everyone"; period: Period; surface: LeaderboardSurface; at: number };
+  | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: "everyone"; period: Period; surface: LeaderboardSurface; at: number }
+  | { kind: "leaderboardVisibilityChanged"; workspace: string; member: MemberId; visible: boolean; at: number };
 
 export type LeaderboardSurface = "app-home" | "command";
 
@@ -186,5 +189,7 @@ export function projectUsage(fact: UsageFact): ProductEvent {
       return { event: "command used", subject, at: fact.at, properties: { command: "hedgehug", alias: fact.alias, result: commandResultNames[fact.result] } };
     case "leaderboardViewed":
       return { event: "leaderboard viewed", subject, at: fact.at, properties: { board: fact.board, period: fact.period, surface: surfaceNames[fact.surface] } };
+    case "leaderboardVisibilityChanged":
+      return { event: fact.visible ? "leaderboard joined" : "leaderboard left", subject, at: fact.at, properties: {} };
   }
 }

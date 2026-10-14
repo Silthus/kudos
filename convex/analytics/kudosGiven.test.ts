@@ -214,6 +214,10 @@ describe("O10: never sent", () => {
     leaderboardCommand.set("text", "leaderboard month");
     await t.fetch("/slack/commands", await signedRequest(leaderboardCommand.toString(), form));
     await settle(t);
+    for (const label of ["Settings", "Off", "On"]) {
+      await t.fetch("/slack/interactivity", await signedRequest(blockActions(people.giver, buttonInHome(slack, people.giver, label), { team }), form));
+      await settle(t);
+    }
 
     const bodies = postHog.requests.map((request) => request.body).join("\n");
     expect(new Set(postHog.events().map((event) => event.event))).toEqual(
@@ -231,6 +235,8 @@ describe("O10: never sent", () => {
         "app home opened",
         "command used",
         "leaderboard viewed",
+        "leaderboard left",
+        "leaderboard joined",
         "$feature_flag_called",
       ]),
     );

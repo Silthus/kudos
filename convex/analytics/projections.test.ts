@@ -276,3 +276,12 @@ describe("E2: leaderboard viewed", () => {
     });
   });
 });
+
+describe("E2: leaderboard left and leaderboard joined", () => {
+  test.each([
+    [false, "leaderboard left"],
+    [true, "leaderboard joined"],
+  ] as const)("a setting changed to visible %s is %s, with no properties of its own", (visible, event) => {
+    expect(projectUsage({ kind: "leaderboardVisibilityChanged", workspace: "T1", member: bob, visible, at })).toEqual({ event, subject: { member: bob }, at, properties: {} });
+  });
+});

@@ -26,3 +26,23 @@ export const recordLeaderboardViewed = internalMutation({
     await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "leaderboardViewed", ...view }));
   },
 });
+
+const leaderboardVisibilityChangeValidator = v.object({
+  workspace: v.string(),
+  member: v.id("members"),
+  visible: v.boolean(),
+  at: v.number(),
+});
+
+export type LeaderboardVisibilityChange = Infer<typeof leaderboardVisibilityChangeValidator>;
+
+export async function reportLeaderboardVisibilityChanged(ctx: MutationCtx, change: LeaderboardVisibilityChange) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordLeaderboardVisibilityChanged, change);
+}
+
+export const recordLeaderboardVisibilityChanged = internalMutation({
+  args: leaderboardVisibilityChangeValidator,
+  handler: async (ctx, change): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "leaderboardVisibilityChanged", ...change }));
+  },
+});
