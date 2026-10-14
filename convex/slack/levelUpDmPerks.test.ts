@@ -122,7 +122,7 @@ describe("P19 P94: the level-up DM's Buy asks before it spends, and the DM names
   });
 });
 
-describe("each perk's Buy in Slack links to the Skill tree page while the website is open", { timeout: 30_000 }, () => {
+describe("each perk's purchase button in Slack links to the skill tree's page while the website is open", { timeout: 30_000 }, () => {
   test("reaching level 6 offers each perk with a Buy that links to /skills, names the perk and the page for screen readers, and asks nothing", async () => {
     const t = await skillTreeOpenedAtLevelFive("U_ALICE");
     await websiteOpened(t);
