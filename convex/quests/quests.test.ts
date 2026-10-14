@@ -50,7 +50,7 @@ describe("P8 P87: a Journey step's reward is recorded once", () => {
 
     expect(await t.run((ctx) => standingOf(ctx, alice))).toEqual({ xp: 20, level: 2, skillPoints: 0 });
     expect(published("levelReached").map(({ member, level }) => ({ member, level }))).toEqual([{ member: alice, level: 2 }]);
-    expect(published("questFinished")).toEqual([{ type: "questFinished", workspace: "T1", member: alice, quest: { kind: "journey", step: "first-thanks" }, at: event.at }]);
+    expect(published("questFinished")).toEqual([{ type: "questFinished", workspace: "T1", member: alice, quest: { kind: "journey", step: "first-thanks" }, reward: { xp: 10, coins: 0 }, at: event.at }]);
     expect(await journeyOf(t, alice)).toEqual([
       { step: "first-thanks", activatedAt: event.at, reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "1", finishedAt: event.at, openedAt: null },
     ]);

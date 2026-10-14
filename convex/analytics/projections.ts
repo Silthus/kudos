@@ -1,5 +1,5 @@
 import { v, type Infer } from "convex/values";
-import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent } from "../bus/events";
+import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent, QuestFinishedEvent } from "../bus/events";
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
 import { gateDecisionOf } from "../progression/gate";
@@ -17,6 +17,7 @@ export type ProductEvent = {
     | "attempt failed"
     | "member welcomed"
     | "level reached"
+    | "quest finished"
     | "app home opened"
     | "command used"
     | "$feature_flag_called";
@@ -100,6 +101,16 @@ export function projectLevelReached(event: LevelReachedEvent): ProductEvent {
     subject: { member: event.member },
     at: event.at,
     properties: { level: event.level, skill_points_gained: event.skillPointsGained, via: event.message === undefined ? "reward" : "kudos" },
+  };
+}
+
+export function projectQuestFinished(event: QuestFinishedEvent): ProductEvent {
+  const quest = event.quest.kind === "journey" ? event.quest.step : event.poolQuest;
+  return {
+    event: "quest finished",
+    subject: { member: event.member },
+    at: event.at,
+    properties: { kind: event.quest.kind, ...(quest === undefined ? {} : { quest }), ...(event.reward === undefined ? {} : { xp: event.reward.xp, coins: event.reward.coins }) },
   };
 }
 
