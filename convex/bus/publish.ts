@@ -29,7 +29,7 @@ export const subscribers: Registry = {
     { subscriber: internal.quests.journey.finishFirstQuest, only: ({ quest }) => quest.kind === "weekly" },
     internal.analytics.subscribers.recordQuestFinished,
   ],
-  questOpened: [],
+  questOpened: [internal.analytics.subscribers.recordQuestOpened],
   memberLeft: [internal.quests.journey.recheckSomeoneNew],
   memberRejoined: [internal.quests.journey.recheckRejoined],
 };

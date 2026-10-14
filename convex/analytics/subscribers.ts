@@ -1,8 +1,8 @@
 import { internalMutation } from "../_generated/server";
-import { attemptFailedEventValidator, kudosGivenEventValidator, levelReachedEventValidator, memberWelcomedEventValidator, questFinishedEventValidator } from "../bus/events";
+import { attemptFailedEventValidator, kudosGivenEventValidator, levelReachedEventValidator, memberWelcomedEventValidator, questFinishedEventValidator, questOpenedEventValidator } from "../bus/events";
 import { failuresLogged } from "./failures";
 import { record } from "./outbox";
-import { projectAttemptFailed, projectKudosGiven, projectLevelReached, projectMemberWelcomed, projectQuestFinished } from "./projections";
+import { projectAttemptFailed, projectKudosGiven, projectLevelReached, projectMemberWelcomed, projectQuestFinished, projectQuestOpened } from "./projections";
 
 export const recordKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
@@ -36,6 +36,13 @@ export const recordQuestFinished = internalMutation({
   args: { event: questFinishedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectQuestFinished(event)]));
+  },
+});
+
+export const recordQuestOpened = internalMutation({
+  args: { event: questOpenedEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectQuestOpened(event)]));
   },
 });
 

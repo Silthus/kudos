@@ -4,6 +4,7 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsFromPostHog, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
+import { blockActions, buttonIn, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, slashCommand, text } from "../../testing/slackMessages";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -205,16 +206,20 @@ describe("O10: never sent", () => {
       }),
     );
     await settle(t);
+    const firstThanksDm = slack.callsTo("chat.postMessage").find(({ channel, text }) => channel === people.giver && String(text).startsWith("✅ You finished a Journey step"));
+    const openFirstThanks = blockActions(people.giver, buttonIn(firstThanksDm!.blocks as Block[], "Open"), { team, inMessage: { channel: people.giver, ts: "1760349700.828282" } });
+    await t.fetch("/slack/interactivity", await signedRequest(openFirstThanks, { contentType: "application/x-www-form-urlencoded" }));
+    await settle(t);
 
     const bodies = postHog.requests.map((request) => request.body).join("\n");
     expect(new Set(postHog.events().map((event) => event.event))).toEqual(
-      new Set(["kudos given", "kudos received", "member welcomed", "level reached", "quest finished", "attempt failed", "app home opened", "command used", "$feature_flag_called"]),
+      new Set(["kudos given", "kudos received", "member welcomed", "level reached", "quest finished", "crate opened", "attempt failed", "app home opened", "command used", "$feature_flag_called"]),
     );
     const stored = await everythingStored(t);
     const forbidden = [
       "Marmalade", "Zephyrine", "Barnaby", "Flintlock", "quokka", "zephy", "barns", "Quokkason",
       "artichokeparty", "Pacific/Chatham", "America/St_Johns", "Chatham", "St_Johns",
-      team, channel, people.giver, people.recipient, "1760349600", "424242", "515151", "626262", "737373", "Ev",
+      team, channel, people.giver, people.recipient, "1760349600", "424242", "515151", "626262", "737373", "828282", "Ev",
       "overflow", "herself", "hooks.slack.com", "ann", "acme", "1.2.3",
       ...stored.map((row) => row._id),
     ];

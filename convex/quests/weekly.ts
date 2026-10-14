@@ -130,6 +130,12 @@ export async function rerollQuest(ctx: MutationCtx, member: MemberId, { week, sl
   return "swapped";
 }
 
+export async function poolQuestOf(ctx: QueryCtx, member: MemberId, { week, slot }: WeeklyQuest): Promise<QuestId | null> {
+  const draw = await drawOf(ctx, member, week);
+  if (draw === null) return null;
+  return slotsOf(draw, await swapOf(ctx, member, week)).find((drawn) => drawn.slot === slot)?.quest ?? null;
+}
+
 async function replacementFor(ctx: QueryCtx, { member, week, slots }: Draw, at: number): Promise<FeasibleQuest | null> {
   const drawn = (candidate: FeasibleQuest) => slots.some(({ quest }) => quest === candidate.quest.quest);
   return rankedFeasible(member, week, await drawFactsOf(ctx, member, at)).find((candidate) => !drawn(candidate)) ?? null;

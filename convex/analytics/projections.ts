@@ -1,5 +1,5 @@
 import { v, type Infer } from "convex/values";
-import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent, QuestFinishedEvent } from "../bus/events";
+import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent, QuestFinishedEvent, QuestOpenedEvent } from "../bus/events";
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
 import { gateDecisionOf } from "../progression/gate";
@@ -18,6 +18,7 @@ export type ProductEvent = {
     | "member welcomed"
     | "level reached"
     | "quest finished"
+    | "crate opened"
     | "app home opened"
     | "command used"
     | "$feature_flag_called";
@@ -105,13 +106,21 @@ export function projectLevelReached(event: LevelReachedEvent): ProductEvent {
 }
 
 export function projectQuestFinished(event: QuestFinishedEvent): ProductEvent {
-  const quest = event.quest.kind === "journey" ? event.quest.step : event.poolQuest;
   return {
     event: "quest finished",
     subject: { member: event.member },
     at: event.at,
-    properties: { kind: event.quest.kind, ...(quest === undefined ? {} : { quest }), ...(event.reward === undefined ? {} : { xp: event.reward.xp, coins: event.reward.coins }) },
+    properties: { ...questNamed(event), ...(event.reward === undefined ? {} : { xp: event.reward.xp, coins: event.reward.coins }) },
   };
+}
+
+export function projectQuestOpened(event: QuestOpenedEvent): ProductEvent {
+  return { event: "crate opened", subject: { member: event.member }, at: event.at, properties: questNamed(event) };
+}
+
+function questNamed({ quest, poolQuest }: QuestFinishedEvent | QuestOpenedEvent) {
+  const id = quest.kind === "journey" ? quest.step : poolQuest;
+  return { kind: quest.kind, ...(id === undefined ? {} : { quest: id }) };
 }
 
 export function projectUsage(fact: UsageFact): ProductEvent {
