@@ -105,6 +105,7 @@ import type * as quests_step from "../quests/step.js";
 import type * as quests_week from "../quests/week.js";
 import type * as quests_weekly from "../quests/weekly.js";
 import type * as slack_appHome from "../slack/appHome.js";
+import type * as slack_backfill from "../slack/backfill.js";
 import type * as slack_blocks from "../slack/blocks.js";
 import type * as slack_commands from "../slack/commands.js";
 import type * as slack_delivery from "../slack/delivery.js";
@@ -263,6 +264,7 @@ declare const fullApi: ApiFromModules<{
   "quests/week": typeof quests_week;
   "quests/weekly": typeof quests_weekly;
   "slack/appHome": typeof slack_appHome;
+  "slack/backfill": typeof slack_backfill;
   "slack/blocks": typeof slack_blocks;
   "slack/commands": typeof slack_commands;
   "slack/delivery": typeof slack_delivery;

@@ -1,4 +1,4 @@
-import type { Mention, MessageContent, MessageDeleted, MessageEvent, Visibility } from "../engine/messageEvent";
+import type { FetchedMessage, Mention, MessageContent, MessageDeleted, MessageEvent, MessageRef, Visibility } from "../engine/messageEvent";
 import { isText, segmentsOf, type RichElement, type RichTextMessage } from "./richText";
 
 type ChatMessage = RichTextMessage & {
@@ -85,6 +85,25 @@ function messageEventFrom({ kind, workspace, channel, visibility, message, revis
     content: countableContent(message),
     words: { segments: segmentsOf(message), visibility },
   };
+}
+
+export type Fetched = { kind: "found"; message: FetchedMessage } | { kind: "deleted" } | { kind: "unreadable" };
+
+export function fetchedMessageOf(ref: MessageRef, messages: unknown): Fetched {
+  if (!Array.isArray(messages)) return { kind: "unreadable" };
+  const message: unknown = messages.find((listed: unknown) => isChatMessage(listed) && listed.ts === ref.message);
+  if (!isChatMessage(message) || message.subtype === "tombstone") return { kind: "deleted" };
+  if (!countedSubtypes.has(message.subtype) || !isPostedByAPerson(message)) return { kind: "unreadable" };
+  const editedTs = message.edited?.ts;
+  const edited = isText(editedTs);
+  return {
+    kind: "found",
+    message: { ref, author: message.user, revision: revisionOf(edited ? editedTs : message.ts), edited, content: countableContent(message), segments: segmentsOf(message) },
+  };
+}
+
+function isChatMessage(value: unknown): value is ChatMessage {
+  return typeof value === "object" && value !== null && isText((value as ChatMessage).ts);
 }
 
 export function mayAffectKudos(event: MessageEvent | MessageDeleted | null): event is MessageEvent | MessageDeleted {

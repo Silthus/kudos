@@ -6,7 +6,7 @@ import { memberLeftEventValidator, type MemberLeftEvent } from "../bus/events";
 import { withholdingWords } from "../analytics/exceptions";
 import { gateDecisionOf, gateDecisionValidator } from "../progression/gate";
 import { chatUserOf, lookup } from "../workspace/directory";
-import { messageRefValidator, visibilityValidator, wordSegmentValidator, type Annotations, type MessageEvent, type MessageRef } from "./messageEvent";
+import { messageRefValidator, visibilityValidator, wordSegmentValidator, type Annotations, type FetchedMessage, type MessageEvent, type MessageRef } from "./messageEvent";
 
 export const forgetPageSize = 10;
 
@@ -20,7 +20,7 @@ export const kudosTextValidator = v.union(
     author: v.string(),
     edited: v.boolean(),
     segments: v.array(wordSegmentValidator),
-    visibility: visibilityValidator,
+    visibility: v.union(visibilityValidator, v.literal("unknown")),
     gate: v.union(gateDecisionValidator, v.null()),
   }),
   v.object({ ...key, kind: v.literal("tombstone"), why: v.union(v.literal("deleted"), v.literal("no-longer-kudos"), v.literal("removed")) }),
@@ -49,6 +49,21 @@ export async function keepWords(ctx: MutationCtx, event: MessageEvent, annotatio
   });
 }
 
+export async function keepFetchedWords(ctx: MutationCtx, fetched: FetchedMessage, annotations: Annotations) {
+  if ((await kudosTextRow(ctx, fetched.ref)) !== null) return false;
+  await ctx.db.insert("kudosTexts", {
+    ...fetched.ref,
+    kind: "words",
+    revision: fetched.revision,
+    author: fetched.author,
+    edited: fetched.edited,
+    segments: fetched.segments,
+    visibility: "unknown",
+    gate: gateDecisionOf(annotations),
+  });
+  return true;
+}
+
 export async function forgetWords(ctx: MutationCtx, ref: MessageRef) {
   const row = await kudosTextRow(ctx, ref);
   if (row?.kind === "words") await ctx.db.replace(row._id, { ...ref, kind: "tombstone", why: "no-longer-kudos" });
@@ -62,6 +77,10 @@ export async function removeWords(ctx: MutationCtx, ref: MessageRef) {
 export async function forgetDeleted(ctx: MutationCtx, ref: MessageRef) {
   const row = await kudosTextRow(ctx, ref);
   await write(ctx, row, { ...ref, kind: "tombstone", why: "deleted" });
+}
+
+export async function hasKudosText(ctx: QueryCtx, ref: MessageRef) {
+  return (await kudosTextRow(ctx, ref)) !== null;
 }
 
 export async function wordsOf(ctx: QueryCtx, ref: MessageRef): Promise<KudosText> {

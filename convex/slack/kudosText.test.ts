@@ -3,13 +3,13 @@ import { FakePostHog, postHogHost, projectToken, routedFetch } from "../../testi
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { deleteMessage, deleteThreadParent, edit, everythingStored, kudosReceived, memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { broadcast, channel, codeBlock, emoji, link, list, mention, messageEvent, quote, section, text, unicodeEmoji, userGroup } from "../../testing/slackMessages";
-import { ReportableError } from "../analytics/exceptions";
+import { broadcast, channel, channelMessage, codeBlock, emoji, link, list, mention, messageEvent, quote, section, text, unicodeEmoji, userGroup } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
+import { ReportableError } from "../analytics/exceptions";
 import { forgetPageSize, wordsOf } from "../engine/kudosText";
 import type { WordSegment } from "../engine/messageEvent";
 
-const forced = vi.hoisted(() => ({ failure: false, adapterFailure: false, purgeFailure: false }));
+const forced = vi.hoisted(() => ({ failure: false, adapterFailure: false, purgeFailure: false, hydrateFailure: false, beforeCapture: false }));
 
 vi.mock("./richText", async (importOriginal) => {
   const original = await importOriginal<typeof import("./richText")>();
@@ -40,7 +40,12 @@ vi.mock("../engine/kudosText", async (importOriginal) => {
     ...original,
     keepWords: async (...args: Parameters<typeof original.keepWords>) => {
       if (forced.failure) throw new ReportableError(`could not keep ${textOf(args[1].words?.segments ?? [])}`);
+      if (forced.beforeCapture) return;
       return original.keepWords(...args);
+    },
+    keepFetchedWords: async (...args: Parameters<typeof original.keepFetchedWords>) => {
+      if (forced.hydrateFailure) throw new ReportableError(`could not hydrate ${textOf(args[1].segments)}`);
+      return original.keepFetchedWords(...args);
     },
   };
 });
@@ -65,6 +70,8 @@ beforeEach(() => {
 afterEach(() => {
   forced.failure = false;
   forced.adapterFailure = false;
+  forced.hydrateFailure = false;
+  forced.beforeCapture = false;
   forced.purgeFailure = false;
   vi.useRealTimers();
   vi.unstubAllEnvs();
@@ -533,6 +540,7 @@ describe("AT40: only kudos messages' text is stored", () => {
         return post(testBackendOnce(), thanksBob);
       },
     ],
+      ["thrown in hydrate, as a reportable error", () => backfillFailingInHydrate(testBackendOnce())],
     ])("%s leaves no words in the outbox, a captured exception, the console or the rethrown error", async (_, fail) => {
       const failure = await fail().then(
         () => null,
@@ -563,6 +571,7 @@ describe("AT40: only kudos messages' text is stored", () => {
         return post(testBackendOnce(), thanksBob);
       },
     ],
+      ["thrown in hydrate, as a reportable error", () => backfillFailingInHydrate(testBackendOnce())],
     ])("%s, with native error reporting on, is rethrown without the words", async (_, fail) => {
       vi.stubEnv("POSTHOG_NATIVE_ERRORS", "on");
 
@@ -602,6 +611,16 @@ describe("AT40: only kudos messages' text is stored", () => {
     function testBackendOnce() {
       backend = testBackend();
       return backend;
+    }
+
+    async function backfillFailingInHydrate(t: Backend) {
+      forced.beforeCapture = true;
+      await post(t, thanksBob, { ts: postedTs });
+      await settle(t);
+      forced.beforeCapture = false;
+      slack.withMessage("C1", channelMessage(thanksBob, { ts: postedTs }));
+      forced.hydrateFailure = true;
+      return t.action(internal.slack.backfill.backfillWords, {});
     }
 
     async function exceptionsRecorded() {
