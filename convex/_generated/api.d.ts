@@ -8,6 +8,15 @@
  * @module
  */
 
+import type * as achievements_achievements from "../achievements/achievements.js";
+import type * as achievements_achievementsFlag from "../achievements/achievementsFlag.js";
+import type * as achievements_counting from "../achievements/counting.js";
+import type * as achievements_flag from "../achievements/flag.js";
+import type * as achievements_ladders from "../achievements/ladders.js";
+import type * as achievements_measures from "../achievements/measures.js";
+import type * as achievements_oldFriends from "../achievements/oldFriends.js";
+import type * as achievements_replay from "../achievements/replay.js";
+import type * as achievements_tiers from "../achievements/tiers.js";
 import type * as analytics_boundary from "../analytics/boundary.js";
 import type * as analytics_capture from "../analytics/capture.js";
 import type * as analytics_drain from "../analytics/drain.js";
@@ -43,6 +52,8 @@ import type * as feedback_naming from "../feedback/naming.js";
 import type * as feedback_notify from "../feedback/notify.js";
 import type * as feedback_publicReplies from "../feedback/publicReplies.js";
 import type * as feedback_replies from "../feedback/replies.js";
+import type * as feedback_segments from "../feedback/segments.js";
+import type * as feedback_tierNotices from "../feedback/tierNotices.js";
 import type * as feedback_unlockFilter from "../feedback/unlockFilter.js";
 import type * as feedback_welcome from "../feedback/welcome.js";
 import type * as http from "../http.js";
@@ -60,10 +71,15 @@ import type * as progression_catalogue from "../progression/catalogue.js";
 import type * as progression_effects from "../progression/effects.js";
 import type * as progression_gate from "../progression/gate.js";
 import type * as progression_levels from "../progression/levels.js";
+import type * as progression_perks from "../progression/perks.js";
 import type * as progression_progress from "../progression/progress.js";
 import type * as progression_progression from "../progression/progression.js";
+import type * as progression_purchases from "../progression/purchases.js";
 import type * as progression_rewards from "../progression/rewards.js";
 import type * as progression_settings from "../progression/settings.js";
+import type * as progression_skillTree from "../progression/skillTree.js";
+import type * as progression_skillTreeFlag from "../progression/skillTreeFlag.js";
+import type * as progression_tree from "../progression/tree.js";
 import type * as progression_xpLevels from "../progression/xpLevels.js";
 import type * as quests_crates from "../quests/crates.js";
 import type * as quests_finish from "../quests/finish.js";
@@ -133,6 +149,15 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "achievements/achievements": typeof achievements_achievements;
+  "achievements/achievementsFlag": typeof achievements_achievementsFlag;
+  "achievements/counting": typeof achievements_counting;
+  "achievements/flag": typeof achievements_flag;
+  "achievements/ladders": typeof achievements_ladders;
+  "achievements/measures": typeof achievements_measures;
+  "achievements/oldFriends": typeof achievements_oldFriends;
+  "achievements/replay": typeof achievements_replay;
+  "achievements/tiers": typeof achievements_tiers;
   "analytics/boundary": typeof analytics_boundary;
   "analytics/capture": typeof analytics_capture;
   "analytics/drain": typeof analytics_drain;
@@ -168,6 +193,8 @@ declare const fullApi: ApiFromModules<{
   "feedback/notify": typeof feedback_notify;
   "feedback/publicReplies": typeof feedback_publicReplies;
   "feedback/replies": typeof feedback_replies;
+  "feedback/segments": typeof feedback_segments;
+  "feedback/tierNotices": typeof feedback_tierNotices;
   "feedback/unlockFilter": typeof feedback_unlockFilter;
   "feedback/welcome": typeof feedback_welcome;
   http: typeof http;
@@ -185,10 +212,15 @@ declare const fullApi: ApiFromModules<{
   "progression/effects": typeof progression_effects;
   "progression/gate": typeof progression_gate;
   "progression/levels": typeof progression_levels;
+  "progression/perks": typeof progression_perks;
   "progression/progress": typeof progression_progress;
   "progression/progression": typeof progression_progression;
+  "progression/purchases": typeof progression_purchases;
   "progression/rewards": typeof progression_rewards;
   "progression/settings": typeof progression_settings;
+  "progression/skillTree": typeof progression_skillTree;
+  "progression/skillTreeFlag": typeof progression_skillTreeFlag;
+  "progression/tree": typeof progression_tree;
   "progression/xpLevels": typeof progression_xpLevels;
   "quests/crates": typeof quests_crates;
   "quests/finish": typeof quests_finish;

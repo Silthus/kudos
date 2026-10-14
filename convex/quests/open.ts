@@ -3,7 +3,7 @@ import { publish } from "../bus/publish";
 import { rewardOf } from "../progression/rewards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf } from "./crates";
-import { questsLiveIn } from "./flag";
+import { journeyStepAppliesIn, questsLiveIn } from "./flag";
 import { crateOpened } from "./pendingCrates";
 import type { Quest } from "./step";
 import { poolQuestOf } from "./weekly";
@@ -11,6 +11,7 @@ import { poolQuestOf } from "./weekly";
 export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: Quest): Promise<"done" | "refused"> {
   const { workspace } = await chatUserOf(ctx, member);
   if (!(await questsLiveIn(ctx, workspace))) return "refused";
+  if (quest.kind === "journey" && !(await journeyStepAppliesIn(ctx, workspace, quest.step))) return "refused";
   const key = rewardKeyOf(quest);
   if ((await rewardOf(ctx, member, key)) === null) return "refused";
   if ((await crateOpeningOf(ctx, member, key)) !== null) return "done";

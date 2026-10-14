@@ -3,19 +3,17 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { Award } from "../engine/awards";
-import { mentionValidator, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
+import { type Annotations, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
+import { couldEarnMoreBySayingWhy } from "../progression/perks";
 import { giverXpOf } from "../progression/progression";
+import { skillTreeAppliesIn } from "../progression/skillTree";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { questsApplyIn, questsExposedTo } from "../quests/flag";
 import { journeyGoalOf } from "../quests/journeyCopy";
 import { journeyStepValidator } from "../quests/step";
 import { lookup, type MemberId } from "../workspace/directory";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
-
-export const segmentValidator = v.union(v.object({ text: v.string() }), v.object({ mention: mentionValidator }), v.object({ link: v.object({ url: v.string(), label: v.string() }) }));
-
-export type Segment = Infer<typeof segmentValidator>;
-export type Line = Segment[];
+import type { Line, Segment } from "./segments";
 
 export const questDoneValidator = v.union(
   v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number() }),
@@ -36,24 +34,28 @@ export type OverAllowance = { cost: number; recipients: number; perRecipient: nu
 export type Invalid = { skipped: SkippedMention[] };
 
 export type Reply =
-  | { kind: "given"; outcome: Given; base: number }
+  | { kind: "given"; outcome: Given; base: number; annotations: Annotations }
   | { kind: "over-allowance"; outcome: OverAllowance; base: number }
   | { kind: "invalid"; outcome: Invalid }
   | { kind: "accepted-message-edited" };
 
 export const questsWaitMs = 10_000;
 
+const hintLine: Line = [{ text: "Add why they earned it to earn more." }];
+
 export async function replyPrivately(ctx: MutationCtx, ref: MessageRef, threadRoot: string | undefined, to: ChatUserId, reply: Reply) {
   const giver = await lookup(ctx, ref.workspace, to);
   const member = giver?.kind === "member" ? giver.member : undefined;
   const gains = reply.kind === "given" ? await gainsWritten(ctx, member, reply.outcome) : undefined;
   const waitsForQuests = reply.kind === "given" && member !== undefined && (await questsExposedTo(ctx, member));
+  const asksWhy = reply.kind === "given" && member !== undefined && (await couldEarnMoreBySayingWhy(ctx, member, reply.annotations));
   const id = await ctx.db.insert("privateReplies", {
     ...ref,
     ...(threadRoot && { threadRoot }),
     to,
     lines: renderReply(reply),
     ...(gains && { gains }),
+    ...(asksWhy && { hint: hintLine }),
     ...(waitsForQuests && { held: true as const }),
   });
   if (waitsForQuests) await ctx.scheduler.runAfter(questsWaitMs, internal.feedback.replies.releaseUnreleased, { reply: id });
@@ -83,8 +85,9 @@ export const privateReply = internalQuery({
   handler: async (ctx, { reply }) => {
     const row = await ctx.db.get(reply);
     if (row === null) return null;
-    const { gains, questsDone: _, ...stored } = row;
-    const extrasLine = gains === undefined ? null : extrasLineOf(await gainsShownIn(ctx, row.workspace, gains), await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
+    const { gains, hint, questsDone: _, ...stored } = row;
+    const hintShown = hint !== undefined && (await skillTreeAppliesIn(ctx, row.workspace)) ? hint : null;
+    const extrasLine = gains === undefined ? null : extrasLineOf(await gainsShownIn(ctx, row.workspace, gains), hintShown, await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
     return { ...stored, lines: extrasLine === null ? row.lines : [...row.lines, extrasLine] };
   },
 });
@@ -112,8 +115,8 @@ async function gainsShownIn(ctx: QueryCtx, workspace: string, { xp, questsDone =
   };
 }
 
-function extrasLineOf({ xp, questsDone }: Required<Gains>, link: DeepLink | null): Line | null {
-  const parts: Line[] = [...(xp > 0 ? [[{ text: `+${xp} XP` }]] : []), ...questsDoneParts(questsDone), ...(link === null ? [] : [[{ link }]])];
+function extrasLineOf({ xp, questsDone }: Required<Gains>, hint: Line | null, link: DeepLink | null): Line | null {
+  const parts: Line[] = [...(xp > 0 ? [[{ text: `+${xp} XP` }]] : []), ...questsDoneParts(questsDone), ...(hint === null ? [] : [hint]), ...(link === null ? [] : [[{ link }]])];
   return parts.length === 0 ? null : parts.flatMap((part, index) => (index === 0 ? part : [{ text: " · " }, ...part]));
 }
 

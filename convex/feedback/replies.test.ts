@@ -1,10 +1,11 @@
 import { describe, expect, test } from "vitest";
 import type { Mention } from "../engine/messageEvent";
-import { renderReply, type Line, type Segment, type SkippedMention } from "./replies";
+import { renderReply, type SkippedMention } from "./replies";
+import type { Line, Segment } from "./segments";
 
 describe("R36 R37: the copy", () => {
   test("Given names three recipients as A, B and C", () => {
-    const lines = renderReply({ kind: "given", outcome: { recipients: ["U_BOB", "U_CAROL", "U_DAN"], perRecipient: 2, left: 0, skipped: [], awards: [{ kudos: 2 }, { kudos: 2 }, { kudos: 2 }] }, base: 10 });
+    const lines = renderReply({ kind: "given", outcome: { recipients: ["U_BOB", "U_CAROL", "U_DAN"], perRecipient: 2, left: 0, skipped: [], awards: [{ kudos: 2 }, { kudos: 2 }, { kudos: 2 }] }, base: 10, annotations: {} });
 
     expect(plain(lines)).toEqual(["@U_BOB, @U_CAROL and @U_DAN got 2 kudos from you. That was your last kudos for today, and you'll have 10 more at midnight."]);
   });

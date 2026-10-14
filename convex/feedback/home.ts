@@ -1,7 +1,12 @@
+import type { LadderFacts } from "../achievements/achievements";
+import { countsOf, ladderOf, tierOf, type TierId, type TierRef } from "../achievements/ladders";
 import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
+import type { MemberPerks } from "../progression/perks";
+import type { PurchaseOutcome, Refusal } from "../progression/purchases";
+import { perkOf, type Perk } from "../progression/tree";
 import type { ProgressSettings } from "../progression/settings";
 import type { JourneyStepFacts } from "../quests/journey";
 import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
@@ -9,13 +14,14 @@ import { questOf } from "../quests/pool";
 import type { UnopenedCrate, WeeklyQuests, WeeklySlot } from "../quests/weekly";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { Feature } from "../unlocks/feature";
-import type { ScheduledFeature } from "../unlocks/schedule";
+import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { renderEveryoneBoard } from "./leaderboard";
 import { openTheWebsite, productName, skillPointsOf, slashCommand } from "./naming";
-import type { Line } from "./replies";
+import type { Line } from "./segments";
+import { unopenedTextOf } from "./unlockFilter";
 
 export type HomeView = { tabBar?: Choice[]; title: string; groups: HomeLine[][] };
 
@@ -36,7 +42,9 @@ export type HomeLine =
 
 type MemberHome = Extract<HomeFacts, { kind: "member" }>;
 
-const tabLabels: Record<HomeTab, string> = { profile: "Profile", leaderboard: "Leaderboard", settings: "Settings", admin: "Admin" };
+const tabLabels: Record<HomeTab, string> = { profile: "Profile", leaderboard: "Leaderboard", book: "Book", skillTree: "Skill tree", settings: "Settings", admin: "Admin" };
+
+const medals: Record<TierId, string> = { bronze: "🥉", silver: "🥈", gold: "🥇", diamond: "💎" };
 
 const periods: Array<{ period: Period; label: string }> = [
   { period: "week", label: "This week" },
@@ -81,10 +89,14 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
       return profileOf(facts, shown);
     case "leaderboard":
       return { title: "Leaderboard", groups: [[periodChoices(shown.period), { kind: "lines", lines: renderEveryoneBoard(shown.board, shown.period) }]] };
+    case "book":
+      return { title: "Book", groups: bookGroups(shown) };
+    case "skillTree":
+      return { title: "Skill tree", groups: skillTreeGroups(shown.perks) };
     case "settings":
       return { title: "Settings", groups: settingsGroups(shown) };
     case "admin":
-      return { title: "Admin", groups: adminGroups(shown.announcementChannel) };
+      return { title: "Admin", groups: adminGroups(shown) };
   }
 }
 
@@ -143,9 +155,86 @@ function periodChoices(selected: Period): HomeLine {
   return { kind: "choices", choices: periods.map(({ period, label }) => ({ label, command: { type: "showLeaderboard", period }, selected: period === selected })) };
 }
 
-function settingsGroups({ onTheBoards, progress }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
+function bookGroups({ book, timeZone }: Extract<ShownTab, { tab: "book" }>): HomeLine[][] {
+  return book.ladders.map((facts) => ladderLines(facts, timeZone));
+}
+
+function ladderLines({ ladder, name, count, tiers, next }: LadderFacts, timeZone: string | undefined): HomeLine[] {
+  const earnedLines = tiers.flatMap(({ tier, name: tierName, earnedAt }): HomeLine[] =>
+    earnedAt === null ? [] : [{ kind: "text", text: `${medals[tier]} ${bold(tierName)} · earned ${dateOf(earnedAt, timeZone)}` }],
+  );
+  const nextTier = tiers.find(({ tier }) => tier === next);
+  const nextLine: HomeLine[] = nextTier === undefined ? [] : [{ kind: "hint", text: `Next: ${bold(nextTier.name)} at ${nextTier.count} ${countsOf(ladder, nextTier.count)}.` }];
+  return [{ kind: "text", text: `${bold(name)} · ${bold(count)} ${countsOf(ladder, count)}` }, ...earnedLines, ...nextLine];
+}
+
+export function tiersEarnedLines(tiers: TierRef[]): string[] {
+  const earned = tiers.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).`);
+  const ladders = [...new Set(tiers.map(({ ladder }) => ladder))];
+  return [...earned, ...ladders.flatMap((ladder) => nextTierLine(ladder, tiers.filter((ref) => ref.ladder === ladder)))];
+}
+
+function nextTierLine(ladder: TierRef["ladder"], told: TierRef[]): string[] {
+  const { tiers } = ladderOf(ladder);
+  const highest = Math.max(...told.map(({ tier }) => tiers.findIndex((entry) => entry.tier === tier)));
+  const next = tiers[highest + 1];
+  return next === undefined ? [] : [`Next: ${next.name} at ${next.count} ${countsOf(ladder, next.count)}.`];
+}
+
+function dateOf(at: number, timeZone: string | undefined) {
+  return new Intl.DateTimeFormat("en-US", { timeZone: timeZone ?? "UTC", month: "short", day: "numeric", year: "numeric" }).format(at);
+}
+
+function skillTreeGroups({ skillPoints, perks }: MemberPerks): HomeLine[][] {
+  const condition: HomeLine = { kind: "hint", text: "Bonuses count when your message has 5 or more words besides mentions and emoji." };
+  return [[{ kind: "text", text: `You have ${bold(skillPointsOf(skillPoints))} to spend.` }], [...perks.flatMap(perkLines), condition]];
+}
+
+function perkLines(perk: TreePerk): HomeLine[] {
+  const { name, copy, state } = perk;
+  if (state === "owned") return [{ kind: "text", text: `✅ ${bold(name)} · Owned\n${copy}` }];
+  if (state === "buyable") return [{ kind: "action", ...perkOfferOf(perk) }];
+  return [{ kind: "text", text: perkTextOf(perk) }, { kind: "hint", text: whyNotOf({ ...perk, state }) }];
+}
+
+export function perkOfferOf(perk: Perk): { text: string; action: HomeAction } {
+  return { text: perkTextOf(perk), action: { label: "Buy", command: { type: "buyPerk", perk: perk.perk } } };
+}
+
+function perkTextOf({ name, skillPoints, copy }: Perk) {
+  return `${bold(name)} · ${skillPointsOf(skillPoints)}\n${copy}`;
+}
+
+export function purchaseReplyOf(outcome: PurchaseOutcome) {
+  const perk = perkOf(outcome.perk);
+  return outcome.kind === "bought" ? `You bought ${perk.name}.` : `I couldn't buy ${perk.name}. ${whyNotOf({ ...perk, state: outcome.reason })}`;
+}
+
+type TreePerk = MemberPerks["perks"][number];
+
+export function whyNotOf({ state, row, requires, skillPoints }: Perk & { state: Refusal }) {
+  switch (state) {
+    case "tree-locked":
+      return unopenedTextOf(scheduled("skillTree"), "locked");
+    case "tree-ready":
+      return unopenedTextOf(scheduled("skillTree"), "ready");
+    case "owned":
+      return "You own it.";
+    case "retired":
+      return "It's no longer sold.";
+    case "below-row":
+      return `It opens at level ${row}.`;
+    case "needs-prerequisite":
+      return `You need ${perkOf(requires!).name} first.`;
+    case "no-skill-points":
+      return `You need ${skillPointsOf(skillPoints)}.`;
+  }
+}
+
+function settingsGroups({ onTheBoards, progress, achievements }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
   const leaderboard = onTheBoards === null ? [] : [leaderboardSwitch(onTheBoards)];
-  const progression = progress === null ? [] : [[setting(progress, "muteNotices"), setting(progress, "dms")]];
+  const copy = settingCopyOf(achievements);
+  const progression = progress === null ? [] : [[setting(copy, progress, "muteNotices"), setting(copy, progress, "dms")]];
   return [...leaderboard, ...progression];
 }
 
@@ -165,20 +254,26 @@ function leaderboardSwitch(onTheBoards: boolean): HomeLine[] {
 
 type SettingCopy = Record<"whenOn" | "whenOff", { text: string; label: string }>;
 
-const settingCopy: Record<keyof ProgressSettings, SettingCopy> = {
-  muteNotices: {
-    whenOn: { text: "I don't post public notices about you.", label: "Unmute notices" },
-    whenOff: { text: "I celebrate your level ups in public.", label: "Mute notices" },
-  },
-  dms: {
-    whenOn: { text: "I send you a DM when you reach a level.", label: "Turn off DMs" },
-    whenOff: { text: "I don't send you DMs.", label: "Turn on DMs" },
-  },
-};
+function settingCopyOf(achievements: boolean): Record<keyof ProgressSettings, SettingCopy> {
+  return {
+    muteNotices: {
+      whenOn: { text: "I don't post public notices about you.", label: "Unmute notices" },
+      whenOff: { text: `I celebrate your ${celebrated(achievements)} in public.`, label: "Mute notices" },
+    },
+    dms: {
+      whenOn: { text: achievements ? "I send you a DM when you reach a level or earn an achievement." : "I send you a DM when you reach a level.", label: "Turn off DMs" },
+      whenOff: { text: "I don't send you DMs.", label: "Turn on DMs" },
+    },
+  };
+}
 
-function setting(settings: ProgressSettings, key: keyof ProgressSettings): HomeLine {
+function celebrated(achievements: boolean) {
+  return achievements ? "level ups and achievements" : "level ups";
+}
+
+function setting(copy: Record<keyof ProgressSettings, SettingCopy>, settings: ProgressSettings, key: keyof ProgressSettings): HomeLine {
   const on = settings[key];
-  const { text, label } = settingCopy[key][on ? "whenOn" : "whenOff"];
+  const { text, label } = copy[key][on ? "whenOn" : "whenOff"];
   return { kind: "action", text, action: { label, command: { type: "setProgressSettings", ...changeOf(key, !on) } } };
 }
 
@@ -186,19 +281,20 @@ function changeOf(key: keyof ProgressSettings, value: boolean): Partial<Progress
   return { [key]: value };
 }
 
-function adminGroups(announcementChannel: string | null): HomeLine[][] {
-  const channelLines = announcementChannel === null ? threadLines() : announcementChannelLines(announcementChannel);
+function adminGroups({ announcementChannel, achievements }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
+  const what = celebrated(achievements);
+  const channelLines = announcementChannel === null ? threadLines(what) : announcementChannelLines(what, announcementChannel);
   return [channelLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
 }
 
-function threadLines(): HomeLine[] {
-  const text = "I celebrate level ups in a thread under each kudos message. Pick a channel to post them there instead.";
+function threadLines(what: string): HomeLine[] {
+  const text = `I celebrate ${what} in a thread under each kudos message. Pick a channel to post them there instead.`;
   return [{ kind: "pick-channel", text, picked: null, picks: "setAnnouncementChannel" }];
 }
 
-function announcementChannelLines(channel: string): HomeLine[] {
+function announcementChannelLines(what: string, channel: string): HomeLine[] {
   return [
-    { kind: "pick-channel", text: "I celebrate level ups in this channel.", picked: channel, picks: "setAnnouncementChannel" },
+    { kind: "pick-channel", text: `I celebrate ${what} in this channel.`, picked: channel, picks: "setAnnouncementChannel" },
     {
       kind: "action",
       text: "Or celebrate them in a thread under each kudos message again.",
@@ -213,10 +309,11 @@ function allowanceOf({ left, base }: KudosHome): HomeLine {
   return { kind: "text", text };
 }
 
-function progressOf({ level, xpToNextLevel, skillPoints }: ToldProgression): HomeLine[] {
+function progressOf({ level, xpToNextLevel, skillPoints, skillTreeTab }: ToldProgression): HomeLine[] {
   const levelFigures: HomeLine = { kind: "fields", fields: [figure("Level", level), figure(`XP to level ${level + 1}`, xpToNextLevel)] };
   if (skillPoints === null || level < skillTreeLevel) return [levelFigures];
-  return [levelFigures, { kind: "text", text: `You have ${bold(skillPointsOf(skillPoints))} saved for the skill tree.` }];
+  const spentWhere = skillTreeTab ? `to spend in the ${bold("Skill tree")} tab` : "saved for the skill tree";
+  return [levelFigures, { kind: "text", text: `You have ${bold(skillPointsOf(skillPoints))} ${spentWhere}.` }];
 }
 
 function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {

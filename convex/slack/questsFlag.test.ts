@@ -217,7 +217,7 @@ describe("O36: quests exposure", () => {
     const { alice } = await membersInserted(t);
     const ref = { workspace: "T1", conversation: "C1", message: "1760349600.000100" };
 
-    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [], awards: [{ kudos: 1 }] }, base: 10 }));
+    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [], awards: [{ kudos: 1 }] }, base: 10, annotations: {} }));
 
     expect(await exposedIn(t)).toEqual([{ member: alice, flag: quests, value: false }]);
   });

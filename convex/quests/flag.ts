@@ -1,12 +1,18 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { achievementsApplyIn } from "../achievements/flag";
 import { exposed, flag } from "../analytics/flags";
 import { unlockPathShownIn } from "../unlocks/launch";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { questsFlag } from "./questsFlag";
+import type { JourneyStep } from "./step";
 
 export async function questsApplyIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<boolean> {
   return (await flag(ctx, questsFlag, { workspace })) && (await unlockPathShownIn(ctx, workspace));
+}
+
+export async function journeyStepAppliesIn(ctx: QueryCtx | MutationCtx, workspace: string, step: JourneyStep): Promise<boolean> {
+  return step !== "two-days" || (await achievementsApplyIn(ctx, workspace));
 }
 
 export async function questsShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
