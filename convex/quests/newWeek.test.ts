@@ -139,6 +139,24 @@ describe("P80: a new week is drawn from the facts at its start, whenever the dra
     expect(await drawOfWeek(onDemand.t, onDemand.alice, thisWeek)).toEqual(drawnBySweep);
   });
 
+  test.each([
+    ["at 00:00:00", 0],
+    ["at 00:00:30", 30_000],
+  ])("a first thanks to each teammate %s, the sweep at 00:10 and that kudos drawing on demand draw the same quests with the same facts", async (_, afterStart) => {
+    const drawn: Array<{ drawnAt: number; slots: unknown }> = [];
+    for (const onDemand of [false, true]) {
+      const { t, alice, bob, carol } = await workspace();
+      await openQuests(t, [alice], tuesday);
+      if (!onDemand) await sweepAt(t, mondayInAuckland + 10 * minuteMs);
+      const events = [await given(t, alice, bob, mondayInAuckland + afterStart), await given(t, alice, carol, mondayInAuckland + afterStart)];
+      vi.setSystemTime(mondayInAuckland + 10 * minuteMs);
+      for (const event of events) await t.mutation(internal.quests.weekly.advanceWeeklyQuests, { event });
+      drawn.push(await drawOfWeek(t, alice, thisWeek));
+    }
+    expect(drawn[0]!.slots).toEqual(expect.arrayContaining([expect.objectContaining({ quest: expect.stringMatching(/^(someone-new|two-new|not-in-30-days)$/) })]));
+    expect(drawn[1]).toEqual(drawn[0]);
+  });
+
   test("a member with 1 kudos a day whose week is first drawn by their only kudos on Sunday still gets 3 quests, and that kudos counts", async () => {
     const { t, alice, carol } = await workspace();
     await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", baseAllowance: 1 }));

@@ -201,15 +201,24 @@ function weeklyQuest(week: WeekKey, { slot }: Slot): WeeklyQuest {
 }
 
 export async function drawFactsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<DrawFacts> {
+  const facts = await factsWithTheDayUnspent(ctx, member, at, at);
+  const kudosLeftToday = await allowanceLeft(ctx, member, allowanceDay(at, await timeZoneOf(ctx, member)), facts.dailyAllowance);
+  return { ...facts, kudosLeftToday };
+}
+
+function factsAtTheStartOf(ctx: QueryCtx, member: MemberId, weekStart: number): Promise<DrawFacts> {
+  return factsWithTheDayUnspent(ctx, member, weekStart, weekStart - 1);
+}
+
+async function factsWithTheDayUnspent(ctx: QueryCtx, member: MemberId, at: number, thankedUpTo: number): Promise<DrawFacts> {
   const { workspace } = await chatUserOf(ctx, member);
-  const timeZone = await timeZoneOf(ctx, member);
   const { baseAllowance } = await settingsOf(ctx, workspace);
   const teammates = await teammatesOf(ctx, workspace, member);
-  const lastThanked = await lastThankedBy(ctx, member, at);
+  const lastThanked = await lastThankedBy(ctx, member, thankedUpTo);
   const left = (to: Recipient) => teammates.filter((teammate) => isRecipient(to, lastThanked.get(teammate) ?? null, at)).length;
   return {
-    daysLeft: daysLeftInWeek(at, timeZone),
-    kudosLeftToday: await allowanceLeft(ctx, member, allowanceDay(at, timeZone), baseAllowance),
+    daysLeft: daysLeftInWeek(at, await timeZoneOf(ctx, member)),
+    kudosLeftToday: baseAllowance,
     dailyAllowance: baseAllowance,
     peopleLeft: { anyone: left("anyone"), "someone-new": left("someone-new"), "someone-not-thanked-in-30-days": left("someone-not-thanked-in-30-days") },
   };
@@ -230,11 +239,6 @@ async function drawFor(ctx: MutationCtx, member: MemberId, at: number, factsOf =
   if (slots.length === 0) return "nothing to draw";
   await ctx.db.insert("questDraws", { member, week, drawnAt: at, slots });
   return "drawn";
-}
-
-async function factsAtTheStartOf(ctx: QueryCtx, member: MemberId, weekStart: number): Promise<DrawFacts> {
-  const facts = await drawFactsOf(ctx, member, weekStart);
-  return { ...facts, kudosLeftToday: facts.dailyAllowance };
 }
 
 function drawFrom(member: MemberId, week: WeekKey, facts: DrawFacts): Slot[] {
