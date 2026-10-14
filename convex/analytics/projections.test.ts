@@ -1,8 +1,35 @@
 import { describe, expect, test } from "vitest";
 import { awardId, kudosGivenEvent } from "../../testing/busEvents";
-import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent, QuestFinishedEvent, QuestOpenedEvent } from "../bus/events";
+import type {
+  AttemptFailedEvent,
+  JourneyStepActivatedEvent,
+  KudosGivenEvent,
+  LevelReachedEvent,
+  QuestFinishedEvent,
+  QuestOpenedEvent,
+  QuestsDrawnEvent,
+  QuestSwappedEvent,
+  UnlockOpenedEvent,
+  UnlockReadyEvent,
+  UnlocksLaunchedEvent,
+} from "../bus/events";
+import type { Feature } from "../unlocks/feature";
 import type { MemberId } from "../workspace/directory";
-import { projectAttemptFailed, projectKudosGiven, projectLevelReached, projectMemberWelcomed, projectQuestFinished, projectQuestOpened, projectUsage } from "./projections";
+import {
+  projectAttemptFailed,
+  projectJourneyStepActivated,
+  projectKudosGiven,
+  projectLevelReached,
+  projectMemberWelcomed,
+  projectQuestFinished,
+  projectQuestOpened,
+  projectQuestsDrawn,
+  projectQuestSwapped,
+  projectUnlockOpened,
+  projectUnlockReady,
+  projectUnlocksLaunched,
+  projectUsage,
+} from "./projections";
 
 const alice = "alice" as MemberId;
 const bob = "bob" as MemberId;
@@ -128,6 +155,80 @@ describe("E1: level reached", () => {
   });
 });
 
+describe("E1: unlock made ready and unlock opened", () => {
+  const featureNames: Array<[Feature, string]> = [
+    ["quests", "quests"],
+    ["leaderboard", "leaderboard"],
+    ["book", "book"],
+    ["skillTree", "skill tree"],
+    ["coins", "coins"],
+    ["hedgehogs", "hedgehogs"],
+  ];
+
+  test.each(featureNames)("%s made ready is unlock made ready with feature %s, on the member at the fact's time", (feature, name) => {
+    const ready: UnlockReadyEvent = { type: "unlockReady", workspace: "T1", member: bob, feature, at };
+
+    expect(projectUnlockReady(ready)).toEqual({ event: "unlock made ready", subject: { member: bob }, at, properties: { feature: name } });
+  });
+
+  test.each(featureNames)("%s opened by a member's Open is unlock opened with feature %s, by member", (feature, name) => {
+    const opened: UnlockOpenedEvent = { type: "unlockOpened", workspace: "T1", member: bob, feature, at };
+
+    expect(projectUnlockOpened(opened)).toEqual({ event: "unlock opened", subject: { member: bob }, at, properties: { feature: name, by: "member" } });
+  });
+
+  test("P77: an opening the launch stored is by launch", () => {
+    expect(projectUnlockOpened({ type: "unlockOpened", workspace: "T1", member: bob, feature: "skillTree", at, byLaunch: true }).properties).toEqual({ feature: "skill tree", by: "launch" });
+  });
+
+  test("P77: the launch's openings are one unlock opened by launch each, on its member at the launch's moment", () => {
+    const launched: UnlocksLaunchedEvent = {
+      type: "unlocksLaunched",
+      workspace: "T1",
+      at,
+      openings: [
+        { member: alice, feature: "quests" },
+        { member: alice, feature: "leaderboard" },
+        { member: bob, feature: "quests" },
+      ],
+    };
+
+    expect(projectUnlocksLaunched(launched)).toEqual([
+      { event: "unlock opened", subject: { member: alice }, at, properties: { feature: "quests", by: "launch" } },
+      { event: "unlock opened", subject: { member: alice }, at, properties: { feature: "leaderboard", by: "launch" } },
+      { event: "unlock opened", subject: { member: bob }, at, properties: { feature: "quests", by: "launch" } },
+    ]);
+  });
+});
+
+describe("E1: quest drawn and quest swapped", () => {
+  const drawn: QuestsDrawnEvent = { type: "questsDrawn", workspace: "T1", member: bob, week: "2026-10-12", quests: ["say-why", "say-why-three-times", "say-why-two-days"], at };
+
+  test("a draw projects one quest drawn per quest, naming only its pool ID, on the member at the draw's time", () => {
+    expect(projectQuestsDrawn(drawn)).toEqual(
+      ["say-why", "say-why-three-times", "say-why-two-days"].map((quest) => ({ event: "quest drawn", subject: { member: bob }, at, properties: { quest } })),
+    );
+  });
+
+  test("a draw of fewer quests projects fewer", () => {
+    expect(projectQuestsDrawn({ ...drawn, quests: ["say-why"] }).map(({ properties }) => properties)).toEqual([{ quest: "say-why" }]);
+  });
+
+  test("a swap projects quest swapped with the replaced quest and the swapped-in quest as quest", () => {
+    const swapped: QuestSwappedEvent = { type: "questSwapped", workspace: "T1", member: bob, week: "2026-10-12", replaced: "say-why-twice", swappedIn: "say-why-two-days", at };
+
+    expect(projectQuestSwapped(swapped)).toEqual({ event: "quest swapped", subject: { member: bob }, at, properties: { replaced: "say-why-twice", quest: "say-why-two-days" } });
+  });
+});
+
+describe("E1: journey step activated", () => {
+  test.each<JourneyStepActivatedEvent["step"]>(["first-thanks", "first-quest", "someone-new"])("activating %s lists only its step, on the member at the activation's time", (step) => {
+    const activated: JourneyStepActivatedEvent = { type: "journeyStepActivated", workspace: "T1", member: bob, step, at };
+
+    expect(projectJourneyStepActivated(activated)).toEqual({ event: "journey step activated", subject: { member: bob }, at, properties: { step } });
+  });
+});
+
 describe("E1 E5: quest finished", () => {
   const weekly = { kind: "weekly", week: "2026-10-12", slot: 1 } as const;
   const firstThanks = { kind: "journey", step: "first-thanks" } as const;
@@ -172,6 +273,21 @@ describe("O3: usage facts", () => {
       subject: { member: bob },
       at,
       properties: { command: "hedgehug", alias, result: name },
+    });
+  });
+});
+
+describe("E2: leaderboard viewed", () => {
+  test.each([
+    ["week", "app-home", "app home"],
+    ["month", "app-home", "app home"],
+    ["all", "command", "command"],
+  ] as const)("a view of the Everyone board for %s from %s lists exactly its board, period and surface", (period, surface, surfaceName) => {
+    expect(projectUsage({ kind: "leaderboardViewed", workspace: "T1", member: bob, board: "everyone", period, surface, at })).toEqual({
+      event: "leaderboard viewed",
+      subject: { member: bob },
+      at,
+      properties: { board: "everyone", period, surface: surfaceName },
     });
   });
 });

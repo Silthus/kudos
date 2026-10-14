@@ -1,9 +1,10 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
+import { reportLeaderboardViewed } from "../analytics/isolatedUsage";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
-import { periodValidator } from "../leaderboard/periods";
+import { periodValidator, type Period } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import { setProgressSettings } from "../progression/settings";
 import { openQuestCrate } from "../quests/open";
@@ -12,6 +13,7 @@ import { rerollQuest } from "../quests/weekly";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { featureValidator } from "../unlocks/feature";
 import { openUnlock } from "../unlocks/unlocks";
+import type { MemberId } from "../workspace/directory";
 import { setAnnouncementChannel } from "../workspace/settings";
 
 export const commandValidator = v.union(
@@ -34,10 +36,15 @@ export function commandOf(candidate: unknown): Command | null {
 export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command) {
   const { member } = person;
   switch (command.type) {
-    case "showHomeTab":
-      return showHomeTab(ctx, workspace, person, command.tab);
+    case "showHomeTab": {
+      const selection = await showHomeTab(ctx, workspace, person, command.tab);
+      if (selection?.tab === "leaderboard") await leaderboardViewedInAppHome(ctx, workspace, member, selection.period);
+      return;
+    }
     case "showLeaderboard":
-      if (await isLeaderboardShownTo(ctx, workspace, member)) await selectLeaderboardPeriod(ctx, member, command.period);
+      if (!(await isLeaderboardShownTo(ctx, workspace, member))) return;
+      await selectLeaderboardPeriod(ctx, member, command.period);
+      await leaderboardViewedInAppHome(ctx, workspace, member, command.period);
       return;
     case "setLeaderboardVisibility":
       if (await isEveryoneBoardShownTo(ctx, workspace, member)) await setLeaderboardVisibility(ctx, member, command.visible);
@@ -60,6 +67,10 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       await rerollQuest(ctx, member, command.quest);
       return;
   }
+}
+
+function leaderboardViewedInAppHome(ctx: MutationCtx, workspace: string, member: MemberId, period: Period) {
+  return reportLeaderboardViewed(ctx, { workspace, member, board: "everyone", period, surface: "app-home", at: Date.now() });
 }
 
 function conforms(validator: GenericValidator, value: unknown): boolean {

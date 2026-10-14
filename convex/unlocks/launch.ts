@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { exposed, flag, type Flag } from "../analytics/flags";
+import type { UnlocksLaunchedEvent } from "../bus/events";
+import { publish } from "../bus/publish";
 import { xpLevels, xpLevelsShownTo } from "../progression/xpLevels";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
 import { shippedIn } from "./schedule";
@@ -44,10 +46,14 @@ async function launch(ctx: MutationCtx, workspace: string) {
     .query("members")
     .withIndex("by_user", (q) => q.eq("workspace", workspace))
     .collect();
+  const openings: UnlocksLaunchedEvent["openings"] = [];
   for (const { _id: member, kind } of existing) {
     if (kind !== "member") continue;
-    for (const { feature } of shipped) await keepOpen(ctx, { workspace, member, at, byLaunch: true }, feature);
+    for (const { feature } of shipped) {
+      if (await keepOpen(ctx, { workspace, member, at, byLaunch: true }, feature)) openings.push({ member, feature });
+    }
   }
+  if (openings.length > 0) await publish(ctx, { type: "unlocksLaunched", workspace, openings, at });
 }
 
 function launchIn(ctx: QueryCtx, workspace: string) {

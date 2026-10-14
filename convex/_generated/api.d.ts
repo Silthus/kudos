@@ -14,6 +14,7 @@ import type * as analytics_drain from "../analytics/drain.js";
 import type * as analytics_exceptions from "../analytics/exceptions.js";
 import type * as analytics_failures from "../analytics/failures.js";
 import type * as analytics_flags from "../analytics/flags.js";
+import type * as analytics_isolatedUsage from "../analytics/isolatedUsage.js";
 import type * as analytics_outbox from "../analytics/outbox.js";
 import type * as analytics_projections from "../analytics/projections.js";
 import type * as analytics_subscribers from "../analytics/subscribers.js";
@@ -129,6 +130,7 @@ declare const fullApi: ApiFromModules<{
   "analytics/exceptions": typeof analytics_exceptions;
   "analytics/failures": typeof analytics_failures;
   "analytics/flags": typeof analytics_flags;
+  "analytics/isolatedUsage": typeof analytics_isolatedUsage;
   "analytics/outbox": typeof analytics_outbox;
   "analytics/projections": typeof analytics_projections;
   "analytics/subscribers": typeof analytics_subscribers;
