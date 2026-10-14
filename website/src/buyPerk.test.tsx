@@ -267,7 +267,7 @@ describe("WS87: a refused purchase changes nothing and says why", () => {
     const { user, showTree } = buyWith(async () => ({ kind: "refused", reason: null }));
     await user.click(buyButton());
     showTree(skillTreeFixtures.ready, shellFixtures.memberWithTheSkillTreeReady);
-    expect(within(main()).getByRole("heading", { name: "Unlocks: Skill tree" })).toBeInTheDocument();
+    expect(within(main()).getByRole("heading", { level: 1, name: "Skill tree is ready" })).toBeInTheDocument();
   });
 });
 

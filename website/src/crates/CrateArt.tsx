@@ -28,7 +28,7 @@ export function CrateArt({ phase, width, Hog, nudge = false, seen }: CrateArtPro
         <rect x="22" y="98" width="196" height="88" rx="12" className="crate-outline" />
       </svg>
       <svg viewBox="0 0 240 200" className="crate-layer crate-lid">
-        <path d="M16 104V74c0-24 18-40 42-40h124c24 0 42 16 42 40v30Z" className="crate-body" />
+        <path d="M16 104V74c0-24 18-40 42-40h124c24 0 42 16 42 40v30Z" className="crate-body crate-lid-edge" />
         <path d="M16 88h208" className="crate-plank" />
         <path d="M40 104V50c0-6 4-12 10-14h10v68Z" className="crate-strap" />
         <path d="M200 104V50c0-6-4-12-10-14h-10v68Z" className="crate-strap" />

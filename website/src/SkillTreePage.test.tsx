@@ -252,11 +252,11 @@ describe("WS80: /skills follows its read", () => {
     expect(pageTitle()).toHaveTextContent("Page not found");
   });
 
-  it("says Max's Skill tree opens at level 5. with Back to your profile while locked, and lists it locked in the nav", () => {
+  it("shows the locked page, Unlocks at level 5, with Back to your profile while locked, and lists it locked in the nav", () => {
     showTree(skillTreeFixtures.locked, shellFixtures.memberWithTheBoardOpened);
     expect(pageTitle()).toHaveTextContent("Skill tree");
     expect(document.title).toBe("HedgeHug · Skill tree");
-    expect(main()).toHaveTextContent("Skill tree opens at level 5.");
+    expect(pageTitle()).toHaveTextContent("Unlocks at level 5");
     expect(within(main()).getByRole("link", { name: "Back to your profile" })).toHaveAttribute("href", "/");
     expect(within(main()).queryByRole("button")).toBeNull();
     expect(screenNav()).toContain("Skill tree, locked. Unlocks at level 5");
@@ -265,7 +265,7 @@ describe("WS80: /skills follows its read", () => {
   it("shows its crate in place with a primary Open while ready, and opens it through openFeature", async () => {
     const openFeature = vi.fn(async (): Promise<CommandAnswer> => ({ kind: "opened" }));
     const { user } = renderApp(shellFixtures.memberWithTheSkillTreeReady, undefined, { openFeature }, undefined, undefined, fixedSkillTree(skillTreeFixtures.ready));
-    const crate = within(main()).getByRole("heading", { name: "Unlocks: Skill tree" }).closest("article")!;
+    const crate = within(main()).getByRole("heading", { level: 1, name: "Skill tree is ready" }).closest("section")!;
     const open = within(crate).getByRole("button", { name: "Open" });
     expect(open).toHaveClass("quill-button--variant-primary");
     expect(screenNav()).toContain("Skill tree: unlock ready. Open its crate");

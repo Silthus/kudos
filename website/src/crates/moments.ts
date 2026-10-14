@@ -21,6 +21,7 @@ export type Moments = {
   open(crate: ReadyCrate): void;
   claim(crate: ReadyCrate): void;
   reveal: Reveal | undefined;
+  waitsToReveal(crate: ReadyCrate): boolean;
   flight: Flight | undefined;
   chart(rewards: Reward[]): void;
   landed(kind: RewardKind): void;
@@ -156,6 +157,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     open: (crate) => void open(crate, undefined),
     claim: (crate) => void open(crate, { from: rewardChipOrigin(crate.seen) }),
     reveal,
+    waitsToReveal: (crate) => reveals.slice(1).some((queued) => queued.crate.seen === crate.seen),
     flight: flights[0],
     chart,
     landed,

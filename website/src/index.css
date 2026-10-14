@@ -21,6 +21,9 @@
   --band-lemon: #ffce1c;
   --band-blue: #106fb2;
   --band-night: #141414;
+  --band-night-ink: #ffffff;
+  --band-night-quiet: #c4c4c4;
+  --band-night-edge: #ffffff;
   --medal-bronze: #a3622c;
   --medal-silver: #737780;
   --medal-gold: #94700a;
@@ -55,6 +58,49 @@ body {
   background-image:
     radial-gradient(70rem 30rem at 50% -10rem, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%),
     radial-gradient(40rem 40rem at 100% 100%, color-mix(in oklab, var(--completed-foreground) 10%, transparent), transparent 70%);
+}
+
+.night-band {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--band-night);
+  color: var(--band-night-ink);
+  --crate-edge: var(--band-night-edge);
+}
+
+.night-band::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.07) 1px, transparent 1.4px) 0 0 / 14px 14px;
+}
+
+.night-band::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(60% 70% at 50% 62%, rgb(255 255 255 / 0.12), transparent 70%);
+}
+
+.night-band-quiet {
+  color: var(--band-night-quiet);
+}
+
+.night-band .hud-label {
+  color: var(--band-night-quiet);
+}
+
+.hog-silhouette {
+  color: var(--muted-foreground);
+}
+
+.hog-silhouette svg [fill]:not([fill="none"]) {
+  fill: currentColor;
+  fill-opacity: 1;
 }
 
 .hud-label {

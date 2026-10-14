@@ -1,22 +1,22 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { IconArrowRight } from "@posthog/icons";
+import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { IconArrowRight, IconCheck } from "@posthog/icons";
 import { Button, buttonVariants } from "@posthog/quill";
 import { AppLink } from "../AppLink";
-import { aboutOf, webPageOf } from "../features";
-import type { FeatureCard } from "../shell";
+import { aboutOf, waitsOf, webPageOf } from "../features";
+import type { Feature, FeatureCard } from "../shell";
 import { prefersReducedMotion } from "../reducedMotion";
 import { SlackLink } from "../SlackLink";
-import { CrateArt } from "./CrateArt";
-import type { Reveal } from "./moments";
+import { CrateArt, CrateGlyph } from "./CrateArt";
+import { attemptMessages, useMoments, type Reveal } from "./moments";
 import { rewardLabelOf, type QuestCrate, type ReadyCrate } from "./readyCrates";
 
 export const revealPlaysForMs = 1700;
 
 type Close = (how: { returnFocus: boolean }) => void;
 
-type RevealDialogProps = Reveal & { chatUrl: string; questsOpen: boolean; onFinish: (crate: ReadyCrate) => void; onClose: Close };
+type RevealDialogProps = Reveal & { chatUrl: string; questsOpen: boolean; othersReady: ReadyCrate[]; onFinish: (crate: ReadyCrate) => void; onClose: Close };
 
-export function RevealDialog({ crate, seenBefore, fromQuests, chatUrl, questsOpen, onFinish, onClose }: RevealDialogProps) {
+export function RevealDialog({ crate, seenBefore, fromQuests, chatUrl, questsOpen, othersReady, onFinish, onClose }: RevealDialogProps) {
   const labelId = useId();
   const dialog = useRef<HTMLDivElement>(null);
   const [reducedMotion] = useState(prefersReducedMotion);
@@ -68,20 +68,81 @@ export function RevealDialog({ crate, seenBefore, fromQuests, chatUrl, questsOpe
         <div className="pb-6 pt-36">
           <CrateArt phase={playing ? "opening" : "open"} width={220} Hog={aboutOf(crate.kind === "feature" ? crate.card.feature : "quests").Hog} />
         </div>
-        {!playing && crate.kind === "feature" && <EndState key={shownAt} card={crate.card} chatUrl={chatUrl} onClose={onClose} onReplay={replay} />}
+        {!playing && crate.kind === "feature" && <EndState key={shownAt} card={crate.card} chatUrl={chatUrl} othersReady={othersReady} onClose={onClose} onReplay={replay} />}
         {!playing && crate.kind === "quest" && <RewardEndState key={shownAt} crate={crate} offerQuests={questsOpen && !fromQuests} onClose={onClose} onReplay={replay} />}
       </div>
     </div>
   );
 }
 
-type EndStateProps = { card: FeatureCard; chatUrl: string; onClose: Close; onReplay: () => void };
+type EndStateProps = { card: FeatureCard; chatUrl: string; othersReady: ReadyCrate[]; onClose: Close; onReplay: () => void };
 
-function EndState({ card, chatUrl, onClose, onReplay }: EndStateProps) {
+function EndState({ card, chatUrl, othersReady, onClose, onReplay }: EndStateProps) {
   return (
-    <EndFrame headline={`${card.name} is open`} onClose={onClose} onReplay={onReplay} go={<GoThere card={card} chatUrl={chatUrl} onGo={() => onClose({ returnFocus: false })} />}>
+    <EndFrame
+      headline={`${card.name} is open`}
+      onClose={onClose}
+      onReplay={onReplay}
+      go={<GoThere card={card} chatUrl={chatUrl} onGo={() => onClose({ returnFocus: false })} />}
+      next={<NextCrate othersReady={othersReady} onClose={onClose} />}
+    >
       <p className="text-base">{`It opens ${card.opens}.`}</p>
+      <WhatWaits feature={card.feature} />
     </EndFrame>
+  );
+}
+
+function WhatWaits({ feature }: { feature: Feature }) {
+  const lines = waitsOf(feature);
+  if (lines.length === 0) return null;
+  return (
+    <ul aria-label="What waits" className="flex flex-col gap-2">
+      {lines.map((line, at) => (
+        <li key={line} className="moment-line flex items-start gap-2.5 text-sm" style={{ "--line-delay": `${0.15 + at * 0.12}s` } as CSSProperties}>
+          <IconCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+          {line}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function NextCrate({ othersReady, onClose }: { othersReady: ReadyCrate[]; onClose: Close }) {
+  const moments = useMoments();
+  const [asked, ask] = useState<ReadyCrate>();
+  const next = asked ?? othersReady[0];
+  const attempt = next === undefined ? undefined : moments?.attemptOf(next);
+  const revealed = asked !== undefined && moments?.waitsToReveal(asked) === true;
+  useEffect(() => {
+    if (revealed) onClose({ returnFocus: false });
+  }, [revealed, onClose]);
+  if (next === undefined || moments === undefined || othersReady.length === 0) return null;
+  const opening = attempt === "opening";
+  const open = () => {
+    if (opening) return;
+    ask(next);
+    moments.open(next);
+  };
+  return (
+    <div className="flex flex-col items-start gap-2 border-t pt-4">
+      <Button variant="outline" aria-disabled={opening || undefined} aria-label={opening ? undefined : `Open the next one, ${othersReady.length} more ready`} onClick={open}>
+        <CrateGlyph className="size-4" />
+        {opening ? "Opening…" : <NextCount count={othersReady.length} />}
+      </Button>
+      {attempt !== undefined && attempt !== "opening" && <p className="text-sm font-medium">{attemptMessages[attempt]}</p>}
+    </div>
+  );
+}
+
+function NextCount({ count }: { count: number }) {
+  return (
+    <>
+      Open the next one
+      <span aria-hidden="true" className="text-muted-foreground">
+        ·
+      </span>
+      <span className="tabular-nums text-muted-foreground">{`${count} more ready`}</span>
+    </>
   );
 }
 
@@ -97,9 +158,9 @@ function RewardEndState({ crate, offerQuests, onClose, onReplay }: RewardEndStat
   return <EndFrame headline={`You earned ${crate.xp} XP`} onClose={onClose} onReplay={onReplay} go={toQuests} />;
 }
 
-type EndFrameProps = { headline: string; go: ReactNode; onClose: Close; onReplay: () => void; children?: ReactNode };
+type EndFrameProps = { headline: string; go: ReactNode; next?: ReactNode; onClose: Close; onReplay: () => void; children?: ReactNode };
 
-function EndFrame({ headline, go, onClose, onReplay, children }: EndFrameProps) {
+function EndFrame({ headline, go, next, onClose, onReplay, children }: EndFrameProps) {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => firstActionIn(end.current)?.focus(), []);
   return (
@@ -116,6 +177,7 @@ function EndFrame({ headline, go, onClose, onReplay, children }: EndFrameProps) 
             Replay
           </Button>
         </div>
+        {next}
       </div>
     </div>
   );

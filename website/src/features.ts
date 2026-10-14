@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { HedgehogExplorer, HedgehogMoney, HedgehogOrganized, HedgehogReading, HedgehogStar, HedgehogWizard } from "@posthog/brand/hoggies";
 import { IconBook, IconListTree, IconStar, IconTarget } from "@posthog/icons";
+import { perkOf } from "../../convex/progression/tree";
 import type { Screen } from "./route";
 import type { Feature, MemberProfile } from "./shell";
 
@@ -40,6 +41,19 @@ const webPages = {
 } satisfies Partial<Record<Feature, WebPage>>;
 
 export type PagedFeature = keyof typeof webPages;
+
+const spark = perkOf("spark");
+
+const waits: Record<PagedFeature, string[]> = {
+  quests: ["Three quests of your own each week, new every Monday", "Swap one of them once a week", "XP for each quest you finish"],
+  leaderboard: ["Who's thanking colleagues most this week, this month and of all time", "Only kudos given count, never kudos received"],
+  book: ["Achievements for the thanks you give and the thanks you get", "Bronze, silver, gold and diamond tiers on every ladder"],
+  skillTree: ["Your first skill point to spend, and one more each level", `${spark.name}: ${spark.copy}`],
+};
+
+export function waitsOf(feature: Feature): string[] {
+  return hasWebPage(feature) ? waits[feature] : [];
+}
 
 export function aboutOf(feature: Feature): About {
   return about[feature];
