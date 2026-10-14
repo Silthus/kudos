@@ -21,7 +21,7 @@ Display titles (WS310):
 
 - [red.txt](red.txt): `signInCard.test.tsx` and `displayTitles.test.tsx` at the red commit, 11 failing.
 - [green.txt](green.txt): the same 15 tests passing, every assertion intact.
-- [gate.txt](gate.txt): `pnpm gate` through `fleet heavy`, 134 files and 2105 tests, Coherence clean. Recorded-name advisories are trimmed.
+- [gate.txt](gate.txt): `pnpm gate` through `fleet heavy`, 134 files and 2106 tests, Coherence clean. Recorded-name advisories are trimmed.
 - axe in light and dark covers the card at `/` and with the landing hint at `/leaderboard?period=month` (`accessibility.test.tsx`).
 
 ## V24 manual pass
@@ -30,3 +30,10 @@ Display titles (WS310):
 - **Focus visibility:** quill's button ring on `Sign in with Slack`, and the theme control's ring, both unchanged.
 - **Reduced motion:** the card has no motion.
 - **Screen readers:** the title reads `HedgeHug`, the tab `HedgeHug · Sign in`. The hand-clasp hedgehog and the Slack glyph are `aria-hidden`. The button reads `Sign in with Slack`. After signing out, focus moves to the title (`signInCard.test.tsx`).
+
+## Review (GPT-6.1 Sol, high)
+
+Two findings, both fixed test-first ([red](red-review.txt), [green](green-review.txt)):
+
+1. **A long leader name could clip at 390 px.** The headline's larger size had no `wrap-anywhere`, so an unbroken name could overflow the card. The headline now takes `wrap-anywhere`, as the hero does.
+2. **Signing out reset the theme when storage is blocked.** The standalone page remounts the theme control, which read the choice again from storage that refuses it. The theme now remembers a choice storage refused for the life of the page.

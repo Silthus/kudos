@@ -5,8 +5,11 @@ export type ThemeChoice = "light" | "dark" | "system";
 const storageKey = "hedgehug.theme";
 const darkSystemQuery = "(prefers-color-scheme: dark)";
 
+let choiceStorageRefused: ThemeChoice | undefined;
+
 function storedChoice(): ThemeChoice {
   const stored = readStorage();
+  if (stored === undefined) return choiceStorageRefused ?? "system";
   return stored === "light" || stored === "dark" ? stored : "system";
 }
 
@@ -14,7 +17,7 @@ function readStorage() {
   try {
     return localStorage.getItem(storageKey);
   } catch {
-    return null;
+    return undefined;
   }
 }
 
@@ -22,8 +25,9 @@ function rememberChoice(choice: ThemeChoice) {
   try {
     if (choice === "system") localStorage.removeItem(storageKey);
     else localStorage.setItem(storageKey, choice);
+    choiceStorageRefused = undefined;
   } catch {
-    return;
+    choiceStorageRefused = choice;
   }
 }
 

@@ -1,9 +1,11 @@
+Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
 $ pnpm typecheck && pnpm test && pnpm coherence
 $ tsc --noEmit && tsc --noEmit -p website
 $ vitest run
 
  RUN  v5.0.3 /home/coder/dev/kudos-wt/signin-card
 
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -102,12 +104,11 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
  Test Files  134 passed (134)
-      Tests  2105 passed (2105)
-   Start at  10:47:48
-   Duration  92.07s (tests 84%, import 9%, environment 3%, transform 3%)
+      Tests  2106 passed (2106)
+   Start at  11:00:39
+   Duration  112.08s (tests 79%, import 9%, transform 8%, environment 3%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
