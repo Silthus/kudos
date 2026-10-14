@@ -1,0 +1,15 @@
+$ tsc --noEmit && tsc --noEmit -p website
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |convex| convex/quests/newWeek.test.ts > P80: the hourly sweep stays within Convex's limits and draws a week once > for 105 members who opened Quests and 5 who didn't, each deciding quests for themselves, each sweep mutation schedules at most 100 draws within Convex's transaction limits, and a second run draws nothing new
+Error: Test timed out in 60000ms.
+ Test Files  1 failed | 179 passed (180)
+      Tests  1 failed | 3460 passed (3461)
+gate exit 1
+
+## Rerun of the one timed-out test (quests/newWeek, untouched by this diff)
+ Test Files  1 passed (1)
+      Tests  18 passed (18)
+
+## pnpm coherence on the same tree
+0 rejected names, 0 unknown nouns (774 files), 17 in records
+coherence exit 0
