@@ -6,7 +6,7 @@ import { bookReplayCursorValidator, bookReplayValidator } from "./achievements/r
 import { earnedTierValidator } from "./achievements/tiers";
 import { exceptionValidator } from "./analytics/exceptions";
 import { awardIdValidator } from "./engine/awards";
-import { propertiesValidator } from "./analytics/projections";
+import { personPropertiesValidator, propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
 import { publicReplyValidator } from "./feedback/publicReplies";
@@ -22,6 +22,7 @@ import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { journeyActivationValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
 import { featureValidator } from "./unlocks/feature";
+import { memberProfileFields } from "./workspace/memberProfile";
 
 export default defineSchema({
   ...authTables,
@@ -73,10 +74,31 @@ export default defineSchema({
     name: v.optional(v.string()),
     timeZone: v.optional(v.string()),
     admin: v.optional(v.boolean()),
+    ...memberProfileFields,
     asOf: v.optional(v.number()),
+    profileAsOf: v.optional(v.number()),
   })
     .index("by_user", ["workspace", "user"])
     .index("by_admin", ["workspace", "admin"]),
+
+  userGroups: defineTable({
+    workspace: v.string(),
+    group: v.string(),
+    handle: v.string(),
+    name: v.string(),
+    enabled: v.boolean(),
+    automatic: v.boolean(),
+    asOf: v.number(),
+    membersAsOf: v.optional(v.number()),
+  }).index("by_group", ["workspace", "group"]),
+
+  userGroupMembers: defineTable({
+    workspace: v.string(),
+    group: v.string(),
+    user: v.string(),
+  })
+    .index("by_group", ["workspace", "group", "user"])
+    .index("by_user", ["workspace", "user"]),
 
   kudosMessages: defineTable({
     workspace: v.string(),
@@ -280,6 +302,12 @@ export default defineSchema({
     shipped: v.array(featureValidator),
   }).index("by_workspace", ["workspace"]),
 
+  previewMoments: defineTable({
+    member: v.id("members"),
+    moment: v.union(v.literal("unlocks"), v.literal("journey")),
+    at: v.number(),
+  }).index("by_member_moment", ["member", "moment"]),
+
   levelUps: defineTable({
     member: v.id("members"),
     level: v.number(),
@@ -337,7 +365,12 @@ export default defineSchema({
   analyticsIds: defineTable({
     member: v.id("members"),
     analyticsId: v.string(),
-  }).index("by_member", ["member"]),
+    profileFingerprint: v.optional(v.union(v.string(), v.null())),
+    profileUncertain: v.optional(v.boolean()),
+  })
+    .index("by_member", ["member"])
+    .index("by_analytics_id", ["analyticsId"])
+    .index("by_profile_fingerprint", ["profileFingerprint"]),
 
   workspaceKeys: defineTable({
     workspace: v.string(),
@@ -351,6 +384,7 @@ export default defineSchema({
     timestamp: v.number(),
     properties: propertiesValidator,
     exception: v.optional(exceptionValidator),
+    person: v.optional(v.object({ set: personPropertiesValidator, unset: v.array(v.string()), fingerprint: v.string() })),
     state: v.union(v.literal("pending"), v.literal("sending"), v.literal("exhausted")),
     failures: v.number(),
     dueAt: v.number(),

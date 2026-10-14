@@ -9,8 +9,8 @@ import { perkOf } from "../progression/tree";
 import { bonusLineValidator, type BonusLine } from "../progression/progress";
 import { giverBonusOf, giverXpOf } from "../progression/progression";
 import { skillTreeAppliesIn } from "../progression/skillTree";
-import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
-import { questsApplyIn, questsExposedTo } from "../quests/flag";
+import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
+import { questsApplyIn, questsApplyTo, questsExposedTo } from "../quests/flag";
 import { journeyGoalOf } from "../quests/journeyCopy";
 import { journeyStepValidator } from "../quests/step";
 import { lookup, type MemberId } from "../workspace/directory";
@@ -92,7 +92,7 @@ export const privateReply = internalQuery({
     if (row === null) return null;
     const { gains, hint, questsDone: _, ...stored } = row;
     const hintShown = hint !== undefined && (await skillTreeAppliesIn(ctx, row.workspace)) ? hint : null;
-    const extrasLine = gains === undefined ? null : extrasLineOf(await gainsShownIn(ctx, row.workspace, gains), hintShown, await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
+    const extrasLine = gains === undefined ? null : extrasLineOf(await gainsShownTo(ctx, row.workspace, row.to, gains), hintShown, await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
     return { ...stored, lines: extrasLine === null ? row.lines : [...row.lines, extrasLine] };
   },
 });
@@ -113,12 +113,22 @@ async function deliver(ctx: MutationCtx, reply: Id<"privateReplies">) {
   await ctx.scheduler.runAfter(0, internal.slack.delivery.deliverPrivateReply, { reply });
 }
 
-async function gainsShownIn(ctx: QueryCtx, workspace: string, { xp, questsDone = [], bonus = [] }: Gains): Promise<Required<Gains>> {
+async function gainsShownTo(ctx: QueryCtx, workspace: string, to: ChatUserId, { xp, questsDone = [], bonus = [] }: Gains): Promise<Required<Gains>> {
+  const person = await lookup(ctx, workspace, to);
+  const member = person?.kind === "member" ? person.member : null;
   return {
-    xp: (await xpLevelsShownIn(ctx, workspace)) ? xp : 0,
-    questsDone: questsDone.length > 0 && (await questsApplyIn(ctx, workspace)) ? questsDone : [],
+    xp: (await isXpShownTo(ctx, workspace, member)) ? xp : 0,
+    questsDone: questsDone.length > 0 && (await areQuestsShownTo(ctx, workspace, member)) ? questsDone : [],
     bonus: bonus.length > 0 && (await skillTreeAppliesIn(ctx, workspace)) ? bonus : [],
   };
+}
+
+function isXpShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null) {
+  return member === null ? xpLevelsShownIn(ctx, workspace) : xpLevelsOnFor(ctx, member);
+}
+
+function areQuestsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null) {
+  return member === null ? questsApplyIn(ctx, workspace) : questsApplyTo(ctx, member);
 }
 
 function extrasLineOf({ xp, questsDone, bonus }: Required<Gains>, hint: Line | null, link: DeepLink | null): Line | null {

@@ -137,6 +137,16 @@ export function memberEvent(type: "team_join" | "user_change", user: Record<stri
   });
 }
 
+export function userGroupEvent(type: "subteam_created" | "subteam_updated" | "subteam_members_changed", group: string, options: { team?: string; eventId?: string } = {}) {
+  eventCounter += 1;
+  const team = options.team ?? "T1";
+  const event =
+    type === "subteam_members_changed"
+      ? { type, subteam_id: group, team_id: team, added_users: ["U_SOMEONE"], added_users_count: "1", removed_users: [], removed_users_count: "0" }
+      : { type, subteam: { id: group, team_id: team, is_usergroup: true, handle: "from-the-event", name: "From the event" } };
+  return JSON.stringify({ type: "event_callback", team_id: team, event_id: options.eventId ?? `Ev${eventCounter}`, event, event_time: Math.floor(Date.now() / 1000) });
+}
+
 export type Conversation = { channel_id: string; channel_name: string };
 
 export type SlashCommandOptions = { command?: "/hedgehug" | "/kudos"; team?: string; user?: string; responseUrl?: string };

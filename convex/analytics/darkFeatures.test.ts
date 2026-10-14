@@ -11,7 +11,7 @@ import { internal } from "../_generated/api";
 import { publish, subscribers } from "../bus/publish";
 import type { Command } from "../commands/commands";
 import schema from "../schema";
-import { exposed, flag } from "./flags";
+import { exposed, memberDecision, workspaceDecision } from "./flags";
 import { record } from "./outbox";
 
 vi.mock("./outbox", async (importOriginal) => {
@@ -21,7 +21,7 @@ vi.mock("./outbox", async (importOriginal) => {
 
 vi.mock("./flags", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./flags")>();
-  return { ...actual, flag: vi.fn(actual.flag), exposed: vi.fn(actual.exposed) };
+  return { ...actual, memberDecision: vi.fn(actual.memberDecision), workspaceDecision: vi.fn(actual.workspaceDecision), exposed: vi.fn(actual.exposed) };
 });
 
 vi.mock("../bus/publish", async (importOriginal) => {
@@ -44,6 +44,7 @@ const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
 const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board"];
 const notMemberFacing: Table[] = ["analyticsIds", "workspaceKeys", "analyticsOutbox", "analyticsDrain", "errorSweep", "watchedJobs", "reportedJobs", "flagExposures"];
+const recordingJobs = ["analytics/drain:drain", "analytics/person:identifyNewPeople"];
 const recordingWrites: Table[] = ["analyticsOutbox", "analyticsIds", "workspaceKeys", "analyticsDrain"];
 const darkFeatureTables: Table[] = ["unlocks", "unlockLaunches", "journeyLaunches", "journeySteps", "questDraws", "questSwaps", "questProgress", "rewardRecords", "crateOpenings", "leaderboardSettings"];
 
@@ -167,13 +168,13 @@ describe("E11 O15: with capture on, off or failing, every member gets the same S
   });
 });
 
-describe("E11: recording a product event writes only analytics' own rows and schedules only the drain", () => {
+describe("E11: recording a product event writes only analytics' own rows and schedules only the drain and the identify job", () => {
   test("re-running every recording job of three whole walks with every flag on, one of new members, one over members there before the launch and one through the skill tree and the Book, each with no analytics ID or workspace key yet", async () => {
     const reRun = new Set<string>();
 
     for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook]) {
       const { t } = await walked();
-      for (const spy of [flag, exposed, publish]) expect(vi.mocked(spy), "the walk reaches the spied seams").toHaveBeenCalled();
+      for (const spy of [memberDecision, workspaceDecision, exposed, publish]) expect(vi.mocked(spy), "the walk reaches the spied seams").toHaveBeenCalled();
       for (const job of [...(await recordingJobsOf(t)), commandsLeaderboardView()]) {
         await expectOnlyObserving(t, job);
         reRun.add(job.name);
@@ -189,16 +190,17 @@ async function expectOnlyObserving(t: Backend, { name, args }: { name: string; a
   const before = await everythingByTable(t);
   const scheduledBefore = await scheduledJobIds(t);
   const slackCallsBefore = slack.calls.length;
-  for (const spy of [flag, exposed, publish]) vi.mocked(spy).mockClear();
+  for (const spy of [memberDecision, workspaceDecision, exposed, publish]) vi.mocked(spy).mockClear();
 
   await t.mutation(makeFunctionReference<"mutation">(name), args);
 
   const changed = changedTables(before, await everythingByTable(t));
   expect(changed, name).toContain("analyticsOutbox");
   expect(changed.filter((table) => !recordingWrites.includes(table)), name).toEqual([]);
-  expect((await newJobNames(t, scheduledBefore)).filter((job) => job !== "analytics/drain:drain"), name).toEqual([]);
+  expect((await newJobNames(t, scheduledBefore)).filter((job) => !recordingJobs.includes(job)), name).toEqual([]);
   expect(slack.calls.length, name).toBe(slackCallsBefore);
-  expect(vi.mocked(flag), `${name} read a flag`).not.toHaveBeenCalled();
+  expect(vi.mocked(memberDecision), `${name} read a member decision`).not.toHaveBeenCalled();
+  expect(vi.mocked(workspaceDecision), `${name} read a workspace decision`).not.toHaveBeenCalled();
   expect(vi.mocked(exposed), `${name} sent an exposure`).not.toHaveBeenCalled();
   expect(vi.mocked(publish), `${name} published a domain event`).not.toHaveBeenCalled();
 }
@@ -492,7 +494,7 @@ function withStableIds(stored: Record<string, Row[]>) {
 }
 
 function productEvents(): CapturedEvent[] {
-  return postHog.events().filter((event) => event.event !== "$feature_flag_called");
+  return postHog.productEvents().filter((event) => event.event !== "$feature_flag_called");
 }
 
 function eventsNamed(...names: string[]) {

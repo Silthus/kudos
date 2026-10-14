@@ -182,7 +182,7 @@ describe("O16 O17: leases", () => {
     await recordKudosGiven(t);
     const late = await claimAsTheDrain(t);
     const settleLate = (answer: "delivered" | "rejected" | "failed") =>
-      t.mutation(internal.analytics.drain.settle, { token: late!.token, rows: late!.rows.map((row) => row._id), answer });
+      t.mutation(internal.analytics.drain.settle, { token: late!.token, rows: late!.rows.map((row) => row._id), people: [], answer });
 
     vi.setSystemTime(Date.now() + minutes(2));
     const heldByLate = await outbox(t);
@@ -364,6 +364,7 @@ async function kudosGiven(t: Backend): Promise<KudosGivenEvent> {
   return t.run(async (ctx) => {
     const giver = await ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" });
     const recipient = await ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member" });
+    for (const member of [giver, recipient]) await ctx.db.insert("analyticsIds", { member, analyticsId: crypto.randomUUID() });
     return kudosGivenEventWithAward(ctx, giver, recipient, { at: now.getTime() });
   });
 }
