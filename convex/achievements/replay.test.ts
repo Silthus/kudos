@@ -55,7 +55,7 @@ describe("P62: at the Book's launch, achievements count every member's whole his
     await settle(t);
 
     expect(await ladderOf(t, alice, "generosity")).toEqual({ count: 2, earned: [{ tier: "bronze", earnedAt: first.at }] });
-    expect(await replaysIn(t, "T1")).toHaveLength(2);
+    expect(await replaysIn(t, "T1")).toHaveLength(ladders.ladders.length);
     expect(await batchesIn(t, "T1")).toHaveLength(1);
   });
 
@@ -200,11 +200,12 @@ describe("P62: one launch batch with a completion barrier", () => {
     await given(t, alice, bob, { kudos: 25, at: daysAgo(1) });
     await launch(t);
     const [batch] = await batchesIn(t, "T1");
-    const [generosity, recognition] = await replaysIn(t, "T1");
+    const replays = await replaysIn(t, "T1");
+    const last = replays.pop()!;
 
-    await replayToTheEnd(t, generosity!._id);
+    for (const { _id } of replays) await replayToTheEnd(t, _id);
     expect((await batchesIn(t, "T1"))[0]!.completedAt).toBeUndefined();
-    await replayToTheEnd(t, recognition!._id);
+    await replayToTheEnd(t, last._id);
 
     expect((await batchesIn(t, "T1"))[0]!.completedAt).toBe(Date.now());
     expect(await earnedBatches(t, alice, "generosity")).toEqual({ bronze: batch!._id, silver: batch!._id });

@@ -80,12 +80,23 @@ export async function awardsGivenBefore(ctx: QueryCtx, before: number, page: Pag
   return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day }) => ({ award: _id, giver, recipient, kudos, day })) };
 }
 
-export async function awardsInWorkspace(ctx: QueryCtx, workspace: string, page: PaginationOptions): Promise<PaginationResult<AwardWithId & { at: number }>> {
+export async function awardsInWorkspace(ctx: QueryCtx, workspace: string, page: PaginationOptions): Promise<PaginationResult<GivenAward & { at: number }>> {
   const result = await ctx.db
     .query("awards")
     .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
     .paginate(page);
-  return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, at }) => ({ award: _id, giver, recipient, kudos, at })) };
+  return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day, at }) => ({ award: _id, giver, recipient, kudos, day, at })) };
+}
+
+export async function dayThankedBefore(ctx: QueryCtx, award: AwardId): Promise<DayKey | null> {
+  const current = await ctx.db.get(award);
+  if (current === null) return null;
+  const previous = await ctx.db
+    .query("awards")
+    .withIndex("by_giver_recipient", (q) => q.eq("giver", current.giver).eq("recipient", current.recipient).lt("_creationTime", current._creationTime))
+    .order("desc")
+    .first();
+  return previous?.day ?? null;
 }
 
 export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<Map<MemberId, number>> {
