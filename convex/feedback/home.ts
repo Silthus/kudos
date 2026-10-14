@@ -6,7 +6,7 @@ import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import type { PurchaseOutcome, Refusal } from "../progression/purchases";
-import { perkOf, type Perk } from "../progression/tree";
+import { isCoinPerk, perkOf, type Perk } from "../progression/tree";
 import type { ProgressSettings } from "../progression/settings";
 import type { JourneyStepFacts } from "../quests/journey";
 import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
@@ -219,12 +219,20 @@ export function perkOfferOf(perk: Perk): { text: string; action: HomeAction } {
   return { text: perkTextOf(perk), action: { label: "Buy", command: { type: "buyPerk", perk: perk.perk }, accessibilityLabel: `Buy ${perk.name}`, confirm: purchaseConfirmationOf(perk) } };
 }
 
-function purchaseConfirmationOf({ name, skillPoints }: Perk): Confirmation {
-  return { title: `Buy ${name}?`, text: `This spends ${skillPointsOf(skillPoints)}. Skill points are never refunded.`, confirm: "Buy", deny: "Cancel" };
+function purchaseConfirmationOf({ name, skillPoints, coins }: Perk): Confirmation {
+  const text = isCoinPerk({ coins })
+    ? `This spends ${skillPointsOf(skillPoints)} and ${coinsOf(coins)}. Skill points and coins are never refunded.`
+    : `This spends ${skillPointsOf(skillPoints)}. Skill points are never refunded.`;
+  return { title: `Buy ${name}?`, text, confirm: "Buy", deny: "Cancel" };
 }
 
-function perkTextOf({ name, skillPoints, copy }: Perk) {
-  return `${bold(name)} · ${skillPointsOf(skillPoints)}\n${copy}`;
+function perkTextOf({ name, skillPoints, coins, copy }: Perk) {
+  const price = isCoinPerk({ coins }) ? `${skillPointsOf(skillPoints)} · ${coinsOf(coins)}` : skillPointsOf(skillPoints);
+  return `${bold(name)} · ${price}\n${copy}`;
+}
+
+function coinsOf(coins: number) {
+  return `${coins} 🪙`;
 }
 
 export function purchaseReplyOf(outcome: PurchaseOutcome) {
@@ -234,7 +242,7 @@ export function purchaseReplyOf(outcome: PurchaseOutcome) {
 
 type TreePerk = MemberPerks["perks"][number];
 
-export function whyNotOf({ state, row, requires, skillPoints }: Perk & { state: Refusal }) {
+export function whyNotOf({ state, row, requires, skillPoints, coins }: Perk & { state: Refusal }) {
   switch (state) {
     case "tree-locked":
       return unopenedTextOf(scheduled("skillTree"), "locked");
@@ -250,6 +258,10 @@ export function whyNotOf({ state, row, requires, skillPoints }: Perk & { state: 
       return `You need ${perkOf(requires!).name} first.`;
     case "no-skill-points":
       return `You need ${skillPointsOf(skillPoints)}.`;
+    case "coins-not-open":
+      return `Open ${scheduled("coins").name} first.`;
+    case "no-coins":
+      return `You need ${coinsOf(coins)}.`;
   }
 }
 

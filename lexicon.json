@@ -522,6 +522,10 @@
     {
       "name": "wallet",
       "definition": "A member's coins: the coins on their effects and reward records minus what they spent, kept as a cached balance that never goes below 0, never expires and can't be moved to anyone else (CO9-CO12, ADR-0003). Only the wallet module writes the balance and the insert-only spend records."
+    },
+    {
+      "name": "upgrade",
+      "definition": "A perk that replaces a perk the member owns with a stronger line, costing skill points and coins: it requires the perk it upgrades, and once owned its line is paid instead of its base's."
     }
   ]
 }

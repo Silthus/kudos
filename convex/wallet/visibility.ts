@@ -24,6 +24,6 @@ async function coinsApplyTo(ctx: QueryCtx, member: MemberId) {
   return (await unlockPathShownTo(ctx, member)) && (await memberDecision(ctx, coinsFlag, member));
 }
 
-async function isCoinsOpenFor(ctx: QueryCtx, member: MemberId) {
+export async function isCoinsOpenFor(ctx: QueryCtx, member: MemberId) {
   return (await stateOf(ctx, member, "coins")) === "open";
 }

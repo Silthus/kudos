@@ -23,6 +23,7 @@ const juno = { user: "U_JUNO", name: "Juno Whitlock" };
 const treeFlags = ["xp-levels", "unlocks", "skill-tree"];
 const levelFive = 600;
 const levelSix = 1000;
+const levelSeven = 1500;
 const firstRequest = "0d6f2c1e-8a4b-4c3d-9e2f-1a2b3c4d5e6f";
 const secondRequest = "7b9e4f3a-2c1d-4e5f-8a9b-0c1d2e3f4a5b";
 
@@ -443,6 +444,21 @@ describe("a skill point bought on the website is spent once", () => {
 
     expect(await buyPerk(asSignedIn, "rhythm")).toEqual({ kind: "bought" });
     expect((await perksOwnedBy(member)).map(({ perk }) => perk).sort()).toEqual(["rhythm", "spark"]);
+  });
+});
+
+describe("CO14 CO24: a coin perk bought from the website", () => {
+  test("with coins shown and Coins not opened yet, a request for flame is refused, stores coins-not-open and spends nothing", async () => {
+    await treeShipped("coins");
+    const { member, asSignedIn } = await aMemberWithTheTreeOpen();
+    await withXp(member, levelSeven);
+    await reachesLevel(t, member, 7);
+    expect(await buyPerk(asSignedIn, "spark")).toEqual({ kind: "bought" });
+    vi.mocked(publish).mockClear();
+    const before = await everythingWritten();
+
+    expect(await buyPerk(asSignedIn, "flame", secondRequest)).toEqual({ kind: "refused", reason: null });
+    expectOnlyTheRefusalStored(before, await everythingWritten(), { kind: "refused", perk: "flame", reason: "coins-not-open" });
   });
 });
 

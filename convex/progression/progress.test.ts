@@ -128,6 +128,33 @@ describe("P16 P18 P20: row 5's bonus XP on the giver's qualifying recognitions",
   }
 });
 
+describe("CO23: an owned upgrade's line replaces its base's", () => {
+  const spark = { source: "spark", xp: 5 };
+  const rhythm = { source: "rhythm", xp: 2 };
+  const circle = { source: "circle", xp: 5 };
+  const flame = { source: "flame", xp: 8 };
+  const cadence = { source: "cadence", xp: 3 };
+  const bridge = { source: "bridge", xp: 8 };
+  const today = "2026-10-13";
+  const yesterday = "2026-10-12";
+
+  test.each([
+    ["flame replaces spark", ["spark", "flame"], [], [flame]],
+    ["cadence replaces rhythm", ["rhythm", "cadence"], [], [cadence]],
+    ["bridge replaces circle on the week's first recognition, with no primary group", ["circle", "bridge"], [], [bridge]],
+    ["every upgrade with every base", ["spark", "rhythm", "circle", "flame", "cadence", "bridge"], [], [flame, cadence, bridge]],
+    ["one upgrade leaves the other bases' lines", ["spark", "rhythm", "circle", "cadence"], [], [spark, circle, cadence]],
+    ["flame pays only on the day's first recognition", ["spark", "rhythm", "flame"], [{ recipient: carol, day: today }], [rhythm]],
+    ["bridge pays only on the week's first recognition of the recipient", ["circle", "bridge"], [{ recipient: bob, day: yesterday }], []],
+    ["Bob again the same day earns no upgrade line", ["spark", "flame", "rhythm", "cadence"], [{ recipient: bob, day: today }], []],
+  ] satisfies Array<[string, PerkId[], ThoughtfulAward[], unknown[]]>)("%s", (_, perks, earlier, lines) => {
+    const { effects, state } = progress(starting(alice), kudosGiven([[bob, 1]], thoughtful), catalogue, { perks, earlier });
+
+    expect(effects.map(({ bonus }) => bonus ?? [])).toEqual([lines]);
+    expect(state.xp).toBe(10 + lines.reduce((sum, { xp }) => sum + xp, 0));
+  });
+});
+
 describe("CO2: giving coins on the giver's qualifying recognitions", () => {
   const giving = { source: "giving", coins: 4 };
   const today = "2026-10-13";

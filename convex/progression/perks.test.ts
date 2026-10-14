@@ -11,7 +11,7 @@ import { whyNotOf } from "../feedback/home";
 import schema from "../schema";
 import type { MemberId } from "../workspace/directory";
 import { buyPerk } from "./perks";
-import { standingOf } from "./progression";
+import { recordReward, standingOf } from "./progression";
 import { perkOf, type PerkId } from "./tree";
 
 vi.mock("../bus/publish", async (importOriginal) => {
@@ -21,6 +21,7 @@ vi.mock("../bus/publish", async (importOriginal) => {
 
 const now = new Date("2026-10-14T10:00:00Z");
 const levelFive = 600;
+const levelSeven = 1500;
 const allFlags = ["xp-levels", "unlocks", "skill-tree"] as const;
 
 let postHog: FakePostHog;
@@ -131,11 +132,56 @@ describe("P79: perksOf tells the website what the member owns and what each perk
       skillPoints: 1,
       owned: [{ perk: "circle", boughtAt: now.getTime() }],
       perks: [
-        { perk: "spark", name: "Spark", row: 5, skillPoints: 1, requires: null, copy: "+5 XP the first time each day you thank someone and say why.", state: "buyable", boughtAt: null },
-        { perk: "rhythm", name: "Rhythm", row: 5, skillPoints: 1, requires: null, copy: "+2 XP each time you thank someone and say why, once per person a day.", state: "buyable", boughtAt: null },
-        { perk: "circle", name: "Circle", row: 5, skillPoints: 1, requires: null, copy: "+5 XP the first time each week you thank a person and say why.", state: "owned", boughtAt: now.getTime() },
+        { perk: "spark", name: "Spark", row: 5, skillPoints: 1, coins: 0, upgrades: null, requires: null, copy: "+5 XP the first time each day you thank someone and say why.", state: "buyable", boughtAt: null },
+        { perk: "rhythm", name: "Rhythm", row: 5, skillPoints: 1, coins: 0, upgrades: null, requires: null, copy: "+2 XP each time you thank someone and say why, once per person a day.", state: "buyable", boughtAt: null },
+        { perk: "circle", name: "Circle", row: 5, skillPoints: 1, coins: 0, upgrades: null, requires: null, copy: "+5 XP the first time each week you thank a person and say why.", state: "owned", boughtAt: now.getTime() },
       ],
     });
+  });
+
+  test("CO22 CO27: with Coins open at level 7, it lists the upgrades with their coin price, the perk each upgrades and the coin states", async () => {
+    postHog = flagsOnForEveryone(new FakeSlack().fetch, ...allFlags, "coins");
+    const { t, alice } = await memberWith({ xp: levelSeven, tree: "open", owns: "spark", coins: "open" });
+    await t.run((ctx) => recordReward(ctx, "T1", { member: alice, key: "test:savings", xp: 0, coins: 150, item: null, catalogueVersion: "2", at: 0 }));
+
+    const perks = await t.query(internal.progression.perks.perksOf, { member: alice });
+
+    expect(perks?.perks.map(({ perk, coins, upgrades, state }) => ({ perk, coins, upgrades, state }))).toEqual([
+      { perk: "spark", coins: 0, upgrades: null, state: "owned" },
+      { perk: "rhythm", coins: 0, upgrades: null, state: "buyable" },
+      { perk: "circle", coins: 0, upgrades: null, state: "buyable" },
+      { perk: "flame", coins: 150, upgrades: "spark", state: "buyable" },
+      { perk: "cadence", coins: 200, upgrades: "rhythm", state: "needs-prerequisite" },
+      { perk: "bridge", coins: 150, upgrades: "circle", state: "needs-prerequisite" },
+    ]);
+    expect(perks?.perks.find(({ perk }) => perk === "flame")).toMatchObject({ name: "Flame", row: 7, skillPoints: 1, requires: "spark", copy: "Spark gives +8 XP instead of +5." });
+  });
+
+  test("CO22 CO27: below the coin price, an upgrade says no-coins", async () => {
+    postHog = flagsOnForEveryone(new FakeSlack().fetch, ...allFlags, "coins");
+    const { t, alice } = await memberWith({ xp: levelSeven, tree: "open", owns: "spark", coins: "open" });
+
+    const perks = await t.query(internal.progression.perks.perksOf, { member: alice });
+
+    expect(perks?.perks.find(({ perk }) => perk === "flame")?.state).toBe("no-coins");
+  });
+
+  test.each([
+    ["coins off", [], "open"],
+    ["Coins not opened", ["coins"], "ready"],
+  ] as const)("CO25: with %s, unowned upgrades aren't listed and an owned one is listed as owned without its coin price", async (_, coinsOn, coins) => {
+    postHog = flagsOnForEveryone(new FakeSlack().fetch, ...allFlags, ...coinsOn);
+    const { t, alice } = await memberWith({ xp: levelSeven, tree: "open", owns: "rhythm", coins });
+    await t.run((ctx) => ctx.db.insert("perksOwned", { member: alice, perk: "cadence", boughtAt: 0, catalogueVersion: "2" }));
+
+    const perks = await t.query(internal.progression.perks.perksOf, { member: alice });
+
+    expect(perks?.perks.map(({ perk, coins, state }) => ({ perk, coins, state }))).toEqual([
+      { perk: "spark", coins: 0, state: "buyable" },
+      { perk: "rhythm", coins: 0, state: "owned" },
+      { perk: "circle", coins: 0, state: "buyable" },
+      { perk: "cadence", coins: 0, state: "owned" },
+    ]);
   });
 
   test("before the member opens the Skill tree, every perk says so", async () => {
@@ -171,7 +217,7 @@ describe("the skill tree applies only where skill-tree, xp-levels and unlocks al
   });
 });
 
-type Setup = { xp: number; tree: "locked" | "ready" | "open"; owns?: PerkId };
+type Setup = { xp: number; tree: "locked" | "ready" | "open"; owns?: PerkId; coins?: "ready" | "open" };
 
 async function memberWithOpenTree(xp: number) {
   return memberWith({ xp, tree: "open" });
@@ -192,11 +238,12 @@ async function members(t: Backend) {
   });
 }
 
-async function seed(t: Backend, member: MemberId, { xp, tree, owns }: Setup) {
+async function seed(t: Backend, member: MemberId, { xp, tree, owns, coins }: Setup) {
   await t.run(async (ctx) => {
     await ctx.db.insert("memberProgress", { member, xp, pointsSpent: owns === undefined ? 0 : 1 });
     if (tree !== "locked") await ctx.db.insert("unlocks", { member, feature: "skillTree", readyAt: 0, ...(tree === "open" && { openedAt: 0 }) });
     if (owns !== undefined) await ctx.db.insert("perksOwned", { member, perk: owns, boughtAt: 0, catalogueVersion: "1" });
+    if (coins !== undefined) await ctx.db.insert("unlocks", { member, feature: "coins", readyAt: 0, ...(coins === "open" && { openedAt: 0 }) });
   });
 }
 

@@ -125,9 +125,11 @@ function withLines(record: EffectsRecord, { bonus = [], coins = [] }: Pick<Effec
 
 function bonusLinesOf(recognition: Recognition | null, perks: PerkId[], catalogue: Catalogue): BonusLine[] {
   if (recognition === null) return [];
+  const bonusOf = (perk: PerkId): Bonus => catalogue.bonuses[perk];
+  const replaced = perks.flatMap((perk) => bonusOf(perk).replaces ?? []);
   return (Object.keys(catalogue.bonuses) as PerkId[])
-    .filter((perk) => perks.includes(perk) && recognition[catalogue.bonuses[perk].on])
-    .map((perk) => ({ source: perk, xp: catalogue.bonuses[perk].xp }));
+    .filter((perk) => perks.includes(perk) && !replaced.includes(perk) && recognition[bonusOf(perk).on])
+    .map((perk) => ({ source: perk, xp: bonusOf(perk).xp }));
 }
 
 function givingCoinsOf(recognition: Recognition | null, catalogue: Catalogue): CoinLine[] {
