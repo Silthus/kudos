@@ -10,7 +10,7 @@ import { skillTreeAppliesIn } from "../progression/skillTree";
 import { purchaseOutcomeValidator } from "../progression/purchases";
 import { progressSettingsOf } from "../progression/settings";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
-import { questsApplyIn } from "../quests/flag";
+import { journeyStepAppliesIn, questsApplyIn } from "../quests/flag";
 import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type WeeklyQuest } from "../quests/step";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedIn, unlocksShownTo } from "../unlocks/launch";
@@ -74,10 +74,8 @@ export const linesStillWanted = internalQuery({
   handler: async (ctx, { member, notification }): Promise<NotificationLine[] | null> => {
     const { workspace } = await chatUserOf(ctx, member);
     if (!(await xpLevelsShownIn(ctx, workspace)) || !(await wantsDms(ctx, member))) return null;
-    if (isAboutQuests(notification) && !(await questsApplyIn(ctx, workspace))) return null;
-    if (notification.kind === "tiers-earned" && !(await isBookOpenIn(ctx, workspace, member))) return null;
     const told = await stillToldOf(ctx, workspace, member, notification);
-    const lines = renderNotification(told, await openTreeOf(ctx, workspace, member, told));
+    const lines = told === null ? [] : renderNotification(told, await openTreeOf(ctx, workspace, member, told));
     return lines.length === 0 ? null : lines;
   },
 });
@@ -113,20 +111,32 @@ function perkOffersOf(openTree: MemberPerks | null): NotificationLine[] {
   return (openTree?.perks ?? []).filter(({ state }) => state === "buyable").map(perkOfferOf);
 }
 
-async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification> {
-  if (notification.kind !== "level-reached" && notification.kind !== "features-shipped") return notification;
+async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification | null> {
+  if (isAboutQuests(notification)) return questsStillToldOf(ctx, workspace, notification);
+  if (notification.kind === "tiers-earned") return (await isBookOpenIn(ctx, workspace, member)) ? notification : null;
   if (!(await unlocksAppliedIn(ctx, workspace))) return { ...notification, ready: [] };
   const ready = await stillReady(ctx, member, notification.ready);
   if (notification.kind !== "level-reached" || notification.skillPoints === null) return { ...notification, ready };
   return { ...notification, ready, skillPoints: await whenOpened(ctx, member, "skillTree", notification.skillPoints) };
 }
 
+async function questsStillToldOf(ctx: QueryCtx, workspace: string, notification: QuestNotification): Promise<QuestNotification | null> {
+  if (!(await questsApplyIn(ctx, workspace))) return null;
+  if (notification.kind === "quest-finished") return (await journeyStepAppliesIn(ctx, workspace, notification.quest.step)) ? notification : null;
+  if (notification.kind === "weekly-quest-finished") return notification;
+  const finished: typeof notification.finished = [];
+  for (const entry of notification.finished) if (await journeyStepAppliesIn(ctx, workspace, entry.quest.step)) finished.push(entry);
+  return { ...notification, finished };
+}
+
+type QuestNotification = Extract<Notification, { kind: "quest-finished" | "journey-joined" | "weekly-quest-finished" }>;
+
 async function openTreeOf(ctx: QueryCtx, workspace: string, member: MemberId, told: Notification): Promise<MemberPerks | null> {
   if (told.kind !== "level-reached" || !(await skillTreeAppliesIn(ctx, workspace)) || !(await isOpened(ctx, member, "skillTree"))) return null;
   return memberPerksOf(ctx, member);
 }
 
-function isAboutQuests(notification: Notification): notification is Extract<Notification, { kind: "quest-finished" | "journey-joined" | "weekly-quest-finished" }> {
+function isAboutQuests(notification: Notification): notification is QuestNotification {
   return notification.kind === "quest-finished" || notification.kind === "journey-joined" || notification.kind === "weekly-quest-finished";
 }
 
