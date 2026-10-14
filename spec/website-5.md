@@ -316,15 +316,15 @@ Each ticket rewrites its part of `website/Website.spec.md`'s description, which 
 Each ticket is a sub-issue of map #57 and its own pull request from `main` (WS113). Casting: UI work on Opus 5.5 (high), reviewed by GPT-6.1 Sol (high). The order puts the most visible gaps first.
 
 Blocking edges (native on GitHub):
-- ticket 1 → ticket 2
-- ship #193 → ticket 2
-- ticket 2 → ticket 3
+- #236 → #237
+- ship #193 → #237
+- #237 → #238
 
-1. **The hero as the character header, with the level ring.** WS97 (the hero's place), WS98–WS101, WS112. It also gives the HUD avatar the filled ring. Blocked by nothing.
+1. [#236](https://github.com/Silthus/kudos/issues/236) **The hero as the character header, with the level ring.** WS97 (the hero's place), WS98–WS101, WS112. It also gives the HUD avatar the filled ring. Blocked by nothing.
    - **Touches slice 4's files:** `HomePage.test.tsx` and `accessibility.test.tsx`, which `spec/website-4` also edits. Whichever of this ticket and #193 merges second merges `main` and keeps both.
-2. **Every feature in its place: locked, ready and open panels.** WS97 (the layout), WS102–WS106, WS112. It replaces the three groups with slotted panels and moves the Journey under the hero. The open Quests and Leaderboard panels keep their sentence and link until ticket 3.
+2. [#237](https://github.com/Silthus/kudos/issues/237) **Every feature in its place: locked, ready and open panels.** WS97 (the layout), WS102–WS106, WS112. It replaces the three groups with slotted panels and moves the Journey under the hero. The open Quests and Leaderboard panels keep their sentence and link until ticket 3.
    - **Blocked by ticket 1, and by ship #193:** the Book and Skill tree panels need slice 4's page registry, its Book sentence (WS82) and `skillPoints` (WS84), and slice 4 edits `features.ts`, `FeatureCards.test.tsx` and `HomePage.test.tsx`.
-3. **The right rail: what teammates see, quests this week and where you stand.** WS107–WS111, WS112. It adds the reserved slot for #233's card, which renders nothing. Blocked by ticket 2.
+3. [#238](https://github.com/Silthus/kudos/issues/238) **The right rail: what teammates see, quests this week and where you stand.** WS107–WS111, WS112. It adds the reserved slot for #233's card, which renders nothing. Blocked by ticket 2.
 
 There is no sandbox proof ticket and no integration branch: each ticket proves itself locally and then live (WS113). The conductor decides whether a `ship` ticket is needed.
 
