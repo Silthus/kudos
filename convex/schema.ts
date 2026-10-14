@@ -197,7 +197,9 @@ export default defineSchema({
 
   effectsRecords: defineTable(effectsRecordValidator).index("by_award", ["award", "side"]).index("by_member_side", ["member", "side"]),
 
-  rewardRecords: defineTable(rewardRecordValidator).index("by_member_key", ["member", "key"]),
+  rewardRecords: defineTable(rewardRecordValidator)
+    .index("by_member_key", ["member", "key"])
+    .index("by_member_cause", ["member", "cause.workspace", "cause.conversation", "cause.message"]),
 
   journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
 
@@ -320,7 +322,9 @@ export default defineSchema({
     level: v.number(),
     ready: v.array(featureValidator),
     at: v.number(),
-  }).index("by_member_level", ["member", "level"]),
+  })
+    .index("by_member_level", ["member", "level"])
+    .index("by_member_at", ["member", "at"]),
 
   homes: defineTable({
     member: v.id("members"),

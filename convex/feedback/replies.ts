@@ -9,8 +9,9 @@ import { perkOf } from "../progression/tree";
 import { bonusLineValidator, type BonusLine } from "../progression/progress";
 import { giverBonusOf, giverXpOf } from "../progression/progression";
 import { skillTreeAppliesIn } from "../progression/skillTree";
-import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
-import { questsApplyIn, questsApplyTo, questsExposedTo } from "../quests/flag";
+import { questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
+import { xpLevelsShownTo } from "../progression/xpLevels";
+import { questsExposedTo } from "../quests/flag";
 import { journeyGoalOf } from "../quests/journeyCopy";
 import { journeyStepValidator } from "../quests/step";
 import { lookup, type MemberId } from "../workspace/directory";
@@ -117,18 +118,10 @@ async function gainsShownTo(ctx: QueryCtx, workspace: string, to: ChatUserId, { 
   const person = await lookup(ctx, workspace, to);
   const member = person?.kind === "member" ? person.member : null;
   return {
-    xp: (await isXpShownTo(ctx, workspace, member)) ? xp : 0,
-    questsDone: questsDone.length > 0 && (await areQuestsShownTo(ctx, workspace, member)) ? questsDone : [],
+    xp: (await xpGainsShownTo(ctx, workspace, member)) ? xp : 0,
+    questsDone: questsDone.length > 0 && (await questGainsShownTo(ctx, workspace, member)) ? questsDone : [],
     bonus: bonus.length > 0 && (await skillTreeAppliesIn(ctx, workspace)) ? bonus : [],
   };
-}
-
-function isXpShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null) {
-  return member === null ? xpLevelsShownIn(ctx, workspace) : xpLevelsOnFor(ctx, member);
-}
-
-function areQuestsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null) {
-  return member === null ? questsApplyIn(ctx, workspace) : questsApplyTo(ctx, member);
 }
 
 function extrasLineOf({ xp, questsDone, bonus }: Required<Gains>, hint: Line | null, link: DeepLink | null): Line | null {

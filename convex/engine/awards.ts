@@ -224,7 +224,7 @@ export type ReceivedAward = { award: AwardId; message: MessageRef; giver: Member
 
 export type GivenMessageAwards = { first: AwardId; message: MessageRef; awards: Array<{ recipient: MemberId; kudos: number }>; at: number; created: number };
 
-type AtRange = { kind: "instant"; at: number; createdBefore?: number } | { kind: "older"; than?: number };
+export type AtRange = { kind: "instant"; at: number; createdBefore?: number } | { kind: "older"; than?: number };
 
 export async function* awardsReceivedNewestFirst(ctx: QueryCtx, recipient: MemberId, before: Before): AsyncGenerator<ReceivedAward> {
   for (const range of rangesBefore(before)) {
@@ -268,7 +268,7 @@ async function* awardsGivenNewestFirst(ctx: QueryCtx, giver: MemberId, before: B
   }
 }
 
-function rangesBefore({ at, created }: Before): AtRange[] {
+export function rangesBefore({ at, created }: Before): AtRange[] {
   if (at === Infinity) return [{ kind: "older" }];
   const sameInstant: AtRange[] = created === -Infinity ? [] : [{ kind: "instant", at, ...(created !== Infinity && { createdBefore: created }) }];
   return [...sameInstant, { kind: "older", than: at }];
