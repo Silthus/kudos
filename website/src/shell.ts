@@ -110,9 +110,23 @@ const memberWithOneSkillPoint: MemberProfile = { ...memberWithEveryFeatureOpen, 
 
 const memberWithNoSkillPointsLeft: MemberProfile = { ...memberWithEveryFeatureOpen, skillPoints: 0 };
 
+const memberAtLevel7WithOneSkillPoint: MemberProfile = { ...memberWithOneSkillPoint, progression: { level: 7, xp: 1600, levelStartsAt: 1500, nextLevelAt: 2100, xpToNextLevel: 500 } };
+
 const memberWithCoinsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...ready }) };
 
 const memberWithCoinsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }) };
+
+const memberAcrossTheSheet: MemberProfile = {
+  ...member,
+  ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...locked }),
+  skillPoints: 0,
+};
+
+const memberWithEveryPanelLocked: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...locked }, { ...leaderboardFeature, ...locked }, { ...bookFeature, ...locked }, { ...skillTreeFeature, ...locked }) };
+
+const memberWithEveryPanelReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...ready }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...ready }, { ...skillTreeFeature, ...ready }) };
+
+const memberWithEveryPanelOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...opened }), skillPoints: 2 };
 
 const memberWithNothingShipped: MemberProfile = { ...member, ...onTheUnlockPath() };
 
@@ -171,9 +185,14 @@ export const shellFixtures = {
   memberWithEveryFeatureOpen,
   memberWithOneSkillPoint,
   memberWithNoSkillPointsLeft,
+  memberAtLevel7WithOneSkillPoint,
   memberWithCoinsReady,
   memberWithCoinsOpened,
   memberWithNothingShipped,
+  memberAcrossTheSheet,
+  memberWithEveryPanelLocked,
+  memberWithEveryPanelReady,
+  memberWithEveryPanelOpen,
   memberAtLevel1,
   memberAtLevel7,
   memberStartingTheJourney,
@@ -206,6 +225,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-every-feature-open": shellFixtures.memberWithEveryFeatureOpen,
   "member-with-one-skill-point": shellFixtures.memberWithOneSkillPoint,
   "member-with-no-skill-points-left": shellFixtures.memberWithNoSkillPointsLeft,
+  "member-level-7-with-one-skill-point": shellFixtures.memberAtLevel7WithOneSkillPoint,
   "member-with-nothing-shipped": shellFixtures.memberWithNothingShipped,
   "member-level-1": shellFixtures.memberAtLevel1,
   "member-level-7": shellFixtures.memberAtLevel7,

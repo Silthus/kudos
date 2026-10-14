@@ -28,7 +28,7 @@ import { useTitleFocusAfterChange, useTitleFocusOnArrival, useTitleFocusWhenTheF
 import type { QuestsRead, QuestsShown } from "./questsRead";
 import { useQuestTargetOnceLanded } from "./questTarget";
 import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
-import { hrefOf, useRoute, type Route } from "./route";
+import { hrefOf, useRoute, type BookPageId, type Route } from "./route";
 import type { Feature, MemberProfile, Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome, useSignInWhenAsked } from "./signInAttempt";
 
@@ -160,7 +160,7 @@ function Page({ state, route, board, quests, book, skillTree, membersShown, onCh
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "home") return <HomePage member={state} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} {...actions} />;
-  if (route.page === "book") return <BookAnswerPage member={state} book={book} {...actions} />;
+  if (route.page === "book") return <BookAnswerPage member={state} book={book} page={route.bookPage} {...actions} />;
   if (route.page === "skills") return <SkillTreeAnswerPage key={membersShown} member={state} skillTree={skillTree} onBuyPerk={onBuyPerk} {...actions} />;
   if (board === undefined) return null;
   if (board.kind === "not-found") return <NotFoundPage />;
@@ -184,14 +184,14 @@ function QuestsAnswerPage({ member, quests, ...actions }: QuestsAnswerPageProps)
   return <QuestsPage quests={quests} />;
 }
 
-type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; onSignIn: () => void; onSignOut: () => void };
+type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; page: BookPageId; onSignIn: () => void; onSignOut: () => void };
 
-function BookAnswerPage({ member, book, ...actions }: BookAnswerPageProps) {
+function BookAnswerPage({ member, book, page, ...actions }: BookAnswerPageProps) {
   if (book === undefined) return null;
   if (book.kind === "not-found") return <NotFoundPage />;
   if (book.kind === "ready" || book.kind === "locked") return <FeatureWaitsPage name="Book" waiting={book} readyCard={readyCardOf(member, "book")} chatUrl={member.chatUrl} />;
   if (book.kind !== "book") return <AnswerPage answer={book} {...actions} />;
-  return <BookPage book={book} />;
+  return <BookPage book={book} page={page} />;
 }
 
 type SkillTreeAnswerPageProps = { member: MemberProfile; skillTree: SkillTreeShown | undefined; onBuyPerk: ShellActions["buyPerk"]; onSignIn: () => void; onSignOut: () => void };
@@ -201,7 +201,7 @@ function SkillTreeAnswerPage({ member, skillTree, onBuyPerk, ...actions }: Skill
   if (skillTree.kind === "not-found") return <NotFoundPage />;
   if (skillTree.kind === "ready" || skillTree.kind === "locked") return <FeatureWaitsPage name="Skill tree" waiting={skillTree} readyCard={readyCardOf(member, "skillTree")} chatUrl={member.chatUrl} />;
   if (skillTree.kind !== "tree") return <AnswerPage answer={skillTree} {...actions} />;
-  return <SkillTreePage tree={skillTree} buyPerk={onBuyPerk} />;
+  return <SkillTreePage tree={skillTree} level={member.progression?.level} buyPerk={onBuyPerk} />;
 }
 
 type NotAMember = Exclude<ShellState, { kind: "member" | "loading" }>;

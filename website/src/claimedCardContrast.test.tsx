@@ -4,7 +4,7 @@ import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
-import { contrastAtOpacity, type Mode } from "./test/themeTokens";
+import { contrastAtOpacity, type Mode } from "./test/themeContrast";
 
 beforeEach(() => {
   fakeSystemTheme(false);
