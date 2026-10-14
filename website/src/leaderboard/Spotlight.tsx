@@ -6,25 +6,28 @@ import { MemberFace } from "../Face";
 import { MaxLine } from "../Max";
 import type { SpotlightDraw, SpotlightKudos } from "../spotlightRead";
 import { SidePanel } from "./SidePanel";
-import { useSpotlight, type Notice } from "./useSpotlight";
+import { useSpotlight } from "./useSpotlight";
 
 export function Spotlight({ draw }: { draw: SpotlightDraw }) {
-  const { shown, notice, drawing, pressed, next, tryAgain } = useSpotlight(draw);
+  const { shown, notice, drawing, pressed, attempts, next, tryAgain } = useSpotlight(draw);
   if (shown === undefined || shown.kind === "hidden") return null;
   return (
     <SidePanel id="spotlight-title" label="A thank-you from your workspace">
       <div aria-live={pressed ? "polite" : undefined} aria-atomic={pressed || undefined} className="flex flex-col gap-3">
-        {shown.kind === "kudos" && <ThankYou kudos={shown.kudos} notice={notice} />}
+        {shown.kind === "kudos" && <ThankYou key={shown.kudos.after} kudos={shown.kudos} />}
         {shown.kind === "empty" && <MaxLine>Thank-yous from public channels show here.</MaxLine>}
-        {shown.kind === "missed" && <MaxLine>Couldn't find a thank-you just now.</MaxLine>}
+        {shown.kind === "missed" && <MaxLine key={attempts}>Couldn't find a thank-you just now.</MaxLine>}
       </div>
+      <p role="status" className={notice === undefined ? "sr-only" : "text-muted-foreground"}>
+        {notice !== undefined && <span key={attempts}>{notice}</span>}
+      </p>
       {shown.kind === "kudos" && <DrawButton drawing={drawing} onPress={next}>Next</DrawButton>}
       {shown.kind === "missed" && <DrawButton drawing={drawing} onPress={tryAgain}>Try again</DrawButton>}
     </SidePanel>
   );
 }
 
-function ThankYou({ kudos: { giver, recipients, message, at, permalink }, notice }: { kudos: SpotlightKudos; notice: Notice | undefined }) {
+function ThankYou({ kudos: { giver, recipients, message, at, permalink } }: { kudos: SpotlightKudos }) {
   return (
     <>
       <p className="flex items-center gap-3 font-medium">
@@ -38,7 +41,6 @@ function ThankYou({ kudos: { giver, recipients, message, at, permalink }, notice
         <When at={at} />
         {permalink !== null && <OpenInSlack permalink={permalink} giver={giver.name} />}
       </p>
-      {notice !== undefined && <p className="text-muted-foreground">{notice}</p>}
     </>
   );
 }

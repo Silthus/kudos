@@ -72,6 +72,10 @@ function distinctAfters(draw: ReturnType<typeof drawing>) {
   return [...new Set(afterAsks(draw).map(({ after }) => after))];
 }
 
+function notice() {
+  return within(spotlight()).getByRole("status");
+}
+
 function afterAsks(draw: ReturnType<typeof drawing>) {
   return draw.mock.calls.map(([ask]) => ask).filter((ask): ask is { after: string } => "after" in ask);
 }
@@ -206,8 +210,20 @@ describe("WS221: Next draws after the shown kudos, and the panel never changes b
     const { user } = boardWith(drawing({ seed: pairing, after: { [pairing.after]: pairing } }));
     await findSpotlight();
     await user.click(nextButton());
-    expect(await within(messageArea()).findByText("That's the only one so far.")).toBeVisible();
+    await waitFor(() => expect(notice()).toHaveTextContent("That's the only one so far."));
+    expect(messageArea()).not.toHaveTextContent("That's the only one so far.");
     expect(within(spotlight()).getByText("Ada Lindqvist thanked Bo Okafor")).toBeVisible();
+  });
+
+  it("says a repeated outcome again on every press, as a new line in the status", async () => {
+    const { user } = boardWith(drawing({ seed: pairing, after: { [pairing.after]: pairing } }));
+    await findSpotlight();
+    await user.click(nextButton());
+    await waitFor(() => expect(notice()).toHaveTextContent("That's the only one so far."));
+    const firstLine = notice().firstElementChild;
+    await user.click(nextButton());
+    await waitFor(() => expect(notice().firstElementChild).not.toBe(firstLine));
+    expect(notice()).toHaveTextContent("That's the only one so far.");
   });
 
   it("follows skipped answers after Next, then shows the kudos past them", async () => {
@@ -226,14 +242,15 @@ describe("WS221: Next draws after the shown kudos, and the panel never changes b
     await findSpotlight();
     draw.mockClear();
     await user.click(nextButton());
-    expect(await within(messageArea()).findByText("Couldn't find another thank-you. Try again.")).toBeVisible();
+    await waitFor(() => expect(notice()).toHaveTextContent("Couldn't find another thank-you. Try again."));
+    expect(messageArea()).not.toHaveTextContent("Couldn't find another thank-you.");
     expect(within(spotlight()).getByText("Ada Lindqvist thanked Bo Okafor")).toBeVisible();
     expect(draw).toHaveBeenCalledTimes(10);
     draw.mockClear();
     await user.click(nextButton());
     expect(await within(spotlight()).findByText("Cleo Marchetti thanked Dev Rao and Eli Brandt")).toBeVisible();
     expect(afterAsks(draw)).toEqual([{ after: "skip10" }, { after: "skip11" }, { after: "skip12" }]);
-    expect(within(spotlight()).queryByText("Couldn't find another thank-you. Try again.")).toBeNull();
+    expect(notice()).toHaveTextContent("");
   });
 
   it("keeps the kudos after a failed draw, says so, and reads after the shown kudos again on the next press", async () => {
@@ -246,7 +263,7 @@ describe("WS221: Next draws after the shown kudos, and the panel never changes b
     const { user } = boardWith(draw);
     await findSpotlight();
     await user.click(nextButton());
-    expect(await within(messageArea()).findByText("Couldn't find another thank-you. Try again.")).toBeVisible();
+    await waitFor(() => expect(notice()).toHaveTextContent("Couldn't find another thank-you. Try again."));
     expect(within(spotlight()).getByText("Ada Lindqvist thanked Bo Okafor")).toBeVisible();
     failing = false;
     await user.click(nextButton());
@@ -293,6 +310,17 @@ describe("WS219: a draw that fails on the board's mount", () => {
     await user.click(within(panel).getByRole("button", { name: "Try again" }));
     expect(await within(spotlight()).findByText("Eli Brandt thanked Ada Lindqvist, Bo Okafor and 2 others")).toBeVisible();
     expect(draw.mock.calls.map(([ask]) => ask)).toEqual([{ after: "more9" }, { after: "more10" }, { after: "more11" }]);
+  });
+});
+
+describe("WS219: an attempt whose mount ended stops reading", () => {
+  it("follows no skipped answer that arrives after the board unmounts", async () => {
+    const late = deferred<MySpotlight>();
+    const draw = vi.fn<SpotlightDraw>(async (ask) => ("seed" in ask ? late.promise : { kind: "skipped", after: `${ask.after}+` }));
+    const { user } = boardWith(draw);
+    await user.click(within(screen.getByRole("navigation", { name: "Screens" })).getByRole("link", { name: "Profile" }));
+    await act(async () => late.resolve({ kind: "skipped", after: "skip1" }));
+    expect(afterAsks(draw)).toEqual([]);
   });
 });
 
