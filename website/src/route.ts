@@ -12,6 +12,10 @@ export function routeOf({ pathname, search }: { pathname: string; search: string
   return { page: "not-found" };
 }
 
+export function hrefOf(route: Route) {
+  return route.page === "leaderboard" ? leaderboardHref(route.period) : "/";
+}
+
 export function leaderboardHref(period: Period) {
   return period === "week" ? "/leaderboard" : `/leaderboard?period=${period}`;
 }
@@ -25,13 +29,25 @@ function currentRoute() {
   return routeOf(window.location);
 }
 
+function currentAddress() {
+  return window.location.pathname + window.location.search;
+}
+
+function keepingSignInCode(href: string) {
+  const code = new URLSearchParams(window.location.search).get("code");
+  if (code === null) return href;
+  const address = new URL(href, window.location.origin);
+  address.searchParams.set("code", code);
+  return address.pathname + address.search;
+}
+
 export function useRoute() {
   const [route, setRoute] = useState(currentRoute);
 
   useEffect(() => {
     if (route.page !== "leaderboard") return;
-    const canonical = leaderboardHref(route.period);
-    if (canonical !== window.location.pathname + window.location.search) window.history.replaceState(null, "", canonical);
+    const canonical = keepingSignInCode(leaderboardHref(route.period));
+    if (canonical !== currentAddress()) window.history.replaceState(null, "", canonical);
   }, [route]);
 
   useEffect(() => {

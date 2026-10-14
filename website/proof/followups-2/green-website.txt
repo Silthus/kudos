@@ -1,0 +1,94 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/followups-2/website
+
+ ✓ |website| src/liveShell.test.tsx > WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change > a profile read that fails on the first load shows the error page, not a blank page, and leaves focus alone 176ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > shows Home and Leaderboard in the screen nav while the board is open, with the current one marked 192ms
+ ✓ |website| src/liveShell.test.tsx > WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change > a sign-in that can't start shows the error page, focuses its title and forgets the attempt 122ms
+ ✓ |website| src/liveShell.test.tsx > WS20: a socket that never connects shows where the page stands, never a blank page forever > shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds 31ms
+ ✓ |website| src/liveShell.test.tsx > WS20: a socket that never connects shows where the page stands, never a blank page forever > moves on to the answer by itself once the socket connects 47ms
+ ✓ |website| src/liveShell.test.tsx > WS20: a socket that never connects shows where the page stands, never a blank page forever > stays quiet while a connected socket waits for the answer 7ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > marks Home as current at the root 147ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > shows no Leaderboard item while the board is off 105ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > renders the not-found page when the read answers not-found 40ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > still renders the not-found page on any other path 27ms
+ ✓ |website| src/liveShell.test.tsx > WS20 WS36: the leaderboard read shows where the page stands, inside the HUD > marks the page busy while the board loads, and shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds 63ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > renders the page of a denial the read answers, as the home does 45ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads /leaderboard as the week board 31ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads /leaderboard?period=month as the month board 30ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads /leaderboard?period=all as the all board 26ms
+ ✓ |website| src/liveShell.test.tsx > WS20 WS36: the leaderboard read shows where the page stands, inside the HUD > shows the error page under the HUD when the board read fails, and Home still opens in place 175ms
+ ✓ |website| src/liveShell.test.tsx > WS20 WS36: the leaderboard read shows where the page stands, inside the HUD > shows the board once a failed read answers again 82ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads any other period as this week and rewrites the address without a reload 28ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > leaves the home's query string alone, so the sign-in code reaches Convex Auth 18ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > leaves a leaderboard address alone while it carries the sign-in code, so Convex Auth redeems it there 14ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > keeps the sign-in code when it rewrites a leaderboard address 5ms
+ ✓ |website| src/liveShell.test.tsx > WS5: a sign-in started on a deep link comes back to it > asks Convex Auth to bring the member back to /leaderboard?period=month after Slack 35ms
+ ✓ |website| src/liveShell.test.tsx > WS5: a sign-in started on a deep link comes back to it > asks Convex Auth to bring the member back to / after Slack 41ms
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > shows nothing but the busy frame while Convex Auth redeems the code, never the signed-out page 12ms
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > shows Sign-in didn't finish when the redemption is rejected, instead of loading forever 31ms
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > shows the closed page when the redemption is rejected while the website is closed 23ms
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > lets the failure go once auth settles, so a later signed-out answer shows the plain sign-in page 50ms
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > ignores a rejection elsewhere on a page that brought no code from Slack 6ms
+ ✓ |website| src/liveShell.test.tsx > WS66: an open the server never answers ends the wait > closes the crate again after ten seconds without an answer, says HedgeHug couldn't be reached, and a retry opens it 158ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > follows the nav to the leaderboard and back without a reload, moving focus to the page title 300ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS38: the home's leaderboard card > is a plain card linking to the leaderboard while the board is open, with no rank or count 108ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS38: the home's leaderboard card > stays locked, with the other cards, while the board is off 137ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > says what the locked leaderboard waits for in place of the board, with no Leaderboard nav item 36ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > says what the ready leaderboard waits for in place of the board, with no Leaderboard nav item 45ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > sends a locked member home 26ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > moves focus to the board's title when the ready leaderboard opens under the open page 70ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > labels the page and offers the three periods, with this week selected by a border, a check mark and aria-pressed 49ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > switches the period from the keyboard and rewrites the address without a reload 160ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > keeps the board and focus on the switch while the next period's board loads 104ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > keeps focus on the switch when the next period's board is empty, and back 117ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > keeps the selected period when it is chosen again 44ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when ranked 33ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when tied 27ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when not ranked 37ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when left 33ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for one leader 34ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for the viewer 29ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a shared lead 28ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a viewer tied below the lead 28ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a viewer who isn't ranked 30ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a viewer who left 33ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > says all time for the all-time board 29ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > orders second, first and third from left to right, each with face, name, kudos and rank read out 37ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > prints the podium's kudos and ranks in Inter with tabular figures, not display type 37ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > gives the crown and the tallest pedestal to every leader, so tied leaders stand equal 35ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > rings only the viewer's spot and labels it You 30ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > leaves out the empty pedestals when fewer than three are ranked 33ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > uses no medal or rarity colour 33ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > lists the window after the podium in order, with one … where positions are skipped 39ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > prints ranks in Inter with tabular figures, not display type 32ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > marks the viewer's line with the primary ring, a left primary edge and a You label 41ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > reads the gap as skipped positions and hides the ellipsis from screen readers 34ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > shows the column header only over lines, never over the join line alone 25ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > shows no list when the podium holds the whole window 21ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who isn't ranked how to join, with one action to Slack, at /leaderboard 26ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who isn't ranked how to join, with one action to Slack, at /leaderboard?period=month 25ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who isn't ranked how to join, with one action to Slack, at /leaderboard?period=all 25ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who left the boards where to change that, in place of their row 20ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > says which positions the list shows, and opens the whole board centred on the viewer by keyboard 118ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > pins a copy of the viewer's row with Jump to me while it is scrolled away, which brings it back and focuses it 131ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > follows the viewer's row when kudos move them on the open whole board 79ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > pins the copy to the top edge when the viewer's row is scrolled above, and jumps instantly under reduced motion 102ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > goes back to the window from Back to my spot, keeping focus on the footer's button 91ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > offers Show fewer, and never Jump to me, to a viewer who isn't on the board 103ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > tells assistive tech the footer's button shows and hides the whole board 71ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > keeps Back to my spot while the whole board is open, even once kudos make the window cover every row 125ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > offers no whole board when the window already shows every row 27ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS44: an empty board > keeps focus on the title when the empty board fills while its title has focus 61ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS44: an empty board > shows one hedgehog, Max's sentence and one action to thank someone in Slack, with no podium or list 57ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > shows G18's line for a gain with places 32ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > shows G18's line for a gain without places 30ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > shows G18's line for a best 28ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > is not shown without a line 32ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS46: how it counts > says what counts and shows the setting as a read-only status for a viewer on the boards 29ms
+ ✓ |website| src/LeaderboardPage.test.tsx > WS46: how it counts > says what counts and shows the setting as a read-only status for a viewer off the boards 28ms
+
+ Test Files  2 passed (2)
+      Tests  85 passed (85)
+   Start at  03:46:35
+   Duration  6.04s (tests 55%, import 25%, environment 10%, transform 8%, setup 2%)
+

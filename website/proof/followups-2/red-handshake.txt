@@ -1,0 +1,38 @@
+$ vitest run --config vitest.handshake.config.ts
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/followups-2
+
+ ❯ |handshake| testing/handshake/signIn.handshake.ts (19 tests | 1 failed) 29996ms
+   ❯ the mock serves flag definitions the way PostHog does (1)
+     × an unchanged definition answers 304 on its ETag, so nothing re-runs every minute, and a switch is fetched again 1930ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |handshake| testing/handshake/signIn.handshake.ts > the mock serves flag definitions the way PostHog does > an unchanged definition answers 304 on its ETag, so nothing re-runs every minute, and a switch is fetched again
+AssertionError: expected { status: 'updated' } to deeply equal { status: 'unchanged' }
+
+- Expected
++ Received
+
+  {
+-   "status": "unchanged",
++   "status": "updated",
+  }
+
+ ❯ testing/handshake/signIn.handshake.ts:147:44
+    145| describe("the mock serves flag definitions the way PostHog does", () =…
+    146|   test("an unchanged definition answers 304 on its ETag, so nothing re…
+    147|     expect(await refreshFlagDefinitions()).toEqual({ status: "unchange…
+       |                                            ^
+    148|
+    149|     slack.switchWebsite(false);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 18 passed (19)
+   Start at  03:44:10
+   Duration  34.11s (tests 99%, import 1%)
+
+[ELIFECYCLE] Command failed with exit code 1.

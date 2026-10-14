@@ -95,6 +95,18 @@ describe("WS37 WS1: the leaderboard lives at /leaderboard, with the period in th
     expect(window.location.pathname + window.location.search).toBe("/?code=18437459");
   });
 
+  it("leaves a leaderboard address alone while it carries the sign-in code, so Convex Auth redeems it there", () => {
+    visit("/leaderboard?period=month&code=18437459");
+    renderApp(shellFixtures.loading);
+    expect(window.location.pathname + window.location.search).toBe("/leaderboard?period=month&code=18437459");
+  });
+
+  it("keeps the sign-in code when it rewrites a leaderboard address", () => {
+    visit("/leaderboard?period=year&code=18437459");
+    renderApp(shellFixtures.loading);
+    expect(window.location.pathname + window.location.search).toBe("/leaderboard?code=18437459");
+  });
+
   it("follows the nav to the leaderboard and back without a reload, moving focus to the page title", async () => {
     const { user } = renderApp(withTheBoard, fixedLeaderboard(leaderboardFixtures.midBoard));
     await user.click(within(screens()).getByRole("link", { name: "Leaderboard" }));

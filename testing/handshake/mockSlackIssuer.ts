@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { exportJWK, generateKeyPair, SignJWT } from "jose";
 
@@ -53,7 +54,7 @@ export class MockSlackIssuer {
     if (url.pathname === "/api/openid.connect.token") return this.token(new URLSearchParams(await body(request)), request, response);
     if (url.pathname === "/jwks") return json(response, { keys: [jwk] });
     if (url.pathname === "/api/users.info") return this.usersInfo(url, response);
-    if (url.pathname === "/flags/definitions") return json(response, this.flagDefinitions());
+    if (url.pathname === "/flags/definitions") return this.serveFlagDefinitions(request, response);
     if (url.pathname === "/api/views.publish") return json(response, this.publishHome(JSON.parse(await body(request))));
     if (url.pathname === "/control/home") return json(response, this.homes.get(url.searchParams.get("user") ?? "") ?? null);
     if (url.pathname.startsWith("/api/")) return json(response, { ok: true });
@@ -92,6 +93,13 @@ export class MockSlackIssuer {
   private publishHome({ user_id, view }: { user_id: string; view: unknown }) {
     this.homes.set(user_id, view);
     return { ok: true };
+  }
+
+  private serveFlagDefinitions(request: IncomingMessage, response: ServerResponse) {
+    const definitions = JSON.stringify(this.flagDefinitions());
+    const etag = `"${createHash("sha256").update(definitions).digest("hex")}"`;
+    if (request.headers["if-none-match"] === etag) return response.writeHead(304, { etag }).end();
+    response.writeHead(200, { "content-type": "application/json", etag }).end(definitions);
   }
 
   private flagDefinitions() {

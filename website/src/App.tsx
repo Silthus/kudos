@@ -20,7 +20,7 @@ import { SignInUnfinishedPage } from "./pages/SignInUnfinishedPage";
 import { UnverifiedPage } from "./pages/UnverifiedPage";
 import { VerifyingPage } from "./pages/VerifyingPage";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival, useTitleFocusWhenTheFocusedElementGoes } from "./pageFocus";
-import { useRoute, type Route } from "./route";
+import { hrefOf, useRoute, type Route } from "./route";
 import type { MemberProfile, Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome } from "./signInAttempt";
 
@@ -48,8 +48,8 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
   );
   const signIn = useCallback(() => {
     rememberSignInStarted();
-    actions.signIn();
-  }, [actions]);
+    actions.signIn(hrefOf(route));
+  }, [actions, route]);
   return (
     <NavigateProvider value={arriveAt}>
       <MomentsProvider value={moments}>
