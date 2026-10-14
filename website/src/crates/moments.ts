@@ -29,12 +29,24 @@ export function useMoments() {
   return useContext(MomentsContext);
 }
 
-export function useCrateMoments(openFeature: ShellActions["openFeature"]): Moments {
+export function useCrateMoments(openFeature: ShellActions["openFeature"], { signedOut }: { signedOut: boolean }): Moments {
   const [attempts, setAttempts] = useState<Partial<Record<Feature, Attempt>>>({});
-  const [reveal, setReveal] = useState<Reveal | undefined>(undefined);
+  const [reveals, setReveals] = useState<Reveal[]>([]);
   const [announcement, setAnnouncement] = useState("");
   const sending = useRef(new Set<Feature>());
   const focusAfterClose = useRef<Feature | undefined>(undefined);
+  const session = useRef(0);
+  const reveal = reveals[0];
+
+  useEffect(() => {
+    if (!signedOut) return;
+    session.current += 1;
+    sending.current.clear();
+    focusAfterClose.current = undefined;
+    setAttempts({});
+    setReveals([]);
+    setAnnouncement("");
+  }, [signedOut]);
 
   const attemptIs = useCallback((feature: Feature, attempt: Attempt | undefined) => setAttempts((all) => ({ ...all, [feature]: attempt })), []);
 
@@ -42,19 +54,22 @@ export function useCrateMoments(openFeature: ShellActions["openFeature"]): Momen
     async (card: FeatureCard) => {
       const { feature } = card;
       if (sending.current.has(feature)) return;
+      const sentIn = session.current;
       sending.current.add(feature);
       attemptIs(feature, "opening");
       setAnnouncement("");
       try {
         const answer = await openFeature(feature);
-        if (answer.kind === "opened") setReveal({ card, seenBefore: hasSeen(card.seen) });
+        if (session.current !== sentIn) return;
+        if (answer.kind === "opened") setReveals((queued) => [...queued, { card, seenBefore: hasSeen(card.seen) }]);
         attemptIs(feature, answer.kind === "refused" ? "refused" : undefined);
         if (answer.kind === "refused") setAnnouncement(attemptMessages.refused);
       } catch {
+        if (session.current !== sentIn) return;
         attemptIs(feature, "unreachable");
         setAnnouncement(attemptMessages.unreachable);
       } finally {
-        sending.current.delete(feature);
+        if (session.current === sentIn) sending.current.delete(feature);
       }
     },
     [openFeature, attemptIs],
@@ -68,7 +83,7 @@ export function useCrateMoments(openFeature: ShellActions["openFeature"]): Momen
   const close = useCallback(
     ({ returnFocus }: { returnFocus: boolean }) => {
       focusAfterClose.current = returnFocus ? reveal?.card.feature : undefined;
-      setReveal(undefined);
+      setReveals((queued) => queued.slice(1));
     },
     [reveal],
   );

@@ -31,7 +31,7 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
   const member = shown.kind === "member" ? shown : undefined;
   const onTheBoard = member !== undefined && route.page === "leaderboard";
   const board = useBoardWhileTheNextLoads(useLeaderboard(onTheBoard ? route.period : undefined), onTheBoard);
-  const moments = useCrateMoments(actions.openFeature);
+  const moments = useCrateMoments(actions.openFeature, { signedOut: member === undefined && !stillAsking(shown) });
   const revealing = moments.reveal !== undefined && member !== undefined;
   useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : shown.kind, { held: revealing });
   const expectArrival = useTitleFocusOnArrival();
@@ -54,11 +54,15 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
             <Page state={shown} route={route} board={board} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
           </ErrorBoundary>
         </Frame>
-        {revealing && <RevealDialog {...moments.reveal!} chatUrl={member.chatUrl} onFinish={moments.finish} onClose={moments.close} />}
+        {revealing && <RevealDialog key={moments.reveal!.card.seen} {...moments.reveal!} chatUrl={member.chatUrl} onFinish={moments.finish} onClose={moments.close} />}
         <Announcement moments={moments} />
       </MomentsProvider>
     </NavigateProvider>
   );
+}
+
+function stillAsking(state: ShellState) {
+  return state.kind === "loading" || state.kind === "connecting";
 }
 
 function Announcement({ moments }: { moments: Moments }) {

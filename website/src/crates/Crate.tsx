@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@posthog/quill";
 import { aboutOf } from "../features";
 import type { FeatureCard } from "../shell";
@@ -10,9 +11,11 @@ export function Crate({ card, heading: Heading, open, artWidth }: CrateProps) {
   const moments = useMoments();
   const attempt = moments?.attemptOf(card.feature);
   const opening = attempt === "opening";
+  const [stillSinceOpen, keepStill] = useState(false);
+  if (attempt !== undefined && !stillSinceOpen) keepStill(true);
   return (
     <article className="hud-panel relative flex h-full items-center gap-4 rounded-xl border bg-card p-4">
-      <CrateArt phase="closed" width={artWidth} Hog={aboutOf(card.feature).Hog} nudge />
+      <CrateArt phase="closed" width={artWidth} Hog={aboutOf(card.feature).Hog} nudge={!stillSinceOpen} />
       <div className="flex min-w-0 flex-col items-start gap-1">
         <Heading className="text-sm font-medium">{`Unlocks: ${card.name}`}</Heading>
         <p className="text-xs text-muted-foreground">{`It opens ${card.opens}.`}</p>

@@ -30,6 +30,10 @@ function crate() {
   return within(main()).getByRole("heading", { level: 3, name: "Unlocks: Leaderboard" }).closest("article")!;
 }
 
+function crateNamed(name: string) {
+  return within(main()).getByRole("heading", { level: 3, name: `Unlocks: ${name}` }).closest("article")!;
+}
+
 function openButton() {
   return within(crate()).getByRole("button", { name: /Open|Opening…/ });
 }
@@ -192,6 +196,71 @@ describe("WS66: the reveal follows the server", () => {
     await user.click(within(dialog()!).getByRole("link", { name: "Go to Leaderboard" }));
     expect(dialog()).toBeNull();
     expect(window.location.pathname).toBe("/leaderboard");
+  });
+});
+
+describe("WS66: the reveal holds up against overlapping answers and sessions", () => {
+  it("plays each crate's first reveal in full when two answers arrive together", async () => {
+    const leaderboard = answerLater();
+    const skillTree = answerLater();
+    const openFeature = vi.fn((feature: string) => (feature === "leaderboard" ? leaderboard.answer : skillTree.answer));
+    const { user } = renderApp(shellFixtures.memberWithEveryFeatureReady, undefined, { openFeature });
+    await user.click(within(crateNamed("Leaderboard")).getByRole("button", { name: "Open" }));
+    await user.click(within(crateNamed("Skill tree")).getByRole("button", { name: "Open" }));
+    await leaderboard.settle({ kind: "opened" });
+    await user.keyboard("{Escape}");
+    await skillTree.settle({ kind: "opened" });
+    expect(within(dialog()!).getByRole("heading", { name: "Leaderboard is open" })).toBeInTheDocument();
+    await user.click(within(dialog()!).getByRole("button", { name: "Done" }));
+    expect(dialog()).toHaveAccessibleName("Level 5 unlock");
+    expect(within(dialog()!).queryByRole("heading", { name: "Skill tree is open" })).toBeNull();
+  });
+
+  it("drops the reveal when the member signs out, and shows none on the next sign-in", async () => {
+    const { showVisitor } = await openTheCrate();
+    showVisitor(shellFixtures.signedOut);
+    showVisitor(ready);
+    expect(dialog()).toBeNull();
+  });
+
+  it("ignores an answer that arrives after the member signed out", async () => {
+    const pending = answerLater();
+    const { user, showVisitor } = renderApp(ready, undefined, { openFeature: () => pending.answer });
+    await user.click(openButton());
+    showVisitor(shellFixtures.signedOut);
+    await pending.settle({ kind: "opened" });
+    showVisitor(ready);
+    expect(dialog()).toBeNull();
+    expect(openButton()).toHaveAccessibleName("Open");
+  });
+
+  it("keeps focus in the dialog after Replay under reduced motion, so Esc still closes it", async () => {
+    preferReducedMotion();
+    const { user } = await openTheCrate();
+    within(dialog()!).getByRole("button", { name: "Replay" }).focus();
+    await user.keyboard("{Enter}");
+    expect(dialog()).toContainElement(document.activeElement as HTMLElement);
+    expect(document.activeElement).not.toBe(document.body);
+    await user.keyboard("{Escape}");
+    expect(dialog()).toBeNull();
+  });
+
+  it("keeps the dialog open when Go to opens in another tab", async () => {
+    const { user } = await openTheCrate();
+    await user.keyboard("{Escape}");
+    await user.keyboard("{Control>}");
+    await user.click(within(dialog()!).getByRole("link", { name: "Go to Leaderboard" }));
+    await user.keyboard("{/Control}");
+    expect(dialog()).not.toBeNull();
+  });
+});
+
+describe("WS65 WS66: the crate nudges once, and never while it opens", () => {
+  it("stops nudging once Open is pressed, and stays still after an error", async () => {
+    const { user } = renderApp(ready, undefined, { openFeature: async () => Promise.reject(new Error("socket closed")) });
+    expect(crate().querySelector("[data-nudge]")).not.toBeNull();
+    await user.click(openButton());
+    expect(crate().querySelector("[data-nudge]")).toBeNull();
   });
 });
 

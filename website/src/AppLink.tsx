@@ -4,12 +4,12 @@ const NavigateContext = createContext<(href: string) => void>((href) => window.l
 
 export const NavigateProvider = NavigateContext.Provider;
 
-export function AppLink({ href, onClick, ...props }: ComponentProps<"a"> & { href: string }) {
+export function AppLink({ href, onFollow, ...props }: ComponentProps<"a"> & { href: string; onFollow?: () => void }) {
   const navigate = useContext(NavigateContext);
   const followInPlace = (event: MouseEvent<HTMLAnchorElement>) => {
-    onClick?.(event);
     if (!isPlainClick(event)) return;
     event.preventDefault();
+    onFollow?.();
     navigate(href);
   };
   return <a href={href} {...props} onClick={followInPlace} />;

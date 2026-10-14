@@ -26,9 +26,7 @@ export function RevealDialog({ card, seenBefore, chatUrl, onFinish, onClose }: R
   }, [playing]);
 
   useEffect(() => {
-    if (playing) return;
-    onFinish(card);
-    firstActionIn(dialog.current)?.focus();
+    if (!playing) onFinish(card);
   }, [playing, card, onFinish]);
 
   const replay = () => {
@@ -61,7 +59,7 @@ export function RevealDialog({ card, seenBefore, chatUrl, onFinish, onClose }: R
     >
       <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-3 px-5 pb-12 pt-[clamp(2.5rem,8vh,5rem)] text-center">
         <span id={labelId} className="hud-label moment-label">{`Level ${card.level} unlock`}</span>
-        <div className="py-6">
+        <div className="pb-6 pt-36">
           <CrateArt phase={playing ? "opening" : "open"} width={220} Hog={aboutOf(card.feature).Hog} />
         </div>
         {!playing && <EndState key={shownAt} card={card} chatUrl={chatUrl} onClose={onClose} onReplay={replay} />}
@@ -73,8 +71,10 @@ export function RevealDialog({ card, seenBefore, chatUrl, onFinish, onClose }: R
 type EndStateProps = { card: FeatureCard; chatUrl: string; onClose: RevealDialogProps["onClose"]; onReplay: () => void };
 
 function EndState({ card, chatUrl, onClose, onReplay }: EndStateProps) {
+  const end = useRef<HTMLDivElement>(null);
+  useEffect(() => firstActionIn(end.current)?.focus(), []);
   return (
-    <div className="moment-end flex w-full flex-col items-center gap-4">
+    <div ref={end} className="moment-end flex w-full flex-col items-center gap-4">
       <h2 className="hud-display text-[clamp(2rem,8vw,3rem)] font-bold leading-tight">{`${card.name} is open`}</h2>
       <div className="flex w-full max-w-md flex-col gap-4 rounded-2xl bg-card p-5 text-left text-card-foreground shadow-2xl">
         <p className="text-base">{`It opens ${card.opens}.`}</p>
@@ -102,7 +102,7 @@ function GoThere({ card, chatUrl, onGo }: { card: FeatureCard; chatUrl: string; 
       </a>
     );
   return (
-    <AppLink href={page.href} onClick={onGo} className={buttonVariants({ variant: "primary" })}>
+    <AppLink href={page.href} onFollow={onGo} className={buttonVariants({ variant: "primary" })}>
       {`Go to ${card.name}`}
       <IconArrowRight aria-hidden="true" className="size-4" />
     </AppLink>
