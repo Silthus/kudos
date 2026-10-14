@@ -12,13 +12,13 @@ import { isOnTheBoards } from "./visibility";
 
 export type EveryoneBoardView = BoardView & { improvement: Improvement | null };
 
-export type RankedRow = { position: number; rank: number; tied: boolean; member: MemberId; name: string | undefined; kudos: number; viewer: boolean };
+export type RankedRow = { position: number; rank: number; tied: boolean; member: MemberId; name: string | undefined; picture: string | null; kudos: number; viewer: boolean };
 
 export type Standing = { kind: "ranked"; position: number; rank: number } | { kind: "not-ranked" } | { kind: "left" };
 
 export type RankedBoard = { rows: RankedRow[]; window: number[]; standing: Standing; improvement: Improvement | null };
 
-type Giver = Entry & { member: MemberId; displayName: string | undefined };
+type Giver = Entry & { member: MemberId; displayName: string | undefined; picture: string | null };
 
 export const countKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
@@ -51,7 +51,7 @@ export async function rankedBoardOf(ctx: QueryCtx, workspace: string, viewer: st
   const { givers, viewerLeft, improvement } = await boardFactsOf(ctx, workspace, viewer, period);
   const { rows, window } = ranking(givers, viewer);
   return {
-    rows: rows.map(({ position, rank, tied, member, displayName, value, viewer }) => ({ position, rank, tied, member, name: displayName, kudos: value, viewer })),
+    rows: rows.map(({ position, rank, tied, member, displayName, picture, value, viewer }) => ({ position, rank, tied, member, name: displayName, picture, kudos: value, viewer })),
     window,
     standing: viewerLeft ? { kind: "left" } : standingOf(rows),
     improvement,
@@ -128,7 +128,7 @@ async function giverOf(ctx: QueryCtx, member: MemberId, kudos: number, viewer: M
   const row = await ctx.db.get(member);
   if (row?.kind !== "member") return null;
   if (member !== viewer && !(await isOnTheBoards(ctx, member))) return null;
-  return { id: row.user, name: row.name ?? row.user, value: kudos, member, displayName: row.name };
+  return { id: row.user, name: row.name ?? row.user, value: kudos, member, displayName: row.name, picture: row.picture ?? null };
 }
 
 async function wasCounted(ctx: QueryCtx, message: MessageRef) {

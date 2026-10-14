@@ -7,7 +7,7 @@ export type SlackUser = {
   is_owner?: boolean;
   tz?: string;
   real_name?: string;
-  profile?: { display_name?: string; real_name?: string; email?: string; title?: string };
+  profile?: { display_name?: string; real_name?: string; email?: string; title?: string; image_72?: string; image_192?: string };
 };
 
 export type SlackUserGroup = {
