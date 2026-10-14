@@ -1,0 +1,193 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { FakeSlack } from "../../testing/fakeSlack";
+import { unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { testBackend, type Backend } from "../../testing/slackBackend";
+import { opens, reachesLevel } from "../../testing/unlocks";
+import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../../testing/website";
+import { api } from "../_generated/api";
+import type { MemberProfile } from "./profile";
+
+const now = new Date("2026-10-14T10:00:00Z");
+const juno = { user: "U_JUNO", name: "Juno Whitlock" };
+const allFlags = ["everyone-board", "xp-levels", "unlocks"];
+
+let postHog: FakePostHog;
+let t: Backend;
+
+beforeEach(() => {
+  vi.useFakeTimers({ now });
+  aDeploymentForWorkspace();
+  postHog = new FakePostHog();
+  vi.stubGlobal("fetch", routedFetch(postHog, new FakeSlack().fetch));
+  t = testBackend();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
+
+function flagsOn(...keys: string[]) {
+  return switchWebsite(t, postHog, true, ...keys);
+}
+
+async function launchedThen(...keys: string[]) {
+  await flagsOn(...allFlags);
+  await unlocksShippedBeforeAnyoneJoined(t);
+  await flagsOn(...keys);
+}
+
+async function signedInMember() {
+  const member = await aMember(t, juno.user);
+  const { asSignedIn } = await aSession(t, juno);
+  return { member, asSignedIn };
+}
+
+async function myProfile(asSignedIn: Pick<Backend, "query">): Promise<MemberProfile> {
+  const profile = await asSignedIn.query(api.website.profile.getMyProfile, {});
+  if (profile.kind !== "member") throw new Error(`expected a member, got ${profile.kind}`);
+  return profile;
+}
+
+function leaderboardEntryOf({ features }: MemberProfile) {
+  return features?.find((card) => card.feature === "leaderboard");
+}
+
+describe("the website's feature states are Unlocks' facts", () => {
+  type UnlocksDontApply = { condition: string; turnOn: () => Promise<unknown> };
+
+  const unlocksDontApply: UnlocksDontApply[] = [
+    { condition: "with xp-levels and unlocks off, before any launch", turnOn: () => flagsOn("everyone-board") },
+    { condition: "with xp-levels on and unlocks off, before any launch", turnOn: () => flagsOn("everyone-board", "xp-levels") },
+    { condition: "with unlocks on and xp-levels off, before the launch", turnOn: () => flagsOn("everyone-board", "unlocks") },
+    { condition: "with xp-levels and unlocks on, before the launch", turnOn: () => flagsOn(...allFlags) },
+    { condition: "with xp-levels and unlocks switched off after the launch", turnOn: () => launchedThen("everyone-board") },
+    { condition: "with xp-levels on and unlocks switched off after the launch", turnOn: () => launchedThen("everyone-board", "xp-levels") },
+    { condition: "with unlocks on and xp-levels switched off after the launch", turnOn: () => launchedThen("everyone-board", "unlocks") },
+  ];
+
+  test.each(unlocksDontApply)("WS55 WS56: $condition, features is null and the leaderboard is WS30's", async ({ turnOn }) => {
+    await turnOn();
+    const { asSignedIn } = await signedInMember();
+
+    expect(await myProfile(asSignedIn)).toMatchObject({ features: null, leaderboard: "open" });
+  });
+
+  test("WS55: a website read never runs the P77 launch, though xp-levels and unlocks are on", async () => {
+    await flagsOn(...allFlags);
+    const { asSignedIn } = await signedInMember();
+
+    expect(await myProfile(asSignedIn)).toMatchObject({ features: null });
+    expect(await t.run((ctx) => ctx.db.query("unlockLaunches").collect())).toEqual([]);
+    expect(await t.run((ctx) => ctx.db.query("unlocks").collect())).toEqual([]);
+  });
+
+  describe("while unlocks apply", () => {
+    beforeEach(() => launchedThen(...allFlags));
+
+    test("WS56 WS57: a member at level 1 reads the shipped Leaderboard locked at level 3, with its name and what it opens", async () => {
+      const { asSignedIn } = await signedInMember();
+
+      const profile = await myProfile(asSignedIn);
+
+      expect(profile.features).toEqual([
+        { feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 3, state: "locked", readyAt: null, openedAt: null, seen: expect.any(String) },
+      ]);
+      expect(profile.leaderboard).toBe("locked");
+    });
+
+    test("WS56 WS57: a member at level 3 reads it ready since the moment their level made it ready", async () => {
+      const { member, asSignedIn } = await signedInMember();
+      const readyAt = Date.parse("2026-10-14T09:00:00Z");
+      await reachesLevel(t, member, 3, readyAt);
+
+      const profile = await myProfile(asSignedIn);
+
+      expect(leaderboardEntryOf(profile)).toMatchObject({ state: "ready", readyAt, openedAt: null });
+      expect(profile.leaderboard).toBe("ready");
+    });
+
+    test("WS56 WS57: a member who opened it reads it open, with when", async () => {
+      const { member, asSignedIn } = await signedInMember();
+      await reachesLevel(t, member, 3, Date.parse("2026-10-14T09:00:00Z"));
+      await opens(t, member, "leaderboard");
+
+      const profile = await myProfile(asSignedIn);
+
+      expect(leaderboardEntryOf(profile)).toMatchObject({ state: "open", readyAt: Date.parse("2026-10-14T09:00:00Z"), openedAt: now.getTime() });
+      expect(profile.leaderboard).toBe("open");
+    });
+  });
+
+  test("P77: a member who was there at the launch reads the Leaderboard open from the launch", async () => {
+    await flagsOn(...allFlags);
+    const { asSignedIn } = await signedInMember();
+    await unlocksShippedBeforeAnyoneJoined(t);
+
+    const profile = await myProfile(asSignedIn);
+
+    expect(leaderboardEntryOf(profile)).toMatchObject({ state: "open", readyAt: now.getTime(), openedAt: now.getTime() });
+    expect(profile.leaderboard).toBe("open");
+  });
+});
+
+describe("the website shows only shipped features", () => {
+  test("WS56 P78: with skill-tree off, a member past level 5 reads no Skill tree entry", async () => {
+    await launchedThen(...allFlags);
+    const { member, asSignedIn } = await signedInMember();
+    await reachesLevel(t, member, 5);
+
+    expect((await myProfile(asSignedIn)).features?.map((card) => card.feature)).toEqual(["leaderboard"]);
+  });
+
+  test("WS56: with skill-tree on, a member at level 5 reads the Leaderboard and the Skill tree ready, in the schedule's order", async () => {
+    await launchedThen(...allFlags, "skill-tree");
+    const { member, asSignedIn } = await signedInMember();
+    await reachesLevel(t, member, 5);
+
+    const features = (await myProfile(asSignedIn)).features;
+
+    expect(features?.map(({ feature, name, level, state }) => ({ feature, name, level, state }))).toEqual([
+      { feature: "leaderboard", name: "Leaderboard", level: 3, state: "ready" },
+      { feature: "skillTree", name: "Skill tree", level: 5, state: "ready" },
+    ]);
+  });
+
+  test("WS57: with everyone-board off, there is no Leaderboard entry and the leaderboard reads off", async () => {
+    await launchedThen("xp-levels", "unlocks", "skill-tree");
+    const { asSignedIn } = await signedInMember();
+
+    const profile = await myProfile(asSignedIn);
+
+    expect(profile.features?.map((card) => card.feature)).toEqual(["skillTree"]);
+    expect(profile.leaderboard).toBe("off");
+  });
+
+  test("WS56 P78: with no feature shipped, features is an empty list, never the plain cards", async () => {
+    await launchedThen("xp-levels", "unlocks");
+    const { asSignedIn } = await signedInMember();
+
+    expect(await myProfile(asSignedIn)).toMatchObject({ features: [], leaderboard: "off" });
+  });
+});
+
+describe("WS66: a crate's seen key is opaque and per member", () => {
+  test("two members' keys for the same crate differ, stay the same across reads, and carry no ID", async () => {
+    await launchedThen(...allFlags);
+    const { member, asSignedIn } = await signedInMember();
+    const bob = await aMember(t, "U_BOB");
+    const { asSignedIn: asBob } = await aSession(t, { user: "U_BOB", name: "Bob" });
+
+    const junoSeen = leaderboardEntryOf(await myProfile(asSignedIn))!.seen;
+    const bobSeen = leaderboardEntryOf(await myProfile(asBob))!.seen;
+
+    expect(junoSeen).not.toBe(bobSeen);
+    expect(leaderboardEntryOf(await myProfile(asSignedIn))!.seen).toBe(junoSeen);
+    for (const id of [member, bob, juno.user, "U_BOB", "T1"]) {
+      expect(junoSeen).not.toContain(id);
+      expect(bobSeen).not.toContain(id);
+    }
+  });
+});

@@ -164,18 +164,6 @@ describe("WS52: the leaderboard page waits for its unlock", () => {
     expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
     expect(pageTitle()).toHaveFocus();
   });
-
-  it.each([
-    { state: "locked", visitor: shellFixtures.memberWaitingForTheBoard, says: "Leaderboard opens at level 3." },
-    { state: "ready", visitor: shellFixtures.memberWithTheBoardReady, says: "Leaderboard is ready for you. Open it in Slack's App Home." },
-  ])("keeps the home's card locked while the leaderboard is $state, with that sentence", ({ visitor, says }) => {
-    renderApp(visitor);
-    expect(within(main()).queryByRole("link", { name: /Leaderboard/ })).not.toBeInTheDocument();
-    const card = within(main()).getByRole("heading", { level: 3, name: "Leaderboard" }).parentElement;
-    expect(card).toHaveTextContent("Locked");
-    expect(card).toHaveTextContent(says);
-    expect(within(screens()).getAllByRole("link").map((link) => link.textContent)).toEqual(["Home"]);
-  });
 });
 
 function showBoard(answer: Leaderboard, path = "/leaderboard") {

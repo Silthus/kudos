@@ -1,6 +1,6 @@
-import type { MemberProfile, MyProfile } from "../../convex/website/profile";
+import type { FeatureCard, MemberProfile, MyProfile } from "../../convex/website/profile";
 
-export type { Face, MemberProfile, Progression } from "../../convex/website/profile";
+export type { Face, FeatureCard, MemberProfile, Progression } from "../../convex/website/profile";
 export type { Period } from "../../convex/leaderboard/periods";
 
 export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } | { kind: "sign-in-unfinished" };
@@ -19,15 +19,40 @@ const member: MemberProfile = {
   lifetime: { given: 14, received: 9 },
   chatUrl: "https://app.slack.com/client/T1",
   leaderboard: "off",
-  leaderboardLevel: 3,
+  features: null,
   progression: null,
 };
 
+const readyAt = Date.parse("2026-10-12T09:00:00Z");
+
+const openedAt = Date.parse("2026-10-13T09:00:00Z");
+
+const leaderboardFeature = { feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 3, seen: "5e3a0c" } as const;
+
+const skillTreeFeature = { feature: "skillTree", name: "Skill tree", opens: "the tree and your first skill point", level: 5, seen: "9b71d2" } as const;
+
+const locked = { state: "locked", readyAt: null, openedAt: null } as const;
+
+const ready = { state: "ready", readyAt, openedAt: null } as const;
+
+const opened = { state: "open", readyAt, openedAt } as const;
+
+const onTheUnlockPath = (...features: FeatureCard[]): Pick<MemberProfile, "leaderboard" | "features"> => ({
+  leaderboard: features.find(({ feature }) => feature === "leaderboard")?.state ?? "off",
+  features,
+});
+
 const memberWithTheBoard: MemberProfile = { ...member, leaderboard: "open" };
 
-const memberWaitingForTheBoard: MemberProfile = { ...member, leaderboard: "locked" };
+const memberWaitingForTheBoard: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...locked }) };
 
-const memberWithTheBoardReady: MemberProfile = { ...member, leaderboard: "ready" };
+const memberWithTheBoardReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...ready }, { ...skillTreeFeature, ...locked }) };
+
+const memberWithTheBoardOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
+
+const memberWithEveryFeatureOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...opened }) };
+
+const memberWithNothingShipped: MemberProfile = { ...member, ...onTheUnlockPath() };
 
 const memberWithAQuietWeek: MemberProfile = { ...member, thisWeek: { given: 0, received: 0 } };
 
@@ -49,6 +74,9 @@ export const shellFixtures = {
   memberWithTheBoard,
   memberWaitingForTheBoard,
   memberWithTheBoardReady,
+  memberWithTheBoardOpened,
+  memberWithEveryFeatureOpen,
+  memberWithNothingShipped,
   memberAtLevel1,
   memberAtLevel7,
   error: { kind: "broken" },
@@ -68,6 +96,9 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-the-board": shellFixtures.memberWithTheBoard,
   "member-waiting-for-the-board": shellFixtures.memberWaitingForTheBoard,
   "member-with-the-board-ready": shellFixtures.memberWithTheBoardReady,
+  "member-with-the-board-opened": shellFixtures.memberWithTheBoardOpened,
+  "member-with-every-feature-open": shellFixtures.memberWithEveryFeatureOpen,
+  "member-with-nothing-shipped": shellFixtures.memberWithNothingShipped,
   "member-level-1": shellFixtures.memberAtLevel1,
   "member-level-7": shellFixtures.memberAtLevel7,
   error: shellFixtures.error,

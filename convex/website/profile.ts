@@ -4,13 +4,13 @@ import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { workspaceLink } from "../slack/workspaceLink";
-import { scheduled } from "../unlocks/schedule";
 import { followTheClock } from "./clock";
 import { faceOf, type Face } from "./faces";
-import { leaderboardStateOf, type LeaderboardState } from "./leaderboardState";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
+import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, type LeaderboardState } from "./unlockPath";
 
 export type { Face } from "./faces";
+export type { FeatureCard } from "./unlockPath";
 
 export type Kudos = { given: number; received: number };
 
@@ -26,7 +26,7 @@ export type MemberProfile = {
   lifetime: Kudos;
   chatUrl: string;
   leaderboard: LeaderboardState;
-  leaderboardLevel: number;
+  features: FeatureCard[] | null;
   progression: Progression | null;
 };
 
@@ -36,6 +36,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
   await followTheClock(ctx);
   const facts = await homeFacts(ctx, me.workspace, me.user);
   if (facts?.kind !== "member") return { kind: "not-a-member" };
+  const path = await unlockPathOf(ctx, me);
   return {
     kind: "member",
     ...(me.name !== undefined && { name: me.name }),
@@ -45,8 +46,8 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     thisWeek: { given: facts.givenWeek, received: facts.receivedWeek },
     lifetime: { given: facts.given, received: facts.received },
     chatUrl: workspaceLink(me.workspace),
-    leaderboard: await leaderboardStateOf(ctx, me),
-    leaderboardLevel: scheduled("leaderboard").level,
+    leaderboard: await leaderboardStateOf(ctx, me, path),
+    features: await featureCardsOf(me, path),
     progression: await progressionOf(ctx, me),
   };
 });

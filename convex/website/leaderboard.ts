@@ -6,8 +6,8 @@ import { workspaceLink } from "../slack/workspaceLink";
 import { scheduled } from "../unlocks/schedule";
 import { followTheClock } from "./clock";
 import { faceOf, initialsFaceOf, type Face } from "./faces";
-import { leaderboardStateOf } from "./leaderboardState";
 import { memberQuery, type Denial } from "./memberQuery";
+import { leaderboardStateOf, unlockPathOf } from "./unlockPath";
 
 export type LeaderboardRow = { position: number; rank: number; tied: boolean; name: string; face: Face; kudos: number; you: boolean };
 
@@ -31,7 +31,7 @@ const nameless = "A teammate";
 export const getLeaderboard = memberQuery({
   args: { period: periodValidator },
   handler: async (ctx, me, { period }): Promise<LeaderboardAnswer> => {
-    const state = await leaderboardStateOf(ctx, me);
+    const state = await leaderboardStateOf(ctx, me, await unlockPathOf(ctx, me));
     if (state === "off") return { kind: "not-found" };
     if (state === "ready") return { kind: "ready" };
     if (state === "locked") return { kind: "locked", level: scheduled("leaderboard").level };

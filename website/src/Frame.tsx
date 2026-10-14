@@ -1,7 +1,8 @@
 import type { ComponentType, ReactNode } from "react";
-import { IconHome, IconStar } from "@posthog/icons";
+import { IconHome } from "@posthog/icons";
 import { AccountMenu } from "./AccountMenu";
 import { AppLink } from "./AppLink";
+import { openWebPagesOf } from "./features";
 import type { Screen } from "./route";
 import type { MemberProfile } from "./shell";
 import { ThemeControl } from "./ThemeControl";
@@ -14,7 +15,7 @@ export function Frame({ member, current, busy, onSignOut, children }: FrameProps
       <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 md:px-6">
           <Wordmark />
-          {member && <ScreenNav current={current} leaderboard={member.leaderboard === "open"} />}
+          {member && <ScreenNav current={current} member={member} />}
           <div className="ml-auto flex items-center gap-2">
             <ThemeControl />
             {member && onSignOut && <AccountMenu member={member} onSignOut={onSignOut} />}
@@ -37,17 +38,17 @@ function Wordmark() {
   );
 }
 
-function ScreenNav({ current, leaderboard }: { current?: Screen; leaderboard: boolean }) {
+function ScreenNav({ current, member }: { current?: Screen; member: MemberProfile }) {
   return (
     <nav aria-label="Screens" className="mx-auto flex items-center gap-0.5">
       <ScreenLink href="/" current={current === "home"} Icon={IconHome}>
         Home
       </ScreenLink>
-      {leaderboard && (
-        <ScreenLink href="/leaderboard" current={current === "leaderboard"} Icon={IconStar}>
-          Leaderboard
+      {openWebPagesOf(member).map(({ screen, href, name, Icon }) => (
+        <ScreenLink key={href} href={href} current={current === screen} Icon={Icon}>
+          {name}
         </ScreenLink>
-      )}
+      ))}
     </nav>
   );
 }
