@@ -11,7 +11,16 @@ import { shellFixtures, type CommandAnswer, type MemberProfile, type OpenAnswer 
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
-import { contrast, type Mode } from "./test/themeContrast";
+import { contrast, websiteDirectory, type Mode } from "./test/themeContrast";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+function ruleOf(file: string, selector: string) {
+  const css = readFileSync(join(websiteDirectory, file), "utf8");
+  const rule = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find(([, head]) => head!.trim() === selector);
+  expect(rule, `${file} has a ${selector} rule`).toBeDefined();
+  return rule![2]!;
+}
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -176,6 +185,14 @@ describe("WS324 WS339 V24: the night band stays dark and readable in both modes"
     expect(contrast(mode, "band-night-quiet", "band-night")).toBeGreaterThanOrEqual(4.5);
   });
 
+  it("draws the crate's rim in the edge token on the band and in the reveal", () => {
+    const band = bandOn(false);
+    expect(band.querySelectorAll(".crate-edge")).toHaveLength(2);
+    expect(ruleOf("src/crates/crates.css", ".crate-edge")).toMatch(/stroke:\s*var\(--crate-edge,\s*transparent\)/);
+    expect(ruleOf("src/index.css", ".night-band")).toMatch(/--crate-edge:\s*var\(--band-night-edge\)/);
+    expect(ruleOf("src/crates/crates.css", ".moment-scrim")).toMatch(/--crate-edge:\s*var\(--band-night-edge\)/);
+  });
+
   it.each<Mode>(["light", "dark"])("keeps the crate's border at 3:1 on the band in %s mode", (mode) => {
     bandOn(mode === "dark");
     expect(contrast(mode, "band-night-edge", "band-night")).toBeGreaterThanOrEqual(3);
@@ -231,6 +248,10 @@ async function revealFrom(member: MemberProfile, crateName: string, openFeature:
   await act(async () => undefined);
   await view.user.keyboard("{Escape}");
   return view;
+}
+
+function crateNamed(name: string) {
+  return within(main()).getByRole("heading", { level: 3, name: `Unlocks: ${name}` }).closest("article")!;
 }
 
 function nextCrateButton() {
@@ -336,6 +357,23 @@ describe("WS325: the reveal opens the next ready crate", () => {
     expect(document.activeElement).toBe(nextCrateButton());
     await pending.settle({ kind: "opened" });
     expect(dialog()).toHaveTextContent("Skill tree is open");
+  });
+
+  it("advances to a crate whose reveal is already queued without opening it again", async () => {
+    preferReducedMotion();
+    const answers = { leaderboard: answerLater(), skillTree: answerLater() };
+    const openFeature = vi.fn((feature: string) => answers[feature as keyof typeof answers].answer);
+    window.history.replaceState(null, "", "/");
+    const { user } = renderApp(shellFixtures.memberWithEveryFeatureReady, undefined, { openFeature });
+    await user.click(within(crateNamed("Leaderboard")).getByRole("button", { name: "Open" }));
+    await user.click(within(crateNamed("Skill tree")).getByRole("button", { name: "Open" }));
+    await answers.leaderboard.settle({ kind: "opened" });
+    await answers.skillTree.settle({ kind: "opened" });
+    await user.click(nextCrateButton()!);
+    expect(openFeature).toHaveBeenCalledTimes(2);
+    expect(dialog()).toHaveTextContent("Skill tree is open");
+    await user.click(within(dialog()).getByRole("button", { name: "Done" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("stays on this reveal and says why when the next crate can't be opened", async () => {

@@ -100,7 +100,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
       try {
         const answer = await (crate.kind === "feature" ? commands.openFeature(crate.card.feature) : commands.openQuestCrate(crate.quest));
         if (session.current !== sentIn) return;
-        if (answer.kind === "opened") setReveals((queued) => [...queued, { crate, seenBefore: hasSeen(seen), fromQuests, claimed }]);
+        if (answer.kind === "opened") setReveals((queued) => (queued.some((shown) => shown.crate.seen === seen) ? queued : [...queued, { crate, seenBefore: hasSeen(seen), fromQuests, claimed }]));
         if (answer.kind === "opened" && crate.kind === "feature") setPopIns((waiting) => [...waiting, popInKey(crate.card.feature, "entry"), popInKey(crate.card.feature, "chip")]);
         attemptIs(seen, answer.kind === "refused" ? "refused" : undefined);
         if (answer.kind === "refused") setAnnouncement(attemptMessages.refused);

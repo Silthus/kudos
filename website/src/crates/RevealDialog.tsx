@@ -122,6 +122,7 @@ function NextCrate({ othersReady, onClose }: { othersReady: ReadyCrate[]; onClos
   if (next === undefined || moments === undefined || (othersReady.length === 0 && !opening && !revealed)) return null;
   const open = () => {
     if (opening) return;
+    if (othersReady.some((crate) => moments.waitsToReveal(crate))) return onClose({ returnFocus: false });
     ask(next);
     moments.open(next);
   };
