@@ -1,9 +1,9 @@
-import { useEffect, useRef, type ReactElement, type ReactNode } from "react";
+import { useEffect, useRef, type AnimationEvent, type ReactElement, type ReactNode } from "react";
 import { IconLock } from "@posthog/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@posthog/quill";
 import { AppLink } from "../AppLink";
 import { CrateGlyph } from "../crates/CrateArt";
-import { useMoments } from "../crates/moments";
+import { useMoments, type PopIn } from "../crates/moments";
 import { featureCrateOf } from "../crates/readyCrates";
 import type { Screen } from "../route";
 import type { Feature, MemberProfile } from "../shell";
@@ -17,7 +17,8 @@ const currentLook = "text-foreground max-lg:bg-primary max-lg:text-primary-foreg
 const idleLook = "text-muted-foreground hover:bg-fill-hover hover:text-foreground";
 
 export function ScreenNav({ current, member }: { current?: Screen; member: MemberProfile }) {
-  const rail = useCurrentEntryInView(current);
+  const entries = navEntriesOf(member);
+  const rail = useCurrentEntryInView(entries.some((entry) => entry.state === "open" && entry.screen === current) ? current : undefined);
   return (
     <nav
       ref={rail}
@@ -25,7 +26,7 @@ export function ScreenNav({ current, member }: { current?: Screen; member: Membe
       onFocus={(event) => bringIntoView(event.target)}
       className="flex flex-nowrap items-center gap-0.5 max-lg:order-last max-lg:-mx-4 max-lg:w-[calc(100%+2rem)] max-lg:gap-1 max-lg:overflow-x-auto max-lg:px-3 max-lg:pb-2 max-lg:scroll-px-3 md:max-lg:-mx-6 md:max-lg:w-[calc(100%+3rem)] md:max-lg:px-5 lg:mx-auto"
     >
-      {navEntriesOf(member).map((entry) => {
+      {entries.map((entry) => {
         if (entry.state === "open") return <OpenItem key={entry.href} entry={entry} current={current === entry.screen} />;
         if (entry.state === "ready") return <ReadyItem key={entry.card.feature} entry={entry} />;
         return <LockedItem key={entry.feature} entry={entry} />;
@@ -34,16 +35,22 @@ export function ScreenNav({ current, member }: { current?: Screen; member: Membe
   );
 }
 
-export function usePopIn(feature: Feature | undefined) {
+export function usePopIn(feature: Feature | undefined, where: PopIn) {
   const moments = useMoments();
-  return feature !== undefined && moments?.openedHere(feature) === true && !prefersReducedMotion() ? "nav-pop" : "";
+  if (feature === undefined || moments === undefined || !moments.popsIn(feature, where) || prefersReducedMotion()) return {};
+  return {
+    className: "nav-pop",
+    onAnimationEnd: (event: AnimationEvent) => {
+      if (event.target === event.currentTarget) moments.poppedIn(feature, where);
+    },
+  };
 }
 
 function OpenItem({ entry: { href, name, Icon, feature }, current }: { entry: OpenEntry; current: boolean }) {
-  const popIn = usePopIn(feature);
+  const { className: popIn = "", onAnimationEnd } = usePopIn(feature, "entry");
   return (
     <WithTip tip={<div>{name}</div>} onlyWhenIconOnly>
-      <AppLink href={href} aria-current={current ? "page" : undefined} className={`${entryShape} ${current ? currentLook : idleLook} ${popIn}`}>
+      <AppLink href={href} aria-current={current ? "page" : undefined} onAnimationEnd={onAnimationEnd} className={`${entryShape} ${current ? currentLook : idleLook} ${popIn}`}>
         <Icon className="size-4" />
         <Label>{name}</Label>
       </AppLink>
@@ -66,7 +73,7 @@ function ReadyItem({ entry: { card, name } }: { entry: ReadyEntry }) {
     >
       <button
         type="button"
-        aria-label={`${name}: unlock ready. Open its crate`}
+        aria-label={opening ? `${name}: opening its crate` : `${name}: unlock ready. Open its crate`}
         aria-disabled={opening || undefined}
         onClick={() => {
           if (!opening) moments?.open(crate);
@@ -74,7 +81,7 @@ function ReadyItem({ entry: { card, name } }: { entry: ReadyEntry }) {
         className={`${entryShape} nav-token font-semibold text-foreground`}
       >
         <CrateGlyph className="size-4" />
-        <Label>{name}</Label>
+        <Label>{opening ? "Opening…" : name}</Label>
       </button>
     </WithTip>
   );
@@ -98,7 +105,7 @@ function LockedItem({ entry: { name, level, next } }: { entry: LockedEntry }) {
         tabIndex={0}
         aria-disabled="true"
         aria-label={`${name}, locked. Unlocks at level ${level}`}
-        className={`${entryShape} cursor-default ${next ? "text-muted-foreground" : "text-muted-foreground/55"}`}
+        className={`${entryShape} cursor-default text-muted-foreground`}
       >
         <IconLock className="size-4" />
         <Label>{name}</Label>

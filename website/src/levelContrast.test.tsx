@@ -138,11 +138,13 @@ function navMarks() {
   const tokenOf = (element: Element, prefix: string) => [...element.classList].flatMap((name) => new RegExp(`^${prefix}-((?:muted-|primary-)?foreground|primary)$`).exec(name)?.[1] ?? []);
   const pill = within(nav).getByRole("link", { name: "Quests" });
   const next = within(nav).getByRole("link", { name: "Book, locked. Unlocks at level 4" });
+  const later = within(nav).getByRole("link", { name: "Skill tree, locked. Unlocks at level 5" });
   const ready = within(nav).getByRole("button", { name: "Leaderboard: unlock ready. Open its crate" });
   return [
     { part: "the current entry's pill against the bar", paints: tokenOf(pill, "max-lg:bg"), surface: "card", least: 3 },
     { part: "the pill's label and icon on the pill", paints: tokenOf(pill, "max-lg:text"), surface: "primary", least: 4.5 },
     { part: "the next unlock's lock and label", paints: tokenOf(next, "text"), surface: "card", least: 4.5 },
+    { part: "a later unlock's lock and label", paints: tokenOf(later, "text"), surface: "card", least: 4.5 },
     { part: "the ready entry's crate glyph and label", paints: tokenOf(ready, "text"), surface: "card", least: 4.5 },
   ];
 }

@@ -6,6 +6,8 @@ import { hasSeen, markSeen } from "./seen";
 
 export type Attempt = "opening" | "refused" | "unreachable";
 
+export type PopIn = "entry" | "chip";
+
 export type Reveal = { crate: ReadyCrate; seenBefore: boolean; fromQuests: boolean };
 
 export type Moments = {
@@ -15,7 +17,8 @@ export type Moments = {
   finish(crate: ReadyCrate): void;
   close(how: { returnFocus: boolean }): void;
   announcement: string;
-  openedHere(feature: Feature): boolean;
+  popsIn(feature: Feature, where: PopIn): boolean;
+  poppedIn(feature: Feature, where: PopIn): void;
 };
 
 export const attemptMessages: Record<Exclude<Attempt, "opening">, string> = {
@@ -39,7 +42,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   const [attempts, setAttempts] = useState<Partial<Record<string, Attempt>>>({});
   const [reveals, setReveals] = useState<Reveal[]>([]);
   const [announcement, setAnnouncement] = useState("");
-  const [openedHere, setOpenedHere] = useState<Feature[]>([]);
+  const [popIns, setPopIns] = useState<string[]>([]);
   const sending = useRef(new Set<string>());
   const focusAfterClose = useRef<ReadyCrate | undefined>(undefined);
   const session = useRef(0);
@@ -53,7 +56,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     setAttempts({});
     setReveals([]);
     setAnnouncement("");
-    setOpenedHere([]);
+    setPopIns([]);
   }, []);
 
   useEffect(() => {
@@ -81,7 +84,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
         const answer = await (crate.kind === "feature" ? commands.openFeature(crate.card.feature) : commands.openQuestCrate(crate.quest));
         if (session.current !== sentIn) return;
         if (answer.kind === "opened") setReveals((queued) => [...queued, { crate, seenBefore: hasSeen(seen), fromQuests }]);
-        if (answer.kind === "opened" && crate.kind === "feature") setOpenedHere((features) => [...features, crate.card.feature]);
+        if (answer.kind === "opened" && crate.kind === "feature") setPopIns((waiting) => [...waiting, popInKey(crate.card.feature, "entry"), popInKey(crate.card.feature, "chip")]);
         attemptIs(seen, answer.kind === "refused" ? "refused" : undefined);
         if (answer.kind === "refused") setAnnouncement(attemptMessages.refused);
       } catch {
@@ -123,8 +126,13 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     finish,
     close,
     announcement,
-    openedHere: (feature) => openedHere.includes(feature),
+    popsIn: (feature, where) => popIns.includes(popInKey(feature, where)),
+    poppedIn: (feature, where) => setPopIns((waiting) => waiting.filter((key) => key !== popInKey(feature, where))),
   };
+}
+
+function popInKey(feature: Feature, where: PopIn) {
+  return `${where}:${feature}`;
 }
 
 export function useMembersShown(crates: string[] | undefined) {

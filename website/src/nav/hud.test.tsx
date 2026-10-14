@@ -1,9 +1,13 @@
-import { screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type FeatureCard, type MemberProfile } from "../shell";
 import { renderApp } from "../test/renderApp";
 import { navEntryNames as entries, screensNav as nav } from "../test/screensNav";
 import { fakeSystemTheme, preferReducedMotion } from "../test/systemTheme";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -56,7 +60,7 @@ describe("WS301: the nav lists every shipped feature with a page, in schedule or
     }
     expect(book).toHaveTextContent("Lv 8");
     expect(skillTree).not.toHaveTextContent("Lv");
-    expect(skillTree).toHaveClass("text-muted-foreground/55");
+    for (const locked of [book, skillTree]) expect(locked).toHaveClass("text-muted-foreground");
     expect(nav()).not.toHaveTextContent(/levels? to go|XP|%/);
   });
 
@@ -78,6 +82,31 @@ describe("WS301: the nav lists every shipped feature with a page, in schedule or
     await user.click(within(nav()).getByRole("button", { name: "Leaderboard: unlock ready. Open its crate" }));
     expect(openFeature).toHaveBeenCalledExactlyOnceWith("leaderboard");
     expect(await screen.findByRole("dialog")).toHaveAccessibleName("Level 3 unlock");
+  });
+
+  it("says Opening… on a ready entry until openFeature answers, and sends nothing more meanwhile", async () => {
+    let answer!: (value: { kind: "opened" }) => void;
+    const openFeature = vi.fn(() => new Promise<{ kind: "opened" }>((resolve) => (answer = resolve)));
+    const { user } = renderApp(everyState, undefined, { openFeature });
+    await user.click(within(nav()).getByRole("button", { name: "Leaderboard: unlock ready. Open its crate" }));
+    const opening = within(nav()).getByRole("button", { name: "Leaderboard: opening its crate" });
+    expect(opening).toHaveAttribute("aria-disabled", "true");
+    expect(opening).toHaveTextContent("Opening…");
+    await user.click(opening);
+    expect(openFeature).toHaveBeenCalledOnce();
+    await act(async () => answer({ kind: "opened" }));
+    expect(await screen.findByRole("dialog")).toHaveAccessibleName("Level 3 unlock");
+  });
+
+  it.each([
+    ["refuses", async () => ({ kind: "refused" }) as const, "That couldn't be opened."],
+    ["can't be reached", async () => Promise.reject(new Error("socket closed")), "Couldn't reach HedgeHug. Try again."],
+  ])("says beside the bar what went wrong when a later ready entry's open %s", async (_, openFeature, says) => {
+    window.history.replaceState(null, "", "/quests");
+    const twoReady = memberOnTheUnlockPath(card("leaderboard", "Leaderboard", 3, "ready"), card("skillTree", "Skill tree", 5, "ready"));
+    const { user } = renderApp(twoReady, undefined, { openFeature });
+    await user.click(within(nav()).getByRole("button", { name: "Skill tree: unlock ready. Open its crate" }));
+    expect(await within(screen.getByRole("banner")).findByText(says)).toBeVisible();
   });
 
   it("keeps today's nav while unlocks don't apply", () => {
@@ -120,6 +149,17 @@ describe("WS302: labels and widths", () => {
   });
 });
 
+describe("WS300 WS301: the rail keeps the current entry in view as it opens", () => {
+  it("brings a page's entry into view when it turns from ready to open on that page", () => {
+    window.history.replaceState(null, "", "/skills");
+    const treeReady = memberOnTheUnlockPath(card("skillTree", "Skill tree", 5, "ready"));
+    const { showVisitor } = renderApp(treeReady);
+    const scrolled = vi.spyOn(Element.prototype, "scrollIntoView");
+    showVisitor(memberOnTheUnlockPath(card("skillTree", "Skill tree", 5, "open")));
+    expect(scrolled.mock.contexts).toContain(within(nav()).getByRole("link", { name: "Skill tree" }));
+  });
+});
+
 describe("WS303: the right of the bar", () => {
   it("links the avatar to the profile, named with the member's level, beside its own Sign out", async () => {
     const { user, actions } = renderApp(everyState);
@@ -159,6 +199,16 @@ describe("WS304: a feature opened in this tab pops in once", () => {
     await openTheLeaderboardHere();
     expect(within(nav()).getByRole("link", { name: "Leaderboard" })).toHaveClass("nav-pop");
     expect(within(nav()).getByRole("link", { name: "Profile" })).not.toHaveClass("nav-pop");
+  });
+
+  it("pops in only once: not again after the HUD comes back from a lost connection", async () => {
+    const { showVisitor } = await openTheLeaderboardHere();
+    const popped = within(nav()).getByRole("link", { name: "Leaderboard" });
+    fireEvent.animationEnd(popped);
+    expect(popped).not.toHaveClass("nav-pop");
+    showVisitor(shellFixtures.connecting);
+    showVisitor(leaderboardOpen);
+    expect(within(nav()).getByRole("link", { name: "Leaderboard" })).not.toHaveClass("nav-pop");
   });
 
   it("never pops in on an ordinary visit or a reload", () => {

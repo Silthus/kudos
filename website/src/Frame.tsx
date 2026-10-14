@@ -17,7 +17,6 @@ import { ThemeControl } from "./ThemeControl";
 type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; current?: Screen; busy: boolean; inert?: boolean; onSignOut?: () => void; children: ReactNode };
 
 export function Frame({ member, ready = [], current, busy, inert, onSignOut, children }: FrameProps) {
-  const first = ready[0];
   return (
     <div className="hud-root flex min-h-screen flex-col" inert={inert}>
       <header className="sticky top-0 z-40 border-b bg-card/85 shadow-[0_1px_0_0_color-mix(in_oklab,var(--foreground)_4%,transparent)] backdrop-blur-md">
@@ -31,7 +30,7 @@ export function Frame({ member, ready = [], current, busy, inert, onSignOut, chi
             <ThemeControl />
             {member && onSignOut && <SignOut onSignOut={onSignOut} />}
           </div>
-          {member && first !== undefined && !isShownOn(first, current) && <ReadyPillFailure first={first} />}
+          {member && <ReadyPillFailure crates={ready.filter((crate) => !isShownOn(crate, current))} />}
         </div>
       </header>
       <main aria-busy={busy || undefined} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8">{children}</main>
@@ -52,9 +51,9 @@ function Wordmark() {
 }
 
 function SkillPointChip({ points }: { points: number }) {
-  const popIn = usePopIn("skillTree");
+  const { className: popIn = "", onAnimationEnd } = usePopIn("skillTree", "chip");
   return (
-    <span className={`inline-flex ${popIn}`}>
+    <span onAnimationEnd={onAnimationEnd} className={`inline-flex ${popIn}`}>
       <AppLink href="/skills" aria-label={chipName(points)} className="inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums hover:bg-fill-hover">
         <SkillPointGlyph />
         {points}
