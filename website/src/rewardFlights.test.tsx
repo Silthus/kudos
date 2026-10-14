@@ -123,12 +123,16 @@ describe("#354: a Journey crate's XP flies into the hero's XP bar", () => {
 
     expect(xpBar()).toHaveAttribute("aria-valuenow", "30");
     expect(heroRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
+    vi.useFakeTimers();
     landAll(flight()!);
     expect(xpBar()).toHaveAttribute("aria-valuenow", "50");
     expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
     expect(hudRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
     expect(frame()).toHaveClass("reward-filling");
     expect(frame().style.getPropertyValue("--reward-from")).toBe("25");
+    expect(xpBar()).toHaveAccessibleName("30 XP 10 XP to level 3");
+    act(() => vi.advanceTimersByTime(1000));
+    expect(xpBar()).toHaveAccessibleName("50 XP 10 XP to level 3");
   });
 
   it("across a level-up, holds the old level, then completes the ring and starts the new level without ever filling backwards", async () => {
@@ -139,25 +143,34 @@ describe("#354: a Journey crate's XP flies into the hero's XP bar", () => {
 
     expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
     expect(xpBar()).toHaveAttribute("aria-valuenow", "90");
+    vi.useFakeTimers();
     landAll(flight()!);
-    expect(heroRing()).toHaveAccessibleName("Level 3, 190 XP to level 4");
     expect(frame()).toHaveClass("reward-levelling");
     expect(frame()).not.toHaveClass("reward-filling");
     expect(frame().style.getPropertyValue("--reward-from")).toBe("87.5");
+    expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    act(() => vi.advanceTimersByTime(599));
+    expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    act(() => vi.advanceTimersByTime(1));
+    expect(heroRing()).toHaveAccessibleName("Level 3, 190 XP to level 4");
+    expect(heroRing()).toHaveClass("reward-landed");
+    expect(avatar()).toHaveClass("reward-landed");
   });
 
-  it("then flies the skill point the level-up earned from the XP bar to the HUD skill point chip, which counts up", async () => {
+  it("then, as the new level starts, flies the skill point it earned out of the hero's level ring onto the HUD skill point chip, which counts up", async () => {
     const { user } = openJourneyCrate(intoTheSixthLevel);
     await openAndClose(user, journeyCrate());
-    placeAt(xpBar(), { x: 300, y: 300, width: 400, height: 12 });
+    placeAt(heroRing(), { x: 200, y: 200, width: 120, height: 120 });
     placeAt(skillPointChip(), { x: 900, y: 12, width: 48, height: 32 });
 
     expect(skillPointChip()).toHaveTextContent("1");
-    landAll(flight()!);
-    expect(flight()).toHaveTextContent("+1 skill point");
-    expect(courseOf(flight()!)).toEqual({ left: "300px", top: "300px", x: "424px", y: "-278px" });
-    expect(skillPointChip()).toHaveTextContent("1");
     vi.useFakeTimers();
+    landAll(flight()!);
+    expect(flight()).toBeNull();
+    act(() => vi.advanceTimersByTime(600));
+    expect(flight()).toHaveTextContent("+1 skill point");
+    expect(courseOf(flight()!)).toEqual({ left: "200px", top: "200px", x: "664px", y: "-232px" });
+    expect(skillPointChip()).toHaveTextContent("1");
     landAll(flight()!);
     expect(flight()).toBeNull();
     expect(skillPointChip()).toHaveClass("reward-landed");

@@ -391,10 +391,14 @@ describe("WS315 E184: the reward flies into the HUD level ring once a Claim's re
     await claimAndClose(user);
 
     expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    vi.useFakeTimers();
     landAll(flight()!);
-    expect(levelRing()).toHaveAccessibleName("Level 3, 190 XP to level 4");
     expect(avatar()).toHaveClass("reward-landed");
     expect(frame()).toHaveClass("reward-levelling");
+    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    act(() => vi.advanceTimersByTime(600));
+    expect(levelRing()).toHaveAccessibleName("Level 3, 190 XP to level 4");
+    vi.useRealTimers();
   });
 
   it("measures the card where it is once focus is back on it", async () => {

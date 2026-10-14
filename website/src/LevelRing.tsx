@@ -11,11 +11,13 @@ export function levelRingName({ level, xpToNextLevel }: Progression) {
   return `Level ${level}, ${xpToNextLevel} XP to level ${level + 1}`;
 }
 
-export function LevelRing({ progression, size, stroke, children }: { progression: Progression; size: number; stroke: number; children: ReactNode }) {
+type LevelRingProps = { progression: Progression; size: number; stroke: number; marker?: Record<string, string>; children: ReactNode };
+
+export function LevelRing({ progression, size, stroke, marker, children }: LevelRingProps) {
   const centre = size / 2;
   const radius = (size - stroke) / 2;
   return (
-    <span role="img" aria-label={levelRingName(progression)} className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
+    <span role="img" aria-label={levelRingName(progression)} className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }} {...marker}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 -rotate-90" fill="none">
         <circle cx={centre} cy={centre} r={radius + (stroke - trackEdge) / 2} stroke="var(--muted-foreground)" strokeWidth={trackEdge} />
         <circle cx={centre} cy={centre} r={radius - (stroke - trackEdge) / 2} stroke="var(--muted-foreground)" strokeWidth={trackEdge} />

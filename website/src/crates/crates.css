@@ -359,7 +359,8 @@
   from {
     stroke-dasharray: var(--reward-from) 100;
   }
-  45% {
+  45%,
+  49.9% {
     stroke-dasharray: 100 100;
   }
   50% {
@@ -371,7 +372,8 @@
   from {
     width: calc(var(--reward-from) * 1%);
   }
-  45% {
+  45%,
+  49.9% {
     width: 100%;
   }
   50% {

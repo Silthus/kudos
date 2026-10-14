@@ -35,6 +35,10 @@ export function hudAvatarAttributes() {
   return { "data-hud-avatar": "" };
 }
 
+export function heroRingAttributes() {
+  return { "data-hero-ring": "" };
+}
+
 export function heroXpBarAttributes() {
   return { "data-xp-bar": "" };
 }
@@ -54,6 +58,15 @@ export function hudAvatar() {
 export function xpDisplay() {
   const bar = document.querySelector<HTMLElement>("main [data-xp-bar]");
   return bar !== null && isInView(bar) ? bar : hudAvatar();
+}
+
+export function heroRing() {
+  return document.querySelector<HTMLElement>("main [data-hero-ring]");
+}
+
+export function levelDisplay() {
+  const ring = heroRing();
+  return ring !== null && isInView(ring) ? ring : hudAvatar();
 }
 
 export function skillPointChip() {

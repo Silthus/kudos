@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/reward-flights
+
+
+ Test Files  2 passed (2)
+      Tests  64 passed (64)
+   Start at  13:18:20
+   Duration  15.53s (tests 77%, import 11%, transform 7%, environment 4%, setup 1%)
+
