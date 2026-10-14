@@ -20,7 +20,7 @@ import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
 import { websiteOriginFor } from "../website/link";
 import { coinsApplyTo, coinsVisibleTo } from "../wallet/visibility";
-import { isCoinPerk, perkOf, type PerkId } from "../progression/tree";
+import { isCoinPerk, perkOf } from "../progression/tree";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { coinsOpenedLineOf } from "./coins";
 import { deepLinkFrom, deepLinks, type DeepLink } from "./deepLinks";
@@ -134,11 +134,7 @@ function skillPointsTold(level: number, skillPoints: number | null, openTree: Me
 }
 
 function perkOffersOf(openTree: MemberPerks | null, website: string | null): NotificationLine[] {
-  return (openTree?.perks ?? []).filter(({ state }) => state === "buyable").map((perk) => perkOfferOf(perk, websiteDrawing(perk, website)));
-}
-
-function websiteDrawing({ perk }: { perk: PerkId }, website: string | null) {
-  return isCoinPerk(perkOf(perk)) ? null : website;
+  return (openTree?.perks ?? []).filter(({ state }) => state === "buyable").map((perk) => perkOfferOf(perk, website));
 }
 
 async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification | null> {
