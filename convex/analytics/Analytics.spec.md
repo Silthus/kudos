@@ -95,6 +95,27 @@ Analytics: the only module that knows PostHog. It projects each kudosGiven domai
   checklist: keyed-ordering dismissed: no ordered transport is relied on
   checklist: acknowledgment-barrier dismissed: nothing acknowledges an exception to its source
   checklist: retry-classification dismissed: the rule classifies an error's content, not whether it is retried
+- analytics only observes: Recording a product event writes only the analytics outbox, the drain's state, and an analytics ID or workspace key the first time: it publishes no domain event, records no exposure, republishes no App Home, calls no Slack method and schedules nothing but the drain, so no event can make a dark feature ready, opened, shown or named to a member.
+  over: every recording job a whole walk schedules with xp-levels, unlocks, quests and everyone-board on (kudos given, member welcomed, level reached, unlock made ready, unlock opened, journey step activated, quest drawn, quest swapped, quest finished, crate opened, leaderboard viewed from App Home, leaderboard left and joined) and the command's leaderboard viewed, each re-run against the walk's end state with no analytics ID or workspace key yet, checked against every table, the scheduled functions and the Slack calls
+  via: E11: recording a product event writes only analytics' own rows and schedules only the drain
+  because: analytics stays on while a feature is dark (E9, E10), so a recording that published a domain event, sent an exposure or republished App Home could wake a dark feature or show it to a member (E11, P76, P78), and a member would see different Slack calls with capture on and off (O15)
+  refuted: recordUnlockReady also republished the member's App Home after recording unlock made ready -> the test failed on its assertion that the re-run recordUnlockReady scheduled nothing but the drain, receiving slack/appHome:publishHome (2026-10-14)
+  kinds: state, message
+  checklist: revalidated-permission dismissed: recording acts for no member and grants nothing; each feature checks its own permission before it stores the fact a recording observes
+  checklist: destination-confinement dismissed: a recording sends nothing itself; its only destination is the outbox row, which the drain posts to the configured POSTHOG_HOST's batch endpoint
+  checklist: message-authenticity dismissed: a recording's input is a domain event the bus scheduled from its publisher's own transaction, or a usage fact from the mutation that accepted the member's verified Slack request
+  checklist: input-validation dismissed: each recorder's argument is checked by its domain event's or usage fact's validator, and every outbox row by the properties validator
+  checklist: separation-of-duties dismissed: no approval policy applies to recording analytics
+  checklist: legal-state-succession dismissed: a recording inserts outbox rows as pending and creates an analytics ID or workspace key at most once; it moves no feature's state
+  checklist: supersession-safety dismissed: a recording never replaces a stored fact; it appends an event for a fact the feature already stored
+  checklist: retry-recognition dismissed: a recording is a fresh event for its one fact; a redelivered Slack request that finds the fact stored publishes and records nothing (E7)
+  checklist: duplicate-suppression dismissed: one fact is one event because each feature publishes its domain event only when it stores the fact and the bus schedules each subscriber once (E7, O4)
+  checklist: keyed-ordering dismissed: PostHog orders events by their fact's timestamp, and a recording orders nothing a member sees
+  checklist: worker-fencing dismissed: a recording is one mutation with no lease; the drain it wakes fences its own claims
+  checklist: acknowledgment-barrier dismissed: the member's interaction is answered by the feature's own mutation or action, which commits before and apart from the recording job
+  checklist: commit-ordered-effects dismissed: the drain is scheduled from the recording mutation and runs only after it commits; a recording has no other effect
+  checklist: resumption-coverage dismissed: nothing resumes a recording; a failed recording job is logged with a fixed code and its event is lost, never retried into a feature
+  checklist: retry-classification dismissed: a recording classifies no answer; the drain classifies PostHog's in answerTo in drain.ts
 - a flag answers its safe default whenever it can't be evaluated: Reading a flag never throws, and answers the flag's safe default without the flags key, before PostHog's definitions are cached, for a flag PostHog doesn't have, for a value the flag doesn't declare, for a condition local evaluation can't answer, and in a query for a subject that has no analytics ID yet.
   over: reading a boolean and a variant flag in a mutation and in a query, with no key, an empty cache, definitions PostHog serves for other flags, an undeclared variant, a cohort condition, a sandbox-only condition without the environment, and a member without an analytics ID
   via: a flag answers its safe default whenever it can't be evaluated
