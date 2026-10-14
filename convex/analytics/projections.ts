@@ -1,8 +1,21 @@
 import { v, type Infer } from "convex/values";
-import type { AttemptFailedEvent, JourneyStepActivatedEvent, KudosGivenEvent, LevelReachedEvent, MemberWelcomedEvent, QuestFinishedEvent, QuestsDrawnEvent, QuestSwappedEvent } from "../bus/events";
+import type {
+  AttemptFailedEvent,
+  JourneyStepActivatedEvent,
+  KudosGivenEvent,
+  LevelReachedEvent,
+  MemberWelcomedEvent,
+  QuestFinishedEvent,
+  QuestsDrawnEvent,
+  QuestSwappedEvent,
+  UnlockOpenedEvent,
+  UnlockReadyEvent,
+  UnlocksLaunchedEvent,
+} from "../bus/events";
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
 import type { Period } from "../leaderboard/periods";
+import type { Feature } from "../unlocks/feature";
 import { gateDecisionOf } from "../progression/gate";
 import { defaultKudosEmoji } from "../workspace/settings";
 import type { MemberId } from "../workspace/directory";
@@ -18,6 +31,8 @@ export type ProductEvent = {
     | "attempt failed"
     | "member welcomed"
     | "level reached"
+    | "unlock made ready"
+    | "unlock opened"
     | "quest drawn"
     | "quest swapped"
     | "quest finished"
@@ -41,6 +56,15 @@ export type LeaderboardSurface = "app-home" | "command";
 const surfaceNames: Record<LeaderboardSurface, string> = { "app-home": "app home", command: "command" };
 
 const outcomeNames: Record<AttemptFailedEvent["outcome"], string> = { "over-allowance": "over allowance", invalid: "invalid" };
+
+const featureNames: Record<Feature, string> = {
+  quests: "quests",
+  leaderboard: "leaderboard",
+  book: "book",
+  skillTree: "skill tree",
+  coins: "coins",
+  hedgehogs: "hedgehogs",
+};
 
 const commandResultNames: Record<KudosCommandResult, string> = {
   joined: "joined",
@@ -112,6 +136,23 @@ export function projectLevelReached(event: LevelReachedEvent): ProductEvent {
     at: event.at,
     properties: { level: event.level, skill_points_gained: event.skillPointsGained, via: event.message === undefined ? "reward" : "kudos" },
   };
+}
+
+export function projectUnlockReady(event: UnlockReadyEvent): ProductEvent {
+  return { event: "unlock made ready", subject: { member: event.member }, at: event.at, properties: { feature: featureNames[event.feature] } };
+}
+
+export function projectUnlockOpened(event: UnlockOpenedEvent): ProductEvent {
+  return {
+    event: "unlock opened",
+    subject: { member: event.member },
+    at: event.at,
+    properties: { feature: featureNames[event.feature], by: event.byLaunch === true ? "launch" : "member" },
+  };
+}
+
+export function projectUnlocksLaunched({ workspace, openings, at }: UnlocksLaunchedEvent): ProductEvent[] {
+  return openings.map(({ member, feature }) => projectUnlockOpened({ type: "unlockOpened", workspace, member, feature, at, byLaunch: true }));
 }
 
 export function projectQuestsDrawn(event: QuestsDrawnEvent): ProductEvent[] {

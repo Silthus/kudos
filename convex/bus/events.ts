@@ -89,6 +89,15 @@ export type UnlockReadyEvent = Infer<typeof unlockReadyEventValidator>;
 
 export type UnlockOpenedEvent = Infer<typeof unlockOpenedEventValidator>;
 
+export const unlocksLaunchedEventValidator = v.object({
+  type: v.literal("unlocksLaunched"),
+  workspace: v.string(),
+  openings: v.array(v.object({ member: v.id("members"), feature: featureValidator })),
+  at: v.number(),
+});
+
+export type UnlocksLaunchedEvent = Infer<typeof unlocksLaunchedEventValidator>;
+
 const questFields = { workspace: v.string(), member: v.id("members"), quest: questValidator, at: v.number() };
 
 export const questFinishedEventValidator = v.object({
@@ -142,6 +151,7 @@ export type DomainEvent =
   | XpRecordedEvent
   | UnlockReadyEvent
   | UnlockOpenedEvent
+  | UnlocksLaunchedEvent
   | QuestFinishedEvent
   | QuestOpenedEvent
   | QuestsDrawnEvent

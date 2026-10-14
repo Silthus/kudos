@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, answersWith, flagsKey, postHogHost, projectToken, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsFromPostHog, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
-import { blockActions, buttonInHome } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, buttonInHome, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section, slashCommand, text } from "../../testing/slackMessages";
@@ -198,6 +198,9 @@ describe("O10: never sent", () => {
     );
     await post(t, [section(text("Marmalade note to Zephyrine herself "), mention(people.giver), emoji("artichokeparty"))], { ...fromZephyrine, ts: "1760349602.626262" });
     await settle(t);
+    const levelUpDm = slack.callsTo("chat.postMessage").find(({ channel, blocks }) => channel === people.giver && JSON.stringify(blocks ?? []).includes("openUnlock"));
+    const openQuests = blockActions(people.giver, buttonIn(levelUpDm!.blocks as Block[], "Open"), { team, inMessage: { channel: people.giver, ts: "1760349700.818181" } });
+    await t.fetch("/slack/interactivity", await signedRequest(openQuests, { contentType: "application/x-www-form-urlencoded" }));
     await t.fetch("/slack/events", await signedRequest(appHomeOpened(people.giver, { team })));
     const commandInChannel = slashCommand({ channel_id: channel, channel_name: "marmalade-quokkas" }, { team, user: people.giver, responseUrl: `https://hooks.slack.com/commands/${team}/1/quokka` });
     const form = { contentType: "application/x-www-form-urlencoded" };
@@ -214,7 +217,22 @@ describe("O10: never sent", () => {
 
     const bodies = postHog.requests.map((request) => request.body).join("\n");
     expect(new Set(postHog.events().map((event) => event.event))).toEqual(
-      new Set(["kudos given", "kudos received", "member welcomed", "level reached", "journey step activated", "quest finished", "attempt failed", "app home opened", "command used", "leaderboard viewed", "$feature_flag_called"]),
+      new Set([
+        "kudos given",
+        "kudos received",
+        "member welcomed",
+        "level reached",
+        "unlock made ready",
+        "unlock opened",
+        "journey step activated",
+        "quest drawn",
+        "quest finished",
+        "attempt failed",
+        "app home opened",
+        "command used",
+        "leaderboard viewed",
+        "$feature_flag_called",
+      ]),
     );
     const stored = await everythingStored(t);
     const forbidden = [

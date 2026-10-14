@@ -1,6 +1,18 @@
 import { describe, expect, test } from "vitest";
 import { awardId, kudosGivenEvent } from "../../testing/busEvents";
-import type { AttemptFailedEvent, JourneyStepActivatedEvent, KudosGivenEvent, LevelReachedEvent, QuestFinishedEvent, QuestsDrawnEvent, QuestSwappedEvent } from "../bus/events";
+import type {
+  AttemptFailedEvent,
+  JourneyStepActivatedEvent,
+  KudosGivenEvent,
+  LevelReachedEvent,
+  QuestFinishedEvent,
+  QuestsDrawnEvent,
+  QuestSwappedEvent,
+  UnlockOpenedEvent,
+  UnlockReadyEvent,
+  UnlocksLaunchedEvent,
+} from "../bus/events";
+import type { Feature } from "../unlocks/feature";
 import type { MemberId } from "../workspace/directory";
 import {
   projectAttemptFailed,
@@ -11,6 +23,9 @@ import {
   projectQuestFinished,
   projectQuestsDrawn,
   projectQuestSwapped,
+  projectUnlockOpened,
+  projectUnlockReady,
+  projectUnlocksLaunched,
   projectUsage,
 } from "./projections";
 
@@ -135,6 +150,52 @@ describe("E1: level reached", () => {
       at,
       properties: { level: 6, skill_points_gained: 2, via },
     });
+  });
+});
+
+describe("E1: unlock made ready and unlock opened", () => {
+  const featureNames: Array<[Feature, string]> = [
+    ["quests", "quests"],
+    ["leaderboard", "leaderboard"],
+    ["book", "book"],
+    ["skillTree", "skill tree"],
+    ["coins", "coins"],
+    ["hedgehogs", "hedgehogs"],
+  ];
+
+  test.each(featureNames)("%s made ready is unlock made ready with feature %s, on the member at the fact's time", (feature, name) => {
+    const ready: UnlockReadyEvent = { type: "unlockReady", workspace: "T1", member: bob, feature, at };
+
+    expect(projectUnlockReady(ready)).toEqual({ event: "unlock made ready", subject: { member: bob }, at, properties: { feature: name } });
+  });
+
+  test.each(featureNames)("%s opened by a member's Open is unlock opened with feature %s, by member", (feature, name) => {
+    const opened: UnlockOpenedEvent = { type: "unlockOpened", workspace: "T1", member: bob, feature, at };
+
+    expect(projectUnlockOpened(opened)).toEqual({ event: "unlock opened", subject: { member: bob }, at, properties: { feature: name, by: "member" } });
+  });
+
+  test("P77: an opening the launch stored is by launch", () => {
+    expect(projectUnlockOpened({ type: "unlockOpened", workspace: "T1", member: bob, feature: "skillTree", at, byLaunch: true }).properties).toEqual({ feature: "skill tree", by: "launch" });
+  });
+
+  test("P77: the launch's openings are one unlock opened by launch each, on its member at the launch's moment", () => {
+    const launched: UnlocksLaunchedEvent = {
+      type: "unlocksLaunched",
+      workspace: "T1",
+      at,
+      openings: [
+        { member: alice, feature: "quests" },
+        { member: alice, feature: "leaderboard" },
+        { member: bob, feature: "quests" },
+      ],
+    };
+
+    expect(projectUnlocksLaunched(launched)).toEqual([
+      { event: "unlock opened", subject: { member: alice }, at, properties: { feature: "quests", by: "launch" } },
+      { event: "unlock opened", subject: { member: alice }, at, properties: { feature: "leaderboard", by: "launch" } },
+      { event: "unlock opened", subject: { member: bob }, at, properties: { feature: "quests", by: "launch" } },
+    ]);
   });
 });
 
