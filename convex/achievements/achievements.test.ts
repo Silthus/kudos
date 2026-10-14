@@ -125,6 +125,22 @@ describe("P79: achievementsOf gives the website each ladder's facts", () => {
           ],
           next: "silver",
         },
+        {
+          ladder: "old-friends",
+          name: "Old Friends",
+          counts: "thanks again after 30+ days",
+          count: 0,
+          tiers: [
+            unearned("bronze", "Remembered", 1, [{ kind: "coins", reward: "old-friends-bronze-coins" }]),
+            unearned("silver", "Old Friends", 3, [{ kind: "kudosEmoji", reward: "old-friends-silver-kudos-emoji" }]),
+            unearned("gold", "Long Memory", 6, [{ kind: "hedgehog", reward: "old-friends-gold-hedgehog" }]),
+            unearned("diamond", "Evergreen", 12, [
+              { kind: "coins", reward: "old-friends-diamond-coins" },
+              { kind: "hedgehog", reward: "old-friends-diamond-hedgehog" },
+            ]),
+          ],
+          next: "bronze",
+        },
       ],
     });
   });

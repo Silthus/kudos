@@ -1,17 +1,27 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import type { AwardId, AwardWithId } from "../engine/awards";
+import { dayThankedBefore, type AwardId, type AwardWithId, type GivenAward } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import type { LadderId, Tier, TierRef } from "./ladders";
+import { thanksAnOldFriend } from "./oldFriends";
 import type { BatchId } from "./replay";
 import { earnTier } from "./tiers";
 
 export type Counting = { member: MemberId; ladder: LadderId };
 
-export type DatedAward = AwardWithId & { at: number };
+export type DatedAward = GivenAward & { at: number };
 
 const countedMember: Record<LadderId, (award: AwardWithId) => MemberId> = {
   generosity: ({ giver }) => giver,
   recognition: ({ recipient }) => recipient,
+  "old-friends": ({ giver }) => giver,
+};
+
+const kudosUnits = async (_: QueryCtx, { kudos }: DatedAward) => kudos;
+
+const unitsCounted: Record<LadderId, (ctx: QueryCtx, award: DatedAward) => Promise<number>> = {
+  generosity: kudosUnits,
+  recognition: kudosUnits,
+  "old-friends": async (ctx, { award, day }) => (thanksAnOldFriend(await dayThankedBefore(ctx, award), day) ? 1 : 0),
 };
 
 export function countingOf(ladder: LadderId, award: AwardWithId): Counting {
@@ -22,7 +32,7 @@ export type Earning = { tiers: Tier[]; batch?: BatchId; hidden?: true };
 
 export async function countAward(ctx: MutationCtx, workspace: string, counting: Counting, award: DatedAward, { tiers, batch, hidden }: Earning): Promise<TierRef[] | null> {
   if (await isCounted(ctx, counting, award.award)) return null;
-  const { before, after } = await addToCount(ctx, counting, award.kudos);
+  const { before, after } = await addToCount(ctx, counting, await unitsCounted[counting.ladder](ctx, award));
   await ctx.db.insert("countedAwards", { ...counting, award: award.award, count: after, at: award.at });
   const reaching = { workspace, ...counting, award: award.award, at: award.at, batch, hidden };
   const earned: TierRef[] = [];
@@ -43,10 +53,10 @@ export async function countOf(ctx: QueryCtx, counting: Counting): Promise<number
   return (await countRow(ctx, counting))?.count ?? 0;
 }
 
-async function addToCount(ctx: MutationCtx, counting: Counting, kudos: number) {
+async function addToCount(ctx: MutationCtx, counting: Counting, units: number) {
   const row = await countRow(ctx, counting);
   const before = row?.count ?? 0;
-  const after = before + kudos;
+  const after = before + units;
   if (row === null) await ctx.db.insert("ladderCounts", { ...counting, count: after });
   else await ctx.db.patch(row._id, { count: after });
   return { before, after };

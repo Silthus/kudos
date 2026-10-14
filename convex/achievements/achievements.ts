@@ -27,7 +27,7 @@ export const countKudosGiven = internalMutation({
     for (const ladder of await laddersCountedLiveIn(ctx, event.workspace)) {
       for (const award of event.awards) {
         const counting = countingOf(ladder, award);
-        const earned = await countAward(ctx, event.workspace, counting, { ...award, at: event.at }, { tiers: ladderOf(ladder).tiers, ...(!shown && { hidden: true }) });
+        const earned = await countAward(ctx, event.workspace, counting, { ...award, day: event.day, at: event.at }, { tiers: ladderOf(ladder).tiers, ...(!shown && { hidden: true }) });
         if (earned !== null) counted.set(counting.member, [...(counted.get(counting.member) ?? []), ...earned]);
       }
     }
