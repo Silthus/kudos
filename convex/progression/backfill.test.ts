@@ -41,12 +41,12 @@ test("P10: every earlier award gets one record per side with base XP only, and n
   await settle(t);
 
   expect(await effectsRecords(t)).toEqual([
-    { member: "U_ALICE", side: "giver", baseXp: 30, gate: null, catalogueVersion: "1", day: "2026-09-01" },
-    { member: "U_ALICE", side: "recipient", baseXp: 10, gate: null, catalogueVersion: "1", day: "2026-09-02" },
-    { member: "U_BOB", side: "giver", baseXp: 10, gate: null, catalogueVersion: "1", day: "2026-09-02" },
-    { member: "U_BOB", side: "giver", baseXp: 20, gate: null, catalogueVersion: "1", day: "2026-09-02" },
-    { member: "U_BOB", side: "recipient", baseXp: 15, gate: null, catalogueVersion: "1", day: "2026-09-01" },
-    { member: "U_CAROL", side: "recipient", baseXp: 5, gate: null, catalogueVersion: "1", day: "2026-09-02" },
+    { member: "U_ALICE", side: "giver", baseXp: 30, gate: null, catalogueVersion: "2", day: "2026-09-01" },
+    { member: "U_ALICE", side: "recipient", baseXp: 10, gate: null, catalogueVersion: "2", day: "2026-09-02" },
+    { member: "U_BOB", side: "giver", baseXp: 10, gate: null, catalogueVersion: "2", day: "2026-09-02" },
+    { member: "U_BOB", side: "giver", baseXp: 20, gate: null, catalogueVersion: "2", day: "2026-09-02" },
+    { member: "U_BOB", side: "recipient", baseXp: 15, gate: null, catalogueVersion: "2", day: "2026-09-01" },
+    { member: "U_CAROL", side: "recipient", baseXp: 5, gate: null, catalogueVersion: "2", day: "2026-09-02" },
   ]);
   expect(await standings(t, "U_ALICE", "U_BOB", "U_CAROL")).toEqual({
     U_ALICE: { xp: 40, level: 2, skillPoints: 0 },
@@ -110,8 +110,8 @@ describe("P8: an award given around the backfill is counted once", () => {
 
     const live = (await effectsRecords(t)).filter(({ gate }) => gate !== null);
     expect(live).toEqual([
-      { member: "U_ALICE", side: "giver", baseXp: 10, gate: { version: 1, thoughtful: true }, catalogueVersion: "1", day: "2026-10-13" },
-      { member: "U_BOB", side: "recipient", baseXp: 5, gate: { version: 1, thoughtful: true }, catalogueVersion: "1", day: "2026-10-13" },
+      { member: "U_ALICE", side: "giver", baseXp: 10, gate: { version: 1, thoughtful: true }, catalogueVersion: "2", day: "2026-10-13" },
+      { member: "U_BOB", side: "recipient", baseXp: 5, gate: { version: 1, thoughtful: true }, catalogueVersion: "2", day: "2026-10-13" },
     ]);
     expect(await standings(t, "U_ALICE", "U_BOB")).toEqual({ U_ALICE: { xp: 605, level: 5, skillPoints: 1 }, U_BOB: { xp: 1195, level: 6, skillPoints: 2 } });
     expect(publishedEvents("levelReached").map(({ level }) => level)).toEqual([5]);

@@ -44,7 +44,7 @@ describe("P19 P93: buyPerk spends the skill points and grants the perk in one st
     const outcome = await buy(t, alice, "spark", "trigger-1");
 
     expect(outcome).toEqual({ kind: "bought", perk: "spark" });
-    expect(await ownedRows(t)).toEqual([{ member: alice, perk: "spark", boughtAt: now.getTime(), catalogueVersion: "1" }]);
+    expect(await ownedRows(t)).toEqual([{ member: alice, perk: "spark", boughtAt: now.getTime(), catalogueVersion: "2" }]);
     expect(await standing(t, alice)).toEqual({ xp: levelFive, level: 5, skillPoints: 0 });
     expect(published("perkBought")).toEqual([{ type: "perkBought", workspace: "T1", member: alice, perk: "spark", at: now.getTime() }]);
   });

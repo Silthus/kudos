@@ -9,9 +9,11 @@ import { gateDecisionOf } from "./gate";
 import { catalogue } from "./catalogue";
 import type { Award, AwardWithId } from "../engine/awards";
 import { insertEffects, isRecorded, thoughtfulAwardsBefore } from "./effects";
-import { baseXpOf, bonusPaidIn, effectsFor, noGiving, progress, rewarded, sideOf, standing, xpToNextLevel, type BonusLine, type Giving, type MemberProgress, type Progressed, type Standing } from "./progress";
+import { baseXpOf, bonusPaidIn, coinsIn, effectsFor, noGiving, progress, rewarded, sideOf, standing, xpToNextLevel, type BonusLine, type Giving, type MemberProgress, type Progressed, type Standing } from "./progress";
+import { receivingOf, receivingWeekOf, recordReceiving } from "./receiving";
 import { insertReward, rewardOf, type RewardRecord } from "./rewards";
 import { perksPayingIn } from "./skillTree";
+import { credit } from "../wallet/wallet";
 
 export const recordEffects = internalMutation({
   args: { event: kudosGivenEventValidator },
@@ -19,8 +21,10 @@ export const recordEffects = internalMutation({
     for (const member of membersNamedIn(event)) {
       const awards = await unrecordedAwardsOf(ctx, member, event.awards);
       if (awards.length === 0) continue;
-      const { state, effects, events } = progress(await progressOf(ctx, member), { ...event, awards }, catalogue, await givingOf(ctx, event, member));
+      const receivingWeek = await receivingWeekOf(ctx, event, member);
+      const { state, effects, events } = progress(await progressOf(ctx, member), { ...event, awards }, catalogue, await givingOf(ctx, event, member), receivingOf(receivingWeek));
       await record(ctx, { state, effects });
+      await recordReceiving(ctx, receivingWeek, event.giver, effects);
       await publish(ctx, { type: "xpRecorded", workspace: event.workspace, member, at: event.at });
       for (const levelReached of events) await publish(ctx, levelReached);
     }
@@ -31,9 +35,7 @@ type GivenBy = { workspace: string; giver: MemberId; day: DayKey; awards: AwardW
 
 async function givingOf(ctx: QueryCtx, { workspace, giver, day, awards }: GivenBy, member: MemberId): Promise<Giving> {
   if (member !== giver || awards.length === 0) return noGiving;
-  const perks = await perksPayingIn(ctx, workspace, giver);
-  if (perks.length === 0) return noGiving;
-  return { perks, earlier: await thoughtfulAwardsBefore(ctx, giver, day, awards[0]!.award) };
+  return { perks: await perksPayingIn(ctx, workspace, giver), earlier: await thoughtfulAwardsBefore(ctx, giver, day, awards[0]!.award) };
 }
 
 export async function giverBonusOf(ctx: QueryCtx, giver: MemberId, message: MessageRef, annotations: Annotations): Promise<BonusLine[]> {
@@ -52,6 +54,7 @@ export async function recordReward(ctx: MutationCtx, workspace: string, reward: 
   const { member, at } = reward;
   if ((await rewardOf(ctx, member, reward.key)) !== null) return "already recorded";
   await insertReward(ctx, reward);
+  await credit(ctx, member, reward.coins);
   const { state, events } = rewarded(await progressOf(ctx, member), reward, { workspace, at });
   await saveProgress(ctx, state);
   await publish(ctx, { type: "xpRecorded", workspace, member, at });
@@ -70,6 +73,7 @@ export async function unrecordedAwardsOf<A extends AwardWithId>(ctx: QueryCtx, m
 
 export async function record(ctx: MutationCtx, { state, effects }: Pick<Progressed, "state" | "effects">) {
   await insertEffects(ctx, effects);
+  await credit(ctx, state.member, coinsIn(effects));
   await saveProgress(ctx, state);
 }
 

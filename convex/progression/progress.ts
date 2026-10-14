@@ -13,6 +13,10 @@ export const bonusLineValidator = v.object({ source: perkValidator, xp: v.number
 
 export type BonusLine = Infer<typeof bonusLineValidator>;
 
+export const coinLineValidator = v.object({ source: v.union(v.literal("giving"), v.literal("receiving")), coins: v.number() });
+
+export type CoinLine = Infer<typeof coinLineValidator>;
+
 export const effectsRecordValidator = v.object({
   award: awardIdValidator,
   side: v.union(v.literal("giver"), v.literal("recipient")),
@@ -22,6 +26,7 @@ export const effectsRecordValidator = v.object({
   gate: v.union(gateDecisionValidator, v.null()),
   catalogueVersion: v.string(),
   bonus: v.optional(v.array(bonusLineValidator)),
+  coins: v.optional(v.array(coinLineValidator)),
 });
 
 export type EffectsRecord = Infer<typeof effectsRecordValidator>;
@@ -39,8 +44,12 @@ export type Giving = { perks: PerkId[]; earlier: ThoughtfulAward[] };
 
 export const noGiving: Giving = { perks: [], earlier: [] };
 
-export function progress(state: MemberProgress, event: KudosGivenEvent, catalogue: Catalogue, giving = noGiving): Progressed {
-  const effects = effectsFor(state.member, event.awards, { day: event.day, gate: gateDecisionOf(event.annotations) }, catalogue, giving);
+export type Receiving = { paidBy: MemberId[] };
+
+export const noReceiving: Receiving = { paidBy: [] };
+
+export function progress(state: MemberProgress, event: KudosGivenEvent, catalogue: Catalogue, giving = noGiving, receiving = noReceiving): Progressed {
+  const effects = effectsFor(state.member, event.awards, { day: event.day, gate: gateDecisionOf(event.annotations) }, catalogue, giving, receiving);
   const next = withXpOf(state, effects);
   return { state: next, effects, events: levelsReached(state, next, event) };
 }
@@ -80,25 +89,55 @@ export function bonusPaidIn(effects: EffectsRecord[]): BonusLine[] {
   return [...paid].map(([source, xp]) => ({ source, xp }));
 }
 
-export function effectsFor(member: MemberId, awards: AwardWithId[], { day, gate }: Pick<EffectsRecord, "day" | "gate">, catalogue: Catalogue, { perks, earlier }: Giving): EffectsRecord[] {
+export function effectsFor(
+  member: MemberId,
+  awards: AwardWithId[],
+  { day, gate }: Pick<EffectsRecord, "day" | "gate">,
+  catalogue: Catalogue,
+  { perks, earlier }: Giving,
+  { paidBy }: Receiving = noReceiving,
+): EffectsRecord[] {
   const given = [...earlier];
+  const paid = [...paidBy];
   return awards.flatMap((award) => {
     const side = sideOf(member, award);
     if (side === null) return [];
     const record = { award: award.award, side, member, day, baseXp: baseXpOf(side, award, catalogue), gate, catalogueVersion: catalogue.version };
-    if (side === "recipient" || gate?.thoughtful !== true) return [record];
-    const bonus = bonusLinesOf(award.recipient, day, perks, given, catalogue);
+    if (gate?.thoughtful !== true) return [record];
+    if (side === "recipient") {
+      const coins = receivingCoinsOf(award.giver, paid, catalogue);
+      if (coins.length > 0) paid.push(award.giver);
+      return [withLines(record, { coins })];
+    }
+    const recognition = recognitionOf(award.recipient, day, given);
     given.push({ day, recipient: award.recipient });
-    return [bonus.length === 0 ? record : { ...record, bonus }];
+    return [withLines(record, { bonus: bonusLinesOf(recognition, perks, catalogue), coins: givingCoinsOf(recognition, catalogue) })];
   });
 }
 
-function bonusLinesOf(recipient: MemberId, day: DayKey, perks: PerkId[], earlier: ThoughtfulAward[], catalogue: Catalogue): BonusLine[] {
-  const recognition = recognitionOf(recipient, day, earlier);
+export function coinsIn(effects: Pick<EffectsRecord, "coins">[]): number {
+  return effects.reduce((sum, { coins = [] }) => sum + coins.reduce((total, line) => total + line.coins, 0), 0);
+}
+
+function withLines(record: EffectsRecord, { bonus = [], coins = [] }: Pick<EffectsRecord, "bonus" | "coins">): EffectsRecord {
+  return { ...record, ...(bonus.length > 0 && { bonus }), ...(coins.length > 0 && { coins }) };
+}
+
+function bonusLinesOf(recognition: Recognition | null, perks: PerkId[], catalogue: Catalogue): BonusLine[] {
   if (recognition === null) return [];
   return (Object.keys(catalogue.bonuses) as PerkId[])
     .filter((perk) => perks.includes(perk) && recognition[catalogue.bonuses[perk].on])
     .map((perk) => ({ source: perk, xp: catalogue.bonuses[perk].xp }));
+}
+
+function givingCoinsOf(recognition: Recognition | null, catalogue: Catalogue): CoinLine[] {
+  if (recognition === null) return [];
+  return [{ source: "giving", coins: catalogue.coins.giving }];
+}
+
+function receivingCoinsOf(giver: MemberId, paidBy: MemberId[], catalogue: Catalogue): CoinLine[] {
+  if (paidBy.includes(giver) || paidBy.length >= catalogue.coins.receivingGiversAWeek) return [];
+  return [{ source: "receiving", coins: catalogue.coins.receiving }];
 }
 
 type Recognition = Record<Bonus["on"], boolean>;

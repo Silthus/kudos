@@ -3,12 +3,14 @@ import type { Id } from "../_generated/dataModel";
 import type { KudosGivenEvent } from "../bus/events";
 import type { Annotations } from "../engine/messageEvent";
 import { catalogue } from "./catalogue";
-import { progress, standing, type Giving, type ThoughtfulAward, type MemberProgress } from "./progress";
+import { progress, standing, type Giving, type ThoughtfulAward, type MemberProgress, type Receiving } from "./progress";
 import type { PerkId } from "./tree";
 
 const alice = "alice" as Id<"members">;
 const bob = "bob" as Id<"members">;
 const carol = "carol" as Id<"members">;
+const thoughtful = { gate: { version: 1, thoughtful: true, words: 6 } };
+const notThoughtful = { gate: { version: 1, thoughtful: false, words: 1 } };
 
 describe("P1: base XP", () => {
   test.each([
@@ -34,13 +36,13 @@ describe("P1: base XP", () => {
 
 describe("P7: an effects record per side of every award", () => {
   test("keyed by award and side, with the day, the gate decision and the catalogue version", () => {
-    const event = kudosGiven([[bob, 1], [carol, 1]], { gate: { version: 1, thoughtful: true, words: 6 } });
+    const event = kudosGiven([[bob, 1], [carol, 1]], notThoughtful);
 
     const { effects } = progress(starting(alice), event, catalogue);
 
     expect(effects).toEqual([
-      { award: "award-bob", side: "giver", member: alice, day: "2026-10-13", baseXp: 10, gate: { version: 1, thoughtful: true }, catalogueVersion: "1" },
-      { award: "award-carol", side: "giver", member: alice, day: "2026-10-13", baseXp: 10, gate: { version: 1, thoughtful: true }, catalogueVersion: "1" },
+      { award: "award-bob", side: "giver", member: alice, day: "2026-10-13", baseXp: 10, gate: { version: 1, thoughtful: false }, catalogueVersion: "2" },
+      { award: "award-carol", side: "giver", member: alice, day: "2026-10-13", baseXp: 10, gate: { version: 1, thoughtful: false }, catalogueVersion: "2" },
     ]);
   });
 
@@ -62,7 +64,6 @@ test.each([
 });
 
 describe("P16 P18 P20: row 5's bonus XP on the giver's qualifying recognitions", () => {
-  const thoughtful = { gate: { version: 1, thoughtful: true, words: 6 } };
   const spark = { source: "spark", xp: 5 };
   const rhythm = { source: "rhythm", xp: 2 };
   const circle = { source: "circle", xp: 5 };
@@ -125,6 +126,55 @@ describe("P16 P18 P20: row 5's bonus XP on the giver's qualifying recognitions",
   function earlier(recipient: Id<"members">, day: string): ThoughtfulAward {
     return { recipient, day };
   }
+});
+
+describe("CO2: giving coins on the giver's qualifying recognitions", () => {
+  const giving = { source: "giving", coins: 4 };
+  const today = "2026-10-13";
+  const yesterday = "2026-10-12";
+
+  test.each([
+    ["the day's first recognition of Bob earns 4 coins", kudosGiven([[bob, 1]], thoughtful), [], [[giving]]],
+    ["a multi-kudos award earns them once", kudosGiven([[bob, 3]], thoughtful), [], [[giving]]],
+    ["Bob and Carol in one message earn them for each", kudosGiven([[bob, 1], [carol, 1]], thoughtful), [], [[giving], [giving]]],
+    ["Bob again the same day earns none", kudosGiven([[bob, 1]], thoughtful), [{ recipient: bob, day: today }], [[]]],
+    ["Bob again the next day earns them again", kudosGiven([[bob, 1]], thoughtful), [{ recipient: bob, day: yesterday }], [[giving]]],
+    ["a kudos that doesn't say why earns none", kudosGiven([[bob, 1]], notThoughtful), [], [[]]],
+    ["a kudos without a gate decision earns none", kudosGiven([[bob, 1]]), [], [[]]],
+  ] satisfies Array<[string, KudosGivenEvent, ThoughtfulAward[], unknown[][]]>)("%s, whatever perks the giver owns", (_, event, earlier, lines) => {
+    for (const perks of [[], ["spark", "rhythm", "circle"]] satisfies PerkId[][]) {
+      const { effects, state } = progress(starting(alice), event, catalogue, { perks, earlier });
+
+      expect(effects.map(({ coins }) => coins ?? [])).toEqual(lines);
+      expect(state.xp).toBe(effects.reduce((sum, { baseXp, bonus = [] }) => sum + baseXp + bonus.reduce((total, { xp }) => total + xp, 0), 0));
+    }
+  });
+});
+
+describe("CO3: receiving coins on the recipient's thoughtful awards", () => {
+  const receiving = { source: "receiving", coins: 2 };
+  const otherGivers = (count: number) => Array.from({ length: count }, (_, giver) => `giver-${giver}` as Id<"members">);
+
+  test.each([
+    ["the first thoughtful award from Alice this week earns 2 coins", thoughtful, [], [receiving]],
+    ["a second one from Alice this week earns none", thoughtful, [alice], []],
+    ["Alice as the tenth giver of the week earns them", thoughtful, otherGivers(9), [receiving]],
+    ["Alice as the eleventh giver of the week earns none", thoughtful, otherGivers(10), []],
+    ["a kudos that doesn't say why earns none", notThoughtful, [], []],
+    ["a kudos without a gate decision earns none", {}, [], []],
+  ] satisfies Array<[string, Annotations, Id<"members">[], unknown[]]>)("%s", (_, annotations, paidBy, lines) => {
+    const { effects, state } = progress(starting(bob), kudosGiven([[bob, 3]], annotations), catalogue, undefined, { paidBy });
+
+    expect(effects).toEqual([expect.objectContaining({ side: "recipient", baseXp: 15 })]);
+    expect(effects[0]!.coins ?? []).toEqual(lines);
+    expect(state.xp).toBe(15);
+  });
+
+  test("receiving coins are never on the giver's record", () => {
+    const { effects } = progress(starting(alice), kudosGiven([[bob, 1]], thoughtful), catalogue, undefined, { paidBy: [] } satisfies Receiving);
+
+    expect(effects[0]!.coins).toEqual([{ source: "giving", coins: 4 }]);
+  });
 });
 
 describe("P3 P4 P6 P63: levels, skill points and what the level-up DM needs", () => {
