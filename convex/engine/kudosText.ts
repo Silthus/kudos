@@ -50,7 +50,6 @@ export async function keepWords(ctx: MutationCtx, event: MessageEvent, annotatio
 }
 
 export async function keepFetchedWords(ctx: MutationCtx, fetched: FetchedMessage, annotations: Annotations) {
-  if ((await kudosTextRow(ctx, fetched.ref)) !== null) return false;
   await ctx.db.insert("kudosTexts", {
     ...fetched.ref,
     kind: "words",
@@ -61,12 +60,16 @@ export async function keepFetchedWords(ctx: MutationCtx, fetched: FetchedMessage
     visibility: "unknown",
     gate: gateDecisionOf(annotations),
   });
-  return true;
 }
 
 export async function forgetWords(ctx: MutationCtx, ref: MessageRef) {
   const row = await kudosTextRow(ctx, ref);
   if (row?.kind === "words") await write(ctx, row, { ...ref, kind: "tombstone", why: "no-longer-kudos" });
+}
+
+export async function forgetWordsOfGiven(ctx: MutationCtx, ref: MessageRef) {
+  const row = await kudosTextRow(ctx, ref);
+  if (row === null || row.kind === "words") await write(ctx, row, { ...ref, kind: "tombstone", why: "no-longer-kudos" });
 }
 
 export async function removeWords(ctx: MutationCtx, ref: MessageRef) {

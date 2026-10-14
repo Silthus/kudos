@@ -492,4 +492,42 @@ describe("AT18: a page's reads are bounded", () => {
     expect(next.entries[0]?.kind).toBe("kudosGiven");
     expect(new Set([...first.entries, ...next.entries].map((entry) => ("key" in entry ? entry.key : "")))).toHaveProperty("size", 100);
   });
+
+  test("messages that each thanked hundreds of people page within Convex's limits, skipping and repeating none", { timeout: 120_000 }, async () => {
+    t = testBackend({ transactionLimits: true });
+    await activityOn();
+    const messages = 40;
+    const recipientsEach = 820;
+    const me = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: bob.user, kind: "member", name: bob.name, asOf: 0 }));
+    const thanked = await t.run(async (ctx) => {
+      const ids = [];
+      for (let index = 0; index < recipientsEach; index++) ids.push(await ctx.db.insert("members", { workspace: "T1", user: `U_${index}`, kind: "member", asOf: 0 }));
+      return ids;
+    });
+    for (let index = 0; index < messages; index++) {
+      await t.run(async (ctx) => {
+        for (const recipient of thanked) await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `given-${index}`, giver: me, recipient, kudos: 1, day: "2026-10-14", at: postedAt + index });
+        await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `received-${index}`, giver: thanked[0]!, recipient: me, kudos: 1, day: "2026-10-14", at: postedAt + index });
+      });
+    }
+    const asBob = await signedIn(bob);
+
+    async function everyPage(filter: "all" | "given") {
+      const seen: string[] = [];
+      let cursor: string | null = null;
+      for (let page = 0; page < 2 * messages + 1; page++) {
+        const answer: Activity = await activityOf(asBob, { filter, cursor, limit: 50 });
+        for (const entry of answer.entries) seen.push(`${entry.kind} ${entry.at}${entry.kind === "kudosGiven" ? ` ${entry.recipients.length}` : ""}`);
+        cursor = answer.cursor;
+        if (cursor === null) return seen;
+      }
+      throw new Error("the pages never ended");
+    }
+    const recent = await asBob.query(api.website.activity.getRecentKudos, { direction: "given", limit: 10 });
+
+    const newestFirst = Array.from({ length: messages }, (_, index) => postedAt + messages - 1 - index);
+    expect(await everyPage("given")).toEqual(newestFirst.map((at) => `kudosGiven ${at} ${recipientsEach}`));
+    expect(await everyPage("all")).toEqual(newestFirst.flatMap((at) => [`kudosGiven ${at} ${recipientsEach}`, `kudosReceived ${at}`]));
+    expect(recent.kind === "recent" && recent.entries.length).toBeGreaterThan(0);
+  });
 });

@@ -19,40 +19,53 @@ type Viewer = { member: MemberId; gainsShown: () => Promise<GainsShown> };
 
 type Pending = { position: Position; entry: (mentions: Mentions) => Promise<ActivityEntry> };
 
-type Source = { rank: Rank; read: (ctx: QueryCtx, viewer: Viewer, before: Before, take: number) => Promise<Pending[]> };
+type Read = { pending: Pending[]; cut: boolean };
+
+type Source = { rank: Rank; read: (ctx: QueryCtx, viewer: Viewer, before: Before, take: number) => Promise<Read> };
 
 type PageSize = { min: number; max: number; usual: number };
 
 const activityPage: PageSize = { min: 1, max: 50, usual: 20 };
 const recentPage: PageSize = { min: 1, max: 10, usual: 5 };
 
+export const recipientsPerPage = 1_000;
+
 const levelUps: Source = {
   rank: ranks.levelUp,
   read: async (ctx, { member, gainsShown }, before, take) => {
-    if (!(await gainsShown()).xp) return [];
-    return (await firstOf(levelUpsNewestFirst(ctx, member, before), take)).map(({ level, at, created }) => ({
-      position: { at, rank: ranks.levelUp, created },
-      entry: async (): Promise<LevelUp> => ({ kind: "levelUp", at, level }),
-    }));
+    if (!(await gainsShown()).xp) return { pending: [], cut: false };
+    return whole(
+      (await firstOf(levelUpsNewestFirst(ctx, member, before), take)).map(({ level, at, created }) => ({
+        position: { at, rank: ranks.levelUp, created },
+        entry: async (): Promise<LevelUp> => ({ kind: "levelUp", at, level }),
+      })),
+    );
   },
 };
 
 const kudosReceived: Source = {
   rank: ranks.kudosReceived,
   read: async (ctx, { member }, before, take) =>
-    (await firstOf(awardsReceivedNewestFirst(ctx, member, before), take)).map((award) => ({
-      position: { at: award.at, rank: ranks.kudosReceived, created: award.created },
-      entry: (mentions) => receivedEntryOf(ctx, mentions, award),
-    })),
+    whole(
+      (await firstOf(awardsReceivedNewestFirst(ctx, member, before), take)).map((award) => ({
+        position: { at: award.at, rank: ranks.kudosReceived, created: award.created },
+        entry: (mentions) => receivedEntryOf(ctx, mentions, award),
+      })),
+    ),
 };
 
 const kudosGiven: Source = {
   rank: ranks.kudosGiven,
-  read: async (ctx, viewer, before, take) =>
-    (await firstOf(messagesGivenNewestFirst(ctx, viewer.member, before), take)).map((given) => ({
-      position: { at: given.at, rank: ranks.kudosGiven, created: given.created },
-      entry: (mentions) => givenEntryOf(ctx, viewer, mentions, given),
-    })),
+  read: async (ctx, viewer, before, take) => {
+    const { taken, cut } = await firstWithinRecipients(messagesGivenNewestFirst(ctx, viewer.member, before), take);
+    return {
+      pending: taken.map((given) => ({
+        position: { at: given.at, rank: ranks.kudosGiven, created: given.created },
+        entry: (mentions) => givenEntryOf(ctx, viewer, mentions, given),
+      })),
+      cut,
+    };
+  },
 };
 
 const sourcesOf: Record<Filter, Source[]> = {
@@ -73,13 +86,25 @@ export async function recentKudosOf(ctx: QueryCtx, member: MemberId, { direction
 
 async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, after: Position | null, size: number) {
   const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)) };
-  const read = await Promise.all(sourcesOf[filter].map(({ rank, read }) => read(ctx, viewer, beforeFor(rank, after), size + 1)));
-  const pending = read.flat().sort((one, other) => newestFirst(one.position, other.position));
-  const page = pending.slice(0, size);
+  const reads = await Promise.all(sourcesOf[filter].map(({ rank, read }) => read(ctx, viewer, beforeFor(rank, after), size + 1)));
+  const pending = reads.flatMap((read) => read.pending).sort((one, other) => newestFirst(one.position, other.position));
+  const page = completeUpTo(pending, cutPositionOf(reads)).slice(0, size);
   const mentions = mentionsOfOnePage(ctx);
   const entries = await Promise.all(page.map(({ entry }) => entry(mentions)));
   const last = page.at(-1);
-  return { entries, after: pending.length > size && last !== undefined ? encodePosition(last.position) : null };
+  const more = pending.length > page.length || reads.some((read) => read.cut);
+  return { entries, after: more && last !== undefined ? encodePosition(last.position) : null };
+}
+
+function cutPositionOf(reads: Read[]): Position | undefined {
+  return reads
+    .filter((read) => read.cut)
+    .map((read) => read.pending.at(-1)!.position)
+    .sort(newestFirst)[0];
+}
+
+function completeUpTo(pending: Pending[], cutAt: Position | undefined) {
+  return cutAt === undefined ? pending : pending.filter(({ position }) => newestFirst(position, cutAt) <= 0);
 }
 
 async function receivedEntryOf(ctx: QueryCtx, mentions: Mentions, { award, message, giver, at, created }: ReceivedAward): Promise<KudosReceived> {
@@ -117,6 +142,22 @@ function isKudos(entry: ActivityEntry): entry is KudosReceived | KudosGiven {
 function sizeOf(limit: number | undefined, { min, max, usual }: PageSize) {
   if (limit === undefined || !Number.isFinite(limit)) return usual;
   return Math.min(max, Math.max(min, Math.floor(limit)));
+}
+
+function whole(pending: Pending[]): Read {
+  return { pending, cut: false };
+}
+
+async function firstWithinRecipients(messages: AsyncIterable<GivenMessageAwards>, take: number): Promise<{ taken: GivenMessageAwards[]; cut: boolean }> {
+  const taken: GivenMessageAwards[] = [];
+  let recipients = 0;
+  for await (const given of messages) {
+    if (taken.length > 0 && recipients + given.awards.length > recipientsPerPage) return { taken, cut: true };
+    taken.push(given);
+    recipients += given.awards.length;
+    if (taken.length === take) break;
+  }
+  return { taken, cut: false };
 }
 
 async function firstOf<T>(items: AsyncIterable<T>, take: number): Promise<T[]> {

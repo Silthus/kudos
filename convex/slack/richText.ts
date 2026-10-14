@@ -23,13 +23,15 @@ const styleFlags = ["bold", "italic", "strike", "code"] as const;
 const lineBreak: WordSegment = { kind: "break" };
 const codeContainers = new Set(["rich_text_preformatted"]);
 
+export const segmentsKeptAtMost = 2_000;
+
 export function isText(value: unknown): value is string {
   return typeof value === "string" && value !== "";
 }
 
 export function segmentsOf(message: RichTextMessage): WordSegment[] {
   const segments = richTextBlocksOf(message).flatMap((elements) => elements.flatMap((element) => segmentsOfElement(element, {})));
-  return withoutTrailingBreaks(segments);
+  return withoutTrailingBreaks(segments.slice(0, segmentsKeptAtMost));
 }
 
 function richTextBlocksOf(message: RichTextMessage) {

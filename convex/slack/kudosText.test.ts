@@ -176,6 +176,23 @@ describe("AT2 AT3: a kudos message's words", () => {
   });
 });
 
+describe("AT2 AT39: a kudos message too long to keep whole", () => {
+  test("still gives, and keeps at most its first 2,000 segments", async () => {
+    const t = testBackend();
+    const lines = Array.from({ length: 5_000 }, (_, index) => `line ${index}`).join("\n");
+
+    await post(t, [section(mention("U_BOB"), text(" thanks for all of this "), emoji("taco"), text(`\n${lines}`))]);
+    await settle(t);
+
+    const kept = await words(t);
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
+    if (kept.kind !== "text") throw new Error(`expected the words, got ${kept.reason}`);
+    expect(kept.segments.length).toBeGreaterThan(1_990);
+    expect(kept.segments.length).toBeLessThanOrEqual(2_000);
+    expect(kept.segments.slice(0, 5)).toEqual([{ kind: "person", user: "U_BOB" }, { kind: "text", text: " thanks for all of this " }, { kind: "emoji", name: "taco" }, { kind: "break" }, { kind: "text", text: "line 0" }]);
+  });
+});
+
 describe("AT4: the newest revision wins", () => {
   test("an edit replaces the words, marks them edited and takes its own gate decision", async () => {
     const t = testBackend();

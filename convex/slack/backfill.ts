@@ -53,11 +53,13 @@ export const hydrateWords = internalMutation({
   handler: withholdingWords(async (ctx: MutationCtx, { fetched }: ObjectType<typeof hydrateWordsArgs>) => hydrate(ctx, fetched)),
 });
 
+const forgetMissingArgs = { ref: messageRefValidator };
+
 export const forgetMissing = internalMutation({
-  args: { ref: messageRefValidator },
-  handler: async (ctx, { ref }) => {
+  args: forgetMissingArgs,
+  handler: withholdingWords(async (ctx: MutationCtx, { ref }: ObjectType<typeof forgetMissingArgs>) => {
     await observe(ctx, { kind: "deleted", ref, wasKudosCandidate: false });
-  },
+  }),
 });
 
 async function nextPage(ctx: ActionCtx, cursor: string | undefined): Promise<Queue | null> {

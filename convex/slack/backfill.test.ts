@@ -205,8 +205,30 @@ describe("AT35: hydrate refuses", () => {
 
     await backfill(t, { answering: channelMessage([section(text(`thanks ${reason} `), mention("U_BOB"))], { ts: topLevelTs, editedTs: "1760349660.000100" }) });
 
-    expect(await wordsAt(t, topLevelTs)).toEqual({ kind: "unavailable", reason: "not-captured" });
+    expect(await wordsAt(t, topLevelTs)).toEqual({ kind: "unavailable", reason: "deleted" });
     expect(await kudosReceived(t, "U_BOB")).toBe(1);
+  });
+
+  test("a message captured live while its answer was on the way, so the live edits that follow still decide its words", async () => {
+    const t = testBackend();
+    const [liveEditTs, editedAwayTs] = ["1760349630.000100", "1760349660.000100"];
+    await givenBeforeCapture(t, thanksBob, { ts: topLevelTs, inSlack: false });
+    slack.withMessage("C1", channelMessage([section(text(`thanks ${reason} `), mention("U_BOB"))], { ts: topLevelTs, editedTs: editedAwayTs }));
+    const answer = slack.holdNext("conversations.history");
+
+    const run = t.action(internal.slack.backfill.backfillWords, {});
+    await answer.reached;
+    await edit(t, thanksBob, { ts: topLevelTs, editedTs: liveEditTs });
+    await settle(t);
+    answer.release();
+    await run;
+    await settleInTimeOrder(t);
+    expect(await wordsAt(t, topLevelTs)).toMatchObject({ kind: "text", edited: true });
+    await edit(t, [section(text(`thanks ${reason} `), mention("U_BOB"))], { ts: topLevelTs, editedTs: editedAwayTs });
+    await settle(t);
+
+    expect(await wordsAt(t, topLevelTs)).toEqual({ kind: "unavailable", reason: "deleted" });
+    expect(await storedAndScheduled(t)).not.toContain(reason);
   });
 
   test("a message whose words were removed when its author left, even once they are back", async () => {
@@ -282,7 +304,7 @@ describe("AT4 AT35: a revision older than the one hydrate read changes nothing",
     await edit(t, [section(text(`thanks ${olderWords} `), mention("U_BOB"), emoji("taco"))], { ts: topLevelTs, editedTs: olderEditTs });
     await settle(t);
 
-    expect(await wordsAt(t, topLevelTs)).toEqual({ kind: "unavailable", reason: "not-captured" });
+    expect(await wordsAt(t, topLevelTs)).toEqual({ kind: "unavailable", reason: "deleted" });
     expect(await storedAndScheduled(t)).not.toContain(olderWords);
   });
 });
@@ -344,6 +366,20 @@ describe("AT35: pacing", () => {
 });
 
 describe("AT35 AT36: safe to run again", () => {
+  test("a kudos given before capture and edited away since reads deleted, and no later run reads it from Slack", async () => {
+    const t = testBackend();
+    await givenBeforeCapture(t, thanksBob, { ts: topLevelTs, inSlack: false });
+    await edit(t, [section(text(`thanks ${reason} `), mention("U_BOB"))], { ts: topLevelTs, editedTs: "1760349660.000100" });
+    await settle(t);
+    const callsBefore = slack.calls.length;
+
+    await backfill(t);
+
+    expect(await wordsAt(t, topLevelTs)).toEqual({ kind: "unavailable", reason: "deleted" });
+    expect(slack.calls.slice(callsBefore).map((call) => call.method)).toEqual([]);
+    expect(await kudosReceived(t, "U_BOB")).toBe(1);
+  });
+
   test("a second run makes no Slack call and changes nothing", async () => {
     const t = testBackend();
     await givenBeforeCapture(t, thanksBob, { ts: topLevelTs });

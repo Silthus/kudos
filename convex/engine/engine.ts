@@ -9,7 +9,7 @@ import { settingsOf } from "../workspace/settings";
 import { allowanceDay, dailyAllowance, type DayKey } from "./allowance";
 import { insertAwards, type Award } from "./awards";
 import { keepSpotlightUpToDate } from "./spotlight";
-import { deletionRequested, forgetDeleted, forgetWords, hasKudosText, keepFetchedWords, keepWords, removeWords } from "./kudosText";
+import { deletionRequested, forgetDeleted, forgetWords, forgetWordsOfGiven, hasKudosText, keepFetchedWords, keepWords, removeWords } from "./kudosText";
 import type { Annotations, ChatUserId, FetchedMessage, Mention, MessageDeleted, MessageEvent, MessageRef } from "./messageEvent";
 import { annotationsOf, fingerprintOf, kudosMessageOf, type KudosMessage, type ParseContext } from "../parser/parser";
 
@@ -54,7 +54,7 @@ async function observeMessage(ctx: MutationCtx, event: MessageEvent | MessageDel
   };
   if (author !== undefined && author.kind !== "member") return observeFromNonMember(ctx, existing, event, revision, context);
   const kudos = await kudosMessageOf(ctx, event.content, context);
-  await followWords(ctx, event, kudos !== null, revision.annotations);
+  await followWords(ctx, event, existing, kudos !== null, revision.annotations);
   if (existing === null) return observeFirstRevision(ctx, event, revision, kudos !== null);
   const changesKudos = await changesKudosOf(ctx, event, existing, context);
   return observeEdit(ctx, existing, event, revision, { isKudosMessage: kudos !== null, changesKudos });
@@ -68,14 +68,18 @@ async function hydrateMessage(ctx: MutationCtx, fetched: FetchedMessage): Promis
   const row = await kudosMessageRow(ctx, fetched.ref);
   if (row?.state !== "given") return refused("not-given");
   if (fetched.revision < row.revision) return refused("stale-revision");
+  if (await hasKudosText(ctx, fetched.ref)) return refused("already-known");
   if (fetched.revision > row.revision) await followFetchedRevision(ctx, row, fetched);
   const author = await lookup(ctx, fetched.ref.workspace, fetched.author);
   if (author?.kind !== "member") return refused("not-a-member");
   if (await deletionRequested(ctx, { workspace: fetched.ref.workspace, author: fetched.author })) return refused("deletion-requested");
   const context = { workspace: fetched.ref.workspace, giver: author.member };
-  if ((await kudosMessageOf(ctx, fetched.content, context)) === null) return refused("ordinary-chat");
-  const kept = await keepFetchedWords(ctx, fetched, annotationsOf(fetched.content, context));
-  return kept ? { kind: "hydrated" } : refused("already-known");
+  if ((await kudosMessageOf(ctx, fetched.content, context)) === null) {
+    await forgetWordsOfGiven(ctx, fetched.ref);
+    return refused("ordinary-chat");
+  }
+  await keepFetchedWords(ctx, fetched, annotationsOf(fetched.content, context));
+  return { kind: "hydrated" };
 }
 
 async function followFetchedRevision(ctx: MutationCtx, row: KudosMessageRow, { revision, content }: FetchedMessage) {
@@ -99,8 +103,9 @@ async function observeDeletion(ctx: MutationCtx, { ref, wasKudosCandidate }: Mes
   return { kind: "deleted" };
 }
 
-async function followWords(ctx: MutationCtx, event: MessageEvent, isKudosMessage: boolean, annotations: Annotations) {
+async function followWords(ctx: MutationCtx, event: MessageEvent, existing: KudosMessageRow | null, isKudosMessage: boolean, annotations: Annotations) {
   if (isKudosMessage) await keepWords(ctx, event, annotations);
+  else if (existing?.state === "given") await forgetWordsOfGiven(ctx, event.ref);
   else await forgetWords(ctx, event.ref);
 }
 
