@@ -219,6 +219,18 @@ describe("a website command never launches unlocks", () => {
     expect(before.tables.journeyLaunches).toEqual([]);
     expect(publishedEvents()).toEqual([]);
   });
+  test("WS62: with achievements on, unlocks launched and no Book launch, opening a ready Leaderboard answers refused and doesn't launch the Book", async () => {
+    await launchedThen(...allFlags);
+    const { asSignedIn } = await withLevel(3);
+    await flagsOn(...allFlags, "achievements");
+    const before = await everythingWritten();
+    vi.mocked(publish).mockClear();
+
+    expect(await openFeature(asSignedIn)).toEqual({ kind: "refused" });
+    expect(await everythingWritten()).toEqual(before);
+    expect(before.tables.bookLaunches).toEqual([]);
+    expect(publishedEvents()).toEqual([]);
+  });
 });
 
 describe("a website command is a D17 command", () => {

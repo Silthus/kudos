@@ -217,6 +217,17 @@ describe("a website command never launches unlocks", () => {
     expect(before.tables.journeyLaunches).toEqual([]);
     expect(publishedEvents()).toEqual([]);
   });
+  test("WS74: with achievements on, the Journey launched and no Book launch, a finished step's open answers refused and doesn't launch the Book", async () => {
+    const { asSignedIn } = await aFinishedJourneyStepIn();
+    await flagsOn(t, ...questsFlags, "achievements");
+    const before = await everythingWritten();
+    vi.mocked(publish).mockClear();
+
+    expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "refused" });
+    expect(await everythingWritten()).toEqual(before);
+    expect(before.tables.bookLaunches).toEqual([]);
+    expect(publishedEvents()).toEqual([]);
+  });
 });
 
 describe("a website command is a D17 command", () => {
