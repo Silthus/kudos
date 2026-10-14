@@ -11,6 +11,7 @@ import type { MemberId } from "../workspace/directory";
 import { availableIn, countingGroupsOf, primaryGroupOf } from "./groups";
 import { primaryGroupAt } from "./history";
 import { reconcileMember } from "./reconcile";
+import { kudosGivenEventWithAward } from "../../testing/busEvents";
 
 const now = new Date("2026-10-14T10:00:00Z");
 const slackBoundaryTimeoutMs = 30_000;
@@ -206,11 +207,11 @@ describe("GB26: only admins where `groups` applies set the group mode", { timeou
 });
 
 describe("GB2, call 13: a write reconciles its member before their page does", { timeout: slackBoundaryTimeoutMs }, () => {
-  test("kudos spent after the switch but before Ann's page count for the group she falls back to, never for the one that left", async () => {
+  test("kudos Ann spends after the switch, attributed before her page runs, count for the group she falls back to, never for the one that left", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
     const t = await workspaceWithGroups();
     await adminTabOpen(t, "U_ALICE");
-    const ann = await memberOf(t, "U_ANN");
+    const [ann, bob] = [await memberOf(t, "U_ANN"), await memberOf(t, "U_BOB")];
     const allowlist = await groupIdsOf(t, "Gardeners", "Zebras");
     const switchedAt = Date.now();
 
@@ -220,15 +221,11 @@ describe("GB2, call 13: a write reconciles its member before their page does", {
       user: "U_ALICE",
       commands: [{ type: "setGroupMode", mode: "allowlist", allowlist }],
     });
-    const spentAt = switchedAt + 1_000;
+    const spent = await t.run((ctx) => kudosGivenEventWithAward(ctx, ann, bob, { day: "2026-10-14", at: switchedAt + 1_000 }));
     vi.setSystemTime(switchedAt + 60_000);
-    const attributedTo = await t.run(async (ctx) => {
-      await reconcileMember(ctx, ann);
-      const group = await primaryGroupAt(ctx, ann, spentAt);
-      return group === null ? null : (await ctx.db.get(group))?.name;
-    });
+    await t.mutation(internal.groups.attribution.attributeKudosGiven, { event: spent });
 
-    expect(attributedTo).toBe("Zebras");
+    expect(await attributedGroupNamesOf(t, ann)).toEqual(["Zebras"]);
     expect(await primaryGroupNameAt(t, ann, switchedAt - 1)).toBe("Owls");
   });
 });
@@ -470,4 +467,11 @@ async function settledWithMostJobsPending(t: Backend) {
     most = Math.max(most, pending);
   }
   return most;
+}
+
+async function attributedGroupNamesOf(t: Backend, giver: MemberId) {
+  return t.run(async (ctx) => {
+    const attributions = (await ctx.db.query("attributions").collect()).filter((attribution) => attribution.giver === giver);
+    return Promise.all(attributions.map(async ({ group }) => (group === null ? null : ((await ctx.db.get(group))?.name ?? null))));
+  });
 }
