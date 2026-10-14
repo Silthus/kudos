@@ -80,6 +80,20 @@ describe("F22: unlocks previewed by one member's email", () => {
     expect(dmsTo("U_BOB").filter((dm) => readDm(dm).some(namesAnUnlock))).toEqual([]);
   });
 
+  test("a ship sweep that is the first to show a member their preview opens what shipped for them and publishes their App Home with it", async () => {
+    const t = await workspaceDeciding(onForEveryone("xp-levels"), offForEveryone("everyone-board"), offForEveryone(unlocks));
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    const publishedBefore = slack.callsTo("views.publish").length;
+
+    await flagsFromPostHog(t, postHog, ...previewedByAlice);
+    await sweep(t);
+
+    expect(slack.callsTo("views.publish").slice(publishedBefore).filter(({ user_id }) => user_id === "U_ALICE")).toHaveLength(1);
+    expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Leaderboard | Settings");
+    expect(await unlockRowsOf(t, "U_ALICE")).toEqual([{ feature: "leaderboard", readyAt: expect.any(Number), openedAt: expect.any(Number) }]);
+    expect(dmsTo("U_ALICE").filter((dm) => readDm(dm).some(namesAnUnlock))).toEqual([]);
+  });
+
   test("F25: exposures carry true for the previewing member and false for the other", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
 

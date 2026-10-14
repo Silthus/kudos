@@ -8,9 +8,11 @@ import { keepOpen } from "./unlocks";
 
 export const unlocksFlag = { key: "unlocks", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
+export type UnlocksFor = "off" | "live" | "previewStarted";
+
 export async function unlocksShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
   if (!(await xpLevelsShownTo(ctx, member))) return false;
-  const shown = await unlocksLiveFor(ctx, member);
+  const shown = (await unlocksLiveFor(ctx, member)) !== "off";
   await exposed(ctx, unlocksFlag, member, shown);
   return shown;
 }
@@ -24,12 +26,16 @@ export const exposeUnlocks = internalMutation({
   },
 });
 
-export async function unlocksLiveFor(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+export async function unlocksLiveFor(ctx: MutationCtx, member: MemberId): Promise<UnlocksFor> {
   const { workspace } = await chatUserOf(ctx, member);
   await unlocksLiveIn(ctx, workspace);
-  if (!(await unlocksOnFor(ctx, member))) return false;
-  if ((await launchIn(ctx, workspace)) === null) await previewOnce(ctx, workspace, member);
-  return true;
+  return unlocksOpenedFor(ctx, workspace, member);
+}
+
+export async function unlocksOpenedFor(ctx: MutationCtx, workspace: string, member: MemberId): Promise<UnlocksFor> {
+  if (!(await unlocksOnFor(ctx, member))) return "off";
+  if ((await launchIn(ctx, workspace)) !== null || !(await previewOnce(ctx, workspace, member))) return "live";
+  return "previewStarted";
 }
 
 export async function unlocksLiveIn(ctx: MutationCtx, workspace: string): Promise<boolean> {
@@ -67,10 +73,11 @@ async function launch(ctx: MutationCtx, workspace: string) {
 }
 
 async function previewOnce(ctx: MutationCtx, workspace: string, member: MemberId) {
-  if ((await previewMomentOf(ctx, member)) !== null) return;
+  if ((await previewMomentOf(ctx, member)) !== null) return false;
   const at = Date.now();
   await ctx.db.insert("previewMoments", { member, moment: "unlocks", at });
   for (const { feature } of await shippedTo(ctx, member)) await keepOpen(ctx, { workspace, member, at, byLaunch: true }, feature);
+  return true;
 }
 
 function launchIn(ctx: QueryCtx, workspace: string) {
