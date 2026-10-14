@@ -192,7 +192,7 @@ function SkillTreeAnswerPage({ member, skillTree, onBuyPerk, ...actions }: Skill
   if (skillTree.kind === "not-found") return <NotFoundPage />;
   if (skillTree.kind === "ready" || skillTree.kind === "locked") return <FeatureWaitsPage name="Skill tree" waiting={skillTree} readyCard={readyCardOf(member, "skillTree")} chatUrl={member.chatUrl} />;
   if (skillTree.kind !== "tree") return <AnswerPage answer={skillTree} {...actions} />;
-  return <SkillTreePage tree={skillTree} buyPerk={onBuyPerk} />;
+  return <SkillTreePage tree={skillTree} level={member.progression?.level} buyPerk={onBuyPerk} />;
 }
 
 type NotAMember = Exclude<ShellState, { kind: "member" | "loading" }>;

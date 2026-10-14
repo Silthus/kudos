@@ -51,6 +51,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "skill tree with no skill points left, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithNoSkillPointsLeft, skillTree: skillTreeFixtures.noPointsLeft, wide: true },
   { name: "skill tree below its row, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithNoSkillPointsLeft, skillTree: skillTreeFixtures.belowTheRow, wide: true },
   { name: "skill tree with a perk that needs its base, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithOneSkillPoint, skillTree: skillTreeFixtures.needsABase, wide: true },
+  { name: "skill tree with every node state, the legend and the level chip", path: "/skills", visitor: shellFixtures.memberAtLevel7WithOneSkillPoint, skillTree: skillTreeFixtures.everyState },
   { name: "book locked until level 4", path: "/book", visitor: shellFixtures.memberWaitingForTheBook, book: bookFixtures.locked },
   { name: "book ready to open in place", path: "/book", visitor: shellFixtures.memberWithTheBookReady, book: bookFixtures.ready },
   { name: "book with a ladder at bronze and a ladder not started", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.book },
