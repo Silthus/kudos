@@ -301,7 +301,7 @@
     },
     {
       "name": "DM setting",
-      "definition": "A member's choice whether progression sends them DMs (P63). On unless they turn it off; read with that default until App Home lets them change it. It silences progression DMs only, never the welcome message, and changes no XP or level."
+      "definition": "App Home's earlier switch over progression DMs (P63), now read and written through the member's message setting: it shows on while any of the four DM kinds (level ups, new features, quests and the Journey, Book tiers) is on, and sets all four. A stored DM setting off reads as those kinds off. It never silences the welcome message, and changes no XP or level."
     },
     {
       "name": "public reply",
@@ -538,6 +538,10 @@
     {
       "name": "spotlight",
       "definition": "One drawable kudos shown on the leaderboard page with its words, giver, recipients and Slack permalink: a Given kudos from a public channel whose current words said why, by a member, with nobody on it off the leaderboards; drawn at random from the member's own workspace, and Next walks every drawable kudos once before any repeat."
+    },
+    {
+      "name": "message setting",
+      "definition": "A member's choice, one value per kind of message HedgeHug sends them (the after-kudos reply, tips, level ups, new features, quests and the Journey, Book tiers and public celebrations): on or off. Every kind is on until the member changes it; the earlier App Home switches that turned DMs off or muted public notices read as those kinds off. A message of a kind turned off is not written and not sent when Slack takes it; errors that need action, the welcome message, the answer to a Buy, App Home and a /hedgehug reply are never turned off."
     }
   ]
 }

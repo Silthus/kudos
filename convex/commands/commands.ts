@@ -1,14 +1,16 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { reportLeaderboardViewed, reportLeaderboardVisibilityChanged } from "../analytics/isolatedUsage";
+import { reportLeaderboardViewed, reportLeaderboardVisibilityChanged, reportMessageSettingChanged } from "../analytics/isolatedUsage";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
+import { messageSettingsShownTo } from "../messageSettings/flag";
+import { messageKindValidator, type MessageKind } from "../messageSettings/kinds";
+import { kindAppliesTo, setMessageSetting, setNotificationSwitches } from "../messageSettings/messageSettings";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import { buyPerk } from "../progression/perks";
 import type { PurchaseOutcome } from "../progression/purchases";
-import { setProgressSettings } from "../progression/settings";
 import { perkValidator } from "../progression/tree";
 import { openQuestCrate } from "../quests/open";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
@@ -24,6 +26,7 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("showLeaderboard"), period: periodValidator }),
   v.object({ type: v.literal("setLeaderboardVisibility"), visible: v.boolean() }),
   v.object({ type: v.literal("setProgressSettings"), muteNotices: v.optional(v.boolean()), dms: v.optional(v.boolean()) }),
+  v.object({ type: v.literal("setMessageSetting"), kind: messageKindValidator, on: v.boolean() }),
   v.object({ type: v.literal("setAnnouncementChannel"), channel: v.union(v.string(), v.null()) }),
   v.object({ type: v.literal("openUnlock"), feature: featureValidator }),
   v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
@@ -56,9 +59,12 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return null;
     case "setProgressSettings": {
       const { type: _, ...changes } = command;
-      if (await xpLevelsShownTo(ctx, member)) await setProgressSettings(ctx, member, changes);
+      if (await xpLevelsShownTo(ctx, member)) await setNotificationSwitches(ctx, member, changes);
       return null;
     }
+    case "setMessageSetting":
+      if (await isMessageSettingShownTo(ctx, member, command.kind)) await changeMessageSetting(ctx, workspace, member, command.kind, command.on);
+      return null;
     case "setAnnouncementChannel":
       if ((await xpLevelsShownIn(ctx, workspace)) && (await setAnnouncementChannel(ctx, workspace, person, command.channel))) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
       return null;
@@ -77,6 +83,14 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return outcome;
     }
   }
+}
+
+async function isMessageSettingShownTo(ctx: MutationCtx, member: MemberId, kind: MessageKind) {
+  return (await messageSettingsShownTo(ctx, member)) && (await kindAppliesTo(ctx, member, kind));
+}
+
+async function changeMessageSetting(ctx: MutationCtx, workspace: string, member: MemberId, kind: MessageKind, on: boolean) {
+  if (await setMessageSetting(ctx, member, kind, on)) await reportMessageSettingChanged(ctx, { workspace, member, setting: kind, on, at: Date.now() });
 }
 
 function leaderboardViewedInAppHome(ctx: MutationCtx, workspace: string, member: MemberId, period: Period) {

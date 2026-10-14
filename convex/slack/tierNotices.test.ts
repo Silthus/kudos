@@ -224,7 +224,7 @@ describe("P63 P64 P69: Settings and Admin say they cover achievements where the 
 
     await click(t, "U_ALICE", "Settings");
 
-    expect(publishedHome(slack, "U_ALICE")).toContain("section: I celebrate your level ups and achievements in public. [button: Mute notices]");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: I'll celebrate your level ups and achievements in public once your workspace picks a channel. [button: Mute notices]");
     expect(publishedHome(slack, "U_ALICE")).toContain("section: I send you a DM when you reach a level or earn an achievement. [button: Turn off DMs]");
   });
 
@@ -252,7 +252,7 @@ describe("P63 P64 P69: Settings and Admin say they cover achievements where the 
     const settings = publishedHome(slack, "U_ALICE");
     await click(t, "U_ALICE", "Admin");
 
-    expect(settings).toContain("section: I celebrate your level ups in public. [button: Mute notices]");
+    expect(settings).toContain("section: I'll celebrate your level ups in public once your workspace picks a channel. [button: Mute notices]");
     expect(settings).toContain("section: I send you a DM when you reach a level. [button: Turn off DMs]");
     expect(publishedHome(slack, "U_ALICE")).toContain(
       "section: I don't celebrate level ups in public yet. Pick a channel to celebrate them there. [channels_select: none]",

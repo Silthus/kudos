@@ -194,7 +194,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       "actions: [On] | Off",
       "context: When it's off, nobody sees you on the leaderboards, you included.",
       "divider",
-      "section: I celebrate your level ups in public. [button: Mute notices]",
+      "section: I'll celebrate your level ups in public once your workspace picks a channel. [button: Mute notices]",
       "section: I send you a DM when you reach a level. [button: Turn off DMs]",
       "divider",
       websiteLink,

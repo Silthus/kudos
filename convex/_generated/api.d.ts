@@ -77,6 +77,9 @@ import type * as leaderboard_improvementLine from "../leaderboard/improvementLin
 import type * as leaderboard_periods from "../leaderboard/periods.js";
 import type * as leaderboard_totals from "../leaderboard/totals.js";
 import type * as leaderboard_visibility from "../leaderboard/visibility.js";
+import type * as messageSettings_flag from "../messageSettings/flag.js";
+import type * as messageSettings_kinds from "../messageSettings/kinds.js";
+import type * as messageSettings_messageSettings from "../messageSettings/messageSettings.js";
 import type * as parser_parser from "../parser/parser.js";
 import type * as profileCard_flag from "../profileCard/flag.js";
 import type * as profileCard_profileCard from "../profileCard/profileCard.js";
@@ -91,7 +94,6 @@ import type * as progression_progress from "../progression/progress.js";
 import type * as progression_progression from "../progression/progression.js";
 import type * as progression_purchases from "../progression/purchases.js";
 import type * as progression_rewards from "../progression/rewards.js";
-import type * as progression_settings from "../progression/settings.js";
 import type * as progression_skillTree from "../progression/skillTree.js";
 import type * as progression_skillTreeFlag from "../progression/skillTreeFlag.js";
 import type * as progression_tree from "../progression/tree.js";
@@ -250,6 +252,9 @@ declare const fullApi: ApiFromModules<{
   "leaderboard/periods": typeof leaderboard_periods;
   "leaderboard/totals": typeof leaderboard_totals;
   "leaderboard/visibility": typeof leaderboard_visibility;
+  "messageSettings/flag": typeof messageSettings_flag;
+  "messageSettings/kinds": typeof messageSettings_kinds;
+  "messageSettings/messageSettings": typeof messageSettings_messageSettings;
   "parser/parser": typeof parser_parser;
   "profileCard/flag": typeof profileCard_flag;
   "profileCard/profileCard": typeof profileCard_profileCard;
@@ -264,7 +269,6 @@ declare const fullApi: ApiFromModules<{
   "progression/progression": typeof progression_progression;
   "progression/purchases": typeof progression_purchases;
   "progression/rewards": typeof progression_rewards;
-  "progression/settings": typeof progression_settings;
   "progression/skillTree": typeof progression_skillTree;
   "progression/skillTreeFlag": typeof progression_skillTreeFlag;
   "progression/tree": typeof progression_tree;

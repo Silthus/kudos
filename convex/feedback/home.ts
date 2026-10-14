@@ -7,7 +7,7 @@ import { skillTreeLevel } from "../progression/levels";
 import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import type { PurchaseOutcome, Refusal } from "../progression/purchases";
 import { perkOf, type Perk } from "../progression/tree";
-import type { ProgressSettings } from "../progression/settings";
+import type { MessageSetting, NotificationSwitches } from "../messageSettings/messageSettings";
 import type { JourneyStepFacts } from "../quests/journey";
 import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
 import { rewardKeyOf } from "../quests/crates";
@@ -256,11 +256,21 @@ export function whyNotOf({ state, row, requires, skillPoints }: Perk & { state: 
   }
 }
 
-function settingsGroups({ onTheBoards, progress, achievements }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
+function settingsGroups({ onTheBoards, progress, messages, achievements, channelPicked }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
   const leaderboard = onTheBoards === null ? [] : [leaderboardSwitch(onTheBoards)];
-  const copy = settingCopyOf(achievements);
+  const copy = settingCopyOf(achievements, channelPicked);
   const progression = progress === null ? [] : [[setting(copy, progress, "muteNotices"), setting(copy, progress, "dms")]];
-  return [...leaderboard, ...progression];
+  const sent = messages === null ? [] : [whatISendYouOf(messages)];
+  return [...leaderboard, ...progression, ...sent];
+}
+
+function whatISendYouOf(messages: MessageSetting[]): HomeLine[] {
+  return [{ kind: "text", text: bold("What I send you") }, ...messages.map(messageSettingLineOf)];
+}
+
+function messageSettingLineOf({ kind, label, description, on }: MessageSetting): HomeLine {
+  const text = on ? `${bold(label)} — ${description}` : `${bold(label)} · Off — ${description}`;
+  return { kind: "action", text, action: { label: on ? "Turn off" : "Turn on", command: { type: "setMessageSetting", kind, on: !on } } };
 }
 
 function leaderboardSwitch(onTheBoards: boolean): HomeLine[] {
@@ -279,11 +289,12 @@ function leaderboardSwitch(onTheBoards: boolean): HomeLine[] {
 
 type SettingCopy = Record<"whenOn" | "whenOff", { text: string; label: string }>;
 
-function settingCopyOf(achievements: boolean): Record<keyof ProgressSettings, SettingCopy> {
+function settingCopyOf(achievements: boolean, channelPicked: boolean): Record<keyof NotificationSwitches, SettingCopy> {
+  const what = celebrated(achievements);
   return {
     muteNotices: {
       whenOn: { text: "I don't post public notices about you.", label: "Unmute notices" },
-      whenOff: { text: `I celebrate your ${celebrated(achievements)} in public.`, label: "Mute notices" },
+      whenOff: { text: channelPicked ? `I celebrate your ${what} in public.` : `I'll celebrate your ${what} in public once your workspace picks a channel.`, label: "Mute notices" },
     },
     dms: {
       whenOn: { text: achievements ? "I send you a DM when you reach a level or earn an achievement." : "I send you a DM when you reach a level.", label: "Turn off DMs" },
@@ -296,13 +307,13 @@ function celebrated(achievements: boolean) {
   return achievements ? "level ups and achievements" : "level ups";
 }
 
-function setting(copy: Record<keyof ProgressSettings, SettingCopy>, settings: ProgressSettings, key: keyof ProgressSettings): HomeLine {
+function setting(copy: Record<keyof NotificationSwitches, SettingCopy>, settings: NotificationSwitches, key: keyof NotificationSwitches): HomeLine {
   const on = settings[key];
   const { text, label } = copy[key][on ? "whenOn" : "whenOff"];
   return { kind: "action", text, action: { label, command: { type: "setProgressSettings", ...changeOf(key, !on) } } };
 }
 
-function changeOf(key: keyof ProgressSettings, value: boolean): Partial<ProgressSettings> {
+function changeOf(key: keyof NotificationSwitches, value: boolean): Partial<NotificationSwitches> {
   return { [key]: value };
 }
 

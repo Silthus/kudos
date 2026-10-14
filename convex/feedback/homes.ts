@@ -8,13 +8,14 @@ import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
 import { isOnTheBoards } from "../leaderboard/visibility";
+import { messageSettingsShownTo } from "../messageSettings/flag";
+import { messageSettingsOf, notificationSwitchesOf, type MessageSetting, type NotificationSwitches } from "../messageSettings/messageSettings";
 import { memberPerksOf, ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import { skillTreeShownTo } from "../progression/skillTree";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { questsShownTo } from "../quests/flag";
 import { activateJourneyOf, journeyOf, type JourneyStepFacts } from "../quests/journey";
 import { thisWeeksQuestsOf, unopenedCratesOf, type UnopenedCrate, type WeeklyQuests } from "../quests/weekly";
-import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
 import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { unlocksShownTo } from "../unlocks/launch";
 import { unlocksHomeOf, type UnlocksHome } from "../unlocks/unlocks";
@@ -31,7 +32,7 @@ export type ShownTab =
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
   | { tab: "skillTree"; perks: MemberPerks }
-  | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null; achievements: boolean }
+  | { tab: "settings"; onTheBoards: boolean | null; progress: NotificationSwitches | null; messages: MessageSetting[] | null; achievements: boolean; channelPicked: boolean }
   | { tab: "admin"; announcementChannel: string | null; achievements: boolean };
 
 export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
@@ -40,7 +41,7 @@ export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoin
 
 export type HomeMember = Extract<MemberFacts, { kind: "member" }>;
 
-type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; quests: boolean; book: boolean; skillTree: boolean; admin: boolean; sharedSettings: boolean };
+type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; quests: boolean; book: boolean; skillTree: boolean; messages: boolean; admin: boolean; sharedSettings: boolean };
 
 type HomeSelection = { tab: HomeTab; period: Period };
 
@@ -52,7 +53,7 @@ const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices & Door
   { tab: "leaderboard", shownWith: ({ leaderboard, frontDoor }) => leaderboard && !frontDoor },
   { tab: "book", shownWith: ({ book, frontDoor }) => book && !frontDoor },
   { tab: "skillTree", shownWith: ({ skillTree, frontDoor }) => skillTree && !frontDoor },
-  { tab: "settings", shownWith: ({ board, xp }) => board || xp },
+  { tab: "settings", shownWith: ({ board, xp, messages }) => board || xp || messages },
   { tab: "admin", shownWith: ({ sharedSettings, admin }) => sharedSettings && admin },
 ];
 
@@ -118,8 +119,9 @@ async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMe
   const quests = await questsShownTo(ctx, person.member);
   const book = unlocks && (await achievementsShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "book"));
   const skillTree = (await skillTreeShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "skillTree"));
+  const messages = await messageSettingsShownTo(ctx, person.member);
   const sharedSettings = await xpLevelsShownIn(ctx, workspace);
-  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, admin: person.admin, sharedSettings };
+  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, messages, admin: person.admin, sharedSettings };
 }
 
 async function isLeaderboardOpenTo(ctx: QueryCtx, member: MemberId, unlocksShown: boolean) {
@@ -156,12 +158,18 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
       return {
         tab,
         onTheBoards: slices.board ? await isOnTheBoards(ctx, viewer.member) : null,
-        progress: slices.xp ? await progressSettingsOf(ctx, viewer.member) : null,
+        progress: slices.xp && !slices.messages ? await notificationSwitchesOf(ctx, viewer.member) : null,
+        messages: slices.messages ? await applyingMessageSettingsOf(ctx, viewer.member) : null,
         achievements: await achievementsApplyIn(ctx, viewer.workspace),
+        channelPicked: (await settingsOf(ctx, viewer.workspace)).announcementChannel !== null,
       };
     case "admin":
       return { tab, announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel, achievements: await achievementsApplyIn(ctx, viewer.workspace) };
   }
+}
+
+async function applyingMessageSettingsOf(ctx: QueryCtx, member: MemberId) {
+  return (await messageSettingsOf(ctx, member)).filter(({ applies }) => applies);
 }
 
 async function openedQuestsOf(ctx: MutationCtx, member: MemberId) {

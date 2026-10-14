@@ -79,7 +79,7 @@ describe("P67: the Settings tab", () => {
     expect(publishedHome(slack, "U_ALICE")).toEqual([
       "actions: Profile | [Settings]",
       "header: Settings",
-      "section: I celebrate your level ups in public. [button: Mute notices]",
+      "section: I'll celebrate your level ups in public once your workspace picks a channel. [button: Mute notices]",
       "section: I send you a DM when you reach a level. [button: Turn off DMs]",
     ]);
   });
