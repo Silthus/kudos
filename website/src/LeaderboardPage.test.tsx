@@ -389,7 +389,33 @@ describe("WS34 V19: teammates show their Slack faces", () => {
     expect(within(podiumSpots()[1]!).getByText("AL")).toBeInTheDocument();
     expect(within(within(main()).getByText("Ivy Quinn").closest("li")!).getByText("IQ")).toBeInTheDocument();
   });
+
+  it("shows initials at once for a picture that already failed in the tab, and keeps a picture that already loaded", () => {
+    pictureAlreadySettled({ [ada]: "failed", [ivy]: "loaded" });
+
+    showBoard(leaderboardFixtures.withTeammatesFaces);
+
+    expect(document.querySelectorAll(`img[src="${ada}"]`)).toHaveLength(0);
+    expect(within(podiumSpots()[1]!).getByText("AL")).toBeInTheDocument();
+    const ivyRow = within(main()).getByText("Ivy Quinn").closest("li")!;
+    expect(ivyRow.querySelector(`img[src="${ivy}"]`)).toBeInTheDocument();
+    expect(within(ivyRow).queryByText("IQ")).not.toBeInTheDocument();
+  });
 });
+
+function pictureAlreadySettled(pictures: Record<string, "failed" | "loaded">) {
+  const settledAs = (image: HTMLImageElement) => pictures[image.getAttribute("src") ?? ""];
+  const complete = vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockImplementation(function (this: HTMLImageElement) {
+    return settledAs(this) !== undefined;
+  });
+  const naturalWidth = vi.spyOn(HTMLImageElement.prototype, "naturalWidth", "get").mockImplementation(function (this: HTMLImageElement) {
+    return settledAs(this) === "loaded" ? 192 : 0;
+  });
+  onTestFinished(() => {
+    complete.mockRestore();
+    naturalWidth.mockRestore();
+  });
+}
 
 describe("WS42: the list shows the rest of G17's window below the podium", () => {
   it("lists the window after the podium in order, with the skipped positions behind Show more lines", () => {
