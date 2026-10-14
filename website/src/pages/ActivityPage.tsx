@@ -117,7 +117,7 @@ function FirstPageWaiting({ state, onTryAgain }: { state: TimelineState; onTryAg
 function Entries({ state, timeZone }: { state: TimelineState; timeZone: string | undefined }) {
   const now = Date.now();
   return (
-    <ol aria-label="Your activity" className="relative flex flex-col gap-3 before:absolute before:inset-y-2 before:left-[1.25rem] before:w-px before:bg-border">
+    <ol aria-label="Your activity" className="relative flex flex-col gap-3 before:absolute before:top-6 before:bottom-2 before:left-[1.25rem] before:w-px before:bg-muted-foreground/40">
       {state.entries.map((entry, index) => {
         const day = dayKeyOf(entry.at, timeZone);
         const startsADay = index === 0 || dayKeyOf(state.entries[index - 1]!.at, timeZone) !== day;

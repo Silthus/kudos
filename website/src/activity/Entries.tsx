@@ -49,7 +49,7 @@ function KudosEntry({ face, headline, entry, slackName, index, timeZone, childre
       <div className="flex min-w-0 flex-col gap-2.5 rounded-xl border bg-card p-4 text-sm">
         <div className="flex items-start gap-3">
           {face}
-          <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 pt-1.5">
+          <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 pt-1.5">
             <h3 id={headlineId} className="min-w-0 font-medium [overflow-wrap:anywhere]">
               {headline}
             </h3>
@@ -74,7 +74,7 @@ function LevelMark({ entry, index, timeZone }: { entry: LevelUp } & EntryProps) 
           {entry.level}
         </span>
       </div>
-      <div className="flex min-w-0 items-baseline justify-between gap-3 py-1 text-sm">
+      <div className="flex min-w-0 items-baseline justify-between gap-3 px-4 py-1 text-sm">
         <h3 id={headlineId} className="font-medium">{`You reached level ${entry.level}`}</h3>
         <When at={entry.at} timeZone={timeZone} />
       </div>
@@ -119,7 +119,7 @@ function Earned({ earned }: { earned: NonNullable<KudosGiven["earned"]> }) {
   if (lines.length === 0) return null;
   return (
     <div className="flex flex-col gap-1 border-t pt-2 text-xs text-muted-foreground">
-      <span id={labelId} className="hud-label">
+      <span id={labelId} className="font-medium">
         Earned
       </span>
       <ul aria-labelledby={labelId} className="flex flex-col gap-0.5">
@@ -134,7 +134,7 @@ function Earned({ earned }: { earned: NonNullable<KudosGiven["earned"]> }) {
 function BonusLine({ bonus }: { bonus: Bonus }) {
   return (
     <>
-      <span className="font-medium text-foreground tabular-nums">{`${bonus.perk.name} bonus (+${bonus.xp} XP)`}</span>
+      <span className="tabular-nums">{`${bonus.perk.name} bonus (+${bonus.xp} XP)`}</span>
       {` · ${bonus.why}`}
     </>
   );
@@ -145,14 +145,14 @@ function QuestLine({ quest }: { quest: QuestDone }) {
   return (
     <>
       {`Finished ${goal} · `}
-      <span className="font-medium text-foreground tabular-nums">{`+${quest.xp} XP`}</span>
+      <span className="tabular-nums">{`+${quest.xp} XP`}</span>
     </>
   );
 }
 
 function OpenInSlack({ permalink, name }: { permalink: string; name: string }) {
   return (
-    <a href={permalink} target="_blank" rel="noreferrer" className="inline-flex min-h-6 items-center gap-1 self-start text-xs font-medium underline-offset-4 hover:underline">
+    <a href={permalink} target="_blank" rel="noreferrer" className="inline-flex min-h-6 items-center gap-1 self-start text-sm font-medium underline-offset-4 hover:underline">
       Open in Slack
       <span className="sr-only">{`: ${name} (opens in a new tab)`}</span>
       <IconExternal aria-hidden="true" className="size-3.5" />
