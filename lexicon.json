@@ -462,6 +462,10 @@
     {
       "name": "Old Friends",
       "definition": "The ladder that counts the times a member thanked someone again 30 or more of the giver's days after the giver's previous award to them; a first thanks to someone counts nothing (P58)."
+    },
+    {
+      "name": "reward",
+      "definition": "What a goal or a tier promises a member, fixed when it is promised: a quest's or Journey step's XP, coins and item, paid once through a reward record (P86, P87), or a tier's reward kind and reward ID, paid once that kind ships (P58, P62)"
     }
   ]
 }
