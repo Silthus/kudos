@@ -145,6 +145,7 @@ describe("P80: a new week is drawn from the facts at its start, whenever the dra
   ])("a first thanks to each teammate %s, the sweep at 00:10 and that kudos drawing on demand draw the same quests with the same facts", async (_, afterStart) => {
     const drawn: Array<{ drawnAt: number; slots: unknown }> = [];
     for (const onDemand of [false, true]) {
+      vi.clearAllTimers();
       const { t, alice, bob, carol } = await workspace();
       await openQuests(t, [alice], tuesday);
       if (!onDemand) await sweepAt(t, mondayInAuckland + 10 * minuteMs);
