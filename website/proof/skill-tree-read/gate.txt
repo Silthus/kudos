@@ -1,10 +1,10 @@
+Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
 $ pnpm typecheck && pnpm test && pnpm coherence
 $ tsc --noEmit && tsc --noEmit -p website
 $ vitest run
 
  RUN  v5.0.3 /home/coder/dev/kudos-wt/skill-tree-read
 
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -97,11 +97,12 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
- Test Files  124 passed (124)
-      Tests  1920 passed (1920)
-   Start at  06:50:23
-   Duration  95.27s (tests 78%, import 11%, transform 6%, environment 4%, setup 1%)
+ Test Files  125 passed (125)
+      Tests  1937 passed (1937)
+   Start at  07:04:04
+   Duration  105.51s (tests 82%, import 10%, transform 4%, environment 3%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -472,7 +473,7 @@ Website reads  convex/website/WebsiteReads.spec.md
       refuted 2026-10-14: added /quests to the backend's routeList without adding it to the website router
       kinds output: 5 shapes apply, 1 declared, 4 dismissed
   one function builds every website link  invariant
-      totality oracle "SW11: one function builds every website link" over websiteLinkOf while the website is open, for the root, the Leaderboard's three periods, the Quests page, the perks page and the Book: verified 2026-10-14
+      totality oracle "SW11: one function builds every website link" over websiteLinkOf while the website is open, for the root, the Leaderboard's three periods, the Quests page, and the `/skills` and `/book` pages: verified 2026-10-14
       refuted 2026-10-14: routeOf answered an unlisted page's own path instead of the root
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
   a deep link shows only while the website is open  invariant
@@ -486,7 +487,7 @@ Website reads  convex/website/WebsiteReads.spec.md
       refuted 2026-10-13: made prepareWebsiteFlag a public mutation instead of an internal one
       kinds read, identity: 5 shapes apply, 1 declared, 4 dismissed
   website reads pass one guard  invariant
-      totality oracle "website reads pass one guard" over getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getQuests with the flag off, no session, a former member, and an argument that names another member; getSkillTree with the flag off, no session, a former member, and an argument that names another member: verified 2026-10-14
+      totality oracle "website reads pass one guard" over getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getQuests with the flag off, no session, a former member, and an argument that names another member; getBook with the website flag off, no session, a former member, and an argument that names another member; getSkillTree with the flag off, no session, a former member, and an argument that names another member: verified 2026-10-14
       crossing browser -> domain
       refuted 2026-10-13: memberQuery dropped the check that the session's workspace is the current SLACK_WORKSPACE_ID
       kinds read, identity: 5 shapes apply, 1 declared, 4 dismissed
@@ -519,6 +520,11 @@ Website reads  convex/website/WebsiteReads.spec.md
       totality oracle "quests are invisible where they don't apply" over getQuests and getMyProfile with quests, xp-levels or unlocks switched off after a member finished a quest and a Journey step, and with every flag on and nothing launched: verified 2026-10-14
       crossing browser -> domain
       refuted 2026-10-14: journeyStepsOf no longer checked questsApplyIn before listing the Journey
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  the Book names nothing unshipped  invariant
+      totality oracle "the Book names nothing unshipped" over getBook with only the catalogue's first two ladders shipped, for a member who earned all four tiers on both: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: getBook passed each tier's promised rewards from achievementsOf through to the answer
       kinds read: 2 shapes apply, 1 declared, 1 dismissed
   a member's home shows only their own facts  invariant
       totality oracle "WS13 WS15 WS18: a member's home answer projects their own homeFacts" over getMyProfile for a member beside members who gave and received kudos, before and after a kudos lands, and across the member's midnight and the week's turn on a clock tick: verified 2026-10-13
@@ -579,8 +585,8 @@ Workspace  convex/workspace/Workspace.spec.md
       kinds identity, state: 10 shapes apply, 1 declared, 9 dismissed
 Website  website/Website.spec.md
   (no invariants)
-18 components, 101 bullets: 101 invariants, 0 requirements
-lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T05:43:32.858Z (559 runs)
+18 components, 102 bullets: 102 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T06:50:55.603Z (564 runs)
 defects: 18 recorded, 15 closed (0 guarded, 15 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
@@ -599,6 +605,6 @@ RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       170 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 65, receipt 30, contract 18, promise 11, zone 11; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (527 files), 17 in records
+ADVISORY       177 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 69, receipt 30, contract 18, zone 14, promise 11; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (530 files), 17 in records
 gate exit=0
