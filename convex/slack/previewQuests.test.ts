@@ -149,7 +149,7 @@ describe("F21 F23: the Journey launch after a preview", () => {
 });
 
 describe("F24: ending a quests preview", () => {
-  test("hides quests and keeps every reward, finish and crate, shown again unchanged when the preview comes back", async () => {
+  test("hides quests, refuses a stale Swap, and keeps every reward, finish and crate, shown again unchanged when the preview comes back", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await openedQuests(t, "U_ALICE", ["say-why", "say-why-twice", "say-why-three-times"]);
     await giveKudos(t, "U_ALICE", "U_CAROL", saysWhy);
@@ -157,8 +157,10 @@ describe("F24: ending a quests preview", () => {
     await openHome(t, "U_ALICE");
     const stored = await questRows(t);
     const shown = publishedHome(slack, "U_ALICE");
+    const swap = buttonIn(publishedHomeBlocks(slack, "U_ALICE"), "Swap");
 
     await flagsFromPostHog(t, postHog, ...offForEveryoneElse);
+    await send(t, blockActions("U_ALICE", swap));
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
     await openHome(t, "U_ALICE");
     await sweeps(t);

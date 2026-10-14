@@ -414,8 +414,8 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   checklist: worker-fencing dismissed: no worker owns the launch; Convex serializes the mutations that read or write it
   checklist: commit-ordered-effects dismissed: the join's DM is scheduled by its own mutation and runs only after it commits
   checklist: resumption-coverage dismissed: the join is covered by the Journey's join stays within Convex's limits
-- ending a quests preview takes nothing away: When a member's email condition is removed, quests is hidden from them as when the flag is off, a kudos and both sweeps record nothing for them, every draw, reward record, finish and crate opening stays, and when the preview comes back App Home shows them unchanged.
-  over: every Quests table and the previewer's App Home, after a finished weekly quest whose crate was opened, the preview ended, a kudos that says why and both sweeps, and the preview back
+- ending a quests preview takes nothing away: When a member's email condition is removed, quests is hidden from them as when the flag is off, a stale Swap from their App Home, a kudos and both sweeps record nothing for them, every draw, reward record, finish and crate opening stays, and when the preview comes back App Home shows them unchanged.
+  over: every Quests table and the previewer's App Home, after a finished weekly quest whose crate was opened, the preview ended, a Swap clicked on the App Home published during the preview, a kudos that says why and both sweeps, and the preview back
   via: F24: ending a quests preview
   because: ending a preview takes nothing away (F24): what a preview paid is the member's for good (ADR-0002, F17), and a flag decides only what is shown and recorded from then on (O35)
   kinds: state, output
