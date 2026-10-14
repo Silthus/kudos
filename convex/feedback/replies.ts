@@ -117,12 +117,7 @@ function gainsLineOf({ xp, questsDone }: Required<Gains>): Line | null {
 }
 
 function questsDoneParts(questsDone: QuestDone[]): Line[] {
-  const xpByGoal = new Map<string, number>();
-  for (const done of questsDone) {
-    const goal = withoutFullStop(goalOf(done));
-    xpByGoal.set(goal, (xpByGoal.get(goal) ?? 0) + done.xp);
-  }
-  return [...xpByGoal].map(([goal, xp]) => [{ text: `Quest done: ${goal} (+${xp} XP)` }]);
+  return questsDone.map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} (+${done.xp} XP)` }]);
 }
 
 function goalOf(done: QuestDone) {
