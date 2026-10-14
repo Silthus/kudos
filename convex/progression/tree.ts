@@ -46,7 +46,11 @@ export function perkOf(perk: PerkId): Perk {
 const perksPayingCoins = (Object.keys(bonuses) as PerkId[]).filter((perk) => "coins" in bonuses[perk]);
 
 export function isCoinPerk({ perk, coins }: Pick<Perk, "perk" | "coins">): boolean {
-  return hasCoinPrice({ coins }) || perksPayingCoins.includes(perk);
+  return hasCoinPrice({ coins }) || paysCoins(perk);
+}
+
+export function paysCoins(perk: PerkId): boolean {
+  return perksPayingCoins.includes(perk);
 }
 
 export function hasCoinPrice({ coins }: Pick<Perk, "coins">): boolean {

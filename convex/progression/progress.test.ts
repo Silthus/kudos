@@ -187,7 +187,6 @@ describe("CO4: treasurer and banker coin lines on the giver's qualifying recogni
   test.each([
     ["treasurer adds 2 coins", ["treasurer"], kudosGiven([[bob, 1]], thoughtful), [], [[giving, treasurer]]],
     ["banker replaces treasurer's line with 4 coins", ["treasurer", "banker"], kudosGiven([[bob, 1]], thoughtful), [], [[giving, banker]]],
-    ["with every perk, the XP lines stay XP and the coin line stays coins", ["spark", "rhythm", "circle", "flame", "cadence", "bridge", "treasurer", "banker"], kudosGiven([[bob, 1]], thoughtful), [], [[giving, banker]]],
     ["treasurer pays on every recognition, not only the day's first", ["treasurer"], kudosGiven([[bob, 1]], thoughtful), [{ recipient: carol, day: today }], [[giving, treasurer]]],
     ["a multi-kudos award pays treasurer once", ["treasurer"], kudosGiven([[bob, 3]], thoughtful), [], [[giving, treasurer]]],
     ["Bob and Carol in one message pay treasurer for each", ["treasurer"], kudosGiven([[bob, 1], [carol, 1]], thoughtful), [], [[giving, treasurer], [giving, treasurer]]],
@@ -199,6 +198,24 @@ describe("CO4: treasurer and banker coin lines on the giver's qualifying recogni
     expect(effects.map(({ coins }) => coins ?? [])).toEqual(lines);
     expect(effects.flatMap(({ bonus = [] }) => bonus).filter(({ source }) => source === "treasurer" || source === "banker")).toEqual([]);
     expect(state.xp).toBe(effects.reduce((sum, { baseXp, bonus = [] }) => sum + baseXp + bonus.reduce((total, { xp }) => total + xp, 0), 0));
+  });
+
+  test("with every perk, the upgrades pay their XP lines and banker its coin line", () => {
+    const every: PerkId[] = ["spark", "rhythm", "circle", "flame", "cadence", "bridge", "treasurer", "banker"];
+
+    const { effects, state } = progress(starting(alice), kudosGiven([[bob, 1]], thoughtful), catalogue, { perks: every, earlier: [] });
+
+    expect(effects.map(({ bonus, coins }) => ({ bonus, coins }))).toEqual([
+      {
+        bonus: [
+          { source: "flame", xp: 8 },
+          { source: "cadence", xp: 3 },
+          { source: "bridge", xp: 8 },
+        ],
+        coins: [giving, banker],
+      },
+    ]);
+    expect(state.xp).toBe(29);
   });
 });
 

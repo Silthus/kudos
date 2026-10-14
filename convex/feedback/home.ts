@@ -214,7 +214,7 @@ function skillTreeGroups(tree: MemberPerks): HomeLine[][] {
 
 function perkLines(perk: TreePerk): HomeLine[] {
   const { name, copy, state } = perk;
-  if (state === "owned") return [{ kind: "text", text: `✅ ${bold(name)} · Owned\n${copy}` }];
+  if (state === "owned") return [{ kind: "text", text: [`✅ ${bold(name)} · Owned`, copy].filter(Boolean).join("\n") }];
   if (state === "buyable") return [{ kind: "action", ...perkOfferOf(perk) }];
   return [{ kind: "text", text: perkTextOf(perk) }, { kind: "hint", text: whyNotOf({ ...perk, state }) }];
 }

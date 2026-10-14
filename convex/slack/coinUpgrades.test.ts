@@ -311,7 +311,7 @@ describe("CO4 CO22: treasurer and banker pay more coins on every thank-you that 
     expect(publishedHome(slack, "U_ALICE").join("\n")).not.toMatch(/Treasurer|Banker|🪙/);
   });
 
-  test("once coins turn off, an owned treasurer stays listed as owned and keeps paying 2 coins", async () => {
+  test("once coins turn off, an owned treasurer stays listed as owned without a 🪙 and keeps paying 2 coins", async () => {
     const t = await aliceWithTheTreeOpen({ owns: ["treasurer"], coins: coinsEarnedOnTheWay });
 
     await flagsFromPostHog(t, postHog, ...coinsOff);
@@ -319,8 +319,19 @@ describe("CO4 CO22: treasurer and banker pay more coins on every thank-you that 
     vi.setSystemTime(tuesday + dayMs);
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
 
-    expect(publishedHome(slack, "U_ALICE")).toContain(`section: ✅ *Treasurer* · Owned\n${treasurerCopy}`);
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: ✅ *Treasurer* · Owned");
+    expect(publishedHome(slack, "U_ALICE").join("\n")).not.toMatch(/🪙|Banker/);
     expect((await giverRecordsOf(t, "U_ALICE")).at(-1)?.coins).toEqual([giving, { source: "treasurer", coins: 2 }]);
+    expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP"]);
+  });
+
+  test("once coins turn off, owning only treasurer doesn't ask a kudos to say why", async () => {
+    const t = await aliceWithTheTreeOpen({ owns: ["treasurer"], coins: coinsEarnedOnTheWay });
+
+    await flagsFromPostHog(t, postHog, ...coinsOff);
+    vi.setSystemTime(tuesday + dayMs);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], "ty");
+
     expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "+10 XP"]);
   });
 

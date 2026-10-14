@@ -11,7 +11,7 @@ import { gateDecisionOf } from "./gate";
 import { spendSkillPoints, standingOf } from "./progression";
 import type { PurchaseOutcome, Refusal } from "./purchases";
 import { ownedPerksOf, skillTreeAppliesIn, type OwnedPerk } from "./skillTree";
-import { isCoinPerk, perkOf, type Perk, type PerkId } from "./tree";
+import { isCoinPerk, paysCoins, perkOf, type Perk, type PerkId } from "./tree";
 
 export type PerkState = "buyable" | Refusal;
 
@@ -30,15 +30,11 @@ export async function sayingWhyEarnsMore(ctx: QueryCtx, member: MemberId): Promi
 
 async function ownedPerksPayIn(ctx: QueryCtx, member: MemberId) {
   const { workspace } = await chatUserOf(ctx, member);
-  return (await skillTreeAppliesIn(ctx, workspace)) && (await ownsAPerk(ctx, member));
+  return (await skillTreeAppliesIn(ctx, workspace)) && (await ownsAPerkPayingXp(ctx, member));
 }
 
-async function ownsAPerk(ctx: QueryCtx, member: MemberId) {
-  const owned = await ctx.db
-    .query("perksOwned")
-    .withIndex("by_member_perk", (q) => q.eq("member", member))
-    .first();
-  return owned !== null;
+async function ownsAPerkPayingXp(ctx: QueryCtx, member: MemberId) {
+  return (await ownedPerksOf(ctx, member)).some(({ perk }) => !paysCoins(perk));
 }
 
 export async function buyPerk(ctx: MutationCtx, member: MemberId, perk: PerkId, idempotencyKey: string): Promise<PurchaseOutcome | null> {
@@ -72,7 +68,7 @@ export async function memberPerksOf(ctx: QueryCtx, member: MemberId): Promise<Me
 function withoutCoinsShown(perks: TreePerk[]): TreePerk[] {
   return perks.flatMap((perk) => {
     if (!isCoinPerk(perk)) return [perk];
-    return perk.state === "owned" ? [{ ...perk, coins: 0 }] : [];
+    return perk.state === "owned" ? [{ ...perk, coins: 0, ...(paysCoins(perk.perk) && { copy: "" }) }] : [];
   });
 }
 

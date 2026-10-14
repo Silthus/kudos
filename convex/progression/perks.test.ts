@@ -187,6 +187,7 @@ describe("P79: perksOf tells the website what the member owns and what each perk
       { perk: "cadence", coins: 0, state: "owned" },
       { perk: "treasurer", coins: 0, state: "owned" },
     ]);
+    expect(perks?.perks.find(({ perk }) => perk === "treasurer")?.copy).toBe("");
   });
 
   test("before the member opens the Skill tree, every perk says so", async () => {
