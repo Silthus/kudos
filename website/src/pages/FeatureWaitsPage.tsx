@@ -1,10 +1,13 @@
 import { AppLink } from "../AppLink";
 import { MaxSays } from "../Max";
+import type { FeatureCard, PageWaits } from "../shell";
 import { SlackLink } from "../SlackLink";
+import { ReadyPage } from "./ReadyPage";
 
-type Waits = { kind: "locked"; level: number } | { kind: "ready" };
+type FeatureWaitsPageProps = { name: string; waiting: PageWaits; readyCard: FeatureCard | undefined; chatUrl: string };
 
-export function WaitsPage({ name, waiting, chatUrl }: { name: string; waiting: Waits; chatUrl: string }) {
+export function FeatureWaitsPage({ name, waiting, readyCard, chatUrl }: FeatureWaitsPageProps) {
+  if (waiting.kind === "ready" && readyCard !== undefined) return <ReadyPage card={readyCard} />;
   return (
     <MaxSays title={name} tab={name} action={waiting.kind === "ready" ? <OpenSlack chatUrl={chatUrl} /> : <GoHome />}>
       {waiting.kind === "ready" ? `${name} is ready for you. Open it in Slack's App Home.` : `${name} opens at level ${waiting.level}.`}

@@ -1,0 +1,38 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/buy-perk
+
+ ✓ |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS61 WS88: a purchase's denial answers as a read does and writes nothing at all > with the website flag off, an open tree's purchase answers closed 103ms
+ ✓ |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS61 WS88: a purchase's denial answers as a read does and writes nothing at all > with a flags key but no workspace key yet, the purchase answers closed and makes no key 6ms
+ ✓ |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS61 WS88: a purchase's denial answers as a read does and writes nothing at all > without a session, the purchase answers signed-out 9ms
+ ✓ |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS61 WS88: a purchase's denial answers as a read does and writes nothing at all > with a signed-out session, an open tree's purchase answers signed-out 14ms
+ ✓ |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS61 WS88: a purchase's denial answers as a read does and writes nothing at all > a member who left the workspace with an open tree answers not-a-member 69ms
+ ✓ |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS61 WS88: the perk and the request are the only arguments, so no call names a member 14ms
+ ✓ |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS88: a request that isn't a UUID ("") is rejected and writes nothing 14ms
+ ✓ |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS88: a request that isn't a UUID ("not-a-uuid") is rejected and writes nothing 13ms
+ ✓ |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS88: a request that isn't a UUID ("website:someone:else") is rejected and writes nothing 13ms
+ ✓ |convex| convex/website/buyPerk.test.ts > website commands pass one guard > WS88: a request that isn't a UUID ("0d6f2c1e-8a4b-4c3d-9e2f-1a2b3c4d5e6fx") is rejected and writes nothing 13ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command never launches unlocks > WS62 WS88 P77: with xp-levels, unlocks and skill-tree on and no launch recorded, the purchase answers refused and launches nothing 6ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command never launches unlocks > WS62 WS88 P91: with quests on, an open tree and no Journey launch, the purchase answers refused and neither launches the Journey nor joins anyone 15ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command never launches unlocks > WS62 WS88: with achievements on, an open tree and no Book launch, the purchase answers refused and doesn't launch the Book 16ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: an available perk is bought for its skill point, and App Home's republish is scheduled 23ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: the purchase is stored under the key website:{member}:{request} 18ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: App Home's republished Skill tree tab shows the perk owned 101ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: an owned perk is refused with the reason owned, storing only the refusal 33ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: with no skill points left, a perk is refused with the reason points, storing only the refusal 32ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: a ready Skill tree the member hasn't op… answers refused with no reason before any command and writes nothing at all 11ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: a Skill tree still locked at level 1 answers refused with no reason before any command and writes nothing at all 7ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: an open tree with skill-tree switched o… answers refused with no reason before any command and writes nothing at all 16ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: an open tree with unlocks switched off answers refused with no reason before any command and writes nothing at all 14ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: an open tree with xp-levels switched off answers refused with no reason before any command and writes nothing at all 12ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: a refusal at the gate stores nothing, so the same request buys once the gate opens 18ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88 P19: a stored refusal replays with its reason after a level up, and a fresh request buys 39ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS89 WS64: buying on the website leaves the domain tables and events App Home's Buy leaves, besides Slack's receipt 33ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a skill point bought on the website is spent once > WS87 WS88 P19: the same request twice buys once and answers bought twice 33ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a skill point bought on the website is spent once > WS88: two requests for two perks with one skill point buy one 23ms
+ ✓ |convex| convex/website/buyPerk.test.ts > a skill point bought on the website is spent once > WS88: a website request never replays a Slack Buy whose event carries the same string 23ms
+
+ Test Files  1 passed (1)
+      Tests  29 passed (29)
+   Start at  07:41:47
+   Duration  1.45s (tests 54%, transform 29%, import 14%, environment 3%)
+

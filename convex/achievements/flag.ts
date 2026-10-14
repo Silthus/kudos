@@ -17,6 +17,10 @@ export async function achievementsLiveIn(ctx: MutationCtx, workspace: string): P
   return true;
 }
 
+export async function bookLaunchDueIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
+  return (await achievementsApplyIn(ctx, workspace)) && (await bookLaunchIn(ctx, workspace)) === null;
+}
+
 export async function bookLaunchedAt(ctx: QueryCtx, workspace: string): Promise<number | null> {
   return (await bookLaunchIn(ctx, workspace))?.at ?? null;
 }

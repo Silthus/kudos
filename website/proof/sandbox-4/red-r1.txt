@@ -1,0 +1,6 @@
+# convex/website/buyPerk.test.ts on 9a0b907 with the strict assertion restored, before the read-only gate
+     × WS88: a Skill tree still locked at level 1 answers refused with no reason before any command and writes nothing at all 28ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |convex| convex/website/buyPerk.test.ts > a website command is a D17 command > WS88: a Skill tree still locked at level 1 answers refused with no reason before any command and writes nothing at all
+ Test Files  1 failed (1)
+      Tests  1 failed | 28 passed (29)

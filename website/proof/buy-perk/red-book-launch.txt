@@ -1,0 +1,60 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/buy-perk
+
+ ❯ |convex| convex/website/openQuestCrate.test.ts (21 tests | 1 failed | 20 skipped) 113ms
+   ❯ a website command never launches unlocks (3)
+     × WS74: with achievements on, the Journey launched and no Book launch, a finished step's open answers refused and doesn't launch the Book 112ms
+ ❯ |convex| convex/website/commands.test.ts (26 tests | 1 failed | 25 skipped) 120ms
+   ❯ a website command never launches unlocks (5)
+     × WS62: with achievements on, unlocks launched and no Book launch, opening a ready Leaderboard answers refused and doesn't launch the Book 119ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/commands.test.ts > a website command never launches unlocks > WS62: with achievements on, unlocks launched and no Book launch, opening a ready Leaderboard answers refused and doesn't launch the Book
+AssertionError: expected { kind: 'opened' } to deeply equal { kind: 'refused' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "refused",
++   "kind": "opened",
+  }
+
+ ❯ convex/website/commands.test.ts:229:43
+    227|     vi.mocked(publish).mockClear();
+    228|
+    229|     expect(await openFeature(asSignedIn)).toEqual({ kind: "refused" });
+       |                                           ^
+    230|     expect(await everythingWritten()).toEqual(before);
+    231|     expect(before.tables.bookLaunches).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |convex| convex/website/openQuestCrate.test.ts > a website command never launches unlocks > WS74: with achievements on, the Journey launched and no Book launch, a finished step's open answers refused and doesn't launch the Book
+AssertionError: expected { kind: 'opened' } to deeply equal { kind: 'refused' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "refused",
++   "kind": "opened",
+  }
+
+ ❯ convex/website/openQuestCrate.test.ts:226:46
+    224|     vi.mocked(publish).mockClear();
+    225|
+    226|     expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "refused"…
+       |                                              ^
+    227|     expect(await everythingWritten()).toEqual(before);
+    228|     expect(before.tables.bookLaunches).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 45 skipped (47)
+   Start at  07:43:27
+   Duration  871ms (transform 55%, import 24%, tests 15%, environment 5%)
+

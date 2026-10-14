@@ -41,11 +41,13 @@ export async function buyPerk(ctx: MutationCtx, member: MemberId, perk: PerkId, 
 
 export const perksOf = internalQuery({
   args: { member: v.id("members") },
-  handler: async (ctx, { member }): Promise<MemberPerks | null> => {
-    const { workspace } = await chatUserOf(ctx, member);
-    return (await skillTreeAppliesIn(ctx, workspace)) ? memberPerksOf(ctx, member) : null;
-  },
+  handler: (ctx, { member }) => treePerksOf(ctx, member),
 });
+
+export async function treePerksOf(ctx: QueryCtx, member: MemberId): Promise<MemberPerks | null> {
+  const { workspace } = await chatUserOf(ctx, member);
+  return (await skillTreeAppliesIn(ctx, workspace)) ? memberPerksOf(ctx, member) : null;
+}
 
 export async function memberPerksOf(ctx: QueryCtx, member: MemberId): Promise<MemberPerks> {
   const facts = await treeFactsOf(ctx, member);

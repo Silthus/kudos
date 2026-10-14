@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch, type FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { onForEmails, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { anIdInHalfOf, onForEmails, onForEveryone, onForHalf, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSession, allowedWorkspace } from "../../testing/website";
@@ -76,7 +76,7 @@ function openFeature(caller: Pick<Backend, "mutation">) {
   return caller.mutation(api.website.commands.openFeature, { feature: "leaderboard" });
 }
 
-function rowsOf<Table extends "users" | "flagExposures" | "previewMoments" | "unlockLaunches" | "journeyLaunches">(table: Table) {
+function rowsOf<Table extends "users" | "flagExposures" | "previewMoments" | "unlockLaunches" | "journeyLaunches" | "bookLaunches">(table: Table) {
   return t.run((ctx) => ctx.db.query(table).collect());
 }
 
@@ -191,13 +191,10 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
   });
 
   describe("F27: the website on for the workspace and off in one member's own decision", () => {
-    const halfTheWebsite: FlagDefinition = { key: "website", filters: { groups: [{ properties: [], rollout_percentage: 50 }] } };
+    const halfTheWebsite = onForHalf("website");
 
-    async function bucketed(inside: boolean) {
-      for (let attempt = 0; ; attempt++) {
-        const id = `id-${inside ? "in" : "out"}-${attempt}`;
-        if ((await rolloutHashOf("website", id)) <= 0.5 === inside) return id;
-      }
+    function bucketed(inside: boolean) {
+      return anIdInHalfOf("website", inside);
     }
 
     async function aWorkspaceInsideAndBobOutside() {
@@ -276,6 +273,21 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       expect(await openFeature(asAlice)).toEqual({ kind: "refused" });
       expect(await rowsOf("journeyLaunches")).toEqual([]);
     });
+    test("achievements switched on for the workspace after unlocks launched: the previewer's sign-in runs no Journey preview, and their open answers refused and records no Book launch", async () => {
+      await aMemberWithEmail(alice);
+      const workspaceFlags = everyFlagOn.filter(({ key }) => key !== "website" && key !== "quests");
+      await flagsServed(websiteForAlice, onForEmails("quests", alice.email), ...workspaceFlags);
+      await unlocksShippedBeforeAnyoneJoined(t, allowedWorkspace);
+      await flagsServed(websiteForAlice, onForEmails("quests", alice.email), ...workspaceFlags, onForEveryone("achievements"));
+
+      const asAlice = await signedIn(alice);
+
+      expect(await previewMoments()).toEqual([]);
+      expect(await openFeature(asAlice)).toEqual({ kind: "refused" });
+      await settle(t);
+      expect(await rowsOf("bookLaunches")).toEqual([]);
+      expect(await rowsOf("journeyLaunches")).toEqual([]);
+    });
   });
 
   describe("F29: a session from before the preview", () => {
@@ -334,9 +346,3 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
     });
   });
 });
-
-async function rolloutHashOf(flag: string, distinctId: string) {
-  const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(`${flag}.${distinctId}`));
-  const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-  return parseInt(hex.slice(0, 15), 16) / 0xfffffffffffffff;
-}

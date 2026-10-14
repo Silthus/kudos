@@ -47,7 +47,7 @@ describe("WS58: the home's feature cards read the member's unlock path", () => {
     expect(cardNamesIn("Still locked")).toEqual(["Leaderboard"]);
     expect(cardOf("Leaderboard")).toHaveTextContent("Unlocks at level 3");
     expect(cardOf("Leaderboard")).toHaveTextContent("See where you and your group stand.");
-    expect(main()).not.toHaveTextContent(/Quests|Sticker book|Coins|Hedgehogs/);
+    expect(main()).not.toHaveTextContent(/Quests|Book|Coins|Hedgehogs/);
   });
 
   it("teases no progress on a locked card: no levels to go, bar, button or link", () => {
@@ -78,14 +78,13 @@ describe("WS58: the home's feature cards read the member's unlock path", () => {
   });
 
   it("points an open feature without a web page to Slack's App Home, with one action that opens the workspace", () => {
-    renderApp(shellFixtures.memberWithEveryFeatureOpen);
-    expect(cardNamesIn("Open")).toEqual(["Leaderboard", "Skill tree"]);
-    const card = cardOf("Skill tree");
+    renderApp(shellFixtures.memberWithCoinsOpened);
+    expect(cardNamesIn("Open")).toEqual(["Leaderboard", "Coins and inventory"]);
+    const card = cardOf("Coins and inventory");
     expect(card).toHaveTextContent("Open. Find it in Slack's App Home.");
     const openSlack = within(card).getByRole("link", { name: "Open Slack (opens in a new tab)" });
-    expect(openSlack).toHaveAttribute("href", shellFixtures.memberWithEveryFeatureOpen.chatUrl);
+    expect(openSlack).toHaveAttribute("href", shellFixtures.memberWithCoinsOpened.chatUrl);
     expect(openSlack).toHaveAttribute("target", "_blank");
-    expect(featureGroups()).toEqual(["Open"]);
   });
 
   it("shows no feature group when nothing has shipped, never the plain locked cards", () => {
@@ -97,7 +96,7 @@ describe("WS58: the home's feature cards read the member's unlock path", () => {
   it("keeps WS19's six plain locked cards while unlocks don't apply", () => {
     renderApp(shellFixtures.member);
     expect(featureGroups()).toEqual(["Still locked"]);
-    expect(cardNamesIn("Still locked")).toEqual(["Quests", "Leaderboard", "Sticker book and achievements", "Skill tree", "Coins", "Hedgehogs"]);
+    expect(cardNamesIn("Still locked")).toEqual(["Quests", "Leaderboard", "Book", "Skill tree", "Coins", "Hedgehogs"]);
     expect(main()).not.toHaveTextContent(/Unlocks at level/);
   });
 });
@@ -107,7 +106,7 @@ describe("WS59: the nav lists Home and each open feature with a web page", () =>
     ["locked", shellFixtures.memberWaitingForTheBoard, ["Home"]],
     ["ready", shellFixtures.memberWithTheBoardReady, ["Home"]],
     ["open", shellFixtures.memberWithTheBoardOpened, ["Home", "Leaderboard"]],
-    ["open beside an open Skill tree, which has no web page", shellFixtures.memberWithEveryFeatureOpen, ["Home", "Leaderboard"]],
+    ["open beside open Coins, which have no web page", shellFixtures.memberWithCoinsOpened, ["Home", "Leaderboard"]],
   ])("while the Leaderboard is %s", (_, member, items) => {
     renderApp(member);
     expect(screenNav()).toEqual(items);
