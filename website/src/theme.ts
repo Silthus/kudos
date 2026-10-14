@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 export type ThemeChoice = "light" | "dark" | "system";
 
@@ -46,19 +46,26 @@ function useSystemDark() {
   return dark;
 }
 
+const choiceListeners = new Set<() => void>();
+
+function followChoice(listener: () => void) {
+  choiceListeners.add(listener);
+  return () => choiceListeners.delete(listener);
+}
+
+function choose(next: ThemeChoice) {
+  rememberChoice(next);
+  choiceListeners.forEach((listener) => listener());
+}
+
 export function useTheme() {
-  const [choice, setChoice] = useState(storedChoice);
+  const choice = useSyncExternalStore(followChoice, storedChoice);
   const systemDark = useSystemDark();
   const dark = choice === "system" ? systemDark : choice === "dark";
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
-
-  const choose = useCallback((next: ThemeChoice) => {
-    rememberChoice(next);
-    setChoice(next);
-  }, []);
 
   return { choice, choose };
 }
