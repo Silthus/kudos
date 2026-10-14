@@ -81,9 +81,14 @@ export const answerUnknownTarget = observedAction({
   handler: async (ctx, { attempt = 1, ...asked }) => {
     const { target, responseUrl, arrivedAt, ...viewing } = asked;
     const lookUpFailed = () => answerCommand(responseUrl, slackTextOf(renderLookUpFailed(target)));
+    const windowClosedAt = (at: number) => at > arrivedAt + replyWindowMs;
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
+        if (windowClosedAt(Date.now())) {
+          await lookUpFailed();
+          return null;
+        }
         const person = await knownOrLookedUp(ctx, { workspace: viewing.workspace, user: target });
         if (person.kind === "failed") return failedAttempt(attempt, person.retryAfterMs);
         const { lines, own } = await ctx.runMutation(internal.slack.profileCardCommand.cardOfKnownTarget, { ...viewing, target });
@@ -92,7 +97,7 @@ export const answerUnknownTarget = observedAction({
         return null;
       },
       async (retry) => {
-        if (retry.at > arrivedAt + replyWindowMs) await lookUpFailed();
+        if (windowClosedAt(retry.at)) await lookUpFailed();
         else await ctx.scheduler.runAt(retry.at, internal.slack.profileCardCommand.answerUnknownTarget, { ...asked, attempt: retry.attempt });
       },
       lookUpFailed,

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus, rateLimitedFor } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, offForEveryone, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { anIdInHalfOf, bookShippedBeforeAnyoneJoined, flagsFromPostHog, offForEveryone, onForEveryone, onForHalf, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { slashCommandResponseUrl } from "../../testing/slackMessages";
@@ -72,6 +72,17 @@ describe("PC9: a card follows what has shipped, except an own card's medals wait
     await opens(t, await memberOf(t, "U_ANN"), "book");
 
     expect(beforeOpening).toBe(["*<@U_ANN>*", "Level 1"].join("\n"));
+    expect(await card(t, "U_ANN", "<@U_ANN>")).toBe(["*<@U_ANN>*", "Level 1", "🥉 First Thanks"].join("\n"));
+  });
+
+  test("an own card opened while the Book applied keeps its medals when the member's own achievements decision is off", async () => {
+    const t = await workspace();
+    await earned(t, "U_ANN", "generosity", "bronze");
+    await reachesLevel(t, await memberOf(t, "U_ANN"), 4);
+    await opens(t, await memberOf(t, "U_ANN"), "book");
+
+    await achievementsOnInTheWorkspaceOnly(t, "U_ANN");
+
     expect(await card(t, "U_ANN", "<@U_ANN>")).toBe(["*<@U_ANN>*", "Level 1", "🥉 First Thanks"].join("\n"));
   });
 
@@ -175,6 +186,21 @@ describe("PC3 PC4: who the card is for", { timeout: 30_000 }, () => {
     slack.answering("users.info", rateLimitedFor(replyWindowMs / 1000 + 1));
 
     await command(t, "U_ANN", "<@U_NEW>");
+    await settleInTimeOrder(t);
+
+    expect(slack.callsTo("users.info")).toHaveLength(1);
+    expect(slack.callsTo("abc")).toEqual([{ response_type: "ephemeral", text: "I couldn't look up <@U_NEW> right now. Try again in a minute." }]);
+  });
+
+  test("a retry that runs after the reply window closed answers the lookup-failed line without looking up", async () => {
+    const t = await workspace();
+    slack.answering("users.info", httpStatus(500));
+    await command(t, "U_ANN", "<@U_NEW>");
+    vi.advanceTimersByTime(0);
+    await t.finishInProgressScheduledFunctions();
+    expect(slack.callsTo("users.info")).toHaveLength(1);
+
+    vi.setSystemTime(now.getTime() + replyWindowMs + 60_000);
     await settleInTimeOrder(t);
 
     expect(slack.callsTo("users.info")).toHaveLength(1);
@@ -375,6 +401,24 @@ async function earnedTiers(t: Backend, user: string, ladder: LadderId, tiers: Ti
       await ctx.db.insert("earnedTiers", { member, ladder, tier, earnedAt: Date.now(), award, catalogueVersion: "1", rewards: [], ...heldBack });
     }
   });
+}
+
+async function achievementsOnInTheWorkspaceOnly(t: Backend, user: string) {
+  const member = await memberOf(t, user);
+  const [workspaceKey, analyticsId] = [await anIdInHalfOf("achievements", true), await anIdInHalfOf("achievements", false)];
+  await t.run(async (ctx) => {
+    const key = await ctx.db
+      .query("workspaceKeys")
+      .withIndex("by_workspace", (q) => q.eq("workspace", "T1"))
+      .unique();
+    await ctx.db.patch(key!._id, { workspaceKey });
+    const id = await ctx.db
+      .query("analyticsIds")
+      .withIndex("by_member", (q) => q.eq("member", member))
+      .unique();
+    await ctx.db.patch(id!._id, { analyticsId });
+  });
+  await flagsFromPostHog(t, postHog, ...everyFlag.filter((flag) => flag !== "achievements").map(onForEveryone), onForHalf("achievements"));
 }
 
 async function analyticsIdOf(t: Backend, user: string) {

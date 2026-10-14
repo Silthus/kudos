@@ -4,7 +4,7 @@ import { ladderOf, ladders, type LadderId, type TierId } from "../achievements/l
 import { everyTierEarnedBy, type EarnedTier } from "../achievements/tiers";
 import { standingOf } from "../progression/progression";
 import { xpLevelsShownIn } from "../progression/xpLevels";
-import { stateOf } from "../unlocks/unlocks";
+import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, displayNameOf, type MemberId } from "../workspace/directory";
 
 export type Medal = { ladder: LadderId; tier: TierId; name: string };
@@ -29,7 +29,7 @@ export async function profileCardOf(ctx: QueryCtx, member: MemberId, { own }: Vi
 
 async function medalsShownIn(ctx: QueryCtx, workspace: string, member: MemberId, { own }: Viewing) {
   if (!(await bookAppliesIn(ctx, workspace))) return false;
-  return !own || (await stateOf(ctx, member, "book")) === "open";
+  return !own || (await openedAtOf(ctx, member, "book")) !== null;
 }
 
 function bestMedalsOf(earned: EarnedTier[]): Medal[] {
