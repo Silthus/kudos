@@ -1,23 +1,22 @@
 import type { ReactNode } from "react";
 import { HedgehogTownCrier } from "@posthog/brand/hoggies";
-import type { Hoggie } from "./features";
 import { PageTitle } from "./PageTitle";
 
-type HogSaysProps = { Hog: Hoggie; title: string; tab: string; children: ReactNode; action?: ReactNode };
+type SaysProps = { title: string; tab: string; children: ReactNode; action?: ReactNode };
 
-export function HogSays({ Hog, title, tab, children, action }: HogSaysProps) {
+export function MaxSays(props: SaysProps) {
+  return <Says art={<HedgehogTownCrier size={112} title="" />} {...props} />;
+}
+
+export function Says({ art, title, tab, children, action }: SaysProps & { art: ReactNode }) {
   return (
     <section className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
-      <Hog size={112} title="" />
+      {art}
       <PageTitle tab={tab}>{title}</PageTitle>
       <p className="text-sm text-muted-foreground">{children}</p>
       {action}
     </section>
   );
-}
-
-export function MaxSays(props: Omit<HogSaysProps, "Hog">) {
-  return <HogSays Hog={HedgehogTownCrier} {...props} />;
 }
 
 export function MaxLine({ children }: { children: ReactNode }) {

@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from "react";
+import { HedgehogHeart } from "@posthog/brand/hoggies";
 import { IconHome } from "@posthog/icons";
 import { AccountMenu } from "./AccountMenu";
 import { AppLink } from "./AppLink";
@@ -37,7 +38,8 @@ export function Frame({ member, ready = [], current, busy, inert, onSignOut, chi
 
 function Wordmark() {
   return (
-    <AppLink href="/" className="flex items-center rounded-md">
+    <AppLink href="/" aria-label="HedgeHug, home" className="flex items-center gap-2.5 rounded-md">
+      <HedgehogHeart size={34} title="" className="shrink-0" />
       <span className="flex flex-col leading-none">
         <span className="hud-display text-lg font-bold">HedgeHug</span>
         <span className="text-[10px] text-muted-foreground">Thanks a Hog</span>

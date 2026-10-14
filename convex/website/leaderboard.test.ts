@@ -145,6 +145,20 @@ describe("a website board row carries only what a board shows", () => {
     ]);
   });
 
+  test("WS34: a teammate with a Slack picture shows it as their face, and one without shows their initials", async () => {
+    await aMember("U_JUNO", "Juno Whitlock");
+    await aMember("U_ANN", "Ann Lee", { picture: "https://avatars.slack-edge.com/ann_192.png" });
+    await aMember("U_BOB", "Bob Stone");
+    await gives("U_ANN", 3);
+    await gives("U_BOB", 2);
+    const { asSignedIn } = await aSession(t, juno);
+
+    expect((await board("week", asSignedIn)).rows.map(({ name, face }) => ({ name, face }))).toEqual([
+      { name: "Ann Lee", face: { kind: "slack", image: "https://avatars.slack-edge.com/ann_192.png", initials: "AL" } },
+      { name: "Bob Stone", face: { kind: "initials", initials: "BS" } },
+    ]);
+  });
+
   test("the answer carries no Slack user ID, member ID or kudos received", async () => {
     const junoId = await aMember("U_JUNO", "Juno Whitlock");
     const annId = await aMember("U_ANN", "Ann Lee");
@@ -500,10 +514,12 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
   });
 });
 
-type MemberOptions = { kind?: "member" | "not-a-member"; timeZone?: string };
+type MemberOptions = { kind?: "member" | "not-a-member"; timeZone?: string; picture?: string };
 
-function aMember(user: string, name?: string, { kind = "member", timeZone }: MemberOptions = {}): Promise<Id<"members">> {
-  return t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user, kind, asOf: 0, ...(name && { name }), ...(timeZone && { timeZone }) }));
+function aMember(user: string, name?: string, { kind = "member", timeZone, picture }: MemberOptions = {}): Promise<Id<"members">> {
+  return t.run((ctx) =>
+    ctx.db.insert("members", { workspace: "T1", user, kind, asOf: 0, ...(name && { name }), ...(timeZone && { timeZone }), ...(picture && { picture }) }),
+  );
 }
 
 async function aBoardOf(count: number, { viewerAt = 0 } = {}) {

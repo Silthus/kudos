@@ -4,9 +4,9 @@ import { periodValidator } from "../leaderboard/periods";
 import { signInWorkspace } from "../slack/signIn";
 import type { Feature } from "../unlocks/feature";
 import { scheduled } from "../unlocks/schedule";
-import { lookup } from "../workspace/directory";
-import { websiteOpen } from "./flag";
-import { listedPageOf, urlOf, type Page } from "./routes";
+import { lookup, type MemberId } from "../workspace/directory";
+import { websiteOpen, websiteOpenTo } from "./flag";
+import { listedPageOf, signInEntry, urlOf, type Page } from "./routes";
 import { openFeaturesOf } from "./unlockPath";
 
 export const pageValidator = v.union(
@@ -36,14 +36,27 @@ export const frontDoorLinksOf = internalQuery({
   args: { workspace: v.string(), user: v.string() },
   returns: v.union(frontDoorLinksValidator, v.null()),
   handler: async (ctx, { workspace, user }): Promise<FrontDoorLinks | null> => {
-    const origin = await websiteOrigin(ctx, workspace);
-    if (origin === null) return null;
+    const site = siteOriginFor(workspace);
+    if (site === null) return null;
     const person = await lookup(ctx, workspace, user);
-    const open = person?.kind === "member" ? await openFeaturesOf(ctx, { workspace, user, member: person.member }) : [];
+    const me = person?.kind === "member" ? { workspace, user, member: person.member } : undefined;
+    const door = await doorFor(ctx, me?.member);
+    if (door === null) return null;
+    const origin = door === "page" ? site : `${site}${signInEntry}`;
+    const open = me === undefined ? [] : await openFeaturesOf(ctx, me);
     const pages = open.flatMap((feature) => listedLinkOf(origin, feature));
     return { origin, pages };
   },
 });
+
+type Door = "page" | "sign-in";
+
+async function doorFor(ctx: QueryCtx, member: MemberId | undefined): Promise<Door | null> {
+  const workspaceOpen = await websiteOpen(ctx);
+  if (member === undefined) return workspaceOpen ? "page" : null;
+  if (!(await websiteOpenTo(ctx, member))) return null;
+  return workspaceOpen ? "page" : "sign-in";
+}
 
 function listedLinkOf(origin: string, feature: Feature) {
   const page = listedPageOf(feature);
@@ -51,12 +64,12 @@ function listedLinkOf(origin: string, feature: Feature) {
 }
 
 export async function websiteOrigin(ctx: QueryCtx, workspace: string): Promise<string | null> {
-  const origin = siteOrigin();
-  if (origin === null || workspace !== signInWorkspace()) return null;
+  const origin = siteOriginFor(workspace);
+  if (origin === null) return null;
   return (await websiteOpen(ctx)) ? origin : null;
 }
 
-function siteOrigin() {
+function siteOriginFor(workspace: string) {
   const site = (process.env.SITE_URL ?? "").trim().replace(/\/+$/, "");
-  return site === "" ? null : site;
+  return site === "" || workspace !== signInWorkspace() ? null : site;
 }

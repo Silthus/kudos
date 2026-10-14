@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 import { components, internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
+import { rememberSignedInMember } from "../convex/website/signIn";
 import { FakePostHog, flagsKey, postHogHost, projectToken, type FlagDefinition } from "./fakePostHog";
 import { onForEveryone } from "./flags";
 import { signingSecret } from "./signedSlack";
@@ -34,6 +35,13 @@ export type SignInIdentity = { workspace?: string; user: string; name?: string; 
 
 export async function aSession(t: Backend, { workspace = allowedWorkspace, user, ...claims }: SignInIdentity, { endsIn = hour } = {}) {
   const userId = await t.run((ctx) => ctx.db.insert("users", { ...claims, chatIdentity: { workspace, user } }));
+  const sessionId: Id<"authSessions"> = await t.run((ctx) => ctx.db.insert("authSessions", { userId, expirationTime: Date.now() + endsIn }));
+  return { sessionId, asSignedIn: t.withIdentity({ subject: `${userId}|${sessionId}` }) };
+}
+
+export async function aSignedInSession(t: Backend, { workspace = allowedWorkspace, user, ...claims }: SignInIdentity, { endsIn = hour } = {}) {
+  const profile = { id: `${workspace}/${user}`, chatWorkspace: workspace, chatUser: user, ...claims };
+  const userId = await t.run((ctx) => rememberSignedInMember(ctx, { existingUserId: null, profile }));
   const sessionId: Id<"authSessions"> = await t.run((ctx) => ctx.db.insert("authSessions", { userId, expirationTime: Date.now() + endsIn }));
   return { sessionId, asSignedIn: t.withIdentity({ subject: `${userId}|${sessionId}` }) };
 }

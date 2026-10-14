@@ -1,6 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import { rewardKeyOf } from "../quests/crates";
-import { questsApplyIn } from "../quests/flag";
+import { questsApplyTo } from "../quests/flag";
 import { projectedJourneyOf, type ProjectedJourneyStep } from "../quests/journey";
 import { journeyCopyOf } from "../quests/journeyCopy";
 import { questOf, type PoolQuest } from "../quests/pool";
@@ -47,7 +47,7 @@ type CrateFacts = { finishedAt: number | null; openedAt: number | null };
 const kindLabels: Record<PoolQuest["kind"], QuestKind> = { thoughtfulness: "Say why", breadth: "Reach out", participation: "Join in" };
 
 export const getQuests = memberQuery(async (ctx, me): Promise<QuestsAnswer> => {
-  if (!(await questsApplyIn(ctx, me.workspace))) return { kind: "not-found" };
+  if (!(await questsApplyTo(ctx, me.member))) return { kind: "not-found" };
   const quests = (await unlockPathOf(ctx, me))?.find(({ feature }) => feature === "quests");
   if (quests === undefined) return { kind: "not-found" };
   if (quests.state === "locked") return { kind: "locked", level: scheduled("quests").level };
@@ -64,7 +64,7 @@ export const getQuests = memberQuery(async (ctx, me): Promise<QuestsAnswer> => {
 });
 
 export async function journeyStepsOf(ctx: QueryCtx, me: VerifiedMember): Promise<JourneyStep[] | null> {
-  if (!(await questsApplyIn(ctx, me.workspace))) return null;
+  if (!(await questsApplyTo(ctx, me.member))) return null;
   return Promise.all((await projectedJourneyOf(ctx, me.member)).map((step) => journeyStepOf(me, step)));
 }
 

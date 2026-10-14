@@ -79,7 +79,7 @@ describe("WS1 WS3 WS16 WS20: the shell renders each page from its visitor state"
     expect(items[0]).toHaveAttribute("aria-current", "page");
     expect(within(banner).getByRole("group", { name: "Theme" })).toBeInTheDocument();
     expect(within(banner).getByRole("button", { name: "Account menu for Sam Example" })).toHaveTextContent("SE");
-    expect(pageTitle()).toHaveTextContent("Thank someone for work you noticed");
+    expect(pageTitle()).toHaveTextContent("Sam Example");
     expect(document.title).toBe("HedgeHug · Home");
   });
 

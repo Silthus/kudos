@@ -1,9 +1,9 @@
 import { Button } from "@posthog/quill";
-import { MaxSays } from "../Max";
+import { BrandSays } from "../BrandSays";
 
 export function SignedOutPage({ onSignIn }: { onSignIn: () => void }) {
   return (
-    <MaxSays
+    <BrandSays
       title="Sign in"
       tab="Sign in"
       action={
@@ -13,7 +13,7 @@ export function SignedOutPage({ onSignIn }: { onSignIn: () => void }) {
       }
     >
       See your kudos. Only members of your Slack workspace can sign in.
-    </MaxSays>
+    </BrandSays>
   );
 }
 

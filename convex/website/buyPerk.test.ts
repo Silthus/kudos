@@ -5,7 +5,7 @@ import { unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { publishedHomeBlocks } from "../../testing/slackInteractions";
 import { opens, reachesLevel } from "../../testing/unlocks";
-import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../../testing/website";
+import { aDeploymentForWorkspace, aMember, aSession, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { publish } from "../bus/publish";
@@ -62,7 +62,7 @@ async function treeShipped(...alsoOn: string[]) {
 
 async function signedInMember(backend: Backend = t) {
   const member = await aMember(backend, juno.user);
-  const { asSignedIn, sessionId } = await aSession(backend, juno);
+  const { asSignedIn, sessionId } = await aSignedInSession(backend, juno);
   return { member, asSignedIn, sessionId };
 }
 
@@ -159,7 +159,8 @@ describe("website commands pass one guard", () => {
     test("with a flags key but no workspace key yet, the purchase answers closed and makes no key", async () => {
       postHog.withFlags({ key: "website", filters: { groups: [{ properties: [], rollout_percentage: 100 }] } });
       await t.action(components.posthog.lib.refreshFlagDefinitions, {});
-      const { asSignedIn } = await signedInMember();
+      await aMember(t, juno.user);
+      const { asSignedIn } = await aSession(t, juno);
       const before = await everythingWritten();
 
       expect(await buyPerk(asSignedIn)).toEqual({ kind: "closed" });

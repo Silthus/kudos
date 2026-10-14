@@ -4,7 +4,7 @@ import { rankedBoardOf, type RankedRow, type Standing } from "../leaderboard/tot
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { workspaceLink } from "../slack/workspaceLink";
 import { followTheClock } from "./clock";
-import { faceOf, initialsFaceOf, type Face } from "./faces";
+import { faceOf, teammateFaceOf, type Face } from "./faces";
 import { memberQuery, type Denial } from "./memberQuery";
 import { leaderboardStateOf, unlockPathOf, type PageWaits } from "./unlockPath";
 
@@ -49,6 +49,6 @@ export const getLeaderboard = memberQuery({
   },
 });
 
-function leaderboardRowOf({ position, rank, tied, name, kudos, viewer }: RankedRow, myFace: Face): LeaderboardRow {
-  return { position, rank, tied, name: name ?? nameless, face: viewer ? myFace : initialsFaceOf(name), kudos, you: viewer };
+function leaderboardRowOf({ position, rank, tied, name, picture, kudos, viewer }: RankedRow, myFace: Face): LeaderboardRow {
+  return { position, rank, tied, name: name ?? nameless, face: viewer ? myFace : teammateFaceOf(name, picture), kudos, you: viewer };
 }

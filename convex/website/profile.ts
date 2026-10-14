@@ -2,7 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import { homeFacts } from "../engine/home";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
-import { xpLevelsShownIn } from "../progression/xpLevels";
+import { xpLevelsOnFor } from "../progression/xpLevels";
 import { workspaceLink } from "../slack/workspaceLink";
 import { followTheClock } from "./clock";
 import { faceOf, type Face } from "./faces";
@@ -60,7 +60,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
 });
 
 async function progressionOf(ctx: QueryCtx, me: VerifiedMember): Promise<Progression | null> {
-  if (!(await xpLevelsShownIn(ctx, me.workspace))) return null;
+  if (!(await xpLevelsOnFor(ctx, me.member))) return null;
   const { level, xp, xpToNextLevel } = await progressionHomeOf(ctx, me.member);
   return { level, xp, levelStartsAt: xpToReach(level), nextLevelAt: xpToReach(level + 1), xpToNextLevel };
 }
