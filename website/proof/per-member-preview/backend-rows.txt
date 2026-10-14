@@ -1,0 +1,38 @@
+== users
+_id                                | _creationTime      | chatIdentity                                   | name        
+-----------------------------------|--------------------|------------------------------------------------|-------------
+"td73s80qh6k8r5dwsbw17fyv4x8g92v1" | 1791966340647.9216 | { "user": "U_ALICE", "workspace": "TALLOWED" } | "Alice Hart"
+== flagExposures
+There are no documents in this table.
+== previewMoments
+_id                                | _creationTime      | at            | member                             | moment   
+-----------------------------------|--------------------|---------------|------------------------------------|----------
+"q979czc293hjm4esnhefe956r18g9ejp" | 1791966325414.6816 | 1791966325414 | "pn747mt5fze1szdkfsestq46458g8nbn" | "journey"
+"q97cphcfdxtqrqt42h55f2hyvn8g8pfk" | 1791966325414.6804 | 1791966325414 | "pn747mt5fze1szdkfsestq46458g8nbn" | "unlocks"
+== unlockLaunches
+There are no documents in this table.
+== journeyLaunches
+There are no documents in this table.
+== unlocks
+_id                                | _creationTime      | feature       | member                             | openedAt      | readyAt      
+-----------------------------------|--------------------|---------------|------------------------------------|---------------|--------------
+"s1783v1nmfe013egzssvjb3g8d8g9wq7" | 1791966325414.681  | "leaderboard" | "pn747mt5fze1szdkfsestq46458g8nbn" | 1791966325414 | 1791966325414
+"s17ae0fnnanteey683m9h20dsn8g89rb" | 1791966325414.6807 | "quests"      | "pn747mt5fze1szdkfsestq46458g8nbn" | 1791966325414 | 1791966325414
+== anonymous getMyProfile
+{
+  "kind": "closed"
+}
+== frontDoorLinksOf U_ALICE / U_BOB
+{
+  "home": "http://127.0.0.1:6211/?sign-in",
+  "pages": [
+    {
+      "label": "Quests",
+      "url": "http://127.0.0.1:6211/quests?sign-in"
+    },
+    {
+      "label": "Leaderboard",
+      "url": "http://127.0.0.1:6211/leaderboard?sign-in"
+    }
+  ]
+}
