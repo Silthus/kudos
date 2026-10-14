@@ -138,6 +138,8 @@ export function whyNotOf({ state, row, requires, skillPoints }: Perk & { state: 
       return unopenedTextOf(scheduled("skillTree"), "ready");
     case "owned":
       return "You own it.";
+    case "retired":
+      return "It's no longer sold.";
     case "below-row":
       return `It opens at level ${row}.`;
     case "needs-prerequisite":

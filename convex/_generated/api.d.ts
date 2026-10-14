@@ -67,6 +67,7 @@ import type * as progression_progress from "../progression/progress.js";
 import type * as progression_progression from "../progression/progression.js";
 import type * as progression_rewards from "../progression/rewards.js";
 import type * as progression_settings from "../progression/settings.js";
+import type * as progression_skillTree from "../progression/skillTree.js";
 import type * as progression_skillTreeFlag from "../progression/skillTreeFlag.js";
 import type * as progression_tree from "../progression/tree.js";
 import type * as progression_xpLevels from "../progression/xpLevels.js";
@@ -189,6 +190,7 @@ declare const fullApi: ApiFromModules<{
   "progression/progression": typeof progression_progression;
   "progression/rewards": typeof progression_rewards;
   "progression/settings": typeof progression_settings;
+  "progression/skillTree": typeof progression_skillTree;
   "progression/skillTreeFlag": typeof progression_skillTreeFlag;
   "progression/tree": typeof progression_tree;
   "progression/xpLevels": typeof progression_xpLevels;

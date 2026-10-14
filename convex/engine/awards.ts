@@ -66,6 +66,10 @@ export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: 
   return lastThanked;
 }
 
+export async function recipientOf(ctx: QueryCtx, award: AwardId): Promise<MemberId | null> {
+  return (await ctx.db.get(award))?.recipient ?? null;
+}
+
 export async function awardAt(ctx: QueryCtx, award: AwardId): Promise<number | null> {
   return (await ctx.db.get(award))?.at ?? null;
 }
