@@ -229,6 +229,12 @@ describe("WS317: the Journey's next step is the bonus quest", () => {
     expect(link).toHaveAttribute("href", "/leaderboard");
   });
 
+  it("keeps Go to {name} beside a finished step's Claim", () => {
+    showBonus({ ...questsFixtures.week, bonus: { ...bonusSteps.someoneNew, state: "finished", crate: { kind: "journey", step: "someone-new" }, seen: "c3d4e5" } });
+    expect(within(bonusCard()).getByRole("link", { name: "Go to Leaderboard" })).toHaveAttribute("href", "/leaderboard");
+    expect(within(bonusCard()).getByRole("button", { name: "Claim" })).toBeInTheDocument();
+  });
+
   it.each([
     { case: "the feature isn't open for the member", answer: questsFixtures.weekWithABonus, member: withQuests },
     { case: "the step belongs to no feature", answer: { ...questsFixtures.week, bonus: bonusSteps.firstThanks }, member: shellFixtures.memberCrossingIntoLevel6 },

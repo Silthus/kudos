@@ -1,5 +1,5 @@
 import { AppLink } from "../AppLink";
-import { Tag } from "../book/Tag";
+import { QuestTag } from "../quests/QuestTag";
 import { Claimed } from "../crates/RewardCrate";
 import { MaxLine } from "../Max";
 import type { QuestsShown } from "../questsRead";
@@ -39,8 +39,9 @@ function BonusRow({ step: { goal, state } }: { step: JourneyStep }) {
   return (
     <li className="relative flex flex-col gap-1.5 rounded-lg px-2 py-2 hover:bg-fill-hover">
       <AppLink href={questsHref("journey")} className="flex items-start justify-between gap-2 text-sm leading-snug after:absolute after:inset-0 after:rounded-lg">
-        <span className="min-w-0">{goal}</span>
-        {state === "finished" ? <Claim /> : <New />}
+        <span className="min-w-0 flex-1">{goal}</span>
+        <New />
+        {state === "finished" && <Claim />}
       </AppLink>
     </li>
   );
@@ -50,7 +51,7 @@ function New() {
   return (
     <>
       {" "}
-      <Tag className="shrink-0 self-center">New</Tag>
+      <QuestTag>New</QuestTag>
     </>
   );
 }

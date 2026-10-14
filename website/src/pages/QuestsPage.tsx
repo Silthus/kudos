@@ -3,7 +3,6 @@ import { HedgehogExplorer, HedgehogMegaphone, HedgehogReading, HedgehogTownCrier
 import { IconArrowRight, IconCheck, IconClock, IconRefresh } from "@posthog/icons";
 import { Button, Card, CardContent } from "@posthog/quill";
 import { AppLink } from "../AppLink";
-import { Tag } from "../book/Tag";
 import { attemptMessages, questCrateHomeAttributes, useMoments } from "../crates/moments";
 import { questCrateOf, type CrateFacts, type QuestCrate } from "../crates/readyCrates";
 import { Claimed } from "../crates/RewardCrate";
@@ -11,6 +10,7 @@ import { rewardChipAttributes } from "../crates/RewardFlight";
 import { aboutOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "../features";
 import { PageTitle } from "../PageTitle";
 import { questTargetAttributes } from "../questTarget";
+import { QuestTag } from "../quests/QuestTag";
 import { sameQuest, useQuestSwap, type QuestSwap } from "../quests/questSwap";
 import type { JourneyStep, MemberProfile, QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
 import { SlackLink } from "../SlackLink";
@@ -96,9 +96,9 @@ function QuestCard({ slot, firstCrate, swappable, swap }: { slot: QuestSlot } & 
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="hud-label">{kind}</span>
-            {swapped && <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">Swapped</span>}
+            {swapped && <QuestTag>Swapped</QuestTag>}
           </div>
-          <h2 tabIndex={-1} className="text-base font-semibold leading-snug">
+          <h2 tabIndex={-1} className={questHeading}>
             {goal}
           </h2>
           <QuestProgress {...progress} />
@@ -110,6 +110,8 @@ function QuestCard({ slot, firstCrate, swappable, swap }: { slot: QuestSlot } & 
     </article>
   );
 }
+
+const questHeading = "w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4";
 
 const artOf: Record<QuestSlot["kind"], Hoggie> = { "Say why": HedgehogReading, "Reach out": HedgehogExplorer, "Join in": HedgehogMegaphone };
 
@@ -227,14 +229,17 @@ function BonusCard({ step, page, firstCrate }: BonusQuestProps) {
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="hud-label">Journey</span>
-            {active && <Tag>New</Tag>}
+            {active && <QuestTag>New</QuestTag>}
           </div>
-          <h3 tabIndex={-1} className="text-base font-semibold leading-snug">
+          <h3 tabIndex={-1} className={questHeading}>
             {goal}
           </h3>
           {active && hint !== null && <p className="text-sm text-muted-foreground">{hint}</p>}
           <RewardRow xp={reward.xp} seen={seen}>
-            {active ? page !== undefined && feature !== null && <GoTo page={page} name={plainNameOf(feature)} /> : <ClaimOf facts={step} firstCrate={firstCrate} />}
+            <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
+              {page !== undefined && feature !== null && <GoTo page={page} name={plainNameOf(feature)} />}
+              <ClaimOf facts={step} firstCrate={firstCrate} />
+            </div>
           </RewardRow>
         </div>
       </div>

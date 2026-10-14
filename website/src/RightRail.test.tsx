@@ -210,11 +210,10 @@ describe("WS109 WS315 WS316: Quests this week", () => {
     ]);
   });
 
-  it("WS315 WS317: reads Claim on a finished bonus row, without New", () => {
+  it("WS315 E076: keeps New on a finished bonus row and reads Claim beside it", () => {
     showingQuests(questsFixtures.weekWithAFinishedBonus);
     const quests = panel("Quests this week");
-    expect(within(quests).getByRole("link", { name: "Finish a weekly quest. Claim" })).toHaveAttribute("href", "/quests?quest=journey");
-    expect(within(quests).queryByText("New")).not.toBeInTheDocument();
+    expect(within(quests).getByRole("link", { name: "Finish a weekly quest. New Claim" })).toHaveAttribute("href", "/quests?quest=journey");
   });
 
   it("WS317: shows the bonus row in a week with nothing drawn", () => {
