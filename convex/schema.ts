@@ -90,6 +90,7 @@ export default defineSchema({
     enabled: v.boolean(),
     automatic: v.boolean(),
     members: v.optional(v.number()),
+    membersCountAsOf: v.optional(v.number()),
     asOf: v.number(),
     membersAsOf: v.optional(v.number()),
     changedAt: v.optional(v.number()),

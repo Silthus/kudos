@@ -103,7 +103,7 @@ describe("GB2: the user group copy reconciles every member it lists", () => {
   });
 });
 
-describe("GB6: group sizes come from the copy's latest members list", () => {
+describe("GB6: group sizes come from the copy's freshest member count", () => {
   test("a listing Slack answered before a newer members list doesn't overwrite that list's member count", async () => {
     const t = testBackend();
     const group = (id: string, name: string, members: number) => ({ workspace: "T1", group: id, handle: id, name, enabled: true, automatic: false, members });
@@ -117,7 +117,20 @@ describe("GB6: group sizes come from the copy's latest members list", () => {
 
     expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Alpha");
   });
+  test("a members list Slack answered before a newer listing doesn't overwrite that listing's member count", async () => {
+    const t = testBackend();
+    const group = (id: string, name: string, members: number) => ({ workspace: "T1", group: id, handle: id, name, enabled: true, automatic: false, members });
+    await t.mutation(internal.workspace.userGroups.keepUserGroups, { listed: [group("S_A", "Alpha", 100), group("S_B", "Beta", 2)], scope: { kind: "every-group" }, asOf: 3_000 });
+    await t.mutation(internal.workspace.userGroups.keepUserGroupMembers, { workspace: "T1", group: "S_B", users: ["U_ANN", "U_BOB"], asOf: 3_000 });
+
+    await t.mutation(internal.workspace.userGroups.keepUserGroupMembers, { workspace: "T1", group: "S_A", users: ["U_ANN"], asOf: 2_000 });
+    await settle(t);
+    await joined(t, "U_ANN");
+
+    expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Beta");
+  });
 });
+
 
 describe("GB8: a member who loses their primary group falls back to the smallest group left, quietly", () => {
   async function annInThreeGroups() {
@@ -276,6 +289,25 @@ describe("GB9: primaryGroupAt answers the history entry in force at an instant",
     expect(await primaryGroupNameAt(t, "U_ANN", recorded)).toBe("Zebras");
   });
 
+  test("a change keeps its own instant when someone else's change to the same group lands before its page runs", async () => {
+    const t = testBackend();
+    slack.withUserGroup("S_OWL", { name: "Owls", users: ["U_ANN"] }).withUserGroup("S_ZEBRA", { name: "Zebras", users: ["U_ANN", "U_BOB"] });
+    await sync(t);
+    await joined(t, "U_ANN", "U_CAROL");
+    vi.advanceTimersByTime(60_000);
+
+    slack.withUserGroup("S_OWL", { name: "Owls", users: [] });
+    await copyRecordsWithoutReconciling(t, "S_OWL");
+    const annLeft = Date.now();
+    vi.setSystemTime(annLeft + 2_000);
+    slack.withUserGroup("S_OWL", { name: "Owls", users: ["U_CAROL"] });
+    await copyRecordsWithoutReconciling(t, "S_OWL");
+    vi.setSystemTime(annLeft + 5_000);
+    await settle(t);
+
+    expect(await primaryGroupNameAt(t, "U_ANN", annLeft)).toBe("Zebras");
+  });
+
   test("of two changes recorded in the same millisecond, the later one is in force at it", async () => {
     const t = testBackend();
     slack.withUserGroup("S_OWL", { name: "Owls", users: ["U_ANN"] });
@@ -365,6 +397,29 @@ describe("GB35: reconciliation pages stay within Convex's limits", () => {
     await settle(t);
 
     expect(await primaryGroupNamesOf(t)).toEqual({ Pair: 3 });
+  });
+
+  test("a page of 100 members who each lose 60 groups at once reconciles them all within Convex's limits", { timeout: 60_000 }, async () => {
+    const t = testBackend({ transactionLimits: true });
+    const people = Array.from({ length: 100 }, (_, index) => `U_${String(index).padStart(3, "0")}`);
+    const groups = Array.from({ length: 60 }, (_, index) => `S_${String(index).padStart(2, "0")}`);
+    await t.run(async (ctx) => {
+      for (const user of people) await ctx.db.insert("members", { workspace: "T1", user, kind: "member", timeZone: undefined, asOf: 0 });
+      for (const group of groups) {
+        await ctx.db.insert("userGroups", { workspace: "T1", group, handle: group, name: group, enabled: true, automatic: false, asOf: 0, membersAsOf: 0 });
+        for (const user of people) await ctx.db.insert("userGroupMembers", { workspace: "T1", group, user });
+      }
+    });
+    slack.withUserGroup("S_00", { name: "S_00", users: people });
+    await userGroupChanged(t, "subteam_members_changed", "S_00");
+    await settle(t);
+    expect(await countingGroupCountsOf(t)).toEqual({ 60: 100 });
+
+    const disabled = groups.map((group) => ({ workspace: "T1", group, handle: group, name: group, enabled: false, automatic: false }));
+    await t.mutation(internal.workspace.userGroups.keepUserGroups, { listed: disabled, scope: { kind: "every-group" }, asOf: Date.now() });
+    await settle(t);
+
+    expect(await countingGroupCountsOf(t)).toEqual({ 0: 100 });
   });
 
   test("a page whose people are each in hundreds of groups hands the rest to a new page and reconciles each of them", { timeout: 120_000 }, async () => {
@@ -536,4 +591,8 @@ async function countingGroupCountsOf(t: Backend) {
     for (const { groups } of await ctx.db.query("memberGroups").collect()) counts[groups.length] = (counts[groups.length] ?? 0) + 1;
     return counts;
   });
+}
+
+async function copyRecordsWithoutReconciling(t: Backend, group: string) {
+  await t.action(internal.slack.userGroups.refreshMembers, { workspace: "T1", group });
 }
