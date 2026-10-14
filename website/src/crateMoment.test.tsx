@@ -377,7 +377,7 @@ describe("WS67: /leaderboard's ready state opens in place", () => {
 
 describe("WS68: the ready pill", () => {
   function pill() {
-    return within(screen.getByRole("banner")).queryByRole("button", { name: /ready|Opening…/ });
+    return within(screen.getByRole("banner")).queryByRole("button", { name: /^\d+ ready$|^Opening…$/ });
   }
 
   it("counts what is ready to open, and is gone at zero", () => {
