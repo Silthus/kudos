@@ -116,6 +116,18 @@ describe("AT35: the backfill fills the words of kudos given before capture shipp
     expect(await wordsAt(t, topLevelTs)).toMatchObject({ kind: "text", visibility: "unknown" });
   });
 
+  test.each(["not_in_channel", "channel_not_found", "thread_not_found"])("a %s answer is logged by its Slack code, never with the words", async (error) => {
+    const t = testBackend();
+    await givenBeforeCapture(t, thanksCarol, { ts: replyTs, threadTs: threadRootTs });
+    slack.answering("conversations.replies", slackError(error));
+    const warnings = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await backfill(t);
+
+    expect(warnings.mock.calls.map((call) => call.join(" "))).toContain(`backfill: conversations.replies failed: ${error}`);
+    expect(stringify(warnings.mock.calls)).not.toContain(replyReason);
+  });
+
   test("only Given messages without words are fetched: an ordinary message and a kudos message captured live make no Slack call", async () => {
     const t = testBackend();
     await post(t, [section(text("lunch at noon? "), mention("U_BOB"))], { ts: "1760349400.000100" });
