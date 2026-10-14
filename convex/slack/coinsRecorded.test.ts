@@ -165,7 +165,7 @@ describe("CO1 CO5: a kudos to more members than one mutation records every one o
       await settleInTimeOrder(t);
     }
 
-    expect(await recipientLinesOf(t, recipients)).toEqual(recipients.map(() => [receiving]));
+    expect(await recipientLinesOf(t, recipients)).toEqual(recipients.map(() => [[receiving]]));
     expect(await coinsOn(t, "U_ALICE")).toEqual(recipients.map(() => [giving]));
     expect(await t.run(async (ctx) => (await ctx.db.query("wallets").collect()).map(({ balance }) => balance).sort((a, b) => a - b))).toEqual([...recipients.map(() => 2), 1_000]);
   }, 120_000);
@@ -179,7 +179,7 @@ async function recipientLinesOf(t: Backend, users: string[]) {
       const member = await memberOf(ctx, user);
       lines.push(records.filter((record) => record.member === member).map(({ coins }) => coins ?? []));
     }
-    return lines.map((perRecord) => perRecord.flat());
+    return lines;
   });
 }
 
