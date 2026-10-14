@@ -28,7 +28,7 @@ export function Ladder({ ladder, timeZone }: { ladder: LadderCard; timeZone: str
                 </div>
                 <p className="text-sm text-muted-foreground first-letter:uppercase">{counts}</p>
               </div>
-              {next === null ? <Complete /> : <WayToNext ladder={ladder} next={next} />}
+              {next === null ? <Complete count={ladder.count} /> : <WayToNext ladder={ladder} next={next} />}
             </div>
           </div>
           <ol aria-label={`${name} tiers`} className="grid grid-cols-2 gap-x-2 gap-y-3 sm:grid-cols-4">
@@ -72,11 +72,14 @@ function WayToNext({ ladder, next }: { ladder: LadderCard; next: NonNullable<Lad
   );
 }
 
-function Complete() {
+function Complete({ count }: { count: number }) {
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex items-center">
+      <div className="flex items-center gap-2.5">
         <Bar label="Complete" value={1} max={1} />
+        <span aria-hidden="true" className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+          {count}
+        </span>
       </div>
       <p aria-hidden="true" className="flex items-center gap-1 text-xs font-medium">
         <IconCheck className="size-3.5" />
@@ -111,7 +114,7 @@ function Tier({ tier, isNext, timeZone }: { tier: TierCard; isNext: boolean; tim
 
 function lookOf(earned: boolean, isNext: boolean) {
   if (earned) return "border bg-muted";
-  if (isNext) return "bg-card ring-2 ring-foreground";
+  if (isNext) return "border border-transparent bg-card ring-2 ring-foreground";
   return "border border-dashed";
 }
 

@@ -1,5 +1,6 @@
 import { useId } from "react";
 import type { TierId } from "../shell";
+import { glintOf, metalOf } from "./metal";
 
 const sparkles: ReadonlySet<TierId> = new Set(["gold", "diamond"]);
 
@@ -23,7 +24,7 @@ export function Rosette({ tier }: { tier: TierId | null }) {
 function Unearned() {
   return (
     <>
-      <polygon points={outline} fill="var(--muted)" />
+      <polygon points={outline} fill="var(--muted)" stroke="var(--muted-foreground)" strokeWidth="0.75" strokeLinejoin="round" />
       <circle cx="50" cy="50" r="38" fill="var(--card)" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeDasharray="3 3" />
     </>
   );
@@ -31,23 +32,22 @@ function Unearned() {
 
 function Earned({ tier }: { tier: TierId }) {
   const sheen = useId();
-  const metal = `var(--medal-${tier})`;
+  const metal = metalOf(tier);
   return (
     <>
       <defs>
         <linearGradient id={sheen} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" style={{ stopColor: `color-mix(in oklab, ${metal} 40%, var(--card))` }} />
-          <stop offset="0.55" style={{ stopColor: `color-mix(in oklab, ${metal} 55%, var(--card))` }} />
+          <stop offset="0" style={{ stopColor: glintOf(tier) }} />
+          <stop offset="0.55" style={{ stopColor: `oklch(from ${metal} 0.82 calc(c * 1.4) h)` }} />
           <stop offset="1" style={{ stopColor: metal }} />
         </linearGradient>
       </defs>
       <polygon points={outline} fill={`url(#${sheen})`} stroke={metal} strokeWidth="1.5" strokeLinejoin="round" />
-      <circle cx="50" cy="50" r="42.5" fill="none" stroke={metal} strokeWidth="0.8" />
       <circle cx="50" cy="50" r="38" fill="var(--card)" stroke={metal} strokeWidth="2.5" />
     </>
   );
 }
 
 function Sparkle({ tier }: { tier: TierId }) {
-  return <path data-sparkle="" d="M88 -3.5 90.4 6.6 100.5 9 90.4 11.4 88 21.5 85.6 11.4 75.5 9 85.6 6.6Z" fill="var(--card)" stroke={`var(--medal-${tier})`} strokeWidth="2" strokeLinejoin="round" />;
+  return <path data-sparkle="" d="M88 -3.5 90.4 6.6 100.5 9 90.4 11.4 88 21.5 85.6 11.4 75.5 9 85.6 6.6Z" fill={glintOf(tier)} stroke={metalOf(tier)} strokeWidth="2" strokeLinejoin="round" />;
 }

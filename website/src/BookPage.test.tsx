@@ -417,6 +417,7 @@ describe("WS333: ladder details", () => {
     expect(bar).toHaveAttribute("aria-valuemax", "1");
     expect(bar.outerHTML).not.toMatch(/primary|success|warning|danger/);
     expect(card).toHaveTextContent("Complete");
+    expect(bar.parentElement).toHaveTextContent(/^31$/);
     expect(card).not.toHaveTextContent(/to go/);
     expect(nextCells("Connections")).toEqual([]);
   });
