@@ -40,7 +40,7 @@ function announcement() {
 }
 
 function pill() {
-  return within(screen.getByRole("banner")).queryByRole("button", { name: /ready|Opening…/ });
+  return within(screen.getByRole("banner")).queryByRole("button", { name: /^\d+ ready$|^Opening…$/ });
 }
 
 function questCard(goal = "Thank someone you haven't thanked before.") {
