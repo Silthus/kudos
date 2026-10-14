@@ -300,21 +300,21 @@ These are proposed declarations. Each ticket writes its part and makes `coherenc
 Each ticket is a sub-issue of map #57, sized to one agent session. Each merges into the conductor's integration branch for this slice, **`spec/website-4`**, never into `main` (WS27). The branch starts from `spec/website-3` (part A has landed there), or from `main` once the third slice's part A has shipped (#151), and merges `main` as it moves. Tickets 2–7 also wait for map #1's #171 on `main` (WS95), and the branch merges `main` once #171 has.
 
 Blocking edges (native on GitHub):
-- ticket 1 → tickets 2 and 5
-- ticket 2 → ticket 3
-- ticket 3 → ticket 4
-- ticket 5 → ticket 6
-- tickets 4 and 6 → ticket 7
+- #186 → #187 and #190
+- #187 → #188
+- #188 → #189
+- #190 → #191
+- #189 and #191 → #192
 
 The frontier is ticket 1. After #171 and ticket 1, the skill tree lane (2 → 3 → 4) and the Book lane (5 → 6) run in parallel.
 
-1. **The Skill tree and Book pages follow their unlock.** `featurePageOf` with `leaderboardStateOf` built on it, `/skills` and `/book` in the router with their tabs, the locked page and the ready page's crate in place shared with `/leaderboard`, the page registry, the nav, the home's open cards and `Go to {name}`, and the Book's locked-card sentence. Until tickets 3 and 6, an open page shows one hedgehog, `{name} is open. Find it in Slack's App Home.` and one action that opens the workspace in Slack. Proven with the Skill tree, whose ship flag is on `main`. WS78–WS82. Blocked by nothing on this map (part A has landed on `spec/website-3`); no cross-map condition.
-2. **The skill tree read.** `getSkillTree` from `perksOf`, `getMyProfile.skillPoints`, any additive export progression needs for WS83, WS10's list entry, and the Coherence entrance. WS80, WS83, WS84, WS89. Blocked by 1, and by #171 on `main` cross-map.
-3. **The skill tree page.** The tree, its nodes, the details and drawer, `Your perks`, `How perks work`, and the HUD's skill point chip; an available perk's details read `Buy it in Slack's App Home.` until ticket 4. WS84–WS86, WS94. Blocked by 2, and by #171 on `main` cross-map.
-4. **Buy a perk on the website.** `buyPerk` behind the Skill tree's gate and through D17 with the server-built key, its refusal reasons and App Home's republish, WS10's list entry, the Buy action with its states and its pending purchase, and the Coherence entrance and invariants (*website commands pass one guard*, *a website command never launches unlocks*, *a website command is a D17 command*, *a skill point bought on the website is spent once*). WS87–WS89. Blocked by 3, and by #171 on `main` cross-map.
-5. **The Book read.** `getBook` from `achievementsOf` with the member's time zone, any additive export Achievements needs for WS90, WS10's list entry, and the Coherence entrance and invariant *the Book names nothing unshipped*. WS80, WS89–WS91, WS93. Blocked by 1, and by #171 on `main` cross-map.
-6. **The Book page.** The header, the ladder cards, the medal tokens in light and dark, earned dates, the `Next` tag and bar, and the silhouette. WS92–WS94. Blocked by 5, and by #171 on `main` cross-map.
-7. **Prove the skill tree and the Book on the sandbox.** Merge `origin/main`, deploy the integration branch to `different-dog-467` (the first slice's rules 1 and 2 for the shared sandbox), and check there:
+1. [#186](https://github.com/Silthus/kudos/issues/186) **The Skill tree and Book pages follow their unlock.** `featurePageOf` with `leaderboardStateOf` built on it, `/skills` and `/book` in the router with their tabs, the locked page and the ready page's crate in place shared with `/leaderboard`, the page registry, the nav, the home's open cards and `Go to {name}`, and the Book's locked-card sentence. Until tickets 3 and 6, an open page shows one hedgehog, `{name} is open. Find it in Slack's App Home.` and one action that opens the workspace in Slack. Proven with the Skill tree, whose ship flag is on `main`. WS78–WS82. Blocked by nothing on this map (part A has landed on `spec/website-3`); no cross-map condition.
+2. [#187](https://github.com/Silthus/kudos/issues/187) **The skill tree read.** `getSkillTree` from `perksOf`, `getMyProfile.skillPoints`, any additive export progression needs for WS83, WS10's list entry, and the Coherence entrance. WS80, WS83, WS84, WS89. Blocked by 1, and by #171 on `main` cross-map.
+3. [#188](https://github.com/Silthus/kudos/issues/188) **The skill tree page.** The tree, its nodes, the details and drawer, `Your perks`, `How perks work`, and the HUD's skill point chip; an available perk's details read `Buy it in Slack's App Home.` until ticket 4. WS84–WS86, WS94. Blocked by 2, and by #171 on `main` cross-map.
+4. [#189](https://github.com/Silthus/kudos/issues/189) **Buy a perk on the website.** `buyPerk` behind the Skill tree's gate and through D17 with the server-built key, its refusal reasons and App Home's republish, WS10's list entry, the Buy action with its states and its pending purchase, and the Coherence entrance and invariants (*website commands pass one guard*, *a website command never launches unlocks*, *a website command is a D17 command*, *a skill point bought on the website is spent once*). WS87–WS89. Blocked by 3, and by #171 on `main` cross-map.
+5. [#190](https://github.com/Silthus/kudos/issues/190) **The Book read.** `getBook` from `achievementsOf` with the member's time zone, any additive export Achievements needs for WS90, WS10's list entry, and the Coherence entrance and invariant *the Book names nothing unshipped*. WS80, WS89–WS91, WS93. Blocked by 1, and by #171 on `main` cross-map.
+6. [#191](https://github.com/Silthus/kudos/issues/191) **The Book page.** The header, the ladder cards, the medal tokens in light and dark, earned dates, the `Next` tag and bar, and the silhouette. WS92–WS94. Blocked by 5, and by #171 on `main` cross-map.
+7. [#192](https://github.com/Silthus/kudos/issues/192) **Prove the skill tree and the Book on the sandbox.** Merge `origin/main`, deploy the integration branch to `different-dog-467` (the first slice's rules 1 and 2 for the shared sandbox), and check there:
    - a member below level 5 sees `/skills` locked at level 5, and one below level 4 sees `/book` locked at level 4;
    - a ready member opens the Skill tree on its page, sees the three perks with P94's copy and their skill points in the HUD, buys `spark`, and App Home's Skill tree tab shows it owned;
    - a member with the Book open sees the replayed tiers with their historical dates, in light and dark;
