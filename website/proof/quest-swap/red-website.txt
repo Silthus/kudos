@@ -1,0 +1,13 @@
+     × reads 1 swap left this week while the swap is available, with the swap icon 293ms
+     × reads Swap used this week once the week's swap is used 114ms
+     × gives each in-progress card a muted Swap titled with the one-a-week rule, and finished or claimed cards none 791ms
+     × sends the slot's quest from the read, and reads Swapping… and stays inert until the answer 277ms
+     × after swapped, shows the new quest with its Swapped tag, says so politely and moves focus to its heading 271ms
+     × after swapped, waits for the read to show the new quest before it speaks or moves focus 549ms
+     × after refused, says the quest couldn't be swapped on its card 1032ms
+     × after an error, says HedgeHug couldn't be reached, and pressing Swap again sends the same quest 228ms
+     × after a denial, adds no line of its own and leaves the frame to the profile read 176ms
+     × says a quest can be swapped once a week, with no word of Slack 81ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  10 failed | 5 passed (15)

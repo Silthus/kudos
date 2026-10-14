@@ -1,0 +1,49 @@
+     × only HTTP routes, Convex Auth's signIn, signOut and isAuthenticated, and the website's signed-in functions are public 1722ms
+     × with the website flag off, a swap answers closed and writes nothing at all 250ms
+     × without a session, a swap answers signed-out and writes nothing at all 37ms
+     × the quest is the only argument, so no call names a member 46ms
+     × Quests locked at level 1 answers refused without reaching D17 and writes nothing at all 15ms
+     × Quests ready and not yet opened answers refused without reaching D17 and writes nothing at all 29ms
+     × the quests flag off answers refused without reaching D17 and writes nothing at all 25ms
+     × P77: with every flag on and no unlocks launch, a swap answers refused and launches nothing 14ms
+     × P91: with unlocks launched and no Journey launch, a swap answers refused and neither launches the Journey nor joins anyone 9ms
+     × with achievements on and no Book launch, a swappable quest answers refused and doesn't launch the Book 33ms
+     × an open week's swap replaces exactly that slot, answers swapped, and schedules App Home's republish 28ms
+     × a repeat for the same slot answers swapped again and keeps the one swap 19ms
+     × after the week's swap, another slot answers refused and writes nothing at all 29ms
+     × a slot that was never drawn answers refused and writes nothing at all 32ms
+     × WS64: swapping on the website leaves the domain tables and events Slack's Swap leaves, besides Slack's receipt 72ms
+     × P80: with Quests open and nothing drawn, slots and waiting are empty, beside the link to Slack 30ms
+     × P80: fewer than three drawn quests read as that many slots, in slot order, each in progress at 0 35ms
+     × P84 P85: a slot in progress, a finished slot with its crate, and an opened slot without one 42ms
+     × P81: a swapped slot reads swapped, with the quest swapped in at 0 35ms
+       × before the swap, it is available and unused, as the quests module offers it 21ms
+       × after the swap, it is used and no longer available 20ms
+       × with every slot finished, it is neither used nor available 30ms
+       × each slot's quest is the whole weekly quest the swap command takes 32ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 23 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |convex| convex/publicSurface.test.ts > WS10: the public surface is exact > only HTTP routes, Convex Auth's signIn, signOut and isAuthenticated, and the website's signed-in functions are public
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P80: with Quests open and nothing drawn, slots and waiting are empty, beside the link to Slack
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P80: fewer than three drawn quests read as that many slots, in slot order, each in progress at 0
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P84 P85: a slot in progress, a finished slot with its crate, and an opened slot without one
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > P81: a swapped slot reads swapped, with the quest swapped in at 0
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > WS319: the week's swap > before the swap, it is available and unused, as the quests module offers it
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > WS319: the week's swap > after the swap, it is used and no longer available
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > WS319: the week's swap > with every slot finished, it is neither used nor available
+ FAIL  |convex| convex/website/quests.test.ts > WS70: getQuests reads the quests module's facts > WS319: the week's swap > each slot's quest is the whole weekly quest the swap command takes
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS61: swapQuest passes the website's one guard > with the website flag off, a swap answers closed and writes nothing at all
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS61: swapQuest passes the website's one guard > without a session, a swap answers signed-out and writes nothing at all
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS61: swapQuest passes the website's one guard > the quest is the only argument, so no call names a member
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS318 WS335: the gate refuses before D17 and never records a launch > Quests locked at level 1 answers refused without reaching D17 and writes nothing at all
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS318 WS335: the gate refuses before D17 and never records a launch > Quests ready and not yet opened answers refused without reaching D17 and writes nothing at all
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS318 WS335: the gate refuses before D17 and never records a launch > the quests flag off answers refused without reaching D17 and writes nothing at all
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS318 WS335: the gate refuses before D17 and never records a launch > P77: with every flag on and no unlocks launch, a swap answers refused and launches nothing
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS318 WS335: the gate refuses before D17 and never records a launch > P91: with unlocks launched and no Journey launch, a swap answers refused and neither launches the Journey nor joins anyone
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS318 WS335: the gate refuses before D17 and never records a launch > with achievements on and no Book launch, a swappable quest answers refused and doesn't launch the Book
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS318: swapQuest is D17's rerollQuest > an open week's swap replaces exactly that slot, answers swapped, and schedules App Home's republish
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS318: swapQuest is D17's rerollQuest > a repeat for the same slot answers swapped again and keeps the one swap
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS318: swapQuest is D17's rerollQuest > after the week's swap, another slot answers refused and writes nothing at all
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS318: swapQuest is D17's rerollQuest > a slot that was never drawn answers refused and writes nothing at all
+ FAIL  |convex| convex/website/swapQuest.test.ts > WS318: swapQuest is D17's rerollQuest > WS64: swapping on the website leaves the domain tables and events Slack's Swap leaves, besides Slack's receipt
+ Test Files  3 failed (3)
+      Tests  23 failed | 23 passed (46)
