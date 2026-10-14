@@ -22,6 +22,17 @@ export const deliverDirectMessage = observedAction({
   },
 });
 
+export const deliverReply = observedAction({
+  args: { workspace: v.string(), conversation: v.string(), text: v.string(), ...attemptArgs },
+  handler: async (ctx, { attempt = 1, ...reply }) => {
+    await tryAtMostThreeTimes(
+      attempt,
+      (attempt) => sendOnce(ctx, reply.workspace, "chat.postMessage", { channel: reply.conversation, text: reply.text }, attempt),
+      (retry) => ctx.scheduler.runAt(retry.at, internal.slack.directMessages.deliverReply, { ...reply, attempt: retry.attempt }),
+    );
+  },
+});
+
 function messageOf(lines: NotificationLine[]) {
   const text = lines.map(textOf).join("\n");
   return lines.every((line) => typeof line === "string") ? { text } : { text, blocks: lines.map(blockOf) };

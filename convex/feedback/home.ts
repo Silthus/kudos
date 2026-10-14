@@ -4,7 +4,7 @@ import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
-import type { MemberPerks, Refusal } from "../progression/perks";
+import type { MemberPerks, PurchaseOutcome, Refusal } from "../progression/perks";
 import { perkOf, type Perk } from "../progression/tree";
 import type { ProgressSettings } from "../progression/settings";
 import type { JourneyStepFacts } from "../quests/journey";
@@ -121,11 +121,23 @@ function skillTreeGroups({ skillPoints, perks }: MemberPerks): HomeLine[][] {
 }
 
 function perkLines(perk: TreePerk): HomeLine[] {
-  const { name, skillPoints, copy, state } = perk;
+  const { name, copy, state } = perk;
   if (state === "owned") return [{ kind: "text", text: `✅ ${bold(name)} · Owned\n${copy}` }];
-  const text = `${bold(name)} · ${skillPointsOf(skillPoints)}\n${copy}`;
-  if (state === "buyable") return [{ kind: "action", text, action: { label: "Buy", command: { type: "buyPerk", perk: perk.perk } } }];
-  return [{ kind: "text", text }, { kind: "hint", text: whyNotOf({ ...perk, state }) }];
+  if (state === "buyable") return [{ kind: "action", ...perkOfferOf(perk) }];
+  return [{ kind: "text", text: perkTextOf(perk) }, { kind: "hint", text: whyNotOf({ ...perk, state }) }];
+}
+
+export function perkOfferOf(perk: Perk): { text: string; action: HomeAction } {
+  return { text: perkTextOf(perk), action: { label: "Buy", command: { type: "buyPerk", perk: perk.perk } } };
+}
+
+function perkTextOf({ name, skillPoints, copy }: Perk) {
+  return `${bold(name)} · ${skillPointsOf(skillPoints)}\n${copy}`;
+}
+
+export function purchaseReplyOf(outcome: PurchaseOutcome) {
+  const perk = perkOf(outcome.perk);
+  return outcome.kind === "bought" ? `You bought ${perk.name}.` : `I couldn't buy ${perk.name}. ${whyNotOf({ ...perk, state: outcome.reason })}`;
 }
 
 type TreePerk = MemberPerks["perks"][number];
