@@ -59,12 +59,17 @@ export async function hydrate(ctx: MutationCtx, fetched: FetchedMessage): Promis
   const row = await kudosMessageRow(ctx, fetched.ref);
   if (row?.state !== "given") return refused("not-given");
   if (fetched.revision < row.revision) return refused("stale-revision");
+  if (fetched.revision > row.revision) await followFetchedRevision(ctx, row, fetched);
   const author = await lookup(ctx, fetched.ref.workspace, fetched.author);
   if (author?.kind !== "member") return refused("not-a-member");
   const context = { workspace: fetched.ref.workspace, giver: author.member };
   if ((await kudosMessageOf(ctx, fetched.content, context)) === null) return refused("ordinary-chat");
   const kept = await keepFetchedWords(ctx, fetched, annotationsOf(fetched.content, context));
   return kept ? { kind: "hydrated" } : refused("already-known");
+}
+
+async function followFetchedRevision(ctx: MutationCtx, row: KudosMessageRow, { revision, content }: FetchedMessage) {
+  await ctx.db.patch(row._id, { revision, content: { mentions: content.mentions, emoji: content.emoji } });
 }
 
 function refused(why: Extract<Hydration, { kind: "refused" }>["why"]): Hydration {

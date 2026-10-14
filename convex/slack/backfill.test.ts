@@ -220,6 +220,52 @@ describe("AT35: hydrate refuses", () => {
   });
 });
 
+describe("AT4 AT35: a revision older than the one hydrate read changes nothing", () => {
+  const [olderEditTs, fetchedEditTs] = ["1760349630.000100", "1760349660.000100"];
+
+  test("a delayed edit that is ordinary chat leaves the newer filled words", async () => {
+    const t = testBackend();
+    await givenBeforeCapture(t, thanksBob, { ts: topLevelTs, inSlack: false });
+    slack.withMessage("C1", channelMessage(thanksBob, { ts: topLevelTs, editedTs: fetchedEditTs }));
+    await backfill(t);
+
+    await edit(t, [section(text("lunch at noon? "), mention("U_BOB"))], { ts: topLevelTs, editedTs: olderEditTs });
+    await settle(t);
+
+    expect(await wordsAt(t, topLevelTs)).toMatchObject({ kind: "text", edited: true, segments: expect.arrayContaining([{ kind: "text", text: `thanks ${reason} ` }]) });
+    expect(await storedAndScheduled(t, { besideKudosText: true })).not.toContain(reason);
+  });
+
+  test("a delayed edit that is a kudos message stores nothing once Slack's newer revision was ordinary chat", async () => {
+    const t = testBackend();
+    const olderWords = "an older revision that slack has since replaced";
+    await givenBeforeCapture(t, thanksBob, { ts: topLevelTs, inSlack: false });
+    slack.withMessage("C1", channelMessage([section(text("lunch at noon? "), mention("U_BOB"))], { ts: topLevelTs, editedTs: fetchedEditTs }));
+    await backfill(t);
+
+    await edit(t, [section(text(`thanks ${olderWords} `), mention("U_BOB"), emoji("taco"))], { ts: topLevelTs, editedTs: olderEditTs });
+    await settle(t);
+
+    expect(await wordsAt(t, topLevelTs)).toEqual({ kind: "unavailable", reason: "not-captured" });
+    expect(await storedAndScheduled(t)).not.toContain(olderWords);
+  });
+});
+
+describe("AT35: paging", () => {
+  test("a page without a message to fill hands the next page to a new job, so no job scans without bound", async () => {
+    const t = testBackend();
+    for (let index = 0; index < 26; index += 1) await edit(t, [section(text("lunch at noon?"))], { ts: `17603491${String(index).padStart(2, "0")}.000100`, editedTs: `17603492${String(index).padStart(2, "0")}.000100` });
+    await givenBeforeCapture(t, thanksBob, { ts: topLevelTs });
+
+    await t.action(internal.slack.backfill.backfillWords, {});
+
+    expect(slack.callsTo("conversations.history")).toEqual([]);
+    expect(await pendingBackfillJobs(t)).toEqual([{ cursor: expect.any(String) }]);
+    await settleInTimeOrder(t);
+    expect(await wordsAt(t, topLevelTs)).toMatchObject({ kind: "text", visibility: "unknown" });
+  });
+});
+
 describe("AT35: pacing", () => {
   test("a ratelimited answer waits for its Retry-After and resumes", async () => {
     const t = testBackend();
@@ -315,6 +361,11 @@ function answeringWith(...messages: ChannelMessage[]): ScriptedAnswer {
 
 function wordsAt(t: Backend, ts: string) {
   return t.run((ctx) => wordsOf(ctx, { workspace: "T1", conversation: "C1", message: ts }));
+}
+
+async function pendingBackfillJobs(t: Backend) {
+  const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return jobs.filter((job) => job.name.includes("backfillWords") && job.state.kind === "pending").map((job) => job.args[0]);
 }
 
 function tsAt(index: number) {

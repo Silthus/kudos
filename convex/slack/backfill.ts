@@ -21,8 +21,12 @@ export const backfillWords = observedAction(
   {
     args: { cursor: v.optional(v.string()), queue: v.optional(v.array(messageRefValidator)) },
     handler: async (ctx, { cursor, queue = [] }) => {
-      const next = queue.length > 0 ? { cursor, queue } : await nextQueue(ctx, cursor);
+      const next = queue.length > 0 ? { cursor, queue } : await nextPage(ctx, cursor);
       if (next === null) return;
+      if (next.queue.length === 0) {
+        await ctx.scheduler.runAfter(0, internal.slack.backfill.backfillWords, { cursor: next.cursor });
+        return;
+      }
       const [ref, ...rest] = next.queue;
       const fill = await fillWords(ctx, ref!);
       if (fill.kind === "held") await ctx.scheduler.runAfter(fill.until - Date.now(), internal.slack.backfill.backfillWords, next);
@@ -56,14 +60,10 @@ export const forgetMissing = internalMutation({
   },
 });
 
-async function nextQueue(ctx: ActionCtx, cursor: string | undefined): Promise<Queue | null> {
-  let next = cursor ?? null;
-  for (;;) {
-    const page = await ctx.runQuery(internal.slack.backfill.givenWithoutWordsPage, { cursor: next });
-    if (page.refs.length > 0) return { cursor: page.cursor, queue: page.refs };
-    if (page.isDone) return null;
-    next = page.cursor;
-  }
+async function nextPage(ctx: ActionCtx, cursor: string | undefined): Promise<Queue | null> {
+  const page = await ctx.runQuery(internal.slack.backfill.givenWithoutWordsPage, { cursor: cursor ?? null });
+  if (page.refs.length === 0 && page.isDone) return null;
+  return { cursor: page.cursor, queue: page.refs };
 }
 
 async function fillWords(ctx: ActionCtx, ref: MessageRef): Promise<Fill> {
