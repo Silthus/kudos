@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Face } from "./shell";
 
 export function MemberFace({ face, className }: { face: Face; className: string }) {
@@ -8,10 +8,18 @@ export function MemberFace({ face, className }: { face: Face; className: string 
 
 function FaceImage({ face, className }: { face: Exclude<Face, { kind: "initials" }>; className: string }) {
   const [failed, setFailed] = useState(false);
+  const picture = useRef<HTMLImageElement>(null);
+  useLayoutEffect(() => {
+    if (picture.current !== null && alreadyFailed(picture.current)) setFailed(true);
+  }, []);
   if (failed) return <Initials initials={face.initials} className={className} />;
   const onColour: CSSProperties | undefined = face.kind === "company-profile" ? { backgroundColor: face.colour } : undefined;
   const fill = face.kind === "slack" ? "bg-muted object-cover" : "object-cover object-top";
-  return <img src={face.image} alt="" style={onColour} onError={() => setFailed(true)} className={`shrink-0 rounded-full ${fill} ${className}`} />;
+  return <img ref={picture} src={face.image} alt="" style={onColour} onError={() => setFailed(true)} className={`shrink-0 rounded-full ${fill} ${className}`} />;
+}
+
+function alreadyFailed(image: HTMLImageElement) {
+  return image.complete && image.naturalWidth === 0;
 }
 
 function Initials({ initials, className }: { initials: string; className: string }) {
