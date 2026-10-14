@@ -294,6 +294,7 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   over: a member with an earlier kudos that says why and the Leaderboard opened by Unlocks' launch, one who had thanked everyone, quests turned on before Unlocks launched, a second sweep, quests turned off and on, a replayed unlockOpened and a member who joins before the join runs, at the Slack boundary and the hourly sweep, read through questsOf, the reward records, the stored Journey and the DMs
   via: P91: members already playing join the Journey once, when it ships
   because: when the Journey ships, members already playing join it where they are (P91): a step whose feature they opened is active, and a step whose state is already true is finished at once (P90), so a member who already said why isn't asked to again; the moment is stored once and the join keyed by it, because a second join would pay a step twice or move when the others count from (P87), and the slice applies only once Unlocks launched, so the Leaderboard P77 keeps open for existing members activates someone-new
+  refuted: the join no longer finished first-thanks from the member's stored gate decisions -> 4 of 5 cases failed: no member who had said why got first-thanks finished or a DM (2026-10-14)
   kinds: message, state
   checklist: destination-confinement dismissed: the join sends nothing outside but each member's own DM through the adapter; questFinished, xpRecorded and levelReached go only to the in-process bus
   checklist: message-authenticity dismissed: the join is scheduled only by the mutation that stores the ship moment, never from outside
@@ -314,6 +315,7 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   over: the scheduled joins after one join page in a workspace of 150 members, and the activations after the whole run
   via: P91: the Journey's join stays within Convex's limits
   because: Convex refuses a mutation that schedules more than 1000 functions and caps what one mutation reads, so a join over every member must page and join each member in a mutation of their own (#101, P78), and every member already playing must join (P91)
+  refuted: a join page read 1000 members instead of 100 -> the 150-member case failed: one page scheduled 150 joins (2026-10-14)
   kinds: state
   checklist: revalidated-permission dismissed: no permission is involved; each join acts on the stored ship moment
   checklist: separation-of-duties dismissed: no approval policy applies
