@@ -1,14 +1,17 @@
 import { internal } from "../_generated/api";
+import type { ActionCtx } from "../_generated/server";
 import { observedHttpAction } from "../analytics/boundary";
 import { isHomeTabOpened } from "./appHome";
 import { directoryRecordOfEvent, isMemberChanged } from "./directory";
 import { isUserGroupChanged, userGroupChangeOf } from "./userGroups";
-import { isMessage, mayGiveKudos, messageEventOf, type EventCallback } from "./normalize";
+import { isMessage, mayAffectKudos, messageEventOf, type EventCallback } from "./normalize";
 import { readSignedBody } from "./signature";
 
 type Envelope = { type: "url_verification"; challenge: string } | EventCallback | { type: "app_rate_limited" };
 
-export const slackEvents = observedHttpAction(async (ctx, request) => {
+export const slackEvents = observedHttpAction(receiveSlackEvent, { carriesWords: true });
+
+async function receiveSlackEvent(ctx: ActionCtx, request: Request) {
   const body = await readSignedBody(request);
   if (body === null) return new Response(null, { status: 401 });
 
@@ -29,11 +32,11 @@ export const slackEvents = observedHttpAction(async (ctx, request) => {
     if (userGroupChanged !== null) await ctx.runMutation(internal.slack.receipts.receiveUserGroupChanged, userGroupChanged);
   } else if (envelope.type === "event_callback") {
     const event = messageEventOf(envelope);
-    if (isMessage(envelope.event) && !mayGiveKudos(event)) return new Response(null, { status: 200 });
+    if (isMessage(envelope.event) && !mayAffectKudos(event)) return new Response(null, { status: 200 });
     await ctx.runMutation(internal.slack.receipts.receive, { workspace: envelope.team_id, eventId: envelope.event_id, event });
   }
   return new Response(null, { status: 200 });
-});
+}
 
 function envelopeOf(body: Uint8Array): Envelope {
   try {

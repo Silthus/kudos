@@ -52,6 +52,10 @@ export async function userGroupsOfUser(ctx: QueryCtx, workspace: string, user: C
   return memberships.map(({ group }) => group);
 }
 
+export async function userGroupHandleOf(ctx: QueryCtx, workspace: string, group: string): Promise<string | undefined> {
+  return (await userGroupRow(ctx, { workspace, group }))?.handle;
+}
+
 export async function keptUserGroupHandlesIn(ctx: QueryCtx, workspace: string): Promise<Map<string, string>> {
   const rows = await ctx.db
     .query("userGroups")
