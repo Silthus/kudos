@@ -31,10 +31,10 @@ export const feasibleBecauseValidator = v.object({ peopleLeft: v.number(), recog
 
 export type FeasibleBecause = Infer<typeof feasibleBecauseValidator>;
 
-const personalReward = { xp: 20, coins: 0, item: null };
+const personalReward = { xp: 20, coins: 10, item: null };
 
 export const questPool = {
-  version: "1",
+  version: "2",
   quests: [
     sayingWhy("say-why", "Thank someone and say why.", "recognitions", 1),
     sayingWhy("say-why-twice", "Thank someone and say why, 2 times.", "recognitions", 2),
