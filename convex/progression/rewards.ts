@@ -25,6 +25,10 @@ export function rewardOf(ctx: QueryCtx, member: MemberId, key: string) {
     .unique();
 }
 
+export function rewardsPage(ctx: QueryCtx, cursor: string | null, numItems: number) {
+  return ctx.db.query("rewardRecords").paginate({ cursor, numItems });
+}
+
 export function rewardsKeyedFrom(ctx: QueryCtx, member: MemberId, keyPrefix: string) {
   return ctx.db
     .query("rewardRecords")

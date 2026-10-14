@@ -8,7 +8,7 @@ import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
 const withQuests = shellFixtures.memberWithQuests;
-const thisWeeksCrate = { kind: "weekly", week: "2026-W42", slot: 1 } as const;
+const thisWeeksCrate = { kind: "weekly", week: "2026-10-12", slot: 1 } as const;
 const journeyCrate = { kind: "journey", step: "first-quest" } as const;
 const finishedStep: JourneyStep = { step: "first-thanks", goal: "Give a kudos that says why.", hint: null, reward: { xp: 10 }, state: "finished", crate: { kind: "journey", step: "first-thanks" }, seen: "77aa01" };
 const questsLockedWithAFinishedStep: MemberProfile = { ...shellFixtures.memberStartingTheJourney, journey: [finishedStep] };
@@ -146,7 +146,7 @@ describe("WS74: opening a quest crate follows the server", () => {
     const { user } = onQuests(questsFixtures.weekWithLastWeeksCrate, { openQuestCrate });
     await user.click(openIn(within(main()).getByRole("region", { name: "Waiting to open" })));
 
-    expect(openQuestCrate).toHaveBeenCalledExactlyOnceWith({ kind: "weekly", week: "2026-W41", slot: 0 });
+    expect(openQuestCrate).toHaveBeenCalledExactlyOnceWith({ kind: "weekly", week: "2026-10-05", slot: 0 });
     expect(dialog()).toHaveAccessibleName("Quest reward");
   });
 });

@@ -5,6 +5,7 @@ import { projectedJourneyOf, type ProjectedJourneyStep } from "../quests/journey
 import { journeyCopyOf } from "../quests/journeyCopy";
 import { questOf, type PoolQuest } from "../quests/pool";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
+import type { WeekKey } from "../quests/week";
 import { drawnWeekOf, unopenedCratesOf, type DrawnWeek, type UnopenedCrate } from "../quests/weekly";
 import { workspaceLink } from "../slack/workspaceLink";
 import { scheduled } from "../unlocks/schedule";
@@ -27,7 +28,7 @@ export type QuestSlot = {
   seen: string | null;
 };
 
-export type WaitingCrate = { goal: string; reward: { xp: number }; crate: WeeklyQuest; seen: string };
+export type WaitingCrate = { goal: string; week: WeekKey; reward: { xp: number }; crate: WeeklyQuest; seen: string };
 
 export type QuestsAnswer = { kind: "not-found" } | { kind: "locked"; level: number } | { kind: "ready" } | { kind: "quests"; slots: QuestSlot[]; waiting: WaitingCrate[]; chatUrl: string };
 
@@ -83,8 +84,8 @@ async function questSlotOf(me: VerifiedMember, { swap }: DrawnWeek, facts: Drawn
   };
 }
 
-async function waitingCrateOf(me: VerifiedMember, { crate, goal, reward }: UnopenedCrate): Promise<WaitingCrate> {
-  return { goal, reward: { xp: reward.xp }, crate, seen: await seenKeyOfCrate(me, crate) };
+async function waitingCrateOf(me: VerifiedMember, { crate, week, goal, reward }: UnopenedCrate): Promise<WaitingCrate> {
+  return { goal, week, reward: { xp: reward.xp }, crate, seen: await seenKeyOfCrate(me, crate) };
 }
 
 async function journeyStepOf(me: VerifiedMember, facts: ProjectedJourneyStep): Promise<JourneyStep> {

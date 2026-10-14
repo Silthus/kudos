@@ -8,14 +8,15 @@ import { awardIdValidator, lastThankedBefore, lastThankedBy } from "../engine/aw
 import { republish } from "../feedback/homes";
 import { notifyWeeklyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
-import { rewardOf, rewardsKeyedFrom } from "../progression/rewards";
+import { rewardOf } from "../progression/rewards";
 import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf, weeklyQuestOfRewardKey } from "./crates";
+import { crateOpeningOf, rewardKeyOf, weeklyQuestOfRewardKey } from "./crates";
 import { finishQuest } from "./finish";
 import { questsLiveIn } from "./flag";
 import { rewardValidator, type Reward } from "./journey";
+import { pendingWeeklyCratesBefore } from "./pendingCrates";
 import { feasibility, feasibleBecauseValidator, questIdValidator, questOf, questPool, type DrawFacts, type FeasibleBecause, type PoolQuest, type QuestId, type Recipient } from "./pool";
 import { counts, isRecipient, questProgress, type CountedAward, type QuestAward } from "./progress";
 import type { WeeklyQuest } from "./step";
@@ -58,7 +59,7 @@ export type WeeklySlot = Slot & { goal: string; progress: number; target: number
 
 export type QuestSwap = { slot: number; replaced: QuestId; quest: QuestId; swappedAt: number };
 
-export type UnopenedCrate = { crate: WeeklyQuest; goal: string; reward: Reward; finishedAt: number };
+export type UnopenedCrate = { crate: WeeklyQuest; week: WeekKey; goal: string; reward: Reward; finishedAt: number };
 
 export type DrawnWeek = Omit<WeeklyQuests, "slots" | "swapAvailable"> & { slots: Array<WeeklySlot & { crate: WeeklyQuest }> };
 
@@ -142,10 +143,10 @@ async function weeklySlotsOf(ctx: QueryCtx, draw: Draw, swap: Swap | null): Prom
 export async function unopenedCratesOf(ctx: QueryCtx, member: MemberId, at: number): Promise<UnopenedCrate[]> {
   const thisWeek = weekKeyOf(at, await timeZoneOf(ctx, member));
   const unopened: UnopenedCrate[] = [];
-  for (const { key, xp, coins, item, at: finishedAt } of await rewardsKeyedFrom(ctx, member, rewardKeyPrefixOf("weekly"))) {
-    const crate = weeklyQuestOfRewardKey(key);
-    if (crate === null || crate.week >= thisWeek || (await crateOpeningOf(ctx, member, key)) !== null) continue;
-    unopened.push({ crate, goal: await goalOf(ctx, member, crate), reward: { xp, coins, item }, finishedAt });
+  for (const { key } of await pendingWeeklyCratesBefore(ctx, member, thisWeek)) {
+    const crate = weeklyQuestOfRewardKey(key)!;
+    const { xp, coins, item, at: finishedAt } = (await rewardOf(ctx, member, key))!;
+    unopened.push({ crate, week: crate.week, goal: await goalOf(ctx, member, crate), reward: { xp, coins, item }, finishedAt });
   }
   return unopened.sort((one, other) => one.finishedAt - other.finishedAt);
 }

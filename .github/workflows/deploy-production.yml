@@ -1,5 +1,5 @@
 # Every push to main deploys it to the production Convex deployment.
-# The deploy key is scoped to that one deployment and reaches only the steps that deploy, upload the website, prepare its flag and read the faces.
+# The deploy key is scoped to that one deployment and reaches only the steps that deploy, upload the website, prepare its flag, read the faces and backfill the pending-crate index.
 name: Deploy production
 
 on:
@@ -46,6 +46,7 @@ jobs:
           if [ "$tip" = "$GITHUB_SHA" ]; then echo "current=true"; else echo "current=false"; fi >> "$GITHUB_OUTPUT"
 
       - name: Deploy to the production deployment
+        id: deploy
         if: steps.tip.outputs.current == 'true'
         run: pnpm exec convex deploy
         env:
@@ -69,5 +70,11 @@ jobs:
       - name: Read the company profiles once
         if: steps.tip.outputs.current == 'true'
         run: pnpm exec convex run companyProfiles/sync:syncCompanyProfiles
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}
+
+      - name: Backfill the pending-crate index once
+        if: ${{ !cancelled() && steps.deploy.outcome == 'success' && steps.tip.outputs.current == 'true' }}
+        run: pnpm exec convex run quests/pendingCrates:backfillPendingCrates
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}

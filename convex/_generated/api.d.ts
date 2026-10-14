@@ -89,6 +89,7 @@ import type * as quests_journey from "../quests/journey.js";
 import type * as quests_journeyCopy from "../quests/journeyCopy.js";
 import type * as quests_newWeek from "../quests/newWeek.js";
 import type * as quests_open from "../quests/open.js";
+import type * as quests_pendingCrates from "../quests/pendingCrates.js";
 import type * as quests_pool from "../quests/pool.js";
 import type * as quests_progress from "../quests/progress.js";
 import type * as quests_quests from "../quests/quests.js";
@@ -231,6 +232,7 @@ declare const fullApi: ApiFromModules<{
   "quests/journeyCopy": typeof quests_journeyCopy;
   "quests/newWeek": typeof quests_newWeek;
   "quests/open": typeof quests_open;
+  "quests/pendingCrates": typeof quests_pendingCrates;
   "quests/pool": typeof quests_pool;
   "quests/progress": typeof quests_progress;
   "quests/quests": typeof quests_quests;
