@@ -90,7 +90,8 @@ const themeCommand: Command = {
   state: "open",
   run: (words, shell, invokedAs) => {
     const wanted = invokedAs === "theme" ? words[0]?.toLowerCase() : invokedAs;
-    if (!isThemeChoice(wanted)) return refused(`No theme called "${wanted ?? ""}". Try theme light, theme dark or theme system.`);
+    if (wanted === undefined) return refused("Try theme light, theme dark or theme system.");
+    if (!isThemeChoice(wanted)) return refused(`No theme called "${wanted}". Try theme light, theme dark or theme system.`);
     if (wanted === shell.theme) return said(themeNames[wanted].already);
     shell.chooseTheme(wanted);
     return said(themeNames[wanted].said);
@@ -107,7 +108,7 @@ const helpCommand: Command = { name: "help", aliases: ["--help", "-h", "man", "?
 
 export const traps: Trap[] = [
   { name: "sudo", aliases: ["su"], reply: () => ({ tone: "refused", text: "sudo: nice try. Kudos are given in Slack, by humans." }) },
-  { name: "give", aliases: ["kudos", "thank", "thanks"], reply: () => ({ tone: "said", text: "Kudos are given in Slack: mention a teammate in a message with the kudos emoji. This website is only the mirror." }) },
+  { name: "give", aliases: ["kudos", "thank", "thanks"], reply: () => ({ tone: "said", text: "Kudos are given in Slack: mention a teammate in a message with the kudos emoji." }) },
   { name: "rm", aliases: [], reply: () => ({ tone: "refused", text: "rm: refusing. You can't take back a thank-you." }) },
   { name: "respec", aliases: [], reply: () => ({ tone: "refused", text: "respec: command not found. Spent skill points never come back, and that's on purpose." }) },
   { name: "vim", aliases: ["vi", "emacs", "nano"], reply: (invokedAs) => ({ tone: "said", text: `${invokedAs}: this is a hedgehog, not an editor. :q works in your head only.` }) },

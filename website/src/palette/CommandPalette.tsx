@@ -13,53 +13,64 @@ const keyHints = [
   ["Esc", "close"],
 ];
 
-type Shown = Printed & { line: string };
+type Shown = Printed & { line: string; count: number };
 
 export function CommandPalette({ commands, shell, onClose }: { commands: Command[]; shell: Shell; onClose: () => void }) {
   const ids = useId();
   const field = useRef<HTMLInputElement>(null);
   const [line, setLine] = useState("");
   const [view, setView] = useState<View>("suggest");
-  const [selected, setSelected] = useState(-1);
+  const [selectedName, select] = useState<string>();
   const [shown, setShown] = useState<Shown>();
+  const [opener] = useState(() => document.activeElement);
   const listed = view === "help" ? commands : suggestionsFor(line, commands);
   const optionId = (command: Command) => `${ids}-${command.name}`;
-  const selection = listed[selected];
+  const at = listed.findIndex(({ name }) => name === selectedName);
+  const selection = listed[at];
 
   useEffect(() => {
-    const opener = document.activeElement;
     field.current?.focus();
     return () => {
       if (opener instanceof HTMLElement) opener.focus();
     };
-  }, []);
+  }, [opener]);
+
+  useEffect(() => {
+    if (selectedName !== undefined) document.getElementById(`${ids}-${selectedName}`)?.scrollIntoView({ block: "nearest" });
+  }, [ids, selectedName]);
 
   const type = (next: string) => {
     setLine(next);
-    setSelected(-1);
+    select(undefined);
     setView("suggest");
   };
+
+  const selectAt = (next: number) => select(listed[next]?.name);
 
   const execute = (typed: string) => {
     const outcome = run(typed, commands, shell);
     if (outcome.kind === "close") return onClose();
     type("");
     if (outcome.kind === "help") setView("help");
-    if (outcome.kind === "print") setShown({ ...outcome.printed, line: typed.trim() });
+    if (outcome.kind === "print") setShown((last) => ({ ...outcome.printed, line: typed.trim(), count: (last?.count ?? 0) + 1 }));
     field.current?.focus();
   };
 
-  const withRestOfLine = (command: Command) => [command.name, ...wordsOf(line).slice(1)].join(" ");
+  const withRestOfLine = (command: Command) => {
+    const [typed = "", ...rest] = wordsOf(line);
+    const invokedAs = command.aliases.includes(typed.toLowerCase()) ? typed.toLowerCase() : command.name;
+    return [invokedAs, ...rest].join(" ");
+  };
 
   const keyActions: Record<string, () => void> = {
-    ArrowDown: () => setSelected((at) => Math.min(listed.length - 1, at + 1)),
-    ArrowUp: () => setSelected((at) => Math.max(-1, at - 1)),
+    ArrowDown: () => selectAt(Math.min(listed.length - 1, at + 1)),
+    ArrowUp: () => selectAt(at - 1),
     Tab: () => {
       const completed = selection ?? listed[0];
       if (completed !== undefined) type(`${withRestOfLine(completed)}${wordsOf(line).length > 1 ? "" : " "}`);
     },
     Enter: () => execute(selection ? withRestOfLine(selection) : line),
-    Escape: () => (view === "help" ? setView("suggest") : onClose()),
+    Escape: onClose,
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -96,13 +107,13 @@ export function CommandPalette({ commands, shell, onClose }: { commands: Command
           <Key>Esc</Key>
         </label>
         <div role="status">
-          {shown && <PrintedLine shown={shown} />}
+          {shown && <PrintedLine key={shown.count} shown={shown} />}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
           {view === "help" && <Heading>Commands</Heading>}
           <ul id={`${ids}-list`} role="listbox" aria-label={view === "help" ? "Every command" : "Commands"}>
-            {listed.map((command, at) => (
-              <CommandRow key={command.name} id={optionId(command)} command={command} selected={at === selected} onPick={() => execute(withRestOfLine(command))} onPoint={() => setSelected(at)} />
+            {listed.map((command) => (
+              <CommandRow key={command.name} id={optionId(command)} command={command} selected={command === selection} onPick={() => execute(withRestOfLine(command))} onPoint={() => select(command.name)} />
             ))}
           </ul>
           {view === "suggest" && listed.length === 0 && <NothingMatches line={line} />}
@@ -139,8 +150,8 @@ function CommandRow({ id, command, selected, onPick, onPoint }: { id: string; co
       <span className="min-w-0 flex-1">
         <span className={`block truncate font-mono text-[13px] font-semibold ${waiting ? "text-muted-foreground" : ""}`}>{command.usage}</span>
         <span className="block truncate text-xs text-muted-foreground">{command.blurb}</span>
+        {command.aliases.length > 0 && <span className="block truncate font-mono text-[11px] text-muted-foreground">{command.aliases.join(" · ")}</span>}
       </span>
-      {command.aliases.length > 0 && <span className="hidden shrink-0 font-mono text-[11px] text-muted-foreground sm:inline">{command.aliases.slice(0, 2).join(" · ")}</span>}
       <IconChevronRight aria-hidden="true" className={`size-4 shrink-0 ${selected ? "text-primary" : "invisible"}`} />
     </li>
   );

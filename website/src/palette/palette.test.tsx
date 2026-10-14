@@ -216,7 +216,7 @@ describe("WS306: suggestions, keys, help and the unknown command", () => {
     expect(window.location.pathname).toBe("/quests");
   });
 
-  it("lists every command the member can run under help, with the keys in the footer, and Esc goes back", async () => {
+  it("lists every command the member can run under help, with the keys in the footer, and Esc closes it as the footer says", async () => {
     const { user } = renderApp(everyState);
     await run(user, "help");
     expect(within(palette()).getByRole("listbox", { name: "Every command" })).toBeInTheDocument();
@@ -224,8 +224,7 @@ describe("WS306: suggestions, keys, help and the unknown command", () => {
     expect(within(palette()).getByRole("list", { name: "Not commands, but people keep trying" })).toHaveTextContent("sudogivermrespecvim");
     expect(within(palette()).getByRole("contentinfo")).toHaveTextContent("↑↓ select · Tab complete · ↵ run · Esc close");
     await user.keyboard("{Escape}");
-    expect(within(palette()).getByRole("listbox", { name: "Commands" })).toBeInTheDocument();
-    expect(commandField()).toHaveFocus();
+    expect(screen.queryByRole("dialog", { name: "Command palette" })).not.toBeInTheDocument();
   });
 
   it("shows Max with the unknown command, and keeps the palette open", async () => {
@@ -269,7 +268,7 @@ describe("WS306: the shell commands", () => {
 describe("WS307: the playful replies that are still true", () => {
   it.each([
     ["sudo", "sudo: nice try. Kudos are given in Slack, by humans."],
-    ["thanks", "Kudos are given in Slack: mention a teammate in a message with the kudos emoji. This website is only the mirror."],
+    ["thanks", "Kudos are given in Slack: mention a teammate in a message with the kudos emoji."],
     ["rm", "rm: refusing. You can't take back a thank-you."],
     ["respec", "respec: command not found. Spent skill points never come back, and that's on purpose."],
     ["emacs", "emacs: this is a hedgehog, not an editor. :q works in your head only."],
@@ -362,5 +361,72 @@ describe("V24: a locked page's reply is a lock plus its text", () => {
     expect(printed().querySelector("[data-tone]")).toHaveAttribute("data-tone", "locked");
     await user.type(commandField(), "sudo{Enter}");
     expect(printed().querySelector("[data-tone]")).toHaveAttribute("data-tone", "refused");
+  });
+});
+
+describe("the review's findings", () => {
+  it("keeps the selected command, not its place, when the nav changes under the palette", async () => {
+    const { user, actions, showVisitor } = renderApp(everyState);
+    await user.keyboard("{Control>}k{/Control}");
+    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}");
+    expect(options().find((option) => option.getAttribute("aria-selected") === "true")).toHaveTextContent("theme light|dark|system");
+    showVisitor(onTheUnlockPath(card("quests", "Quests", 2, "open"), card("leaderboard", "Leaderboard", 3, "ready"), card("book", "Book", 8, "locked")));
+    expect(options().find((option) => option.getAttribute("aria-selected") === "true")).toHaveTextContent("theme light|dark|system");
+    await user.keyboard("{Enter}");
+    expect(actions.signOut).not.toHaveBeenCalled();
+    expect(printed()).toHaveTextContent("Try theme light, theme dark or theme system.");
+  });
+
+  it.each([
+    ["selected and run with Enter", async (user: ReturnType<typeof renderApp>["user"]) => user.keyboard("{ArrowDown}{Enter}")],
+    ["clicked", async (user: ReturnType<typeof renderApp>["user"]) => user.click(options()[0]!)],
+  ])("keeps the theme alias the member typed when it is %s", async (_, pick) => {
+    localStorage.setItem("hedgehug.theme", "light");
+    const { user } = renderApp(everyPageOpen);
+    await user.keyboard("{Control>}k{/Control}");
+    await user.type(commandField(), "dark");
+    await pick(user);
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(printed()).toHaveTextContent("The void. Mind the glare.");
+  });
+
+  it("prints a reply anew when the same line runs twice, so the status line speaks again", async () => {
+    const { user } = renderApp(everyPageOpen);
+    await run(user, "coins");
+    const first = printed().firstElementChild;
+    await user.type(commandField(), "coins{Enter}");
+    expect(printed().firstElementChild).not.toBe(first);
+    expect(printed()).toHaveTextContent('No command "coins".');
+  });
+
+  it("scrolls the selected command into view", async () => {
+    const scrolled: Element[] = [];
+    vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (this: Element) {
+      scrolled.push(this);
+    });
+    const { user } = renderApp(everyPageOpen);
+    await user.keyboard("{Control>}k{/Control}{ArrowDown}{ArrowDown}");
+    expect(scrolled).toContain(options()[1]);
+  });
+
+  it("names every alias of a command, on a narrow screen too", async () => {
+    const { user } = renderApp(everyPageOpen);
+    await run(user, "help");
+    const signout = options().find((option) => option.textContent?.startsWith("signout"))!;
+    expect(signout).toHaveTextContent("logout · exit · quit");
+    expect(within(signout).getAllByText("logout · exit · quit").some((aliases) => !aliases.className.includes("hidden"))).toBe(true);
+  });
+
+  it("gives focus back to the chip even when the page behind refuses focus while inert", async () => {
+    const focus = HTMLElement.prototype.focus;
+    vi.spyOn(HTMLElement.prototype, "focus").mockImplementation(function (this: HTMLElement, options?: FocusOptions) {
+      if (this.closest("[inert]") === null) focus.call(this, options);
+    });
+    const { user } = renderApp(everyPageOpen);
+    const chip = screen.getByRole("button", { name: "Open the command palette" });
+    await user.click(chip);
+    expect(commandField()).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(chip).toHaveFocus();
   });
 });
