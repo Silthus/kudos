@@ -19,7 +19,7 @@ Deploy to the sandbox deployment	2026-10-14T08:28:11.5226733Z   PNPM_HOME: /home
 Deploy to the sandbox deployment	2026-10-14T08:28:11.5227419Z   CONVEX_DEPLOY_KEY: ***
 Deploy to the sandbox deployment	2026-10-14T08:28:11.5227653Z ##[endgroup]
 Deploy to the sandbox deployment	2026-10-14T08:28:12.3255962Z ▌ Deploying code to deployment:
-Deploy to the sandbox deployment	2026-10-14T08:28:12.3257888Z ▌ [Production] lonir:kudos-sandbox:production (prod) (dashboard: https://dashboard.convex.dev/t/lonir/kudos-sandbox/<sandbox>)
+Deploy to the sandbox deployment	2026-10-14T08:28:12.3257888Z ▌ [Production] <team>:<project>:production (prod) (dashboard: <redacted>)
 Deploy to the sandbox deployment	2026-10-14T08:28:12.3259605Z ▌ └─ https://<sandbox>.convex.cloud
 Deploy to the sandbox deployment	2026-10-14T08:28:12.3327442Z - Deploying to https://<sandbox>.convex.cloud...
 Deploy to the sandbox deployment	2026-10-14T08:28:12.3328157Z 

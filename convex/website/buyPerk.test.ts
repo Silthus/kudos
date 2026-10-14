@@ -138,18 +138,7 @@ async function skillPointsOf(member: MemberId) {
   return (await t.query(internal.progression.perks.perksOf, { member }))?.skillPoints;
 }
 
-type Written = Awaited<ReturnType<typeof everythingWritten>>;
-
-const identifyNewPeople = "analytics/person:identifyNewPeople";
-
-function expectNothingWrittenButTheMembersAnalyticsId(before: Written, after: Written) {
-  expect({ ...after.tables, analyticsIds: [] }).toEqual({ ...before.tables, analyticsIds: [] });
-  expect(after.tables.analyticsIds.length - before.tables.analyticsIds.length).toBeLessThanOrEqual(1);
-  expect(after.tables.analyticsIds).toEqual(expect.arrayContaining(before.tables.analyticsIds));
-  expect(after.scheduled.filter(({ _id, name }) => name !== identifyNewPeople || before.scheduled.some((earlier) => earlier._id === _id))).toEqual(before.scheduled);
-}
-
-const exposureTables =["flagExposures", "analyticsIds", "analyticsOutbox", "analyticsDrain"] as const;
+const exposureTables = ["flagExposures", "analyticsIds", "analyticsOutbox", "analyticsDrain"] as const;
 
 function withoutExposures(tables: Record<TableName, Row[]>) {
   return { ...tables, ...Object.fromEntries(exposureTables.map((table) => [table, []])) };
@@ -344,14 +333,14 @@ describe("a website command is a D17 command", () => {
     { condition: "an open tree with xp-levels switched off", arrange: async () => (await treeShipped(), await aMemberWithTheTreeOpen().then(async (signedIn) => (await flagsOn("unlocks", "skill-tree"), signedIn))) },
   ];
 
-  test.each(refusedByTheGate)("WS88: $condition answers refused with no reason before any command and writes nothing but the member's analytics ID", async ({ arrange }) => {
+  test.each(refusedByTheGate)("WS88: $condition answers refused with no reason before any command and writes nothing at all", async ({ arrange }) => {
     const { asSignedIn } = await arrange();
     const before = await everythingWritten();
     vi.mocked(publish).mockClear();
 
     expect(await buyPerk(asSignedIn)).toEqual({ kind: "refused", reason: null });
 
-    expectNothingWrittenButTheMembersAnalyticsId(before, await everythingWritten());
+    expect(await everythingWritten()).toEqual(before);
     expect(publishedEvents()).toEqual([]);
   });
 

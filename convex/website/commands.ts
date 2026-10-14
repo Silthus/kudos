@@ -10,7 +10,7 @@ import { questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
 import { unlockPathShownIn } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
-import type { MutationCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { memberMutation } from "./memberMutation";
 import type { VerifiedMember } from "./memberQuery";
 import { featurePageOf, unlockPathOf } from "./unlockPath";
@@ -62,7 +62,7 @@ export const buyPerk = memberMutation({
   args: { perk: perkValidator, request: v.string() },
   handler: async (ctx, me, person, { perk, request }): Promise<PurchaseAnswer> => {
     if (!isUuid(request)) throw new Error("A purchase's request must be a UUID.");
-    if (!(await treeOpenWithEveryLaunchRecorded(ctx, me))) return refusedAtTheGate;
+    if (!(await treeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refusedAtTheGate;
     const outcome = await runCommand(ctx, me.workspace, person, { type: "buyPerk", perk }, `website:${me.member}:${request}`);
     if (outcome === null) return refusedAtTheGate;
     if (outcome.kind === "refused") return { kind: "refused", reason: purchaseRefusals[outcome.reason] };
@@ -71,13 +71,17 @@ export const buyPerk = memberMutation({
   },
 });
 
+function queryOnly({ db, ...rest }: MutationCtx): QueryCtx {
+  return { ...rest, db: { get: db.get.bind(db), query: db.query.bind(db), normalizeId: db.normalizeId.bind(db), system: db.system } };
+}
+
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isUuid(request: string) {
   return uuid.test(request);
 }
 
-async function treeOpenWithEveryLaunchRecorded(ctx: MutationCtx, me: VerifiedMember) {
+async function treeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
   if (featurePageOf(await unlockPathOf(ctx, me), "skillTree").kind !== "open") return false;
   return (await journeyRecordedWhereQuestsApply(ctx, me.workspace)) && (await bookRecordedWhereAchievementsApply(ctx, me.workspace));
 }
@@ -87,11 +91,11 @@ async function launchesRecordedIn(ctx: MutationCtx, workspace: string) {
   return (await journeyRecordedWhereQuestsApply(ctx, workspace)) && (await bookRecordedWhereAchievementsApply(ctx, workspace));
 }
 
-async function journeyRecordedWhereQuestsApply(ctx: MutationCtx, workspace: string) {
+async function journeyRecordedWhereQuestsApply(ctx: QueryCtx, workspace: string) {
   return !(await questsApplyIn(ctx, workspace)) || (await journeyLaunchedIn(ctx, workspace));
 }
 
-async function bookRecordedWhereAchievementsApply(ctx: MutationCtx, workspace: string) {
+async function bookRecordedWhereAchievementsApply(ctx: QueryCtx, workspace: string) {
   return !(await achievementsApplyIn(ctx, workspace)) || (await bookLaunchedAt(ctx, workspace)) !== null;
 }
 
@@ -99,6 +103,6 @@ async function questsLaunchedIn(ctx: MutationCtx, workspace: string) {
   return (await questsApplyIn(ctx, workspace)) && (await journeyLaunchedIn(ctx, workspace)) && (await bookRecordedWhereAchievementsApply(ctx, workspace));
 }
 
-async function journeyLaunchedIn(ctx: MutationCtx, workspace: string) {
+async function journeyLaunchedIn(ctx: QueryCtx, workspace: string) {
   return (await journeyShippedAt(ctx, workspace)) !== null;
 }
