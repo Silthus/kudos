@@ -1,0 +1,12 @@
+     × in light 1201ms
+     × in dark 390ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected [ { part: 'the lock badge', …(2) } ] to deeply equal []
++     "part": "the lock badge",
++     "ratio": 1.4148872550068785,
+    207|       const measured = stateGraphics().flatMap(({ part, element }) => …
+    209|       expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+AssertionError: expected [ { part: 'the lock badge', …(2) } ] to deeply equal []
++     "part": "the lock badge",
++     "ratio": 1.2014272981357348,
+    207|       const measured = stateGraphics().flatMap(({ part, element }) => …

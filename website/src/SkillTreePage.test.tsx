@@ -51,7 +51,7 @@ function drawer() {
 }
 
 function yourPerks() {
-  return within(main()).getByRole("region", { name: "Your perks" });
+  return within(main()).getByRole("region", { name: /^Your perks/ });
 }
 
 function showTree(answer: MySkillTree, member: MemberProfile = withTheTree) {
@@ -77,7 +77,7 @@ describe("WS85: /skills shows the tree while the Skill tree is open", () => {
     [skillTreeFixtures.noPointsLeft, "No skill points to spend"],
   ])("says how many skill points are left to spend in the header", (answer, line) => {
     showTree(answer);
-    expect(within(screen.getByRole("heading", { level: 1 }).closest("header")!).getByText(line)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 }).closest("header")!).toHaveTextContent(line);
   });
 
   it("holds one band per shipped row headed Level {level}, with that row's perks in order", () => {
@@ -86,9 +86,8 @@ describe("WS85: /skills shows the tree while the Skill tree is open", () => {
     expect(nodes().map((node) => node.getAttribute("aria-label")!.split(".")[0])).toEqual(["Spark", "Rhythm", "Circle"]);
   });
 
-  it("frames each perk as a game object with corner marks, its name and its cost while it isn't owned", () => {
+  it("shows each perk with its name and its cost while it isn't owned", () => {
     showTree(skillTreeFixtures.sparkOwned);
-    expect(nodeOf("Rhythm")).toHaveClass("hud-panel");
     expect(nodeOf("Rhythm")).toHaveTextContent("Rhythm");
     expect(within(nodeOf("Rhythm")).getByTestId("perk-cost")).toHaveTextContent("1");
     expect(within(nodeOf("Spark")).queryByTestId("perk-cost")).toBeNull();
@@ -156,7 +155,7 @@ describe("WS85: /skills shows the tree while the Skill tree is open", () => {
     expect(within(details()).getByRole("heading", { level: 2 })).toHaveTextContent("Spark");
   });
 
-  it("shows no later rows, coins, perk count or Upgraded legend", () => {
+  it("shows no later rows, coins, E's 14 perks or Upgraded legend", () => {
     showTree(skillTreeFixtures.sparkOwned);
     expect(main()).not.toHaveTextContent(/coin|of 14|Upgraded|Level 10/i);
   });

@@ -1,0 +1,9 @@
+     × names Owned, Can buy and Locked, each beside its node look in small, before the first row 456ms
+     × shows each perk as a square with its icon, its name as a caption, and its cost as a pill with the skill point glyph while not owned 91ms
+     × gives an available node E's strong outline in the foreground colour, with no badge 73ms
+     × keeps primary on exactly one node, the selection's ring and its Selected tag, while several can be bought (D2, V4) 258ms
+     × heads the ledger { kind: 'tree', skillPoints: 2, …(2) } and says they are permanent and always on 198ms
+     × heads the ledger { kind: 'tree', skillPoints: 0, …(2) } and says they are permanent and always on 282ms
+     × pops the bought node once after bought, and no other 653ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  7 failed | 8 passed (15)
