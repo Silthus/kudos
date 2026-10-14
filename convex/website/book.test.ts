@@ -291,16 +291,14 @@ describe("the Book names nothing unshipped", () => {
     expect(book.ladders.flatMap(({ tiers }) => tiers.flatMap(({ rewards }) => rewards))).toEqual([]);
     expect(JSON.stringify(book)).not.toMatch(/coins|kudosEmoji|hedgehog|catalogueVersion/i);
   });
-});
 
-describe("WS347 WS91 CO29: each tier's reward, once its kind is shown", () => {
   async function coinsOpenFor(member: MemberId) {
     await flagsOn(...bookFlags, "coins");
     await reachesLevel(t, member, 6);
     await opens(t, member, "coins");
   }
 
-  test("with Coins open, every tier carries its coin reward, earned or not, and only the coins", async () => {
+  test("WS347 CO29: with Coins open, every tier carries its coin reward, earned or not, and only the coins", async () => {
     await bookShipped();
     const { member, asSignedIn } = await signedIn();
     const teammate = await aMember(t, rowan.user);
