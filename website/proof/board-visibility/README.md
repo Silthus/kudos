@@ -46,7 +46,7 @@ Variant E's off state wasn't captured: its source (`HiddenLine` in `variants/e/L
 - **Red, website:** [red-website.txt](red-website.txt): the switch tests against `main`'s read-only status.
 - **Red, review findings:** [red-review-replay.txt](red-review-replay.txt), [red-review-stale-line.txt](red-review-stale-line.txt), [red-review-contrast.txt](red-review-contrast.txt), [red-stale-failure-line.txt](red-stale-failure-line.txt).
 - **Green:** [green-backend.txt](green-backend.txt) (15 command tests and WS10's surface), [green-website.txt](green-website.txt) (311 tests in the four website files, none skipped).
-- **Gate:** [gate.txt](gate.txt): `pnpm gate` on the tree merged with `main` (`cf22211`), 2653 tests, through `fleet heavy`.
+- **Gate:** [gate.txt](gate.txt): `pnpm gate` on the tree merged with `main` (`e5c2311`), 2668 tests, through `fleet heavy`.
 
 ## Review (qa-swarm, two rounds)
 

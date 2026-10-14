@@ -18,12 +18,14 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: navigation to another Document
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -170,9 +172,9 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
  Test Files  153 passed (153)
-      Tests  2653 passed (2653)
-   Start at  12:37:06
-   Duration  136.70s (tests 81%, import 11%, environment 4%, transform 3%, setup 1%)
+      Tests  2668 passed (2668)
+   Start at  12:51:45
+   Duration  165.15s (tests 82%, import 9%, transform 7%, environment 3%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -301,13 +303,20 @@ Feedback  convex/feedback/Feedback.spec.md
       refuted 2026-10-14: tellBatchSummaries told every member with the Book open now, not only those who had opened it by the batch's completion
       kinds message, output: 12 shapes apply, 2 declared, 10 dismissed
   the front door needs a link to the website  invariant
-      totality oracle "SW19 SW20 SW21 SW22: App Home is the website's front door while the website's link function answers a link" over App Home for a member with every flag on at level 3 who opened Quests and the Leaderboard, last week's crate waiting after the Monday turn and its stale `Open`, 7 crates waiting from an earlier week, the same member before opening them, a member before unlocks apply with the Everyone board shown, a member at level 5, a remembered Leaderboard tab, the settings and announcement channel tabs of a workspace owner, a Swap and a stale `Open` clicked in the summary, and the member with every flag on while the website flag is off, SITE_URL is unset and the website is open for another workspace only: verified 2026-10-14
+      totality oracle "SW19 SW20 SW21 SW22: App Home is the website's front door while the website's link function answers a link" over App Home for a member with every flag on at level 3 who opened Quests and the Leaderboard, last week's crate waiting after the Monday turn and its stale `Open`, 7 crates waiting from an earlier week, the same member before opening them, a member before unlocks apply with the Everyone board shown, a member at level 5, a member at level 5 who opened Quests, the Leaderboard, the Book and the skill tree, the remembered tab of each and the tab switches of the last two clicked from an earlier view, the settings and announcement channel tabs of a workspace owner, a Swap and a stale `Open` clicked in the summary, and the member with every flag on while the website flag is off, SITE_URL is unset and the website is open for another workspace only: verified 2026-10-14
       crossing slack-request -> domain
       refuted 2026-10-14: tabsBesideProfile showed the Leaderboard tab whenever the Leaderboard was shown, ignoring the front door
+      refuted 2026-10-14: tabsBesideProfile showed the tabs of the Book and the skill tree whenever they were open, ignoring the front door
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
   a crate's Open links to the page where it opens  invariant
       totality oracle "each crate's Open in Slack links to the page where it opens while the website is open" over the App Home summary of a member with every flag on at level 3 with Quests and the Leaderboard ready, at level 5 with the skill tree ready, and with a weekly quest and Journey steps finished, and clicks on an `Open` link button and on the website button: verified 2026-10-14
       crossing slack-request -> domain
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
+  a perk's purchase button links to the website  invariant
+      totality oracle "each perk's purchase button in Slack links to the skill tree's page while the website is open" over the level-up DM of a member who opened the skill tree at level 5 reaching level 6 with two skill points while the website is open, a click on its `Buy` link and on a `Buy` command left from a DM sent while the website was closed, the same DM while the website is closed, and the DM and App Home of a member previewing the website while it is closed for the workspace: verified 2026-10-14
+      crossing slack-request -> domain
+      refuted 2026-10-14: the level-up DM offered each perk with the purchase command whatever the website's link function answered
+      refuted 2026-10-14: the level-up DM decided its website origin by the workspace decision alone, not the member's
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
   a feature's lines wait for its opening  invariant
       totality oracle "P76: a feature's lines wait for its opening" over the level-up DMs and App Home views the app asks Slack to send to a member reaching levels 5 and 6, with the skill tree unshipped, shipped and ready, and opened, and the member's stored skill points; and the App Home tab bar, the Leaderboard tab and the `/hedgehug leaderboard` reply for a member at level 1, at level 3 before opening and after opening the Leaderboard, with everyone-board on and off, and the board another member sees: verified 2026-10-13
@@ -733,8 +742,8 @@ Workspace  convex/workspace/Workspace.spec.md
       kinds identity, state: 10 shapes apply, 1 declared, 9 dismissed
 Website  website/Website.spec.md
   (no invariants)
-19 components, 117 bullets: 117 invariants, 0 requirements
-lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T10:16:45.688Z (685 runs)
+19 components, 118 bullets: 118 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T11:40:24.796Z (703 runs)
 defects: 21 recorded, 17 closed (2 guarded, 15 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
@@ -753,5 +762,5 @@ RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       239 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 88, receipt 31, contract 30, panel 21, zone 21; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (652 files), 17 in records
+ADVISORY       240 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 88, receipt 31, contract 30, panel 21, zone 21; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (656 files), 17 in records
