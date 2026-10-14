@@ -254,6 +254,22 @@ describe("P78: a feature that ships later is made ready once by the ship sweep",
     for (const scheduled of scheduledPerPage) expect(scheduled).toBeLessThan(1000);
     expect(scheduledPerPage.length).toBeGreaterThan(1);
     expect(published("unlockReady")).toHaveLength(members.length);
+  }, 60_000);
+
+  test("a page of level 5 members, each deciding every ship flag for themselves with capture on, fits in one mutation within Convex's transaction limits", async () => {
+    vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
+    const t = await unlocksShippedBeforeAnyoneJoined(await flagsLoaded(testBackend({ transactionLimits: true })));
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 100; index += 1) {
+        const member = await ctx.db.insert("members", { workspace: "T1", user: `U_${index}`, kind: "member", timeZone: "UTC" });
+        await ctx.db.insert("memberProgress", { member, xp: 600, pointsSpent: 0 });
+      }
+    });
+    await flagsFromPostHog(t, postHog, ...["xp-levels", "unlocks", "everyone-board", "quests", "skill-tree"].map(onForEveryone));
+
+    await sweepPageByPage(t);
+
+    expect(published("unlockReady")).toHaveLength(100 * 3);
   }, 30_000);
 });
 

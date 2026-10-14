@@ -5,11 +5,11 @@ import { levelReachedEventValidator } from "../bus/events";
 import { publish } from "../bus/publish";
 import { republish } from "../feedback/homes";
 import { notifyLevelReached } from "../feedback/notify";
-import { xpLevelsShownIn } from "../progression/xpLevels";
+import { xpLevelsOnFor } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import type { Feature } from "./feature";
-import { unlocksLiveIn, unlocksShownTo } from "./launch";
-import { scheduled, shippedIn, type ScheduledFeature } from "./schedule";
+import { unlocksLiveFor, unlocksShownTo } from "./launch";
+import { scheduled, shippedTo, type ScheduledFeature } from "./schedule";
 
 export type UnlockState = "unshipped" | "locked" | "ready" | "open";
 
@@ -24,11 +24,11 @@ export const makeReady = internalMutation({
   handler: async (ctx, { event }): Promise<void> => {
     const { workspace, member, level, at } = event;
     if ((await levelUpOf(ctx, member, level)) !== null) return;
-    await unlocksLiveIn(ctx, workspace);
-    const madeReady = await storeReadiness(ctx, { workspace, member, at }, reachedAt(await shippedIn(ctx, workspace), level));
+    await unlocksLiveFor(ctx, member);
+    const madeReady = await storeReadiness(ctx, { workspace, member, at }, reachedAt(await shippedTo(ctx, member), level));
     await ctx.db.insert("levelUps", { member, level, ready: madeReady.map(({ feature }) => feature), at });
     await notifyLevelReached(ctx, event, madeReady);
-    if (madeReady.length > 0 && (await xpLevelsShownIn(ctx, workspace))) await republish(ctx, member);
+    if (madeReady.length > 0 && (await xpLevelsOnFor(ctx, member))) await republish(ctx, member);
   },
 });
 
@@ -57,8 +57,7 @@ export const memberUnlocks = internalQuery({
 });
 
 export async function stateOf(ctx: QueryCtx, member: MemberId, feature: Feature): Promise<UnlockState> {
-  const { workspace } = await chatUserOf(ctx, member);
-  if (!(await isShipped(ctx, workspace, feature))) return "unshipped";
+  if ((await shippedTo(ctx, member, [scheduled(feature)])).length === 0) return "unshipped";
   return stateFrom(await unlockRow(ctx, member, feature));
 }
 
@@ -67,9 +66,8 @@ export async function openedAtOf(ctx: QueryCtx, member: MemberId, feature: Featu
 }
 
 export async function unlocksOf(ctx: QueryCtx, member: MemberId): Promise<MemberUnlock[]> {
-  const { workspace } = await chatUserOf(ctx, member);
   const unlocks: MemberUnlock[] = [];
-  for (const { feature } of await shippedIn(ctx, workspace)) {
+  for (const { feature } of await shippedTo(ctx, member)) {
     const row = await unlockRow(ctx, member, feature);
     unlocks.push({ feature, state: stateFrom(row), readyAt: row?.readyAt ?? null, openedAt: row?.openedAt ?? null });
   }
@@ -82,7 +80,13 @@ export async function unlocksHomeOf(ctx: QueryCtx, member: MemberId): Promise<Un
   return { ready: withState("ready"), next: withState("locked")[0] ?? null };
 }
 
-export function reachedAt(features: ScheduledFeature[], level: number) {
+export async function withoutReadiness(ctx: QueryCtx, member: MemberId, features: ScheduledFeature[]) {
+  const without: ScheduledFeature[] = [];
+  for (const entry of features) if ((await unlockRow(ctx, member, entry.feature)) === null) without.push(entry);
+  return without;
+}
+
+export function reachedAt(features: readonly ScheduledFeature[], level: number) {
   return features.filter((entry) => entry.level <= level);
 }
 
@@ -95,10 +99,6 @@ export async function storeReadiness(ctx: MutationCtx, { workspace, member, at }
     madeReady.push(entry);
   }
   return madeReady;
-}
-
-async function isShipped(ctx: QueryCtx | MutationCtx, workspace: string, feature: Feature) {
-  return (await shippedIn(ctx, workspace)).some((entry) => entry.feature === feature);
 }
 
 function stateFrom(row: UnlockRow | null): MemberUnlock["state"] {

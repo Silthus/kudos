@@ -25,6 +25,8 @@ export const propertiesValidator = v.record(v.string(), v.union(v.string(), v.nu
 
 export type Properties = Infer<typeof propertiesValidator>;
 
+export const personPropertiesValidator = v.record(v.string(), v.union(v.string(), v.boolean(), v.array(v.string())));
+
 export type ProductEvent = {
   event:
     | "kudos given"

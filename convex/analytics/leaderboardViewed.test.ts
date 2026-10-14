@@ -299,7 +299,7 @@ async function leaderboardCommand(t: Backend, user: string, text: string) {
 }
 
 function productEvents() {
-  return postHog.events().filter((event) => event.event !== "$feature_flag_called");
+  return postHog.productEvents().filter((event) => event.event !== "$feature_flag_called");
 }
 
 function views() {

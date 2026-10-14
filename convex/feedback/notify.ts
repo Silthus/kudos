@@ -9,11 +9,11 @@ import { memberPerksOf, type MemberPerks } from "../progression/perks";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { purchaseOutcomeValidator } from "../progression/purchases";
 import { progressSettingsOf } from "../progression/settings";
-import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
-import { journeyStepAppliesIn, questsApplyIn } from "../quests/flag";
+import { xpLevelsOnFor, xpLevelsShownTo } from "../progression/xpLevels";
+import { journeyStepAppliesIn, questsApplyTo } from "../quests/flag";
 import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type WeeklyQuest } from "../quests/step";
 import { featureValidator, type Feature } from "../unlocks/feature";
-import { unlocksAppliedIn, unlocksShownTo } from "../unlocks/launch";
+import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
@@ -83,7 +83,7 @@ export const linesStillWanted = internalQuery({
   args: { member: v.id("members"), notification: notificationValidator },
   handler: async (ctx, { member, notification }): Promise<NotificationLine[] | null> => {
     const { workspace } = await chatUserOf(ctx, member);
-    if (!(await xpLevelsShownIn(ctx, workspace)) || !(await wantsDms(ctx, member))) return null;
+    if (!(await xpLevelsOnFor(ctx, member)) || !(await wantsDms(ctx, member))) return null;
     const told = await stillToldOf(ctx, workspace, member, notification);
     const lines = told === null ? [] : renderNotification(told, await openTreeOf(ctx, workspace, member, told));
     if (lines.length === 0) return null;
@@ -124,16 +124,16 @@ function perkOffersOf(openTree: MemberPerks | null): NotificationLine[] {
 }
 
 async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification | null> {
-  if (isAboutQuests(notification)) return questsStillToldOf(ctx, workspace, notification);
+  if (isAboutQuests(notification)) return questsStillToldOf(ctx, workspace, member, notification);
   if (notification.kind === "tiers-earned") return (await isBookOpenIn(ctx, workspace, member)) ? notification : null;
-  if (!(await unlocksAppliedIn(ctx, workspace))) return { ...notification, ready: [] };
+  if (!(await unlocksAppliedTo(ctx, member))) return { ...notification, ready: [] };
   const ready = await stillReady(ctx, member, notification.ready);
   if (notification.kind !== "level-reached" || notification.skillPoints === null) return { ...notification, ready };
   return { ...notification, ready, skillPoints: await whenOpened(ctx, member, "skillTree", notification.skillPoints) };
 }
 
-async function questsStillToldOf(ctx: QueryCtx, workspace: string, notification: QuestNotification): Promise<QuestNotification | null> {
-  if (!(await questsApplyIn(ctx, workspace))) return null;
+async function questsStillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: QuestNotification): Promise<QuestNotification | null> {
+  if (!(await questsApplyTo(ctx, member))) return null;
   if (notification.kind === "quest-finished") return (await journeyStepAppliesIn(ctx, workspace, notification.quest.step)) ? notification : null;
   if (notification.kind === "weekly-quest-finished") return notification;
   const finished: typeof notification.finished = [];

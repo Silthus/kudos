@@ -5,6 +5,7 @@ import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onFo
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
+import { analyticsIdOf } from "../analytics/person";
 import { publish } from "../bus/publish";
 import { whyNotOf } from "../feedback/home";
 import schema from "../schema";
@@ -58,6 +59,7 @@ describe("P19 P76: a refused purchase changes nothing, publishes nothing, and re
     ["the perk is owned", { xp: 1000, tree: "open", owns: "spark" }, "owned", "You own it."],
   ] as const)("when %s", async (_, setup, reason, reply) => {
     const { t, alice } = await memberWith(setup);
+    await t.run((ctx) => analyticsIdOf(ctx, alice));
     const before = await everyTable(t);
 
     const outcome = await buy(t, alice, "spark", "trigger-1");

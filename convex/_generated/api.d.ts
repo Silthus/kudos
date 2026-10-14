@@ -25,6 +25,7 @@ import type * as analytics_failures from "../analytics/failures.js";
 import type * as analytics_flags from "../analytics/flags.js";
 import type * as analytics_isolatedUsage from "../analytics/isolatedUsage.js";
 import type * as analytics_outbox from "../analytics/outbox.js";
+import type * as analytics_person from "../analytics/person.js";
 import type * as analytics_projections from "../analytics/projections.js";
 import type * as analytics_subscribers from "../analytics/subscribers.js";
 import type * as analytics_sweep from "../analytics/sweep.js";
@@ -113,6 +114,7 @@ import type * as slack_rateLimits from "../slack/rateLimits.js";
 import type * as slack_receipts from "../slack/receipts.js";
 import type * as slack_signIn from "../slack/signIn.js";
 import type * as slack_signature from "../slack/signature.js";
+import type * as slack_userGroups from "../slack/userGroups.js";
 import type * as slack_verifyMember from "../slack/verifyMember.js";
 import type * as slack_webApi from "../slack/webApi.js";
 import type * as slack_welcome from "../slack/welcome.js";
@@ -140,7 +142,9 @@ import type * as website_signIn from "../website/signIn.js";
 import type * as website_unlockPath from "../website/unlockPath.js";
 import type * as welcome_welcome from "../welcome/welcome.js";
 import type * as workspace_directory from "../workspace/directory.js";
+import type * as workspace_memberProfile from "../workspace/memberProfile.js";
 import type * as workspace_settings from "../workspace/settings.js";
+import type * as workspace_userGroups from "../workspace/userGroups.js";
 
 import type {
   ApiFromModules,
@@ -166,6 +170,7 @@ declare const fullApi: ApiFromModules<{
   "analytics/flags": typeof analytics_flags;
   "analytics/isolatedUsage": typeof analytics_isolatedUsage;
   "analytics/outbox": typeof analytics_outbox;
+  "analytics/person": typeof analytics_person;
   "analytics/projections": typeof analytics_projections;
   "analytics/subscribers": typeof analytics_subscribers;
   "analytics/sweep": typeof analytics_sweep;
@@ -254,6 +259,7 @@ declare const fullApi: ApiFromModules<{
   "slack/receipts": typeof slack_receipts;
   "slack/signIn": typeof slack_signIn;
   "slack/signature": typeof slack_signature;
+  "slack/userGroups": typeof slack_userGroups;
   "slack/verifyMember": typeof slack_verifyMember;
   "slack/webApi": typeof slack_webApi;
   "slack/welcome": typeof slack_welcome;
@@ -281,7 +287,9 @@ declare const fullApi: ApiFromModules<{
   "website/unlockPath": typeof website_unlockPath;
   "welcome/welcome": typeof welcome_welcome;
   "workspace/directory": typeof workspace_directory;
+  "workspace/memberProfile": typeof workspace_memberProfile;
   "workspace/settings": typeof workspace_settings;
+  "workspace/userGroups": typeof workspace_userGroups;
 }>;
 
 /**

@@ -1,14 +1,21 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { achievementsApplyIn } from "../achievements/flag";
-import { exposed, flag } from "../analytics/flags";
-import { unlockPathShownIn } from "../unlocks/launch";
+import { exposed, memberDecision, workspaceDecision } from "../analytics/flags";
+import { xpLevelsOnFor } from "../progression/xpLevels";
+import { unlockPathShownIn, unlocksAppliedTo } from "../unlocks/launch";
+import { previewMomentOf } from "../unlocks/previewMoments";
 import { chatUserOf, type MemberId } from "../workspace/directory";
+import { joinMember } from "./join";
 import { questsFlag } from "./questsFlag";
 import type { JourneyStep } from "./step";
 
 export async function questsApplyIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<boolean> {
-  return (await flag(ctx, questsFlag, { workspace })) && (await unlockPathShownIn(ctx, workspace));
+  return (await workspaceDecision(ctx, questsFlag, workspace)) && (await unlockPathShownIn(ctx, workspace));
+}
+
+export async function questsApplyTo(ctx: QueryCtx | MutationCtx, member: MemberId): Promise<boolean> {
+  return (await memberDecision(ctx, questsFlag, member)) && (await questsDecideFor(ctx, member));
 }
 
 export async function journeyStepAppliesIn(ctx: QueryCtx | MutationCtx, workspace: string, step: JourneyStep): Promise<boolean> {
@@ -16,16 +23,22 @@ export async function journeyStepAppliesIn(ctx: QueryCtx | MutationCtx, workspac
 }
 
 export async function questsShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
-  const { workspace } = await chatUserOf(ctx, member);
-  return (await questsExposedTo(ctx, member)) && (await questsLiveIn(ctx, workspace));
+  return (await questsExposedTo(ctx, member)) && (await questsLiveFor(ctx, member));
 }
 
 export async function questsExposedTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
-  const { workspace } = await chatUserOf(ctx, member);
-  if (!(await unlockPathShownIn(ctx, workspace))) return false;
-  const applies = await flag(ctx, questsFlag, { workspace });
+  if (!(await questsDecideFor(ctx, member))) return false;
+  const applies = await memberDecision(ctx, questsFlag, member);
   await exposed(ctx, questsFlag, member, applies);
   return applies;
+}
+
+export async function questsLiveFor(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  const { workspace } = await chatUserOf(ctx, member);
+  await questsLiveIn(ctx, workspace);
+  if (!(await questsApplyTo(ctx, member))) return false;
+  if ((await journeyLaunchIn(ctx, workspace)) === null) await previewOnce(ctx, workspace, member);
+  return true;
 }
 
 export async function questsLiveIn(ctx: MutationCtx, workspace: string): Promise<boolean> {
@@ -38,9 +51,25 @@ export async function journeyShippedAt(ctx: QueryCtx, workspace: string): Promis
   return (await journeyLaunchIn(ctx, workspace))?.at ?? null;
 }
 
+export async function journeyStartedFor(ctx: QueryCtx, member: MemberId): Promise<number | null> {
+  const { workspace } = await chatUserOf(ctx, member);
+  return (await journeyShippedAt(ctx, workspace)) ?? (await previewMomentOf(ctx, member, "journey"))?.at ?? null;
+}
+
+async function questsDecideFor(ctx: QueryCtx | MutationCtx, member: MemberId) {
+  return (await xpLevelsOnFor(ctx, member)) && (await unlocksAppliedTo(ctx, member));
+}
+
 async function launchJourney(ctx: MutationCtx, workspace: string) {
   const launch = await ctx.db.insert("journeyLaunches", { workspace, at: Date.now() });
   await ctx.scheduler.runAfter(0, internal.quests.join.joinJourneyPage, { launch });
+}
+
+async function previewOnce(ctx: MutationCtx, workspace: string, member: MemberId) {
+  if ((await previewMomentOf(ctx, member, "journey")) !== null) return;
+  const at = Date.now();
+  await ctx.db.insert("previewMoments", { member, moment: "journey", at });
+  await joinMember(ctx, workspace, member, at);
 }
 
 function journeyLaunchIn(ctx: QueryCtx, workspace: string) {

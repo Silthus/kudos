@@ -5,6 +5,32 @@ export type SlackFailure = { ok: false; error: string; retryAfterMs?: number };
 export type SlackAnswer<Data = object> = ({ ok: true; warning?: string } & Data) | SlackFailure;
 
 const tooManyRequests = 429;
+const knownSlackErrors: ReadonlySet<string> = new Set([
+  "account_inactive",
+  "accesslimited",
+  "ekm_access_denied",
+  "enterprise_is_restricted",
+  "fatal_error",
+  "internal_error",
+  "invalid_arguments",
+  "invalid_auth",
+  "invalid_cursor",
+  "limit_required",
+  "method_deprecated",
+  "missing_scope",
+  "no_permission",
+  "not_allowed_token_type",
+  "not_authed",
+  "org_login_required",
+  "ratelimited",
+  "request_timeout",
+  "service_unavailable",
+  "team_access_not_granted",
+  "token_expired",
+  "token_revoked",
+  "two_factor_setup_required",
+  "user_not_found",
+]);
 const answerTimeoutMs = 10_000;
 
 export async function callSlack<Data = object>(method: string, args: Record<string, unknown>): Promise<SlackAnswer<Data>> {
@@ -28,7 +54,15 @@ export async function readSlack<Data>(method: string, args: Record<string, strin
 async function answerOf<Answer>(method: string, response: Response): Promise<Answer | SlackFailure> {
   if (response.status === tooManyRequests) return { ok: false, error: "ratelimited", retryAfterMs: retryAfterMsOf(response) };
   if (!response.ok) throw new ReportableError(`Slack ${method} answered HTTP ${response.status}`);
-  return (await response.json()) as Answer;
+  try {
+    return (await response.json()) as Answer;
+  } catch {
+    throw new ReportableError(`Slack ${method} answered a body that isn't JSON`);
+  }
+}
+
+export function slackErrorCodeOf(error: unknown) {
+  return typeof error === "string" && knownSlackErrors.has(error) ? error : "an unexpected error";
 }
 
 function retryAfterMsOf(response: Response) {
