@@ -5,6 +5,7 @@ import { internalAction, internalMutation, type MutationCtx } from "../_generate
 import { captureSettings, type Capture } from "./capture";
 import { postHogExceptionList } from "./exceptions";
 import { failuresLogged } from "./failures";
+import { forgetRecordedProfiles, isSuperseded } from "./person";
 
 const batchSize = 100;
 const answerTimeoutMs = 10_000;
@@ -59,7 +60,8 @@ export const settle = internalMutation({
   args: { token: v.string(), rows: v.array(v.id("analyticsOutbox")), answer: answerValidator },
   handler: async (ctx, { token, rows, answer }) => {
     const now = Date.now();
-    const held = (await Promise.all(rows.map((id) => ctx.db.get(id)))).filter((row): row is OutboxRow => row?.lease === token && row.dueAt > now);
+    const leased = (await Promise.all(rows.map((id) => ctx.db.get(id)))).filter((row): row is OutboxRow => row?.lease === token && row.dueAt > now);
+    const held = answer === "delivered" ? leased : await withoutSuperseded(ctx, leased);
     if (answer === "delivered") {
       for (const row of held) await ctx.db.delete(row._id);
     } else if (captureSettings() === null) {
@@ -144,6 +146,15 @@ function dueRows(ctx: MutationCtx) {
     .take(batchSize);
 }
 
+async function withoutSuperseded(ctx: MutationCtx, rows: OutboxRow[]) {
+  const kept: OutboxRow[] = [];
+  for (const row of rows) {
+    if (await isSuperseded(ctx, row)) await ctx.db.delete(row._id);
+    else kept.push(row);
+  }
+  return kept;
+}
+
 async function retryOrGiveUp(ctx: MutationCtx, rows: OutboxRow[]) {
   const exhausted = rows.filter((row) => row.failures === retryDelaysMs.length);
   for (const row of rows.filter((row) => row.failures < retryDelaysMs.length)) {
@@ -161,6 +172,7 @@ async function giveUp(ctx: MutationCtx, rows: OutboxRow[], reason: GiveUpReason)
   for (const row of rows) {
     await ctx.db.patch(row._id, { state: "exhausted", reason, lease: undefined, dueAt: Date.now() + givenUpKeptForMs });
   }
+  await forgetRecordedProfiles(ctx, rows);
   console.warn("analytics.events_given_up", { reason, events: rows.map((row) => row.event) });
 }
 
@@ -195,7 +207,12 @@ function batchBody(capture: Capture, batch: OutboxRow[]) {
       distinct_id: row.distinctId,
       uuid: row.uuid,
       timestamp: new Date(row.timestamp).toISOString(),
-      properties: { ...withPostHogNames(row.properties), ...(row.exception && { $exception_list: postHogExceptionList(row.exception) }) },
+      properties: {
+        ...withPostHogNames(row.properties),
+        ...(row.exception && { $exception_list: postHogExceptionList(row.exception) }),
+        ...(row.person && { $set: row.person.set }),
+        ...(row.person && row.person.unset.length > 0 && { $unset: row.person.unset }),
+      },
     })),
   };
 }

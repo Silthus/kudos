@@ -110,6 +110,7 @@ export const fillMemberProfiles = observedAction({
       await ctx.runMutation(internal.workspace.directory.fillProfiles, { profiles: page.members.flatMap((user) => memberProfileOf(user, asOf)) });
       cursor = page.response_metadata?.next_cursor ?? "";
     } while (cursor !== "");
+    await ctx.runMutation(internal.analytics.person.catchUp, {});
   },
 });
 

@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { ReportableError } from "../analytics/exceptions";
+import { followPeopleLater, requestCatchUp } from "../analytics/person";
 import type { ChatUserId } from "../engine/messageEvent";
 
 export const userGroupValidator = v.object({
@@ -50,9 +51,10 @@ export const keepUserGroups = internalMutation({
     const unknown = listed.filter((group) => !storedKeys.has(keyOf(group)));
     if (stored.length + unknown.length > maxUserGroupsKept) throw new ReportableError("Slack listed more user groups than the directory keeps");
     const gone = unlistedIn(stored, scope, listed).map((group) => ({ ...group, enabled: false }));
-    let anyStoppedKeepingMembers = false;
-    for (const group of [...listed, ...gone]) if (await keepUserGroup(ctx, group, asOf)) anyStoppedKeepingMembers = true;
-    if (anyStoppedKeepingMembers) await ctx.scheduler.runAfter(0, internal.workspace.userGroups.clearUnkeptMemberships, {});
+    const changes = [];
+    for (const group of [...listed, ...gone]) changes.push(await keepUserGroup(ctx, group, asOf));
+    if (changes.includes("stopped-keeping-members")) await ctx.scheduler.runAfter(0, internal.workspace.userGroups.clearUnkeptMemberships, {});
+    if (changes.includes("renamed")) await requestCatchUp(ctx);
   },
 });
 
@@ -60,16 +62,19 @@ export const clearUnkeptMemberships = internalMutation({
   args: {},
   handler: async (ctx) => {
     let left = membershipsClearedPerRun;
+    const cleared: Doc<"userGroupMembers">[] = [];
     for (const row of await ctx.db.query("userGroups").collect()) {
       if (keepsMembers(row)) continue;
       const memberships = await membershipsOf(ctx, row).take(left);
       for (const membership of memberships) await ctx.db.delete(membership._id);
+      cleared.push(...memberships);
       left -= memberships.length;
       if (left === 0) {
         await ctx.scheduler.runAfter(0, internal.workspace.userGroups.clearUnkeptMemberships, {});
-        return;
+        break;
       }
     }
+    await followPeopleWhoLeftGroups(ctx, cleared);
   },
 });
 
@@ -78,17 +83,27 @@ export const keepUserGroupMembers = internalMutation({
   handler: async (ctx, { users, asOf, ...key }) => {
     const row = await userGroupRow(ctx, key);
     if (row === null || !keepsMembers(row) || isOlder(asOf, row.membersAsOf)) return;
-    await replaceMembers(ctx, key, users);
+    await followPeopleLater(ctx, key.workspace, await replaceMembers(ctx, key, users));
     await ctx.db.patch(row._id, { membersAsOf: asOf });
   },
 });
 
-async function keepUserGroup(ctx: MutationCtx, group: UserGroup, asOf: number) {
+type UserGroupChange = "unchanged" | "stopped-keeping-members" | "renamed";
+
+async function followPeopleWhoLeftGroups(ctx: MutationCtx, memberships: Doc<"userGroupMembers">[]) {
+  const usersByWorkspace = new Map<string, Set<ChatUserId>>();
+  for (const { workspace, user } of memberships) usersByWorkspace.set(workspace, (usersByWorkspace.get(workspace) ?? new Set()).add(user));
+  for (const [workspace, users] of usersByWorkspace) await followPeopleLater(ctx, workspace, [...users]);
+}
+
+async function keepUserGroup(ctx: MutationCtx, group: UserGroup, asOf: number): Promise<UserGroupChange> {
   const row = await userGroupRow(ctx, group);
-  if (row !== null && isOlder(asOf, row.asOf)) return false;
+  if (row !== null && isOlder(asOf, row.asOf)) return "unchanged";
   if (row === null) await ctx.db.insert("userGroups", { ...group, asOf });
   else await ctx.db.patch(row._id, { ...group, asOf });
-  return row !== null && keepsMembers(row) && !keepsMembers(group);
+  if (row === null || !keepsMembers(row)) return "unchanged";
+  if (!keepsMembers(group)) return "stopped-keeping-members";
+  return row.handle === group.handle ? "unchanged" : "renamed";
 }
 
 function unlistedIn(stored: Doc<"userGroups">[], scope: ListingScope, listed: UserGroup[]): UserGroup[] {
@@ -105,11 +120,13 @@ function userGroupOf({ workspace, group, handle, name, enabled, automatic }: Doc
   return { workspace, group, handle, name, enabled, automatic };
 }
 
-async function replaceMembers(ctx: MutationCtx, { workspace, group }: GroupKey, users: ChatUserId[]) {
+async function replaceMembers(ctx: MutationCtx, { workspace, group }: GroupKey, users: ChatUserId[]): Promise<ChatUserId[]> {
   const wanted = new Set(users);
   const kept = await membershipsOf(ctx, { workspace, group }).collect();
-  for (const membership of kept) if (!wanted.delete(membership.user)) await ctx.db.delete(membership._id);
+  const removed = kept.filter((membership) => !wanted.delete(membership.user));
+  for (const membership of removed) await ctx.db.delete(membership._id);
   for (const user of wanted) await ctx.db.insert("userGroupMembers", { workspace, group, user });
+  return [...removed.map(({ user }) => user), ...wanted];
 }
 
 function membershipsOf(ctx: QueryCtx, { workspace, group }: GroupKey) {

@@ -64,6 +64,14 @@ export class FakePostHog {
     return this.requests.flatMap((request) => request.events);
   }
 
+  productEvents() {
+    return this.events().filter((event) => !isPersonEvent(event));
+  }
+
+  personEvents() {
+    return this.events().filter(isPersonEvent);
+  }
+
   owns(url: URL) {
     return url.origin === postHogHost;
   }
@@ -96,6 +104,10 @@ export class FakePostHog {
     }));
     return Response.json({ flags, group_type_mapping: {}, cohorts: {} });
   }
+}
+
+function isPersonEvent({ event }: CapturedEvent) {
+  return event === "$identify" || event === "$set";
 }
 
 export function routedFetch(postHog: FakePostHog, otherwise: typeof fetch) {

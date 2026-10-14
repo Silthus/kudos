@@ -169,11 +169,13 @@ describe("an answer the directory can't trust changes nothing", () => {
     slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: Array.from({ length: 7_500 }, (_, index) => `U_OLD_${index}`) });
     await sync(t);
     slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: Array.from({ length: 7_500 }, (_, index) => `U_NEW_${index}`) });
+    captureOn();
 
     await t.action(internal.slack.userGroups.refreshMembers, { workspace: "T1", group: "S_GARDEN" });
 
     expect(await groupsOf(t, "U_OLD_0")).toEqual([]);
     expect(await groupsOf(t, "U_NEW_7499")).toEqual([gardeners]);
+    expect((await pendingJobs(t)).length).toBeLessThan(1_000);
   });
 
   test("a members list longer than a user group can keep fails and keeps the members", async () => {
@@ -380,6 +382,11 @@ describe("Convex's limit of 1,000 scheduled functions per call", () => {
     expect(await t.run(async (ctx) => (await ctx.db.query("userGroups").collect()).filter(({ enabled }) => !enabled).length)).toBe(1_001);
   });
 });
+
+function captureOn() {
+  vi.stubEnv("POSTHOG_PROJECT_TOKEN", "phc_test_project_token");
+  vi.stubEnv("KUDOS_ENVIRONMENT", "sandbox");
+}
 
 async function sync(t: Backend) {
   await t.action(internal.slack.userGroups.syncUserGroups, {});

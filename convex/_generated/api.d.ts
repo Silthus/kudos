@@ -15,6 +15,7 @@ import type * as analytics_exceptions from "../analytics/exceptions.js";
 import type * as analytics_failures from "../analytics/failures.js";
 import type * as analytics_flags from "../analytics/flags.js";
 import type * as analytics_outbox from "../analytics/outbox.js";
+import type * as analytics_person from "../analytics/person.js";
 import type * as analytics_projections from "../analytics/projections.js";
 import type * as analytics_subscribers from "../analytics/subscribers.js";
 import type * as analytics_sweep from "../analytics/sweep.js";
@@ -136,6 +137,7 @@ declare const fullApi: ApiFromModules<{
   "analytics/failures": typeof analytics_failures;
   "analytics/flags": typeof analytics_flags;
   "analytics/outbox": typeof analytics_outbox;
+  "analytics/person": typeof analytics_person;
   "analytics/projections": typeof analytics_projections;
   "analytics/subscribers": typeof analytics_subscribers;
   "analytics/sweep": typeof analytics_sweep;

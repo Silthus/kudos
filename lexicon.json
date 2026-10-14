@@ -333,7 +333,7 @@
     },
     {
       "name": "analytics ID",
-      "definition": "A member's opaque identity in PostHog: a random UUID the analytics module creates the first time it records a product event for the member and keeps while the member's data exists. Sent as distinct_id; never derived from, or sent with, a Slack ID, a name, an email or a Convex document ID."
+      "definition": "A member's opaque identity in PostHog: a random UUID the analytics module creates the first time it records a product event for the member or a mutation reads a flag for them, and keeps while the member's data exists. Sent as distinct_id; never derived from a Slack ID, a name, an email or a Convex document ID, and sent together with the member's profile (email, names, title, Slack user and team ID) only in person events."
     },
     {
       "name": "workspace key",
@@ -454,6 +454,10 @@
     {
       "name": "analytics",
       "definition": "The only module that knows PostHog: it projects domain events and the chat adapter's usage facts into product events, records them and exceptions in its outbox while capture is on, drains them to PostHog, evaluates flags with their exposures, and keeps each member's analytics ID and each workspace's workspace key. It observes and never changes what a member sees."
+    },
+    {
+      "name": "person event",
+      "definition": "A PostHog $identify or $set the analytics module records for one analytics ID, carrying the member's profile as person properties ($set, and $unset of what the profile lost) beside O2's properties; the only kind of event that carries a profile, and so names, emails or Slack IDs."
     }
   ]
 }

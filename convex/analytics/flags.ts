@@ -4,7 +4,8 @@ import { components } from "../_generated/api";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { chatUserOf, emailOf, type MemberId } from "../workspace/directory";
 import { captureSettings, environmentSetting } from "./capture";
-import { analyticsIdOf, existingAnalyticsId, existingWorkspaceKey, record, workspaceKeyOf } from "./outbox";
+import { existingWorkspaceKey, record, workspaceKeyOf } from "./outbox";
+import { analyticsIdOf, existingAnalyticsId } from "./person";
 
 type FlagValue = string | boolean;
 

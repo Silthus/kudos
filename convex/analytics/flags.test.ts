@@ -259,7 +259,7 @@ describe("O36: exposure", () => {
     await t.run((ctx) => exposed(ctx, boardFlag, bob, true));
     await settle(t);
 
-    const exposures = postHog.events().map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties }));
+    const exposures = postHog.productEvents().map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties }));
     const analyticsIdOf = (member: MemberId) =>
       t.run(async (ctx) => (await ctx.db.query("analyticsIds").withIndex("by_member", (q) => q.eq("member", member)).unique())?.analyticsId);
     const shared = { environment: "sandbox", workspace_key: expect.any(String), taxonomy_version: 1 };
@@ -287,7 +287,7 @@ describe("O36: exposure", () => {
     }
     await settle(t);
 
-    expect(postHog.events().map((event) => [event.distinct_id, event.properties.$feature_flag_response])).toEqual([
+    expect(postHog.productEvents().map((event) => [event.distinct_id, event.properties.$feature_flag_response])).toEqual([
       [inside.id, true],
       [outside.id, false],
     ]);
@@ -301,7 +301,7 @@ describe("O36: exposure", () => {
     await t.run(async (ctx) => exposed(ctx, boardFlag, alice, await memberDecision(ctx, boardFlag, alice)));
     await settle(t);
 
-    expect(postHog.events()).toEqual([]);
+    expect(postHog.productEvents()).toEqual([]);
   });
 
   test("with capture off nothing is sent, and the first exposure after capture comes on still is", async () => {
@@ -311,11 +311,11 @@ describe("O36: exposure", () => {
 
     await t.run((ctx) => exposed(ctx, boardFlag, alice, true));
     await settle(t);
-    expect(postHog.events()).toEqual([]);
+    expect(postHog.productEvents()).toEqual([]);
 
     vi.stubEnv("KUDOS_ENVIRONMENT", "sandbox");
     await t.run((ctx) => exposed(ctx, boardFlag, alice, true));
     await settle(t);
-    expect(postHog.events().map((event) => event.event)).toEqual(["$feature_flag_called"]);
+    expect(postHog.productEvents().map((event) => event.event)).toEqual(["$feature_flag_called"]);
   });
 });

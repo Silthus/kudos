@@ -4,6 +4,7 @@ import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { ChatUserId } from "../engine/messageEvent";
 import { ReportableError } from "../analytics/exceptions";
+import { followPerson } from "../analytics/person";
 import { publish } from "../bus/publish";
 import { memberProfileFieldNames, memberProfileFields, type MemberProfile } from "./memberProfile";
 
@@ -38,6 +39,14 @@ export async function chatUserOf(ctx: QueryCtx, member: MemberId): Promise<{ wor
 export async function emailOf(ctx: QueryCtx, member: MemberId): Promise<string | undefined> {
   const row = await ctx.db.get(member);
   return row?.kind === "member" ? row.email : undefined;
+}
+
+export type PersonFacts = { workspace: string; user: ChatUserId; admin: boolean } & MemberProfile;
+
+export async function personFactsOf(ctx: QueryCtx, member: MemberId): Promise<PersonFacts | null> {
+  const row = await ctx.db.get(member);
+  if (row?.kind !== "member") return null;
+  return { workspace: row.workspace, user: row.user, admin: row.admin ?? false, ...profileOf(row) };
 }
 
 export async function adminsIn(ctx: QueryCtx, workspace: string): Promise<ChatUserId[]> {
@@ -76,6 +85,7 @@ export const fillProfiles = internalMutation({
       const row = await memberRow(ctx, workspace, user);
       if (row?.kind !== "member" || isOlder(asOf, row.asOf) || isOlder(asOf, row.profileAsOf) || !differsFrom(row, profile)) continue;
       await ctx.db.patch(row._id, { ...profile, profileAsOf: asOf });
+      await followPerson(ctx, row._id);
     }
   },
 });
@@ -88,7 +98,10 @@ export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }:
   const row = { workspace, user, timeZone: undefined, asOf, ...entry };
   const existing = await memberRow(ctx, workspace, user);
   if (existing === null) await ctx.db.insert("members", row);
-  else if (!isOlder(asOf, existing.asOf)) await replace(ctx, existing, keepingNewerProfile(existing, row));
+  else if (!isOlder(asOf, existing.asOf)) {
+    await replace(ctx, existing, keepingNewerProfile(existing, row));
+    await followPerson(ctx, existing._id);
+  }
 }
 
 type MemberRow = WithoutSystemFields<Doc<"members">>;

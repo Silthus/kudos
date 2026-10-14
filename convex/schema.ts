@@ -2,7 +2,7 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { exceptionValidator } from "./analytics/exceptions";
-import { propertiesValidator } from "./analytics/projections";
+import { personPropertiesValidator, propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
 import { publicReplyValidator } from "./feedback/publicReplies";
@@ -284,7 +284,10 @@ export default defineSchema({
   analyticsIds: defineTable({
     member: v.id("members"),
     analyticsId: v.string(),
-  }).index("by_member", ["member"]),
+    profileFingerprint: v.optional(v.union(v.string(), v.null())),
+  })
+    .index("by_member", ["member"])
+    .index("by_analytics_id", ["analyticsId"]),
 
   workspaceKeys: defineTable({
     workspace: v.string(),
@@ -298,6 +301,7 @@ export default defineSchema({
     timestamp: v.number(),
     properties: propertiesValidator,
     exception: v.optional(exceptionValidator),
+    person: v.optional(v.object({ set: personPropertiesValidator, unset: v.array(v.string()) })),
     state: v.union(v.literal("pending"), v.literal("sending"), v.literal("exhausted")),
     failures: v.number(),
     dueAt: v.number(),
@@ -305,7 +309,8 @@ export default defineSchema({
     reason: v.optional(v.union(v.literal("rejected"), v.literal("exhausted"), v.literal("expired"))),
   })
     .index("by_state", ["state"])
-    .index("by_due", ["state", "dueAt"]),
+    .index("by_due", ["state", "dueAt"])
+    .index("by_person_event", ["distinctId", "event", "state"]),
 
   analyticsDrain: defineTable({
     job: v.id("_scheduled_functions"),
