@@ -1,5 +1,4 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
-import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { reportLeaderboardViewed, reportLeaderboardVisibilityChanged } from "../analytics/isolatedUsage";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
@@ -13,7 +12,7 @@ import { perkValidator } from "../progression/tree";
 import { openQuestCrate } from "../quests/open";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { rerollQuest } from "../quests/weekly";
-import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
+import { xpLevelsShownTo } from "../progression/xpLevels";
 import { featureValidator } from "../unlocks/feature";
 import { openUnlock } from "../unlocks/unlocks";
 import type { MemberId } from "../workspace/directory";
@@ -60,7 +59,7 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return null;
     }
     case "setAnnouncementChannel":
-      if ((await xpLevelsShownIn(ctx, workspace)) && (await setAnnouncementChannel(ctx, workspace, person, command.channel))) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
+      await setAnnouncementChannel(ctx, workspace, person, command.channel);
       return null;
     case "openUnlock":
       await openUnlock(ctx, member, command.feature);

@@ -1,4 +1,7 @@
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { v } from "convex/values";
+import { internal } from "../_generated/api";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { xpLevelsShownIn } from "../progression/xpLevels";
 
 export type WorkspaceSettings = { baseAllowance: number; kudosEmoji: string; announcementChannel: string | null };
 
@@ -14,9 +17,19 @@ export async function settingsOf(ctx: QueryCtx, workspace: string): Promise<Work
   };
 }
 
+export const pickAnnouncementChannel = internalMutation({
+  args: { workspace: v.string(), channel: v.union(v.string(), v.null()) },
+  handler: (ctx, { workspace, channel }): Promise<boolean> => announceIn(ctx, workspace, channel),
+});
+
 export async function setAnnouncementChannel(ctx: MutationCtx, workspace: string, person: { admin: boolean }, channel: string | null): Promise<boolean> {
-  if (!person.admin) return false;
+  return person.admin && (await announceIn(ctx, workspace, channel));
+}
+
+async function announceIn(ctx: MutationCtx, workspace: string, channel: string | null): Promise<boolean> {
+  if (!(await xpLevelsShownIn(ctx, workspace))) return false;
   await saveAnnouncementChannel(ctx, workspace, channel ?? undefined);
+  await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
   return true;
 }
 
