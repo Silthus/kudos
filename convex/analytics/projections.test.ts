@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { awardId, kudosGivenEvent } from "../../testing/busEvents";
-import type { AttemptFailedEvent, KudosGivenEvent, LevelReachedEvent } from "../bus/events";
+import type { AttemptFailedEvent, JourneyStepActivatedEvent, KudosGivenEvent, LevelReachedEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
-import { projectAttemptFailed, projectKudosGiven, projectLevelReached, projectMemberWelcomed, projectUsage } from "./projections";
+import { projectAttemptFailed, projectJourneyStepActivated, projectKudosGiven, projectLevelReached, projectMemberWelcomed, projectUsage } from "./projections";
 
 const alice = "alice" as MemberId;
 const bob = "bob" as MemberId;
@@ -125,6 +125,14 @@ describe("E1: level reached", () => {
       at,
       properties: { level: 6, skill_points_gained: 2, via },
     });
+  });
+});
+
+describe("E1: journey step activated", () => {
+  test.each<JourneyStepActivatedEvent["step"]>(["first-thanks", "first-quest", "someone-new"])("activating %s lists only its step, on the member at the activation's time", (step) => {
+    const activated: JourneyStepActivatedEvent = { type: "journeyStepActivated", workspace: "T1", member: bob, step, at };
+
+    expect(projectJourneyStepActivated(activated)).toEqual({ event: "journey step activated", subject: { member: bob }, at, properties: { step } });
   });
 });
 

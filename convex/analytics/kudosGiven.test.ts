@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, answersWith, postHogHost, projectToken, routedFetch } from "../../testing/fakePostHog";
+import { FakePostHog, answersWith, flagsKey, postHogHost, projectToken, routedFetch } from "../../testing/fakePostHog";
+import { flagsFromPostHog, journeyShippedBeforeAnyoneJoined, onForEveryone } from "../../testing/flags";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
@@ -179,6 +180,8 @@ describe("O10: never sent", () => {
       .withMember(people.recipient, { team_id: team, tz: "America/St_Johns", ...({ real_name: "Barnaby Flintlock", profile: { display_name: "barns" } } as object) });
     vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
     await t.run((ctx) => ctx.db.insert("workspaces", { workspace: team, kudosEmoji: "artichokeparty" }));
+    vi.stubEnv("POSTHOG_PERSONAL_API_KEY", flagsKey);
+    await journeyShippedBeforeAnyoneJoined(await flagsFromPostHog(t, postHog, ...["xp-levels", "unlocks", "quests"].map(onForEveryone)), team);
 
     const fromZephyrine = { team, channel, user: people.giver, threadTs: "1760349000.737373" };
     slack.answering("conversations.join", () => Response.json({ ok: true, channel: { id: channel } }));
@@ -206,7 +209,7 @@ describe("O10: never sent", () => {
 
     const bodies = postHog.requests.map((request) => request.body).join("\n");
     expect(new Set(postHog.events().map((event) => event.event))).toEqual(
-      new Set(["kudos given", "kudos received", "member welcomed", "level reached", "attempt failed", "app home opened", "command used"]),
+      new Set(["kudos given", "kudos received", "member welcomed", "level reached", "journey step activated", "attempt failed", "app home opened", "command used", "$feature_flag_called"]),
     );
     const stored = await everythingStored(t);
     const forbidden = [

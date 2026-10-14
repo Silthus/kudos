@@ -1,7 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { awardIdValidator } from "../engine/awards";
 import { annotationsValidator, messageRefValidator } from "../engine/messageEvent";
-import { questValidator } from "../quests/step";
+import { journeyStepValidator, questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
 import type { MemberId } from "../workspace/directory";
 
@@ -108,6 +108,16 @@ export type QuestFinishedEvent = Infer<typeof questFinishedEventValidator>;
 
 export type QuestOpenedEvent = Infer<typeof questOpenedEventValidator>;
 
+export const journeyStepActivatedEventValidator = v.object({
+  type: v.literal("journeyStepActivated"),
+  workspace: v.string(),
+  member: v.id("members"),
+  step: journeyStepValidator,
+  at: v.number(),
+});
+
+export type JourneyStepActivatedEvent = Infer<typeof journeyStepActivatedEventValidator>;
+
 export type DomainEvent =
   | KudosGivenEvent
   | AttemptFailedEvent
@@ -118,6 +128,7 @@ export type DomainEvent =
   | UnlockOpenedEvent
   | QuestFinishedEvent
   | QuestOpenedEvent
+  | JourneyStepActivatedEvent
   | MemberLeftEvent
   | MemberRejoinedEvent;
 
