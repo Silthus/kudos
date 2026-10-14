@@ -249,6 +249,7 @@ const journeyGoals: Record<JourneyStep, { goal: string; condition?: string }> = 
   "first-thanks": { goal: "Give a kudos that says why.", condition: "It counts when your message has 5 or more words besides mentions and emoji." },
   "first-quest": { goal: "Finish a weekly quest." },
   "someone-new": { goal: "Thank someone you haven't thanked before." },
+  "two-days": { goal: "Give kudos that say why on 2 different days.", condition: "It counts when your message has 5 or more words besides mentions and emoji." },
 };
 
 export function journeyGoalOf(step: JourneyStep) {

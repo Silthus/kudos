@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
-import type { DayKey, Week } from "./allowance";
+import { allowanceDay, type DayKey, type Week } from "./allowance";
 import type { MessageRef } from "./messageEvent";
 import { addToTotals } from "./totals";
 
@@ -24,6 +24,10 @@ export type GivenMessage = { workspace: string; message: MessageRef; giver: Memb
 export type GivenMessagesPage = { messages: GivenMessage[]; cursor: string; isDone: boolean };
 
 type AwardRow = Doc<"awards">;
+
+export type DatedAward = { award: AwardId; day: DayKey; at: number };
+
+const dayMs = 24 * 60 * 60 * 1000;
 
 export async function insertAwards(ctx: MutationCtx, message: MessageRef, awards: Award[], day: DayKey, at: number): Promise<AwardWithId[]> {
   const inserted: AwardWithId[] = [];
@@ -64,6 +68,21 @@ export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: 
     if (at <= atOrBefore && at > (lastThanked.get(recipient) ?? -Infinity)) lastThanked.set(recipient, at);
   }
   return lastThanked;
+}
+
+export async function givenSince(ctx: QueryCtx, giver: MemberId, since: number): Promise<DatedAward[]> {
+  const awards = await ctx.db
+    .query("awards")
+    .withIndex("by_giver", (q) => q.eq("giver", giver).gte("day", earliestDayAt(since)))
+    .collect();
+  return awards
+    .filter(({ at }) => at >= since)
+    .sort((one, other) => one.at - other.at)
+    .map(({ _id, day, at }) => ({ award: _id, day, at }));
+}
+
+function earliestDayAt(at: number): DayKey {
+  return allowanceDay(at - dayMs, "UTC");
 }
 
 export async function awardAt(ctx: QueryCtx, award: AwardId): Promise<number | null> {

@@ -15,6 +15,14 @@ export async function isRecorded(ctx: QueryCtx, award: AwardId, side: Side) {
   return recorded !== null;
 }
 
+export async function saidWhy(ctx: QueryCtx, award: AwardId): Promise<boolean> {
+  const given = await ctx.db
+    .query("effectsRecords")
+    .withIndex("by_award", (q) => q.eq("award", award).eq("side", "giver"))
+    .first();
+  return given?.gate?.thoughtful === true;
+}
+
 export async function gaveThoughtfulKudos(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<boolean> {
   const given = ctx.db.query("effectsRecords").withIndex("by_member_side", (q) => q.eq("member", giver).eq("side", "giver"));
   for await (const { gate, award } of given) {
