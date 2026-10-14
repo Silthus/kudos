@@ -4,6 +4,7 @@ import { rewardOf } from "../progression/rewards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf } from "./crates";
 import { questsLiveIn } from "./flag";
+import { crateOpened } from "./pendingCrates";
 import type { Quest } from "./step";
 import { poolQuestOf } from "./weekly";
 
@@ -15,6 +16,7 @@ export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: 
   if ((await crateOpeningOf(ctx, member, key)) !== null) return "done";
   const at = Date.now();
   await ctx.db.insert("crateOpenings", { member, key, at });
+  await crateOpened(ctx, member, key);
   await publish(ctx, { type: "questOpened", workspace, member, quest, ...(await poolQuestNamed(ctx, member, quest)), at });
   return "done";
 }

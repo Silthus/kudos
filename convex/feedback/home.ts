@@ -6,7 +6,7 @@ import type { ProgressSettings } from "../progression/settings";
 import type { JourneyStepFacts } from "../quests/journey";
 import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
 import { questOf } from "../quests/pool";
-import type { WeeklyQuests, WeeklySlot } from "../quests/weekly";
+import type { UnopenedCrate, WeeklyQuests, WeeklySlot } from "../quests/weekly";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { Feature } from "../unlocks/feature";
 import type { ScheduledFeature } from "../unlocks/schedule";
@@ -44,7 +44,7 @@ const periods: Array<{ period: Period; label: string }> = [
   { period: "all", label: "All time" },
 ];
 
-const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, journey: null };
+const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, earlierCrates: null, journey: null };
 
 export function renderHome(facts: HomeFacts, home: ShownHome | null, frontDoor: FrontDoorLinks | null): HomeView {
   if (facts.kind === "not-a-member") {
@@ -88,16 +88,17 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
 
 type ProfileFacts = Omit<Extract<ShownTab, { tab: "profile" }>, "tab">;
 
-function profileOf(kudos: KudosHome, { progression, unlocks, quests, journey }: ProfileFacts): HomeView {
+function profileOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrates, journey }: ProfileFacts): HomeView {
   const progress = progression === null ? [] : [[...progressOf(progression), ...(unlocks === null ? [] : unlockLinesOf(unlocks))]];
   const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: false })];
+  const earlier = earlierCrates === null || earlierCrates.length === 0 ? [] : [waitingToOpenLines(earlierCrates)];
   const steps = journey === null || journey.length === 0 ? [] : [journey.flatMap(journeyStepLines)];
-  return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...steps, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
+  return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...earlier, ...steps, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
 }
 
-function summaryOf(kudos: KudosHome, { progression, unlocks, quests, journey }: ProfileFacts, links: FrontDoorLinks): HomeView {
+function summaryOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrates, journey }: ProfileFacts, links: FrontDoorLinks): HomeView {
   const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)])];
-  const waiting = [...readyCratesOf(unlocks), ...weeklyCratesOf(quests), ...journeyCratesOf(journey)];
+  const waiting = [...readyCratesOf(unlocks), ...earlierCratesOf(earlierCrates), ...weeklyCratesOf(quests), ...journeyCratesOf(journey)];
   const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: true })];
   return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
 }
@@ -109,6 +110,10 @@ function levelLineOf({ level, xpToNextLevel, skillPoints }: ToldProgression): Ho
 
 function readyCratesOf(unlocks: UnlocksHome | null): HomeLine[] {
   return (unlocks?.ready ?? []).map(({ feature, name }) => ({ kind: "action", text: `${bold(name)} is ready.`, action: openUnlock(feature) }));
+}
+
+function earlierCratesOf(crates: UnopenedCrate[] | null): HomeLine[] {
+  return (crates ?? []).map(({ crate, goal }) => ({ kind: "action", text: `✅ ${goal}`, action: openCrate(crate) }));
 }
 
 function weeklyCratesOf(quests: WeeklyQuests | null): HomeLine[] {
@@ -225,6 +230,11 @@ function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, f
   }
   const text = `✅ ${goal} ${earned(reward.xp)}`;
   return openedAt === null && !crateShownApart ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }) } : { kind: "text", text };
+}
+
+function waitingToOpenLines(crates: UnopenedCrate[]): HomeLine[] {
+  const lines = crates.map(({ crate, goal, reward }): HomeLine => ({ kind: "action", text: `✅ ${goal} ${earned(reward.xp)}`, action: openCrate(crate) }));
+  return [{ kind: "text", text: bold("Waiting to open") }, ...lines];
 }
 
 function journeyStepLines({ step, reward, finishedAt, openedAt }: JourneyStepFacts): HomeLine[] {

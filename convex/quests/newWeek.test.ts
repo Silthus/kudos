@@ -5,7 +5,7 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, buttonInHome, publishedHome, type Block } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
@@ -225,6 +225,25 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
     expect(await t.run(async (ctx) => standingOf(ctx, await memberOf(ctx, "U_ALICE")))).toEqual(standing);
   });
 
+  test("App Home after the Monday turn lists last week's unopened crate as waiting to open, and its Open opens it", async () => {
+    const t = await slackWorkspace();
+    await giveKudos(t, "U_ALICE", "U_BOB");
+    await openHome(t, "U_ALICE");
+    await drawLastWeek(t, "U_ALICE", ["say-why", "say-why-three-times", "say-why-two-days"]);
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    await giveKudos(t, "U_ALICE", "U_BOB");
+    vi.setSystemTime(mondayInUtc + 5 * minuteMs);
+
+    await openHome(t, "U_ALICE");
+
+    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Waiting to open*", "section: ✅ Thank someone and say why. You earned *20 XP*. [button: Open]"]);
+
+    await send(t, blockActions("U_ALICE", buttonBeside("✅ Thank someone and say why.", "Open")));
+
+    expect(await t.run(async (ctx) => (await ctx.db.query("crateOpenings").collect()).map(({ key }) => key))).toEqual([`weekly:${lastWeek}:0`]);
+    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([]);
+  });
+
   async function slackWorkspace() {
     const t = await unlocksShippedBeforeAnyoneJoined(await flagsLoaded(testBackend()));
     await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
@@ -251,6 +270,18 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
   async function send(t: Backend, interaction: string) {
     await t.fetch("/slack/interactivity", await signedRequest(interaction, form));
     await settle(t);
+  }
+
+  function buttonBeside(text: string, label: string) {
+    return buttonIn(
+      publishedHomeBlocks(slack, "U_ALICE").filter((block) => readBlocks([block]).some((line) => line.includes(text))),
+      label,
+    );
+  }
+
+  function waitingIn(home: string[]) {
+    const start = home.indexOf("section: *Waiting to open*");
+    return start === -1 ? [] : home.slice(start, home.indexOf("divider", start));
   }
 
   function questsIn(home: string[]) {

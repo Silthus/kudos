@@ -37,16 +37,23 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
   const uploadStep = steps.find((step) => step.run?.includes("static-hosting upload"));
   const prepareStep = steps.find((step) => step.run?.includes("website/flag:prepareWebsiteFlag"));
   const faceSyncStep = steps.find((step) => step.run?.includes("companyProfiles/sync:syncCompanyProfiles"));
-  const keyedSteps = [deployStep, uploadStep, prepareStep, faceSyncStep];
+  const pendingCratesStep = steps.find((step) => step.run?.includes("quests/pendingCrates:backfillPendingCrates"));
+  const keyedSteps = [deployStep, pendingCratesStep, uploadStep, prepareStep, faceSyncStep];
 
   test(trigger, () => {
     expect(workflow.on).toEqual(on);
   });
 
-  test("WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the website upload, prepareWebsiteFlag and the face sync", () => {
+  test("WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the pending-crate backfill, the website upload, prepareWebsiteFlag and the face sync", () => {
     for (const step of keyedSteps) expect(step?.env).toEqual({ CONVEX_DEPLOY_KEY: `\${{ secrets.${secret} }}` });
     const elsewhere = [workflow.env, ...Object.values(workflow.jobs).map((job) => job.env), ...steps.filter((step) => !keyedSteps.includes(step))];
     expect(JSON.stringify(elsewhere)).not.toContain("secrets.");
+  });
+
+  test("P85: every deploy backfills the pending-crate index right after convex deploy, so crates finished before it keep waiting", () => {
+    expect(steps.indexOf(pendingCratesStep!)).toBe(steps.indexOf(deployStep!) + 1);
+    expect(pendingCratesStep?.run).toBe("pnpm exec convex run quests/pendingCrates:backfillPendingCrates");
+    expect(pendingCratesStep?.if).toBe(deployStep?.if);
   });
 
   test("WS27: after convex deploy, the website is built against this deployment and uploaded to its static hosting", () => {
