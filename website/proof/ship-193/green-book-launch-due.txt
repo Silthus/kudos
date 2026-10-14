@@ -1,5 +1,5 @@
 
- RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website-4
+ RUN  v5.0.3 <worktree>
 
 
  Test Files  1 passed (1)

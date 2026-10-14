@@ -1,5 +1,5 @@
 
- RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website-4
+ RUN  v5.0.3 <worktree>
 
  ❯ |convex| convex/website/preview.test.ts (17 tests | 1 failed | 16 skipped) 64ms
    ❯ F26 F27 F28 F29: a member previews the website by their own decision (17)
