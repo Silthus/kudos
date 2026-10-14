@@ -1,4 +1,5 @@
 import { v, type Infer } from "convex/values";
+import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import type { ChatUserId } from "../engine/messageEvent";
@@ -49,8 +50,8 @@ export const keepUserGroupMembers = internalMutation({
   args: { workspace: v.string(), group: v.string(), users: v.array(v.string()), asOf: v.number() },
   handler: async (ctx, { users, asOf, ...key }) => {
     const row = await userGroupRow(ctx, key);
-    if (row === null || !keepsMembers(row) || isOlder(asOf, row.membersAsOf)) return;
-    await replaceMembers(ctx, key, users);
+    if (row === null || isOlder(asOf, row.membersAsOf)) return;
+    await replaceMembers(ctx, key, keepsMembers(row) ? users : []);
     await ctx.db.patch(row._id, { membersAsOf: asOf });
   },
 });
@@ -58,10 +59,11 @@ export const keepUserGroupMembers = internalMutation({
 async function keepUserGroup(ctx: MutationCtx, group: UserGroup, asOf: number) {
   const row = await userGroupRow(ctx, group);
   if (row !== null && isOlder(asOf, row.asOf)) return;
-  const fields = { ...group, asOf, ...(!keepsMembers(group) && { membersAsOf: asOf }) };
-  if (row === null) await ctx.db.insert("userGroups", fields);
-  else await ctx.db.patch(row._id, fields);
-  if (!keepsMembers(group)) await replaceMembers(ctx, group, []);
+  if (row === null) await ctx.db.insert("userGroups", { ...group, asOf });
+  else await ctx.db.patch(row._id, { ...group, asOf });
+  if (row !== null && keepsMembers(row) && !keepsMembers(group)) {
+    await ctx.scheduler.runAfter(0, internal.workspace.userGroups.keepUserGroupMembers, { workspace: group.workspace, group: group.group, users: [], asOf });
+  }
 }
 
 async function unlistedIn(ctx: QueryCtx, scope: ListingScope, listed: UserGroup[]): Promise<UserGroup[]> {

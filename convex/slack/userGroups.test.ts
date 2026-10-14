@@ -108,6 +108,46 @@ describe("the user group sync keeps each member's user groups in the directory",
   });
 });
 
+describe("an answer the directory can't trust changes nothing", () => {
+  test.each<[string, unknown]>([
+    ["without a name", { id: "S_BAKE", team_id: "T1", handle: "bakers" }],
+    ["without an id", { team_id: "T1", handle: "bakers", name: "Bakers" }],
+    ["that isn't an object", "S_BAKE"],
+  ])("a listing with a user group %s fails and keeps every user group", async (_, malformed) => {
+    const t = testBackend();
+    slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: ["U_ANN"] });
+    await sync(t);
+    const listed = { id: "S_GARDEN", team_id: "T1", handle: "gardeners", name: "Gardeners", date_delete: 0, auto_type: null };
+    slack.answering("usergroups.list", () => Response.json({ ok: true, usergroups: [listed, malformed] }));
+
+    await expect(t.action(internal.slack.userGroups.syncUserGroups, {})).rejects.toThrow("Slack usergroups.list answered a user group it doesn't describe");
+
+    expect(await groupsOf(t, "U_ANN")).toEqual([gardeners]);
+  });
+
+  test("a members list with an entry that isn't a user ID fails and keeps the members", async () => {
+    const t = testBackend();
+    slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: ["U_ANN", "U_BOB"] });
+    await sync(t);
+    slack.answering("usergroups.users.list", () => Response.json({ ok: true, users: ["U_ANN", null] }));
+
+    await expect(t.action(internal.slack.userGroups.refreshMembers, { workspace: "T1", group: "S_GARDEN" })).rejects.toThrow("Slack usergroups.users.list answered a member it doesn't name");
+
+    expect(await groupsOf(t, "U_BOB")).toEqual([gardeners]);
+  });
+
+  test("a members list longer than a user group can keep fails and keeps the members", async () => {
+    const t = testBackend();
+    slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: ["U_ANN"] });
+    await sync(t);
+    slack.answering("usergroups.users.list", () => Response.json({ ok: true, users: Array.from({ length: 8_001 }, (_, index) => `U_${index}`) }));
+
+    await expect(t.action(internal.slack.userGroups.refreshMembers, { workspace: "T1", group: "S_GARDEN" })).rejects.toThrow("Slack usergroups.users.list answered more members than a user group keeps");
+
+    expect(await groupsOf(t, "U_ANN")).toEqual([gardeners]);
+  });
+});
+
 describe("a workspace without user groups", () => {
   test("a Slack plan without user groups answers no user groups and logs no error", async () => {
     const t = testBackend();
@@ -132,6 +172,33 @@ describe("a workspace without user groups", () => {
 
     expect(before).toEqual([gardeners]);
     expect(await groupsOf(t, "U_ANN")).toEqual([]);
+  });
+
+  test.each(["plan_upgrade_required", "no_such_subteam"])("a members list Slack answers with %s leaves that user group without members", async (error) => {
+    const t = testBackend();
+    slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: ["U_ANN"] });
+    await sync(t);
+    slack.answering("usergroups.users.list", slackError(error));
+
+    await t.action(internal.slack.userGroups.refreshMembers, { workspace: "T1", group: "S_GARDEN" });
+
+    expect(await groupsOf(t, "U_ANN")).toEqual([]);
+    expect(logged.flatMap((spy) => spy.mock.calls)).toEqual([]);
+  });
+
+  test("losing user groups with thousands of memberships stays within Convex's transaction limits", async () => {
+    const t = testBackend({ transactionLimits: true });
+    const everyone = Array.from({ length: 6_000 }, (_, index) => `U_${index}`);
+    for (const group of ["S_ONE", "S_TWO", "S_THREE"]) slack.withUserGroup(group, { users: everyone });
+    await sync(t);
+    const before = await groupsOf(t, "U_0");
+
+    slack.answering("usergroups.list", slackError("plan_upgrade_required"));
+    await sync(t);
+
+    expect(before).toHaveLength(3);
+    expect(await groupsOf(t, "U_0")).toEqual([]);
+    expect(await storedMembershipsOf(t, "S_ONE")).toEqual([]);
   });
 
   test("any other Slack error fails the sync with Slack's code", async () => {

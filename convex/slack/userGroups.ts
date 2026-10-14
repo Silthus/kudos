@@ -4,7 +4,7 @@ import type { ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
 import { keepsMembers, type UserGroup } from "../workspace/userGroups";
-import { readSlack, slackErrorCodeOf, type SlackFailure } from "./webApi";
+import { readSlack, slackErrorCodeOf, type SlackAnswer, type SlackFailure } from "./webApi";
 
 type SlackUserGroup = { id?: unknown; team_id?: unknown; handle?: unknown; name?: unknown; date_delete?: unknown; auto_type?: unknown };
 
@@ -21,6 +21,7 @@ const withoutUserGroups = "plan_upgrade_required";
 const goneUserGroup = "no_such_subteam";
 const membersListSpacingMs = 3_000;
 const maxAttempts = 3;
+const maxMembersKept = 8_000;
 const attemptArgs = { attempt: v.optional(v.number()) };
 
 export function isUserGroupChanged(event: { type: string }): event is UserGroupChanged {
@@ -77,19 +78,32 @@ async function refreshMembersOf(ctx: ActionCtx, key: GroupKey, attempt: number) 
     await ctx.scheduler.runAfter(retryDelayOf(answer), internal.slack.userGroups.refreshMembers, { ...key, attempt: nextAttempt(attempt, "usergroups.users.list") });
     return;
   }
-  if (!answer.ok && (answer.error === withoutUserGroups || answer.error === goneUserGroup)) return;
+  const users = !answer.ok && (answer.error === withoutUserGroups || answer.error === goneUserGroup) ? [] : membersOf(answer);
+  await ctx.runMutation(internal.workspace.userGroups.keepUserGroupMembers, { ...key, users, asOf });
+}
+
+function membersOf(answer: SlackAnswer<{ users?: unknown }>): string[] {
   if (!answer.ok) throw new ReportableError(`Slack usergroups.users.list failed: ${slackErrorCodeOf(answer.error)}`);
   if (!Array.isArray(answer.users)) throw new ReportableError("Slack usergroups.users.list answered without a users list");
-  await ctx.runMutation(internal.workspace.userGroups.keepUserGroupMembers, { ...key, users: answer.users.flatMap((user) => textOf(user) ?? []), asOf });
+  if (answer.users.length > maxMembersKept) throw new ReportableError("Slack usergroups.users.list answered more members than a user group keeps");
+  const users = answer.users.flatMap((user) => textOf(user) ?? []);
+  if (users.length !== answer.users.length) throw new ReportableError("Slack usergroups.users.list answered a member it doesn't name");
+  return users;
 }
 
 async function userGroupsListed(): Promise<Listing> {
   const answer = await readSlack<{ usergroups?: unknown }>("usergroups.list", { include_disabled: "true" });
-  if (answer.ok && Array.isArray(answer.usergroups)) return { kind: "listed", groups: answer.usergroups.flatMap(userGroupOf) };
-  if (answer.ok) throw new ReportableError("Slack usergroups.list answered without a usergroups list");
+  if (answer.ok) return { kind: "listed", groups: userGroupsOf(answer.usergroups) };
   if (answer.error === "ratelimited") return { kind: "rate-limited", retryAfterMs: retryDelayOf(answer) };
   if (answer.error === withoutUserGroups) return { kind: "listed", groups: [] };
   throw new ReportableError(`Slack usergroups.list failed: ${slackErrorCodeOf(answer.error)}`);
+}
+
+function userGroupsOf(listed: unknown): UserGroup[] {
+  if (!Array.isArray(listed)) throw new ReportableError("Slack usergroups.list answered without a usergroups list");
+  const groups = listed.flatMap(userGroupOf);
+  if (groups.length !== listed.length) throw new ReportableError("Slack usergroups.list answered a user group it doesn't describe");
+  return groups;
 }
 
 function userGroupOf(listed: unknown): UserGroup[] {
