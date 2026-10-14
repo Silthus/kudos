@@ -7,6 +7,7 @@ Wallet: a member's coins, knowing nothing about why they were earned or what the
   over: every step of a sequence of kudos that say why and don't, a quest reward with coins and the same reward again with its key, a reward without coins, spends the balance covers and spends it can't, down to a balance of 0 and a spend from nothing, read through walletOf and the effects, reward and spend records after each step, and every stored row around a refused spend
   via: CO9 CO10: a member's balance equals their coin lines and reward coins minus their spends, and never goes below 0
   because: the balance is a cached sum so a read never sums history (CO9); a credit missed, applied twice or applied without its record would show coins nobody earned or hide coins they did, and a spend past the balance would take a member below 0, which P30 forbids
+  refuted: recordReward no longer credited the wallet with the reward's coins -> the step-by-step case and the spend case read a balance short of the reward's coins (2026-10-14)
   kinds: storage, state
   checklist: scoped-reads dismissed: walletOf reads one member's row by the member it is given; the website's guard decides which member that is
   checklist: revalidated-permission dismissed: nothing is queued; a spend runs inside the purchase's own mutation and reads the balance there
@@ -27,6 +28,7 @@ Wallet: a member's coins, knowing nothing about why they were earned or what the
   over: every module under convex/, outside its tests and the generated code
   via: CO12: only the wallet writes the balance and the spend records, and spends are never changed
   because: one writer keeps the balance equal to its records (CO12); a second module patching the balance, or a spend changed or deleted, would refund or mint coins outside a record, which CO11 forbids
+  refuted: progression's record wrote the wallets table itself instead of crediting through the wallet -> the detector found convex/progression/progression.ts writing wallets (2026-10-14)
   kinds: storage
   checklist: scoped-reads dismissed: the invariant is about writes
   checklist: encrypted-storage dismissed: a balance and spend records are game data, not confidential

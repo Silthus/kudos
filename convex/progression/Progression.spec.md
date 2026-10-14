@@ -51,6 +51,7 @@ Progression: subscribes to kudosGiven, writes one insert-only effects record per
   over: at the Slack boundary, eleven different givers thanking one recipient in a week, one giver thanking a recipient on Wednesday, late on Sunday and early on Monday in the recipient's time zone for a recipient in America/Los_Angeles and one in Pacific/Auckland, and a kudos that doesn't say why followed by one that does, read through the recipient's effects records and wallet
   via: CO3: a giver pays a recipient receiving coins at most once a week, and a recipient gets at most 20 receiving coins a week
   because: receiving coins reward being valued by many different people (CO3); a giver paying twice a week would let two members farm coins by thanking each other, and an uncapped week would let popularity outpace thanking others
+  refuted: receivingCoinsOf no longer skipped a giver who already paid the recipient that week -> both time-zone cases found receiving coins on the late-Sunday kudos (2026-10-14)
   kinds: state
   checklist: revalidated-permission dismissed: no permission is involved; the subscriber records what an award earned
   checklist: separation-of-duties dismissed: no approval policy
