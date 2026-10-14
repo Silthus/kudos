@@ -10,7 +10,7 @@ type MemberClick = {
   team: { id: string };
   user: { id: string };
   trigger_id: string;
-  container: { type: "view" | "message" };
+  container: { type: "view" } | { type: "message"; channel_id: string };
   view?: { type: string };
   actions: Action[];
 };
@@ -26,6 +26,7 @@ export const slackInteractivity = observedHttpAction(async (ctx, request) => {
     eventId: payload.trigger_id,
     user: payload.user.id,
     commands: payload.actions.flatMap(commandsOf),
+    ...(payload.container.type === "message" && { conversation: payload.container.channel_id }),
   });
   return new Response(null, { status: 200 });
 });

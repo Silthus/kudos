@@ -63,7 +63,7 @@
     },
     {
       "name": "xp",
-      "definition": "Experience a member earns from Given awards: 10 for each kudos given and 5 for each kudos received, plus bonus XP from perks, boosters and group auras the member chose, and from chime-in thresholds on kudos they received. XP decides the member's level and never goes down (ADR-0002). It is not kudos and not coins."
+      "definition": "Experience a member earns: base XP on Given awards, 10 for each kudos given and 5 for each kudos received, bonus XP from perks the member owns, and personal quest and Journey rewards (P2). XP decides the member's level and never goes down (ADR-0002). It is not kudos and not coins."
     },
     {
       "name": "level",
@@ -430,6 +430,10 @@
     {
       "name": "Book",
       "definition": "The feature that opens at level 4, where a member sees their achievement ladders and the tiers they earned, each with its date; it opens achievements, and the sticker book with its albums once that ships."
+    },
+    {
+      "name": "qualifying recognition",
+      "definition": "The first award from a giver to a recipient on the giver's day whose stored gate decision says it is thoughtful kudos, from a kudos message or, later, a chime-in. Every per-recognition bonus XP line and giving coin pays once per qualifying recognition, however many kudos the award carries; base XP still counts every kudos. Whether an award is one, and whether it is the giver's first of the day or the first to that recipient in the giver's week, is kept for every award whether or not the giver owns a perk (P16, P17)."
     },
     {
       "name": "launch batch",

@@ -12,7 +12,7 @@ import { homeTabValidator } from "./feedback/homes";
 import { publicReplyValidator } from "./feedback/publicReplies";
 import { segmentValidator } from "./feedback/replies";
 import { periodValidator } from "./leaderboard/periods";
-import { purchaseOutcomeValidator } from "./progression/perks";
+import { purchaseOutcomeValidator } from "./progression/purchases";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
