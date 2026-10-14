@@ -245,6 +245,14 @@ describe("the directory keeps each member's Slack picture for the website", () =
     expect(await pictureOf(t, "U_ANN")).toBeUndefined();
   });
 
+  test("an https address without a host gives way to the 72-pixel picture", async () => {
+    const t = testBackend();
+
+    await memberChanged(t, "team_join", { id: "U_ANN", profile: { image_192: "https://", image_72: smallPicture } });
+
+    expect(await pictureOf(t, "U_ANN")).toBe(smallPicture);
+  });
+
   test("users.info keeps the picture of a person the directory doesn't know", async () => {
     const t = testBackend();
     slack.withMember("U_ANN", { profile: { image_192: largePicture } });

@@ -19,7 +19,7 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
 - fill member profiles: a maintainer runs fillMemberProfiles against a deployment once its app has the users:read.email scope, and again whenever they like, so every member the directory already knows gets the email, real name, display name, title and picture Slack gives for them
   handler: fillMemberProfiles in convex/slack/directory.ts
   trust: operator
-  control: none — it reads only Slack's users.list with the deployment's own token, writes only those four fields of a member row the directory already knows and hasn't heard of since the page was asked for, never adds a person and never removes a field
+  control: none — it reads only Slack's users.list with the deployment's own token, writes only those profile fields of a member row the directory already knows and hasn't heard of since the page was asked for, never adds a person and never removes a field
 - sync user groups: a maintainer runs syncUserGroups against a deployment once its app has the usergroups:read scope, and again whenever they like, so the directory holds every Slack user group with its handle, name and the people in it; a daily cron runs it too
   handler: syncUserGroups in convex/slack/userGroups.ts
   trust: operator

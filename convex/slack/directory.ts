@@ -192,7 +192,15 @@ function profileOf({ profile, real_name }: SlackUser): MemberProfile {
 
 function httpsAddressOf(value: unknown) {
   const text = textOf(value);
-  return text?.startsWith("https://") ? text : undefined;
+  return text !== undefined && isHttpsAddress(text) ? text : undefined;
+}
+
+function isHttpsAddress(text: string) {
+  try {
+    return new URL(text).protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function displayNameOf(user: SlackUser) {
