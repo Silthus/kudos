@@ -14,7 +14,7 @@ export function Frame({ member, current, busy, onSignOut, children }: FrameProps
       <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 md:px-6">
           <Wordmark />
-          {member && <ScreenNav current={current} leaderboard={member.leaderboard === "open"} />}
+          {member && <ScreenNav current={current} leaderboard={member.leaderboard.kind === "open"} />}
           <div className="ml-auto flex items-center gap-2">
             <ThemeControl />
             {member && onSignOut && <AccountMenu member={member} onSignOut={onSignOut} />}
@@ -28,12 +28,12 @@ export function Frame({ member, current, busy, onSignOut, children }: FrameProps
 
 function Wordmark() {
   return (
-    <a href="/" className="flex items-center rounded-md">
+    <AppLink href="/" className="flex items-center rounded-md">
       <span className="flex flex-col leading-none">
         <span className="hud-display text-lg font-bold">HedgeHug</span>
         <span className="text-[10px] text-muted-foreground">Thanks a Hog</span>
       </span>
-    </a>
+    </AppLink>
   );
 }
 

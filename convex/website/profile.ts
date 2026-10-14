@@ -4,13 +4,13 @@ import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { workspaceLink } from "../slack/workspaceLink";
-import { scheduled } from "../unlocks/schedule";
 import { followTheClock } from "./clock";
 import { faceOf, type Face } from "./faces";
 import { leaderboardStateOf, type LeaderboardState } from "./leaderboardState";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 
 export type { Face } from "./faces";
+export type { LeaderboardState, LeaderboardWaits } from "./leaderboardState";
 
 export type Kudos = { given: number; received: number };
 
@@ -26,7 +26,6 @@ export type MemberProfile = {
   lifetime: Kudos;
   chatUrl: string;
   leaderboard: LeaderboardState;
-  leaderboardLevel: number;
   progression: Progression | null;
 };
 
@@ -46,7 +45,6 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     lifetime: { given: facts.given, received: facts.received },
     chatUrl: workspaceLink(me.workspace),
     leaderboard: await leaderboardStateOf(ctx, me),
-    leaderboardLevel: scheduled("leaderboard").level,
     progression: await progressionOf(ctx, me),
   };
 });

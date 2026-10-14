@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { FakePostHog, routedFetch, type FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { onForEveryone, onInTheSandboxOnly, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsFromPostHog as flagsLoadedFromPostHog, onForEveryone, onInTheSandboxOnly, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { aDeploymentForWorkspace, aSession } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
@@ -104,7 +104,7 @@ describe("WS30: the website's board is invisible while everyone-board is off", (
     await turnOff();
 
     expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "not-found" });
-    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "off" });
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "off" } });
   });
 
   test("while everyone-board is on, getLeaderboard answers the board and getMyProfile's leaderboard is open", async () => {
@@ -113,7 +113,7 @@ describe("WS30: the website's board is invisible while everyone-board is off", (
     await flagsOn("website", "everyone-board");
 
     expect(await leaderboard("week", asSignedIn)).toMatchObject({ kind: "board" });
-    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "open" });
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "open" } });
   });
 
   test("switching everyone-board off under an open session turns the board to not-found", async () => {
@@ -125,6 +125,7 @@ describe("WS30: the website's board is invisible while everyone-board is off", (
     await flagsOn("website");
 
     expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "not-found" });
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "off" } });
   });
 });
 
@@ -198,6 +199,15 @@ describe("a website board row carries only what a board shows", () => {
     const { asSignedIn } = await aSession(t, juno);
 
     expect((await board("week", asSignedIn)).rows[0]).toMatchObject({ name: "A teammate", face: { kind: "initials", initials: "?" } });
+  });
+
+  test("WS34: initials come from each word's first letter, so a name that starts with an emoji still reads as letters", async () => {
+    await aMember("U_JUNO", "Juno");
+    await aMember("U_ANN", "🦔 Ann Lee");
+    await gives("U_ANN", 3);
+    const { asSignedIn } = await aSession(t, juno);
+
+    expect((await board("week", asSignedIn)).rows[0]).toMatchObject({ name: "🦔 Ann Lee", face: { kind: "initials", initials: "AL" } });
   });
 });
 
@@ -398,7 +408,7 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
     const { asSignedIn } = await aSession(t, juno);
 
     expect(await leaderboard("week", asSignedIn)).toMatchObject({ kind: "board" });
-    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "open" });
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "open" } });
   });
 
   test("with xp-levels and unlocks on after the launch, the same member reads locked", async () => {
@@ -407,7 +417,7 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
     const { asSignedIn } = await aSession(t, juno);
 
     expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "locked", level: 3 });
-    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "locked" });
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "locked", level: 3 } });
   });
 
   test("before the launch, website reads never run it: no launch is recorded", async () => {
@@ -433,7 +443,7 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
       const { asSignedIn } = await aSession(t, juno);
 
       expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "locked", level: 3 });
-      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "locked", leaderboardLevel: 3 });
+      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "locked", level: 3 } });
     });
 
     test("a member at level 3 who hasn't opened it reads ready, with no board facts", async () => {
@@ -443,7 +453,7 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
       const { asSignedIn } = await aSession(t, juno);
 
       expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "ready" });
-      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "ready" });
+      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "ready" } });
     });
 
     test("a member who opened it reads the board", async () => {
@@ -454,7 +464,7 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
       const { asSignedIn } = await aSession(t, juno);
 
       expect(shown(await board("week", asSignedIn))).toEqual(["1 Juno (you) 2"]);
-      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "open" });
+      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "open" } });
     });
 
     test("with everyone-board off, the unshipped leaderboard reads not-found and off", async () => {
@@ -463,7 +473,7 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
       await flagsOn("website", "xp-levels", "unlocks");
 
       expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "not-found" });
-      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "off" });
+      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "off" } });
     });
 
     test("#103: a member's row on another member's board never depends on their own unlocks", async () => {
@@ -486,7 +496,7 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
     const { asSignedIn } = await aSession(t, juno);
 
     expect(await leaderboard("week", asSignedIn)).toMatchObject({ kind: "board" });
-    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: "open" });
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "open" } });
   });
 });
 
@@ -543,9 +553,8 @@ async function leavesTheBoards(user: string) {
   await t.run((ctx) => setLeaderboardVisibility(ctx, member, false));
 }
 
-async function flagsFromPostHog(...definitions: Parameters<FakePostHog["withFlags"]>) {
-  postHog.withFlags(...definitions);
-  await t.action(components.posthog.lib.refreshFlagDefinitions, {});
+async function flagsFromPostHog(...definitions: FlagDefinition[]) {
+  await flagsLoadedFromPostHog(t, postHog, ...definitions);
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
 }
 

@@ -3,7 +3,7 @@ import { HedgehogExplorer, HedgehogMoney, HedgehogOrganized, HedgehogReading, He
 import { IconLock, IconStar } from "@posthog/icons";
 import { Card, CardContent } from "@posthog/quill";
 import { AppLink } from "../AppLink";
-import { leaderboardWaitsFor } from "../leaderboard/waiting";
+import { leaderboardWaitingWords } from "../leaderboard/waiting";
 import type { MemberProfile } from "../shell";
 
 type Hoggie = ComponentType<{ size?: number; title?: string; className?: string }>;
@@ -22,11 +22,11 @@ const lockedFeatures: Feature[] = [
 ];
 
 export function LockedFeatures({ member }: { member: MemberProfile }) {
-  const leaderboardOpen = member.leaderboard === "open";
-  const waiting = leaderboardWaitsFor(member);
+  const state = member.leaderboard;
+  const leaderboardOpen = state.kind === "open";
   const locked = lockedFeatures
     .filter((feature) => !leaderboardOpen || feature !== leaderboard)
-    .map((feature) => (feature === leaderboard && waiting !== undefined ? { ...feature, sentence: waiting } : feature));
+    .map((feature) => (feature === leaderboard && (state.kind === "locked" || state.kind === "ready") ? { ...feature, sentence: leaderboardWaitingWords(state) } : feature));
   return (
     <>
       {leaderboardOpen && <OpenFeatures />}

@@ -3,10 +3,9 @@ import { periodValidator, type Period } from "../leaderboard/periods";
 import { rankedBoardOf, type RankedRow, type Standing } from "../leaderboard/totals";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { workspaceLink } from "../slack/workspaceLink";
-import { scheduled } from "../unlocks/schedule";
 import { followTheClock } from "./clock";
 import { faceOf, initialsFaceOf, type Face } from "./faces";
-import { leaderboardStateOf } from "./leaderboardState";
+import { leaderboardStateOf, type LeaderboardWaits } from "./leaderboardState";
 import { memberQuery, type Denial } from "./memberQuery";
 
 export type LeaderboardRow = { position: number; rank: number; tied: boolean; name: string; face: Face; kudos: number; you: boolean };
@@ -22,7 +21,7 @@ export type Leaderboard = {
   onTheBoards: boolean;
 };
 
-export type LeaderboardAnswer = { kind: "not-found" } | { kind: "ready" } | { kind: "locked"; level: number } | Leaderboard;
+export type LeaderboardAnswer = { kind: "not-found" } | LeaderboardWaits | Leaderboard;
 
 export type MyLeaderboard = Denial | LeaderboardAnswer;
 
@@ -32,9 +31,8 @@ export const getLeaderboard = memberQuery({
   args: { period: periodValidator },
   handler: async (ctx, me, { period }): Promise<LeaderboardAnswer> => {
     const state = await leaderboardStateOf(ctx, me);
-    if (state === "off") return { kind: "not-found" };
-    if (state === "ready") return { kind: "ready" };
-    if (state === "locked") return { kind: "locked", level: scheduled("leaderboard").level };
+    if (state.kind === "off") return { kind: "not-found" };
+    if (state.kind !== "open") return state;
     await followTheClock(ctx);
     const { rows, window, standing, improvement } = await rankedBoardOf(ctx, me.workspace, me.user, period);
     const myFace = await faceOf(ctx, me);

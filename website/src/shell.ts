@@ -1,6 +1,7 @@
 import type { MemberProfile, MyProfile } from "../../convex/website/profile";
 
-export type { Face, MemberProfile, Progression } from "../../convex/website/profile";
+export type { Face, LeaderboardWaits, MemberProfile, Progression } from "../../convex/website/profile";
+export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
 export type { Period } from "../../convex/leaderboard/periods";
 
 export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } | { kind: "sign-in-unfinished" };
@@ -18,16 +19,15 @@ const member: MemberProfile = {
   thisWeek: { given: 2, received: 1 },
   lifetime: { given: 14, received: 9 },
   chatUrl: "https://app.slack.com/client/T1",
-  leaderboard: "off",
-  leaderboardLevel: 3,
+  leaderboard: { kind: "off" },
   progression: null,
 };
 
-const memberWithTheBoard: MemberProfile = { ...member, leaderboard: "open" };
+const memberWithTheBoard: MemberProfile = { ...member, leaderboard: { kind: "open" } };
 
-const memberWaitingForTheBoard: MemberProfile = { ...member, leaderboard: "locked" };
+const memberWaitingForTheBoard: MemberProfile = { ...member, leaderboard: { kind: "locked", level: 3 } };
 
-const memberWithTheBoardReady: MemberProfile = { ...member, leaderboard: "ready" };
+const memberWithTheBoardReady: MemberProfile = { ...member, leaderboard: { kind: "ready" } };
 
 const memberWithAQuietWeek: MemberProfile = { ...member, thisWeek: { given: 0, received: 0 } };
 
