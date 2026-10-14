@@ -100,6 +100,24 @@ export const forgetWordsOfLeaver = internalMutation({
   }),
 });
 
+type DeletionRequest = { workspace: string; author: string | null };
+
+export async function recordDeletionRequest(ctx: MutationCtx, request: DeletionRequest) {
+  if (!(await isRequested(ctx, request))) await ctx.db.insert("wordDeletionRequests", request);
+}
+
+export async function deletionRequested(ctx: QueryCtx, { workspace, author }: { workspace: string; author: string }) {
+  return (await isRequested(ctx, { workspace, author })) || (await isRequested(ctx, { workspace, author: null }));
+}
+
+async function isRequested(ctx: QueryCtx, { workspace, author }: DeletionRequest) {
+  const request = await ctx.db
+    .query("wordDeletionRequests")
+    .withIndex("by_author", (q) => q.eq("workspace", workspace).eq("author", author))
+    .first();
+  return request !== null;
+}
+
 const authoredArgs = { workspace: v.string(), author: v.string() };
 
 export const forgetAuthoredWords = internalMutation({
