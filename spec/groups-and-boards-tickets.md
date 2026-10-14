@@ -12,17 +12,17 @@ Published on 2026-10-14 as sub-issues of [#52](https://github.com/Silthus/kudos/
 6. [#324](https://github.com/Silthus/kudos/issues/324) The Groups board ranks groups by kudos given per member (GB13, GB14, GB17). Blocked by #318, #321.
 7. [#325](https://github.com/Silthus/kudos/issues/325) The My group board and the peer line (GB15, GB16). Blocked by #324.
 8. [#326](https://github.com/Silthus/kudos/issues/326) Gate: groups behind the `groups` flag. Blocked by #322, #323, #325.
-9. [#327](https://github.com/Silthus/kudos/issues/327) **Ship: slice 1.** Blocked by #318–#326.
+9. [#327](https://github.com/Silthus/kudos/issues/327) **Slice 1 shipped to `main`.** Blocked by #318–#326.
 
 ## Slice 2: the group quest (`group-quest`, branch `spec/group-quest`)
 
 10. [#328](https://github.com/Silthus/kudos/issues/328) Each group gets a weekly group quest (GB21, GB22, GB25). Blocked by #327.
 11. [#329](https://github.com/Silthus/kudos/issues/329) Members finish the group quest together (GB23, GB24, GB36). Blocked by #328.
 12. [#330](https://github.com/Silthus/kudos/issues/330) Gate: the group quest behind the `group-quest` flag. Blocked by #329.
-13. [#331](https://github.com/Silthus/kudos/issues/331) **Ship: slice 2.** Blocked by #328–#330.
+13. [#331](https://github.com/Silthus/kudos/issues/331) **Slice 2 shipped to `main`.** Blocked by #328–#330.
 
 ## Slice 3: the Monday post (`monday-post`, branch `spec/monday-post`)
 
 14. [#332](https://github.com/Silthus/kudos/issues/332) Admins switch on the Monday post (GB28). Blocked by #327.
 15. [#333](https://github.com/Silthus/kudos/issues/333) Gate: the Monday post behind the `monday-post` flag. Blocked by #332.
-16. [#334](https://github.com/Silthus/kudos/issues/334) **Ship: slice 3.** Blocked by #332, #333.
+16. [#334](https://github.com/Silthus/kudos/issues/334) **Slice 3 shipped to `main`.** Blocked by #332, #333.
