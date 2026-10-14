@@ -2,6 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import { everyoneBoardShownIn } from "../leaderboard/flag";
 import { unlockPathShownIn } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
+import type { Feature } from "../unlocks/feature";
 import { unlocksOf, type MemberUnlock } from "../unlocks/unlocks";
 import type { VerifiedMember } from "./memberQuery";
 import { seenKeyOf } from "./seen";
@@ -25,6 +26,12 @@ export async function leaderboardStateOf(ctx: QueryCtx, me: VerifiedMember, path
   if (state === undefined) return { kind: "off" };
   if (state === "locked") return { kind: "locked", level: scheduled("leaderboard").level };
   return { kind: state };
+}
+
+export async function openFeaturesOf(ctx: QueryCtx, me: VerifiedMember): Promise<Feature[]> {
+  const path = await unlockPathOf(ctx, me);
+  if (path !== null) return path.filter(({ state }) => state === "open").map(({ feature }) => feature);
+  return (await leaderboardStateOf(ctx, me, path)).kind === "open" ? ["leaderboard"] : [];
 }
 
 export async function featureCardsOf(me: VerifiedMember, path: UnlockPath): Promise<FeatureCard[] | null> {

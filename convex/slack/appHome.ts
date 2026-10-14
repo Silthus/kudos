@@ -79,9 +79,9 @@ type Unavailable = { kind: "unavailable"; retryAfterMs?: number };
 async function desiredHomeOf(ctx: ActionCtx, home: Home): Promise<{ kind: "view"; view: SlackHomeView } | Unavailable> {
   const facts = await homeFactsOf(ctx, home);
   if (facts.kind === "unavailable") return facts;
-  const shown = await ctx.runMutation(internal.feedback.homes.shownHomeOf, { workspace: home.workspace, user: home.user });
-  const website = await ctx.runQuery(internal.website.link.websiteLinkOf, { workspace: home.workspace, page: { page: "home" } });
-  return { kind: "view", view: homeView(renderHome(facts, shown, website)) };
+  const frontDoor = await ctx.runQuery(internal.website.link.frontDoorLinksOf, { workspace: home.workspace, user: home.user });
+  const shown = await ctx.runMutation(internal.feedback.homes.shownHomeOf, { workspace: home.workspace, user: home.user, frontDoor: frontDoor !== null });
+  return { kind: "view", view: homeView(renderHome(facts, shown, frontDoor)) };
 }
 
 async function changedWhileSent(ctx: ActionCtx, { workspace, user }: Home, sent: SlackHomeView) {
@@ -117,11 +117,16 @@ function blockOf(line: HomeLine) {
   if (line.kind === "action") return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
   if (line.kind === "pick-channel") return { type: "section", text: mrkdwn(line.text), accessory: channelPickerOf(line) };
   if (line.kind === "link") return { type: "section", text: mrkdwn(`<${line.url}|${line.label}>`) };
+  if (line.kind === "links") return { type: "actions", elements: line.links.map(linkButtonOf) };
   return { type: "section", text: mrkdwn(line.text) };
 }
 
 function buttonsOf(choices: Choice[]) {
   return { type: "actions", elements: choices.map(({ selected, ...action }) => ({ ...buttonOf(action), ...(selected && { style: "primary" }) })) };
+}
+
+function linkButtonOf({ label, url }: { label: string; url: string }, index: number) {
+  return { type: "button", text: plainText(label), url, action_id: `website-link-${index}` };
 }
 
 function channelPickerOf({ picks, picked }: Extract<HomeLine, { kind: "pick-channel" }>) {

@@ -40,19 +40,21 @@ type HomeSelection = { tab: HomeTab; period: Period };
 
 const opensOn: HomeSelection = { tab: "profile", period: "week" };
 
-const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices) => boolean }> = [
-  { tab: "leaderboard", shownWith: ({ leaderboard }) => leaderboard },
+type Door = { frontDoor: boolean };
+
+const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices & Door) => boolean }> = [
+  { tab: "leaderboard", shownWith: ({ leaderboard, frontDoor }) => leaderboard && !frontDoor },
   { tab: "settings", shownWith: ({ board, xp }) => board || xp },
   { tab: "admin", shownWith: ({ xp, admin }) => xp && admin },
 ];
 
 export const shownHomeOf = internalMutation({
-  args: { workspace: v.string(), user: v.string() },
-  handler: async (ctx, { workspace, user }): Promise<ShownHome | null> => {
+  args: { workspace: v.string(), user: v.string(), frontDoor: v.boolean() },
+  handler: async (ctx, { workspace, user, frontDoor }): Promise<ShownHome | null> => {
     const person = await lookup(ctx, workspace, user);
     if (person?.kind !== "member") return null;
     const slices = await slicesShownTo(ctx, workspace, person);
-    const tabs = tabsOf(slices);
+    const tabs = tabsOf({ ...slices, frontDoor });
     if (tabs.length === 0) return null;
     const { tab, period } = await selectionOf(ctx, person.member);
     const viewer = { workspace, user, member: person.member };
@@ -61,7 +63,7 @@ export const shownHomeOf = internalMutation({
 });
 
 export async function showHomeTab(ctx: MutationCtx, workspace: string, person: HomeMember, tab: HomeTab) {
-  if (!tabsOf(await slicesShownTo(ctx, workspace, person)).includes(tab)) return;
+  if (!tabsOf({ ...(await slicesShownTo(ctx, workspace, person)), frontDoor: false }).includes(tab)) return;
   await select(ctx, person.member, { ...(await selectionOf(ctx, person.member)), tab });
 }
 
@@ -111,7 +113,7 @@ async function isLeaderboardOpenTo(ctx: QueryCtx, member: MemberId, unlocksShown
   return !unlocksShown || (await isOpened(ctx, member, "leaderboard"));
 }
 
-function tabsOf(slices: Slices): HomeTab[] {
+function tabsOf(slices: Slices & Door): HomeTab[] {
   const besideProfile = tabsBesideProfile.filter(({ shownWith }) => shownWith(slices)).map(({ tab }) => tab);
   return besideProfile.length === 0 ? [] : ["profile", ...besideProfile];
 }
