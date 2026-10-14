@@ -2,8 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { releaseSuccessReply, type QuestDone } from "../feedback/replies";
-import { chatUserOf } from "../workspace/directory";
-import { questsApplyIn, questsShownTo } from "./flag";
+import { questsApplyTo, questsShownTo } from "./flag";
 import { advanceJourney, finishFirstQuestOnWeeklyFinished, journey, journeyOf, type JourneyStepFacts } from "./journey";
 import { advanceWeeklyQuests, weeklyQuestsOf, type WeeklyQuests } from "./weekly";
 
@@ -12,8 +11,7 @@ export type QuestFacts = { journey: JourneyStepFacts[]; week: WeeklyQuests | nul
 export const questsOf = internalQuery({
   args: { member: v.id("members") },
   handler: async (ctx, { member }): Promise<QuestFacts | null> => {
-    const { workspace } = await chatUserOf(ctx, member);
-    if (!(await questsApplyIn(ctx, workspace))) return null;
+    if (!(await questsApplyTo(ctx, member))) return null;
     return { journey: await journeyOf(ctx, member), week: await weeklyQuestsOf(ctx, member, Date.now()) };
   },
 });

@@ -6,6 +6,7 @@ import { levelReachedEventValidator, type LevelReachedEvent } from "../bus/event
 import { threadOf } from "../engine/engine";
 import type { MessageRef } from "../engine/messageEvent";
 import { progressSettingsOf } from "../progression/settings";
+import { questsApplyIn } from "../quests/flag";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
@@ -60,7 +61,7 @@ export async function setPublicSection(ctx: MutationCtx, ref: MessageRef, sectio
 
 async function announceRewardedLevel(ctx: MutationCtx, { workspace, member, level }: LevelReachedEvent, section: PublicSection) {
   const { announcementChannel } = await settingsOf(ctx, workspace);
-  if (announcementChannel === null || (await levelNoticeRow(ctx, member, level)) !== null) return;
+  if (announcementChannel === null || !(await questsApplyIn(ctx, workspace)) || (await levelNoticeRow(ctx, member, level)) !== null) return;
   const notice = { workspace, reached: { member, level }, channel: announcementChannel, sections: [section], version: 1, shown: { state: "posting" as const } };
   await deliver(ctx, await ctx.db.insert("publicReplies", notice));
 }
@@ -70,7 +71,7 @@ export const desired = internalQuery({
   handler: async (ctx, { reply }) => {
     const row = await ctx.db.get(reply);
     if (row === null) return null;
-    if (!(await xpLevelsShownIn(ctx, row.workspace))) return { ...row, sections: [] };
+    if (!(await xpLevelsShownIn(ctx, row.workspace)) || !(await isRewardShownIn(ctx, row))) return { ...row, sections: [] };
     const shown = await Promise.all(row.sections.map((section) => isShownPublicly(ctx, section)));
     return { ...row, sections: row.sections.filter((_, index) => shown[index]) };
   },
@@ -126,6 +127,10 @@ export function linesOf(reply: Pick<Doc<"publicReplies">, "sections">): Line[] {
 
 export function threadTsOf(reply: Doc<"publicReplies">): string | undefined {
   return "threadTs" in reply ? reply.threadTs : undefined;
+}
+
+async function isRewardShownIn(ctx: QueryCtx, row: Doc<"publicReplies">) {
+  return !("reached" in row) || (await questsApplyIn(ctx, row.workspace));
 }
 
 async function isShownPublicly(ctx: QueryCtx, { member }: PublicSection) {

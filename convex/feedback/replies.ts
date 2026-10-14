@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { mentionValidator, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
-import { questsApplyIn, questsExposedTo } from "../quests/flag";
+import { questsApplyTo, questsExposedTo } from "../quests/flag";
 import type { JourneyStep } from "../quests/step";
 import { lookup } from "../workspace/directory";
 import { journeyGoalOf } from "./home";
@@ -61,10 +61,15 @@ export const privateReply = internalQuery({
     const row = await ctx.db.get(reply);
     if (row === null) return null;
     const { questsDone, ...stored } = row;
-    const questsStillApply = questsDone !== undefined && (await questsApplyIn(ctx, row.workspace));
+    const questsStillApply = questsDone !== undefined && (await questsApplyToUser(ctx, row.workspace, row.to));
     return { ...stored, lines: questsStillApply ? [...row.lines, questsDone] : row.lines };
   },
 });
+
+async function questsApplyToUser(ctx: QueryCtx, workspace: string, user: ChatUserId) {
+  const person = await lookup(ctx, workspace, user);
+  return person?.kind === "member" && (await questsApplyTo(ctx, person.member));
+}
 
 function heldReplyOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef) {
   return ctx.db
