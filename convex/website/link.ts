@@ -6,7 +6,7 @@ import type { Feature } from "../unlocks/feature";
 import { scheduled } from "../unlocks/schedule";
 import { lookup } from "../workspace/directory";
 import { websiteOpen } from "./flag";
-import { listedPageOf, routeOf } from "./routes";
+import { listedPageOf, routeOf, type Page } from "./routes";
 import { openFeaturesOf } from "./unlockPath";
 
 export const pageValidator = v.union(
@@ -26,7 +26,7 @@ export const websiteLinkOf = internalQuery({
   returns: v.union(v.string(), v.null()),
   handler: async (ctx, { workspace, page }) => {
     const origin = await websiteOrigin(ctx, workspace);
-    return origin === null ? null : `${origin}${routeOf(page)}`;
+    return origin === null ? null : linkTo(origin, page);
   },
 });
 
@@ -39,13 +39,17 @@ export const frontDoorLinksOf = internalQuery({
     const person = await lookup(ctx, workspace, user);
     const open = person?.kind === "member" ? await openFeaturesOf(ctx, { workspace, user, member: person.member }) : [];
     const pages = open.flatMap((feature) => listedLinkOf(origin, feature));
-    return { home: `${origin}${routeOf({ page: "home" })}`, pages };
+    return { home: linkTo(origin, { page: "home" }), pages };
   },
 });
 
 function listedLinkOf(origin: string, feature: Feature) {
   const page = listedPageOf(feature);
-  return page === null ? [] : [{ label: scheduled(feature).name, url: `${origin}${routeOf(page)}` }];
+  return page === null ? [] : [{ label: scheduled(feature).name, url: linkTo(origin, page) }];
+}
+
+function linkTo(origin: string, page: Page) {
+  return `${origin}${routeOf(page)}`;
 }
 
 async function websiteOrigin(ctx: QueryCtx, workspace: string): Promise<string | null> {
