@@ -131,14 +131,18 @@ The words are the best part of a kudos, and the app has never kept them (R51). S
 - **AT22. Given entry.** `{ kind: "kudosGiven", key, at, recipients, kudos, channel, saidWhy, permalink, message, earned }`, where `kudos` is the kudos each recipient got (`n`, R18).
 - **AT23. Channel.** `{ visibility: "public" | "private" }`, from the kudos text row, and `private` when no row says otherwise. Channel names aren't read: the app has no `channels:read` scope, and the permalink opens the channel.
 - **AT24. Said why.** `saidWhy` is the gate decision recorded with the message's awards when they were given (P11: 5 or more words besides mentions, emoji, channel links and URLs; spec #209 may later change what decides it): `true` or `false`, or `null` when no decision was recorded (kudos replayed by the progression backfill). It is history and never changes when the message is edited. The spotlight uses the stored revision's current gate decision instead (AT2, AT31). Copy follows P94 and P95: the website may say a kudos said why; it never calls one thoughtful.
-- **AT25. Earned.** A given entry's `earned` is `{ xp, questsDone }` or `null`:
-  - `xp` is computed by the same function the success reply's gains line uses (SW2, `giverXpOf` today: base XP), so the timeline and the reply always agree. It includes a perk bonus exactly when the gains line does (#222).
+- **AT25. Earned.** A given entry's `earned` is `{ xp, questsDone, bonuses }` or `null`:
+  - `xp` is computed by the same function the success reply's gains line uses (SW2, `giverXpOf` today: base XP), so the timeline and the reply always agree. It is base XP only: each perk bonus is its own part, as on the gains line (#222).
   - `questsDone` lists each weekly quest or Journey step this message finished, with its goal and reward XP (SW3).
     - A reward record written because a kudos message finished a quest or step now carries that message's ref as its **cause**, as an optional field.
     - The entry reads the giver's reward records by that cause.
     - Rewards finished by a recheck, an activation or a later counted instant without a causing message carry no cause, and attach to no entry.
     - Earlier records have no cause, so earlier kudos show no quests.
-  - Each part follows the member's view at read time by the gains line's own rule (SW5): `xp` only while XP and levels are shown to the member; quests only while quests apply. `earned` is `null` when no part shows.
+  - `bonuses` lists each perk that paid on this message, one entry per perk summed over the message's awards, in the gains line's order: `{ perk: { id, name }, why, xp }` (#337).
+    - `name` is the perk's display name. `why` is one short line from the perk catalogue saying what the bonus pays for, such as "your first kudos of the day that said why" for spark. It never calls a kudos thoughtful (AT24).
+    - The entry reads the bonus lines stored on the giver's effects records for the message's awards, through Progression. It never recomputes a payout, so a perk bought after a kudos never shows on it.
+    - Records written before bonus lines existed hold none, so earlier kudos show no bonuses. There is no backfill.
+  - Each part follows the member's view at read time by the gains line's own rule (SW5): `xp` only while XP and levels are shown to the member; quests only while quests apply; bonuses only while the skill tree applies, as the reply's bonus parts do. `earned` is `null` when no part shows.
 - **AT26. Level-up entry.** `{ kind: "levelUp", at, level }`, only while XP and levels are shown to the member (P76). A level-up recorded before `levelUps` existed has no entry: there is no backfill of level marks.
 - **AT27. The message.** Each kudos entry carries `message`:
   - `{ kind: "text", segments, edited }` while the kudos text row exists and its author is a member (AT7);
