@@ -142,6 +142,40 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(publishedHome(slack, "U_ALICE").slice(0, 2)).toEqual(["actions: [Profile] | Settings", "header: Your kudos"]);
   });
 
+  test("a member who opened the Book and the Skill tree has no tab for either, and buttons to both pages instead", async () => {
+    const t = await workspace(...everyFlag, "achievements", "website");
+    await everyFeatureOpenedAtLevelFive(t);
+
+    await openHome(t, "U_ALICE");
+
+    expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Settings");
+    expect(linkButtonsIn(publishedHomeBlocks(slack, "U_ALICE"))).toEqual([
+      { label: "Open HedgeHug", url: `${siteUrl}/` },
+      { label: "Quests", url: `${siteUrl}/quests` },
+      { label: "Leaderboard", url: `${siteUrl}/leaderboard` },
+      { label: "Book", url: `${siteUrl}/book` },
+      { label: "Skill tree", url: `${siteUrl}/skills` },
+    ]);
+  });
+
+  test.each(["Book", "Skill tree"])("a remembered %s tab opens as Profile once the front door shows, and its tab switch from an earlier view shows Profile", async (tab) => {
+    const t = await workspace(...everyFlag, "achievements");
+    await everyFeatureOpenedAtLevelFive(t);
+    await openHome(t, "U_ALICE");
+    const switchToTab = buttonInHome(slack, "U_ALICE", tab);
+    await send(t, blockActions("U_ALICE", switchToTab));
+    expect(publishedHome(slack, "U_ALICE")[1]).toBe(`header: ${tab}`);
+    await flagsFromPostHog(t, postHog, ...[...everyFlag, "achievements", "website"].map(onForEveryone));
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+
+    await openHome(t, "U_ALICE");
+    const remembered = publishedHome(slack, "U_ALICE").slice(0, 2);
+    await send(t, blockActions("U_ALICE", switchToTab));
+
+    expect(remembered).toEqual(["actions: [Profile] | Settings", "header: Your kudos"]);
+    expect(publishedHome(slack, "U_ALICE").slice(0, 2)).toEqual(["actions: [Profile] | Settings", "header: Your kudos"]);
+  });
+
   test("Settings and Admin are today's tabs, each ending with the link to the website", async () => {
     slack.withMember("U_ALICE", { is_admin: true });
     const t = await workspace("xp-levels", "everyone-board", "website");
@@ -385,6 +419,15 @@ async function levelThreeWithQuestsDrawn(t: Backend) {
 
 async function openReadyFeatures(t: Backend) {
   for (const feature of ["quests", "leaderboard"]) {
+    await send(t, blockActions("U_ALICE", staleButtonOf({ type: "openUnlock", feature })));
+  }
+}
+
+async function everyFeatureOpenedAtLevelFive(t: Backend) {
+  await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+  await xpOf(t, "U_ALICE", 600);
+  for (const level of [2, 3, 4, 5]) await t.mutation(internal.unlocks.unlocks.makeReady, { event: await levelReached(t, "U_ALICE", level) });
+  for (const feature of ["quests", "leaderboard", "book", "skillTree"]) {
     await send(t, blockActions("U_ALICE", staleButtonOf({ type: "openUnlock", feature })));
   }
 }

@@ -1,4 +1,5 @@
 import type { TierId } from "../shell";
+import { metalOf } from "./metal";
 
 const pipsOf: Record<TierId, number> = { bronze: 1, silver: 2, gold: 3, diamond: 4 };
 
@@ -8,7 +9,7 @@ const pipSpacing = 3.6;
 
 export function Medal({ tier, earned }: { tier: TierId; earned: boolean }) {
   const pips = pipsOf[tier];
-  const metal = `var(--medal-${tier})`;
+  const metal = metalOf(tier);
   const ink = earned ? { fill: "var(--card)", stroke: "none" } : { fill: "none", stroke: "var(--muted-foreground)" };
   return (
     <svg data-medal={earned ? "earned" : "outline"} width={28} height={28} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0 overflow-visible">
