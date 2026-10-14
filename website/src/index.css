@@ -103,6 +103,11 @@ body {
   fill-opacity: 1;
 }
 
+.hog-silhouette svg [stroke]:not([stroke="none"]) {
+  stroke: currentColor;
+  stroke-opacity: 1;
+}
+
 .hud-label {
   font-size: 10px;
   line-height: 1.2;
