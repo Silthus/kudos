@@ -1,7 +1,11 @@
 import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalQuery, type MutationCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { mentionValidator, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
+import { questsApplyIn } from "../quests/flag";
+import type { JourneyStep } from "../quests/step";
+import { journeyGoalOf } from "./home";
 
 export const segmentValidator = v.union(v.object({ text: v.string() }), v.object({ mention: mentionValidator }));
 
@@ -21,15 +25,59 @@ export type Reply =
   | { kind: "invalid"; outcome: Invalid }
   | { kind: "accepted-message-edited" };
 
+export type QuestDone = { kind: "journey"; step: JourneyStep } | { kind: "weekly"; goal: string };
+
+export const questsWaitMs = 10_000;
+
 export async function replyPrivately(ctx: MutationCtx, ref: MessageRef, threadRoot: string | undefined, to: ChatUserId, reply: Reply) {
-  const id = await ctx.db.insert("privateReplies", { ...ref, ...(threadRoot && { threadRoot }), to, lines: renderReply(reply) });
-  await ctx.scheduler.runAfter(0, internal.slack.delivery.deliverPrivateReply, { reply: id });
+  const waitsForQuests = reply.kind === "given" && (await questsApplyIn(ctx, ref.workspace));
+  const id = await ctx.db.insert("privateReplies", { ...ref, ...(threadRoot && { threadRoot }), to, lines: renderReply(reply), ...(waitsForQuests && { held: true as const }) });
+  if (waitsForQuests) await ctx.scheduler.runAfter(questsWaitMs, internal.feedback.replies.releaseUnreleased, { reply: id });
+  else await deliver(ctx, id);
 }
+
+export async function releaseSuccessReply(ctx: MutationCtx, message: MessageRef, questsDone: QuestDone[]) {
+  const held = await heldReplyOf(ctx, message);
+  if (held !== null) await release(ctx, held, questsDone.length === 0 ? [] : [questsDoneLine(questsDone)]);
+}
+
+export const releaseUnreleased = internalMutation({
+  args: { reply: v.id("privateReplies") },
+  handler: async (ctx, { reply }) => {
+    const row = await ctx.db.get(reply);
+    if (row?.held === true) await release(ctx, row, []);
+  },
+});
 
 export const privateReply = internalQuery({
   args: { reply: v.id("privateReplies") },
   handler: async (ctx, { reply }) => ctx.db.get(reply),
 });
+
+async function heldReplyOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef) {
+  const replies = await ctx.db
+    .query("privateReplies")
+    .withIndex("by_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
+    .collect();
+  return replies.find(({ held }) => held === true) ?? null;
+}
+
+async function release(ctx: MutationCtx, { _id, lines }: Doc<"privateReplies">, extras: Line[]) {
+  await ctx.db.patch(_id, { held: undefined, lines: [...lines, ...extras] });
+  await deliver(ctx, _id);
+}
+
+async function deliver(ctx: MutationCtx, reply: Id<"privateReplies">) {
+  await ctx.scheduler.runAfter(0, internal.slack.delivery.deliverPrivateReply, { reply });
+}
+
+function questsDoneLine(questsDone: QuestDone[]): Line {
+  return [{ text: questsDone.map((done) => `Quest done: ${withoutFullStop(done.kind === "journey" ? journeyGoalOf(done.step) : done.goal)}`).join(" · ") }];
+}
+
+function withoutFullStop(goal: string) {
+  return goal.endsWith(".") ? goal.slice(0, -1) : goal;
+}
 
 export function renderReply(reply: Reply): Line[] {
   switch (reply.kind) {

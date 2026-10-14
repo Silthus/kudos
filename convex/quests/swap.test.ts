@@ -133,7 +133,7 @@ describe("P81: once a week, a member swaps one unfinished quest for a feasible q
       kudosGivenEventWithAward(ctx, alice!, bob!, { annotations: { gate: { version: 1, thoughtful: true, words: 7 } }, day: "2026-10-14", at: wednesday }),
     );
 
-    await t.mutation(internal.quests.weekly.advanceWeeklyQuests, { event: lateDelivery });
+    await t.mutation(internal.quests.quests.followKudosGiven, { event: lateDelivery });
 
     expect((await questsOf(t))!.week!.slots[1]).toMatchObject({ quest: "say-why-two-days", progress: 0 });
   });

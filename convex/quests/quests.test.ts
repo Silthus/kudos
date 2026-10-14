@@ -34,7 +34,7 @@ afterEach(() => {
 
 describe("P8 P87: a Journey step's reward is recorded once", () => {
   const recordEffects = internal.progression.progression.recordEffects;
-  const followJourney = internal.quests.journey.followJourney;
+  const followJourney = internal.quests.quests.followKudosGiven;
 
   test.each([
     ["progression's recordEffects first", [recordEffects, followJourney]],
@@ -111,7 +111,7 @@ describe("the slice applies only where quests, xp-levels and unlocks all apply",
     flagsOnForEveryone(new FakeSlack().fetch, ...on);
     const { t, alice, bob } = await withMembers();
 
-    await advance(t, await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: saysWhy })));
+    await deliver(t, await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: saysWhy })));
 
     expect(await stored(t)).toEqual({ journeySteps: [], rewardRecords: [] });
     expect(published("questFinished")).toEqual([]);
@@ -121,7 +121,7 @@ describe("the slice applies only where quests, xp-levels and unlocks all apply",
   test("while unlocks is on but hasn't launched in the workspace, a kudos that says why records nothing and questsOf shows nothing, until Unlocks launches", async () => {
     const { t, alice, bob } = await withMembersBeforeUnlocksLaunched();
 
-    await advance(t, await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: saysWhy })));
+    await deliver(t, await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: saysWhy })));
 
     expect(await stored(t)).toEqual({ journeySteps: [], rewardRecords: [] });
     expect(await t.run((ctx) => standingOf(ctx, alice))).toEqual({ xp: 0, level: 1, skillPoints: 0 });
@@ -150,6 +150,10 @@ async function withMembersBeforeUnlocksLaunched() {
 
 async function advance(t: Backend, event: KudosGivenEvent) {
   await t.run((ctx) => advanceJourney(ctx, event, journey));
+}
+
+async function deliver(t: Backend, event: KudosGivenEvent) {
+  await t.mutation(internal.quests.quests.followKudosGiven, { event });
 }
 
 async function questsOf(t: Backend, member: MemberId) {

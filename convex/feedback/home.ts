@@ -180,6 +180,10 @@ const journeyGoals: Record<JourneyStep, { goal: string; condition?: string }> = 
   "someone-new": { goal: "Thank someone you haven't thanked before." },
 };
 
+export function journeyGoalOf(step: JourneyStep) {
+  return journeyGoals[step].goal;
+}
+
 function journeyStepLines({ step, reward, finishedAt, openedAt }: JourneyStepFacts): HomeLine[] {
   const { goal, condition } = journeyGoals[step];
   if (finishedAt !== null) {

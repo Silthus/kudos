@@ -98,7 +98,7 @@ describe("P88 P89: opening Quests or the Leaderboard shows its Journey step, and
     await opened(t, alice, "quests", now.getTime());
     await opened(t, alice, "leaderboard", now.getTime() + minuteMs);
     const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { at: now.getTime() + 2 * minuteMs }));
-    await t.mutation(internal.quests.journey.followJourney, { event });
+    await t.mutation(internal.quests.quests.followKudosGiven, { event });
 
     const journey = (await t.query(internal.quests.quests.questsOf, { member: alice }))!.journey;
 
@@ -140,7 +140,7 @@ describe("P90: a Journey step that opens with a feature counts only what follows
     const madeBefore = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { at: now.getTime() - minuteMs }));
     await opened(t, alice, "leaderboard", now.getTime());
 
-    await t.mutation(internal.quests.journey.followJourney, { event: madeBefore });
+    await t.mutation(internal.quests.quests.followKudosGiven, { event: madeBefore });
 
     expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([]);
   });
@@ -150,7 +150,7 @@ describe("P90: a Journey step that opens with a feature counts only what follows
     [
       "someone-new",
       "leaderboard",
-      async (t: Backend, alice: MemberId, bob: MemberId) => t.mutation(internal.quests.journey.followJourney, { event: await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { at: now.getTime() + minuteMs })) }),
+      async (t: Backend, alice: MemberId, bob: MemberId) => t.mutation(internal.quests.quests.followKudosGiven, { event: await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { at: now.getTime() + minuteMs })) }),
     ],
   ] as const)("%s: what finishes it after the opening still counts when its event is read before the activation's subscriber runs", async (step, feature, finishing) => {
     const { t, alice, bob } = await membersInDirectory();
@@ -270,7 +270,7 @@ describe("P87 P90: a Journey step that opens with a feature finishes once", () =
     await opened(t, alice, "leaderboard", now.getTime());
     const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { at: now.getTime() + minuteMs }));
 
-    for (const delivery of [1, 2]) await t.mutation(internal.quests.journey.followJourney, { event });
+    for (const delivery of [1, 2]) await t.mutation(internal.quests.quests.followKudosGiven, { event });
     await t.run((ctx) => ctx.db.patch(carol, { kind: "not-a-member" }));
     const left = { type: "memberLeft", workspace: "T1", member: carol, at: now.getTime() + 2 * minuteMs } as const;
     for (const delivery of [1, 2]) await t.mutation(internal.quests.journey.recheckSomeoneNew, { event: left });

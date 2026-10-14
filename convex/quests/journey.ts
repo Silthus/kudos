@@ -3,7 +3,6 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import {
-  kudosGivenEventValidator,
   memberLeftEventValidator,
   memberRejoinedEventValidator,
   questFinishedEventValidator,
@@ -46,11 +45,6 @@ export const journeyActivationValidator = v.object({
 
 export type JourneyActivation = Infer<typeof journeyActivationValidator>;
 
-export const followJourney = internalMutation({
-  args: { event: kudosGivenEventValidator },
-  handler: (ctx, { event }) => advanceJourney(ctx, event, journey),
-});
-
 const membersPerRecheck = 100;
 
 export const activateJourney = internalMutation({
@@ -68,9 +62,7 @@ export const activateJourney = internalMutation({
 export const finishFirstQuest = internalMutation({
   args: { event: questFinishedEventValidator },
   handler: async (ctx, { event: { workspace, member, quest, at } }) => {
-    if (quest.kind !== "weekly" || !(await questsApplyIn(ctx, workspace))) return;
-    const firstQuest = await activationOf(ctx, member, "first-quest");
-    if (firstQuest !== null && firstQuest.activatedAt <= at) await finish(ctx, workspace, firstQuest, at);
+    if (quest.kind === "weekly" && (await questsApplyIn(ctx, workspace))) await finishFirstQuestOnWeeklyFinished(ctx, workspace, member, at);
   },
 });
 
@@ -105,22 +97,28 @@ export const recheckSomeoneNewOf = internalMutation({
   },
 });
 
-export async function advanceJourney(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<void> {
-  if (!(await questsApplyIn(ctx, event.workspace))) return;
-  await advanceFirstThanks(ctx, event, catalogue);
-  await advanceSomeoneNew(ctx, event);
+export async function advanceJourney(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<JourneyStep[]> {
+  const finished: JourneyStep[] = [];
+  if (await advanceFirstThanks(ctx, event, catalogue)) finished.push("first-thanks");
+  if (await advanceSomeoneNew(ctx, event)) finished.push("someone-new");
+  return finished;
 }
 
-async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue) {
+export async function finishFirstQuestOnWeeklyFinished(ctx: MutationCtx, workspace: string, member: MemberId, at: number): Promise<boolean> {
+  const firstQuest = await activationOf(ctx, member, "first-quest");
+  return firstQuest !== null && firstQuest.activatedAt <= at && (await finish(ctx, workspace, firstQuest, at));
+}
+
+async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<boolean> {
   const firstThanks = await activated(ctx, event.giver, "first-thanks", event.at, catalogue);
-  if (gateDecisionOf(event.annotations)?.thoughtful === true) await finish(ctx, event.workspace, firstThanks, event.at);
+  return gateDecisionOf(event.annotations)?.thoughtful === true && (await finish(ctx, event.workspace, firstThanks, event.at));
 }
 
-async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent) {
+async function advanceSomeoneNew(ctx: MutationCtx, event: KudosGivenEvent): Promise<boolean> {
   const someoneNew = await activationOf(ctx, event.giver, "someone-new");
-  if (someoneNew === null || event.at < someoneNew.activatedAt || (await isFinished(ctx, someoneNew))) return;
+  if (someoneNew === null || event.at < someoneNew.activatedAt || (await isFinished(ctx, someoneNew))) return false;
   const lastThanked = await lastThankedBefore(ctx, event.awards);
-  if ([...lastThanked.values()].includes(null)) await finish(ctx, event.workspace, someoneNew, event.at);
+  return [...lastThanked.values()].includes(null) && (await finish(ctx, event.workspace, someoneNew, event.at));
 }
 
 async function recheckLater(ctx: MutationCtx, workspace: string, member: MemberId, at: number) {
@@ -191,9 +189,11 @@ async function activated(ctx: MutationCtx, member: MemberId, step: JourneyStep, 
   return activation;
 }
 
-async function finish(ctx: MutationCtx, workspace: string, { member, step, reward, catalogueVersion }: JourneyActivation, at: number) {
+async function finish(ctx: MutationCtx, workspace: string, { member, step, reward, catalogueVersion }: JourneyActivation, at: number): Promise<boolean> {
   const quest: JourneyQuest = { kind: "journey", step };
-  if (await finishQuest(ctx, workspace, member, quest, { reward, catalogueVersion }, at)) await notifyQuestFinished(ctx, member, quest, reward.xp);
+  if (!(await finishQuest(ctx, workspace, member, quest, { reward, catalogueVersion }, at))) return false;
+  await notifyQuestFinished(ctx, member, quest, reward.xp);
+  return true;
 }
 
 function activationOf(ctx: QueryCtx, member: MemberId, step: JourneyStep) {

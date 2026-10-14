@@ -109,7 +109,8 @@ export default defineSchema({
     threadRoot: v.optional(v.string()),
     to: v.string(),
     lines: v.array(v.array(segmentValidator)),
-  }),
+    held: v.optional(v.literal(true)),
+  }).index("by_message", ["workspace", "conversation", "message"]),
 
   publicReplies: defineTable(publicReplyValidator)
     .index("by_destination", ["workspace", "conversation", "message", "channel", "threadTs"])

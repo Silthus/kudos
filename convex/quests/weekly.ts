@@ -1,7 +1,7 @@
 import { v, type Infer } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { kudosGivenEventValidator, unlockOpenedEventValidator, type KudosGivenEvent } from "../bus/events";
+import { unlockOpenedEventValidator, type KudosGivenEvent } from "../bus/events";
 import { allowanceDay, allowanceLeft } from "../engine/allowance";
 import { awardIdValidator, lastThankedBefore, lastThankedBy } from "../engine/awards";
 import { republish } from "../feedback/homes";
@@ -67,21 +67,23 @@ export const drawWeeklyQuests = internalMutation({
   },
 });
 
-export const advanceWeeklyQuests = internalMutation({
-  args: { event: kudosGivenEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
-    if (!(await questsApplyIn(ctx, event.workspace))) return;
-    let shownChanged = (await drawWhenDue(ctx, event.giver, Date.now())) === "drawn";
-    const draw = await drawOf(ctx, event.giver, weekKeyOfDay(event.day));
-    if (draw !== null) {
-      const swap = await swapOf(ctx, draw.member, draw.week);
-      const open = (await unfinishedSlotsOf(ctx, draw, slotsOf(draw, swap))).filter((slot) => event.at >= countsFrom(draw, swap, slot));
-      const awards = open.length === 0 ? [] : await questAwardsOf(ctx, event);
-      for (const slot of open) shownChanged = (await advanceSlot(ctx, event, draw, slot, awards)) || shownChanged;
+export async function advanceWeeklyQuests(ctx: MutationCtx, event: KudosGivenEvent): Promise<string[]> {
+  let shownChanged = (await drawWhenDue(ctx, event.giver, Date.now())) === "drawn";
+  const finishedGoals: string[] = [];
+  const draw = await drawOf(ctx, event.giver, weekKeyOfDay(event.day));
+  if (draw !== null) {
+    const swap = await swapOf(ctx, draw.member, draw.week);
+    const open = (await unfinishedSlotsOf(ctx, draw, slotsOf(draw, swap))).filter((slot) => event.at >= countsFrom(draw, swap, slot));
+    const awards = open.length === 0 ? [] : await questAwardsOf(ctx, event);
+    for (const slot of open) {
+      const advanced = await advanceSlot(ctx, event, draw, slot, awards);
+      if (advanced === "finished") finishedGoals.push(questOf(slot.quest).goal);
+      shownChanged = advanced !== "unchanged" || shownChanged;
     }
-    if (shownChanged) await republish(ctx, event.giver);
-  },
-});
+  }
+  if (shownChanged) await republish(ctx, event.giver);
+  return finishedGoals;
+}
 
 export const drawNewWeek = internalMutation({
   args: { member: v.id("members") },
@@ -164,19 +166,20 @@ async function isFinished(ctx: QueryCtx, { member, week }: Draw, slot: Slot): Pr
   return (await rewardOf(ctx, member, rewardKeyOf(weeklyQuest(week, slot)))) !== null;
 }
 
-async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, week }: Draw, slot: Slot, awards: QuestAward[]): Promise<boolean> {
+async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, week }: Draw, slot: Slot, awards: QuestAward[]): Promise<"unchanged" | "advanced" | "finished"> {
   const quest = weeklyQuest(week, slot);
   const pooled = questOf(slot.quest);
   const counted = await countedFor(ctx, member, week, slot);
   const fresh = awards.filter((award) => counts(pooled, award) && !counted.some((earlier) => earlier.award === award.award));
-  if (fresh.length === 0) return false;
+  if (fresh.length === 0) return "unchanged";
   for (const { award, recipient, day, at } of fresh) await ctx.db.insert("questProgress", { member, week, slot: slot.slot, quest: slot.quest, award, recipient, day, at });
   const before = questProgress(pooled, counted);
   const after = questProgress(pooled, [...counted, ...fresh]);
   if (after === pooled.progress.target && (await finishQuest(ctx, event.workspace, member, quest, slot, event.at))) {
     await notifyWeeklyQuestFinished(ctx, member, quest, pooled.goal, slot.reward.xp);
+    return "finished";
   }
-  return after !== before;
+  return after === before ? "unchanged" : "advanced";
 }
 
 async function questAwardsOf(ctx: QueryCtx, { awards, annotations, day, at }: KudosGivenEvent): Promise<QuestAward[]> {

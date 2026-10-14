@@ -98,7 +98,7 @@ describe("P80 P84: a new week's quests count every award from the week's start, 
 
     if (sweep === "first") await sweepAt(t, mondayInAuckland + 10 * minuteMs);
     vi.setSystemTime(Math.max(Date.now(), at + 1000));
-    for (const delivery of [1, 2]) await t.mutation(internal.quests.weekly.advanceWeeklyQuests, { event });
+    for (const delivery of [1, 2]) await t.mutation(internal.quests.quests.followKudosGiven, { event });
     if (sweep !== "never") await sweepAt(t, mondayInAuckland + 10 * minuteMs);
 
     expect(await countedWeeksOf(t, alice)).toEqual([countedWeek, countedWeek, countedWeek]);
@@ -110,7 +110,7 @@ describe("P80 P84: a new week's quests count every award from the week's start, 
     const event = await given(t, alice, carol, mondayInAuckland + 30_000);
 
     await openQuests(t, [alice], mondayInAuckland + 10 * minuteMs);
-    await t.mutation(internal.quests.weekly.advanceWeeklyQuests, { event });
+    await t.mutation(internal.quests.quests.followKudosGiven, { event });
 
     expect(await countedWeeksOf(t, alice)).toEqual([]);
   });
@@ -132,7 +132,7 @@ describe("P80: a new week is drawn from the facts at its start, whenever the dra
     const event = await given(onDemand.t, onDemand.alice, onDemand.carol, mondayInAuckland + 30_000);
     await spent(onDemand.t, onDemand.alice, "2026-10-19", 1);
     vi.setSystemTime(mondayInAuckland + 10 * minuteMs);
-    await onDemand.t.mutation(internal.quests.weekly.advanceWeeklyQuests, { event });
+    await onDemand.t.mutation(internal.quests.quests.followKudosGiven, { event });
 
     const drawnBySweep = await drawOfWeek(swept.t, swept.alice, thisWeek);
     expect(drawnBySweep.drawnAt).toBe(mondayInAuckland);
@@ -150,7 +150,7 @@ describe("P80: a new week is drawn from the facts at its start, whenever the dra
       if (!onDemand) await sweepAt(t, mondayInAuckland + 10 * minuteMs);
       const events = [await given(t, alice, bob, mondayInAuckland + afterStart), await given(t, alice, carol, mondayInAuckland + afterStart)];
       vi.setSystemTime(mondayInAuckland + 10 * minuteMs);
-      for (const event of events) await t.mutation(internal.quests.weekly.advanceWeeklyQuests, { event });
+      for (const event of events) await t.mutation(internal.quests.quests.followKudosGiven, { event });
       drawn.push(await drawOfWeek(t, alice, thisWeek));
     }
     expect(drawn[0]!.slots).toEqual(expect.arrayContaining([expect.objectContaining({ quest: expect.stringMatching(/^(someone-new|two-new|not-in-30-days)$/) })]));
@@ -166,7 +166,7 @@ describe("P80: a new week is drawn from the facts at its start, whenever the dra
     const event = await given(t, alice, carol, sundayInAuckland);
     await spent(t, alice, "2026-10-25", 1);
     vi.setSystemTime(sundayInAuckland + 1000);
-    await t.mutation(internal.quests.weekly.advanceWeeklyQuests, { event });
+    await t.mutation(internal.quests.quests.followKudosGiven, { event });
 
     expect((await drawOfWeek(t, alice, thisWeek)).slots).toHaveLength(3);
     expect(await countedWeeksOf(t, alice)).toContain(thisWeek);

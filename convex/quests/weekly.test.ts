@@ -2,9 +2,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, buttonInHome, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { replyPrivately } from "../feedback/replies";
 import type { QuestId } from "./pool";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -27,7 +28,7 @@ beforeEach(() => {
   vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
-  slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB");
+  slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB").withMember("U_CAROL");
   flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "quests");
   sentMessages = 0;
 });
@@ -125,16 +126,79 @@ describe("P84 P85 P63: a member's kudos finish a weekly quest, recorded at once 
     ]);
     expect(questsIn(publishedHome(slack, "U_ALICE"))[1]).toBe(`section: ✅ ${twoDays} You earned *20 XP*.`);
   });
-
-  async function openedQuests(quests: QuestId[]) {
-    const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
-    await openHome(t, "U_ALICE");
-    await drawFor(t, "U_ALICE", quests);
-    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
-    return t;
-  }
 });
+
+describe("P71: the success reply names the quests its kudos finished", () => {
+  const twoTimesDone = "Quest done: Thank someone and say why, 2 times";
+
+  test("the kudos that finishes a weekly quest or a Journey step names it in its success reply, and every other kudos names none", async () => {
+    const t = await openedQuests(["say-why-twice", "say-why-three-days", "two-new"]);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", "thanks");
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await giveKudos(t, "U_ALICE", "U_CAROL", saysWhy);
+    await giveKudos(t, "U_ALICE", "U_CAROL", saysWhy);
+
+    expect(successRepliesTo("U_ALICE")).toEqual([
+      ["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "Quest done: Give a kudos that says why"],
+      ["<@U_BOB> got 1 kudos from you. You have 8 kudos left today."],
+      ["<@U_BOB> got 1 kudos from you. You have 7 kudos left today."],
+      ["<@U_CAROL> got 1 kudos from you. You have 6 kudos left today.", twoTimesDone],
+      ["<@U_CAROL> got 1 kudos from you. You have 5 kudos left today."],
+    ]);
+  });
+
+  test("two quick kudos that together finish a quest name it in exactly one reply, the one whose award finished it", async () => {
+    const t = await openedQuests(["say-why-twice", "say-why-three-days", "two-new"]);
+
+    await sendKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await sendKudos(t, "U_ALICE", "U_CAROL", saysWhy);
+    await settleInTimeOrder(t);
+
+    const naming = successRepliesTo("U_ALICE").filter((lines) => lines.includes(twoTimesDone));
+    expect(naming).toHaveLength(1);
+    expect(naming[0]![0]).toMatch(new RegExp(`^<@${await finishingRecipientOf(t)}> got 1 kudos from you`));
+  });
+
+});
+
+describe("P71 R36: a success reply held for Quests is never lost", () => {
+  test("while quests is off, the success reply is today's, and the kudos' own request schedules its delivery", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks");
+    const t = await workspace();
+
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+
+    await sendKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    expect(await pendingDeliveries(t)).toEqual(["slack/delivery:deliverPrivateReply"]);
+    await settle(t);
+
+    expect(successRepliesTo("U_ALICE")).toEqual([["<@U_BOB> got 1 kudos from you. You have 9 kudos left today."], ["<@U_BOB> got 1 kudos from you. You have 8 kudos left today."]]);
+  });
+
+  test("a success reply held for Quests that nobody releases goes out unchanged 10 seconds later", async () => {
+    const t = await workspace();
+    const ref = { workspace: "T1", conversation: "C1", message: "1760349600.000100" };
+    const given = { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [] };
+
+    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: given, base: 10 }));
+    vi.advanceTimersByTime(9_999);
+    await t.finishInProgressScheduledFunctions();
+    expect(slack.ephemeralsTo("U_ALICE")).toEqual([]);
+    await settle(t);
+
+    expect(successRepliesTo("U_ALICE")).toEqual([["<@U_BOB> got 1 kudos from you. You have 9 kudos left today."]]);
+  });
+});
+
+async function openedQuests(quests: QuestId[]) {
+  const t = await workspace();
+  await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+  await openHome(t, "U_ALICE");
+  await drawFor(t, "U_ALICE", quests);
+  await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+  return t;
+}
 
 async function drawFor(t: Backend, user: string, quests: QuestId[]) {
   const slots = quests.map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
@@ -159,10 +223,31 @@ async function workspace() {
 }
 
 async function giveKudos(t: Backend, giver: string, recipient: string, words: string, at = now.getTime()) {
+  await sendKudos(t, giver, recipient, words, at);
+  await settleInTimeOrder(t);
+}
+
+async function sendKudos(t: Backend, giver: string, recipient: string, words: string, at = now.getTime()) {
   sentMessages += 1;
   const blocks = [section(mention(recipient), text(` ${words} `), emoji("taco"))];
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${at / 1000 + sentMessages}.000100` })));
-  await settle(t);
+}
+
+function successRepliesTo(user: string) {
+  return slack.ephemeralsTo(user).map(({ text }) => String(text).split("\n"));
+}
+
+async function finishingRecipientOf(t: Backend) {
+  return t.run(async (ctx) => {
+    const counted = await ctx.db.query("questProgress").collect();
+    const finishing = counted.filter(({ quest }) => quest === "say-why-twice").at(-1)!;
+    return (await ctx.db.get(finishing.recipient))!.user;
+  });
+}
+
+async function pendingDeliveries(t: Backend) {
+  const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return jobs.filter(({ name, state }) => name.startsWith("slack/delivery:deliverPrivate") && state.kind === "pending").map(({ name }) => name);
 }
 
 async function openHome(t: Backend, user: string) {

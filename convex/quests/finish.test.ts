@@ -21,7 +21,10 @@ const dayMs = 24 * hourMs;
 const weekMs = 7 * dayMs;
 const saysWhy = { gate: { version: 1, thoughtful: true, words: 7 } };
 const doesNotSayWhy = { gate: { version: 1, thoughtful: false, words: 1 } };
-const advance = internal.quests.weekly.advanceWeeklyQuests;
+const kudosXp = 10;
+const weeklyQuestXp = 20;
+const firstThanksXp = 10;
+const advance = internal.quests.quests.followKudosGiven;
 const recordEffects = internal.progression.progression.recordEffects;
 
 beforeEach(() => {
@@ -40,7 +43,7 @@ afterEach(() => {
 describe("P84 P87: a weekly quest's progress and finish are recorded once", () => {
   test.each([
     ["progression's recordEffects first", [recordEffects, advance]],
-    ["the weekly quests' subscriber first", [advance, recordEffects]],
+    ["Quests' subscriber first", [advance, recordEffects]],
   ] as const)("the same kudosGiven delivered twice, %s, counts once and finishes once with one 20 XP reward record", async (_, subscribers) => {
     const { t, alice, bob } = await workspace();
     await drawn(t, alice, ["say-why", "say-why-twice", "say-why-three-times"]);
@@ -51,9 +54,9 @@ describe("P84 P87: a weekly quest's progress and finish are recorded once", () =
     }
     await settle(t);
 
-    expect(await rewardRecords(t)).toEqual([{ key: "weekly:2026-10-12:0", xp: 20, coins: 0, item: null, catalogueVersion: "1", at: event.at }]);
-    expect(await t.run((ctx) => standingOf(ctx, alice))).toEqual({ xp: 30, level: 2, skillPoints: 0 });
-    expect(published("questFinished")).toEqual([{ type: "questFinished", workspace: "T1", member: alice, quest: { kind: "weekly", week: "2026-10-12", slot: 0 }, at: event.at }]);
+    expect(await weeklyRewardRecords(t)).toEqual([{ key: "weekly:2026-10-12:0", xp: 20, coins: 0, item: null, catalogueVersion: "1", at: event.at }]);
+    expect(await t.run((ctx) => standingOf(ctx, alice))).toEqual({ xp: kudosXp + weeklyQuestXp + firstThanksXp, level: 2, skillPoints: 0 });
+    expect(publishedWeeklyFinishes()).toEqual([{ type: "questFinished", workspace: "T1", member: alice, quest: { kind: "weekly", week: "2026-10-12", slot: 0 }, at: event.at }]);
     expect(await progressOf(t, alice)).toEqual([
       { quest: "say-why", progress: 1, finishedAt: event.at, openedAt: null },
       { quest: "say-why-twice", progress: 1, finishedAt: null, openedAt: null },
@@ -68,8 +71,8 @@ describe("P84 P87: a weekly quest's progress and finish are recorded once", () =
     await t.mutation(advance, { event: await given(t, alice, bob, { annotations: saysWhy }) });
     await t.mutation(advance, { event: await given(t, alice, carol, { annotations: saysWhy, message: messageAt(2) }) });
 
-    expect((await rewardRecords(t)).map(({ key }) => key)).toEqual(["weekly:2026-10-12:0", "weekly:2026-10-12:1"]);
-    expect(published("questFinished")).toHaveLength(2);
+    expect((await weeklyRewardRecords(t)).map(({ key }) => key)).toEqual(["weekly:2026-10-12:0", "weekly:2026-10-12:1"]);
+    expect(publishedWeeklyFinishes()).toHaveLength(2);
     expect((await progressOf(t, alice)).map(({ progress }) => progress)).toEqual([1, 2, 2]);
   });
 
@@ -117,7 +120,7 @@ describe("P84: progress counts only awards after the draw and within its week", 
 
     await t.mutation(advance, { event: await given(t, alice, bob, { annotations: saysWhy, at, day }) });
 
-    expect(await rewardRecords(t)).toEqual([]);
+    expect(await weeklyRewardRecords(t)).toEqual([]);
     expect((await progressOf(t, alice)).map(({ progress }) => progress)).toEqual([0, 0, 0]);
   });
 
@@ -127,7 +130,7 @@ describe("P84: progress counts only awards after the draw and within its week", 
     await t.mutation(advance, { event: await given(t, alice, bob, { annotations: saysWhy }) });
 
     expect(await t.run((ctx) => ctx.db.query("questProgress").collect())).toEqual([]);
-    expect(await rewardRecords(t)).toEqual([]);
+    expect(await weeklyRewardRecords(t)).toEqual([]);
   });
 });
 
@@ -140,7 +143,7 @@ describe("the slice applies only where quests, xp-levels and unlocks all apply",
     await t.mutation(advance, { event: await given(t, alice, bob, { annotations: saysWhy }) });
 
     expect(await t.run((ctx) => ctx.db.query("questProgress").collect())).toEqual([]);
-    expect(await rewardRecords(t)).toEqual([]);
+    expect(await weeklyRewardRecords(t)).toEqual([]);
   });
 });
 
@@ -193,8 +196,9 @@ function messageAt(sequence: number) {
   return { workspace: "T1", conversation: "C1", message: `1760349600.00010${sequence}` };
 }
 
-async function rewardRecords(t: Backend) {
-  return t.run(async (ctx) => (await ctx.db.query("rewardRecords").collect()).map(({ key, xp, coins, item, catalogueVersion, at }) => ({ key, xp, coins, item, catalogueVersion, at })));
+async function weeklyRewardRecords(t: Backend) {
+  const records = await t.run((ctx) => ctx.db.query("rewardRecords").collect());
+  return records.filter(({ key }) => key.startsWith("weekly:")).map(({ key, xp, coins, item, catalogueVersion, at }) => ({ key, xp, coins, item, catalogueVersion, at }));
 }
 
 async function progressOf(t: Backend, member: MemberId) {
@@ -207,4 +211,8 @@ function published<T extends DomainEvent["type"]>(type: T) {
     .mocked(publish)
     .mock.calls.map(([, event]) => event)
     .filter((event): event is Extract<DomainEvent, { type: T }> => event.type === type);
+}
+
+function publishedWeeklyFinishes() {
+  return published("questFinished").filter((event) => event.type === "questFinished" && event.quest.kind === "weekly");
 }
