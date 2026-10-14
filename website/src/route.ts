@@ -23,8 +23,8 @@ export function routeOf({ pathname, search }: { pathname: string; search: string
 }
 
 export function withoutTheSignInEntry(pathname: string) {
-  if (pathname === signInEntry) return "/";
-  return pathname.startsWith(`${signInEntry}/`) ? pathname.slice(signInEntry.length) : pathname;
+  if (pathname !== signInEntry && !pathname.startsWith(`${signInEntry}/`)) return pathname;
+  return `/${pathname.slice(signInEntry.length).replace(/^\/+/, "")}`;
 }
 
 export function hrefOf(route: Route) {
