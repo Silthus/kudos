@@ -2,7 +2,7 @@
 
 > **Accepted on 2026-10-14 under the product owner's autonomous directive** (map [#57](https://github.com/Silthus/kudos/issues/57) Notes: "ship as much as you can of this autonomously proofing each step and deploying dark and safely behind feature flags"), with every open call at its recommendation (listed under "Further Notes"). Ticket [#233](https://github.com/Silthus/kudos/issues/233). This file lives on the branch `docs/spec-website-6` and is never merged. Its rules start at `WS200`, so they never collide with the fifth slice's (`WS97` onward, [`spec/website-5.md`](https://github.com/Silthus/kudos/blob/docs/spec-website-5/spec/website-5.md) on `docs/spec-website-5`, written in parallel by [#231](https://github.com/Silthus/kudos/issues/231)). `WS1`–`WS28` are in [`spec/website.md`](https://github.com/Silthus/kudos/blob/docs/spec-website/spec/website.md), `WS29`–`WS54` in [`spec/website-2.md`](https://github.com/Silthus/kudos/blob/docs/spec-website-2/spec/website-2.md), `WS55`–`WS77` in [`spec/website-3.md`](https://github.com/Silthus/kudos/blob/docs/spec-website-3/spec/website-3.md) and `WS78`–`WS96` in [`spec/website-4.md`](https://github.com/Silthus/kudos/blob/docs/spec-website-4/spec/website-4.md). All of them still hold, except where a rule below names the one it changes.
 >
-> Sources: the product owner's two decisions of 2026-10-14 (quoted under "Further Notes"); **map #1's contract**, [`spec/activity-timeline.md`](https://github.com/Silthus/kudos/blob/a437599/spec/activity-timeline.md) at `a437599` on `docs/activity-timeline`, section "The contract for the website (#233)", rules `AT1`–`AT40` ([#232](https://github.com/Silthus/kudos/issues/232)); the code on `main` at `2f30796` (`website/src/route.ts`, `convex/website/routes.ts`, `website/src/LiveApp.tsx`, `website/src/home/`, `website/src/leaderboard/SidePanels.tsx`, `website/src/SlackLink.tsx`, `website/src/Face.tsx`); the fifth slice's spec at `90b1ed0` (WS97, WS107, WS108: the slot under `What teammates see`); the visual language ([`docs/website/visual-language.md`](https://github.com/Silthus/kudos/blob/main/docs/website/visual-language.md), V1–V24, especially V9, V14, V19 and V24); the accepted prototype #62's variant E (`prototype/website-ui` at `3409ade`) for the visual language; and the progression spec of record (`docs/spec-progression-v2` at `4bfc420`: P76, P94, P95).
+> Sources: the product owner's two decisions of 2026-10-14 (quoted under "Further Notes"); **map #1's contract**, [`spec/activity-timeline.md`](https://github.com/Silthus/kudos/blob/6a088dc/spec/activity-timeline.md) at `6a088dc` on `docs/activity-timeline` (the conductor moved this spec from `a437599` after #232's review), section "The contract for the website (#233)", rules `AT1`–`AT40` ([#232](https://github.com/Silthus/kudos/issues/232)); the code on `main` at `2f30796` (`website/src/route.ts`, `convex/website/routes.ts`, `website/src/LiveApp.tsx`, `website/src/home/`, `website/src/leaderboard/SidePanels.tsx`, `website/src/SlackLink.tsx`, `website/src/Face.tsx`); the fifth slice's spec at `b836797` (WS97, WS107, WS108: the slot under `What teammates see`); the visual language ([`docs/website/visual-language.md`](https://github.com/Silthus/kudos/blob/main/docs/website/visual-language.md), V1–V24, especially V9, V14, V19 and V24); the accepted prototype #62's variant E (`prototype/website-ui` at `3409ade`) for the visual language; and the progression spec of record (`docs/spec-progression-v2` at `4bfc420`: P76, P94, P95).
 
 ## Problem Statement
 
@@ -60,13 +60,13 @@ The words are shown exactly as they were written, as text: a message never becom
 
 - **WS200. Three reads, exactly #232's.** The website calls only the three queries #232's contract defines, with exactly its arguments and answer shapes, and adds no backend read of its own:
   - `getRecentKudos({ direction, limit: 3 })` feeds the last-kudos card (WS205);
-  - `getActivity({ filter, cursor, limit: 20 })` feeds the Activity tab (WS210);
-  - `getSpotlight({ seed })`, then `getSpotlight({ after })`, feeds the spotlight (WS219).
+  - `getActivity({ filter, cursor, limit: 20 })` feeds the Activity tab (WS212);
+  - `getSpotlight({ seed })`, then `getSpotlight({ after })`, feeds the spotlight (WS219), calling again at once on `skipped`.
 
   Each answers a `Denial` (WS11) or `{ kind: "not-found" }` first. The website's TypeScript types for the answers are imported from `convex/website/`, the way `shell.ts` imports `QuestsAnswer` today, never redeclared. A fact the website needs and the contract lacks is a cross-map need, never derived in `website/`.
 - **WS201. The flag shows itself through the reads.** The `activity` flag (PostHog 958437) is read by #232's queries through the member decision (AT37). The website reads no flag and gains no field on `getMyProfile`. Each surface shows only while its own read answers its content kind:
   - while `getRecentKudos` answers `not-found` (or hasn't answered yet), the last-kudos card renders nothing and leaves no gap, as WS108 reserves;
-  - while it answers `not-found`, the home shows no `Character`/`Activity` tabs (WS203);
+  - while it answers `not-found`, the home shows no `Character`/`Activity` tabs (WS204);
   - while `getActivity` answers `not-found`, `/activity` shows the not-found page (WS1);
   - while `getSpotlight` answers `not-found`, the leaderboard page has no spotlight panel.
 
@@ -84,12 +84,12 @@ The words are shown exactly as they were written, as text: a message never becom
 
 ### The last-kudos card
 
-- **WS205. Its place.** The card sits in the home's right rail directly under `What teammates see` (WS108's reserved slot) and above the Quests and Leaderboard panels (WS97). Until the fifth slice's rail lands on `main`, it sits directly under today's `Your profile card` panel, the same place; whichever of the two pull requests merges second keeps both. On narrow screens it follows the rail's order after the main column (WS97).
+- **WS205. Its place.** The card sits in the home's right rail directly under `What teammates see` (WS108's reserved slot) and above the Quests and Leaderboard panels (WS97). The rail is built by the fifth slice's #238 (after #236 and #237), so the card's ticket waits for #238 on `main` and puts the card in the slot it leaves. On narrow screens it follows the rail's order after the main column (WS97).
 - **WS206. Its frame.** A plain Quill card (a reading surface, no corner marks, V2) labelled `Recent kudos`, with `Only you see these` and a lock glyph at its right, the leaderboard's private-panel label (WS45). Under the label, a two-way switch, `Received` and `Given`, built as Quill's toggle group with radio semantics (one is always selected, arrow keys move between them). `Received` is selected on every page load; the choice isn't kept.
 - **WS207. Its rows.** It reads `getRecentKudos({ direction, limit: 3 })` through the page's own subscription and lists the entries in the read's order, each a row with:
   - **received:** the giver's face (V19) and `{giver} thanked you`;
   - **given:** the first recipient's face, with up to two more stacked behind it, and `You thanked {names}` (WS209's list);
-  - the words, clamped to two lines (WS211), with `Edited` after them when edited;
+  - the words, clamped to two lines with links shown as text (WS211), with `Edited` after them when edited;
   - when, as a `<time>`: `Today`, `Yesterday` or a short date (`12 Oct`), in the browser's time zone, because this read carries none;
   - no XP, quest, `Said why` tag, channel or Slack link: the card is brief, and the Activity tab holds the rest.
 
@@ -99,7 +99,7 @@ The words are shown exactly as they were written, as text: a message never becom
   - **Given:** `Kudos you give show here, with what each one earned.`
 
   `See all activity` still shows once it exists (WS207).
-- **WS209. People are named as #232 names them.** Every person shown is a `Person` (`{ name, face }`, AT20): `name` as given (`A teammate` for one who left), `face` through the existing `MemberFace`, initials until the directory's display fields arrive (cross-map need 2). A list of names reads `Ana`, `Ana and Ben`, `Ana, Ben and Cleo`, or `Ana, Ben and 3 others` beyond three, built with `Intl.ListFormat` in the browser's language. The member is never shown as a `Person`; the copy says `you`.
+- **WS209. People are named as #232 names them.** Every person shown is a `Person` (`{ name, face }`, AT20): `name` as given (`A teammate` for one who left), `face` through the existing `MemberFace`, initials until the directory's pictures arrive (cross-map need 2). A list of names reads `Ana`, `Ana and Ben`, `Ana, Ben and Cleo`, or `Ana, Ben and 3 others` beyond three, built with `Intl.ListFormat` in the browser's language. On the card and the timeline the member's own role is the entry's kind, so the copy says `you` for them. The spotlight's people carry no identity, so it shows every `Person` exactly as supplied, the member included.
 
 ### The kudos message
 
@@ -111,12 +111,12 @@ The words are shown exactly as they were written, as text: a message never becom
     - `channel`: `#channel`, muted, because #232 reads no channel names (AT23);
     - `broadcast`: `@here`, `@channel` or `@everyone`;
     - `emoji`: its `unicode` when present, else `:{name}:` as text (custom emoji images aren't loaded);
-    - `link`: a link only when its URL parses with the `http:` or `https:` scheme, opened in a new tab with `rel="noreferrer"` and an `(opens in a new tab)` hint, showing its `label` or else its URL; any other scheme renders the label or URL as plain text;
+    - `link`: on the timeline and the spotlight, a link only when its URL parses with the `http:` or `https:` scheme, opened in a new tab with `rel="noreferrer"` and an `(opens in a new tab)` hint, showing its `label` or else its URL; any other scheme renders the label or URL as plain text. On the card every link segment renders as text, so nothing focusable hides behind the clamp (WS211);
     - `break`: a line break.
   - **`unavailable`** renders one muted italic line instead of words: `deleted` → `This message was deleted in Slack.`, `removed` → `The words of this message were removed.`, `not-captured` → `The words of this kudos are from before HedgeHug kept them.`
   - **`edited`** adds a muted `Edited` after the words.
   - An unknown segment kind renders nothing.
-- **WS211. Clamping.** The card clamps the words to two lines with CSS line clamping, so a screen reader still reads them all. The timeline and the spotlight show the whole message.
+- **WS211. Clamping.** The card clamps the words to two lines with CSS line clamping, so a screen reader still reads them all, and asks `KudosMessage` for text-only links, so no focus target sits in the clipped part. The timeline and the spotlight show the whole message with live links.
 
 ### The Activity tab
 
@@ -131,37 +131,44 @@ The words are shown exactly as they were written, as text: a message never becom
   - **Level-up mark:** a neutral marker on the rule, the level number in RoundHog inside a small ring, and `You reached level {level}`. It is a mark, not a moment: no animation, band or Replay (V10, V12 stay with Slack's deep links).
 
   Copy never calls a kudos thoughtful, never says the app checked a reason, and never asks the member to send more or to pad a message (P95). `Said why` is the only wording for `saidWhy`.
-- **WS214. Pages and freshness.** The timeline holds a list of pages, each one `getActivity` subscription with a fixed cursor:
-  - **The first page** asks with `cursor: null`. Its first answer is kept as the shown first page, and the cursor it answers is fixed as the second page's.
-  - **Each later page** asks with the cursor the previous page answered when it was first loaded, and stays subscribed, so an edit or deletion in Slack updates the entry in place.
-  - **The live first page** stays subscribed too. Each shown first-page entry is replaced by its live twin (same identity, WS215) as it changes. While the live first page's first entry is newer than the shown one's, a `Show new activity` button appears above the list. It never inserts entries by itself, so nothing moves under the reader.
-  - **`Show new activity`** starts the timeline again from its newest page, as a filter change does, and moves focus to the first entry.
-  - The pages' subscriptions end when the member leaves the page or changes the filter.
-- **WS215. Entry identity.** A kudos entry is identified by its `kind` and `key`; a level-up by `levelUp`, its `at` and its `level`. The page's live twin, the dedupe across pages, and React's list keys all use it.
+- **WS214. Pages and freshness.** The timeline is a snapshot the member extends, so nothing moves under a reader or a focused element:
+  - **Pages are one-shot reads.** Each page is one `getActivity({ filter, cursor, limit: 20 })` query read once (Convex's `client.query`, not a subscription). The first asks `cursor: null`; each next one asks with the `cursor` the page before it answered. The cursor is a position in AT16's total order, so pages never repeat or skip an entry, even inside one instant (AT18). Shown entries never change or reorder by themselves.
+  - **One live watch.** The page also subscribes to `getActivity({ filter, cursor: null, limit: 20 })`. While the watch holds an entry whose identity (WS215) isn't shown, or a shown entry whose content differs from the shown copy (an edit, a deletion, a removed author), a `Show new activity` button appears above the list, an outline button, never primary, and the live region says `New activity.` once. The watch never inserts or replaces an entry itself.
+  - **An empty timeline takes the watch directly.** While nothing is shown and the first page has answered, entries the watch gains are shown at once, because there is no place to keep.
+  - **`Show new activity`** starts the timeline again from its newest page, as a filter change does, and moves focus to the first entry, or to the empty sentence.
+  - **Accepted:** an edit or deletion of an entry older than the newest page shows on the next reset or visit. The card, which is live, and Slack show it at once.
+  - The watch ends when the member leaves the page or changes the filter, and a read answered after that is dropped.
+- **WS215. Entry identity.** A kudos entry is identified by its `kind` and `key` (AT21: a stable list key, used only to tell entries apart); a level-up by `levelUp`, its `at` and its `level`. The watch's comparison and React's list keys use it.
 - **WS216. Loading more.** While the last page answered a `cursor`:
   - **A `Load more` button** always shows after the list, an outline button, never primary.
-  - **Infinite scroll:** an intersection observer on the list's end asks for the next page once it comes within one screen of the viewport, unless a page is already loading or the last ask failed.
+  - **Infinite scroll:** an intersection observer on the list's end reads the next page once the end comes within one screen of the viewport, unless a read is pending or the last one failed. After a page lands, if the end is still within one screen (a short page, or a page of only unknown kinds), it reads the next one.
   - **While loading,** the button reads `Loading…` with `aria-disabled="true"` (so a focused button keeps focus), and the list shows nothing extra: no skeleton, shimmer or spinner (V8).
-  - **When it loads,** the new entries append below. If the member pressed `Load more`, focus moves to the first new entry's article. If scrolling loaded it, focus doesn't move. Either way the live region says `Loaded {n} more.`
+  - **When it loads,** the new entries append below, and the live region says `Loaded {n} more.` If the member pressed `Load more` and the page added entries, focus moves to the first new entry's article. Otherwise focus doesn't move.
   - **When it fails,** the button reads `Try again`, and the live region says `Couldn't load more. Try again.` Scrolling doesn't retry by itself.
-  - **At the end** (`cursor` is `null`), the button is gone, and the list ends with `That's the start of your activity.`
+  - **At the end** (`cursor` is `null`), the button is replaced by the closing line `That's the start of your activity.` (focusable with `tabindex="-1"`). If the button had focus when it went, focus moves to that line, never to the page title.
 
-  A page holds at most 20 entries plus any that share the last instant (AT18); the website never asks for more than 50.
+  The website always asks for 20 (AT18 allows 1 to 50).
 - **WS217. Empty and first load.** While the first page loads, the page shows its header, tabs and filter, and the list area says nothing. With no entries the list says, in Max's voice: `All` → `Your activity shows here once you thank someone or reach a level.`; `Received` → `Kudos you receive show here.`; `Given` → `Kudos you give show here, with what each one earned.`
 - **WS218. Open in Slack.** `Open in Slack` is a plain link with an external glyph, opening the entry's `permalink` in a new tab with `rel="noreferrer"`, an `(opens in a new tab)` hint, and an accessible name that says which kudos (`Open in Slack: the kudos from {giver}` or `…: your kudos to {names}`). While `permalink` is `null` there is no link and no placeholder (AT13).
 
 ### The spotlight
 
-- **WS219. The draw.** On each mount of the leaderboard page's board (`getLeaderboard` answered `board`), the page picks one `seed` with `Math.random()` and subscribes to `getSpotlight({ seed })`. `Next` replaces the subscription's arguments with `{ after: key }` of the entry shown, holding the shown entry until the new one answers, so the panel never blanks. The spotlight is never drawn on the locked, ready or not-found leaderboard pages.
-- **WS220. The panel.** While `getSpotlight` answers `kudos`, the top of the board's side column (above `Only you see these`, WS45) holds a plain Quill card (a reading surface, V2) labelled `A thank-you from your workspace`, with:
-  - the giver's face, then `{giver} thanked {names}` (WS209);
+- **WS219. The draw.** Each draw is one `getSpotlight` query read once, not a subscription, so the panel never changes without a press:
+  - On each mount of the leaderboard page's board (`getLeaderboard` answered `board`), the page picks one `seed` with `Math.random()` and reads `getSpotlight({ seed })`.
+  - `Next` reads `getSpotlight({ after })` with the `after` of the kudos shown, holding the shown kudos until the new answer, so the panel never blanks.
+  - **`skipped`** is read again at once with its own `after`, showing nothing new in between (AT32: a member's leaderboard opt-out is still being applied). After 10 `skipped` answers in a row the draw counts as failed.
+  - **A failed draw** (an error, or 10 skips): on mount there is no panel; after `Next` the shown kudos stays and the live region says `Couldn't find another thank-you. Try again.`
+  - The spotlight is never drawn on the locked, ready or not-found leaderboard pages, and a read answered after the page unmounts is dropped.
+  - **Accepted:** a shown kudos deleted in Slack keeps its words in the open panel until `Next` or a reload (cross-map need 5).
+- **WS220. The panel.** While the last draw answered `kudos`, the top of the board's side column (above `Only you see these`, WS45) holds a plain Quill card (a reading surface, V2) labelled `A thank-you from your workspace`, with:
+  - the giver's face, then `{giver} thanked {names}` (WS209, every person as supplied);
   - the whole message (WS210), set a little larger than body text as a quote, with `Edited` when edited;
   - its date in the browser's zone (`12 Oct`) and `Open in Slack` while `permalink` isn't `null` (WS218);
   - one outline `Next` button.
 
   On narrow screens it follows the board, where the side column goes (WS45). It shows no XP, rank, count or `Said why` tag: every drawable kudos said why (AT31), and the board never ranks received kudos (WS46).
-- **WS221. Next, and never by itself.** `Next` is the panel's only control. There is no timer, carousel or auto-rotation (V8, WCAG 2.2.2). After a press, the message area (a polite live region, `aria-atomic`, live only after the first press) announces the new thank-you; when the answer's `key` equals the one shown, because only one kudos qualifies, it says `That's the only one so far.` instead. While the next answer loads, `Next` is `aria-disabled`.
-- **WS222. Empty hides the panel.** While `getSpotlight` answers `empty`, there is no panel and no gap. The product owner's "Rotate or Next" is this one `Next` button.
+- **WS221. Next, and never by itself.** `Next` is the panel's only control. There is no timer, carousel or auto-rotation (V8, WCAG 2.2.2). After a press, the message area (a polite live region, `aria-atomic`, live only after the first press) announces the new thank-you; when the answer's `after` equals the one shown, because only one kudos qualifies, it says `That's the only one so far.` instead. While the next answer loads, `Next` is `aria-disabled`.
+- **WS222. Empty.** While the draw answers `empty`, the panel shows Max's line `Thank-yous from public channels show here.` and no `Next`. The spotlight fills only from kudos captured live in public channels that said why, never from the backfill (AT36), so a new workspace, and production right after #232 ships, start empty. While `getSpotlight` answers `not-found`, there is no panel and no gap. The product owner's "Rotate or Next" is the one `Next` button.
 
 ### Look, accessibility and order
 
@@ -185,10 +192,10 @@ The words are shown exactly as they were written, as text: a message never becom
 - **Website package (extended, `website/`):**
   - `route.ts`: `/activity` with its `filter`, and `activityHref(filter)`, the way `leaderboardHref` works.
   - `activity/KudosMessage.tsx`: the one renderer (WS210), with `People.tsx` for faces and name lists (WS209). Deep: every surface hands it a `Message`, and it alone knows segments, schemes and unavailable copy.
-  - `activity/timeline.ts`: the timeline's pages as a pure state machine, `timelineOf(pages, live)`, owning the fixed cursors, the live first page's twins, `Show new activity`, entry identity and the end (WS214–WS216). It knows nothing of React or Convex, so its tests drive pages as plain answers.
-  - `activity/useTimeline.ts`: the hook that turns the machine into subscriptions through a page hook the app hands it.
+  - `activity/timeline.ts`: the timeline as a pure reducer over explicit state, owning the pages read, the next cursor, the load status and who asked, the watch's comparison (`Show new activity`), entry identity and the end (WS214–WS216). It knows nothing of React or Convex, so its tests drive it with plain answers.
+  - `activity/useTimeline.ts`: the hook that runs the reducer, issues the one-shot reads and the watch through the functions the app hands it, and drops answers that arrive after a reset or unmount.
   - `home/RecentKudosCard.tsx` (WS205–WS208), `home/MemberTabs.tsx` (WS204), `pages/ActivityPage.tsx` (WS212–WS217), `leaderboard/Spotlight.tsx` (WS219–WS222).
-  - `App` gains three read hooks as props, the way it takes `useLeaderboard` and `useQuests` today, so the fixture build and the tests drive them: `useRecentKudos(direction | undefined)`, `useActivityPages(filter, cursors)` and `useSpotlight(ask | undefined)`. `LiveApp` implements them with memoized `useQueries` requests (the live shell's lesson from ship #138).
+  - `App` gains two live hooks and two one-shot readers as props, the way it takes `useLeaderboard` and `useQuests` today, so the fixture build and the tests drive them: `useRecentKudos(direction | undefined)`, `useActivityWatch(filter | undefined)`, `readActivity(args)` and `drawSpotlight(ask)`. `LiveApp` implements the hooks with memoized `useQueries` requests (the live shell's lesson from ship #138) and the readers with `useConvex().query`.
   - `shell.ts` re-exports the answer types from `convex/website/` and gains their fixtures.
 - **Website module (`convex/website/`):** `routes.ts`'s `routeList` gains `/activity`. Nothing else: the reads are #232's.
 - **Map #1's modules:** no change. The activity module, the kudos text and the reads are #232's.
@@ -210,26 +217,34 @@ type ActivityAnswer = Activity | { kind: "not-found" } | Denial;
 type SpotlightAnswer = Spotlight | { kind: "not-found" } | Denial;
 
 // website/src/App.tsx (extended props)
-useRecentKudos: (direction: "received" | "given" | undefined) => RecentAnswer | undefined;
-useActivityPages: (filter: ActivityFilter | undefined, cursors: (string | null)[]) => (ActivityAnswer | Error | undefined)[];
-useSpotlight: (ask: { seed: number } | { after: string } | undefined) => SpotlightAnswer | undefined;
+useRecentKudos: (direction: "received" | "given" | undefined) => RecentAnswer | undefined;          // live
+useActivityWatch: (filter: ActivityFilter | undefined) => ActivityAnswer | undefined;                 // live, cursor null, limit 20
+readActivity: (args: { filter: ActivityFilter; cursor: string | null }) => Promise<ActivityAnswer>; // one-shot, limit 20
+drawSpotlight: (ask: { seed: number } | { after: string }) => Promise<SpotlightAnswer>;              // one-shot
 
 // website/src/activity/timeline.ts
 export type EntryId = string; // "{kind}:{key}" or "levelUp:{at}:{level}" (WS215)
-export type Timeline = {
+export type TimelineState = {
+  filter: ActivityFilter;
   entries: ActivityEntry[]; timeZone: string | null;
-  next: "more" | "loading" | "failed" | "end";
-  newer: boolean;   // Show new activity (WS214)
-  cursors: (string | null)[];
+  cursor: string | null;                              // the next page's, from the last page read
+  status: "first" | "idle" | "loading" | "failed" | "end";
+  askedBy: "button" | "scroll" | null;                // decides focus (WS216)
 };
-export function timelineOf(shownFirst: Activity, live: (ActivityAnswer | Error | undefined)[], asked: number): Timeline;
+export type TimelineEvent =
+  | { kind: "reset"; filter: ActivityFilter }
+  | { kind: "asked"; by: "button" | "scroll" }
+  | { kind: "read"; answer: Activity }
+  | { kind: "failed" };
+export function timeline(state: TimelineState, event: TimelineEvent): TimelineState;
+export function hasNewActivity(state: TimelineState, watch: Activity | undefined): boolean; // WS214
 ```
 
 `undefined` from a hook means "not asked" or "not answered yet". The fixture build answers from typed fixtures with the same shapes.
 
 ### Data
 
-No table, migration or backend write. The browser keeps only the chosen direction, the filter (in the address), the timeline's fixed cursors and its shown first page, and the spotlight's shown key, all in the page's memory.
+No table, migration or backend write. The browser keeps only the chosen direction, the filter (in the address), the timeline's entries and next cursor, and the spotlight's shown `after`, all in the page's memory.
 
 ### The flags
 
@@ -254,10 +269,10 @@ Proposed declarations; each ticket writes its part and makes `coherence spec --c
 
 ## Testing Decisions
 
-- **A good test enters at a seam and checks what a member could observe:** the rendered page, its words, links, focus and live-region text, from the read's typed answers. It never tests private helpers, except `timelineOf`, which is the timeline's interface.
+- **A good test enters at a seam and checks what a member could observe:** the rendered page, its words, links, focus and live-region text, from the read's typed answers. It never tests private helpers, except `timeline` and `hasNewActivity`, which are the timeline's interface.
 - **Seams, highest first:**
-  1. **The browser package with Vitest and Testing Library, through `App` and the fixture hooks:** the card in both directions, empty and not-found; the tabs on `/` and `/activity` with `aria-current`; `/activity`'s filter and address; each entry kind with each tag, `earned` with and without XP and quests, each `unavailable` reason, a null permalink, an unknown kind skipped; day headings in a fixture time zone across a midnight; `Load more` by button (focus moves) and by scroll (focus stays, with a stubbed `IntersectionObserver`), loading, failure and the end; `Show new activity`; the spotlight with `Next`, the same key twice, `empty` and not-found; and axe in light and dark for every state (WS223).
-  2. **`timelineOf`:** fixed cursors per page; a live first page that changes an entry in place; a newer live first entry raising `newer` without moving entries; a tie spanning the page boundary never duplicated (WS215); failure and retry; the end.
+  1. **The browser package with Vitest and Testing Library, through `App` and the fixture hooks:** the card in both directions, empty and not-found; the tabs on `/` and `/activity` with `aria-current`; `/activity`'s filter and address; each entry kind with each tag, `earned` with and without XP and quests, each `unavailable` reason, a null permalink, an unknown kind skipped; the card's links rendered as text; day headings in a fixture time zone across a midnight; `Load more` by button (focus moves) and by scroll (focus stays, with a stubbed `IntersectionObserver`), loading, failure, a page of only unknown kinds, and the end with focus moving from the button to the closing line; `Show new activity` for a new entry, a changed entry and a new entry inside the newest instant; the spotlight with `Next`, `skipped` followed at once, ten skips, the same `after` twice, `empty`, a failed draw and not-found; and axe in light and dark for every state (WS223).
+  2. **`timeline` and `hasNewActivity`:** pages appended in order with each next cursor; a reset dropping everything; a failure and its retry; the end; `askedBy` for focus; the watch raising new activity for an unseen identity (also one sorting after the shown head inside one instant), for a changed shown entry, and never for an identical one; an empty timeline taking the watch.
   3. **The text invariant (WS224),** through `KudosMessage` and through a whole timeline page.
   4. **SW10's route test**, with `/activity` in both lists.
 - **Prior art:** `website/src/LeaderboardPage.test.tsx` (periods in the address, focus on navigation), `website/src/QuestsPage.test.tsx`, `website/src/accessibility.test.tsx`, `website/src/liveShell.test.tsx` (the real hooks over a fake watch), `website/src/routeList.test.tsx`.
@@ -274,9 +289,9 @@ Each ticket is a sub-issue of map #57 and its own pull request from `main` (WS22
 
 Blocking edges (native on GitHub): ticket 1 → tickets 2 and 3; tickets 2 and 3 → ticket 4.
 
-1. **The last few kudos on the home.** `KudosMessage` and `People` with the text invariant, `useRecentKudos` in `App`, `LiveApp` and the fixtures, and the `Recent kudos` card with its switch, rows and empty states. `See all activity` waits for ticket 2, so the card never links to a page that doesn't exist yet. WS200–WS202, WS205–WS211, WS223, WS224. Blocked by #232's ship on `main`.
-2. **The Activity tab: the timeline with infinite scroll.** `/activity` in `routeAt` and `routeList`, the `Character`/`Activity` tabs, the card's `See all activity`, the filter, `timelineOf` and `useActivityPages`, the three entry kinds with day headings, `Open in Slack`, `Load more` with infinite scroll and focus, `Show new activity`, and the empty states. WS200–WS204, WS207, WS212–WS218, WS223. Blocked by ticket 1 and #232's ship on `main`.
-3. **The spotlight on `/leaderboard`.** `useSpotlight`, the seed per board mount, the panel at the top of the side column, `Next` and its live region, `empty` hiding the panel. WS200, WS201, WS219–WS223. Blocked by ticket 1 and #232's ship on `main`.
+1. **The last few kudos on the home.** `KudosMessage` and `People` with the text invariant, `useRecentKudos` in `App`, `LiveApp` and the fixtures, and the `Recent kudos` card with its switch, rows and empty states, in WS108's slot. `See all activity` waits for ticket 2, so the card never links to a page that doesn't exist yet. WS200–WS202, WS205–WS211, WS223, WS224. Blocked by #238 (the fifth slice's right rail, which leaves the slot), and by #232's ship on `main`.
+2. **The Activity tab: the timeline with infinite scroll.** `/activity` in `routeAt` and `routeList`, the `Character`/`Activity` tabs, the card's `See all activity`, the filter, the `timeline` reducer, `useActivityWatch` and `readActivity`, the three entry kinds with day headings, `Open in Slack`, `Load more` with infinite scroll and focus, `Show new activity`, and the empty states. WS200–WS204, WS207, WS212–WS218, WS223. Blocked by ticket 1 and #232's ship on `main`.
+3. **The spotlight on `/leaderboard`.** `drawSpotlight`, the seed per board mount, `skipped` followed at once, the panel at the top of the side column, `Next` and its live region, the empty panel and failed draws. WS200, WS201, WS219–WS223. Blocked by ticket 1 and #232's ship on `main`.
 4. **Prove the activity feed on the sandbox.** Deploy `main` to `different-dog-467` (the shared sandbox's rules 1 and 2), sign in with a proof session, give and edit and delete kudos through signed Slack-shaped requests, and record, in light and dark and at a phone width: the card both ways, the timeline with all three kinds and loading more, a deleted message, and the spotlight with `Next`. Check that production's `activity` answers off and the surfaces are hidden there. Hand the product owner the one switch he owns: add his email to `activity` to preview. Blocked by tickets 2 and 3 and #232's ship on `main`.
 
 ## Cross-map needs on map #1
@@ -284,9 +299,11 @@ Blocking edges (native on GitHub): ticket 1 → tickets 2 and 3; tickets 2 and 3
 This spec edits nothing on map #1. Map #1's conductor reads these from #57.
 
 1. **#232's ship tells this map when it merges to `main`,** with the module paths and exported type names of the three reads' answers, so ticket 1 imports them.
-2. **Faces for other members.** `Person.face` is initials until the directory keeps display fields and Slack pictures (map #1's #234). The website renders whatever `Face` carries, so no website change is needed when it lands.
+2. **Faces for other members.** `Person.face` is initials until the directory keeps Slack pictures (map #1's #234); AT20 moves it there in the same follow-up as the leaderboard's. The website renders whatever `Face` carries, so no website change is needed when it lands.
 3. **`/activity` on Slack's route list.** `routeList` gains `/activity` in ticket 2. Map #1 may link it (for example from a level-up DM or the success reply) whenever it likes; until `activity` is on for a member, the page reads not found.
 4. **Copy follows #209.** If spec #209 changes what "said why" means, the website's `Said why` tag keeps reading `saidWhy` as #232 answers it; only the wording would follow, in a ticket.
+5. **A pinned spotlight read, later.** A `getSpotlight({ pinned: after })` that answers the shown kudos while it stays drawable would let the panel drop a kudos deleted in Slack at once, without moving by itself. Not needed now (WS219 accepts the gap until `Next`); worth adding if the product owner asks for live updates.
+6. **Quests on earlier kudos.** `questsDone` lists only quests a kudos finished after #232 shipped, and `earned.xp` is the gains line's base XP. The timeline shows exactly that and promises nothing for earlier entries.
 
 ## Out of Scope
 
@@ -310,11 +327,14 @@ This spec edits nothing on map #1. Map #1's conductor reads these from #57.
 1. **The Activity tab is its own page, `/activity`**, with `Character`/`Activity` link tabs on the member's page, over ARIA tabs inside `/`: each tab has an address Slack and a browser can return to, and the router, SW10's list and focus-on-navigation already work per page.
 2. **The website reads no flag**: each surface shows while its read answers, over a new `getMyProfile.activity` field. #232's reads already answer `not-found` while `activity` is off, so a second answer could only disagree.
 3. **Three entries on the card**, over the contract's default of five: the rail is narrow, and "briefly" is the product owner's word. The card shows no XP, tags or links; the tab holds them.
-4. **The timeline pages are fixed-cursor subscriptions, with `Show new activity` instead of live insertion**, over Convex's paginated hook (the contract's cursor is its own) and over a sliding window: entries never move under a reader or a focused element, and edits and deletions still update in place.
+4. **The timeline is a snapshot of one-shot page reads plus one live watch of the newest page, with `Show new activity` instead of live insertion**, over fixed-cursor subscriptions per page (an entry pushed out of the live first page loses its source, review round 1) and over Convex's paginated hook (the contract's cursor is its own): entries never move under a reader or a focused element, and the cost is that an older entry's edit shows on the next reset.
 5. **Infinite scroll plus an always-visible `Load more`**, over scroll alone, so keyboard and screen-reader members can load more and focus is placed only when they asked.
 6. **One `Next` button and no auto-rotation**, reading the product owner's "Rotate or Next" as one control: moving content violates V8 and WCAG 2.2.2.
 7. **The spotlight sits at the top of the board's side column**, over above the board: the board stays the page's subject, and the thank-you is the first thing beside it.
 8. **`Said why` shows as a quiet tag on timeline entries, never on the card or the spotlight**, because AT24 allows it, it explains why one kudos earned more than another, and every spotlight kudos said why.
-9. **Links in messages open only for `http:` and `https:`**; every other scheme is text. Person and group mentions are never links.
-10. **Each ticket is its own PR from `main`** (production is live), and the card goes in WS108's slot, or under today's profile card until the fifth slice's rail lands, so this slice doesn't wait on #231's tickets.
+9. **Links in messages open only for `http:` and `https:`**; every other scheme is text. Person and group mentions are never links. The card shows every link as text, so the clamp hides no focus target (review round 1).
+10. **Each ticket is its own PR from `main`** (production is live), and the card waits for #238 so it lands in WS108's slot, over placing it under today's profile card first (the conductor's instruction).
 11. **A sandbox proof ticket** closes the slice, as every earlier slice did, because `activity` is off in production and only the sandbox can show it running.
+12. **Spotlight draws are one-shot reads, not subscriptions** (review round 1): a subscribed `seed` draw changes answer when a new kudos lands between the seed and the shown one, which would rotate the panel without a press. A deleted shown kudos keeps its words until `Next` (cross-map need 5).
+13. **`skipped` is followed at once, up to 10 times in a row**, then the draw counts as failed, so a stuck opt-out job can never loop the page.
+14. **The empty spotlight shows Max's line, not nothing**, because it fills only from live public kudos (AT36): Michael's first preview in production is likely to be empty, and an empty panel tells him why.
