@@ -106,8 +106,7 @@ body {
     transition: transform 0.2s ease;
   }
 
-  a:hover .book-index-hog,
-  a[aria-current="page"] .book-index-hog {
+  a:hover .book-index-hog {
     transform: rotate(-8deg);
   }
 }
