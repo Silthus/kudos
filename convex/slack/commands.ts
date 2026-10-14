@@ -5,7 +5,7 @@ import { observedAction, observedHttpAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import { type KudosCommandResult, renderKudosCommandReply } from "../feedback/kudosCommand";
-import { renderEveryoneBoard, renderLeaderboardUsage } from "../feedback/leaderboard";
+import { renderEveryoneBoard, renderFullBoardLink, renderLeaderboardUsage } from "../feedback/leaderboard";
 import type { Line } from "../feedback/replies";
 import type { Period } from "../leaderboard/periods";
 import { lookup } from "../workspace/directory";
@@ -113,8 +113,9 @@ async function leaderboardReply(ctx: ActionCtx, command: URLSearchParams, rest: 
   if (unopened !== null) return unopened;
   const period = periodOf(rest);
   if (period === null) return renderLeaderboardUsage();
-  const view = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, { workspace: field(command, "team_id"), viewer: field(command, "user_id"), period });
-  return renderEveryoneBoard(view, period);
+  const view = await ctx.runQuery(internal.leaderboard.totals.everyoneBoard, { workspace: viewer.workspace, viewer: viewer.user, period });
+  const website = await ctx.runQuery(internal.website.link.websiteLinkOf, { workspace: viewer.workspace, page: { page: "leaderboard", period } });
+  return [...renderEveryoneBoard(view, period), ...renderFullBoardLink(website)];
 }
 
 const periods: readonly Period[] = ["week", "month", "all"];

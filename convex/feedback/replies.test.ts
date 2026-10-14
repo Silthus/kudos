@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { Mention } from "../engine/messageEvent";
-import { renderReply, type Line, type SkippedMention } from "./replies";
+import { renderReply, type Line, type Segment, type SkippedMention } from "./replies";
 
 describe("R36 R37: the copy", () => {
   test("Given names three recipients as A, B and C", () => {
@@ -66,7 +66,13 @@ function skipped(mention: Mention, reason: SkippedMention["reason"]): SkippedMen
 }
 
 function plain(lines: Line[]) {
-  return lines.map((line) => line.map((segment) => ("text" in segment ? segment.text : `@${mentionName(segment.mention)}`)).join(""));
+  return lines.map((line) => line.map(plainSegment).join(""));
+}
+
+function plainSegment(segment: Segment) {
+  if ("text" in segment) return segment.text;
+  if ("link" in segment) return segment.link.label;
+  return `@${mentionName(segment.mention)}`;
 }
 
 function mentionName(mention: Mention) {

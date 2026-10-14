@@ -8,7 +8,7 @@ import type { JourneyStep } from "../quests/step";
 import { lookup } from "../workspace/directory";
 import { journeyGoalOf } from "./home";
 
-export const segmentValidator = v.union(v.object({ text: v.string() }), v.object({ mention: mentionValidator }));
+export const segmentValidator = v.union(v.object({ text: v.string() }), v.object({ mention: mentionValidator }), v.object({ link: v.object({ url: v.string(), label: v.string() }) }));
 
 export type Segment = Infer<typeof segmentValidator>;
 export type Line = Segment[];

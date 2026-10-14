@@ -112,6 +112,7 @@ import type * as website_link from "../website/link.js";
 import type * as website_memberMutation from "../website/memberMutation.js";
 import type * as website_memberQuery from "../website/memberQuery.js";
 import type * as website_profile from "../website/profile.js";
+import type * as website_routes from "../website/routes.js";
 import type * as website_seen from "../website/seen.js";
 import type * as website_signIn from "../website/signIn.js";
 import type * as website_unlockPath from "../website/unlockPath.js";
@@ -230,6 +231,7 @@ declare const fullApi: ApiFromModules<{
   "website/memberMutation": typeof website_memberMutation;
   "website/memberQuery": typeof website_memberQuery;
   "website/profile": typeof website_profile;
+  "website/routes": typeof website_routes;
   "website/seen": typeof website_seen;
   "website/signIn": typeof website_signIn;
   "website/unlockPath": typeof website_unlockPath;

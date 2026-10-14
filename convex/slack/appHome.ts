@@ -80,7 +80,7 @@ async function desiredHomeOf(ctx: ActionCtx, home: Home): Promise<{ kind: "view"
   const facts = await homeFactsOf(ctx, home);
   if (facts.kind === "unavailable") return facts;
   const shown = await ctx.runMutation(internal.feedback.homes.shownHomeOf, { workspace: home.workspace, user: home.user });
-  const website = await ctx.runQuery(internal.website.link.websiteLinkOf, { workspace: home.workspace });
+  const website = await ctx.runQuery(internal.website.link.websiteLinkOf, { workspace: home.workspace, page: { page: "home" } });
   return { kind: "view", view: homeView(renderHome(facts, shown, website)) };
 }
 

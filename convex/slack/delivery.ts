@@ -148,7 +148,9 @@ export function slackTextOf(lines: Line[]) {
 }
 
 function slackTextOfSegment(segment: Segment) {
-  return "text" in segment ? segment.text : slackMention(segment.mention);
+  if ("text" in segment) return segment.text;
+  if ("link" in segment) return `<${segment.link.url}|${segment.link.label}>`;
+  return slackMention(segment.mention);
 }
 
 function slackMention(mention: Mention) {
