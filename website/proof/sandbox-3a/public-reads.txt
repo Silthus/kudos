@@ -1,0 +1,8 @@
+$ POST https://<sandbox>.convex.cloud/api/query {"path":"website/profile:getMyProfile","args":{}}  (no session)
+{"status":"success","value":{"kind":"signed-out"}}
+$ POST https://<sandbox>.convex.cloud/api/mutation {"path":"website/commands:openFeature","args":{"feature":"leaderboard"}}  (no session)
+{"status":"success","value":{"kind":"signed-out"}}
+$ POST https://<production>.convex.cloud/api/query {"path":"website/profile:getMyProfile","args":{}}  (no session)
+{"status":"success","value":{"kind":"closed"}}
+$ POST https://<production>.convex.cloud/api/mutation {"path":"website/commands:openFeature","args":{"feature":"leaderboard"}}  (no session)
+{"status":"error","errorMessage":"[Request ID: f93bace4e84a92eb] Server Error"}
