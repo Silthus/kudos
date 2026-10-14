@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { exposed, flag, type Flag } from "../analytics/flags";
-import { xpLevels, xpLevelsShownTo } from "../progression/xpLevels";
+import { xpLevels, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
 import { shippedIn } from "./schedule";
 import { keepOpen } from "./unlocks";
@@ -30,6 +30,10 @@ export async function unlocksLiveIn(ctx: MutationCtx, workspace: string): Promis
   if (!(await flag(ctx, unlocksFlag, { workspace }))) return false;
   if ((await launchIn(ctx, workspace)) === null) await launch(ctx, workspace);
   return true;
+}
+
+export async function unlockPathShownIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
+  return (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
 }
 
 export async function unlocksAppliedIn(ctx: QueryCtx, workspace: string): Promise<boolean> {

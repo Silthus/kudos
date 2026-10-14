@@ -1,9 +1,9 @@
 import { runCommand } from "../commands/commands";
 import { republish } from "../feedback/homes";
 import { featureValidator } from "../unlocks/feature";
+import { unlockPathShownIn } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
 import { memberMutation } from "./memberMutation";
-import { unlockPathShownIn } from "./unlockPath";
 
 export type CommandAnswer = { kind: "opened" } | { kind: "refused" };
 
