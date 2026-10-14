@@ -29,10 +29,18 @@ export function pendingWeeklyCratesBefore(ctx: QueryCtx, member: MemberId, week:
 }
 
 export const backfillPendingCrates = observedAction({
-  args: {},
-  handler: async (ctx): Promise<null> => {
+  args: { restart: v.optional(v.boolean()) },
+  handler: async (ctx, { restart }): Promise<null> => {
+    if (restart === true) await ctx.runMutation(internal.quests.pendingCrates.restartBackfill, {});
     while (!(await ctx.runMutation(internal.quests.pendingCrates.backfillPage, {}))) continue;
     return null;
+  },
+});
+
+export const restartBackfill = internalMutation({
+  args: {},
+  handler: async (ctx): Promise<void> => {
+    await ctx.db.patch((await currentRun(ctx))._id, { cursor: null, isDone: false });
   },
 });
 
@@ -42,7 +50,7 @@ export const backfillPage = internalMutation({
     const run = await currentRun(ctx);
     if (run.isDone) return true;
     const { page, isDone, continueCursor } = await rewardsPage(ctx, run.cursor, rewardsPerPage);
-    for (const { member, key } of page) if (await waitsUnindexed(ctx, member, key)) await ctx.db.insert("pendingCrates", { member, key });
+    for (const { member, key } of page) if (weeklyQuestOfRewardKey(key) !== null) await reconcile(ctx, member, key);
     await ctx.db.patch(run._id, { cursor: continueCursor, isDone });
     return isDone;
   },
@@ -54,8 +62,11 @@ async function currentRun(ctx: MutationCtx): Promise<Doc<"pendingCratesBackfill"
   return (await ctx.db.get(await ctx.db.insert("pendingCratesBackfill", { cursor: null, isDone: false })))!;
 }
 
-async function waitsUnindexed(ctx: QueryCtx, member: MemberId, key: string) {
-  return weeklyQuestOfRewardKey(key) !== null && (await crateOpeningOf(ctx, member, key)) === null && (await pendingCrateOf(ctx, member, key)) === null;
+async function reconcile(ctx: MutationCtx, member: MemberId, key: string) {
+  const opened = (await crateOpeningOf(ctx, member, key)) !== null;
+  const pending = await pendingCrateOf(ctx, member, key);
+  if (!opened && pending === null) await ctx.db.insert("pendingCrates", { member, key });
+  if (opened && pending !== null) await ctx.db.delete(pending._id);
 }
 
 function pendingCrateOf(ctx: QueryCtx, member: MemberId, key: string) {

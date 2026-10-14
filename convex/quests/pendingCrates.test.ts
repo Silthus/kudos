@@ -26,7 +26,7 @@ afterEach(() => {
 });
 
 describe("P85: the pending-crate index lists every crate still waiting, within Convex's limits", () => {
-  test("the backfill has written every page when it returns, so the read lists every earlier, unopened weekly crate, oldest first, and a second run adds nothing", async () => {
+  test("the backfill has written every page when it returns, so the read lists every earlier, unopened weekly crate once, oldest first, and drops a stale row of an opened crate", async () => {
     const { t, alice } = await workspace();
     await drawn(t, alice, twoWeeksAgo, ["say-why", "say-why-twice"]);
     await drawn(t, alice, lastWeek, ["say-why-three-times", "someone-new"]);
@@ -37,17 +37,17 @@ describe("P85: the pending-crate index lists every crate still waiting, within C
     await finishedBeforeTheIndex(t, alice, "journey:first-thanks", now);
     await openedBeforeTheIndex(t, alice, lastWeek, 150);
     await finishedBeforeTheIndex(t, alice, `weekly:${lastWeek}:1`, Date.parse("2026-10-08T10:00:00Z"));
+    await indexed(t, alice, `weekly:${twoWeeksAgo}:1`);
+    await indexed(t, alice, `weekly:${lastWeek}:100`);
 
     await backfill(t);
     const waiting = await waitingFor(t, alice);
-    await backfill(t);
 
     expect(waiting).toEqual([
       { crate: { kind: "weekly", week: twoWeeksAgo, slot: 1 }, goal: "Thank someone and say why, 2 times.", reward, finishedAt: Date.parse("2026-09-29T10:00:00Z") },
       { crate: { kind: "weekly", week: lastWeek, slot: 0 }, goal: "Thank someone and say why, 3 times.", reward, finishedAt: Date.parse("2026-10-06T10:00:00Z") },
       { crate: { kind: "weekly", week: lastWeek, slot: 1 }, goal: "Thank someone you haven't thanked before.", reward, finishedAt: Date.parse("2026-10-08T10:00:00Z") },
     ]);
-    expect(await waitingFor(t, alice)).toEqual(waiting);
     expect(await t.run(async (ctx) => (await ctx.db.query("pendingCrates").collect()).map(({ key }) => key).sort())).toEqual([
       `weekly:${twoWeeksAgo}:1`,
       `weekly:${lastWeek}:0`,
@@ -65,6 +65,19 @@ describe("P85: the pending-crate index lists every crate still waiting, within C
     await backfill(t);
 
     expect(await t.run((ctx) => ctx.db.query("pendingCrates").collect())).toEqual([]);
+  });
+
+  test("a restarted backfill scans again, so a crate finished or opened without the index since the last run is reconciled", async () => {
+    const { t, alice } = await workspace();
+    await drawn(t, alice, lastWeek, ["say-why-three-times", "someone-new"]);
+    await finishedBeforeTheIndex(t, alice, `weekly:${lastWeek}:1`, Date.parse("2026-10-06T10:00:00Z"));
+    await backfill(t);
+    await finishedBeforeTheIndex(t, alice, `weekly:${lastWeek}:0`, Date.parse("2026-10-07T10:00:00Z"));
+    await t.run((ctx) => ctx.db.insert("crateOpenings", { member: alice, key: `weekly:${lastWeek}:1`, at: now }));
+
+    await t.action(internal.quests.pendingCrates.backfillPendingCrates, { restart: true });
+
+    expect((await waitingFor(t, alice)).map(({ crate }) => crate)).toEqual([{ kind: "weekly", week: lastWeek, slot: 0 }]);
   });
 });
 
@@ -91,6 +104,10 @@ function openedBeforeTheIndex(t: Backend, member: MemberId, week: string, crates
       await ctx.db.insert("crateOpenings", { member, key, at: now });
     }
   });
+}
+
+function indexed(t: Backend, member: MemberId, key: string) {
+  return t.run((ctx) => ctx.db.insert("pendingCrates", { member, key }));
 }
 
 async function backfill(t: Backend) {

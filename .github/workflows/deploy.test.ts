@@ -20,6 +20,7 @@ const deployments = [
     trigger: "only a run started by hand deploys, never a push or a pull request",
     on: { workflow_dispatch: null },
     secret: "CONVEX_DEPLOY_KEY_SANDBOX",
+    backfill: `pnpm exec convex run quests/pendingCrates:backfillPendingCrates '{"restart":true}'`,
   },
   {
     name: "production",
@@ -27,10 +28,11 @@ const deployments = [
     trigger: "only a push to main deploys, never a pull request",
     on: { push: { branches: ["main"] } },
     secret: "CONVEX_DEPLOY_KEY_PRODUCTION",
+    backfill: "pnpm exec convex run quests/pendingCrates:backfillPendingCrates",
   },
 ];
 
-describe.each(deployments)("deploying the $name deployment", ({ name, file, trigger, on, secret }) => {
+describe.each(deployments)("deploying the $name deployment", ({ name, file, trigger, on, secret, backfill }) => {
   const workflow = parse(readFileSync(new URL(`./${file}`, import.meta.url), "utf8")) as Workflow;
   const steps = Object.values(workflow.jobs).flatMap((job) => job.steps);
   const deployStep = steps.find((step) => step.run?.includes("convex deploy"));
@@ -50,10 +52,11 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
     expect(JSON.stringify(elsewhere)).not.toContain("secrets.");
   });
 
-  test("P85: every deploy backfills the pending-crate index last, so a failing backfill never holds back the website", () => {
+  test("P85: every deploy backfills the pending-crate index last, so a failing backfill never holds back the website, and runs it whenever the backend deployed", () => {
     expect(steps.at(-1)).toBe(pendingCratesStep);
-    expect(pendingCratesStep?.run).toBe("pnpm exec convex run quests/pendingCrates:backfillPendingCrates");
-    expect(pendingCratesStep?.if).toBe(deployStep?.if);
+    expect(pendingCratesStep?.run).toBe(backfill);
+    expect(pendingCratesStep?.if).toBe(`\${{ !cancelled() && steps.${deployStep?.id}.outcome == 'success' && steps.tip.outputs.current == 'true' }}`);
+    expect(deployStep?.id).toBe("deploy");
   });
 
   test("WS27: after convex deploy, the website is built against this deployment and uploaded to its static hosting", () => {
@@ -91,6 +94,8 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
   test("a run the branch has already moved past deploys nothing, so a rerun never rolls the deployment back", () => {
     const tipCheck = steps[steps.indexOf(deployStep!) - 1];
     expect(tipCheck?.run).toContain('git ls-remote origin "$GITHUB_REF"');
-    for (const step of keyedSteps) expect(step?.if).toBe(`steps.${tipCheck?.id}.outputs.current == 'true'`);
+    const tipIsCurrent = `steps.${tipCheck?.id}.outputs.current == 'true'`;
+    for (const step of keyedSteps.filter((step) => step !== pendingCratesStep)) expect(step?.if).toBe(tipIsCurrent);
+    expect(pendingCratesStep?.if).toContain(`&& ${tipIsCurrent} }}`);
   });
 });
