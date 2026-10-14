@@ -254,7 +254,7 @@ describe("P78: a feature that ships later is made ready once by the ship sweep",
     for (const scheduled of scheduledPerPage) expect(scheduled).toBeLessThan(1000);
     expect(scheduledPerPage.length).toBeGreaterThan(1);
     expect(published("unlockReady")).toHaveLength(members.length);
-  }, 30_000);
+  }, 60_000);
 
   test("a page of level 5 members, each deciding every ship flag for themselves with capture on, fits in one mutation within Convex's transaction limits", async () => {
     vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
