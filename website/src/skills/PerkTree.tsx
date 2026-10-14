@@ -51,7 +51,7 @@ function Legend() {
     <ul aria-label="Legend" className="flex items-center gap-3 text-[11px] text-muted-foreground">
       {legendEntries.map(([state, name]) => (
         <li key={state} className="flex items-center gap-1">
-          <span aria-hidden="true" data-testid="legend-swatch" className={`size-2.5 rounded-[3px] ${legendLooks[state]}`} />
+          <span aria-hidden="true" data-testid="legend-swatch" className={`size-3 rounded-[3px] ${legendLooks[state]}`} />
           {name}
         </li>
       ))}
@@ -66,7 +66,7 @@ function Band({ row, ...nodes }: { row: TreeRow } & Omit<PerkTreeProps, "rows">)
         <h3 className="hud-label shrink-0">{`Level ${row.level}`}</h3>
         <span aria-hidden="true" className="h-px flex-1 bg-border" />
       </div>
-      <ul className="grid grid-cols-3 gap-2">
+      <ul className="grid grid-cols-3 gap-2 sm:max-w-sm">
         {row.perks.map((perk) => (
           <li key={perk.perk} className="flex justify-center">
             <Node
