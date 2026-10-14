@@ -282,13 +282,14 @@ describe("AT18: a page's reads are bounded", () => {
     ]);
   });
 
-  test("pages of 800 recipients whose words mention 2,000 different people, each message finishing every quest and paying a bonus on every award, stay within Convex's limits, skipping and repeating none", { timeout: 120_000 }, async () => {
+  test.each([
+    { messages: 51, recipientsEach: 14 },
+    { messages: 50, recipientsEach: 16 },
+  ])("pages of $messages messages to $recipientsEach people each, whose words mention 40 different people, each finishing every quest and paying a bonus on every award, stay within Convex's limits, skipping and repeating none", { timeout: 120_000 }, async ({ messages, recipientsEach }) => {
     t = testBackend({ transactionLimits: true });
     await switchWebsite(t, postHog, true, ...skillTree, "quests");
     await journeyShippedBeforeAnyoneJoined(t);
     const at = now.getTime();
-    const messages = 50;
-    const recipientsEach = 16;
     const mentionsEach = 40;
     const me = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: alice.user, kind: "member", name: alice.name, asOf: 0 }));
     const thanked = await t.run(async (ctx) => {
