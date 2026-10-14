@@ -1,10 +1,12 @@
 import { describe, expect, test } from "vitest";
 import { awardId, kudosGivenEvent } from "../../testing/busEvents";
 import type {
+  AchievementEarnedEvent,
   AttemptFailedEvent,
   JourneyStepActivatedEvent,
   KudosGivenEvent,
   LevelReachedEvent,
+  PerkBoughtEvent,
   QuestFinishedEvent,
   QuestOpenedEvent,
   QuestsDrawnEvent,
@@ -16,11 +18,13 @@ import type {
 import type { Feature } from "../unlocks/feature";
 import type { MemberId } from "../workspace/directory";
 import {
+  projectAchievementEarned,
   projectAttemptFailed,
   projectJourneyStepActivated,
   projectKudosGiven,
   projectLevelReached,
   projectMemberWelcomed,
+  projectPerkBought,
   projectQuestFinished,
   projectQuestOpened,
   projectQuestsDrawn,
@@ -226,6 +230,21 @@ describe("E1: journey step activated", () => {
     const activated: JourneyStepActivatedEvent = { type: "journeyStepActivated", workspace: "T1", member: bob, step, at };
 
     expect(projectJourneyStepActivated(activated)).toEqual({ event: "journey step activated", subject: { member: bob }, at, properties: { step } });
+  });
+});
+
+describe("E1 O6: perk bought and achievement earned", () => {
+  test.each<PerkBoughtEvent["perk"]>(["spark", "rhythm", "circle"])("buying %s lists only its catalogue ID, on the buyer at the purchase", (perk) => {
+    const bought: PerkBoughtEvent = { type: "perkBought", workspace: "T1", member: alice, perk, at };
+
+    expect(projectPerkBought(bought)).toEqual({ event: "perk bought", subject: { member: alice }, at, properties: { perk } });
+  });
+
+  test("a tier earned lists only its ladder and tier IDs, on the member at the tier's time, whether a kudos or a replay batch earned it", () => {
+    const earned: AchievementEarnedEvent = { type: "achievementEarned", workspace: "T1", member: bob, ladder: "old-friends", tier: "diamond", at };
+
+    expect(projectAchievementEarned(earned)).toEqual({ event: "achievement earned", subject: { member: bob }, at, properties: { ladder: "old-friends", tier: "diamond" } });
+    expect(projectAchievementEarned({ ...earned, batch: "batch" as AchievementEarnedEvent["batch"] & string })).toEqual(projectAchievementEarned(earned));
   });
 });
 
