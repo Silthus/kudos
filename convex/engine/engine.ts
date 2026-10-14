@@ -255,8 +255,19 @@ export async function takeStrandedChecks(ctx: MutationCtx, dueBefore: number, li
     .query("kudosMessages")
     .withIndex("by_state_and_next_check", (q) => q.eq("state", "awaiting-directory").gte("nextCheckAt", 0).lt("nextCheckAt", dueBefore))
     .take(limit);
-  for (const row of stranded) await ctx.db.patch(row._id, { nextCheckAt: Date.now() });
-  return stranded.map((row) => ({ ref: refOf(row), attempt: row.attempt }));
+  const checkedAgain = [];
+  for (const row of stranded) {
+    if (await giveUpWhenChecksRanOut(ctx, row)) continue;
+    await ctx.db.patch(row._id, { checks: row.checks + 1, nextCheckAt: Date.now() });
+    checkedAgain.push({ ref: refOf(row), attempt: row.attempt });
+  }
+  return checkedAgain;
+}
+
+async function giveUpWhenChecksRanOut(ctx: MutationCtx, row: KudosMessageRow) {
+  const checksRanOut = row.checks > directoryCheckDelaysMs.length;
+  if (checksRanOut) await ctx.db.patch(row._id, { state: "abandoned" });
+  return checksRanOut;
 }
 
 async function tellGiver(ctx: MutationCtx, row: KudosMessageRow, outcome: Outcome, base: number) {

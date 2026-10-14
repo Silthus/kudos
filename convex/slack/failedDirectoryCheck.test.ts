@@ -98,6 +98,23 @@ describe("a stranded directory check is checked again", () => {
     expect(await kudosReceived(t, "U_BOB")).toBe(1);
   }, 30_000);
 
+  test("a message whose fresh checks keep failing is given up once its directory checks run out", async () => {
+    const t = testBackend();
+    recheck.failuresLeft = Infinity;
+
+    await post(t, [section(mention("U_BOB"), emoji("taco"))], { user: "U_EVE", ts: postedTs });
+    await settle(t);
+    const triesPerSweep: number[] = [];
+    for (let sweep = 1; sweep <= 9; sweep += 1) {
+      const before = recheck.tries;
+      await sweepAt(t, minutesAfterPosting(87 * sweep));
+      triesPerSweep.push(recheck.tries - before);
+    }
+
+    expect(triesPerSweep.at(-1)).toBe(0);
+    expect(await kudosSpent(t)).toBe(0);
+  }, 60_000);
+
   test("a check whose five tries could each still be running until Convex's action time limit is left alone", async () => {
     const t = testBackend();
 

@@ -235,7 +235,7 @@ describe("a stranded verification is tried again", () => {
     expect(slack.callsTo("users.info")).toHaveLength(1);
   });
 
-  test("a stranded verification keeps the tries it already used", async () => {
+  test("a stranded try counts as one of the 3 tries", async () => {
     slack.withMember("U_JUNO").answering("users.info", httpStatus(500), httpStatus(500), httpStatus(500));
     const userId = await signIn(juno);
     await settleInTimeOrder(t, { until: now.getTime() + 1000 });
@@ -245,6 +245,6 @@ describe("a stranded verification is tried again", () => {
     await settleInTimeOrder(t);
 
     expect(await profileOf(userId)).toEqual({ kind: "unverified" });
-    expect(slack.callsTo("users.info")).toHaveLength(3);
+    expect(slack.callsTo("users.info")).toHaveLength(2);
   });
 });

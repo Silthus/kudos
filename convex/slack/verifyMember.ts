@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type ActionCtx, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { lookUpUser, type LookUp } from "./directory";
@@ -65,10 +66,14 @@ export const retryStranded = internalMutation({
       .query("memberVerifications")
       .withIndex("by_state_and_next_try", (q) => q.eq("state", "pending").gte("nextTryAt", 0).lt("nextTryAt", Date.now() - convexActionTimeLimitMs))
       .take(strandedPerSweep);
-    for (const { _id, workspace, user } of stranded) {
-      await ctx.db.patch(_id, { nextTryAt: Date.now() });
-      await ctx.scheduler.runAfter(0, internal.slack.verifyMember.verifyMember, { workspace, user });
-    }
+    for (const verification of stranded) await tryAgainCountingTheStrandedTry(ctx, verification);
     if (stranded.length === strandedPerSweep) await ctx.scheduler.runAfter(0, internal.slack.verifyMember.retryStranded, {});
   },
 });
+
+async function tryAgainCountingTheStrandedTry(ctx: MutationCtx, { _id, workspace, user, attempts }: Doc<"memberVerifications">) {
+  const attemptsWithStrandedTry = attempts + 1;
+  if (attemptsWithStrandedTry >= verificationTries) return ctx.db.patch(_id, { attempts: attemptsWithStrandedTry, state: "failed" });
+  await ctx.db.patch(_id, { attempts: attemptsWithStrandedTry, nextTryAt: Date.now() });
+  await ctx.scheduler.runAfter(0, internal.slack.verifyMember.verifyMember, { workspace, user });
+}
