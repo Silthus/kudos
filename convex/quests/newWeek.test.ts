@@ -116,6 +116,55 @@ describe("P80 P84: a new week's quests count every award from the week's start, 
   });
 });
 
+describe("P80: a new week is drawn from the facts at its start, whenever the draw is stored", () => {
+  beforeEach(() => {
+    flagsOnForEveryone(new FakeSlack().fetch, "xp-levels", "unlocks", "quests");
+  });
+
+  test("the sweep at 00:10 and a kudos at 00:00:30 that spent a kudos and thanked someone new draw the same quests, with the same facts and the week's start as their time", async () => {
+    const swept = await workspace();
+    const onDemand = await workspace();
+    expect(onDemand.alice).toBe(swept.alice);
+    await openQuests(swept.t, [swept.alice], tuesday);
+    await openQuests(onDemand.t, [onDemand.alice], tuesday);
+
+    await sweepAt(swept.t, mondayInAuckland + 10 * minuteMs);
+    const event = await given(onDemand.t, onDemand.alice, onDemand.carol, mondayInAuckland + 30_000);
+    await spent(onDemand.t, onDemand.alice, "2026-10-19", 1);
+    vi.setSystemTime(mondayInAuckland + 10 * minuteMs);
+    await onDemand.t.mutation(internal.quests.weekly.advanceWeeklyQuests, { event });
+
+    const drawnBySweep = await drawOfWeek(swept.t, swept.alice, thisWeek);
+    expect(drawnBySweep.drawnAt).toBe(mondayInAuckland);
+    expect(await drawOfWeek(onDemand.t, onDemand.alice, thisWeek)).toEqual(drawnBySweep);
+  });
+
+  test("a member with 1 kudos a day whose week is first drawn by their only kudos on Sunday still gets 3 quests, and that kudos counts", async () => {
+    const { t, alice, carol } = await workspace();
+    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", baseAllowance: 1 }));
+    await openQuests(t, [alice], tuesday);
+    const sundayInAuckland = Date.parse("2026-10-24T23:00:00Z");
+
+    const event = await given(t, alice, carol, sundayInAuckland);
+    await spent(t, alice, "2026-10-25", 1);
+    vi.setSystemTime(sundayInAuckland + 1000);
+    await t.mutation(internal.quests.weekly.advanceWeeklyQuests, { event });
+
+    expect((await drawOfWeek(t, alice, thisWeek)).slots).toHaveLength(3);
+    expect(await countedWeeksOf(t, alice)).toContain(thisWeek);
+  });
+
+  async function drawOfWeek(t: Backend, member: MemberId, week: string) {
+    const draw = await t.run(async (ctx) => (await ctx.db.query("questDraws").collect()).find((row) => row.member === member && row.week === week));
+    if (!draw) throw new Error(`no draw for ${week}`);
+    return { drawnAt: draw.drawnAt, slots: draw.slots };
+  }
+
+  async function spent(t: Backend, giver: MemberId, day: string, kudos: number) {
+    await t.run((ctx) => ctx.db.insert("allowanceSpending", { giver, day, spent: kudos }));
+  }
+});
+
 describe("P80 P85: a new week replaces the last on App Home without a penalty, and last week's crates stay openable", () => {
   const now = tuesday;
   const saysWhyWords = "thanks for untangling the release notes today";
