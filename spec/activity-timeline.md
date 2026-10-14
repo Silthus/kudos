@@ -91,7 +91,7 @@ The words are the best part of a kudos, and the app has never kept them (R51). S
   - `break` (a line or block boundary).
 
   Only the Slack adapter knows Slack's rich text; the engine and every reader see segments.
-- **AT3. Visibility.** A row records `public` when Slack delivered the message from a public channel (`channel_type` `channel`), `private` for a private one (`group`), and `unknown` when the app couldn't tell (the backfill, AT35). `unknown` is treated as private everywhere.
+- **AT3. Visibility.** A row records `public` when Slack delivered the message from a public channel (`channel_type` `channel`), `private` for a private one (`group`), and `unknown` when the app couldn't tell (the backfill, AT35). The spotlight treats `unknown` as private (AT31); the timeline answers it as `unknown` (AT23, #429).
 - **AT4. Newest revision wins.** A newer revision that is still a kudos message replaces the stored words, revision and current gate decision. An older or equal revision changes nothing. A message with a tombstone (AT6, AT7, AT8) never stores words again, whatever revision arrives. The read marks an entry `edited` when the stored revision is newer than the message's `ts`.
 - **AT5. Edited away.** When the newest revision is no longer a kudos message (the emoji or the mentions were removed), its words are deleted. A watermark row keeps no words.
 - **AT6. Deleted in Slack.** A `message_deleted` event, or a `message_changed` whose message has subtype `tombstone` (a deleted thread parent), deletes the stored words and leaves a `deleted` tombstone, whatever state the message is in. The awards, spending, indicator and replies stay, and a message deleted while it waits for a directory check still gives (R27, ADR-0001). The tombstone is terminal: a late or redelivered edit of that message stores nothing.
@@ -129,7 +129,7 @@ The words are the best part of a kudos, and the app has never kept them (R51). S
 - **AT20. The other person.** An entry names other members as `{ name, face }` by the same rule the leaderboard uses for other members (WS34: the directory's display name, else "A teammate"; the face from that name's initials). When the directory gains members' pictures (map #1's #234), the website map moves this face to it in the same follow-up as the leaderboard's. A member who left Slack shows as "A teammate".
 - **AT21. Received entry.** `{ kind: "kudosReceived", key, at, giver, channel, saidWhy, permalink, message }`. Every kudos entry's `key` is a stable opaque string, unique within the member's timeline, for the website's list keys; it carries no ID the website can use elsewhere.
 - **AT22. Given entry.** `{ kind: "kudosGiven", key, at, recipients, kudos, channel, saidWhy, permalink, message, earned }`, where `kudos` is the kudos each recipient got (`n`, R18).
-- **AT23. Channel.** `{ visibility: "public" | "private" }`, from the kudos text row, and `private` when no row says otherwise. Channel names aren't read: the app has no `channels:read` scope, and the permalink opens the channel.
+- **AT23. Channel.** `{ visibility: "public" | "private" | "unknown" }`, from the kudos text row while its words are readable, and `unknown` when the message is unavailable (deleted, removed or not captured): a tombstone keeps no visibility, and Slack's `message_deleted` often carries no `channel_type` (#429). The website shows a "Private channel" tag only for `private`, never for `unknown`. Channel names aren't read: the app has no `channels:read` scope, and the permalink opens the channel.
 - **AT24. Said why.** `saidWhy` is the gate decision recorded with the message's awards when they were given (P11: 5 or more words besides mentions, emoji, channel links and URLs; spec #209 may later change what decides it): `true` or `false`, or `null` when no decision was recorded (kudos replayed by the progression backfill). It is history and never changes when the message is edited. The spotlight uses the stored revision's current gate decision instead (AT2, AT31). Copy follows P94 and P95: the website may say a kudos said why; it never calls one thoughtful.
 - **AT25. Earned.** A given entry's `earned` is `{ xp, questsDone, bonuses }` or `null`:
   - `xp` is computed by the same function the success reply's gains line uses (SW2, `giverXpOf` today: base XP), so the timeline and the reply always agree. It is base XP only: each perk bonus is its own part, as on the gains line (#222).
@@ -228,7 +228,7 @@ type Message =
   | { kind: "text"; segments: Segment[]; edited: boolean }
   | { kind: "unavailable"; reason: "deleted" | "removed" | "not-captured" };
 
-type Channel = { visibility: "public" | "private" };
+type Channel = { visibility: "public" | "private" | "unknown" };
 
 type QuestDone = { kind: "weekly"; goal: string; xp: number } | { kind: "journey"; goal: string; xp: number };
 
