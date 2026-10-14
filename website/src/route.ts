@@ -6,14 +6,17 @@ import type { Period } from "./shell";
 
 export type QuestTarget = number | "journey";
 
-export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests"; quest?: QuestTarget } | { page: "book"; bookPage: BookPageId } | { page: "skills" } | { page: "not-found" };
+export type ActivityFilter = "all" | "received" | "given";
+
+export type Route = { page: "home" } | { page: "activity"; filter: ActivityFilter } | { page: "leaderboard"; period: Period } | { page: "quests"; quest?: QuestTarget } | { page: "book"; bookPage: BookPageId } | { page: "skills" } | { page: "not-found" };
 
 export type BookPageId = CategoryId | "overview";
 
-export type Screen = Exclude<Route["page"], "not-found">;
+export type Screen = Exclude<Route["page"], "not-found" | "activity">;
 
 const routeAt = {
   "/": () => ({ page: "home" }),
+  "/activity": (search) => ({ page: "activity", filter: filterIn(search) }),
   "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search) }),
   "/quests": (search) => ({ page: "quests", quest: questIn(search) }),
   "/skills": () => ({ page: "skills" }),
@@ -38,6 +41,7 @@ export function hrefOf(route: Route) {
   if (route.page === "leaderboard") return leaderboardHref(route.period);
   if (route.page === "quests") return questsHref(route.quest);
   if (route.page === "book") return bookHref(route.bookPage);
+  if (route.page === "activity") return activityHref(route.filter);
   if (route.page === "home" || route.page === "not-found") return "/";
   return `/${route.page}`;
 }
@@ -48,6 +52,17 @@ export function questsHref(quest?: QuestTarget) {
 
 export function leaderboardHref(period: Period) {
   return period === "week" ? "/leaderboard" : `/leaderboard?period=${period}`;
+}
+
+export function activityHref(filter: ActivityFilter) {
+  return filter === "all" ? "/activity" : `/activity?filter=${filter}`;
+}
+
+const filters: ActivityFilter[] = ["all", "received", "given"];
+
+function filterIn(search: string): ActivityFilter {
+  const asked = new URLSearchParams(search).get("filter");
+  return filters.find((filter) => filter === asked) ?? "all";
 }
 
 function periodIn(search: string): Period {
@@ -81,7 +96,7 @@ export function useRoute() {
   const [route, setRoute] = useState(currentRoute);
 
   useEffect(() => {
-    if (route.page !== "leaderboard" && route.page !== "book") return;
+    if (route.page !== "leaderboard" && route.page !== "book" && route.page !== "activity") return;
     const canonical = keepingSignInCode(hrefOf(route));
     if (canonical !== currentAddress()) window.history.replaceState(null, "", canonical);
   }, [route]);
@@ -102,5 +117,10 @@ export function useRoute() {
     setRoute(currentRoute());
   }, []);
 
-  return { route, navigate, choosePeriod };
+  const chooseFilter = useCallback((filter: ActivityFilter) => {
+    window.history.replaceState(null, "", activityHref(filter));
+    setRoute(currentRoute());
+  }, []);
+
+  return { route, navigate, choosePeriod, chooseFilter };
 }

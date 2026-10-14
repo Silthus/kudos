@@ -1,7 +1,9 @@
-import { IconCheck, IconLock } from "@posthog/icons";
+import { IconArrowRight, IconCheck, IconLock } from "@posthog/icons";
 import { ToggleGroup, ToggleGroupItem } from "@posthog/quill";
 import { useState, type KeyboardEvent } from "react";
 import { KudosMessage } from "../activity/KudosMessage";
+import { AppLink } from "../AppLink";
+import { activityHref } from "../route";
 import { Faces, namesOf } from "../activity/People";
 import type { Direction, RecentKudosRead, RecentKudosShown } from "../recentKudosRead";
 import type { KudosGiven, KudosReceived, RecentKudos } from "../shell";
@@ -26,6 +28,10 @@ export function RecentKudosCard({ useRecentKudos }: { useRecentKudos: RecentKudo
     <Panel id="recent-kudos" label="Recent kudos" aside={<><IconLock aria-hidden="true" className="size-3" /> Only you see these</>} busy={loading}>
       <DirectionSwitch direction={direction} onChoose={setDirection} />
       <Rows entries={shown.entries.filter(isKnown)} empty={directions[direction].empty} />
+      <AppLink href={activityHref(direction)} className="inline-flex min-h-6 items-center gap-1 self-start text-sm font-medium underline-offset-4 hover:underline">
+        See all activity
+        <IconArrowRight aria-hidden="true" className="size-3.5" />
+      </AppLink>
     </Panel>
   );
 }
