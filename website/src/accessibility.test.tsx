@@ -236,7 +236,7 @@ describe("WS223: every state of the spotlight passes axe in light and dark", () 
       it(`the spotlight ${state.name} in ${dark ? "dark" : "light"}`, async () => {
         fakeSystemTheme(dark);
         window.history.replaceState(null, "", "/leaderboard");
-        const { user, container, findByRole } = renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leaderboardFixtures.midBoard), undefined, undefined, undefined, undefined, undefined, undefined, state.draw);
+        const { user, container, findByRole } = renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leaderboardFixtures.midBoard), undefined, undefined, undefined, undefined, undefined, undefined, undefined, state.draw);
         const spotlight = await findByRole("region", { name: "A thank-you from your workspace" });
         if (state.pressNext) await user.click(within(spotlight).getByRole("button", { name: "Next" }));
         await waitFor(() => expect(spotlight).toHaveTextContent(state.shows));

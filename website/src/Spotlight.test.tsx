@@ -35,7 +35,7 @@ function drawing(script: Script) {
 }
 
 function boardWith(draw: SpotlightDraw, readBoard: BoardRead = fixedLeaderboard(leaderboardFixtures.midBoard)) {
-  return renderApp(shellFixtures.memberWithTheBoard, readBoard, undefined, undefined, undefined, undefined, undefined, undefined, draw);
+  return renderApp(shellFixtures.memberWithTheBoard, readBoard, undefined, undefined, undefined, undefined, undefined, undefined, undefined, draw);
 }
 
 function skipsFrom(after: string, count: number, then: Answer, prefix = "skip"): Record<string, Answer> {
@@ -347,7 +347,7 @@ describe("WS222 WS201: the empty spotlight, and none while the read answers not-
     { state: "not-found", visitor: shellFixtures.member, board: (period) => period && { kind: "not-found" } },
   ])("never draws on the $state leaderboard page", async ({ visitor, board }) => {
     const draw = drawing({ seed: pairing });
-    renderApp(visitor, board, undefined, undefined, undefined, undefined, undefined, undefined, draw);
+    renderApp(visitor, board, undefined, undefined, undefined, undefined, undefined, undefined, undefined, draw);
     await act(async () => undefined);
     expect(draw).not.toHaveBeenCalled();
     expect(querySpotlight()).toBeNull();

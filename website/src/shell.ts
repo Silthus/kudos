@@ -20,7 +20,7 @@ export type { Period } from "../../convex/leaderboard/periods";
 export type { CommandAnswer, PurchaseAnswer, PurchaseRefusal, SwapAnswer } from "../../convex/website/commands";
 export type { Feature } from "../../convex/unlocks/feature";
 export type { Quest, WeeklyQuest } from "../../convex/quests/step";
-export type { KudosGiven, KudosReceived, Message, MyRecentKudos, MySpotlight, Person, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
+export type { Activity, ActivityEntry, KudosGiven, KudosReceived, LevelUp, Message, MyActivity, MyRecentKudos, MySpotlight, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
 
 export type OpenAnswer = CommandAnswer | Denial;
 

@@ -1,5 +1,6 @@
 import { ConvexReactClient } from "convex/react";
 import type { ReactNode } from "react";
+import { fixtureActivityWatch, fixtureReadActivity } from "./activityFixtures";
 import { App } from "./App";
 import { fixtureBookFor } from "./bookFixtures";
 import { ErrorBoundary, type Failure } from "./ErrorBoundary";
@@ -23,7 +24,7 @@ export function Root({ fixture, convexUrl }: { fixture?: string; convexUrl?: str
 }
 
 function FixtureApp({ visitor }: { visitor: ShellState }) {
-  return <App visitor={visitor} actions={fixtureActions} useLeaderboard={fixtureLeaderboard} useQuests={fixtureQuests} useBook={fixtureBookFor(visitor)} useSkillTree={fixtureSkillTreeFor(visitor)} useProfileCard={fixtureProfileCardFor(visitor)} useRecentKudos={fixtureRecentKudos} drawSpotlight={fixtureSpotlight} />;
+  return <App visitor={visitor} actions={fixtureActions} useLeaderboard={fixtureLeaderboard} useQuests={fixtureQuests} useBook={fixtureBookFor(visitor)} useSkillTree={fixtureSkillTreeFor(visitor)} useProfileCard={fixtureProfileCardFor(visitor)} useRecentKudos={fixtureRecentKudos} useActivityWatch={fixtureActivityWatch} readActivity={fixtureReadActivity} drawSpotlight={fixtureSpotlight} />;
 }
 
 export function ShellBoundary({ children }: { children: ReactNode }) {

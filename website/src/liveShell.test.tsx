@@ -21,6 +21,7 @@ const buyPerkCall = vi.fn();
 const socket = { isWebSocketConnected: true };
 const sessionToken = { current: "the-session-jwt" as string | null };
 const sentOverHttp = vi.fn();
+const readOnce = vi.fn();
 const auth = { isLoading: false, isAuthenticated: true };
 
 vi.mock("convex/browser", async (importOriginal) => ({
@@ -57,11 +58,8 @@ const watchedQueries: string[] = [];
 
 const subscriptions = new Set<{ query: string; args: unknown }>();
 
-const oneShotRead = vi.fn<(read: { query: string; args: unknown }) => Promise<unknown>>();
-
 const boardWatch = {
   url: "https://happy-hog-123.convex.cloud",
-  query: (query: FunctionReference<"query">, args: unknown) => oneShotRead({ query: getFunctionName(query), args }),
   watchQuery: (query: FunctionReference<"query">, args: unknown) => {
     watchedQueries.push(getFunctionName(query));
     return {
@@ -81,6 +79,7 @@ const boardWatch = {
       },
     };
   },
+  query: (query: FunctionReference<"query">, args: unknown) => readOnce({ query: getFunctionName(query), args }),
 } as unknown as ConvexReactClient;
 
 vi.mock("@convex-dev/auth/react", () => ({
@@ -119,7 +118,7 @@ afterEach(() => {
   openFeatureCall.mockReset();
   buyPerkCall.mockReset();
   sentOverHttp.mockReset();
-  oneShotRead.mockReset();
+  readOnce.mockReset();
 });
 
 describe("WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change", () => {
@@ -268,10 +267,11 @@ describe("WS111: the home's rail reads through the live shell", () => {
 
 describe("WS200 WS207: the Recent kudos card reads getRecentKudos through the live shell", () => {
   function recentKudosAsked() {
-    return [...subscriptions].filter(({ query }) => query === "website/activity:getRecentKudos").map(({ args }) => args);
+    const asked = [...subscriptions].filter(({ query }) => query === "website/activity:getRecentKudos").map(({ args }) => JSON.stringify(args));
+    return [...new Set(asked)].map((args) => JSON.parse(args) as unknown);
   }
 
-  it("subscribes once to the last three kudos received across re-renders, then to the last three given once switched", async () => {
+  it("subscribes once to the last three kudos received across re-renders, then to the last three given once switched, while the tabs keep watching the received side", async () => {
     profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelLocked);
     boardRead.mockReturnValue(recentKudosFixtures.threeReceived);
     const { user } = renderLiveSite();
@@ -284,7 +284,10 @@ describe("WS200 WS207: the Recent kudos card reads getRecentKudos through the li
 
     await user.click(within(card).getByRole("radio", { name: "Given" }));
 
-    expect(recentKudosAsked()).toEqual([{ direction: "given", limit: 3 }]);
+    expect(recentKudosAsked()).toEqual([
+      { direction: "received", limit: 3 },
+      { direction: "given", limit: 3 },
+    ]);
   });
 
   it("takes the card away when the read fails after it showed rows", () => {
@@ -313,7 +316,7 @@ describe("WS219: the spotlight draws through the live shell with one-shot getSpo
   const { pairing, onboarding } = spotlightFixtures;
 
   function spotlightDraws() {
-    return oneShotRead.mock.calls.map(([read]) => read).filter(({ query }) => query === "website/activity:getSpotlight");
+    return readOnce.mock.calls.map(([read]) => read as { query: string; args: unknown }).filter(({ query }) => query === "website/activity:getSpotlight");
   }
 
   beforeEach(() => {
@@ -323,7 +326,7 @@ describe("WS219: the spotlight draws through the live shell with one-shot getSpo
   });
 
   it("draws once per board visit with a seed, never subscribes, keeps the thank-you while the board updates, and reads after it on Next", async () => {
-    oneShotRead.mockImplementation(async ({ args }) => (typeof args === "object" && args !== null && "after" in args ? onboarding : pairing));
+    readOnce.mockImplementation(async ({ args }: { args: unknown }) => (typeof args === "object" && args !== null && "after" in args ? onboarding : pairing));
     const { user } = renderLiveSite();
     const panel = await screen.findByRole("region", { name: "A thank-you from your workspace" });
     expect(panel).toHaveTextContent("Ada Lindqvist thanked Bo Okafor");
@@ -340,7 +343,7 @@ describe("WS219: the spotlight draws through the live shell with one-shot getSpo
 
   it("ends a draw the server never answers after ten seconds, with Max's line and Try again", async () => {
     vi.useFakeTimers();
-    oneShotRead.mockImplementation(() => new Promise(() => undefined));
+    readOnce.mockImplementation(() => new Promise(() => undefined));
     renderLiveSite();
     await act(async () => vi.advanceTimersByTimeAsync(10_000));
     const panel = screen.getByRole("region", { name: "A thank-you from your workspace" });
@@ -555,5 +558,20 @@ describe("WS321: the visibility switch never sends again by itself", () => {
     expect(openFeatureCall).not.toHaveBeenCalled();
     boardAnswers(leaderboardFixtures.left);
     expect(await screen.findByText("You're off the leaderboards.")).toBeInTheDocument();
+  });
+});
+
+describe("WS200 WS214: /activity reads getActivity through the live shell", () => {
+  it("watches the newest page of the filter and reads each page once, 20 at a time", async () => {
+    window.history.replaceState(null, "", "/activity?filter=given");
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelLocked);
+    boardRead.mockReturnValue({ kind: "activity", entries: [], cursor: null, timeZone: "Europe/Berlin" });
+    readOnce.mockResolvedValue({ kind: "activity", entries: [], cursor: null, timeZone: "Europe/Berlin" });
+    renderLiveSite();
+
+    expect(await screen.findByText("Kudos you give show here, with what each one earned.")).toBeInTheDocument();
+    const watched = [...subscriptions].filter(({ query }) => query === "website/activity:getActivity").map(({ args }) => args);
+    expect(watched).toContainEqual({ filter: "given", cursor: null, limit: 20 });
+    expect(readOnce).toHaveBeenCalledWith({ query: "website/activity:getActivity", args: { filter: "given", cursor: null, limit: 20 } });
   });
 });
