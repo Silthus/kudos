@@ -153,6 +153,7 @@ describe("WS318 WS319: pressing Swap sends the read's own quest and answers in p
     expect(cardOf(sayingWhyTwice)).toHaveTextContent("That quest couldn't be swapped.");
     expect(cardOf(sayingWhyThreeTimes)).not.toHaveTextContent("couldn't be swapped");
     expect(swapButtonIn(sayingWhyTwice)).toHaveTextContent(/^Swap$/);
+    expect(within(main()).getByRole("status").textContent).toBe("That quest couldn't be swapped.");
   });
 
   it("after refused because the week's swap went to another quest, keeps the line on the card once Swap is gone", async () => {
@@ -169,6 +170,34 @@ describe("WS318 WS319: pressing Swap sends the read's own quest and answers in p
 
     await waitFor(() => expect(cardOf(sayingWhyThreeTimes)).toHaveTextContent("That quest couldn't be swapped."));
     expect(within(main()).queryByRole("button", { name: /^Swap/ })).not.toBeInTheDocument();
+    expect(within(main()).getByRole("heading", { name: sayingWhyThreeTimes })).toHaveFocus();
+  });
+
+  it("after no answer, a swap that commits late clears the line, says the new quest and moves focus to it", async () => {
+    const { read, swapLands } = swappingRead();
+    const view = renderApp(withQuests, undefined, { swapQuest: async () => Promise.reject(new Error("HedgeHug didn't answer in time.")) }, read);
+    await view.user.click(swapButtonIn(sayingWhyTwice));
+    expect(cardOf(sayingWhyTwice)).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
+
+    swapLands();
+    view.showVisitor(withQuests);
+
+    expect(within(main()).getByRole("heading", { name: swappedIn })).toHaveFocus();
+    expect(cardOf(swappedIn)).not.toHaveTextContent("Couldn't reach HedgeHug");
+    expect(within(main()).getByRole("status").textContent).toBe(`Swapped. Your new quest: ${swappedIn}`);
+  });
+
+  it("after the Monday turn, last week's line doesn't stay on the new week's quest in the same slot", async () => {
+    let answer: MyQuests = questsFixtures.weekWithASwapLeft;
+    const read: QuestsRead = (asking) => (asking ? answer : undefined);
+    const view = renderApp(withQuests, undefined, { swapQuest: async () => ({ kind: "refused" }) }, read);
+    await view.user.click(swapButtonIn(sayingWhyTwice));
+    expect(cardOf(sayingWhyTwice)).toHaveTextContent("That quest couldn't be swapped.");
+
+    answer = { ...questsFixtures.weekWithASwapLeft, slots: questsFixtures.weekWithASwapLeft.slots.map((slot) => ({ ...slot, quest: { ...slot.quest, week: "2026-10-19" } })) };
+    view.showVisitor(withQuests);
+
+    expect(cardOf(sayingWhyTwice)).not.toHaveTextContent("couldn't be swapped");
   });
 
   it("after an error, says HedgeHug couldn't be reached, and pressing Swap again sends the same quest", async () => {
@@ -181,6 +210,7 @@ describe("WS318 WS319: pressing Swap sends the read's own quest and answers in p
 
     await user.click(swapButtonIn(sayingWhyTwice));
     expect(cardOf(sayingWhyTwice)).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
+    expect(within(main()).getByRole("status").textContent).toBe("Couldn't reach HedgeHug. Try again.");
 
     await user.click(swapButtonIn(sayingWhyTwice));
     expect(actions.swapQuest.mock.calls).toEqual([[{ kind: "weekly", week: "2026-10-12", slot: 2 }], [{ kind: "weekly", week: "2026-10-12", slot: 2 }]]);

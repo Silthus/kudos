@@ -81,6 +81,12 @@ async function aSwappableWeekIn(backend: Backend = t) {
   return team;
 }
 
+async function aSwappableWeekWrittenDirectlyIn(team: Team) {
+  await team.backend.run((ctx) => ctx.db.insert("unlocks", { member: team.member, feature: "quests", readyAt: Date.now(), openedAt: Date.now() }));
+  await drawnIn(team.backend, team.member, sayingWhyThreeWays);
+  return team;
+}
+
 function drawnIn(backend: Backend, member: MemberId, quests: QuestId[]) {
   const slots = quests.map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 15 } }));
   return backend.run((ctx) => ctx.db.insert("questDraws", { member, week: thisWeek, drawnAt: Date.now(), slots }));
@@ -191,9 +197,9 @@ describe("a website command never launches unlocks", () => {
     expect(publishedEvents()).toEqual([]);
   });
 
-  test("WS335 P77: with every flag on and no unlocks launch, a swap answers refused and launches nothing", async () => {
+  test("WS335 P77: with every flag on and no unlocks launch, a member whose Quests is open with a drawn week gets refused and nothing launches", async () => {
     await flagsOn(t, ...questsFlags);
-    const { asSignedIn } = await aTeamIn(t);
+    const { asSignedIn } = await aSwappableWeekWrittenDirectlyIn(await aTeamIn(t));
     const before = await everythingWritten();
 
     expect(await swapQuest(asSignedIn)).toEqual({ kind: "refused" });
@@ -204,10 +210,10 @@ describe("a website command never launches unlocks", () => {
     expect(publishedEvents()).toEqual([]);
   });
 
-  test("WS335 P91: with unlocks launched and no Journey launch, a swap answers refused and neither launches the Journey nor joins anyone", async () => {
+  test("WS335 P91: with unlocks launched and no Journey launch, a swap of an open, drawn week answers refused and neither launches the Journey nor joins anyone", async () => {
     await flagsOn(t, ...questsFlags);
     await unlocksShippedBeforeAnyoneJoined(t);
-    const { asSignedIn } = await aTeamIn(t);
+    const { asSignedIn } = await aSwappableWeekWrittenDirectlyIn(await aTeamIn(t));
     const before = await everythingWritten();
     vi.mocked(publish).mockClear();
 

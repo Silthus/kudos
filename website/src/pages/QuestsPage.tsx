@@ -8,7 +8,7 @@ import { rewardChipAttributes } from "../crates/RewardFlight";
 import type { Hoggie } from "../features";
 import { PageTitle } from "../PageTitle";
 import { questTargetAttributes } from "../questTarget";
-import { useQuestSwap, type QuestSwap } from "../quests/questSwap";
+import { sameQuest, useQuestSwap, type QuestSwap } from "../quests/questSwap";
 import type { QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
 import { SlackLink } from "../SlackLink";
 
@@ -173,7 +173,7 @@ function Claim({ crate, variant }: { crate: QuestCrate; variant: "primary" | "ou
 }
 
 function SwapAction({ slot, swap, swappable }: { slot: QuestSlot } & Swapping) {
-  const line = swap.lineFor(slot.slot);
+  const line = swap.lineFor(slot.quest);
   if (line === undefined && !swappable) return null;
   return (
     <div className="flex flex-col items-end gap-1">
@@ -188,7 +188,7 @@ function SwapButton({ slot, swap }: { slot: QuestSlot; swap: QuestSwap }) {
   return (
     <Button variant="link-muted" size="sm" title="Swap this quest for another. One swap a week." aria-disabled={sending || undefined} onClick={() => swap.swap(slot)}>
       <IconRefresh aria-hidden="true" className="size-3.5" />
-      {swap.sending === slot.slot ? "Swapping…" : "Swap"}
+      {swap.sending !== undefined && sameQuest(swap.sending, slot.quest) ? "Swapping…" : "Swap"}
     </Button>
   );
 }
