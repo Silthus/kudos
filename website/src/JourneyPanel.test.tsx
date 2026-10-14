@@ -79,6 +79,13 @@ describe("WS72 WS58: the Quests card on the home", () => {
     expect(card).not.toHaveTextContent(/\d/);
   });
 
+  it("WS75: describes a locked Quests by the quests a member gets, with no group quest", () => {
+    renderApp(shellFixtures.memberStartingTheJourney);
+    const card = within(within(main()).getByRole("region", { name: "Still locked" })).getByRole("heading", { name: "Quests" }).closest("article")!;
+    expect(card).toHaveTextContent("Weekly quests of your own.");
+    expect(card).not.toHaveTextContent(/group/i);
+  });
+
   it("goes to /quests with Enter, moving focus to the page title", async () => {
     const { user } = renderApp(shellFixtures.memberWithQuests);
     within(within(main()).getByRole("region", { name: "Open" })).getByRole("link", { name: /Quests/ }).focus();

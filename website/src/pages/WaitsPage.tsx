@@ -1,13 +1,13 @@
 import { AppLink } from "../AppLink";
-import { leaderboardWaitingWords } from "../leaderboard/waiting";
 import { MaxSays } from "../Max";
-import type { LeaderboardWaits } from "../shell";
 import { SlackLink } from "../SlackLink";
 
-export function LeaderboardWaitsPage({ waiting, chatUrl }: { waiting: LeaderboardWaits; chatUrl: string }) {
+type Waits = { kind: "locked"; level: number } | { kind: "ready" };
+
+export function WaitsPage({ name, waiting, chatUrl }: { name: string; waiting: Waits; chatUrl: string }) {
   return (
-    <MaxSays title="Leaderboard" tab="Leaderboard" action={waiting.kind === "ready" ? <OpenSlack chatUrl={chatUrl} /> : <GoHome />}>
-      {leaderboardWaitingWords(waiting)}
+    <MaxSays title={name} tab={name} action={waiting.kind === "ready" ? <OpenSlack chatUrl={chatUrl} /> : <GoHome />}>
+      {waiting.kind === "ready" ? `${name} is ready for you. Open it in Slack's App Home.` : `${name} opens at level ${waiting.level}.`}
     </MaxSays>
   );
 }

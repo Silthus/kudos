@@ -8,6 +8,7 @@ import type { BoardAnswer } from "./boardRead";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
 import { useSocketUnreachable } from "./connection";
+import type { QuestsShown } from "./questsRead";
 import type { Period, ShellActions, Visitor } from "./shell";
 import { forgetSignInStarted } from "./signInAttempt";
 
@@ -32,6 +33,7 @@ function LiveApp() {
       visitor={visitorOf({ authLoading: isLoading, redemptionFailed, unreachable, profile })}
       actions={actions}
       useLeaderboard={(period) => useLiveLeaderboard(period, unreachable)}
+      useQuests={(asking) => useLiveQuests(asking, unreachable)}
     />
   );
 }
@@ -42,6 +44,14 @@ function useLiveLeaderboard(period: Period | undefined, unreachable: boolean): B
   if (board instanceof Error) return { kind: "broken" };
   if (board === undefined && unreachable) return { kind: "connecting" };
   return board;
+}
+
+function useLiveQuests(asking: boolean, unreachable: boolean): QuestsShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { quests: { query: api.website.quests.getQuests, args: {} } } : {}), [asking]);
+  const { quests } = useQueries(request);
+  if (quests instanceof Error) return { kind: "broken" };
+  if (quests === undefined && unreachable) return { kind: "connecting" };
+  return quests;
 }
 
 type Answers = { authLoading: boolean; redemptionFailed: boolean; unreachable: boolean; profile: MyProfile | undefined };

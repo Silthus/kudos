@@ -3,12 +3,13 @@ import axe from "axe-core";
 import { describe, expect, it } from "vitest";
 import type { BoardRead } from "./boardRead";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
-import { shellFixtures, type MyLeaderboard, type OpenAnswer, type ShellState } from "./shell";
+import { fixedQuests, questsFixtures } from "./questsFixtures";
+import { shellFixtures, type MyLeaderboard, type MyQuests, type OpenAnswer, type ShellState } from "./shell";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
 
-const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard }[] = [
+const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard; quests?: MyQuests }[] = [
   { name: "loading", path: "/", visitor: shellFixtures.loading },
   { name: "connecting", path: "/", visitor: shellFixtures.connecting },
   { name: "closed", path: "/", visitor: shellFixtures.closed },
@@ -37,6 +38,13 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "leaderboard ready to open in place", path: "/leaderboard", visitor: shellFixtures.memberWithTheBoardReady, board: { kind: "ready" } },
   { name: "home with two crates and the ready pill", path: "/", visitor: shellFixtures.memberWithEveryFeatureReady },
   { name: "empty leaderboard", path: "/leaderboard?period=all", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.empty },
+  { name: "home starting the Journey with Quests locked", path: "/", visitor: shellFixtures.memberStartingTheJourney },
+  { name: "home with a Journey step in each state and Quests open", path: "/", visitor: shellFixtures.memberWithQuests },
+  { name: "quests this week", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.week },
+  { name: "quests with last week's crate waiting", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithLastWeeksCrate },
+  { name: "quests with nothing drawn", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.noDraw },
+  { name: "quests locked until level 2", path: "/quests", visitor: shellFixtures.memberStartingTheJourney, quests: questsFixtures.locked },
+  { name: "quests ready to open in place", path: "/quests", visitor: shellFixtures.memberWithQuestsReady, quests: questsFixtures.ready },
   { name: "error", path: "/", visitor: shellFixtures.error },
 ];
 
@@ -57,7 +65,7 @@ describe("WS24: every page passes axe in light and dark", () => {
       it(`${page.name} in ${dark ? "dark" : "light"}`, async () => {
         fakeSystemTheme(dark);
         window.history.replaceState(null, "", page.path);
-        const { container } = renderApp(page.visitor, page.board && answering(page.board));
+        const { container } = renderApp(page.visitor, page.board && answering(page.board), undefined, page.quests && fixedQuests(page.quests));
         expect(await violationsIn(container)).toEqual([]);
       });
     }

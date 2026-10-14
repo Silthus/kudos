@@ -1,0 +1,34 @@
+import { Done, RewardCrate } from "../crates/RewardCrate";
+import type { JourneyStep } from "../shell";
+
+export function JourneyPanel({ journey }: { journey: JourneyStep[] | null }) {
+  if (journey === null || journey.length === 0) return null;
+  return (
+    <section aria-labelledby="journey-title" className="hud-panel relative flex flex-col gap-3 rounded-xl border bg-card p-4">
+      <h2 id="journey-title" className="hud-label">
+        Journey
+      </h2>
+      <ol className="flex flex-col divide-y">
+        {journey.map((step) => (
+          <StepItem key={step.step} {...step} />
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function StepItem({ goal, hint, reward, state }: JourneyStep) {
+  return (
+    <li className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
+      <h3 className={`text-sm font-medium ${state === "opened" ? "text-muted-foreground" : ""}`}>{goal}</h3>
+      {state === "active" && (
+        <>
+          {hint !== null && <p className="text-xs text-muted-foreground">{hint}</p>}
+          <p className="text-xs font-medium tabular-nums">{`Pays ${reward.xp} XP`}</p>
+        </>
+      )}
+      {state === "finished" && <RewardCrate label={`Journey reward · ${reward.xp} XP`} />}
+      {state === "opened" && <Done>{`You earned ${reward.xp} XP`}</Done>}
+    </li>
+  );
+}
