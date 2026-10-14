@@ -165,7 +165,7 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
   over: a verification Convex stopped before it ran, one stopped 10 minutes before the sweep, one waiting out a 30-minute Retry-After, one without a due time, two sweeps before the fresh try runs, one more stranded verification than a page holds, and one stopped on its third try after 2 failed ones
   via: a stranded verification is tried again
   because: signing in again starts no verification while one is pending, so a try Convex stops, or one whose recordAttempt fails, left the person verifying for good (#382, #395); counting the stranded try keeps the bound of 3 even for a try that never records
-  refuted: retryStranded in convex/slack/verifyMember.ts no longer scheduled a try for the stranded verifications it found -> 2 of 4 cases went red: the stopped person kept reading verifying and the third try never ran (2026-10-14)
+  refuted: tryAgainCountingTheStrandedTry in convex/slack/verifyMember.ts no longer scheduled the fresh try -> 3 of 7 cases went red: the stopped person kept reading verifying, two sweeps and a page and one more asked Slack nothing (2026-10-14)
   kinds: state
   checklist: revalidated-permission dismissed: no permission is involved; the try asks users.info again and writes the directory only from a definite answer
   checklist: separation-of-duties dismissed: no approval policy applies
