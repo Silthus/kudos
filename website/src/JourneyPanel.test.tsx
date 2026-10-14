@@ -1,5 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
@@ -75,12 +76,14 @@ function questsPanel() {
   return within(main()).getByRole("region", { name: "Quests" });
 }
 
-describe("WS72 WS105: the Quests panel on the home", () => {
-  it("links an open Quests to /quests under Your quests this week., and no count", () => {
-    renderApp(shellFixtures.memberWithQuests);
-    expect(within(questsPanel()).getByRole("link", { name: "See all quests" })).toHaveAttribute("href", "/quests");
-    expect(questsPanel()).toHaveTextContent("Your quests this week.");
-    expect(questsPanel()).not.toHaveTextContent(/\d/);
+describe("WS72 WS109: the Quests panel on the home", () => {
+  function questsThisWeek() {
+    return within(main()).getByRole("region", { name: "Quests this week" });
+  }
+
+  it("links an open Quests to /quests as Quests this week", () => {
+    renderApp(shellFixtures.memberWithQuests, undefined, undefined, fixedQuests(questsFixtures.week));
+    expect(within(questsThisWeek()).getByRole("link", { name: "See all quests" })).toHaveAttribute("href", "/quests");
   });
 
   it("WS75: describes a locked Quests by the quests a member gets, with no group quest", () => {
@@ -91,8 +94,8 @@ describe("WS72 WS105: the Quests panel on the home", () => {
   });
 
   it("goes to /quests with Enter, moving focus to the page title", async () => {
-    const { user } = renderApp(shellFixtures.memberWithQuests);
-    within(questsPanel()).getByRole("link", { name: "See all quests" }).focus();
+    const { user } = renderApp(shellFixtures.memberWithQuests, undefined, undefined, fixedQuests(questsFixtures.week));
+    within(questsThisWeek()).getByRole("link", { name: "See all quests" }).focus();
     await user.keyboard("{Enter}");
     expect(window.location.pathname).toBe("/quests");
     expect(screen.getByRole("heading", { level: 1 })).toHaveFocus();

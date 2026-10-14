@@ -4,6 +4,7 @@ import { IconCheck, IconClock, IconRefresh } from "@posthog/icons";
 import { Button, Card, CardContent } from "@posthog/quill";
 import { attemptMessages, questCrateHomeAttributes, useMoments } from "../crates/moments";
 import { questCrateOf, type CrateFacts, type QuestCrate } from "../crates/readyCrates";
+import { Claimed } from "../crates/RewardCrate";
 import { rewardChipAttributes } from "../crates/RewardFlight";
 import type { Hoggie } from "../features";
 import { PageTitle } from "../PageTitle";
@@ -190,15 +191,6 @@ function SwapButton({ slot, swap }: { slot: QuestSlot; swap: QuestSwap }) {
       <IconRefresh aria-hidden="true" className="size-3.5" />
       {swap.sending !== undefined && sameQuest(swap.sending, slot.quest) ? "Swapping…" : "Swap"}
     </Button>
-  );
-}
-
-function Claimed() {
-  return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success px-2 py-0.5 text-[11px] font-medium leading-4 text-success-foreground">
-      <IconCheck aria-hidden="true" className="size-3" />
-      Claimed
-    </span>
   );
 }
 

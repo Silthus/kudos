@@ -1,6 +1,8 @@
-import { ConvexAuthProvider, useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth, useMutation, useQueries, useQuery, type ConvexReactClient, type RequestForQueries } from "convex/react";
-import { useMemo, useState } from "react";
+import { ConvexAuthProvider, useAuthActions, useAuthToken } from "@convex-dev/auth/react";
+import { ConvexHttpClient } from "convex/browser";
+import { useConvex, useConvexAuth, useMutation, useQueries, useQuery, type ConvexReactClient, type RequestForQueries } from "convex/react";
+import { useCallback, useMemo, useState } from "react";
+import type { FunctionArgs, FunctionReference, FunctionReturnType } from "convex/server";
 import { api } from "../../convex/_generated/api";
 import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
@@ -90,12 +92,14 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const openQuestCrate = useMutation(api.website.commands.openQuestCrate);
   const buyPerk = useMutation(api.website.commands.buyPerk);
   const swapQuest = useMutation(api.website.commands.swapQuest);
+  const setBoardVisibility = useSentOnce(api.website.commands.setBoardVisibility);
   return useMemo(
     () => ({
       openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
       openQuestCrate: (quest) => answerWithin(commandAnswerBudgetMs, openQuestCrate({ quest })),
       buyPerk: ({ perk, request }) => answerWithin(commandAnswerBudgetMs, buyPerk({ perk, request })),
       swapQuest: (quest) => answerWithin(commandAnswerBudgetMs, swapQuest({ quest })),
+      setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -103,6 +107,19 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, swapQuest, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, swapQuest, setBoardVisibility, onSignInFailure],
+  );
+}
+
+function useSentOnce<Mutation extends FunctionReference<"mutation">>(mutation: Mutation) {
+  const { url } = useConvex();
+  const token = useAuthToken();
+  return useCallback(
+    (args: FunctionArgs<Mutation>): Promise<FunctionReturnType<Mutation>> => {
+      const once = new ConvexHttpClient(url);
+      if (token !== null) once.setAuth(token);
+      return once.mutation(mutation, args);
+    },
+    [url, token, mutation],
   );
 }

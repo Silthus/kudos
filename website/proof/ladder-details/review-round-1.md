@@ -1,0 +1,5 @@
+1. **P2 — [Rosette.tsx:45](/home/coder/dev/kudos-wt/ladder-details/website/src/book/Rosette.tsx:45): earned ring fails contrast.** The inner metal ring sits over the metal gradient. Its lower-right arc reaches only **≈1.4:1 light / ≈1.5:1 dark**, violating WS339/V24’s 3:1 requirement. [levelContrast.test.tsx:121](/home/coder/dev/kudos-wt/ladder-details/website/src/levelContrast.test.tsx:121) incorrectly measures it against `card`, so passes. Give the ring a contrasting backing or paint, and test its actual adjacent surface.
+
+2. **P2 — [Rosette.tsx:26](/home/coder/dev/kudos-wt/ladder-details/website/src/book/Rosette.tsx:26): unstarted rosette outline fails contrast and escapes measurement.** For a ladder with no earned tier, the scalloped polygon paints `muted` against `card`: **1.13:1 light / 1.02:1 dark**. The contrast test’s stroke-only selector omits it entirely. Add a contrasting outer stroke and include that outline in the test.
+
+Ratios calculated from the current theme tokens. No files changed.

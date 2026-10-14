@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { runCommand } from "../commands/commands";
 import { republish } from "../feedback/homes";
+import { isOnTheBoards } from "../leaderboard/visibility";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
 import type { Refusal } from "../progression/purchases";
 import { perkValidator } from "../progression/tree";
@@ -14,7 +15,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { workspaceLaunchDueIn } from "./flag";
 import { memberMutation } from "./memberMutation";
 import type { VerifiedMember } from "./memberQuery";
-import { featurePageOf, unlockPathOf } from "./unlockPath";
+import { featurePageOf, leaderboardStateOf, unlockPathOf } from "./unlockPath";
 
 export type CommandAnswer = { kind: "opened" } | { kind: "refused" };
 
@@ -23,6 +24,8 @@ export type SwapAnswer = { kind: "swapped" } | { kind: "refused" };
 export type PurchaseRefusal = "owned" | "level" | "requires" | "points" | "not-open";
 
 export type PurchaseAnswer = { kind: "bought" } | { kind: "refused"; reason: PurchaseRefusal | null };
+
+export type VisibilityAnswer = { kind: "set"; visible: boolean } | { kind: "refused" };
 
 const opened: CommandAnswer = { kind: "opened" };
 const refused: CommandAnswer = { kind: "refused" };
@@ -85,6 +88,18 @@ export const buyPerk = memberMutation({
   },
 });
 
+export const setBoardVisibility = memberMutation({
+  args: { visible: v.boolean() },
+  handler: async (ctx, me, person, { visible }): Promise<VisibilityAnswer> => {
+    if (!(await boardOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
+    const before = await isOnTheBoards(ctx, me.member);
+    await runCommand(ctx, me.workspace, person, { type: "setLeaderboardVisibility", visible }, `website:setBoardVisibility:${me.member}`);
+    const stored = await isOnTheBoards(ctx, me.member);
+    if (stored !== before) await republish(ctx, me.member);
+    return { kind: "set", visible: stored };
+  },
+});
+
 function queryOnly({ db, ...rest }: MutationCtx): QueryCtx {
   return { ...rest, db: { get: db.get.bind(db), query: db.query.bind(db), normalizeId: db.normalizeId.bind(db), system: db.system } };
 }
@@ -97,6 +112,10 @@ function isUuid(request: string) {
 
 async function treeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
   return featurePageOf(await unlockPathOf(ctx, me), "skillTree").kind === "open" && (await noLaunchWaitsFor(ctx, me));
+}
+
+async function boardOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
+  return (await leaderboardStateOf(ctx, me, await unlockPathOf(ctx, me))).kind === "open" && (await noLaunchWaitsFor(ctx, me));
 }
 
 async function launchesRecordedFor(ctx: QueryCtx, me: VerifiedMember) {

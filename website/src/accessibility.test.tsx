@@ -1,11 +1,12 @@
 import { act, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
-import type { BoardRead } from "./boardRead";
+import type { BoardAnswer, BoardRead } from "./boardRead";
+import type { QuestsShown } from "./questsRead";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
-import { shellFixtures, type MyBook, type MyLeaderboard, type MyQuests, type BuyAnswer, type MySkillTree, type OpenAnswer, type ShellState } from "./shell";
+import { shellFixtures, type MyBook, type MyLeaderboard, type MyQuests, type BuyAnswer, type MySkillTree, type OpenAnswer, type ShellState, type VisibilityReply } from "./shell";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
@@ -60,6 +61,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "book ready to open in place", path: "/book", visitor: shellFixtures.memberWithTheBookReady, book: bookFixtures.ready },
   { name: "book with a ladder at bronze and a ladder not started", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.book },
   { name: "book with every tier of a ladder earned", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyTierEarned },
+  { name: "book with ladders unstarted, part-way, one tier from complete and complete", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyStage },
   { name: "book's overview with its page index, on a wide screen", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, wide: true },
   { name: "book's Giving page with its page index, on a wide screen", path: "/book?page=giving", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, wide: true },
   { name: "book's Crowd page with its page picker", path: "/book?page=crowd", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder },
@@ -152,6 +154,32 @@ describe("WS24: every page passes axe in light and dark", () => {
   }
 });
 
+const railStates: { name: string; board: BoardAnswer | undefined; quests: QuestsShown | undefined; visitor?: ShellState }[] = [
+  { name: "open, mid-board, with a quest in each state", board: leaderboardFixtures.midBoard, quests: questsFixtures.week },
+  { name: "open, tied, with an empty week", board: leaderboardFixtures.tiedBelowTheLead, quests: questsFixtures.noDraw },
+  { name: "open, leading the board with teammates' Slack faces", board: leaderboardFixtures.withTeammatesFaces, quests: questsFixtures.twoQuests },
+  { name: "open, not ranked", board: leaderboardFixtures.notRanked, quests: questsFixtures.nextWeek },
+  { name: "open, off the boards", board: leaderboardFixtures.left, quests: questsFixtures.week },
+  { name: "waiting for both answers", board: undefined, quests: undefined },
+  { name: "with both reads failed", board: { kind: "broken" }, quests: { kind: "broken" } },
+  { name: "locked by the reads before getMyProfile catches up", board: { kind: "locked", level: 3 }, quests: { kind: "locked", level: 2 } },
+  { name: "ready by the reads before getMyProfile catches up", board: { kind: "ready" }, quests: { kind: "ready" } },
+  { name: "at level 7", board: leaderboardFixtures.viewerLeads, quests: questsFixtures.week, visitor: { ...shellFixtures.memberWithEveryPanelOpen, progression: shellFixtures.memberAtLevel7.progression } },
+];
+
+describe("WS111 WS112: every state of the home's rail passes axe in light and dark", () => {
+  for (const dark of [false, true]) {
+    for (const state of railStates) {
+      it(`the rail ${state.name} in ${dark ? "dark" : "light"}`, async () => {
+        fakeSystemTheme(dark);
+        window.history.replaceState(null, "", "/");
+        const { container } = renderApp(state.visitor ?? shellFixtures.memberWithEveryPanelOpen, (period) => (period && state.board), undefined, (asking) => (asking ? state.quests : undefined));
+        expect(await violationsIn(container)).toEqual([]);
+      });
+    }
+  }
+});
+
 const crateStates: { name: string; answer: () => Promise<OpenAnswer>; reducedMotion?: boolean; skip?: boolean }[] = [
   { name: "opening", answer: () => new Promise(() => undefined) },
   { name: "refused", answer: async () => ({ kind: "refused" }) },
@@ -232,6 +260,28 @@ describe("WS24 WS87: every purchase state passes axe in light and dark", () => {
           await act(async () => undefined);
         }
         expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+      });
+    }
+  }
+});
+
+const visibilityStates: { name: string; answer: () => Promise<VisibilityReply> }[] = [
+  { name: "pending", answer: () => new Promise(() => undefined) },
+  { name: "set", answer: async () => ({ kind: "set", visible: false }) },
+  { name: "refused", answer: async () => ({ kind: "refused" }) },
+  { name: "unreachable", answer: async () => Promise.reject(new Error("socket closed")) },
+];
+
+describe("WS24 WS321: every visibility switch state passes axe in light and dark", () => {
+  for (const dark of [false, true]) {
+    for (const state of visibilityStates) {
+      it(`the switch ${state.name} in ${dark ? "dark" : "light"}`, async () => {
+        fakeSystemTheme(dark);
+        window.history.replaceState(null, "", "/leaderboard");
+        const { user, container, getByRole } = renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leaderboardFixtures.midBoard), { setBoardVisibility: state.answer });
+        await user.click(getByRole("switch", { name: "Show me on the leaderboards" }));
+        await act(async () => undefined);
+        expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
       });
     }
   }

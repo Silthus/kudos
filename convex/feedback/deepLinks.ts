@@ -1,6 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
-import { websiteLink } from "../website/link";
-import { listed, type Page } from "../website/routes";
+import { websiteOrigin } from "../website/link";
+import { listed, urlOf, type Page } from "../website/routes";
 import { openTheWebsite } from "./naming";
 
 export type DeepLink = { url: string; label: string };
@@ -18,8 +18,11 @@ export const deepLinks = {
   weeklyQuest: { page: { page: "quests" }, label: "See your quests on the web" },
 } satisfies Record<string, Destination>;
 
-export async function deepLinkOf(ctx: QueryCtx, workspace: string, { page, label }: Destination): Promise<DeepLink | null> {
-  const url = await websiteLink(ctx, workspace, page);
-  if (url === null) return null;
-  return { url, label: listed(page) ? label : openTheWebsite };
+export async function deepLinkOf(ctx: QueryCtx, workspace: string, destination: Destination): Promise<DeepLink | null> {
+  return deepLinkFrom(await websiteOrigin(ctx, workspace), destination);
+}
+
+export function deepLinkFrom(website: string | null, { page, label }: Destination): DeepLink | null {
+  if (website === null) return null;
+  return { url: urlOf(website, page), label: listed(page) ? label : openTheWebsite };
 }

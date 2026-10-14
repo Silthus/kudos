@@ -1,0 +1,30 @@
+     × offers only rows below at the top of the board 6785ms
+     × says what never ranks anyone, achievements included, and no longer sends anyone to Settings in Slack 389ms
+     × is a switch named Show me on the leaderboards, checked from the read for a viewer on the boards 155ms
+     × is a switch named Show me on the leaderboards, checked from the read for a viewer off the boards 82ms
+     × sends the flipped setting once, and is disabled while the call is pending 85ms
+     × keeps its position from the read, never from the value sent, until the read moves 60ms
+     × says You're off the leaderboards. politely after the answer set 89ms
+     × says You're on the leaderboards. politely after the answer set 96ms
+     × says That couldn't be changed. politely after the answer refused 62ms
+     × says Couldn't reach HedgeHug after an error and never sends again by itself 52ms
+     × says nothing after a denial, which the profile's read shows instead 4750ms
+     × tells a viewer who left the boards how to come back, in place of their row 341ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+Error: Test timed out in 5000ms.
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+TestingLibraryElementError: Unable to find an accessible element with the role "switch" and name "Show me on the leaderboards"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+TestingLibraryElementError: Unable to find an accessible element with the role "switch" and name "Show me on the leaderboards"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+TestingLibraryElementError: Unable to find an accessible element with the role "switch" and name "Show me on the leaderboards"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+TestingLibraryElementError: Unable to find an accessible element with the role "switch" and name "Show me on the leaderboards"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+TestingLibraryElementError: Unable to find an accessible element with the role "switch" and name "Show me on the leaderboards"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS321: the visibility switch > says Couldn't reach HedgeHug after an error and never sends again by itself
+TestingLibraryElementError: Unable to find an accessible element with the role "switch" and name "Show me on the leaderboards"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+TestingLibraryElementError: Unable to find an accessible element with the role "switch" and name "Show me on the leaderboards"
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
