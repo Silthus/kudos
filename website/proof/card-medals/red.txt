@@ -212,3 +212,11 @@ AssertionError: expected "vi.fn()" to be called at least once
      × WS343: subscribes once to the member's own profile card on the home 202ms
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
       Tests  1 failed | 26 skipped (27)
+
+Round 1 red for the review fixes:
+     × marks the card busy while the card read loads 49ms
+     × says the medals didn't load when the card read fails, instead of showing a card without them 55ms
+     × says medals join the card only after the Book opens, while the Book is locked 68ms
+     × says medals join the card only after the Book opens, while the Book is ready 73ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  4 failed | 7 passed | 35 skipped (46)

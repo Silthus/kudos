@@ -11,4 +11,4 @@ Fixture builds of this branch, served with `vite preview` (`VITE_SHELL_FIXTURE=m
 
 Deviation from variant E, recorded as a decision: the medals are a list with each tier's name and word (V16, as Slack prints names) instead of a bare row of 18 px medals. The group line waits for map #1's #52.
 
-`red.txt` is the WS343 tests failing on the tree before the change.
+`red.txt` is the WS343 tests failing before the change, and before the review-round-1 fixes; `green.txt` is the same tests passing. `review-round1.md` and `review-round2.md` are the GPT-6.1 Sol reviews.
