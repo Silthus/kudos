@@ -1,11 +1,14 @@
 import type { QueryCtx } from "../_generated/server";
-import { awardsReceivedNewestFirst, messagesGivenNewestFirst, type Before, type GivenMessageAwards, type ReceivedAward } from "../engine/awards";
-import { questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
+import { awardsReceivedNewestFirst, messagesGivenNewestFirst, type Before, type GivenMessageAwards, type MessageAward, type ReceivedAward } from "../engine/awards";
+import { bonusRecordedWith } from "../progression/effects";
+import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
+import { catalogue } from "../progression/catalogue";
 import { giverXpOf } from "../progression/progression";
+import { perkOf } from "../progression/tree";
 import { questsFinishedByMessage } from "../quests/finishedBy";
 import { levelUpsNewestFirst } from "../unlocks/unlocks";
 import { chatUserOf, timeZoneOf, type MemberId } from "../workspace/directory";
-import type { Activity, ActivityEntry, KudosGiven, KudosReceived, LevelUp, RecentKudos } from "./entries";
+import type { Activity, ActivityEntry, BonusEarned, KudosGiven, KudosReceived, LevelUp, RecentKudos } from "./entries";
 import { kudosFactsOf, mentionsOfOnePage, personOf, type Mentions } from "./kudos";
 import { beforeFor, decodePosition, encodePosition, newestFirst, ranks, type Position, type Rank } from "./position";
 
@@ -13,7 +16,7 @@ export type Filter = "all" | "received" | "given";
 
 export type Direction = Exclude<Filter, "all">;
 
-type GainsShown = { xp: boolean; quests: boolean };
+type GainsShown = { xp: boolean; quests: boolean; bonuses: boolean };
 
 type Viewer = { member: MemberId; gainsShown: () => Promise<GainsShown> };
 
@@ -28,7 +31,7 @@ type PageSize = { min: number; max: number; usual: number };
 const activityPage: PageSize = { min: 1, max: 50, usual: 20 };
 const recentPage: PageSize = { min: 1, max: 10, usual: 5 };
 
-export const recipientsPerPage = 1_000;
+export const recipientsPerPage = 700;
 
 const levelUps: Source = {
   rank: ranks.levelUp,
@@ -120,14 +123,20 @@ async function givenEntryOf(ctx: QueryCtx, viewer: Viewer, mentions: Mentions, g
 
 async function earnedBy(ctx: QueryCtx, { member, gainsShown }: Viewer, { message, awards }: GivenMessageAwards): Promise<KudosGiven["earned"]> {
   const shown = await gainsShown();
-  if (!shown.xp && !shown.quests) return null;
-  return { xp: shown.xp ? giverXpOf(awards) : null, questsDone: shown.quests ? await questsFinishedByMessage(ctx, member, message) : [] };
+  if (!shown.xp && !shown.quests && !shown.bonuses) return null;
+  const [questsDone, bonuses] = await Promise.all([shown.quests ? questsFinishedByMessage(ctx, member, message) : [], shown.bonuses ? bonusesEarnedBy(ctx, awards) : []]);
+  return { xp: shown.xp ? giverXpOf(awards) : null, questsDone, bonuses };
+}
+
+async function bonusesEarnedBy(ctx: QueryCtx, awards: MessageAward[]): Promise<BonusEarned[]> {
+  const paid = await bonusRecordedWith(ctx, awards.map(({ award }) => award));
+  return paid.map(({ source, xp }) => ({ perk: { id: source, name: perkOf(source).name }, why: catalogue.bonuses[source].why, xp }));
 }
 
 async function gainsShownTo(ctx: QueryCtx, member: MemberId): Promise<GainsShown> {
   const { workspace } = await chatUserOf(ctx, member);
-  const [xp, quests] = await Promise.all([xpGainsShownTo(ctx, workspace, member), questGainsShownTo(ctx, workspace, member)]);
-  return { xp, quests };
+  const [xp, quests, bonuses] = await Promise.all([xpGainsShownTo(ctx, workspace, member), questGainsShownTo(ctx, workspace, member), bonusGainsShownTo(ctx, workspace, member)]);
+  return { xp, quests, bonuses };
 }
 
 function once<T>(compute: () => Promise<T>): () => Promise<T> {

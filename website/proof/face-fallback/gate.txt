@@ -1,0 +1,35 @@
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+ ❯ |convex| convex/quests/newWeek.test.ts (18 tests | 1 failed) 70876ms
+   ❯ P80: the hourly sweep stays within Convex's limits and draws a week once (1)
+     × for 105 members who opened Quests and 5 who didn't, each deciding quests for themselves, each sweep mutation schedules at most 100 draws within Convex's transaction limits, and a second run draws nothing new 60137ms
+Not implemented: navigation to another Document
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/quests/newWeek.test.ts > P80: the hourly sweep stays within Convex's limits and draws a week once > for 105 members who opened Quests and 5 who didn't, each deciding quests for themselves, each sweep mutation schedules at most 100 draws within Convex's transaction limits, and a second run draws nothing new
+Error: Test timed out in 60000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ convex/quests/newWeek.test.ts:363:3
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 165 passed (166)
+      Tests  1 failed | 3061 passed (3062)
+   Start at  15:11:34
+   Duration  236.69s (tests 82%, import 11%, environment 4%, transform 3%, setup 1%)
+
+[ELIFECYCLE] Test failed. See above for more details.
+[ELIFECYCLE] Command failed with exit code 1.
+exit 1
+
+## Rerun of the timed-out file (load flake, no change)
+npx --no -- vitest run convex/quests/newWeek.test.ts
+ Test Files  1 passed (1)
+      Tests  18 passed (18)

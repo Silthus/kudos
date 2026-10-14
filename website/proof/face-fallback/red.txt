@@ -1,0 +1,34 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/face-fallback
+
+ ❯ |website| src/LeaderboardPage.test.tsx (92 tests | 1 failed | 88 skipped) 573ms
+   ❯ WS34 V19: teammates show their Slack faces (4)
+     × shows initials at once for a picture that already failed in the tab, and keeps a picture that already loaded 59ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS34 V19: teammates show their Slack faces > shows initials at once for a picture that already failed in the tab, and keeps a picture that already loaded
+AssertionError: expected <img alt …(2)></img> to have a length of +0 but got 1
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/LeaderboardPage.test.tsx:398:60
+    396|     showBoard(leaderboardFixtures.withTeammatesFaces);
+    397|
+    398|     expect(document.querySelectorAll(`img[src="${ada}"]`)).toHaveLengt…
+       |                                                            ^
+    399|     expect(within(podiumSpots()[1]!).getByText("AL")).toBeInTheDocumen…
+    400|     const ivyRow = within(main()).getByText("Ivy Quinn").closest("li")…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed | 88 skipped (92)
+   Start at  14:49:51
+   Duration  3.24s (import 40%, transform 23%, tests 18%, environment 15%, setup 4%)
+
