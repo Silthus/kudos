@@ -30,9 +30,9 @@ export function Spotlight({ draw }: { draw: SpotlightDraw }) {
 function ThankYou({ kudos: { giver, recipients, message, at, permalink } }: { kudos: SpotlightKudos }) {
   return (
     <>
-      <p className="flex items-center gap-3 font-medium">
+      <p className="flex items-start gap-3 font-medium">
         <MemberFace face={giver.face} className="size-8" />
-        <span className="min-w-0 [overflow-wrap:anywhere]">{`${giver.name} thanked ${namesOf(recipients)}`}</span>
+        <span className="mt-1.5 min-w-0 [overflow-wrap:anywhere]">{`${giver.name} thanked ${namesOf(recipients)}`}</span>
       </p>
       <blockquote className="border-l-2 border-foreground/20 pl-3 text-base leading-relaxed">
         <KudosMessage message={message} clamped={false} />
@@ -56,7 +56,7 @@ function OpenInSlack({ permalink, giver }: { permalink: string; giver: string })
 
 function DrawButton({ drawing, onPress, children }: { drawing: boolean; onPress: () => void; children: string }) {
   return (
-    <Button variant="outline" size="sm" className="self-start" aria-disabled={drawing || undefined} onClick={onPress}>
+    <Button variant="outline" size="sm" className="self-start aria-disabled:cursor-progress aria-disabled:opacity-60" aria-disabled={drawing || undefined} onClick={onPress}>
       {children}
     </Button>
   );
