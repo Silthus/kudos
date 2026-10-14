@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, answersWith, postHogHost, projectToken, routedFetch } from "../../testing/fakePostHog";
+import { FakePostHog, answersWith, flagsKey, postHogHost, projectToken, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
+import { flagsLoaded, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { blockActions, buttonIn, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section, slashCommand, text } from "../../testing/slackMessages";
@@ -170,8 +172,10 @@ describe("O7 O8: identity", () => {
 
 describe("O10: never sent", () => {
   test("no PostHog request carries the message, a name, a Slack or Convex ID, an emoji name or a time zone", async () => {
-    const t = testBackend();
     const team = "T0QUOKKAWS";
+    vi.stubEnv("POSTHOG_PERSONAL_API_KEY", flagsKey);
+    postHog.withFlags(...["xp-levels", "unlocks", "quests"].map(onForEveryone));
+    const t = await unlocksShippedBeforeAnyoneJoined(await flagsLoaded(testBackend()), team);
     const channel = "C0MARMALADE";
     const people = { giver: "U0ZEPHYRINE", recipient: "U0BARNABY77" };
     slack = new FakeSlack()
@@ -195,6 +199,9 @@ describe("O10: never sent", () => {
     );
     await post(t, [section(text("Marmalade note to Zephyrine herself "), mention(people.giver), emoji("artichokeparty"))], { ...fromZephyrine, ts: "1760349602.626262" });
     await settle(t);
+    const levelUpDm = slack.callsTo("chat.postMessage").find(({ channel, blocks }) => channel === people.giver && JSON.stringify(blocks ?? []).includes("openUnlock"));
+    const openQuests = blockActions(people.giver, buttonIn(levelUpDm!.blocks as Block[], "Open"), { team, inMessage: { channel: people.giver, ts: "1760349700.818181" } });
+    await t.fetch("/slack/interactivity", await signedRequest(openQuests, { contentType: "application/x-www-form-urlencoded" }));
     await t.fetch("/slack/events", await signedRequest(appHomeOpened(people.giver, { team })));
     await t.fetch(
       "/slack/commands",
@@ -206,7 +213,18 @@ describe("O10: never sent", () => {
 
     const bodies = postHog.requests.map((request) => request.body).join("\n");
     expect(new Set(postHog.events().map((event) => event.event))).toEqual(
-      new Set(["kudos given", "kudos received", "member welcomed", "level reached", "attempt failed", "app home opened", "command used"]),
+      new Set([
+        "kudos given",
+        "kudos received",
+        "member welcomed",
+        "level reached",
+        "unlock made ready",
+        "unlock opened",
+        "attempt failed",
+        "app home opened",
+        "command used",
+        "$feature_flag_called",
+      ]),
     );
     const stored = await everythingStored(t);
     const forbidden = [
