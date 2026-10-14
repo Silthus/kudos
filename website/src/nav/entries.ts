@@ -24,10 +24,6 @@ export function navEntriesOf({ features, leaderboard }: Pick<MemberProfile, "fea
   return [profileEntry, ...features.flatMap((card) => featureEntryOf(card, card === nextUnlock))];
 }
 
-export function openFeaturePagesOf(member: Pick<MemberProfile, "features" | "leaderboard">) {
-  return navEntriesOf(member).flatMap((entry) => (entry.state === "open" && entry.feature !== undefined ? [{ ...webPageOf(entry.feature)!, feature: entry.feature, name: entry.name }] : []));
-}
-
 function featureEntryOf(card: FeatureCard, next: boolean): NavEntry[] {
   const page = webPageOf(card.feature);
   if (page === undefined) return [];

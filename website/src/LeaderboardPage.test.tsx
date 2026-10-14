@@ -122,19 +122,22 @@ describe("WS37 WS1: the leaderboard lives at /leaderboard, with the period in th
   });
 });
 
-describe("WS38: the home's leaderboard card", () => {
-  it("is a plain card linking to the leaderboard while the board is open, with no rank or count", () => {
+describe("WS38 WS105: the home's Leaderboard panel", () => {
+  function leaderboardPanel() {
+    return within(main()).getByRole("region", { name: "Leaderboard" });
+  }
+
+  it("is a plain panel linking to the leaderboard while the board is open, with no rank or count", () => {
     renderApp(withTheBoard);
-    const card = within(main()).getByRole("link", { name: /Leaderboard/ });
-    expect(card).toHaveAttribute("href", "/leaderboard");
-    expect(card).toHaveTextContent("See who's thanking colleagues this week.");
-    expect(card).not.toHaveTextContent(/\d|Locked/);
+    expect(within(leaderboardPanel()).getByRole("link", { name: "Open the leaderboard" })).toHaveAttribute("href", "/leaderboard");
+    expect(leaderboardPanel()).toHaveTextContent("See who's thanking colleagues this week.");
+    expect(leaderboardPanel()).not.toHaveTextContent(/\d|Locked/);
   });
 
-  it("stays locked, with the other cards, while the board is off", () => {
+  it("stays locked, with the other panels, while the board is off", () => {
     renderApp(shellFixtures.member);
-    expect(within(main()).queryByRole("link", { name: /Leaderboard/ })).not.toBeInTheDocument();
-    expect(within(main()).getByRole("heading", { level: 3, name: "Leaderboard" }).parentElement).toHaveTextContent("Locked");
+    expect(within(leaderboardPanel()).queryByRole("link")).not.toBeInTheDocument();
+    expect(leaderboardPanel()).toHaveTextContent("Locked");
   });
 });
 

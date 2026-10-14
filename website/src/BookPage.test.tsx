@@ -1,11 +1,13 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ladders, type LadderId } from "../../convex/achievements/ladders";
+import { ladderCategories } from "./book/categories";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import type { BookRead } from "./bookRead";
 import { Root } from "./Root";
 import { shellFixtures, type CommandAnswer, type MyBook } from "./shell";
 import { renderApp } from "./test/renderApp";
-import { fakeSystemTheme } from "./test/systemTheme";
+import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -210,5 +212,167 @@ describe("WS80 WS81: the fixture build's /book agrees with its member", () => {
     waiting.unmount();
     render(<Root fixture="member-with-the-book-ready" />);
     expect(within(main()).getByRole("heading", { name: "Unlocks: Book" })).toBeInTheDocument();
+  });
+});
+
+function bookPages() {
+  return screen.getByRole("navigation", { name: "Book pages" });
+}
+
+function ladderNames() {
+  return within(main())
+    .getAllByRole("heading", { level: 2 })
+    .map((heading) => heading.textContent);
+}
+
+function showBookAt(path: string, answer: MyBook = bookFixtures.everyLadder) {
+  window.history.replaceState(null, "", path);
+  return showBook(answer);
+}
+
+const categoryPages = [
+  { page: "giving", name: "Giving", blurb: "Thanks you hand out, day after day and month after month.", ladders: ["Generosity", "Dependability", "Seasons"] },
+  { page: "thanked", name: "Being thanked", blurb: "Thanks that find their way back to you.", ladders: ["Recognition"] },
+  { page: "connections", name: "Connections", blurb: "The people you thank and old friends.", ladders: ["Connections", "Old Friends"] },
+  { page: "crowd", name: "Crowd", blurb: null, ladders: ["Applause"] },
+];
+
+describe("WS331: the Book's page index", () => {
+  it("shows a Book pages column on a wide screen: the Book, Overview, then each category in E's order", () => {
+    preferWideScreen();
+    showBookAt("/book");
+    expect(within(bookPages()).getByText("Book")).toBeInTheDocument();
+    const entries = within(bookPages()).getAllByRole("link");
+    expect(entries.map((entry) => [entry.textContent, entry.getAttribute("href")])).toEqual([
+      ["Overview", "/book"],
+      ["Giving", "/book?page=giving"],
+      ["Being thanked", "/book?page=thanked"],
+      ["Connections", "/book?page=connections"],
+      ["Crowd", "/book?page=crowd"],
+    ]);
+    expect(screen.queryByRole("combobox", { name: "Book page" })).toBeNull();
+  });
+
+  it("marks the current page, and only it, with the stripe in primary", () => {
+    preferWideScreen();
+    showBookAt("/book?page=connections");
+    const current = within(bookPages()).getByRole("link", { name: "Connections" });
+    expect(current).toHaveAttribute("aria-current", "page");
+    expect(current.outerHTML).toMatch(/primary/);
+    for (const other of within(bookPages()).getAllByRole("link").filter((entry) => entry !== current)) {
+      expect(other).not.toHaveAttribute("aria-current");
+      expect(other.outerHTML).not.toMatch(/primary/);
+    }
+  });
+
+  it("gives each category its emblem and the overview none", () => {
+    preferWideScreen();
+    showBookAt("/book");
+    const emblemsOf = (name: string) => within(bookPages()).getByRole("link", { name }).querySelectorAll("[data-emblem]").length;
+    expect(categoryPages.map(({ name }) => emblemsOf(name))).toEqual([1, 1, 1, 1]);
+    expect(within(bookPages()).getByRole("link", { name: "Overview" }).querySelector("[data-emblem]")).toBeNull();
+  });
+
+  it("lists only the categories that hold a ladder the read returns", () => {
+    preferWideScreen();
+    showBookAt("/book", bookFixtures.book);
+    expect(within(bookPages()).getAllByRole("link").map((entry) => entry.textContent)).toEqual(["Overview", "Giving", "Being thanked"]);
+  });
+
+  it("is a native select with option groups on a narrow screen", () => {
+    showBookAt("/book");
+    const select = screen.getByRole("combobox", { name: "Book page" });
+    expect(select.tagName).toBe("SELECT");
+    expect(select).toHaveValue("/book");
+    expect(within(select).getAllByRole("option").map((option) => option.textContent)).toEqual(["Overview", "Giving", "Being thanked", "Connections", "Crowd"]);
+    expect(within(select).getByRole("group", { name: "Achievements" })).toHaveTextContent("GivingBeing thankedConnectionsCrowd");
+    expect(screen.queryByRole("navigation", { name: "Book pages" })).toBeNull();
+  });
+
+  it("follows the select to a category without a reload, moving focus to its title", async () => {
+    const { user } = showBookAt("/book");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Book page" }), "Crowd");
+    expect(window.location.pathname + window.location.search).toBe("/book?page=crowd");
+    expect(pageTitle()).toHaveTextContent("Crowd");
+    expect(pageTitle()).toHaveFocus();
+    expect(screen.getByRole("combobox", { name: "Book page" })).toHaveValue("/book?page=crowd");
+  });
+
+  it("follows an index entry without a reload, moving focus to the page's title, and back with the browser", async () => {
+    preferWideScreen();
+    const { user } = showBookAt("/book");
+    await user.click(within(bookPages()).getByRole("link", { name: "Giving" }));
+    expect(window.location.search).toBe("?page=giving");
+    expect(pageTitle()).toHaveTextContent("Giving");
+    expect(pageTitle()).toHaveFocus();
+    expect(within(bookPages()).getByRole("link", { name: "Giving" })).toHaveAttribute("aria-current", "page");
+
+    await act(async () => {
+      window.history.back();
+      await waitFor(() => expect(window.location.search).toBe(""));
+    });
+    expect(pageTitle()).toHaveTextContent("Achievements");
+  });
+
+  it("serves the overview at /book, turning ?page=overview into /book", () => {
+    showBookAt("/book?page=overview");
+    expect(pageTitle()).toHaveTextContent("Achievements");
+    expect(window.location.pathname + window.location.search).toBe("/book");
+  });
+
+  it("shows the overview for a page it doesn't know, at /book", () => {
+    showBookAt("/book?page=albums");
+    expect(pageTitle()).toHaveTextContent("Achievements");
+    expect(window.location.pathname + window.location.search).toBe("/book");
+  });
+
+  it("shows the overview for a category whose ladders the read doesn't return", () => {
+    preferWideScreen();
+    showBookAt("/book?page=crowd", bookFixtures.book);
+    expect(pageTitle()).toHaveTextContent("Achievements");
+    expect(within(bookPages()).getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("keeps the overview's every ladder in catalogue order until the overview ships", () => {
+    showBookAt("/book");
+    expect(ladderNames()).toEqual(ladders.ladders.map(({ name }) => name));
+  });
+});
+
+describe("WS332: the Book's category pages", () => {
+  it.each(categoryPages)("/book?page=$page shows $name with its blurb and its ladders in catalogue order", ({ page, name, blurb, ladders: shown }) => {
+    showBookAt(`/book?page=${page}`);
+    expect(pageTitle()).toHaveTextContent(name);
+    expect(document.title).toBe(`HedgeHug · Book · ${name}`);
+    expect(within(main()).getByText("Achievements", { selector: ".hud-label" })).toBeInTheDocument();
+    const header = pageTitle().closest("header")!;
+    expect(within(header).queryByRole("paragraph")?.textContent ?? null).toBe(blurb);
+    expect(ladderNames()).toEqual(shown);
+  });
+
+  it("names no unshipped thing on any page: no albums, no chime-ins", () => {
+    for (const { page } of categoryPages) {
+      const view = showBookAt(`/book?page=${page}`);
+      expect(main()).not.toHaveTextContent(/album|chime|sticker|coin|reward/i);
+      view.unmount();
+    }
+  });
+
+  it("keys every shipped ladder to a category", () => {
+    const unkeyed = ladders.ladders.map(({ ladder }) => ladder).filter((ladder) => !Object.hasOwn(ladderCategories, ladder));
+    expect(unkeyed).toEqual([]);
+  });
+
+  it("puts a ladder a newer backend returns, with no category yet, on the last category that holds a ladder", () => {
+    const newer = { ...bookFixtures.book.ladders[0], ladder: "team-spirit" as LadderId, name: "Team Spirit" };
+    showBookAt("/book?page=thanked", { ...bookFixtures.book, ladders: [...bookFixtures.book.ladders, newer] });
+    expect(ladderNames()).toEqual(["Recognition", "Team Spirit"]);
+  });
+
+  it("keeps the read's order when a ladder with no category comes before the last category's own", () => {
+    const [generosity, recognition] = bookFixtures.book.ladders;
+    const newer = { ...generosity, ladder: "team-spirit" as LadderId, name: "Team Spirit" };
+    showBookAt("/book?page=thanked", { ...bookFixtures.book, ladders: [generosity, newer, recognition] });
+    expect(ladderNames()).toEqual(["Team Spirit", "Recognition"]);
   });
 });

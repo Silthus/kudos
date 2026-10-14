@@ -38,7 +38,7 @@ describe("WS6 WS24: signing in with Slack from the keyboard", () => {
   it("keeps the sign-in page while the browser leaves for Slack", async () => {
     const { showVisitor } = await startSignInFromKeyboard();
     showVisitor(shellFixtures.signedOut);
-    expect(pageTitle()).toHaveTextContent(/^Sign in$/);
+    expect(pageTitle()).toHaveTextContent(/^HedgeHug$/);
   });
 
   it("shows Sign-in didn't finish when a sign-in started in this browser comes back signed out", async () => {
@@ -61,7 +61,7 @@ describe("WS6 WS24: signing in with Slack from the keyboard", () => {
   it("shows the plain sign-in page to a signed-out visitor who never started a sign-in here", () => {
     const { showVisitor } = returnFromSlack();
     showVisitor(shellFixtures.signedOut);
-    expect(pageTitle()).toHaveTextContent(/^Sign in$/);
+    expect(pageTitle()).toHaveTextContent(/^HedgeHug$/);
   });
 
   it("tells about an unfinished sign-in only once", async () => {
@@ -72,7 +72,7 @@ describe("WS6 WS24: signing in with Slack from the keyboard", () => {
     firstReturn.unmount();
 
     returnFromSlack().showVisitor(shellFixtures.signedOut);
-    expect(pageTitle()).toHaveTextContent(/^Sign in$/);
+    expect(pageTitle()).toHaveTextContent(/^HedgeHug$/);
   });
 
   it("forgets an unfinished sign-in once a later one finishes, so signing out shows the plain sign-in page", async () => {
@@ -84,7 +84,7 @@ describe("WS6 WS24: signing in with Slack from the keyboard", () => {
     showVisitor(shellFixtures.member);
     showVisitor(shellFixtures.signedOut);
 
-    expect(pageTitle()).toHaveTextContent(/^Sign in$/);
+    expect(pageTitle()).toHaveTextContent(/^HedgeHug$/);
   });
 
   it("forgets a sign-in that finished, so signing out later shows the plain sign-in page", async () => {
@@ -92,7 +92,7 @@ describe("WS6 WS24: signing in with Slack from the keyboard", () => {
     const { showVisitor } = returnFromSlack();
     showVisitor(shellFixtures.member);
     showVisitor(shellFixtures.signedOut);
-    expect(pageTitle()).toHaveTextContent(/^Sign in$/);
+    expect(pageTitle()).toHaveTextContent(/^HedgeHug$/);
   });
 
   it("starts Slack's sign-in again from Try again on the didn't-finish page", async () => {
@@ -179,12 +179,12 @@ describe("F28: a link from Slack that asks to sign in", () => {
 
     await waitFor(() => expect(currentAddress()).toBe("/"));
     expect(actions.signIn).not.toHaveBeenCalled();
-    expect(pageTitle()).not.toHaveTextContent(/^Sign in$/);
+    expect(pageTitle()).not.toHaveTextContent(/^HedgeHug$/);
   });
 
   it.each([
     { later: shellFixtures.closed, title: "Not open yet" },
-    { later: shellFixtures.signedOut, title: /^Sign in$/ },
+    { later: shellFixtures.signedOut, title: /^HedgeHug$/ },
   ])("shows a member who arrived with the ask the page their later $later.kind answer calls for", async ({ later, title }) => {
     arriveAt("/sign-in/");
     const { actions, showVisitor } = renderApp(shellFixtures.member);

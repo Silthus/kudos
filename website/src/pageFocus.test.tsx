@@ -42,7 +42,7 @@ describe("WS24: focus lands on the page title after a state change, never on fir
   it("moves focus to the sign-in page's title after signing out", () => {
     const { showVisitor } = renderApp(shellFixtures.member);
     showVisitor(shellFixtures.signedOut);
-    expect(pageTitle()).toHaveTextContent(/^Sign in$/);
+    expect(pageTitle()).toHaveTextContent(/^HedgeHug$/);
     expect(pageTitle()).toHaveFocus();
   });
 });

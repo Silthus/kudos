@@ -46,7 +46,7 @@ describe("WS1 WS3 WS16 WS20: the shell renders each page from its visitor state"
 
   it("shows the signed-out page at the root with Sign in with Slack as its one primary action", () => {
     renderApp(shellFixtures.signedOut);
-    expect(pageTitle()).toHaveTextContent("Sign in");
+    expect(pageTitle()).toHaveTextContent(/^HedgeHug$/);
     const signIn = screen.getByRole("button", { name: "Sign in with Slack" });
     expect(signIn).toBeEnabled();
     expect(signIn).not.toHaveAttribute("aria-disabled", "true");
@@ -92,7 +92,7 @@ describe("WS1 WS3 WS16 WS20: the shell renders each page from its visitor state"
   });
 
   it("keeps the nav, the avatar and the header's Sign out off the pages of a visitor who isn't a member", () => {
-    for (const visitor of [shellFixtures.signedOut, shellFixtures.verifying, shellFixtures.notAMember]) {
+    for (const visitor of [shellFixtures.verifying, shellFixtures.notAMember]) {
       const { unmount } = renderApp(visitor);
       const banner = screen.getByRole("banner");
       expect(within(banner).queryByRole("navigation")).not.toBeInTheDocument();

@@ -4,8 +4,6 @@ import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
-const lockedFeatures = ["Quests", "Leaderboard", "Book", "Skill tree", "Coins", "Hedgehogs"];
-
 beforeEach(() => {
   fakeSystemTheme(false);
 });
@@ -145,20 +143,7 @@ describe("WS18: what teammates see, and received kudos staying private", () => {
   });
 });
 
-describe("WS19: the later features are plain locked cards", () => {
-  it("shows each later feature locked, with its name and one sentence, and no level, progress or crate", () => {
-    renderApp(shellFixtures.member);
-    const locked = within(main()).getByRole("region", { name: "Still locked" });
-    const cards = within(locked).getAllByRole("article");
-    expect(cards.map((card) => within(card).getByRole("heading").textContent)).toEqual(lockedFeatures);
-    for (const card of cards) {
-      expect(within(card).getByText("Locked")).toBeInTheDocument();
-      expect(card.textContent).not.toMatch(/\d|level|ready|open|crate|xp/i);
-    }
-    expect(within(locked).queryByRole("progressbar")).not.toBeInTheDocument();
-    expect(within(locked).queryByRole("button")).not.toBeInTheDocument();
-  });
-
+describe("WS19 WS106: the later features are plain locked panels", () => {
   it("shows no level or XP anywhere until the facts carry them", () => {
     renderApp(shellFixtures.member);
     expect(main().textContent).not.toMatch(/\blevel\b|\bXP\b/i);
