@@ -2,13 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
 
-export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "not-found" };
+export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests" } | { page: "not-found" };
 
 export type Screen = Exclude<Route["page"], "not-found">;
 
 const routeAt = {
   "/": () => ({ page: "home" }),
   "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search) }),
+  "/quests": () => ({ page: "quests" }),
 } satisfies Record<string, (search: string) => Route>;
 
 type ServedPath = keyof typeof routeAt;
@@ -21,7 +22,8 @@ export function routeOf({ pathname, search }: { pathname: string; search: string
 }
 
 export function hrefOf(route: Route) {
-  return route.page === "leaderboard" ? leaderboardHref(route.period) : "/";
+  if (route.page === "leaderboard") return leaderboardHref(route.period);
+  return route.page === "quests" ? "/quests" : "/";
 }
 
 export function leaderboardHref(period: Period) {

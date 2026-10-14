@@ -1,0 +1,44 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/quests-page
+
+ ↓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > shows an active step's goal, its hint and what it pays
+ ↓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > shows a finished step as its crate, pointing to Slack's App Home until the website can open it
+ ↓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > shows an opened step as done, with the XP it earned
+ ↓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > lists the steps in chain order with no step count
+ ↓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > is a game object with corner marks, after the hero and the counters and before the feature cards
+ ↓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > is absent while quests don't apply
+ ↓ |website| src/JourneyPanel.test.tsx > WS72 WS58: the Quests card on the home > links an open Quests to /quests with Your quests this week., and no count
+ × |website| src/JourneyPanel.test.tsx > WS72 WS58: the Quests card on the home > WS75: describes a locked Quests by the quests a member gets, with no group quest 213ms
+   → expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  Weekly quests of your own.
+Received:
+  QuestsUnlocks at level 2Weekly quests of your own, and one your group takes on together.
+ ↓ |website| src/JourneyPanel.test.tsx > WS72 WS58: the Quests card on the home > goes to /quests with Enter, moving focus to the page title
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/JourneyPanel.test.tsx > WS72 WS58: the Quests card on the home > WS75: describes a locked Quests by the quests a member gets, with no group quest
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  Weekly quests of your own.
+Received:
+  QuestsUnlocks at level 2Weekly quests of your own, and one your group takes on together.
+ ❯ src/JourneyPanel.test.tsx:85:18
+     83|     renderApp(shellFixtures.memberStartingTheJourney);
+     84|     const card = within(within(main()).getByRole("region", { name: "St…
+     85|     expect(card).toHaveTextContent("Weekly quests of your own.");
+       |                  ^
+     86|     expect(card).not.toHaveTextContent(/group/i);
+     87|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 skipped (9)
+   Start at  03:48:05
+   Duration  2.60s (import 46%, transform 22%, environment 19%, tests 9%, setup 4%)
+

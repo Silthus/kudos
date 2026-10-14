@@ -1,0 +1,68 @@
+ ❯ convex/website/openQuestCrate.test.ts:296:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/20]⎯
+
+ FAIL  |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS64 WS74: opening on the website leaves the domain tables and events Slack's Open leaves, besides Slack's receipt
+Error: Expected a Convex function exported from module "website/commands" as `openQuestCrate`, but there is no such export.
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2490:15
+    2488|     const func = module[exportName];
+    2489|     if (func === undefined) {
+    2490|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2491|     }
+    2492|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2202:34
+ ❯ mutation node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2252:20
+ ❯ convex/website/openQuestCrate.test.ts:315:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/20]⎯
+
+ FAIL  |convex| convex/website/openQuestCrate.test.ts > opening on the website grants nothing > P92: opening a finished step's crate writes only one crate opening, with the XP and every other record as they were
+Error: Expected a Convex function exported from module "website/commands" as `openQuestCrate`, but there is no such export.
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2490:15
+    2488|     const func = module[exportName];
+    2489|     if (func === undefined) {
+    2490|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2491|     }
+    2492|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2202:34
+ ❯ mutation node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2252:20
+ ❯ convex/website/openQuestCrate.test.ts:329:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/20]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  20 failed (20)
+   Start at  04:06:09
+   Duration  1.04s (tests 42%, transform 34%, import 19%, environment 4%)
+
+ × |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > with the website flag off, a finished step's open answers closed 131ms
+ × |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > with a flags key but no workspace key yet, the open answers closed and makes no key 4ms
+ × |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > without a session, the open answers signed-out 10ms
+ × |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > with a signed-out session, a finished step's open answers signed-out 13ms
+ × |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > a member who left the workspace with a finished step answers not-a-member 72ms
+ × |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: the quest is the only argument, so no call names a member 13ms
+ × |convex| convex/website/openQuestCrate.test.ts > a website command never launches unlocks > WS74 P77: with every flag on and no unlocks launch, a quest crate's open answers refused and launches nothing 4ms
+ × |convex| convex/website/openQuestCrate.test.ts > a website command never launches unlocks > WS74 P91: with unlocks launched and no Journey launch, a quest crate's open answers refused and neither launches the Journey nor joins anyone 5ms
+ × |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74 P85: a finished Journey step's crate opens for good, and App Home's republish is scheduled 10ms
+ × |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74 P85: a finished weekly quest's crate opens for good 18ms
+ × |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: App Home's republished view no longer offers the step's crate 44ms
+ × |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS63 WS74: a doubled open opens once and answers opened again, keeping the first time 8ms
+ × |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: a Journey step still active answers refused and writes nothing at all 6ms
+ × |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: a weekly quest still in progress answers refused and writes nothing at all 16ms
+ × |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: a weekly quest that was never drawn answers refused and writes nothing at all 14ms
+ × |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: a finished step with quests switched off answers refused before any command and writes nothing at all 9ms
+ × |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: a finished step with unlocks switched off answers refused before any command and writes nothing at all 8ms
+ × |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: a finished step with xp-levels switched off answers refused before any command and writes nothing at all 10ms
+ × |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS64 WS74: opening on the website leaves the domain tables and events Slack's Open leaves, besides Slack's receipt 14ms
+ × |convex| convex/website/openQuestCrate.test.ts > opening on the website grants nothing > P92: opening a finished step's crate writes only one crate opening, with the XP and every other record as they were 7ms
+ FAIL  |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > with the website flag off, a finished step's open answers closed
+ FAIL  |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > with a flags key but no workspace key yet, the open answers closed and makes no key
+ FAIL  |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > without a session, the open answers signed-out
+ FAIL  |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > with a signed-out session, a finished step's open answers signed-out
+ FAIL  |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > a member who left the workspace with a finished step answers not-a-member
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
++   "./website/commands.ts:openQuestCrate",
+      Tests  1 failed (1)

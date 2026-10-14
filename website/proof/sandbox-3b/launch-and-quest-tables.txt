@@ -1,0 +1,108 @@
+# before the deploy at 2026-10-14T04:29:18Z
+== unlockLaunches
+{ "_id": "<id>", "at": 1791929501429, "shipped": ["leaderboard"], "workspace": "<workspace>" }
+== journeyLaunches
+{ "_id": "<id>", "at": 1791941423604, "workspace": "<workspace>" }
+== journeySteps
+{ "_id": "<id>", "activatedAt": 1791944280040, "catalogueVersion": "1", "member": "<id>", "reward": { "coins": 0, "item": null, "xp": 20 }, "step": "first-quest" }
+{ "_id": "<id>", "activatedAt": 1791941423604, "catalogueVersion": "1", "member": "<id>", "reward": { "coins": 0, "item": null, "xp": 30 }, "step": "someone-new" }
+{ "_id": "<id>", "activatedAt": 1791941423604, "catalogueVersion": "1", "member": "<id>", "reward": { "coins": 0, "item": null, "xp": 10 }, "step": "first-thanks" }
+== unlocks
+{ "_id": "<id>", "feature": "quests", "member": "<id>", "openedAt": 1791944280040, "readyAt": 1791941423604 }
+{ "_id": "<id>", "feature": "leaderboard", "member": "<id>", "openedAt": 1791929501429, "readyAt": 1791929501429 }
+== questDraws
+There are no documents in this table.
+== questProgress
+There are no documents in this table.
+== crateOpenings
+{ "_id": "<id>", "at": 1791944236306, "key": "journey:someone-new", "member": "<id>" }
+== rewardRecords
+{ "_id": "<id>", "at": 1791941423604, "catalogueVersion": "1", "coins": 0, "item": null, "key": "journey:someone-new", "member": "<id>", "xp": 30 }
+== levelUps
+{ "_id": "<id>", "at": 1791941423604, "level": 2, "member": "<id>", "ready": ["quests"] }
+== _scheduled_functions (quests/unlocks join and launch jobs, name and state only)
+1 quests/join.js:joinJourney success
+1 quests/join.js:joinJourneyPage success
+1 quests/journey.js:activateJourney success
+
+# after the deploy, before any website call at 2026-10-14T04:31:35Z
+== unlockLaunches
+{ "_id": "<id>", "at": 1791929501429, "shipped": ["leaderboard"], "workspace": "<workspace>" }
+== journeyLaunches
+{ "_id": "<id>", "at": 1791941423604, "workspace": "<workspace>" }
+== journeySteps
+{ "_id": "<id>", "activatedAt": 1791944280040, "catalogueVersion": "1", "member": "<id>", "reward": { "coins": 0, "item": null, "xp": 20 }, "step": "first-quest" }
+{ "_id": "<id>", "activatedAt": 1791941423604, "catalogueVersion": "1", "member": "<id>", "reward": { "coins": 0, "item": null, "xp": 30 }, "step": "someone-new" }
+{ "_id": "<id>", "activatedAt": 1791941423604, "catalogueVersion": "1", "member": "<id>", "reward": { "coins": 0, "item": null, "xp": 10 }, "step": "first-thanks" }
+== unlocks
+{ "_id": "<id>", "feature": "quests", "member": "<id>", "openedAt": 1791944280040, "readyAt": 1791941423604 }
+{ "_id": "<id>", "feature": "leaderboard", "member": "<id>", "openedAt": 1791929501429, "readyAt": 1791929501429 }
+== questDraws
+There are no documents in this table.
+== questProgress
+There are no documents in this table.
+== crateOpenings
+{ "_id": "<id>", "at": 1791944236306, "key": "journey:someone-new", "member": "<id>" }
+== rewardRecords
+{ "_id": "<id>", "at": 1791941423604, "catalogueVersion": "1", "coins": 0, "item": null, "key": "journey:someone-new", "member": "<id>", "xp": 30 }
+== levelUps
+{ "_id": "<id>", "at": 1791941423604, "level": 2, "member": "<id>", "ready": ["quests"] }
+== _scheduled_functions (quests/unlocks join and launch jobs, name and state only)
+1 quests/join.js:joinJourney success
+1 quests/join.js:joinJourneyPage success
+1 quests/journey.js:activateJourney success
+
+# after the screenshots, before the website commands at 2026-10-14T04:32:50Z
+== unlockLaunches
+{ "_id": "<id>", "at": 1791929501429, "shipped": ["leaderboard"], "workspace": "<workspace>" }
+== journeyLaunches
+{ "_id": "<id>", "at": 1791941423604, "workspace": "<workspace>" }
+== journeySteps
+{ "_id": "<id>", "activatedAt": 1791944280040, "catalogueVersion": "1", "member": "<id>", "reward": { "coins": 0, "item": null, "xp": 20 }, "step": "first-quest" }
+{ "_id": "<id>", "activatedAt": 1791941423604, "catalogueVersion": "1", "member": "<id>", "reward": { "coins": 0, "item": null, "xp": 30 }, "step": "someone-new" }
+{ "_id": "<id>", "activatedAt": 1791941423604, "catalogueVersion": "1", "member": "<id>", "reward": { "coins": 0, "item": null, "xp": 10 }, "step": "first-thanks" }
+== unlocks
+{ "_id": "<id>", "feature": "quests", "member": "<id>", "openedAt": 1791944280040, "readyAt": 1791941423604 }
+{ "_id": "<id>", "feature": "leaderboard", "member": "<id>", "openedAt": 1791929501429, "readyAt": 1791929501429 }
+== questDraws
+There are no documents in this table.
+== questProgress
+There are no documents in this table.
+== crateOpenings
+{ "_id": "<id>", "at": 1791944236306, "key": "journey:someone-new", "member": "<id>" }
+== rewardRecords
+{ "_id": "<id>", "at": 1791941423604, "catalogueVersion": "1", "coins": 0, "item": null, "key": "journey:someone-new", "member": "<id>", "xp": 30 }
+== levelUps
+{ "_id": "<id>", "at": 1791941423604, "level": 2, "member": "<id>", "ready": ["quests"] }
+== _scheduled_functions (quests/unlocks join and launch jobs, name and state only)
+1 quests/join.js:joinJourney success
+1 quests/join.js:joinJourneyPage success
+1 quests/journey.js:activateJourney success
+
+# after the website commands at 2026-10-14T04:34:37Z
+== unlockLaunches
+{ "_id": "<id>", "at": 1791929501429, "shipped": ["leaderboard"], "workspace": "<workspace>" }
+== journeyLaunches
+{ "_id": "<id>", "at": 1791941423604, "workspace": "<workspace>" }
+== journeySteps
+{ "_id": "<id>", "activatedAt": 1791944280040, "catalogueVersion": "1", "member": "<id>", "reward": { "coins": 0, "item": null, "xp": 20 }, "step": "first-quest" }
+{ "_id": "<id>", "activatedAt": 1791941423604, "catalogueVersion": "1", "member": "<id>", "reward": { "coins": 0, "item": null, "xp": 30 }, "step": "someone-new" }
+{ "_id": "<id>", "activatedAt": 1791941423604, "catalogueVersion": "1", "member": "<id>", "reward": { "coins": 0, "item": null, "xp": 10 }, "step": "first-thanks" }
+== unlocks
+{ "_id": "<id>", "feature": "quests", "member": "<id>", "openedAt": 1791944280040, "readyAt": 1791941423604 }
+{ "_id": "<id>", "feature": "leaderboard", "member": "<id>", "openedAt": 1791929501429, "readyAt": 1791929501429 }
+== questDraws
+There are no documents in this table.
+== questProgress
+There are no documents in this table.
+== crateOpenings
+{ "_id": "<id>", "at": 1791944236306, "key": "journey:someone-new", "member": "<id>" }
+== rewardRecords
+{ "_id": "<id>", "at": 1791941423604, "catalogueVersion": "1", "coins": 0, "item": null, "key": "journey:someone-new", "member": "<id>", "xp": 30 }
+== levelUps
+{ "_id": "<id>", "at": 1791941423604, "level": 2, "member": "<id>", "ready": ["quests"] }
+== _scheduled_functions (quests/unlocks join and launch jobs, name and state only)
+1 quests/join.js:joinJourney success
+1 quests/join.js:joinJourneyPage success
+1 quests/journey.js:activateJourney success
+

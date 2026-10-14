@@ -7,10 +7,10 @@ import { mentionValidator, type ChatUserId, type Mention, type MessageRef } from
 import { giverXpOf } from "../progression/progression";
 import { xpLevelsShownTo, xpLevelsShownWithoutWritingIn } from "../progression/xpLevels";
 import { questsApplyIn, questsExposedTo } from "../quests/flag";
+import { journeyGoalOf } from "../quests/journeyCopy";
 import { journeyStepValidator } from "../quests/step";
 import { lookup, type MemberId } from "../workspace/directory";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
-import { journeyGoalOf } from "./home";
 
 export const segmentValidator = v.union(v.object({ text: v.string() }), v.object({ mention: mentionValidator }), v.object({ link: v.object({ url: v.string(), label: v.string() }) }));
 

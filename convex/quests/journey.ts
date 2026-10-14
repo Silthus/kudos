@@ -1,6 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { publish } from "../bus/publish";
 import {
   memberLeftEventValidator,
   memberRejoinedEventValidator,
@@ -18,7 +19,7 @@ import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf } from "./crates";
 import { finishQuest } from "./finish";
 import { journeyShippedAt, questsLiveIn } from "./flag";
-import { featureOpening, journeyStepOpenedBy, journeyStepValidator, type JourneyStep } from "./step";
+import { featureOpening, journeyStepOpenedBy, journeyStepValidator, type JourneyQuest, type JourneyStep } from "./step";
 
 export const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
 
@@ -105,7 +106,7 @@ export async function finishFirstQuestOnWeeklyFinished(ctx: MutationCtx, workspa
 }
 
 async function advanceFirstThanks(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<JourneyActivation | null> {
-  const firstThanks = await activated(ctx, event.giver, "first-thanks", event.at, catalogue);
+  const firstThanks = await activated(ctx, event.workspace, event.giver, "first-thanks", event.at, catalogue);
   return gateDecisionOf(event.annotations)?.thoughtful === true ? finishedOrNull(ctx, event.workspace, firstThanks, event.at) : null;
 }
 
@@ -182,14 +183,27 @@ export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<Journe
   return facts;
 }
 
+export type ProjectedJourneyStep = Omit<JourneyStepFacts, "activatedAt"> & { activatedAt: number | null; crate: JourneyQuest };
+
+export async function projectedJourneyOf(ctx: QueryCtx, member: MemberId): Promise<ProjectedJourneyStep[]> {
+  const stored = await journeyOf(ctx, member);
+  const steps = stored.some(({ step }) => step === "first-thanks") ? stored : [firstThanksBeforeActivation(journey), ...stored];
+  return steps.map((step) => ({ ...step, crate: { kind: "journey", step: step.step } }));
+}
+
+function firstThanksBeforeActivation({ version, steps }: JourneyCatalogue): Omit<ProjectedJourneyStep, "crate"> {
+  const { reward } = steps.find(({ step }) => step === "first-thanks")!;
+  return { step: "first-thanks", activatedAt: null, reward, catalogueVersion: version, finishedAt: null, openedAt: null };
+}
+
 export async function activeJourneyOf(ctx: MutationCtx, member: MemberId): Promise<JourneyStepFacts[]> {
-  await activated(ctx, member, "first-thanks", Date.now(), journey);
-  await activateOpenedSteps(ctx, member);
+  const { workspace } = await chatUserOf(ctx, member);
+  await activated(ctx, workspace, member, "first-thanks", Date.now(), journey);
+  await activateOpenedSteps(ctx, workspace, member);
   return journeyOf(ctx, member);
 }
 
-async function activateOpenedSteps(ctx: MutationCtx, member: MemberId) {
-  const { workspace } = await chatUserOf(ctx, member);
+async function activateOpenedSteps(ctx: MutationCtx, workspace: string, member: MemberId) {
   const shippedAt = (await journeyShippedAt(ctx, workspace))!;
   for (const { step } of journey.steps) {
     const feature = featureOpening(step);
@@ -200,18 +214,19 @@ async function activateOpenedSteps(ctx: MutationCtx, member: MemberId) {
 
 async function activateOpened(ctx: MutationCtx, workspace: string, member: MemberId, step: JourneyStep, at: number): Promise<boolean> {
   if ((await activationOf(ctx, member, step)) !== null) return false;
-  const activation = await activated(ctx, member, step, at, journey);
+  const activation = await activated(ctx, workspace, member, step, at, journey);
   const finishedAt = await finishedOnActivation(ctx, workspace, activation);
   if (finishedAt !== null) await finish(ctx, workspace, activation, finishedAt);
   return true;
 }
 
-export async function activated(ctx: MutationCtx, member: MemberId, step: JourneyStep, at: number, catalogue: JourneyCatalogue): Promise<JourneyActivation> {
+export async function activated(ctx: MutationCtx, workspace: string, member: MemberId, step: JourneyStep, at: number, catalogue: JourneyCatalogue): Promise<JourneyActivation> {
   const stored = await activationOf(ctx, member, step);
   if (stored !== null) return stored;
   const { reward } = catalogue.steps.find((entry) => entry.step === step)!;
   const activation = { member, step, activatedAt: at, reward, catalogueVersion: catalogue.version };
   await ctx.db.insert("journeySteps", activation);
+  await publish(ctx, { type: "journeyStepActivated", workspace, member, step, at });
   return activation;
 }
 
