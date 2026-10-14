@@ -30,8 +30,8 @@ export const isEveryoneBoardShown = internalMutation({
 
 export const exposeEveryoneBoard = internalMutation({
   args: { ...viewerArgs, shown: v.boolean() },
-  handler: async (ctx, { workspace, user, shown }) => {
+  handler: async (ctx, { workspace, user }) => {
     const person = await lookup(ctx, workspace, user);
-    if (person?.kind === "member") await exposed(ctx, everyoneBoardFlag, person.member, shown);
+    if (person?.kind === "member") await isEveryoneBoardShownTo(ctx, workspace, person.member);
   },
 });

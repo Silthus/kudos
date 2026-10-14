@@ -6,7 +6,10 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { type BlockAction, blockActions, buttonInHome, channelPickerInHome, publishedHome } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, slashCommandResponseUrl } from "../../testing/slackMessages";
+import type { QueryCtx } from "../_generated/server";
+import { isOnTheBoards } from "../leaderboard/visibility";
 import { standingOf } from "../progression/progression";
+import { progressSettingsOf } from "../progression/settings";
 import { settingsOf } from "../workspace/settings";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -47,6 +50,32 @@ describe("F16: xp-levels and everyone-board previewed by one member's email", ()
     expect(await commandReply(t, "U_ALICE", "leaderboard")).toEqual({ status: 200, body: { response_type: "ephemeral", text: "🥇 <@U_ALICE> · 2 kudos\n▲ 2 more kudos than this time last week" } });
   });
 
+  test("the previewing member's App Home is published again after each kudos, without reopening it", async () => {
+    const t = await workspaceDeciding(...previewedByAlice);
+    await openHome(t, "U_ALICE");
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("section fields: *Level*\n*2* | *XP to level 3*\n*80*");
+  });
+
+  test("the previewing member's Leaderboard and Settings clicks take effect", async () => {
+    const t = await workspaceDeciding(...previewedByAlice);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await openHome(t, "U_ALICE");
+
+    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Leaderboard"));
+    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "This month"));
+    const leaderboardTab = publishedHome(slack, "U_ALICE");
+    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Settings"));
+    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Turn off DMs"));
+    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Off"));
+
+    expect(leaderboardTab).toEqual(expect.arrayContaining(["actions: Profile | [Leaderboard] | Settings", "actions: This week | [This month] | All time"]));
+    expect(await t.run(async (ctx) => (await progressSettingsOf(ctx, await memberIn(ctx, "U_ALICE"))).dms)).toBe(false);
+    expect(await t.run(async (ctx) => isOnTheBoards(ctx, await memberIn(ctx, "U_ALICE")))).toBe(false);
+  });
+
   test("the other member's Slack calls and command reply are exactly those with both flags off", async () => {
     const whilePreviewed = await bobsSideOf(previewedByAlice);
     vi.clearAllTimers();
@@ -55,7 +84,7 @@ describe("F16: xp-levels and everyone-board previewed by one member's email", ()
     expect(whilePreviewed).toEqual(whileOff);
   });
 
-  test("F19: a caller the directory doesn't know gets the workspace decision, even with the previewed email", async () => {
+  test("F19: a caller the directory doesn't know gets the workspace decision, even with the previewed email, and their exposure once known is their own", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
 
     const reply = await commandReply(t, "U_ALICE", "leaderboard");
@@ -63,6 +92,7 @@ describe("F16: xp-levels and everyone-board previewed by one member's email", ()
 
     expect(reply).toEqual({ status: 200, body: "" });
     expect(slack.callsTo("conversations.join")).toEqual([{ channel: "C1" }]);
+    expect(await exposuresOf(t, "U_ALICE")).toEqual([[everyoneBoard, true]]);
   });
 
   test("F25: exposures carry true for the previewing member and false for the other", async () => {
@@ -185,13 +215,15 @@ async function commandReply(t: Backend, user: string, text: string) {
 }
 
 async function memberOf(t: Backend, user: string) {
-  return t.run(async (ctx) => {
-    const member = await ctx.db
-      .query("members")
-      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
-      .unique();
-    return member!._id;
-  });
+  return t.run((ctx) => memberIn(ctx, user));
+}
+
+async function memberIn(ctx: QueryCtx, user: string) {
+  const member = await ctx.db
+    .query("members")
+    .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+    .unique();
+  return member!._id;
 }
 
 async function standing(t: Backend, user: string) {
