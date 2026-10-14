@@ -30,6 +30,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
 - one function builds every website link: websiteLinkOf answers SITE_URL plus the asked page's route, the Leaderboard keeping its period, and a page not on the route list resolves to the root, so a link never names a path the website doesn't serve.
   over: websiteLinkOf while the website is open, for the root, the Leaderboard's three periods, and the three pages not listed yet
   via: SW11: one function builds every website link
+  refuted: routeOf answered an unlisted page's own path instead of the root -> the three unlisted pages linked to /quests, /skills and /book (2026-10-14)
   because: a link to a page the website doesn't serve yet would land a member on the not-found page, so every message builds its link from the route list through one function, and a page shipped later switches its links on with its route (SW11, SW13)
   kinds: output
   checklist: destination-confinement dismissed: the origin is the deployment's own SITE_URL and the path comes from the route list; no part of the URL is taken from input
@@ -40,6 +41,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
 - a deep link shows only while the website is open: The `/hedgehug leaderboard` board reply ends with a link to the same period's board while the website flag is on, SITE_URL is set and the workspace is the deployment's workspace, and is today's reply, with no link, otherwise; the usage reply never carries one.
   over: the `/hedgehug leaderboard` reply for the week, the month and all time, for a SITE_URL ending in a slash, for a period it doesn't know, and for the month with the website flag off, SITE_URL unset and another workspace
   via: SW13 SW14: the leaderboard reply links to the same board on the web
+  refuted: websiteLinkOf answered SITE_URL plus the route without reading the website flag -> the flag-off reply ended with a link (2026-10-14)
   because: a link shown while the website is closed or unconfigured leads a member to a closed page, and with the website off every Slack reply must be byte-for-byte today's (SW11, SW13, SW17, SW25)
   crossing: slack-request -> domain
   entrances: route POST /slack/commands
