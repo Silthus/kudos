@@ -1,0 +1,96 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/followups
+
+ ❯ |convex| .github/workflows/deploy.test.ts (18 tests | 6 failed) 10ms
+   ❯ deploying the sandbox deployment (9)
+     × WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the website upload, prepareWebsiteFlag and the face sync 4ms
+     × WS22 WS27: every deploy reads the company profiles once after prepareWebsiteFlag, so faces don't wait for the 04:00 UTC run 0ms
+     × a run the branch has already moved past deploys nothing, so a rerun never rolls the deployment back 1ms
+   ❯ deploying the production deployment (9)
+     × WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the website upload, prepareWebsiteFlag and the face sync 0ms
+     × WS22 WS27: every deploy reads the company profiles once after prepareWebsiteFlag, so faces don't wait for the 04:00 UTC run 0ms
+     × a run the branch has already moved past deploys nothing, so a rerun never rolls the deployment back 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the sandbox deployment > WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the website upload, prepareWebsiteFlag and the face sync
+AssertionError: expected undefined to deeply equal { Object (CONVEX_DEPLOY_KEY) }
+
+- Expected:
+{
+  "CONVEX_DEPLOY_KEY": "${{ secrets.CONVEX_DEPLOY_KEY_SANDBOX }}",
+}
+
++ Received:
+undefined
+
+ ❯ .github/workflows/deploy.test.ts:35:54
+     33|
+     34|   test("WS27: the deploy key comes from its GitHub secret and reaches …
+     35|     for (const step of keyedSteps) expect(step?.env).toEqual({ CONVEX_…
+       |                                                      ^
+     36|     const elsewhere = [workflow.env, ...Object.values(workflow.jobs).m…
+     37|     expect(JSON.stringify(elsewhere)).not.toContain("secrets.");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the sandbox deployment > WS22 WS27: every deploy reads the company profiles once after prepareWebsiteFlag, so faces don't wait for the 04:00 UTC run
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the production deployment > WS22 WS27: every deploy reads the company profiles once after prepareWebsiteFlag, so faces don't wait for the 04:00 UTC run
+AssertionError: expected -1 to be greater than 8
+ ❯ .github/workflows/deploy.test.ts:51:42
+     49|
+     50|   test("WS22 WS27: every deploy reads the company profiles once after …
+     51|     expect(steps.indexOf(faceSyncStep!)).toBeGreaterThan(steps.indexOf…
+       |                                          ^
+     52|     expect(faceSyncStep?.run).toBe("pnpm exec convex run companyProfil…
+     53|     expect(faceSyncStep?.if).toBe(prepareStep?.if);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the sandbox deployment > a run the branch has already moved past deploys nothing, so a rerun never rolls the deployment back
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the production deployment > a run the branch has already moved past deploys nothing, so a rerun never rolls the deployment back
+AssertionError: expected undefined to be 'steps.tip.outputs.current == \'true\'' // Object.is equality
+
+- Expected:
+"steps.tip.outputs.current == 'true'"
+
++ Received:
+undefined
+
+ ❯ .github/workflows/deploy.test.ts:75:53
+     73|     const tipCheck = steps[steps.indexOf(deployStep!) - 1];
+     74|     expect(tipCheck?.run).toContain('git ls-remote origin "$GITHUB_REF…
+     75|     for (const step of keyedSteps) expect(step?.if).toBe(`steps.${tipC…
+       |                                                     ^
+     76|   });
+     77| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  |convex| .github/workflows/deploy.test.ts > deploying the production deployment > WS27: the deploy key comes from its GitHub secret and reaches only the deploy, the website upload, prepareWebsiteFlag and the face sync
+AssertionError: expected undefined to deeply equal { Object (CONVEX_DEPLOY_KEY) }
+
+- Expected:
+{
+  "CONVEX_DEPLOY_KEY": "${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}",
+}
+
++ Received:
+undefined
+
+ ❯ .github/workflows/deploy.test.ts:35:54
+     33|
+     34|   test("WS27: the deploy key comes from its GitHub secret and reaches …
+     35|     for (const step of keyedSteps) expect(step?.env).toEqual({ CONVEX_…
+       |                                                      ^
+     36|     const elsewhere = [workflow.env, ...Object.values(workflow.jobs).m…
+     37|     expect(JSON.stringify(elsewhere)).not.toContain("secrets.");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 12 passed (18)
+   Start at  22:28:11
+   Duration  173ms (import 52%, transform 28%, tests 15%, worker 4%)
+

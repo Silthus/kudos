@@ -5,12 +5,13 @@ import { readSignedBody } from "./signature";
 
 type Action = { type: string; action_id: string; value?: string; selected_channel?: string | null };
 
-type HomeClick = {
+type MemberClick = {
   type: "block_actions";
   team: { id: string };
   user: { id: string };
   trigger_id: string;
-  view: { type: "home" };
+  container: { type: "view" | "message" };
+  view?: { type: string };
   actions: Action[];
 };
 
@@ -19,7 +20,7 @@ export const slackInteractivity = observedHttpAction(async (ctx, request) => {
   if (body === null) return new Response(null, { status: 401 });
 
   const payload = payloadOf(body);
-  if (!isHomeClick(payload)) return new Response(null, { status: 200 });
+  if (!isMemberClick(payload)) return new Response(null, { status: 200 });
   await ctx.scheduler.runAfter(0, internal.slack.receipts.receiveHomeClick, {
     workspace: payload.team.id,
     eventId: payload.trigger_id,
@@ -52,7 +53,8 @@ function payloadOf(body: Uint8Array<ArrayBuffer>): unknown {
   return payload === null ? null : JSON.parse(payload);
 }
 
-function isHomeClick(payload: unknown): payload is HomeClick {
-  const click = payload as Partial<HomeClick> | null;
-  return click?.type === "block_actions" && click.view?.type === "home";
+function isMemberClick(payload: unknown): payload is MemberClick {
+  const click = payload as Partial<MemberClick> | null;
+  if (click?.type !== "block_actions") return false;
+  return click.view?.type === "home" || click.container?.type === "message";
 }

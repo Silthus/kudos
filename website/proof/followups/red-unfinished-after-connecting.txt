@@ -1,0 +1,32 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/followups/website
+
+ ❯ |website| src/signIn.test.tsx (14 tests | 1 failed) 2611ms
+   ❯ WS6 WS24: signing in with Slack from the keyboard (10)
+     × still shows Sign-in didn't finish when the socket took too long and the answer came after Can't reach HedgeHug 135ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/signIn.test.tsx > WS6 WS24: signing in with Slack from the keyboard > still shows Sign-in didn't finish when the socket took too long and the answer came after Can't reach HedgeHug
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  Sign-in didn't finish[39m
+Received:
+[31m  Sign in[39m
+ ❯ src/signIn.test.tsx:58:25
+     56|     showVisitor(shellFixtures.connecting);
+     57|     showVisitor(shellFixtures.signedOut);
+     58|     expect(pageTitle()).toHaveTextContent("Sign-in didn't finish");
+       |                         ^
+     59|   });
+     60|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 passed (14)
+   Start at  22:44:14
+   Duration  4.41s (tests 60%, import 23%, environment 10%, transform 5%, setup 2%)
+

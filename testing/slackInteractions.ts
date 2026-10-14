@@ -17,7 +17,11 @@ export function publishedHomeBlocks(slack: FakeSlack, user: string): Block[] {
 }
 
 export function publishedHome(slack: FakeSlack, user: string) {
-  return publishedHomeBlocks(slack, user).map(readBlock);
+  return readBlocks(publishedHomeBlocks(slack, user));
+}
+
+export function readBlocks(blocks: Block[]) {
+  return blocks.map(readBlock);
 }
 
 export function publishedViews(slack: FakeSlack, user: string) {
@@ -32,7 +36,7 @@ export function buttonIn(blocks: Block[], label: string): BlockAction {
     const button = elementsOf(block).find((element) => element.type === "button" && element.text?.text === label);
     if (button) return { type: "button", action_id: button.action_id!, ...(button.value !== undefined && { value: button.value }), ...(block.block_id && { block_id: block.block_id }) };
   }
-  throw new Error(`App Home shows no ${label} button`);
+  throw new Error(`no ${label} button among the blocks`);
 }
 
 export function buttonInHome(slack: FakeSlack, user: string, label: string): BlockAction {
@@ -49,7 +53,9 @@ export function channelPickerInHome(slack: FakeSlack, user: string, channel: str
 
 let interactions = 0;
 
-export function blockActions(user: string, action: BlockAction, options: { team?: string } = {}) {
+export type ClickedMessage = { channel: string; ts: string };
+
+export function blockActions(user: string, action: BlockAction, options: { team?: string; inMessage?: ClickedMessage } = {}) {
   const team = options.team ?? "T1";
   interactions += 1;
   const payload = {
@@ -58,11 +64,18 @@ export function blockActions(user: string, action: BlockAction, options: { team?
     user: { id: user, team_id: team },
     api_app_id: "A_KUDOS",
     trigger_id: `${interactions}.1760349600.trigger`,
-    container: { type: "view", view_id: "V_HOME" },
-    view: { id: "V_HOME", type: "home" },
+    ...(options.inMessage === undefined ? homeContainer() : messageContainer(options.inMessage)),
     actions: [{ block_id: "b1", ...action, action_ts: "1760349600.000300" }],
   };
   return new URLSearchParams({ payload: JSON.stringify(payload) }).toString();
+}
+
+function homeContainer() {
+  return { container: { type: "view", view_id: "V_HOME" }, view: { id: "V_HOME", type: "home" } };
+}
+
+function messageContainer({ channel, ts }: ClickedMessage) {
+  return { container: { type: "message", message_ts: ts, channel_id: channel, is_ephemeral: false }, channel: { id: channel }, message: { type: "message", ts } };
 }
 
 function elementsOf(block: Block): Element[] {

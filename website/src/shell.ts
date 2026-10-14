@@ -3,7 +3,7 @@ import type { MemberProfile, MyProfile } from "../../convex/website/profile";
 export type { Face, MemberProfile, Progression } from "../../convex/website/profile";
 export type { Period } from "../../convex/leaderboard/periods";
 
-export type Visitor = MyProfile | { kind: "loading" } | { kind: "sign-in-unfinished" };
+export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } | { kind: "sign-in-unfinished" };
 
 export type ShellState = Visitor | { kind: "broken" };
 
@@ -32,6 +32,7 @@ const memberAtLevel7: MemberProfile = { ...member, progression: { level: 7, xp: 
 
 export const shellFixtures = {
   loading: { kind: "loading" },
+  connecting: { kind: "connecting" },
   closed: { kind: "closed" },
   signedOut: { kind: "signed-out" },
   signInUnfinished: { kind: "sign-in-unfinished" },
@@ -48,6 +49,7 @@ export const shellFixtures = {
 
 const fixturesByName: Record<string, ShellState> = {
   loading: shellFixtures.loading,
+  connecting: shellFixtures.connecting,
   closed: shellFixtures.closed,
   "signed-out": shellFixtures.signedOut,
   "sign-in-unfinished": shellFixtures.signInUnfinished,

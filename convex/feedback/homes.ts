@@ -9,31 +9,36 @@ import { isOnTheBoards } from "../leaderboard/visibility";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
+import { unlocksShownTo } from "../unlocks/launch";
+import { unlocksHomeOf, type UnlocksHome } from "../unlocks/unlocks";
 import { adminsIn, chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
+import { isOpened, whenOpened } from "./unlockFilter";
 
 export const homeTabValidator = v.union(v.literal("profile"), v.literal("leaderboard"), v.literal("settings"), v.literal("admin"));
 
 export type HomeTab = Infer<typeof homeTabValidator>;
 
 export type ShownTab =
-  | { tab: "profile"; progression: ProgressionHome | null }
+  | { tab: "profile"; progression: ToldProgression | null; unlocks: UnlocksHome | null }
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView }
   | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null }
   | { tab: "admin"; announcementChannel: string | null };
 
 export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
 
+export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoints: number | null };
+
 export type HomeMember = Extract<MemberFacts, { kind: "member" }>;
 
-type Slices = { board: boolean; xp: boolean; admin: boolean };
+type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; admin: boolean };
 
 type HomeSelection = { tab: HomeTab; period: Period };
 
 const opensOn: HomeSelection = { tab: "profile", period: "week" };
 
 const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices) => boolean }> = [
-  { tab: "leaderboard", shownWith: ({ board }) => board },
+  { tab: "leaderboard", shownWith: ({ leaderboard }) => leaderboard },
   { tab: "settings", shownWith: ({ board, xp }) => board || xp },
   { tab: "admin", shownWith: ({ xp, admin }) => xp && admin },
 ];
@@ -87,12 +92,19 @@ export async function republish(ctx: MutationCtx, member: MemberId) {
   await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, await chatUserOf(ctx, member));
 }
 
+export async function isLeaderboardShownTo(ctx: MutationCtx, workspace: string, member: MemberId) {
+  return (await isEveryoneBoardShownTo(ctx, workspace, member)) && (await isLeaderboardOpenTo(ctx, member, await unlocksShownTo(ctx, member)));
+}
+
 async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMember): Promise<Slices> {
-  return {
-    board: await isEveryoneBoardShownTo(ctx, workspace, person.member),
-    xp: await xpLevelsShownTo(ctx, person.member),
-    admin: person.admin,
-  };
+  const board = await isEveryoneBoardShownTo(ctx, workspace, person.member);
+  const xp = await xpLevelsShownTo(ctx, person.member);
+  const unlocks = await unlocksShownTo(ctx, person.member);
+  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, admin: person.admin };
+}
+
+async function isLeaderboardOpenTo(ctx: QueryCtx, member: MemberId, unlocksShown: boolean) {
+  return !unlocksShown || (await isOpened(ctx, member, "leaderboard"));
 }
 
 function tabsOf(slices: Slices): HomeTab[] {
@@ -105,7 +117,9 @@ type Viewer = { workspace: string; user: string; member: MemberId };
 async function shownTabOf(ctx: QueryCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection): Promise<ShownTab> {
   switch (tab) {
     case "profile":
-      return { tab, progression: slices.xp ? await progressionHomeOf(ctx, viewer.member) : null };
+      if (!slices.xp) return { tab, progression: null, unlocks: null };
+      if (!slices.unlocks) return { tab, progression: await progressionHomeOf(ctx, viewer.member), unlocks: null };
+      return { tab, progression: await toldProgressionOf(ctx, viewer.member), unlocks: await unlocksHomeOf(ctx, viewer.member) };
     case "leaderboard":
       return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period) };
     case "settings":
@@ -117,6 +131,11 @@ async function shownTabOf(ctx: QueryCtx, viewer: Viewer, slices: Slices, { tab, 
     case "admin":
       return { tab, announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel };
   }
+}
+
+async function toldProgressionOf(ctx: QueryCtx, member: MemberId): Promise<ToldProgression> {
+  const progression = await progressionHomeOf(ctx, member);
+  return { ...progression, skillPoints: await whenOpened(ctx, member, "skillTree", progression.skillPoints) };
 }
 
 function roleOf(person: MemberFacts) {

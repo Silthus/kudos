@@ -9,6 +9,7 @@ import { publicSectionValidator, shownValidator } from "./feedback/publicReplies
 import { segmentValidator } from "./feedback/replies";
 import { periodValidator } from "./leaderboard/periods";
 import { effectsRecordValidator } from "./progression/progress";
+import { featureValidator } from "./unlocks/feature";
 
 export default defineSchema({
   ...authTables,
@@ -173,6 +174,26 @@ export default defineSchema({
     dms: v.optional(v.boolean()),
     muteNotices: v.optional(v.boolean()),
   }).index("by_member", ["member"]),
+
+  unlocks: defineTable({
+    member: v.id("members"),
+    feature: featureValidator,
+    readyAt: v.number(),
+    openedAt: v.optional(v.number()),
+  }).index("by_member_feature", ["member", "feature"]),
+
+  unlockLaunches: defineTable({
+    workspace: v.string(),
+    at: v.number(),
+    shipped: v.array(featureValidator),
+  }).index("by_workspace", ["workspace"]),
+
+  levelUps: defineTable({
+    member: v.id("members"),
+    level: v.number(),
+    ready: v.array(featureValidator),
+    at: v.number(),
+  }).index("by_member_level", ["member", "level"]),
 
   homes: defineTable({
     member: v.id("members"),

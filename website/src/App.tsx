@@ -4,6 +4,7 @@ import { ErrorBoundary } from "./ErrorBoundary";
 import { Frame } from "./Frame";
 import type { LeaderboardRead, MyLeaderboard } from "./leaderboardFixtures";
 import { ClosedPage } from "./pages/ClosedPage";
+import { ConnectingPage } from "./pages/ConnectingPage";
 import { ErrorPage } from "./pages/ErrorPage";
 import { HomePage } from "./pages/HomePage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
@@ -69,6 +70,7 @@ type PageProps = {
 function Page({ state, route, board, onChoosePeriod, ...actions }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return null;
+  if (state.kind === "connecting") return <ConnectingPage />;
   if (state.kind === "closed") return <ClosedPage />;
   if (route.page === "not-found") return <NotFoundPage />;
   if (state.kind !== "member") return <VisitorPage state={state} {...actions} />;

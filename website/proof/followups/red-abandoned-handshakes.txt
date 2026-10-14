@@ -1,0 +1,70 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/followups
+
+stdout | convex/website/abandonedHandshakes.test.ts > WS3: a sign-in that never comes back from Slack leaves no Convex Auth row behind for good > the daily job deletes a handshake abandoned over a day ago and keeps one still in flight
+`auth:store` type: verifier
+
+stdout | convex/website/abandonedHandshakes.test.ts > WS3: a sign-in that never comes back from Slack leaves no Convex Auth row behind for good > the daily job deletes a handshake abandoned over a day ago and keeps one still in flight
+`auth:store` type: verifier
+
+ ❯ |convex| convex/website/abandonedHandshakes.test.ts (3 tests | 3 failed) 56ms
+   ❯ WS3: a sign-in that never comes back from Slack leaves no Convex Auth row behind for good (3)
+     × the daily job deletes a handshake abandoned over a day ago and keeps one still in flight 35ms
+     × the daily job deletes every abandoned handshake, however many there are 15ms
+     × the cleanup runs every day 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/abandonedHandshakes.test.ts > WS3: a sign-in that never comes back from Slack leaves no Convex Auth row behind for good > the daily job deletes a handshake abandoned over a day ago and keeps one still in flight
+Error: no cron job named delete abandoned sign-in handshakes
+ ❯ dailyJob convex/website/abandonedHandshakes.test.ts:62:32
+     60| function dailyJob(name: string) {
+     61|   const job = crons.crons[name];
+     62|   if (job === undefined) throw new Error(`no cron job named ${name}`);
+       |                                ^
+     63|   return makeFunctionReference<"mutation">(job.name);
+     64| }
+ ❯ convex/website/abandonedHandshakes.test.ts:31:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  |convex| convex/website/abandonedHandshakes.test.ts > WS3: a sign-in that never comes back from Slack leaves no Convex Auth row behind for good > the daily job deletes every abandoned handshake, however many there are
+Error: no cron job named delete abandoned sign-in handshakes
+ ❯ dailyJob convex/website/abandonedHandshakes.test.ts:62:32
+     60| function dailyJob(name: string) {
+     61|   const job = crons.crons[name];
+     62|   if (job === undefined) throw new Error(`no cron job named ${name}`);
+       |                                ^
+     63|   return makeFunctionReference<"mutation">(job.name);
+     64| }
+ ❯ convex/website/abandonedHandshakes.test.ts:43:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  |convex| convex/website/abandonedHandshakes.test.ts > WS3: a sign-in that never comes back from Slack leaves no Convex Auth row behind for good > the cleanup runs every day
+AssertionError: expected undefined to match object { type: 'daily' }
+
+- Expected:
+{
+  "type": "daily",
+}
+
++ Received:
+undefined
+
+ ❯ convex/website/abandonedHandshakes.test.ts:50:44
+     48|
+     49|   test("the cleanup runs every day", () => {
+     50|     expect(crons.crons[cleanup]?.schedule).toMatchObject({ type: "dail…
+       |                                            ^
+     51|   });
+     52| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed (3)
+   Start at  22:28:58
+   Duration  572ms (transform 48%, import 31%, tests 12%, environment 8%, worker 1%)
+
