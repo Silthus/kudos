@@ -1,6 +1,6 @@
 import { IconChevronDown } from "@posthog/icons";
 import { Button, Card } from "@posthog/quill";
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
 import type { Leaderboard, LeaderboardRow } from "../shell";
 import { useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { BoardLine } from "./BoardLine";
@@ -14,7 +14,8 @@ type Span = { first: number; last: number };
 export function BoardList({ board, after }: { board: Leaderboard; after?: ReactNode }) {
   const [whole, setWhole] = useState(false);
   const [grown, setGrown] = useState({ above: 0, below: 0 });
-  const [revealed, setRevealed] = useState<number>();
+  const lines = useRef<HTMLOListElement>(null);
+  const focusOnReveal = useFocusOnReveal(lines);
   useTitleFocusWhenTheFocusedElementGoes();
   const wholeBoardId = useId();
   const total = board.rows.length;
@@ -22,20 +23,19 @@ export function BoardList({ board, after }: { board: Leaderboard; after?: ReactN
   const hiddenAbove = span.first - firstBelowThePodium;
   const hiddenBelow = Math.max(0, total - span.last);
   const listed = positionsIn(span);
-  const offersTheWholeBoard = whole || hiddenAbove + hiddenBelow > 0;
+  const offersTheWholeBoard = whole || total > board.window.length;
   const hasLines = whole || listed.length > 0;
   const backToTheWindow = () => {
     setGrown({ above: 0, below: 0 });
-    setRevealed(undefined);
     setWhole(false);
   };
   const showAbove = () => {
     setGrown({ ...grown, above: grown.above + step });
-    setRevealed(span.first - Math.min(step, hiddenAbove));
+    focusOnReveal(span.first - Math.min(step, hiddenAbove));
   };
   const showBelow = () => {
     setGrown({ ...grown, below: grown.below + step });
-    setRevealed(span.last + 1);
+    focusOnReveal(span.last + 1);
   };
   if (!hasLines && after === undefined && !offersTheWholeBoard) return null;
   return (
@@ -44,7 +44,7 @@ export function BoardList({ board, after }: { board: Leaderboard; after?: ReactN
       {whole ? (
         <WholeBoard id={wholeBoardId} rows={board.rows} />
       ) : (
-        <WindowLines rows={board.rows} listed={listed} revealed={revealed} hiddenAbove={hiddenAbove} hiddenBelow={hiddenBelow} onShowAbove={showAbove} onShowBelow={showBelow} />
+        <WindowLines lines={lines} rows={board.rows} listed={listed} hiddenAbove={hiddenAbove} hiddenBelow={hiddenBelow} onShowAbove={showAbove} onShowBelow={showBelow} />
       )}
       {after}
       {offersTheWholeBoard && (
@@ -57,6 +57,18 @@ export function BoardList({ board, after }: { board: Leaderboard; after?: ReactN
       )}
     </Card>
   );
+}
+
+function useFocusOnReveal(lines: RefObject<HTMLOListElement | null>) {
+  const pending = useRef<number>(undefined);
+  useEffect(() => {
+    if (pending.current === undefined) return;
+    lines.current?.querySelector<HTMLElement>(`[data-position="${pending.current}"]`)?.focus();
+    pending.current = undefined;
+  });
+  return (position: number) => {
+    pending.current = position;
+  };
 }
 
 function windowSpan(window: number[]): Span {
@@ -90,22 +102,22 @@ function returnWords({ standing }: Leaderboard) {
 }
 
 type WindowLinesProps = {
+  lines: RefObject<HTMLOListElement | null>;
   rows: LeaderboardRow[];
   listed: number[];
-  revealed: number | undefined;
   hiddenAbove: number;
   hiddenBelow: number;
   onShowAbove: () => void;
   onShowBelow: () => void;
 };
 
-function WindowLines({ rows, listed, revealed, hiddenAbove, hiddenBelow, onShowAbove, onShowBelow }: WindowLinesProps) {
+function WindowLines({ lines, rows, listed, hiddenAbove, hiddenBelow, onShowAbove, onShowBelow }: WindowLinesProps) {
   if (listed.length === 0 && hiddenBelow === 0) return null;
   return (
-    <ol aria-label="No. · member, kudos given" className="flex flex-col">
+    <ol ref={lines} aria-label="No. · member, kudos given" className="flex flex-col">
       {hiddenAbove > 0 && <MoreLine side="above" count={Math.min(step, hiddenAbove)} onShow={onShowAbove} />}
       {listed.map((position) => (
-        <BoardLine key={position} row={rows[position - 1]!} takesFocus={position === revealed} />
+        <BoardLine key={position} row={rows[position - 1]!} revealable />
       ))}
       {hiddenBelow > 0 && <MoreLine side="below" count={Math.min(step, hiddenBelow)} onShow={onShowBelow} />}
     </ol>

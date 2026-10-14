@@ -1,0 +1,25 @@
+after Show above focus: Rank 7: 7T7Teammate 793
+shift away focus: Title
+shift back focus: Rank 7: 7T7Teammate 793
+
+codex
+Both issues are reproduced in the actual React components, using an in-memory harness without changing files. Full expansion removes the whole-board button; a live window shift away and back also steals focus to the previously revealed row. I’m checking the remaining test and contrast coverage.
+codex
+Found three issues, ranked by severity:
+
+1. **P2 — Live updates can steal focus.** [BoardLine.tsx:9](website/src/leaderboard/BoardLine.tsx:9), [BoardList.tsx:108](website/src/leaderboard/BoardList.tsx:108). Reveal position 7, focus another control, then let live updates move position 7 outside the window and back. `revealed` remains latched, so the remounted row focuses itself without another press. **Fix:** consume the focus request after applying it. Add a rerender test asserting that restoring the row preserves current focus.
+
+2. **P2 — Full expansion removes the whole-board controls.** [BoardList.tsx:25](website/src/leaderboard/BoardList.tsx:25). On `midBoard`, press “Show 2 more above” and “Show 1 more below.” The footer disappears, removing access to the fixed-height whole board and the route through “Back to my spot” to restore the initial window. Although this follows variant E’s clipping condition, WS320 says those controls remain unchanged. **Fix:** retain their availability based on the original `board.window`, as before. Test expansion to both ends followed by opening and returning.
+
+
+Reproduced the first two against the actual React components using an in-memory harness. No files changed.
+60,398
+Found three issues, ranked by severity:
+
+1. **P2 — Live updates can steal focus.** [BoardLine.tsx:9](website/src/leaderboard/BoardLine.tsx:9), [BoardList.tsx:108](website/src/leaderboard/BoardList.tsx:108). Reveal position 7, focus another control, then let live updates move position 7 outside the window and back. `revealed` remains latched, so the remounted row focuses itself without another press. **Fix:** consume the focus request after applying it. Add a rerender test asserting that restoring the row preserves current focus.
+
+2. **P2 — Full expansion removes the whole-board controls.** [BoardList.tsx:25](website/src/leaderboard/BoardList.tsx:25). On `midBoard`, press “Show 2 more above” and “Show 1 more below.” The footer disappears, removing access to the fixed-height whole board and the route through “Back to my spot” to restore the initial window. Although this follows variant E’s clipping condition, WS320 says those controls remain unchanged. **Fix:** retain their availability based on the original `board.window`, as before. Test expansion to both ends followed by opening and returning.
+
+
+Reproduced the first two against the actual React components using an in-memory harness. No files changed.
+exit 0

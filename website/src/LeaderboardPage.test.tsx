@@ -673,6 +673,38 @@ describe("WS320: Show 5 more grows the window in place", () => {
     expect(within(main()).getByText("No. 4–8 of 12")).toBeInTheDocument();
   });
 
+  it("keeps Show the whole board and Back to my spot once every row is shown", async () => {
+    watchTheViewerRow();
+    Element.prototype.scrollTo = () => undefined;
+    const { user } = showBoard(leaderboardFixtures.midBoard);
+    await user.click(showMore("above")!);
+    await user.click(showMore("below")!);
+    expect(within(main()).getByText("No. 4–13 of 13")).toBeInTheDocument();
+
+    await user.click(within(main()).getByRole("button", { name: "Show the whole board" }));
+    await user.click(within(main()).getByRole("button", { name: "Back to my spot" }));
+    expect(showMore("above")).toHaveAccessibleName("Show 2 more above");
+    expect(within(main()).getByText("No. 6–12 of 13")).toBeInTheDocument();
+  });
+
+  it("moves focus only on a press, never when a live update brings a revealed row back", async () => {
+    let board: Leaderboard = leaderboardFixtures.longBoardViewerInTheMiddle;
+    visit("/leaderboard");
+    const { user, showVisitor } = renderApp(withTheBoard, (period) => period && { ...board, period });
+    await user.click(showMore("above")!);
+    expect(lineAt(7)).toHaveFocus();
+
+    const thisMonth = within(main()).getByRole("button", { name: "This month" });
+    thisMonth.focus();
+    const firstWindow = board.window;
+    board = { ...board, window: [1, 2, 3, 22, 23, 24, 25, 26, 27, 28] };
+    showVisitor(withTheBoard);
+    board = { ...board, window: firstWindow };
+    showVisitor(withTheBoard);
+    expect(lineAt(7)).toBeInTheDocument();
+    expect(thisMonth).toHaveFocus();
+  });
+
   it("restores the first window from Back to my spot", async () => {
     watchTheViewerRow();
     Element.prototype.scrollTo = () => undefined;
