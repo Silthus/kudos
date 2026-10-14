@@ -1,0 +1,42 @@
+# Red: the announcement test with the live region back outside the dialog, as on 00356d1 (restored after)
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website-3/website
+
+ ❯ |website| src/crateMoment.test.tsx (39 tests | 1 failed | 38 skipped) 334ms
+   ❯ WS66: the reveal follows the server (15)
+     × announces what opened in a live region inside the modal dialog, where screen readers still read it 332ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > announces what opened in a live region inside the modal dialog, where screen readers still read it
+Error: [2mexpect([22m[31melement[39m[2m).toContainElement([22m[32melement[39m[2m)[22m
+
+[31m<div
+  aria-labelledby="_r_6_"
+  aria-modal="true"
+  class="moment-scrim fixed inset-0 z-50 overflow-y-auto"
+  data-motion="full"
+  role="dialog"
+  tabindex="-1"
+/> does not contain: <p
+  class="sr-only"
+  data-testid="moment-announcement"
+  role="status"
+/>
+        [39m
+ ❯ src/crateMoment.test.tsx:191:22
+    189|     expect(announcement()).toHaveTextContent("You opened Leaderboard."…
+    190|     expect(announcement()).toHaveAttribute("role", "status");
+    191|     expect(dialog()).toContainElement(announcement());
+       |                      ^
+    192|   });
+    193|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 38 skipped (39)
+   Start at  03:07:03
+   Duration  2.54s (import 47%, environment 20%, transform 15%, tests 14%, setup 5%)
+

@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ConvexProvider, type ConvexReactClient } from "convex/react";
 import type { ReactNode } from "react";
@@ -11,6 +11,7 @@ import { fakeSystemTheme } from "./test/systemTheme";
 const profileRead = vi.fn();
 const boardRead = vi.fn();
 const authActions = { signIn: vi.fn(), signOut: vi.fn() };
+const openFeatureCall = vi.fn();
 const socket = { isWebSocketConnected: true };
 const auth = { isLoading: false, isAuthenticated: true };
 
@@ -20,7 +21,7 @@ vi.mock("convex/react", async (importOriginal) => ({
   useConvexAuth: () => ({ ...auth }),
   useConvexConnectionState: () => ({ ...socket }),
   useQuery: () => profileRead(),
-  useMutation: () => vi.fn(),
+  useMutation: () => openFeatureCall,
 }));
 
 const boardListeners = new Set<() => void>();
@@ -74,6 +75,7 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
   authActions.signIn.mockReset();
   authActions.signOut.mockReset();
+  openFeatureCall.mockReset();
 });
 
 describe("WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change", () => {
@@ -243,5 +245,30 @@ describe("WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the 
     redemptionRejects();
 
     expect(pageTitle()).toBeNull();
+  });
+});
+
+describe("WS66: an open the server never answers ends the wait", () => {
+  function leaderboardCrate() {
+    return within(screen.getByRole("main")).getByRole("heading", { level: 3, name: "Unlocks: Leaderboard" }).closest("article")!;
+  }
+
+  it("closes the crate again after ten seconds without an answer, says HedgeHug couldn't be reached, and a retry opens it", async () => {
+    vi.useFakeTimers();
+    profileRead.mockReturnValue(shellFixtures.memberWithTheBoardReady);
+    openFeatureCall.mockReturnValueOnce(new Promise(() => undefined)).mockResolvedValueOnce({ kind: "opened" });
+    renderLiveSite();
+
+    fireEvent.click(within(leaderboardCrate()).getByRole("button", { name: "Open" }));
+    await act(async () => vi.advanceTimersByTime(9_999));
+    expect(within(leaderboardCrate()).getByRole("button", { name: "Opening…" })).toBeInTheDocument();
+    await act(async () => vi.advanceTimersByTime(1));
+
+    expect(screen.getByTestId("moment-announcement")).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
+    fireEvent.click(within(leaderboardCrate()).getByRole("button", { name: "Open" }));
+    await act(async () => undefined);
+
+    expect(openFeatureCall).toHaveBeenNthCalledWith(2, { feature: "leaderboard" });
+    expect(screen.getByRole("dialog")).toHaveAccessibleName("Level 3 unlock");
   });
 });

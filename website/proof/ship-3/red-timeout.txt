@@ -1,0 +1,33 @@
+# Red: WS66's timeout test with answerWithin removed from LiveApp's openFeature (restored after)
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website-3/website
+
+ ❯ |website| src/liveShell.test.tsx (14 tests | 1 failed | 13 skipped) 238ms
+   ❯ WS66: an open the server never answers ends the wait (1)
+     × closes the crate again after ten seconds without an answer, says HedgeHug couldn't be reached, and a retry opens it 237ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/liveShell.test.tsx > WS66: an open the server never answers ends the wait > closes the crate again after ten seconds without an answer, says HedgeHug couldn't be reached, and a retry opens it
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  Couldn't reach HedgeHug. Try again.[39m
+Received:
+[31m[39m
+ ❯ src/liveShell.test.tsx:267:55
+    265|     await act(async () => vi.advanceTimersByTime(1));
+    266|
+    267|     expect(screen.getByTestId("moment-announcement")).toHaveTextConten…
+       |                                                       ^
+    268|     fireEvent.click(within(leaderboardCrate()).getByRole("button", { n…
+    269|     await act(async () => undefined);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 skipped (14)
+   Start at  03:01:52
+   Duration  2.46s (import 48%, environment 23%, transform 14%, tests 10%, setup 4%)
+

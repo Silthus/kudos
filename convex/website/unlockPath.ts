@@ -16,7 +16,7 @@ export type LeaderboardWaits = Extract<LeaderboardState, { kind: "locked" | "rea
 export type FeatureCard = MemberUnlock & Pick<ScheduledFeature, "name" | "opens" | "level"> & { seen: string };
 
 export async function unlockPathOf(ctx: QueryCtx, me: VerifiedMember): Promise<UnlockPath> {
-  if (!(await unlocksApplyIn(ctx, me.workspace))) return null;
+  if (!(await unlockPathShownIn(ctx, me.workspace))) return null;
   return unlocksOf(ctx, me.member);
 }
 
@@ -38,6 +38,6 @@ async function featureCardOf(me: VerifiedMember, unlock: MemberUnlock): Promise<
   return { ...unlock, name, opens, level, seen: await seenKeyOf(me.member, `feature:${unlock.feature}`) };
 }
 
-export async function unlocksApplyIn(ctx: QueryCtx, workspace: string) {
+export async function unlockPathShownIn(ctx: QueryCtx, workspace: string) {
   return (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
 }

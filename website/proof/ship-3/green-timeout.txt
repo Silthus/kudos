@@ -1,0 +1,10 @@
+# Green: the same test on the restored LiveApp
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website-3/website
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 13 skipped (14)
+   Start at  03:01:55
+   Duration  3.82s (import 35%, transform 29%, tests 20%, environment 13%, setup 3%)
+
