@@ -1,12 +1,9 @@
-Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
 $ pnpm typecheck && pnpm test && pnpm coherence
 $ tsc --noEmit && tsc --noEmit -p website
 $ vitest run
 
  RUN  v5.0.3 /home/coder/dev/kudos-wt/signin-card
 
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -138,11 +135,15 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
- Test Files  144 passed (144)
-      Tests  2350 passed (2350)
-   Start at  11:08:47
-   Duration  130.65s (tests 80%, import 11%, transform 5%, environment 3%, setup 1%)
+ Test Files  145 passed (145)
+      Tests  2367 passed (2367)
+   Start at  11:21:16
+   Duration  149.47s (tests 80%, import 11%, transform 4%, environment 4%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -686,6 +687,6 @@ Website  website/Website.spec.md
 18 components, 114 bullets: 114 invariants, 0 requirements
 lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T10:16:45.688Z (647 runs)
 defects: 20 recorded, 17 closed (2 guarded, 15 decided, 0 with neither); 0 guard failures
-ADVISORY       213 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 85, receipt 30, contract 22, zone 21, panel 13; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (597 files), 17 in records
+ADVISORY       214 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 86, receipt 30, contract 22, zone 21, panel 13; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (601 files), 17 in records
 exit=0

@@ -27,7 +27,7 @@ Display titles (WS310):
 
 - [red.txt](red.txt): `signInCard.test.tsx` and `displayTitles.test.tsx` at the red commit, 11 failing.
 - [green.txt](green.txt): the same 15 tests passing, every assertion intact.
-- [gate.txt](gate.txt): `pnpm gate` through `fleet heavy`, 144 files and 2350 tests on the tree merged with `main`, Coherence clean. Recorded-name advisories are trimmed.
+- [gate.txt](gate.txt): `pnpm gate` through `fleet heavy`, 145 files and 2367 tests on the tree merged with `main`, Coherence clean. Recorded-name advisories are trimmed.
 - axe in light and dark covers the card at `/` and with the landing hint at `/leaderboard?period=month` (`accessibility.test.tsx`).
 
 ## V24 manual pass
@@ -43,3 +43,5 @@ Two findings, both fixed test-first ([red](red-review.txt), [green](green-review
 
 1. **A long leader name could clip at 390 px.** The headline's larger size had no `wrap-anywhere`, so an unbroken name could overflow the card. The headline now takes `wrap-anywhere`, as the hero does.
 2. **Signing out reset the theme when storage is blocked.** The standalone page remounts the theme control, which read the choice again from storage that refuses it. The theme now remembers a choice storage refused for the life of the page.
+
+Round 2, over the fixes and the merge of #193: one finding, fixed test-first ([red](red-review-2.txt), [green](green-review-2.txt)). With readable storage that refuses writes, signing out still brought back the stored choice. A refused choice now wins whenever there is one.
