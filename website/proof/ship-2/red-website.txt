@@ -1,0 +1,26 @@
+     × marks the page busy while the board loads, and shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds 22ms
+     × shows the error page under the HUD when the board read fails, and Home still opens in place 1008ms
+     × lists the window after the podium in order, with one … where positions are skipped 38ms
+     × reads the gap as skipped positions and hides the ellipsis from screen readers 33ms
+     × shows the column header only over lines, never over the join line alone 22ms
+     × tells assistive tech the footer's button shows and hides the whole board 24ms
+     × keeps Back to my spot while the whole board is open, even once kudos make the window cover every row 158ms
+     × keeps focus on the title when the empty board fills while its title has focus 53ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > lists the window after the podium in order, with one … where positions are skipped
+AssertionError: expected [ Array(8) ] to deeply equal [ '…Positions skipped', …(7) ]
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > reads the gap as skipped positions and hides the ellipsis from screen readers
+Error: expect(element).toHaveAttribute("aria-hidden", "true") // element.getAttribute("aria-hidden") === "true"
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > shows the column header only over lines, never over the join line alone
+Error: expect(element).not.toBeInTheDocument()
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > tells assistive tech the footer's button shows and hides the whole board
+Error: expect(element).toHaveAttribute("aria-expanded", "false") // element.getAttribute("aria-expanded") === "false"
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > keeps Back to my spot while the whole board is open, even once kudos make the window cover every row
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Back to my spot"
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS44: an empty board > keeps focus on the title when the empty board fills while its title has focus
+Error: expect(element).toHaveFocus()
+ FAIL  |website| src/liveShell.test.tsx > WS20 WS36: the leaderboard read shows where the page stands, inside the HUD > marks the page busy while the board loads, and shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds
+Error: expect(element).toHaveAttribute("aria-busy", "true") // element.getAttribute("aria-busy") === "true"
+ FAIL  |website| src/liveShell.test.tsx > WS20 WS36: the leaderboard read shows where the page stands, inside the HUD > shows the error page under the HUD when the board read fails, and Home still opens in place
+TestingLibraryElementError: Unable to find role="heading" and name "Something went wrong"
+      Tests  8 failed | 72 passed (80)

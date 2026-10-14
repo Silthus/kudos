@@ -1,0 +1,41 @@
+# Red (round 2): the one-live-region test on 9054f3c's App, RevealDialog and moments (restored after)
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website-3/website
+
+ ❯ |website| src/crateMoment.test.tsx (42 tests | 1 failed | 41 skipped) 342ms
+   ❯ WS66: the reveal follows the server (15)
+     × announces what opened in the one live region, which stays mounted and readable while the page behind the dialog is inert 341ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > announces what opened in the one live region, which stays mounted and readable while the page behind the dialog is inert
+AssertionError: expected <p role="status" …(2)></p> to be <p role="status" …(2)></p> // Object.is equality
+
+- Expected
++ Received
+
+  <p
+    class="sr-only"
+    data-testid="moment-announcement"
+    role="status"
+- />
++ >
++   You opened Leaderboard.
++ </p>
+
+ ❯ src/crateMoment.test.tsx:191:28
+    189|     await user.click(openButton());
+    190|     await user.keyboard("{Escape}");
+    191|     expect(announcement()).toBe(region);
+       |                            ^
+    192|     expect(region).toHaveTextContent("You opened Leaderboard.");
+    193|     expect(region).toHaveAttribute("role", "status");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 41 skipped (42)
+   Start at  03:20:23
+   Duration  3.64s (transform 43%, import 33%, environment 12%, tests 10%, setup 3%)
+

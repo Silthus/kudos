@@ -1,4 +1,4 @@
-import type { Leaderboard, LeaderboardRow } from "../leaderboardFixtures";
+import type { Leaderboard, LeaderboardRow } from "../shell";
 import { periodNamed } from "./periods";
 
 export type Story = { headline: string; deck: string };
@@ -7,7 +7,7 @@ export function storyOf(board: Leaderboard): Story | undefined {
   const leaders = board.rows.filter((row) => row.rank === 1);
   const [leader] = leaders;
   if (leader === undefined) return undefined;
-  return { headline: headlineOf(leaders, periodNamed(board.period).phrase), deck: `${leader.kudos} kudos given.${viewerLineOf(board)}` };
+  return { headline: headlineOf(leaders, periodNamed(board.period).phrase), deck: `${leader.kudos} kudos given.${standingInTheDeck(board)}` };
 }
 
 function headlineOf(leaders: LeaderboardRow[], phrase: string) {
@@ -16,7 +16,7 @@ function headlineOf(leaders: LeaderboardRow[], phrase: string) {
   return leader!.you ? `You lead ${phrase}.` : `${leader!.name} leads ${phrase}.`;
 }
 
-function viewerLineOf({ standing, rows }: Leaderboard) {
+function standingInTheDeck({ standing, rows }: Leaderboard) {
   if (standing.kind === "left") return " You're off the board by choice.";
   if (standing.kind !== "ranked" || standing.rank === 1) return "";
   const mine = rows[standing.position - 1]!;

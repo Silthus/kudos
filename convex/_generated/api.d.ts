@@ -48,6 +48,7 @@ import type * as leaderboard_backfill from "../leaderboard/backfill.js";
 import type * as leaderboard_board from "../leaderboard/board.js";
 import type * as leaderboard_flag from "../leaderboard/flag.js";
 import type * as leaderboard_improvement from "../leaderboard/improvement.js";
+import type * as leaderboard_improvementLine from "../leaderboard/improvementLine.js";
 import type * as leaderboard_periods from "../leaderboard/periods.js";
 import type * as leaderboard_totals from "../leaderboard/totals.js";
 import type * as leaderboard_visibility from "../leaderboard/visibility.js";
@@ -167,6 +168,7 @@ declare const fullApi: ApiFromModules<{
   "leaderboard/board": typeof leaderboard_board;
   "leaderboard/flag": typeof leaderboard_flag;
   "leaderboard/improvement": typeof leaderboard_improvement;
+  "leaderboard/improvementLine": typeof leaderboard_improvementLine;
   "leaderboard/periods": typeof leaderboard_periods;
   "leaderboard/totals": typeof leaderboard_totals;
   "leaderboard/visibility": typeof leaderboard_visibility;

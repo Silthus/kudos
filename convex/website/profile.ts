@@ -11,7 +11,7 @@ import { journeyStepsOf, type JourneyStep } from "./quests";
 import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, type LeaderboardState } from "./unlockPath";
 
 export type { Face } from "./faces";
-export type { FeatureCard } from "./unlockPath";
+export type { FeatureCard, LeaderboardState, LeaderboardWaits } from "./unlockPath";
 export type { JourneyStep } from "./quests";
 
 export type Kudos = { given: number; received: number };

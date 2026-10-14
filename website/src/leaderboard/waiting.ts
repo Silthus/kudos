@@ -1,5 +1,5 @@
-export function leaderboardOpensAt(level: number) {
-  return `Leaderboard opens at level ${level}.`;
-}
+import type { LeaderboardWaits } from "../shell";
 
-export const leaderboardIsReady = "Leaderboard is ready for you. Open it in Slack's App Home.";
+export function leaderboardWaitingWords(waiting: LeaderboardWaits) {
+  return waiting.kind === "ready" ? "Leaderboard is ready for you. Open it in Slack's App Home." : `Leaderboard opens at level ${waiting.level}.`;
+}

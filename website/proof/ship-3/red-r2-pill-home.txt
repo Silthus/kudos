@@ -1,0 +1,39 @@
+# Red (round 2): the home's pill failure test on 9054f3c's ReadyPill and Frame (restored after)
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website-3/website
+
+ ❯ |website| src/crateMoment.test.tsx (42 tests | 1 failed | 41 skipped) 258ms
+   ❯ WS68: the ready pill (8)
+     × leaves a failure on the home to the crate's own message 257ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/crateMoment.test.tsx > WS68: the ready pill > leaves a failure on the home to the crate's own message
+AssertionError: expected <p …(1)></p> to be null
+
+- Expected:
+null
+
++ Received:
+<p
+  class="absolute right-0 top-full mt-1 w-max max-w-64 rounded-md border bg-card px-2 py-1 text-xs font-medium shadow-sm"
+>
+  That couldn't be opened.
+</p>
+
+ ❯ src/crateMoment.test.tsx:403:88
+    401|     const { user } = renderApp(shellFixtures.memberWithEveryFeatureRea…
+    402|     await user.click(pill()!);
+    403|     expect(within(screen.getByRole("banner")).queryByText("That couldn…
+       |                                                                                        ^
+    404|     expect(within(crateNamed("Leaderboard")).getByText("That couldn't …
+    405|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 41 skipped (42)
+   Start at  03:20:27
+   Duration  3.76s (import 43%, transform 26%, environment 16%, setup 7%, tests 7%)
+

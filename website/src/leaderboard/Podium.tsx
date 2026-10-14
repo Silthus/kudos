@@ -1,5 +1,5 @@
 import { IconCrown } from "@posthog/icons";
-import type { Leaderboard, LeaderboardRow } from "../leaderboardFixtures";
+import type { Leaderboard, LeaderboardRow } from "../shell";
 import { BoardFace, RankWords, YouLabel } from "./BoardFace";
 
 type Step = "first" | "second" | "third";
@@ -10,11 +10,11 @@ export function Podium({ board: { rows, window } }: { board: Leaderboard }) {
   const [first, second, third] = window.filter((position) => position <= 3).map((position) => rows[position - 1]!);
   const leftToRight = [second, first, third].filter((row) => row !== undefined);
   return (
-    <ol aria-label="Top three" className={`mx-auto grid w-full max-w-2xl items-end gap-2 border-b px-1 sm:gap-4 sm:px-3 ${columns[leftToRight.length]}`}>
+    <ul aria-label="Top three" className={`mx-auto grid w-full max-w-2xl items-end gap-2 border-b px-1 sm:gap-4 sm:px-3 ${columns[leftToRight.length]}`}>
       {leftToRight.map((row) => (
         <Spot key={row.position} row={row} />
       ))}
-    </ol>
+    </ul>
   );
 }
 
@@ -34,7 +34,9 @@ function Spot({ row }: { row: LeaderboardRow }) {
       {leads ? <IconCrown data-crown aria-hidden="true" className="mb-1 size-5 sm:size-6" /> : <span aria-hidden="true" className="mb-1 h-5 sm:h-6" />}
       <BoardFace row={row} className={leads ? "size-16 sm:size-20 text-base" : "size-12 sm:size-16 text-sm"} />
       <span className="mt-2 flex w-full min-w-0 items-center justify-center gap-1.5">
-        <span className="truncate text-sm font-semibold">{row.name}</span>
+        <span title={row.name} className="truncate text-sm font-semibold">
+          {row.name}
+        </span>
         {row.you && <YouLabel />}
       </span>
       <span className="mt-1 flex items-baseline gap-1">

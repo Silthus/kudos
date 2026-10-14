@@ -1,0 +1,30 @@
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website-2
+ ❯ |convex| convex/website/leaderboard.test.ts (48 tests | 1 failed | 47 skipped) 97ms
+   ❯ a website board row carries only what a board shows (7)
+     × WS34: initials come from each word's first letter, so a name that starts with an emoji still reads as letters 96ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |convex| convex/website/leaderboard.test.ts > a website board row carries only what a board shows > WS34: initials come from each word's first letter, so a name that starts with an emoji still reads as letters
+AssertionError: expected { Object (face, kudos, ...) } to match object { name: '🦔 Ann Lee', face: { …(2) } }
+(5 matching properties omitted from actual)
+- Expected
++ Received
+  {
+    "face": {
+-     "initials": "AL",
++     "initials": "�A",
+      "kind": "initials",
+    },
+    "name": "🦔 Ann Lee",
+  }
+ ❯ convex/website/leaderboard.test.ts:210:55
+    208|     const { asSignedIn } = await aSession(t, juno);
+    209|
+    210|     expect((await board("week", asSignedIn)).rows[0]).toMatchObject({ …
+       |                                                       ^
+    211|   });
+    212| });
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+ Test Files  1 failed (1)
+      Tests  1 failed | 47 skipped (48)
+   Start at  02:18:23
+   Duration  668ms (transform 48%, import 28%, tests 17%, environment 7%, worker 1%)

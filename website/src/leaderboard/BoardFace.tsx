@@ -1,5 +1,5 @@
 import { MemberFace } from "../Face";
-import type { LeaderboardRow } from "../leaderboardFixtures";
+import type { LeaderboardRow } from "../shell";
 
 export function BoardFace({ row, className }: { row: LeaderboardRow; className: string }) {
   if (!row.you) return <MemberFace face={row.face} className={className} />;

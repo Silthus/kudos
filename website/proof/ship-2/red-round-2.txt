@@ -1,0 +1,9 @@
+$ vitest run src/liveShell.test.tsx src/LeaderboardPage.test.tsx  (round 2 regressions, before the fix)
+     × shows the board once a failed read answers again 60ms
+     × keeps focus on the switch when the next period's board is empty, and back 80ms
+     × keeps Back to my spot while the whole board is open, even once kudos make the window cover every row 106ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+Error: expect(element).toHaveFocus()
+Error: expect(element).toHaveFocus()
+Error: expect(element).toHaveTextContent()
+      Tests  3 failed | 79 passed (82)

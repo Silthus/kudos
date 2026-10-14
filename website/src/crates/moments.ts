@@ -29,24 +29,34 @@ export function useMoments() {
   return useContext(MomentsContext);
 }
 
-export function useCrateMoments(openFeature: ShellActions["openFeature"], { signedOut }: { signedOut: boolean }): Moments {
+type Shown = { signedOut: boolean; crates: string[] | undefined };
+
+export function useCrateMoments(openFeature: ShellActions["openFeature"], { signedOut, crates }: Shown): Moments {
   const [attempts, setAttempts] = useState<Partial<Record<Feature, Attempt>>>({});
   const [reveals, setReveals] = useState<Reveal[]>([]);
   const [announcement, setAnnouncement] = useState("");
   const sending = useRef(new Set<Feature>());
   const focusAfterClose = useRef<Feature | undefined>(undefined);
   const session = useRef(0);
+  const membersShown = useMembersShown(crates);
   const reveal = reveals[0];
 
-  useEffect(() => {
-    if (!signedOut) return;
+  const forgetEverything = useCallback(() => {
     session.current += 1;
     sending.current.clear();
     focusAfterClose.current = undefined;
     setAttempts({});
     setReveals([]);
     setAnnouncement("");
-  }, [signedOut]);
+  }, []);
+
+  useEffect(() => {
+    if (signedOut) forgetEverything();
+  }, [signedOut, forgetEverything]);
+
+  useEffect(() => {
+    if (membersShown > 1) forgetEverything();
+  }, [membersShown, forgetEverything]);
 
   const attemptIs = useCallback((feature: Feature, attempt: Attempt | undefined) => setAttempts((all) => ({ ...all, [feature]: attempt })), []);
 
@@ -84,6 +94,7 @@ export function useCrateMoments(openFeature: ShellActions["openFeature"], { sign
     ({ returnFocus }: { returnFocus: boolean }) => {
       focusAfterClose.current = returnFocus ? reveal?.card.feature : undefined;
       setReveals((queued) => queued.slice(1));
+      setAnnouncement("");
     },
     [reveal],
   );
@@ -103,6 +114,20 @@ export function useCrateMoments(openFeature: ShellActions["openFeature"], { sign
     close,
     announcement,
   };
+}
+
+function useMembersShown(crates: string[] | undefined) {
+  const lastCrates = useRef<string[] | undefined>(undefined);
+  const members = useRef(1);
+  if (crates !== undefined) {
+    if (lastCrates.current !== undefined && !sameMember(lastCrates.current, crates)) members.current += 1;
+    lastCrates.current = crates;
+  }
+  return members.current;
+}
+
+function sameMember(before: string[], now: string[]) {
+  return now.some((key) => before.includes(key)) || (before.length === 0 && now.length === 0);
 }
 
 export function featureCardAttributes(feature: Feature) {

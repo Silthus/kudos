@@ -1,24 +1,17 @@
 import type { ReactNode } from "react";
-import { IconExternal, IconLock, IconUnlock } from "@posthog/icons";
-import { buttonVariants, Card, CardContent } from "@posthog/quill";
+import { IconLock, IconUnlock } from "@posthog/icons";
+import { Card, CardContent } from "@posthog/quill";
 import { AppLink } from "../AppLink";
 import { Crate } from "../crates/Crate";
 import { featureCardAttributes } from "../crates/moments";
-import { aboutOf, openWebPagesOf, webPageOf, type OpenWebPage } from "../features";
+import { aboutOf, openWebPagesOf, plainFeatures, webPageOf, type OpenWebPage } from "../features";
 import type { Feature, FeatureCard, MemberProfile } from "../shell";
-
-const plainLockedCards: { feature: Feature; name: string }[] = [
-  { feature: "quests", name: "Quests" },
-  { feature: "leaderboard", name: "Leaderboard" },
-  { feature: "book", name: "Sticker book and achievements" },
-  { feature: "skillTree", name: "Skill tree" },
-  { feature: "coins", name: "Coins" },
-  { feature: "hedgehogs", name: "Hedgehogs" },
-];
+import { SlackLink } from "../SlackLink";
 
 export function FeatureCards({ member }: { member: MemberProfile }) {
-  if (member.features === null) return <PlainCards member={member} />;
-  const withState = (state: FeatureCard["state"]) => member.features!.filter((card) => card.state === state);
+  const { features } = member;
+  if (features === null) return <PlainCards member={member} />;
+  const withState = (state: FeatureCard["state"]) => features.filter((card) => card.state === state);
   return (
     <>
       <CardGroup id="ready-title" title="Ready for you">
@@ -41,7 +34,7 @@ export function FeatureCards({ member }: { member: MemberProfile }) {
 }
 
 function PlainCards({ member }: { member: MemberProfile }) {
-  const leaderboardOpen = member.leaderboard === "open";
+  const leaderboardOpen = member.leaderboard.kind === "open";
   return (
     <>
       <CardGroup id="open-title" title="Open">
@@ -50,7 +43,7 @@ function PlainCards({ member }: { member: MemberProfile }) {
         ))}
       </CardGroup>
       <CardGroup id="still-locked-title" title="Still locked">
-        {plainLockedCards
+        {plainFeatures
           .filter(({ feature }) => !leaderboardOpen || feature !== "leaderboard")
           .map((card) => (
             <LockedCard key={card.feature} {...card} status="Locked" />
@@ -83,10 +76,9 @@ function OpenCard({ feature, name, chatUrl }: FeatureCard & { chatUrl: string })
           <div className="flex min-w-0 flex-col items-start gap-1">
             <h3 className="text-sm font-medium">{name}</h3>
             <p className="text-xs text-muted-foreground">Open. Find it in Slack's App Home.</p>
-            <a href={chatUrl} target="_blank" rel="noreferrer" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              Open Slack <span className="sr-only">(opens in a new tab)</span>
-              <IconExternal aria-hidden="true" className="size-4" />
-            </a>
+            <SlackLink chatUrl={chatUrl} variant="outline">
+              Open Slack
+            </SlackLink>
           </div>
         </CardContent>
       </Card>

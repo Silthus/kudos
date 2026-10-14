@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
+import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
 
 export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "not-found" };
 
 export type Screen = Exclude<Route["page"], "not-found">;
-
-const periods: readonly Period[] = ["week", "month", "all"];
 
 export function routeOf({ pathname, search }: { pathname: string; search: string }): Route {
   if (pathname === "/") return { page: "home" };
@@ -19,7 +18,7 @@ export function leaderboardHref(period: Period) {
 
 function periodIn(search: string): Period {
   const asked = new URLSearchParams(search).get("period");
-  return periods.find((period) => period === asked) ?? "week";
+  return periods.find(({ period }) => period === asked)?.period ?? "week";
 }
 
 function currentRoute() {

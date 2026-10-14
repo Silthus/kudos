@@ -9,18 +9,23 @@ import { seenKeyOf } from "./seen";
 
 export type UnlockPath = MemberUnlock[] | null;
 
-export type LeaderboardState = "off" | "locked" | "ready" | "open";
+export type LeaderboardState = { kind: "off" } | { kind: "locked"; level: number } | { kind: "ready" } | { kind: "open" };
+
+export type LeaderboardWaits = Extract<LeaderboardState, { kind: "locked" | "ready" }>;
 
 export type FeatureCard = MemberUnlock & Pick<ScheduledFeature, "name" | "opens" | "level"> & { seen: string };
 
 export async function unlockPathOf(ctx: QueryCtx, me: VerifiedMember): Promise<UnlockPath> {
-  if (!(await unlocksApplyIn(ctx, me.workspace))) return null;
+  if (!(await unlockPathShownIn(ctx, me.workspace))) return null;
   return unlocksOf(ctx, me.member);
 }
 
 export async function leaderboardStateOf(ctx: QueryCtx, me: VerifiedMember, path: UnlockPath): Promise<LeaderboardState> {
-  if (path === null) return (await everyoneBoardShownIn(ctx, me.workspace)) ? "open" : "off";
-  return path.find(({ feature }) => feature === "leaderboard")?.state ?? "off";
+  if (path === null) return (await everyoneBoardShownIn(ctx, me.workspace)) ? { kind: "open" } : { kind: "off" };
+  const state = path.find(({ feature }) => feature === "leaderboard")?.state;
+  if (state === undefined) return { kind: "off" };
+  if (state === "locked") return { kind: "locked", level: scheduled("leaderboard").level };
+  return { kind: state };
 }
 
 export async function featureCardsOf(me: VerifiedMember, path: UnlockPath): Promise<FeatureCard[] | null> {
@@ -33,6 +38,6 @@ async function featureCardOf(me: VerifiedMember, unlock: MemberUnlock): Promise<
   return { ...unlock, name, opens, level, seen: await seenKeyOf(me.member, `feature:${unlock.feature}`) };
 }
 
-export async function unlocksApplyIn(ctx: QueryCtx, workspace: string) {
+export async function unlockPathShownIn(ctx: QueryCtx, workspace: string) {
   return (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
 }

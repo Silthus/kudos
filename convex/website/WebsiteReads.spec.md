@@ -177,7 +177,7 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   refuted: getLeaderboard read the everyone-board flag but no longer answered not-found while it is off -> 3 of the 4 tests failed, the board answering while PostHog had no flag, in production and after the switch-off (2026-10-13)
   kinds: read
   checklist: scoped-reads declared as website reads pass one guard
-  checklist: redaction dismissed: not-found carries no board fact, and leaderboard is one word
+  checklist: redaction dismissed: not-found carries no board fact, and leaderboard carries only its state and, while locked, the level it opens at
 - the website's leaderboard waits for its unlock: While xp-levels is on and unlocks apply to the workspace (the unlocks flag on and its launch recorded), getLeaderboard answers the board and getMyProfile's leaderboard reads open only for a member who has opened the Leaderboard; a member it is ready for reads ready, and one it is locked for reads locked with the level it opens at, both with no board facts; while unlocks don't apply the answer is the everyone-board flag's alone; a website read never records the launch, and a member's row on another member's board never depends on their own unlocks.
   over: getLeaderboard and getMyProfile with xp-levels and unlocks off, unlocks on and launched while xp-levels is off, xp-levels on and unlocks switched off after its launch, both on before the launch, and both on after it for a member at level 1, a member at level 3, a member who opened the Leaderboard, a member who was there at the launch, everyone-board off, and a locked member on an opened member's board
   via: WS52: the website's leaderboard waits for its unlock

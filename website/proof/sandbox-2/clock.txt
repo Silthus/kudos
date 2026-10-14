@@ -1,0 +1,45 @@
+WS36 on an open leaderboard: the board turns over on the first clock tick after the viewer's midnight,
+with the page held open. #134's follow-up, run here.
+
+Disposable local backend on 127.0.0.1:4410/4411 (instance kudos-i136), deployed from this ticket's tree.
+The mock Slack issuer ran on 4412 with MOCK_FLAGS_ON=everyone-board,xp-levels, a local override only.
+No cloud deployment was used.
+The browser was signed in with a proof session (users, authSessions and authRefreshTokens rows imported on
+that backend; see README.md).
+The website clock's cron ticked at :01:44, :16:44, :31:44 and :46:44 past each hour (first tick at
+deploy, 00:31:44Z).
+
+Each viewer gave 2 kudos on Tuesday 2026-10-06, 5 on Wednesday 2026-10-07, and 11 this week, so G18's
+line depends on the viewer's day:
+  - on Tuesday 2026-10-13 it compares with last week up to Tuesday: 11 - 2 = 9;
+  - from Wednesday 2026-10-14 it compares up to Wednesday: 11 - 7 = 4.
+An observer in the open page logged every change of that line with the browser's time.
+The browser's clock and the host's agreed within 0.2 s (checked at 01:02:51Z).
+
+Run 1: Juno, Atlantic/Cape_Verde (local midnight 01:00:00Z)
+  00:33:26.9Z  /leaderboard opened, one navigation: "▲ 9 more kudos than this time last week"   (clock-1-before-midnight.png)
+  01:00:00Z    Juno's local midnight
+  01:00:44.6Z  the same page, still one navigation: "▲ 4 more kudos than this time last week"   (clock-1-after-midnight.png)
+  01:01:44.2Z  the clock's tick (websiteClock.tick = 1791939704178)
+
+  The page turned a minute before the clock ticked. The PostHog component re-reads flag definitions
+  every minute. The mock answers without an ETag, so each read rewrote the cached row (fetchedAt 01:02:44Z,
+  then 01:03:44Z). Every query that reads a flag, getLeaderboard included, then re-ran at :44, and the first
+  re-run after midnight computed the new day. On the sandbox and in production the cached row changes
+  only when the definitions do: both still held fetchedAt 2026-10-13T21:33Z at 00:25Z on 2026-10-14. So
+  run 1 shows the open page turning over, but not that the clock tick alone turns it.
+
+Run 2: Noa, America/Noronha (local midnight 02:00:00Z), with nothing else rewriting what the board reads
+  01:04:41Z    the mock stopped, so the flag refresh can't fetch and the cached definitions stay as they are
+               (fetchedAt held at 01:03:44Z past 01:04:44Z)
+  01:05:09.8Z  /leaderboard opened in its own tab, one navigation: "▲ 9 more kudos than this time last week"
+               (clock-2-before-midnight-dark.png)
+  01:16:44Z    and 01:31:44Z, 01:46:44Z: the clock ticked before Noa's midnight, and the line stayed "▲ 9"
+  02:00:00Z    Noa's local midnight
+  02:01:44.178Z  the clock's tick (websiteClock.tick = 1791943304178)
+  02:01:44.263Z  the same page, still one navigation (loaded 01:05:09.8Z): "▲ 4 more kudos than this time last week"
+               (clock-2-after-midnight-dark.png)
+  02:02:26Z    the cached flag definitions still held fetchedAt 01:03:44Z, so the tick alone re-ran the board
+
+Run 2 shows WS36 on an open board: it turned over 85 ms after the first clock tick past the viewer's
+midnight, without a reload and without another kudos.

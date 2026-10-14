@@ -28,9 +28,13 @@ function realNameOf({ name, givenName, familyName }: Names) {
 function initialsOf({ name, givenName, familyName }: Names) {
   const words = givenName !== undefined && familyName !== undefined ? [givenName, familyName] : (name ?? "").split(/\s+/);
   const initials = words
-    .filter((word) => word !== "")
+    .map(firstLetterOf)
+    .filter((letter) => letter !== undefined)
     .slice(0, 2)
-    .map((word) => word[0]!.toUpperCase())
     .join("");
   return initials === "" ? "?" : initials;
+}
+
+function firstLetterOf(word: string) {
+  return word.match(/\p{L}/u)?.[0]?.toUpperCase();
 }

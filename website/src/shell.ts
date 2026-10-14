@@ -3,7 +3,8 @@ import type { CommandAnswer } from "../../convex/website/commands";
 import type { Denial } from "../../convex/website/memberQuery";
 import type { FeatureCard, MemberProfile, MyProfile } from "../../convex/website/profile";
 
-export type { Face, FeatureCard, MemberProfile, Progression } from "../../convex/website/profile";
+export type { Face, FeatureCard, LeaderboardWaits, MemberProfile, Progression } from "../../convex/website/profile";
+export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
 export type { Period } from "../../convex/leaderboard/periods";
 export type { CommandAnswer } from "../../convex/website/commands";
 export type { Feature } from "../../convex/unlocks/feature";
@@ -25,7 +26,7 @@ const member: MemberProfile = {
   thisWeek: { given: 2, received: 1 },
   lifetime: { given: 14, received: 9 },
   chatUrl: "https://app.slack.com/client/T1",
-  leaderboard: "off",
+  leaderboard: { kind: "off" },
   features: null,
   journey: null,
   progression: null,
@@ -46,11 +47,17 @@ const ready = { state: "ready", readyAt, openedAt: null } as const;
 const opened = { state: "open", readyAt, openedAt } as const;
 
 const onTheUnlockPath = (...features: FeatureCard[]): Pick<MemberProfile, "leaderboard" | "features"> => ({
-  leaderboard: features.find(({ feature }) => feature === "leaderboard")?.state ?? "off",
+  leaderboard: leaderboardOn(features.find(({ feature }) => feature === "leaderboard")),
   features,
 });
 
-const memberWithTheBoard: MemberProfile = { ...member, leaderboard: "open" };
+function leaderboardOn(card: FeatureCard | undefined): MemberProfile["leaderboard"] {
+  if (card === undefined) return { kind: "off" };
+  if (card.state === "locked") return { kind: "locked", level: card.level };
+  return { kind: card.state };
+}
+
+const memberWithTheBoard: MemberProfile = { ...member, leaderboard: { kind: "open" } };
 
 const memberWaitingForTheBoard: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...locked }) };
 

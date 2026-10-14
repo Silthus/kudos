@@ -1,0 +1,16 @@
+$ vitest run src/liveShell.test.tsx  (Convex's real useQueries under a ConvexProvider with a fake watch; before the fix)
+     × a sign-in that can't start shows the error page, focuses its title and forgets the attempt 234ms
+     × shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds 44ms
+     × moves on to the answer by itself once the socket connects 38ms
+     × stays quiet while a connected socket waits for the answer 45ms
+     × marks the page busy while the board loads, and shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds 60ms
+     × shows the error page under the HUD when the board read fails, and Home still opens in place 221ms
+     × shows nothing but the busy frame while Convex Auth redeems the code, never the signed-out page 35ms
+     × shows Sign-in didn't finish when the redemption is rejected, instead of loading forever 39ms
+     × shows the closed page when the redemption is rejected while the website is closed 33ms
+     × lets the failure go once auth settles, so a later signed-out answer shows the plain sign-in page 46ms
+     × ignores a rejection elsewhere on a page that brought no code from Slack 44ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  11 failed | 1 passed (12)
+
+The error page in each failure comes from: Error: Too many re-renders. React limits the number of renders to prevent an infinite loop. (useLiveLeaderboard passed useQueries a new request object on every render)

@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
-import type { LeaderboardRow } from "../leaderboardFixtures";
+import type { LeaderboardRow } from "../shell";
 import { BoardLine, JumpToMe } from "./BoardLine";
 
 type Edge = "top" | "bottom";
 
-export function WholeBoard({ rows }: { rows: LeaderboardRow[] }) {
+export function WholeBoard({ id, rows }: { id: string; rows: LeaderboardRow[] }) {
   const scroller = useRef<HTMLDivElement>(null);
   const mine = rows.find((row) => row.you);
   const edge = useEdgeOfTheViewerRow(scroller, mine?.position);
@@ -18,7 +18,7 @@ export function WholeBoard({ rows }: { rows: LeaderboardRow[] }) {
 
   return (
     <div className="relative border-t">
-      <div ref={scroller} role="region" aria-label="The whole board" tabIndex={0} className="relative max-h-[26rem] overflow-y-auto overscroll-contain outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+      <div id={id} ref={scroller} role="region" aria-label="The whole board" tabIndex={0} className="relative max-h-[26rem] overflow-y-auto overscroll-contain outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
         <ol className="flex flex-col [&>li:first-child]:border-t-0">
           {rows.map((row) => (
             <BoardLine key={row.position} row={row} focusable />

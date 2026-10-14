@@ -1,9 +1,10 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { IconArrowRight, IconExternal } from "@posthog/icons";
+import { IconArrowRight } from "@posthog/icons";
 import { Button, buttonVariants } from "@posthog/quill";
 import { AppLink } from "../AppLink";
 import { aboutOf, webPageOf } from "../features";
 import type { FeatureCard } from "../shell";
+import { SlackLink } from "../SlackLink";
 import { CrateArt } from "./CrateArt";
 import type { Reveal } from "./moments";
 
@@ -49,7 +50,6 @@ export function RevealDialog({ card, seenBefore, chatUrl, onFinish, onClose }: R
     <div
       ref={dialog}
       role="dialog"
-      aria-modal="true"
       aria-labelledby={labelId}
       tabIndex={-1}
       data-motion={reducedMotion ? "reduced" : "full"}
@@ -96,10 +96,9 @@ function GoThere({ card, chatUrl, onGo }: { card: FeatureCard; chatUrl: string; 
   const page = webPageOf(card.feature);
   if (page === undefined)
     return (
-      <a href={chatUrl} target="_blank" rel="noreferrer" className={buttonVariants({ variant: "primary" })}>
-        Find it in Slack's App Home. <span className="sr-only">(opens in a new tab)</span>
-        <IconExternal aria-hidden="true" className="size-4" />
-      </a>
+      <SlackLink chatUrl={chatUrl} variant="primary" size="default">
+        Find it in Slack's App Home.
+      </SlackLink>
     );
   return (
     <AppLink href={page.href} onFollow={onGo} className={buttonVariants({ variant: "primary" })}>

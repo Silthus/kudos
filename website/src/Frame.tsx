@@ -2,7 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import { IconHome } from "@posthog/icons";
 import { AccountMenu } from "./AccountMenu";
 import { AppLink } from "./AppLink";
-import { ReadyPill } from "./crates/ReadyPill";
+import { ReadyPill, ReadyPillFailure } from "./crates/ReadyPill";
 import { openWebPagesOf } from "./features";
 import type { Screen } from "./route";
 import type { MemberProfile } from "./shell";
@@ -14,14 +14,15 @@ export function Frame({ member, current, busy, inert, onSignOut, children }: Fra
   return (
     <div className="hud-root flex min-h-screen flex-col" inert={inert}>
       <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-3 px-4 md:px-6">
+        <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6">
           <Wordmark />
           {member && <ScreenNav current={current} member={member} />}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2 max-sm:gap-1.5">
             {member && <ReadyPill member={member} />}
             <ThemeControl />
             {member && onSignOut && <AccountMenu member={member} onSignOut={onSignOut} />}
           </div>
+          {member && current !== "home" && <ReadyPillFailure member={member} />}
         </div>
       </header>
       <main aria-busy={busy || undefined} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8">{children}</main>
@@ -31,18 +32,18 @@ export function Frame({ member, current, busy, inert, onSignOut, children }: Fra
 
 function Wordmark() {
   return (
-    <a href="/" className="flex items-center rounded-md">
+    <AppLink href="/" className="flex items-center rounded-md">
       <span className="flex flex-col leading-none">
         <span className="hud-display text-lg font-bold">HedgeHug</span>
         <span className="text-[10px] text-muted-foreground">Thanks a Hog</span>
       </span>
-    </a>
+    </AppLink>
   );
 }
 
 function ScreenNav({ current, member }: { current?: Screen; member: MemberProfile }) {
   return (
-    <nav aria-label="Screens" className="mx-auto flex items-center gap-0.5">
+    <nav aria-label="Screens" className="mx-auto flex items-center gap-0.5 max-sm:order-last max-sm:mx-0 max-sm:w-full max-sm:pb-1">
       <ScreenLink href="/" current={current === "home"} Icon={IconHome}>
         Home
       </ScreenLink>
@@ -62,7 +63,7 @@ function ScreenLink({ href, current, Icon, children }: ScreenLinkProps) {
     <AppLink
       href={href}
       aria-current={current ? "page" : undefined}
-      className={`relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium ${current ? "text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 after:rounded-full after:bg-primary" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
+      className={`relative flex items-center gap-1 rounded-md px-2 py-1.5 text-[13px] font-medium ${current ? "text-foreground after:absolute after:inset-x-2 after:-bottom-[12px] after:h-0.5 max-sm:after:-bottom-1 after:rounded-full after:bg-primary" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}
     >
       <Icon className="size-4" />
       {children}

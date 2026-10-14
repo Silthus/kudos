@@ -1,9 +1,10 @@
 import { ConvexAuthProvider, useAuthActions } from "@convex-dev/auth/react";
-import { useConvexAuth, useMutation, useQuery, type ConvexReactClient } from "convex/react";
+import { useConvexAuth, useMutation, useQueries, useQuery, type ConvexReactClient, type RequestForQueries } from "convex/react";
 import { useMemo, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
+import type { BoardAnswer } from "./boardRead";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
 import { useSocketUnreachable } from "./connection";
@@ -30,13 +31,17 @@ function LiveApp() {
     <App
       visitor={visitorOf({ authLoading: isLoading, redemptionFailed, unreachable, profile })}
       actions={actions}
-      useLeaderboard={useLiveLeaderboard}
+      useLeaderboard={(period) => useLiveLeaderboard(period, unreachable)}
     />
   );
 }
 
-function useLiveLeaderboard(period: Period | undefined) {
-  return useQuery(api.website.leaderboard.getLeaderboard, period === undefined ? "skip" : { period });
+function useLiveLeaderboard(period: Period | undefined, unreachable: boolean): BoardAnswer | undefined {
+  const request = useMemo((): RequestForQueries => (period === undefined ? {} : { board: { query: api.website.leaderboard.getLeaderboard, args: { period } } }), [period]);
+  const { board } = useQueries(request);
+  if (board instanceof Error) return { kind: "broken" };
+  if (board === undefined && unreachable) return { kind: "connecting" };
+  return board;
 }
 
 type Answers = { authLoading: boolean; redemptionFailed: boolean; unreachable: boolean; profile: MyProfile | undefined };

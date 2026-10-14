@@ -183,9 +183,10 @@ describe("website commands pass one guard", () => {
   test("WS61: the feature is the only argument, so no call names a member", async () => {
     await launchedThen(...allFlags);
     const { member, asSignedIn } = await aReadyMember();
+    const before = await everythingWritten();
 
     await expect(asSignedIn.mutation(api.website.commands.openFeature, { feature: "leaderboard", member } as never)).rejects.toThrow(/member/);
-    expect((await unlockRowsOf(member)).map(({ openedAt }) => openedAt)).toEqual([undefined]);
+    expect(await everythingWritten()).toEqual(before);
   });
 });
 

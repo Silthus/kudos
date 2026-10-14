@@ -1,0 +1,13 @@
+Anonymous reads through the public query API, 2026-10-14T00:33:53Z. Deployment names are written <sandbox> and <production>.
+
+$ POST https://<sandbox>.convex.cloud/api/query {"path":"website/profile:getMyProfile","args":{}}
+{"status":"success","value":{"kind":"signed-out"}}
+$ GET https://<sandbox>.convex.site/  (status, title)
+200
+<title>HedgeHug</title>
+
+$ POST https://<production>.convex.cloud/api/query {"path":"website/profile:getMyProfile","args":{}}
+{"status":"success","value":{"kind":"closed"}}
+$ GET https://<production>.convex.site/  (status, title)
+200
+<title>HedgeHug</title>

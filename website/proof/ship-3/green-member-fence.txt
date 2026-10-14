@@ -1,0 +1,10 @@
+# Green: the same tests on the restored moments.ts
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website-3/website
+
+
+ Test Files  1 passed (1)
+      Tests  8 passed | 29 skipped (37)
+   Start at  03:04:19
+   Duration  3.41s (tests 44%, import 31%, environment 13%, transform 9%, setup 3%)
+
