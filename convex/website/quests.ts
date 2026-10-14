@@ -5,7 +5,7 @@ import { projectedJourneyOf, type ProjectedJourneyStep } from "../quests/journey
 import { journeyCopyOf } from "../quests/journeyCopy";
 import { questOf, type PoolQuest } from "../quests/pool";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
-import { waitingCratesOf, weeklyQuestsOf, type WaitingCrate as FinishedCrate, type WeeklyQuests, type WeeklySlot } from "../quests/weekly";
+import { drawnWeekOf, waitingCratesOf, type DrawnWeek, type WaitingCrate as FinishedCrate } from "../quests/weekly";
 import { workspaceLink } from "../slack/workspaceLink";
 import { scheduled } from "../unlocks/schedule";
 import { followTheClock } from "./clock";
@@ -53,7 +53,7 @@ export const getQuests = memberQuery(async (ctx, me): Promise<QuestsAnswer> => {
   if (quests.state === "ready") return { kind: "ready" };
   await followTheClock(ctx);
   const at = Date.now();
-  const week = await weeklyQuestsOf(ctx, me.member, at);
+  const week = await drawnWeekOf(ctx, me.member, at);
   return {
     kind: "quests",
     slots: week === null ? [] : await Promise.all(week.slots.map((slot) => questSlotOf(me, week, slot))),
@@ -67,9 +67,8 @@ export async function journeyStepsOf(ctx: QueryCtx, me: VerifiedMember): Promise
   return Promise.all((await projectedJourneyOf(ctx, me.member)).map((step) => journeyStepOf(me, step)));
 }
 
-async function questSlotOf(me: VerifiedMember, { week, swap }: WeeklyQuests, facts: WeeklySlot): Promise<QuestSlot> {
-  const { slot, quest, goal, progress, target, reward } = facts;
-  const crate: WeeklyQuest = { kind: "weekly", week, slot };
+async function questSlotOf(me: VerifiedMember, { swap }: DrawnWeek, facts: DrawnWeek["slots"][number]): Promise<QuestSlot> {
+  const { slot, quest, goal, progress, target, reward, crate } = facts;
   const state = crateStateOf(facts, "in-progress");
   return {
     slot,
@@ -84,13 +83,12 @@ async function questSlotOf(me: VerifiedMember, { week, swap }: WeeklyQuests, fac
   };
 }
 
-async function waitingCrateOf(me: VerifiedMember, { quest, goal, reward }: FinishedCrate): Promise<WaitingCrate> {
-  return { goal, reward: { xp: reward.xp }, crate: quest, seen: await seenKeyOfCrate(me, quest) };
+async function waitingCrateOf(me: VerifiedMember, { crate, goal, reward }: FinishedCrate): Promise<WaitingCrate> {
+  return { goal, reward: { xp: reward.xp }, crate, seen: await seenKeyOfCrate(me, crate) };
 }
 
 async function journeyStepOf(me: VerifiedMember, facts: ProjectedJourneyStep): Promise<JourneyStep> {
-  const { step, reward } = facts;
-  const crate: JourneyQuest = { kind: "journey", step };
+  const { step, reward, crate } = facts;
   const state = crateStateOf(facts, "active");
   return {
     step,

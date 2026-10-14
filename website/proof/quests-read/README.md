@@ -21,6 +21,7 @@ WS69–WS71 and WS64, from a disposable local backend on `127.0.0.1:4910`/`4911`
 ## Tests
 
 - [red.txt](red.txt): `convex/website/quests.test.ts` on the tree before the change. 19 of 19 fail: `getQuests` and `journey` are missing.
+- [red-review-read-limit.txt](red-review-read-limit.txt): the review's read-limit finding as a test, before the fix. A member with 33,000 earlier kudos made `getQuests` scan past Convex's 32,000-document limit, because it read the swap feasibility it discards.
 - [green.txt](green.txt): the same file, after review, plus `convex/publicSurface.test.ts` on the landed tree, verbose, none skipped.
 - The gate: [gate.txt](gate.txt).
 - Coherence, in `convex/website/WebsiteReads.spec.md`:

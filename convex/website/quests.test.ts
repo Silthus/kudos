@@ -82,6 +82,17 @@ async function thanks(giver: MemberId, recipient: MemberId) {
   await t.mutation(internal.quests.quests.followKudosGiven, { event });
 }
 
+async function aLongHistory(giver: MemberId, recipient: MemberId, awards: number) {
+  const longAgo = Date.parse("2025-01-01T10:00:00Z");
+  for (let batch = 0; batch * 8000 < awards; batch++) {
+    await t.run(async (ctx) => {
+      for (let index = batch * 8000; index < Math.min(awards, (batch + 1) * 8000); index++) {
+        await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `history-${index}`, giver, recipient, kudos: 1, day: "2025-01-01", at: longAgo });
+      }
+    });
+  }
+}
+
 async function opensCrate(member: MemberId, quest: Quest) {
   expect(await t.run((ctx) => openQuestCrate(ctx, member, quest))).toBe("done");
 }
@@ -272,6 +283,16 @@ describe("WS70: getQuests reads the quests module's facts", () => {
       week!.slots.map(({ slot, goal, progress, target, reward }) => ({ slot, goal, progress: { done: progress, target }, reward: { xp: reward.xp }, swapped: week!.swap?.slot === slot })),
     );
     expect(slots.map(({ state }) => state)).toEqual(week!.slots.map(({ finishedAt, openedAt }) => (finishedAt === null ? "in-progress" : openedAt === null ? "finished" : "opened")));
+  });
+
+  test("a member with a long history of kudos still reads this week's slots within Convex's read limits", async () => {
+    t = testBackend({ transactionLimits: true });
+    await questsApply();
+    const { member, asSignedIn, teammate } = await aTeam();
+    await questsOpenFor(member, "say-why-twice");
+    await aLongHistory(member, teammate.member, 33_000);
+
+    expect((await openQuests(asSignedIn)).slots).toEqual([expect.objectContaining({ slot: 0, state: "in-progress" })]);
   });
 
   test("P85: after the Monday turn, last week's finished, unopened crate waits, and leaves once opened", async () => {

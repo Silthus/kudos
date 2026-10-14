@@ -57,7 +57,9 @@ export type WeeklySlot = Slot & { goal: string; progress: number; target: number
 
 export type QuestSwap = { slot: number; replaced: QuestId; quest: QuestId; swappedAt: number };
 
-export type WaitingCrate = { quest: WeeklyQuest; goal: string; reward: Reward; finishedAt: number };
+export type WaitingCrate = { crate: WeeklyQuest; goal: string; reward: Reward; finishedAt: number };
+
+export type DrawnWeek = Omit<WeeklyQuests, "slots" | "swapAvailable"> & { slots: Array<WeeklySlot & { crate: WeeklyQuest }> };
 
 export type WeeklyQuests = { week: WeekKey; drawnAt: number; slots: WeeklySlot[]; swap: QuestSwap | null; swapAvailable: boolean };
 
@@ -106,23 +108,41 @@ export async function awaitsThisWeeksDraw(ctx: QueryCtx, { _id: member, timeZone
 }
 
 export async function weeklyQuestsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<WeeklyQuests | null> {
-  const draw = await drawOf(ctx, member, weekKeyOf(at, await timeZoneOf(ctx, member)));
+  const draw = await thisWeeksDrawOf(ctx, member, at);
   if (draw === null) return null;
   const { week, drawnAt } = draw;
   const swap = await swapOf(ctx, member, week);
-  const slots: WeeklySlot[] = [];
-  for (const slot of slotsOf(draw, swap)) slots.push(await weeklySlotOf(ctx, draw, slot));
+  const slots = await weeklySlotsOf(ctx, draw, swap);
   const swapAvailable = swap === null && slots.some(({ finishedAt }) => finishedAt === null) && (await replacementFor(ctx, draw, at)) !== null;
   return { week, drawnAt, slots, swap: swap === null ? null : questSwapOf(swap), swapAvailable };
+}
+
+export async function drawnWeekOf(ctx: QueryCtx, member: MemberId, at: number): Promise<DrawnWeek | null> {
+  const draw = await thisWeeksDrawOf(ctx, member, at);
+  if (draw === null) return null;
+  const { week, drawnAt } = draw;
+  const swap = await swapOf(ctx, member, week);
+  const slots = (await weeklySlotsOf(ctx, draw, swap)).map((slot) => ({ ...slot, crate: weeklyQuest(week, slot) }));
+  return { week, drawnAt, slots, swap: swap === null ? null : questSwapOf(swap) };
+}
+
+async function thisWeeksDrawOf(ctx: QueryCtx, member: MemberId, at: number) {
+  return drawOf(ctx, member, weekKeyOf(at, await timeZoneOf(ctx, member)));
+}
+
+async function weeklySlotsOf(ctx: QueryCtx, draw: Draw, swap: Swap | null): Promise<WeeklySlot[]> {
+  const slots: WeeklySlot[] = [];
+  for (const slot of slotsOf(draw, swap)) slots.push(await weeklySlotOf(ctx, draw, slot));
+  return slots;
 }
 
 export async function waitingCratesOf(ctx: QueryCtx, member: MemberId, at: number): Promise<WaitingCrate[]> {
   const thisWeek = weekKeyOf(at, await timeZoneOf(ctx, member));
   const waiting: WaitingCrate[] = [];
   for (const { key, xp, coins, item, at: finishedAt } of await rewardsKeyedFrom(ctx, member, rewardKeyPrefixOf("weekly"))) {
-    const quest = weeklyQuestOfRewardKey(key);
-    if (quest === null || quest.week >= thisWeek || (await crateOpeningOf(ctx, member, key)) !== null) continue;
-    waiting.push({ quest, goal: await goalOf(ctx, member, quest), reward: { xp, coins, item }, finishedAt });
+    const crate = weeklyQuestOfRewardKey(key);
+    if (crate === null || crate.week >= thisWeek || (await crateOpeningOf(ctx, member, key)) !== null) continue;
+    waiting.push({ crate, goal: await goalOf(ctx, member, crate), reward: { xp, coins, item }, finishedAt });
   }
   return waiting.sort((one, other) => one.finishedAt - other.finishedAt);
 }

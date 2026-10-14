@@ -18,7 +18,7 @@ import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf } from "./crates";
 import { finishQuest } from "./finish";
 import { journeyShippedAt, questsLiveIn } from "./flag";
-import { featureOpening, journeyStepOpenedBy, journeyStepValidator, type JourneyStep } from "./step";
+import { featureOpening, journeyStepOpenedBy, journeyStepValidator, type JourneyQuest, type JourneyStep } from "./step";
 
 export const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
 
@@ -180,14 +180,15 @@ export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<Journe
   return facts;
 }
 
-export type ProjectedJourneyStep = Omit<JourneyStepFacts, "activatedAt"> & { activatedAt: number | null };
+export type ProjectedJourneyStep = Omit<JourneyStepFacts, "activatedAt"> & { activatedAt: number | null; crate: JourneyQuest };
 
 export async function projectedJourneyOf(ctx: QueryCtx, member: MemberId): Promise<ProjectedJourneyStep[]> {
   const stored = await journeyOf(ctx, member);
-  return stored.some(({ step }) => step === "first-thanks") ? stored : [firstThanksBeforeActivation(journey), ...stored];
+  const steps = stored.some(({ step }) => step === "first-thanks") ? stored : [firstThanksBeforeActivation(journey), ...stored];
+  return steps.map((step) => ({ ...step, crate: { kind: "journey", step: step.step } }));
 }
 
-function firstThanksBeforeActivation({ version, steps }: JourneyCatalogue): ProjectedJourneyStep {
+function firstThanksBeforeActivation({ version, steps }: JourneyCatalogue): Omit<ProjectedJourneyStep, "crate"> {
   const { reward } = steps.find(({ step }) => step === "first-thanks")!;
   return { step: "first-thanks", activatedAt: null, reward, catalogueVersion: version, finishedAt: null, openedAt: null };
 }
