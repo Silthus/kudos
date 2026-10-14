@@ -212,7 +212,7 @@ describe("WS339 V24: the upgrade looks meet 3:1 against the card in both modes",
     showTree(skillTreeFixtures.everyRow);
     return [
       { part: "the Upgraded outline", element: squareOf("Spark") },
-      { part: "the upgraded-from badge", element: within(squareOf("Flame")).getByTestId("upgraded-from") },
+      { part: "the upgraded-from mark", element: within(squareOf("Flame")).getByTestId("upgraded-from") },
       ...within(perkTree()).getAllByTestId("upgrade-connector").map((element) => ({ part: "the connectors", element })),
       ...within(perkTree()).getAllByTestId("coin-glyph").map((element) => ({ part: "the coin glyph", element })),
       ...within(legend()).getAllByTestId("legend-swatch").map((element) => ({ part: "the legend's swatches", element })),
