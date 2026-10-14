@@ -1,0 +1,21 @@
+# Green: the same tests on the implementation
+ ✓ |convex| convex/website/book.test.ts > website reads pass one guard > getBook reads closed while the website flag is off, even with achievements on 100ms
+ ✓ |convex| convex/publicSurface.test.ts > WS10: the public surface is exact > only HTTP routes, Convex Auth's signIn, signOut and isAuthenticated, and the website's signed-in functions are public 580ms
+ ✓ |convex| convex/website/book.test.ts > website reads pass one guard > getBook reads signed out without a session 19ms
+ ✓ |convex| convex/website/book.test.ts > website reads pass one guard > getBook reads not-a-member for a former member with a live session 21ms
+ ✓ |convex| convex/website/book.test.ts > website reads pass one guard > an argument that names another member is rejected by the validator 19ms
+ ✓ |convex| convex/website/book.test.ts > WS80 WS90: getBook follows the Book's unlock > P78 WS96: with achievements off, a member past level 4 reads not-found, whatever they earned 52ms
+ ✓ |convex| convex/website/book.test.ts > WS80 WS90: getBook follows the Book's unlock > WS55: with every flag on and nothing launched, getBook answers not-found and records neither launch 3ms
+ ✓ |convex| convex/website/book.test.ts > WS80 WS90: getBook follows the Book's unlock > a member at level 1 reads the Book locked at level 4, with no achievement fact 20ms
+ ✓ |convex| convex/website/book.test.ts > WS80 WS90: getBook follows the Book's unlock > a member at level 4 who hasn't opened the Book reads it ready, with no achievement fact 24ms
+ ✓ |convex| convex/website/book.test.ts > WS80 WS90: getBook follows the Book's unlock > once the member opens the Book, getBook answers their ladders 28ms
+ ✓ |convex| convex/website/book.test.ts > WS90: getBook reads achievementsOf's facts > P60: a member with nothing earned reads every shipped ladder in catalogue order, each tier unearned and the next its bronze 25ms
+ ✓ |convex| convex/website/book.test.ts > WS90: getBook reads achievementsOf's facts > P59: earned tiers carry the dates they were earned, and next is the first tier not earned 42ms
+ ✓ |convex| convex/website/book.test.ts > WS90: getBook reads achievementsOf's facts > with all four tiers earned, next is null 31ms
+ ✓ |convex| convex/website/book.test.ts > WS90: getBook reads achievementsOf's facts > every ladder's value is achievementsOf's fact read directly 41ms
+ ✓ |convex| convex/website/book.test.ts > WS90: getBook reads achievementsOf's facts > timeZone is the member's zone from the directory 25ms
+ ✓ |convex| convex/website/book.test.ts > WS90: getBook reads achievementsOf's facts > a member the directory knows no zone for reads UTC, the zone their days count in 26ms
+ ✓ |convex| convex/website/book.test.ts > the Book names nothing unshipped > WS90 WS91 P78: with only Generosity and Recognition shipped, getBook holds exactly those ladders and no reward 36ms
+ ✓ |convex| convex/website/book.test.ts > WS93: your own Book only > a member reads their own counts and tiers, never a teammate's 47ms
+ Test Files  2 passed (2)
+      Tests  18 passed (18)
