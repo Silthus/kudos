@@ -8,7 +8,9 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { QueryCtx } from "../_generated/server";
-import type { Notification } from "../feedback/notify";
+import { notify, type Notification } from "../feedback/notify";
+import { messageKinds, type MessageKind } from "../messageSettings/kinds";
+import { setMessageSetting } from "../messageSettings/messageSettings";
 
 const now = new Date("2026-10-14T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
@@ -165,6 +167,26 @@ describe("QM16: a message a member turned off is never sent", () => {
 
     expect(whileOn).toBe(1);
     expect(slack.messagesIn("U_ALICE").length - before).toBe(1);
+  });
+
+  test.each(queued)("a %s DM written while %s is off is not sent, even once it is on again before Slack would take it", async (_, label, notification) => {
+    const t = await everythingShipped();
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await bookOpenedBy(t, "U_ALICE");
+    await leaderboardReadyFor(t, "U_ALICE");
+    await openHome(t, "U_ALICE");
+    await click(t, "U_ALICE", "Settings");
+    await turn(t, "U_ALICE", label);
+    const before = slack.messagesIn("U_ALICE").length;
+
+    await t.run(async (ctx) => {
+      const member = await memberIn(ctx, "U_ALICE");
+      await notify(ctx, member, notification);
+      await setMessageSetting(ctx, member, messageKindOf(label), true);
+    });
+    await settle(t);
+
+    expect(slack.messagesIn("U_ALICE").length - before).toBe(0);
   });
 });
 
@@ -430,6 +452,10 @@ async function interact(t: Backend, user: string, action: BlockAction) {
   const response = await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, action), form));
   await settle(t);
   return response;
+}
+
+function messageKindOf(label: string): MessageKind {
+  return messageKinds.find((entry) => entry.label === label)!.kind;
 }
 
 function levelUpDmsTo(user: string) {
