@@ -235,7 +235,7 @@ describe("P77: launching unlocks for members already playing stays within Convex
   ])("when %s, launching for 1,200 members schedules nothing", async (_, flags) => {
     const t = await launchedFor(1200, flags);
 
-    expect(await scheduled(t)).toEqual({ total: 0, draws: 0, sweeps: 0, joins: 0 });
+    expect(await scheduled(t)).toEqual({ total: 0, draws: 0, sweeps: 0, joins: 0, identifies: 0 });
   });
 
   test("members opened into Quests by the launch get their draws from the hourly sweep, 100 per mutation, beside the Journey's join", async () => {
@@ -243,7 +243,7 @@ describe("P77: launching unlocks for members already playing stays within Convex
 
     await t.mutation(internal.quests.newWeek.sweep, {});
 
-    expect(await scheduled(t)).toEqual({ total: 102, draws: 100, sweeps: 1, joins: 1 });
+    expect(await scheduled(t)).toEqual({ total: 103, draws: 100, sweeps: 1, joins: 1, identifies: 1 });
   });
 });
 
@@ -289,7 +289,13 @@ async function launchedFor(members: number, flags: string[]) {
 async function scheduled(t: Backend) {
   const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
   const named = (name: string) => jobs.filter((job) => job.name.includes(name)).length;
-  return { total: jobs.length, draws: named("drawWeeklyQuests") + named("drawNewWeek"), sweeps: named("newWeek.js:sweep") + named("newWeek:sweep"), joins: named("joinJourneyPage") };
+  return {
+    total: jobs.length,
+    draws: named("drawWeeklyQuests") + named("drawNewWeek"),
+    sweeps: named("newWeek.js:sweep") + named("newWeek:sweep"),
+    joins: named("joinJourneyPage"),
+    identifies: named("identifyNewPeople"),
+  };
 }
 
 async function workspace({ timeZone }: { timeZone?: string } = {}) {

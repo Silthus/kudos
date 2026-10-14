@@ -35,9 +35,10 @@ type OutboxRow = Doc<"analyticsOutbox">;
 export async function analyticsIdOf(ctx: MutationCtx, member: MemberId) {
   const existing = await existingAnalyticsId(ctx, member);
   if (existing !== null) return existing;
+  const someoneIsWaiting = (await neverRecorded(ctx).first()) !== null;
   const analyticsId = crypto.randomUUID();
   await ctx.db.insert("analyticsIds", { member, analyticsId });
-  await followMembersLater(ctx, [member]);
+  if (!someoneIsWaiting && captureSettings() !== null) await ctx.scheduler.runAfter(0, internal.analytics.person.identifyNewPeople, {});
   return analyticsId;
 }
 
@@ -83,6 +84,22 @@ export const followPeople = internalMutation({
       if (identity !== null) await recordProfileChange(ctx, reader, identity);
     });
     if (left.length > 0) await ctx.scheduler.runAfter(0, internal.analytics.person.followPeople, { workspace, users: left });
+  },
+});
+
+export const identifyNewPeople = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const capture = captureSettings();
+    if (capture === null) return;
+    const reader = new ProfileReader(ctx, capture);
+    for (;;) {
+      const waiting = await neverRecorded(ctx).take(identitiesCaughtUpPerPage);
+      if (waiting.length === 0) return;
+      if (reader.documentsRead >= documentsReadPerFollowJob) break;
+      for (const identity of waiting) await recordProfileChange(ctx, reader, identity);
+    }
+    await ctx.scheduler.runAfter(0, internal.analytics.person.identifyNewPeople, {});
   },
 });
 
@@ -234,6 +251,10 @@ function identityOf(ctx: QueryCtx, member: MemberId) {
     .query("analyticsIds")
     .withIndex("by_member", (q) => q.eq("member", member))
     .unique();
+}
+
+function neverRecorded(ctx: QueryCtx) {
+  return ctx.db.query("analyticsIds").withIndex("by_profile_fingerprint", (q) => q.eq("profileFingerprint", undefined));
 }
 
 function identityWithAnalyticsId(ctx: QueryCtx, analyticsId: string) {

@@ -293,7 +293,8 @@ export default defineSchema({
     profileFingerprint: v.optional(v.union(v.string(), v.null())),
   })
     .index("by_member", ["member"])
-    .index("by_analytics_id", ["analyticsId"]),
+    .index("by_analytics_id", ["analyticsId"])
+    .index("by_profile_fingerprint", ["profileFingerprint"]),
 
   workspaceKeys: defineTable({
     workspace: v.string(),
