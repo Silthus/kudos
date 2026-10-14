@@ -110,14 +110,16 @@ function WhatWaits({ feature }: { feature: Feature }) {
 function NextCrate({ othersReady, onClose }: { othersReady: ReadyCrate[]; onClose: Close }) {
   const moments = useMoments();
   const [asked, ask] = useState<ReadyCrate>();
-  const next = asked ?? othersReady[0];
-  const attempt = next === undefined ? undefined : moments?.attemptOf(next);
+  const askedAttempt = asked === undefined ? undefined : moments?.attemptOf(asked);
   const revealed = asked !== undefined && moments?.waitsToReveal(asked) === true;
+  const stillAsked = asked !== undefined && (askedAttempt === "opening" || revealed || othersReady.some(({ seen }) => seen === asked.seen));
+  const next = stillAsked ? asked : othersReady[0];
+  const attempt = next === undefined ? undefined : moments?.attemptOf(next);
   useEffect(() => {
     if (revealed) onClose({ returnFocus: false });
   }, [revealed, onClose]);
-  if (next === undefined || moments === undefined || othersReady.length === 0) return null;
   const opening = attempt === "opening";
+  if (next === undefined || moments === undefined || (othersReady.length === 0 && !opening && !revealed)) return null;
   const open = () => {
     if (opening) return;
     ask(next);
@@ -209,7 +211,9 @@ function keepFocusIn(dialog: HTMLElement | null, event: KeyboardEvent) {
   const actions = [...(dialog?.querySelectorAll<HTMLElement>(actionSelector) ?? [])];
   const first = actions[0];
   const last = actions.at(-1);
-  const leaving = actions.length === 0 || (event.shiftKey ? document.activeElement === first || document.activeElement === dialog : document.activeElement === last);
+  const focused = document.activeElement as HTMLElement | null;
+  const outsideTheActions = focused === null || !actions.includes(focused);
+  const leaving = actions.length === 0 || outsideTheActions || (event.shiftKey ? focused === first : focused === last);
   if (!leaving) return;
   event.preventDefault();
   (event.shiftKey ? last : first)?.focus();

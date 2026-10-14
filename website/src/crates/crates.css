@@ -52,12 +52,15 @@
 
 .crate-outline {
   fill: none;
-  stroke: var(--crate-edge, var(--band-night));
+  stroke: var(--band-night);
   stroke-width: 5;
 }
 
-.crate-lid .crate-lid-edge {
-  stroke: var(--crate-edge, var(--band-night));
+.crate-edge {
+  fill: none;
+  stroke: var(--crate-edge, transparent);
+  stroke-width: 11;
+  stroke-linejoin: round;
 }
 
 .crate-glyph-line {

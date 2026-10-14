@@ -144,6 +144,12 @@ describe("WS324: a ready feature page is E's night band with the crate", () => {
     expect(dialog()).toHaveTextContent("Level 4 unlock");
   });
 
+  it("opens the crate when the member taps the crate itself", async () => {
+    const { user, actions } = visit(featurePages[3]!, shellFixtures.memberWithEveryPanelReady, "ready");
+    await user.click(pageTitle().closest<HTMLElement>(".night-band")!.querySelector<HTMLElement>(".crate-art")!);
+    expect(actions.openFeature).toHaveBeenCalledExactlyOnceWith("skillTree");
+  });
+
   it("names what went wrong in the band when the crate can't be opened", async () => {
     window.history.replaceState(null, "", "/book");
     const { user } = renderApp(shellFixtures.memberWithEveryPanelReady, undefined, opening(async () => ({ kind: "refused" })), undefined, fixedBook(bookFixtures.ready));
@@ -301,6 +307,35 @@ describe("WS325: the reveal opens the next ready crate", () => {
     expect(dialog()).toHaveTextContent("Level 5 unlock");
     expect(dialog()).toHaveTextContent("Skill tree is open");
     expect(document.activeElement).toBe(within(dialog()).getByRole("link", { name: "Go to Skill tree" }));
+  });
+
+  it("keeps Tab inside the reveal while the next crate opens", async () => {
+    const pending = answerLater();
+    const openFeature = vi.fn(async (feature: string) => (feature === "leaderboard" ? { kind: "opened" as const } : pending.answer));
+    const { user } = await revealFrom(shellFixtures.memberWithEveryFeatureReady, "Leaderboard", openFeature);
+    await user.click(nextCrateButton()!);
+    await user.tab();
+    expect(dialog()).toContainElement(document.activeElement as HTMLElement);
+    expect(document.activeElement).toBe(within(dialog()).getByRole("link", { name: "Go to Leaderboard" }));
+    await user.tab({ shift: true });
+    expect(dialog()).toContainElement(document.activeElement as HTMLElement);
+  });
+
+  it("keeps the button and still advances when the next crate leaves the ready list before its answer", async () => {
+    preferReducedMotion();
+    const pending = answerLater();
+    const openFeature = vi.fn(async (feature: string) => (feature === "leaderboard" ? { kind: "opened" as const } : pending.answer));
+    window.history.replaceState(null, "", "/");
+    const { user, showVisitor } = renderApp(shellFixtures.memberWithEveryFeatureReady, undefined, { openFeature });
+    const crate = within(main()).getByRole("heading", { level: 3, name: "Unlocks: Leaderboard" }).closest("article")!;
+    await user.click(within(crate).getByRole("button", { name: "Open" }));
+    await act(async () => undefined);
+    await user.click(nextCrateButton()!);
+    const everyOpen = shellFixtures.memberWithEveryFeatureReady.features!.map((card) => ({ ...card, state: "open" as const, openedAt: Date.now() }));
+    showVisitor({ ...shellFixtures.memberWithEveryFeatureReady, features: everyOpen, leaderboard: { kind: "open" } });
+    expect(document.activeElement).toBe(nextCrateButton());
+    await pending.settle({ kind: "opened" });
+    expect(dialog()).toHaveTextContent("Skill tree is open");
   });
 
   it("stays on this reveal and says why when the next crate can't be opened", async () => {
