@@ -121,7 +121,7 @@ describe("P4 P19: a skill point is spent once and never refunded", () => {
 });
 
 describe("P79: perksOf tells the website what the member owns and what each perk's state is", () => {
-  test("it returns the owned perks with their times, the unspent skill points and each first-row perk's state and copy", async () => {
+  test("it returns the unspent skill points and each first-row perk's name, P94 copy, row, cost, prerequisite, state with P19's reason and the time it was bought", async () => {
     const { t, alice } = await memberWithOpenTree(1000);
     await buy(t, alice, "circle", "trigger-1");
 
@@ -129,9 +129,9 @@ describe("P79: perksOf tells the website what the member owns and what each perk
       skillPoints: 1,
       owned: [{ perk: "circle", boughtAt: now.getTime() }],
       perks: [
-        { perk: "spark", name: "Spark", row: 5, skillPoints: 1, requires: null, copy: "+5 XP the first time each day you thank someone and say why.", state: "buyable" },
-        { perk: "rhythm", name: "Rhythm", row: 5, skillPoints: 1, requires: null, copy: "+2 XP each time you thank someone and say why, once per person a day.", state: "buyable" },
-        { perk: "circle", name: "Circle", row: 5, skillPoints: 1, requires: null, copy: "+5 XP the first time each week you thank a person and say why.", state: "owned" },
+        { perk: "spark", name: "Spark", row: 5, skillPoints: 1, requires: null, copy: "+5 XP the first time each day you thank someone and say why.", state: "buyable", boughtAt: null },
+        { perk: "rhythm", name: "Rhythm", row: 5, skillPoints: 1, requires: null, copy: "+2 XP each time you thank someone and say why, once per person a day.", state: "buyable", boughtAt: null },
+        { perk: "circle", name: "Circle", row: 5, skillPoints: 1, requires: null, copy: "+5 XP the first time each week you thank a person and say why.", state: "owned", boughtAt: now.getTime() },
       ],
     });
   });

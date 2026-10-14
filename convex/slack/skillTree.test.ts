@@ -80,6 +80,21 @@ describe("P19 P67 P94: a level-5 member buys a first-row perk from App Home's Sk
   });
 });
 
+describe("P19 D17: Slack's Buy keys its purchase in a space no other entrance shares", () => {
+  test("a Buy click stores its outcome under slack: and the click's trigger, apart from the website's website:{member}:{request} keys", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
+    const t = await levelFiveMember("U_ALICE");
+    await click(t, "U_ALICE", "Open");
+    await click(t, "U_ALICE", "Skill tree");
+    const buySpark = buyButtonOf("spark");
+
+    await clickButton(t, "U_ALICE", buySpark);
+
+    const trigger = JSON.parse(new URLSearchParams(blockActionsSent.at(-1)!).get("payload")!).trigger_id;
+    expect(await t.run(async (ctx) => (await ctx.db.query("perkPurchases").collect()).map(({ key }) => key))).toEqual([`slack:${trigger}`]);
+  });
+});
+
 describe("P19: a refused Buy republishes App Home with the reason on that perk", () => {
   test("Buy on spark and then a Buy on circle left from before it, with one skill point, buys spark and shows why circle wasn't bought", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
@@ -157,8 +172,12 @@ async function click(t: Backend, user: string, label: string) {
   await clickButton(t, user, buttonInHome(slack, user, label));
 }
 
+const blockActionsSent: string[] = [];
+
 async function clickButton(t: Backend, user: string, button: BlockAction) {
-  const response = await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, button), form));
+  const interaction = blockActions(user, button);
+  blockActionsSent.push(interaction);
+  const response = await t.fetch("/slack/interactivity", await signedRequest(interaction, form));
   expect(response.status).toBe(200);
   await settle(t);
 }

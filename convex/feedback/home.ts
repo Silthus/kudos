@@ -3,7 +3,7 @@ import type { HomeFacts, KudosHome } from "../engine/home";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import type { MemberPerks, Refusal } from "../progression/perks";
-import { perkOf } from "../progression/tree";
+import { perkOf, type Perk } from "../progression/tree";
 import type { ProgressSettings } from "../progression/settings";
 import type { JourneyStepFacts } from "../quests/journey";
 import { questOf } from "../quests/pool";
@@ -107,7 +107,7 @@ function perkLines(perk: TreePerk): HomeLine[] {
 
 type TreePerk = MemberPerks["perks"][number];
 
-export function whyNotOf({ state, row, requires, skillPoints }: TreePerk & { state: Refusal }) {
+export function whyNotOf({ state, row, requires, skillPoints }: Perk & { state: Refusal }) {
   switch (state) {
     case "tree-locked":
       return unopenedTextOf(scheduled("skillTree"), "locked");

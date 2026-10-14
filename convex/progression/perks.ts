@@ -3,7 +3,7 @@ import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/se
 import { exposed, flag } from "../analytics/flags";
 import { publish } from "../bus/publish";
 import { unlocksAppliedIn } from "../unlocks/launch";
-import { stateOf } from "../unlocks/unlocks";
+import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
 import { spendSkillPoints, standingOf } from "./progression";
@@ -33,7 +33,7 @@ export type PerkState = "buyable" | Refusal;
 
 export type OwnedPerk = { perk: PerkId; boughtAt: number };
 
-export type MemberPerks = { skillPoints: number; owned: OwnedPerk[]; perks: Array<Perk & { state: PerkState }> };
+export type MemberPerks = { skillPoints: number; owned: OwnedPerk[]; perks: Array<Perk & { state: PerkState; boughtAt: number | null }> };
 
 export async function skillTreeAppliesIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<boolean> {
   return (await flag(ctx, skillTreeFlag, { workspace })) && (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
@@ -70,7 +70,7 @@ export async function memberPerksOf(ctx: QueryCtx, member: MemberId): Promise<Me
   return {
     skillPoints: facts.skillPoints,
     owned: facts.owned,
-    perks: catalogue.tree.map((perk) => ({ ...perk, state: perkStateOf(perk, facts) })),
+    perks: catalogue.tree.map((perk) => ({ ...perk, state: perkStateOf(perk, facts), boughtAt: facts.owned.find((owned) => owned.perk === perk.perk)?.boughtAt ?? null })),
   };
 }
 
@@ -89,12 +89,15 @@ type TreeFacts = { tree: "locked" | "ready" | "open"; level: number; skillPoints
 
 async function treeFactsOf(ctx: QueryCtx, member: MemberId): Promise<TreeFacts> {
   const { level, skillPoints } = await standingOf(ctx, member);
-  const unlock = await stateOf(ctx, member, "skillTree");
   const owned = await ctx.db
     .query("perksOwned")
     .withIndex("by_member_perk", (q) => q.eq("member", member))
     .collect();
-  return { tree: unlock === "open" ? "open" : unlock === "ready" ? "ready" : "locked", level, skillPoints, owned: owned.map(({ perk, boughtAt }) => ({ perk, boughtAt })) };
+  return { tree: treeStateOf(await stateOf(ctx, member, "skillTree")), level, skillPoints, owned: owned.map(({ perk, boughtAt }) => ({ perk, boughtAt })) };
+}
+
+function treeStateOf(unlock: UnlockState): TreeFacts["tree"] {
+  return unlock === "open" || unlock === "ready" ? unlock : "locked";
 }
 
 function perkStateOf({ perk, row, skillPoints, requires }: Perk, facts: TreeFacts): PerkState {
