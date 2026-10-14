@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import type { BoardRead } from "./boardRead";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
@@ -355,6 +355,36 @@ function linesOf(list: HTMLElement) {
     .getAllByRole("listitem")
     .map((line) => line.textContent);
 }
+
+describe("WS34 V19: teammates show their Slack faces", () => {
+  const ada = "https://avatars.slack-edge.com/ada_192.png";
+  const ivy = "https://secure.gravatar.com/avatar/ivy.jpg?s=192";
+
+  it("shows a teammate's Slack picture on the podium and in the list, beside their name", () => {
+    showBoard(leaderboardFixtures.withTeammatesFaces);
+    expect(within(podiumSpots()[1]!).getByText("Ada Lindqvist")).toBeInTheDocument();
+    expect(podiumSpots()[1]!.querySelector(`img[src="${ada}"]`)).toHaveAttribute("alt", "");
+    expect(within(podiumSpots()[1]!).queryByText("AL")).not.toBeInTheDocument();
+    const ivyRow = within(main()).getByText("Ivy Quinn").closest("li")!;
+    expect(ivyRow.querySelector(`img[src="${ivy}"]`)).toHaveAttribute("alt", "");
+  });
+
+  it("keeps initials for a teammate without a picture", () => {
+    showBoard(leaderboardFixtures.withTeammatesFaces);
+    expect(within(podiumSpots()[0]!).getByText("BO")).toBeInTheDocument();
+    expect(podiumSpots()[0]!.querySelector("img")).toBeNull();
+  });
+
+  it("falls back to the teammate's initials when their picture fails to load", () => {
+    showBoard(leaderboardFixtures.withTeammatesFaces);
+
+    for (const picture of document.querySelectorAll(`img[src="${ada}"], img[src="${ivy}"]`)) fireEvent.error(picture);
+
+    expect(document.querySelectorAll(`img[src="${ada}"], img[src="${ivy}"]`)).toHaveLength(0);
+    expect(within(podiumSpots()[1]!).getByText("AL")).toBeInTheDocument();
+    expect(within(within(main()).getByText("Ivy Quinn").closest("li")!).getByText("IQ")).toBeInTheDocument();
+  });
+});
 
 describe("WS42: the list shows the rest of G17's window below the podium", () => {
   it("lists the window after the podium in order, with one … where positions are skipped", () => {

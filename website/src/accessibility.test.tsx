@@ -25,6 +25,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "not found", path: "/nowhere", visitor: shellFixtures.member },
   { name: "home with the leaderboard open", path: "/", visitor: shellFixtures.memberWithTheBoard },
   { name: "leaderboard with the viewer mid-board", path: "/leaderboard", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.midBoard },
+  { name: "leaderboard with teammates' Slack faces", path: "/leaderboard", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.withTeammatesFaces },
   { name: "leaderboard led by the viewer", path: "/leaderboard", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.viewerLeads },
   { name: "leaderboard with a shared lead", path: "/leaderboard", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.sharedLead },
   { name: "leaderboard for a viewer who isn't ranked", path: "/leaderboard?period=month", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.notRanked },

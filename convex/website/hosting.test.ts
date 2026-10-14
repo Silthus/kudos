@@ -55,6 +55,11 @@ describe("WS26: the static catch-all comes after Slack's routes", () => {
   });
 });
 
+const uploadedSlackPhotos = "https://avatars.slack-edge.com";
+const slackDefaultAvatarsByGravatar = "https://secure.gravatar.com";
+const gravatarFallsBackToSlackDefaults = "https://a.slack-edge.com";
+const slackPictureHosts = [uploadedSlackPhotos, slackDefaultAvatarsByGravatar, gravatarFallsBackToSlackDefaults];
+
 describe("WS25: every HTML response carries the strict Content Security Policy header", () => {
   test("GET / answers HTML with the policy", async () => {
     const t = testBackend();
@@ -67,7 +72,7 @@ describe("WS25: every HTML response carries the strict Content Security Policy h
     expect(csp.get("script-src")).toEqual(["'self'"]);
     expect(csp.get("style-src")).toEqual(["'self'"]);
     expect(csp.get("connect-src")).toEqual(["'self'", deploymentUrl, "wss://happy-hog-123.convex.cloud"]);
-    expect(csp.get("img-src")).toEqual(["'self'", "https://avatars.slack-edge.com", "https://res.cloudinary.com"]);
+    expect(csp.get("img-src")).toEqual(["'self'", ...slackPictureHosts, "https://res.cloudinary.com"]);
     expect(csp.get("font-src")).toEqual(["'self'"]);
     expect(csp.get("object-src")).toEqual(["'none'"]);
     expect(csp.get("base-uri")).toEqual(["'none'"]);
