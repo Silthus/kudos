@@ -26,17 +26,17 @@ export const tree = [
   { perk: "banker", name: "Banker", row: 9, skillPoints: 2, coins: 250, upgrades: "treasurer", requires: "treasurer", copy: "Treasurer gives +4 🪙 instead of +2." },
 ] as const satisfies readonly Perk[];
 
-export type Bonus = ({ xp: number } | { coins: number }) & { on: "the day's first recognition" | "every recognition" | "the week's first recognition of the recipient"; replaces?: PerkId };
+export type Bonus = ({ xp: number } | { coins: number }) & { on: "the day's first recognition" | "every recognition" | "the week's first recognition of the recipient"; why: string; replaces?: PerkId };
 
 export const bonuses = {
-  spark: { xp: 5, on: "the day's first recognition" },
-  rhythm: { xp: 2, on: "every recognition" },
-  circle: { xp: 5, on: "the week's first recognition of the recipient" },
-  flame: { xp: 8, on: "the day's first recognition", replaces: "spark" },
-  cadence: { xp: 3, on: "every recognition", replaces: "rhythm" },
-  bridge: { xp: 8, on: "the week's first recognition of the recipient", replaces: "circle" },
-  treasurer: { coins: 2, on: "every recognition" },
-  banker: { coins: 4, on: "every recognition", replaces: "treasurer" },
+  spark: { xp: 5, on: "the day's first recognition", why: "your first kudos of the day that said why" },
+  rhythm: { xp: 2, on: "every recognition", why: "saying why to each person, once a day" },
+  circle: { xp: 5, on: "the week's first recognition of the recipient", why: "your first kudos of the week that said why, to each person" },
+  flame: { xp: 8, on: "the day's first recognition", why: "your first kudos of the day that said why", replaces: "spark" },
+  cadence: { xp: 3, on: "every recognition", why: "saying why to each person, once a day", replaces: "rhythm" },
+  bridge: { xp: 8, on: "the week's first recognition of the recipient", why: "your first kudos of the week that said why, to each person", replaces: "circle" },
+  treasurer: { coins: 2, on: "every recognition", why: "saying why to each person, once a day" },
+  banker: { coins: 4, on: "every recognition", why: "saying why to each person, once a day", replaces: "treasurer" },
 } as const satisfies Record<PerkId, Bonus>;
 
 export function perkOf(perk: PerkId): Perk {

@@ -9,7 +9,7 @@ import { perkOf } from "../progression/tree";
 import { bonusLineValidator, type BonusLine } from "../progression/progress";
 import { giverLinesOf, giverXpOf } from "../progression/progression";
 import { skillTreeAppliesIn } from "../progression/skillTree";
-import { questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
+import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { questsExposedTo } from "../quests/flag";
 import { journeyGoalOf } from "../quests/journeyCopy";
@@ -139,7 +139,7 @@ async function gainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId |
     xp: (await xpGainsShownTo(ctx, workspace, member)) ? xp : 0,
     coins: coinsVisible ? coins : 0,
     questsDone: questsDone.length > 0 && (await questGainsShownTo(ctx, workspace, member)) ? questsDone.map((done) => (coinsVisible ? done : withoutCoins(done))) : [],
-    bonus: bonus.length > 0 && (await skillTreeAppliesIn(ctx, workspace)) ? bonus : [],
+    bonus: bonus.length > 0 && (await bonusGainsShownTo(ctx, workspace, member)) ? bonus : [],
   };
 }
 

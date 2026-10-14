@@ -42,7 +42,10 @@ export default defineSchema({
     user: v.string(),
     attempts: v.number(),
     state: v.union(v.literal("pending"), v.literal("failed")),
-  }).index("by_user", ["workspace", "user"]),
+    nextTryAt: v.optional(v.number()),
+  })
+    .index("by_user", ["workspace", "user"])
+    .index("by_state_and_next_try", ["state", "nextTryAt"]),
 
   websiteClock: defineTable({
     tick: v.number(),
@@ -126,7 +129,10 @@ export default defineSchema({
     annotations: annotationsValidator,
     spendsAt: v.number(),
     checks: v.number(),
-  }).index("by_message", ["workspace", "conversation", "message"]),
+    nextCheckAt: v.optional(v.number()),
+  })
+    .index("by_message", ["workspace", "conversation", "message"])
+    .index("by_state_and_next_check", ["state", "nextCheckAt"]),
 
   kudosTexts: defineTable(kudosTextValidator).index("by_message", ["workspace", "conversation", "message"]).index("by_author", ["workspace", "author"]),
   wordDeletionRequests: defineTable({ workspace: v.string(), author: v.union(v.string(), v.null()) }).index("by_author", ["workspace", "author"]),

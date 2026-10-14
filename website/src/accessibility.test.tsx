@@ -7,7 +7,8 @@ import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { fixedProfileCard, profileCardFixtures } from "./profileCardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
-import { shellFixtures, type MyBook, type MyLeaderboard, type MyProfileCard, type MyQuests, type BuyAnswer, type MySkillTree, type OpenAnswer, type ShellState, type VisibilityReply } from "./shell";
+import { fixedRecentKudos, recentKudosFixtures } from "./recentKudosFixtures";
+import { shellFixtures, type MyBook, type MyLeaderboard, type MyProfileCard, type MyQuests, type BuyAnswer, type MyRecentKudos, type MySkillTree, type OpenAnswer, type ShellState, type VisibilityReply } from "./shell";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
@@ -26,6 +27,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "home", path: "/", visitor: shellFixtures.member },
   { name: "home in a quiet week", path: "/", visitor: shellFixtures.memberWithAQuietWeek },
   { name: "home at level 1", path: "/", visitor: shellFixtures.memberAtLevel1 },
+  { name: "home before the member's first kudos", path: "/", visitor: shellFixtures.memberBeforeTheirFirstKudos },
   { name: "home past level 5", path: "/", visitor: shellFixtures.memberAtLevel7 },
   { name: "home for a member Slack didn't name", path: "/", visitor: { ...shellFixtures.memberAtLevel7, name: undefined } },
   { name: "not found", path: "/nowhere", visitor: shellFixtures.member },
@@ -186,6 +188,30 @@ describe("WS111 WS112: every state of the home's rail passes axe in light and da
         window.history.replaceState(null, "", "/");
         const { container } = renderApp(state.visitor ?? shellFixtures.memberWithEveryPanelOpen, (period) => (period && state.board), undefined, (asking) => (asking ? state.quests : undefined), undefined, undefined, fixedProfileCard(state.card ?? profileCardFixtures.notFound));
         expect(await violationsIn(container)).toEqual([]);
+      });
+    }
+  }
+});
+
+const recentKudosStates: { name: string; received: MyRecentKudos | undefined; given: MyRecentKudos | undefined; choose?: "Given"; shows: string }[] = [
+  { name: "received, with an edited message and words from before HedgeHug kept them", received: recentKudosFixtures.threeReceived, given: recentKudosFixtures.threeGiven, shows: "Edited" },
+  { name: "given, to one, two and five teammates", received: recentKudosFixtures.threeReceived, given: recentKudosFixtures.threeGiven, choose: "Given", shows: "and 3 others" },
+  { name: "empty, received", received: recentKudosFixtures.nothingYet, given: recentKudosFixtures.nothingYet, shows: "Kudos you receive show here." },
+  { name: "empty, given", received: recentKudosFixtures.nothingYet, given: recentKudosFixtures.nothingYet, choose: "Given", shows: "Kudos you give show here" },
+  { name: "with a deleted and a removed message", received: recentKudosFixtures.unavailableWords, given: recentKudosFixtures.nothingYet, shows: "This message was deleted in Slack." },
+  { name: "keeping the received rows while Given loads", received: recentKudosFixtures.threeReceived, given: undefined, choose: "Given", shows: "Ada Lindqvist thanked you" },
+];
+
+describe("WS223: every state of the Recent kudos card passes axe in light and dark", () => {
+  for (const dark of [false, true]) {
+    for (const state of recentKudosStates) {
+      it(`the card ${state.name} in ${dark ? "dark" : "light"}`, async () => {
+        fakeSystemTheme(dark);
+        window.history.replaceState(null, "", "/");
+        const { user, container, getByRole } = renderApp(shellFixtures.memberWithEveryPanelOpen, undefined, undefined, fixedQuests(questsFixtures.week), undefined, undefined, undefined, fixedRecentKudos(state));
+        if (state.choose !== undefined) await user.click(getByRole("radio", { name: state.choose }));
+        expect(getByRole("region", { name: "Recent kudos" })).toHaveTextContent(state.shows);
+        expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
       });
     }
   }
