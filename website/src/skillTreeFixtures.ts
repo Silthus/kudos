@@ -31,6 +31,7 @@ export const skillTreeFixtures = {
   belowTheRow: tree(0, { ...spark, ...unavailable("level") }, { ...rhythm, ...unavailable("level") }, { ...circle, ...unavailable("level") }),
   needsABase: tree(1, { ...spark, ...available }, { ...rhythm, requires: "Spark", ...unavailable("requires") }, { ...circle, ...available }),
   upgradeAvailable: tree(1, { ...spark, ...available }, { ...rhythm, requires: "Spark", ...available }, { ...circle, ...available }),
+  everyState: tree(1, { ...spark, ...owned(sparkBoughtAt) }, { ...rhythm, ...available }, { ...circle, requires: "Rhythm", ...unavailable("requires") }),
   costlyPerk: tree(3, { ...spark, cost: { skillPoints: 2 }, ...available }, { ...rhythm, ...available }, { ...circle, ...available }),
   locked: { kind: "locked", level: 5 },
   ready: { kind: "ready" },

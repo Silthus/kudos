@@ -1,0 +1,16 @@
+     × in light 2393ms
+     × in dark 548ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
++     "paint": "border",
++     "part": "the Locked outline",
++     "ratio": 1.4148872550068785,
++     "paint": "border",
++     "part": "the legend's swatches",
++     "ratio": 1.4148872550068785,
++     "paint": "border",
++     "part": "the Locked outline",
++     "ratio": 1.2014272981357348,
++     "paint": "border",
++     "part": "the legend's swatches",
++     "ratio": 1.2014272981357348,
+      Tests  2 failed | 16 skipped (18)

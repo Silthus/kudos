@@ -49,3 +49,7 @@ export function refusalReasonOf(perk: PerkNode, level: number, reason: PurchaseR
   if (reason === "level" || reason === "requires" || reason === "points") return shortReasonOf({ ...perk, reason }, level);
   return undefined;
 }
+
+export function ownedCountLine(owned: number, total: number) {
+  return `${owned} of ${total} perks owned`;
+}

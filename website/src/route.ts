@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { signInEntry } from "../../convex/website/routes";
+import { bookHref, categoryAsked, type CategoryId } from "./book/categories";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
 
-export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests" } | { page: "book" } | { page: "skills" } | { page: "not-found" };
+export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests" } | { page: "book"; bookPage: BookPageId } | { page: "skills" } | { page: "not-found" };
+
+export type BookPageId = CategoryId | "overview";
 
 export type Screen = Exclude<Route["page"], "not-found">;
 
@@ -12,7 +15,7 @@ const routeAt = {
   "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search) }),
   "/quests": () => ({ page: "quests" }),
   "/skills": () => ({ page: "skills" }),
-  "/book": () => ({ page: "book" }),
+  "/book": (search) => ({ page: "book", bookPage: categoryAsked(search) }),
 } satisfies Record<string, (search: string) => Route>;
 
 type ServedPath = keyof typeof routeAt;
@@ -31,6 +34,7 @@ export function withoutTheSignInEntry(pathname: string) {
 
 export function hrefOf(route: Route) {
   if (route.page === "leaderboard") return leaderboardHref(route.period);
+  if (route.page === "book") return bookHref(route.bookPage);
   if (route.page === "home" || route.page === "not-found") return "/";
   return `/${route.page}`;
 }
@@ -64,8 +68,8 @@ export function useRoute() {
   const [route, setRoute] = useState(currentRoute);
 
   useEffect(() => {
-    if (route.page !== "leaderboard") return;
-    const canonical = keepingSignInCode(leaderboardHref(route.period));
+    if (route.page !== "leaderboard" && route.page !== "book") return;
+    const canonical = keepingSignInCode(hrefOf(route));
     if (canonical !== currentAddress()) window.history.replaceState(null, "", canonical);
   }, [route]);
 
