@@ -1,4 +1,4 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { shellFixtures, type CommandAnswer, type MemberProfile, type MySkillTree } from "./shell";
@@ -124,6 +124,16 @@ describe("WS85: /skills shows the tree while the Skill tree is open", () => {
     expect(within(nodeOf("Rhythm")).getByText("Selected")).toBeVisible();
   });
 
+  it("keeps the first-load selection when that perk turns owned elsewhere, such as in Slack", () => {
+    let answer: MySkillTree = skillTreeFixtures.withPoints;
+    const { showVisitor } = renderApp(withTheTree, undefined, undefined, undefined, (asking) => (asking ? answer : undefined));
+    expect(nodeOf("Spark")).toHaveAttribute("aria-pressed", "true");
+    answer = skillTreeFixtures.sparkOwned;
+    showVisitor(shellFixtures.memberWithOneSkillPoint);
+    expect(nodeOf("Spark")).toHaveAttribute("aria-pressed", "true");
+    expect(nodeOf("Rhythm")).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("selects the first perk when none is available, keeping Selected apart from the owned check", () => {
     showTree(skillTreeFixtures.belowTheRow);
     expect(nodeOf("Spark")).toHaveAttribute("aria-pressed", "true");
@@ -188,6 +198,16 @@ describe("WS85 WS86: the selected perk's details", () => {
     expect(details()).toHaveTextContent(reason);
     expect(details()).not.toHaveTextContent("Buy it in Slack's App Home.");
     expect(details()).not.toHaveTextContent("Owned since");
+  });
+
+  it("return focus to the node on Esc even when the press didn't focus it, as Safari's clicks don't", async () => {
+    const { user } = showTree(skillTreeFixtures.withPoints);
+    fireEvent.click(nodeOf("Rhythm"));
+    await screen.findByRole("dialog", { name: "Rhythm" });
+    await user.keyboard("{Escape}");
+    await act(async () => undefined);
+    expect(drawer()).toBeNull();
+    expect(nodeOf("Rhythm")).toHaveFocus();
   });
 
   it("open no drawer for a press made on a wide screen once the screen narrows", async () => {

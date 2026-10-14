@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ConvexProvider, type ConvexReactClient } from "convex/react";
+import { getFunctionName, type FunctionReference } from "convex/server";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
@@ -32,18 +33,23 @@ function boardAnswers(answer: unknown) {
   act(() => boardListeners.forEach((notify) => notify()));
 }
 
+const watchedQueries: string[] = [];
+
 const boardWatch = {
-  watchQuery: () => ({
-    onUpdate: (notify: () => void) => {
-      boardListeners.add(notify);
-      return () => boardListeners.delete(notify);
-    },
-    localQueryResult: () => {
-      const answer = boardRead();
-      if (answer instanceof Error) throw answer;
-      return answer;
-    },
-  }),
+  watchQuery: (query: FunctionReference<"query">) => {
+    watchedQueries.push(getFunctionName(query));
+    return {
+      onUpdate: (notify: () => void) => {
+        boardListeners.add(notify);
+        return () => boardListeners.delete(notify);
+      },
+      localQueryResult: () => {
+        const answer = boardRead();
+        if (answer instanceof Error) throw answer;
+        return answer;
+      },
+    };
+  },
 } as unknown as ConvexReactClient;
 
 vi.mock("@convex-dev/auth/react", () => ({
@@ -73,6 +79,7 @@ afterEach(() => {
   auth.isLoading = false;
   profileRead.mockReset();
   boardRead.mockReset();
+  watchedQueries.length = 0;
   window.history.replaceState(null, "", "/");
   authActions.signIn.mockReset();
   authActions.signOut.mockReset();
@@ -203,6 +210,7 @@ describe("WS85: the skill tree page reads getSkillTree through the live shell", 
 
     expect(pageTitle()).toHaveTextContent("Perks");
     expect(within(screen.getByRole("region", { name: "Perk tree" })).getAllByRole("button")).toHaveLength(3);
+    expect(watchedQueries).toContain("website/skillTree:getSkillTree");
     expect(screen.getByRole("link", { name: "2 skill points to spend" })).toHaveAttribute("href", "/skills");
   });
 

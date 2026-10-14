@@ -3,10 +3,10 @@
 `/skills` renders `getSkillTree`'s `tree` answer (WS85, WS86), and the HUD shows `getMyProfile.skillPoints` as a chip linking to `/skills` (WS84).
 
 - **Red:** [`red.txt`](red.txt). `website/src/SkillTreePage.test.tsx` before the page existed: 29 of its 35 tests fail. The 6 that pass already held on the interim page: the locked, ready and not-found pages, the chip's absence while `skillPoints` is `null`, the tree read only on `/skills`, and the P95 copy check.
-- **Green:** [`green.txt`](green.txt). The same file, verbose, 37 tests passing and none skipped. Between red and green, three of the shared `FeaturePages.test.tsx` cases for `/skills` moved here, since the page now follows its own read (the locked page with no nav item, the ready crate opening through `openFeature`, and the reveal ending on the tree with focus on its title), plus the current nav item.
+- **Green:** [`green.txt`](green.txt). The same file on the landed tree, verbose, 40 tests passing and none skipped: every red test with its assertions intact, plus the ones below. Between red and green, three of the shared `FeaturePages.test.tsx` cases for `/skills` moved here, since the page now follows its own read (the locked page with no nav item, the ready crate opening through `openFeature`, and the reveal ending on the tree with focus on its title), plus the current nav item.
 - **Red, from the running app:** [`red-drawer-after-narrowing.txt`](red-drawer-after-narrowing.txt). A press on a wide screen left the drawer's open state set, so narrowing the window popped the drawer open by itself. The test now passes (38 in the file), fixed in `25bb6a4`.
 - **Gate:** [`gate.txt`](gate.txt). `pnpm gate` through `fleet heavy` on the landed tree.
-- **Review:** [`review-gpt-6.1-sol.md`](review-gpt-6.1-sol.md). One round of GPT-6.1 Sol (high), read-only, with the spec as the oracle.
+- **Review:** [`review-gpt-6.1-sol.md`](review-gpt-6.1-sol.md). One round of GPT-6.1 Sol (high), read-only, with the spec as the oracle. Its three minor findings held and are fixed: the drawer's focus return through `finalFocus`, the first-load selection kept once chosen, and the live shell's fake asserting the query asked for. Reds in [`red-review.txt`](red-review.txt).
 
 ## Running app
 

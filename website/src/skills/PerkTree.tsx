@@ -3,22 +3,22 @@ import type { PerkNode, TreeRow } from "../shell";
 import { PerkIcon, SkillPointGlyph } from "./glyphs";
 import { nodeNameOf } from "./perkWords";
 
-type PerkTreeProps = { rows: TreeRow[]; selected: PerkNode["perk"]; onSelect: (perk: PerkNode["perk"]) => void };
+type PerkTreeProps = { rows: TreeRow[]; selected: PerkNode["perk"]; onSelect: (perk: PerkNode["perk"]) => void; onNode: (perk: PerkNode["perk"], node: HTMLButtonElement | null) => void };
 
-export function PerkTree({ rows, selected, onSelect }: PerkTreeProps) {
+export function PerkTree({ rows, selected, onSelect, onNode }: PerkTreeProps) {
   return (
     <section aria-labelledby="perk-tree-title" className="flex flex-col gap-4 rounded-xl border bg-card p-4">
       <h2 id="perk-tree-title" className="hud-label">
         Perk tree
       </h2>
       {rows.map((row) => (
-        <Band key={row.level} row={row} selected={selected} onSelect={onSelect} />
+        <Band key={row.level} row={row} selected={selected} onSelect={onSelect} onNode={onNode} />
       ))}
     </section>
   );
 }
 
-function Band({ row, selected, onSelect }: { row: TreeRow } & Omit<PerkTreeProps, "rows">) {
+function Band({ row, selected, onSelect, onNode }: { row: TreeRow } & Omit<PerkTreeProps, "rows">) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
@@ -28,7 +28,7 @@ function Band({ row, selected, onSelect }: { row: TreeRow } & Omit<PerkTreeProps
       <ul className="grid grid-cols-3 gap-3">
         {row.perks.map((perk) => (
           <li key={perk.perk} className="flex">
-            <Node perk={perk} level={row.level} selected={perk.perk === selected} onSelect={() => onSelect(perk.perk)} />
+            <Node perk={perk} level={row.level} selected={perk.perk === selected} onSelect={() => onSelect(perk.perk)} nodeRef={(node) => onNode(perk.perk, node)} />
           </li>
         ))}
       </ul>
@@ -42,13 +42,13 @@ const iconLooks: Record<PerkNode["state"], string> = {
   unavailable: "border-dashed border-muted-foreground/60 bg-muted text-muted-foreground",
 };
 
-type NodeProps = { perk: PerkNode; level: number; selected: boolean; onSelect: () => void };
+type NodeProps = { perk: PerkNode; level: number; selected: boolean; onSelect: () => void; nodeRef: (node: HTMLButtonElement | null) => void };
 
-function Node({ perk, level, selected, onSelect }: NodeProps) {
+function Node({ perk, level, selected, onSelect, nodeRef }: NodeProps) {
   return (
     <button
+      ref={nodeRef}
       type="button"
-      data-perk={perk.perk}
       aria-pressed={selected}
       aria-label={nodeNameOf(perk, level)}
       onClick={onSelect}

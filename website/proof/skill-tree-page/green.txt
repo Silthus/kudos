@@ -1,46 +1,49 @@
 
  RUN  v5.0.3 /home/coder/dev/kudos-wt/skill-tree-page
 
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > lives at /skills with the tab HedgeHug · Skill tree, the label Skill tree and the title Perks 127ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > says how many skill points are left to spend in the header 27ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > says how many skill points are left to spend in the header 23ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > says how many skill points are left to spend in the header 30ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > holds one band per shipped row headed Level {level}, with that row's perks in order 38ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > frames each perk as a game object with corner marks, its name and its cost while it isn't owned 37ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > names each node's state, never by colour alone: owned with a check mark, Can buy, or its reason 35ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > names a node that isn't owned by its state and its cost 25ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > names a node that isn't owned by its state and its cost 25ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > names a node that isn't owned by its state and its cost 28ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > keeps owned nodes neutral and leaves primary to the selection (V4) 26ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > selects the first available perk on first load, with aria-pressed and a visible Selected label 35ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > selects the first perk when none is available, keeping Selected apart from the owned check 28ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > moves the selection with a click, Enter or Space 125ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > shows no later rows, coins, perk count or Upgraded legend 16ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > sit beside the tree on wide screens with the name, P94's copy word for word, the level and the cost 23ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > say when an owned perk was bought 41ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > point an available perk to Slack's App Home until buying ships, with the line a spent point never comes back 36ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > give an unavailable perk's reason 34ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > give an unavailable perk's reason 33ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > give an unavailable perk's reason 26ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > open in a drawer on narrow screens, which Esc closes with focus back on the node 98ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: Your perks and How perks work > lists the owned perks in purchase order, each with its P94 copy 22ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: Your perks and How perks work > says perks show there once bought while none is owned 17ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: Your perks and How perks work > says how perks work, word for word 15ms
- ✓ |website| src/SkillTreePage.test.tsx > WS85: Your perks and How perks work > never calls a kudos thoughtful or says the app checked a reason (P95) 7ms
- ✓ |website| src/SkillTreePage.test.tsx > WS80: /skills follows its read > is the not-found page while the read says not-found 26ms
- ✓ |website| src/SkillTreePage.test.tsx > WS80: /skills follows its read > says Max's Skill tree opens at level 5. with Go to Home while locked, and has no nav item 41ms
- ✓ |website| src/SkillTreePage.test.tsx > WS80: /skills follows its read > shows its crate in place with a primary Open while ready, and opens it through openFeature 60ms
- ✓ |website| src/SkillTreePage.test.tsx > WS80: /skills follows its read > becomes the tree once opened, with focus on its title when the reveal closes 152ms
- ✓ |website| src/SkillTreePage.test.tsx > WS80: /skills follows its read > marks its nav item current while open 26ms
- ✓ |website| src/SkillTreePage.test.tsx > WS80: /skills follows its read > asks for the tree only on /skills 26ms
- ✓ |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > shows {n} with a glyph, named n skill points to spend, linking to /skills 44ms
- ✓ |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > shows {n} with a glyph, named n skill points to spend, linking to /skills 51ms
- ✓ |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > shows {n} with a glyph, named n skill points to spend, linking to /skills 44ms
- ✓ |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > is absent while skillPoints is null 54ms
- ✓ |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > leads to the skill tree page 78ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > lives at /skills with the tab HedgeHug · Skill tree, the label Skill tree and the title Perks 194ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > says how many skill points are left to spend in the header 52ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > says how many skill points are left to spend in the header 46ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > says how many skill points are left to spend in the header 37ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > holds one band per shipped row headed Level {level}, with that row's perks in order 77ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > frames each perk as a game object with corner marks, its name and its cost while it isn't owned 58ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > names each node's state, never by colour alone: owned with a check mark, Can buy, or its reason 63ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > names a node that isn't owned by its state and its cost 44ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > names a node that isn't owned by its state and its cost 43ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > names a node that isn't owned by its state and its cost 43ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > keeps owned nodes neutral and leaves primary to the selection (V4) 38ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > selects the first available perk on first load, with aria-pressed and a visible Selected label 52ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > keeps the first-load selection when that perk turns owned elsewhere, such as in Slack 75ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > selects the first perk when none is available, keeping Selected apart from the owned check 35ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > moves the selection with a click, Enter or Space 192ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: /skills shows the tree while the Skill tree is open > shows no later rows, coins, perk count or Upgraded legend 36ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > sit beside the tree on wide screens with the name, P94's copy word for word, the level and the cost 30ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > say when an owned perk was bought 56ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > point an available perk to Slack's App Home until buying ships, with the line a spent point never comes back 54ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > give an unavailable perk's reason 36ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > give an unavailable perk's reason 48ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > give an unavailable perk's reason 43ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > return focus to the node on Esc even when the press didn't focus it, as Safari's clicks don't 136ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > open no drawer for a press made on a wide screen once the screen narrows 68ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85 WS86: the selected perk's details > open in a drawer on narrow screens, which Esc closes with focus back on the node 139ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: Your perks and How perks work > lists the owned perks in purchase order, each with its P94 copy 38ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: Your perks and How perks work > says perks show there once bought while none is owned 34ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: Your perks and How perks work > says how perks work, word for word 23ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS85: Your perks and How perks work > never calls a kudos thoughtful or says the app checked a reason (P95) 16ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS80: /skills follows its read > is the not-found page while the read says not-found 36ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS80: /skills follows its read > says Max's Skill tree opens at level 5. with Go to Home while locked, and has no nav item 45ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS80: /skills follows its read > shows its crate in place with a primary Open while ready, and opens it through openFeature 79ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS80: /skills follows its read > becomes the tree once opened, with focus on its title when the reveal closes 192ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS80: /skills follows its read > marks its nav item current while open 30ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS80: /skills follows its read > asks for the tree only on /skills 29ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > shows {n} with a glyph, named n skill points to spend, linking to /skills 49ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > shows {n} with a glyph, named n skill points to spend, linking to /skills 59ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > shows {n} with a glyph, named n skill points to spend, linking to /skills 48ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > is absent while skillPoints is null 58ms
+ ✓ |website| src/SkillTreePage.test.tsx > WS84: the HUD's skill point chip > leads to the skill tree page 80ms
 
  Test Files  1 passed (1)
-      Tests  37 passed (37)
-   Start at  07:17:34
-   Duration  3.58s (tests 45%, import 29%, environment 13%, transform 10%, setup 3%)
+      Tests  40 passed (40)
+   Start at  07:24:31
+   Duration  5.06s (tests 51%, import 24%, transform 13%, environment 10%, setup 2%)
 

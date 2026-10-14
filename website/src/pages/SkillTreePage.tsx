@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@posthog/quill";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { PageTitle } from "../PageTitle";
 import type { PerkNode, SkillTreeAnswer, TreeRow } from "../shell";
 import { PerkDetailsDrawer, PerkDetailsPanel, type SelectedPerk } from "../skills/PerkDetails";
@@ -12,8 +12,9 @@ type Tree = Extract<SkillTreeAnswer, { kind: "tree" }>;
 
 export function SkillTreePage({ tree }: { tree: Tree }) {
   const wide = useWideScreen();
-  const [chosen, setChosen] = useState<PerkNode["perk"]>();
+  const [chosen, setChosen] = useState(() => selectedIn(tree.rows, undefined)?.perk.perk);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const nodes = useRef(new Map<PerkNode["perk"], HTMLButtonElement | null>());
   const selected = selectedIn(tree.rows, chosen);
   const select = (perk: PerkNode["perk"]) => {
     setChosen(perk);
@@ -28,7 +29,7 @@ export function SkillTreePage({ tree }: { tree: Tree }) {
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <div className="flex min-w-0 flex-col gap-6">
-          {selected && <PerkTree rows={tree.rows} selected={selected.perk.perk} onSelect={select} />}
+          {selected && <PerkTree rows={tree.rows} selected={selected.perk.perk} onSelect={select} onNode={(perk, node) => nodes.current.set(perk, node)} />}
           <YourPerks rows={tree.rows} />
         </div>
         <div className="flex flex-col gap-6">
@@ -36,7 +37,7 @@ export function SkillTreePage({ tree }: { tree: Tree }) {
           <HowPerksWork />
         </div>
       </div>
-      {!wide && selected && <PerkDetailsDrawer {...selected} chatUrl={tree.chatUrl} open={drawerOpen} onClose={() => setDrawerOpen(false)} />}
+      {!wide && selected && <PerkDetailsDrawer {...selected} chatUrl={tree.chatUrl} open={drawerOpen} onClose={() => setDrawerOpen(false)} returnFocusTo={() => nodes.current.get(selected.perk.perk) ?? null} />}
     </div>
   );
 }

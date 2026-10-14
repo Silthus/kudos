@@ -23,12 +23,12 @@ export function PerkDetailsPanel({ perk, level, chatUrl }: DetailsProps) {
   );
 }
 
-type DrawerProps = DetailsProps & { open: boolean; onClose: () => void };
+type DrawerProps = DetailsProps & { open: boolean; onClose: () => void; returnFocusTo: () => HTMLElement | null };
 
-export function PerkDetailsDrawer({ perk, level, chatUrl, open, onClose }: DrawerProps) {
+export function PerkDetailsDrawer({ perk, level, chatUrl, open, onClose, returnFocusTo }: DrawerProps) {
   return (
     <Drawer open={open} onOpenChange={(next) => !next && onClose()}>
-      <DrawerContent>
+      <DrawerContent finalFocus={returnFocusTo}>
         <DrawerHeader>
           <DrawerTitle className="hud-display text-2xl">{perk.name}</DrawerTitle>
           <DrawerDescription>{perk.copy}</DrawerDescription>
