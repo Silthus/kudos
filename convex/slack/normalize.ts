@@ -22,7 +22,6 @@ export type SlackMessage = ChatMessage & {
 export type EventCallback = { type: "event_callback"; team_id: string; event_id: string; event_time: number; event: { type: string } };
 
 const countedSubtypes = new Set([undefined, "thread_broadcast", "file_share"]);
-const visibilityOfChannelType: Record<string, Visibility> = { channel: "public", group: "private" };
 const uncountedContainers = new Set(["rich_text_quote", "rich_text_preformatted"]);
 const containerBoundary = "\n";
 
@@ -34,12 +33,18 @@ export function messageEventOf(envelope: EventCallback): MessageEvent | MessageD
   const event = envelope.event;
   if (!isMessage(event) || !isText(envelope.team_id) || !isText(envelope.event_id) || !isText(event.channel)) return null;
   if (isDeletion(event)) return deletionOf(envelope.team_id, event);
-  const visibility = visibilityOfChannelType[event.channel_type ?? ""];
+  const visibility = visibilityOf(event.channel_type);
   if (visibility === undefined) return null;
   const source = { workspace: envelope.team_id, channel: event.channel, visibility };
   if (event.subtype === "message_changed") return editOf(source, event);
   if (!countedSubtypes.has(event.subtype)) return null;
   return messageEventFrom({ ...source, kind: "posted", message: event, revisionTs: event.ts });
+}
+
+function visibilityOf(channelType: string | undefined): Visibility | undefined {
+  if (channelType === "channel") return "public";
+  if (channelType === "group") return "private";
+  return undefined;
 }
 
 function isDeletion(event: SlackMessage) {

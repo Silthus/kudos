@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, postHogHost, projectToken, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { deleteMessage, deleteThreadParent, edit, everythingStored, kudosReceived, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { deleteMessage, deleteThreadParent, edit, everythingStored, kudosReceived, memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { broadcast, channel, codeBlock, emoji, link, list, mention, messageEvent, quote, section, text, unicodeEmoji, userGroup } from "../../testing/slackMessages";
 import { ReportableError } from "../analytics/exceptions";
 import { wordsOf } from "../engine/kudosText";
@@ -204,6 +204,20 @@ describe("AT5: edited away", () => {
     expect(await kudosReceived(t, "U_BOB")).toBe(1);
   });
 
+  test("a newer revision by an author who is no longer a member leaves no words, whatever it says", async () => {
+    const t = testBackend();
+    await post(t, thanksBob, { ts: postedTs });
+    await settle(t);
+    await memberChanged(t, "user_change", { id: "U_ALICE", deleted: true });
+    await settle(t);
+
+    await edit(t, [section(text("no emoji any more "), mention("U_BOB"))], { ts: postedTs, editedTs: "1760349660.000100" });
+    await settle(t);
+
+    expect(await words(t)).toEqual({ kind: "unavailable", reason: "deleted" });
+    expect(await storedAndScheduled(t)).not.toContain(reason);
+  });
+
   test("editing it back into a kudos message keeps the newest words again", async () => {
     const t = testBackend();
     await post(t, thanksBob, { ts: postedTs });
@@ -285,6 +299,8 @@ describe("AT6: deleted in Slack", () => {
 describe("AT11: a malformed event never reaches the events mutation, whose argument check would quote the words", () => {
   test.each<[string, Parameters<typeof messageEvent>[1], ReturnType<typeof section>[]]>([
     ["a channel that isn't a string", { extra: { channel: 404 } }, thanksBob],
+    ["a channel type that names an object's own property", { channelType: "__proto__" as "channel" }, thanksBob],
+    ["a channel type that names an inherited method", { channelType: "toString" as "channel" }, thanksBob],
     ["a ts that isn't a string", { extra: { ts: 1760349600.0001 } }, thanksBob],
     ["an author that isn't a string", { extra: { user: 404 } }, thanksBob],
     ["a thread that isn't a string", { extra: { thread_ts: 1760349000 } }, thanksBob],

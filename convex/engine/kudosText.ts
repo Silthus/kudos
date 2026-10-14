@@ -17,7 +17,7 @@ export const kudosTextValidator = v.union(
     visibility: visibilityValidator,
     gate: v.union(gateDecisionValidator, v.null()),
   }),
-  v.object({ ...key, kind: v.literal("tombstone"), why: v.union(v.literal("deleted"), v.literal("edited-away")) }),
+  v.object({ ...key, kind: v.literal("tombstone"), why: v.union(v.literal("deleted"), v.literal("no-longer-kudos")) }),
 );
 
 type KudosTextRow = Doc<"kudosTexts">;
@@ -43,9 +43,9 @@ export async function keepWords(ctx: MutationCtx, event: MessageEvent, annotatio
   });
 }
 
-export async function forgetEditedAway(ctx: MutationCtx, ref: MessageRef) {
+export async function forgetWords(ctx: MutationCtx, ref: MessageRef) {
   const row = await kudosTextRow(ctx, ref);
-  if (row?.kind === "words") await ctx.db.replace(row._id, { ...ref, kind: "tombstone", why: "edited-away" });
+  if (row?.kind === "words") await ctx.db.replace(row._id, { ...ref, kind: "tombstone", why: "no-longer-kudos" });
 }
 
 export async function forgetDeleted(ctx: MutationCtx, ref: MessageRef) {
@@ -62,7 +62,7 @@ export async function wordsOf(ctx: QueryCtx, ref: MessageRef): Promise<KudosText
 }
 
 function mayStoreWordsOver(row: KudosTextRow, revision: bigint) {
-  if (row.kind === "tombstone") return row.why === "edited-away";
+  if (row.kind === "tombstone") return row.why === "no-longer-kudos";
   return revision > row.revision;
 }
 
