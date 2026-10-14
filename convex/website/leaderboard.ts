@@ -8,7 +8,7 @@ import { faceOf, teammateFaceOf, type Face } from "./faces";
 import { memberQuery, type Denial } from "./memberQuery";
 import { leaderboardStateOf, unlockPathOf, type PageWaits } from "./unlockPath";
 
-export type LeaderboardRow = { position: number; rank: number; tied: boolean; name: string; face: Face; kudos: number; you: boolean };
+export type LeaderboardRow = { position: number; rank: number; tied: boolean; name: string; face: Face; kudos: number; you: boolean; climbed: number | null };
 
 export type Leaderboard = {
   kind: "board";
@@ -49,6 +49,6 @@ export const getLeaderboard = memberQuery({
   },
 });
 
-function leaderboardRowOf({ position, rank, tied, name, picture, kudos, viewer }: RankedRow, myFace: Face): LeaderboardRow {
-  return { position, rank, tied, name: name ?? nameless, face: viewer ? myFace : teammateFaceOf(name, picture), kudos, you: viewer };
+function leaderboardRowOf({ position, rank, tied, name, picture, kudos, viewer, climbed }: RankedRow, myFace: Face): LeaderboardRow {
+  return { position, rank, tied, name: name ?? nameless, face: viewer ? myFace : teammateFaceOf(name, picture), kudos, you: viewer, climbed };
 }
