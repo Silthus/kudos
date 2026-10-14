@@ -249,3 +249,93 @@
     transform: translate(-50%, -50%) scale(1) rotate(24deg);
   }
 }
+
+.reward-flight {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.reward-flight-chip,
+.reward-flight-particle {
+  position: absolute;
+  animation: reward-flight 0.7s cubic-bezier(0.5, 0, 0.7, 1) var(--delay, 0ms) both;
+}
+
+.reward-flight-chip {
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  white-space: nowrap;
+  border-radius: 9999px;
+  background: var(--foreground);
+  color: var(--background);
+  box-shadow: 0 0 0 2px var(--card);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.reward-flight-particle {
+  left: calc(50% - var(--size, 6px) / 2 + var(--spread, 0px));
+  top: calc(50% - var(--size, 6px) / 2);
+  width: var(--size, 6px);
+  height: var(--size, 6px);
+  border-radius: 9999px;
+  background: var(--foreground);
+  box-shadow: 0 0 0 2px var(--card);
+}
+
+@keyframes reward-flight {
+  from {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(calc(var(--flight-x) * 0.3), calc(var(--flight-y) * 0.7 + var(--arc, -40px))) scale(0.9);
+    opacity: 1;
+  }
+  85% {
+    transform: translate(calc((var(--flight-x) - var(--spread, 0px)) * 0.9), calc(var(--flight-y) * 0.92)) scale(0.6);
+    opacity: 1;
+  }
+  to {
+    transform: translate(calc(var(--flight-x) - var(--spread, 0px)), var(--flight-y)) scale(0.4);
+    opacity: 0;
+  }
+}
+
+.reward-landed {
+  animation: reward-landed 0.32s ease-out;
+}
+
+@keyframes reward-landed {
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.reward-filling [data-arc] {
+  transition: stroke-dasharray 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.reward-faded {
+  animation: moment-fade 0.2s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reward-flight {
+    visibility: hidden;
+  }
+
+  .reward-flight-chip,
+  .reward-flight-particle,
+  .reward-landed {
+    animation: none;
+  }
+
+  .reward-filling [data-arc] {
+    transition: none;
+  }
+}

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { internal } from "../_generated/api";
 import { signingSecret } from "../../testing/signedSlack";
-import { deleteMessage, edit, everythingStored, kudosReceived, post, settle, testBackend } from "../../testing/slackBackend";
+import { deleteMessage, edit, everythingStored, kudosReceived, post, setWorkspaceSettings, settle, testBackend } from "../../testing/slackBackend";
 import { broadcast, emoji, mention, section, text, type RichElement } from "../../testing/slackMessages";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -197,7 +197,7 @@ describe("R22: edits that change nothing", () => {
     const t = testBackend();
     await post(t, blocks, { ts: postedTs });
     await settle(t);
-    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "pizza" }));
+    await setWorkspaceSettings(t, { kudosEmoji: "pizza" });
     const callsBefore = slack.calls.length;
     const receivedBefore = await kudosReceived(t, "U_BOB");
 

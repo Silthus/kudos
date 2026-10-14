@@ -4,6 +4,7 @@ import { Button, buttonVariants } from "@posthog/quill";
 import { AppLink } from "../AppLink";
 import { aboutOf, webPageOf } from "../features";
 import type { FeatureCard } from "../shell";
+import { prefersReducedMotion } from "../reducedMotion";
 import { SlackLink } from "../SlackLink";
 import { CrateArt } from "./CrateArt";
 import type { Reveal } from "./moments";
@@ -134,10 +135,6 @@ function GoThere({ card, chatUrl, onGo }: { card: FeatureCard; chatUrl: string; 
       <IconArrowRight aria-hidden="true" className="size-4" />
     </AppLink>
   );
-}
-
-function prefersReducedMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 const actionSelector = "a[href], button:not([aria-disabled='true'])";
