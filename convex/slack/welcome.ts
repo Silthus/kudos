@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
-import type { WelcomeGroups, WelcomeMessage } from "../feedback/welcome";
+import { welcomePickValidator, type WelcomeGroups, type WelcomeMessage } from "../feedback/welcome";
 import { appHomeLink } from "./appHome";
 import { mrkdwn, plainText } from "./blocks";
 import { attemptArgs, sendOnce, slackLink, tryAtMostThreeTimes } from "./delivery";
@@ -26,12 +26,12 @@ export const deliverWelcome = observedAction({
 });
 
 export const updateWelcome = observedAction({
-  args: { workspace: v.string(), user: v.string(), conversation: v.string(), message: v.string(), picked: v.id("userGroups"), ...attemptArgs },
+  args: { workspace: v.string(), user: v.string(), conversation: v.string(), message: v.string(), pick: welcomePickValidator, ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...update }) => {
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
-        const groups = await ctx.runMutation(internal.feedback.welcome.welcomeGroupsOf, { workspace: update.workspace, user: update.user, picked: update.picked });
+        const groups = await ctx.runMutation(internal.feedback.welcome.welcomeGroupsOf, { workspace: update.workspace, user: update.user, pick: update.pick });
         if (groups === null) return null;
         const message = await ctx.runQuery(internal.feedback.welcome.welcomeMessage, { workspace: update.workspace });
         return sendOnce(ctx, update.workspace, "chat.update", { channel: update.conversation, ts: update.message, ...messageOf(message, groups, update.workspace) }, attempt);

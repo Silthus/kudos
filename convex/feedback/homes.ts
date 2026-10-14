@@ -42,7 +42,18 @@ export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoin
 
 export type HomeMember = Extract<MemberFacts, { kind: "member" }>;
 
-type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; quests: boolean; book: boolean; skillTree: boolean; admin: boolean; sharedSettings: boolean };
+type Slices = {
+  board: boolean;
+  leaderboard: boolean;
+  xp: boolean;
+  unlocks: boolean;
+  quests: boolean;
+  book: boolean;
+  skillTree: boolean;
+  admin: boolean;
+  sharedSettings: boolean;
+  groups: GroupChoice | null;
+};
 
 type HomeSelection = { tab: HomeTab; period: Period };
 
@@ -54,7 +65,7 @@ const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices & Door
   { tab: "leaderboard", shownWith: ({ leaderboard, frontDoor }) => leaderboard && !frontDoor },
   { tab: "book", shownWith: ({ book }) => book },
   { tab: "skillTree", shownWith: ({ skillTree }) => skillTree },
-  { tab: "settings", shownWith: ({ board, xp }) => board || xp },
+  { tab: "settings", shownWith: ({ board, xp, groups }) => board || xp || groups !== null },
   { tab: "admin", shownWith: ({ sharedSettings, admin }) => sharedSettings && admin },
 ];
 
@@ -121,7 +132,8 @@ async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMe
   const book = unlocks && (await achievementsShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "book"));
   const skillTree = (await skillTreeShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "skillTree"));
   const sharedSettings = await xpLevelsShownIn(ctx, workspace);
-  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, admin: person.admin, sharedSettings };
+  const groups = (await groupsShownTo(ctx, person.member)) ? await groupChoiceOf(ctx, person.member) : null;
+  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, admin: person.admin, sharedSettings, groups };
 }
 
 async function isLeaderboardOpenTo(ctx: QueryCtx, member: MemberId, unlocksShown: boolean) {
@@ -160,7 +172,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         onTheBoards: slices.board ? await isOnTheBoards(ctx, viewer.member) : null,
         progress: slices.xp ? await progressSettingsOf(ctx, viewer.member) : null,
         achievements: await achievementsApplyIn(ctx, viewer.workspace),
-        groups: (await groupsShownTo(ctx, viewer.member)) ? await groupChoiceOf(ctx, viewer.member) : null,
+        groups: slices.groups,
       };
     case "admin":
       return { tab, announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel, achievements: await achievementsApplyIn(ctx, viewer.workspace) };

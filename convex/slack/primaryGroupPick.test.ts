@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog, type FlagDefinition } from "../../testing/fakePostHog";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
 import { offForEveryone, onForEveryone, postHogDeciding, testBackendServing } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import {
@@ -141,7 +141,31 @@ describe("GB19: the welcome message's group block", () => {
   });
 });
 
+describe("GB19: the welcome's Save reply", () => {
+  test("a Save whose update Slack rate-limits still reads Saved after the member picked another group in Settings meanwhile", async () => {
+    const t = await workspaceWithGroups(onForEveryone("groups"), onForEveryone("everyone-board"));
+    await giveKudos(t, "U_ANN", "U_BOB");
+    const zebras = await groupIdNamed(t, "Zebras");
+    slack.answering("chat.update", rateLimitedFor(1));
+    slack.holdingBack("chat.update", "U_ANN", async () => {
+      await t.mutation(internal.slack.receipts.receiveHomeClick, { workspace: "T1", eventId: "meanwhile", user: "U_ANN", commands: [{ type: "pickPrimaryGroup", group: zebras, surface: "settings" }] });
+    });
+
+    await saveInWelcome(t, "U_ANN", "Gardeners");
+
+    expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Zebras");
+    expect(welcomeUpdatesTo("U_ANN").at(-1)).toContain("section: Saved. You count for Gardeners on the leaderboard. You can change it in App Home.");
+  });
+});
+
 describe("GB20: the primary group in Settings", () => {
+  test("with only groups on, Settings is there to pick in", async () => {
+    const t = await workspaceWithGroups(onForEveryone("groups"));
+    await openSettings(t, "U_ANN");
+
+    expect(publishedHome(slack, "U_ANN")).toContain(`section: ${pickQuestion} [select: Zebras of Gardeners, Zebras]`);
+  });
+
   test("a member in several groups picks from a dropdown, and App Home republishes with the pick selected", async () => {
     const t = await workspaceWithGroups(onForEveryone("groups"), onForEveryone("everyone-board"));
     await openSettings(t, "U_ANN");
@@ -183,6 +207,19 @@ describe("GB3, GB29: where groups don't apply nothing changes", () => {
     expect(await primaryGroupNameOf(t, "U_ANN")).toBe(before);
     expect(slack.callsTo("chat.update")).toEqual([]);
     expect(picksSent()).toEqual([]);
+  });
+});
+
+describe("D17: a pick that names no group", () => {
+  test("a dropdown value that isn't a group ID stores nothing and fails no job", async () => {
+    const t = await workspaceWithGroups(onForEveryone("groups"), onForEveryone("everyone-board"));
+    await openSettings(t, "U_ANN");
+    const select = selectIn(publishedHomeBlocks(slack, "U_ANN"));
+
+    await interact(t, "U_ANN", { type: "static_select", action_id: select.action_id, selected_option: { value: "not-a-group-id" } });
+
+    expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Zebras");
+    expect(await failedJobs(t)).toEqual([]);
   });
 });
 
@@ -313,6 +350,15 @@ async function causesOf(t: Backend, user: string) {
       .collect(),
   );
   return history.map(({ cause }) => cause);
+}
+
+async function groupIdNamed(t: Backend, name: string): Promise<GroupId> {
+  return t.run(async (ctx) => (await ctx.db.query("userGroups").collect()).find((group) => group.name === name)!._id);
+}
+
+async function failedJobs(t: Backend) {
+  const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return jobs.filter(({ state }) => state.kind === "failed").map(({ name }) => name);
 }
 
 async function anyGroupId(t: Backend): Promise<GroupId> {

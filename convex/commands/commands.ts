@@ -31,7 +31,7 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
   v.object({ type: v.literal("rerollQuest"), quest: weeklyQuestValidator }),
   v.object({ type: v.literal("buyPerk"), perk: perkValidator }),
-  v.object({ type: v.literal("pickPrimaryGroup"), group: v.id("userGroups"), surface: pickSurfaceValidator }),
+  v.object({ type: v.literal("pickPrimaryGroup"), group: v.string(), surface: pickSurfaceValidator }),
 );
 
 export type Command = Infer<typeof commandValidator>;
@@ -79,10 +79,12 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       await showHomeTab(ctx, workspace, person, "skillTree");
       return outcome;
     }
-    case "pickPrimaryGroup":
-      if (!(await groupsShownTo(ctx, member))) return null;
-      if ((await pickPrimaryGroup(ctx, member, command.group)) === "picked") await reportPrimaryGroupPicked(ctx, { workspace, member, surface: command.surface, at: Date.now() });
+    case "pickPrimaryGroup": {
+      const group = ctx.db.normalizeId("userGroups", command.group);
+      if (group === null || !(await groupsShownTo(ctx, member))) return null;
+      if ((await pickPrimaryGroup(ctx, member, group)) === "picked") await reportPrimaryGroupPicked(ctx, { workspace, member, surface: command.surface, at: Date.now() });
       return null;
+    }
   }
 }
 
@@ -101,7 +103,6 @@ function conforms(validator: GenericValidator, value: unknown): boolean {
     case "boolean":
       return typeof value === "boolean";
     case "string":
-    case "id":
       return typeof value === "string";
     case "float64":
       return typeof value === "number";

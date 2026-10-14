@@ -1,7 +1,7 @@
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type MutationCtx } from "../_generated/server";
-import { groupsShownTo, type GroupId, type GroupRef } from "../groups/groups";
+import { groupsShownTo, primaryGroupOf, type GroupId, type GroupRef } from "../groups/groups";
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";
 import { reconcileMember } from "../groups/reconcile";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
@@ -36,17 +36,27 @@ export const welcomeMessage = internalQuery({
   },
 });
 
+export const welcomePickValidator = v.object({ group: v.id("userGroups"), saved: v.boolean() });
+
+type WelcomePick = Infer<typeof welcomePickValidator>;
+
+export async function welcomePickOf(ctx: MutationCtx, member: MemberId, picked: string): Promise<WelcomePick | null> {
+  const group = ctx.db.normalizeId("userGroups", picked);
+  if (group === null || !(await groupsShownTo(ctx, member))) return null;
+  return { group, saved: (await primaryGroupOf(ctx, member))?.group === group };
+}
+
 export const welcomeGroupsOf = internalMutation({
-  args: { workspace: v.string(), user: v.string(), picked: v.optional(v.id("userGroups")) },
-  handler: async (ctx, { workspace, user, picked }): Promise<WelcomeGroups | null> => {
+  args: { workspace: v.string(), user: v.string(), pick: v.optional(welcomePickValidator) },
+  handler: async (ctx, { workspace, user, pick }): Promise<WelcomeGroups | null> => {
     const person = await lookup(ctx, workspace, user);
     if (person?.kind !== "member" || !(await groupsShownTo(ctx, person.member))) return null;
     await reconcileMember(ctx, person.member);
     const choice = await groupChoiceOf(ctx, person.member);
-    if (picked === undefined) return choice === null ? null : { lines: [isPicked(choice) ? pickQuestion : countsFor(choice.primary)], picker: pickerOf(choice) };
-    if (choice?.primary.group === picked) return { lines: [`Saved. ${countsFor(choice.primary)} You can change it in App Home.`], picker: null };
-    const refused = await ctx.db.get(picked);
-    const refusal = refused === null ? [] : [`${refused.name} isn't one of your groups anymore. Pick another one.`];
+    if (pick === undefined) return choice === null ? null : { lines: [isPicked(choice) ? pickQuestion : countsFor(choice.primary)], picker: pickerOf(choice) };
+    const picked = await ctx.db.get(pick.group);
+    if (pick.saved && picked !== null) return { lines: [`Saved. ${countsFor(picked)} You can change it in App Home.`], picker: null };
+    const refusal = picked === null ? [] : [`${picked.name} isn't one of your groups anymore. Pick another one.`];
     const stays = choice !== null && !isPicked(choice) ? [countsFor(choice.primary)] : [];
     return { lines: [...refusal, ...stays], picker: pickerOf(choice) };
   },
