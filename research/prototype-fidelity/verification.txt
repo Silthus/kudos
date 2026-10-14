@@ -1,0 +1,3 @@
+340 inventory rows: {'present': 97, 'missing': 216, 'cut': 11, 'coming': 16}
+76 original captures and 28 comparison PNGs verified
+All report links resolve; screenshot signatures, dimensions and hashes match

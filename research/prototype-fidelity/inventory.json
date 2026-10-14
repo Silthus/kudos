@@ -1,0 +1,1814 @@
+[
+  {
+    "section": "HUD, branding and responsive navigation",
+    "prototype": "[variants/e/Frame.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/Frame.tsx), [variants/e/hud.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/hud.tsx)",
+    "production": "[Frame.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/Frame.tsx), [AccountMenu.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/AccountMenu.tsx), [ThemeControl.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/ThemeControl.tsx), [LeveledFace.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/LeveledFace.tsx), [features.ts](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/features.ts)",
+    "elements": [
+      {
+        "element": "Sticky translucent top bar and centred 1152 px frame",
+        "outcome": "present",
+        "evidence": "Main Frame retains the sticky bar, blur, border, and max width."
+      },
+      {
+        "element": "34 px HedgehogHeart beside the wordmark",
+        "outcome": "present",
+        "evidence": "#258 merged during the audit, in final main 0130d82. V17 was wrongly used to cut the brand mark in #231; fresh final screenshots verify the restored logo."
+      },
+      {
+        "element": "HedgeHug display wordmark and Thanks a Hog subtitle",
+        "outcome": "present",
+        "evidence": "Main Wordmark retains both strings and RoundHog display type."
+      },
+      {
+        "element": "Home/profile link on the brand",
+        "outcome": "present",
+        "evidence": "Main links to /; prototype uses #/profile. Real paths are the accepted architecture."
+      },
+      {
+        "element": "Profile navigation label and IconUser",
+        "outcome": "missing",
+        "evidence": "Main says Home with IconHome. Decide whether to retain Home or port the prototype label/icon. Call C1; group F1."
+      },
+      {
+        "element": "Open Quests and Leaderboard links/icons",
+        "outcome": "present",
+        "evidence": "Main ScreenNav lists both while their features are open."
+      },
+      {
+        "element": "Open Book and Skill tree links/icons",
+        "outcome": "present",
+        "evidence": "Slice 4 Frame/features provide both; delivery still waits on #193."
+      },
+      {
+        "element": "Collection navigation link/icon",
+        "outcome": "missing",
+        "evidence": "No collection route or registered page. F7; P78/WS59 are gating, not a product cut."
+      },
+      {
+        "element": "Locked nav entries with lock icon and level tooltip",
+        "outcome": "missing",
+        "evidence": "Main and slice 4 omit them. Cut only by WS59/P78/V23 in #231. Call C1; F1."
+      },
+      {
+        "element": "Next-unlock Lv N badge and stronger next entry",
+        "outcome": "missing",
+        "evidence": "No counterpart in ScreenNav. Call C1; F1."
+      },
+      {
+        "element": "Ready nav entries with crate icon opening their own crate",
+        "outcome": "missing",
+        "evidence": "Only the HUD pill exposes readiness; ready nav entries are absent. WS59. Call C1; F1."
+      },
+      {
+        "element": "Desktop icon-only nav at intermediate widths",
+        "outcome": "missing",
+        "evidence": "Prototype hides labels below xl; main always prints them. Port responsive nav in F1."
+      },
+      {
+        "element": "Mobile horizontal nav rail and selected round pill",
+        "outcome": "missing",
+        "evidence": "Main reorders ordinary links but has no overflow rail or mobile pill style. Slice 4 is 422 px wide at a 390 px viewport. F1."
+      },
+      {
+        "element": "Current desktop page underline",
+        "outcome": "present",
+        "evidence": "Frame ScreenLink uses aria-current and primary underline."
+      },
+      {
+        "element": "Cmd/Ctrl K dashed chip and shortcut",
+        "outcome": "missing",
+        "evidence": "No palette or key listener in main/slice 4. WS16 alone was the cut. Call C2; F2."
+      },
+      {
+        "element": "Skill point glyph/count/link chip",
+        "outcome": "present",
+        "evidence": "Slice 4 Frame supplies SkillPointChip; #193 is still open."
+      },
+      {
+        "element": "Coin glyph/count chip and earning tooltip",
+        "outcome": "missing",
+        "evidence": "Neither main nor slice 4 carries a coin balance. Backend prerequisite is map #1 coins. F6; Call C4 if permanently omitted."
+      },
+      {
+        "element": "Ready pill with crate glyph and singular/plural count",
+        "outcome": "present",
+        "evidence": "Main ReadyPill counts feature, Journey and quest crates. Wording is n ready rather than n unlocks ready, because its scope grew."
+      },
+      {
+        "element": "Ready pill opening the first ready crate",
+        "outcome": "present",
+        "evidence": "Main MomentsProvider and ReadyPill connect to the existing open command."
+      },
+      {
+        "element": "Equipped hedgehog in the HUD avatar",
+        "outcome": "missing",
+        "evidence": "Main/slice 4 MemberFace shows the person or initials, not the equipped hog. F4; V20/P78 never cut it. Call C4."
+      },
+      {
+        "element": "Avatar level badge and XP ring",
+        "outcome": "present",
+        "evidence": "Main LeveledFace renders the level badge and filled neutral progress ring."
+      },
+      {
+        "element": "Avatar link returning to the profile",
+        "outcome": "missing",
+        "evidence": "Main avatar opens AccountMenu instead. Separate Sign out lives in that menu. Call C1; F1."
+      },
+      {
+        "element": "Theme control and persisted light/dark choice",
+        "outcome": "present",
+        "evidence": "Main adds a system choice to the prototype's binary toggle and persists it."
+      },
+      {
+        "element": "Separate desktop Sign out icon",
+        "outcome": "missing",
+        "evidence": "Sign-out action exists in AccountMenu, but its separate IconLeave button does not. Call C1; F1."
+      },
+      {
+        "element": "Newly opened nav/resource pop-in",
+        "outcome": "missing",
+        "evidence": "Main has no PopIn/justOpened equivalent. One-off motion is allowed, not required to vanish by V9. Call C11; F1."
+      },
+      {
+        "element": "Header's subtle bottom shadow",
+        "outcome": "missing",
+        "evidence": "Prototype shadow is absent from main Frame. Small visual port in F1."
+      },
+      {
+        "element": "HUD page background gradients in both themes",
+        "outcome": "present",
+        "evidence": "Main index.css ports both hud-root gradients."
+      },
+      {
+        "element": "Corner marks and uppercase panel labels",
+        "outcome": "present",
+        "evidence": "Main index.css ports hud-panel and hud-label. Placement on reading cards was later narrowed by accepted V2."
+      },
+      {
+        "element": "Light/dark surfaces, border and foreground tokens",
+        "outcome": "present",
+        "evidence": "Both use Quill tokens; synthetic screenshots verify both themes."
+      },
+      {
+        "element": "Inter text and RoundHog display font",
+        "outcome": "present",
+        "evidence": "Main bundles Inter Variable and RoundHog locally; prototype fetches Inter remotely."
+      },
+      {
+        "element": "Ordinary page count-ups, animated fills and ring sweeps",
+        "outcome": "cut",
+        "evidence": "D1: accepted static-page motion decision. Keep actual values visible without animation."
+      },
+      {
+        "element": "Looping glow, XP shimmer and closed-crate wobble",
+        "outcome": "cut",
+        "evidence": "D1: accepted no-infinite-animation decision. Production uses a one-off crate nudge."
+      },
+      {
+        "element": "Primary-coloured progress ring and resource emphasis",
+        "outcome": "cut",
+        "evidence": "D2: accepted primary-only-for-action/selection/you decision; production progress is neutral."
+      }
+    ]
+  },
+  {
+    "section": "Document head and sign-in",
+    "prototype": "[App.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/App.tsx), [SignIn.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/SignIn.tsx), [Layout.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/Layout.tsx)",
+    "production": "[PageTitle.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/PageTitle.tsx), [pages/SignedOutPage.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/pages/SignedOutPage.tsx), [pages/ClosedPage.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/pages/ClosedPage.tsx), [Max.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/Max.tsx)",
+    "elements": [
+      {
+        "element": "UTF-8 and responsive viewport meta",
+        "outcome": "present",
+        "evidence": "Both index.html files have them."
+      },
+      {
+        "element": "HedgeHug \u00b7 page document titles",
+        "outcome": "present",
+        "evidence": "Main PageTitle updates all implemented pages; slice 4 adds Skill tree and Book. No per-moment title exists until those routes exist."
+      },
+      {
+        "element": "SVG/PNG favicon and apple-touch icon",
+        "outcome": "present",
+        "evidence": "#258 merged into final main 0130d82; anonymous live HTML now names all three icons. The prototype never had a favicon: this is a requested addition."
+      },
+      {
+        "element": "Light and dark theme-color meta",
+        "outcome": "present",
+        "evidence": "#258 merged into final main 0130d82; both media-scoped values are present in anonymous live HTML."
+      },
+      {
+        "element": "Meta description and social preview metadata",
+        "outcome": "missing",
+        "evidence": "Absent from both heads. Additional metadata, not prototype regression; do not create a port ticket unless desired. F0 optional."
+      },
+      {
+        "element": "112 px HedgehogHandClasp sign-in illustration",
+        "outcome": "missing",
+        "evidence": "Actual prototype SignIn uses HandClasp, not HedgehogHeart. Initial main used MaxSays/HedgehogTownCrier; final main 0130d82 uses a 112 px heart logo. #258 does not port the exact HandClasp illustration. Call C3; F3."
+      },
+      {
+        "element": "Centred, narrow sign-in card without signed-in frame",
+        "outcome": "missing",
+        "evidence": "Prototype has a standalone max-w-sm card. Main signs out inside Frame/MaxSays. Call C3; F3."
+      },
+      {
+        "element": "HedgeHug and Thanks a Hog inside the sign-in surface",
+        "outcome": "present",
+        "evidence": "Final main 0130d82 BrandSays shows both beneath the heart logo on sign-in/closed pages. Standalone card/layout fidelity still needs F3."
+      },
+      {
+        "element": "Sign in with Slack button and four-colour Slack glyph",
+        "outcome": "present",
+        "evidence": "Main SignedOutPage retains the action and glyph."
+      },
+      {
+        "element": "Full-width large sign-in button",
+        "outcome": "missing",
+        "evidence": "Prototype uses w-full; main MaxSays renders a content-width action. F3."
+      },
+      {
+        "element": "Sign-in copy naming levels, perks, stickers and achievements",
+        "outcome": "missing",
+        "evidence": "Main says See your kudos. Requires shipped-feature-aware copy, not a fabricated claim. Call C3; F3."
+      },
+      {
+        "element": "Workspace-members-only sign-in sentence",
+        "outcome": "present",
+        "evidence": "Main retains the same audience restriction."
+      },
+      {
+        "element": "Deep-link destination retained through sign-in",
+        "outcome": "present",
+        "evidence": "Production uses signIn(returnTo), route and code-redemption machinery; this replaces the fake prototype transition."
+      },
+      {
+        "element": "Visible You will land on /destination afterwards hint",
+        "outcome": "missing",
+        "evidence": "Prototype prints the destination; main does not. Call C3; F3."
+      },
+      {
+        "element": "Theme toggle at sign-in page top right",
+        "outcome": "present",
+        "evidence": "Theme choice exists in Frame; exact standalone placement belongs to F3."
+      },
+      {
+        "element": "Prototype no-real-sign-in footer",
+        "outcome": "missing",
+        "evidence": "A prototype-only label, not production copy. No direct removal decision quoted; Call C12 recommends excluding it from production."
+      },
+      {
+        "element": "Prototype variant switcher, arrows and E \u00b7 Combined badge",
+        "outcome": "missing",
+        "evidence": "Fixture tooling only. No direct product-owner cut quoted. Call C12 recommends retaining only in research tools."
+      },
+      {
+        "element": "Preview level slider, minus/plus and mock-level note",
+        "outcome": "missing",
+        "evidence": "Fixture tooling only. No direct product-owner cut quoted. Call C12 recommends excluding from production."
+      }
+    ]
+  },
+  {
+    "section": "Home hero and public-card rail",
+    "prototype": "[variants/e/Profile.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/Profile.tsx), [variants/e/profile-card.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/profile-card.tsx), [variants/e/profile-locked.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/profile-locked.tsx), [variants/e/profile-standing.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/profile-standing.tsx), [variants/e/quests-card.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/quests-card.tsx)",
+    "production": "[pages/HomePage.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/pages/HomePage.tsx), [home/Hero.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/home/Hero.tsx), [home/ProfileCardPanel.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/home/ProfileCardPanel.tsx), [home/FeatureCards.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/home/FeatureCards.tsx)",
+    "elements": [
+      {
+        "element": "Two-column sheet with persistent main and right-rail slots",
+        "outcome": "coming",
+        "evidence": "#237 restores per-feature placement; current Journey/cards sit full width beneath the hero/card pair."
+      },
+      {
+        "element": "168 px hog portrait with shadow and hog name",
+        "outcome": "missing",
+        "evidence": "Main has a 128 px person face/initials and no hog name. F4; Call C4. Source and current availability are separate questions."
+      },
+      {
+        "element": "Change gear link scrolling to the character panel",
+        "outcome": "missing",
+        "evidence": "No gear panel or link. F5."
+      },
+      {
+        "element": "120 px level ring with Level label and number",
+        "outcome": "present",
+        "evidence": "Main HeroRing has both at the prototype size, with neutral ink."
+      },
+      {
+        "element": "Character label and large member-name title",
+        "outcome": "present",
+        "evidence": "Main Hero is the already-merged #236 implementation."
+      },
+      {
+        "element": "Primary group/team name below the member name",
+        "outcome": "missing",
+        "evidence": "No group display field is rendered. #237/#238 explicitly exclude it. F8; Call C4/P78."
+      },
+      {
+        "element": "Full-width XP bar, current XP and XP to next level",
+        "outcome": "present",
+        "evidence": "Main XpBar renders all three from Progression."
+      },
+      {
+        "element": "Allowance label, left/base display, one pip per allowance",
+        "outcome": "present",
+        "evidence": "Main KudosLeftToday supplies each part."
+      },
+      {
+        "element": "Refill-at-midnight/time note",
+        "outcome": "present",
+        "evidence": "Main renders the server-provided refillsAt as a local time rather than the prototype's fixed phrase."
+      },
+      {
+        "element": "Lifetime kudos given/received sentence",
+        "outcome": "present",
+        "evidence": "Main renders the exact pattern from lifetime totals; it is private."
+      },
+      {
+        "element": "Spend skill points action in the hero",
+        "outcome": "coming",
+        "evidence": "#237 puts the actionable count/link in the Skill tree panel instead of the hero. The action is covered; exact placement is a Call C5 choice."
+      },
+      {
+        "element": "First-kudos teaching panel and message icon",
+        "outcome": "missing",
+        "evidence": "Main teaches in the hero and Journey, but has no standalone FirstKudosNudge. WS17/WS72/V4 were the cut. Call C5; F3/F5."
+      },
+      {
+        "element": "Prototype's borderless hero spacing",
+        "outcome": "missing",
+        "evidence": "Main wraps the hero in a padded, bordered hud-panel. No explicit decision to preserve this shape rather than E's open header. Call C5; F3."
+      },
+      {
+        "element": "Inventory locked/ready card occupying the main slot",
+        "outcome": "missing",
+        "evidence": "#237 excludes unshipped Inventory. The accepted prototype reserves the slot. F5; Call C4/WS102."
+      },
+      {
+        "element": "What teammates see heading and Public tag",
+        "outcome": "coming",
+        "evidence": "#238 supplies these; current main says Your profile card."
+      },
+      {
+        "element": "Raised/gradient profile-card container",
+        "outcome": "coming",
+        "evidence": "#238 specifies the raised card. Its precise gradient/shadow can be ported from profile-card.tsx."
+      },
+      {
+        "element": "Large equipped hog inside profile card",
+        "outcome": "missing",
+        "evidence": "#238 keeps the person face only. F4/F8; Call C4."
+      },
+      {
+        "element": "Member name and visible level on profile card",
+        "outcome": "present",
+        "evidence": "Main shows both; styling changes remain in #238."
+      },
+      {
+        "element": "Primary group label on profile card",
+        "outcome": "missing",
+        "evidence": "#238 excludes it until groups exist. F8; Call C4."
+      },
+      {
+        "element": "Best four achievement-tier medals on profile card",
+        "outcome": "missing",
+        "evidence": "Neither main nor slice 4 adds them. Requires the public-card contract, not another member's private Book. F8; Call C4/WS93."
+      },
+      {
+        "element": "Public/private explanatory profile-card sentence",
+        "outcome": "coming",
+        "evidence": "#238 replaces the main note. XP/received remain private; coins/perks wording needs their facts later."
+      },
+      {
+        "element": "Quests this week checklist, neutral progress, weekly note",
+        "outcome": "coming",
+        "evidence": "#238 covers personal quest goals/progress and Monday wording."
+      },
+      {
+        "element": "Claimable quest highlighted on home with a Claim link",
+        "outcome": "missing",
+        "evidence": "#238 substitutes Reward ready and omits prototype Claim treatment. Call C6/V13; F9."
+      },
+      {
+        "element": "Group quest row and IconPeople in home checklist",
+        "outcome": "missing",
+        "evidence": "#238 covers personal slots only. F10; unshipped is not cut."
+      },
+      {
+        "element": "New-unlock bonus quest row in home checklist",
+        "outcome": "missing",
+        "evidence": "No bonus facts in the existing read or #238. F11."
+      },
+      {
+        "element": "See all quests link",
+        "outcome": "coming",
+        "evidence": "#238."
+      },
+      {
+        "element": "Where you stand heading, This week and Everyone row",
+        "outcome": "coming",
+        "evidence": "#238 covers the Everyone rank, tie and state copy."
+      },
+      {
+        "element": "Faces/counts above, at and below you in Everyone row",
+        "outcome": "coming",
+        "evidence": "#238 specifies each neighbour, viewer marking and accessible text."
+      },
+      {
+        "element": "My group and Groups standing rows",
+        "outcome": "missing",
+        "evidence": "#238 excludes them. F12; Call C4/G45/P78."
+      },
+      {
+        "element": "Standing change arrows and gain/loss since last week",
+        "outcome": "missing",
+        "evidence": "#238 has no comparison read. F12; Call C7, not a cut based on missing data."
+      },
+      {
+        "element": "Standing row chevrons and Open the leaderboard link",
+        "outcome": "coming",
+        "evidence": "#238 covers the actionable row and link, though only Everyone exists."
+      },
+      {
+        "element": "Hidden-from-boards note while group still ranks",
+        "outcome": "missing",
+        "evidence": "Main handles left on Everyone; no home group note. F12."
+      },
+      {
+        "element": "Locked feature illustrations, names and unlock levels",
+        "outcome": "present",
+        "evidence": "Main FeatureCards already has these; #237 changes placement and badge treatment."
+      },
+      {
+        "element": "Lock badge over each home teaser's hog",
+        "outcome": "coming",
+        "evidence": "#237 specifies the badge; current main puts IconLock in the text row."
+      },
+      {
+        "element": "Ready feature crate in its stable sheet position",
+        "outcome": "coming",
+        "evidence": "#237 changes current grouped crates into in-place feature panels."
+      },
+      {
+        "element": "Levels-to-go sentence on locked home cards",
+        "outcome": "cut",
+        "evidence": "D3: the accepted locked-state summary is calm, one sentence and silhouette, not progress pressure."
+      },
+      {
+        "element": "Book and Skill tree open-panel links",
+        "outcome": "coming",
+        "evidence": "#237 and #193; prototype's literal home has Inventory instead, so these are additional planned slots."
+      },
+      {
+        "element": "Journey chain on home",
+        "outcome": "present",
+        "evidence": "An accepted addition absent from E; #62 explicitly says Journey is not cut. Main JourneyPanel is implemented."
+      },
+      {
+        "element": "Recent received/given kudos card",
+        "outcome": "coming",
+        "evidence": "#248. Additional product-owner requirement, not in E; #249 later adds its Activity links."
+      },
+      {
+        "element": "Activity tab and infinite-scroll timeline",
+        "outcome": "coming",
+        "evidence": "#249, then #251's proof. It is not a substitute for missing standalone moment pages."
+      }
+    ]
+  },
+  {
+    "section": "Character panel and slot picker",
+    "prototype": "[variants/e/gear-character.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/gear-character.tsx), [variants/e/gear-picker.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/gear-picker.tsx), [variants/e/gear-sheet.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/gear-sheet.ts), [variants/e/gear-turn.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/gear-turn.ts)",
+    "production": "[pages/HomePage.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/pages/HomePage.tsx), [home/FeatureCards.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/home/FeatureCards.tsx)",
+    "elements": [
+      {
+        "element": "Character \u00b7 4 slots panel and game-object corner marks",
+        "outcome": "missing",
+        "evidence": "F5; no counterpart in main/slice 4."
+      },
+      {
+        "element": "Character/Inventory two-sided toggle with icons",
+        "outcome": "missing",
+        "evidence": "F5; no Gear side control."
+      },
+      {
+        "element": "One-off panel swirl/flip transition",
+        "outcome": "missing",
+        "evidence": "F5. Allowed one-off motion, with reduced-motion alternative; not a loop."
+      },
+      {
+        "element": "Centre portrait stage with hog, member name and equipped emoji",
+        "outcome": "missing",
+        "evidence": "F5; port Portrait and gear-sheet layout."
+      },
+      {
+        "element": "Hedgehog slot with its icon, art and name",
+        "outcome": "missing",
+        "evidence": "F5; depends on F4 avatar facts/commands."
+      },
+      {
+        "element": "Emoji slot 1 with label, glyph and name",
+        "outcome": "missing",
+        "evidence": "F5; depends on ownership/equipment facts."
+      },
+      {
+        "element": "Emoji slot 2 with label, glyph and name",
+        "outcome": "missing",
+        "evidence": "F5."
+      },
+      {
+        "element": "Emoji slot 3 with label, glyph and name",
+        "outcome": "missing",
+        "evidence": "F5."
+      },
+      {
+        "element": "Empty slot dashed outline and Empty label",
+        "outcome": "missing",
+        "evidence": "F5; port GearSlot's empty state."
+      },
+      {
+        "element": "Selected slot ring and choosing state",
+        "outcome": "missing",
+        "evidence": "F5; keep non-colour selection signal as accepted accessibility requires."
+      },
+      {
+        "element": "Centre-stage picker filtered to one slot kind",
+        "outcome": "missing",
+        "evidence": "F5; port SlotPicker, not the in-memory game store."
+      },
+      {
+        "element": "Choose for slot heading and item-kind icon",
+        "outcome": "missing",
+        "evidence": "F5."
+      },
+      {
+        "element": "Owned-item picker tiles and current check",
+        "outcome": "missing",
+        "evidence": "F5."
+      },
+      {
+        "element": "Other-slot number on emoji already worn elsewhere",
+        "outcome": "missing",
+        "evidence": "F5; command/read must define the move/swap."
+      },
+      {
+        "element": "Take off, Done and Escape-to-cancel controls",
+        "outcome": "missing",
+        "evidence": "F5; preserve keyboard focus and command semantics."
+      },
+      {
+        "element": "Equip returning the centre stage to portrait",
+        "outcome": "missing",
+        "evidence": "F5."
+      },
+      {
+        "element": "Equip burst/pop confirmation and instruction line",
+        "outcome": "missing",
+        "evidence": "F5; one-off, with reduced motion."
+      },
+      {
+        "element": "More hedgehogs at level 7 locked explanation",
+        "outcome": "missing",
+        "evidence": "F5; gate from backend facts, not a copied constant."
+      }
+    ]
+  },
+  {
+    "section": "Inventory side and purchases",
+    "prototype": "[variants/e/gear-bag.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/gear-bag.tsx), [variants/e/gear-inventory.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/gear-inventory.ts), [variants/e/gear-items.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/gear-items.ts), [variants/e/hedgehogs.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/hedgehogs.ts)",
+    "production": "[pages/HomePage.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/pages/HomePage.tsx)",
+    "elements": [
+      {
+        "element": "Inventory heading and calm equip-in-place instruction",
+        "outcome": "missing",
+        "evidence": "F6."
+      },
+      {
+        "element": "Polite live equip/unequip confirmation",
+        "outcome": "missing",
+        "evidence": "F6."
+      },
+      {
+        "element": "Inventory coin balance with coin glyph",
+        "outcome": "missing",
+        "evidence": "F6; coins prerequisite."
+      },
+      {
+        "element": "Hedgehogs section with kind icon and explainer",
+        "outcome": "missing",
+        "evidence": "F6."
+      },
+      {
+        "element": "Kudos emoji section with kind icon and explainer",
+        "outcome": "missing",
+        "evidence": "F6."
+      },
+      {
+        "element": "Equipped n/1 and n/3 counts",
+        "outcome": "missing",
+        "evidence": "F6; use authoritative equipped facts."
+      },
+      {
+        "element": "Owned item art/glyph tiles and names",
+        "outcome": "missing",
+        "evidence": "F6."
+      },
+      {
+        "element": "Equipped tile fill, check and emoji slot number",
+        "outcome": "missing",
+        "evidence": "F6."
+      },
+      {
+        "element": "Click worn emoji to take it off",
+        "outcome": "missing",
+        "evidence": "F6."
+      },
+      {
+        "element": "Choosing new emoji into an empty or replacement slot",
+        "outcome": "missing",
+        "evidence": "F6; do not port mock LRU rules without domain contract."
+      },
+      {
+        "element": "Not yours yet section and dashed rows",
+        "outcome": "missing",
+        "evidence": "F6."
+      },
+      {
+        "element": "Unowned item art/name and how-to-earn text",
+        "outcome": "missing",
+        "evidence": "F6; sourceLabel/howToGet are presentation templates only."
+      },
+      {
+        "element": "Store price/coin-glyph buy buttons",
+        "outcome": "missing",
+        "evidence": "F6; no cosmetic-buy entrance in current website."
+      },
+      {
+        "element": "Insufficient-coins disabled button and shortfall hint",
+        "outcome": "missing",
+        "evidence": "F6."
+      },
+      {
+        "element": "Purchase reveals owned item without a crate",
+        "outcome": "missing",
+        "evidence": "F6; respect accepted V13, purchase is not a reward crate."
+      },
+      {
+        "element": "Every hedgehog on the shelf link",
+        "outcome": "missing",
+        "evidence": "F6 after F7 collection."
+      },
+      {
+        "element": "Inventory remains on its side when equipping",
+        "outcome": "missing",
+        "evidence": "F6; explicit accepted prototype interaction."
+      }
+    ]
+  },
+  {
+    "section": "Hedgehog collection",
+    "prototype": "[variants/e/Collection.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/Collection.tsx), [variants/e/collection-hedgehogs.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/collection-hedgehogs.tsx), [variants/e/hedgehogs.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/hedgehogs.ts)",
+    "production": "[route.ts](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/route.ts), [features.ts](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/features.ts)",
+    "elements": [
+      {
+        "element": "Collection page and Hedgehogs display title",
+        "outcome": "missing",
+        "evidence": "F7. /collection is not found in main/slice 4."
+      },
+      {
+        "element": "Owned-of-catalogue count",
+        "outcome": "missing",
+        "evidence": "F7; count from catalogue/ownership facts."
+      },
+      {
+        "element": "Avatar-explainer sentence and neutrality of kudos value",
+        "outcome": "missing",
+        "evidence": "F7."
+      },
+      {
+        "element": "Coin resource chip on collection",
+        "outcome": "missing",
+        "evidence": "F7 after F6."
+      },
+      {
+        "element": "Responsive 2/3/4-column hedgehog shelf",
+        "outcome": "missing",
+        "evidence": "F7."
+      },
+      {
+        "element": "Every collectable's named art and source line",
+        "outcome": "missing",
+        "evidence": "F7; catalogue IDs/prices from backend, not prototype mock values."
+      },
+      {
+        "element": "Unowned earned hog silhouette and lock icon",
+        "outcome": "missing",
+        "evidence": "F7."
+      },
+      {
+        "element": "Equipped primary ring and disabled Equipped check-button",
+        "outcome": "missing",
+        "evidence": "F7."
+      },
+      {
+        "element": "Owned-hog Equip action",
+        "outcome": "missing",
+        "evidence": "F7."
+      },
+      {
+        "element": "Store-hog Buy for n coins action",
+        "outcome": "missing",
+        "evidence": "F7."
+      },
+      {
+        "element": "Shortfall sentence and unavailable purchase state",
+        "outcome": "missing",
+        "evidence": "F7."
+      },
+      {
+        "element": "One-off purchase reveal on shelf tile",
+        "outcome": "missing",
+        "evidence": "F7, honours reduced motion."
+      },
+      {
+        "element": "Kudos emoji live in your inventory link",
+        "outcome": "missing",
+        "evidence": "F7."
+      },
+      {
+        "element": "Twelve prototype hog entries and five source kinds",
+        "outcome": "missing",
+        "evidence": "F7: starter, level, achievement, quest and store are visible presentation cases. Do not freeze the mock catalogue as production balance."
+      }
+    ]
+  },
+  {
+    "section": "Leaderboard boards, rows and sidebar",
+    "prototype": "[variants/e/Leaderboard.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/Leaderboard.tsx), [variants/e/leaderboard-list.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/leaderboard-list.tsx), [variants/e/leaderboard-podium.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/leaderboard-podium.tsx), [variants/e/leaderboard-faces.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/leaderboard-faces.tsx), [variants/e/leaderboard-story.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/leaderboard-story.ts)",
+    "production": "[pages/LeaderboardPage.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/pages/LeaderboardPage.tsx), [leaderboard/BoardCard.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/leaderboard/BoardCard.tsx), [leaderboard/BoardList.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/leaderboard/BoardList.tsx), [leaderboard/Podium.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/leaderboard/Podium.tsx), [leaderboard/SidePanels.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/leaderboard/SidePanels.tsx), [leaderboard/WholeBoard.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/leaderboard/WholeBoard.tsx)",
+    "elements": [
+      {
+        "element": "Leaderboard \u00b7 kudos given label",
+        "outcome": "present",
+        "evidence": "Main retains it."
+      },
+      {
+        "element": "This week, This month and All time period switch",
+        "outcome": "present",
+        "evidence": "Main PeriodSwitch with URL period."
+      },
+      {
+        "element": "Everyone board card, icon, blurb and standing",
+        "outcome": "present",
+        "evidence": "Main BoardCard renders the single available board."
+      },
+      {
+        "element": "Groups board card with per-person standing",
+        "outcome": "missing",
+        "evidence": "F12; no group board read/page in main/slice 4. P78/G45 is not a cut."
+      },
+      {
+        "element": "My group board card and its standing",
+        "outcome": "missing",
+        "evidence": "F12."
+      },
+      {
+        "element": "Three-card grid/tablist and My group default",
+        "outcome": "missing",
+        "evidence": "F12; current one-card page defaults to Everyone."
+      },
+      {
+        "element": "Board-specific headline and explanatory deck",
+        "outcome": "present",
+        "evidence": "Everyone story exists; group stories require F12."
+      },
+      {
+        "element": "Group-specific story, most-improved group and peer line",
+        "outcome": "missing",
+        "evidence": "F12; not in current web read."
+      },
+      {
+        "element": "Second/first/third podium order and stepped pedestals",
+        "outcome": "present",
+        "evidence": "Main Podium retains the arrangement and correctly levels ties."
+      },
+      {
+        "element": "Crown for first place and tie marks",
+        "outcome": "present",
+        "evidence": "Main Podium/RankWords retain both."
+      },
+      {
+        "element": "Names, values and kudos unit beneath podium faces",
+        "outcome": "present",
+        "evidence": "Main Podium."
+      },
+      {
+        "element": "Teammate picture on podium and row",
+        "outcome": "present",
+        "evidence": "#254 merged into pinned main. Synthetic screenshots deliberately use initials; source Face and leaderboardRowOf prove picture support/fallback."
+      },
+      {
+        "element": "Viewer's equipped hog on podium/rows",
+        "outcome": "missing",
+        "evidence": "F4; current viewer uses person face/initials."
+      },
+      {
+        "element": "Primary viewer ring and You tag",
+        "outcome": "present",
+        "evidence": "Main BoardFace/YouLabel use both."
+      },
+      {
+        "element": "Group hedgehog/team crests on podium and rows",
+        "outcome": "missing",
+        "evidence": "F12, using mapped-team facts rather than hard-coded names."
+      },
+      {
+        "element": "Group per-person score, participation bar and total",
+        "outcome": "missing",
+        "evidence": "F12."
+      },
+      {
+        "element": "Neutral ranked rows, padded ranks, tie signal and kudos values",
+        "outcome": "present",
+        "evidence": "Main BoardLine/BoardList preserve these."
+      },
+      {
+        "element": "Initial viewer-centred window and skipped-position marker",
+        "outcome": "present",
+        "evidence": "Main uses backend window with gap ellipsis."
+      },
+      {
+        "element": "Show 5 more above and Show 5 more below buttons",
+        "outcome": "missing",
+        "evidence": "Main jumps straight to whole board. WS43 describes only gap/window and whole. Call C7; F13."
+      },
+      {
+        "element": "Show the whole board, scrolling and Back to my spot",
+        "outcome": "present",
+        "evidence": "Main BoardList/WholeBoard."
+      },
+      {
+        "element": "Pinned off-screen viewer row with Jump to me",
+        "outcome": "present",
+        "evidence": "Main WholeBoard retains it with keyboard/focus support."
+      },
+      {
+        "element": "Only you see these improvement line",
+        "outcome": "present",
+        "evidence": "Main SidePanels uses the shared improvementLine."
+      },
+      {
+        "element": "Most improved group crest-card",
+        "outcome": "missing",
+        "evidence": "F12, no Groups private facts."
+      },
+      {
+        "element": "How it counts explanation",
+        "outcome": "present",
+        "evidence": "Main explains kudos-given ranking and privacy."
+      },
+      {
+        "element": "Mention of coins/achievements not ranking anyone",
+        "outcome": "missing",
+        "evidence": "Main omits coins/achievements in this sentence. F12/F6 when relevant; P78 alone is no cut."
+      },
+      {
+        "element": "Show me on the leaderboards interactive switch",
+        "outcome": "missing",
+        "evidence": "Main points to Settings in Slack. WS46 is a slice rule. Call C8; F13."
+      },
+      {
+        "element": "Off-the-board hidden face/private row treatment",
+        "outcome": "present",
+        "evidence": "Main ViewerLine represents a member who left the boards. Group variants need F12."
+      },
+      {
+        "element": "Random thank-you panel with Next",
+        "outcome": "coming",
+        "evidence": "#250, proven by #251. This was requested after E and is not a replacement for the group/board omissions."
+      },
+      {
+        "element": "Prototype large leaderboard headline scale",
+        "outcome": "missing",
+        "evidence": "Main PageTitle defaults to text-2xl instead of E's clamp to 3rem. F3."
+      }
+    ]
+  },
+  {
+    "section": "Quest page, group/bonus quests and reward display",
+    "prototype": "[variants/e/Quests.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/Quests.tsx), [variants/e/quests-parts.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/quests-parts.tsx), [variants/e/quests-claim.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/quests-claim.tsx), [variants/e/quests-data.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/quests-data.ts)",
+    "production": "[pages/QuestsPage.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/pages/QuestsPage.tsx), [crates/RewardCrate.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/crates/RewardCrate.tsx), [crates/RevealDialog.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/crates/RevealDialog.tsx)",
+    "elements": [
+      {
+        "element": "Quests kicker and This week heading",
+        "outcome": "present",
+        "evidence": "Main has both; display size differs (F3)."
+      },
+      {
+        "element": "Clock icon and Monday/reset statement",
+        "outcome": "present",
+        "evidence": "Main says New quests arrive every Monday, rather than the mocked countdown."
+      },
+      {
+        "element": "Three personal weekly quest cards",
+        "outcome": "present",
+        "evidence": "Main renders the supplied slots, including fewer slots if fewer are feasible."
+      },
+      {
+        "element": "Per-kind 64 px quest hog illustration",
+        "outcome": "missing",
+        "evidence": "Main quest cards have no hog. V17/WS73 alone were the exclusion in #231. Call C6; F9."
+      },
+      {
+        "element": "Quest kind, goal, neutral progress and done/target count",
+        "outcome": "present",
+        "evidence": "Main QuestCard/QuestProgress retain all parts."
+      },
+      {
+        "element": "Rerolled/Swapped tag",
+        "outcome": "present",
+        "evidence": "Main calls it Swapped, matching the actual command vocabulary."
+      },
+      {
+        "element": "Remaining-reroll icon/count in quest header",
+        "outcome": "missing",
+        "evidence": "No swap availability in the web answer. Call C8; F9."
+      },
+      {
+        "element": "Per-personal-quest Reroll/Swap button",
+        "outcome": "missing",
+        "evidence": "The action remains in Slack. WS73. Call C8; F9."
+      },
+      {
+        "element": "XP reward display",
+        "outcome": "present",
+        "evidence": "Main supplies XP before/after the crate opening."
+      },
+      {
+        "element": "Coin reward glyph/value",
+        "outcome": "missing",
+        "evidence": "Current rewards are XP-only. F6/F10; WS70/P78 gating is no permanent cut."
+      },
+      {
+        "element": "Emoji reward glyph/New emoji and hedgehog reward art/name",
+        "outcome": "missing",
+        "evidence": "Not in current quest web contract. F6/F7/F10."
+      },
+      {
+        "element": "Claim button, primary only for first claimable quest",
+        "outcome": "missing",
+        "evidence": "Main uses Open on a labelled crate instead. Crate behaviour is present, exact Claim action/placement is not. Call C6; F9."
+      },
+      {
+        "element": "Claimed check badge and dimmed finished card",
+        "outcome": "missing",
+        "evidence": "Main has Done; it does not retain prototype claimed-card dimming and per-card check on hog. F9."
+      },
+      {
+        "element": "In-place ClaimCrate replacing the quest-card contents",
+        "outcome": "cut",
+        "evidence": "D4: confirmed full-screen labelled reveals replace the in-place animation. Main already does the full-screen version."
+      },
+      {
+        "element": "Reward chips flying into the HUD after claim",
+        "outcome": "missing",
+        "evidence": "No flyToHud equivalent. One-off motion remains allowed. Call C11; F9."
+      },
+      {
+        "element": "Group quest heading and named primary group",
+        "outcome": "missing",
+        "evidence": "F10; accepted retained game feature, no current web read."
+      },
+      {
+        "element": "Group quest card/progress/reward",
+        "outcome": "missing",
+        "evidence": "F10."
+      },
+      {
+        "element": "Helper avatar row with contributor checks and muted nonhelpers",
+        "outcome": "missing",
+        "evidence": "F10, subject to Call C6: P82 forbids names; no direct decision quoted to remove this accepted UI."
+      },
+      {
+        "element": "Group participation count and shared-reward explanation",
+        "outcome": "missing",
+        "evidence": "F10; distinguish anonymous count from contributor identities."
+      },
+      {
+        "element": "Fresh-unlock bonus quest with New tag",
+        "outcome": "missing",
+        "evidence": "F11."
+      },
+      {
+        "element": "Bonus quest that persists until completed",
+        "outcome": "missing",
+        "evidence": "F11; authoritative persistence must be supplied by domain."
+      },
+      {
+        "element": "Bonus-quest feature link",
+        "outcome": "missing",
+        "evidence": "F11."
+      },
+      {
+        "element": "How quests work panel",
+        "outcome": "present",
+        "evidence": "Main retains a personal-quest explanation and Slack-swap direction."
+      },
+      {
+        "element": "How quests work group/chime-in/bonus sentences",
+        "outcome": "missing",
+        "evidence": "F10/F11 after their facts ship."
+      },
+      {
+        "element": "Quest-target deep links and scroll-to-quest",
+        "outcome": "missing",
+        "evidence": "Main /quests has no quest param/anchor targeting; prototype useScrollTo takes an ID. F9."
+      },
+      {
+        "element": "Unopened earlier-week reward cards and week labels",
+        "outcome": "present",
+        "evidence": "Production addition; Main WaitingToOpen covers it, not present in E."
+      }
+    ]
+  },
+  {
+    "section": "Skill tree structure and purchase details",
+    "prototype": "[variants/e/Skills.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/Skills.tsx), [variants/e/skills-perks.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/skills-perks.ts), [variants/e/skills-icons.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/skills-icons.tsx)",
+    "production": "[pages/SkillTreePage.tsx](https://github.com/Silthus/kudos/blob/a9a5e37b18be19d1ba442a075ce6e582efbef4ec/website/src/pages/SkillTreePage.tsx), [skills/PerkTree.tsx](https://github.com/Silthus/kudos/blob/a9a5e37b18be19d1ba442a075ce6e582efbef4ec/website/src/skills/PerkTree.tsx), [skills/YourPerks.tsx](https://github.com/Silthus/kudos/blob/a9a5e37b18be19d1ba442a075ce6e582efbef4ec/website/src/skills/YourPerks.tsx), [skills/PerkDetails.tsx](https://github.com/Silthus/kudos/blob/a9a5e37b18be19d1ba442a075ce6e582efbef4ec/website/src/skills/PerkDetails.tsx)",
+    "elements": [
+      {
+        "element": "Perks title and Skill tree kicker",
+        "outcome": "present",
+        "evidence": "Slice 4 SkillTreePage; #193 delivery pending. Title is smaller than E (F3)."
+      },
+      {
+        "element": "Owned-of-14 header count",
+        "outcome": "missing",
+        "evidence": "WS85/WS94 drop it. Call C9; F14."
+      },
+      {
+        "element": "Skill points to spend line",
+        "outcome": "present",
+        "evidence": "Slice 4 renders it."
+      },
+      {
+        "element": "Skill point, coin and LV resource chips on the page",
+        "outcome": "missing",
+        "evidence": "Only the HUD skill-point chip exists. Page chips/LV absent; coin fact not supplied. WS85/WS94. Call C9; F14."
+      },
+      {
+        "element": "Perk tree panel and level-5 rail",
+        "outcome": "present",
+        "evidence": "Slice 4 PerkTree."
+      },
+      {
+        "element": "Owned, Can buy, Upgraded, Locked legend",
+        "outcome": "missing",
+        "evidence": "No legend, including already-supported Owned/Can buy/Locked states. F14."
+      },
+      {
+        "element": "Compact square nodes with captions beneath",
+        "outcome": "missing",
+        "evidence": "Slice 4 uses large enclosing cards. F14; this is independent of unshipped perks."
+      },
+      {
+        "element": "Spark, Rhythm and Circle nodes/icons",
+        "outcome": "present",
+        "evidence": "All three shipped nodes are rendered by slice 4."
+      },
+      {
+        "element": "Level-7 Flame, Cadence, Bridge and Treasurer row",
+        "outcome": "missing",
+        "evidence": "F15; no later-row data. Accepted 14-perk design is not cut by WS85/P78."
+      },
+      {
+        "element": "Level-9 Focus, Echo, Reserve and Banker row",
+        "outcome": "missing",
+        "evidence": "F15."
+      },
+      {
+        "element": "Level-12 Spotlight, Resonance and Reservoir row",
+        "outcome": "missing",
+        "evidence": "F15."
+      },
+      {
+        "element": "Upgrade connector lines and downward arrows",
+        "outcome": "missing",
+        "evidence": "F15."
+      },
+      {
+        "element": "Neutral owned icons and check badges",
+        "outcome": "present",
+        "evidence": "Slice 4 PerkTree renders both."
+      },
+      {
+        "element": "Locked node lock badge and requirement reason",
+        "outcome": "present",
+        "evidence": "Slice 4 supports unavailable nodes and reasons for its returned rows."
+      },
+      {
+        "element": "Available-node primary border",
+        "outcome": "missing",
+        "evidence": "Slice 4 uses neutral border except selected node. V4/WS94 were the drop. Call C9; F14."
+      },
+      {
+        "element": "Visible selection ring/check or Selected label",
+        "outcome": "present",
+        "evidence": "Slice 4 improves E with Selected text and aria-pressed."
+      },
+      {
+        "element": "Cost chip with skill-point glyph",
+        "outcome": "present",
+        "evidence": "Slice 4 shows skill-point cost, though it lacks E's compact pill shape (F14)."
+      },
+      {
+        "element": "Coin cost beside skill point cost",
+        "outcome": "missing",
+        "evidence": "F15 after coin-cost perks exist."
+      },
+      {
+        "element": "Replaced base ghosting and became-upgrade caption",
+        "outcome": "missing",
+        "evidence": "F15."
+      },
+      {
+        "element": "Absorbed base mini-icon on an owned upgrade",
+        "outcome": "missing",
+        "evidence": "F15."
+      },
+      {
+        "element": "Your perks ledger and empty explanation",
+        "outcome": "present",
+        "evidence": "Slice 4 YourPerks renders the owned entries and empty copy."
+      },
+      {
+        "element": "Your perks active count and Permanent always on note",
+        "outcome": "missing",
+        "evidence": "No header count/note. F14."
+      },
+      {
+        "element": "One active entry per chain with stacked Upgraded from base",
+        "outcome": "missing",
+        "evidence": "Slice 4 lists owned purchases, not an upgrade-aware ledger. F15."
+      },
+      {
+        "element": "Full effect in owned perk and detail sheet",
+        "outcome": "present",
+        "evidence": "Slice 4 uses authoritative qualifying-kudos copy, not prototype mock balance."
+      },
+      {
+        "element": "Prototype exact perk effect strings",
+        "outcome": "missing",
+        "evidence": "Changed by P94/P95/WS86; no direct product-owner quote here settles every balance/copy change. Call C9: use domain-approved copy, never copy stale mock rules."
+      },
+      {
+        "element": "Sticky desktop detail sheet",
+        "outcome": "present",
+        "evidence": "Slice 4 PerkDetailsPanel."
+      },
+      {
+        "element": "Mobile detail drawer with name/state/effect/cost",
+        "outcome": "present",
+        "evidence": "Slice 4 PerkDetailsDrawer, observed at 390 px in both themes."
+      },
+      {
+        "element": "Level, prerequisite and permanent/no-respec explanation",
+        "outcome": "present",
+        "evidence": "Slice 4 details retain these for available facts."
+      },
+      {
+        "element": "Buy action and success/failure confirmation",
+        "outcome": "present",
+        "evidence": "Slice 4 calls buyPerk through authoritative command and shows its actual outcome; no mock spending."
+      },
+      {
+        "element": "Switch on for today action on Focus/Spotlight",
+        "outcome": "missing",
+        "evidence": "F15; active perk command is not on the website."
+      },
+      {
+        "element": "Unspent-point/coin shortage copy and disabled buying",
+        "outcome": "present",
+        "evidence": "Point/requirement reasons are supported in slice 4. Coin shortage requires F15."
+      },
+      {
+        "element": "One-off node purchase pop/burst",
+        "outcome": "missing",
+        "evidence": "No E-style effect; production confirmation exists. Call C11; F14."
+      },
+      {
+        "element": "How perks work educational panel",
+        "outcome": "present",
+        "evidence": "Production addition in slice 4, not an E omission."
+      }
+    ]
+  },
+  {
+    "section": "Book shell and overview",
+    "prototype": "[variants/e/Book.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/Book.tsx), [variants/e/book-achievements.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/book-achievements.tsx), [variants/e/book-data.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/book-data.ts), [variants/e/book.css](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/book.css)",
+    "production": "[pages/BookPage.tsx](https://github.com/Silthus/kudos/blob/a9a5e37b18be19d1ba442a075ce6e582efbef4ec/website/src/pages/BookPage.tsx), [book/Ladder.tsx](https://github.com/Silthus/kudos/blob/a9a5e37b18be19d1ba442a075ce6e582efbef4ec/website/src/book/Ladder.tsx)",
+    "elements": [
+      {
+        "element": "Book route and Achievements title",
+        "outcome": "present",
+        "evidence": "Slice 4 /book; still awaiting #193 delivery."
+      },
+      {
+        "element": "Sticky left Book page index with Book icon",
+        "outcome": "missing",
+        "evidence": "F16. Slice 4 has one flat list."
+      },
+      {
+        "element": "Overview index entry",
+        "outcome": "missing",
+        "evidence": "F16; no overview route/state."
+      },
+      {
+        "element": "Sticker albums index section with Yours/completion marks",
+        "outcome": "missing",
+        "evidence": "F18; no album read."
+      },
+      {
+        "element": "Four achievement-category index entries and emblems",
+        "outcome": "missing",
+        "evidence": "F16; grouping is absent even for shipped ladders."
+      },
+      {
+        "element": "Index current-page stripe, neutral bars and counts",
+        "outcome": "missing",
+        "evidence": "F16; totals are also Call C10/P61/WS92."
+      },
+      {
+        "element": "Mobile Book page native select with optgroups",
+        "outcome": "missing",
+        "evidence": "F16. Captured prototype at 390 px shows the selector."
+      },
+      {
+        "element": "Paper texture, spread/book frame and page transitions",
+        "outcome": "missing",
+        "evidence": "F16/F18; production cards are plain Quill under V2. Call C10 for paper styling, not a disappearance of the Book's navigation."
+      },
+      {
+        "element": "Book-reading hog on overview",
+        "outcome": "missing",
+        "evidence": "F16; identifying category art is allowed by V17."
+      },
+      {
+        "element": "Total tiers earned, ladder count and summary progress bar",
+        "outcome": "missing",
+        "evidence": "WS92/P61 exclude it. Call C10; F17."
+      },
+      {
+        "element": "Closest next tier card, emblem and requirement/reward line",
+        "outcome": "missing",
+        "evidence": "WS92/P61 exclude it. Call C10; F17."
+      },
+      {
+        "element": "Recently earned trophy shelf and New marker",
+        "outcome": "missing",
+        "evidence": "WS92 excludes it. Call C10; F17."
+      },
+      {
+        "element": "Shelf latest tier names, medals, dates and rewards",
+        "outcome": "missing",
+        "evidence": "F17; dates already exist, reward kinds need facts."
+      },
+      {
+        "element": "Four category tiles with art, emblems, counts and progress",
+        "outcome": "missing",
+        "evidence": "F16/F17; no approved cut. Call C10 for aggregate count."
+      },
+      {
+        "element": "Sticker albums summary tile",
+        "outcome": "missing",
+        "evidence": "F18."
+      },
+      {
+        "element": "Category-specific page headings and blurbs",
+        "outcome": "missing",
+        "evidence": "F16; WS92/call 10 flattening is agent scope, not verbatim owner rejection."
+      }
+    ]
+  },
+  {
+    "section": "Achievement ladders and tiers",
+    "prototype": "[variants/e/book-achievements.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/book-achievements.tsx), [variants/e/book-emblems.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/book-emblems.tsx), [variants/e/book-requirements.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/book-requirements.ts), [variants/e/book-rewards.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/book-rewards.ts)",
+    "production": "[book/Ladder.tsx](https://github.com/Silthus/kudos/blob/a9a5e37b18be19d1ba442a075ce6e582efbef4ec/website/src/book/Ladder.tsx), [book/LadderEmblem.tsx](https://github.com/Silthus/kudos/blob/a9a5e37b18be19d1ba442a075ce6e582efbef4ec/website/src/book/LadderEmblem.tsx), [book/Medal.tsx](https://github.com/Silthus/kudos/blob/a9a5e37b18be19d1ba442a075ce6e582efbef4ec/website/src/book/Medal.tsx), [bookFixtures.ts](https://github.com/Silthus/kudos/blob/a9a5e37b18be19d1ba442a075ce6e582efbef4ec/website/src/bookFixtures.ts)",
+    "elements": [
+      {
+        "element": "Ladder name, what it counts and four tier cells",
+        "outcome": "present",
+        "evidence": "Slice 4 Ladder."
+      },
+      {
+        "element": "Hedgehog emblem identifying each shipped ladder",
+        "outcome": "present",
+        "evidence": "Slice 4 maps seven IDs to official hoggies and supports silhouettes."
+      },
+      {
+        "element": "Metal rosette matching highest earned tier and sparkle",
+        "outcome": "missing",
+        "evidence": "Slice 4 LadderEmblem is a plain circle. F17; tier-metal medals themselves exist."
+      },
+      {
+        "element": "Unstarted ladder silhouette",
+        "outcome": "present",
+        "evidence": "Slice 4 applies book-silhouette when no tier is earned."
+      },
+      {
+        "element": "Latest/highest tier date beside ladder name",
+        "outcome": "missing",
+        "evidence": "Dates appear only in tier cells. F17."
+      },
+      {
+        "element": "Next-tier neutral progress bar and numeric count",
+        "outcome": "present",
+        "evidence": "Slice 4 WayToNext."
+      },
+      {
+        "element": "Plain-language remaining requirement inside/along the bar",
+        "outcome": "missing",
+        "evidence": "Slice 4 shows count of threshold for tier name, not E's requirementOf sentence. F17; requires supplied unit/rule copy, no derived game rule."
+      },
+      {
+        "element": "Complete line/full bar after all four tiers",
+        "outcome": "missing",
+        "evidence": "Slice 4 renders no bar when next is null. F17."
+      },
+      {
+        "element": "Bronze, silver, gold, diamond metal and printed word",
+        "outcome": "present",
+        "evidence": "Slice 4 Medal/Tier; metal tokens have light/dark values."
+      },
+      {
+        "element": "One-to-four pips and static gold/diamond sparkle",
+        "outcome": "present",
+        "evidence": "Slice 4 improves E's shared medal, matching accepted V16."
+      },
+      {
+        "element": "Earned tier name/date and unearned At threshold",
+        "outcome": "present",
+        "evidence": "Slice 4 Tier formats authoritative earnedAt in the supplied time zone."
+      },
+      {
+        "element": "Next tier tag",
+        "outcome": "present",
+        "evidence": "Slice 4 uses a neutral Next tag."
+      },
+      {
+        "element": "Primary ring/background on the Next tier cell",
+        "outcome": "missing",
+        "evidence": "WS92 makes it neutral. V4 alone does not decide whether Next is the one selected action. Call C10; F17."
+      },
+      {
+        "element": "Coin, emoji and hedgehog reward lines on each tier",
+        "outcome": "missing",
+        "evidence": "WS91 omits all rewards. F17/F6/F7; Call C4 for permanence of that omission."
+      },
+      {
+        "element": "Generosity, Recognition, Connections, Dependability, Applause, Seasons and Old Friends ladders",
+        "outcome": "present",
+        "evidence": "These IDs are supported by slice 4's read/emblems; fixture screenshot shows only two deliberately. Runtime count is not the mock count."
+      },
+      {
+        "element": "Team Spirit ladder",
+        "outcome": "missing",
+        "evidence": "F18; depends on album-completion facts."
+      },
+      {
+        "element": "Crowd Favourite, Standing Ovation and Amplifier ladders",
+        "outcome": "missing",
+        "evidence": "F10/F17; slice 4's returned catalogue does not include these IDs. WS90/P78 is no cut."
+      },
+      {
+        "element": "Four category grouping and per-category header progress",
+        "outcome": "missing",
+        "evidence": "F16/F17; WS92 excludes categories and totals. Call C10."
+      },
+      {
+        "element": "Prototype exact counts, tier thresholds and reward balance",
+        "outcome": "missing",
+        "evidence": "Not production data to port. Call C9/C12: fidelity concerns the presentation; the backend owns the catalogue and earned facts."
+      }
+    ]
+  },
+  {
+    "section": "Panini albums, team photos and stickers",
+    "prototype": "[variants/e/book-album.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/book-album.tsx), [variants/e/book-data.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/book-data.ts), [variants/e/book.css](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/book.css)",
+    "production": "[pages/BookPage.tsx](https://github.com/Silthus/kudos/blob/a9a5e37b18be19d1ba442a075ce6e582efbef4ec/website/src/pages/BookPage.tsx)",
+    "elements": [
+      {
+        "element": "Album pages and mine-first group ordering",
+        "outcome": "missing",
+        "evidence": "F18; slice 4 has no albums."
+      },
+      {
+        "element": "Two-page spread with left/right paper and page numbers",
+        "outcome": "missing",
+        "evidence": "F18."
+      },
+      {
+        "element": "Primary/Your/Group label, crest, name and member count",
+        "outcome": "missing",
+        "evidence": "F18; map #1 group roster prerequisite."
+      },
+      {
+        "element": "Team-photo 16:10 framed cover, corner mounts and credit",
+        "outcome": "missing",
+        "evidence": "F18. Accepted V22 uses mapped company-team photo; the whole photo element is not cut."
+      },
+      {
+        "element": "No team photo yet illustration/state",
+        "outcome": "missing",
+        "evidence": "F18; source for empty state and accepted mapped/unmapped fallback."
+      },
+      {
+        "element": "Upload a team photo, Change and Remove controls",
+        "outcome": "cut",
+        "evidence": "D5: product owner accepted company-source/fallback and dropping member uploads. Do not invent upload storage to match the old prototype."
+      },
+      {
+        "element": "Use our photo from posthog.com action",
+        "outcome": "missing",
+        "evidence": "The approved automatic mapped-team source replaces user choice, but the literal action has no distinct verbatim rejection. Call C10: use D5's automatic source, not the mocked illustration as a real team photo."
+      },
+      {
+        "element": "Sticker range heading and held-of-total count",
+        "outcome": "missing",
+        "evidence": "F18."
+      },
+      {
+        "element": "Numbered collected sticker cards with face and name strip",
+        "outcome": "missing",
+        "evidence": "F18; never copy DiceBear or real names/photos into this public report."
+      },
+      {
+        "element": "Sticker die-cut border, sheen and deterministic slight tilt",
+        "outcome": "missing",
+        "evidence": "F18."
+      },
+      {
+        "element": "Missing numbered slots with member name",
+        "outcome": "missing",
+        "evidence": "F18; private album. P61's anti-targeting language needs Call C10 for this literal presentation."
+      },
+      {
+        "element": "Since/you thanked them/they thanked you tooltip facts",
+        "outcome": "missing",
+        "evidence": "F18; read contract must supply each fact."
+      },
+      {
+        "element": "Remaining-to-collect count and neutral album bar",
+        "outcome": "missing",
+        "evidence": "F18; private progress."
+      },
+      {
+        "element": "Still to swap thanks with named missing members sentence",
+        "outcome": "missing",
+        "evidence": "P61/WS101 anti-targeting rules conflict; no quoted owner cut. Call C10; F18."
+      },
+      {
+        "element": "Completed album stamped Complete with date",
+        "outcome": "missing",
+        "evidence": "F18; permanent completion/date fact required."
+      },
+      {
+        "element": "Album permanence/privacy and Team Spirit link",
+        "outcome": "missing",
+        "evidence": "F18."
+      },
+      {
+        "element": "Shared-team-photo/private-stickers explanation",
+        "outcome": "missing",
+        "evidence": "F18; adapt it to D5's company-source photo."
+      }
+    ]
+  },
+  {
+    "section": "Locks, readiness and empty states",
+    "prototype": "[variants/e/unlock-gate.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/unlock-gate.tsx), [variants/e/profile-locked.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/profile-locked.tsx), [variants/e/unlock-features.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/unlock-features.tsx)",
+    "production": "[pages/WaitsPage.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/pages/WaitsPage.tsx), [pages/ReadyPage.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/pages/ReadyPage.tsx), [leaderboard/EmptyBoard.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/leaderboard/EmptyBoard.tsx), [pages/NotFoundPage.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/pages/NotFoundPage.tsx)",
+    "elements": [
+      {
+        "element": "Below-level page with hog silhouette, lock, unlock level and feature teaser",
+        "outcome": "missing",
+        "evidence": "Home cards supply these, but routed WaitsPage uses generic Max and one level sentence. F19."
+      },
+      {
+        "element": "Blurred feature-specific ghost preview on locked page",
+        "outcome": "cut",
+        "evidence": "D3: accepted calm locked summary replaces progress teasers. Retain a meaningful silhouette/feature sentence in F19."
+      },
+      {
+        "element": "Locked-page levels-to-go sentence and climb progress",
+        "outcome": "cut",
+        "evidence": "D3; do not present a progress challenge for a locked feature."
+      },
+      {
+        "element": "Locked-page Back to your profile/Home action",
+        "outcome": "present",
+        "evidence": "Main WaitsPage has Go to Home; slice 4 shares this for Book/skills."
+      },
+      {
+        "element": "Ready page's crate, unlock name and Open action",
+        "outcome": "present",
+        "evidence": "Main ReadyPage and slice 4 FeatureWaitsPage."
+      },
+      {
+        "element": "Night band and large ready-unlock headline/teaser",
+        "outcome": "missing",
+        "evidence": "Main ready page uses a plain card; F19. No verbatim decision drops this static layout."
+      },
+      {
+        "element": "Ready inventory, coins and collection gates/crates",
+        "outcome": "missing",
+        "evidence": "F5/F6/F7; not yet in the shipped feature list."
+      },
+      {
+        "element": "Ready-feature crate art, gems, lid, rays and hog reveal",
+        "outcome": "present",
+        "evidence": "Main CrateArt is a fresh port with theme-safe colours and one-off animation."
+      },
+      {
+        "element": "Empty leaderboard hog, quiet explanation and Slack action",
+        "outcome": "present",
+        "evidence": "Main EmptyBoard adds an actual empty state; E only has mock populated boards."
+      },
+      {
+        "element": "Empty quests hog, quiet explanation and Slack action",
+        "outcome": "present",
+        "evidence": "Main NoQuests supplies these."
+      },
+      {
+        "element": "Errors, signed-out denial and not-found page",
+        "outcome": "present",
+        "evidence": "Main adds real operational states absent from mock E; they are not fidelity omissions."
+      }
+    ]
+  },
+  {
+    "section": "Unlock and quest moments",
+    "prototype": "[variants/e/unlock-overlay.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/unlock-overlay.tsx), [variants/e/unlock-crate.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/unlock-crate.tsx), [variants/e/unlock-reward.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/unlock-reward.tsx), [variants/e/Moments.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/Moments.tsx)",
+    "production": "[crates/RevealDialog.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/crates/RevealDialog.tsx), [crates/CrateArt.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/crates/CrateArt.tsx), [crates/seen.ts](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/crates/seen.ts), [crates/RewardCrate.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/crates/RewardCrate.tsx)",
+    "elements": [
+      {
+        "element": "Full-screen dark unlock scrim and crate art",
+        "outcome": "present",
+        "evidence": "Main RevealDialog/CrateArt; observed from a synthetic ready feature crate."
+      },
+      {
+        "element": "Feature-opening command and already-earned reward semantics",
+        "outcome": "present",
+        "evidence": "Main sends openFeature/openQuestCrate; no client reward draw."
+      },
+      {
+        "element": "Feature-specific heading and Go there action",
+        "outcome": "present",
+        "evidence": "Main EndState/GoThere, with slice 4 /skills and /book destinations waiting for #193."
+      },
+      {
+        "element": "Detailed what-waits checklist under feature unlock",
+        "outcome": "missing",
+        "evidence": "Main prints only It opens \u2026 . F19; port unlock-overlay Reveal with supplied feature copy."
+      },
+      {
+        "element": "Open the next one and remaining-ready count inside reveal",
+        "outcome": "missing",
+        "evidence": "Main ends with Done/Go/Replay. F19."
+      },
+      {
+        "element": "Later/close action and return focus",
+        "outcome": "present",
+        "evidence": "Main uses Done/Escape and restores focus; wording differs but the function exists."
+      },
+      {
+        "element": "First-play, seen end-state and Replay button",
+        "outcome": "present",
+        "evidence": "Main uses opaque per-member/crate seen key and Replay."
+      },
+      {
+        "element": "Skip by click/key and reduced-motion end state",
+        "outcome": "present",
+        "evidence": "Main reveal supports skipping and end-state-only reduced motion."
+      },
+      {
+        "element": "Quest/Journey reward label and XP end-state",
+        "outcome": "present",
+        "evidence": "Main RewardEndState and rewardLabelOf."
+      },
+      {
+        "element": "Reward coin, emoji and hog chips in the reveal",
+        "outcome": "missing",
+        "evidence": "Main quest reveal has XP only. F6/F7/F10."
+      },
+      {
+        "element": "Standalone quest-reward band landing and quest-specific recap",
+        "outcome": "missing",
+        "evidence": "Main routes Slack crates to /quests; no /landing/quest. Functional crate is present, full accepted page is absent. F22; Call C11."
+      },
+      {
+        "element": "Standalone unlock band route, feature list and next-unlock note",
+        "outcome": "missing",
+        "evidence": "No /landing/unlock route. F19/F20; Call C11."
+      },
+      {
+        "element": "Live new-event notifications waiting in HUD pill",
+        "outcome": "missing",
+        "evidence": "Pill contains crates, not all level-up/achievement/kudos events. F20/F21/F22; #249 timeline does not add this event tray."
+      }
+    ]
+  },
+  {
+    "section": "Level-up, achievement, kudos and hedgehog band landings",
+    "prototype": "[variants/e/Moments.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/Moments.tsx), [variants/e/moments-chest.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/moments-chest.tsx), [variants/e/moments-data.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/moments-data.ts), [variants/e/moments.css](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/moments.css)",
+    "production": "[route.ts](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/route.ts), [crates/RevealDialog.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/crates/RevealDialog.tsx)",
+    "elements": [
+      {
+        "element": "Shared moment band shell, brand-colour texture and large headline",
+        "outcome": "missing",
+        "evidence": "Band colour tokens exist in main CSS, but no MomentShell/band page. F20/F21/F22."
+      },
+      {
+        "element": "Back to Slack and Replay on standalone moments",
+        "outcome": "missing",
+        "evidence": "Reveal Replay exists; moment-specific return/link does not. F20/F21/F22."
+      },
+      {
+        "element": "Level up kicker and HedgehogLevelUp art",
+        "outcome": "missing",
+        "evidence": "F20; /landing/level-up is not found."
+      },
+      {
+        "element": "Reached-level ticker, burst/ring and animated XP track",
+        "outcome": "missing",
+        "evidence": "F20, respecting accepted first-play/reduced-motion rules."
+      },
+      {
+        "element": "XP to next level and skill-point reward chip",
+        "outcome": "missing",
+        "evidence": "F20; sourced event facts required, not E's fixed numbers."
+      },
+      {
+        "element": "What this level unlocks rows and ready/open action",
+        "outcome": "missing",
+        "evidence": "F20."
+      },
+      {
+        "element": "Level-up next-feature hint or every-part-is-yours sentence",
+        "outcome": "missing",
+        "evidence": "F20."
+      },
+      {
+        "element": "Level-up primary Open first crate/Spend points/Go profile",
+        "outcome": "missing",
+        "evidence": "F20; current home/pill offers those actions elsewhere."
+      },
+      {
+        "element": "Achievement band, earned-tier name and StampApproved art",
+        "outcome": "missing",
+        "evidence": "F21; /landing/achievement is not found."
+      },
+      {
+        "element": "Achievement medal plaque/stamp and ladder/tier line",
+        "outcome": "missing",
+        "evidence": "F21."
+      },
+      {
+        "element": "Achievement reward chest/item and reward explanation",
+        "outcome": "missing",
+        "evidence": "F21 after reward facts; a stored promised reward is not a new draw."
+      },
+      {
+        "element": "Achievement See achievements or Go profile action",
+        "outcome": "missing",
+        "evidence": "F21."
+      },
+      {
+        "element": "Kudos giver-led name/message/time and private-only note",
+        "outcome": "missing",
+        "evidence": "Standalone received-kudos landing is absent. #248/#249 add card/timeline only. F22."
+      },
+      {
+        "element": "Kudos XP, coin and new-sticker quiet follow-up",
+        "outcome": "missing",
+        "evidence": "F22; coins/stickers need facts. Do not invent recipient XP from giver XP."
+      },
+      {
+        "element": "Kudos sticker-book/profile continuation",
+        "outcome": "missing",
+        "evidence": "F22 after F18."
+      },
+      {
+        "element": "Kudos high-intensity band/count-ups as ordinary received thanks",
+        "outcome": "cut",
+        "evidence": "D4: accepted quiet giver/message-led kudos presentation (V14), no chest. Preserve the information in F22."
+      },
+      {
+        "element": "New-hedgehog lemon band, egg/hatch and hog reveal",
+        "outcome": "missing",
+        "evidence": "F23; /landing/hedgehog is not found."
+      },
+      {
+        "element": "New hog name/source and Make it my avatar action",
+        "outcome": "missing",
+        "evidence": "F23 after F4/F7; duplicate equipped state has explicit confirmation."
+      },
+      {
+        "element": "App Home blue tour band and Reading art",
+        "outcome": "missing",
+        "evidence": "F24; /landing/app-home is not found, App Home now links straight home."
+      },
+      {
+        "element": "Tour links and locked feature rows",
+        "outcome": "missing",
+        "evidence": "F24, unless product owner prefers the current direct-home entry. Call C11."
+      },
+      {
+        "element": "Moment chooser/sub-kind links and prototype sign-in explanation",
+        "outcome": "missing",
+        "evidence": "Debug-only picker. No direct cut quote; Call C12 recommends excluding from production."
+      },
+      {
+        "element": "One-off moment timing, sparks, sticker pop and chest/egg reveal art",
+        "outcome": "missing",
+        "evidence": "F20/F21/F23. Source CSS/Chest/Egg are reference assets, not reward logic."
+      },
+      {
+        "element": "Infinite moment chest wobble and tap-hint breathing",
+        "outcome": "cut",
+        "evidence": "D1, confirmed no infinite animation."
+      },
+      {
+        "element": "Round-9 removed boosters, auras, drops, rarities, titles, quips, streaks and freezes",
+        "outcome": "cut",
+        "evidence": "D6: accepted round-9 design. They are already absent from active E; old shared mock data/components are not new missing features."
+      }
+    ]
+  },
+  {
+    "section": "Command palette contents and keyboard states",
+    "prototype": "[variants/e/palette.tsx](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/palette.tsx), [variants/e/palette-commands.ts](https://github.com/Silthus/kudos/blob/3409ade/prototype/website-ui/src/variants/e/palette-commands.ts)",
+    "production": "[Frame.tsx](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/Frame.tsx), [route.ts](https://github.com/Silthus/kudos/blob/763c147f81267d8c0581e4e0f2c0b4a9ab45855d/website/src/route.ts)",
+    "elements": [
+      {
+        "element": "Modal backdrop, prompt glyph, command input and Esc hint",
+        "outcome": "missing",
+        "evidence": "F2; no palette in main/slice 4."
+      },
+      {
+        "element": "Suggestions with icons, usage, blurb and aliases",
+        "outcome": "missing",
+        "evidence": "F2."
+      },
+      {
+        "element": "Arrow selection, Tab completion, Enter execution and focus return",
+        "outcome": "missing",
+        "evidence": "F2; harden dialog focus against the current production accessibility requirements."
+      },
+      {
+        "element": "Profile, quests, lb flags, Book/achievements and skills commands",
+        "outcome": "missing",
+        "evidence": "F2, use real route registry and read gates."
+      },
+      {
+        "element": "Inventory/collection commands and aliases",
+        "outcome": "missing",
+        "evidence": "F2 after F5/F7."
+      },
+      {
+        "element": "Locked command reason with member level and unlock level",
+        "outcome": "missing",
+        "evidence": "F2; needs Call C1 consistency with locked nav."
+      },
+      {
+        "element": "Ready command opening its crate",
+        "outcome": "missing",
+        "evidence": "F2."
+      },
+      {
+        "element": "Theme and sign-out commands",
+        "outcome": "missing",
+        "evidence": "Equivalent controls exist elsewhere; palette affordance itself is absent. F2."
+      },
+      {
+        "element": "Help/show-everything screen and keyboard footer",
+        "outcome": "missing",
+        "evidence": "F2."
+      },
+      {
+        "element": "Error/status output and unknown-command hog state",
+        "outcome": "missing",
+        "evidence": "F2."
+      },
+      {
+        "element": "Playful hidden commands and witty traps",
+        "outcome": "missing",
+        "evidence": "F2; Call C2 for production scope. Correct any stale prototype copy such as 12 ladders/three trees before shipping."
+      },
+      {
+        "element": "Use system setting command",
+        "outcome": "missing",
+        "evidence": "V6 promised it; E lacks it too. Production theme control has the function, palette command waits on F2."
+      }
+    ]
+  }
+]

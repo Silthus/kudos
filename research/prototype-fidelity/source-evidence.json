@@ -1,0 +1,39 @@
+{
+  "observedAt": "2026-10-14T09:50:35Z",
+  "initialMain": "763c147f81267d8c0581e4e0f2c0b4a9ab45855d",
+  "finalMain": "0130d82b724513348394bf7190d6aa38a6ad76e8",
+  "slice4Source": "a9a5e37b18be19d1ba442a075ce6e582efbef4ec",
+  "slice4FinalProofOnly": "97b85349acd249d9468f29481f7d500272de9ecb",
+  "prototype": "3409ade",
+  "liveAssets": [
+    {
+      "path": "/favicon.svg",
+      "status": 200,
+      "contentType": "image/svg+xml",
+      "sha256": "3d41a88cd78bf3db2beb4d9489a9a0700bacd71f9b534c98543038edd529a683"
+    },
+    {
+      "path": "/favicon-32.png",
+      "status": 200,
+      "contentType": "image/png",
+      "sha256": "1a4d042b9f31e82eced54110fb35b220d263ae21bafd4f253668272257ca09c2"
+    },
+    {
+      "path": "/apple-touch-icon.png",
+      "status": 200,
+      "contentType": "image/png",
+      "sha256": "bb9101b7355255101212a3efa48301fc1a2798d5c8a38745d65659d234dc67d9"
+    }
+  ],
+  "mobileObservation": {
+    "viewportWidth": 390,
+    "slice4DocumentScrollWidth": 422,
+    "openPages": [
+      "Home",
+      "Quests",
+      "Leaderboard",
+      "The Book",
+      "Skill tree"
+    ]
+  }
+}

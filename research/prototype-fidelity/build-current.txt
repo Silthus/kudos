@@ -1,0 +1,40 @@
+Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
+Progress: resolved 0, reused 1, downloaded 0, added 0
+[WARN] 4 deprecated subdependencies found: @oslojs/asn1@1.0.0, @oslojs/binary@1.0.0, @oslojs/crypto@1.0.1, lucia@3.2.2
+Packages: +141
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Error:   × installing dependencies
+  ╰─▶ Failed to create directory at "<temporary-audit-directory>/current/website/
+      node_modules": workspace hoist directory is not a real directory
+
+[WARN] The install that runs before scripts failed, so your node_modules may be out of sync with your lockfile. Set "verifyDepsBeforeRun: false" to skip this install.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vite.config" without a file extension (vite.audit.config.ts:1:18). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+vite v8.3.4 building client environment for production...
+transforming...
+✓ 3148 modules transformed.
+
+(!) outDir <temporary-audit-directory>/build-current is not inside project root and will not be emptied.
+Use --emptyOutDir to override.
+
+rendering chunks...
+computing gzip size...
+../../build-current/audit-preview.html                                        0.96 kB │ gzip:     0.46 kB
+../../build-current/assets/inter-vietnamese-wght-normal-CBcvBZtf.woff2       10.25 kB
+../../build-current/assets/inter-greek-ext-wght-normal-DlzME5K_.woff2        11.23 kB
+../../build-current/assets/inter-cyrillic-wght-normal-DqGufNeO.woff2         18.74 kB
+../../build-current/assets/inter-greek-wght-normal-CkhJZR-_.woff2            18.99 kB
+../../build-current/assets/inter-cyrillic-ext-wght-normal-BOeWTOD4.woff2     25.96 kB
+../../build-current/assets/inter-latin-wght-normal-Dx4kXJAl.woff2            48.25 kB
+../../build-current/assets/inter-latin-ext-wght-normal-DO1Apj_S.woff2        85.06 kB
+../../build-current/assets/RoundHog-Bold-B1xHlSPP.woff2                     121.67 kB
+../../build-current/assets/audit-preview-DtegcrfP.css                       205.56 kB │ gzip:    31.00 kB
+../../build-current/assets/audit-preview-CQ0kY_l4.js                      2,850.46 kB │ gzip: 1,108.84 kB
+
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1.42s

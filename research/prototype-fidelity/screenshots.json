@@ -1,0 +1,610 @@
+[
+  {
+    "name": "prototype-home8-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/profile",
+    "file": "screenshots/prototype-home8-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "b1cdd12abf0e0694dbb37b5026415e48d93b18c3306f113a320733764549d0d4"
+  },
+  {
+    "name": "prototype-home1-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=1#/profile",
+    "file": "screenshots/prototype-home1-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "1ce2a81ed59900cf90a952dd246719d3e9acf23ad279717be670ff17127fed5f"
+  },
+  {
+    "name": "prototype-quests-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/quests",
+    "file": "screenshots/prototype-quests-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "5953c031d87d61a548fc69b8ff9bac2f682512dc77ad1678e7ceea53c4be2c44"
+  },
+  {
+    "name": "prototype-leaderboard-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/leaderboard",
+    "file": "screenshots/prototype-leaderboard-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "bed7dadd165e8dae51bfd445dc536c1afe522361a4ba5be0bef1ba0e551a7ed5"
+  },
+  {
+    "name": "prototype-home8-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/profile",
+    "file": "screenshots/prototype-home8-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "a19819e33cf8aad9a2b6b2c0825561c212cc5cb4cd9668dc9d2ee07a9abda2c4"
+  },
+  {
+    "name": "prototype-home1-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=1#/profile",
+    "file": "screenshots/prototype-home1-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "5af55510b6a48dac4561ced3266a6c7fbb05528c33546e8879ce450da96ff98c"
+  },
+  {
+    "name": "prototype-quests-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/quests",
+    "file": "screenshots/prototype-quests-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "743537df257556c0a15004ad5a461727d247f6da75a1174ee96545992eb38641"
+  },
+  {
+    "name": "prototype-leaderboard-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/leaderboard",
+    "file": "screenshots/prototype-leaderboard-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "8d35ddcecd0e81bcc68ce69ab59fbfc9c35d59fd1766a0ddcd077cf64dc4a8e7"
+  },
+  {
+    "name": "prototype-skills-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/skills",
+    "file": "screenshots/prototype-skills-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "85b859471f94313280f3f8ab58fe61bd2ebfb860ac809bf4cd657c7e718e2900"
+  },
+  {
+    "name": "prototype-book-overview-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/achievements",
+    "file": "screenshots/prototype-book-overview-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "f60ede0aa33076e2a6048951073d6422027e627cc22a9709eb89e1b8b0c2e515"
+  },
+  {
+    "name": "prototype-book-category-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/achievements/giving",
+    "file": "screenshots/prototype-book-category-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "e96b87c9e4e121654e6fb8e561839052d8ec6f74eab5b6e79644d048ede2fad9"
+  },
+  {
+    "name": "prototype-book-album-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/stickers/g1",
+    "file": "screenshots/prototype-book-album-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "45f51e0dfa87d09ef043ac17a7db31191d748207e5abefd1136d7a314f0297c1"
+  },
+  {
+    "name": "prototype-collection-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/collection",
+    "file": "screenshots/prototype-collection-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "cf13582a689aad58b8c067e648c5e01612d715dcd67fa8ad52c2c8aa648b3f0a"
+  },
+  {
+    "name": "prototype-inventory-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/profile/inventory",
+    "file": "screenshots/prototype-inventory-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "9121995d4a68eb8c829270bba36e82c34ea2bbbd93accb12a23bf0687a83b34a"
+  },
+  {
+    "name": "prototype-skills-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/skills",
+    "file": "screenshots/prototype-skills-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "85b859471f94313280f3f8ab58fe61bd2ebfb860ac809bf4cd657c7e718e2900"
+  },
+  {
+    "name": "prototype-book-overview-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/achievements",
+    "file": "screenshots/prototype-book-overview-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "f60ede0aa33076e2a6048951073d6422027e627cc22a9709eb89e1b8b0c2e515"
+  },
+  {
+    "name": "prototype-book-category-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/achievements/giving",
+    "file": "screenshots/prototype-book-category-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "e96b87c9e4e121654e6fb8e561839052d8ec6f74eab5b6e79644d048ede2fad9"
+  },
+  {
+    "name": "prototype-book-album-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/stickers/g1",
+    "file": "screenshots/prototype-book-album-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "45f51e0dfa87d09ef043ac17a7db31191d748207e5abefd1136d7a314f0297c1"
+  },
+  {
+    "name": "prototype-collection-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/collection",
+    "file": "screenshots/prototype-collection-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "cf13582a689aad58b8c067e648c5e01612d715dcd67fa8ad52c2c8aa648b3f0a"
+  },
+  {
+    "name": "prototype-inventory-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/profile/inventory",
+    "file": "screenshots/prototype-inventory-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "9121995d4a68eb8c829270bba36e82c34ea2bbbd93accb12a23bf0687a83b34a"
+  },
+  {
+    "name": "main-home8-light",
+    "url": "http://localhost:6912/?theme=light&level=8",
+    "file": "screenshots/main-home8-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "878b35429f2e808ae43a1bda287aceea4d065b9567c48be94e863fbcf66b6510"
+  },
+  {
+    "name": "main-home1-light",
+    "url": "http://localhost:6912/?theme=light&level=1",
+    "file": "screenshots/main-home1-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "9d4bbf777af414bdbb0fae093da95180cfc85224b27e101a037b47703ed868bd"
+  },
+  {
+    "name": "main-quests-light",
+    "url": "http://localhost:6912/quests?theme=light",
+    "file": "screenshots/main-quests-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "2720ca5192475c43d96d73cc56fd01327a4381d2b0c2633f8de8b2ecc7bee6e4"
+  },
+  {
+    "name": "main-leaderboard-light",
+    "url": "http://localhost:6912/leaderboard",
+    "file": "screenshots/main-leaderboard-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "7e3b1e34773218d127da679fc49b259cebe906c2fc6a63c49e715a52821c05a0"
+  },
+  {
+    "name": "main-collection-light",
+    "url": "http://localhost:6912/collection?theme=light",
+    "file": "screenshots/main-collection-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "817bfc6600174cede7e88411d5a34cca223e4c1e16c2de9a9c7912ac887d73e5"
+  },
+  {
+    "name": "main-sign-in-light",
+    "url": "http://localhost:6912/?theme=light&visitor=signed-out",
+    "file": "screenshots/main-sign-in-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "31a6af1078476b008d81e885708e71a054b41a7de0019fd515045bdbba1954a4"
+  },
+  {
+    "name": "main-home8-dark",
+    "url": "http://localhost:6912/?theme=dark&level=8",
+    "file": "screenshots/main-home8-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "e66cf66ec761c78f46de23c574a88454405ceaa0d6ddd228641f19dfbf62be88"
+  },
+  {
+    "name": "main-home1-dark",
+    "url": "http://localhost:6912/?theme=dark&level=1",
+    "file": "screenshots/main-home1-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "b79f36761818e7c08b3cceefcbaf9d57f26123d10cbeaf8182b4aaa234db1def"
+  },
+  {
+    "name": "main-quests-dark",
+    "url": "http://localhost:6912/quests?theme=dark",
+    "file": "screenshots/main-quests-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "4b6657e2957f165a2ab87ab3c22cb7860c951a583818387e2ef13e0b34c894a9"
+  },
+  {
+    "name": "main-leaderboard-dark",
+    "url": "http://localhost:6912/leaderboard",
+    "file": "screenshots/main-leaderboard-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "cc9ba7085d2757f556af9a427640803ef0a5de9a1a00ff991caaa7b42fe2866a"
+  },
+  {
+    "name": "main-collection-dark",
+    "url": "http://localhost:6912/collection?theme=dark",
+    "file": "screenshots/main-collection-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "8b48ee08dcd2b51149a1dc0fef6c14bbb51a697b5ed5f2639ce5c4c977cbbd5a"
+  },
+  {
+    "name": "main-sign-in-dark",
+    "url": "http://localhost:6912/?theme=dark&visitor=signed-out",
+    "file": "screenshots/main-sign-in-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "8ba8d09890f9153f5e55eab939145ded471ecaa77acd00000ed4c9b4261e3c66"
+  },
+  {
+    "name": "slice4-skills-light",
+    "url": "http://localhost:6913/skills?theme=light",
+    "file": "screenshots/slice4-skills-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "09dbf92a8c6bdd4ccf57c704f2492f6c1ff1895f113a08cea9589acb96e7f7c9"
+  },
+  {
+    "name": "slice4-book-light",
+    "url": "http://localhost:6913/book?theme=light",
+    "file": "screenshots/slice4-book-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "39b48a093b6496b40037a2c59e44574aefa5ca8ed9094d2087c927fa95515176"
+  },
+  {
+    "name": "slice4-skills-dark",
+    "url": "http://localhost:6913/skills?theme=dark",
+    "file": "screenshots/slice4-skills-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "97423b60de6a03003610cfbc909c3b25fa2d78d7f4e7613864e5147f070dd3eb"
+  },
+  {
+    "name": "slice4-book-dark",
+    "url": "http://localhost:6913/book?theme=dark",
+    "file": "screenshots/slice4-book-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "ebed417f8b578f53af1edc877ba4b5a46f40eb4d764ec3484c06dbc8e0a0e07f"
+  },
+  {
+    "name": "prototype-sign-in-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/signin",
+    "file": "screenshots/prototype-sign-in-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "b78c0690985be4c57a044b1ce1574f1b261868307a5a44aed934b925e76c6166"
+  },
+  {
+    "name": "prototype-locked-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=1#/skills",
+    "file": "screenshots/prototype-locked-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "c3a27ae4eb9d40790d3c8897ada6d2af817291e3501affa45d74b0ff88df3643"
+  },
+  {
+    "name": "prototype-moment-level-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/level-up",
+    "file": "screenshots/prototype-moment-level-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "964bee3810cbeeeccfc870f1f36cdf52d7937da8c983e91d537dba4d8002dd11"
+  },
+  {
+    "name": "prototype-moment-achievement-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/achievement",
+    "file": "screenshots/prototype-moment-achievement-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "6e662d2a27ee80deb58705ffd67eb496fd251d8c11552a7fdbd748d54147f1f5"
+  },
+  {
+    "name": "prototype-moment-kudos-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/kudos",
+    "file": "screenshots/prototype-moment-kudos-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "24d02de3cb1275fcf14abdfa84e1bb16e7d809614445c03ae480c0574c0d600d"
+  },
+  {
+    "name": "prototype-moment-hog-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/hedgehog",
+    "file": "screenshots/prototype-moment-hog-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "bc87541a5eec39c7b7c93345cf22bcb1930b12924bd616b133ceb10d236a905f"
+  },
+  {
+    "name": "prototype-moment-quest-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/quest",
+    "file": "screenshots/prototype-moment-quest-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "3a3f709b44bb6f3f8884b33c74d5be4de8cc86f712446b7458c6357a5fc9ced9"
+  },
+  {
+    "name": "prototype-moment-unlock-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/unlock/skills",
+    "file": "screenshots/prototype-moment-unlock-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "d6c167608cc139844c0a013a3b2c6a5f19a5db87d0da2c578b71c90f5dac36b5"
+  },
+  {
+    "name": "prototype-moment-app-home-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/app-home",
+    "file": "screenshots/prototype-moment-app-home-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "bb82cb1b07641264da3d99700b164057610f05f07245b8d5972a3dd93e5b1680"
+  },
+  {
+    "name": "prototype-sign-in-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/signin",
+    "file": "screenshots/prototype-sign-in-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "10fd0a7357abd3e3c687a580e9c15ab015a35ed3ec6ae44117969cd52309195c"
+  },
+  {
+    "name": "prototype-locked-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=1#/skills",
+    "file": "screenshots/prototype-locked-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "3521e616a81d41cab315c5554a244579e966b07cfe2da91a5e14052b47ffa5f3"
+  },
+  {
+    "name": "prototype-moment-level-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/level-up",
+    "file": "screenshots/prototype-moment-level-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "a5814ba34a03eb1cb0d1d24a979354f0f6b538f1b4bf4ffeff22ef872daac5fd"
+  },
+  {
+    "name": "prototype-moment-achievement-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/achievement",
+    "file": "screenshots/prototype-moment-achievement-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "6e662d2a27ee80deb58705ffd67eb496fd251d8c11552a7fdbd748d54147f1f5"
+  },
+  {
+    "name": "prototype-moment-kudos-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/kudos",
+    "file": "screenshots/prototype-moment-kudos-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "a4cb530e901f64b476485eb17f9aedf18d87ee77c68d18ae8cf96cc443186e5b"
+  },
+  {
+    "name": "prototype-moment-hog-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/hedgehog",
+    "file": "screenshots/prototype-moment-hog-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "be889be4ee8a38669d3e687be575801f90555cc653072d3fe865034b845f5b0a"
+  },
+  {
+    "name": "prototype-moment-quest-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/quest",
+    "file": "screenshots/prototype-moment-quest-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "f41aa9ebdc13114b41d6627a13938f0410cda52be1815326bc5c950e70da2a5c"
+  },
+  {
+    "name": "prototype-moment-unlock-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/unlock/skills",
+    "file": "screenshots/prototype-moment-unlock-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "77605116c03f0be65f3ee2b34103e8459faf7226e63536ef9998a36af5b066c8"
+  },
+  {
+    "name": "prototype-moment-app-home-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/landing/app-home",
+    "file": "screenshots/prototype-moment-app-home-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "bb82cb1b07641264da3d99700b164057610f05f07245b8d5972a3dd93e5b1680"
+  },
+  {
+    "name": "prototype-palette-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/profile",
+    "file": "screenshots/prototype-palette-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "14b6fe94418cfdcaa57a7aba04b5095c4a71de0a90bec79f054e6a87ced814d4"
+  },
+  {
+    "name": "prototype-palette-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/profile",
+    "file": "screenshots/prototype-palette-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "8e676eafb0a0aba1811c8ef8bfcef6e8c1c7c4a09b8b77ffdc70fd9fd2d04dd6"
+  },
+  {
+    "name": "main-locked-light",
+    "url": "http://localhost:6912/leaderboard",
+    "file": "screenshots/main-locked-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "bef90ad69b0291fedc1fe08d9c7a76ab0e6facfef5fa24e31e230f0f31e839a6"
+  },
+  {
+    "name": "main-ready-light",
+    "url": "http://localhost:6912/?theme=light&level=8&state=ready",
+    "file": "screenshots/main-ready-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "78b7babb797853d048338f0957d84d78c7604180a6344c54beb6e8e68df4d0d8"
+  },
+  {
+    "name": "main-quests-empty-light",
+    "url": "http://localhost:6912/quests?theme=light&empty=1",
+    "file": "screenshots/main-quests-empty-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "49687730844a908c57c51532b705d39b72da9726aa95f66ecfb0ab9fe98c6794"
+  },
+  {
+    "name": "main-moment-level-light",
+    "url": "http://localhost:6912/landing/level-up?theme=light",
+    "file": "screenshots/main-moment-level-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "817bfc6600174cede7e88411d5a34cca223e4c1e16c2de9a9c7912ac887d73e5"
+  },
+  {
+    "name": "main-reveal-light",
+    "url": "http://localhost:6912/?theme=light&state=ready",
+    "file": "screenshots/main-reveal-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "579f7fba6f49aad23851f50021b5ebec7595e449fac5803fbccf5aa62971ae64"
+  },
+  {
+    "name": "main-locked-dark",
+    "url": "http://localhost:6912/leaderboard",
+    "file": "screenshots/main-locked-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "3e3ce85a00c637f2efa5ad54b4de35dc262719c5454a14e71585216e8980316e"
+  },
+  {
+    "name": "main-ready-dark",
+    "url": "http://localhost:6912/?theme=dark&level=8&state=ready",
+    "file": "screenshots/main-ready-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "4e1ea119c573239ccd574f2a93a93b726ed6237ddcd59dc8f5942737d3f2bc06"
+  },
+  {
+    "name": "main-quests-empty-dark",
+    "url": "http://localhost:6912/quests?theme=dark&empty=1",
+    "file": "screenshots/main-quests-empty-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "c597bfc8f1140f35a6007eec33d1017f1df9f132b7d046491cd1ead6e0f7760f"
+  },
+  {
+    "name": "main-moment-level-dark",
+    "url": "http://localhost:6912/landing/level-up?theme=dark",
+    "file": "screenshots/main-moment-level-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "8b48ee08dcd2b51149a1dc0fef6c14bbb51a697b5ed5f2639ce5c4c977cbbd5a"
+  },
+  {
+    "name": "main-reveal-dark",
+    "url": "http://localhost:6912/?theme=dark&state=ready",
+    "file": "screenshots/main-reveal-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "a86d3f05d17a47435fcd1bc8cf4dac64035ab40c16d67b0697ed07d5e4f29365"
+  },
+  {
+    "name": "slice4-skills-mobile-light",
+    "url": "http://localhost:6913/skills?theme=light",
+    "file": "screenshots/slice4-skills-mobile-light.png",
+    "width": 780,
+    "height": 1688,
+    "sha256": "3c78d2d0d8a9cc4f01ecde67db9950bf4d39cbcf7ad24733da9f34df8faad7c9"
+  },
+  {
+    "name": "prototype-book-mobile-light",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/achievements/giving",
+    "file": "screenshots/prototype-book-mobile-light.png",
+    "width": 780,
+    "height": 1688,
+    "sha256": "1db3a72ccfaeb8c6aac5d5b4f8d4dde752e7550c6aef608d47d0ee3cc3a4c1e3"
+  },
+  {
+    "name": "slice4-skills-mobile-dark",
+    "url": "http://localhost:6913/skills?theme=dark",
+    "file": "screenshots/slice4-skills-mobile-dark.png",
+    "width": 780,
+    "height": 1688,
+    "sha256": "fbe23cf62d0aa617e5f59e41d93659c239772b0b21538e94511124e16b94b863"
+  },
+  {
+    "name": "prototype-book-mobile-dark",
+    "url": "https://earnest-ibis-715.convex.site/?lvl=8#/achievements/giving",
+    "file": "screenshots/prototype-book-mobile-dark.png",
+    "width": 780,
+    "height": 1688,
+    "sha256": "66c6afeeea96eae6638051b207b3d9854b7050b90442d9b378d14b7da5850f20"
+  },
+  {
+    "name": "main-final-home8-light",
+    "url": "http://localhost:6915/?theme=light",
+    "file": "screenshots/main-final-home8-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "f2a01f32ebd9af61c7886a6c13b0184e7c813b36f4d78225f61977ebc06e15d8"
+  },
+  {
+    "name": "main-final-sign-in-light",
+    "url": "http://localhost:6915/?theme=light&visitor=signed-out",
+    "file": "screenshots/main-final-sign-in-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "50d990a814e35b7e026799ece8ee887023afa46bbfb5e5c5659aa98fda3ba102"
+  },
+  {
+    "name": "main-final-closed-light",
+    "url": "http://localhost:6915/?theme=light&visitor=closed",
+    "file": "screenshots/main-final-closed-light.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "3c6160ea7f6448e641727f089728f9ab46ad47e1e826c045e24f2bd11463ef12"
+  },
+  {
+    "name": "main-final-home8-dark",
+    "url": "http://localhost:6915/?theme=dark",
+    "file": "screenshots/main-final-home8-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "28339101011bb5c3be663986a0ea2f6b1d71ca74e150c36e4f18b75fff161580"
+  },
+  {
+    "name": "main-final-sign-in-dark",
+    "url": "http://localhost:6915/?theme=dark&visitor=signed-out",
+    "file": "screenshots/main-final-sign-in-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "8e04d53f58b1453305074d62c27dd1127a801c6271874d07adba7d215c9b1d38"
+  },
+  {
+    "name": "main-final-closed-dark",
+    "url": "http://localhost:6915/?theme=dark&visitor=closed",
+    "file": "screenshots/main-final-closed-dark.png",
+    "width": 1280,
+    "height": 1067,
+    "sha256": "9f8297c3847abda731f1938b651e245f54065f5c0635252c0df77b14c0b460aa"
+  }
+]

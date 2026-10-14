@@ -1,0 +1,38 @@
+Scope: all 2 workspace projects
+✓ Lockfile at ../pnpm-lock.yaml passes supply-chain policies (verified 10h ago)
+Error:   × installing dependencies
+  ╰─▶ Failed to create directory at "<source-worktree>-wt/research-
+      fidelity/node_modules": workspace hoist directory is not a real
+      directory
+
+[WARN] The install that runs before scripts failed, so your node_modules may be out of sync with your lockfile. Set "verifyDepsBeforeRun: false" to skip this install.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./vite.config" without a file extension (vite.audit.config.ts:1:18). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+vite v8.3.4 building client environment for production...
+transforming...
+✓ 3147 modules transformed.
+
+(!) outDir <temporary-audit-directory>/build-main is not inside project root and will not be emptied.
+Use --emptyOutDir to override.
+
+rendering chunks...
+computing gzip size...
+../../../../../..<temporary-audit-directory>/build-main/audit-preview.html                                        0.40 kB │ gzip:     0.27 kB
+../../../../../..<temporary-audit-directory>/build-main/assets/inter-vietnamese-wght-normal-CBcvBZtf.woff2       10.25 kB
+../../../../../..<temporary-audit-directory>/build-main/assets/inter-greek-ext-wght-normal-DlzME5K_.woff2        11.23 kB
+../../../../../..<temporary-audit-directory>/build-main/assets/inter-cyrillic-wght-normal-DqGufNeO.woff2         18.74 kB
+../../../../../..<temporary-audit-directory>/build-main/assets/inter-greek-wght-normal-CkhJZR-_.woff2            18.99 kB
+../../../../../..<temporary-audit-directory>/build-main/assets/inter-cyrillic-ext-wght-normal-BOeWTOD4.woff2     25.96 kB
+../../../../../..<temporary-audit-directory>/build-main/assets/inter-latin-wght-normal-Dx4kXJAl.woff2            48.25 kB
+../../../../../..<temporary-audit-directory>/build-main/assets/inter-latin-ext-wght-normal-DO1Apj_S.woff2        85.06 kB
+../../../../../..<temporary-audit-directory>/build-main/assets/RoundHog-Bold-B1xHlSPP.woff2                     121.67 kB
+../../../../../..<temporary-audit-directory>/build-main/assets/audit-preview-DtegcrfP.css                       205.56 kB │ gzip:    31.00 kB
+../../../../../..<temporary-audit-directory>/build-main/assets/audit-preview-DgdkFDdZ.js                      2,729.28 kB │ gzip: 1,059.28 kB
+
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 782ms
