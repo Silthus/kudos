@@ -9,7 +9,7 @@ import type { ThemeChoice } from "../theme";
 
 export type Shell = { go: (href: string) => void; openCrate: (card: FeatureCard) => void; theme: ThemeChoice; chooseTheme: (choice: ThemeChoice) => void; signOut: () => void };
 
-export type Printed = { tone: "said" | "refused" | "unknown"; text: string };
+export type Printed = { tone: "said" | "refused" | "locked" | "unknown"; text: string };
 
 export type Outcome = { kind: "close" } | { kind: "stay" } | { kind: "help" } | { kind: "print"; printed: Printed };
 
@@ -49,6 +49,8 @@ const said = (text: string): Outcome => ({ kind: "print", printed: { tone: "said
 
 const refused = (text: string): Outcome => ({ kind: "print", printed: { tone: "refused", text } });
 
+const locked = (text: string): Outcome => ({ kind: "print", printed: { tone: "locked", text } });
+
 export function commandsOf(member: MemberProfile): Command[] {
   return [...navEntriesOf(member).map((entry) => pageCommandOf(entry, member)), themeCommand, signOutCommand, helpCommand];
 }
@@ -65,7 +67,7 @@ function pageCommandOf(entry: NavEntry, member: MemberProfile): Command {
   }
   const level = member.progression?.level;
   const unlocks = `${entry.name} unlocks at level ${entry.level}.`;
-  return { name, aliases, usage, blurb: `Locked. ${unlocks}`, Icon: IconLock, state: "locked", run: () => refused(level === undefined ? unlocks : `${unlocks} You're level ${level}.`) };
+  return { name, aliases, usage, blurb: `Locked. ${unlocks}`, Icon: IconLock, state: "locked", run: () => locked(level === undefined ? unlocks : `${unlocks} You're level ${level}.`) };
 }
 
 function screenOf(entry: NavEntry): Screen {

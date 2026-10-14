@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { HedgehogTownCrier } from "@posthog/brand/hoggies";
-import { IconChevronRight, IconSparkles, IconWarning } from "@posthog/icons";
+import { IconChevronRight, IconLock, IconSparkles, IconWarning } from "@posthog/icons";
 import { run, suggestionsFor, traps, wordsOf, type Command, type Printed, type Shell } from "./commands";
 import "./palette.css";
 
@@ -70,9 +70,9 @@ export function CommandPalette({ commands, shell, onClose }: { commands: Command
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center px-3 pt-[12vh] sm:pt-[16vh]">
+    <div className="fixed inset-0 z-50 flex items-start justify-center px-3 pt-[12dvh] sm:pt-[16dvh]">
       <div data-palette-backdrop aria-hidden="true" onClick={onClose} className="palette-fade absolute inset-0 bg-neutral-950/40 dark:bg-neutral-950/60" />
-      <div role="dialog" aria-modal="true" aria-label="Command palette" className="hud-panel palette-rise relative flex max-h-[80vh] w-full max-w-xl flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-label="Command palette" className="hud-panel palette-rise relative flex max-h-[80dvh] w-full max-w-xl flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-2xl">
         <label className="flex items-center gap-3 border-b px-4 py-3">
           <span aria-hidden="true" className="hud-display shrink-0 text-lg font-bold text-primary">
             &gt;
@@ -133,7 +133,7 @@ function CommandRow({ id, command, selected, onPick, onPoint }: { id: string; co
       onClick={onPick}
       className={`flex cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 ${selected ? "bg-fill-selected ring-1 ring-inset ring-primary" : "hover:bg-fill-hover"}`}
     >
-      <span aria-hidden="true" className={`flex size-8 shrink-0 items-center justify-center rounded-md ring-1 ring-inset ${selected && !waiting ? "bg-primary text-primary-foreground ring-primary" : "bg-fill-hover text-muted-foreground ring-border"}`}>
+      <span aria-hidden="true" className={`flex size-8 shrink-0 items-center justify-center rounded-md ${selected && !waiting ? "bg-primary text-primary-foreground ring-1 ring-inset ring-primary" : "bg-fill-hover text-muted-foreground"}`}>
         <command.Icon className="size-4" />
       </span>
       <span className="min-w-0 flex-1">
@@ -153,7 +153,7 @@ function TrapList({ onPick }: { onPick: (line: string) => void }) {
       <ul aria-label="Not commands, but people keep trying" className="flex flex-wrap gap-1.5 px-2.5 pb-2">
         {traps.map(({ name }) => (
           <li key={name}>
-            <button type="button" tabIndex={-1} onMouseDown={(event) => event.preventDefault()} onClick={() => onPick(name)} className="rounded-md border px-2 py-1 font-mono text-xs text-muted-foreground hover:border-primary hover:text-foreground">
+            <button type="button" tabIndex={-1} onMouseDown={(event) => event.preventDefault()} onClick={() => onPick(name)} className="rounded-md border border-muted-foreground px-2 py-1 font-mono text-xs text-muted-foreground hover:border-foreground hover:text-foreground">
               {name}
             </button>
           </li>
@@ -179,14 +179,20 @@ function PrintedLine({ shown }: { shown: Shown }) {
 }
 
 function ToneMark({ tone }: { tone: Printed["tone"] }) {
-  if (tone === "unknown") return <HedgehogTownCrier size={40} title="" className="shrink-0" />;
-  const Icon = tone === "refused" ? IconWarning : IconSparkles;
+  if (tone === "unknown") return <HedgehogTownCrier data-tone={tone} size={40} title="" className="shrink-0" />;
+  const { Icon, look } = toneMarks[tone];
   return (
-    <span aria-hidden="true" className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md ${tone === "refused" ? "bg-warning text-warning-foreground" : "bg-fill-selected text-primary"}`}>
+    <span data-tone={tone} aria-hidden="true" className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md ${look}`}>
       <Icon className="size-3.5" />
     </span>
   );
 }
+
+const toneMarks = {
+  said: { Icon: IconSparkles, look: "bg-fill-selected text-primary" },
+  refused: { Icon: IconWarning, look: "bg-warning text-warning-foreground" },
+  locked: { Icon: IconLock, look: "bg-fill-hover text-muted-foreground" },
+};
 
 function NothingMatches({ line }: { line: string }) {
   return (
@@ -204,5 +210,5 @@ function Heading({ children }: { children: ReactNode }) {
 }
 
 function Key({ children }: { children: ReactNode }) {
-  return <kbd className="rounded border bg-card px-1.5 font-mono text-[11px] text-muted-foreground">{children}</kbd>;
+  return <kbd className="rounded border border-muted-foreground bg-card px-1.5 font-mono text-[11px] text-muted-foreground">{children}</kbd>;
 }

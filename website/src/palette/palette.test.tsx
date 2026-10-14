@@ -3,6 +3,7 @@ import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type FeatureCard, type MemberProfile } from "../shell";
 import { renderApp } from "../test/renderApp";
+import { contrast } from "../test/themeContrast";
 import { fakeSystemTheme } from "../test/systemTheme";
 
 afterEach(() => {
@@ -324,5 +325,42 @@ describe("WS308: the palette passes axe in light and dark", () => {
     await user.type(commandField(), "book{Enter}");
     expect(printed()).toHaveTextContent("> book");
     expect(printed()).toHaveTextContent("Book unlocks at level 8. You're level 7.");
+  });
+});
+
+function edgePaintOf(mark: Element) {
+  const paints = [...mark.classList].flatMap((name) => /^(?:border|ring)-((?:muted-)?foreground|primary)$/.exec(name)?.[1] ?? []);
+  return paints[0] ?? `none on <${mark.tagName.toLowerCase()} class="${mark.className}">`;
+}
+
+describe("WS339 V24: the palette's outlines meet 3:1 against the card in both modes", () => {
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, async () => {
+      const { user } = renderApp(everyState);
+      const chip = screen.getByRole("button", { name: "Open the command palette" });
+      await run(user, "help");
+      await user.keyboard("{ArrowDown}");
+      const marks = [
+        { part: "the dashed chip", mark: chip },
+        { part: "the selected command", mark: options()[0]! },
+        ...[...palette().querySelectorAll("kbd")].map((mark) => ({ part: `the ${mark.textContent} key`, mark })),
+        ...within(within(palette()).getByRole("list", { name: "Not commands, but people keep trying" })).getAllByRole("button").map((mark) => ({ part: `the ${mark.textContent} chip`, mark })),
+      ];
+      const measured = marks.map(({ part, mark }) => {
+        const paint = edgePaintOf(mark);
+        return { part, paint, ratio: paint.startsWith("none") ? 0 : contrast(mode, paint, "card") };
+      });
+      expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});
+
+describe("V24: a locked page's reply is a lock plus its text", () => {
+  it("marks the locked reply with the lock, and keeps the warning for a refusal", async () => {
+    const { user } = renderApp(everyState);
+    await run(user, "book");
+    expect(printed().querySelector("[data-tone]")).toHaveAttribute("data-tone", "locked");
+    await user.type(commandField(), "sudo{Enter}");
+    expect(printed().querySelector("[data-tone]")).toHaveAttribute("data-tone", "refused");
   });
 });
