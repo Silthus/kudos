@@ -91,7 +91,7 @@ describe("WS309: the sign-in page stands alone as variant E's card", () => {
   });
 
   it("shows the not-found page, with no card and no landing hint, for a path the website doesn't list", () => {
-    visit("/activity");
+    visit("/inventory");
     renderApp(shellFixtures.signedOut);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Page not found");
     expect(screen.queryByRole("button", { name: "Sign in with Slack" })).not.toBeInTheDocument();

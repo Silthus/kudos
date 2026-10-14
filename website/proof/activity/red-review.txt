@@ -1,0 +1,6 @@
+     × reads the next page once the end comes within a screen, and keeps focus where it is 29ms
+     × keeps focus on the page title while the newest page loads, and there when it fails 58ms
+     × forgets the focus it owed a failed Show new activity once the member changes the filter 128ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  3 failed | 42 passed (45)
