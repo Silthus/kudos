@@ -1,0 +1,27 @@
+# App Home view the mock recorded for U_JUNO after the website bought Spark (GET /control/home?user=U_JUNO), its text fields in order:
+Profile
+Skill tree
+Settings
+Skill tree
+You have *1 skill point* to spend.
+✅ *Spark* · Owned
++5 XP the first time each day you thank someone and say why.
+*Rhythm* · 1 skill point
++2 XP each time you thank someone and say why, once per person a day.
+Buy
+*Circle* · 1 skill point
++5 XP the first time each week you thank a person and say why.
+Buy
+Bonuses count when your message has 5 or more words besides mentions and emoji.
+<http://127.0.0.1:6111/|Open HedgeHug on the web>
+
+# perkPurchases and perksOwned on the local backend afterwards (convex data):
+_id                                | _creationTime     | key                                                                             | member                             | outcome                              
+-----------------------------------|-------------------|---------------------------------------------------------------------------------|------------------------------------|--------------------------------------
+"px7b5agfwvw3jr0sx0jmkv32358g84k4" | 1791964488608.877 | "website:pn7d8509k14tdb03p6jywdf5ws8g9gvz:140ff8f7-5546-45d8-851a-408f5dd36ef0" | "pn7d8509k14tdb03p6jywdf5ws8g9gvz" | { "kind": "bought", "perk": "spark" }
+_id                                | _creationTime      | boughtAt      | catalogueVersion | member                             | perk   
+-----------------------------------|--------------------|---------------|-----|------------------------------------|--------
+"q178wrb1kytejky0fn1pwrms058g884z" | 1791964488608.8767 | 1791964488608 | "1" | "pn7d8509k14tdb03p6jywdf5ws8g9gvz" | "spark"
+_id                                | _creationTime      | member                             | pointsSpent | xp  
+-----------------------------------|--------------------|------------------------------------|---|-----
+"pd7ctkqzwxd9xxd54zfs2q0v7n8g8d40" | 1791964241349.2854 | "pn7d8509k14tdb03p6jywdf5ws8g9gvz" | 1 | 1000

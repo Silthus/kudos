@@ -10,7 +10,11 @@ export type DailyAllowance = { opening: number; left: number; spend(kudos: numbe
 const dayMs = 24 * 60 * 60 * 1000;
 
 export function allowanceDay(at: number, timeZone: string | undefined): DayKey {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: timeZone ?? "UTC" }).format(at);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: dayZoneOf(timeZone) }).format(at);
+}
+
+export function dayZoneOf(timeZone: string | undefined): string {
+  return timeZone ?? "UTC";
 }
 
 export function nextAllowanceDayStart(at: number, timeZone: string | undefined) {

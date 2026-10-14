@@ -1,0 +1,18 @@
+
+
+stdout | website/proof/sandbox-4/flagAnswers.proof.ts > <sandbox> answers true for every slice flag under its own environment and workspace key
+<sandbox> KUDOS_ENVIRONMENT=sandbox {"website":true,"everyone-board":true,"xp-levels":true,"unlocks":true,"quests":true,"skill-tree":true,"achievements":true}
+
+stdout | website/proof/sandbox-4/flagAnswers.proof.ts > <production> answers true for every slice flag under its own environment and workspace key
+<production> KUDOS_ENVIRONMENT=production {"website":true,"everyone-board":true,"xp-levels":true,"unlocks":true,"quests":true,"skill-tree":true,"achievements":true}
+
+stdout | website/proof/sandbox-4/flagAnswers.proof.ts > <production> read under an environment … answers false for every slice flag under its own environment and workspace key
+<production> read under an environment no condition names KUDOS_ENVIRONMENT=elsewhere {"website":false,"everyone-board":false,"xp-levels":false,"unlocks":false,"quests":false,"skill-tree":false,"achievements":false}
+
+ ✓ website/proof/sandbox-4/flagAnswers.proof.ts > <sandbox> answers true for every slice flag under its own environment and workspace key 7ms
+ ✓ website/proof/sandbox-4/flagAnswers.proof.ts > <production> answers true for every slice flag under its own environment and workspace key 1ms
+ ✓ website/proof/sandbox-4/flagAnswers.proof.ts > <production> read under an environment … answers false for every slice flag under its own environment and workspace key 1ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+
