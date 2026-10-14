@@ -3,9 +3,9 @@ import { kudosGivenEventValidator, membersNamedIn } from "../bus/events";
 import { publish } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
-import type { AwardWithId } from "../engine/awards";
+import type { Award, AwardWithId } from "../engine/awards";
 import { insertEffects, isRecorded } from "./effects";
-import { progress, rewarded, sideOf, standing, xpToNextLevel, type MemberProgress, type Progressed, type Standing } from "./progress";
+import { baseXpOf, progress, rewarded, sideOf, standing, xpToNextLevel, type MemberProgress, type Progressed, type Standing } from "./progress";
 import { insertReward, rewardOf, type RewardRecord } from "./rewards";
 
 export const recordEffects = internalMutation({
@@ -21,6 +21,10 @@ export const recordEffects = internalMutation({
     }
   },
 });
+
+export function giverXpOf(awards: Pick<Award, "kudos">[]): number {
+  return awards.reduce((sum, award) => sum + baseXpOf("giver", award, catalogue), 0);
+}
 
 export async function recordReward(ctx: MutationCtx, workspace: string, reward: RewardRecord): Promise<"recorded" | "already recorded"> {
   const { member, at } = reward;

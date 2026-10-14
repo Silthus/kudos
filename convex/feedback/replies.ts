@@ -2,10 +2,13 @@ import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
+import type { Award } from "../engine/awards";
 import { mentionValidator, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
+import { giverXpOf } from "../progression/progression";
+import { xpLevelsShownTo, xpLevelsShownWithoutWritingIn } from "../progression/xpLevels";
 import { questsApplyIn, questsExposedTo } from "../quests/flag";
-import type { JourneyStep } from "../quests/step";
-import { lookup } from "../workspace/directory";
+import { journeyStepValidator } from "../quests/step";
+import { lookup, type MemberId } from "../workspace/directory";
 import { journeyGoalOf } from "./home";
 
 export const segmentValidator = v.union(v.object({ text: v.string() }), v.object({ mention: mentionValidator }));
@@ -13,45 +16,64 @@ export const segmentValidator = v.union(v.object({ text: v.string() }), v.object
 export type Segment = Infer<typeof segmentValidator>;
 export type Line = Segment[];
 
+export const questDoneValidator = v.union(
+  v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number() }),
+  v.object({ kind: v.literal("weekly"), goal: v.string(), xp: v.number() }),
+);
+
+export type QuestDone = Infer<typeof questDoneValidator>;
+
+export const gainsValidator = v.object({ xp: v.number(), questsDone: v.optional(v.array(questDoneValidator)) });
+
+type Gains = Infer<typeof gainsValidator>;
+
 export type SkipReason = "self" | "bot" | "not-a-member" | "group-or-broadcast";
 export type SkippedMention = { mention: Mention; reason: SkipReason };
 
-export type Given = { recipients: ChatUserId[]; perRecipient: number; left: number; skipped: SkippedMention[] };
+export type Given = { recipients: ChatUserId[]; perRecipient: number; left: number; skipped: SkippedMention[]; awards: Pick<Award, "kudos">[] };
 export type OverAllowance = { cost: number; recipients: number; perRecipient: number; left: number };
 export type Invalid = { skipped: SkippedMention[] };
 
 export type Reply =
-  | { kind: "given"; outcome: Given; base: number; extras?: Line }
+  | { kind: "given"; outcome: Given; base: number }
   | { kind: "over-allowance"; outcome: OverAllowance; base: number }
   | { kind: "invalid"; outcome: Invalid }
   | { kind: "accepted-message-edited" };
 
-export type QuestDone = { kind: "journey"; step: JourneyStep } | { kind: "weekly"; goal: string };
-
 export const questsWaitMs = 10_000;
 
 export async function replyPrivately(ctx: MutationCtx, ref: MessageRef, threadRoot: string | undefined, to: ChatUserId, reply: Reply) {
-  const waitsForQuests = reply.kind === "given" && (await questsDecideFor(ctx, ref.workspace, to));
-  const id = await ctx.db.insert("privateReplies", { ...ref, ...(threadRoot && { threadRoot }), to, lines: renderReply(reply), ...(waitsForQuests && { held: true as const }) });
+  const giver = await lookup(ctx, ref.workspace, to);
+  const member = giver?.kind === "member" ? giver.member : undefined;
+  const gains = reply.kind === "given" ? await gainsWritten(ctx, member, reply.outcome) : undefined;
+  const waitsForQuests = reply.kind === "given" && member !== undefined && (await questsExposedTo(ctx, member));
+  const id = await ctx.db.insert("privateReplies", {
+    ...ref,
+    ...(threadRoot && { threadRoot }),
+    to,
+    lines: renderReply(reply),
+    ...(gains && { gains }),
+    ...(waitsForQuests && { held: true as const }),
+  });
   if (waitsForQuests) await ctx.scheduler.runAfter(questsWaitMs, internal.feedback.replies.releaseUnreleased, { reply: id });
   else await deliver(ctx, id);
 }
 
-async function questsDecideFor(ctx: MutationCtx, workspace: string, giver: ChatUserId) {
-  const person = await lookup(ctx, workspace, giver);
-  return person?.kind === "member" && (await questsExposedTo(ctx, person.member));
+async function gainsWritten(ctx: MutationCtx, member: MemberId | undefined, { awards }: Given): Promise<Gains> {
+  if (member !== undefined) await xpLevelsShownTo(ctx, member);
+  return { xp: giverXpOf(awards) };
 }
 
 export async function releaseSuccessReply(ctx: MutationCtx, message: MessageRef, questsDone: QuestDone[]) {
   const held = await heldReplyOf(ctx, message);
-  if (held !== null) await release(ctx, held, questsDone.length === 0 ? undefined : questsDoneLine(questsDone));
+  if (held !== null) await release(ctx, held, questsDone);
 }
 
 export const releaseUnreleased = internalMutation({
   args: { reply: v.id("privateReplies") },
   handler: async (ctx, { reply }) => {
     const row = await ctx.db.get(reply);
-    if (row?.held === true) await release(ctx, row, undefined);
+    if (row?.held === true) await release(ctx, row, []);
   },
 });
 
@@ -60,9 +82,9 @@ export const privateReply = internalQuery({
   handler: async (ctx, { reply }) => {
     const row = await ctx.db.get(reply);
     if (row === null) return null;
-    const { questsDone, ...stored } = row;
-    const questsStillApply = questsDone !== undefined && (await questsApplyIn(ctx, row.workspace));
-    return { ...stored, lines: questsStillApply ? [...row.lines, questsDone] : row.lines };
+    const { gains, questsDone: _, ...stored } = row;
+    const gainsLine = gains === undefined ? null : gainsLineOf(await gainsShownIn(ctx, row.workspace, gains));
+    return { ...stored, lines: gainsLine === null ? row.lines : [...row.lines, gainsLine] };
   },
 });
 
@@ -73,8 +95,8 @@ function heldReplyOf(ctx: QueryCtx, { workspace, conversation, message }: Messag
     .first();
 }
 
-async function release(ctx: MutationCtx, { _id }: Doc<"privateReplies">, questsDone: Line | undefined) {
-  await ctx.db.patch(_id, { held: undefined, questsDone });
+async function release(ctx: MutationCtx, { _id, gains }: Doc<"privateReplies">, questsDone: QuestDone[]) {
+  await ctx.db.patch(_id, { held: undefined, ...(questsDone.length > 0 && { gains: { xp: gains?.xp ?? 0, questsDone } }) });
   await deliver(ctx, _id);
 }
 
@@ -82,9 +104,29 @@ async function deliver(ctx: MutationCtx, reply: Id<"privateReplies">) {
   await ctx.scheduler.runAfter(0, internal.slack.delivery.deliverPrivateReply, { reply });
 }
 
-function questsDoneLine(questsDone: QuestDone[]): Line {
-  const goals = new Set(questsDone.map((done) => withoutFullStop(done.kind === "journey" ? journeyGoalOf(done.step) : done.goal)));
-  return [{ text: [...goals].map((goal) => `Quest done: ${goal}`).join(" · ") }];
+async function gainsShownIn(ctx: QueryCtx, workspace: string, { xp, questsDone = [] }: Gains): Promise<Required<Gains>> {
+  return {
+    xp: (await xpLevelsShownWithoutWritingIn(ctx, workspace)) ? xp : 0,
+    questsDone: questsDone.length > 0 && (await questsApplyIn(ctx, workspace)) ? questsDone : [],
+  };
+}
+
+function gainsLineOf({ xp, questsDone }: Required<Gains>): Line | null {
+  const parts = [...(xp > 0 ? [`+${xp} XP`] : []), ...questsDoneParts(questsDone)];
+  return parts.length === 0 ? null : [{ text: parts.join(" · ") }];
+}
+
+function questsDoneParts(questsDone: QuestDone[]) {
+  const xpByGoal = new Map<string, number>();
+  for (const done of questsDone) {
+    const goal = withoutFullStop(goalOf(done));
+    xpByGoal.set(goal, (xpByGoal.get(goal) ?? 0) + done.xp);
+  }
+  return [...xpByGoal].map(([goal, xp]) => `Quest done: ${goal} (+${xp} XP)`);
+}
+
+function goalOf(done: QuestDone) {
+  return done.kind === "journey" ? journeyGoalOf(done.step) : done.goal;
 }
 
 function withoutFullStop(goal: string) {
@@ -94,7 +136,7 @@ function withoutFullStop(goal: string) {
 export function renderReply(reply: Reply): Line[] {
   switch (reply.kind) {
     case "given":
-      return [givenLine(reply.outcome, reply.base), ...skippedLines(reply.outcome.skipped), ...(reply.extras ? [reply.extras] : [])];
+      return [givenLine(reply.outcome, reply.base), ...skippedLines(reply.outcome.skipped)];
     case "over-allowance":
       return [overAllowanceLine(reply.outcome, reply.base)];
     case "invalid":
