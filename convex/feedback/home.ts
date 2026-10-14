@@ -4,7 +4,7 @@ import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
-import type { MemberPerks } from "../progression/perks";
+import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import type { PurchaseOutcome, Refusal } from "../progression/purchases";
 import { perkOf, type Perk } from "../progression/tree";
 import type { ProgressSettings } from "../progression/settings";
@@ -27,7 +27,9 @@ export type HomeView = { tabBar?: Choice[]; title: string; groups: HomeLine[][] 
 
 export type Choice = { label: string; command: Command; selected: boolean };
 
-export type HomeAction = { label: string; command: Command };
+export type Confirmation = { title: string; text: string; confirm: string; deny: string };
+
+export type HomeAction = { label: string; command: Command; accessibilityLabel?: string; confirm?: Confirmation };
 
 export type HomeLine =
   | { kind: "text"; text: string }
@@ -170,9 +172,10 @@ function dateOf(at: number, timeZone: string | undefined) {
   return new Intl.DateTimeFormat("en-US", { timeZone: timeZone ?? "UTC", month: "short", day: "numeric", year: "numeric" }).format(at);
 }
 
-function skillTreeGroups({ skillPoints, perks }: MemberPerks): HomeLine[][] {
+function skillTreeGroups(tree: MemberPerks): HomeLine[][] {
   const condition: HomeLine = { kind: "hint", text: "Bonuses count when your message has 5 or more words besides mentions and emoji." };
-  return [[{ kind: "text", text: `You have ${bold(skillPointsOf(skillPoints))} to spend.` }], [...perks.flatMap(perkLines), condition]];
+  const toSpend: HomeLine[][] = ownsEveryPerk(tree) ? [] : [[{ kind: "text", text: `You have ${bold(skillPointsOf(tree.skillPoints))} to spend.` }]];
+  return [...toSpend, [...tree.perks.flatMap(perkLines), condition]];
 }
 
 function perkLines(perk: TreePerk): HomeLine[] {
@@ -183,7 +186,11 @@ function perkLines(perk: TreePerk): HomeLine[] {
 }
 
 export function perkOfferOf(perk: Perk): { text: string; action: HomeAction } {
-  return { text: perkTextOf(perk), action: { label: "Buy", command: { type: "buyPerk", perk: perk.perk } } };
+  return { text: perkTextOf(perk), action: { label: "Buy", command: { type: "buyPerk", perk: perk.perk }, accessibilityLabel: `Buy ${perk.name}`, confirm: purchaseConfirmationOf(perk) } };
+}
+
+function purchaseConfirmationOf({ name, skillPoints }: Perk): Confirmation {
+  return { title: `Buy ${name}?`, text: `This spends ${skillPointsOf(skillPoints)}. Skill points are never refunded.`, confirm: "Buy", deny: "Cancel" };
 }
 
 function perkTextOf({ name, skillPoints, copy }: Perk) {

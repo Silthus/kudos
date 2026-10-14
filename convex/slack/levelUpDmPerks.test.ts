@@ -89,6 +89,36 @@ describe("P19 P74: once the Skill tree is open, the level-up DM offers each perk
   });
 });
 
+describe("P19 P94: the level-up DM's Buy asks before it spends, and the DM names no points once every perk is owned", () => {
+  test("each Buy in the DM asks for a confirmation saying skill points are never refunded, and names its perk for screen readers", async () => {
+    const t = await skillTreeOpenedAtLevelFive("U_ALICE");
+
+    await reachLevelSix(t, "U_ALICE");
+
+    const buyRhythm = blocksOf(lastDmTo("U_ALICE")).find((block) => isBuyCommandFor(block.accessory?.value, "rhythm"))?.accessory;
+    expect(buyRhythm).toMatchObject({
+      accessibility_label: "Buy Rhythm",
+      confirm: {
+        title: { type: "plain_text", text: "Buy Rhythm?" },
+        text: { type: "plain_text", text: "This spends 1 skill point. Skill points are never refunded." },
+        confirm: { type: "plain_text", text: "Buy" },
+        deny: { type: "plain_text", text: "Cancel" },
+      },
+    });
+  });
+
+  test("reaching level 8 owning every perk says nothing of skill points to spend and offers no Buy", async () => {
+    const t = await skillTreeOpenedAtLevelFive("U_ALICE");
+    await ownsEveryPerk(t, "U_ALICE");
+
+    await withXp(t, "U_ALICE", 2090);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(lastDmTo("U_ALICE")).toMatchObject({ text: "🎉 You reached level 8!\nLevel 9 is 700 XP away." });
+    expect(lastDmTo("U_ALICE").blocks).toBeUndefined();
+  });
+});
+
 describe("P76: before the Skill tree is opened, the level-up DM is today's", () => {
   test("a member who hasn't opened the Skill tree reaches level 6 and gets a DM with no skill points and no Buy", async () => {
     const t = await levelFiveMember("U_ALICE");
@@ -152,6 +182,18 @@ async function levelFiveMember(user: string) {
   await t.fetch("/slack/events", await signedRequest(appHomeOpened(user)));
   await settle(t);
   return t;
+}
+
+async function ownsEveryPerk(t: Backend, user: string) {
+  const member = await memberOf(t, user);
+  await t.run(async (ctx) => {
+    const progress = await ctx.db
+      .query("memberProgress")
+      .withIndex("by_member", (q) => q.eq("member", member))
+      .unique();
+    await ctx.db.patch(progress!._id, { pointsSpent: 3 });
+    for (const perk of ["spark", "rhythm", "circle"] as const) await ctx.db.insert("perksOwned", { member, perk, boughtAt: Date.now(), catalogueVersion: "1" });
+  });
 }
 
 async function reachLevelSix(t: Backend, user: string) {

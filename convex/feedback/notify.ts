@@ -6,7 +6,7 @@ import { tierRefValidator, type TierRef } from "../achievements/ladders";
 import { everyTierEarnedBy } from "../achievements/tiers";
 import type { LevelReachedEvent } from "../bus/events";
 import { skillTreeLevel } from "../progression/levels";
-import { memberPerksOf, type MemberPerks } from "../progression/perks";
+import { memberPerksOf, ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { purchaseOutcomeValidator } from "../progression/purchases";
 import { progressSettingsOf } from "../progression/settings";
@@ -118,7 +118,7 @@ function levelReachedLines({ level, skillPoints, xpToNextLevel }: Extract<Notifi
 }
 
 function skillPointsTold(level: number, skillPoints: number | null, openTree: MemberPerks | null) {
-  if (openTree !== null) return ` You have ${skillPointsOf(openTree.skillPoints)} to spend.`;
+  if (openTree !== null) return ownsEveryPerk(openTree) ? "" : ` You have ${skillPointsOf(openTree.skillPoints)} to spend.`;
   return skillPoints !== null && level >= skillTreeLevel ? ` You have ${skillPointsOf(skillPoints)} saved for the skill tree.` : "";
 }
 

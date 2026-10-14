@@ -8,7 +8,7 @@ import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
 import { isOnTheBoards } from "../leaderboard/visibility";
-import { memberPerksOf, type MemberPerks } from "../progression/perks";
+import { memberPerksOf, ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import { skillTreeShownTo } from "../progression/skillTree";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { questsShownTo } from "../quests/flag";
@@ -168,7 +168,8 @@ async function openedQuestsOf(ctx: MutationCtx, member: MemberId) {
 
 async function toldProgressionOf(ctx: QueryCtx, member: MemberId, skillTreeTab: boolean): Promise<ToldProgression> {
   const progression = await progressionHomeOf(ctx, member);
-  return { ...progression, skillPoints: await whenOpened(ctx, member, "skillTree", progression.skillPoints), skillTreeTab };
+  const nothingToBuy = skillTreeTab && ownsEveryPerk(await memberPerksOf(ctx, member));
+  return { ...progression, skillPoints: nothingToBuy ? null : await whenOpened(ctx, member, "skillTree", progression.skillPoints), skillTreeTab };
 }
 
 function roleOf(person: MemberFacts) {
