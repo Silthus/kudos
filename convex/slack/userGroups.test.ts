@@ -113,12 +113,14 @@ describe("an answer the directory can't trust changes nothing", () => {
     ["without a name", { id: "S_BAKE", team_id: "T1", handle: "bakers" }],
     ["without an id", { team_id: "T1", handle: "bakers", name: "Bakers" }],
     ["that isn't an object", "S_BAKE"],
+    ["whose disabled time isn't a number", { id: "S_GARDEN", team_id: "T1", handle: "gardeners", name: "Gardeners", date_delete: "0", auto_type: null }],
+    ["whose automatic type isn't text", { id: "S_GARDEN", team_id: "T1", handle: "gardeners", name: "Gardeners", date_delete: 0, auto_type: 5 }],
   ])("a listing with a user group %s fails and keeps every user group", async (_, malformed) => {
     const t = testBackend();
     slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: ["U_ANN"] });
     await sync(t);
     const listed = { id: "S_GARDEN", team_id: "T1", handle: "gardeners", name: "Gardeners", date_delete: 0, auto_type: null };
-    slack.answering("usergroups.list", () => Response.json({ ok: true, usergroups: [listed, malformed] }));
+    slack.answering("usergroups.list", () => Response.json({ ok: true, usergroups: [malformed, listed] }));
 
     await expect(t.action(internal.slack.userGroups.syncUserGroups, {})).rejects.toThrow("Slack usergroups.list answered a user group it doesn't describe");
 
@@ -276,7 +278,7 @@ describe("subteam events refresh that one user group from Slack", () => {
   test("a members list Slack answered before a newer refresh changes nothing that refresh kept", async () => {
     const t = testBackend();
     slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: ["U_ANN"] });
-    const stale = heldMembersAnswer(["U_ANN"]);
+    const stale = heldAnswer("usergroups.users.list");
     const firstRefresh = t.action(internal.slack.userGroups.refreshUserGroup, { workspace: "T1", group: "S_GARDEN" });
     await stale.reached;
     vi.setSystemTime(now.getTime() + 60_000);
@@ -288,6 +290,53 @@ describe("subteam events refresh that one user group from Slack", () => {
 
     expect(await groupsOf(t, "U_ANN")).toEqual([]);
     expect(await groupsOf(t, "U_BOB")).toEqual([gardeners]);
+  });
+
+  test("a members list read while a slower listing disables the user group never keeps its members", async () => {
+    const t = testBackend();
+    slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: ["U_ANN"] });
+    await sync(t);
+    slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: ["U_ANN"], disabled: true });
+    const disabling = heldAnswer("usergroups.list");
+    const slowRefresh = t.action(internal.slack.userGroups.refreshUserGroup, { workspace: "T1", group: "S_GARDEN" });
+    await disabling.reached;
+    vi.setSystemTime(now.getTime() + 60_000);
+
+    await t.action(internal.slack.userGroups.refreshMembers, { workspace: "T1", group: "S_GARDEN" });
+    disabling.release();
+    await slowRefresh;
+    await settle(t);
+
+    expect(await groupsOf(t, "U_ANN")).toEqual([]);
+    expect(await storedMembershipsOf(t, "S_GARDEN")).toEqual([]);
+  });
+});
+
+describe("Convex's limit of 1,000 scheduled functions per call", () => {
+  const manyGroups = Array.from({ length: 1_001 }, (_, index) => `S_${index}`);
+
+  test("a sync of 1,001 user groups schedules fewer than 1,000 functions, and every members list in turn", async () => {
+    const t = testBackend();
+    for (const group of manyGroups) slack.withUserGroup(group, { users: ["U_ANN"] });
+
+    await t.action(internal.slack.userGroups.syncUserGroups, {});
+    const scheduled = await pendingJobs(t);
+    const groupsAhead = scheduled.flatMap(({ name, args }) => (name.endsWith(":refreshMembersOfEach") ? (args[0] as { groups: unknown[] }).groups : []));
+
+    expect(scheduled.length).toBeLessThan(1_000);
+    expect(scheduled.filter(({ name }) => name.endsWith(":refreshMembers")).length + groupsAhead.length).toBe(1_001);
+  });
+
+  test("a listing that disables 1,001 user groups schedules fewer than 1,000 functions", async () => {
+    const t = testBackend();
+    await t.run(async (ctx) => {
+      for (const group of manyGroups) await ctx.db.insert("userGroups", { workspace: "T1", group, handle: group, name: group, enabled: true, automatic: false, asOf: 0 });
+    });
+    slack.answering("usergroups.list", slackError("plan_upgrade_required"));
+
+    await t.action(internal.slack.userGroups.syncUserGroups, {});
+
+    expect((await pendingJobs(t)).length).toBeLessThan(1_000);
   });
 });
 
@@ -308,16 +357,20 @@ function storedMembershipsOf(t: Backend, group: string) {
   return t.run(async (ctx) => (await ctx.db.query("userGroupMembers").collect()).filter((membership) => membership.group === group));
 }
 
-function heldMembersAnswer(users: string[]) {
+function heldAnswer(method: string) {
   let release = () => {};
   const released = new Promise<void>((resolve) => (release = resolve));
   let signalReached = () => {};
   const reached = new Promise<void>((resolve) => (signalReached = resolve));
-  slack.answering("usergroups.users.list", async () => {
-    const answer = Response.json({ ok: true, users });
+  slack.answering(method, async (answerAsSlackWould) => {
+    const answer = answerAsSlackWould();
     signalReached();
     await released;
     return answer;
   });
   return { reached, release };
+}
+
+function pendingJobs(t: Backend) {
+  return t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).filter(({ state }) => state.kind === "pending"));
 }

@@ -20,6 +20,7 @@ const userGroupEvents: ReadonlySet<string> = new Set(["subteam_created", "subtea
 const withoutUserGroups = "plan_upgrade_required";
 const goneUserGroup = "no_such_subteam";
 const membersListSpacingMs = 3_000;
+const membersListsPerRun = 100;
 const maxAttempts = 3;
 const maxMembersKept = 8_000;
 const attemptArgs = { attempt: v.optional(v.number()) };
@@ -44,11 +45,13 @@ export const syncUserGroups = observedAction({
       return;
     }
     await ctx.runMutation(internal.workspace.userGroups.keepUserGroups, { listed: listing.groups, scope: { kind: "every-group" }, asOf });
-    const withMembers = listing.groups.filter(keepsMembers);
-    for (const [index, { workspace, group }] of withMembers.entries()) {
-      await ctx.scheduler.runAfter(index * membersListSpacingMs, internal.slack.userGroups.refreshMembers, { workspace, group });
-    }
+    await scheduleMembersLists(ctx, listing.groups.filter(keepsMembers).map(({ workspace, group }) => ({ workspace, group })));
   },
+});
+
+export const refreshMembersOfEach = observedAction({
+  args: { groups: v.array(v.object({ workspace: v.string(), group: v.string() })) },
+  handler: (ctx, { groups }) => scheduleMembersLists(ctx, groups),
 });
 
 export const refreshUserGroup = observedAction({
@@ -70,6 +73,12 @@ export const refreshMembers = observedAction({
   args: { workspace: v.string(), group: v.string(), ...attemptArgs },
   handler: (ctx, { attempt = 1, ...key }) => refreshMembersOf(ctx, key, attempt),
 });
+
+async function scheduleMembersLists(ctx: ActionCtx, groups: GroupKey[]) {
+  const [now, later] = [groups.slice(0, membersListsPerRun), groups.slice(membersListsPerRun)];
+  for (const [index, key] of now.entries()) await ctx.scheduler.runAfter(index * membersListSpacingMs, internal.slack.userGroups.refreshMembers, key);
+  if (later.length > 0) await ctx.scheduler.runAfter(now.length * membersListSpacingMs, internal.slack.userGroups.refreshMembersOfEach, { groups: later });
+}
 
 async function refreshMembersOf(ctx: ActionCtx, key: GroupKey, attempt: number) {
   const asOf = Date.now();
@@ -93,13 +102,13 @@ function membersOf(answer: SlackAnswer<{ users?: unknown }>): string[] {
 
 async function userGroupsListed(): Promise<Listing> {
   const answer = await readSlack<{ usergroups?: unknown }>("usergroups.list", { include_disabled: "true" });
-  if (answer.ok) return { kind: "listed", groups: userGroupsOf(answer.usergroups) };
+  if (answer.ok) return { kind: "listed", groups: listedUserGroupsOf(answer.usergroups) };
   if (answer.error === "ratelimited") return { kind: "rate-limited", retryAfterMs: retryDelayOf(answer) };
   if (answer.error === withoutUserGroups) return { kind: "listed", groups: [] };
   throw new ReportableError(`Slack usergroups.list failed: ${slackErrorCodeOf(answer.error)}`);
 }
 
-function userGroupsOf(listed: unknown): UserGroup[] {
+function listedUserGroupsOf(listed: unknown): UserGroup[] {
   if (!Array.isArray(listed)) throw new ReportableError("Slack usergroups.list answered without a usergroups list");
   const groups = listed.flatMap(userGroupOf);
   if (groups.length !== listed.length) throw new ReportableError("Slack usergroups.list answered a user group it doesn't describe");
@@ -111,7 +120,9 @@ function userGroupOf(listed: unknown): UserGroup[] {
   const group = listed as SlackUserGroup;
   const [workspace, id, handle, name] = [textOf(group.team_id), textOf(group.id), textOf(group.handle), textOf(group.name)];
   if (workspace === undefined || id === undefined || handle === undefined || name === undefined) return [];
-  return [{ workspace, group: id, handle, name, enabled: !group.date_delete, automatic: textOf(group.auto_type) !== undefined }];
+  const { date_delete: disabledAt = 0, auto_type: automaticType = null } = group;
+  if (typeof disabledAt !== "number" || (automaticType !== null && textOf(automaticType) === undefined)) return [];
+  return [{ workspace, group: id, handle, name, enabled: disabledAt === 0, automatic: automaticType !== null }];
 }
 
 function nextAttempt(attempt: number, method: string) {
