@@ -3,6 +3,7 @@ import { kudosGivenEventValidator, membersNamedIn, type KudosGivenEvent } from "
 import { publish } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
 import { awardsOfMessage } from "../engine/awards";
+import type { DayKey } from "../engine/allowance";
 import type { Annotations, MessageRef } from "../engine/messageEvent";
 import { gateDecisionOf } from "./gate";
 import { catalogue } from "./catalogue";
@@ -26,7 +27,9 @@ export const recordEffects = internalMutation({
   },
 });
 
-async function givingOf(ctx: QueryCtx, { workspace, giver, day, awards }: Pick<KudosGivenEvent, "workspace" | "giver" | "day" | "awards">, member: MemberId): Promise<Giving> {
+type GivenBy = { workspace: string; giver: MemberId; day: DayKey; awards: AwardWithId[] };
+
+async function givingOf(ctx: QueryCtx, { workspace, giver, day, awards }: GivenBy, member: MemberId): Promise<Giving> {
   if (member !== giver || awards.length === 0) return noGiving;
   const perks = await perksPayingIn(ctx, workspace, giver);
   if (perks.length === 0) return noGiving;
