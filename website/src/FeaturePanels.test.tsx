@@ -121,7 +121,7 @@ describe("WS97 WS102: one panel per shipped feature, in its slot", () => {
 describe("WS103: a locked panel", () => {
   it.each([
     ["Quests", 2, "Weekly quests of your own."],
-    ["Leaderboard", 3, "See where you and your group stand."],
+    ["Leaderboard", 3, "See where you stand."],
     ["Book", 4, "Achievements you earn as you thank colleagues and they thank you."],
     ["Skill tree", 5, "Perks you choose with skill points."],
   ])("shows %s's level and its one sentence, with no progress, action or game frame", (name, level, sentence) => {

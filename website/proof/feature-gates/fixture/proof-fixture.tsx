@@ -2,14 +2,12 @@ import "@fontsource-variable/inter";
 import "./src/index.css";
 import { createRoot } from "react-dom/client";
 import { App } from "./src/App";
+import { fixtureReadsFor } from "./src/fixtureReads";
 import { shellFixtures, fixtureActions, type MemberProfile, type ShellActions, type Feature } from "./src/shell";
 import type { BoardRead } from "./src/boardRead";
 import { fixedQuests, questsFixtures } from "./src/questsFixtures";
 import { bookFixtures, fixedBook } from "./src/bookFixtures";
 import { fixedSkillTree, skillTreeFixtures } from "./src/skillTreeFixtures";
-import { fixtureProfileCardFor } from "./src/profileCardFixtures";
-import { fixtureRecentKudos } from "./src/recentKudosFixtures";
-import { fixtureActivityWatch, fixtureReadActivity } from "./src/activityFixtures";
 
 const params = new URLSearchParams(location.search);
 history.replaceState(null, "", (params.get("path") ?? "/") + location.search);
@@ -31,5 +29,5 @@ const actions: ShellActions = {
   },
 };
 const show = () =>
-  root.render(<App visitor={visitor} actions={actions} useLeaderboard={board} useQuests={fixedQuests(questsFixtures[state])} useBook={fixedBook(bookFixtures[state])} useSkillTree={fixedSkillTree(skillTreeFixtures[state])} useProfileCard={fixtureProfileCardFor(visitor)} useRecentKudos={fixtureRecentKudos} useActivityWatch={fixtureActivityWatch} readActivity={fixtureReadActivity} />);
+  root.render(<App visitor={visitor} actions={actions} {...fixtureReadsFor(visitor)} useLeaderboard={board} useQuests={fixedQuests(questsFixtures[state])} useBook={fixedBook(bookFixtures[state])} useSkillTree={fixedSkillTree(skillTreeFixtures[state])} />);
 show();

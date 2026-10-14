@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties
 import { IconArrowRight, IconCheck } from "@posthog/icons";
 import { Button, buttonVariants } from "@posthog/quill";
 import { AppLink } from "../AppLink";
-import { aboutOf, waitsOf, webPageOf } from "../features";
+import { aboutOf, isOrAre, waitsOf, webPageOf } from "../features";
 import type { Feature, FeatureCard } from "../shell";
 import { prefersReducedMotion } from "../reducedMotion";
 import { SlackLink } from "../SlackLink";
@@ -80,7 +80,7 @@ type EndStateProps = { card: FeatureCard; chatUrl: string; othersReady: ReadyCra
 function EndState({ card, chatUrl, othersReady, onClose, onReplay }: EndStateProps) {
   return (
     <EndFrame
-      headline={`${card.name} is open`}
+      headline={`${card.name} ${isOrAre(card.feature)} open`}
       onClose={onClose}
       onReplay={onReplay}
       go={<GoThere card={card} chatUrl={chatUrl} onGo={() => onClose({ returnFocus: false })} />}

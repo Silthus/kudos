@@ -1,6 +1,6 @@
 import { OpenButton, useFeatureCrate } from "../crates/Crate";
 import { CrateArt } from "../crates/CrateArt";
-import { aboutOf } from "../features";
+import { aboutOf, isOrAre } from "../features";
 import { PageTitle } from "../PageTitle";
 import type { FeatureCard } from "../shell";
 
@@ -10,7 +10,7 @@ export function ReadyPage({ card }: { card: FeatureCard }) {
   return (
     <section className="hud-panel mx-auto w-full max-w-3xl overflow-hidden rounded-xl border shadow-sm">
       <div className="night-band flex flex-col items-center gap-3 px-4 pb-10 pt-10 text-center md:pb-12 md:pt-14">
-        <PageTitle tab={card.name} size="headline">{`${card.name} is ready`}</PageTitle>
+        <PageTitle tab={card.name} size="headline">{`${card.name} ${isOrAre(card.feature)} ready`}</PageTitle>
         <p className="night-band-quiet max-w-md text-balance text-base">{sentence}</p>
         <div className="mt-6 cursor-pointer" onClick={crate.open}>
           <CrateArt phase="closed" width={200} Hog={Hog} nudge={crate.nudge} seen={card.seen} />

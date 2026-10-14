@@ -1,7 +1,7 @@
-import { plainNameOf, type PagedFeature } from "../features";
+import { isOrAre, itOrThem, plainNameOf, type PagedFeature } from "../features";
 import { MaxSays } from "../Max";
 import { navEntriesOf } from "../nav/entries";
-import type { MemberProfile, PageWaits } from "../shell";
+import type { Feature, MemberProfile, PageWaits } from "../shell";
 import { SlackLink } from "../SlackLink";
 import { LockedPage } from "./LockedPage";
 import { ReadyPage } from "./ReadyPage";
@@ -16,7 +16,7 @@ export function FeatureWaitsPage({ feature, waiting, member }: FeatureWaitsPageP
   if (waiting.kind === "locked") return <LockedPage feature={feature} name={name} level={waiting.level} />;
   return (
     <MaxSays title={name} tab={name} action={<OpenSlack chatUrl={member.chatUrl} />}>
-      {readyInSlack(name)}
+      {readyInSlack(feature)}
     </MaxSays>
   );
 }
@@ -25,8 +25,8 @@ function featureOf(entry: ReturnType<typeof navEntriesOf>[number]) {
   return entry.state === "ready" ? entry.card.feature : entry.feature;
 }
 
-export function readyInSlack(name: string) {
-  return `${name} is ready for you. Open it in Slack's App Home.`;
+export function readyInSlack(feature: Feature) {
+  return `${plainNameOf(feature)} ${isOrAre(feature)} ready for you. Open ${itOrThem(feature)} in Slack's App Home.`;
 }
 
 function OpenSlack({ chatUrl }: { chatUrl: string }) {

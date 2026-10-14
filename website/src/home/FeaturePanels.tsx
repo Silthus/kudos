@@ -90,10 +90,9 @@ function ReadyPanel({ card }: { card: FeatureCard }) {
 }
 
 function ReadyInSlackPanel({ slot }: { slot: RailSlot }) {
-  const name = plainNameOf(slot);
   return (
-    <Panel id={slot} label={name}>
-      <p className="text-sm text-muted-foreground">{readyInSlack(name)}</p>
+    <Panel id={slot} label={plainNameOf(slot)}>
+      <p className="text-sm text-muted-foreground">{readyInSlack(slot)}</p>
     </Panel>
   );
 }

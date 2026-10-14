@@ -26,7 +26,7 @@ beforeEach(() => {
   fakeSystemTheme(false);
 });
 
-type FeaturePage = { name: string; path: string; level: number; sentence: string; Hog: ComponentType<{ title?: string }>; show: (member: MemberProfile, state: "locked" | "ready") => ReturnType<typeof renderApp> };
+type FeaturePage = { name: string; ready: string; opened: string; path: string; level: number; sentence: string; Hog: ComponentType<{ title?: string }>; show: (member: MemberProfile, state: "locked" | "ready") => ReturnType<typeof renderApp> };
 
 const lockedBoard: BoardRead = (period) => period && { kind: "locked", level: 3 };
 
@@ -35,6 +35,8 @@ const readyBoard: BoardRead = (period) => period && { kind: "ready" };
 const featurePages: FeaturePage[] = [
   {
     name: "Quests",
+    ready: "Quests are ready",
+    opened: "Quests are open",
     path: "/quests",
     level: 2,
     sentence: "Weekly quests of your own.",
@@ -43,14 +45,18 @@ const featurePages: FeaturePage[] = [
   },
   {
     name: "Leaderboard",
+    ready: "Leaderboard is ready",
+    opened: "Leaderboard is open",
     path: "/leaderboard",
     level: 3,
-    sentence: "See where you and your group stand.",
+    sentence: "See where you stand.",
     Hog: HedgehogStar,
     show: (member, state) => renderApp(member, state === "locked" ? lockedBoard : readyBoard, opening()),
   },
   {
     name: "Book",
+    ready: "Book is ready",
+    opened: "Book is open",
     path: "/book",
     level: 4,
     sentence: "Achievements you earn as you thank colleagues and they thank you.",
@@ -59,6 +65,8 @@ const featurePages: FeaturePage[] = [
   },
   {
     name: "Skill tree",
+    ready: "Skill tree is ready",
+    opened: "Skill tree is open",
     path: "/skills",
     level: 5,
     sentence: "Perks you choose with skill points.",
@@ -137,7 +145,7 @@ describe("WS324: a ready feature page is E's night band with the crate", () => {
       visit(page, shellFixtures.memberWithEveryPanelReady, "ready");
       const band = pageTitle().closest<HTMLElement>(".night-band");
       expect(band).not.toBeNull();
-      expect(pageTitle()).toHaveTextContent(`${page.name} is ready`);
+      expect(pageTitle()).toHaveTextContent(page.ready);
       expect(band).toHaveTextContent(page.sentence);
       expect(within(band!).getByRole("button", { name: "Open" })).toHaveClass("quill-button--variant-primary");
       expect(band!.querySelector(".crate-art")).not.toBeNull();
@@ -259,6 +267,11 @@ function nextCrateButton() {
 }
 
 describe("WS325: the reveal lists what waits", () => {
+  it.each(featurePages)("heads the reveal with $opened, its verb agreeing with the name", async (page) => {
+    await revealFrom(shellFixtures.memberWithEveryPanelReady, page.name);
+    expect(within(dialog()).getByRole("heading", { name: page.opened })).toBeInTheDocument();
+  });
+
   it.each(Object.entries(waits))("lists what the %s holds after its crate opens", async (name, lines) => {
     await revealFrom(shellFixtures.memberWithEveryPanelReady, name);
     const list = within(dialog()).getByRole("list", { name: "What waits" });

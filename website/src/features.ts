@@ -24,9 +24,28 @@ export function plainNameOf(feature: Feature): string {
   return plainNames[feature];
 }
 
+type GrammaticalNumber = "singular" | "plural";
+
+const grammaticalNumbers: Record<Feature, GrammaticalNumber> = {
+  quests: "plural",
+  leaderboard: "singular",
+  book: "singular",
+  skillTree: "singular",
+  coins: "plural",
+  hedgehogs: "plural",
+};
+
+export function isOrAre(feature: Feature): "is" | "are" {
+  return grammaticalNumbers[feature] === "plural" ? "are" : "is";
+}
+
+export function itOrThem(feature: Feature): "it" | "them" {
+  return grammaticalNumbers[feature] === "plural" ? "them" : "it";
+}
+
 const about: Record<Feature, About> = {
   quests: { sentence: "Weekly quests of your own.", Hog: HedgehogOrganized },
-  leaderboard: { sentence: "See where you and your group stand.", Hog: HedgehogStar },
+  leaderboard: { sentence: "See where you stand.", Hog: HedgehogStar },
   book: { sentence: "Achievements you earn as you thank colleagues and they thank you.", Hog: HedgehogReading },
   skillTree: { sentence: "Perks you choose with skill points.", Hog: HedgehogWizard },
   coins: { sentence: "Coins you spend on hedgehogs and kudos emoji.", Hog: HedgehogMoney },
