@@ -1,12 +1,21 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
-import { flag } from "../analytics/flags";
+import { exposed, flag } from "../analytics/flags";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { unlocksAppliedIn } from "../unlocks/launch";
+import { chatUserOf, type MemberId } from "../workspace/directory";
 import { questsFlag } from "./questsFlag";
 
 export async function questsApplyIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<boolean> {
   return (await flag(ctx, questsFlag, { workspace })) && (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
+}
+
+export async function questsShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  const { workspace } = await chatUserOf(ctx, member);
+  if (!(await xpLevelsShownIn(ctx, workspace)) || !(await unlocksAppliedIn(ctx, workspace))) return false;
+  const live = await questsLiveIn(ctx, workspace);
+  await exposed(ctx, questsFlag, member, live);
+  return live;
 }
 
 export async function questsLiveIn(ctx: MutationCtx, workspace: string): Promise<boolean> {
