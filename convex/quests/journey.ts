@@ -9,10 +9,9 @@ import {
   type KudosGivenEvent,
 } from "../bus/events";
 import type { DayKey } from "../engine/allowance";
-import { firstThanksOf, givenSince, lastThankedBefore, lastThankedBy, type DatedAward } from "../engine/awards";
+import { firstThanksOf, givenBetween, lastThankedBefore, lastThankedBy, type DatedAward } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { notifyQuestFinished } from "../feedback/notify";
-import { saidWhy } from "../progression/effects";
 import { gateDecisionOf } from "../progression/gate";
 import { rewardOf, rewardsKeyedFrom } from "../progression/rewards";
 import { openedAtOf } from "../unlocks/unlocks";
@@ -134,7 +133,7 @@ async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent): Promise
   const twoDays = await activationOf(ctx, event.giver, "two-days");
   if (twoDays === null || event.at < twoDays.activatedAt || gateDecisionOf(event.annotations)?.thoughtful !== true) return false;
   if (!(await journeyStepAppliesIn(ctx, event.workspace, "two-days")) || (await isFinished(ctx, twoDays))) return false;
-  const days = new Set<DayKey>([event.day, ...(await sayingWhySince(ctx, twoDays)).map(({ day }) => day)]);
+  const days = new Set<DayKey>([event.day, ...(await sayingWhyBetween(ctx, twoDays, event.at)).map(({ day }) => day)]);
   return days.size >= daysSayingWhyToFinishTwoDays && (await finish(ctx, event.workspace, twoDays, event.at));
 }
 
@@ -155,14 +154,12 @@ export async function finishedOnActivation(ctx: QueryCtx, workspace: string, act
     case "someone-new":
       return (await firstThanksSince(ctx, activation)) ?? ((await hasThankedEveryone(ctx, workspace, activation.member, activation.activatedAt)) ? activation.activatedAt : null);
     case "two-days":
-      return secondDaySayingWhyOf(await sayingWhySince(ctx, activation));
+      return secondDaySayingWhyOf(await sayingWhyBetween(ctx, activation, Infinity));
   }
 }
 
-async function sayingWhySince(ctx: QueryCtx, { member, activatedAt }: JourneyActivation): Promise<DatedAward[]> {
-  const sayingWhy: DatedAward[] = [];
-  for (const given of await givenSince(ctx, member, activatedAt)) if (await saidWhy(ctx, given.award)) sayingWhy.push(given);
-  return sayingWhy;
+async function sayingWhyBetween(ctx: QueryCtx, { member, activatedAt }: JourneyActivation, until: number): Promise<DatedAward[]> {
+  return (await givenBetween(ctx, member, activatedAt, until)).filter(({ annotations }) => gateDecisionOf(annotations)?.thoughtful === true);
 }
 
 function secondDaySayingWhyOf(sayingWhy: DatedAward[]): number | null {

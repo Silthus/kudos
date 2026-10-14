@@ -17,14 +17,6 @@ export async function isRecorded(ctx: QueryCtx, award: AwardId, side: Side) {
   return recorded !== null;
 }
 
-export async function saidWhy(ctx: QueryCtx, award: AwardId): Promise<boolean> {
-  const given = await ctx.db
-    .query("effectsRecords")
-    .withIndex("by_award", (q) => q.eq("award", award).eq("side", "giver"))
-    .first();
-  return given?.gate?.thoughtful === true;
-}
-
 export async function thoughtfulAwardsBefore(ctx: QueryCtx, giver: MemberId, day: DayKey, award: AwardId): Promise<ThoughtfulAward[]> {
   const earlier = await givenEarlierInWeek(ctx, giver, weekOf(day), award);
   return earlier.filter(({ annotations }) => gateDecisionOf(annotations)?.thoughtful === true).map(({ recipient, day }) => ({ recipient, day }));

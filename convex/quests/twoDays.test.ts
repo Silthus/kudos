@@ -31,6 +31,7 @@ const twoDaysCondition = "context: It counts when your message has 5 or more wor
 const twoDaysDone = "section: *Journey:* ✅ Give kudos that say why on 2 different days. You earned *30 XP*. [button: Open]";
 const finishedTwoDays = "✅ You finished a Journey step: Give kudos that say why on 2 different days. You earned *30 XP*.";
 const twoDaysReward = { xp: 30, coins: 0, item: null };
+const firstThanksDone = "section: *Journey:* ✅ Give a kudos that says why. You earned *10 XP*. [button: Open]";
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -145,6 +146,34 @@ describe("P90: two-days has its own finishing rule, never someone-new's", () => 
     expect((await twoDaysOf(t, alice))?.activatedAt).toBe(openedAt);
   });
 
+  test("kudos that say why on 2 days finish it from the gate decisions the engine stored, before progression has recorded their effects", async () => {
+    const { t, alice, bob } = await membersInDirectory();
+    await opened(t, alice, "book", monday);
+    const first = await thoughtfulKudos(t, alice, bob, monday + minuteMs, "2026-10-12");
+    const second = await thoughtfulKudos(t, alice, bob, wednesday, "2026-10-14");
+
+    await followKudosGiven(t, first);
+    await followKudosGiven(t, second);
+
+    expect(await effectsRecordCount(t)).toBe(0);
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
+  });
+
+  test("a kudosGiven counts only awards up to its own: Monday's, read after Wednesday's award is stored, doesn't finish it, and Wednesday's does", async () => {
+    const { t, alice, bob } = await membersInDirectory();
+    await opened(t, alice, "book", monday);
+    const first = await thoughtfulKudos(t, alice, bob, monday + minuteMs, "2026-10-12");
+    const second = await thoughtfulKudos(t, alice, bob, wednesday, "2026-10-14");
+
+    await followKudosGiven(t, first);
+
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([]);
+
+    await followKudosGiven(t, second);
+
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
+  });
+
   test("kudos that say why on 2 days after the opening, read before the activation's subscriber runs, finish it at the second", async () => {
     const { t, alice, bob } = await membersInDirectory();
     await followKudosGiven(t, await thoughtfulKudos(t, alice, bob, monday + minuteMs, "2026-10-12"));
@@ -233,7 +262,8 @@ describe("P78: two-days exists only where the Book and quests both apply", () =>
 
     expect(await activationsOf(t, "two-days")).toBe(0);
     expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([]);
-    expect(journeyIn(publishedHome(slack, "U_ALICE")).join("\n")).not.toContain("2 different days");
+    expect(await journeyStepsOf(t, alice)).toEqual(["first-thanks"]);
+    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([firstThanksDone]);
   });
 
   test("where quests don't apply, kudos that say why on 2 days after the Book opened record nothing", async () => {
@@ -260,8 +290,8 @@ describe("P78: two-days exists only where the Book and quests both apply", () =>
 
     const alice = await memberOf(t, "U_ALICE");
     expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([]);
-    expect(await twoDaysOf(t, alice)).toBeUndefined();
-    expect(journeyIn(publishedHome(slack, "U_ALICE")).join("\n")).not.toContain("2 different days");
+    expect(await journeyStepsOf(t, alice)).toEqual(["first-thanks"]);
+    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([firstThanksDone]);
     expect(lastReplyTo("U_ALICE").join("\n")).not.toContain("2 different days");
   });
 
@@ -321,9 +351,13 @@ async function membersInDirectory() {
 }
 
 async function thoughtfulKudos(t: Backend, giver: MemberId, recipient: MemberId, at: number, day: string): Promise<KudosGivenEvent> {
-  const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, giver, recipient, { annotations: saysWhyDecision, at, day }));
-  await t.mutation(internal.progression.progression.recordEffects, { event });
-  return event;
+  const message = { workspace: "T1", conversation: "C1", message: `${at / 1000}` };
+  return t.run(async (ctx) => {
+    const author = (await ctx.db.get(giver))!.user;
+    const content = { mentions: [], emoji: ["taco"] };
+    await ctx.db.insert("kudosMessages", { ...message, author, revision: 1n, state: "given", attempt: 1n, content, annotations: saysWhyDecision, spendsAt: at, checks: 0 });
+    return kudosGivenEventWithAward(ctx, giver, recipient, { message, annotations: saysWhyDecision, at, day });
+  });
 }
 
 async function followKudosGiven(t: Backend, event: KudosGivenEvent) {
@@ -403,9 +437,18 @@ async function rewardRecordsOf(t: Backend, key: string) {
   );
 }
 
+async function journeyStepsOf(t: Backend, member: MemberId) {
+  const quests = await t.query(internal.quests.quests.questsOf, { member });
+  return quests!.journey.map(({ step }) => step);
+}
+
 async function twoDaysOf(t: Backend, member: MemberId) {
   const quests = await t.query(internal.quests.quests.questsOf, { member });
   return quests?.journey.find(({ step }) => step === "two-days");
+}
+
+async function effectsRecordCount(t: Backend) {
+  return t.run(async (ctx) => (await ctx.db.query("effectsRecords").collect()).length);
 }
 
 async function activationsOf(t: Backend, step: string) {
