@@ -15,8 +15,12 @@ export type GroupMode = { mode: GroupModeKind; allowlist?: GroupId[] };
 
 const everyGroup: GroupMode = { mode: "all" };
 
-export function countsAsGroup(row: Doc<"userGroups">, { mode, allowlist = [] }: GroupMode): boolean {
-  return keepsMembers(row) && (mode === "all" || allowlist.includes(row._id));
+export function countsAsGroup(row: Doc<"userGroups">, mode: GroupMode): boolean {
+  return keepsMembers(row) && isAllowed(row, mode);
+}
+
+export function isAllowed(row: Doc<"userGroups">, { mode, allowlist = [] }: GroupMode): boolean {
+  return mode === "all" || allowlist.includes(row._id);
 }
 
 export async function groupModeOf(ctx: QueryCtx, workspace: string): Promise<GroupMode> {

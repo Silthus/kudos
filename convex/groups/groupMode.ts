@@ -4,7 +4,7 @@ import { memberDecision } from "../analytics/flags";
 import type { MemberId } from "../workspace/directory";
 import { keepsMembers } from "../workspace/userGroups";
 import { groupsFlag } from "./flag";
-import { countsAsGroup, groupModeOf, groupSettingsRow, userGroupsIn, type GroupId, type GroupMode, type GroupRef } from "./groups";
+import { countsAsGroup, groupModeOf, isAllowed, groupSettingsRow, userGroupsIn, type GroupId, type GroupMode, type GroupRef } from "./groups";
 import type { GroupModeKind } from "./mode";
 import { reconcileEveryMemberLater } from "./reconcile";
 
@@ -29,10 +29,10 @@ export async function setGroupMode(ctx: MutationCtx, workspace: string, person: 
   const before = await groupModeOf(ctx, workspace);
   const after = { mode: change.mode, allowlist: allowlistOf(groups, before, change) };
   await saveGroupMode(ctx, workspace, after);
-  const countingChangedAt = Date.now();
-  const changed = groups.filter((row) => countsAsGroup(row, before) !== countsAsGroup(row, after));
-  for (const row of changed) await ctx.db.patch(row._id, { countingChangedAt });
-  if (changed.length > 0) await reconcileEveryMemberLater(ctx, workspace);
+  const allowlistChangedAt = Date.now();
+  const flipped = groups.filter((row) => isAllowed(row, before) !== isAllowed(row, after));
+  for (const row of flipped) await ctx.db.patch(row._id, { allowlistChangedAt });
+  if (groups.some((row) => countsAsGroup(row, before) !== countsAsGroup(row, after))) await reconcileEveryMemberLater(ctx, workspace);
   return true;
 }
 

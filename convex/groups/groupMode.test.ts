@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { memberChanged, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { type Block, type BlockAction, blockActions, buttonInHome, groupPickerInHome, optionsOf, publishedHome, publishedHomeBlocks } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
@@ -254,6 +254,43 @@ describe("GB9, call 13: a fallback is stamped with when its group left the allow
   });
 });
 
+describe("GB9: a group mode change stamps the instants it causes", { timeout: slackBoundaryTimeoutMs }, () => {
+  test("Owls disabled in Slack after it left the allowlist, before Ann's page runs, leaves her fallback at the switch", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    const ann = await memberOf(t, "U_ANN");
+    const switchedAt = Date.now();
+    await setGroupModeWithoutPages(t, "allowlist", await groupIdsOf(t, "Gardeners", "Zebras"));
+
+    vi.setSystemTime(switchedAt + 30_000);
+    await t.mutation(internal.workspace.userGroups.keepUserGroups, { listed: [owls({ enabled: false })], scope: { kind: "one-group", workspace: "T1", group: "S_OWL" }, asOf: switchedAt + 30_000 });
+    vi.setSystemTime(switchedAt + 60_000);
+    await t.run((ctx) => reconcileMember(ctx, ann));
+
+    expect(await primaryGroupNameAt(t, ann, switchedAt + 1_000)).toBe("Zebras");
+  });
+
+  test("a members list recorded while no group counted gives Bob his default no earlier than the instant groups count again", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    const bob = await memberOf(t, "U_BOB");
+    await click(t, "U_ALICE", "Only these groups");
+    await interact(t, "U_ALICE", groupPickerInHome(slack, "U_ALICE"));
+    const joinedAt = Date.now() + 10_000;
+    vi.setSystemTime(joinedAt);
+    await t.mutation(internal.workspace.userGroups.keepUserGroupMembers, { workspace: "T1", group: "S_OWL", users: ["U_ANN", "U_BOB"], asOf: joinedAt });
+
+    vi.setSystemTime(joinedAt + 30_000);
+    await setGroupModeWithoutPages(t, "all");
+    await settleInTimeOrder(t);
+
+    expect(await primaryGroupNameAt(t, bob, joinedAt + 1_000)).toBeNull();
+    expect(await primaryGroupNameAt(t, bob, joinedAt + 30_000)).not.toBeNull();
+  });
+});
+
 describe("GB27, call 12: the group picker", () => {
   test("250 groups are all offered, in option groups of up to 100, within Slack's block limits", { timeout: 120_000 }, async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
@@ -474,4 +511,17 @@ async function attributedGroupNamesOf(t: Backend, giver: MemberId) {
     const attributions = (await ctx.db.query("attributions").collect()).filter((attribution) => attribution.giver === giver);
     return Promise.all(attributions.map(async ({ group }) => (group === null ? null : ((await ctx.db.get(group))?.name ?? null))));
   });
+}
+
+async function setGroupModeWithoutPages(t: Backend, mode: "all" | "allowlist", allowlist?: string[]) {
+  await t.mutation(internal.slack.receipts.receiveHomeClick, {
+    workspace: "T1",
+    eventId: `E_SWITCH_${Date.now()}`,
+    user: "U_ALICE",
+    commands: [{ type: "setGroupMode", mode, ...(allowlist !== undefined && { allowlist }) }],
+  });
+}
+
+function owls({ enabled }: { enabled: boolean }) {
+  return { workspace: "T1", group: "S_OWL", handle: "s_owl", name: "Owls", enabled, automatic: false };
 }
