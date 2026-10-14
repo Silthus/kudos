@@ -6,7 +6,7 @@ import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
-import { contrast, websiteDirectory } from "./test/themeContrast";
+import { contrast, websiteDirectory, type Mode } from "./test/themeContrast";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 function paintsOf(element: Element) {
@@ -113,20 +113,31 @@ describe("WS339 V24: the Book index's stripe and the page picker meet 3:1 agains
   }
 });
 
-function quillSwitchPaint(state: "checked" | "unchecked", part: "" | " .quill-switch__thumb") {
-  const selector = `.quill-switch[data-${state}]${part}`.replace(/[.[\]]/g, (character) => `\\${character}`);
-  const rule = new RegExp(`${selector}\\{background-color:var\\(--([\\w-]+)\\)`).exec(quillPrimitives);
-  if (rule === null) throw new Error(`${selector} sets no background token`);
-  return rule[1]!;
+const darkModeRule = ":is(.dark,[theme=dark]) ";
+
+function quillBackgroundToken(selector: string, inDarkMode: boolean) {
+  const escaped = (inDarkMode ? darkModeRule + selector : selector).replace(/[.[\]():,]/g, (character) => `\\${character}`);
+  const rule = new RegExp(`(?<=\\})${escaped}\\{[^}]*?background-color:var\\(--([\\w-]+)\\)`).exec(quillPrimitives);
+  return rule?.[1];
 }
 
-function visibilitySwitchOutline() {
+function quillSwitchPaint(mode: Mode, state: "checked" | "unchecked", part: "" | " .quill-switch__thumb") {
+  const selector = `.quill-switch[data-${state}]${part}`;
+  const token = (mode === "dark" ? quillBackgroundToken(selector, true) : undefined) ?? quillBackgroundToken(selector, false) ?? (part === "" ? undefined : quillBackgroundToken(".quill-switch__thumb", false));
+  if (token === undefined) throw new Error(`${selector} sets no background token in ${mode}`);
+  return token;
+}
+
+function switchedOffPaints() {
   window.history.replaceState(null, "", "/leaderboard");
   renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leaderboardFixtures.left));
   const visibility = within(screen.getByRole("region", { name: "How it counts" })).getByRole("switch", { name: "Show me on the leaderboards" });
-  const outline = [...visibility.classList].flatMap((name) => /^data-\[unchecked\]:border-((?:muted-)?foreground)$/.exec(name)?.[1] ?? []);
-  expect(outline).toHaveLength(1);
-  return outline[0]!;
+  const paint = (pattern: RegExp) => {
+    const tokens = [...visibility.classList].flatMap((name) => pattern.exec(name)?.[1] ?? []);
+    expect(tokens).toHaveLength(1);
+    return tokens[0]!;
+  };
+  return { outline: paint(/^data-\[unchecked\]:border-((?:muted-)?foreground)$/), thumb: paint(/^data-\[unchecked\]:\[&_\[data-slot=switch-thumb\]\]:bg-((?:muted-)?foreground)$/), focus: paint(/^focus-visible:outline-((?:muted-)?foreground)$/) };
 }
 
 describe("WS339 V24: the visibility switch shows its position at 3:1 in both modes", () => {
@@ -136,11 +147,15 @@ describe("WS339 V24: the visibility switch shows its position at 3:1 in both mod
 
   for (const mode of ["light", "dark"] as const) {
     it(`in ${mode}`, () => {
+      const switchedOff = switchedOffPaints();
+      const offTrack = quillSwitchPaint(mode, "unchecked", "");
+      const onTrack = quillSwitchPaint(mode, "checked", "");
       const measured = [
-        { part: "the switched-off outline on the card", ratio: contrast(mode, visibilitySwitchOutline(), "card") },
-        { part: "the switched-off thumb on the card", ratio: contrast(mode, quillSwitchPaint("unchecked", " .quill-switch__thumb"), "card") },
-        { part: "the switched-on track on the card", ratio: contrast(mode, quillSwitchPaint("checked", ""), "card") },
-        { part: "the switched-on thumb on its track", ratio: contrast(mode, quillSwitchPaint("checked", " .quill-switch__thumb"), quillSwitchPaint("checked", "")) },
+        { part: "the switched-off outline on the card", ratio: contrast(mode, switchedOff.outline, "card") },
+        { part: "the switched-off thumb on its track", ratio: contrast(mode, switchedOff.thumb, offTrack) },
+        { part: "the focus outline on the card", ratio: contrast(mode, switchedOff.focus, "card") },
+        { part: "the switched-on track on the card", ratio: contrast(mode, onTrack, "card") },
+        { part: "the switched-on thumb on its track", ratio: contrast(mode, quillSwitchPaint(mode, "checked", " .quill-switch__thumb"), onTrack) },
       ];
       expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
     });

@@ -867,6 +867,19 @@ describe("WS321: the visibility switch", () => {
     expect(within(howItCounts()).getByRole("status")).toBeEmptyDOMElement();
   });
 
+  it.each<{ answer: () => Promise<VisibilityReply>; says: string; reads: Leaderboard[] }>([
+    { answer: async () => Promise.reject(new Error("no answer in time")), says: "Couldn't reach HedgeHug. Try again.", reads: [leaderboardFixtures.left, leaderboardFixtures.midBoard] },
+    { answer: async () => ({ kind: "set", visible: false }), says: "You're off the leaderboards.", reads: [leaderboardFixtures.left, leaderboardFixtures.midBoard, leaderboardFixtures.left] },
+  ])("retires the line $says once the read has moved past it, so a later change elsewhere never brings it back", async ({ answer, reads }) => {
+    const { user, showBoardAnswer } = switchWith(leaderboardFixtures.midBoard, answer);
+    await user.click(visibilitySwitch());
+    await act(async () => undefined);
+
+    reads.forEach(showBoardAnswer);
+
+    expect(within(howItCounts()).getByRole("status")).toBeEmptyDOMElement();
+  });
+
   it("says nothing after a denial, which the profile's read shows instead", async () => {
     const { user } = switchWith(leaderboardFixtures.midBoard, async () => ({ kind: "signed-out" }));
 
