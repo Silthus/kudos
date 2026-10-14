@@ -45,3 +45,7 @@ Two findings, both fixed test-first ([red](red-review.txt), [green](green-review
 2. **Signing out reset the theme when storage is blocked.** The standalone page remounts the theme control, which read the choice again from storage that refuses it. The theme now remembers a choice storage refused for the life of the page.
 
 Round 2, over the fixes and the merge of #193: one finding, fixed test-first ([red](red-review-2.txt), [green](green-review-2.txt)). With readable storage that refuses writes, signing out still brought back the stored choice. A refused choice now wins whenever there is one.
+
+## Production, after the deploy (read-only)
+
+Merged as `493995e`; Deploy production run 38556986434 deployed Convex and uploaded the site. A signed-out GET of `/quests` serves the card with `You'll land on /quests afterwards.` ([screenshot](production-390-light.png)). The served bundle carries the new sentence and the headline's classes, and no longer carries the old `See your kudos. Only members…` copy. Nothing was written and no flag was touched.
