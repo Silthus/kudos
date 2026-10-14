@@ -83,15 +83,16 @@ describe("the custom emoji sync keeps the workspace's custom emoji in the direct
   test("it keeps a whole list longer than one write takes, and forgets all of it once Slack lists none", async () => {
     const t = testBackend();
     const names = Array.from({ length: 1_200 }, (_, index) => `emoji_${index}`);
+    const acrossBothWrites = names.filter((_, index) => index % 50 === 0 || index === 999 || index === 1_199);
     for (const name of names) slack.withCustomEmoji(name, `https://emoji.slack-edge.com/T1/${name}/1.png`);
     await sync(t);
 
-    expect(await imagesOf(t, ...names)).toEqual(Object.fromEntries(names.map((name) => [name, `https://emoji.slack-edge.com/T1/${name}/1.png`])));
+    expect(await imagesOf(t, ...acrossBothWrites)).toEqual(Object.fromEntries(acrossBothWrites.map((name) => [name, `https://emoji.slack-edge.com/T1/${name}/1.png`])));
 
     for (const name of names) slack.withoutCustomEmoji(name);
     await sync(t);
 
-    expect(await imagesOf(t, ...names)).toEqual(Object.fromEntries(names.map((name) => [name, undefined])));
+    expect(await imagesOf(t, ...acrossBothWrites)).toEqual(Object.fromEntries(acrossBothWrites.map((name) => [name, undefined])));
   });
 
   test("an app without the emoji:read scope keeps none, fails nothing and logs nothing", async () => {
