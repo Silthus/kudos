@@ -1,6 +1,8 @@
 import { HedgehogTownCrier } from "@posthog/brand/hoggies";
 import { IconClock } from "@posthog/icons";
 import { Card, CardContent } from "@posthog/quill";
+import { questCrateHomeAttributes } from "../crates/moments";
+import { questCrateOf } from "../crates/readyCrates";
 import { Done, RewardCrate } from "../crates/RewardCrate";
 import { PageTitle } from "../PageTitle";
 import type { QuestsAnswer, QuestSlot, WaitingCrate } from "../shell";
@@ -9,6 +11,7 @@ import { SlackLink } from "../SlackLink";
 type ThisWeek = Extract<QuestsAnswer, { kind: "quests" }>;
 
 export function QuestsPage({ quests }: { quests: ThisWeek }) {
+  const firstCrate = [...quests.slots, ...quests.waiting].find(({ crate }) => crate !== null)?.seen;
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
@@ -23,8 +26,8 @@ export function QuestsPage({ quests }: { quests: ThisWeek }) {
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
         <div className="flex min-w-0 flex-col gap-6">
-          {quests.slots.length === 0 ? <NoQuests chatUrl={quests.chatUrl} /> : <QuestCards slots={quests.slots} />}
-          <WaitingToOpen waiting={quests.waiting} />
+          {quests.slots.length === 0 ? <NoQuests chatUrl={quests.chatUrl} /> : <QuestCards slots={quests.slots} firstCrate={firstCrate} />}
+          <WaitingToOpen waiting={quests.waiting} firstCrate={firstCrate} />
         </div>
         <HowQuestsWork />
       </div>
@@ -32,27 +35,35 @@ export function QuestsPage({ quests }: { quests: ThisWeek }) {
   );
 }
 
-function QuestCards({ slots }: { slots: QuestSlot[] }) {
+type FirstCrate = { firstCrate: string | null | undefined };
+
+function openVariantOf(seen: string | null, { firstCrate }: FirstCrate) {
+  return seen === firstCrate ? "primary" : "outline";
+}
+
+function QuestCards({ slots, firstCrate }: { slots: QuestSlot[] } & FirstCrate) {
   return (
     <section aria-label="Your quests" className="flex flex-col gap-3">
       {slots.map((slot) => (
-        <QuestCard key={slot.slot} {...slot} />
+        <QuestCard key={slot.slot} slot={slot} firstCrate={firstCrate} />
       ))}
     </section>
   );
 }
 
-function QuestCard({ kind, goal, progress, reward, state, swapped }: QuestSlot) {
+function QuestCard({ slot, firstCrate }: { slot: QuestSlot } & FirstCrate) {
+  const { kind, goal, progress, reward, state, swapped, seen } = slot;
+  const crate = questCrateOf(slot);
   return (
-    <article className="hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4">
+    <article className="hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4" {...questCrateHomeAttributes(seen)}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="hud-label">{kind}</span>
         {swapped && <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">Swapped</span>}
       </div>
       <h2 className="text-base font-semibold leading-snug">{goal}</h2>
       <QuestProgress {...progress} />
-      {state === "finished" ? (
-        <RewardCrate label={`Quest reward · ${reward.xp} XP`} />
+      {crate !== undefined ? (
+        <RewardCrate crate={crate} open={openVariantOf(seen, { firstCrate })} />
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-medium tabular-nums text-muted-foreground">{`${reward.xp} XP`}</span>
@@ -77,20 +88,27 @@ function QuestProgress({ done, target }: QuestSlot["progress"]) {
   );
 }
 
-function WaitingToOpen({ waiting }: { waiting: WaitingCrate[] }) {
+function WaitingToOpen({ waiting, firstCrate }: { waiting: WaitingCrate[] } & FirstCrate) {
   if (waiting.length === 0) return null;
   return (
     <section aria-labelledby="waiting-title" className="flex flex-col gap-3">
       <h2 id="waiting-title" className="hud-label">
         Waiting to open
       </h2>
-      {waiting.map(({ goal, reward, seen }) => (
-        <article key={seen} className="hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4">
-          <h3 className="text-sm font-medium">{goal}</h3>
-          <RewardCrate label={`Quest reward · ${reward.xp} XP`} />
-        </article>
+      {waiting.map((entry) => (
+        <WaitingCard key={entry.seen} entry={entry} firstCrate={firstCrate} />
       ))}
     </section>
+  );
+}
+
+function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate) {
+  const crate = questCrateOf(entry);
+  return (
+    <article className="hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4" {...questCrateHomeAttributes(entry.seen)}>
+      <h3 className="text-sm font-medium">{entry.goal}</h3>
+      {crate !== undefined && <RewardCrate crate={crate} open={openVariantOf(entry.seen, { firstCrate })} />}
+    </article>
   );
 }
 

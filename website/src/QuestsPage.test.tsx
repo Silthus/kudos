@@ -79,12 +79,20 @@ describe("WS73: /quests shows this week's quests while Quests is open", () => {
     expect(cardOf("Thank someone and say why, 3 times.")).not.toHaveTextContent("Swapped");
   });
 
-  it("shows a finished quest as its crate, pointing to Slack's App Home until the website can open it", () => {
+  it("WS73 WS74: shows a finished quest as its crate with one primary Open, the first crate on the page", () => {
     showQuests(questsFixtures.week);
     const card = cardOf("Thank someone you haven't thanked before.");
     expect(within(card).getByText("Quest reward · 20 XP")).toBeInTheDocument();
-    expect(card).toHaveTextContent("Ready for you. Open it in Slack's App Home.");
-    expect(within(card).queryByRole("button")).not.toBeInTheDocument();
+    expect(card).not.toHaveTextContent("Open it in Slack's App Home");
+    expect(within(card).getAllByRole("button")).toEqual([within(card).getByRole("button", { name: "Open" })]);
+    expect(within(card).getByRole("button", { name: "Open" })).toHaveClass("quill-button--variant-primary");
+  });
+
+  it("WS73 V4: gives only the first crate on the page a primary Open, and the rest outline", () => {
+    showQuests({ ...questsFixtures.weekWithAFinishedQuestEach, waiting: questsFixtures.weekWithLastWeeksCrate.waiting });
+    const opens = within(main()).getAllByRole("button", { name: "Open" });
+    expect(opens).toHaveLength(3);
+    expect(opens.map((open) => open.classList.contains("quill-button--variant-primary"))).toEqual([true, false, false]);
   });
 
   it("keeps a finished quest's progress beside its crate", () => {
@@ -123,7 +131,7 @@ describe("WS73: /quests shows this week's quests while Quests is open", () => {
     const waiting = within(main()).getByRole("region", { name: "Waiting to open" });
     expect(within(waiting).getByText("Quest reward · 20 XP")).toBeInTheDocument();
     expect(waiting).toHaveTextContent("Thank someone and say why on 2 different days.");
-    expect(waiting).toHaveTextContent("Ready for you. Open it in Slack's App Home.");
+    expect(within(waiting).getByRole("button", { name: "Open" })).toHaveClass("quill-button--variant-outline");
   });
 
   it("has no Waiting to open section while nothing from an earlier week waits", () => {
@@ -149,7 +157,7 @@ describe("WS73: /quests shows this week's quests while Quests is open", () => {
 
   it("offers no swap, group quest, bonus quest or claim, and never calls a kudos thoughtful", () => {
     showQuests(questsFixtures.weekWithLastWeeksCrate);
-    expect(within(main()).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(main()).getAllByRole("button").map((button) => button.textContent)).toEqual(["Open", "Open"]);
     expect(main()).not.toHaveTextContent(/group quest|bonus|claim|thoughtful|reroll/i);
   });
 

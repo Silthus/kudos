@@ -117,3 +117,27 @@ describe("WS75: every crate state passes axe in light and dark", () => {
     }
   }
 });
+
+const questCrates = [
+  { name: "a quest crate on /quests", path: "/quests", place: () => within(screen.getByRole("main")).getByRole("heading", { name: "Thank someone you haven't thanked before." }).closest("article")! },
+  { name: "a Journey crate on the home", path: "/", place: () => within(screen.getByRole("main")).getByRole("heading", { name: "Finish a weekly quest." }).closest("li")! },
+];
+
+describe("WS75 WS74: every quest crate state passes axe in light and dark", () => {
+  for (const dark of [false, true]) {
+    for (const crate of questCrates) {
+      for (const state of crateStates) {
+        it(`${crate.name} ${state.name} in ${dark ? "dark" : "light"}`, async () => {
+          fakeSystemTheme(dark);
+          if (state.reducedMotion) preferReducedMotion();
+          window.history.replaceState(null, "", crate.path);
+          const { user } = renderApp(shellFixtures.memberWithQuests, undefined, { openQuestCrate: state.answer }, fixedQuests(questsFixtures.weekWithLastWeeksCrate));
+          await user.click(within(crate.place()).getByRole("button", { name: "Open" }));
+          await act(async () => undefined);
+          if (state.skip) await user.keyboard("{Escape}");
+          expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+        });
+      }
+    }
+  }
+});

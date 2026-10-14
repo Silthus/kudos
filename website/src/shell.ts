@@ -1,4 +1,5 @@
 import type { Feature } from "../../convex/unlocks/feature";
+import type { Quest } from "../../convex/quests/step";
 import type { CommandAnswer } from "../../convex/website/commands";
 import type { Denial } from "../../convex/website/memberQuery";
 import type { FeatureCard, JourneyStep, MemberProfile, MyProfile } from "../../convex/website/profile";
@@ -10,6 +11,7 @@ export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/we
 export type { Period } from "../../convex/leaderboard/periods";
 export type { CommandAnswer } from "../../convex/website/commands";
 export type { Feature } from "../../convex/unlocks/feature";
+export type { Quest } from "../../convex/quests/step";
 
 export type OpenAnswer = CommandAnswer | Denial;
 
@@ -19,7 +21,7 @@ export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } |
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer> };
+export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer> };
 
 const member: MemberProfile = {
   kind: "member",
@@ -161,4 +163,4 @@ export function builtShell(name: string | undefined): ShellState {
   return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
 
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }) };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }) };

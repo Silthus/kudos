@@ -67,9 +67,11 @@ const commandAnswerBudgetMs = 10_000;
 function useLiveActions(onSignInFailure: () => void): ShellActions {
   const { signIn, signOut } = useAuthActions();
   const openFeature = useMutation(api.website.commands.openFeature);
+  const openQuestCrate = useMutation(api.website.commands.openQuestCrate);
   return useMemo(
     () => ({
       openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
+      openQuestCrate: (quest) => answerWithin(commandAnswerBudgetMs, openQuestCrate({ quest })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -77,6 +79,6 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, onSignInFailure],
   );
 }

@@ -32,12 +32,13 @@ describe("WS72: the Journey panel on the home", () => {
     expect(step).toHaveTextContent("Pays 10 XP");
   });
 
-  it("shows a finished step as its crate, pointing to Slack's App Home until the website can open it", () => {
+  it("WS72 WS74: shows a finished step as its crate with an outline Open", () => {
     renderApp(shellFixtures.memberWithQuests);
     const step = stepOf("Finish a weekly quest.");
     expect(within(step).getByText("Journey reward · 20 XP")).toBeInTheDocument();
-    expect(step).toHaveTextContent("Ready for you. Open it in Slack's App Home.");
-    expect(within(step).queryByRole("button")).not.toBeInTheDocument();
+    expect(step).not.toHaveTextContent("Open it in Slack's App Home");
+    expect(within(step).getAllByRole("button")).toEqual([within(step).getByRole("button", { name: "Open" })]);
+    expect(within(step).getByRole("button", { name: "Open" })).toHaveClass("quill-button--variant-outline");
     expect(step).not.toHaveTextContent("Pays");
   });
 

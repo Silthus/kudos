@@ -4,12 +4,14 @@ import { aboutOf } from "../features";
 import type { FeatureCard } from "../shell";
 import { CrateArt } from "./CrateArt";
 import { attemptMessages, useMoments } from "./moments";
+import { featureCrateOf } from "./readyCrates";
 
 type CrateProps = { card: FeatureCard; heading: "h2" | "h3"; open: "primary" | "outline"; artWidth: number };
 
 export function Crate({ card, heading: Heading, open, artWidth }: CrateProps) {
   const moments = useMoments();
-  const attempt = moments?.attemptOf(card.feature);
+  const crate = featureCrateOf(card);
+  const attempt = moments?.attemptOf(crate);
   const opening = attempt === "opening";
   const [stillSinceOpen, keepStill] = useState(false);
   if (attempt !== undefined && !stillSinceOpen) keepStill(true);
@@ -26,7 +28,7 @@ export function Crate({ card, heading: Heading, open, artWidth }: CrateProps) {
           className="mt-1"
           aria-disabled={opening || undefined}
           onClick={() => {
-            if (!opening) moments?.open(card);
+            if (!opening) moments?.open(crate);
           }}
         >
           {opening ? "Opening…" : "Open"}

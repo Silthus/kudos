@@ -2,6 +2,7 @@ import { useCallback, useRef, type ReactNode } from "react";
 import { NavigateProvider } from "./AppLink";
 import { MomentAnnouncement } from "./crates/MomentAnnouncement";
 import { MomentsProvider, useCrateMoments } from "./crates/moments";
+import { readyCratesOf } from "./crates/readyCrates";
 import { RevealDialog } from "./crates/RevealDialog";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -36,8 +37,9 @@ export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
   const answer = useLeaderboard(onTheBoard ? route.period : undefined);
   const board = useBoardWhileTheNextLoads(answer, onTheBoard);
   const onQuests = member !== undefined && route.page === "quests";
-  const quests = useQuests(onQuests);
-  const moments = useCrateMoments(actions.openFeature, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member) });
+  const questsOpen = isQuestsOpenFor(member);
+  const quests = useQuests(onQuests || questsOpen);
+  const moments = useCrateMoments(actions, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member), onQuests });
   const reveal = member !== undefined ? moments.reveal : undefined;
   const revealing = reveal !== undefined;
   useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : shown.kind, { held: revealing });
@@ -57,13 +59,13 @@ export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
   return (
     <NavigateProvider value={arriveAt}>
       <MomentsProvider value={moments}>
-        <Frame member={member} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined)} inert={revealing} onSignOut={actions.signOut}>
+        <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined)} inert={revealing} onSignOut={actions.signOut}>
           <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
             <Page state={shown} route={route} board={board} quests={quests} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
           </ErrorBoundary>
         </Frame>
         {reveal !== undefined && member !== undefined && (
-          <RevealDialog key={reveal.card.seen} {...reveal} chatUrl={member.chatUrl} onFinish={moments.finish} onClose={moments.close} />
+          <RevealDialog key={reveal.crate.seen} {...reveal} chatUrl={member.chatUrl} questsOpen={questsOpen} onFinish={moments.finish} onClose={moments.close} />
         )}
         <MomentAnnouncement text={moments.announcement} />
       </MomentsProvider>
@@ -73,7 +75,12 @@ export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
 
 function cratesOf(member: MemberProfile | undefined) {
   if (member === undefined) return undefined;
-  return member.features?.map(({ seen }) => seen) ?? [];
+  const journeyCrates = (member.journey ?? []).flatMap(({ seen }) => seen ?? []);
+  return [...(member.features?.map(({ seen }) => seen) ?? []), ...journeyCrates];
+}
+
+function isQuestsOpenFor(member: MemberProfile | undefined) {
+  return member?.features?.some(({ feature, state }) => feature === "quests" && state === "open") ?? false;
 }
 
 function stillAsking(state: ShellState) {
