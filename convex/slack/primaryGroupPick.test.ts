@@ -85,6 +85,15 @@ describe("GB19: the welcome message's group block", () => {
     expect(readBlocks(welcomeTo("U_BOB"))).toEqual([`section: ${welcomeLines.join("\n")}`, "section: You count for Gardeners on the leaderboard.", `section: ${openAppHome}`]);
   });
 
+  test("GB34: a group named with &, < and > reads as written in the welcome message", async () => {
+    slack.withUserGroup("S_GARDEN", { name: "R&D <core>", users: ["U_ANN", "U_BOB", "U_CAROL"] });
+    const t = await workspaceWithGroups(onForEveryone("groups"));
+
+    await giveKudos(t, "U_ANN", "U_BOB");
+
+    expect(readBlocks(welcomeTo("U_BOB"))).toContain("section: You count for R&amp;D &lt;core&gt; on the leaderboard.");
+  });
+
   test("a member in no group gets the welcome message as before", async () => {
     const t = await workspaceWithGroups(onForEveryone("groups"));
 

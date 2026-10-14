@@ -84,13 +84,15 @@ async function desiredHomeOf(ctx: ActionCtx, home: Home): Promise<{ kind: "view"
   if (facts.kind === "unavailable") return facts;
   const frontDoor = await ctx.runQuery(internal.website.link.frontDoorLinksOf, { workspace: home.workspace, user: home.user });
   const shown = await ctx.runMutation(internal.feedback.homes.shownHomeOf, { workspace: home.workspace, user: home.user, frontDoor: frontDoor !== null });
-  return { kind: "view", view: homeView(renderHome(facts, await withGroupsBoard(ctx, home, shown), frontDoor)) };
+  return { kind: "view", view: homeView(renderHome(facts, await withGroupBoards(ctx, home, shown), frontDoor)) };
 }
 
-async function withGroupsBoard(ctx: ActionCtx, { workspace, user }: Home, home: ShownHome | null): Promise<ShownHome | null> {
+async function withGroupBoards(ctx: ActionCtx, { workspace, user }: Home, home: ShownHome | null): Promise<ShownHome | null> {
   if (home?.shown.tab !== "leaderboard") return home;
-  const groups = await ctx.runQuery(internal.leaderboard.groupBoards.groupsBoardOf, { workspace, viewer: user, period: home.shown.period });
-  return { ...home, shown: { ...home.shown, groups } };
+  const viewer = { workspace, viewer: user, period: home.shown.period };
+  const groups = await ctx.runQuery(internal.leaderboard.groupBoards.groupsBoardOf, viewer);
+  const myGroup = await ctx.runQuery(internal.leaderboard.myGroupBoard.myGroupBoardViewOf, viewer);
+  return { ...home, shown: { ...home.shown, groups, myGroup } };
 }
 
 async function changedWhileSent(ctx: ActionCtx, { workspace, user }: Home, sent: SlackHomeView) {

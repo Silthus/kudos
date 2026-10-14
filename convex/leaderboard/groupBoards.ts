@@ -6,10 +6,11 @@ import { countsAsGroup, groupModeOf, groupsShownTo, memberGroupsOf, primaryMembe
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
 import { groupPeriodTotalOf } from "./groupTotals";
 import { fewestMembersListed, groupsBoard, type GroupFacts, type GroupsBoard, type Tally } from "./groupsBoard";
+import { myGroupBoardOf, type MyGroupBoard } from "./myGroupBoard";
 import { keyOf, periodValidator, sameDayLastPeriod, type ComparedPeriod, type Period, type PeriodKey, type SameDay } from "./periods";
 import { totalUpTo } from "./runningTotal";
 
-export type GroupBoards = { groups: GroupsBoard<GroupId> | null };
+export type GroupBoards = { groups: GroupsBoard<GroupId> | null; myGroup: MyGroupBoard | null };
 
 type GroupMembers = { group: GroupId; name: string; members: MemberId[] };
 
@@ -28,13 +29,13 @@ export const groupsBoardOf = internalQuery({
 
 export async function groupBoardsOf(ctx: QueryCtx, workspace: string, viewer: string, period: Period): Promise<GroupBoards> {
   const person = await lookup(ctx, workspace, viewer);
-  if (person?.kind !== "member" || !(await groupsShownTo(ctx, person.member))) return { groups: null };
+  if (person?.kind !== "member" || !(await groupsShownTo(ctx, person.member))) return { groups: null, myGroup: null };
   const today = allowanceDay(Date.now(), person.timeZone);
   const compared = { now: keyOf(period, today), before: period === "all" ? null : sameDayLastPeriod(period, today) };
   const groups = await Promise.all((await countingGroupsWithPrimaryMembersIn(ctx, workspace)).map((group) => factsOf(ctx, group, compared)));
   const viewerGroup = (await memberGroupsOf(ctx, person.member))?.primary ?? null;
   const best = period === "all" || viewerGroup === null ? null : await bestCompletedPeriod(ctx, viewerGroup, period, today);
-  return { groups: groupsBoard({ period, viewerGroup, best, groups }) };
+  return { groups: groupsBoard({ period, viewerGroup, best, groups }), myGroup: await myGroupBoardOf(ctx, { ...person, user: viewer }, period) };
 }
 
 export async function groupsBoardShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {

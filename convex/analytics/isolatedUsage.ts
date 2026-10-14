@@ -8,7 +8,7 @@ import { recordUsage, usageNotRecorded } from "./usage";
 const leaderboardViewValidator = v.object({
   workspace: v.string(),
   member: v.id("members"),
-  board: v.union(v.literal("everyone"), v.literal("groups")),
+  board: v.union(v.literal("everyone"), v.literal("groups"), v.literal("my-group")),
   period: periodValidator,
   surface: v.union(v.literal("app-home"), v.literal("command")),
   at: v.number(),

@@ -5,7 +5,7 @@ import { groupsShownTo, primaryGroupOf, type GroupId, type GroupRef } from "../g
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";
 import { reconcileMember } from "../groups/reconcile";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
-import { countsFor, pickQuestion } from "./groupCopy";
+import { countsFor, noLongerYours, pickQuestion } from "./groupCopy";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import { settingsOf } from "../workspace/settings";
 import { productName, slashCommand } from "./naming";
@@ -56,7 +56,7 @@ export const welcomeGroupsOf = internalMutation({
     if (pick === undefined) return choice === null ? null : { lines: [isPicked(choice) ? pickQuestion : countsFor(choice.primary)], picker: pickerOf(choice) };
     const picked = await ctx.db.get(pick.group);
     if (pick.saved && picked !== null) return { lines: [`Saved. ${countsFor(picked)} You can change it in App Home.`], picker: null };
-    const refusal = picked === null ? [] : [`${picked.name} isn't one of your groups anymore. Pick another one.`];
+    const refusal = picked === null ? [] : [noLongerYours(picked)];
     const stays = choice !== null && !isPicked(choice) ? [countsFor(choice.primary)] : [];
     return { lines: [...refusal, ...stays], picker: pickerOf(choice) };
   },

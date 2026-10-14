@@ -9,6 +9,7 @@ import { testBackend, type Backend } from "../../testing/slackBackend";
 import type { GroupId } from "../groups/groups";
 import type { MemberId } from "../workspace/directory";
 import { groupBoardsOf } from "./groupBoards";
+import { setLeaderboardVisibility } from "./visibility";
 import type { Period } from "./periods";
 
 const tuesday = new Date("2026-10-13T10:00:00Z");
@@ -135,6 +136,152 @@ describe("GB13, GB14, GB18: groupBoardsOf gives the website the Groups board", {
   });
 });
 
+describe("GB15, GB18: groupBoardsOf gives the website the My group board", { timeout: 30_000 }, () => {
+  test("the viewer's group's members ranked by the kudos they gave for it, with their places climbed, the window and the viewer's standing", async () => {
+    const t = await testBackendServing(postHog, onForEveryone("groups"));
+    const { members, groups } = await groupsOf(t, { Ants: ["A1", "A2", "A3", "A4"], Bees: ["B1", "B2", "B3"] });
+    await attributed(t, members.A1, groups.Ants, 1, "2026-10-05");
+    await attributed(t, members.A3, groups.Ants, 3, "2026-10-05");
+    await attributed(t, members.A2, groups.Ants, 5, "2026-10-06");
+    await attributed(t, members.A1, groups.Ants, 10, "2026-10-08");
+    await attributed(t, members.A1, groups.Ants, 4, "2026-10-12");
+    await attributed(t, members.A3, groups.Ants, 6, "2026-10-13");
+    await attributed(t, members.A2, groups.Ants, 2, "2026-10-13");
+    await attributed(t, members.B1, groups.Bees, 9, "2026-10-13");
+
+    const board = await myGroupBoard(t, "A1", "week");
+
+    expect(board).toEqual({
+      group: { group: groups.Ants, name: "Ants" },
+      rows: [
+        { position: 1, rank: 1, tied: false, member: members.A3, name: "A3", picture: null, kudos: 6, viewer: false, climbed: 1 },
+        { position: 2, rank: 2, tied: false, member: members.A1, name: "A1", picture: null, kudos: 4, viewer: true, climbed: 1 },
+        { position: 3, rank: 3, tied: false, member: members.A2, name: "A2", picture: null, kudos: 2, viewer: false, climbed: null },
+      ],
+      window: [1, 2, 3],
+      standing: { kind: "ranked", position: 2, rank: 2 },
+    });
+  });
+
+  test("a member who switched groups mid-week keeps their earlier kudos on the old group's board and only new ones on the new board", async () => {
+    const t = await testBackendServing(postHog, onForEveryone("groups"));
+    const { members, groups } = await groupsOf(t, { Ants: ["A1", "A2", "A3", "A4"], Bees: ["B1", "B2", "B3"] });
+    await attributed(t, members.A4, groups.Ants, 6, "2026-10-12");
+    await attributed(t, members.A1, groups.Ants, 1, "2026-10-12");
+    await movedTo(t, members.A4, groups.Bees);
+    await attributed(t, members.A4, groups.Bees, 2, "2026-10-13");
+    await attributed(t, members.B1, groups.Bees, 3, "2026-10-13");
+
+    const bees = await myGroupBoard(t, "B1", "week");
+    const ants = await myGroupBoard(t, "A1", "week");
+    const groupsBoardOfAnts = await groupsBoard(t, "A1", "week");
+
+    expect(bees?.rows.map(({ name, kudos }) => `${name} ${kudos}`)).toEqual(["B1 3", "A4 2"]);
+    expect(ants?.rows.map(({ name, kudos }) => `${name} ${kudos}`)).toEqual(["A1 1"]);
+    expect(groupsBoardOfAnts?.rows.find(({ name }) => name === "Ants")?.kudos).toBe(7);
+  });
+
+  test("a viewer who gave nothing for their group sees positions 1–3 and stands as not ranked", async () => {
+    const t = await testBackendServing(postHog, onForEveryone("groups"));
+    const { members, groups } = await groupsOf(t, { Ants: ["A1", "A2", "A3", "A4", "A5"] });
+    for (const [index, member] of [members.A2, members.A3, members.A4, members.A5].entries()) await attributed(t, member, groups.Ants, 4 - index, "2026-10-13");
+
+    const board = await myGroupBoard(t, "A1", "week");
+
+    expect(board?.rows).toHaveLength(4);
+    expect(board?.window).toEqual([1, 2, 3]);
+    expect(board?.standing).toEqual({ kind: "not-ranked" });
+  });
+
+  test("all time ranks every kudos given for the group so far, with nothing climbed", async () => {
+    const t = await testBackendServing(postHog, onForEveryone("groups"));
+    const { members, groups } = await groupsOf(t, { Ants: ["A1", "A2", "A3"] });
+    await attributed(t, members.A1, groups.Ants, 3, "2026-08-03");
+    await attributed(t, members.A2, groups.Ants, 2, "2026-10-13");
+
+    const board = await myGroupBoard(t, "A1", "all");
+
+    expect(board?.rows.map(({ name, kudos, climbed }) => ({ name, kudos, climbed }))).toEqual([
+      { name: "A1", kudos: 3, climbed: null },
+      { name: "A2", kudos: 2, climbed: null },
+    ]);
+  });
+
+  test("G15: a member who is no longer a member leaves the board", async () => {
+    const t = await testBackendServing(postHog, onForEveryone("groups"));
+    const { members, groups } = await groupsOf(t, { Ants: ["A1", "A2", "A3"] });
+    await attributed(t, members.A2, groups.Ants, 3, "2026-10-13");
+    await attributed(t, members.A3, groups.Ants, 2, "2026-10-13");
+    await t.run((ctx) => ctx.db.patch(members.A2, { kind: "not-a-member" }));
+
+    expect((await myGroupBoard(t, "A1", "week"))?.rows.map(({ name }) => name)).toEqual(["A3"]);
+  });
+
+  test("a viewer without a primary group gets no My group board, beside the Groups board", async () => {
+    const t = await testBackendServing(postHog, onForEveryone("groups"));
+    const { members, groups } = await groupsOf(t, { Ants: ["A1", "A2", "A3"] });
+    await attributed(t, members.A1, groups.Ants, 3, "2026-10-13");
+    await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_SOLO", kind: "member", name: "Solo", asOf: 0 }));
+
+    const boards = await t.run((ctx) => groupBoardsOf(ctx, "T1", "U_SOLO", "week"));
+
+    expect(boards.myGroup).toBeNull();
+    expect(boards.groups?.standing).toEqual({ kind: "no-group" });
+  });
+
+  test("a viewer whose group stopped counting gets no My group board", async () => {
+    const t = await testBackendServing(postHog, onForEveryone("groups"));
+    const { members, groups } = await groupsOf(t, { Ants: ["A1", "A2", "A3"], Bees: ["B1", "B2", "B3"] });
+    await attributed(t, members.A1, groups.Ants, 3, "2026-10-13");
+    await t.run((ctx) => ctx.db.patch(groups.Ants, { enabled: false }));
+
+    expect(await myGroupBoard(t, "A1", "week")).toBeNull();
+  });
+
+  test.each([
+    { case: "groups is off", flags: [offForEveryone("groups")], viewer: "A1" },
+    { case: "the flag is unset", flags: [], viewer: "A1" },
+    { case: "the directory doesn't know the viewer", flags: [onForEveryone("groups")], viewer: "U_STRANGER" },
+  ])("no My group board where $case", async ({ flags, viewer }) => {
+    const t = await testBackendServing(postHog, ...flags);
+    const { members, groups } = await groupsOf(t, { Ants: ["A1", "A2", "A3"] });
+    await attributed(t, members.A1, groups.Ants, 3, "2026-10-13");
+
+    expect(await myGroupBoard(t, viewer, "week")).toBeNull();
+  });
+});
+
+describe("GB18: places climbed", { timeout: 30_000 }, () => {
+  test("My group board: a member who rose since last week up to the same day says how many places, and one who fell, stayed or is new says nothing", async () => {
+    const t = await testBackendServing(postHog, onForEveryone("groups"));
+    const { members, groups } = await groupsOf(t, { Ants: ["A1", "A2", "A3", "A4", "A5"] });
+    for (const [member, kudos] of [[members.A1, 4], [members.A2, 3], [members.A3, 2], [members.A4, 1]] as const) await attributed(t, member, groups.Ants, kudos, "2026-10-06");
+    for (const [member, kudos] of [[members.A4, 9], [members.A1, 8], [members.A5, 7], [members.A3, 6], [members.A2, 5]] as const) await attributed(t, member, groups.Ants, kudos, "2026-10-13");
+
+    const board = await myGroupBoard(t, "A1", "week");
+
+    expect(board?.rows.map(({ name, climbed }) => `${name} ${climbed}`)).toEqual(["A4 3", "A1 null", "A5 null", "A3 null", "A2 null"]);
+  });
+});
+
+describe("G22: a member who left the boards is on nobody's board, their own included", { timeout: 30_000 }, () => {
+  test("My group board: a member who left is in nobody's rows, their own included, and stands as left", async () => {
+    const t = await testBackendServing(postHog, onForEveryone("groups"));
+    const { members, groups } = await groupsOf(t, { Ants: ["A1", "A2", "A3"] });
+    await attributed(t, members.A1, groups.Ants, 3, "2026-10-13");
+    await attributed(t, members.A2, groups.Ants, 5, "2026-10-13");
+    await t.run((ctx) => setLeaderboardVisibility(ctx, members.A2, false));
+
+    const theirs = await myGroupBoard(t, "A2", "week");
+    const another = await myGroupBoard(t, "A1", "week");
+
+    expect(theirs?.rows.map(({ name }) => name)).toEqual(["A1"]);
+    expect(theirs?.standing).toEqual({ kind: "left" });
+    expect(another?.rows.map(({ name, position }) => `${position} ${name}`)).toEqual(["1 A1"]);
+    expect((await groupsBoard(t, "A1", "week"))?.rows[0]).toMatchObject({ kudos: 8, participation: 66 });
+  });
+});
+
 describe("GB35: the Groups board at scale", () => {
   test("1,500 members in 60 groups giving every day for two months: the month board and its comparison read within Convex's transaction limits", async () => {
     vi.setSystemTime(new Date("2026-10-31T10:00:00Z"));
@@ -151,6 +298,9 @@ describe("GB35: the Groups board at scale", () => {
     expect(board.groups?.standing).toEqual({ kind: "ranked", position: 15, rank: 13 });
     expect(board.groups?.improvement).toEqual({ gain: 34, places: 12 });
     expect(board.groups?.mostImproved).toMatchObject({ name: "Group 03", gain: 35 });
+    expect(board.myGroup?.group.name).toBe("Group 12");
+    expect(board.myGroup?.rows).toHaveLength(25);
+    expect(board.myGroup?.rows.every(({ kudos, rank, climbed }) => kudos === 124 && rank === 1 && climbed === null)).toBe(true);
   }, 120_000);
 
   test("1,500 members who each gave for their group and 10 earlier ones in each of September and October: the month board reads one range per current member within Convex's transaction limits", async () => {
@@ -165,6 +315,7 @@ describe("GB35: the Groups board at scale", () => {
     expect(board.groups?.rows).toHaveLength(60);
     expect(board.groups?.rows.every(({ perMember, participation, kudos, climbed }) => perMember === 20 && participation === 100 && kudos === 500 && climbed === null)).toBe(true);
     expect(board.groups?.improvement).toEqual({ best: 20 });
+    expect(board.myGroup?.rows.map(({ kudos }) => kudos)).toEqual(Array.from({ length: 25 }, () => 10));
   }, 300_000);
 });
 
@@ -212,6 +363,10 @@ async function attributed(t: Backend, giver: MemberId, group: GroupId, kudos: nu
 
 async function groupsBoard(t: Backend, viewer: string, period: Period) {
   return (await t.run((ctx) => groupBoardsOf(ctx, "T1", viewer, period))).groups;
+}
+
+async function myGroupBoard(t: Backend, viewer: string, period: Period) {
+  return (await t.run((ctx) => groupBoardsOf(ctx, "T1", viewer, period))).myGroup;
 }
 
 let groupIds: GroupId[] = [];

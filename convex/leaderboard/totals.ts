@@ -6,37 +6,21 @@ import { allowanceDay, type DayKey } from "../engine/allowance";
 import type { GivenMessage } from "../engine/awards";
 import type { MessageRef } from "../engine/messageEvent";
 import { lookup, type MemberId } from "../workspace/directory";
-import { board, placesClimbed, ranking, type BoardView, type Entry } from "./board";
+import type { BoardView, Entry } from "./board";
 import { improvement, type Improvement } from "./improvement";
+import { peerOf, type Peer } from "./peer";
 import { dayOfPeriod, keyOf, lastPeriodUpToTheSameDay, periodOfKey, periods, periodValidator, sameDayLastPeriod, type ComparedPeriod, type Days, type Period, type PeriodKey } from "./periods";
+import { boardMembers, boardViewOf, giversAmong, rankedOf, withoutViewer, type KudosByMember, type Ranked } from "./rankedBoard";
 import { totalUpTo, withKudosOn, type RunningTotal } from "./runningTotal";
 import { isOnTheBoards } from "./visibility";
 
-export type EveryoneBoardView = BoardView & { improvement: Improvement | null };
+export type { RankedRow, Standing } from "./rankedBoard";
 
-export type RankedRow = {
-  position: number;
-  rank: number;
-  tied: boolean;
-  member: MemberId;
-  name: string | undefined;
-  picture: string | null;
-  kudos: number;
-  viewer: boolean;
-  climbed: number | null;
-};
+export type EveryoneBoardView = BoardView & { improvement: Improvement | null; peer: Peer | null };
 
-export type Standing = { kind: "ranked"; position: number; rank: number } | { kind: "not-ranked" } | { kind: "left" };
-
-export type RankedBoard = { rows: RankedRow[]; window: number[]; standing: Standing; improvement: Improvement | null };
-
-type Giver = Entry & { member: MemberId; displayName: string | undefined; picture: string | null };
+export type RankedBoard = Ranked & { improvement: Improvement | null; peer: Peer | null };
 
 type Total = Doc<"givenTotals">;
-
-type KudosByMember = Map<MemberId, number>;
-
-type BoardMemberOf = (member: MemberId) => Promise<Giver | null>;
 
 export const countKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
@@ -60,31 +44,13 @@ export const everyoneBoard = internalQuery({
 });
 
 export async function everyoneBoardOf(ctx: QueryCtx, workspace: string, viewer: string, period: Period): Promise<EveryoneBoardView> {
-  const { givers, viewerLeft, improvement } = await boardFactsOf(ctx, workspace, viewer, period);
-  if (!viewerLeft) return { ...board(givers, viewer), improvement };
-  return { rows: board(givers, viewer).rows, viewerAbsent: "left", improvement };
+  const { improvement, peer, ...facts } = await boardFactsOf(ctx, workspace, viewer, period);
+  return { ...boardViewOf(facts), improvement, peer };
 }
 
 export async function rankedBoardOf(ctx: QueryCtx, workspace: string, viewer: string, period: Period): Promise<RankedBoard> {
-  const { givers, before, viewerLeft, improvement } = await boardFactsOf(ctx, workspace, viewer, period);
-  const { rows, window } = ranking(givers, viewer);
-  const climbed = placesClimbed(givers, before);
-  return {
-    rows: rows.map(({ position, rank, tied, id, member, displayName, picture, value, viewer }) => ({
-      position,
-      rank,
-      tied,
-      member,
-      name: displayName,
-      picture,
-      kudos: value,
-      viewer,
-      climbed: climbed.get(id) ?? null,
-    })),
-    window,
-    standing: viewerLeft ? { kind: "left" } : standingOf(rows),
-    improvement,
-  };
+  const { improvement, peer, ...facts } = await boardFactsOf(ctx, workspace, viewer, period);
+  return { ...rankedOf(facts), improvement, peer };
 }
 
 export async function fillRunningTotal(ctx: MutationCtx, total: Total) {
@@ -101,26 +67,20 @@ async function boardFactsOf(ctx: QueryCtx, workspace: string, viewer: string, pe
   const today = allowanceDay(Date.now(), facts?.kind === "member" ? facts.timeZone : undefined);
   const viewerLeft = member !== undefined && !(await isOnTheBoards(ctx, member));
   const boardMemberOf = boardMembers(ctx, member);
-  const now = await giversAmong(await totalsOf(ctx, workspace, keyOf(period, today)), boardMemberOf);
-  const before = period === "all" ? [] : await giversAmong(await totalsUpToTheSameDay(ctx, workspace, period, today), boardMemberOf);
+  const kudosNow = await totalsOf(ctx, workspace, keyOf(period, today));
+  const kudosBefore = period === "all" ? null : await totalsUpToTheSameDay(ctx, workspace, period, today);
+  const now = await giversAmong(kudosNow, boardMemberOf);
+  const before = kudosBefore === null ? [] : await giversAmong(kudosBefore, boardMemberOf);
   const line = period === "all" || member === undefined ? null : await improvementOf(ctx, { viewer, member, period, today, now, before });
-  if (!viewerLeft) return { givers: now, before, viewerLeft, improvement: line };
-  return { givers: withoutViewer(now, viewer), before: withoutViewer(before, viewer), viewerLeft, improvement: line && withoutPlaces(line) };
-}
-
-function standingOf(rows: Array<{ position: number; rank: number; viewer: boolean }>): Standing {
-  const mine = rows.find((row) => row.viewer);
-  return mine === undefined ? { kind: "not-ranked" } : { kind: "ranked", position: mine.position, rank: mine.rank };
+  const peer = kudosBefore === null || member === undefined ? null : await peerOf(ctx, member, { now: kudosNow, before: kudosBefore });
+  if (!viewerLeft) return { givers: now, before, viewer, viewerLeft, improvement: line, peer };
+  return { givers: withoutViewer(now, viewer), before: withoutViewer(before, viewer), viewer, viewerLeft, improvement: line && withoutPlaces(line), peer };
 }
 
 type Comparison = { viewer: string; member: MemberId; period: ComparedPeriod; today: DayKey; now: Entry[]; before: Entry[] };
 
 async function improvementOf(ctx: QueryCtx, { viewer, member, period, today, now, before }: Comparison) {
   return improvement(now, before, viewer, await bestCompletedPeriod(ctx, member, period, today));
-}
-
-function withoutViewer(entries: Giver[], viewer: string) {
-  return entries.filter((entry) => entry.id !== viewer);
 }
 
 function withoutPlaces(line: Improvement): Improvement {
@@ -172,31 +132,6 @@ async function runningTotalFromDays(ctx: MutationCtx, { member, period: key }: T
     .withIndex("by_member_day", (q) => q.eq("member", member).gte("day", period.days.first).lte("day", period.days.last))
     .collect();
   return days.reduce((runningTotal, { day, kudos }) => withKudosOn(runningTotal, dayOfPeriod(period.period, day), kudos), [] as RunningTotal);
-}
-
-async function giversAmong(kudosByMember: KudosByMember, boardMemberOf: BoardMemberOf): Promise<Giver[]> {
-  const givers = await Promise.all([...kudosByMember].filter(([, kudos]) => kudos > 0).map(([member, kudos]) => giverOf(boardMemberOf, member, kudos)));
-  return givers.filter((giver) => giver !== null);
-}
-
-async function giverOf(boardMemberOf: BoardMemberOf, member: MemberId, kudos: number): Promise<Giver | null> {
-  const giver = await boardMemberOf(member);
-  return giver === null ? null : { ...giver, value: kudos };
-}
-
-function boardMembers(ctx: QueryCtx, viewer: MemberId | undefined): BoardMemberOf {
-  const known = new Map<MemberId, Promise<Giver | null>>();
-  return (member) => {
-    if (!known.has(member)) known.set(member, boardMemberOf(ctx, member, viewer));
-    return known.get(member)!;
-  };
-}
-
-async function boardMemberOf(ctx: QueryCtx, member: MemberId, viewer: MemberId | undefined): Promise<Giver | null> {
-  const row = await ctx.db.get(member);
-  if (row?.kind !== "member") return null;
-  if (member !== viewer && !(await isOnTheBoards(ctx, member))) return null;
-  return { id: row.user, name: row.name ?? row.user, value: 0, member, displayName: row.name, picture: row.picture ?? null };
 }
 
 async function bestCompletedPeriod(ctx: QueryCtx, member: MemberId, period: ComparedPeriod, today: DayKey) {

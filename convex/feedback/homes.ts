@@ -8,6 +8,7 @@ import { xpRecordedEventValidator } from "../bus/events";
 import { groupsShownTo, type GroupId } from "../groups/groups";
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";
 import type { GroupsBoard } from "../leaderboard/groupsBoard";
+import type { MyGroupBoardView } from "../leaderboard/myGroupBoard";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
@@ -32,7 +33,7 @@ export type HomeTab = Infer<typeof homeTabValidator>;
 
 export type ShownTab =
   | { tab: "profile"; progression: ToldProgression | null; unlocks: UnlocksHome | null; quests: WeeklyQuests | null; earlierCrates: UnopenedCrate[] | null; journey: JourneyStepFacts[] | null }
-  | { tab: "leaderboard"; period: Period; board: EveryoneBoardView; groups: GroupsBoard<GroupId> | null }
+  | { tab: "leaderboard"; period: Period; board: EveryoneBoardView; groups: GroupsBoard<GroupId> | null; myGroup: MyGroupBoardView | null }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
   | { tab: "skillTree"; perks: MemberPerks }
   | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null; achievements: boolean; groups: GroupChoice | null }
@@ -163,7 +164,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         journey: slices.quests ? await journeyOf(ctx, viewer.member) : null,
       };
     case "leaderboard":
-      return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period), groups: null };
+      return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period), groups: null, myGroup: null };
     case "book":
       return { tab, book: await bookFactsOf(ctx, viewer.member), timeZone: (await ctx.db.get(viewer.member))?.timeZone };
     case "skillTree":

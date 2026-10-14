@@ -66,7 +66,7 @@ export type UsageFact =
 
 export type PickSurface = "welcome" | "settings";
 
-export type ViewedBoard = "everyone" | "groups";
+export type ViewedBoard = "everyone" | "groups" | "my-group";
 
 export type LeaderboardSurface = "app-home" | "command";
 

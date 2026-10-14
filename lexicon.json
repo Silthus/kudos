@@ -546,6 +546,10 @@
     {
       "name": "group board",
       "definition": "One of the boards above the Everyone board where groups apply to the viewer and groups are available: the Groups board, which ranks every group that is the current primary group of at least 3 members by the kudos attributed to it in the period per current primary member, then participation, total and name, with the viewer's group's line and the most improved group; and the My group board, which ranks the members of the viewer's primary group by the kudos they gave for it (GB13–GB17)."
+    },
+    {
+      "name": "peer line",
+      "definition": "The private line right after the Everyone board's improvement line, for this week and this month, telling a viewer whose gain is above 0 and larger than more than half of the other current primary members of their group (at least 3 of them) that they improved more than a share of it, rounded down to a multiple of 10 (GB16)."
     }
   ]
 }

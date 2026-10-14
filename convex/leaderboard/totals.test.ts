@@ -166,6 +166,7 @@ describe("rankedBoardOf: the whole Everyone board beside G17's window", () => {
       window: [1, 2, 3],
       standing: { kind: "ranked", position: 3, rank: 3 },
       improvement: { gain: 1 },
+      peer: null,
     });
   });
 

@@ -56,6 +56,13 @@ export async function primaryGroupOf(ctx: QueryCtx, member: MemberId): Promise<G
   return primary === null ? null : groupRefOf(ctx, primary);
 }
 
+export async function countingPrimaryGroupOf(ctx: QueryCtx, member: MemberId): Promise<GroupRef | null> {
+  const primary = (await memberGroupsOf(ctx, member))?.primary ?? null;
+  const row = primary === null ? null : await ctx.db.get(primary);
+  if (row === null || !countsAsGroup(row, await groupModeOf(ctx, row.workspace))) return null;
+  return { group: row._id, name: row.name };
+}
+
 export async function countingGroupsOf(ctx: QueryCtx, member: MemberId): Promise<GroupRef[]> {
   const groups = (await memberGroupsOf(ctx, member))?.groups ?? [];
   const refs = await Promise.all(groups.map((group) => groupRefOf(ctx, group)));

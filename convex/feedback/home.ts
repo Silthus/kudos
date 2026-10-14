@@ -117,8 +117,8 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
   }
 }
 
-function leaderboardGroups({ period, board, groups }: Extract<ShownTab, { tab: "leaderboard" }>): HomeLine[][] {
-  const [first = [], ...rest] = renderBoards(groups, board, period);
+function leaderboardGroups({ period, board, groups, myGroup }: Extract<ShownTab, { tab: "leaderboard" }>): HomeLine[][] {
+  const [first = [], ...rest] = renderBoards(groups, myGroup, board, period).map(({ lines }) => lines);
   return [[periodChoices(period), { kind: "lines", lines: first }], ...rest.map((lines): HomeLine[] => [{ kind: "lines", lines }])];
 }
 
