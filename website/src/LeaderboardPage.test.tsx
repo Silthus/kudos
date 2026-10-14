@@ -809,16 +809,38 @@ describe("WS321: the visibility switch", () => {
     expect(visibilitySwitch()).not.toBeChecked();
   });
 
-  it.each<{ answer: VisibilityReply; says: string }>([
-    { answer: { kind: "set", visible: false }, says: "You're off the leaderboards." },
-    { answer: { kind: "set", visible: true }, says: "You're on the leaderboards." },
-    { answer: { kind: "refused" }, says: "That couldn't be changed." },
-  ])("says $says politely after the answer $answer.kind", async ({ answer, says }) => {
-    const { user } = switchWith(leaderboardFixtures.midBoard, async () => answer);
+  it.each<{ answer: VisibilityReply; from: Leaderboard; to: Leaderboard; says: string }>([
+    { answer: { kind: "set", visible: false }, from: leaderboardFixtures.midBoard, to: leaderboardFixtures.left, says: "You're off the leaderboards." },
+    { answer: { kind: "set", visible: true }, from: leaderboardFixtures.left, to: leaderboardFixtures.midBoard, says: "You're on the leaderboards." },
+  ])("says $says politely once the read shows the setting the answer $answer.kind", async ({ answer, from, to, says }) => {
+    const { user, showBoardAnswer } = switchWith(from, async () => answer);
+
+    await user.click(visibilitySwitch());
+    await act(async () => undefined);
+    expect(within(howItCounts()).getByRole("status")).toBeEmptyDOMElement();
+
+    showBoardAnswer(to);
+    expect(within(howItCounts()).getByRole("status")).toHaveTextContent(says);
+  });
+
+  it("drops the set line once another tab or Slack moves the setting back", async () => {
+    const { user, showBoardAnswer } = switchWith(leaderboardFixtures.midBoard, async () => ({ kind: "set", visible: false }));
+    await user.click(visibilitySwitch());
+    showBoardAnswer(leaderboardFixtures.left);
+    expect(within(howItCounts()).getByRole("status")).toHaveTextContent("You're off the leaderboards.");
+
+    showBoardAnswer(leaderboardFixtures.midBoard);
+
+    expect(within(howItCounts()).getByRole("status")).toBeEmptyDOMElement();
+    expect(visibilitySwitch()).toBeChecked();
+  });
+
+  it("says That couldn't be changed politely after a refusal", async () => {
+    const { user } = switchWith(leaderboardFixtures.midBoard, async () => ({ kind: "refused" }));
 
     await user.click(visibilitySwitch());
 
-    expect(await within(howItCounts()).findByRole("status")).toHaveTextContent(says);
+    expect(await within(howItCounts()).findByRole("status")).toHaveTextContent("That couldn't be changed.");
   });
 
   it("says Couldn't reach HedgeHug after an error and never sends again by itself", async () => {
@@ -830,6 +852,16 @@ describe("WS321: the visibility switch", () => {
     expect(setBoardVisibility).toHaveBeenCalledExactlyOnceWith(true);
     expect(visibilitySwitch()).not.toHaveAttribute("aria-disabled");
     expect(visibilitySwitch()).not.toBeChecked();
+  });
+
+  it("drops a failure line once the read shows the setting the member asked for, as when a slow call lands after all", async () => {
+    const { user, showBoardAnswer } = switchWith(leaderboardFixtures.midBoard, async () => Promise.reject(new Error("no answer in time")));
+    await user.click(visibilitySwitch());
+    expect(await within(howItCounts()).findByRole("status")).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
+
+    showBoardAnswer(leaderboardFixtures.left);
+
+    expect(within(howItCounts()).getByRole("status")).toBeEmptyDOMElement();
   });
 
   it("says nothing after a denial, which the profile's read shows instead", async () => {

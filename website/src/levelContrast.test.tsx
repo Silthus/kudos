@@ -130,3 +130,37 @@ describe("WS339 V24: the Show more chevrons meet 3:1 against the board's card in
     });
   }
 });
+
+function quillSwitchPaint(state: "checked" | "unchecked", part: "" | " .quill-switch__thumb") {
+  const selector = `.quill-switch[data-${state}]${part}`.replace(/[.[\]]/g, (character) => `\\${character}`);
+  const rule = new RegExp(`${selector}\\{background-color:var\\(--([\\w-]+)\\)`).exec(quillPrimitives);
+  if (rule === null) throw new Error(`${selector} sets no background token`);
+  return rule[1]!;
+}
+
+function visibilitySwitchOutline() {
+  window.history.replaceState(null, "", "/leaderboard");
+  renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leaderboardFixtures.left));
+  const visibility = within(screen.getByRole("region", { name: "How it counts" })).getByRole("switch", { name: "Show me on the leaderboards" });
+  const outline = [...visibility.classList].flatMap((name) => /^data-\[unchecked\]:border-((?:muted-)?foreground)$/.exec(name)?.[1] ?? []);
+  expect(outline).toHaveLength(1);
+  return outline[0]!;
+}
+
+describe("WS339 V24: the visibility switch shows its position at 3:1 in both modes", () => {
+  beforeEach(() => {
+    fakeSystemTheme(false);
+  });
+
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      const measured = [
+        { part: "the switched-off outline on the card", ratio: contrast(mode, visibilitySwitchOutline(), "card") },
+        { part: "the switched-off thumb on the card", ratio: contrast(mode, quillSwitchPaint("unchecked", " .quill-switch__thumb"), "card") },
+        { part: "the switched-on track on the card", ratio: contrast(mode, quillSwitchPaint("checked", ""), "card") },
+        { part: "the switched-on thumb on its track", ratio: contrast(mode, quillSwitchPaint("checked", " .quill-switch__thumb"), quillSwitchPaint("checked", "")) },
+      ];
+      expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});
