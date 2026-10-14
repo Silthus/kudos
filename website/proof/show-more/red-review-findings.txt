@@ -1,0 +1,225 @@
+
+ RUN  v5.0.3 website
+
+ ❯ |website| src/LeaderboardPage.test.tsx (79 tests | 2 failed | 71 skipped) 1352ms
+   ❯ WS320: Show 5 more grows the window in place (8)
+     × keeps Show the whole board and Back to my spot once every row is shown 114ms
+     × moves focus only on a press, never when a live update brings a revealed row back 153ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS320: Show 5 more grows the window in place > keeps Show the whole board and Back to my spot once every row is shown
+TestingLibraryElementError: Unable to find an element with the text: No. 4–13 of 13. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"flex flex-col gap-5"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex flex-col gap-3"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-wrap items-center justify-between gap-x-4 gap-y-2"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"hud-label"[39m
+        [36m>[39m
+          [0mLeaderboard · kudos given[0m
+        [36m</span>[39m
+        [36m<div[39m
+          [33maria-label[39m=[32m"Period"[39m
+          [33mclass[39m=[32m"quill-toggle-group group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch"[39m
+          [33mdata-orientation[39m=[32m"horizontal"[39m
+          [33mdata-quill[39m=[32m"true"[39m
+          [33mdata-size[39m=[32m"sm"[39m
+          [33mdata-slot[39m=[32m"toggle-group"[39m
+          [33mdata-spacing[39m=[32m"0"[39m
+          [33mdata-variant[39m=[32m"outline"[39m
+          [33mrole[39m=[32m"group"[39m
+          [33mstyle[39m=[32m"--gap: 0;"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33maria-disabled[39m=[32m"false"[39m
+            [33maria-pressed[39m=[32m"true"[39m
+            [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm border-primary bg-fill-selected"[39m
+            [33mdata-pressed[39m=[32m""[39m
+            [33mdata-quill[39m=[32m"true"[39m
+            [33mdata-size[39m=[32m"sm"[39m
+            [33mdata-slot[39m=[32m"toggle-group-item"[39m
+            [33mdata-spacing[39m=[32m"0"[39m
+            [33mdata-variant[39m=[32m"outline"[39m
+            [33mtabindex[39m=[32m"0"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"LemonIcon size-3.5"[39m
+              [33mdata-selected-mark[39m=[32m"true"[39m
+              [33mfill[39m=[32m"currentColor"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"100%"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<g[39m
+                [33mclip-path[39m=[32m"url(#icon/check__a)"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33mclip-rule[39m=[32m"evenodd"[39m
+                  [33md[39m=[32m"M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"[39m
+                  [33mfill-rule[39m=[32m"evenodd"[39m
+                [36m/>[39m
+              [36m</g>[39m
+              [36m<defs>[39m
+                [36m<clippath[39m
+                  [33mid[39m=[32m"icon/check__a"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M0 0h20v18H0z"[39m
+                    [33mtransform[39m=[32m"translate(2 3)"[39m
+                  [36m/>[39m
+                [36m</clippath>[39m
+              [36m</defs>[39m
+            [36m</svg>[39m
+            [0mThis week[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-disabled[39m=[32m"false"[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm"[39m
+            [33mdata-quill[39m=[32m"true"[39m
+            [33mdata-size[39m=[32m"sm"[39m
+            [33mdata-slot[39m=[32m"toggle-group-item"[39m
+            [33mdata-spacing[39m=[32m"0"[39m
+            [33mdata-variant[39m=[32m"outline"[39m
+            [33mtabindex[39m=[32m"-1"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mThis month[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-disabled[39m=[32m"false"[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm"[39m
+            [33mdata-quill[39m=[32m"true"[39m
+            [33mdata-size[39m=[32m"sm"[39m
+            [33mdata-slot[39m=[32m"toggle-group-item"[39m
+            [33mdata-spacing[39m=[32m"0"[39m
+            [33mdata-variant[39m=[32m"outline"[39m
+            [33mtabindex[39m=[32m"-1"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mAll time[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<section[39m
+        [33maria-labelledby[39m=[32m"everyone-board-title"[39m
+        [33mclass[39m=[32m"flex items-center gap-3 rounded-xl border bg-card p-4"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33mclass[39m=[32m"LemonIcon size-5"[39m
+            [33mfill[39m=[32m"currentColor"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"100%"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33mclip-rule[39m=[32m"evenodd"[39m
+              [33md[39m=[32m"m4.722 7.604 2.774 2.08a.25.25 0 0 0 .374-.088l.262-.52a1.75 1.75 0 0 1 1.136-.91l2.97-.747a.25.25 0 0 0 .182-.182l.907-3.634a8.495 8.495 0 0 0-8.604 4Zm10.06-3.638L13.875 7.6a1.75 1.75 0 0 1-1.271 1.273l-2.97.748a.25.25 0 0 0-.163.13l-.262.52a1.75 1.75 0 0 1-2.612.613L4.052 8.976a8.5 8.5 0 1 0 10.73-5.01ZM3.081 7.472A10 10 0 0 1 11.999 2c.836 0 1.649.103 2.427.297 4.35 1.084 7.573 5.016 7.573 9.703 0 5.523-4.477 10-10 10s-10-4.477-10-10a9.96 9.96 0 0 1 1.082-4.528Zm7.181 5.21a1.75 1.75 0 0 1 1.347-.507l1.223.078c.31.02.607.121.865.294l1.993 1.34c.73.49.983 1.448.59 2.235l-.33.66a1.75 1.75 0 0 1-1.566.968h-1.847a1.75 1.75 0 0 1-1.456-.78L9.834 15.1a1.75 1.75 0 0 1 .22-2.211l.208-...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/LeaderboardPage.test.tsx:682:27
+    680|     await user.click(showMore("above")!);
+    681|     await user.click(showMore("below")!);
+    682|     expect(within(main()).getByText("No. 4–13 of 13")).toBeInTheDocume…
+       |                           ^
+    683|
+    684|     await user.click(within(main()).getByRole("button", { name: "Show …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |website| src/LeaderboardPage.test.tsx > WS320: Show 5 more grows the window in place > moves focus only on a press, never when a live update brings a revealed row back
+Error: [2mexpect([22m[31melement[39m[2m).toHaveFocus()[22m
+
+Expected element with focus:
+  [32m<button
+  aria-disabled="false"
+  aria-pressed="false"
+  class="quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm"
+  data-quill="true"
+  data-size="sm"
+  data-slot="toggle-group-item"
+  data-spacing="0"
+  data-variant="outline"
+  tabindex="0"
+  type="button"
+>
+  This month
+</button>[39m
+Received element with focus:
+  [31m<li
+  class="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 border-t px-3 py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset "
+  tabindex="-1"
+>
+  <span
+    class="sr-only"
+  >
+    Rank 7:·
+  </span>
+  <span
+    aria-hidden="true"
+    class="flex items-baseline gap-0.5 text-muted-foreground"
+  >
+    <span
+      class="text-lg font-semibold tabular-nums"
+    >
+      7
+    </span>
+  </span>
+  <span
+    class="flex min-w-0 items-center gap-2.5 text-sm"
+  >
+    <span
+      aria-hidden="true"
+      class="inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-8"
+    >
+      T7
+    </span>
+    <span
+      class="truncate font-medium"
+      title="Teammate 7"
+    >
+      Teammate 7
+    </span>
+  </span>
+  <span
+    class="text-right text-lg font-semibold tabular-nums"
+  >
+    93
+  </span>
+</li>[39m
+ ❯ src/LeaderboardPage.test.tsx:705:23
+    703|     showVisitor(withTheBoard);
+    704|     expect(lineAt(7)).toBeInTheDocument();
+    705|     expect(thisMonth).toHaveFocus();
+       |                       ^
+    706|   });
+    707|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 6 passed | 71 skipped (79)
+   Start at  10:47:36
+   Duration  4.19s (tests 34%, import 30%, environment 19%, transform 14%, setup 3%)
+
