@@ -44,6 +44,8 @@ const periods: Array<{ period: Period; label: string }> = [
   { period: "all", label: "All time" },
 ];
 
+const earlierCratesShown = 5;
+
 const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, earlierCrates: null, journey: null };
 
 export function renderHome(facts: HomeFacts, home: ShownHome | null, frontDoor: FrontDoorLinks | null): HomeView {
@@ -113,7 +115,13 @@ function readyCratesOf(unlocks: UnlocksHome | null): HomeLine[] {
 }
 
 function earlierCratesOf(crates: UnopenedCrate[] | null): HomeLine[] {
-  return (crates ?? []).map(({ crate, goal }) => ({ kind: "action", text: `✅ ${goal}`, action: openCrate(crate) }));
+  const shown = (crates ?? []).slice(0, earlierCratesShown).map(({ crate, goal }): HomeLine => ({ kind: "action", text: `✅ ${goal}`, action: openCrate(crate) }));
+  return [...shown, ...moreEarlierCrates(crates ?? [])];
+}
+
+function moreEarlierCrates(crates: UnopenedCrate[]): HomeLine[] {
+  const more = crates.length - earlierCratesShown;
+  return more > 0 ? [{ kind: "hint", text: `${more} more ${more === 1 ? "crate" : "crates"} from earlier weeks wait behind these.` }] : [];
 }
 
 function weeklyCratesOf(quests: WeeklyQuests | null): HomeLine[] {
@@ -233,8 +241,8 @@ function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, f
 }
 
 function waitingToOpenLines(crates: UnopenedCrate[]): HomeLine[] {
-  const lines = crates.map(({ crate, goal, reward }): HomeLine => ({ kind: "action", text: `✅ ${goal} ${earned(reward.xp)}`, action: openCrate(crate) }));
-  return [{ kind: "text", text: bold("Waiting to open") }, ...lines];
+  const shown = crates.slice(0, earlierCratesShown).map(({ crate, goal, reward }): HomeLine => ({ kind: "action", text: `✅ ${goal} ${earned(reward.xp)}`, action: openCrate(crate) }));
+  return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...moreEarlierCrates(crates)];
 }
 
 function journeyStepLines({ step, reward, finishedAt, openedAt }: JourneyStepFacts): HomeLine[] {

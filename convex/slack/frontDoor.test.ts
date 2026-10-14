@@ -218,6 +218,27 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     ]);
   });
 
+  test("P85: with 7 crates waiting from earlier weeks, the summary shows the oldest 5 and how many more", async () => {
+    const t = await workspace(...everyFlag, "website");
+    await levelThreeWithQuestsDrawn(t);
+    await openReadyFeatures(t);
+    await waitingFromAnEarlierWeek(t, "U_ALICE", 7);
+
+    await openHome(t, "U_ALICE");
+
+    const crate = `section: ✅ ${sayWhy} [button: Open]`;
+    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
+      crate,
+      crate,
+      crate,
+      crate,
+      crate,
+      "context: 2 more crates from earlier weeks wait behind these.",
+      "section: ✅ Give a kudos that says why. [button: Open]",
+      "section: ✅ Thank someone you haven't thanked before. [button: Open]",
+    ]);
+  });
+
   const todaysHome = [
     "actions: [Profile] | Leaderboard | Settings",
     "header: Your kudos",
@@ -292,6 +313,21 @@ async function drawFor(t: Backend, user: string, quests: QuestId[]) {
   const slots = quests.map((quest, slot) => ({ slot, quest, ...promised, feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
   const member = await memberOf(t, user);
   await t.run((ctx) => ctx.db.insert("questDraws", { member, week: "2026-10-12", drawnAt: Date.now(), slots }));
+}
+
+async function waitingFromAnEarlierWeek(t: Backend, user: string, crates: number) {
+  const week = "2026-10-05";
+  const reward = { xp: 20, coins: 0, item: null };
+  const slots = Array.from({ length: crates }, (_, slot) => ({ slot, quest: "say-why" as QuestId, reward, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
+  const member = await memberOf(t, user);
+  await t.run(async (ctx) => {
+    await ctx.db.insert("questDraws", { member, week, drawnAt: Date.parse(`${week}T00:00:00Z`), slots });
+    for (const { slot } of slots) {
+      const key = `weekly:${week}:${slot}`;
+      await ctx.db.insert("rewardRecords", { member, key, ...reward, catalogueVersion: "1", at: Date.parse("2026-10-07T10:00:00Z") + slot });
+      await ctx.db.insert("pendingCrates", { member, key });
+    }
+  });
 }
 
 async function memberOf(t: Backend, user: string) {

@@ -244,6 +244,40 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
     expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([]);
   });
 
+  test("with 100 crates waiting from earlier weeks, App Home shows the oldest 5 and how many more within Slack's 100 blocks, and opening one brings the next", async () => {
+    const t = await slackWorkspace();
+    await giveKudos(t, "U_ALICE", "U_BOB");
+    await openHome(t, "U_ALICE");
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    await waitingFromAnEarlierWeek(t, "U_ALICE", 100);
+
+    await openHome(t, "U_ALICE");
+
+    const crate = "section: ✅ Thank someone and say why. You earned *20 XP*. [button: Open]";
+    expect(publishedHomeBlocks(slack, "U_ALICE").length).toBeLessThanOrEqual(100);
+    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Waiting to open*", crate, crate, crate, crate, crate, "context: 95 more crates from earlier weeks wait behind these."]);
+
+    await send(t, blockActions("U_ALICE", buttonBeside("✅ Thank someone and say why.", "Open")));
+
+    expect(await t.run(async (ctx) => (await ctx.db.query("crateOpenings").collect()).map(({ key }) => key))).toEqual(["weekly:2026-10-05:0"]);
+    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Waiting to open*", crate, crate, crate, crate, crate, "context: 94 more crates from earlier weeks wait behind these."]);
+  });
+
+  async function waitingFromAnEarlierWeek(t: Backend, user: string, crates: number) {
+    const week = "2026-10-05";
+    const reward = { xp: 20, coins: 0, item: null };
+    const slots = Array.from({ length: crates }, (_, slot) => ({ slot, quest: "say-why" as QuestId, reward, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
+    await t.run(async (ctx) => {
+      const member = await memberOf(ctx, user);
+      await ctx.db.insert("questDraws", { member, week, drawnAt: Date.parse(`${week}T00:00:00Z`), slots });
+      for (const { slot } of slots) {
+        const key = `weekly:${week}:${slot}`;
+        await ctx.db.insert("rewardRecords", { member, key, ...reward, catalogueVersion: "1", at: Date.parse("2026-10-07T10:00:00Z") + slot });
+        await ctx.db.insert("pendingCrates", { member, key });
+      }
+    });
+  }
+
   async function slackWorkspace() {
     const t = await unlocksShippedBeforeAnyoneJoined(await flagsLoaded(testBackend()));
     await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { observedAction } from "../analytics/boundary";
 import { rewardsPage } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf, weeklyQuestOfRewardKey } from "./crates";
@@ -26,12 +27,26 @@ export function pendingWeeklyCratesBefore(ctx: QueryCtx, member: MemberId, week:
     .collect();
 }
 
-export const backfillPendingCrates = internalMutation({
-  args: { cursor: v.optional(v.string()) },
-  handler: async (ctx, { cursor }): Promise<void> => {
-    const { page, isDone, continueCursor } = await rewardsPage(ctx, cursor ?? null, rewardsPerPage);
+type BackfilledPage = { isDone: boolean; cursor: string };
+
+export const backfillPendingCrates = observedAction({
+  args: {},
+  handler: async (ctx): Promise<null> => {
+    let cursor: string | null = null;
+    while (true) {
+      const page: BackfilledPage = await ctx.runMutation(internal.quests.pendingCrates.backfillPage, { cursor });
+      if (page.isDone) return null;
+      cursor = page.cursor;
+    }
+  },
+});
+
+export const backfillPage = internalMutation({
+  args: { cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, { cursor }): Promise<BackfilledPage> => {
+    const { page, isDone, continueCursor } = await rewardsPage(ctx, cursor, rewardsPerPage);
     for (const { member, key } of page) if (await waitsUnindexed(ctx, member, key)) await ctx.db.insert("pendingCrates", { member, key });
-    if (!isDone) await ctx.scheduler.runAfter(0, internal.quests.pendingCrates.backfillPendingCrates, { cursor: continueCursor });
+    return { isDone, cursor: continueCursor };
   },
 });
 

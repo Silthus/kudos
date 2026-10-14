@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
-import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
 import type { QuestId } from "./pool";
@@ -26,7 +26,7 @@ afterEach(() => {
 });
 
 describe("P85: the pending-crate index lists every crate still waiting, within Convex's limits", () => {
-  test("the backfill lists every earlier, unopened weekly crate, oldest first, across pages, and a second run adds nothing", async () => {
+  test("the backfill has written every page when it returns, so the read lists every earlier, unopened weekly crate, oldest first, and a second run adds nothing", async () => {
     const { t, alice } = await workspace();
     await drawn(t, alice, twoWeeksAgo, ["say-why", "say-why-twice"]);
     await drawn(t, alice, lastWeek, ["say-why-three-times", "someone-new"]);
@@ -78,8 +78,7 @@ function openedBeforeTheIndex(t: Backend, member: MemberId, week: string, crates
 }
 
 async function backfill(t: Backend) {
-  await t.mutation(internal.quests.pendingCrates.backfillPendingCrates, {});
-  await settle(t);
+  await t.action(internal.quests.pendingCrates.backfillPendingCrates, {});
 }
 
 function waitingFor(t: Backend, member: MemberId) {
