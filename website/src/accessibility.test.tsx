@@ -3,12 +3,13 @@ import axe from "axe-core";
 import { describe, expect, it } from "vitest";
 import type { BoardRead } from "./boardRead";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
-import { shellFixtures, type MyLeaderboard, type OpenAnswer, type ShellState } from "./shell";
+import { fixedQuests, questsFixtures } from "./questsFixtures";
+import { shellFixtures, type MyLeaderboard, type MyQuests, type OpenAnswer, type ShellState } from "./shell";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
 
-const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard }[] = [
+const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard; quests?: MyQuests }[] = [
   { name: "loading", path: "/", visitor: shellFixtures.loading },
   { name: "connecting", path: "/", visitor: shellFixtures.connecting },
   { name: "closed", path: "/", visitor: shellFixtures.closed },
@@ -45,6 +46,13 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "book ready to open in place", path: "/book", visitor: shellFixtures.memberWithTheBookReady },
   { name: "book open, found in Slack", path: "/book", visitor: shellFixtures.memberWithTheBookOpened },
   { name: "home with the book locked", path: "/", visitor: shellFixtures.memberWaitingForTheBook },
+  { name: "home starting the Journey with Quests locked", path: "/", visitor: shellFixtures.memberStartingTheJourney },
+  { name: "home with a Journey step in each state and Quests open", path: "/", visitor: shellFixtures.memberWithQuests },
+  { name: "quests this week", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.week },
+  { name: "quests with last week's crate waiting", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithLastWeeksCrate },
+  { name: "quests with nothing drawn", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.noDraw },
+  { name: "quests locked until level 2", path: "/quests", visitor: shellFixtures.memberStartingTheJourney, quests: questsFixtures.locked },
+  { name: "quests ready to open in place", path: "/quests", visitor: shellFixtures.memberWithQuestsReady, quests: questsFixtures.ready },
   { name: "error", path: "/", visitor: shellFixtures.error },
 ];
 
@@ -65,7 +73,7 @@ describe("WS24: every page passes axe in light and dark", () => {
       it(`${page.name} in ${dark ? "dark" : "light"}`, async () => {
         fakeSystemTheme(dark);
         window.history.replaceState(null, "", page.path);
-        const { container } = renderApp(page.visitor, page.board && answering(page.board));
+        const { container } = renderApp(page.visitor, page.board && answering(page.board), undefined, page.quests && fixedQuests(page.quests));
         expect(await violationsIn(container)).toEqual([]);
       });
     }
@@ -114,6 +122,30 @@ describe("WS75: every crate state passes axe in light and dark", () => {
         if (state.skip) await user.keyboard("{Escape}");
         expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
       });
+    }
+  }
+});
+
+const questCrates = [
+  { name: "a quest crate on /quests", path: "/quests", place: () => within(screen.getByRole("main")).getByRole("heading", { name: "Thank someone you haven't thanked before." }).closest("article")! },
+  { name: "a Journey crate on the home", path: "/", place: () => within(screen.getByRole("main")).getByRole("heading", { name: "Finish a weekly quest." }).closest("li")! },
+];
+
+describe("WS75 WS74: every quest crate state passes axe in light and dark", () => {
+  for (const dark of [false, true]) {
+    for (const crate of questCrates) {
+      for (const state of crateStates) {
+        it(`${crate.name} ${state.name} in ${dark ? "dark" : "light"}`, async () => {
+          fakeSystemTheme(dark);
+          if (state.reducedMotion) preferReducedMotion();
+          window.history.replaceState(null, "", crate.path);
+          const { user } = renderApp(shellFixtures.memberWithQuests, undefined, { openQuestCrate: state.answer }, fixedQuests(questsFixtures.weekWithLastWeeksCrate));
+          await user.click(within(crate.place()).getByRole("button", { name: "Open" }));
+          await act(async () => undefined);
+          if (state.skip) await user.keyboard("{Escape}");
+          expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+        });
+      }
     }
   }
 });

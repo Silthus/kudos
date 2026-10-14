@@ -3,15 +3,16 @@ import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { levelReachedEventValidator, type LevelReachedEvent } from "../bus/events";
+import { achievementsApplyIn } from "../achievements/flag";
 import { threadOf } from "../engine/engine";
 import type { MessageRef } from "../engine/messageEvent";
 import { progressSettingsOf } from "../progression/settings";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-import { segmentValidator, type Line } from "./replies";
+import { segmentValidator, type Line } from "./segments";
 
-export const publicSectionValidator = v.object({ key: v.string(), member: v.id("members"), about: v.literal("level"), line: v.array(segmentValidator) });
+export const publicSectionValidator = v.object({ key: v.string(), member: v.id("members"), about: v.union(v.literal("level"), v.literal("achievement")), line: v.array(segmentValidator) });
 
 export const shownValidator = v.union(
   v.object({ state: v.literal("unposted") }),
@@ -25,11 +26,14 @@ const replyFields = { workspace: v.string(), channel: v.string(), sections: v.ar
 export const publicReplyValidator = v.union(
   v.object({ ...replyFields, conversation: v.string(), message: v.string(), threadTs: v.optional(v.string()) }),
   v.object({ ...replyFields, reached: v.object({ member: v.id("members"), level: v.number() }) }),
+  v.object({ ...replyFields, summary: v.id("tierSummaries") }),
 );
 
 export type PublicSection = Infer<typeof publicSectionValidator>;
 
 type Destination = { channel: string; threadTs?: string };
+
+type Announced = { reached: { member: MemberId; level: number } } | { summary: Id<"tierSummaries"> };
 
 export const celebrateLevel = internalMutation({
   args: { event: levelReachedEventValidator },
@@ -59,9 +63,14 @@ export async function setPublicSection(ctx: MutationCtx, ref: MessageRef, sectio
 }
 
 async function announceRewardedLevel(ctx: MutationCtx, { workspace, member, level }: LevelReachedEvent, section: PublicSection) {
+  if ((await levelNoticeRow(ctx, member, level)) !== null) return;
+  await announce(ctx, workspace, { reached: { member, level } }, section);
+}
+
+export async function announce(ctx: MutationCtx, workspace: string, announced: Announced, section: PublicSection) {
   const { announcementChannel } = await settingsOf(ctx, workspace);
-  if (announcementChannel === null || (await levelNoticeRow(ctx, member, level)) !== null) return;
-  const notice = { workspace, reached: { member, level }, channel: announcementChannel, sections: [section], version: 1, shown: { state: "posting" as const } };
+  if (announcementChannel === null) return;
+  const notice = { workspace, ...announced, channel: announcementChannel, sections: [section], version: 1, shown: { state: "posting" as const } };
   await deliver(ctx, await ctx.db.insert("publicReplies", notice));
 }
 
@@ -71,7 +80,8 @@ export const desired = internalQuery({
     const row = await ctx.db.get(reply);
     if (row === null) return null;
     if (!(await xpLevelsShownIn(ctx, row.workspace))) return { ...row, sections: [] };
-    const shown = await Promise.all(row.sections.map((section) => isShownPublicly(ctx, section)));
+    const bookApplies = await achievementsApplyIn(ctx, row.workspace);
+    const shown = await Promise.all(row.sections.map((section) => (section.about !== "achievement" || bookApplies) && isShownPublicly(ctx, section)));
     return { ...row, sections: row.sections.filter((_, index) => shown[index]) };
   },
 });

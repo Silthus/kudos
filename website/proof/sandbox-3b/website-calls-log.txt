@@ -1,0 +1,14 @@
+# The sandbox deployment's log for the website calls (convex logs --history 80), redacted
+▌ Showing logs of deployment:
+▌ [Production] <team>:<sandbox project>:production (prod) (dashboard: <redacted>)
+▌ └─ https://<sandbox>.convex.cloud
+Watching logs for dev deployment <sandbox>...
+10/14/2026, 4:32:02 AM [CONVEX M(auth:store)] [INFO] '`auth:store` type: refreshSession'
+10/14/2026, 4:32:02 AM [CONVEX M(auth:store)] [INFO] 'Expired refresh token session'
+10/14/2026, 4:32:09 AM [CONVEX M(auth:store)] [INFO] '`auth:store` type: refreshSession'
+10/14/2026, 4:33:11 AM [CONVEX M(website/commands:openQuestCrate)] ArgumentValidationError: Object contains extra field `member` that is not in the validator.
+
+Object: {member: "anyone", quest: {kind: "journey", step: "someone-new"}}
+Validator: v.object({quest: v.union(v.object({kind: v.literal("journey"), step: v.union(v.literal("first-thanks"), v.literal("first-quest"), v.literal("someone-new"))}), v.object({kind: v.literal("weekly"), slot: v.float64(), week: v.string()}))})
+
+

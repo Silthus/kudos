@@ -1,17 +1,22 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
+import { reportLeaderboardViewed, reportLeaderboardVisibilityChanged } from "../analytics/isolatedUsage";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
-import { periodValidator } from "../leaderboard/periods";
+import { periodValidator, type Period } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
+import { buyPerk } from "../progression/perks";
+import type { PurchaseOutcome } from "../progression/purchases";
 import { setProgressSettings } from "../progression/settings";
-import { openQuestCrate } from "../quests/crates";
+import { perkValidator } from "../progression/tree";
+import { openQuestCrate } from "../quests/open";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { rerollQuest } from "../quests/weekly";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { featureValidator } from "../unlocks/feature";
 import { openUnlock } from "../unlocks/unlocks";
+import type { MemberId } from "../workspace/directory";
 import { setAnnouncementChannel } from "../workspace/settings";
 
 export const commandValidator = v.union(
@@ -23,6 +28,7 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("openUnlock"), feature: featureValidator }),
   v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
   v.object({ type: v.literal("rerollQuest"), quest: weeklyQuestValidator }),
+  v.object({ type: v.literal("buyPerk"), perk: perkValidator }),
 );
 
 export type Command = Infer<typeof commandValidator>;
@@ -31,35 +37,50 @@ export function commandOf(candidate: unknown): Command | null {
   return conforms(commandValidator, candidate) ? (candidate as Command) : null;
 }
 
-export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command) {
+export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, idempotencyKey: string): Promise<PurchaseOutcome | null> {
   const { member } = person;
   switch (command.type) {
-    case "showHomeTab":
-      return showHomeTab(ctx, workspace, person, command.tab);
+    case "showHomeTab": {
+      const selection = await showHomeTab(ctx, workspace, person, command.tab);
+      if (selection?.tab === "leaderboard") await leaderboardViewedInAppHome(ctx, workspace, member, selection.period);
+      return null;
+    }
     case "showLeaderboard":
-      if (await isLeaderboardShownTo(ctx, workspace, member)) await selectLeaderboardPeriod(ctx, member, command.period);
-      return;
+      if (!(await isLeaderboardShownTo(ctx, workspace, member))) return null;
+      await selectLeaderboardPeriod(ctx, member, command.period);
+      await leaderboardViewedInAppHome(ctx, workspace, member, command.period);
+      return null;
     case "setLeaderboardVisibility":
-      if (await isEveryoneBoardShownTo(ctx, workspace, member)) await setLeaderboardVisibility(ctx, member, command.visible);
-      return;
+      if (!(await isEveryoneBoardShownTo(ctx, workspace, member))) return null;
+      if (await setLeaderboardVisibility(ctx, member, command.visible)) await reportLeaderboardVisibilityChanged(ctx, { workspace, member, visible: command.visible, at: Date.now() });
+      return null;
     case "setProgressSettings": {
       const { type: _, ...changes } = command;
       if (await xpLevelsShownTo(ctx, member)) await setProgressSettings(ctx, member, changes);
-      return;
+      return null;
     }
     case "setAnnouncementChannel":
       if ((await xpLevelsShownTo(ctx, member)) && (await setAnnouncementChannel(ctx, workspace, person, command.channel))) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
-      return;
+      return null;
     case "openUnlock":
       await openUnlock(ctx, member, command.feature);
-      return;
+      return null;
     case "openQuestCrate":
       await openQuestCrate(ctx, member, command.quest);
-      return;
+      return null;
     case "rerollQuest":
       await rerollQuest(ctx, member, command.quest);
-      return;
+      return null;
+    case "buyPerk": {
+      const outcome = await buyPerk(ctx, member, command.perk, idempotencyKey);
+      await showHomeTab(ctx, workspace, person, "skillTree");
+      return outcome;
+    }
   }
+}
+
+function leaderboardViewedInAppHome(ctx: MutationCtx, workspace: string, member: MemberId, period: Period) {
+  return reportLeaderboardViewed(ctx, { workspace, member, board: "everyone", period, surface: "app-home", at: Date.now() });
 }
 
 function conforms(validator: GenericValidator, value: unknown): boolean {

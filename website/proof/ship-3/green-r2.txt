@@ -1,0 +1,10 @@
+# Green (round 2): the same tests on the fix
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/ship-website-3/website
+
+
+ Test Files  1 passed (1)
+      Tests  6 passed | 36 skipped (42)
+   Start at  03:20:32
+   Duration  2.98s (import 35%, tests 29%, transform 17%, environment 15%, setup 3%)
+

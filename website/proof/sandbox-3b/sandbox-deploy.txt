@@ -1,0 +1,114 @@
+# The sandbox deploy: workflow `deploy-sandbox.yml` dispatched on `spec/website-3-quests`
+# Run: https://github.com/Silthus/kudos/actions/runs/38511653248 (head 07edc391a41da00d07aff9f3ff385a5f454e5e5a), success
+# Below: the gate's summary and the four deploy steps, from `gh run view --log`, with the deployment's names redacted.
+
+deploy	Run pnpm gate	2026-10-14T04:30:08.9201598Z  ✓  convex  convex/slack/unknownPeople.test.ts (18 tests) 315ms
+deploy	Run pnpm gate	2026-10-14T04:30:12.8910466Z stderr | convex/slack/delivery.test.ts > R35: Retry-After > a 429 on reactions.add holds the next reaction until Retry-After has passed, while private replies go on
+deploy	Run pnpm gate	2026-10-14T04:30:13.1483360Z stderr | convex/slack/delivery.test.ts > R35: a private reply is tried at most 3 times > a reply failing with an unknown result every time is sent 3 times and then given up
+deploy	Run pnpm gate	2026-10-14T04:30:13.1549050Z stderr | convex/slack/delivery.test.ts > R35: a private reply is tried at most 3 times > a reply failing with an unknown result every time is sent 3 times and then given up
+deploy	Run pnpm gate	2026-10-14T04:30:13.1639254Z stderr | convex/slack/delivery.test.ts > R35: a private reply is tried at most 3 times > a reply failing with an unknown result every time is sent 3 times and then given up
+deploy	Run pnpm gate	2026-10-14T04:30:55.4361772Z  Test Files  90 passed (90)
+deploy	Run pnpm gate	2026-10-14T04:30:55.4367103Z       Tests  1478 passed (1478)
+deploy	Run pnpm gate	2026-10-14T04:30:55.7078613Z       refuted 2026-10-13: whenOpened passed every line through whatever the member's unlock state
+deploy	Run pnpm gate	2026-10-14T04:30:55.7205118Z       totality oracle "website reads pass one guard" over getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getQuests with the flag off, no session, a former member, and an argument that names another member: verified 2026-10-14
+deploy	Run pnpm gate	2026-10-14T04:30:55.7208476Z       totality oracle "website commands pass one guard" over openFeature with the website flag off, the flag on with a flags key but no workspace key, no session, a signed-out session, an unknown person being verified, a failed verification, a member user_change deactivates, and a member named beside the feature, each read through every table and every scheduled function; openQuestCrate for a finished Journey step with the website flag off, the flag on with a flags key but no workspace key, no session, a signed-out session, a member user_change deactivates, and a member named beside the quest: verified 2026-10-14
+deploy	Run pnpm gate	2026-10-14T04:30:55.7244934Z lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T02:42:05.405Z (424 runs)
+deploy	Run pnpm gate	2026-10-14T04:30:56.1121017Z 0 rejected names, 0 unknown nouns (437 files), 17 in records
+
+deploy	Check this commit is still the branch's tip	﻿2026-10-14T04:30:56.1270840Z ##[group]Run tip=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
+deploy	Check this commit is still the branch's tip	2026-10-14T04:30:56.1271123Z tip=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
+deploy	Check this commit is still the branch's tip	2026-10-14T04:30:56.1271406Z if [ "$tip" = "$GITHUB_SHA" ]; then echo "current=true"; else echo "current=false"; fi >> "$GITHUB_OUTPUT"
+deploy	Check this commit is still the branch's tip	2026-10-14T04:30:56.1322320Z shell: /usr/bin/bash -e {0}
+deploy	Check this commit is still the branch's tip	2026-10-14T04:30:56.1322451Z env:
+deploy	Check this commit is still the branch's tip	2026-10-14T04:30:56.1322555Z   COHERENCE_TELEMETRY: 0
+deploy	Check this commit is still the branch's tip	2026-10-14T04:30:56.1322677Z   DO_NOT_TRACK: 1
+deploy	Check this commit is still the branch's tip	2026-10-14T04:30:56.1322790Z   COHERENCE_NO_UPDATE_CHECK: 1
+deploy	Check this commit is still the branch's tip	2026-10-14T04:30:56.1322947Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+deploy	Check this commit is still the branch's tip	2026-10-14T04:30:56.1323111Z ##[endgroup]
+deploy	Deploy to the sandbox deployment	﻿2026-10-14T04:30:56.3293459Z ##[group]Run pnpm exec convex deploy
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.3293637Z pnpm exec convex deploy
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.3337967Z shell: /usr/bin/bash -e {0}
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.3338093Z env:
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.3338196Z   COHERENCE_TELEMETRY: 0
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.3338313Z   DO_NOT_TRACK: 1
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.3338427Z   COHERENCE_NO_UPDATE_CHECK: 1
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.3338592Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.3338997Z   CONVEX_DEPLOY_KEY: ***
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.3339118Z ##[endgroup]
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.8665338Z ▌ Deploying code to deployment:
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.8666217Z ▌ [Production] <team>:<sandbox project>:production (prod) (dashboard: <redacted>)
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.8666817Z ▌ └─ https://<sandbox>.convex.cloud
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.8705989Z - Deploying to https://<sandbox>.convex.cloud...
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:56.8706240Z 
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:57.0387727Z Convex AI files are not installed. Run npx convex ai-files install to get started or npx convex ai-files disable to hide this message.
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:57.8618356Z ✔ No indexes are deleted by this push
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:57.8618604Z Uploading functions to Convex...
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:58.7304241Z Generating TypeScript bindings...
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:58.7807191Z Running TypeScript...
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:59.3912133Z Pushing code to your Convex deployment...
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:59.4668542Z Schema validation complete.
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:59.4669076Z Finalizing push...
+deploy	Deploy to the sandbox deployment	2026-10-14T04:30:59.7675387Z ✔ Deployed Convex functions to https://<sandbox>.convex.cloud
+deploy	Build the website and upload it to the sandbox deployment	﻿2026-10-14T04:30:59.7883503Z ##[group]Run pnpm exec static-hosting upload --build --build-command "pnpm website:build" --dist website/dist
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:30:59.7883910Z pnpm exec static-hosting upload --build --build-command "pnpm website:build" --dist website/dist
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:30:59.7933727Z shell: /usr/bin/bash -e {0}
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:30:59.7933862Z env:
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:30:59.7933969Z   COHERENCE_TELEMETRY: 0
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:30:59.7934090Z   DO_NOT_TRACK: 1
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:30:59.7934202Z   COHERENCE_NO_UPDATE_CHECK: 1
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:30:59.7934357Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:30:59.7934746Z   CONVEX_DEPLOY_KEY: ***
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:30:59.7934870Z ##[endgroup]
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:00.5146730Z 🔨 Building for development...
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:00.5147479Z    Build command: pnpm website:build
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:00.5148378Z    VITE_CONVEX_URL=https://<sandbox>.convex.cloud
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:00.5148706Z    STATIC_HOSTING_BASE_PATH=/
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:00.5148854Z 
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:00.5276975Z $ pnpm --dir website build
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:00.5402104Z $ vite build
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:00.7113303Z vite v8.3.4 building client environment for production...
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:00.7172393Z transforming...
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:01.2911675Z ✓ 3230 modules transformed.
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:01.3480435Z rendering chunks...
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:01.4248922Z computing gzip size...
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:01.4608460Z 
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:01.4668040Z [plugin builtin:vite-reporter] 
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:01.4668429Z (!) Some chunks are larger than 500 kB after minification. Consider:
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:01.4668836Z - Using dynamic import() to code-split the application
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:01.4669523Z - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:01.4670355Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:01.4791649Z ✓ built in 768ms
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:01.5133860Z 
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:03.8039786Z 🚀 Deploying to development environment
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:03.8040367Z 🔒 Using secure internal functions (requires Convex CLI auth)
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:03.8040865Z Uploading 13 files with deployment ID: 02023acc-5e70-401d-9cb6-cf3dad724f84
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:03.8041221Z Component: staticHosting
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:03.8041353Z 
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:05.3704502Z   Staging manifest chunk 1/1...
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:05.9152720Z   Publishing deployment...
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:06.5298126Z 
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:07.1203760Z Cleaned up 13 old storage file(s) from previous deployments
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:07.1204356Z 
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:07.1204822Z ✨ Upload complete!
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:07.1204938Z 
+deploy	Build the website and upload it to the sandbox deployment	2026-10-14T04:31:07.1205114Z Your app is now available at: https://<sandbox>.convex.site
+deploy	Prepare the website flag's workspace key	﻿2026-10-14T04:31:07.1343733Z ##[group]Run pnpm exec convex run website/flag:prepareWebsiteFlag
+deploy	Prepare the website flag's workspace key	2026-10-14T04:31:07.1343999Z pnpm exec convex run website/flag:prepareWebsiteFlag
+deploy	Prepare the website flag's workspace key	2026-10-14T04:31:07.1393919Z shell: /usr/bin/bash -e {0}
+deploy	Prepare the website flag's workspace key	2026-10-14T04:31:07.1394053Z env:
+deploy	Prepare the website flag's workspace key	2026-10-14T04:31:07.1394162Z   COHERENCE_TELEMETRY: 0
+deploy	Prepare the website flag's workspace key	2026-10-14T04:31:07.1394280Z   DO_NOT_TRACK: 1
+deploy	Prepare the website flag's workspace key	2026-10-14T04:31:07.1394393Z   COHERENCE_NO_UPDATE_CHECK: 1
+deploy	Prepare the website flag's workspace key	2026-10-14T04:31:07.1394550Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+deploy	Prepare the website flag's workspace key	2026-10-14T04:31:07.1395045Z   CONVEX_DEPLOY_KEY: ***
+deploy	Prepare the website flag's workspace key	2026-10-14T04:31:07.1395171Z ##[endgroup]
+deploy	Read the company profiles once	﻿2026-10-14T04:31:07.6770937Z ##[group]Run pnpm exec convex run companyProfiles/sync:syncCompanyProfiles
+deploy	Read the company profiles once	2026-10-14T04:31:07.6771259Z pnpm exec convex run companyProfiles/sync:syncCompanyProfiles
+deploy	Read the company profiles once	2026-10-14T04:31:07.6822028Z shell: /usr/bin/bash -e {0}
+deploy	Read the company profiles once	2026-10-14T04:31:07.6822168Z env:
+deploy	Read the company profiles once	2026-10-14T04:31:07.6822272Z   COHERENCE_TELEMETRY: 0
+deploy	Read the company profiles once	2026-10-14T04:31:07.6822394Z   DO_NOT_TRACK: 1
+deploy	Read the company profiles once	2026-10-14T04:31:07.6822508Z   COHERENCE_NO_UPDATE_CHECK: 1
+deploy	Read the company profiles once	2026-10-14T04:31:07.6822665Z   PNPM_HOME: /home/runner/setup-pnpm/node_modules/.bin
+deploy	Read the company profiles once	2026-10-14T04:31:07.6823062Z   CONVEX_DEPLOY_KEY: ***
+deploy	Read the company profiles once	2026-10-14T04:31:07.6823184Z ##[endgroup]

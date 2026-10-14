@@ -1,7 +1,10 @@
 import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { achievementsLiveIn } from "../achievements/flag";
 import { exposed, flag, type Flag } from "../analytics/flags";
-import { xpLevels, xpLevelsShownTo } from "../progression/xpLevels";
+import type { UnlocksLaunchedEvent } from "../bus/events";
+import { publish } from "../bus/publish";
+import { xpLevels, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
 import { shippedIn } from "./schedule";
 import { keepOpen } from "./unlocks";
@@ -29,7 +32,12 @@ export const exposeUnlocks = internalMutation({
 export async function unlocksLiveIn(ctx: MutationCtx, workspace: string): Promise<boolean> {
   if (!(await flag(ctx, unlocksFlag, { workspace }))) return false;
   if ((await launchIn(ctx, workspace)) === null) await launch(ctx, workspace);
+  await achievementsLiveIn(ctx, workspace);
   return true;
+}
+
+export async function unlockPathShownIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
+  return (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
 }
 
 export async function unlocksAppliedIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
@@ -44,10 +52,20 @@ async function launch(ctx: MutationCtx, workspace: string) {
     .query("members")
     .withIndex("by_user", (q) => q.eq("workspace", workspace))
     .collect();
+  const openings: UnlocksLaunchedEvent["openings"] = [];
   for (const { _id: member, kind } of existing) {
     if (kind !== "member") continue;
-    for (const { feature } of shipped) await keepOpen(ctx, { workspace, member, at, byLaunch: true }, feature);
+    for (const { feature } of shipped) {
+      if (await keepOpen(ctx, { workspace, member, at, byLaunch: true }, feature)) openings.push({ member, feature });
+    }
   }
+  for (const page of pagesOf(openings)) await publish(ctx, { type: "unlocksLaunched", workspace, openings: page, at });
+}
+
+const openingsPerEvent = 1000;
+
+function pagesOf(openings: UnlocksLaunchedEvent["openings"]) {
+  return Array.from({ length: Math.ceil(openings.length / openingsPerEvent) }, (_, page) => openings.slice(page * openingsPerEvent, (page + 1) * openingsPerEvent));
 }
 
 function launchIn(ctx: QueryCtx, workspace: string) {

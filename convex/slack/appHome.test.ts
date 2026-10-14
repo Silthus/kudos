@@ -4,7 +4,7 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
+import { blockActions, buttonInHome, publishedHome, publishedHomeBlocks } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 
@@ -159,6 +159,13 @@ describe("WS28: App Home links to the website while it is open", () => {
     vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
   });
 
+  function websiteButtonsOf(user: string) {
+    return publishedHomeBlocks(slack, user)
+      .filter((block) => block.type === "actions")
+      .flatMap((block) => block.elements as Array<{ text: { text: string }; url?: string }>)
+      .flatMap(({ text, url }) => (url === undefined ? [] : [{ label: text.text, url }]));
+  }
+
   async function backendWithWebsite(...flagKeys: string[]) {
     const t = testBackend();
     await flagsFromPostHog(t, postHog, ...flagKeys.map(onForEveryone));
@@ -166,7 +173,7 @@ describe("WS28: App Home links to the website while it is open", () => {
     return t;
   }
 
-  test("while the website flag is on and SITE_URL is set, a member's Home links to the site's root, carrying no identity", async () => {
+  test("while the website flag is on and SITE_URL is set, a member's Home is the front door, its button opening the site's root and carrying no identity", async () => {
     const t = await backendWithWebsite("website");
 
     await openHome(t, "U_BOB");
@@ -175,30 +182,31 @@ describe("WS28: App Home links to the website while it is open", () => {
       "header: Your kudos",
       "section: You have *3* kudos left today. You get *3* more at midnight.",
       "divider",
-      "section fields: *Given this week*\n*0* | *Received this week*\n*0* | *Given in total*\n*0* | *Received in total*\n*0*",
+      "actions: Open HedgeHug",
       "divider",
       "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
       "context: To add me to a channel, type `/hedgehug` there.",
-      "divider",
-      websiteLink,
     ]);
+    expect(websiteButtonsOf("U_BOB")).toEqual([{ label: "Open HedgeHug", url: `${siteUrl}/` }]);
   });
 
-  test("with the Everyone board's tabs, every tab ends with the link, the tab App Home reopens on included", async () => {
+  test("with the Everyone board, Profile's buttons and the Settings tab's closing link lead to the site, the tab App Home reopens on included", async () => {
     const t = await backendWithWebsite("website", "everyone-board");
     await openHome(t, "U_BOB");
     const profileTab = publishedHome(slack, "U_BOB");
+    const profileButtons = websiteButtonsOf("U_BOB");
 
-    await click(t, "U_BOB", "Leaderboard");
-    const leaderboardTab = publishedHome(slack, "U_BOB");
     await click(t, "U_BOB", "Settings");
     const settingsTab = publishedHome(slack, "U_BOB");
     await openHome(t, "U_BOB");
     const reopened = publishedHome(slack, "U_BOB");
 
-    expect([profileTab, leaderboardTab, settingsTab, reopened].map((home) => [home[1], home.slice(-2)])).toEqual([
-      ["header: Your kudos", ["divider", websiteLink]],
-      ["header: Leaderboard", ["divider", websiteLink]],
+    expect(profileTab.slice(0, 2)).toEqual(["actions: [Profile] | Settings", "header: Your kudos"]);
+    expect(profileButtons).toEqual([
+      { label: "Open HedgeHug", url: `${siteUrl}/` },
+      { label: "Leaderboard", url: `${siteUrl}/leaderboard` },
+    ]);
+    expect([settingsTab, reopened].map((home) => [home[1], home.slice(-2)])).toEqual([
       ["header: Settings", ["divider", websiteLink]],
       ["header: Settings", ["divider", websiteLink]],
     ]);
@@ -211,7 +219,7 @@ describe("WS28: App Home links to the website while it is open", () => {
 
     await openHome(t, "U_BOB");
 
-    expect(publishedHome(slack, "U_BOB")).toContain(websiteLink);
+    expect(websiteButtonsOf("U_BOB")).toEqual([{ label: "Open HedgeHug", url: `${siteUrl}/` }]);
   });
 
   const closed: Array<{ condition: string; flags: string[]; env?: Record<string, string> }> = [

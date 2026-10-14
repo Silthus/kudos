@@ -1,6 +1,6 @@
 # Website reads
 
-The website's signed-in reads, the sign-in callback, and the link App Home shows, `${SITE_URL}/` with no identity, only while the website flag is on, SITE_URL is set and the App Home is the deployment's workspace: every website query is built on memberQuery, which answers closed while the website flag is off, signed-out without a live session of the deployment's workspace, and verifying, unverified or not-a-member until the directory knows the person as a member, and calls its handler only with a verified member taken from the session, never from arguments; getMyProfile answers that member with their own homeFacts (kudos left, when they refill, given and received this week and in total) beside their sign-in name, their face (their company profile cutout on its colour when exactly one company profile matches their Slack real name, else their sign-in picture, else initials), and, only while the xp-levels flag is on for the workspace, their level and XP from progression's own read with the thresholds of their level and the next, and reads the website clock, a row a cron ticks every 15 minutes, so an open home turns to the new day and the new week without another kudos; getMyProfile also says whether the Everyone board is off, locked, ready or open, and, only while unlocks apply, lists each shipped feature in the schedule's order with its name, what it opens, its level, the member's state, when it became ready and when it was opened from unlocks' own read, and an opaque key per member and crate that carries no ID, the leaderboard's answer following its entry, and getLeaderboard answers one period's Everyone board as the leaderboard module's rankedBoardOf gives it to that member (every ranked row with its position, rank, tie, display name or "A teammate", face and kudos given, the window's positions, their standing and their improvement line), not-found while the everyone-board flag is off for the workspace, reading that flag without an exposure and following the same clock, and, while unlocks apply (xp-levels on and unlocks' query-safe unlocksAppliedIn true), locked with the level or ready with no board facts until the member has opened the Leaderboard, never running unlocks' launch; openFeature, the website's one command, passes the same guard as a mutation that writes nothing until the member is verified, reading the website flag without making a workspace key, refuses unless unlocks apply so it never runs unlocks' launch, then runs Commands' openUnlock for the signed-in member with the feature as its only argument and answers opened only when unlocks' own read finds the feature open afterwards, scheduling App Home's republish as a Slack click does; the sign-in callback refuses while the flag is off and links an account only by the Slack pair; a daily job deletes the verifier a sign-in that never came back from Slack left behind, once it is a day old.
+The website's signed-in reads, the sign-in callback, and the website links Slack shows, each SITE_URL plus a page's route from the route list (the root `/`, the Leaderboard `/leaderboard` with `?period=month` or `?period=all`, the Quests page `/quests`, the pages `/skills` and `/book`, any page not listed yet resolving to the root) with no identity, built only in the website's link module, by websiteLinkOf for one page and by frontDoorLinksOf for App Home's front door (the root, then each feature open for the member on the same unlock path and leaderboard state getMyProfile reads that has a page on the route list, in schedule order), and only while the website flag is on, SITE_URL is set and the workspace is the deployment's workspace: every website query is built on memberQuery, which answers closed while the website flag is off, signed-out without a live session of the deployment's workspace, and verifying, unverified or not-a-member until the directory knows the person as a member, and calls its handler only with a verified member taken from the session, never from arguments; getMyProfile answers that member with their own homeFacts (kudos left, when they refill, given and received this week and in total) beside their sign-in name, their face (their company profile cutout on its colour when exactly one company profile matches their Slack real name, else their sign-in picture, else initials), and, only while the xp-levels flag is on for the workspace, their level and XP from progression's own read with the thresholds of their level and the next, and reads the website clock, a row a cron ticks every 15 minutes, so an open home turns to the new day and the new week without another kudos; getMyProfile also says whether the Everyone board is off, locked, ready or open, and, only while unlocks apply, lists each shipped feature in the schedule's order with its name, what it opens, its level, the member's state, when it became ready and when it was opened from unlocks' own read, and an opaque key per member and crate that carries no ID, the leaderboard's answer following its entry, and getLeaderboard answers one period's Everyone board as the leaderboard module's rankedBoardOf gives it to that member (every ranked row with its position, rank, tie, display name or "A teammate", face and kudos given, the window's positions, their standing and their improvement line), not-found while the everyone-board flag is off for the workspace, reading that flag without an exposure and following the same clock, and, while unlocks apply (xp-levels on and unlocks' query-safe unlocksAppliedIn true), locked with the level or ready with no board facts until the member has opened the Leaderboard, never running unlocks' launch; openFeature and openQuestCrate, the website's commands, pass the same guard as a mutation that writes nothing until the member is verified, reading the website flag without making a workspace key, refuses unless unlocks apply so it never runs unlocks' launch, and, while the quests module's questsApplyIn holds, also unless the Journey's launch is recorded, so it never runs the Journey's launch or its join, then runs Commands' openUnlock for the signed-in member with the feature as its only argument and answers opened only when unlocks' own read finds the feature open afterwards, scheduling App Home's republish as a Slack click does; openQuestCrate refuses unless the quests module's questsApplyIn holds and the Journey's launch is recorded, so it never runs unlocks' launch, the Journey's launch or its join, then runs Commands' openQuestCrate with the quest as its only argument and answers opened only when the quests module's crate opening for that quest exists afterwards, scheduling App Home's republish; getQuests answers not-found unless the quests module's questsApplyIn holds, which never runs a launch, locked with Quests' level or ready while the member hasn't opened Quests, and otherwise this week's drawn quests from the quests module's own read, each with its kind, goal, progress, reward, state, whether it was swapped, the quest that opens its crate while finished and an opaque key per member and crate once finished, beside every earlier week's finished, unopened crate, oldest first, from the quests module's read of them; getMyProfile's journey is null unless quests apply, and otherwise lists the member's active Journey steps from the quests module's projection, which shows first-thanks active before any activation is stored, each with the module's goal and hint copy, its reward, its state, the quest that opens its crate while finished and an opaque key per member and crate once finished; the sign-in callback refuses while the flag is off and links an account only by the Slack pair; a daily job deletes the verifier a sign-in that never came back from Slack left behind, once it is a day old.
 
 ## entrances
 - query getMyProfile: a browser asks for the signed-in person's own website answer, with no arguments
@@ -11,11 +11,54 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   handler: getLeaderboard in convex/website/leaderboard.ts
   trust: browser
 
+- query getQuests: a browser asks for the signed-in member's quests this week, with no arguments
+  handler: getQuests in convex/website/quests.ts
+  trust: browser
+
 - mutation openFeature: a browser asks to open one ready feature for the signed-in member, with the feature as its only argument
   handler: openFeature in convex/website/commands.ts
   trust: browser
 
+- mutation openQuestCrate: a browser asks to open one finished quest's or Journey step's crate for the signed-in member, with the quest as its only argument
+  handler: openQuestCrate in convex/website/commands.ts
+  trust: browser
+
 ## invariants
+- the route list is the paths the router serves: The backend's route list holds exactly the paths the website's router serves, so a website link Slack shows never opens the not-found page, and a page that ships adds its path to both in one change.
+  over: routeList in convex/website/routes.ts and servedPaths in website/src/route.ts, the list routeOf matches a path against
+  via: SW10: the route list is the paths the router serves
+  refuted: added /quests to the backend's routeList without adding it to the website router -> the contract test failed listing /quests (2026-10-14)
+  because: a link to a path the router doesn't serve lands a member on the not-found page, and a path added to the router alone would leave its links on the root; the website map added /skills and /book to both lists when its router began serving them (SW9, SW10)
+  kinds: output
+  checklist: destination-confinement dismissed: the list names paths on the deployment's own SITE_URL; no destination comes from input
+  checklist: redaction dismissed: a path carries no identity and nothing sensitive
+  checklist: commit-ordered-effects dismissed: the lists are constants; comparing them issues no effect
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is sent
+  checklist: declared-target-coverage declared as the route list is the paths the router serves
+- one function builds every website link: websiteLinkOf answers SITE_URL plus the asked page's route, the Leaderboard keeping its period, and a page not on the route list resolves to the root, so a link never names a path the website doesn't serve.
+  over: websiteLinkOf while the website is open, for the root, the Leaderboard's three periods, the Quests page, and the `/skills` and `/book` pages
+  via: SW11: one function builds every website link
+  refuted: routeOf answered an unlisted page's own path instead of the root -> the three unlisted pages linked to /quests, /skills and /book (2026-10-14)
+  because: a link to a page the website doesn't serve yet would land a member on the not-found page, so every message builds its link from the route list through one function, and a page shipped later switches its links on with its route (SW11, SW13)
+  kinds: output
+  checklist: destination-confinement dismissed: the origin is the deployment's own SITE_URL and the path comes from the route list; no part of the URL is taken from input
+  checklist: redaction dismissed: a link carries no identity, only a path and a period
+  checklist: commit-ordered-effects dismissed: the function is a query and issues no effect
+  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack replies
+  checklist: declared-target-coverage dismissed: the link has one target, the website
+- a deep link shows only while the website is open: The `/hedgehug leaderboard` board reply ends with a link to the same period's board while the website flag is on, SITE_URL is set and the workspace is the deployment's workspace, and is today's reply, with no link, otherwise; the usage reply never carries one.
+  over: the `/hedgehug leaderboard` reply for the week, the month and all time, for a SITE_URL ending in a slash, for a period it doesn't know, and for the month with the website flag off, SITE_URL unset and another workspace
+  via: SW13 SW14: the leaderboard reply links to the same board on the web
+  refuted: websiteLinkOf answered SITE_URL plus the route without reading the website flag -> the flag-off reply ended with a link (2026-10-14)
+  because: a link shown while the website is closed or unconfigured leads a member to a closed page, and with the website off every Slack reply must be byte-for-byte today's (SW11, SW13, SW17, SW25)
+  crossing: slack-request -> domain
+  entrances: route POST /slack/commands
+  kinds: output
+  checklist: destination-confinement dismissed: the reply answers the signed slash command's own HTTP request; the link's origin is the deployment's own SITE_URL
+  checklist: redaction dismissed: the link carries no identity, only a path and a period
+  checklist: commit-ordered-effects dismissed: the reply is the command's HTTP answer; deciding the link writes nothing
+  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack replies
+  checklist: declared-target-coverage dismissed: the reply has one target, the member who asked
 - the public surface is exact: Exactly the HTTP routes, Convex Auth's signIn, signOut and isAuthenticated, and the website's signed-in functions are public; every other Convex function is internal.
   over: every Convex function every module of the deployment exports, outside convex/_generated
   via: WS10: the public surface is exact
@@ -30,11 +73,11 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   checklist: canonical-encoding dismissed: function paths are compared as the module glob lists them, sorted; no identity is encoded
   checklist: identity-continuity dismissed: the surface carries no identity across a succession
 - website reads pass one guard: A website read answers closed while the website flag is off, signed-out without a live session of the deployment's current workspace, verifying, unverified or not-a-member until the directory knows the person as a member, and reaches its handler only with that verified member, taken from the session.
-  over: getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period
+  over: getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getQuests with the flag off, no session, a former member, and an argument that names another member
   via: website reads pass one guard
   because: the shell is public and a JWT outlives sign-out and membership, so every read must recheck the flag, the live session, the workspace and the directory in that order, or a closed site, a signed-out browser or a former member would read a member's kudos (WS3, WS9, WS11, WS14)
   crossing: browser -> domain
-  entrances: query getMyProfile, query getLeaderboard
+  entrances: query getMyProfile, query getLeaderboard, query getQuests
   refuted: memberQuery dropped the check that the session's workspace is the current SLACK_WORKSPACE_ID -> the leftover session after SLACK_WORKSPACE_ID changes read member instead of signed-out (2026-10-13)
   kinds: read, identity
   checklist: scoped-reads declared as website reads pass one guard
@@ -43,11 +86,11 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   checklist: canonical-encoding dismissed: the directory is keyed by Slack's workspace and user ids exactly as the sign-in claims carry them
   checklist: identity-continuity dismissed: a session belongs to one Slack pair for its whole life; a changed workspace reads signed-out rather than carrying over
 - website commands pass one guard: A website command answers closed while the website flag is off or its workspace key doesn't exist yet, signed-out without a live session of the deployment's current workspace, verifying, unverified or not-a-member until the directory knows the person as a member, exactly as a read does, and writes nothing at all with any denial; it reaches its handler only with that verified member, taken from the session, and an argument never names a member.
-  over: openFeature with the website flag off, the flag on with a flags key but no workspace key, no session, a signed-out session, an unknown person being verified, a failed verification, a member user_change deactivates, and a member named beside the feature, each read through every table and every scheduled function
+  over: openFeature with the website flag off, the flag on with a flags key but no workspace key, no session, a signed-out session, an unknown person being verified, a failed verification, a member user_change deactivates, and a member named beside the feature, each read through every table and every scheduled function; openQuestCrate for a finished Journey step with the website flag off, the flag on with a flags key but no workspace key, no session, a signed-out session, a member user_change deactivates, and a member named beside the quest
   via: website commands pass one guard
   because: a mutation is the first public function that can write, so a denial that wrote a workspace key, an exposure or a scheduled job would let anyone on the internet change state through a closed or signed-out call; the guard is memberQuery's in the same order and reads the website flag through the seam's read-only path (WS61, WS11)
   crossing: browser -> domain
-  entrances: mutation openFeature
+  entrances: mutation openFeature, mutation openQuestCrate
   refuted: memberQuery's guard read the website flag through the seam's writing path instead of its read-only one -> the call with a flags key but no workspace key made a key and answered refused instead of closed (2026-10-14)
   kinds: state, identity
   checklist: scoped-reads declared as website reads pass one guard
@@ -62,12 +105,15 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   checklist: worker-fencing dismissed: no worker runs the guard; each call is one mutation
   checklist: commit-ordered-effects dismissed: a denial issues no effect and schedules nothing
   checklist: resumption-coverage dismissed: no batch operation resumes
-- a website command never launches unlocks: While unlocks don't apply to the workspace (xp-levels off, the unlocks flag off, or no launch recorded), openFeature answers refused without running a command, so a website call never records unlocks' launch, writes no unlocks row and publishes no event.
-  over: openFeature with xp-levels and unlocks on and no launch recorded, read through every table, every scheduled function and every published event
+- a website command never launches unlocks: While unlocks don't apply to the workspace (xp-levels off, the unlocks flag off, or no launch recorded), openFeature answers refused without running a command, while quests apply and the Journey's launch isn't recorded, openFeature answers refused without running a command for any feature, since App Home's republish after any opened answer would record it, and so would the unlockOpened that opening Quests or the Leaderboard publishes, and while quests don't apply or the Journey's launch isn't recorded, openQuestCrate answers refused without running a command, so a website call never records unlocks' or the Journey's launch, never schedules the Journey's join, writes no unlocks row and publishes no event.
+  over: openFeature with xp-levels and unlocks on and no launch recorded; openFeature for a ready Quests, a ready Leaderboard and an open Leaderboard with quests on, unlocks launched and no Journey launch; openQuestCrate with every flag on and no launch, and with unlocks launched and no Journey launch; each read through every table, every scheduled function and every published event
   via: a website command never launches unlocks
   because: unlocks' launch grandfathers every member at once and belongs to Slack until the product owner switches unlocks on (P77, WS62); a website call that reached openUnlock before the launch would run it through unlocksLiveIn
   crossing: browser -> domain
-  entrances: mutation openFeature
+  entrances: mutation openFeature, mutation openQuestCrate
+  refuted: openFeature checked the Journey's recorded launch only for Quests -> with quests on, unlocks launched and no Journey launch, opening a ready or open Leaderboard answered opened, and activateJourney or App Home's republish would record the Journey's launch (2026-10-14)
+  refuted: openFeature checked only unlocks' gate for Quests, not the Journey's recorded launch -> with unlocks launched and no Journey launch, opening a ready Quests answered opened, and its unlockOpened subscribers would record the Journey's launch and schedule its join (2026-10-14)
+  refuted: openQuestCrate checked only questsApplyIn, not the Journey's recorded launch -> with unlocks launched and no Journey launch, the call recorded the Journey's launch and scheduled its join (2026-10-14)
   refuted: openFeature no longer checked WS55's gate before running openUnlock -> the unlaunched workspace recorded unlocks' launch (2026-10-14)
   kinds: state
   checklist: revalidated-permission dismissed: the gate is read in the same mutation that would run the command
@@ -77,12 +123,13 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   checklist: supersession-safety dismissed: a refusal writes nothing
   checklist: worker-fencing dismissed: no worker runs the command; each call is one mutation
   checklist: resumption-coverage dismissed: no batch operation resumes
-- a website command is a D17 command: openFeature changes domain tables only through Commands' runCommand: opening a ready feature leaves exactly the domain tables and events a Slack App Home Open of the same feature leaves, besides Slack's receipt, the analytics outbox and scheduled functions, with generated IDs normalised; a locked, unshipped or gated-off feature answers refused and an already open one answers opened, each changing no domain table besides the exposure Slack's click sends; a doubled open opens once and answers opened again; after opened, App Home's republish is scheduled.
-  over: openFeature for a ready Leaderboard against receiveHomeClick's Open of the same feature, a Leaderboard locked at level 1, an unshipped Skill tree past level 5, a ready and an open Leaderboard with unlocks or xp-levels switched off after the launch, an already open Leaderboard, a doubled open, and App Home's republished view after it
+- a website command is a D17 command: openFeature changes domain tables only through Commands' runCommand: opening a ready feature leaves exactly the domain tables and events a Slack App Home Open of the same feature leaves, besides Slack's receipt, the analytics outbox and scheduled functions, with generated IDs normalised; a locked, unshipped or gated-off feature answers refused and an already open one answers opened, each changing no domain table besides the exposure Slack's click sends; a doubled open opens once and answers opened again; after opened, App Home's republish is scheduled. openQuestCrate likewise leaves exactly what Slack's Open of the same Journey step leaves; an active step, an unfinished or never-drawn weekly quest, or a finished step with quests, unlocks or xp-levels switched off answers refused and writes nothing; a doubled open opens once and answers opened again; after opened, App Home's republished view no longer offers the crate.
+  over: openFeature for a ready Leaderboard against receiveHomeClick's Open of the same feature, a Leaderboard locked at level 1, an unshipped Skill tree past level 5, a ready and an open Leaderboard with unlocks or xp-levels switched off after the launch, an already open Leaderboard, a doubled open, and App Home's republished view after it; openQuestCrate for a finished Journey step against receiveHomeClick's Open of the same step, a finished weekly quest, an active step, an unfinished and a never-drawn weekly quest, a finished step with each flag switched off, a doubled open, and App Home's republished view after it
   via: a website command is a D17 command
   because: Unlocks alone decides what may open (D17, P73, WS62, WS64); a website path that wrote its own state could open what Slack still holds, and the reveal must follow only what Unlocks recorded
   crossing: browser -> domain
-  entrances: mutation openFeature
+  entrances: mutation openFeature, mutation openQuestCrate
+  refuted: openQuestCrate answered opened without reading the quests module's crate opening -> the active step, the unfinished and the never-drawn weekly quest answered opened (2026-10-14)
   refuted: openFeature answered opened without reading unlocks' state after the command -> the locked Leaderboard and the unshipped Skill tree answered opened (2026-10-14)
   kinds: state
   checklist: revalidated-permission dismissed: Unlocks reads readiness, the ship flag and its gate in the same mutation that opens
@@ -92,12 +139,13 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   checklist: worker-fencing dismissed: no worker owns a member's unlocks; Convex serializes the mutations that touch one row
   checklist: resumption-coverage dismissed: no batch operation resumes
   checklist: separation-of-duties dismissed: no approval policy applies; a member opens their own feature with one action (P73)
-- opening on the website grants nothing: openFeature opening a ready feature writes only that feature's openedAt and publishes only unlockOpened, besides the exposure Slack's click sends, so Unlocks' opening grants nothing holds through the website: XP, progress and every other record are as they were.
-  over: every table of the schema and every published event, before and after openFeature opens a ready Leaderboard for a member with XP and a level
+- opening on the website grants nothing: openFeature opening a ready feature writes only that feature's openedAt and publishes only unlockOpened, besides the exposure Slack's click sends, so Unlocks' opening grants nothing holds through the website: XP, progress and every other record are as they were; openQuestCrate opening a finished quest's crate writes only one crate opening and publishes only questOpened, so the quests module's opening a crate grants nothing holds through the website too.
+  over: every table of the schema and every published event, before and after openFeature opens a ready Leaderboard for a member with XP and a level, and before and after openQuestCrate opens a finished Journey step's crate
   via: opening on the website grants nothing
   because: a crate only reveals what is already recorded (P92); if opening on the website granted anything, a member could earn by clicking in a browser what Slack never pays
   crossing: browser -> domain
-  entrances: mutation openFeature
+  entrances: mutation openFeature, mutation openQuestCrate
+  refuted: openQuestCrate also gave the member 10 XP when it opened a crate -> the every-table assertion failed on memberProgress (2026-10-14)
   refuted: openFeature also gave the member 10 XP when it opened a feature -> the every-table assertion failed on memberProgress (2026-10-14)
   kinds: state
   checklist: legal-state-succession declared as a ready or opened feature is kept for good
@@ -107,6 +155,16 @@ The website's signed-in reads, the sign-in callback, and the link App Home shows
   checklist: supersession-safety dismissed: openedAt is written once in its own transaction, and a second open keeps the first
   checklist: worker-fencing dismissed: no worker owns a member's unlocks; Convex serializes the mutations that touch one row
   checklist: resumption-coverage dismissed: no batch operation resumes
+- quests are invisible where they don't apply: While the quests module's questsApplyIn answers false for the workspace (quests, xp-levels or unlocks off, or no launch recorded), getQuests answers not-found and getMyProfile's journey is null, whatever quests and Journey steps the member finished, and a website read never records unlocks' or the Journey's launch.
+  over: getQuests and getMyProfile with quests, xp-levels or unlocks switched off after a member finished a quest and a Journey step, and with every flag on and nothing launched
+  via: quests are invisible where they don't apply
+  because: the website never shows more than Slack does and never computes a game rule (WS69, WS70, WS71, #57): a quest fact read while quests don't apply would reach a browser before the owner switches quests on, and a progress, finish or active step derived in the website could disagree with what Slack shows
+  crossing: browser -> domain
+  entrances: query getQuests, query getMyProfile
+  refuted: journeyStepsOf no longer checked questsApplyIn before listing the Journey -> all 4 tests failed, the journey listed with quests, xp-levels or unlocks off and before any launch (2026-10-14)
+  kinds: read
+  checklist: scoped-reads declared as website reads pass one guard
+  checklist: redaction dismissed: not-found and null carry no quest fact, locked carries only Quests' level, and a crate key is a hash with no member, Slack or workspace ID
 - a member's home shows only their own facts: getMyProfile's member answer is the signed-in member's own homeFacts with their own sign-in name and picture, never another member's facts.
   over: getMyProfile for a member beside members who gave and received kudos, before and after a kudos lands, and across the member's midnight and the week's turn on a clock tick
   via: WS13 WS15 WS18: a member's home answer projects their own homeFacts

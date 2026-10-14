@@ -78,12 +78,12 @@ describe("WS58: the home's feature cards read the member's unlock path", () => {
   });
 
   it("points an open feature without a web page to Slack's App Home, with one action that opens the workspace", () => {
-    renderApp(shellFixtures.memberWithTheQuestsOpened);
-    expect(cardNamesIn("Open")).toEqual(["Quests", "Leaderboard"]);
-    const card = cardOf("Quests");
+    renderApp(shellFixtures.memberWithCoinsOpened);
+    expect(cardNamesIn("Open")).toEqual(["Leaderboard", "Coins and inventory"]);
+    const card = cardOf("Coins and inventory");
     expect(card).toHaveTextContent("Open. Find it in Slack's App Home.");
     const openSlack = within(card).getByRole("link", { name: "Open Slack (opens in a new tab)" });
-    expect(openSlack).toHaveAttribute("href", shellFixtures.memberWithTheQuestsOpened.chatUrl);
+    expect(openSlack).toHaveAttribute("href", shellFixtures.memberWithCoinsOpened.chatUrl);
     expect(openSlack).toHaveAttribute("target", "_blank");
   });
 
@@ -106,7 +106,7 @@ describe("WS59: the nav lists Home and each open feature with a web page", () =>
     ["locked", shellFixtures.memberWaitingForTheBoard, ["Home"]],
     ["ready", shellFixtures.memberWithTheBoardReady, ["Home"]],
     ["open", shellFixtures.memberWithTheBoardOpened, ["Home", "Leaderboard"]],
-    ["open beside open Quests, which have no web page", shellFixtures.memberWithTheQuestsOpened, ["Home", "Leaderboard"]],
+    ["open beside open Coins, which have no web page", shellFixtures.memberWithCoinsOpened, ["Home", "Leaderboard"]],
   ])("while the Leaderboard is %s", (_, member, items) => {
     renderApp(member);
     expect(screenNav()).toEqual(items);

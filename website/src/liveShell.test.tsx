@@ -187,6 +187,19 @@ describe("WS20 WS36: the leaderboard read shows where the page stands, inside th
   });
 });
 
+describe("WS5: a sign-in started on a deep link comes back to it", () => {
+  it.each(["/leaderboard?period=month", "/quests", "/"])("asks Convex Auth to bring the member back to %s after Slack", async (address) => {
+    window.history.replaceState(null, "", address);
+    profileRead.mockReturnValue(shellFixtures.signedOut);
+    authActions.signIn.mockResolvedValue({ signingIn: false });
+    const { user } = renderLiveSite();
+
+    await user.click(screen.getByRole("button", { name: "Sign in with Slack" }));
+
+    expect(authActions.signIn).toHaveBeenCalledWith("slack", { redirectTo: address });
+  });
+});
+
 describe("WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait", () => {
   beforeEach(() => {
     window.history.replaceState(null, "", "/?code=12345678");

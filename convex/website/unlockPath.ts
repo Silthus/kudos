@@ -1,9 +1,8 @@
 import type { QueryCtx } from "../_generated/server";
 import { everyoneBoardShownIn } from "../leaderboard/flag";
-import { xpLevelsShownIn } from "../progression/xpLevels";
-import { unlocksAppliedIn } from "../unlocks/launch";
-import type { Feature } from "../unlocks/feature";
+import { unlockPathShownIn } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
+import type { Feature } from "../unlocks/feature";
 import { unlocksOf, type MemberUnlock } from "../unlocks/unlocks";
 import type { VerifiedMember } from "./memberQuery";
 import { seenKeyOf } from "./seen";
@@ -33,6 +32,12 @@ export async function leaderboardStateOf(ctx: QueryCtx, me: VerifiedMember, path
   return featurePageOf(path, "leaderboard");
 }
 
+export async function openFeaturesOf(ctx: QueryCtx, me: VerifiedMember): Promise<Feature[]> {
+  const path = await unlockPathOf(ctx, me);
+  if (path !== null) return path.filter(({ state }) => state === "open").map(({ feature }) => feature);
+  return (await leaderboardStateOf(ctx, me, path)).kind === "open" ? ["leaderboard"] : [];
+}
+
 export async function featureCardsOf(me: VerifiedMember, path: UnlockPath): Promise<FeatureCard[] | null> {
   if (path === null) return null;
   return Promise.all(path.map((unlock) => featureCardOf(me, unlock)));
@@ -41,8 +46,4 @@ export async function featureCardsOf(me: VerifiedMember, path: UnlockPath): Prom
 async function featureCardOf(me: VerifiedMember, unlock: MemberUnlock): Promise<FeatureCard> {
   const { name, opens, level } = scheduled(unlock.feature);
   return { ...unlock, name, opens, level, seen: await seenKeyOf(me.member, `feature:${unlock.feature}`) };
-}
-
-export async function unlockPathShownIn(ctx: QueryCtx, workspace: string) {
-  return (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
 }

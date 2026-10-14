@@ -1,15 +1,23 @@
 import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { ladderValidator } from "./achievements/ladders";
+import { bookReplayCursorValidator, bookReplayValidator } from "./achievements/replay";
+import { earnedTierValidator } from "./achievements/tiers";
 import { exceptionValidator } from "./analytics/exceptions";
+import { awardIdValidator } from "./engine/awards";
 import { propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
 import { publicReplyValidator } from "./feedback/publicReplies";
-import { segmentValidator } from "./feedback/replies";
+import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
+import { gainsValidator } from "./feedback/replies";
+import { segmentValidator } from "./feedback/segments";
 import { periodValidator } from "./leaderboard/periods";
+import { purchaseOutcomeValidator } from "./progression/purchases";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
+import { perkValidator } from "./progression/tree";
 import { crateOpeningValidator } from "./quests/crates";
 import { journeyActivationValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
@@ -107,7 +115,8 @@ export default defineSchema({
     .index("by_giver", ["giver", "day"])
     .index("by_giver_recipient", ["giver", "recipient"])
     .index("by_recipient", ["recipient", "day"])
-    .index("by_message", ["workspace", "conversation", "message"]),
+    .index("by_message", ["workspace", "conversation", "message"])
+    .index("by_workspace", ["workspace"]),
 
   kudosTotals: defineTable({
     member: v.id("members"),
@@ -141,6 +150,8 @@ export default defineSchema({
     to: v.string(),
     lines: v.array(v.array(segmentValidator)),
     questsDone: v.optional(v.array(segmentValidator)),
+    hint: v.optional(v.array(segmentValidator)),
+    gains: v.optional(gainsValidator),
     held: v.optional(v.literal(true)),
   }).index("by_held_message", ["workspace", "conversation", "message", "held"]),
 
@@ -166,6 +177,50 @@ export default defineSchema({
     at: v.number(),
   }).index("by_workspace", ["workspace"]),
 
+  bookLaunches: defineTable({
+    workspace: v.string(),
+    at: v.number(),
+  }).index("by_workspace", ["workspace"]),
+
+  ladderCounts: defineTable({
+    member: v.id("members"),
+    ladder: ladderValidator,
+    count: v.number(),
+  }).index("by_member_ladder", ["member", "ladder"]),
+
+  ladderMarks: defineTable({
+    member: v.id("members"),
+    ladder: ladderValidator,
+    group: v.string(),
+    key: v.string(),
+  }).index("by_member_ladder_group", ["member", "ladder", "group"]),
+
+  countedAwards: defineTable({
+    award: awardIdValidator,
+    member: v.id("members"),
+    ladder: ladderValidator,
+    count: v.number(),
+    at: v.number(),
+  })
+    .index("by_award_member_ladder", ["award", "member", "ladder"])
+    .index("by_member_ladder_count", ["member", "ladder", "count"]),
+
+  bookBatches: defineTable({
+    workspace: v.string(),
+    at: v.number(),
+    completedAt: v.optional(v.number()),
+  }).index("by_workspace", ["workspace"]),
+
+  bookReplays: defineTable(bookReplayValidator).index("by_workspace_ladder", ["workspace", "ladder"]).index("by_batch", ["batch"]),
+
+  bookReplayCursors: defineTable(bookReplayCursorValidator).index("by_replay", ["replay"]),
+
+  earnedTiers: defineTable(earnedTierValidator).index("by_member_ladder_tier", ["member", "ladder", "tier"]),
+
+  tierNotices: defineTable(tierNoticeValidator).index("by_member_message", ["member", "workspace", "conversation", "message"]),
+
+  tierSummaries: defineTable(tierSummaryValidator).index("by_member", ["member"]),
+
   questDraws: defineTable(questDrawValidator).index("by_member_week", ["member", "week"]),
 
   questSwaps: defineTable(questSwapValidator).index("by_member_week", ["member", "week"]),
@@ -185,6 +240,19 @@ export default defineSchema({
     xp: v.number(),
     pointsSpent: v.number(),
   }).index("by_member", ["member"]),
+
+  perksOwned: defineTable({
+    member: v.id("members"),
+    perk: perkValidator,
+    boughtAt: v.number(),
+    catalogueVersion: v.string(),
+  }).index("by_member_perk", ["member", "perk"]),
+
+  perkPurchases: defineTable({
+    member: v.id("members"),
+    key: v.string(),
+    outcome: purchaseOutcomeValidator,
+  }).index("by_member_key", ["member", "key"]),
 
   progressSettings: defineTable({
     member: v.id("members"),

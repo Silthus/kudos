@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import { HedgehogExplorer, HedgehogMoney, HedgehogOrganized, HedgehogReading, HedgehogStar, HedgehogWizard } from "@posthog/brand/hoggies";
-import { IconBook, IconListTree, IconStar } from "@posthog/icons";
+import { IconBook, IconListTree, IconStar, IconTarget } from "@posthog/icons";
 import type { FeatureScreen, Screen } from "./route";
 import type { Feature, MemberProfile } from "./shell";
 
@@ -24,7 +24,7 @@ const plainNames: Record<Feature, string> = {
 export const plainFeatures = Object.entries(plainNames).map(([feature, name]) => ({ feature: feature as Feature, name }));
 
 const about: Record<Feature, About> = {
-  quests: { sentence: "Weekly quests of your own, and one your group takes on together.", Hog: HedgehogOrganized },
+  quests: { sentence: "Weekly quests of your own.", Hog: HedgehogOrganized },
   leaderboard: { sentence: "See where you and your group stand.", Hog: HedgehogStar },
   book: { sentence: "Achievements you earn as you thank colleagues and they thank you.", Hog: HedgehogReading },
   skillTree: { sentence: "Perks you choose with skill points.", Hog: HedgehogWizard },
@@ -34,6 +34,7 @@ const about: Record<Feature, About> = {
 
 const webPages: Partial<Record<Feature, WebPage>> = {
   leaderboard: { screen: "leaderboard", href: "/leaderboard", sentence: "See who's thanking colleagues this week.", Icon: IconStar },
+  quests: { screen: "quests", href: "/quests", sentence: "Your quests this week.", Icon: IconTarget },
   book: { screen: "book", href: "/book", sentence: "See the tiers you've earned.", Icon: IconBook },
   skillTree: { screen: "skills", href: "/skills", sentence: "Spend skill points on perks you choose.", Icon: IconListTree },
 };

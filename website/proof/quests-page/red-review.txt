@@ -1,0 +1,296 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/quests-page
+
+ ↓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > lives at /quests with the tab HedgeHug · Quests, the header This week, and when new quests arrive
+ ↓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > shows one card per drawn quest, in slot order, each with its kind, goal and reward
+ ↓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > exposes each quest's progress as a neutral progressbar labelled done of target
+ ↓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > tags only a swapped quest Swapped
+ ↓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > shows a finished quest as its crate, pointing to Slack's App Home until the website can open it
+ × |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > keeps a finished quest's progress beside its crate 225ms
+   → Unable to find an accessible element with the role "progressbar" and name "1 of 1"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Thank someone you haven't thanked before.":
+  <h2
+    class="text-base font-semibold leading-snug"
+  />
+
+  --------------------------------------------------paragraph:
+
+  Name "":
+  <p
+    class="text-sm font-medium"
+  />
+
+  Name "":
+  <p
+    class="text-xs text-muted-foreground"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<article
+  class="hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4"
+>
+  <div
+    class="flex flex-wrap items-center gap-2"
+  >
+    <span
+      class="hud-label"
+    >
+      Reach out
+    </span>
+  </div>
+  <h2
+    class="text-base font-semibold leading-snug"
+  >
+    Thank someone you haven't thanked before.
+  </h2>
+  <div
+    class="flex items-center gap-3"
+  >
+    <span
+      aria-hidden="true"
+      class="crate-art"
+      data-phase="closed"
+      style="width: 56px;"
+    >
+      <span
+        class="crate-rays"
+      />
+      <svg
+        class="crate-layer"
+        viewBox="0 0 240 200"
+      >
+        <ellipse
+          class="crate-shadow"
+          cx="120"
+          cy="190"
+          rx="100"
+          ry="9"
+        />
+        <rect
+          class="crate-ink"
+          height="22"
+          rx="8"
+          width="180"
+          x="30"
+          y="88"
+        />
+      </svg>
+      <span
+        class="crate-hog"
+      >
+        <svg
+          aria-hidden="true"
+          class="h-auto w-full"
+          fill="none"
+          viewBox="0 0 1000 1000"
+          width="44"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M450.93 501.38a30 30 0 0 0-2.6 20.3q.31 1.45 1.2 2.57.41.52.97.91a5.5 5.5 0 0 0 3.73.99q.17-.01.33-.05 1.05-.18 1.96-.77a5.7 5.7 0 0 0 2.36-3.06v-.01l.08-.3.08-.38.04-.33v-.35q0-.51-.1-1.02-.33-1.42-.52-2.84a33 33 0 0 1-.09-2.49q.07-1.28.25-2.56.24-1.24.6-2.49.4-1.2.91-2.36l.17-.3q.46-.9.97-1.77.7-1.05 1.47-2 .76-.89 1.58-1.69l.81-.7q.1-.09.22-.16a16 16 0 0 1 2.81-1.88q1.1-.58 2.25-1.06 1.2-.4 2.43-.74 1.15-.25 2.3-.38 1.32-.12 2.64-.1 1.2.07 2.4.25 1.25.24 2.46.59 1.18.4 2.32.88 1.08.53 2.14 1.16.98.64 1.9 1.37.94.81 1.8 1.68.77.86 1.48 1.8.7 1 1.3 2.08.54 1.09 1.01 2.22.44 1.22.76 2.49.26 1.2.42 2.44l.04.28q0 .13.06.26v.03c.6 2.44 3.17 4.04 5.6 3.9l.21-.01q.15-.01.3-.05a5.35 5.35 0 0 0 4.33-4.12q.22-1.03.1-2.13v-.06q-.12-1.06-.31-2.07-.2-1.14-.53-2.25a29 29 0 0 0-5.3-10.27l-.04-.06-.54-.67-.6-.7-.62-.67q-.3-.33-.64-.65-.36-.38-.75-.74-.28-.27-.57-.51-.71-.64-1.45-1.22c-6.64-5.25-15.68-7.16-23.92-5.48l-.76.17-.75.18q-.75.2-1.49.44-.26.07-.54.18l-.92.33-.63.24-.14.06-.56.25-.46.2-.68.33q-.3.13-.57.29l-.5.26-.58.33a29 29 0 0 0-3.2 2.1l-.65.5q-.19.13-.35.28a30 30 0 0 0-3.1 2.95l-.33.37q-.37.42-.7.84l-.32.41-.3.4-.43.56-.54.79q-.18.29-.38.57l-.67 1.1-.63 1.14z"
+            fill="#320601"
+          />
+          <path
+            d="M447.7 517.72q-.06.55 0 1.11.5 4.91.94 9.85c.53 5.89 1 11.77 1.53 17.65l2.7 30.28 1.47 16.49.19 1.91q.29 2.8.5 5.6v.08q-.01.21.04.42l.06.76q.05.5.2.98a5.45 5.45 0 0 0 5 3.86q.34 0 .66-.03.83-.1 1.58-.41.12-.04.22-.11c.9-.43 1.7-1.1 2.25-1.92q.52-.75.74-1.66l.05-.25.06-.48v-.38q0-.38-.03-.73v-.03c-.11-2.26-.4-4.53-.6-6.76l-1.36-15.32-2.74-30.57-1.5-16.94q-.26-2.73-.47-5.46l-.25-2.92q-.01-.23-.05-.48-.19-2.27-.44-4.55a5.46 5.46 0 0 0-6.73-4.68 5.5 5.5 0 0 0-4.02 4.68z"
+            fill="#320601"
+          />
+          <path
+            d="M455.33 602.84q-.22 1.03-.1 2.13v.03q.26 2.48.96 4.79a30.5 30.5 0 0 0 10.38 15.02 28 28 0 0 0 4.2 2.72 29.8 29.8 0 0 0 19.71 2.76 29.5 29.5 0 0 0 21.4-17.83 40 40 0 0 1-3.5 1.9 79 79 0 0 1-5.76 2.45l-1.04.4q-1.1.71-2.23 1.33a19 19 0 0 1-3.91 1.69q-1.04.27-2.12.27c-.8 0-1.6-.13-2.31-.46q-.6-.27-1.1-.74-.54.17-1.1.3-1.14.26-2.3.4-1.32.1-2.64.07-1.2-.06-2.4-.25a27 27 0 0 1-2.46-.58 32 32 0 0 1-2.31-.88l-.4-.2q-.9-.46-1.74-.96-1-.64-1.9-1.37-.93-.81-1.79-1.69a21 21 0 0 1-2.76-3.86 29 29 0 0 1-1.02-2.22q-.44-1.22-.75-2.49-.27-1.2-.42-2.44-.03-.28-.1-.57a5 5 0 0 0-1.05-1.99 6 6 0 0 0-2.2-1.51 5.5 5.5 0 0 0-2.58-.37l-.31.04a5.4 5.4 0 0 0-4.32 4.11zm40.53-88.96q-.13.51-.11 1.1 0 .37.03.72c.1 2.27.42 4.54.6 6.77q.68 7.67 1.38 15.32l1.83 20.55.9 10.02.07.84.84-.8.83-.93q2.25-2.47 4.45-5c1.23-1.44 2.45-2.91 3.75-4.3q-.24-2.79-.5-5.57l-1.12-12.77-1.4-15.69-.08-.78c-.23-2.5-.51-5.02-.7-7.54q0-.24-.03-.5l-.06-.75a5.3 5.3 0 0 0-1.33-3 5.4 5.4 0 0 0-4.54-1.82q-1.24.13-2.31.79-.98.58-1.62 1.47a5 5 0 0 0-.87 1.85zm43.43 24.93a5.4 5.4 0 0 0 .61 3.82q.1.13.17.29a5.7 5.7 0 0 0 5.48 2.35q.15-.01.28-.07.08 0 .14-.03.08-.01.14-.04l.1-.03.25-.1.28-.1q.17-.08.31-.18l.23-.13.27-.19q1.16-.89 2.39-1.62 1.08-.6 2.24-1.1 1.19-.45 2.44-.8 1.24-.27 2.5-.46 1.25-.11 2.53-.13 1.2.05 2.36.19 1.22.2 2.43.52 1.1.35 2.17.77 1.1.5 2.13 1.07 1 .63 1.97 1.31.96.79 1.86 1.65a28 28 0 0 1 1.65 1.92q.69.95 1.3 1.94.62 1.16 1.16 2.38.42 1.13.76 2.3.27 1.23.46 2.49.12 1.24.12 2.47-.04 1.21-.18 2.42-.2 1.16-.48 2.3-.35 1.19-.82 2.32-.45 1.06-1.03 2.07-.63 1.04-1.38 2.04-.76.95-1.62 1.83-.94.9-1.96 1.7-1 .74-2.07 1.38-.25.14-.48.32a5.2 5.2 0 0 0-1.9 4.43q.07 1.34.71 2.47l.17.26.17.25a5.4 5.4 0 0 0 5.33 2.04 7 7 0 0 0 2-.79h.04q1.05-.6 2-1.3 1.42-.99 2.68-2.16a30 30 0 0 0 6.53-8.81 29 29 0 0 0 1.4-22.73l-.3-.85-.11-.28-.2-.5-.33-.75-.06-.14q-.18-.4-.39-.8l-.15-.32-.33-.64a29 29 0 0 0-1.96-3.18 29.7 29.7 0 0 0-22.14-12.27q-.86-.05-1.74-.06-.58 0-1.14.03h-.11q-.58 0-1.14.06l-1.2.12h-.06q-.45.05-.9.13l-.55.09a5 5 0 0 0-.7.14l-.5.1q-.85.17-1.67.42l-.52.16q-.24.05-.43.14l-1 .32-.63.22-.82.32a28 28 0 0 0-6.45 3.68 6 6 0 0 0-2.18 2.91l-.12.47z"
+            fill="#320601"
+          />
+          <path
+            d="M490.02 566.68q-.08.55-.14 1.13c.23.54.52 1.06.77 1.59.34.74.62 1.51.96 2.27l.17.26q.11.12.2.26l.03.03q.97.45 1.98.82l.92.28.94-.53 26.84-14.91q7.42-4.14 14.85-8.26 1.48-.83 2.95-1.62a701 701 0 0 0 8.83-4.93 5.4 5.4 0 0 0 2-7.36 5.46 5.46 0 0 0-7.37-2 548 548 0 0 1-8.56 4.84q-4.87 2.7-9.75 5.37l-5.8 3.21q-4.93 2.76-9.89 5.51l-10.33 5.75-8.75 4.88-.02.03q-.06.13-.1.3-.3.94-.5 1.9 0 .05-.03.12 0 .08-.03.16v.07q-.09.43-.14.88zM454.52 595a27 27 0 0 0-.6 6.33 30 30 0 0 0 5.54 16.77 29.7 29.7 0 0 0 23.9 12.32 30 30 0 0 0 17.84-5.93 5.4 5.4 0 0 0 1.67-7.23q-.08-.14-.2-.28-.03-.07-.1-.15a5.6 5.6 0 0 0-5.12-2.24l-.27.03a1 1 0 0 0-.28.06l-.27.08q-.2.05-.37.12s-.14.07-.2.08l-.22.1-.23.13h-.03l-.14.1q-.14.07-.2...
+ × |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > nudges each closed reward crate once, as every closed crate does (V8) 59ms
+   → expect(element).toHaveAttribute("data-nudge", "true") // element.getAttribute("data-nudge") === "true"
+
+Expected the element to have attribute:
+  data-nudge="true"
+Received:
+  null
+ × |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > frames each quest card with corner marks and keeps How quests work a plain reading card (V2) 40ms
+   → expect(element).not.toHaveClass("hud-panel")
+
+Expected the element not to have class:
+  hud-panel
+Received:
+  hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4
+ ↓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > reads ✓ Done for an opened quest
+ ↓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > shows fewer cards when fewer quests were drawn
+ ↓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > lists earlier weeks' unopened crates under Waiting to open, with their goal and reward
+ ↓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > has no Waiting to open section while nothing from an earlier week waits
+ ↓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > shows Max's empty state with one action that opens Slack when nothing was drawn
+ ↓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > explains how quests work in WS73's words
+ ↓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > offers no swap, group quest, bonus quest or claim, and never calls a kudos thoughtful
+ ↓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > turns over to the new week when the read answers it
+ ↓ |website| src/QuestsPage.test.tsx > WS73 WS67 WS69: /quests while Quests isn't open > is the not-found page while quests don't apply
+ ↓ |website| src/QuestsPage.test.tsx > WS73 WS67 WS69: /quests while Quests isn't open > says at which level Quests opens while it is locked
+ ↓ |website| src/QuestsPage.test.tsx > WS73 WS67 WS69: /quests while Quests isn't open > shows the Quests crate with a primary Open in place while it is ready
+ ↓ |website| src/QuestsPage.test.tsx > WS73 WS59: the nav shows Quests while it is open > lists Quests after Home and marks it current on /quests
+ ↓ |website| src/QuestsPage.test.tsx > WS73 WS59: the nav shows Quests while it is open > has no Quests item while Quests is locked
+ ↓ |website| src/QuestsPage.test.tsx > WS73 WS59: the nav shows Quests while it is open > has no Quests item while Quests is ready
+ ↓ |website| src/QuestsPage.test.tsx > WS73 WS59: the nav shows Quests while it is open > goes to /quests from the nav without a reload, moving focus to the page title
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > keeps a finished quest's progress beside its crate
+TestingLibraryElementError: Unable to find an accessible element with the role "progressbar" and name "1 of 1"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Thank someone you haven't thanked before.":
+  <h2
+    class="text-base font-semibold leading-snug"
+  />
+
+  --------------------------------------------------paragraph:
+
+  Name "":
+  <p
+    class="text-sm font-medium"
+  />
+
+  Name "":
+  <p
+    class="text-xs text-muted-foreground"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<article
+  class="hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4"
+>
+  <div
+    class="flex flex-wrap items-center gap-2"
+  >
+    <span
+      class="hud-label"
+    >
+      Reach out
+    </span>
+  </div>
+  <h2
+    class="text-base font-semibold leading-snug"
+  >
+    Thank someone you haven't thanked before.
+  </h2>
+  <div
+    class="flex items-center gap-3"
+  >
+    <span
+      aria-hidden="true"
+      class="crate-art"
+      data-phase="closed"
+      style="width: 56px;"
+    >
+      <span
+        class="crate-rays"
+      />
+      <svg
+        class="crate-layer"
+        viewBox="0 0 240 200"
+      >
+        <ellipse
+          class="crate-shadow"
+          cx="120"
+          cy="190"
+          rx="100"
+          ry="9"
+        />
+        <rect
+          class="crate-ink"
+          height="22"
+          rx="8"
+          width="180"
+          x="30"
+          y="88"
+        />
+      </svg>
+      <span
+        class="crate-hog"
+      >
+        <svg
+          aria-hidden="true"
+          class="h-auto w-full"
+          fill="none"
+          viewBox="0 0 1000 1000"
+          width="44"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M450.93 501.38a30 30 0 0 0-2.6 20.3q.31 1.45 1.2 2.57.41.52.97.91a5.5 5.5 0 0 0 3.73.99q.17-.01.33-.05 1.05-.18 1.96-.77a5.7 5.7 0 0 0 2.36-3.06v-.01l.08-.3.08-.38.04-.33v-.35q0-.51-.1-1.02-.33-1.42-.52-2.84a33 33 0 0 1-.09-2.49q.07-1.28.25-2.56.24-1.24.6-2.49.4-1.2.91-2.36l.17-.3q.46-.9.97-1.77.7-1.05 1.47-2 .76-.89 1.58-1.69l.81-.7q.1-.09.22-.16a16 16 0 0 1 2.81-1.88q1.1-.58 2.25-1.06 1.2-.4 2.43-.74 1.15-.25 2.3-.38 1.32-.12 2.64-.1 1.2.07 2.4.25 1.25.24 2.46.59 1.18.4 2.32.88 1.08.53 2.14 1.16.98.64 1.9 1.37.94.81 1.8 1.68.77.86 1.48 1.8.7 1 1.3 2.08.54 1.09 1.01 2.22.44 1.22.76 2.49.26 1.2.42 2.44l.04.28q0 .13.06.26v.03c.6 2.44 3.17 4.04 5.6 3.9l.21-.01q.15-.01.3-.05a5.35 5.35 0 0 0 4.33-4.12q.22-1.03.1-2.13v-.06q-.12-1.06-.31-2.07-.2-1.14-.53-2.25a29 29 0 0 0-5.3-10.27l-.04-.06-.54-.67-.6-.7-.62-.67q-.3-.33-.64-.65-.36-.38-.75-.74-.28-.27-.57-.51-.71-.64-1.45-1.22c-6.64-5.25-15.68-7.16-23.92-5.48l-.76.17-.75.18q-.75.2-1.49.44-.26.07-.54.18l-.92.33-.63.24-.14.06-.56.25-.46.2-.68.33q-.3.13-.57.29l-.5.26-.58.33a29 29 0 0 0-3.2 2.1l-.65.5q-.19.13-.35.28a30 30 0 0 0-3.1 2.95l-.33.37q-.37.42-.7.84l-.32.41-.3.4-.43.56-.54.79q-.18.29-.38.57l-.67 1.1-.63 1.14z"
+            fill="#320601"
+          />
+          <path
+            d="M447.7 517.72q-.06.55 0 1.11.5 4.91.94 9.85c.53 5.89 1 11.77 1.53 17.65l2.7 30.28 1.47 16.49.19 1.91q.29 2.8.5 5.6v.08q-.01.21.04.42l.06.76q.05.5.2.98a5.45 5.45 0 0 0 5 3.86q.34 0 .66-.03.83-.1 1.58-.41.12-.04.22-.11c.9-.43 1.7-1.1 2.25-1.92q.52-.75.74-1.66l.05-.25.06-.48v-.38q0-.38-.03-.73v-.03c-.11-2.26-.4-4.53-.6-6.76l-1.36-15.32-2.74-30.57-1.5-16.94q-.26-2.73-.47-5.46l-.25-2.92q-.01-.23-.05-.48-.19-2.27-.44-4.55a5.46 5.46 0 0 0-6.73-4.68 5.5 5.5 0 0 0-4.02 4.68z"
+            fill="#320601"
+          />
+          <path
+            d="M455.33 602.84q-.22 1.03-.1 2.13v.03q.26 2.48.96 4.79a30.5 30.5 0 0 0 10.38 15.02 28 28 0 0 0 4.2 2.72 29.8 29.8 0 0 0 19.71 2.76 29.5 29.5 0 0 0 21.4-17.83 40 40 0 0 1-3.5 1.9 79 79 0 0 1-5.76 2.45l-1.04.4q-1.1.71-2.23 1.33a19 19 0 0 1-3.91 1.69q-1.04.27-2.12.27c-.8 0-1.6-.13-2.31-.46q-.6-.27-1.1-.74-.54.17-1.1.3-1.14.26-2.3.4-1.32.1-2.64.07-1.2-.06-2.4-.25a27 27 0 0 1-2.46-.58 32 32 0 0 1-2.31-.88l-.4-.2q-.9-.46-1.74-.96-1-.64-1.9-1.37-.93-.81-1.79-1.69a21 21 0 0 1-2.76-3.86 29 29 0 0 1-1.02-2.22q-.44-1.22-.75-2.49-.27-1.2-.42-2.44-.03-.28-.1-.57a5 5 0 0 0-1.05-1.99 6 6 0 0 0-2.2-1.51 5.5 5.5 0 0 0-2.58-.37l-.31.04a5.4 5.4 0 0 0-4.32 4.11zm40.53-88.96q-.13.51-.11 1.1 0 .37.03.72c.1 2.27.42 4.54.6 6.77q.68 7.67 1.38 15.32l1.83 20.55.9 10.02.07.84.84-.8.83-.93q2.25-2.47 4.45-5c1.23-1.44 2.45-2.91 3.75-4.3q-.24-2.79-.5-5.57l-1.12-12.77-1.4-15.69-.08-.78c-.23-2.5-.51-5.02-.7-7.54q0-.24-.03-.5l-.06-.75a5.3 5.3 0 0 0-1.33-3 5.4 5.4 0 0 0-4.54-1.82q-1.24.13-2.31.79-.98.58-1.62 1.47a5 5 0 0 0-.87 1.85zm43.43 24.93a5.4 5.4 0 0 0 .61 3.82q.1.13.17.29a5.7 5.7 0 0 0 5.48 2.35q.15-.01.28-.07.08 0 .14-.03.08-.01.14-.04l.1-.03.25-.1.28-.1q.17-.08.31-.18l.23-.13.27-.19q1.16-.89 2.39-1.62 1.08-.6 2.24-1.1 1.19-.45 2.44-.8 1.24-.27 2.5-.46 1.25-.11 2.53-.13 1.2.05 2.36.19 1.22.2 2.43.52 1.1.35 2.17.77 1.1.5 2.13 1.07 1 .63 1.97 1.31.96.79 1.86 1.65a28 28 0 0 1 1.65 1.92q.69.95 1.3 1.94.62 1.16 1.16 2.38.42 1.13.76 2.3.27 1.23.46 2.49.12 1.24.12 2.47-.04 1.21-.18 2.42-.2 1.16-.48 2.3-.35 1.19-.82 2.32-.45 1.06-1.03 2.07-.63 1.04-1.38 2.04-.76.95-1.62 1.83-.94.9-1.96 1.7-1 .74-2.07 1.38-.25.14-.48.32a5.2 5.2 0 0 0-1.9 4.43q.07 1.34.71 2.47l.17.26.17.25a5.4 5.4 0 0 0 5.33 2.04 7 7 0 0 0 2-.79h.04q1.05-.6 2-1.3 1.42-.99 2.68-2.16a30 30 0 0 0 6.53-8.81 29 29 0 0 0 1.4-22.73l-.3-.85-.11-.28-.2-.5-.33-.75-.06-.14q-.18-.4-.39-.8l-.15-.32-.33-.64a29 29 0 0 0-1.96-3.18 29.7 29.7 0 0 0-22.14-12.27q-.86-.05-1.74-.06-.58 0-1.14.03h-.11q-.58 0-1.14.06l-1.2.12h-.06q-.45.05-.9.13l-.55.09a5 5 0 0 0-.7.14l-.5.1q-.85.17-1.67.42l-.52.16q-.24.05-.43.14l-1 .32-.63.22-.82.32a28 28 0 0 0-6.45 3.68 6 6 0 0 0-2.18 2.91l-.12.47z"
+            fill="#320601"
+          />
+          <path
+            d="M490.02 566.68q-.08.55-.14 1.13c.23.54.52 1.06.77 1.59.34.74.62 1.51.96 2.27l.17.26q.11.12.2.26l.03.03q.97.45 1.98.82l.92.28.94-.53 26.84-14.91q7.42-4.14 14.85-8.26 1.48-.83 2.95-1.62a701 701 0 0 0 8.83-4.93 5.4 5.4 0 0 0 2-7.36 5.46 5.46 0 0 0-7.37-2 548 548 0 0 1-8.56 4.84q-4.87 2.7-9.75 5.37l-5.8 3.21q-4.93 2.76-9.89 5.51l-10.33 5.75-8.75 4.88-.02.03q-.06.13-.1.3-.3.94-.5 1.9 0 .05-.03.12 0 .08-.03.16v.07q-.09.43-.14.88zM454.52 595a27 27 0 0 0-.6 6.33 30 30 0 0 0 5.54 16.77 29.7 29.7 0 0 0 23.9 12.32 30 30 0 0 0 17.84-5.93 5.4 5.4 0 0 0 1.67-7.23q-.08-.14-.2-.28-.03-.07-.1-.15a5.6 5.6 0 0 0-5.12-2.24l-.27.03a1 1 0 0 0-.28.06l-.27.08q-.2.05-.37.12s-.14.07-.2.08l-.22.1-.23.13h-.03l-.14.1q-.14.07-.2...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/QuestsPage.test.tsx:84:72
+     82|   it("keeps a finished quest's progress beside its crate", () => {
+     83|     showQuests(questsFixtures.week);
+     84|     expect(within(cardOf("Thank someone you haven't thanked before."))…
+       |                                                                        ^
+     85|   });
+     86|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > nudges each closed reward crate once, as every closed crate does (V8)
+Error: expect(element).toHaveAttribute("data-nudge", "true") // element.getAttribute("data-nudge") === "true"
+
+Expected the element to have attribute:
+  data-nudge="true"
+Received:
+  null
+ ❯ src/QuestsPage.test.tsx:91:95
+     89|     const crates = within(main()).getAllByText("Quest reward · 20 XP");
+     90|     expect(crates).toHaveLength(2);
+     91|     for (const crate of crates) expect(crate.closest("article")!.query…
+       |                                                                                               ^
+     92|   });
+     93|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > frames each quest card with corner marks and keeps How quests work a plain reading card (V2)
+Error: expect(element).not.toHaveClass("hud-panel")
+
+Expected the element not to have class:
+  hud-panel
+Received:
+  hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4
+ ❯ src/QuestsPage.test.tsx:98:21
+     96|     for (const card of within(questCards()).getAllByRole("article")) e…
+     97|     const how = within(main()).getByRole("region", { name: "How quests…
+     98|     expect(how).not.toHaveClass("hud-panel");
+       |                     ^
+     99|     expect(how.querySelector(".hud-panel")).toBeNull();
+    100|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 20 skipped (23)
+   Start at  03:52:44
+   Duration  2.50s (import 47%, environment 21%, transform 14%, tests 14%, setup 4%)
+

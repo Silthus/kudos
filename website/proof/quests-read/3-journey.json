@@ -1,0 +1,24 @@
+[
+ {
+  "crate": null,
+  "goal": "Give a kudos that says why.",
+  "hint": "It counts when your message has 5 or more words besides mentions and emoji.",
+  "reward": {
+   "xp": 10
+  },
+  "seen": null,
+  "state": "active",
+  "step": "first-thanks"
+ },
+ {
+  "crate": null,
+  "goal": "Finish a weekly quest.",
+  "hint": null,
+  "reward": {
+   "xp": 20
+  },
+  "seen": null,
+  "state": "active",
+  "step": "first-quest"
+ }
+]

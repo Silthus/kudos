@@ -1,0 +1,9 @@
+# The preview tab's address around the deep-link sign-in (local backend 5210/5211, mock Slack issuer on 5212)
+# Read from the T3 preview tool's snapshot of the tab, 2026-10-14.
+
+before clicking Sign in with Slack:              http://127.0.0.1:5211/leaderboard?period=month
+after Slack's return, signed in as JW (light):   http://127.0.0.1:5211/leaderboard?period=month
+after switching the tab to dark:                 http://127.0.0.1:5211/leaderboard?period=month
+
+Slack's return lands on /leaderboard?period=month&code=<one-time code> (signIn.handshake.ts, WS5 deep link).
+The shell keeps the code (LeaderboardPage.test.tsx), Convex Auth redeems it and replaces the address without it.

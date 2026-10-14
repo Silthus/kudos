@@ -1,0 +1,61 @@
+pnpm gate through fleet heavy on 2b6d943, 2026-10-14T04:25:29Z
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  level and XP are invisible while xp-levels is off  invariant
+      totality oracle "level and XP are invisible while xp-levels is off" over getMyProfile for a member with XP while xp-levels is off, while it is on at level 1, exactly on a level's threshold and past level 5, beside another member with more XP, and switched off under an open session: verified 2026-10-13
+      crossing browser -> domain
+      refuted 2026-10-13: progressionOf no longer returned null while xp-levels is off
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  only the allowed workspace signs in, and only while open  invariant
+      totality oracle "WS3 WS6: only the allowed workspace signs in, and only while open" over the sign-in callback for a profile from another workspace, an empty Slack user, an unset SLACK_WORKSPACE_ID, and the flag off: verified 2026-10-13
+      crossing browser -> session
+      refuted 2026-10-13: rememberSignedInMember no longer refused while the website flag is off
+      kinds identity, credential: 8 shapes apply, 2 declared, 6 dismissed
+  accounts link only by the Slack pair  invariant
+      totality oracle "WS7: accounts link only by the Slack pair" over a first sign-in and a later sign-in of the same Slack pair with changed and dropped display claims: verified 2026-10-13
+      crossing browser -> session
+      refuted 2026-10-13: a later sign-in of the same Slack pair inserted a new user instead of updating the linked one
+      kinds identity: 3 shapes apply, 1 declared, 2 dismissed
+  the website's board is invisible while everyone-board is off  invariant
+      totality oracle "WS30: the website's board is invisible while everyone-board is off" over getLeaderboard and getMyProfile for a member while PostHog has no everyone-board flag, in production while the flag is on in the sandbox only, and with the flag switched off under an open session: verified 2026-10-13
+      crossing browser -> domain
+      refuted 2026-10-13: getLeaderboard read the everyone-board flag but no longer answered not-found while it is off
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  the website's leaderboard waits for its unlock  invariant
+      totality oracle "WS52: the website's leaderboard waits for its unlock" over getLeaderboard and getMyProfile with xp-levels and unlocks off, unlocks on and launched while xp-levels is off, xp-levels on and unlocks switched off after its launch, both on before the launch, and both on after it for a member at level 1, a member at level 3, a member who opened the Leaderboard, a member who was there at the launch, everyone-board off, and a locked member on an opened member's board: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: leaderboardStateOf answered open for every shipped state while unlocks apply, ignoring stateOf's locked and ready
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  the website's feature states are Unlocks' facts  invariant
+      totality oracle "the website's feature states are Unlocks' facts" over getMyProfile with xp-levels and unlocks off, either one on, and both on before the launch, either one switched off after the launch, and both on after it for a member at level 1, a member at level 3, a member who opened the Leaderboard and a member who was there at the launch: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: featureCardsOf read every feature as locked instead of unlocks' state
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  the website shows only shipped features  invariant
+      totality oracle "the website shows only shipped features" over getMyProfile with skill-tree off for a member past level 5, with skill-tree on for a member at level 5, with everyone-board off, and with no feature shipped: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: featureCardsOf listed every scheduled feature instead of unlocks' shipped ones
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  a website board row carries only what a board shows  invariant
+      totality oracle "a website board row carries only what a board shows" over getLeaderboard's board with a member who left the boards seen by themselves and by another member, a member who only received, a former member, and a member without a display name: verified 2026-10-13
+      crossing browser -> domain
+      refuted 2026-10-13: getLeaderboard's rows also carried the member's ID
+      kinds read: 2 shapes apply, 2 declared, 0 dismissed
+Welcome  convex/welcome/Welcome.spec.md
+  welcomed at most once  invariant
+      totality oracle "a member is welcomed at most once, whatever Slack redelivers and whichever awards follow" over the welcome messages sent for a first Given award, a redelivery of the Slack event that gave it, and later awards that name the same members as giver or recipient: verified 2026-10-13
+      refuted 2026-10-13: removed the isWelcomed check in welcomeNewMembers
+      kinds message, state: 15 shapes apply, 2 declared, 13 dismissed
+Workspace  convex/workspace/Workspace.spec.md
+  only admins set the announcement channel  invariant
+      totality oracle "P69: only workspace admins and owners set the announcement channel" over setAnnouncementChannel commands from a member who isn't an admin, sent as a channel pick and as a button the member never saw, and from an admin removed by a later user_change: verified 2026-10-13
+      crossing slack-request -> domain
+      refuted 2026-10-13: setAnnouncementChannel no longer checked that the member is an admin
+      kinds identity, state: 10 shapes apply, 1 declared, 9 dismissed
+Website  website/Website.spec.md
+  (no invariants)
+17 components, 78 bullets: 78 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T02:42:05.405Z (424 runs)
+defects: 16 recorded, 14 closed (0 guarded, 14 decided, 0 with neither); 0 guard failures
+ADVISORY       141 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 51, receipt 28, contract 11, zone 10, panel 9; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (437 files), 17 in records
+exit 0

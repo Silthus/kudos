@@ -1,34 +1,33 @@
 import { Button } from "@posthog/quill";
-import { readyFeaturesOf } from "../features";
-import type { MemberProfile } from "../shell";
 import { CrateGlyph } from "./CrateArt";
 import { attemptMessages, useMoments } from "./moments";
+import type { ReadyCrate } from "./readyCrates";
 
-export function ReadyPill({ member }: { member: MemberProfile }) {
+export function ReadyPill({ crates }: { crates: ReadyCrate[] }) {
   const moments = useMoments();
-  const ready = readyFeaturesOf(member);
-  const first = ready[0];
+  const first = crates[0];
   if (moments === undefined || first === undefined) return null;
-  const attempt = moments.attemptOf(first.feature);
-  const opening = attempt === "opening";
+  const opening = moments.attemptOf(first) === "opening";
   return (
-    <div className="relative">
-      <Button
-        variant="outline"
-        size="sm"
-        aria-disabled={opening || undefined}
-        onClick={() => {
-          if (!opening) moments.open(first);
-        }}
-      >
-        <CrateGlyph className="size-4" />
-        {opening ? <span className="max-sm:sr-only">Opening…</span> : <ReadyCount count={ready.length} />}
-      </Button>
-      {attempt !== undefined && attempt !== "opening" && (
-        <p className="absolute right-0 top-full mt-1 w-max max-w-64 rounded-md border bg-card px-2 py-1 text-xs font-medium shadow-sm">{attemptMessages[attempt]}</p>
-      )}
-    </div>
+    <Button
+      variant="outline"
+      size="sm"
+      aria-disabled={opening || undefined}
+      onClick={() => {
+        if (!opening) moments.open(first);
+      }}
+    >
+      <CrateGlyph className="size-4" />
+      {opening ? "Opening…" : <ReadyCount count={crates.length} />}
+    </Button>
   );
+}
+
+export function ReadyPillFailure({ first }: { first: ReadyCrate | undefined }) {
+  const moments = useMoments();
+  const attempt = first && moments?.attemptOf(first);
+  if (attempt === undefined || attempt === "opening") return null;
+  return <p className="order-last w-full pb-2 text-right text-xs font-medium max-sm:text-left">{attemptMessages[attempt]}</p>;
 }
 
 function ReadyCount({ count }: { count: number }) {

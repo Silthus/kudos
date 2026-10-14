@@ -1,11 +1,17 @@
 import { v, type Infer } from "convex/values";
 import type { KudosGivenEvent, LevelReachedEvent } from "../bus/events";
+import { weekOf, type DayKey } from "../engine/allowance";
 import { awardIdValidator, type Award, type AwardWithId, type GivenAward } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import type { Catalogue } from "./catalogue";
 import { gateDecisionOf, gateDecisionValidator } from "./gate";
 import { levelOf, skillPointsEarnedAt, xpToReach } from "./levels";
 import type { RewardRecord } from "./rewards";
+import { perkValidator, type Bonus, type PerkId } from "./tree";
+
+export const bonusLineValidator = v.object({ source: perkValidator, xp: v.number() });
+
+export type BonusLine = Infer<typeof bonusLineValidator>;
 
 export const effectsRecordValidator = v.object({
   award: awardIdValidator,
@@ -15,6 +21,7 @@ export const effectsRecordValidator = v.object({
   baseXp: v.number(),
   gate: v.union(gateDecisionValidator, v.null()),
   catalogueVersion: v.string(),
+  bonus: v.optional(v.array(bonusLineValidator)),
 });
 
 export type EffectsRecord = Infer<typeof effectsRecordValidator>;
@@ -26,8 +33,14 @@ export type Standing = { xp: number; level: number; skillPoints: number };
 
 export type Progressed = { state: MemberProgress; effects: EffectsRecord[]; events: LevelReachedEvent[] };
 
-export function progress(state: MemberProgress, event: KudosGivenEvent, catalogue: Catalogue): Progressed {
-  const effects = effectsFor(state.member, event.awards, { day: event.day, gate: gateDecisionOf(event.annotations) }, catalogue);
+export type ThoughtfulAward = { day: DayKey; recipient: MemberId };
+
+export type Giving = { perks: PerkId[]; earlier: ThoughtfulAward[] };
+
+export const noGiving: Giving = { perks: [], earlier: [] };
+
+export function progress(state: MemberProgress, event: KudosGivenEvent, catalogue: Catalogue, giving = noGiving): Progressed {
+  const effects = effectsFor(state.member, event.awards, { day: event.day, gate: gateDecisionOf(event.annotations) }, catalogue, giving);
   const next = withXpOf(state, effects);
   return { state: next, effects, events: levelsReached(state, next, event) };
 }
@@ -38,7 +51,7 @@ export function rewarded(state: MemberProgress, { xp }: Pick<RewardRecord, "xp">
 }
 
 export function replay(state: MemberProgress, award: GivenAward, catalogue: Catalogue): Progressed {
-  const effects = effectsFor(state.member, [award], { day: award.day, gate: null }, catalogue);
+  const effects = effectsFor(state.member, [award], { day: award.day, gate: null }, catalogue, noGiving);
   return { state: withXpOf(state, effects), effects, events: [] };
 }
 
@@ -57,16 +70,53 @@ export function xpToNextLevel({ xp, level }: Standing): number {
   return xpToReach(level + 1) - xp;
 }
 
-function effectsFor(member: MemberId, awards: AwardWithId[], { day, gate }: Pick<EffectsRecord, "day" | "gate">, catalogue: Catalogue): EffectsRecord[] {
+export function baseXpOf(side: Side, { kudos }: Pick<Award, "kudos">, catalogue: Catalogue): number {
+  return catalogue.baseXp[side] * kudos;
+}
+
+function effectsFor(member: MemberId, awards: AwardWithId[], { day, gate }: Pick<EffectsRecord, "day" | "gate">, catalogue: Catalogue, { perks, earlier }: Giving): EffectsRecord[] {
+  const given = [...earlier];
   return awards.flatMap((award) => {
     const side = sideOf(member, award);
     if (side === null) return [];
-    return [{ award: award.award, side, member, day, baseXp: catalogue.baseXp[side] * award.kudos, gate, catalogueVersion: catalogue.version }];
+    const record = { award: award.award, side, member, day, baseXp: baseXpOf(side, award, catalogue), gate, catalogueVersion: catalogue.version };
+    if (side === "recipient" || gate?.thoughtful !== true) return [record];
+    const bonus = bonusLinesOf(award.recipient, day, perks, given, catalogue);
+    given.push({ day, recipient: award.recipient });
+    return [bonus.length === 0 ? record : { ...record, bonus }];
   });
 }
 
+function bonusLinesOf(recipient: MemberId, day: DayKey, perks: PerkId[], earlier: ThoughtfulAward[], catalogue: Catalogue): BonusLine[] {
+  const recognition = recognitionOf(recipient, day, earlier);
+  if (recognition === null) return [];
+  return (Object.keys(catalogue.bonuses) as PerkId[])
+    .filter((perk) => perks.includes(perk) && recognition[catalogue.bonuses[perk].on])
+    .map((perk) => ({ source: perk, xp: catalogue.bonuses[perk].xp }));
+}
+
+type Recognition = Record<Bonus["on"], boolean>;
+
+function recognitionOf(recipient: MemberId, day: DayKey, earlier: ThoughtfulAward[]): Recognition | null {
+  const thanked = (matches: (thanks: ThoughtfulAward) => boolean) => earlier.some(matches);
+  if (thanked((thanks) => thanks.day === day && thanks.recipient === recipient)) return null;
+  return {
+    "every recognition": true,
+    "the day's first recognition": !thanked((thanks) => thanks.day === day),
+    "the week's first recognition of the recipient": !thanked((thanks) => thanks.recipient === recipient && sameWeek(thanks.day, day)),
+  };
+}
+
+function sameWeek(one: DayKey, other: DayKey) {
+  return weekOf(one).monday === weekOf(other).monday;
+}
+
 function withXpOf(state: MemberProgress, effects: EffectsRecord[]): MemberProgress {
-  return { ...state, xp: state.xp + effects.reduce((sum, record) => sum + record.baseXp, 0) };
+  return { ...state, xp: state.xp + effects.reduce((sum, record) => sum + xpOf(record), 0) };
+}
+
+function xpOf({ baseXp, bonus = [] }: EffectsRecord) {
+  return baseXp + bonus.reduce((sum, line) => sum + line.xp, 0);
 }
 
 type Moment = Pick<LevelReachedEvent, "workspace" | "message" | "at">;

@@ -1,0 +1,6 @@
+# GPT-6.1 Sol (high), read-only, waited on: codex exec -m gpt-6.1-sol -c model_reasoning_effort=high --sandbox read-only < /dev/null
+# Over the diff against origin/spec/website-3-quests (07edc39), with spec/website-3.md as the oracle. Its final answer:
+
+1. **Major — [website/proof/sandbox-3b/README.md:75](website/proof/sandbox-3b/README.md:75): “The website never does” overstates the Journey-launch protection.** Only `openQuestCrate` checks that the Journey launch exists. With Unlocks launched, Quests ready and `quests` on, `openFeature({ feature: "quests" })` publishes `unlockOpened`. Its subscribers call `questsLiveIn`, which inserts `journeyLaunches` and schedules `joinJourneyPage` when the launch is absent (`convex/bus/publish.ts:25`, `convex/quests/weekly.ts:69`, `convex/quests/flag.ts:27`). The sandbox’s pre-existing launch does not prove protection against this path.
+
+   **Suggested fix:** Narrow the claim to `openQuestCrate`, record the `openFeature` path as an unresolved hard-rule follow-up, and require a recorded launch through a non-website path before production website feature openings.
