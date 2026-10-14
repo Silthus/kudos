@@ -95,6 +95,7 @@ export default defineSchema({
     asOf: v.number(),
     membersAsOf: v.optional(v.number()),
     changedAt: v.optional(v.number()),
+    countingChangedAt: v.optional(v.number()),
   }).index("by_group", ["workspace", "group"]),
 
   userGroupMembers: defineTable({
@@ -117,7 +118,7 @@ export default defineSchema({
   groupSettings: defineTable({
     workspace: v.string(),
     mode: groupModeValidator,
-    allowlist: v.array(v.id("userGroups")),
+    allowlist: v.optional(v.array(v.id("userGroups"))),
   }).index("by_workspace", ["workspace"]),
 
   primaryGroupHistory: defineTable({

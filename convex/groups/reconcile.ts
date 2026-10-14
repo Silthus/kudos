@@ -4,7 +4,7 @@ import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import type { ChatUserId } from "../engine/messageEvent";
 import type { MemberId } from "../workspace/directory";
-import { userGroupMembershipsOf, userGroupRow } from "../workspace/userGroups";
+import { keepsMembers, userGroupMembershipsOf, userGroupRow } from "../workspace/userGroups";
 import { countsAsGroup, groupModeOf, memberGroupsOf, type GroupId, type GroupMode } from "./groups";
 import { recordChange } from "./history";
 
@@ -157,13 +157,18 @@ async function reconcile(ctx: MutationCtx, person: Doc<"members">, groupRows: Gr
 async function departedAt(groupRows: GroupRows, from: GroupId, cause: Cause | undefined): Promise<number> {
   const [left] = await groupRows.leftGroupsOf([from]);
   if (left === null || left === undefined) return cause?.at ?? Date.now();
-  if (!(await groupRows.counts(left)) && left.changedAt !== undefined) return left.changedAt;
+  const stoppedAt = stoppedCountingAt(left);
+  if (!(await groupRows.counts(left)) && stoppedAt !== undefined) return stoppedAt;
   if (cause !== undefined && (cause.groups === "every-group" || cause.groups.includes(left.group))) return cause.at;
   return left.changedAt ?? cause?.at ?? Date.now();
 }
 
+function stoppedCountingAt(group: Doc<"userGroups">): number | undefined {
+  return keepsMembers(group) ? (group.countingChangedAt ?? group.changedAt) : group.changedAt;
+}
+
 function latestChangeOf(groups: Doc<"userGroups">[]): number {
-  const changedAt = groups.flatMap(({ changedAt }) => (changedAt === undefined ? [] : [changedAt]));
+  const changedAt = groups.flatMap(({ changedAt, countingChangedAt }) => [changedAt, countingChangedAt].filter((at): at is number => at !== undefined));
   return changedAt.length === 0 ? Date.now() : Math.max(...changedAt);
 }
 

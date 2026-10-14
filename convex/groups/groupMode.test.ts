@@ -136,6 +136,20 @@ describe("GB1, GB8: in allowlist mode only the groups an admin picks count", { t
     expect(await countingGroupNamesOf(t, "U_ANN")).toEqual(["Gardeners", "Zebras"]);
   });
 
+  test("picking no group, switching to Every group and back to Only these groups keeps no group picked", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    await click(t, "U_ALICE", "Only these groups");
+    await interact(t, "U_ALICE", groupPickerInHome(slack, "U_ALICE"));
+    await click(t, "U_ALICE", "Every group");
+
+    await click(t, "U_ALICE", "Only these groups");
+
+    expect(groupModeLinesOf(publishedHome(slack, "U_ALICE"))).toContain("actions: [multi_static_select: none]");
+    expect(await t.run((ctx) => availableIn(ctx, "T1"))).toBe(false);
+  });
+
   test("picking no group makes groups unavailable and leaves everyone without a primary group (GB3)", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
     const t = await workspaceWithGroups();
@@ -216,6 +230,30 @@ describe("GB2, call 13: a write reconciles its member before their page does", {
 
     expect(attributedTo).toBe("Zebras");
     expect(await primaryGroupNameAt(t, ann, switchedAt - 1)).toBe("Owls");
+  });
+});
+
+describe("GB9, call 13: a fallback is stamped with when its group left the allowlist", { timeout: slackBoundaryTimeoutMs }, () => {
+  test("a members list Slack sends for the excluded group before Ann's page runs doesn't move her fallback's instant", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    const ann = await memberOf(t, "U_ANN");
+    const allowlist = await groupIdsOf(t, "Gardeners", "Zebras");
+    const switchedAt = Date.now();
+    await t.mutation(internal.slack.receipts.receiveHomeClick, {
+      workspace: "T1",
+      eventId: "E_SWITCH",
+      user: "U_ALICE",
+      commands: [{ type: "setGroupMode", mode: "allowlist", allowlist }],
+    });
+
+    vi.setSystemTime(switchedAt + 30_000);
+    await t.mutation(internal.workspace.userGroups.keepUserGroupMembers, { workspace: "T1", group: "S_OWL", users: ["U_ANN", "U_BOB"], asOf: switchedAt + 30_000 });
+    vi.setSystemTime(switchedAt + 60_000);
+    await t.run((ctx) => reconcileMember(ctx, ann));
+
+    expect(await primaryGroupNameAt(t, ann, switchedAt + 1_000)).toBe("Zebras");
   });
 });
 

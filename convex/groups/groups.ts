@@ -11,17 +11,17 @@ export type GroupId = Id<"userGroups">;
 
 export type GroupRef = { group: GroupId; name: string };
 
-export type GroupMode = { mode: GroupModeKind; allowlist: GroupId[] };
+export type GroupMode = { mode: GroupModeKind; allowlist?: GroupId[] };
 
-const everyGroup: GroupMode = { mode: "all", allowlist: [] };
+const everyGroup: GroupMode = { mode: "all" };
 
-export function countsAsGroup(row: Doc<"userGroups">, { mode, allowlist }: GroupMode): boolean {
+export function countsAsGroup(row: Doc<"userGroups">, { mode, allowlist = [] }: GroupMode): boolean {
   return keepsMembers(row) && (mode === "all" || allowlist.includes(row._id));
 }
 
 export async function groupModeOf(ctx: QueryCtx, workspace: string): Promise<GroupMode> {
   const row = await groupSettingsRow(ctx, workspace);
-  return row === null ? everyGroup : { mode: row.mode, allowlist: row.allowlist };
+  return row ?? everyGroup;
 }
 
 export function groupSettingsRow(ctx: QueryCtx, workspace: string) {
