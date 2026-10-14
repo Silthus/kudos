@@ -6,7 +6,17 @@ const moduleId = "virtual:emoji-characters";
 
 const resolvedId = `\0${moduleId}`;
 
-type DatasetEmoji = { unified: string; short_names: string[] };
+type SkinVariations = Record<string, { unified: string }>;
+
+type DatasetEmoji = { unified: string; short_names: string[]; skin_variations?: SkinVariations };
+
+const slackSkinTones = new Map([
+  ["1F3FB", "2"],
+  ["1F3FC", "3"],
+  ["1F3FD", "4"],
+  ["1F3FE", "5"],
+  ["1F3FF", "6"],
+]);
 
 export function emojiCharacters(): Plugin {
   return {
@@ -19,7 +29,22 @@ export function emojiCharacters(): Plugin {
 function charactersByName() {
   const datasetPath = createRequire(import.meta.url).resolve("emoji-datasource/emoji.json");
   const dataset: DatasetEmoji[] = JSON.parse(readFileSync(datasetPath, "utf8"));
-  return Object.fromEntries(dataset.flatMap(({ unified, short_names }) => short_names.map((name) => [name, characterOf(unified)])));
+  const entries = dataset.flatMap(({ unified, short_names, skin_variations = {} }) => short_names.flatMap((name) => [[name, characterOf(unified)], ...skinTonedOf(name, skin_variations)]));
+  return keepingTheFirstOfEachName(entries);
+}
+
+function keepingTheFirstOfEachName(entries: string[][]) {
+  return Object.fromEntries([...entries].reverse());
+}
+
+function skinTonedOf(name: string, variations: SkinVariations) {
+  return Object.entries(variations).flatMap(([modifiers, { unified }]) => slackSkinToneNamesOf(modifiers).map((tone) => [`${name}::skin-tone-${tone}`, characterOf(unified)]));
+}
+
+function slackSkinToneNamesOf(modifiers: string) {
+  const tones = modifiers.split("-").map((modifier) => slackSkinTones.get(modifier));
+  const paired = tones.join("-");
+  return new Set(tones).size === 1 ? [tones[0], paired] : [paired];
 }
 
 function characterOf(unified: string) {

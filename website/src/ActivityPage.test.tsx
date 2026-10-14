@@ -611,7 +611,7 @@ describe("#409: a chat-style timeline, received on the left and given on the rig
 });
 
 describe("#409: emoji drawn inline in a kudos message", () => {
-  it("draws Slack's unicode, a standard shortcode, an alias and a skin tone as characters, and a custom emoji as its name", async () => {
+  it("draws Slack's unicode, a standard shortcode, an alias and every skin tone as characters, a tone on an emoji that takes none as the emoji, and a custom emoji as its name", async () => {
     await openedWith([
       aReceived("emoji", now - minute, {
         message: words(
@@ -621,12 +621,15 @@ describe("#409: emoji drawn inline in a kudos message", () => {
           { kind: "emoji", name: "thumbsup" },
           { kind: "emoji", name: "+1::skin-tone-3" },
           { kind: "emoji", name: "man-raising-hand::skin-tone-6" },
+          { kind: "emoji", name: "handshake::skin-tone-2-6" },
+          { kind: "emoji", name: "people_holding_hands::skin-tone-3" },
+          { kind: "emoji", name: "fire::skin-tone-2" },
           { kind: "emoji", name: "partyparrot" },
         ),
       }),
     ]);
     const theWords = within(article("Ada Lindqvist thanked you")).getByTestId("kudos-message-words");
-    expect(theWords).toHaveTextContent("Shipped 🎉🚀👍👍🏼🙋🏿‍♂️:partyparrot:");
+    expect(theWords).toHaveTextContent("Shipped 🎉🚀👍👍🏼🙋🏿‍♂️🫱🏻‍🫲🏿🧑🏼‍🤝‍🧑🏼🔥:partyparrot:");
     expect(within(theWords).getByText(":partyparrot:")).toHaveAttribute("data-custom-emoji");
     expect(theWords.querySelector("img")).toBeNull();
   });

@@ -1,19 +1,8 @@
-(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
-  - import "./emojiCharacters" without a file extension (vitest.config.ts:3:33). Add the file extension
-Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
-
- RUN  v5.0.3 /home/coder/dev/kudos-wt/activity-chat/website
-
-
- Test Files  2 passed (2)
+ ✓ |website| src/RecentKudosCard.test.tsx > #409: emoji drawn inline on the card > draws a standard shortcode Slack sent without unicode as its character 112ms
+ ✓ |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > keeps each kind on its side under the all filter 44ms
+ ✓ |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > keeps each kind on its side under the received filter 38ms
+ ✓ |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > keeps each kind on its side under the given filter 49ms
+ ✓ |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > reads and focuses entries in time order, never one side first, and names who thanked whom 83ms
+ ✓ |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > puts a given kudos' recipients and what it earned under its words 51ms
+ ✓ |website| src/ActivityPage.test.tsx > #409: emoji drawn inline in a kudos message > draws Slack's unicode, a standard shortcode, an alias and every skin tone as characters, a tone on an emoji that takes none as the emoji, and a custom emoji as its name 56ms
       Tests  76 passed (76)
-   Start at  17:09:59
-   Duration  9.51s (tests 60%, import 18%, transform 12%, environment 7%, setup 3%)
-
- ✓ |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > keeps each kind on its side under the all filter 57ms
- ✓ |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > keeps each kind on its side under the received filter 54ms
- ✓ |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > keeps each kind on its side under the given filter 62ms
- ✓ |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > reads and focuses entries in time order, never one side first, and names who thanked whom 106ms
- ✓ |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > puts a given kudos' recipients and what it earned under its words 34ms
- ✓ |website| src/ActivityPage.test.tsx > #409: emoji drawn inline in a kudos message > draws Slack's unicode, a standard shortcode, an alias and a skin tone as characters, and a custom emoji as its name 53ms
- ✓ |website| src/RecentKudosCard.test.tsx > #409: emoji drawn inline on the card > draws a standard shortcode Slack sent without unicode as its character 97ms
