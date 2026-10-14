@@ -133,3 +133,16 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
   checklist: keyed-ordering dismissed: a gone delivery sends nothing more, so there is nothing to order
   checklist: acknowledgment-barrier dismissed: nothing retires work on a delivery's acknowledgment; awards and spending commit before any delivery runs
   checklist: retry-classification declared as a gone delivery stops for good
+- a failed directory check is tried again: A directory check that fails, its recheck exhausting Convex's retries on a write conflict included, is checked again 10 seconds, 1, 5 and 30 minutes later, at most 4 more times, so a kudos from a giver the directory didn't know still gives once a check succeeds.
+  over: a check whose recheck fails once, and a check whose recheck fails every time
+  via: a failed directory check is tried again
+  because: under load the recheck can exhaust Convex's write-conflict retries with the analytics drain and other rechecks; a failed action is never retried by Convex, so without its own retry the message waits as awaiting-directory forever and its kudos never gives (#382, df-1a6af5a1); the bound keeps a check that always fails from rescheduling itself forever
+  kinds: message
+  checklist: destination-confinement dismissed: the check asks only Slack's users.info at the one configured base URL, with no destination taken from input
+  checklist: message-authenticity dismissed: the check is a scheduled job with only the message's ref and attempt in its arguments; the message it rechecks was verified by signed Slack requests only
+  checklist: input-validation dismissed: a retry carries the same ref and attempt as the check that failed, plus a count it sets itself
+  checklist: retry-recognition declared as a message gives kudos at most once
+  checklist: duplicate-suppression dismissed: a retry rechecks only while the message still awaits the directory at the same attempt, so a retry after a newer revision or an evaluation changes nothing
+  checklist: keyed-ordering dismissed: each retry carries its message's attempt, and an older attempt's retry is ignored
+  checklist: acknowledgment-barrier dismissed: nothing retires work on the check's success; the message stays awaiting-directory until a recheck commits
+  checklist: retry-classification dismissed: every failure of the check is retried the same way, at most 4 times, since a write conflict and a timeout look alike from the action

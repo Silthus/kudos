@@ -46,15 +46,34 @@ export async function checkDirectoryLater(ctx: MutationCtx, ref: MessageRef, obs
   await ctx.scheduler.runAfter(observation.retryInMs, internal.slack.directory.checkDirectory, { ref, attempt: observation.attempt });
 }
 
+const failedCheckRetriesMs = [10, 60, 300, 1800].map((seconds) => seconds * 1000);
+
+const checkDirectoryArgs = { ref: messageRefValidator, attempt: v.int64(), failures: v.optional(v.number()) };
+
 export const checkDirectory = observedAction({
-  args: { ref: messageRefValidator, attempt: v.int64() },
-  handler: async (ctx, { ref, attempt }) => {
-    const users = await ctx.runQuery(internal.slack.directory.usersAwaited, { ref, attempt });
-    if (users === null) return;
-    for (const user of users) await lookUpUser(ctx, ref.workspace, user);
-    await ctx.runMutation(internal.slack.directory.recheckMessage, { ref, attempt });
+  args: checkDirectoryArgs,
+  handler: async (ctx, args) => {
+    try {
+      await checkPeopleOf(ctx, args.ref, args.attempt);
+    } catch (error) {
+      await checkAgainAfterFailure(ctx, args);
+      throw error;
+    }
   },
 });
+
+async function checkPeopleOf(ctx: ActionCtx, ref: MessageRef, attempt: bigint) {
+  const users = await ctx.runQuery(internal.slack.directory.usersAwaited, { ref, attempt });
+  if (users === null) return;
+  for (const user of users) await lookUpUser(ctx, ref.workspace, user);
+  await ctx.runMutation(internal.slack.directory.recheckMessage, { ref, attempt });
+}
+
+async function checkAgainAfterFailure(ctx: ActionCtx, { ref, attempt, failures = 0 }: ObjectType<typeof checkDirectoryArgs>) {
+  const retryInMs = failedCheckRetriesMs[failures];
+  if (retryInMs === undefined) return;
+  await ctx.scheduler.runAfter(retryInMs, internal.slack.directory.checkDirectory, { ref, attempt, failures: failures + 1 });
+}
 
 export const knows = internalQuery({
   args: { workspace: v.string(), user: v.string() },
