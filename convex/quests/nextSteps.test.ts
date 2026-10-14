@@ -3,7 +3,7 @@ import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, buttonInHome, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, memberEvent, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
@@ -65,7 +65,7 @@ describe("P88 P89: opening Quests or the Leaderboard shows its Journey step, and
     expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([firstThanksDone, firstQuestActive]);
 
     const later = aMinuteLater();
-    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await giveKudos(t, "U_ALICE", "U_CAROL", saysWhy);
 
     expect(await rewardRecordsOf(t, "journey:first-quest")).toEqual([{ key: "journey:first-quest", xp: 20, catalogueVersion: "1", at: later }]);
     expect(journeyDmsTo("U_ALICE").map(({ text }) => text)).toEqual([expect.stringContaining("Give a kudos that says why"), finishedFirstQuest]);
@@ -91,6 +91,25 @@ describe("P88 P89: opening Quests or the Leaderboard shows its Journey step, and
     expect(journeyDmsTo("U_ALICE").map(({ text }) => text)).toEqual([finishedSomeoneNew]);
     expect(readBlocks(journeyDmsTo("U_ALICE")[0]!.blocks as Block[])).toEqual([`section: ${finishedSomeoneNew} [button: Open]`]);
     expect(journeyIn(publishedHome(slack, "U_ALICE")).at(-1)).toBe(someoneNewDone);
+  });
+
+  test("P71: a kudos that finishes the weekly someone-new and the Journey's someone-new names that goal once in its success reply", async () => {
+    const t = await workspace();
+    await directoryKnows(t, "U_BOB");
+    await leaderboardReady(t, "U_ALICE");
+    await openHome(t, "U_ALICE");
+    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Open"));
+    const alice = await memberOf(t, "U_ALICE");
+    await t.run((ctx) => ctx.db.insert("unlocks", { member: alice, feature: "quests", readyAt: now.getTime(), openedAt: now.getTime() }));
+    await drawFor(t, "U_ALICE", ["someone-new", "say-why-twice", "say-why-three-times"]);
+
+    aMinuteLater();
+    await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention("U_BOB"), text(" thanks "), emoji("taco"))], { user: "U_ALICE", ts: `${Date.now() / 1000}.000100` })));
+    await settleInTimeOrder(t);
+
+    expect(slack.ephemeralsTo("U_ALICE").map(({ text }) => String(text).split("\n"))).toEqual([
+      ["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "Quest done: Thank someone you haven't thanked before"],
+    ]);
   });
 
   test("questsOf gives each next step's activation time, promised reward, catalogue version and finish time", async () => {

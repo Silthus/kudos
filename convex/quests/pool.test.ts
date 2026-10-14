@@ -8,10 +8,10 @@ describe("P83: every quest in the pool keeps the guardrails", () => {
     expect(breachesOf(quest)).toEqual([]);
   });
 
-  test("P80: the pool holds at least 3 quests that need nothing but the member and stay feasible on the last day of the week with one teammate", () => {
+  test("P80: the pool holds a quest that needs nothing but the member and stays feasible on the last day of the week with one teammate", () => {
     const fallbacks = questPool.quests.filter((quest) => quest.progress.given.to === "anyone" && feasibility(quest, lastDayWithOneTeammateAlreadyThanked) !== null);
 
-    expect(fallbacks.length).toBeGreaterThanOrEqual(3);
+    expect(fallbacks.map(({ quest }) => quest)).toEqual(["say-why"]);
   });
 
   test("P86: each quest pays 20 XP, with no coins or item while those haven't shipped", () => {
@@ -60,8 +60,16 @@ describe("P80: a quest is feasible only when the member can finish it alone that
     expect(feasibility(threeTimes, { ...plenty, daysLeft: 1, kudosLeftToday: 2 })).toBeNull();
   });
 
+  test("a recognition goal counts one recognition per person and day, so it needs that many across the people and days left", () => {
+    const twice = questWith({ given: { saysWhy: true, to: "anyone" }, counts: "recognitions", target: 2 });
+    const oneTeammate = { ...plenty, peopleLeft: { ...plenty.peopleLeft, anyone: 1 } };
+
+    expect(feasibility(twice, { ...oneTeammate, daysLeft: 2 })).toEqual({ peopleLeft: 1, recognitionsLeft: 2 });
+    expect(feasibility(twice, { ...oneTeammate, daysLeft: 1 })).toBeNull();
+  });
+
   test("a breadth goal needs at least as many people left to meet it as it counts", () => {
-    expect(feasibility(thanking("someone-new", "people", 2), { ...plenty, peopleLeft: { ...plenty.peopleLeft, "someone-new": 2 } })).toEqual({ peopleLeft: 2, recognitionsLeft: 21 });
+    expect(feasibility(thanking("someone-new", "people", 2), { ...plenty, peopleLeft: { ...plenty.peopleLeft, "someone-new": 2 } })).toEqual({ peopleLeft: 2, recognitionsLeft: 14 });
     expect(feasibility(thanking("someone-new", "people", 2), { ...plenty, peopleLeft: { ...plenty.peopleLeft, "someone-new": 1 } })).toBeNull();
     expect(feasibility(thanking("someone-not-thanked-in-30-days", "people", 1), { ...plenty, peopleLeft: { ...plenty.peopleLeft, "someone-not-thanked-in-30-days": 0 } })).toBeNull();
   });

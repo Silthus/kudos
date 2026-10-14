@@ -164,6 +164,28 @@ describe("O35: turning the slice off and on again loses nothing", () => {
   });
 });
 
+describe("P88 O35: a feature opened while quests is off", () => {
+  test("activates its Journey step once quests is back, counting from then", async () => {
+    const withBoard = [...allOn(), onForEveryone("everyone-board")];
+    const t = await launchedWorkspaceDeciding("sandbox", ...withBoard);
+    await t.run((ctx) => questsLiveIn(ctx, "T1"));
+    await openHome(t, "U_BOB");
+    await openHome(t, "U_ALICE");
+    await t.run(async (ctx) => {
+      const alice = (await ctx.db.query("members").collect()).find((row) => row.user === "U_ALICE")!._id;
+      await ctx.db.insert("unlocks", { member: alice, feature: "leaderboard", readyAt: Date.now() });
+    });
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone(quests), onForEveryone("everyone-board"));
+    await openHome(t, "U_ALICE");
+    await send(t, blockActions("U_ALICE", buttonBeside(publishedHomeBlocks(slack, "U_ALICE"), "*Leaderboard* is ready", "Open")));
+
+    await flagsFromPostHog(t, postHog, ...withBoard);
+    await openHome(t, "U_ALICE");
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: *Journey:* Thank someone you haven't thanked before. It pays *30 XP*.");
+  });
+});
+
 describe("P91 O35: the Journey's join belongs to its ship moment", () => {
   test("a join that runs after quests turned off again still joins as of the moment; nothing is sent or shown while quests is off, and the finished step is there once it's back", async () => {
     const questsOff = [onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone(quests)];

@@ -1,6 +1,5 @@
-import { type Infer } from "convex/values";
+import { v, type Infer } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import {
   memberLeftEventValidator,
@@ -14,11 +13,12 @@ import { republish } from "../feedback/homes";
 import { notifyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
 import { rewardOf, rewardsKeyedFrom } from "../progression/rewards";
-import { teammatesOf, type MemberId } from "../workspace/directory";
+import { openedAtOf } from "../unlocks/unlocks";
+import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf } from "./crates";
 import { finishQuest } from "./finish";
 import { journeyShippedAt, questsLiveIn } from "./flag";
-import { journeyStepOpenedBy, journeyStepValidator, type JourneyStep } from "./step";
+import { featureOpening, journeyStepOpenedBy, journeyStepValidator, type JourneyStep } from "./step";
 
 export const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
 
@@ -51,11 +51,8 @@ export const activateJourney = internalMutation({
   args: { event: unlockOpenedEventValidator },
   handler: async (ctx, { event: { workspace, member, feature, at } }) => {
     const step = journeyStepOpenedBy(feature);
-    if (step === null || !(await questsLiveIn(ctx, workspace)) || (await isLeftToTheJoin(ctx, workspace, at)) || (await activationOf(ctx, member, step)) !== null) return;
-    const activation = await activated(ctx, member, step, at, journey);
-    const finishedAt = await finishedOnActivation(ctx, workspace, activation);
-    if (finishedAt !== null) await finish(ctx, workspace, activation, finishedAt);
-    await republish(ctx, member);
+    if (step === null || !(await questsLiveIn(ctx, workspace)) || (await isLeftToTheJoin(ctx, workspace, at))) return;
+    if (await activateOpened(ctx, workspace, member, step, at)) await republish(ctx, member);
   },
 });
 
@@ -184,8 +181,27 @@ export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<Journe
 }
 
 export async function activeJourneyOf(ctx: MutationCtx, member: MemberId): Promise<JourneyStepFacts[]> {
-  await activated(ctx, member, "first-thanks", Date.now(), journey);
+  const at = Date.now();
+  await activated(ctx, member, "first-thanks", at, journey);
+  await activateStepsOpenedWhileDark(ctx, member, at);
   return journeyOf(ctx, member);
+}
+
+async function activateStepsOpenedWhileDark(ctx: MutationCtx, member: MemberId, at: number) {
+  const { workspace } = await chatUserOf(ctx, member);
+  for (const { step } of journey.steps) {
+    const feature = featureOpening(step);
+    const openedAt = feature === null ? null : await openedAtOf(ctx, member, feature);
+    if (openedAt !== null && !(await isLeftToTheJoin(ctx, workspace, openedAt))) await activateOpened(ctx, workspace, member, step, at);
+  }
+}
+
+async function activateOpened(ctx: MutationCtx, workspace: string, member: MemberId, step: JourneyStep, at: number): Promise<boolean> {
+  if ((await activationOf(ctx, member, step)) !== null) return false;
+  const activation = await activated(ctx, member, step, at, journey);
+  const finishedAt = await finishedOnActivation(ctx, workspace, activation);
+  if (finishedAt !== null) await finish(ctx, workspace, activation, finishedAt);
+  return true;
 }
 
 export async function activated(ctx: MutationCtx, member: MemberId, step: JourneyStep, at: number, catalogue: JourneyCatalogue): Promise<JourneyActivation> {

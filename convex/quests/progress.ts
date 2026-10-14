@@ -3,14 +3,15 @@ import type { AwardId } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import type { PoolQuest, Recipient } from "./pool";
 
-export type QuestAward = { award: AwardId; recipient: MemberId; day: DayKey; at: number; saysWhy: boolean; lastThankedBefore: number | null };
+export type QuestAward = { award: AwardId; recipient: MemberId; day: DayKey; at: number; saysWhy: boolean; firstSaidWhyThatDay: boolean; lastThankedBefore: number | null };
 
 export type CountedAward = Pick<QuestAward, "award" | "recipient" | "day">;
 
 const notThankedForMs = 30 * 24 * 60 * 60 * 1000;
 
-export function counts({ progress: { given } }: PoolQuest, award: QuestAward): boolean {
-  return (award.saysWhy || !given.saysWhy) && isRecipient(given.to, award.lastThankedBefore, award.at);
+export function counts({ progress: { counts, given } }: PoolQuest, award: QuestAward): boolean {
+  const saidWhy = counts === "recognitions" ? award.firstSaidWhyThatDay : award.saysWhy;
+  return (saidWhy || !given.saysWhy) && isRecipient(given.to, award.lastThankedBefore, award.at);
 }
 
 export function questProgress({ progress: { counts, target } }: PoolQuest, counted: CountedAward[]): number {

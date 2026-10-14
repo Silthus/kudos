@@ -22,7 +22,7 @@ export const subscribers: Registry = {
   xpRecorded: [internal.feedback.homes.refreshHomeOnXp],
   unlockReady: [],
   unlockOpened: [
-    { subscriber: internal.quests.weekly.drawWeeklyQuests, only: ({ feature }) => feature === "quests" },
+    { subscriber: internal.quests.weekly.drawWeeklyQuests, only: ({ feature, byLaunch }) => byLaunch !== true && feature === "quests" },
     { subscriber: internal.quests.journey.activateJourney, only: ({ feature, byLaunch }) => byLaunch !== true && journeyStepOpenedBy(feature) !== null },
   ],
   questFinished: [{ subscriber: internal.quests.journey.finishFirstQuest, only: ({ quest }) => quest.kind === "weekly" }],

@@ -194,7 +194,7 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
   beforeEach(() => {
     vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
     vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
-    slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB");
+    slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB").withMember("U_CAROL");
     flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "quests");
     sentMessages = 0;
   });
@@ -205,7 +205,7 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
     await openHome(t, "U_ALICE");
     await drawLastWeek(t, "U_ALICE", ["say-why", "say-why-three-times", "say-why-two-days"]);
     await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
-    await giveKudos(t, "U_ALICE", "U_BOB");
+    await giveKudos(t, "U_ALICE", "U_CAROL");
     const finishedDm = slack.callsTo("chat.postMessage").find(({ text }) => String(text).startsWith("✅ You finished a quest"))!;
     const standing = await t.run(async (ctx) => standingOf(ctx, await memberOf(ctx, "U_ALICE")));
 

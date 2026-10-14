@@ -43,7 +43,7 @@ describe("P80: opening Quests draws 3 different quests the member can finish thi
         goal: expect.stringMatching(/^Thank /),
         reward: { xp: 20, coins: 0, item: null },
         catalogueVersion: "1",
-        feasibleBecause: { peopleLeft: expect.any(Number), recognitionsLeft: 18, ...(overDays.includes(slot.quest) && { daysLeft: 6 }) },
+        feasibleBecause: { peopleLeft: 1, recognitionsLeft: 6, ...(overDays.includes(slot.quest) && { daysLeft: 6 }) },
         progress: 0,
         target: expect.any(Number),
         finishedAt: null,
@@ -77,6 +77,15 @@ describe("P80: opening Quests draws 3 different quests the member can finish thi
     await spent(t, bob, sunday, 3);
     await openQuests(t, bob, sunday);
     expect(await drawnOn(t, bob, sunday)).toEqual([]);
+  });
+
+  test("P16: on a Sunday, a member whose one teammate is already thanked gets only the goal one recognition finishes", async () => {
+    const { t, alice, bob } = await workspace();
+    await thanks(t, alice, bob, tuesday);
+
+    await openQuests(t, alice, sunday);
+
+    expect(await drawnOn(t, alice, sunday)).toEqual(["say-why"]);
   });
 
   test("a draw that runs after the opening checks the facts at the draw: an opening late on Saturday drawn on Sunday holds no goal over 2 days", async () => {
@@ -118,7 +127,7 @@ describe("P80: opening Quests draws 3 different quests the member can finish thi
     await openQuests(t, alice, tuesday);
 
     const slots = (await questsOf(t, alice))!.week!.slots;
-    for (const slot of slots.filter(({ quest }) => quest === "not-in-30-days")) expect(slot.feasibleBecause).toEqual({ peopleLeft: 1, recognitionsLeft: 18 });
+    for (const slot of slots.filter(({ quest }) => quest === "not-in-30-days")) expect(slot.feasibleBecause).toEqual({ peopleLeft: 1, recognitionsLeft: 6 });
     expect(await peopleLeftAt(t, alice, tuesday)).toEqual({ anyone: 1, "someone-new": 0, "someone-not-thanked-in-30-days": 1 });
     expect(await peopleLeftAt(t, alice, tuesday - dayMs)).toEqual({ anyone: 1, "someone-new": 0, "someone-not-thanked-in-30-days": 0 });
   });
@@ -221,24 +230,37 @@ describe("P75: quests are drawn only once Quests is open, and only where the sli
 
 describe("P77: launching unlocks for members already playing stays within Convex's limits", () => {
   test.each([
-    ["Quests and the Leaderboard both ship", ["xp-levels", "unlocks", "quests", "everyone-board"], 600],
-    ["quests is dark and the Leaderboard ships", ["xp-levels", "unlocks", "everyone-board"], 0],
-  ])("when %s, launching for 600 members schedules one draw per member opened into Quests and nothing else", async (_, flags, draws) => {
-    flagsOnForEveryone(new FakeSlack().fetch, ...flags);
-    const t = await flagsLoaded(testBackend());
-    await t.run(async (ctx) => {
-      for (let index = 0; index < 600; index += 1) await ctx.db.insert("members", { workspace: "T1", user: `U_${index}`, kind: "member" });
-    });
+    ["Quests and the Leaderboard both ship", ["xp-levels", "unlocks", "quests", "everyone-board"]],
+    ["quests is dark and the Leaderboard ships", ["xp-levels", "unlocks", "everyone-board"]],
+  ])("when %s, launching for 1,200 members schedules nothing", async (_, flags) => {
+    const t = await launchedFor(1200, flags);
 
-    await unlocksShippedBeforeAnyoneJoined(t);
+    expect(await scheduled(t)).toEqual({ total: 0, draws: 0, sweeps: 0, joins: 0 });
+  });
 
-    expect(await scheduled(t)).toEqual({ total: draws, draws });
+  test("members opened into Quests by the launch get their draws from the hourly sweep, 100 per mutation, beside the Journey's join", async () => {
+    const t = await launchedFor(150, ["xp-levels", "unlocks", "quests", "everyone-board"]);
+
+    await t.mutation(internal.quests.newWeek.sweep, {});
+
+    expect(await scheduled(t)).toEqual({ total: 102, draws: 100, sweeps: 1, joins: 1 });
   });
 });
 
+async function launchedFor(members: number, flags: string[]) {
+  flagsOnForEveryone(new FakeSlack().fetch, ...flags);
+  const t = await flagsLoaded(testBackend());
+  await t.run(async (ctx) => {
+    for (let index = 0; index < members; index += 1) await ctx.db.insert("members", { workspace: "T1", user: `U_${index}`, kind: "member" });
+  });
+  await unlocksShippedBeforeAnyoneJoined(t);
+  return t;
+}
+
 async function scheduled(t: Backend) {
   const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
-  return { total: jobs.length, draws: jobs.filter(({ name }) => name.includes("drawWeeklyQuests")).length };
+  const named = (name: string) => jobs.filter((job) => job.name.includes(name)).length;
+  return { total: jobs.length, draws: named("drawWeeklyQuests") + named("drawNewWeek"), sweeps: named("newWeek.js:sweep") + named("newWeek:sweep"), joins: named("joinJourneyPage") };
 }
 
 async function workspace({ timeZone }: { timeZone?: string } = {}) {

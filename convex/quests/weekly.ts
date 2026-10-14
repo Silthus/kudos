@@ -3,9 +3,10 @@ import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { unlockOpenedEventValidator, type KudosGivenEvent } from "../bus/events";
 import { allowanceDay, allowanceLeft } from "../engine/allowance";
-import { awardIdValidator, lastThankedBefore, lastThankedBy } from "../engine/awards";
+import { awardIdValidator, earlierAwardsTheSameDay, lastThankedBefore, lastThankedBy, type AwardWithId } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { notifyWeeklyQuestFinished } from "../feedback/notify";
+import { saidWhy } from "../progression/effects";
 import { gateDecisionOf } from "../progression/gate";
 import { rewardOf } from "../progression/rewards";
 import { openedAtOf } from "../unlocks/unlocks";
@@ -185,10 +186,19 @@ async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, w
 async function questAwardsOf(ctx: QueryCtx, { awards, annotations, day, at }: KudosGivenEvent): Promise<QuestAward[]> {
   const saysWhy = gateDecisionOf(annotations)?.thoughtful === true;
   const lastThanked = await lastThankedBefore(ctx, awards);
-  return awards.flatMap(({ award, recipient }) => {
-    const before = lastThanked.get(award);
-    return before === undefined ? [] : [{ award, recipient, day, at, saysWhy, lastThankedBefore: before }];
-  });
+  const questAwards: QuestAward[] = [];
+  for (const given of awards) {
+    const before = lastThanked.get(given.award);
+    if (before === undefined) continue;
+    const firstSaidWhyThatDay = saysWhy && !(await saidWhyEarlierThatDay(ctx, given));
+    questAwards.push({ award: given.award, recipient: given.recipient, day, at, saysWhy, firstSaidWhyThatDay, lastThankedBefore: before });
+  }
+  return questAwards;
+}
+
+async function saidWhyEarlierThatDay(ctx: QueryCtx, award: AwardWithId): Promise<boolean> {
+  for (const earlier of await earlierAwardsTheSameDay(ctx, award)) if (await saidWhy(ctx, earlier)) return true;
+  return false;
 }
 
 async function countedFor(ctx: QueryCtx, member: MemberId, week: WeekKey, { slot, quest }: Slot): Promise<CountedAward[]> {

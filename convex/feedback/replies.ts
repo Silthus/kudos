@@ -39,7 +39,7 @@ export async function replyPrivately(ctx: MutationCtx, ref: MessageRef, threadRo
 
 async function questsDecideFor(ctx: MutationCtx, workspace: string, giver: ChatUserId) {
   const person = await lookup(ctx, workspace, giver);
-  return person?.kind === "member" ? questsExposedTo(ctx, person.member) : questsApplyIn(ctx, workspace);
+  return person?.kind === "member" && (await questsExposedTo(ctx, person.member));
 }
 
 export async function releaseSuccessReply(ctx: MutationCtx, message: MessageRef, questsDone: QuestDone[]) {
@@ -83,7 +83,8 @@ async function deliver(ctx: MutationCtx, reply: Id<"privateReplies">) {
 }
 
 function questsDoneLine(questsDone: QuestDone[]): Line {
-  return [{ text: questsDone.map((done) => `Quest done: ${withoutFullStop(done.kind === "journey" ? journeyGoalOf(done.step) : done.goal)}`).join(" · ") }];
+  const goals = new Set(questsDone.map((done) => withoutFullStop(done.kind === "journey" ? journeyGoalOf(done.step) : done.goal)));
+  return [{ text: [...goals].map((goal) => `Quest done: ${goal}`).join(" · ") }];
 }
 
 function withoutFullStop(goal: string) {

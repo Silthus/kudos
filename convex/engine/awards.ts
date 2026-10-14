@@ -99,6 +99,16 @@ export async function lastThankedBefore(ctx: QueryCtx, awards: AwardWithId[]): P
   return lastThanked;
 }
 
+export async function earlierAwardsTheSameDay(ctx: QueryCtx, { award, giver, recipient }: AwardWithId): Promise<AwardId[]> {
+  const toRecipient = await ctx.db
+    .query("awards")
+    .withIndex("by_giver_recipient", (q) => q.eq("giver", giver).eq("recipient", recipient))
+    .collect();
+  const current = toRecipient.find(({ _id }) => _id === award);
+  if (current === undefined) return [];
+  return toRecipient.filter(({ day, _creationTime }) => day === current.day && _creationTime < current._creationTime).map(({ _id }) => _id);
+}
+
 function sumOf(awards: Array<{ kudos: number }>) {
   return awards.reduce((sum, award) => sum + award.kudos, 0);
 }

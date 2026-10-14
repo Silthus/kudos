@@ -53,7 +53,7 @@ export function questOf(quest: QuestId): PoolQuest {
 
 export function feasibility({ progress }: PoolQuest, facts: DrawFacts): FeasibleBecause | null {
   const people = facts.peopleLeft[progress.given.to];
-  const recognitionsLeft = facts.kudosLeftToday + facts.dailyAllowance * (facts.daysLeft - 1);
+  const recognitionsLeft = Math.min(facts.kudosLeftToday, people) + Math.min(facts.dailyAllowance, people) * (facts.daysLeft - 1);
   if (people < (progress.counts === "people" ? progress.target : 1) || recognitionsLeft < progress.target) return null;
   if (progress.counts !== "days") return { peopleLeft: people, recognitionsLeft };
   const daysLeft = facts.kudosLeftToday > 0 ? facts.daysLeft : facts.daysLeft - 1;
