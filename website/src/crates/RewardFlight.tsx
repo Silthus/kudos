@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Flight } from "./moments";
 
-type Course = { from: DOMRect; dx: number; dy: number; target: HTMLElement };
+export type Origin = Pick<DOMRect, "left" | "top" | "width" | "height">;
+
+type Course = { from: Origin; dx: number; dy: number; target: HTMLElement };
 
 export function rewardChipAttributes(seen: string | null) {
   return seen === null ? {} : { "data-reward-chip": seen };
@@ -9,6 +11,10 @@ export function rewardChipAttributes(seen: string | null) {
 
 export function hudAvatarAttributes() {
   return { "data-hud-avatar": "" };
+}
+
+export function rewardChipOrigin(seen: string): Origin | undefined {
+  return rewardChipOf(seen)?.getBoundingClientRect();
 }
 
 export function RewardFlight({ flight, onLanded }: { flight: Flight; onLanded: () => void }) {
@@ -22,14 +28,18 @@ export function RewardFlight({ flight, onLanded }: { flight: Flight; onLanded: (
   }, [flight, onLanded]);
 
   useEffect(() => {
-    if (course === undefined) return;
+    const flying = chip.current;
+    if (course === undefined || flying === null) return;
     const land = () => {
       bump(course.target);
       onLanded();
     };
-    const flying = chip.current;
-    flying?.addEventListener("animationend", land, { once: true });
-    return () => flying?.removeEventListener("animationend", land);
+    flying.addEventListener("animationend", land, { once: true });
+    flying.addEventListener("animationcancel", onLanded, { once: true });
+    return () => {
+      flying.removeEventListener("animationend", land);
+      flying.removeEventListener("animationcancel", onLanded);
+    };
   }, [course, onLanded]);
 
   if (course === undefined) return null;
@@ -40,11 +50,14 @@ export function RewardFlight({ flight, onLanded }: { flight: Flight; onLanded: (
   );
 }
 
-function courseOf({ crate }: Flight): Course | undefined {
-  const chip = document.querySelector<HTMLElement>(`main [data-reward-chip="${crate.seen}"]`);
+function rewardChipOf(seen: string) {
+  return document.querySelector<HTMLElement>(`main [data-reward-chip="${seen}"]`);
+}
+
+function courseOf({ crate, from: claimedFrom }: Flight): Course | undefined {
+  const from = rewardChipOrigin(crate.seen) ?? claimedFrom;
   const target = document.querySelector<HTMLElement>("header [data-hud-avatar]");
-  if (chip === null || target === null) return undefined;
-  const from = chip.getBoundingClientRect();
+  if (target === null) return undefined;
   const to = target.getBoundingClientRect();
   return { from, target, dx: centreOf(to.left, to.width) - centreOf(from.left, from.width), dy: centreOf(to.top, to.height) - centreOf(from.top, from.height) };
 }

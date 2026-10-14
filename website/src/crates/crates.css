@@ -290,3 +290,14 @@
     transform: scale(1.2);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .reward-flight {
+    visibility: hidden;
+    animation: none;
+  }
+
+  .reward-landed {
+    animation: none;
+  }
+}

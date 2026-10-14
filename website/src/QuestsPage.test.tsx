@@ -289,6 +289,18 @@ describe("WS314: each quest card carries its kind's hedgehog", () => {
   });
 });
 
+function placeAt(element: Element, rect: { x: number; y: number; width: number; height: number }) {
+  vi.spyOn(element, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect(rect));
+}
+
+function chipOf(card: HTMLElement) {
+  return within(card).getByText("+20 XP");
+}
+
+function courseOf(chip: HTMLElement) {
+  return { left: chip.style.left, top: chip.style.top, x: chip.style.getPropertyValue("--flight-x"), y: chip.style.getPropertyValue("--flight-y") };
+}
+
 function flight() {
   return document.querySelector<HTMLElement>("[data-reward-flight]");
 }
@@ -308,19 +320,55 @@ function claimOn(answer: MyQuests = questsFixtures.week) {
 }
 
 describe("WS315 E184: the reward flies to the HUD avatar once a Claim's reveal closes", () => {
-  it("flies the card's +{xp} XP chip from the card to the HUD avatar, once, and is gone when it lands", async () => {
+  it("flies the card's +{xp} XP chip from the card to the HUD avatar, once, and bumps the avatar when it lands", async () => {
     const { user } = claimOn();
-    vi.spyOn(avatar(), "getBoundingClientRect").mockReturnValue(DOMRect.fromRect({ x: 1000, y: 10, width: 32, height: 32 }));
+    placeAt(chipOf(cardOf("Thank someone you haven't thanked before.")), { x: 100, y: 300, width: 40, height: 16 });
+    placeAt(avatar(), { x: 1000, y: 10, width: 32, height: 32 });
     expect(flight()).toBeNull();
     await claimAndClose(user);
 
     const chip = flight()!;
     expect(chip).toHaveTextContent("+20 XP");
     expect(chip).toHaveAttribute("aria-hidden", "true");
-    expect(chip.style.getPropertyValue("--flight-x")).toBe("1016px");
-    expect(chip.style.getPropertyValue("--flight-y")).toBe("26px");
+    expect(courseOf(chip)).toEqual({ left: "100px", top: "300px", x: "896px", y: "-282px" });
     fireEvent.animationEnd(chip);
     expect(flight()).toBeNull();
+    expect(avatar()).toHaveClass("reward-landed");
+  });
+
+  it("measures the card where it is once focus is back on it", async () => {
+    const { user } = claimOn();
+    const card = cardOf("Thank someone you haven't thanked before.");
+    vi.spyOn(chipOf(card), "getBoundingClientRect").mockImplementation(() =>
+      DOMRect.fromRect(card.contains(document.activeElement) ? { x: 100, y: 120, width: 40, height: 16 } : { x: 100, y: 900, width: 40, height: 16 }),
+    );
+    await claimAndClose(user);
+
+    expect(card).toHaveFocus();
+    expect(courseOf(flight()!)).toMatchObject({ left: "100px", top: "120px" });
+  });
+
+  it("still flies from an earlier week's crate that left the read while its reveal played", async () => {
+    let answer: MyQuests = questsFixtures.weekWithLastWeeksCrate;
+    const { user, showVisitor } = renderApp(withQuests, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, (asking) => (asking ? answer : undefined));
+    const waiting = within(main()).getByRole("region", { name: "Waiting to open" });
+    placeAt(within(waiting).getByText("+20 XP"), { x: 100, y: 640, width: 40, height: 16 });
+    await user.click(within(waiting).getByRole("button", { name: "Claim" }));
+    answer = questsFixtures.week;
+    showVisitor({ ...withQuests });
+    await user.keyboard("{Escape}");
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+
+    expect(courseOf(flight()!)).toMatchObject({ left: "100px", top: "640px" });
+  });
+
+  it("stops at once, with no bump, when the browser cancels it, as turning on reduced motion mid-flight does", async () => {
+    const { user } = claimOn();
+    await claimAndClose(user);
+    fireEvent(flight()!, new Event("animationcancel"));
+
+    expect(flight()).toBeNull();
+    expect(avatar()).not.toHaveClass("reward-landed");
   });
 
   it("never flies under reduced motion", async () => {
