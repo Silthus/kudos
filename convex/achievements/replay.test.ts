@@ -279,6 +279,26 @@ describe("P62: a long history replays within Convex's transaction limits", () =>
   }, 120_000);
 });
 
+describe("P61 P62: a tier added to a ladder counted from marks is dated by the award that first reached it", () => {
+  test("Connections bronze, added after the launch, is dated by the third person thanked, not by a later kudos to someone already thanked", async () => {
+    withoutTier("bronze");
+    const { t, alice, bob } = await withMembers();
+    const { carol, dave } = await moreMembers(t);
+    await given(t, alice, bob, { kudos: 1, at: daysAgo(9) });
+    await given(t, alice, carol, { kudos: 1, at: daysAgo(8) });
+    const thirdPerson = await given(t, alice, dave, { kudos: 1, at: daysAgo(7) });
+    await given(t, alice, bob, { kudos: 1, at: daysAgo(6) });
+    await launch(t);
+    await settle(t);
+
+    shipped();
+    await launch(t);
+    await settle(t);
+
+    expect(await ladderOf(t, alice, "connections")).toEqual({ count: 3, earned: [{ tier: "bronze", earnedAt: thirdPerson.at }] });
+  });
+});
+
 describe("P58 P62: the people, days and months you thanked count within Convex's transaction limits", () => {
   test("a member who thanked 3 of 30 people every day for 300 days replays all four ladders, and the next kudos counts live", async () => {
     const t = await flagsLoaded(testBackend({ transactionLimits: true }));
