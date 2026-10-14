@@ -203,12 +203,12 @@ describe("WS20 WS36: the leaderboard read shows where the page stands, inside th
     expect(screen.getByRole("navigation", { name: "Screens" })).toBeInTheDocument();
   });
 
-  it("shows the error page under the HUD when the board read fails, and Home still opens in place", async () => {
+  it("shows the error page under the HUD when the board read fails, and Profile still opens in place", async () => {
     boardRead.mockReturnValue(new Error("Too many documents read"));
     const { user } = renderLiveSite();
 
     expect(await errorPage()).toBeInTheDocument();
-    await user.click(within(screen.getByRole("navigation", { name: "Screens" })).getByRole("link", { name: "Home" }));
+    await user.click(within(screen.getByRole("navigation", { name: "Screens" })).getByRole("link", { name: "Profile" }));
 
     expect(pageTitle()).not.toHaveTextContent("Something went wrong");
     expect(window.location.pathname).toBe("/");
