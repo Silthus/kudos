@@ -40,10 +40,10 @@ test("P1 P7: a Given award writes one giver record with 10 XP per kudos and one 
 
   const thoughtful = { version: 1, thoughtful: true };
   expect(await effectsRecords(t)).toEqual([
-    { member: "U_ALICE", side: "giver", baseXp: 10, gate: thoughtful, catalogueVersion: "1", day: "2026-10-13" },
-    { member: "U_ALICE", side: "giver", baseXp: 10, gate: thoughtful, catalogueVersion: "1", day: "2026-10-13" },
-    { member: "U_BOB", side: "recipient", baseXp: 5, gate: thoughtful, catalogueVersion: "1", day: "2026-10-13" },
-    { member: "U_CAROL", side: "recipient", baseXp: 5, gate: thoughtful, catalogueVersion: "1", day: "2026-10-13" },
+    { member: "U_ALICE", side: "giver", baseXp: 10, gate: thoughtful, catalogueVersion: "2", day: "2026-10-13" },
+    { member: "U_ALICE", side: "giver", baseXp: 10, gate: thoughtful, catalogueVersion: "2", day: "2026-10-13" },
+    { member: "U_BOB", side: "recipient", baseXp: 5, gate: thoughtful, catalogueVersion: "2", day: "2026-10-13" },
+    { member: "U_CAROL", side: "recipient", baseXp: 5, gate: thoughtful, catalogueVersion: "2", day: "2026-10-13" },
   ]);
 });
 

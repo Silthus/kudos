@@ -7,6 +7,7 @@ import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { buyPerk } from "../progression/perks";
+import { recordReward } from "../progression/progression";
 import type { PerkId } from "../progression/tree";
 import { workspaceLink } from "../slack/workspaceLink";
 import type { MemberId } from "../workspace/directory";
@@ -18,6 +19,7 @@ const juno = { user: "U_JUNO", name: "Juno Whitlock" };
 const treeFlags = ["xp-levels", "unlocks", "skill-tree"];
 const levelFive = 600;
 const levelSix = 1000;
+const levelSeven = 1500;
 
 const spark = { perk: "spark", name: "Spark", copy: "+5 XP the first time each day you thank someone and say why.", cost: { skillPoints: 1 }, requires: null } as const;
 const rhythm = { perk: "rhythm", name: "Rhythm", copy: "+2 XP each time you thank someone and say why, once per person a day.", cost: { skillPoints: 1 }, requires: null } as const;
@@ -231,3 +233,28 @@ describe("website reads pass one guard", () => {
     await expect(asSignedIn.query(api.website.skillTree.getSkillTree, withAnotherMember)).rejects.toThrow(/user/);
   });
 });
+
+describe("CO22 CO25: until the website draws coin prices, its tree shows an upgrade only once it's owned", { timeout: 30_000 }, () => {
+  test("with Coins open at level 7, flame isn't offered without its price, and once owned it shows owned", async () => {
+    await flagsOn(...treeFlags, "coins");
+    await unlocksShippedBeforeAnyoneJoined(t);
+    const { member, asSignedIn } = await signedInMember();
+    await treeOpenFor(member, levelSeven);
+    await reachesLevel(t, member, 7);
+    await opens(t, member, "coins");
+    await buys(member, "spark");
+    await t.run((ctx) => recordReward(ctx, "T1", { member, key: "test:savings", xp: 0, coins: 150, item: null, catalogueVersion: "2", at: 0 }));
+
+    expect(await perksIn(asSignedIn)).toEqual(["spark", "rhythm", "circle"]);
+
+    await buys(member, "flame");
+
+    expect(await perksIn(asSignedIn)).toEqual(["spark", "rhythm", "circle", "flame"]);
+  });
+});
+
+async function perksIn(asSignedIn: Pick<Backend, "query">) {
+  const tree = await skillTreeOf(asSignedIn);
+  if (tree.kind !== "tree") throw new Error(`expected a tree, got ${tree.kind}`);
+  return tree.rows.flatMap((row) => row.perks.map(({ perk }) => perk));
+}
