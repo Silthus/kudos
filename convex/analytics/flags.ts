@@ -25,7 +25,7 @@ export function memberDecisionWithoutWriting<V extends FlagValue>(ctx: QueryCtx 
   return evaluated(ctx, read, () => existingMemberSubject(ctx, member));
 }
 
-export type DecisionToKeep<V> = { value: V; keep: () => Promise<void> };
+type DecisionToKeep<V> = { value: V; keep: () => Promise<void> };
 
 export async function memberDecisionBeforeWriting<V extends FlagValue>(ctx: MutationCtx, read: Flag<V>, member: MemberId): Promise<DecisionToKeep<V>> {
   const existing = await existingAnalyticsId(ctx, member);

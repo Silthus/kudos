@@ -200,6 +200,20 @@ describe("F28: a link from Slack that asks to sign in", () => {
     expect(pageTitle()).not.toHaveTextContent(/^Sign in$/);
   });
 
+  it.each([
+    { later: shellFixtures.closed, title: "Not open yet" },
+    { later: shellFixtures.signedOut, title: /^Sign in$/ },
+  ])("shows a member who arrived with the ask the page their later $later.kind answer calls for", async ({ later, title }) => {
+    arriveAt("/?sign-in");
+    const { actions, showVisitor } = renderApp(shellFixtures.member);
+    await waitFor(() => expect(currentAddress()).toBe("/"));
+
+    showVisitor(later);
+
+    expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent(title);
+    expect(actions.signIn).not.toHaveBeenCalled();
+  });
+
   it("never starts a sign-in again after one that didn't finish", async () => {
     arriveAt("/?sign-in");
     const { actions } = renderApp(shellFixtures.signInUnfinished);

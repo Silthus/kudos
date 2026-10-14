@@ -46,18 +46,30 @@ export function useSignInOutcome(state: ShellState): ShellState {
 }
 
 export function useSignInWhenAsked(state: ShellState, signIn: () => void): boolean {
-  const [asked] = useState(signInAskedInTheAddress);
+  const [asked, setAsked] = useState(signInAskedInTheAddress);
+  const [leaving, setLeaving] = useState(false);
   const answered = useRef(false);
-  const takingToSlack = asked && (state.kind === "closed" || state.kind === "signed-out");
+  const signInAnswers = state.kind === "closed" || state.kind === "signed-out";
 
   useEffect(() => {
     if (!asked || answered.current || state.kind === "loading" || state.kind === "connecting") return;
     answered.current = true;
     dropTheSignInAsk();
-    if (takingToSlack) signIn();
-  }, [asked, state.kind, takingToSlack, signIn]);
+    setAsked(false);
+    if (!signInAnswers) return;
+    setLeaving(true);
+    signIn();
+  }, [asked, state.kind, signInAnswers, signIn]);
 
-  return takingToSlack;
+  useEffect(() => {
+    const comeBack = (event: PageTransitionEvent) => {
+      if (event.persisted) setLeaving(false);
+    };
+    window.addEventListener("pageshow", comeBack);
+    return () => window.removeEventListener("pageshow", comeBack);
+  }, []);
+
+  return leaving || (asked && signInAnswers);
 }
 
 function signInAskedInTheAddress() {
