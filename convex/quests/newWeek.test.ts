@@ -255,12 +255,24 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
 
     const crate = "section: ✅ Thank someone and say why. You earned *20 XP*. [button: Open]";
     expect(publishedHomeBlocks(slack, "U_ALICE").length).toBeLessThanOrEqual(100);
-    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Waiting to open*", crate, crate, crate, crate, crate, "context: 95 more crates from earlier weeks wait behind these."]);
+    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Waiting to open*", crate, crate, crate, crate, crate, "context: 95 more crates from earlier weeks wait to open."]);
 
     await send(t, blockActions("U_ALICE", buttonBeside("✅ Thank someone and say why.", "Open")));
 
     expect(await t.run(async (ctx) => (await ctx.db.query("crateOpenings").collect()).map(({ key }) => key))).toEqual(["weekly:2026-10-05:0"]);
-    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Waiting to open*", crate, crate, crate, crate, crate, "context: 94 more crates from earlier weeks wait behind these."]);
+    expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Waiting to open*", crate, crate, crate, crate, crate, "context: 94 more crates from earlier weeks wait to open."]);
+  });
+
+  test("with 6 crates waiting from earlier weeks, App Home shows the oldest 5 and says 1 more crate waits", async () => {
+    const t = await slackWorkspace();
+    await giveKudos(t, "U_ALICE", "U_BOB");
+    await openHome(t, "U_ALICE");
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    await waitingFromAnEarlierWeek(t, "U_ALICE", 6);
+
+    await openHome(t, "U_ALICE");
+
+    expect(waitingIn(publishedHome(slack, "U_ALICE")).at(-1)).toBe("context: 1 more crate from earlier weeks waits to open.");
   });
 
   async function waitingFromAnEarlierWeek(t: Backend, user: string, crates: number) {

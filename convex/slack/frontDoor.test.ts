@@ -233,9 +233,9 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       crate,
       crate,
       crate,
-      "context: 2 more crates from earlier weeks wait behind these.",
       "section: ✅ Give a kudos that says why. [button: Open]",
       "section: ✅ Thank someone you haven't thanked before. [button: Open]",
+      "context: 2 more crates from earlier weeks wait to open.",
     ]);
   });
 

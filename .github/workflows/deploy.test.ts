@@ -50,8 +50,8 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
     expect(JSON.stringify(elsewhere)).not.toContain("secrets.");
   });
 
-  test("P85: every deploy backfills the pending-crate index right after convex deploy, so crates finished before it keep waiting", () => {
-    expect(steps.indexOf(pendingCratesStep!)).toBe(steps.indexOf(deployStep!) + 1);
+  test("P85: every deploy backfills the pending-crate index last, so a failing backfill never holds back the website", () => {
+    expect(steps.at(-1)).toBe(pendingCratesStep);
     expect(pendingCratesStep?.run).toBe("pnpm exec convex run quests/pendingCrates:backfillPendingCrates");
     expect(pendingCratesStep?.if).toBe(deployStep?.if);
   });

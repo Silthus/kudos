@@ -50,13 +50,6 @@ jobs:
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_SANDBOX }}
 
-      # The pending-crate index holds only crates finished since it shipped, so every deploy writes the rows any earlier crate lacks.
-      - name: Backfill the pending-crate index
-        if: steps.tip.outputs.current == 'true'
-        run: pnpm exec convex run quests/pendingCrates:backfillPendingCrates
-        env:
-          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_SANDBOX }}
-
       # The website is built against this deployment's own URL, then served by its static hosting.
       - name: Build the website and upload it to the sandbox deployment
         if: steps.tip.outputs.current == 'true'
@@ -75,5 +68,11 @@ jobs:
       - name: Read the company profiles once
         if: steps.tip.outputs.current == 'true'
         run: pnpm exec convex run companyProfiles/sync:syncCompanyProfiles
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_SANDBOX }}
+
+      - name: Backfill the pending-crate index once
+        if: steps.tip.outputs.current == 'true'
+        run: pnpm exec convex run quests/pendingCrates:backfillPendingCrates
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_SANDBOX }}

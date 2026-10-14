@@ -177,6 +177,11 @@ export default defineSchema({
 
   pendingCrates: defineTable(pendingCrateValidator).index("by_member_key", ["member", "key"]),
 
+  pendingCratesBackfill: defineTable({
+    cursor: v.union(v.string(), v.null()),
+    isDone: v.boolean(),
+  }),
+
   effectsBackfill: defineTable({
     before: v.number(),
     cursor: v.union(v.string(), v.null()),

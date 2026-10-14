@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { rewardsPage } from "../progression/rewards";
@@ -27,28 +28,31 @@ export function pendingWeeklyCratesBefore(ctx: QueryCtx, member: MemberId, week:
     .collect();
 }
 
-type BackfilledPage = { isDone: boolean; cursor: string };
-
 export const backfillPendingCrates = observedAction({
   args: {},
   handler: async (ctx): Promise<null> => {
-    let cursor: string | null = null;
-    while (true) {
-      const page: BackfilledPage = await ctx.runMutation(internal.quests.pendingCrates.backfillPage, { cursor });
-      if (page.isDone) return null;
-      cursor = page.cursor;
-    }
+    while (!(await ctx.runMutation(internal.quests.pendingCrates.backfillPage, {}))) continue;
+    return null;
   },
 });
 
 export const backfillPage = internalMutation({
-  args: { cursor: v.union(v.string(), v.null()) },
-  handler: async (ctx, { cursor }): Promise<BackfilledPage> => {
-    const { page, isDone, continueCursor } = await rewardsPage(ctx, cursor, rewardsPerPage);
+  args: {},
+  handler: async (ctx): Promise<boolean> => {
+    const run = await currentRun(ctx);
+    if (run.isDone) return true;
+    const { page, isDone, continueCursor } = await rewardsPage(ctx, run.cursor, rewardsPerPage);
     for (const { member, key } of page) if (await waitsUnindexed(ctx, member, key)) await ctx.db.insert("pendingCrates", { member, key });
-    return { isDone, cursor: continueCursor };
+    await ctx.db.patch(run._id, { cursor: continueCursor, isDone });
+    return isDone;
   },
 });
+
+async function currentRun(ctx: MutationCtx): Promise<Doc<"pendingCratesBackfill">> {
+  const run = await ctx.db.query("pendingCratesBackfill").first();
+  if (run !== null) return run;
+  return (await ctx.db.get(await ctx.db.insert("pendingCratesBackfill", { cursor: null, isDone: false })))!;
+}
 
 async function waitsUnindexed(ctx: QueryCtx, member: MemberId, key: string) {
   return weeklyQuestOfRewardKey(key) !== null && (await crateOpeningOf(ctx, member, key)) === null && (await pendingCrateOf(ctx, member, key)) === null;
