@@ -237,11 +237,25 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
- Test Files  167 passed (167)
-      Tests  3103 passed (3103)
-   Start at  15:41:17
-   Duration  139.48s (tests 85%, import 9%, environment 4%, transform 2%, setup 1%)
+ Test Files  170 passed (170)
+      Tests  3207 passed (3207)
+   Start at  16:02:30
+   Duration  147.55s (tests 85%, import 9%, environment 3%, transform 2%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -654,6 +668,14 @@ Slack  convex/slack/Slack.spec.md
       totality oracle "a failed directory check is tried again" over a check whose recheck fails once, and a check whose recheck fails every time: verified 2026-10-14
       refuted 2026-10-14: checkDirectory's failure retry ladder in convex/slack/directory.ts emptied
       kinds message: 8 shapes apply, 1 declared, 7 dismissed
+  a stranded directory check is checked again  invariant
+      totality oracle "a stranded directory check is checked again" over a check Convex stopped before it ran, a check whose 5 tries all failed, a stopped check 86 minutes after it was due, a message waiting for its next check after the directory still didn't know a person, a message without a due time, a message whose fresh checks keep failing through 9 sweeps, a full page of messages whose checks ran out ahead of one that can still give, two sweeps before the fresh check runs, and one more stranded message than a page holds: verified 2026-10-14
+      refuted 2026-10-14: recheckStranded in convex/slack/directory.ts no longer scheduled a check for the stranded messages it took
+      kinds message: 8 shapes apply, 1 declared, 7 dismissed
+  a stranded verification is tried again  invariant
+      totality oracle "a stranded verification is tried again" over a verification Convex stopped before it ran, one stopped 10 minutes before the sweep, one waiting out a 30-minute Retry-After, one without a due time, two sweeps before the fresh try runs, one more stranded verification than a page holds, one whose every try Convex stops, and one stopped on its third try after 2 failed ones: verified 2026-10-14
+      refuted 2026-10-14: tryAgainCountingTheStrandedTry in convex/slack/verifyMember.ts no longer scheduled the fresh try
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
 Unlocks  convex/unlocks/Unlocks.spec.md
   opening grants nothing  invariant
       totality oracle "P92: opening grants nothing" over every table of the schema, read before and after openUnlock opens a ready Leaderboard for a member with an effects record, XP and a level, and every event published by the open: verified 2026-10-13
@@ -849,8 +871,8 @@ Website  website/Website.spec.md
       crossing domain -> browser
       refuted 2026-10-14: let isWebAddress accept every scheme
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
-20 components, 126 bullets: 126 invariants, 0 requirements
-lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T13:44:37.238Z (750 runs)
+20 components, 128 bullets: 128 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T15:24:36.997Z (782 runs)
 defects: 23 recorded, 20 closed (4 guarded, 16 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
@@ -870,5 +892,5 @@ RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 ADVISORY       260 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 90, contract 32, receipt 31, panel 28, zone 22; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (727 files), 17 in records
+0 rejected names, 0 unknown nouns (741 files), 17 in records
 exit=0
