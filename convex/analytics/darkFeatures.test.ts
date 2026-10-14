@@ -40,6 +40,7 @@ const stepWindowMs = 9 * 60_000;
 const week = "2026-10-12";
 const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
+const members = ["U_ALICE", "U_BOB"];
 const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board"];
 const notMemberFacing: Table[] = ["analyticsIds", "workspaceKeys", "analyticsOutbox", "analyticsDrain", "errorSweep", "watchedJobs", "reportedJobs", "flagExposures"];
 const recordingJobs = ["analytics/drain:drain", "analytics/person:identifyNewPeople"];
@@ -262,7 +263,7 @@ function start(capture: Capture, flagsKey: "flags key set" | "no flags key") {
   vi.useFakeTimers({ now });
   sentMessages = 0;
   steps = 0;
-  slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB");
+  slack = members.reduce((fake, user) => fake.withMember(user), new FakeSlack());
   postHog = postHogDeciding("sandbox");
   if (flagsKey === "no flags key") vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "");
   if (capture === "off") vi.stubEnv("KUDOS_ENVIRONMENT", "");
@@ -291,7 +292,11 @@ async function seenByMembers({ t, answers }: Awaited<ReturnType<typeof walk>>) {
   const stored = await everythingByTable(t);
   const memberFacing = Object.fromEntries(Object.entries(stored).filter(([table]) => !notMemberFacing.includes(table as Table)));
   memberFacing.slackReceipts = stored.slackReceipts.map(({ eventId: _numberedPerProcess, ...receipt }) => receipt as Row);
-  return { answers, slackCalls: callsByConversationInAnyOrder(), stored: withStableIds(memberFacing) };
+  return { answers, slackCalls: callsByConversationInAnyOrder(), appHomesShown: appHomesShown(), stored: withStableIds(memberFacing) };
+}
+
+function appHomesShown() {
+  return Object.fromEntries(members.map((user) => [user, slack.homeShownTo(user)]));
 }
 
 function callsByConversationInAnyOrder() {
