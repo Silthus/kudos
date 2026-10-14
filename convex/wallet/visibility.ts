@@ -20,7 +20,7 @@ export async function coinsShownTo(ctx: MutationCtx, member: MemberId): Promise<
   return shown;
 }
 
-async function coinsApplyTo(ctx: QueryCtx, member: MemberId) {
+export async function coinsApplyTo(ctx: QueryCtx, member: MemberId) {
   return (await unlockPathShownTo(ctx, member)) && (await memberDecision(ctx, coinsFlag, member));
 }
 

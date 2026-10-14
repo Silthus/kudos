@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog, type FlagDefinition } from "../../testing/fakePostHog";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
@@ -167,7 +167,21 @@ describe("CO14 CO22 CO25: upgrades exist only where coins are visible, and owned
     expect(publishedHome(slack, "U_ALICE").join("\n")).not.toMatch(/Flame|Cadence|Bridge|🪙/);
   });
 
-  test("with coins off, a stale Buy on flame writes nothing at all", async () => {
+  test("a purchase reply Slack takes after coins turned off names no upgrade and no 🪙", async () => {
+    const t = await aliceWithTheTreeOpen({ owns: ["spark"], coins: 149 });
+
+    slack.holdingBack("chat.postMessage", "D_ALICE", async () => {
+      await flagsFromPostHog(t, postHog, ...coinsOff);
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await send(t, blockActions("U_ALICE", buyButtonOf("flame"), { inMessage: { channel: "D_ALICE", ts: "1760349700.000100" } }));
+
+    expect(await purchasesOf(t)).toEqual([{ kind: "refused", perk: "flame", reason: "no-coins" }]);
+    expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "D_ALICE").map(({ text }) => text)).toEqual(["I couldn't buy Flame. You need 150 🪙."]);
+  });
+
+  test("with coins off, a stale Buy on flame owns nothing, spends nothing and stores no outcome", async () => {
     const t = await aliceWithTheTreeOpen({ owns: ["spark"], coins: 150, flags: coinsOff });
     const before = await treeTables(t);
 

@@ -9,7 +9,9 @@ import { aDeploymentForWorkspace, aMember, aSession, aSignedInSession, switchWeb
 import { api, components, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { publish } from "../bus/publish";
+import { recordReward } from "../progression/progression";
 import type { PerkId } from "../progression/tree";
+import { balanceOf } from "../wallet/wallet";
 import schema from "../schema";
 import type { MemberId } from "../workspace/directory";
 
@@ -459,6 +461,25 @@ describe("CO14 CO24: a coin perk bought from the website", () => {
 
     expect(await buyPerk(asSignedIn, "flame", secondRequest)).toEqual({ kind: "refused", reason: null });
     expectOnlyTheRefusalStored(before, await everythingWritten(), { kind: "refused", perk: "flame", reason: "coins-not-open" });
+  });
+});
+
+describe("CO24 CO30: a purchase spends once per idempotency key", () => {
+  test("the same website request twice buys flame once, answers bought both times and spends its coins once", async () => {
+    await treeShipped("coins");
+    const { member, asSignedIn } = await aMemberWithTheTreeOpen();
+    await withXp(member, levelSeven);
+    await reachesLevel(t, member, 7);
+    await opens(t, member, "coins");
+    await buyPerk(asSignedIn, "spark");
+    await t.run((ctx) => recordReward(ctx, "T1", { member, key: "test:savings", xp: 0, coins: 300, item: null, catalogueVersion: "2", at: 0 }));
+
+    expect(await buyPerk(asSignedIn, "flame", secondRequest)).toEqual({ kind: "bought" });
+    expect(await buyPerk(asSignedIn, "flame", secondRequest)).toEqual({ kind: "bought" });
+
+    expect(await t.run((ctx) => balanceOf(ctx, member))).toBe(150);
+    expect((await t.run((ctx) => ctx.db.query("coinSpends").collect())).map(({ coins, for: paidFor }) => ({ coins, for: paidFor }))).toEqual([{ coins: 150, for: { perk: "flame" } }]);
+    expect(await skillPointsOf(member)).toBe(1);
   });
 });
 

@@ -18,7 +18,8 @@ import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
 import { websiteOrigin } from "../website/link";
-import { coinsVisibleTo } from "../wallet/visibility";
+import { coinsApplyTo, coinsVisibleTo } from "../wallet/visibility";
+import { isCoinPerk, perkOf } from "../progression/tree";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { coinsOpenedLineOf } from "./coins";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
@@ -102,7 +103,9 @@ export const purchaseReplyStillWanted = internalQuery({
   args: { member: v.id("members"), outcome: purchaseOutcomeValidator },
   handler: async (ctx, { member, outcome }): Promise<string | null> => {
     const { workspace } = await chatUserOf(ctx, member);
-    return (await skillTreeAppliesIn(ctx, workspace)) ? purchaseReplyOf(outcome) : null;
+    if (!(await skillTreeAppliesIn(ctx, workspace))) return null;
+    if (isCoinPerk(perkOf(outcome.perk)) && !(await coinsApplyTo(ctx, member))) return null;
+    return purchaseReplyOf(outcome);
   },
 });
 
