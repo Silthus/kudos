@@ -111,13 +111,14 @@ describe("CO7: bronze pays 10 coins and diamond 100, and the backfill tells nobo
 });
 
 describe("CO28: achievementsOf answers each coin reward's coins, and on an earned tier when it was recorded", () => {
-  test("an unearned tier's coin rewards carry their coins; an earned tier's carry the time their record was written", async () => {
+  test("an unearned tier's coin rewards carry their coins; an earned tier's carry the time their record was written, not the time the tier was earned", async () => {
     const { t, alice, bob } = await withMembers();
+    const yesterday = now.getTime() - 86_400_000;
 
-    await count(t, await kudosGiven(t, alice, bob, { kudos: 1, at: now.getTime() }));
+    await count(t, await kudosGiven(t, alice, bob, { kudos: 1, at: yesterday }));
 
     expect(await tiersOf(t, bob, "recognition")).toEqual([
-      { tier: "bronze", name: "Noticed", count: 1, earnedAt: now.getTime(), catalogueVersion: "1", rewards: [{ kind: "coins", reward: "recognition-bronze-coins", coins: 10, recordedAt: now.getTime() }] },
+      { tier: "bronze", name: "Noticed", count: 1, earnedAt: yesterday, catalogueVersion: "1", rewards: [{ kind: "coins", reward: "recognition-bronze-coins", coins: 10, recordedAt: now.getTime() }] },
       { tier: "silver", name: "Appreciated", count: 25, earnedAt: null, catalogueVersion: null, rewards: [{ kind: "kudosEmoji", reward: "recognition-silver-kudos-emoji" }] },
       { tier: "gold", name: "Highly Valued", count: 100, earnedAt: null, catalogueVersion: null, rewards: [{ kind: "hedgehog", reward: "recognition-gold-hedgehog" }] },
       {

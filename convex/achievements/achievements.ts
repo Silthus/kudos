@@ -76,6 +76,6 @@ function tierFactsOf({ tier, name, count, rewards }: Tier, earned: EarnedTier | 
 function rewardFactsOf({ tier, rewards }: Pick<Tier, "tier" | "rewards">, paid?: TierCoinsPaid): RewardFacts[] {
   return rewards.map(({ kind, reward }) => {
     if (kind !== "coins") return { kind, reward };
-    return { kind, reward, coins: coinsPaidBy(tier), ...(paid !== undefined && { recordedAt: paid.get(reward)?.at ?? null }) };
+    return { kind, reward, coins: coinsPaidBy(tier), ...(paid !== undefined && { recordedAt: paid.get(reward)?.recordedAt ?? null }) };
   });
 }

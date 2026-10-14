@@ -21,7 +21,7 @@ Wallet: a member's coins, knowing nothing about why they were earned or what the
   checklist: worker-fencing dismissed: no worker owns a wallet; every write is one mutation
   checklist: commit-ordered-effects dismissed: the wallet issues no external effect
   checklist: durable-dispatch-intent dismissed: nothing is dispatched; the credit is written in the mutation that writes its record
-  checklist: resumption-coverage dismissed: the one batch that writes the wallet, Achievements' tier backfill, credits only through recordReward, whose key makes a run resumed or repeated from the start credit nothing twice
+  checklist: resumption-coverage dismissed: the batches that write the wallet, Achievements' launch replay and tier evaluation pages, which pay the tiers they earn, and its tier backfill, credit only through recordReward, whose key makes a page retried, or a run resumed or repeated from the start, credit nothing twice
   checklist: declared-target-coverage dismissed: the writers are recordEffects and recordReward through progression's record and recordReward, both covered by the oracle's steps
   checklist: completion-evidence dismissed: nothing waits on a credit; it commits with its record or not at all
 - only the wallet writes the balance: No module but the wallet writes a member's cached balance or a spend record, and a spend record, once written, is never changed or deleted.

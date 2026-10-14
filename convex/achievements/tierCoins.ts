@@ -12,7 +12,7 @@ export type TierCoinsBackfilled = { tiers: number; paid: number };
 
 type PaidPage = TierCoinsBackfilled & { isDone: boolean; continueCursor: string };
 
-export type TierCoinsPaid = Map<string, { coins: number; at: number }>;
+export type TierCoinsPaid = Map<string, { coins: number; recordedAt: number }>;
 
 type PayingTier = Pick<EarnedTier, "member" | "tier" | "rewards" | "catalogueVersion">;
 
@@ -31,7 +31,7 @@ export async function payTierCoins(ctx: MutationCtx, workspace: string, earned: 
 
 export async function tierCoinsPaidTo(ctx: QueryCtx, member: MemberId): Promise<TierCoinsPaid> {
   const records = await rewardsKeyedFrom(ctx, member, tierRewardKeys);
-  return new Map(records.map(({ key, coins, at }) => [key.slice(tierRewardKeys.length), { coins, at }]));
+  return new Map(records.map(({ key, coins, _creationTime }) => [key.slice(tierRewardKeys.length), { coins, recordedAt: Math.floor(_creationTime) }]));
 }
 
 export function coinsPaidFor(ref: TierRef, paid: TierCoinsPaid): number {
