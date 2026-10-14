@@ -4,6 +4,7 @@ import type { ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
 import { keepsMembers, maxUserGroupsKept, type UserGroup } from "../workspace/userGroups";
+import { textOf } from "./directory";
 import { readSlack, slackErrorCodeOf, type SlackAnswer, type SlackFailure } from "./webApi";
 
 type SlackUserGroup = { id?: unknown; team_id?: unknown; handle?: unknown; name?: unknown; date_delete?: unknown; auto_type?: unknown };
@@ -133,8 +134,4 @@ function nextAttempt(attempt: number, method: string) {
 
 function retryDelayOf({ retryAfterMs }: SlackFailure) {
   return typeof retryAfterMs === "number" && Number.isFinite(retryAfterMs) ? retryAfterMs : 1_000;
-}
-
-function textOf(value: unknown) {
-  return typeof value === "string" && value !== "" ? value : undefined;
 }

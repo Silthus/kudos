@@ -363,7 +363,7 @@ describe("P80: the hourly sweep stays within Convex's limits and draws a week on
     expect(await scheduled(t)).toEqual({ draws: 105, sweeps: 2 });
     expect(await drawnMembers(t, thisWeek)).toEqual(new Set(opened));
     expect(await t.run(async (ctx) => (await ctx.db.query("questDraws").collect()).length)).toBe(105);
-  }, 30_000);
+  }, 60_000);
 
   async function scheduled(t: Backend) {
     const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());

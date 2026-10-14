@@ -123,15 +123,15 @@ export class FakePostHog {
 }
 
 export function withoutPersonProperties(body: string) {
-  const parsed = JSON.parse(body) as { batch: Array<{ event: string; properties: Record<string, unknown> }> };
-  for (const { properties } of parsed.batch.filter(({ event }) => event === "$identify" || event === "$set")) {
+  const parsed = JSON.parse(body) as { batch: CapturedEvent[] };
+  for (const { properties } of parsed.batch.filter(isPersonEvent)) {
     delete properties.$set;
     delete properties.$unset;
   }
   return JSON.stringify(parsed);
 }
 
-function isPersonEvent({ event }: CapturedEvent) {
+function isPersonEvent({ event }: Pick<CapturedEvent, "event">) {
   return event === "$identify" || event === "$set";
 }
 

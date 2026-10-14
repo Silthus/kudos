@@ -4,6 +4,7 @@ import { achievementsApplyIn } from "../achievements/flag";
 import { exposed, memberDecision, workspaceDecision } from "../analytics/flags";
 import { xpLevelsOnFor } from "../progression/xpLevels";
 import { unlockPathShownIn, unlocksAppliedTo } from "../unlocks/launch";
+import { previewMomentOf } from "../unlocks/previewMoments";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { joinMember } from "./join";
 import { questsFlag } from "./questsFlag";
@@ -52,7 +53,7 @@ export async function journeyShippedAt(ctx: QueryCtx, workspace: string): Promis
 
 export async function journeyStartedFor(ctx: QueryCtx, member: MemberId): Promise<number | null> {
   const { workspace } = await chatUserOf(ctx, member);
-  return (await journeyShippedAt(ctx, workspace)) ?? (await previewMomentOf(ctx, member))?.at ?? null;
+  return (await journeyShippedAt(ctx, workspace)) ?? (await previewMomentOf(ctx, member, "journey"))?.at ?? null;
 }
 
 async function questsDecideFor(ctx: QueryCtx | MutationCtx, member: MemberId) {
@@ -65,7 +66,7 @@ async function launchJourney(ctx: MutationCtx, workspace: string) {
 }
 
 async function previewOnce(ctx: MutationCtx, workspace: string, member: MemberId) {
-  if ((await previewMomentOf(ctx, member)) !== null) return;
+  if ((await previewMomentOf(ctx, member, "journey")) !== null) return;
   const at = Date.now();
   await ctx.db.insert("previewMoments", { member, moment: "journey", at });
   await joinMember(ctx, workspace, member, at);
@@ -75,12 +76,5 @@ function journeyLaunchIn(ctx: QueryCtx, workspace: string) {
   return ctx.db
     .query("journeyLaunches")
     .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
-    .unique();
-}
-
-function previewMomentOf(ctx: QueryCtx, member: MemberId) {
-  return ctx.db
-    .query("previewMoments")
-    .withIndex("by_member_moment", (q) => q.eq("member", member).eq("moment", "journey"))
     .unique();
 }

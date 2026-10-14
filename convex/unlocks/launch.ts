@@ -6,6 +6,7 @@ import type { UnlocksLaunchedEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
+import { previewMomentOf } from "./previewMoments";
 import { shippedIn, shippedTo } from "./schedule";
 import { keepOpen } from "./unlocks";
 
@@ -59,7 +60,7 @@ export async function unlocksAppliedIn(ctx: QueryCtx, workspace: string): Promis
 export async function unlocksAppliedTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   if (!(await memberDecision(ctx, unlocksFlag, member))) return false;
   const { workspace } = await chatUserOf(ctx, member);
-  return (await launchIn(ctx, workspace)) !== null || (await previewMomentOf(ctx, member)) !== null;
+  return (await launchIn(ctx, workspace)) !== null || (await previewMomentOf(ctx, member, "unlocks")) !== null;
 }
 
 async function unlocksOnFor(ctx: MutationCtx, member: MemberId) {
@@ -91,7 +92,7 @@ function pagesOf(openings: UnlocksLaunchedEvent["openings"]) {
 }
 
 async function previewOnce(ctx: MutationCtx, workspace: string, member: MemberId) {
-  if ((await previewMomentOf(ctx, member)) !== null) return false;
+  if ((await previewMomentOf(ctx, member, "unlocks")) !== null) return false;
   const at = Date.now();
   await ctx.db.insert("previewMoments", { member, moment: "unlocks", at });
   const openings: UnlocksLaunchedEvent["openings"] = [];
@@ -106,12 +107,5 @@ function launchIn(ctx: QueryCtx, workspace: string) {
   return ctx.db
     .query("unlockLaunches")
     .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
-    .unique();
-}
-
-function previewMomentOf(ctx: QueryCtx, member: MemberId) {
-  return ctx.db
-    .query("previewMoments")
-    .withIndex("by_member_moment", (q) => q.eq("member", member).eq("moment", "unlocks"))
     .unique();
 }

@@ -110,19 +110,19 @@ async function deliver(ctx: MutationCtx, reply: Id<"privateReplies">) {
 
 async function gainsShownTo(ctx: QueryCtx, workspace: string, to: ChatUserId, { xp, questsDone = [] }: Gains): Promise<Required<Gains>> {
   const person = await lookup(ctx, workspace, to);
-  const shown = person?.kind === "member" ? gainsDecidedFor(ctx, person.member) : gainsDecidedIn(ctx, workspace);
+  const member = person?.kind === "member" ? person.member : null;
   return {
-    xp: (await shown.xp()) ? xp : 0,
-    questsDone: questsDone.length > 0 && (await shown.quests()) ? questsDone : [],
+    xp: (await isXpShownTo(ctx, workspace, member)) ? xp : 0,
+    questsDone: questsDone.length > 0 && (await areQuestsShownTo(ctx, workspace, member)) ? questsDone : [],
   };
 }
 
-function gainsDecidedFor(ctx: QueryCtx, member: MemberId) {
-  return { xp: () => xpLevelsOnFor(ctx, member), quests: () => questsApplyTo(ctx, member) };
+function isXpShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null) {
+  return member === null ? xpLevelsShownIn(ctx, workspace) : xpLevelsOnFor(ctx, member);
 }
 
-function gainsDecidedIn(ctx: QueryCtx, workspace: string) {
-  return { xp: () => xpLevelsShownIn(ctx, workspace), quests: () => questsApplyIn(ctx, workspace) };
+function areQuestsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null) {
+  return member === null ? questsApplyIn(ctx, workspace) : questsApplyTo(ctx, member);
 }
 
 function extrasLineOf({ xp, questsDone }: Required<Gains>, hint: Line | null, link: DeepLink | null): Line | null {

@@ -5,6 +5,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { ReportableError } from "../analytics/exceptions";
 import { followPeopleLater, requestCatchUp } from "../analytics/person";
 import type { ChatUserId } from "../engine/messageEvent";
+import { isOlder } from "./directory";
 
 export const userGroupValidator = v.object({
   workspace: v.string(),
@@ -154,8 +155,4 @@ function userGroupRow(ctx: QueryCtx, { workspace, group }: GroupKey) {
     .query("userGroups")
     .withIndex("by_group", (q) => q.eq("workspace", workspace).eq("group", group))
     .unique();
-}
-
-function isOlder(asOf: number, known: number | undefined) {
-  return known !== undefined && asOf < known;
 }

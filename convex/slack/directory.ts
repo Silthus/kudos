@@ -193,6 +193,6 @@ function displayNameOf(user: SlackUser) {
   return textOf(user.profile?.display_name) ?? textOf(user.profile?.real_name) ?? textOf(user.real_name) ?? textOf(user.name);
 }
 
-function textOf(value: unknown) {
+export function textOf(value: unknown) {
   return typeof value === "string" && value !== "" ? value : undefined;
 }

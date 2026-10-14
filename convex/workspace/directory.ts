@@ -141,7 +141,7 @@ async function replace(ctx: MutationCtx, existing: Doc<"members">, row: MemberRo
   if (existing.kind !== "member" && row.kind === "member") await publish(ctx, { type: "memberRejoined", ...membership });
 }
 
-function isOlder(asOf: number, known: number | undefined) {
+export function isOlder(asOf: number, known: number | undefined) {
   return known !== undefined && asOf < known;
 }
 
