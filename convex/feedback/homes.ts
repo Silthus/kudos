@@ -12,7 +12,7 @@ import { memberPerksOf, ownsEveryPerk, type MemberPerks } from "../progression/p
 import { skillTreeShownTo } from "../progression/skillTree";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { questsShownTo } from "../quests/flag";
-import { activeJourneyOf, type JourneyStepFacts } from "../quests/journey";
+import { activateJourneyOf, journeyOf, type JourneyStepFacts } from "../quests/journey";
 import { thisWeeksQuestsOf, type WeeklyQuests } from "../quests/weekly";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
@@ -62,6 +62,7 @@ export const shownHomeOf = internalMutation({
     const person = await lookup(ctx, workspace, user);
     if (person?.kind !== "member") return null;
     const slices = await slicesShownTo(ctx, workspace, person);
+    if (slices.quests) await activateJourneyOf(ctx, person.member);
     const tabs = tabsOf({ ...slices, frontDoor });
     if (tabs.length === 0) return null;
     const { tab, period } = await selectionOf(ctx, person.member);
@@ -142,7 +143,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         progression: await toldProgressionOf(ctx, viewer.member, slices.skillTree),
         unlocks: await unlocksHomeOf(ctx, viewer.member),
         quests: slices.quests ? await openedQuestsOf(ctx, viewer.member) : null,
-        journey: slices.quests ? await activeJourneyOf(ctx, viewer.member) : null,
+        journey: slices.quests ? await journeyOf(ctx, viewer.member) : null,
       };
     case "leaderboard":
       return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period) };

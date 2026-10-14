@@ -289,6 +289,26 @@ describe("P91: two-days works whether the Book ships before the Journey or after
     expect((await twoDaysOf(t, alice))?.finishedAt).toBe(thursday);
   });
 
+  test("the stranded two-days activates on any App Home publish, even one that opens on a remembered Settings tab", async () => {
+    postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "achievements");
+    const t = await workspaceWith("U_ALICE", "U_BOB", "U_CAROL");
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await bookShippedBeforeAnyoneJoined(t);
+    vi.setSystemTime(tuesday);
+    await flagsFromPostHog(t, postHog, ...on("xp-levels", "unlocks", "quests"));
+    await hourlySweep(t);
+    await hourlySweep(t);
+    const alice = await memberOf(t, "U_ALICE");
+    await t.run((ctx) => ctx.db.insert("homeSelections", { member: alice, tab: "settings", period: "week" }));
+
+    vi.setSystemTime(wednesday);
+    await flagsFromPostHog(t, postHog, ...on("xp-levels", "unlocks", "quests", "achievements"));
+    await openHome(t, "U_ALICE");
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("actions: Profile | Book | [Settings]");
+    expect((await twoDaysOf(t, alice))?.activatedAt).toBe(tuesday);
+  });
+
   test("the Book shipping after the Journey: opening it then makes two-days active from the opening", async () => {
     postHog = flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "quests");
     const t = await workspace();

@@ -244,11 +244,10 @@ function firstThanksBeforeActivation({ version, steps }: JourneyCatalogue): Omit
   return { step: "first-thanks", activatedAt: null, reward, catalogueVersion: version, finishedAt: null, openedAt: null };
 }
 
-export async function activeJourneyOf(ctx: MutationCtx, member: MemberId): Promise<JourneyStepFacts[]> {
+export async function activateJourneyOf(ctx: MutationCtx, member: MemberId): Promise<void> {
   const { workspace } = await chatUserOf(ctx, member);
   await activated(ctx, workspace, member, "first-thanks", Date.now(), journey);
   await activateOpenedSteps(ctx, workspace, member);
-  return journeyOf(ctx, member);
 }
 
 async function activateOpenedSteps(ctx: MutationCtx, workspace: string, member: MemberId) {
