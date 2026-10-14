@@ -35,6 +35,6 @@ RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       255 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 90, contract 31, receipt 31, panel 25, zone 22; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (717 files), 17 in records
+ADVISORY       256 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 90, contract 32, receipt 31, panel 25, zone 22; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (718 files), 17 in records
 exit 0
