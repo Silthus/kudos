@@ -4,7 +4,7 @@ import { components } from "../_generated/api";
 
 type HttpHandler = (ctx: GenericActionCtx<GenericDataModel>, request: Request) => Promise<Response>;
 
-const slackAvatars = "https://avatars.slack-edge.com";
+const slackPictures = ["https://avatars.slack-edge.com", "https://secure.gravatar.com", "https://a.slack-edge.com"].join(" ");
 const companyProfileImages = "https://res.cloudinary.com";
 const builtAsset = /^\/assets\/[^/]+\.[A-Za-z0-9]+$/;
 const immutable = "public, max-age=31536000, immutable";
@@ -49,7 +49,7 @@ export function contentSecurityPolicy(deploymentUrl: string | undefined) {
     "script-src 'self'",
     "style-src 'self'",
     `connect-src ${["'self'", ...deployment].join(" ")}`,
-    `img-src 'self' ${slackAvatars} ${companyProfileImages}`,
+    `img-src 'self' ${slackPictures} ${companyProfileImages}`,
     "font-src 'self'",
     "object-src 'none'",
     "base-uri 'none'",
