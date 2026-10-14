@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import type { FakeSlack } from "./fakeSlack";
 
 export type TextObject = { type: string; text: string };
-type Element = { type: string; text?: TextObject; style?: string; initial_channel?: string; action_id?: string; value?: string };
+type Element = { type: string; text?: TextObject; style?: string; initial_channel?: string; action_id?: string; value?: string; url?: string };
 export type Block = { type: string; block_id?: string; text?: TextObject; fields?: TextObject[]; elements?: Array<TextObject | Element>; accessory?: Element };
 type HomeView = { type: string; blocks: Block[] };
 
@@ -37,6 +37,11 @@ export function buttonIn(blocks: Block[], label: string): BlockAction {
     if (button) return { type: "button", action_id: button.action_id!, ...(button.value !== undefined && { value: button.value }), ...(block.block_id && { block_id: block.block_id }) };
   }
   throw new Error(`no ${label} button among the blocks`);
+}
+
+export function staleButtonOf(command: unknown): BlockAction {
+  const encoded = JSON.stringify(command);
+  return { type: "button", action_id: encoded, value: encoded };
 }
 
 export function buttonInHome(slack: FakeSlack, user: string, label: string): BlockAction {
@@ -99,6 +104,7 @@ function readButton(button: Element) {
 }
 
 function readAccessory(element: Element) {
+  if (element.type === "button" && element.url !== undefined) return `[link: ${plainText(element.text)} ${element.url}]`;
   if (element.type === "button") return `[button: ${plainText(element.text)}]`;
   return `[${element.type}: ${element.initial_channel ?? "none"}]`;
 }

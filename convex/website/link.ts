@@ -6,7 +6,7 @@ import type { Feature } from "../unlocks/feature";
 import { scheduled } from "../unlocks/schedule";
 import { lookup } from "../workspace/directory";
 import { websiteOpen } from "./flag";
-import { listedPageOf, routeOf, type Page } from "./routes";
+import { listedPageOf, urlOf, type Page } from "./routes";
 import { openFeaturesOf } from "./unlockPath";
 
 export const pageValidator = v.union(
@@ -17,7 +17,7 @@ export const pageValidator = v.union(
   v.object({ page: v.literal("book") }),
 );
 
-const frontDoorLinksValidator = v.object({ home: v.string(), pages: v.array(v.object({ label: v.string(), url: v.string() })) });
+const frontDoorLinksValidator = v.object({ origin: v.string(), pages: v.array(v.object({ label: v.string(), url: v.string() })) });
 
 export type FrontDoorLinks = Infer<typeof frontDoorLinksValidator>;
 
@@ -29,7 +29,7 @@ export const websiteLinkOf = internalQuery({
 
 export async function websiteLink(ctx: QueryCtx, workspace: string, page: Page): Promise<string | null> {
   const origin = await websiteOrigin(ctx, workspace);
-  return origin === null ? null : linkTo(origin, page);
+  return origin === null ? null : urlOf(origin, page);
 }
 
 export const frontDoorLinksOf = internalQuery({
@@ -41,20 +41,16 @@ export const frontDoorLinksOf = internalQuery({
     const person = await lookup(ctx, workspace, user);
     const open = person?.kind === "member" ? await openFeaturesOf(ctx, { workspace, user, member: person.member }) : [];
     const pages = open.flatMap((feature) => listedLinkOf(origin, feature));
-    return { home: linkTo(origin, { page: "home" }), pages };
+    return { origin, pages };
   },
 });
 
 function listedLinkOf(origin: string, feature: Feature) {
   const page = listedPageOf(feature);
-  return page === null ? [] : [{ label: scheduled(feature).name, url: linkTo(origin, page) }];
+  return page === null ? [] : [{ label: scheduled(feature).name, url: urlOf(origin, page) }];
 }
 
-function linkTo(origin: string, page: Page) {
-  return `${origin}${routeOf(page)}`;
-}
-
-async function websiteOrigin(ctx: QueryCtx, workspace: string): Promise<string | null> {
+export async function websiteOrigin(ctx: QueryCtx, workspace: string): Promise<string | null> {
   const origin = siteOrigin();
   if (origin === null || workspace !== signInWorkspace()) return null;
   return (await websiteOpen(ctx)) ? origin : null;

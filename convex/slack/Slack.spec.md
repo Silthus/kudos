@@ -9,7 +9,7 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
 - route POST /slack/commands: Slack delivers a slash command a member typed, `/hedgehug` or its alias `/kudos` to add the app to a channel, or with `leaderboard` and an optional `week`, `month` or `all` to see that period's Everyone board
   handler: slackCommands in convex/slack/commands.ts
   trust: slack-request
-- route POST /slack/interactivity: Slack delivers a member's click in App Home: a tab, a leaderboard period, the `Show me on the leaderboards` switch, a progression setting or the announcement channel picker
+- route POST /slack/interactivity: Slack delivers a member's click in App Home: a tab, a leaderboard period, the `Show me on the leaderboards` switch, a progression setting, the announcement channel picker, or a link button, whose click names no command and changes nothing
   handler: slackInteractivity in convex/slack/interactivity.ts
   trust: slack-request
 - fill missing names: a maintainer runs fillMissingNames once against a deployment, so members the directory recorded before it kept names get the Slack name a board lists ties by

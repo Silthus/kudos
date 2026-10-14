@@ -21,11 +21,13 @@ export const slackInteractivity = observedHttpAction(async (ctx, request) => {
 
   const payload = payloadOf(body);
   if (!isMemberClick(payload)) return new Response(null, { status: 200 });
+  const commands = payload.actions.flatMap(commandsOf);
+  if (commands.length === 0) return new Response(null, { status: 200 });
   await ctx.scheduler.runAfter(0, internal.slack.receipts.receiveHomeClick, {
     workspace: payload.team.id,
     eventId: payload.trigger_id,
     user: payload.user.id,
-    commands: payload.actions.flatMap(commandsOf),
+    commands,
     ...(payload.container.type === "message" && { conversation: payload.container.channel_id }),
   });
   return new Response(null, { status: 200 });

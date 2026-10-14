@@ -16,6 +16,7 @@ import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
+import { websiteOrigin } from "../website/link";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, purchaseReplyOf, readyCrateOf, tiersEarnedLines, type HomeAction } from "./home";
@@ -85,7 +86,7 @@ export const linesStillWanted = internalQuery({
     const { workspace } = await chatUserOf(ctx, member);
     if (!(await xpLevelsOnFor(ctx, member)) || !(await wantsDms(ctx, member))) return null;
     const told = await stillToldOf(ctx, workspace, member, notification);
-    const lines = told === null ? [] : renderNotification(told, await openTreeOf(ctx, workspace, member, told));
+    const lines = told === null ? [] : renderNotification(told, await websiteOrigin(ctx, workspace), await openTreeOf(ctx, workspace, member, told));
     if (lines.length === 0) return null;
     const link = await deepLinkOf(ctx, workspace, linkedPages[notification.kind]);
     return link === null ? lines : [...lines, { link }];
@@ -100,12 +101,12 @@ export const purchaseReplyStillWanted = internalQuery({
   },
 });
 
-export function renderNotification(notification: Notification, openTree: MemberPerks | null = null): NotificationLine[] {
-  if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp)];
-  if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp));
-  if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp)];
+function renderNotification(notification: Notification, website: string | null, openTree: MemberPerks | null): NotificationLine[] {
+  if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp, website)];
+  if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp, website));
+  if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp, website)];
   if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers);
-  const crates = notification.ready.map((feature) => readyCrateOf(scheduled(feature)));
+  const crates = notification.ready.map((feature) => readyCrateOf(scheduled(feature), website));
   if (notification.kind !== "level-reached") return crates;
   return [...levelReachedLines(notification, openTree), ...crates, ...perkOffersOf(openTree)];
 }
