@@ -1,0 +1,32 @@
+[
+ {
+  "text": "Profile",
+  "value": "{\"type\":\"showHomeTab\",\"tab\":\"profile\"}",
+  "action_id": "{\"type\":\"showHomeTab\",\"tab\":\"profile\"}"
+ },
+ {
+  "text": "Settings",
+  "value": "{\"type\":\"showHomeTab\",\"tab\":\"settings\"}",
+  "action_id": "{\"type\":\"showHomeTab\",\"tab\":\"settings\"}"
+ },
+ {
+  "text": "Open",
+  "value": "{\"type\":\"openQuestCrate\",\"quest\":{\"kind\":\"weekly\",\"week\":\"2026-10-12\",\"slot\":1}}",
+  "action_id": "{\"type\":\"openQuestCrate\",\"quest\":{\"kind\":\"weekly\",\"week\":\"2026-10-12\",\"slot\":1}}"
+ },
+ {
+  "text": "Swap",
+  "value": "{\"type\":\"rerollQuest\",\"quest\":{\"kind\":\"weekly\",\"week\":\"2026-10-12\",\"slot\":2}}",
+  "action_id": "{\"type\":\"rerollQuest\",\"quest\":{\"kind\":\"weekly\",\"week\":\"2026-10-12\",\"slot\":2}}"
+ },
+ {
+  "text": "Open",
+  "value": "{\"type\":\"openQuestCrate\",\"quest\":{\"kind\":\"journey\",\"step\":\"first-thanks\"}}",
+  "action_id": "{\"type\":\"openQuestCrate\",\"quest\":{\"kind\":\"journey\",\"step\":\"first-thanks\"}}"
+ },
+ {
+  "text": "Open",
+  "value": "{\"type\":\"openQuestCrate\",\"quest\":{\"kind\":\"journey\",\"step\":\"first-quest\"}}",
+  "action_id": "{\"type\":\"openQuestCrate\",\"quest\":{\"kind\":\"journey\",\"step\":\"first-quest\"}}"
+ }
+]

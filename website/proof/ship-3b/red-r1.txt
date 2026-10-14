@@ -1,0 +1,38 @@
+
+ RUN  v5.0.3 <worktree>
+
+ ❯ |convex| convex/website/commands.test.ts (25 tests | 2 failed | 21 skipped) 168ms
+   ❯ a website command never launches unlocks (4)
+     × WS62 WS74 P91: with quests on, unlocks launched and no Journey launch, opening a ready Leaderboard answers refused and neither launches the Journey nor joins anyone 25ms
+     × WS62 WS74 P91: with quests on, unlocks launched and no Journey launch, opening an open Leaderboard answers refused and neither launches the Journey nor joins anyone 18ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/commands.test.ts > a website command never launches unlocks > WS62 WS74 P91: with quests on, unlocks launched and no Journey launch, opening a ready Leaderboard answers refused and neither launches the Journey nor joins anyone
+ FAIL  |convex| convex/website/commands.test.ts > a website command never launches unlocks > WS62 WS74 P91: with quests on, unlocks launched and no Journey launch, opening an open Leaderboard answers refused and neither launches the Journey nor joins anyone
+AssertionError: expected { kind: 'opened' } to deeply equal { kind: 'refused' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "refused",
++   "kind": "opened",
+  }
+
+ ❯ convex/website/commands.test.ts:217:52
+    215|     vi.mocked(publish).mockClear();
+    216|
+    217|     expect(await openFeature(asSignedIn, feature)).toEqual({ kind: "re…
+       |                                                    ^
+    218|     expect(await everythingWritten()).toEqual(before);
+    219|     expect(before.tables.journeyLaunches).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed | 21 skipped (25)
+   Start at  05:02:21
+   Duration  1.10s (transform 56%, import 21%, tests 17%, environment 5%)
+

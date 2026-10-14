@@ -188,7 +188,7 @@ describe("WS20 WS36: the leaderboard read shows where the page stands, inside th
 });
 
 describe("WS5: a sign-in started on a deep link comes back to it", () => {
-  it.each(["/leaderboard?period=month", "/"])("asks Convex Auth to bring the member back to %s after Slack", async (address) => {
+  it.each(["/leaderboard?period=month", "/quests", "/"])("asks Convex Auth to bring the member back to %s after Slack", async (address) => {
     window.history.replaceState(null, "", address);
     profileRead.mockReturnValue(shellFixtures.signedOut);
     authActions.signIn.mockResolvedValue({ signingIn: false });

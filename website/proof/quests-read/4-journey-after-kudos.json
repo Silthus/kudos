@@ -1,0 +1,30 @@
+[
+ {
+  "crate": {
+   "kind": "journey",
+   "step": "first-thanks"
+  },
+  "goal": "Give a kudos that says why.",
+  "hint": "It counts when your message has 5 or more words besides mentions and emoji.",
+  "reward": {
+   "xp": 10
+  },
+  "seen": "b11250cf7d200f2cb8dd1aa3305bf591",
+  "state": "finished",
+  "step": "first-thanks"
+ },
+ {
+  "crate": {
+   "kind": "journey",
+   "step": "first-quest"
+  },
+  "goal": "Finish a weekly quest.",
+  "hint": null,
+  "reward": {
+   "xp": 20
+  },
+  "seen": "94576c49ee04a03f6b112ab863f7fc9e",
+  "state": "finished",
+  "step": "first-quest"
+ }
+]

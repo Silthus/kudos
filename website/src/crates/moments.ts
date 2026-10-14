@@ -1,17 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { focusPageTitle } from "../pageFocus";
-import type { Feature, FeatureCard, ShellActions } from "../shell";
+import type { Feature, ShellActions } from "../shell";
+import { rewardLabelOf, type ReadyCrate } from "./readyCrates";
 import { hasSeen, markSeen } from "./seen";
 
 export type Attempt = "opening" | "refused" | "unreachable";
 
-export type Reveal = { card: FeatureCard; seenBefore: boolean };
+export type Reveal = { crate: ReadyCrate; seenBefore: boolean; fromQuests: boolean };
 
 export type Moments = {
-  attemptOf(feature: Feature): Attempt | undefined;
-  open(card: FeatureCard): void;
+  attemptOf(crate: ReadyCrate): Attempt | undefined;
+  open(crate: ReadyCrate): void;
   reveal: Reveal | undefined;
-  finish(card: FeatureCard): void;
+  finish(crate: ReadyCrate): void;
   close(how: { returnFocus: boolean }): void;
   announcement: string;
 };
@@ -29,14 +30,16 @@ export function useMoments() {
   return useContext(MomentsContext);
 }
 
-type Shown = { signedOut: boolean; crates: string[] | undefined };
+type Commands = Pick<ShellActions, "openFeature" | "openQuestCrate">;
 
-export function useCrateMoments(openFeature: ShellActions["openFeature"], { signedOut, crates }: Shown): Moments {
-  const [attempts, setAttempts] = useState<Partial<Record<Feature, Attempt>>>({});
+type Shown = { signedOut: boolean; crates: string[] | undefined; onQuests: boolean };
+
+export function useCrateMoments(commands: Commands, { signedOut, crates, onQuests }: Shown): Moments {
+  const [attempts, setAttempts] = useState<Partial<Record<string, Attempt>>>({});
   const [reveals, setReveals] = useState<Reveal[]>([]);
   const [announcement, setAnnouncement] = useState("");
-  const sending = useRef(new Set<Feature>());
-  const focusAfterClose = useRef<Feature | undefined>(undefined);
+  const sending = useRef(new Set<string>());
+  const focusAfterClose = useRef<ReadyCrate | undefined>(undefined);
   const session = useRef(0);
   const membersShown = useMembersShown(crates);
   const reveal = reveals[0];
@@ -58,41 +61,44 @@ export function useCrateMoments(openFeature: ShellActions["openFeature"], { sign
     if (membersShown > 1) forgetEverything();
   }, [membersShown, forgetEverything]);
 
-  const attemptIs = useCallback((feature: Feature, attempt: Attempt | undefined) => setAttempts((all) => ({ ...all, [feature]: attempt })), []);
+  const attemptIs = useCallback((seen: string, attempt: Attempt | undefined) => setAttempts((all) => ({ ...all, [seen]: attempt })), []);
+  const onQuestsNow = useRef(onQuests);
+  onQuestsNow.current = onQuests;
 
   const open = useCallback(
-    async (card: FeatureCard) => {
-      const { feature } = card;
-      if (sending.current.has(feature)) return;
+    async (crate: ReadyCrate) => {
+      const { seen } = crate;
+      if (sending.current.has(seen)) return;
       const sentIn = session.current;
-      sending.current.add(feature);
-      attemptIs(feature, "opening");
+      const fromQuests = onQuestsNow.current;
+      sending.current.add(seen);
+      attemptIs(seen, "opening");
       setAnnouncement("");
       try {
-        const answer = await openFeature(feature);
+        const answer = await (crate.kind === "feature" ? commands.openFeature(crate.card.feature) : commands.openQuestCrate(crate.quest));
         if (session.current !== sentIn) return;
-        if (answer.kind === "opened") setReveals((queued) => [...queued, { card, seenBefore: hasSeen(card.seen) }]);
-        attemptIs(feature, answer.kind === "refused" ? "refused" : undefined);
+        if (answer.kind === "opened") setReveals((queued) => [...queued, { crate, seenBefore: hasSeen(seen), fromQuests }]);
+        attemptIs(seen, answer.kind === "refused" ? "refused" : undefined);
         if (answer.kind === "refused") setAnnouncement(attemptMessages.refused);
       } catch {
         if (session.current !== sentIn) return;
-        attemptIs(feature, "unreachable");
+        attemptIs(seen, "unreachable");
         setAnnouncement(attemptMessages.unreachable);
       } finally {
-        if (session.current === sentIn) sending.current.delete(feature);
+        if (session.current === sentIn) sending.current.delete(seen);
       }
     },
-    [openFeature, attemptIs],
+    [commands, attemptIs],
   );
 
-  const finish = useCallback((card: FeatureCard) => {
-    markSeen(card.seen);
-    setAnnouncement(`You opened ${card.name}.`);
+  const finish = useCallback((crate: ReadyCrate) => {
+    markSeen(crate.seen);
+    setAnnouncement(openedAnnouncementOf(crate));
   }, []);
 
   const close = useCallback(
     ({ returnFocus }: { returnFocus: boolean }) => {
-      focusAfterClose.current = returnFocus ? reveal?.card.feature : undefined;
+      focusAfterClose.current = returnFocus ? reveal?.crate : undefined;
       setReveals((queued) => queued.slice(1));
       setAnnouncement("");
     },
@@ -100,15 +106,15 @@ export function useCrateMoments(openFeature: ShellActions["openFeature"], { sign
   );
 
   useEffect(() => {
-    const feature = focusAfterClose.current;
-    if (reveal !== undefined || feature === undefined) return;
+    const crate = focusAfterClose.current;
+    if (reveal !== undefined || crate === undefined) return;
     focusAfterClose.current = undefined;
-    focusFeatureCardOrTitle(feature);
+    focusCrateHomeOrTitle(crate);
   }, [reveal]);
 
   return {
-    attemptOf: (feature) => attempts[feature],
-    open: (card) => void open(card),
+    attemptOf: (crate) => attempts[crate.seen],
+    open: (crate) => void open(crate),
     reveal,
     finish,
     close,
@@ -134,8 +140,18 @@ export function featureCardAttributes(feature: Feature) {
   return { "data-feature-card": feature };
 }
 
-function focusFeatureCardOrTitle(feature: Feature) {
-  const card = document.querySelector<HTMLElement>(`main [data-feature-card="${feature}"]`);
-  if (card === null) focusPageTitle();
-  else card.focus();
+export function questCrateHomeAttributes(seen: string | null) {
+  return seen === null ? {} : { "data-quest-crate": seen, tabIndex: -1 };
+}
+
+function openedAnnouncementOf(crate: ReadyCrate) {
+  if (crate.kind === "feature") return `You opened ${crate.card.name}.`;
+  return crate.quest.kind === "journey" ? `You opened your ${rewardLabelOf(crate)}.` : `You opened your ${rewardLabelOf(crate).toLowerCase()}.`;
+}
+
+function focusCrateHomeOrTitle(crate: ReadyCrate) {
+  const selector = crate.kind === "feature" ? `[data-feature-card="${crate.card.feature}"]` : `[data-quest-crate="${crate.seen}"]`;
+  const home = document.querySelector<HTMLElement>(`main ${selector}`);
+  if (home === null) focusPageTitle();
+  else home.focus();
 }

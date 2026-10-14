@@ -4,9 +4,10 @@ import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import type { ProgressSettings } from "../progression/settings";
 import type { JourneyStepFacts } from "../quests/journey";
+import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
 import { questOf } from "../quests/pool";
 import type { WeeklyQuests, WeeklySlot } from "../quests/weekly";
-import type { JourneyQuest, JourneyStep, Quest, WeeklyQuest } from "../quests/step";
+import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
@@ -184,28 +185,18 @@ function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, f
   return openedAt === null ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }) } : { kind: "text", text };
 }
 
-const journeyGoals: Record<JourneyStep, { goal: string; condition?: string }> = {
-  "first-thanks": { goal: "Give a kudos that says why.", condition: "It counts when your message has 5 or more words besides mentions and emoji." },
-  "first-quest": { goal: "Finish a weekly quest." },
-  "someone-new": { goal: "Thank someone you haven't thanked before." },
-};
-
-export function journeyGoalOf(step: JourneyStep) {
-  return journeyGoals[step].goal;
-}
-
 function journeyStepLines({ step, reward, finishedAt, openedAt }: JourneyStepFacts): HomeLine[] {
-  const { goal, condition } = journeyGoals[step];
+  const { goal, hint } = journeyCopyOf(step);
   if (finishedAt !== null) {
     const text = `${bold("Journey:")} ✅ ${goal} ${earned(reward.xp)}`;
     return [openedAt === null ? { kind: "action", text, action: openCrate({ kind: "journey", step }) } : { kind: "text", text }];
   }
   const active: HomeLine = { kind: "text", text: `${bold("Journey:")} ${goal} It pays ${bold(`${reward.xp} XP`)}.` };
-  return condition === undefined ? [active] : [active, { kind: "hint", text: condition }];
+  return hint === null ? [active] : [active, { kind: "hint", text: hint }];
 }
 
 export function finishedQuestCrateOf(quest: JourneyQuest, xp: number): { text: string; action: HomeAction } {
-  return { text: `✅ You finished a Journey step: ${journeyGoals[quest.step].goal} ${earned(xp)}`, action: openCrate(quest) };
+  return { text: `✅ You finished a Journey step: ${journeyGoalOf(quest.step)} ${earned(xp)}`, action: openCrate(quest) };
 }
 
 export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp: number): { text: string; action: HomeAction } {

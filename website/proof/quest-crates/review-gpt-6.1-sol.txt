@@ -1,0 +1,7 @@
+- **Minor — [website/src/crates/moments.ts:155](/home/coder/dev/kudos-wt/quest-crates/website/src/crates/moments.ts:155): Opening an older crate breaks focus return.** On `/quests`, open a crate under “Waiting to open.” Its opening removes it from the reactive `waiting` read, unmounting its card before the reveal closes. Selecting **Done** consequently focuses the page title instead of the quest card, violating WS74’s explicit focus requirement. Confirmed in a React runtime check: the card was absent and focus landed on “This week.”
+
+  **Fix:** Retain the confirmed opened card as a focus target through dismissal and while it holds focus. Add a test that removes the waiting entry during the reveal, then checks focus after Done. The existing tests use `fixedQuests`, so they never exercise this disappearance.
+Verdict: One verified minor defect; fix waiting-crate focus return before acceptance.
+tokens used
+81,788
+exit 0

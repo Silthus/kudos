@@ -2,18 +2,20 @@ import { useCallback, useEffect, useState } from "react";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
 
-export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "not-found" };
+export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests" } | { page: "not-found" };
 
 export type Screen = Exclude<Route["page"], "not-found">;
 
 export function routeOf({ pathname, search }: { pathname: string; search: string }): Route {
   if (pathname === "/") return { page: "home" };
   if (pathname === "/leaderboard") return { page: "leaderboard", period: periodIn(search) };
+  if (pathname === "/quests") return { page: "quests" };
   return { page: "not-found" };
 }
 
 export function hrefOf(route: Route) {
-  return route.page === "leaderboard" ? leaderboardHref(route.period) : "/";
+  if (route.page === "leaderboard") return leaderboardHref(route.period);
+  return route.page === "quests" ? "/quests" : "/";
 }
 
 export function leaderboardHref(period: Period) {
