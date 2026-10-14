@@ -10,9 +10,11 @@ import type { Feature, MemberProfile } from "../shell";
 import { navEntriesOf, type LockedEntry, type OpenEntry, type ReadyEntry } from "./entries";
 import "./nav.css";
 
-const entryShape = "relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring max-lg:rounded-full max-lg:px-3 max-lg:py-1 max-lg:text-sm";
+const tokenShape = "relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] outline-none lg:font-medium max-lg:rounded-full max-lg:px-3 max-lg:py-1 max-lg:text-sm max-lg:[&>svg]:size-3.5";
 
-const currentLook = "text-foreground max-lg:bg-primary max-lg:text-primary-foreground lg:after:absolute lg:after:inset-x-2 lg:after:-bottom-[12px] lg:after:h-0.5 lg:after:rounded-full lg:after:bg-primary";
+const entryShape = `${tokenShape} focus-visible:ring-2 focus-visible:ring-ring`;
+
+const currentLook = "text-foreground max-lg:bg-primary max-lg:font-medium max-lg:text-primary-foreground lg:after:absolute lg:after:inset-x-2 lg:after:-bottom-[12px] lg:after:h-0.5 lg:after:rounded-full lg:after:bg-primary";
 
 const idleLook = "text-muted-foreground hover:bg-fill-hover hover:text-foreground";
 
@@ -24,7 +26,7 @@ export function ScreenNav({ current, member }: { current?: Screen; member: Membe
       ref={rail}
       aria-label="Screens"
       onFocus={(event) => bringIntoView(event.target)}
-      className="flex flex-nowrap items-center gap-0.5 max-lg:order-last max-lg:-mx-4 max-lg:w-[calc(100%+2rem)] max-lg:gap-1 max-lg:overflow-x-auto max-lg:px-3 max-lg:pb-2 max-lg:scroll-px-3 md:max-lg:-mx-6 md:max-lg:w-[calc(100%+3rem)] md:max-lg:px-5 lg:mx-auto"
+      className="flex flex-nowrap items-center gap-0.5 max-lg:order-last max-lg:-mx-4 max-lg:w-[calc(100%+2rem)] max-lg:gap-1 max-lg:overflow-x-auto max-lg:px-3 max-lg:pt-1.5 max-lg:pb-2 max-lg:scroll-px-3 md:max-lg:-mx-6 md:max-lg:w-[calc(100%+3rem)] md:max-lg:px-5 lg:mx-auto"
     >
       {entries.map((entry) => {
         if (entry.state === "open") return <OpenItem key={entry.href} entry={entry} current={current === entry.screen} />;
@@ -78,7 +80,7 @@ function ReadyItem({ entry: { card, name } }: { entry: ReadyEntry }) {
         onClick={() => {
           if (!opening) moments?.open(crate);
         }}
-        className={`${entryShape} nav-token font-semibold text-foreground`}
+        className={`${tokenShape} nav-token font-semibold text-foreground`}
       >
         <CrateGlyph className="size-4" />
         <Label>{opening ? "Opening…" : name}</Label>
@@ -105,7 +107,7 @@ function LockedItem({ entry: { name, level, next } }: { entry: LockedEntry }) {
         tabIndex={0}
         aria-disabled="true"
         aria-label={`${name}, locked. Unlocks at level ${level}`}
-        className={`${entryShape} cursor-default text-muted-foreground`}
+        className={`${entryShape} cursor-default text-muted-foreground ${next ? "border border-dashed border-muted-foreground" : ""}`}
       >
         <IconLock className="size-4" />
         <Label>{name}</Label>
@@ -127,7 +129,7 @@ function WithTip({ tip, onlyWhenIconOnly = false, children }: { tip: ReactNode; 
   return (
     <Tooltip>
       <TooltipTrigger render={children} />
-      <TooltipContent className={onlyWhenIconOnly ? "hidden lg:max-xl:block" : undefined}>{tip}</TooltipContent>
+      <TooltipContent className={`flex-col items-start gap-0 ${onlyWhenIconOnly ? "hidden lg:max-xl:flex" : ""}`}>{tip}</TooltipContent>
     </Tooltip>
   );
 }

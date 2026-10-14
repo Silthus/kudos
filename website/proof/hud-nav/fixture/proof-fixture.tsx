@@ -35,7 +35,7 @@ show();
 if (params.get("six") === "1") {
   const grow = () => {
     const nav = document.querySelector('nav[aria-label="Screens"]');
-    const locked = nav?.querySelector('[role="link"][aria-disabled="true"]:not([data-clone])');
+    const locked = [...(nav?.querySelectorAll('[role="link"][aria-disabled="true"]:not([data-clone])') ?? [])].at(-1);
     if (!nav || !locked) return requestAnimationFrame(grow);
     const entry = locked.cloneNode(true) as HTMLElement;
     entry.dataset.clone = "";

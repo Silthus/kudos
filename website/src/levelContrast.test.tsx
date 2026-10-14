@@ -127,6 +127,7 @@ function navMarks() {
     { part: "the pill's label and icon on the pill", paints: tokenOf(pill, "max-lg:text"), surface: "primary", least: 4.5 },
     { part: "the next unlock's lock and label", paints: tokenOf(next, "text"), surface: "card", least: 4.5 },
     { part: "a later unlock's lock and label", paints: tokenOf(later, "text"), surface: "card", least: 4.5 },
+    { part: "the next unlock's dashed outline", paints: tokenOf(next, "border"), surface: "card", least: 3 },
     { part: "the ready entry's crate glyph and label", paints: tokenOf(ready, "text"), surface: "card", least: 4.5 },
   ];
 }

@@ -59,6 +59,8 @@ describe("WS301: the nav lists every shipped feature with a page, in schedule or
       expect(locked).not.toHaveAttribute("href");
     }
     expect(book).toHaveTextContent("Lv 8");
+    expect(book).toHaveClass("border-dashed");
+    expect(skillTree).not.toHaveClass("border-dashed");
     expect(skillTree).not.toHaveTextContent("Lv");
     for (const locked of [book, skillTree]) expect(locked).toHaveClass("text-muted-foreground");
     expect(nav()).not.toHaveTextContent(/levels? to go|XP|%/);
@@ -71,7 +73,9 @@ describe("WS301: the nav lists every shipped feature with a page, in schedule or
     const { user } = renderApp(everyState);
     const locked = within(nav()).getByRole("link", { name });
     await user.hover(locked);
-    expect(await tooltip()).toHaveTextContent(tip);
+    const shown = await tooltip();
+    expect(shown).toHaveTextContent(tip);
+    expect(shown).toHaveClass("flex-col", "items-start");
     await user.click(locked);
     expect(window.location.pathname).toBe("/");
   });
@@ -132,6 +136,7 @@ describe("WS302: labels and widths", () => {
     window.history.replaceState(null, "", "/quests");
     renderApp(everyState);
     for (const label of nav().querySelectorAll("[data-entry-label]")) expect(label).toHaveClass("lg:max-xl:sr-only");
+    expect(nav()).toHaveClass("max-lg:pt-1.5", "max-lg:pb-2");
     const current = within(nav()).getByRole("link", { name: "Quests" });
     expect(current).toHaveAttribute("aria-current", "page");
     expect(current).toHaveClass("max-lg:rounded-full", "max-lg:bg-primary", "max-lg:text-primary-foreground", "lg:after:bg-primary");
@@ -145,7 +150,7 @@ describe("WS302: labels and widths", () => {
     expect(within(nav()).getByRole("link", { name: "Quests" })).toHaveFocus();
     const tip = await tooltip();
     expect(tip).toHaveTextContent("Quests");
-    expect(tip).toHaveClass("hidden", "lg:max-xl:block");
+    expect(tip).toHaveClass("hidden", "lg:max-xl:flex", "flex-col");
   });
 });
 

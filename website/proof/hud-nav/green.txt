@@ -1,23 +1,28 @@
  ✓ |website| src/nav/entries.test.tsx > WS301 WS302: navEntriesOf lists Profile, then each shipped feature with a web page in schedule order and in its state > lists every state in schedule order, marks only the first locked entry as the next unlock, and skips a feature with no web page 9ms
  ✓ |website| src/nav/entries.test.tsx > WS301 WS302: navEntriesOf lists Profile, then each shipped feature with a web page in schedule order and in its state > gives a feature that hasn't shipped no entry, because it has no facts 1ms
- ✓ |website| src/nav/entries.test.tsx > WS301 WS302: navEntriesOf lists Profile, then each shipped feature with a web page in schedule order and in its state > keeps WS59's fallback while unlocks don't apply and the leaderboard is off 0ms
- ✓ |website| src/nav/entries.test.tsx > WS301 WS302: navEntriesOf lists Profile, then each shipped feature with a web page in schedule order and in its state > keeps WS59's fallback while unlocks don't apply and the leaderboard is open 0ms
- ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > shows Profile, an open link, a ready crate and the locked entries in schedule order 266ms
- ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > makes a locked entry focusable but no link anywhere, with only the next unlock carrying the neutral Lv mark 121ms
- ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > tells the next unlock's level in a tooltip, and goes nowhere when clicked 794ms
- ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > tells a later unlock's level in a tooltip, and goes nowhere when clicked 754ms
- ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > opens a ready feature's crate from its entry, through openFeature and the reveal 163ms
- ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > keeps today's nav while unlocks don't apply 91ms
- ✓ |website| src/nav/hud.test.tsx > WS302: labels and widths > names the first entry Profile, links it home, keeps it current there and titles the tab HedgeHug · Profile 89ms
- ✓ |website| src/nav/hud.test.tsx > WS302: labels and widths > reads Back to your profile wherever a page sent the member home 51ms
- ✓ |website| src/nav/hud.test.tsx > WS302: labels and widths > shows icons only from lg to xl, with the label kept as the name, and a filled pill for the current entry below lg 49ms
- ✓ |website| src/nav/hud.test.tsx > WS302: labels and widths > gives an icon-only entry its label as a tooltip on keyboard focus, shown only from lg to xl 213ms
- ✓ |website| src/nav/hud.test.tsx > WS303: the right of the bar > links the avatar to the profile, named with the member's level, beside its own Sign out 97ms
- ✓ |website| src/nav/hud.test.tsx > WS303: the right of the bar > names the avatar without a level while progression is off 106ms
- ✓ |website| src/nav/hud.test.tsx > WS303: the right of the bar > gives the header E's one-pixel bottom shadow 71ms
- ✓ |website| src/nav/hud.test.tsx > WS304: a feature opened in this tab pops in once > pops in the new entry after openFeature answers opened 133ms
- ✓ |website| src/nav/hud.test.tsx > WS304: a feature opened in this tab pops in once > never pops in on an ordinary visit or a reload 40ms
- ✓ |website| src/nav/hud.test.tsx > WS304: a feature opened in this tab pops in once > never pops in under reduced motion 161ms
- ✓ |website| src/nav/hud.test.tsx > WS304: a feature opened in this tab pops in once > pops in the skill point chip the skill tree brings 141ms
+ ✓ |website| src/nav/entries.test.tsx > WS301 WS302: navEntriesOf lists Profile, then each shipped feature with a web page in schedule order and in its state > keeps WS59's fallback while unlocks don't apply and the leaderboard is off 1ms
+ ✓ |website| src/nav/entries.test.tsx > WS301 WS302: navEntriesOf lists Profile, then each shipped feature with a web page in schedule order and in its state > keeps WS59's fallback while unlocks don't apply and the leaderboard is open 1ms
+ ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > shows Profile, an open link, a ready crate and the locked entries in schedule order 460ms
+ ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > makes a locked entry focusable but no link anywhere, with only the next unlock carrying the neutral Lv mark 399ms
+ ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > tells the next unlock's level in a tooltip, and goes nowhere when clicked 949ms
+ ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > tells a later unlock's level in a tooltip, and goes nowhere when clicked 828ms
+ ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > opens a ready feature's crate from its entry, through openFeature and the reveal 275ms
+ ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > says Opening… on a ready entry until openFeature answers, and sends nothing more meanwhile 285ms
+ ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > says beside the bar what went wrong when a later ready entry's open refuses 387ms
+ ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > says beside the bar what went wrong when a later ready entry's open can't be reached 310ms
+ ✓ |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > keeps today's nav while unlocks don't apply 147ms
+ ✓ |website| src/nav/hud.test.tsx > WS302: labels and widths > names the first entry Profile, links it home, keeps it current there and titles the tab HedgeHug · Profile 258ms
+ ✓ |website| src/nav/hud.test.tsx > WS302: labels and widths > reads Back to your profile wherever a page sent the member home 216ms
+ ✓ |website| src/nav/hud.test.tsx > WS302: labels and widths > shows icons only from lg to xl, with the label kept as the name, and a filled pill for the current entry below lg 689ms
+ ✓ |website| src/nav/hud.test.tsx > WS302: labels and widths > gives an icon-only entry its label as a tooltip on keyboard focus, shown only from lg to xl 535ms
+ ✓ |website| src/nav/hud.test.tsx > WS300 WS301: the rail keeps the current entry in view as it opens > brings a page's entry into view when it turns from ready to open on that page 55ms
+ ✓ |website| src/nav/hud.test.tsx > WS303: the right of the bar > links the avatar to the profile, named with the member's level, beside its own Sign out 151ms
+ ✓ |website| src/nav/hud.test.tsx > WS303: the right of the bar > names the avatar without a level while progression is off 194ms
+ ✓ |website| src/nav/hud.test.tsx > WS303: the right of the bar > gives the header E's one-pixel bottom shadow 211ms
+ ✓ |website| src/nav/hud.test.tsx > WS304: a feature opened in this tab pops in once > pops in the new entry after openFeature answers opened 706ms
+ ✓ |website| src/nav/hud.test.tsx > WS304: a feature opened in this tab pops in once > pops in only once: not again after the HUD comes back from a lost connection 514ms
+ ✓ |website| src/nav/hud.test.tsx > WS304: a feature opened in this tab pops in once > never pops in on an ordinary visit or a reload 110ms
+ ✓ |website| src/nav/hud.test.tsx > WS304: a feature opened in this tab pops in once > never pops in under reduced motion 2090ms
+ ✓ |website| src/nav/hud.test.tsx > WS304: a feature opened in this tab pops in once > pops in the skill point chip the skill tree brings 469ms
  Test Files  2 passed (2)
-      Tests  21 passed (21)
+      Tests  26 passed (26)

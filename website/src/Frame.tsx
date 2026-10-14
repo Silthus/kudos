@@ -80,7 +80,7 @@ function avatarName({ name, progression }: MemberProfile) {
 
 function SignOut({ onSignOut }: { onSignOut: () => void }) {
   return (
-    <Button variant="outline" size="icon-sm" aria-label="Sign out" title="Sign out" onClick={onSignOut}>
+    <Button variant="outline" size="icon" aria-label="Sign out" title="Sign out" onClick={onSignOut}>
       <IconLeave />
     </Button>
   );
