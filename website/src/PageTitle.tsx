@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 
-const sizes = { page: "text-2xl", hero: "text-4xl leading-none" };
+const sizes = { page: "text-2xl", hero: "text-4xl leading-none wrap-anywhere" };
 
 export function PageTitle({ tab, id, size = "page", children }: { tab: string; id?: string; size?: keyof typeof sizes; children: ReactNode }) {
   useEffect(() => {

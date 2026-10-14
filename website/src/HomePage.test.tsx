@@ -81,6 +81,17 @@ describe("WS98 WS101: the hero is the character header, leading with the member 
     expect(refill.querySelector("time")).toHaveAttribute("dateTime", "2026-10-14T00:00:00.000Z");
   });
 
+  it.each([
+    [0, ["spent", "spent", "spent"]],
+    [1, ["left", "spent", "spent"]],
+    [3, ["left", "left", "left"]],
+  ] as const)("fills a pip for each of %i kudos left and outlines each spent one", (left, pips) => {
+    renderApp({ ...shellFixtures.member, allowance: { ...shellFixtures.member.allowance, left } });
+    const allowance = within(hero()).getByRole("img", { name: `${left} of 3 kudos left today` });
+    const shown = [...allowance.children].map((pip) => (pip.classList.contains("bg-foreground") ? "left" : pip.classList.contains("border-muted-foreground") ? "spent" : "unpainted"));
+    expect(shown).toEqual(pips);
+  });
+
   it("states the lifetime totals in one quiet line and Max's line on this week, unchanged", () => {
     renderApp(shellFixtures.member);
     expect(within(hero()).getByText("You've given 14 kudos and received 9.")).not.toHaveClass("hud-display");
@@ -192,6 +203,7 @@ describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while pr
     const ring = within(hero()).getByRole("img", { name });
     expect(within(ring).getByText("Level")).toHaveClass("hud-label");
     expect(within(ring).getByText(level)).toHaveClass("hud-display");
+    expect(arcOf(ring)).toHaveAttribute("pathLength", "100");
     expect(arcOf(ring)).toHaveAttribute("stroke-dasharray", dashes);
     expect(ring).toHaveStyle({ width: "120px", height: "120px" });
   });
@@ -215,6 +227,7 @@ describe("WS47 WS50 WS51 WS98 WS99: the level ring and the XP bar, only while pr
     const avatar = screen.getByRole("button", { name: "Account menu for Sam Example" });
     expect(avatar).toHaveAccessibleDescription("Level 7, 500 XP to level 8");
     const ring = within(avatar).getByRole("img", { name: "Level 7, 500 XP to level 8" });
+    expect(arcOf(ring)).toHaveAttribute("pathLength", "100");
     expect(arcOf(ring)).toHaveAttribute("stroke-dasharray", `${100 / 6} 100`);
     expect(within(ring).getByText("SE")).toBeInTheDocument();
     expect(within(ring).getByText("7")).toHaveClass("hud-display");
