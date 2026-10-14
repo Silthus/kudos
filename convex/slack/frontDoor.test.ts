@@ -329,11 +329,14 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     expect(accessoryBeside("*Skill tree* is ready.")).toMatchObject({ action_id: "website-link:skillTree", accessibility_label: "Open on HedgeHug's home page" });
   });
 
-  test("a Journey step's crate links to the home and a weekly quest's crate to the Quests page", async () => {
+  test("a Journey step's crate links to the home, and a weekly quest's crate, this week's or an earlier week's, to the Quests page", async () => {
     const t = await workspace(...everyFlag, "website");
     await levelThreeWithQuestsDrawn(t);
     await openReadyFeatures(t);
+    await waitingFromAnEarlierWeek(t, "U_ALICE", 1);
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+
+    expect(accessoryBeside("*Week of Oct 5:*")).toMatchObject({ url: `${siteUrl}/quests`, action_id: "website-link:weekly:2026-10-05:0", accessibility_label: "Open on HedgeHug's Quests page" });
 
     expect(accessoryBeside(`✅ ${sayWhy}`)).toMatchObject({ url: `${siteUrl}/quests`, action_id: "website-link:weekly:2026-10-12:0", accessibility_label: "Open on HedgeHug's Quests page" });
     expect(accessoryBeside("✅ Give a kudos that says why.")).toMatchObject({ url: `${siteUrl}/`, action_id: "website-link:journey:first-thanks", accessibility_label: "Open on HedgeHug's home page" });
@@ -354,7 +357,7 @@ describe("each crate's Open in Slack links to the page where it opens while the 
 });
 
 function accessoryBeside(text: string) {
-  return publishedHomeBlocks(slack, "U_ALICE").find((block) => readBlocks([block])[0]?.includes(text))?.accessory;
+  return publishedHomeBlocks(slack, "U_ALICE").find((block) => readBlocks([block])[0]?.startsWith(`section: ${text}`))?.accessory;
 }
 
 type LinkButton = { label: string; url: string };
