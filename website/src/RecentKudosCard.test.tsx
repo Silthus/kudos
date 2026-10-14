@@ -129,7 +129,7 @@ describe("WS206: its frame", () => {
   });
 
   it("keeps the last rows and the switch in place, busy, while the other direction loads", async () => {
-    const { user } = homeAnswering(threeReceived, undefined);
+    const { user } = homeWith((direction) => (direction === "received" ? threeReceived : undefined));
     await user.click(switchOption("Given"));
 
     expect(card()).toHaveAttribute("aria-busy", "true");
@@ -155,9 +155,9 @@ describe("WS207: its rows", () => {
     await user.click(switchOption("Given"));
 
     expect(headlinesOf()).toEqual(["You thanked Cleo Marchetti", "You thanked Ada Lindqvist and Bo Okafor", "You thanked Ada Lindqvist, Bo Okafor and 3 others"]);
-    expect(within(rowAt(0)).getAllByTestId("recent-kudos-face")).toHaveLength(1);
-    expect(within(rowAt(1)).getAllByTestId("recent-kudos-face")).toHaveLength(2);
-    expect(within(rowAt(2)).getAllByTestId("recent-kudos-face")).toHaveLength(3);
+    expect(within(rowAt(0)).getAllByTestId("person-face")).toHaveLength(1);
+    expect(within(rowAt(1)).getAllByTestId("person-face")).toHaveLength(2);
+    expect(within(rowAt(2)).getAllByTestId("person-face")).toHaveLength(3);
   });
 
   it("shows the words clamped to two lines, links as text, and Edited after an edited message", () => {

@@ -12,8 +12,9 @@ import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
 import { useSocketUnreachable } from "./connection";
 import type { QuestsShown } from "./questsRead";
+import type { Direction } from "./recentKudosRead";
 import type { SkillTreeShown } from "./skillTreeRead";
-import type { Period, ShellActions, Visitor } from "./shell";
+import type { MyRecentKudos, Period, ShellActions, Visitor } from "./shell";
 import { forgetSignInStarted } from "./signInAttempt";
 
 export function LiveShell({ client }: { client: ConvexReactClient }) {
@@ -40,7 +41,7 @@ function LiveApp() {
       useQuests={(asking) => useLiveQuests(asking, unreachable)}
       useBook={(asking) => useLiveBook(asking, unreachable)}
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
-      useRecentKudos={() => undefined}
+      useRecentKudos={useLiveRecentKudos}
     />
   );
 }
@@ -75,6 +76,12 @@ function useLiveSkillTree(asking: boolean, unreachable: boolean): SkillTreeShown
   if (skillTree instanceof Error) return { kind: "broken" };
   if (skillTree === undefined && unreachable) return { kind: "connecting" };
   return skillTree;
+}
+
+function useLiveRecentKudos(direction: Direction): MyRecentKudos | undefined {
+  const request = useMemo((): RequestForQueries => ({ recent: { query: api.website.activity.getRecentKudos, args: { direction, limit: 3 } } }), [direction]);
+  const { recent } = useQueries(request);
+  return recent instanceof Error ? undefined : recent;
 }
 
 type Answers = { authLoading: boolean; redemptionFailed: boolean; unreachable: boolean; profile: MyProfile | undefined };
