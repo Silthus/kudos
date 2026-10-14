@@ -17,8 +17,12 @@ export type Wallet = { balance: number };
 
 export const walletOf = internalQuery({
   args: { member: v.id("members") },
-  handler: async (ctx, { member }): Promise<Wallet | null> => ((await coinsVisibleTo(ctx, member)) ? { balance: await balanceOf(ctx, member) } : null),
+  handler: (ctx, { member }) => visibleWalletOf(ctx, member),
 });
+
+export async function visibleWalletOf(ctx: QueryCtx, member: MemberId): Promise<Wallet | null> {
+  return (await coinsVisibleTo(ctx, member)) ? { balance: await balanceOf(ctx, member) } : null;
+}
 
 export async function balanceOf(ctx: QueryCtx, member: MemberId): Promise<number> {
   return (await walletRow(ctx, member))?.balance ?? 0;

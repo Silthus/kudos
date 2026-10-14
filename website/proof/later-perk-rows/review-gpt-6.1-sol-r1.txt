@@ -1,0 +1,5 @@
+codex
+I’ll read the diff against the spec and ticket, then check the coin visibility rules, upgrade layout, and accessibility. I won’t edit files or run tests.
+exec
+/bin/bash -lc 'cat /home/coder/.agents/skills/review-pr/SKILL.md' in /tmp/i295/review-tree
+ succeeded in 0ms:

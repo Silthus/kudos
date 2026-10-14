@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { PageTitle } from "../PageTitle";
 import type { SkillTreeAnswer } from "../shell";
-import { SkillPointGlyph } from "./glyphs";
-import { ownedCountLine, pointsToSpend, skillPointsText } from "./perkWords";
+import { CoinGlyph, SkillPointGlyph } from "./glyphs";
+import { coinsText, ownedCountLine, pointsToSpend, skillPointsText } from "./perkWords";
 
 type Tree = Extract<SkillTreeAnswer, { kind: "tree" }>;
 
@@ -20,6 +20,7 @@ export function TreeHeader({ tree, level }: { tree: Tree; level: number | undefi
       </div>
       <ul aria-label="Your resources" className="flex flex-wrap items-center gap-2">
         <ResourceChip icon={<SkillPointGlyph />}>{skillPointsText(tree.skillPoints)}</ResourceChip>
+        {tree.coins !== null && <ResourceChip icon={<CoinGlyph />}>{coinsText(tree.coins)}</ResourceChip>}
         {level !== undefined && (
           <ResourceChip icon={<LevelMark />}>
             <span className="sr-only">Level</span> {level}
