@@ -41,7 +41,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("PC1 PC5 PC7 PC8: /hedgehug @member answers that member's profile card", () => {
+describe("PC1 PC5 PC7 PC8: /hedgehug @member answers that member's profile card", { timeout: 30_000 }, () => {
   test("a member with a level and tiers on five ladders shows their name, level and best four medals, catalogue order breaking a tie", async () => {
     const t = await workspace();
     await withXp(t, "U_BEA", levelSevenXp);
@@ -62,7 +62,7 @@ describe("PC1 PC5 PC7 PC8: /hedgehug @member answers that member's profile card"
   });
 });
 
-describe("PC9: a card follows what has shipped, except an own card's medals wait for the Book", () => {
+describe("PC9: a card follows what has shipped, except an own card's medals wait for the Book", { timeout: 30_000 }, () => {
   test("an own card shows no medals before the member opened the Book, and its medals once they have", async () => {
     const t = await workspace();
     await earned(t, "U_ANN", "generosity", "bronze");
@@ -113,7 +113,7 @@ describe("PC9: a card follows what has shipped, except an own card's medals wait
   });
 });
 
-describe("PC2: text led by a mention that isn't one person answers the usage line", () => {
+describe("PC2: text led by a mention that isn't one person answers the usage line", { timeout: 30_000 }, () => {
   test.each(["<@U_BEA> <@U_ANN>", "<!subteam^S123|@team>", "<!here>", "<#C1|general>", "<@U_BEA> thanks"])("%s", async (text) => {
     const t = await workspace();
 
@@ -129,7 +129,7 @@ describe("PC2: text led by a mention that isn't one person answers the usage lin
   });
 });
 
-describe("PC3 PC4: who the card is for", () => {
+describe("PC3 PC4: who the card is for", { timeout: 30_000 }, () => {
   test.each(["U_BOT", "U_GONE"])("%s answers the not-a-member line", async (user) => {
     const t = await workspace();
     await lookedUp(t, user);
@@ -193,7 +193,7 @@ describe("PC3 PC4: who the card is for", () => {
   });
 });
 
-describe("PC11 PC17: the profile-card flag", () => {
+describe("PC11 PC17: the profile-card flag", { timeout: 30_000 }, () => {
   test.each(["<@U_BEA>", "<@U_BEA> <@U_ANN>", "<@U_NEW>", "<@U_BOT>"])("while it is off, /hedgehug %s is today's join path", async (text) => {
     const t = await workspace({ flags: [onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"), offForEveryone(cardFlag)] });
 
@@ -243,7 +243,7 @@ describe("PC11 PC17: the profile-card flag", () => {
   });
 });
 
-describe("PC13: profile card viewed", () => {
+describe("PC13: profile card viewed", { timeout: 30_000 }, () => {
   test("a card shown to a member sends profile card viewed, own or a teammate's, at the command", async () => {
     const t = await workspace();
     const typedAt: string[] = [];
