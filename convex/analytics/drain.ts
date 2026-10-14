@@ -5,7 +5,7 @@ import { internalAction, internalMutation, type MutationCtx } from "../_generate
 import { captureSettings, type Capture } from "./capture";
 import { postHogExceptionList } from "./exceptions";
 import { failuresLogged } from "./failures";
-import { forgetRecordedProfiles, withoutStalePersonEvents } from "./person";
+import { followPeopleSentLate, forgetRecordedProfiles, personEventsIn, withoutStalePersonEvents } from "./person";
 
 const batchSize = 100;
 const answerTimeoutMs = 10_000;
@@ -21,6 +21,7 @@ type GiveUpReason = NonNullable<OutboxRow["reason"]>;
 type Claim = { token: string; rows: OutboxRow[] };
 
 const answerValidator = v.union(v.literal("delivered"), v.literal("rejected"), v.literal("failed"));
+const sentPersonEventValidator = v.object({ row: v.id("analyticsOutbox"), distinctId: v.string() });
 type Answer = typeof answerValidator.type;
 
 export const drain = internalAction({
@@ -32,7 +33,7 @@ export const drain = internalAction({
         const claimed: Claim | null = await ctx.runMutation(internal.analytics.drain.claim, { generation });
         if (claimed === null || capture === null) return;
         const answer = await send(capture, claimed.rows);
-        await ctx.runMutation(internal.analytics.drain.settle, { token: claimed.token, rows: claimed.rows.map((row) => row._id), answer });
+        await ctx.runMutation(internal.analytics.drain.settle, { token: claimed.token, rows: claimed.rows.map((row) => row._id), people: personEventsIn(claimed.rows), answer });
       }
     }),
 });
@@ -57,10 +58,11 @@ export const claim = internalMutation({
 });
 
 export const settle = internalMutation({
-  args: { token: v.string(), rows: v.array(v.id("analyticsOutbox")), answer: answerValidator },
-  handler: async (ctx, { token, rows, answer }) => {
+  args: { token: v.string(), rows: v.array(v.id("analyticsOutbox")), people: v.array(sentPersonEventValidator), answer: answerValidator },
+  handler: async (ctx, { token, rows, people, answer }) => {
     const now = Date.now();
     const leased = (await Promise.all(rows.map((id) => ctx.db.get(id)))).filter((row): row is OutboxRow => row?.lease === token && row.dueAt > now);
+    await followPeopleSentLate(ctx, people, leased);
     const held = answer === "delivered" ? leased : await withoutStalePersonEvents(ctx, leased);
     if (answer === "delivered") {
       for (const row of held) await ctx.db.delete(row._id);

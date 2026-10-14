@@ -74,7 +74,9 @@ export class FakePostHog {
   }
 
   personOf(distinctId: string) {
-    const accepted = this.requests.filter(({ status }) => status !== undefined && status >= 200 && status < 300);
+    const accepted = this.requests
+      .filter(({ status }) => status !== undefined && status >= 200 && status < 300)
+      .toSorted((first, second) => (first.endedAt ?? 0) - (second.endedAt ?? 0));
     const person: Record<string, unknown> = {};
     for (const { distinct_id, properties } of accepted.flatMap((request) => request.events).filter(isPersonEvent)) {
       if (distinct_id !== distinctId) continue;

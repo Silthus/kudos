@@ -182,7 +182,7 @@ describe("O16 O17: leases", () => {
     await recordKudosGiven(t);
     const late = await claimAsTheDrain(t);
     const settleLate = (answer: "delivered" | "rejected" | "failed") =>
-      t.mutation(internal.analytics.drain.settle, { token: late!.token, rows: late!.rows.map((row) => row._id), answer });
+      t.mutation(internal.analytics.drain.settle, { token: late!.token, rows: late!.rows.map((row) => row._id), people: [], answer });
 
     vi.setSystemTime(Date.now() + minutes(2));
     const heldByLate = await outbox(t);

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { chatUserOf, lookup, personFactsOf, type MemberId, type PersonFacts } from "../workspace/directory";
 import { keptUserGroupHandlesIn, userGroupsOfUser } from "../workspace/userGroups";
@@ -109,6 +109,22 @@ export async function withoutStalePersonEvents(ctx: MutationCtx, rows: OutboxRow
     else current.push(row);
   }
   return current;
+}
+
+export function personEventsIn(rows: OutboxRow[]) {
+  return rows.filter(isPersonEvent).map(({ _id, distinctId }) => ({ row: _id, distinctId }));
+}
+
+export async function followPeopleSentLate(ctx: MutationCtx, sent: { row: Id<"analyticsOutbox">; distinctId: string }[], stillHeld: OutboxRow[]) {
+  const held = new Set(stillHeld.map(({ _id }) => _id));
+  const late = [];
+  for (const { distinctId } of sent.filter(({ row }) => !held.has(row))) {
+    const identity = await identityWithAnalyticsId(ctx, distinctId);
+    if (identity === null) continue;
+    await ctx.db.patch(identity._id, { profileFingerprint: null });
+    late.push(identity.member);
+  }
+  await followMembersLater(ctx, late);
 }
 
 export async function forgetRecordedProfiles(ctx: MutationCtx, rows: OutboxRow[]) {

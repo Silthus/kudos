@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, answersWith, postHogHost, projectToken, routedFetch } from "../../testing/fakePostHog";
+import { FakePostHog, answersWith, postHogHost, projectToken, routedFetch, stallsUntilReleased } from "../../testing/fakePostHog";
 import { makeFunctionReference } from "convex/server";
 import { internal } from "../_generated/api";
 import crons from "../crons";
+import { personEventsIn } from "./person";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, post, settle, settleInTimeOrder, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
@@ -146,7 +147,7 @@ describe("F8: a newer person event replaces an older one still waiting", () => {
     const inFlight = await claimAsTheDrain(t);
     await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Chef" } }, { eventTs: later(2) });
     await recordFollowedPeopleWithoutDraining(t);
-    await t.mutation(internal.analytics.drain.settle, { token: inFlight!.token, rows: inFlight!.rows.map((row) => row._id), answer: "failed" });
+    await t.mutation(internal.analytics.drain.settle, { token: inFlight!.token, rows: inFlight!.rows.map((row) => row._id), people: personEventsIn(inFlight!.rows), answer: "failed" });
     await settleInTimeOrder(t);
 
     expect(titlesSentTo(await annsDistinctId(t))).toEqual(["Gardener", "Chef"]);
@@ -193,6 +194,27 @@ describe("F8: a newer person event replaces an older one still waiting", () => {
 
     expect(unsetDelivered).toEqual({ environment: "sandbox" });
     expect(postHog.personOf(await annsDistinctId(t))).toEqual({ environment: "sandbox" });
+  });
+});
+
+describe("O17: a person event a drain sent after losing its claim", () => {
+  test("a drain that sent an older profile after its lease expired and a newer one was delivered has the current profile sent again", async () => {
+    const t = testBackend();
+    await annGaveKudos(t);
+    const stalled = stallsUntilReleased();
+    postHog.answering(stalled.answer);
+
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Baker" } }, { eventTs: later(1) });
+    await settleInTimeOrder(t, { until: Date.now() + 10_000 });
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Chef" } }, { eventTs: later(2) });
+    await settleInTimeOrder(t, { until: Date.now() + 3 * 60_000 });
+    const chefDelivered = postHog.personOf(await annsDistinctId(t)).title;
+    vi.setSystemTime(Date.now() + 1_000);
+    stalled.release();
+    await settleInTimeOrder(t);
+
+    expect(chefDelivered).toBe("Chef");
+    expect(postHog.personOf(await annsDistinctId(t))).toMatchObject({ title: "Chef" });
   });
 });
 
