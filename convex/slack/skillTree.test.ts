@@ -109,6 +109,21 @@ describe("P19: a refused Buy republishes App Home with the reason on that perk",
     expect(await perksOwnedBy(t, "U_ALICE")).toEqual(["spark"]);
     expect(publishedHome(slack, "U_ALICE").slice(-3)).toEqual([`section: *Circle* · 1 skill point\n${circleCopy}`, "context: You need 1 skill point.", condition]);
   });
+
+  test("a Buy left on the Skill tree tab, clicked after the member moved to Profile and spent the point, shows the Skill tree tab with why", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "skill-tree");
+    const t = await levelFiveMember("U_ALICE");
+    await click(t, "U_ALICE", "Open");
+    await click(t, "U_ALICE", "Skill tree");
+    const buyCircle = buyButtonOf("circle");
+    await clickButton(t, "U_ALICE", buyButtonOf("spark"));
+    await click(t, "U_ALICE", "Profile");
+
+    await clickButton(t, "U_ALICE", buyCircle);
+
+    expect(publishedHome(slack, "U_ALICE").slice(0, 2)).toEqual(["actions: Profile | [Skill tree] | Settings", "header: Skill tree"]);
+    expect(publishedHome(slack, "U_ALICE").slice(-3)).toEqual([`section: *Circle* · 1 skill point\n${circleCopy}`, "context: You need 1 skill point.", condition]);
+  });
 });
 
 describe("P78 P95: where the skill tree doesn't apply, nothing of it shows, and its copy never judges a kudos", () => {

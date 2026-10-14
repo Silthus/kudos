@@ -64,6 +64,7 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return;
     case "buyPerk":
       await buyPerk(ctx, member, command.perk, idempotencyKey);
+      await showHomeTab(ctx, workspace, person, "skillTree");
       return;
   }
 }
