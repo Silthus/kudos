@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { routedFetch, type FakePostHog, type FlagDefinition } from "../../testing/fakePostHog";
-import { FakeSlack } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEveryone, onInTheSandboxOnly, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
@@ -9,6 +9,7 @@ import { blockActions, buttonIn, publishedHome, publishedHomeBlocks, readBlocks,
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { publish } from "../bus/publish";
+import { replyPrivately } from "../feedback/replies";
 import { questsLiveIn } from "../quests/flag";
 import type { QuestId } from "../quests/pool";
 
@@ -78,6 +79,20 @@ describe("the slice applies only where quests, xp-levels and unlocks all apply",
     expect([...everyDmLine(), ...publishedHome(slack, "U_ALICE"), ...publishedHome(slack, "U_BOB")].filter(namesTheSlice)).toEqual([]);
     expect(await questRows(t)).toEqual(nothingRecorded());
     expect(exposures()).not.toContainEqual([quests, true]);
+  });
+
+  test.each(sliceTurnedOff)("$reason before Slack took a success reply that named a quest: the reply that goes out is today's", async ({ flags }) => {
+    const t = await launchedWorkspaceDeciding("sandbox", ...allOn());
+    await openedQuests(t, "U_ALICE", ["say-why", "say-why-twice", "say-why-three-times"]);
+    slack.holdingBack("chat.postEphemeral", "U_ALICE", async () => {
+      await flagsFromPostHog(t, postHog, ...flags);
+      slack.answering("chat.postEphemeral", rateLimitedFor(30));
+    });
+
+    await giveKudos(t, "U_ALICE", "U_CAROL", saysWhy);
+
+    expect((await questRows(t)).rewardRecords).toContainEqual({ user: "U_ALICE", key: `weekly:${thisWeek}:0` });
+    expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_CAROL> got 1 kudos from you. You have 8 kudos left today."]);
   });
 
   test("in a workspace Unlocks hasn't launched yet, a kudos that says why records nothing for Quests and ships no Journey", async () => {
@@ -174,6 +189,16 @@ describe("P91 O35: the Journey's join belongs to its ship moment", () => {
 });
 
 describe("O36: quests exposure", () => {
+  test("is sent from the kudos' own mutation, with the value that decided whether its success reply waits for Quests", async () => {
+    const t = await launchedWorkspaceDeciding("sandbox", onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone(quests));
+    const { alice } = await membersInserted(t);
+    const ref = { workspace: "T1", conversation: "C1", message: "1760349600.000100" };
+
+    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [] }, base: 10 }));
+
+    expect(await exposedIn(t)).toEqual([{ member: alice, flag: quests, value: false }]);
+  });
+
   test("is sent once per member and value, from the App Home opening", async () => {
     const t = await launchedWorkspaceDeciding("sandbox", ...allOn());
     await openHome(t, "U_ALICE");

@@ -140,6 +140,7 @@ export default defineSchema({
     threadRoot: v.optional(v.string()),
     to: v.string(),
     lines: v.array(v.array(segmentValidator)),
+    questsDone: v.optional(v.array(segmentValidator)),
     held: v.optional(v.literal(true)),
   }).index("by_held_message", ["workspace", "conversation", "message", "held"]),
 

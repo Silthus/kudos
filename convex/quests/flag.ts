@@ -12,10 +12,15 @@ export async function questsApplyIn(ctx: QueryCtx | MutationCtx, workspace: stri
 
 export async function questsShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
   const { workspace } = await chatUserOf(ctx, member);
+  return (await questsExposedTo(ctx, member)) && (await questsLiveIn(ctx, workspace));
+}
+
+export async function questsExposedTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  const { workspace } = await chatUserOf(ctx, member);
   if (!(await xpLevelsShownIn(ctx, workspace)) || !(await unlocksAppliedIn(ctx, workspace))) return false;
-  const live = await questsLiveIn(ctx, workspace);
-  await exposed(ctx, questsFlag, member, live);
-  return live;
+  const applies = await flag(ctx, questsFlag, { workspace });
+  await exposed(ctx, questsFlag, member, applies);
+  return applies;
 }
 
 export async function questsLiveIn(ctx: MutationCtx, workspace: string): Promise<boolean> {
