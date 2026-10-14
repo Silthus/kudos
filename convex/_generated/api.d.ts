@@ -122,6 +122,7 @@ import type * as unlocks_schedule from "../unlocks/schedule.js";
 import type * as unlocks_sweep from "../unlocks/sweep.js";
 import type * as unlocks_unlocks from "../unlocks/unlocks.js";
 import type * as website_abandonedHandshakes from "../website/abandonedHandshakes.js";
+import type * as website_book from "../website/book.js";
 import type * as website_clock from "../website/clock.js";
 import type * as website_commands from "../website/commands.js";
 import type * as website_faces from "../website/faces.js";
@@ -263,6 +264,7 @@ declare const fullApi: ApiFromModules<{
   "unlocks/sweep": typeof unlocks_sweep;
   "unlocks/unlocks": typeof unlocks_unlocks;
   "website/abandonedHandshakes": typeof website_abandonedHandshakes;
+  "website/book": typeof website_book;
   "website/clock": typeof website_clock;
   "website/commands": typeof website_commands;
   "website/faces": typeof website_faces;

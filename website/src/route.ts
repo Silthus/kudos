@@ -25,11 +25,10 @@ export function routeOf({ pathname, search }: { pathname: string; search: string
   return served === undefined ? { page: "not-found" } : routeAt[served](search);
 }
 
-const pathOf: Record<Exclude<Screen, "leaderboard">, ServedPath> = { home: "/", quests: "/quests", skills: "/skills", book: "/book" };
-
 export function hrefOf(route: Route) {
   if (route.page === "leaderboard") return leaderboardHref(route.period);
-  return route.page === "not-found" ? "/" : pathOf[route.page];
+  if (route.page === "home" || route.page === "not-found") return "/";
+  return `/${route.page}`;
 }
 
 export function leaderboardHref(period: Period) {

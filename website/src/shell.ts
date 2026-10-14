@@ -45,14 +45,13 @@ const openedAt = Date.parse("2026-10-13T09:00:00Z");
 
 const leaderboardFeature = { feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 3, seen: "5e3a0c" } as const;
 
-
 const bookFeature = { feature: "book", name: "Book", opens: "your achievements", level: 4, seen: "c4f8a1" } as const;
 
 const skillTreeFeature = { feature: "skillTree", name: "Skill tree", opens: "the tree and your first skill point", level: 5, seen: "9b71d2" } as const;
 
 const questsFeature = { feature: "quests", name: "Quests", opens: "your weekly quests", level: 2, seen: "4c8e1f" } as const;
 
-const coinsFeature = { feature: "coins", name: "Coins and inventory", opens: "the wallet, the store's kudos emoji and your emoji slots", level: 6, seen: "e5b2d8" } as const;
+const coinsFeature = { feature: "coins", name: "Coins and inventory", opens: "the wallet, the store's kudos emoji and your emoji slots", level: 6, seen: "e5a6b7" } as const;
 
 const locked = { state: "locked", readyAt: null, openedAt: null } as const;
 
@@ -79,9 +78,9 @@ const memberWithTheBoardReady: MemberProfile = { ...member, ...onTheUnlockPath({
 
 const memberWithTheBoardOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
 
-const memberWithTheCoinsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...ready }) };
+const memberWithTheQuestsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...ready }, { ...leaderboardFeature, ...locked }) };
 
-const memberWithTheCoinsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }) };
+const memberWithTheQuestsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...opened }) };
 
 const memberWithTheSkillTreeReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...ready }) };
 
@@ -94,6 +93,10 @@ const memberWithTheBookOpened: MemberProfile = { ...member, ...onTheUnlockPath({
 const memberWithEveryFeatureReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...ready }, { ...skillTreeFeature, ...ready }) };
 
 const memberWithEveryFeatureOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...opened }) };
+
+const memberWithCoinsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...ready }) };
+
+const memberWithCoinsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }) };
 
 const memberWithNothingShipped: MemberProfile = { ...member, ...onTheUnlockPath() };
 
@@ -140,14 +143,16 @@ export const shellFixtures = {
   memberWaitingForTheBoard,
   memberWithTheBoardReady,
   memberWithTheBoardOpened,
-  memberWithTheCoinsReady,
-  memberWithTheCoinsOpened,
+  memberWithTheQuestsReady,
+  memberWithTheQuestsOpened,
   memberWithTheSkillTreeReady,
   memberWaitingForTheBook,
   memberWithTheBookReady,
   memberWithTheBookOpened,
   memberWithEveryFeatureReady,
   memberWithEveryFeatureOpen,
+  memberWithCoinsReady,
+  memberWithCoinsOpened,
   memberWithNothingShipped,
   memberAtLevel1,
   memberAtLevel7,

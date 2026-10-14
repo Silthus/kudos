@@ -94,7 +94,7 @@ describe("WS66: the reveal follows the server", () => {
   });
 
   it("points a feature without a web page to Slack's App Home from the end state", async () => {
-    const coinsReady = shellFixtures.memberWithTheCoinsReady;
+    const coinsReady = shellFixtures.memberWithCoinsReady;
     const { user } = renderApp(coinsReady, undefined, { openFeature: async () => ({ kind: "opened" }) });
     const coins = within(main()).getByRole("heading", { level: 3, name: "Unlocks: Coins and inventory" }).closest("article")!;
     await user.click(within(coins).getByRole("button", { name: "Open" }));

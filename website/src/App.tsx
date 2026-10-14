@@ -24,7 +24,7 @@ import { UnverifiedPage } from "./pages/UnverifiedPage";
 import { VerifyingPage } from "./pages/VerifyingPage";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival, useTitleFocusWhenTheFocusedElementGoes } from "./pageFocus";
 import type { QuestsRead, QuestsShown } from "./questsRead";
-import { hrefOf, useRoute, type FeatureScreen, type Route } from "./route";
+import { hrefOf, useRoute, type Route } from "./route";
 import type { Feature, MemberProfile, Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome } from "./signInAttempt";
 
@@ -43,7 +43,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
   const moments = useCrateMoments(actions, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member), onQuests });
   const reveal = member !== undefined ? moments.reveal : undefined;
   const revealing = reveal !== undefined;
-  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : (featurePageNameOf(route, member) ?? shown.kind), { held: revealing });
+  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : (pageOf(route, member) ?? shown.kind), { held: revealing });
   useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
@@ -88,13 +88,9 @@ function stillAsking(state: ShellState) {
   return state.kind === "loading" || state.kind === "connecting";
 }
 
-function featurePageNameOf(route: Route, member: MemberProfile | undefined) {
-  if (member === undefined || !isFeatureScreen(route.page)) return undefined;
+function pageOf(route: Route, member: MemberProfile | undefined) {
+  if (member === undefined || route.page === "home" || route.page === "leaderboard" || route.page === "quests" || route.page === "not-found") return undefined;
   return `${route.page} ${cardOf(member, featureOn(route.page))?.state ?? "off"}`;
-}
-
-function isFeatureScreen(page: Route["page"]): page is FeatureScreen {
-  return page === "skills" || page === "book";
 }
 
 function cardOf(member: MemberProfile, feature: Feature) {
@@ -150,6 +146,11 @@ function FeaturePage({ member, feature }: { member: MemberProfile; feature: Feat
   return <FeatureWaitsPage name={card.name} waiting={waiting} readyCard={readyCardOf(member, feature)} chatUrl={member.chatUrl} />;
 }
 
+function readyCardOf(member: MemberProfile, feature: Feature) {
+  const card = cardOf(member, feature);
+  return card?.state === "ready" ? card : undefined;
+}
+
 type QuestsAnswerPageProps = { member: MemberProfile; quests: QuestsShown | undefined; onSignIn: () => void; onSignOut: () => void };
 
 function QuestsAnswerPage({ member, quests, ...actions }: QuestsAnswerPageProps) {
@@ -158,11 +159,6 @@ function QuestsAnswerPage({ member, quests, ...actions }: QuestsAnswerPageProps)
   if (quests.kind === "ready" || quests.kind === "locked") return <FeatureWaitsPage name="Quests" waiting={quests} readyCard={readyCardOf(member, "quests")} chatUrl={member.chatUrl} />;
   if (quests.kind !== "quests") return <AnswerPage answer={quests} {...actions} />;
   return <QuestsPage quests={quests} />;
-}
-
-function readyCardOf(member: MemberProfile, feature: Feature) {
-  const card = cardOf(member, feature);
-  return card?.state === "ready" ? card : undefined;
 }
 
 type NotAMember = Exclude<ShellState, { kind: "member" | "loading" }>;
