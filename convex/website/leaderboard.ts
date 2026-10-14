@@ -6,7 +6,7 @@ import { workspaceLink } from "../slack/workspaceLink";
 import { followTheClock } from "./clock";
 import { faceOf, teammateFaceOf, type Face } from "./faces";
 import { memberQuery, type Denial } from "./memberQuery";
-import { leaderboardStateOf, unlockPathOf, type LeaderboardWaits } from "./unlockPath";
+import { leaderboardStateOf, unlockPathOf, type PageWaits } from "./unlockPath";
 
 export type LeaderboardRow = { position: number; rank: number; tied: boolean; name: string; face: Face; kudos: number; you: boolean };
 
@@ -21,7 +21,7 @@ export type Leaderboard = {
   onTheBoards: boolean;
 };
 
-export type LeaderboardAnswer = { kind: "not-found" } | LeaderboardWaits | Leaderboard;
+export type LeaderboardAnswer = { kind: "not-found" } | PageWaits | Leaderboard;
 
 export type MyLeaderboard = Denial | LeaderboardAnswer;
 

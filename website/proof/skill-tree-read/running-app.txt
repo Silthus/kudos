@@ -1,0 +1,182 @@
+## 1. Before any unlocks launch (xp-levels, unlocks, skill-tree on through MOCK_FLAGS_ON on this local backend only)
+$ convex run --identity <Juno> website/skillTree:getSkillTree {}
+{
+  "kind": "not-found"
+}
+$ convex run --identity <Juno> website/profile:getMyProfile {}  (skillPoints only)
+{"kind":"member","features":null,"skillPoints":null}
+$ convex data unlockLaunches
+There are no documents in this table.
+
+## 2. Unlocks launch, run from the shell as Slack's App Home would (P77 opens the shipped Skill tree for Juno, a member already there)
+$ convex run feedback/unlockFilter:unopenedReplyOf {"workspace":"TALLOWED","user":"U_NOBODY","feature":"quests"}
+  "lines": null,
+  "shownToUnknownViewer": true
+}
+
+## 3. Juno at level 6 (1000 XP), the Skill tree open, no perks
+$ convex run --identity <Juno> website/skillTree:getSkillTree {}
+{
+  "chatUrl": "https://app.slack.com/client/TALLOWED",
+  "kind": "tree",
+  "rows": [
+    {
+      "level": 5,
+      "perks": [
+        {
+          "copy": "+5 XP the first time each day you thank someone and say why.",
+          "cost": {
+            "skillPoints": 1
+          },
+          "name": "Spark",
+          "ownedAt": null,
+          "perk": "spark",
+          "reason": null,
+          "requires": null,
+          "state": "available"
+        },
+        {
+          "copy": "+2 XP each time you thank someone and say why, once per person a day.",
+          "cost": {
+            "skillPoints": 1
+          },
+          "name": "Rhythm",
+          "ownedAt": null,
+          "perk": "rhythm",
+          "reason": null,
+          "requires": null,
+          "state": "available"
+        },
+        {
+          "copy": "+5 XP the first time each week you thank a person and say why.",
+          "cost": {
+            "skillPoints": 1
+          },
+          "name": "Circle",
+          "ownedAt": null,
+          "perk": "circle",
+          "reason": null,
+          "requires": null,
+          "state": "available"
+        }
+      ]
+    }
+  ],
+  "skillPoints": 2
+}
+$ convex run progression/perks:perksOf {"member":"<Juno>"}
+{
+  "owned": [],
+  "perks": [
+    {
+      "boughtAt": null,
+      "copy": "+5 XP the first time each day you thank someone and say why.",
+      "name": "Spark",
+      "perk": "spark",
+      "requires": null,
+      "row": 5,
+      "skillPoints": 1,
+      "state": "buyable"
+    },
+    {
+      "boughtAt": null,
+      "copy": "+2 XP each time you thank someone and say why, once per person a day.",
+      "name": "Rhythm",
+      "perk": "rhythm",
+      "requires": null,
+      "row": 5,
+      "skillPoints": 1,
+      "state": "buyable"
+    },
+    {
+      "boughtAt": null,
+      "copy": "+5 XP the first time each week you thank a person and say why.",
+      "name": "Circle",
+      "perk": "circle",
+      "requires": null,
+      "row": 5,
+      "skillPoints": 1,
+      "state": "buyable"
+    }
+  ],
+  "skillPoints": 2
+}
+$ convex run --identity <Juno> website/profile:getMyProfile {}  (features and skillPoints)
+{"kind":"member","features":[{"feature":"skillTree","state":"open"}],"skillPoints":2}
+
+## 4. Juno owns spark and rhythm and has spent both points (seeded: memberProgress pointsSpent 2, two perksOwned rows at 1791960729000)
+$ convex run --identity <Juno> website/skillTree:getSkillTree {}  (compact)
+{
+ "kind": "tree",
+ "skillPoints": 0,
+ "rows": [
+  {
+   "level": 5,
+   "perks": [
+    {
+     "perk": "spark",
+     "state": "owned",
+     "reason": null,
+     "ownedAt": 1791960729000
+    },
+    {
+     "perk": "rhythm",
+     "state": "owned",
+     "reason": null,
+     "ownedAt": 1791960729000
+    },
+    {
+     "perk": "circle",
+     "state": "unavailable",
+     "reason": "points",
+     "ownedAt": null
+    }
+   ]
+  }
+ ]
+}
+$ convex run progression/perks:perksOf {"member":"<Juno>"}  (compact)
+{
+ "skillPoints": 0,
+ "perks": [
+  {
+   "perk": "spark",
+   "state": "owned",
+   "boughtAt": 1791960729000
+  },
+  {
+   "perk": "rhythm",
+   "state": "owned",
+   "boughtAt": 1791960729000
+  },
+  {
+   "perk": "circle",
+   "state": "no-skill-points",
+   "boughtAt": null
+  }
+ ]
+}
+$ getMyProfile skillPoints
+{"skillPoints":0}
+
+## 5. skill-tree switched off (mock restarted with MOCK_FLAGS_ON=xp-levels,unlocks), Juno still owns spark and rhythm
+$ convex run --component posthog lib:refreshFlagDefinitions
+  "status": "updated"
+}
+$ convex run --identity <Juno> website/skillTree:getSkillTree {}
+{
+  "kind": "not-found"
+}
+$ getMyProfile features and skillPoints
+{"features":[],"skillPoints":null}
+$ convex data perksOwned  (kept, P5)
+_id                                | _creationTime      | boughtAt      | catalogueVersion | member                             | perk    
+-----------------------------------|--------------------|---------------|-----|------------------------------------|---------
+"px71q9dh7mj0vjynqk433mme418g83ne" | 1791960730467.0505 | 1791960729000 | "1" | "pn77ksgvq8cmh8s49c7cev2e898g9m78" | "rhythm"
+"px7d3fzysnccjvp5rq0r0tbznd8g98nn" | 1791960730467.0503 | 1791960729000 | "1" | "pn77ksgvq8cmh8s49c7cev2e898g9m78" | "spark" 
+$ convex data unlockLaunches  (one launch, run from the shell in step 2, none by a website read)
+_id                                | _creationTime      | at            | shipped       | workspace 
+-----------------------------------|--------------------|---------------|---------------|-----------
+"rn7d4z4536g1ztgq98f18kw7d58g9kz1" | 1791960715032.8884 | 1791960715032 | ["skillTree"] | "TALLOWED"
+$ convex data journeyLaunches
+There are no documents in this table.

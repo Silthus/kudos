@@ -317,7 +317,7 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     });
   });
 
-  test("a ready feature with no page on the route list links to the home, where its crate waits", async () => {
+  test("a ready Skill tree links to its page on the route list, /skills, where its crate waits", async () => {
     const t = await workspace(...everyFlag, "website");
     await levelThreeWithQuestsDrawn(t);
     await openReadyFeatures(t);
@@ -325,8 +325,8 @@ describe("each crate's Open in Slack links to the page where it opens while the 
 
     await openHome(t, "U_ALICE");
 
-    expect(publishedHome(slack, "U_ALICE")).toContain(`section: *Skill tree* is ready. ${openOnTheWeb("/")}`);
-    expect(accessoryBeside("*Skill tree* is ready.")).toMatchObject({ action_id: "website-link:skillTree", accessibility_label: "Open on HedgeHug's home page" });
+    expect(publishedHome(slack, "U_ALICE")).toContain(`section: *Skill tree* is ready. ${openOnTheWeb("/skills")}`);
+    expect(accessoryBeside("*Skill tree* is ready.")).toMatchObject({ url: `${siteUrl}/skills`, action_id: "website-link:skillTree", accessibility_label: "Open on HedgeHug's Skill tree page" });
   });
 
   test("a Journey step's crate links to the home, and a weekly quest's crate, this week's or an earlier week's, to the Quests page", async () => {

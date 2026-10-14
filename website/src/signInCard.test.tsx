@@ -74,6 +74,8 @@ describe("WS309: the sign-in page stands alone as variant E's card", () => {
     { path: "/quests", landing: "/quests" },
     { path: "/leaderboard", landing: "/leaderboard" },
     { path: "/leaderboard?period=month", landing: "/leaderboard?period=month" },
+    { path: "/skills", landing: "/skills" },
+    { path: "/book", landing: "/book" },
   ])("tells a visitor who followed a deep link to $path that they land on $landing afterwards", ({ path, landing }) => {
     visit(path);
     renderApp(shellFixtures.signedOut);
@@ -88,9 +90,11 @@ describe("WS309: the sign-in page stands alone as variant E's card", () => {
     expect(landingHint()).not.toBeInTheDocument();
   });
 
-  it("shows no landing hint for a path the website doesn't list", () => {
-    visit("/sign-in/skills");
+  it("shows the not-found page, with no card and no landing hint, for a path the website doesn't list", () => {
+    visit("/activity");
     renderApp(shellFixtures.signedOut);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Page not found");
+    expect(screen.queryByRole("button", { name: "Sign in with Slack" })).not.toBeInTheDocument();
     expect(landingHint()).not.toBeInTheDocument();
   });
 

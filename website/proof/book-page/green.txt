@@ -1,0 +1,195 @@
+# #191 green: the same tests on b0e9f9f, every assertion intact and none skipped
+# command: npx --no -- vitest run --reporter=verbose src/BookPage.test.tsx src/medalMetals.test.tsx src/liveShell.test.tsx src/accessibility.test.tsx src/FeaturePages.test.tsx
+
+ ✓ |website| src/medalMetals.test.tsx > WS94 V24: each medal metal is a token with 3:1 against its card > bronze in light
+ ✓ |website| src/medalMetals.test.tsx > WS94 V24: each medal metal is a token with 3:1 against its card > silver in light
+ ✓ |website| src/medalMetals.test.tsx > WS94 V24: each medal metal is a token with 3:1 against its card > gold in light
+ ✓ |website| src/medalMetals.test.tsx > WS94 V24: each medal metal is a token with 3:1 against its card > diamond in light
+ ✓ |website| src/medalMetals.test.tsx > WS94 V24: each medal metal is a token with 3:1 against its card > bronze in dark
+ ✓ |website| src/medalMetals.test.tsx > WS94 V24: each medal metal is a token with 3:1 against its card > silver in dark
+ ✓ |website| src/medalMetals.test.tsx > WS94 V24: each medal metal is a token with 3:1 against its card > gold in dark
+ ✓ |website| src/medalMetals.test.tsx > WS94 V24: each medal metal is a token with 3:1 against its card > diamond in dark
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > is the not-found page while getBook answers not-found
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > says Max's Book opens at level 4. with Go to Home while getBook answers locked
+ ✓ |website| src/liveShell.test.tsx > WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change > a profile read that fails on the first load shows the error page, not a blank page, and leaves focus alone
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > is the not-found page while unlocks don't apply
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > is the not-found page while the feature hasn't shipped
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > says Max's Skill tree opens at level 5. with Go to Home while locked, and has no nav item
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in light
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > shows the Book's crate in place with a primary Open while getBook answers ready, and opens it through openFeature
+ ✓ |website| src/liveShell.test.tsx > WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change > a sign-in that can't start shows the error page, focuses its title and forgets the attempt
+ ✓ |website| src/liveShell.test.tsx > WS20: a socket that never connects shows where the page stands, never a blank page forever > shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds
+ ✓ |website| src/liveShell.test.tsx > WS20: a socket that never connects shows where the page stands, never a blank page forever > moves on to the answer by itself once the socket connects
+ ✓ |website| src/liveShell.test.tsx > WS20: a socket that never connects shows where the page stands, never a blank page forever > stays quiet while a connected socket waits for the answer
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > shows its crate in place with a primary Open while ready, and opens it through openFeature
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > becomes the Book once opened, with focus on its title when the reveal closes
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > connecting in light
+ ✓ |website| src/liveShell.test.tsx > WS20 WS36: the leaderboard read shows where the page stands, inside the HUD > marks the page busy while the board loads, and shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > becomes the open page once opened, with focus on its title when the reveal closes
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > is open: its sentence and one action that opens the workspace in Slack, until its own page ships
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > asks getBook only on /book
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > marks the page busy while getBook loads
+ ✓ |website| src/BookPage.test.tsx > WS80: /book answers like the leaderboard > follows a denial to its page
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > lives at /book with the tab HedgeHug · Book, the label Book, the title Achievements and its one line
+ ✓ |website| src/FeaturePages.test.tsx > WS78 WS80: /skills follows its unlock > marks its nav item current while open
+ ✓ |website| src/FeaturePages.test.tsx > WS81: the pages join the nav, the home and the crate > lists each open feature with a web page in schedule order
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in light
+ ✓ |website| src/liveShell.test.tsx > WS20 WS36: the leaderboard read shows where the page stands, inside the HUD > shows the error page under the HUD when the board read fails, and Home still opens in place
+ ✓ |website| src/liveShell.test.tsx > WS20 WS36: the leaderboard read shows where the page stands, inside the HUD > shows the board once a failed read answers again
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > shows one plain card per ladder in the read's order, each with its name and what it counts
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > lists the four tiers in order, each with its word and its name
+ ✓ |website| src/liveShell.test.tsx > WS90 WS92: the live site reads the Book on /book > shows the member's Book from getBook
+ ✓ |website| src/liveShell.test.tsx > WS90 WS92: the live site reads the Book on /book > shows the error page under the HUD when the Book read fails
+ ✓ |website| src/liveShell.test.tsx > WS5: a sign-in started on a deep link comes back to it > asks Convex Auth to bring the member back to /leaderboard?period=month after Slack
+ ✓ |website| src/FeaturePages.test.tsx > WS81: the pages join the nav, the home and the crate > links the home's open Skill tree card to its page with its sentence and no count
+ ✓ |website| src/FeaturePages.test.tsx > WS81: the pages join the nav, the home and the crate > links the home's open Book card to its page with its sentence and no count
+ ✓ |website| src/FeaturePages.test.tsx > WS81: the pages join the nav, the home and the crate > no longer points the open Skill tree to Slack's App Home
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in light
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > prints an earned tier's date in the member's time zone
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > shows the next tier with the count it needs and a neutral Next tag
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > shows a later tier with only the count it needs
+ ✓ |website| src/liveShell.test.tsx > WS5: a sign-in started on a deep link comes back to it > asks Convex Auth to bring the member back to /quests after Slack
+ ✓ |website| src/liveShell.test.tsx > WS5: a sign-in started on a deep link comes back to it > asks Convex Auth to bring the member back to / after Slack
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > shows nothing but the busy frame while Convex Auth redeems the code, never the signed-out page
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > exposes the way to the next tier as a neutral progressbar labelled count of at for the tier's name
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > shows a ladder with every tier earned with four dates, no bar and no Next tag
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in light
+ ✓ |website| src/FeaturePages.test.tsx > WS81: the pages join the nav, the home and the crate > ends the Skill tree reveal on Go to its page
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > shows Sign-in didn't finish when the redemption is rejected, instead of loading forever
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > shows the closed page when the redemption is rejected while the website is closed
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > lets the failure go once auth settles, so a later signed-out answer shows the plain sign-in page
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > ignores a rejection elsewhere on a page that brought no code from Slack
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > shows a ladder's emblem in silhouette while no tier is earned
+ ✓ |website| src/FeaturePages.test.tsx > WS81: the pages join the nav, the home and the crate > ends the Book reveal on Go to its page
+ ✓ |website| src/liveShell.test.tsx > WS66: an open the server never answers ends the wait > closes the crate again after ten seconds without an answer, says HedgeHug couldn't be reached, and a retry opens it
+ ✓ |website| src/FeaturePages.test.tsx > WS82: the Book's card names only what has shipped > says the Book holds achievements, and names no stickers or albums
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > gives each medal one to four pips by tier, a sparkle only on gold and diamond, and an outline while unearned
+ ✓ |website| src/BookPage.test.tsx > WS92: the Book page > never totals tiers, ranks ladders by the closest tier, names a reward, or names stickers and albums
+ ✓ |website| src/BookPage.test.tsx > WS81: the Book's nav entry follows the page > marks Book current in the nav while the Book is shown
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in a quiet week in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home at level 1 in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home past level 5 in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard open in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with the viewer mid-board in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard led by the viewer in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with a shared lead in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who isn't ranked in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who left in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard locked in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard ready and the skill tree locked in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard opened and the skill tree locked in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with every shipped feature open in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with no feature shipped in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard locked until level 3 in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard ready to open in place in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with two crates and the ready pill in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > empty leaderboard in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree not found while it hasn't shipped in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree locked until level 5 in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree ready to open in place in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree open, found in Slack in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book locked until level 4 in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book ready to open in place in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book with a ladder at bronze and a ladder not started in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book with every tier of a ladder earned in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the book locked in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home starting the Journey with Quests locked in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with a Journey step in each state and Quests open in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests this week in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests with last week's crate waiting in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests with nothing drawn in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests locked until level 2 in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests ready to open in place in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > connecting in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in a quiet week in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home at level 1 in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home past level 5 in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard open in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with the viewer mid-board in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard led by the viewer in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with a shared lead in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who isn't ranked in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who left in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard locked in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard ready and the skill tree locked in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard opened and the skill tree locked in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with every shipped feature open in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with no feature shipped in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard locked until level 3 in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard ready to open in place in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with two crates and the ready pill in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > empty leaderboard in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree not found while it hasn't shipped in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree locked until level 5 in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree ready to open in place in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > skill tree open, found in Slack in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book locked until level 4 in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book ready to open in place in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book with a ladder at bronze and a ladder not started in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > book with every tier of a ladder earned in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the book locked in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home starting the Journey with Quests locked in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with a Journey step in each state and Quests open in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests this week in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests with last week's crate waiting in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests with nothing drawn in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests locked until level 2 in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests ready to open in place in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in dark
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate opening in light
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate refused in light
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate unreachable in light
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealing in light
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed in light
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed under reduced motion in light
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate opening in dark
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate refused in dark
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate unreachable in dark
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealing in dark
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed in dark
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed under reduced motion in dark
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests opening in light
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests refused in light
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests unreachable in light
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests revealing in light
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests revealed in light
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests revealed under reduced motion in light
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home opening in light
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home refused in light
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home unreachable in light
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home revealing in light
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home revealed in light
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home revealed under reduced motion in light
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests opening in dark
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests refused in dark
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests unreachable in dark
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests revealing in dark
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests revealed in dark
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests revealed under reduced motion in dark
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home opening in dark
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home refused in dark
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home unreachable in dark
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home revealing in dark
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home revealed in dark
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home revealed under reduced motion in dark
+ Test Files  5 passed (5)
+      Tests  190 passed (190)

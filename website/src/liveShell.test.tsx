@@ -1,17 +1,21 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ConvexProvider, type ConvexReactClient } from "convex/react";
+import { getFunctionName, type FunctionReference } from "convex/server";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
+import { bookFixtures } from "./bookFixtures";
 import { leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures } from "./shell";
-import { fakeSystemTheme } from "./test/systemTheme";
+import { skillTreeFixtures } from "./skillTreeFixtures";
+import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 const profileRead = vi.fn();
 const boardRead = vi.fn();
 const authActions = { signIn: vi.fn(), signOut: vi.fn() };
 const openFeatureCall = vi.fn();
+const buyPerkCall = vi.fn();
 const socket = { isWebSocketConnected: true };
 const auth = { isLoading: false, isAuthenticated: true };
 
@@ -21,7 +25,7 @@ vi.mock("convex/react", async (importOriginal) => ({
   useConvexAuth: () => ({ ...auth }),
   useConvexConnectionState: () => ({ ...socket }),
   useQuery: () => profileRead(),
-  useMutation: () => openFeatureCall,
+  useMutation: (mutation: FunctionReference<"mutation">) => (getFunctionName(mutation) === "website/commands:buyPerk" ? buyPerkCall : openFeatureCall),
 }));
 
 const boardListeners = new Set<() => void>();
@@ -31,18 +35,23 @@ function boardAnswers(answer: unknown) {
   act(() => boardListeners.forEach((notify) => notify()));
 }
 
+const watchedQueries: string[] = [];
+
 const boardWatch = {
-  watchQuery: () => ({
-    onUpdate: (notify: () => void) => {
-      boardListeners.add(notify);
-      return () => boardListeners.delete(notify);
-    },
-    localQueryResult: () => {
-      const answer = boardRead();
-      if (answer instanceof Error) throw answer;
-      return answer;
-    },
-  }),
+  watchQuery: (query: FunctionReference<"query">) => {
+    watchedQueries.push(getFunctionName(query));
+    return {
+      onUpdate: (notify: () => void) => {
+        boardListeners.add(notify);
+        return () => boardListeners.delete(notify);
+      },
+      localQueryResult: () => {
+        const answer = boardRead();
+        if (answer instanceof Error) throw answer;
+        return answer;
+      },
+    };
+  },
 } as unknown as ConvexReactClient;
 
 vi.mock("@convex-dev/auth/react", () => ({
@@ -72,10 +81,12 @@ afterEach(() => {
   auth.isLoading = false;
   profileRead.mockReset();
   boardRead.mockReset();
+  watchedQueries.length = 0;
   window.history.replaceState(null, "", "/");
   authActions.signIn.mockReset();
   authActions.signOut.mockReset();
   openFeatureCall.mockReset();
+  buyPerkCall.mockReset();
 });
 
 describe("WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change", () => {
@@ -184,6 +195,99 @@ describe("WS20 WS36: the leaderboard read shows where the page stands, inside th
     boardAnswers(leaderboardFixtures.midBoard);
 
     expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
+  });
+});
+
+describe("WS85: the skill tree page reads getSkillTree through the live shell", () => {
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/skills");
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryFeatureOpen);
+  });
+
+  it("marks the page busy while the tree loads, then shows it with the HUD's skill point chip", () => {
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+    expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "true");
+
+    boardAnswers(skillTreeFixtures.withPoints);
+
+    expect(pageTitle()).toHaveTextContent("Perks");
+    expect(within(screen.getByRole("region", { name: "Perk tree" })).getAllByRole("button")).toHaveLength(3);
+    expect(watchedQueries).toContain("website/skillTree:getSkillTree");
+    expect(screen.getByRole("link", { name: "2 skill points to spend" })).toHaveAttribute("href", "/skills");
+  });
+
+  it("shows the error page under the HUD when the tree read fails", async () => {
+    boardRead.mockReturnValue(new Error("Too many documents read"));
+    renderLiveSite();
+
+    expect(await errorPage()).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Screens" })).toBeInTheDocument();
+  });
+});
+
+describe("WS87: the skill tree page buys through the live shell's buyPerk", () => {
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/skills");
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryFeatureOpen);
+    boardRead.mockReturnValue(skillTreeFixtures.withPoints);
+    preferWideScreen();
+  });
+
+  function buyButton() {
+    return within(screen.getByRole("main")).getByRole("button", { name: /^Buy/ });
+  }
+
+  it("calls buyPerk with the perk and a browser request, and announces the answer", async () => {
+    buyPerkCall.mockResolvedValue({ kind: "refused", reason: "points" });
+    renderLiveSite();
+
+    fireEvent.click(buyButton());
+    await act(async () => undefined);
+
+    expect(buyPerkCall).toHaveBeenCalledExactlyOnceWith({ perk: "spark", request: expect.stringMatching(/^[0-9a-f-]{36}$/) });
+    expect(openFeatureCall).not.toHaveBeenCalled();
+    expect(within(screen.getByRole("main")).getByRole("status")).toHaveTextContent("That couldn't be bought. No skill points to spend.");
+  });
+
+  it("ends Buying… after ten seconds without an answer, says HedgeHug couldn't be reached, and a retry resends the same request", async () => {
+    vi.useFakeTimers();
+    buyPerkCall.mockReturnValueOnce(new Promise(() => undefined)).mockResolvedValueOnce({ kind: "bought" });
+    renderLiveSite();
+
+    fireEvent.click(buyButton());
+    await act(async () => vi.advanceTimersByTime(9_999));
+    expect(buyButton()).toHaveAccessibleName("Buying…");
+    await act(async () => vi.advanceTimersByTime(1));
+
+    expect(within(screen.getByRole("main")).getByRole("status")).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
+    fireEvent.click(buyButton());
+    await act(async () => undefined);
+
+    expect(buyPerkCall).toHaveBeenCalledTimes(2);
+    expect(buyPerkCall.mock.calls[1]).toEqual(buyPerkCall.mock.calls[0]);
+    expect(within(screen.getByRole("main")).getByRole("status")).toHaveTextContent("You bought Spark.");
+  });
+});
+
+describe("WS90 WS92: the live site reads the Book on /book", () => {
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/book");
+    profileRead.mockReturnValue(shellFixtures.memberWithTheBookOpened);
+  });
+
+  it("shows the member's Book from getBook", () => {
+    boardRead.mockReturnValue(bookFixtures.book);
+    renderLiveSite();
+    expect(pageTitle()).toHaveTextContent("Achievements");
+    expect(screen.getByRole("heading", { level: 2, name: "Generosity" })).toBeInTheDocument();
+  });
+
+  it("shows the error page under the HUD when the Book read fails", async () => {
+    boardRead.mockReturnValue(new Error("Too many documents read"));
+    renderLiveSite();
+    expect(await errorPage()).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Screens" })).toBeInTheDocument();
   });
 });
 

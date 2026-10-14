@@ -1,0 +1,10 @@
+▌ Showing logs of deployment:
+▌ └─ https://<sandbox>.convex.cloud
+Watching logs for dev deployment <sandbox>...
+10/14/2026, 9:07:01 AM [CONVEX M(auth:store)] [INFO] '`auth:store` type: refreshSession'
+10/14/2026, 9:07:06 AM [CONVEX M(auth:store)] [INFO] '`auth:store` type: refreshSession'
+10/14/2026, 9:07:22 AM [CONVEX M(auth:store)] [INFO] '`auth:store` type: refreshSession'
+10/14/2026, 9:07:57 AM [CONVEX M(website/commands:buyPerk)] Uncaught Error: A purchase's request must be a UUID.
+    at handler (../../convex/website/commands.ts:64:61)
+    at handler (../../convex/website/memberMutation.ts:15:13)
+
