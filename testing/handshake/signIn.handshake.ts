@@ -57,6 +57,19 @@ describe("WS5 L-W1: a member signs in with Slack", () => {
   });
 });
 
+describe("WS5: a sign-in started on a deep link lands back on it", () => {
+  test("Slack's return lands on the address the sign-in started from, with the one-time code beside its query", async () => {
+    slack.signsInNext(juno);
+    const { authorize, cookies } = await startSignIn("/leaderboard?period=month");
+
+    const landing = await finishAtSlack(authorize, cookies);
+
+    expect(landing.origin + landing.pathname).toBe(`${site}/leaderboard`);
+    expect(landing.searchParams.get("period")).toBe("month");
+    expect(landing.searchParams.get("code")).not.toBeNull();
+  });
+});
+
 describe("WS6: eight refusals create no session", () => {
   test.each<[string, NextSignIn, Tampering]>([
     ["a foreign workspace", { ...juno, team: "TOTHER" }, {}],
@@ -129,6 +142,23 @@ describe("WS3: while the website is closed, nobody signs in and every session re
   });
 });
 
+describe("the mock serves flag definitions the way PostHog does", () => {
+  test("the PostHog component's refresh of unchanged definitions answers unchanged, so nothing re-runs every minute", async () => {
+    expect(await refreshFlagDefinitions()).toEqual({ status: "unchanged" });
+  });
+
+  test("a switch answers the new definitions to the ETag sent before it", async () => {
+    const before = await flagDefinitions();
+    expect((await flagDefinitions(before.headers.get("etag"))).status).toBe(304);
+
+    slack.switchWebsite(false);
+    const after = await flagDefinitions(before.headers.get("etag"));
+
+    expect(after.status).toBe(200);
+    expect(after.headers.get("etag")).not.toBe(before.headers.get("etag"));
+  });
+});
+
 describe("WS8: a person the directory doesn't know yet is verified", () => {
   test("after three failed lookups the person reads unverified, never a member", async () => {
     const session = await signedIn({ ...juno, user: "U_NEWCOMER", name: "Newcomer" });
@@ -161,8 +191,8 @@ async function signedIn(who: NextSignIn): Promise<Session> {
   return redeem(await finishAtSlack(authorize, cookies), verifier);
 }
 
-async function startSignIn() {
-  const started = await new ConvexHttpClient(cloud).action(api.auth.signIn, { provider: "slack", params: { redirectTo: "/" } });
+async function startSignIn(redirectTo = "/") {
+  const started = await new ConvexHttpClient(cloud).action(api.auth.signIn, { provider: "slack", params: { redirectTo } });
   const response = await fetch(started.redirect!, { redirect: "manual" });
   return { authorize: new URL(response.headers.get("location")!), cookies: response.headers.getSetCookie().map(parseCookie), verifier: started.verifier! };
 }
@@ -210,12 +240,21 @@ async function eventuallyReads(client: ConvexHttpClient, kind: MyProfile["kind"]
 
 async function switchWebsite(open: boolean) {
   slack.switchWebsite(open);
-  await convexRun("lib:refreshFlagDefinitions", "posthog");
+  await refreshFlagDefinitions();
 }
 
-async function convexRun(functionName: string, component?: string) {
+function flagDefinitions(etag?: string | null) {
+  return fetch(`${issuer}/flags/definitions`, { headers: etag ? { "if-none-match": etag } : {} });
+}
+
+function refreshFlagDefinitions() {
+  return convexRun("lib:refreshFlagDefinitions", "posthog");
+}
+
+async function convexRun(functionName: string, component?: string): Promise<unknown> {
   const componentArgs = component ? ["--component", component] : [];
-  await promisify(execFile)("npx", ["--no", "--", "convex", "run", ...componentArgs, functionName, "{}", "--env-file", envFile]);
+  const { stdout } = await promisify(execFile)("npx", ["--no", "--", "convex", "run", ...componentArgs, functionName, "{}", "--env-file", envFile]);
+  return stdout.trim() === "" ? undefined : JSON.parse(stdout);
 }
 
 function tampered(authorize: URL, { tamperState, dropState }: Tampering) {

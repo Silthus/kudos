@@ -1,0 +1,9 @@
+GPT-6.1 Sol (high), read-only (codex exec --sandbox read-only < /dev/null), over the diff against origin/spec/website-3 with spec/website-3.md as the oracle, 2026-10-14. Its answer, verbatim:
+
+1. **major** — [website/proof/sandbox-3a/republish.txt:6](website/proof/sandbox-3a/republish.txt:6): Scheduled-function `success` does not prove “Slack’s views.publish accepted both.” `publishHome` catches delivery failures and can finish successfully after scheduling a retry or exhausting attempts. **Fix:** attach redacted Slack acknowledgments or narrow this claim and README line 49 to “two publish jobs completed; Slack acceptance was not verified.”
+
+2. **minor** — [website/proof/sandbox-3a/README.md:72](website/proof/sandbox-3a/README.md:72): The production switch order is correct but incomplete. The spec’s Further Notes also require `quests` after #129 ships. **Fix:** append that deferred step, explicitly outside Part A.
+
+3. **minor** — [website/proof/sandbox-3a/README.md:9](website/proof/sandbox-3a/README.md:9): The deleted indexes were not exclusively on undeclared tables. The deploy log includes indexes on `awards`, `privateReplies`, `publicReplies` and `effectsRecords`, all declared in this tree’s schema. **Fix:** distinguish removed indexes on retained tables from indexes on undeclared quest tables.
+
+All three hold and are fixed: republish.txt and README item 7 now claim only that the two jobs completed without a retry; the README lists the quests switch after part A; the index paragraph separates the quest tables from the four declared tables.

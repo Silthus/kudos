@@ -1,0 +1,193 @@
+ ✓ |website| src/liveShell.test.tsx > WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change > a profile read that fails on the first load shows the error page, not a blank page, and leaves focus alone
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > shows Home and Leaderboard in the screen nav while the board is open, with the current one marked
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in light
+ ✓ |website| src/crateMoment.test.tsx > WS65: a ready feature is a closed crate > labels the crate with what it unlocks and what it opens, with one outline Open on the home
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > shows a locked shipped feature with Unlocks' name and its level, and no feature that hasn't shipped
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > teases no progress on a locked card: no levels to go, bar, button or link
+ ✓ |website| src/liveShell.test.tsx > WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change > a sign-in that can't start shows the error page, focuses its title and forgets the attempt
+ ✓ |website| src/liveShell.test.tsx > WS20: a socket that never connects shows where the page stands, never a blank page forever > shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds
+ ✓ |website| src/liveShell.test.tsx > WS20: a socket that never connects shows where the page stands, never a blank page forever > moves on to the answer by itself once the socket connects
+ ✓ |website| src/liveShell.test.tsx > WS20: a socket that never connects shows where the page stands, never a blank page forever > stays quiet while a connected socket waits for the answer
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > shows nothing but the busy frame while Convex Auth redeems the code, never the signed-out page
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > marks Home as current at the root
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > shows Sign-in didn't finish when the redemption is rejected, instead of loading forever
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > shows the closed page when the redemption is rejected while the website is closed
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > lets the failure go once auth settles, so a later signed-out answer shows the plain sign-in page
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > ignores a rejection elsewhere on a page that brought no code from Slack
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > shows no Leaderboard item while the board is off
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > renders the not-found page when the read answers not-found
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > still renders the not-found page on any other path
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > puts a ready feature's crate under Ready for you, before what is still locked
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > links an open feature with a web page to it, with WS38's sentence and no rank or count
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > connecting in light
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > shows Opening… without a dialog until the server answers, then plays the reveal after opened
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > renders the page of a denial the read answers, as the home does
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads /leaderboard as the week board
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads /leaderboard?period=month as the month board
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads /leaderboard?period=all as the all board
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > points an open feature without a web page to Slack's App Home, with one action that opens the workspace
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > shows no feature group when nothing has shipped, never the plain locked cards
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in light
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > reads any other period as this week and rewrites the address without a reload
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > leaves the home's query string alone, so the sign-in code reaches Convex Auth
+ ✓ |website| src/FeatureCards.test.tsx > WS58: the home's feature cards read the member's unlock path > keeps WS19's six plain locked cards while unlocks don't apply
+ ✓ |website| src/FeatureCards.test.tsx > WS59: the nav lists Home and each open feature with a web page > while the Leaderboard is locked
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in light
+ ✓ |website| src/FeatureCards.test.tsx > WS59: the nav lists Home and each open feature with a web page > while the Leaderboard is ready
+ ✓ |website| src/FeatureCards.test.tsx > WS59: the nav lists Home and each open feature with a web page > while the Leaderboard is open
+ ✓ |website| src/FeatureCards.test.tsx > WS59: the nav lists Home and each open feature with a web page > while the Leaderboard is open beside an open Skill tree, which has no web page
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in light
+ ✓ |website| src/LeaderboardPage.test.tsx > WS37 WS1: the leaderboard lives at /leaderboard, with the period in the query string > follows the nav to the leaderboard and back without a reload, moving focus to the page title
+ ✓ |website| src/LeaderboardPage.test.tsx > WS38: the home's leaderboard card > is a plain card linking to the leaderboard while the board is open, with no rank or count
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in light
+ ✓ |website| src/LeaderboardPage.test.tsx > WS38: the home's leaderboard card > stays locked, with the other cards, while the board is off
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > says what the locked leaderboard waits for in place of the board, with no Leaderboard nav item
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > says what the ready leaderboard waits for in place of the board, with no Leaderboard nav item
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in light
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > sends a locked member home
+ ✓ |website| src/LeaderboardPage.test.tsx > WS52: the leaderboard page waits for its unlock > moves focus to the board's title when the ready leaderboard opens under the open page
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > labels the page and offers the three periods, with this week selected by a border, a check mark and aria-pressed
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > switches the period from the keyboard and rewrites the address without a reload
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > keeps the board and focus on the switch while the next period's board loads
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > keeps the selected period when it is chosen again
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when ranked
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when tied
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when not ranked
+ ✓ |website| src/LeaderboardPage.test.tsx > WS39: the board card and the periods > shows one Everyone card as a heading with the viewer's standing when left
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for one leader
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for the viewer
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a shared lead
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a viewer tied below the lead
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a viewer who isn't ranked
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > for a viewer who left
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in light
+ ✓ |website| src/LeaderboardPage.test.tsx > WS40: the headline names the lead, from the rows only > says all time for the all-time board
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > orders second, first and third from left to right, each with face, name, kudos and rank read out
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > prints the podium's kudos and ranks in Inter with tabular figures, not display type
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > gives the crown and the tallest pedestal to every leader, so tied leaders stand equal
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > rings only the viewer's spot and labels it You
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > leaves out the empty pedestals when fewer than three are ranked
+ ✓ |website| src/LeaderboardPage.test.tsx > WS41: the podium stands the top three on neutral pedestals > uses no medal or rarity colour
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > lists the window after the podium in order, with one … where positions are skipped
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > prints ranks in Inter with tabular figures, not display type
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > marks the viewer's line with the primary ring, a left primary edge and a You label
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > shows no list when the podium holds the whole window
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > ends on the end state with the headline, the line, Go to and Done once the reveal has played
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who isn't ranked how to join, with one action to Slack, at /leaderboard
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who isn't ranked how to join, with one action to Slack, at /leaderboard?period=month
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who isn't ranked how to join, with one action to Slack, at /leaderboard?period=all
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > points a feature without a web page to Slack's App Home from the end state
+ ✓ |website| src/LeaderboardPage.test.tsx > WS42: the list shows the rest of G17's window below the podium > tells a viewer who left the boards where to change that, in place of their row
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > plays no reveal after refused, and says so in the live region
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > says which positions the list shows, and opens the whole board centred on the viewer by keyboard
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > pins a copy of the viewer's row with Jump to me while it is scrolled away, which brings it back and focuses it
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in light
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > plays no reveal after a denial and ends Opening…, leaving the page to getMyProfile's own answer
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > follows the viewer's row when kudos move them on the open whole board
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > pins the copy to the top edge when the viewer's row is scrolled above, and jumps instantly under reduced motion
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > closes the crate again after an error, says HedgeHug couldn't be reached, and lets the member retry
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > goes back to the window from Back to my spot, keeping focus on the footer's button
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > skips to the end state with Esc
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > offers Show fewer, and never Jump to me, to a viewer who isn't on the board
+ ✓ |website| src/LeaderboardPage.test.tsx > WS43: the whole board and Jump to me > offers no whole board when the window already shows every row
+ ✓ |website| src/LeaderboardPage.test.tsx > WS44: an empty board > shows one hedgehog, Max's sentence and one action to thank someone in Slack, with no podium or list
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > skips to the end state with Space
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > shows G18's line for a gain with places
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > shows G18's line for a gain without places
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > shows G18's line for a best
+ ✓ |website| src/LeaderboardPage.test.tsx > WS45: only you see these > is not shown without a line
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > skips to the end state with a click anywhere on the reveal
+ ✓ |website| src/LeaderboardPage.test.tsx > WS46: how it counts > says what counts and shows the setting as a read-only status for a viewer on the boards
+ ✓ |website| src/LeaderboardPage.test.tsx > WS46: how it counts > says what counts and shows the setting as a read-only status for a viewer off the boards
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > replays the reveal from the end state, and skips it again
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in a quiet week in light
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > shows the end state at once under reduced motion, fading in
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > moves focus into the dialog, and back to the feature's card, now open, when it closes
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > closes from the end state with Esc
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > announces what opened in the live region
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home at level 1 in light
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > goes to the feature's page from the end state
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home past level 5 in light
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > plays each crate's first reveal in full when two answers arrive together
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > drops the reveal when the member signs out, and shows none on the next sign-in
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > ignores an answer that arrives after the member signed out
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > keeps focus in the dialog after Replay under reduced motion, so Esc still closes it
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in light
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > keeps the dialog open when Go to opens in another tab
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard open in light
+ ✓ |website| src/crateMoment.test.tsx > WS65 WS66: the crate nudges once, and never while it opens > stops nudging once Open is pressed, and stays still after an error
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with the viewer mid-board in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard led by the viewer in light
+ ✓ |website| src/crateMoment.test.tsx > WS66: seen state is kept per member and crate in this browser > opens a crate this member has seen on its end state, with Replay, and never plays it by itself
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with a shared lead in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who isn't ranked in light
+ ✓ |website| src/crateMoment.test.tsx > WS66: seen state is kept per member and crate in this browser > plays another member's first reveal in full in the same browser
+ ✓ |website| src/crateMoment.test.tsx > WS66: seen state is kept per member and crate in this browser > keeps nothing but the opaque seen key in the browser
+ ✓ |website| src/crateMoment.test.tsx > WS67: /leaderboard's ready state opens in place > shows the crate with a primary Open in place of WS52's sentence
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who left in light
+ ✓ |website| src/crateMoment.test.tsx > WS67: /leaderboard's ready state opens in place > becomes the board once opened, and returns focus to the page title when the reveal closes
+ ✓ |website| src/crateMoment.test.tsx > WS67: /leaderboard's ready state opens in place > keeps WS52's sentence while the board is locked
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > counts what is ready to open, and is gone at zero
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > is gone while unlocks don't apply
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > sends the guarded command for the first ready crate in schedule order and reveals only after opened
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard locked in light
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > ends a refusal from the pill as the crate does, with no reveal
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > takes in a crate that becomes ready during the visit without opening a dialog by itself
+ ✓ |website| src/crateMoment.test.tsx > WS75: the keyboard path > opens with Enter, skips with Esc, replays, and closes with Done, returning focus to the card
+ ✓ |website| src/crateMoment.test.tsx > WS75: the keyboard path > opens the pill's crate with Space
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard ready and the skill tree locked in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard opened and the skill tree locked in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with every shipped feature open in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with no feature shipped in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard locked until level 3 in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard ready to open in place in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with two crates and the ready pill in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > empty leaderboard in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in light
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > connecting in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in a quiet week in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home at level 1 in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home past level 5 in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard open in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with the viewer mid-board in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard led by the viewer in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with a shared lead in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who isn't ranked in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who left in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard locked in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard ready and the skill tree locked in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard opened and the skill tree locked in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with every shipped feature open in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with no feature shipped in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard locked until level 3 in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard ready to open in place in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with two crates and the ready pill in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > empty leaderboard in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in dark
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in dark
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate opening in light
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate refused in light
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate unreachable in light
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealing in light
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed in light
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed under reduced motion in light
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate opening in dark
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate refused in dark
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate unreachable in dark
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealing in dark
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed in dark
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed under reduced motion in dark
+ Test Files  5 passed (5)
+      Tests  191 passed (191)

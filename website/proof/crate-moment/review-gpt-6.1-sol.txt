@@ -1,0 +1,19 @@
+No blockers found. **Three major and two minor findings.**
+
+**Major**
+
+1. [moments.ts:50](/home/coder/dev/kudos-wt/crate-moment/website/src/crates/moments.ts:50) — **Concurrent opens skip a crate’s first reveal.** Open two different ready crates, skip the first reveal, then receive the second answer. The second replaces the existing dialog and inherits `playing=false`, immediately showing its end state and marking itself seen. This breaks WS66/V10. Reproduced with React/jsdom. **Fix:** serialize opening through dialog closure, or queue confirmed reveals with separate state keyed by `seen`.
+
+2. [App.tsx:35](/home/coder/dev/kudos-wt/crate-moment/website/src/App.tsx:35) — **A later session revives the previous member’s dialog.** Member → signed-out hides the reveal without clearing it; signing in again renders the old card and seen key, using the current member’s Slack URL. Outstanding responses can also populate stale reveal state after sign-out. This breaks WS66’s member isolation and V15’s interruption rule. Reproduced. **Fix:** reset moment state across session changes and invalidate responses belonging to the previous session.
+
+3. [RevealDialog.tsx:35](/home/coder/dev/kudos-wt/crate-moment/website/src/crates/RevealDialog.tsx:35) — **Reduced-motion Replay loses keyboard focus.** Activating Replay increments `shownAt`, remounting the focused actions. Focus falls to `body`; the focus effect doesn’t rerun, and Esc no longer reaches the dialog. This breaks WS66/V24/WS75. Reproduced using keyboard activation. **Fix:** preserve the action elements while restarting the fade, or explicitly restore focus after the remount. Add coverage for reduced-motion Replay followed by Esc.
+
+**Minor**
+
+4. [Crate.tsx:15](/home/coder/dev/kudos-wt/crate-moment/website/src/crates/Crate.tsx:15) — **`Opening…` still animates.** The crate always receives `nudge`. Click immediately after mounting and leave the command pending beyond 1.4 seconds: the delayed nudge runs while sending, contrary to WS66’s “without motion.” **Fix:** cancel the nudge when sending begins and keep it consumed across retries.
+
+5. [AppLink.tsx:10](/home/coder/dev/kudos-wt/crate-moment/website/src/AppLink.tsx:10) — **Modified navigation closes the dialog without restoring focus.** Ctrl/Cmd-clicking `Go to Leaderboard` invokes the closing callback before checking whether navigation occurs in place. The current tab retains its route, removes the focused link, and leaves focus on `body`. Reproduced with Ctrl-click. **Fix:** close only for navigation in the current tab, or restore focus when that tab remains.
+
+No additional copy or client-computed game-rule violations found. The edited older tests appropriately replace superseded behavior; I found no skipped or unjustifiably weakened assertions.
+
+Validation used read-only inspection and in-memory React/jsdom probes. Contrast and visual focus visibility remain unverified in a browser; the axe checks disable contrast. No files edited.
