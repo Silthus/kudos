@@ -4,6 +4,6 @@ The browser package, the signed-in surface where a member sees their kudos besid
 
 ## entrances
 - route GET /*: a browser asks for a page or a built asset of the website; a path without a file falls back to the shell
-handler: registerWebsite in convex/website/hosting.ts
-trust: browser
-control: none — it serves public static bytes built from this repository, which hold no member data and no secret; every HTML response carries the Content Security Policy header that forbids framing and foreign scripts (WS25)
+  handler: registerWebsite in convex/website/hosting.ts
+  trust: browser
+  control: none — it serves public static bytes built from this repository, which hold no member data and no secret; every HTML response carries the Content Security Policy header that forbids framing and foreign scripts (WS25)
