@@ -6,7 +6,6 @@ import { achievementsApplyIn, achievementsShownTo } from "../achievements/flag";
 import { groupModeShownTo, type GroupModeFacts } from "../groups/groupMode";
 import { xpRecordedEventValidator } from "../bus/events";
 import type { GroupId } from "../groups/groups";
-import { groupBoardsOf } from "../leaderboard/groupBoards";
 import type { GroupsBoard } from "../leaderboard/groupsBoard";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
@@ -151,7 +150,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         journey: slices.quests ? await journeyOf(ctx, viewer.member) : null,
       };
     case "leaderboard":
-      return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period), groups: (await groupBoardsOf(ctx, viewer.workspace, viewer.user, period)).groups };
+      return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period), groups: null };
     case "book":
       return { tab, book: await bookFactsOf(ctx, viewer.member), timeZone: (await ctx.db.get(viewer.member))?.timeZone };
     case "skillTree":

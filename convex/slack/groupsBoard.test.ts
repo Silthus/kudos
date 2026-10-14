@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { internal } from "../_generated/api";
 import { type FakePostHog, routedFetch, type FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { onForEveryone, postHogDeciding, testBackendServing, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsLoaded, onForEveryone, postHogDeciding, testBackendServing, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonIn, publishedHome, publishedHomeBlocks } from "../../testing/slackInteractions";
-import { memberChanged, settle, type Backend } from "../../testing/slackBackend";
+import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 
@@ -174,6 +174,40 @@ describe("GB17: the group boards wait for the Leaderboard and for groups", { tim
   });
 });
 
+describe("GB35: the Leaderboard tab at scale", () => {
+  test("1,500 members in 60 groups who all gave: App Home publishes the all-time Groups and Everyone boards within Convex's transaction limits", async () => {
+    postHog.withFlags(...boardsOn);
+    const t = await flagsLoaded(testBackend({ transactionLimits: true }));
+    await sixtyGroupsWhoAllGave(t, 1_500);
+    slack.withMember("U0300");
+
+    await t.action(internal.slack.appHome.publishHome, { workspace: "T1", user: "U0300" });
+
+    const home = publishedHome(slack, "U0300");
+    expect(home.slice(0, 4)).toEqual([...tabTop("All time"), expect.stringMatching(/^section: \*Groups\*\n🥇 Group 00 · 3\.0 per person · 100% gave · 75 kudos\n/)]);
+    expect(home[5]).toMatch(/^section: \*Everyone\*\n/);
+  }, 300_000);
+});
+
+async function sixtyGroupsWhoAllGave(t: Backend, count: number) {
+  const perGroup = count / 60;
+  for (let index = 0; index < 60; index += 1) {
+    await t.run(async (ctx) => {
+      const name = `Group ${String(index).padStart(2, "0")}`;
+      const group = await ctx.db.insert("userGroups", { workspace: "T1", group: `S_${index}`, handle: `group-${index}`, name, enabled: true, automatic: false, members: perGroup, asOf: 0, membersAsOf: 0 });
+      for (let place = 0; place < perGroup; place += 1) {
+        const user = `U${String(index * perGroup + place).padStart(4, "0")}`;
+        const member = await ctx.db.insert("members", { workspace: "T1", user, kind: "member", name: user, asOf: 0 });
+        await ctx.db.insert("memberGroups", { workspace: "T1", member, groups: [group], primary: group });
+        await ctx.db.insert("givenTotals", { workspace: "T1", member, period: "all", kudos: 3 });
+        await ctx.db.insert("attributedTotals", { workspace: "T1", group, member, period: "all", kudos: 3 });
+        if (user === "U0300") await ctx.db.insert("homeSelections", { member, tab: "leaderboard", period: "all" });
+      }
+      await ctx.db.insert("attributedGroupTotals", { workspace: "T1", group, period: "all", kudos: 3 * perGroup });
+    });
+  }
+}
+
 async function twoGroupsGave(flags: FlagDefinition[]) {
   const t = await groupsOf(flags, antsAndBees);
   await giveKudosOn(t, lastTuesday, "U_BOB", 3);
@@ -184,9 +218,9 @@ async function twoGroupsGave(flags: FlagDefinition[]) {
   return t;
 }
 
-async function groupsGave(flags: FlagDefinition[], groups: Record<string, string[]>, gifts: Array<[string, number]>) {
+async function groupsGave(flags: FlagDefinition[], groups: Record<string, string[]>, given: Array<[string, number]>) {
   const t = await groupsOf(flags, groups);
-  for (const [giver, kudos] of gifts) await giveKudos(t, giver, kudos);
+  for (const [giver, kudos] of given) await giveKudos(t, giver, kudos);
   return t;
 }
 

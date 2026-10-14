@@ -129,3 +129,16 @@ The Slack adapter, the only code that knows Slack: it verifies and acknowledges 
   checklist: keyed-ordering dismissed: a gone delivery sends nothing more, so there is nothing to order
   checklist: acknowledgment-barrier dismissed: nothing retires work on a delivery's acknowledgment; awards and spending commit before any delivery runs
   checklist: retry-classification declared as a gone delivery stops for good
+- the Leaderboard tab reads within Convex's limits: App Home's Leaderboard tab reads the Groups board in a query of its own, beside the mutation that decides the tab and reads the Everyone board, so each board stays within the limits its own reads meet and a workspace of 1,500 members in 60 groups who all gave gets its all-time tab published.
+  over: App Home published for a member of a workspace of 1,500 members in 60 groups who all gave kudos, whose remembered tab is the all-time Leaderboard, with everyone-board and groups on and Convex's transaction limits enforced
+  via: GB35: the Leaderboard tab at scale
+  refuted: shownHomeOf read the Groups board beside the Everyone board in its one mutation, and the publishing action read none of its own -> every delivery attempt failed on Convex's limit of 4,096 index ranges and the test found no App Home published (2026-10-14)
+  because: the Everyone board reads about one index range per member and the all-time Groups board one per current primary member; read in one transaction they pass Convex's 4,096 index ranges at a large workspace, and a tab that throws is never published (GB17, GB35)
+  kinds: state
+  checklist: revalidated-permission dismissed: the boards are read for the member whose App Home is published; no permission applies
+  checklist: separation-of-duties dismissed: no approval policy applies to showing a board
+  checklist: legal-state-succession dismissed: the reads write nothing of the boards; the tab selection is written as before
+  checklist: supersession-safety dismissed: a view published from reads that moved between the two transactions is published again when the view changed while it was sent
+  checklist: worker-fencing dismissed: one publishing action reads and publishes; no lease or ownership applies
+  checklist: commit-ordered-effects dismissed: the view is published after both reads return
+  checklist: resumption-coverage dismissed: no batch resumes from a checkpoint; the tab is read and published in one action
