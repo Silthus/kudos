@@ -17,11 +17,17 @@ Display titles (WS310):
 | `/quests`, `text-4xl leading-none` | ![](quests-title-light.png) | ![](quests-title-390-dark.png) |
 | `/leaderboard`, `clamp(1.75rem, 5vw, 3rem)`, 0.95, balanced | ![](leaderboard-title-light.png) | ![](leaderboard-title-390-dark.png) |
 
+#193 merged first and put `/skills` and `/book` on `main`, so they take E's `text-4xl leading-none` here too ([red](red-main.txt), [green](green-main.txt)):
+
+| `/skills`, light, 390 px | `/book`, light, 390 px |
+|---|---|
+| ![](skills-title-390-light.png) | ![](book-title-390-light.png) |
+
 ## Tests
 
 - [red.txt](red.txt): `signInCard.test.tsx` and `displayTitles.test.tsx` at the red commit, 11 failing.
 - [green.txt](green.txt): the same 15 tests passing, every assertion intact.
-- [gate.txt](gate.txt): `pnpm gate` through `fleet heavy`, 134 files and 2106 tests, Coherence clean. Recorded-name advisories are trimmed.
+- [gate.txt](gate.txt): `pnpm gate` through `fleet heavy`, 144 files and 2350 tests on the tree merged with `main`, Coherence clean. Recorded-name advisories are trimmed.
 - axe in light and dark covers the card at `/` and with the landing hint at `/leaderboard?period=month` (`accessibility.test.tsx`).
 
 ## V24 manual pass
