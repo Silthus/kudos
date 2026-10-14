@@ -16,6 +16,8 @@
   - [`red-stale-refusal.txt`](red-stale-refusal.txt) → [`green-stale-refusal.txt`](green-stale-refusal.txt). After a level up the drawer offered Buy under the old `No skill points to spend.` ([`found-stale-refusal-narrow-dark.png`](found-stale-refusal-narrow-dark.png)). A refusal's line now shows only while the read still can't sell the perk.
 - **Coherence:** the entrance `mutation buyPerk`. *Website commands pass one guard*, *a website command never launches unlocks* and *a website command is a D17 command* gain it, and the new invariant *a skill point bought on the website is spent once* is witnessed by a refutation (the key with the call's time appended).
 
+- **Review:** [`review-gpt-6.1-sol.md`](review-gpt-6.1-sol.md). One read-only round of GPT-6.1 Sol (high), with the spec as the oracle. The narrow-screen finding held and is fixed: the drawer reopens on `bought` and a page-level status speaks while it is closed. The axe coverage finding held. The blocker (App Home's scheduled republish meeting a flag switched on in between) is rejected with its reason.
+
 ## Running app
 
 A disposable local backend on 6110 (cloud) and 6111 (site), storage under `/tmp`, never the shared 3210 and never a cloud deployment. The mock Slack issuer and flag server ran on 6112 with `MOCK_FLAGS_ON=xp-levels,unlocks,skill-tree`, a local override on this backend only. Unlocks launched from the shell for `U_NOBODY` before Juno joined (no Journey or Book launch: `quests` and `achievements` stayed off). Juno was imported with 1,000 XP (level 6, 2 skill points) and an open Skill tree, then signed in through the real Convex Auth handshake in the T3 preview browser.
