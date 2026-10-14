@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { exposed, memberDecision, memberDecisionWithoutWriting, workspaceDecision, workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
+import { exposed, memberDecision, memberDecisionBeforeWriting, memberDecisionWithoutWriting, workspaceDecision, workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
 import { workspaceKeyOf } from "../analytics/outbox";
 import { journeyPreviewedBy } from "../quests/flag";
 import { signInWorkspace } from "../slack/signIn";
@@ -26,6 +26,13 @@ export async function websiteShownTo(ctx: MutationCtx, member: MemberId): Promis
   await exposed(ctx, websiteFlag, member, shown);
   if (shown) await runDuePreviewMoments(ctx, member);
   return shown;
+}
+
+export async function websiteAdmits(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  const decision = await memberDecisionBeforeWriting(ctx, websiteFlag, member);
+  if (!decision.value) return false;
+  await decision.keep();
+  return websiteShownTo(ctx, member);
 }
 
 async function runDuePreviewMoments(ctx: MutationCtx, member: MemberId) {

@@ -5,7 +5,7 @@ import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/se
 import { chatUserOf, emailOf, type MemberId } from "../workspace/directory";
 import { captureSettings, environmentSetting } from "./capture";
 import { existingWorkspaceKey, record, workspaceKeyOf } from "./outbox";
-import { analyticsIdOf, existingAnalyticsId } from "./person";
+import { analyticsIdOf, existingAnalyticsId, recordAnalyticsId } from "./person";
 
 type FlagValue = string | boolean;
 
@@ -23,6 +23,18 @@ export function memberDecision<V extends FlagValue>(ctx: QueryCtx | MutationCtx,
 
 export function memberDecisionWithoutWriting<V extends FlagValue>(ctx: QueryCtx | MutationCtx, read: Flag<V>, member: MemberId): Promise<V> {
   return evaluated(ctx, read, () => existingMemberSubject(ctx, member));
+}
+
+export type DecisionToKeep<V> = { value: V; keep: () => Promise<void> };
+
+export async function memberDecisionBeforeWriting<V extends FlagValue>(ctx: MutationCtx, read: Flag<V>, member: MemberId): Promise<DecisionToKeep<V>> {
+  const existing = await existingAnalyticsId(ctx, member);
+  const analyticsId = existing ?? crypto.randomUUID();
+  const value = await evaluated(ctx, read, async () => ({ distinctId: analyticsId, email: await emailOf(ctx, member) }));
+  const keep = async () => {
+    if (existing === null) await recordAnalyticsId(ctx, member, analyticsId);
+  };
+  return { value, keep };
 }
 
 export function workspaceDecision<V extends FlagValue>(ctx: QueryCtx | MutationCtx, read: Flag<V>, workspace: string): Promise<V> {

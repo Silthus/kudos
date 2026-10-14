@@ -176,6 +176,14 @@ describe("F28: a link from Slack that asks to sign in", () => {
     expect(currentAddress()).toBe(destination);
   });
 
+  it("shows no closed page while it takes the visitor to Slack", async () => {
+    arriveAt("/quests?sign-in");
+    const { actions } = renderApp(shellFixtures.closed);
+
+    await waitFor(() => expect(actions.signIn).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
+  });
+
   it("starts Slack's sign-in for a signed-out visitor too", async () => {
     arriveAt("/quests?sign-in");
     const { actions } = renderApp(shellFixtures.signedOut);

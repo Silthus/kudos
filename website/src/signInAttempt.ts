@@ -45,16 +45,19 @@ export function useSignInOutcome(state: ShellState): ShellState {
   return signedOut && (unfinished || returnedFromSignIn) ? { kind: "sign-in-unfinished" } : state;
 }
 
-export function useSignInWhenAsked(state: ShellState, signIn: () => void) {
+export function useSignInWhenAsked(state: ShellState, signIn: () => void): boolean {
   const [asked] = useState(signInAskedInTheAddress);
   const answered = useRef(false);
+  const takingToSlack = asked && (state.kind === "closed" || state.kind === "signed-out");
 
   useEffect(() => {
     if (!asked || answered.current || state.kind === "loading" || state.kind === "connecting") return;
     answered.current = true;
     dropTheSignInAsk();
-    if (state.kind === "closed" || state.kind === "signed-out") signIn();
-  }, [asked, state.kind, signIn]);
+    if (takingToSlack) signIn();
+  }, [asked, state.kind, takingToSlack, signIn]);
+
+  return takingToSlack;
 }
 
 function signInAskedInTheAddress() {

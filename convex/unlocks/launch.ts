@@ -72,7 +72,11 @@ export async function unlocksAppliedTo(ctx: QueryCtx, member: MemberId): Promise
   return (await launchIn(ctx, workspace)) !== null || (await previewMomentOf(ctx, member, "unlocks")) !== null;
 }
 
-async function unlocksOnIn(ctx: MutationCtx, workspace: string) {
+export async function unlocksLaunchDueIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
+  return (await unlocksOnIn(ctx, workspace)) && (await launchIn(ctx, workspace)) === null;
+}
+
+async function unlocksOnIn(ctx: QueryCtx, workspace: string) {
   return (await xpLevelsShownIn(ctx, workspace)) && (await workspaceDecision(ctx, unlocksFlag, workspace));
 }
 

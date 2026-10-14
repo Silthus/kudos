@@ -34,10 +34,11 @@ type SentPersonEvent = { row: Id<"analyticsOutbox">; distinctId: string };
 type OutboxRow = Doc<"analyticsOutbox">;
 
 export async function analyticsIdOf(ctx: MutationCtx, member: MemberId) {
-  const existing = await existingAnalyticsId(ctx, member);
-  if (existing !== null) return existing;
+  return (await existingAnalyticsId(ctx, member)) ?? recordAnalyticsId(ctx, member, crypto.randomUUID());
+}
+
+export async function recordAnalyticsId(ctx: MutationCtx, member: MemberId, analyticsId: string) {
   const someoneIsWaiting = (await neverRecorded(ctx).first()) !== null;
-  const analyticsId = crypto.randomUUID();
   await ctx.db.insert("analyticsIds", { member, analyticsId });
   if (!someoneIsWaiting && captureSettings() !== null) await ctx.scheduler.runAfter(0, internal.analytics.person.identifyNewPeople, {});
   return analyticsId;

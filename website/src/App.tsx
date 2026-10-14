@@ -56,13 +56,14 @@ export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
     rememberSignInStarted();
     actions.signIn(hrefOf(route));
   }, [actions, route]);
-  useSignInWhenAsked(shown, signIn);
+  const takingToSlack = useSignInWhenAsked(shown, signIn);
+  const page: ShellState = takingToSlack ? { kind: "loading" } : shown;
   return (
     <NavigateProvider value={arriveAt}>
       <MomentsProvider value={moments}>
-        <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined)} inert={revealing} onSignOut={actions.signOut}>
+        <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined)} inert={revealing} onSignOut={actions.signOut}>
           <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
-            <Page state={shown} route={route} board={board} quests={quests} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
+            <Page state={page} route={route} board={board} quests={quests} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
           </ErrorBoundary>
         </Frame>
         {reveal !== undefined && member !== undefined && (

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch, type FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { onForEmails, onForEveryone } from "../../testing/flags";
+import { onForEmails, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSession, allowedWorkspace } from "../../testing/website";
@@ -33,6 +33,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
@@ -77,6 +78,10 @@ function openFeature(caller: Pick<Backend, "mutation">) {
 
 function rowsOf<Table extends "users" | "flagExposures" | "previewMoments" | "unlockLaunches" | "journeyLaunches">(table: Table) {
   return t.run((ctx) => ctx.db.query(table).collect());
+}
+
+function everyRowOf(...tables: Array<"analyticsIds" | "flagExposures" | "analyticsOutbox">) {
+  return t.run(async (ctx) => Promise.all(tables.map((table) => ctx.db.query(table).collect())));
 }
 
 async function websiteExposures() {
@@ -207,6 +212,20 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       return member;
     }
 
+    test("a member with no analytics ID yet, whose session the workspace decision admits, is refused by their own decision and the command writes nothing at all", async () => {
+      const workspaceKey = await bucketed(true);
+      const analyticsId = await bucketed(false);
+      await aMemberWithEmail(bob);
+      await t.run((ctx) => ctx.db.insert("workspaceKeys", { workspace: allowedWorkspace, workspaceKey }));
+      await flagsServed(halfTheWebsite);
+      const { asSignedIn } = await aSession(t, { user: bob.user });
+      vi.spyOn(crypto, "randomUUID").mockReturnValue(analyticsId as ReturnType<typeof crypto.randomUUID>);
+      const before = await everyRowOf("analyticsIds", "flagExposures", "analyticsOutbox");
+
+      expect(await openFeature(asSignedIn)).toEqual({ kind: "closed" });
+      expect(await everyRowOf("analyticsIds", "flagExposures", "analyticsOutbox")).toEqual(before);
+    });
+
     test("the member signs in on the workspace decision with their own exposure off, then reads closed, while a visitor without a session is asked to sign in", async () => {
       const member = await aWorkspaceInsideAndBobOutside();
 
@@ -215,6 +234,33 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       expect(await websiteExposures()).toEqual([{ member, value: false }]);
       expect(await myProfile(asBob)).toEqual({ kind: "closed" });
       expect(await myProfile()).toEqual({ kind: "signed-out" });
+    });
+  });
+
+  describe("F21: a previewer's command never records a workspace launch the flag's switch made due", () => {
+    const everyFlagOn = ["website", "xp-levels", "everyone-board", "unlocks", "quests"].map(onForEveryone);
+
+    test("unlocks switched on for the workspace after the preview: the previewer's open answers refused and records no unlocks launch", async () => {
+      await aMemberWithEmail(alice);
+      await flagsServed(...everythingForAlice);
+      const asAlice = await signedIn(alice);
+      await flagsServed(...everyFlagOn);
+
+      expect(await openFeature(asAlice)).toEqual({ kind: "refused" });
+      expect(await rowsOf("unlockLaunches")).toEqual([]);
+      expect(await rowsOf("journeyLaunches")).toEqual([]);
+    });
+
+    test("quests switched on for the workspace after the preview, with unlocks launched: the previewer's open answers refused and records no Journey launch", async () => {
+      await aMemberWithEmail(alice);
+      await flagsServed(...everythingForAlice);
+      const asAlice = await signedIn(alice);
+      await flagsServed(...everyFlagOn.filter(({ key }) => key !== "quests"));
+      await unlocksShippedBeforeAnyoneJoined(t, allowedWorkspace);
+      await flagsServed(...everyFlagOn);
+
+      expect(await openFeature(asAlice)).toEqual({ kind: "refused" });
+      expect(await rowsOf("journeyLaunches")).toEqual([]);
     });
   });
 
