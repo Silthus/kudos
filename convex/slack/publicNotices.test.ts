@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { FakeSlack, landsButTimesOut, slackError, type ScriptedAnswer } from "../../testing/fakeSlack";
 import { signingSecret } from "../../testing/signedSlack";
-import { everythingStored, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { everythingStored, post, setWorkspaceSettings, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { LevelReachedEvent } from "../bus/events";
@@ -191,7 +191,7 @@ describe("P64: a change of route", () => {
     await post(t, [section(text("thanks "), mention("U_BOB"), emoji("taco"), emoji("taco"))]);
     await settle(t);
     const [threadReply] = slack.messagesIn("C1");
-    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", announcementChannel: "C1" }));
+    await setWorkspaceSettings(t, { announcementChannel: "C1" });
 
     await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_BOB", 2) });
     await settle(t);

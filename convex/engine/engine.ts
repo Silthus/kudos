@@ -148,6 +148,10 @@ export async function threadOf(ctx: QueryCtx, ref: MessageRef): Promise<string> 
   return row?.threadRoot ?? ref.message;
 }
 
+export async function threadRootOf(ctx: QueryCtx, ref: MessageRef): Promise<string | null> {
+  return (await kudosMessageRow(ctx, ref))?.threadRoot ?? null;
+}
+
 export async function awaitedUsers(ctx: QueryCtx, ref: MessageRef, attempt: bigint): Promise<ChatUserId[] | null> {
   const row = await kudosMessageRow(ctx, ref);
   if (row?.state !== "awaiting-directory" || row.attempt !== attempt) return null;

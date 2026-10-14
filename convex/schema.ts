@@ -66,6 +66,7 @@ export default defineSchema({
     baseAllowance: v.optional(v.number()),
     kudosEmoji: v.optional(v.string()),
     announcementChannel: v.optional(v.string()),
+    url: v.optional(v.string()),
   }).index("by_workspace", ["workspace"]),
 
   members: defineTable({
@@ -140,6 +141,8 @@ export default defineSchema({
     .index("by_giver", ["giver", "day"])
     .index("by_giver_recipient", ["giver", "recipient"])
     .index("by_recipient", ["recipient", "day"])
+    .index("by_recipient_at", ["recipient", "at"])
+    .index("by_giver_at", ["giver", "at"])
     .index("by_message", ["workspace", "conversation", "message"])
     .index("by_workspace", ["workspace"]),
 

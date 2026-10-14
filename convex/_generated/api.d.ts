@@ -17,6 +17,11 @@ import type * as achievements_measures from "../achievements/measures.js";
 import type * as achievements_oldFriends from "../achievements/oldFriends.js";
 import type * as achievements_replay from "../achievements/replay.js";
 import type * as achievements_tiers from "../achievements/tiers.js";
+import type * as activity_activity from "../activity/activity.js";
+import type * as activity_activityFlag from "../activity/activityFlag.js";
+import type * as activity_entries from "../activity/entries.js";
+import type * as activity_kudos from "../activity/kudos.js";
+import type * as activity_position from "../activity/position.js";
 import type * as analytics_boundary from "../analytics/boundary.js";
 import type * as analytics_capture from "../analytics/capture.js";
 import type * as analytics_drain from "../analytics/drain.js";
@@ -108,6 +113,7 @@ import type * as slack_directory from "../slack/directory.js";
 import type * as slack_events from "../slack/events.js";
 import type * as slack_interactivity from "../slack/interactivity.js";
 import type * as slack_normalize from "../slack/normalize.js";
+import type * as slack_permalink from "../slack/permalink.js";
 import type * as slack_placedReactions from "../slack/placedReactions.js";
 import type * as slack_processEvent from "../slack/processEvent.js";
 import type * as slack_publicReplies from "../slack/publicReplies.js";
@@ -121,6 +127,7 @@ import type * as slack_verifyMember from "../slack/verifyMember.js";
 import type * as slack_webApi from "../slack/webApi.js";
 import type * as slack_welcome from "../slack/welcome.js";
 import type * as slack_workspaceLink from "../slack/workspaceLink.js";
+import type * as slack_workspaceUrl from "../slack/workspaceUrl.js";
 import type * as unlocks_feature from "../unlocks/feature.js";
 import type * as unlocks_launch from "../unlocks/launch.js";
 import type * as unlocks_previewMoments from "../unlocks/previewMoments.js";
@@ -128,6 +135,7 @@ import type * as unlocks_schedule from "../unlocks/schedule.js";
 import type * as unlocks_sweep from "../unlocks/sweep.js";
 import type * as unlocks_unlocks from "../unlocks/unlocks.js";
 import type * as website_abandonedHandshakes from "../website/abandonedHandshakes.js";
+import type * as website_activity from "../website/activity.js";
 import type * as website_clock from "../website/clock.js";
 import type * as website_commands from "../website/commands.js";
 import type * as website_faces from "../website/faces.js";
@@ -147,6 +155,7 @@ import type * as welcome_welcome from "../welcome/welcome.js";
 import type * as workspace_directory from "../workspace/directory.js";
 import type * as workspace_memberProfile from "../workspace/memberProfile.js";
 import type * as workspace_settings from "../workspace/settings.js";
+import type * as workspace_url from "../workspace/url.js";
 import type * as workspace_userGroups from "../workspace/userGroups.js";
 
 import type {
@@ -165,6 +174,11 @@ declare const fullApi: ApiFromModules<{
   "achievements/oldFriends": typeof achievements_oldFriends;
   "achievements/replay": typeof achievements_replay;
   "achievements/tiers": typeof achievements_tiers;
+  "activity/activity": typeof activity_activity;
+  "activity/activityFlag": typeof activity_activityFlag;
+  "activity/entries": typeof activity_entries;
+  "activity/kudos": typeof activity_kudos;
+  "activity/position": typeof activity_position;
   "analytics/boundary": typeof analytics_boundary;
   "analytics/capture": typeof analytics_capture;
   "analytics/drain": typeof analytics_drain;
@@ -256,6 +270,7 @@ declare const fullApi: ApiFromModules<{
   "slack/events": typeof slack_events;
   "slack/interactivity": typeof slack_interactivity;
   "slack/normalize": typeof slack_normalize;
+  "slack/permalink": typeof slack_permalink;
   "slack/placedReactions": typeof slack_placedReactions;
   "slack/processEvent": typeof slack_processEvent;
   "slack/publicReplies": typeof slack_publicReplies;
@@ -269,6 +284,7 @@ declare const fullApi: ApiFromModules<{
   "slack/webApi": typeof slack_webApi;
   "slack/welcome": typeof slack_welcome;
   "slack/workspaceLink": typeof slack_workspaceLink;
+  "slack/workspaceUrl": typeof slack_workspaceUrl;
   "unlocks/feature": typeof unlocks_feature;
   "unlocks/launch": typeof unlocks_launch;
   "unlocks/previewMoments": typeof unlocks_previewMoments;
@@ -276,6 +292,7 @@ declare const fullApi: ApiFromModules<{
   "unlocks/sweep": typeof unlocks_sweep;
   "unlocks/unlocks": typeof unlocks_unlocks;
   "website/abandonedHandshakes": typeof website_abandonedHandshakes;
+  "website/activity": typeof website_activity;
   "website/clock": typeof website_clock;
   "website/commands": typeof website_commands;
   "website/faces": typeof website_faces;
@@ -295,6 +312,7 @@ declare const fullApi: ApiFromModules<{
   "workspace/directory": typeof workspace_directory;
   "workspace/memberProfile": typeof workspace_memberProfile;
   "workspace/settings": typeof workspace_settings;
+  "workspace/url": typeof workspace_url;
   "workspace/userGroups": typeof workspace_userGroups;
 }>;
 

@@ -3,6 +3,7 @@ import { weekOf, type DayKey } from "../engine/allowance";
 import { awardAt, givenEarlierInWeek, type AwardId } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import { gateDecisionOf } from "./gate";
+import type { GateDecision } from "./gate";
 import type { EffectsRecord, Side, ThoughtfulAward } from "./progress";
 
 export async function insertEffects(ctx: MutationCtx, effects: EffectsRecord[]) {
@@ -15,6 +16,14 @@ export async function isRecorded(ctx: QueryCtx, award: AwardId, side: Side) {
     .withIndex("by_award", (q) => q.eq("award", award).eq("side", side))
     .first();
   return recorded !== null;
+}
+
+export async function gateRecordedWith(ctx: QueryCtx, award: AwardId): Promise<GateDecision | null> {
+  const recorded = await ctx.db
+    .query("effectsRecords")
+    .withIndex("by_award", (q) => q.eq("award", award).eq("side", "giver"))
+    .first();
+  return recorded?.gate ?? null;
 }
 
 export async function thoughtfulAwardsBefore(ctx: QueryCtx, giver: MemberId, day: DayKey, award: AwardId): Promise<ThoughtfulAward[]> {
