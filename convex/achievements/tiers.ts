@@ -19,10 +19,11 @@ export type EarnedTier = Infer<typeof earnedTierValidator>;
 
 export type Reaching = { workspace: string; member: MemberId; ladder: LadderId; award: AwardId; at: number };
 
-export async function earnTier(ctx: MutationCtx, { workspace, member, ladder, award, at }: Reaching, { tier, rewards }: Tier) {
-  if ((await earnedTierOf(ctx, member, ladder, tier)) !== null) return;
+export async function earnTier(ctx: MutationCtx, { workspace, member, ladder, award, at }: Reaching, { tier, rewards }: Tier): Promise<boolean> {
+  if ((await earnedTierOf(ctx, member, ladder, tier)) !== null) return false;
   await ctx.db.insert("earnedTiers", { member, ladder, tier, earnedAt: at, award, catalogueVersion: ladders.version, rewards });
   await publish(ctx, { type: "achievementEarned", workspace, member, ladder, tier, at });
+  return true;
 }
 
 export function earnedTiersOf(ctx: QueryCtx, member: MemberId, ladder: LadderId): Promise<EarnedTier[]> {

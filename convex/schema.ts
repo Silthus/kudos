@@ -9,7 +9,8 @@ import { propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
 import { publicReplyValidator } from "./feedback/publicReplies";
-import { segmentValidator } from "./feedback/replies";
+import { tierNoticeValidator } from "./feedback/tierNotices";
+import { segmentValidator } from "./feedback/segments";
 import { periodValidator } from "./leaderboard/periods";
 import { purchaseOutcomeValidator } from "./progression/perks";
 import { effectsRecordValidator } from "./progression/progress";
@@ -190,6 +191,8 @@ export default defineSchema({
   }).index("by_award_member_ladder", ["award", "member", "ladder"]),
 
   earnedTiers: defineTable(earnedTierValidator).index("by_member_ladder_tier", ["member", "ladder", "tier"]),
+
+  tierNotices: defineTable(tierNoticeValidator).index("by_member_message", ["member", "workspace", "conversation", "message"]),
 
   questDraws: defineTable(questDrawValidator).index("by_member_week", ["member", "week"]),
 

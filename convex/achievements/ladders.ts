@@ -8,11 +8,15 @@ export const rewardKindValidator = v.union(v.literal("coins"), v.literal("kudosE
 
 export const promisedRewardValidator = v.object({ kind: rewardKindValidator, reward: v.string() });
 
+export const tierRefValidator = v.object({ ladder: ladderValidator, tier: tierValidator });
+
 export type LadderId = Infer<typeof ladderValidator>;
 
 export type TierId = Infer<typeof tierValidator>;
 
 export type PromisedReward = Infer<typeof promisedRewardValidator>;
+
+export type TierRef = Infer<typeof tierRefValidator>;
 
 export type Tier = { tier: TierId; name: string; count: number; rewards: PromisedReward[] };
 
@@ -38,6 +42,14 @@ export const ladders = {
 
 export function ladderOf(ladder: LadderId): Ladder {
   return ladders.ladders.find((entry) => entry.ladder === ladder)!;
+}
+
+export function tierOf({ ladder, tier }: TierRef): Tier {
+  return ladderOf(ladder).tiers.find((entry) => entry.tier === tier)!;
+}
+
+export function tierNameOf(ref: TierRef) {
+  return tierOf(ref).name;
 }
 
 function tiersOf(ladder: LadderId, [bronze, silver, gold, diamond]: [string, string, string, string]): Tier[] {

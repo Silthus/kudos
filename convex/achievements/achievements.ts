@@ -3,10 +3,11 @@ import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import type { AwardWithId } from "../engine/awards";
 import { republish } from "../feedback/homes";
+import { tellTiersEarned } from "../feedback/tierNotices";
 import { isOpened } from "../feedback/unlockFilter";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { achievementsApplyIn, achievementsLiveIn, bookLaunchedAt } from "./flag";
-import { ladders, ladderOf, type LadderId, type PromisedReward, type Tier, type TierId } from "./ladders";
+import { ladders, ladderOf, type LadderId, type PromisedReward, type Tier, type TierId, type TierRef } from "./ladders";
 import { earnedTiersOf, earnTier, type EarnedTier } from "./tiers";
 
 export type TierFacts = { tier: TierId; name: string; count: number; earnedAt: number | null; catalogueVersion: string | null; rewards: PromisedReward[] };
@@ -23,12 +24,16 @@ export const countKudosGiven = internalMutation({
     const shown = await achievementsLiveIn(ctx, event.workspace);
     const launchedAt = await bookLaunchedAt(ctx, event.workspace);
     if (launchedAt === null || event.at < launchedAt) return;
-    const counted = new Set<MemberId>();
+    const counted = new Map<MemberId, TierRef[]>();
     for (const award of event.awards) {
-      if (await countAward(ctx, event, { member: award.giver, ladder: "generosity" }, award)) counted.add(award.giver);
-      if (await countAward(ctx, event, { member: award.recipient, ladder: "recognition" }, award)) counted.add(award.recipient);
+      await countFor(ctx, event, { member: award.giver, ladder: "generosity" }, award, counted);
+      await countFor(ctx, event, { member: award.recipient, ladder: "recognition" }, award, counted);
     }
-    if (shown) for (const member of counted) if (await isOpened(ctx, member, "book")) await republish(ctx, member);
+    if (!shown) return;
+    for (const [member, earned] of counted) {
+      if (await isOpened(ctx, member, "book")) await republish(ctx, member);
+      await tellTiersEarned(ctx, { member, message: event.message, earned });
+    }
   },
 });
 
@@ -60,13 +65,21 @@ function tierFactsOf({ tier, name, count, rewards }: Tier, earned: EarnedTier | 
   return { tier, name, count, earnedAt: earned.earnedAt, catalogueVersion: earned.catalogueVersion, rewards: earned.rewards };
 }
 
-async function countAward(ctx: MutationCtx, event: KudosGivenEvent, counting: Counting, award: AwardWithId): Promise<boolean> {
-  if (await isCounted(ctx, counting, award)) return false;
+async function countFor(ctx: MutationCtx, event: KudosGivenEvent, counting: Counting, award: AwardWithId, counted: Map<MemberId, TierRef[]>) {
+  const earned = await countAward(ctx, event, counting, award);
+  if (earned !== null) counted.set(counting.member, [...(counted.get(counting.member) ?? []), ...earned]);
+}
+
+async function countAward(ctx: MutationCtx, event: KudosGivenEvent, counting: Counting, award: AwardWithId): Promise<TierRef[] | null> {
+  if (await isCounted(ctx, counting, award)) return null;
   await ctx.db.insert("countedAwards", { award: award.award, ...counting });
   const count = await addToCount(ctx, counting, award.kudos);
   const reaching = { workspace: event.workspace, ...counting, award: award.award, at: event.at };
-  for (const tier of ladderOf(counting.ladder).tiers) if (tier.count <= count) await earnTier(ctx, reaching, tier);
-  return true;
+  const earned: TierRef[] = [];
+  for (const tier of ladderOf(counting.ladder).tiers) {
+    if (tier.count <= count && (await earnTier(ctx, reaching, tier))) earned.push({ ladder: counting.ladder, tier: tier.tier });
+  }
+  return earned;
 }
 
 async function addToCount(ctx: MutationCtx, counting: Counting, kudos: number) {
