@@ -10,6 +10,7 @@ import { personPropertiesValidator, propertiesValidator } from "./analytics/proj
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
 import { primaryGroupCauseValidator } from "./groups/cause";
+import { groupModeValidator } from "./groups/mode";
 import { publicReplyValidator } from "./feedback/publicReplies";
 import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
 import { gainsValidator } from "./feedback/replies";
@@ -112,6 +113,12 @@ export default defineSchema({
   })
     .index("by_member", ["member"])
     .index("by_primary", ["primary"]),
+
+  groupSettings: defineTable({
+    workspace: v.string(),
+    mode: groupModeValidator,
+    allowlist: v.array(v.id("userGroups")),
+  }).index("by_workspace", ["workspace"]),
 
   primaryGroupHistory: defineTable({
     workspace: v.string(),

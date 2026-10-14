@@ -522,6 +522,18 @@
     {
       "name": "places climbed",
       "definition": "How many positions a ranked row of a board rose against the same board in the previous period up to the same day (G18's comparison): a positive number, or nothing when it didn't rise, wasn't on that board then, or the period is all time; no read ever states a drop, and Slack shows none (GB18). The improvement line's places are the viewer's own."
+    },
+    {
+      "name": "admin",
+      "definition": "A workspace admin or owner in Slack, read from the directory (GB26, P69). Only admins see the Admin tab, and an admin command (setAnnouncementChannel, setGroupMode) from anyone else changes nothing."
+    },
+    {
+      "name": "group mode",
+      "definition": "Which user groups count as groups in a workspace (GB27): every group, the default, or allowlist mode, where only the groups on the allowlist count. An admin sets it with setGroupMode in the Admin tab; it takes effect at that instant and reconciles every member's primary group."
+    },
+    {
+      "name": "allowlist",
+      "definition": "The groups an admin picked in allowlist mode of the group mode (GB1, GB27): only they count. It is kept when the mode goes back to every group, so switching back restores it, and an empty one makes groups unavailable (GB3)."
     }
   ]
 }

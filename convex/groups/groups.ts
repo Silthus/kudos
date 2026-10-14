@@ -5,18 +5,40 @@ import { memberDecision } from "../analytics/flags";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { keepsMembers } from "../workspace/userGroups";
 import { groupsFlag } from "./flag";
+import type { GroupModeKind } from "./mode";
 
 export type GroupId = Id<"userGroups">;
 
 export type GroupRef = { group: GroupId; name: string };
 
-export function countsAsGroup(row: Doc<"userGroups">): boolean {
-  return keepsMembers(row);
+export type GroupMode = { mode: GroupModeKind; allowlist: GroupId[] };
+
+const everyGroup: GroupMode = { mode: "all", allowlist: [] };
+
+export function countsAsGroup(row: Doc<"userGroups">, { mode, allowlist }: GroupMode): boolean {
+  return keepsMembers(row) && (mode === "all" || allowlist.includes(row._id));
+}
+
+export async function groupModeOf(ctx: QueryCtx, workspace: string): Promise<GroupMode> {
+  const row = await groupSettingsRow(ctx, workspace);
+  return row === null ? everyGroup : { mode: row.mode, allowlist: row.allowlist };
+}
+
+export function groupSettingsRow(ctx: QueryCtx, workspace: string) {
+  return ctx.db
+    .query("groupSettings")
+    .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
+    .unique();
+}
+
+export function userGroupsIn(ctx: QueryCtx, workspace: string) {
+  return ctx.db.query("userGroups").withIndex("by_group", (q) => q.eq("workspace", workspace));
 }
 
 export async function availableIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
-  for await (const row of ctx.db.query("userGroups").withIndex("by_group", (q) => q.eq("workspace", workspace))) {
-    if (countsAsGroup(row)) return true;
+  const mode = await groupModeOf(ctx, workspace);
+  for await (const row of userGroupsIn(ctx, workspace)) {
+    if (countsAsGroup(row, mode)) return true;
   }
   return false;
 }

@@ -3,6 +3,8 @@ import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { reportLeaderboardViewed, reportLeaderboardVisibilityChanged } from "../analytics/isolatedUsage";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
+import { setGroupMode } from "../groups/groupMode";
+import { groupModeValidator } from "../groups/mode";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
@@ -29,6 +31,7 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
   v.object({ type: v.literal("rerollQuest"), quest: weeklyQuestValidator }),
   v.object({ type: v.literal("buyPerk"), perk: perkValidator }),
+  v.object({ type: v.literal("setGroupMode"), mode: groupModeValidator, allowlist: v.optional(v.array(v.string())) }),
 );
 
 export type Command = Infer<typeof commandValidator>;
@@ -71,6 +74,11 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     case "rerollQuest":
       await rerollQuest(ctx, member, command.quest);
       return null;
+    case "setGroupMode": {
+      const { type: _, ...change } = command;
+      if (await setGroupMode(ctx, workspace, person, change)) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
+      return null;
+    }
     case "buyPerk": {
       const outcome = await buyPerk(ctx, member, command.perk, idempotencyKey);
       await showHomeTab(ctx, workspace, person, "skillTree");
@@ -99,6 +107,8 @@ function conforms(validator: GenericValidator, value: unknown): boolean {
       return typeof value === "number";
     case "null":
       return value === null;
+    case "array":
+      return Array.isArray(value) && value.every((element) => conforms(validator.element, element));
     default:
       return false;
   }
