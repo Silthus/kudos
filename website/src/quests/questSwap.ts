@@ -18,7 +18,7 @@ export function useQuestSwap(swapQuest: ShellActions["swapQuest"], slots: QuestS
   useEffect(() => {
     if (landed === undefined) return;
     setLanding(undefined);
-    setAnnouncement(`Swapped. Your new quest: ${landed.goal}.`);
+    setAnnouncement(`Swapped. Your new quest: ${asSentence(landed.goal)}`);
     headingOf(landed.slot)?.focus();
   }, [landed]);
 
@@ -48,6 +48,10 @@ export function useQuestSwap(swapQuest: ShellActions["swapQuest"], slots: QuestS
       if (sending === undefined) void send(slot);
     },
   };
+}
+
+function asSentence(goal: string) {
+  return goal.endsWith(".") ? goal : `${goal}.`;
 }
 
 function headingOf(slot: number) {

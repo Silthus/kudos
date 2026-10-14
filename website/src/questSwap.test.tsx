@@ -124,7 +124,7 @@ describe("WS318 WS319: pressing Swap sends the read's own quest and answers in p
 
     await view.user.click(swapButtonIn(sayingWhyTwice));
 
-    await waitFor(() => expect(within(main()).getByRole("status")).toHaveTextContent(`Swapped. Your new quest: ${swappedIn}.`));
+    await waitFor(() => expect(within(main()).getByRole("status")).toHaveTextContent(`Swapped. Your new quest: ${swappedIn}`, { normalizeWhitespace: true }));
     expect(cardOf(swappedIn)).toHaveTextContent("Swapped");
     expect(within(main()).getByRole("heading", { name: swappedIn })).toHaveFocus();
     expect(header()).toHaveTextContent("Swap used this week");
@@ -142,7 +142,7 @@ describe("WS318 WS319: pressing Swap sends the read's own quest and answers in p
     view.showVisitor(withQuests);
 
     expect(within(main()).getByRole("heading", { name: swappedIn })).toHaveFocus();
-    expect(within(main()).getByRole("status")).toHaveTextContent(`Swapped. Your new quest: ${swappedIn}.`);
+    expect(within(main()).getByRole("status").textContent).toBe(`Swapped. Your new quest: ${swappedIn}`);
   });
 
   it("after refused, says the quest couldn't be swapped on its card", async () => {
@@ -153,6 +153,22 @@ describe("WS318 WS319: pressing Swap sends the read's own quest and answers in p
     expect(cardOf(sayingWhyTwice)).toHaveTextContent("That quest couldn't be swapped.");
     expect(cardOf(sayingWhyThreeTimes)).not.toHaveTextContent("couldn't be swapped");
     expect(swapButtonIn(sayingWhyTwice)).toHaveTextContent(/^Swap$/);
+  });
+
+  it("after refused because the week's swap went to another quest, keeps the line on the card once Swap is gone", async () => {
+    const { read, swapLands } = swappingRead();
+    const view = renderApp(withQuests, undefined, {
+      swapQuest: async () => {
+        swapLands();
+        view.showVisitor(withQuests);
+        return { kind: "refused" };
+      },
+    }, read);
+
+    await view.user.click(swapButtonIn(sayingWhyThreeTimes));
+
+    await waitFor(() => expect(cardOf(sayingWhyThreeTimes)).toHaveTextContent("That quest couldn't be swapped."));
+    expect(within(main()).queryByRole("button", { name: /^Swap/ })).not.toBeInTheDocument();
   });
 
   it("after an error, says HedgeHug couldn't be reached, and pressing Swap again sends the same quest", async () => {

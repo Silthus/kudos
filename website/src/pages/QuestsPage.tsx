@@ -99,7 +99,7 @@ function QuestCard({ slot, firstCrate, swappable, swap }: { slot: QuestSlot } & 
           </h2>
           <QuestProgress {...progress} />
           <RewardRow xp={reward.xp} seen={seen}>
-            {claimed ? <Claimed /> : state === "in-progress" ? swappable && <SwapButton slot={slot} swap={swap} /> : <ClaimOf facts={slot} firstCrate={firstCrate} />}
+            {claimed ? <Claimed /> : state === "in-progress" ? <SwapAction slot={slot} swap={swap} swappable={swappable} /> : <ClaimOf facts={slot} firstCrate={firstCrate} />}
           </RewardRow>
         </div>
       </div>
@@ -172,17 +172,24 @@ function Claim({ crate, variant }: { crate: QuestCrate; variant: "primary" | "ou
   );
 }
 
-function SwapButton({ slot, swap }: { slot: QuestSlot; swap: QuestSwap }) {
-  const sending = swap.sending !== undefined;
+function SwapAction({ slot, swap, swappable }: { slot: QuestSlot } & Swapping) {
   const line = swap.lineFor(slot.slot);
+  if (line === undefined && !swappable) return null;
   return (
     <div className="flex flex-col items-end gap-1">
       {line !== undefined && <p className="text-xs font-medium">{line}</p>}
-      <Button variant="link-muted" size="sm" title="Swap this quest for another. One swap a week." aria-disabled={sending || undefined} onClick={() => swap.swap(slot)}>
-        <IconRefresh aria-hidden="true" className="size-3.5" />
-        {swap.sending === slot.slot ? "Swapping…" : "Swap"}
-      </Button>
+      {swappable && <SwapButton slot={slot} swap={swap} />}
     </div>
+  );
+}
+
+function SwapButton({ slot, swap }: { slot: QuestSlot; swap: QuestSwap }) {
+  const sending = swap.sending !== undefined;
+  return (
+    <Button variant="link-muted" size="sm" title="Swap this quest for another. One swap a week." aria-disabled={sending || undefined} onClick={() => swap.swap(slot)}>
+      <IconRefresh aria-hidden="true" className="size-3.5" />
+      {swap.sending === slot.slot ? "Swapping…" : "Swap"}
+    </Button>
   );
 }
 
