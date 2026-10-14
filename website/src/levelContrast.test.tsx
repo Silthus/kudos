@@ -4,6 +4,7 @@ import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
+import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { contrast, websiteDirectory } from "./test/themeContrast";
@@ -11,7 +12,7 @@ import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 function paintsOf(element: Element) {
   const fromStroke = [...(element.getAttribute("stroke") ?? "").matchAll(/var\(--([\w-]+)\)/g)].map((match) => match[1]!);
-  const fromClasses = [...element.classList].flatMap((name) => /^(?:before:)?(?:bg|border|text)-((?:muted-)?foreground|primary)$/.exec(name)?.[1] ?? []);
+  const fromClasses = [...element.classList].flatMap((name) => /^(?:before:)?(?:bg|border|text|ring)-((?:muted-)?foreground|primary)$/.exec(name)?.[1] ?? []);
   const paints = [...fromStroke, ...fromClasses];
   if (paints.length === 0) throw new Error(`<${element.tagName.toLowerCase()} class="${element.className}"> paints with no theme token`);
   return paints;
@@ -41,6 +42,33 @@ describe("WS112 V24: the ring, the XP bar and the pips meet 3:1 against their su
         elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
       );
       expect(measured.length).toBeGreaterThanOrEqual(12);
+      expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});
+
+function railGraphics() {
+  renderApp(shellFixtures.memberWithEveryPanelOpen, fixedLeaderboard(leaderboardFixtures.midBoard), undefined, fixedQuests(questsFixtures.week));
+  const quests = within(screen.getByRole("main")).getByRole("region", { name: "Quests this week" });
+  const standing = within(screen.getByRole("main")).getByRole("region", { name: "Where you stand" });
+  const bar = within(quests).getByRole("progressbar");
+  return [
+    { part: "a quest's progress bar, track and fill", surfaces: ["card"], elements: [bar, bar.firstElementChild!] },
+    { part: "the you ring in Where you stand", surfaces: ["card"], elements: [standing.querySelector("[data-you-ring]")!] },
+  ];
+}
+
+describe("WS112 V24: the rail's progress bars and the you ring meet 3:1 against their card in both modes", () => {
+  beforeEach(() => {
+    fakeSystemTheme(false);
+  });
+
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      const measured = railGraphics().flatMap(({ part, surfaces, elements }) =>
+        elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
+      );
+      expect(measured.map(({ paint }) => paint)).toEqual(["muted-foreground", "muted-foreground", "primary"]);
       expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
     });
   }

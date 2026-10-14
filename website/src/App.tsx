@@ -37,7 +37,8 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   const shown = useSignInOutcome(visitor);
   const member = shown.kind === "member" ? shown : undefined;
   const onTheBoard = member !== undefined && route.page === "leaderboard";
-  const answer = useLeaderboard(onTheBoard ? route.period : undefined);
+  const onHome = member !== undefined && route.page === "home";
+  const answer = useLeaderboard(onTheBoard ? route.period : onHome && member.leaderboard.kind === "open" ? "week" : undefined);
   const board = useBoardWhileTheNextLoads(answer, onTheBoard);
   const onQuests = member !== undefined && route.page === "quests";
   const questsOpen = isQuestsOpenFor(member);
@@ -149,7 +150,7 @@ function Page({ state, route, board, quests, book, skillTree, membersShown, onCh
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "not-found") return <NotFoundPage />;
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
-  if (route.page === "home") return <HomePage member={state} />;
+  if (route.page === "home") return <HomePage member={state} reads={{ quests, board }} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} {...actions} />;
   if (route.page === "book") return <BookAnswerPage member={state} book={book} page={route.bookPage} {...actions} />;
   if (route.page === "skills") return <SkillTreeAnswerPage key={membersShown} member={state} skillTree={skillTree} onBuyPerk={onBuyPerk} {...actions} />;
