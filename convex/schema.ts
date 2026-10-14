@@ -5,10 +5,14 @@ import { exceptionValidator } from "./analytics/exceptions";
 import { propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
-import { publicSectionValidator, shownValidator } from "./feedback/publicReplies";
+import { publicReplyValidator } from "./feedback/publicReplies";
 import { segmentValidator } from "./feedback/replies";
 import { periodValidator } from "./leaderboard/periods";
 import { effectsRecordValidator } from "./progression/progress";
+import { rewardRecordValidator } from "./progression/rewards";
+import { crateOpeningValidator } from "./quests/crates";
+import { journeyActivationValidator } from "./quests/journey";
+import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
 import { featureValidator } from "./unlocks/feature";
 
 export default defineSchema({
@@ -101,6 +105,7 @@ export default defineSchema({
     at: v.number(),
   })
     .index("by_giver", ["giver", "day"])
+    .index("by_giver_recipient", ["giver", "recipient"])
     .index("by_recipient", ["recipient", "day"])
     .index("by_message", ["workspace", "conversation", "message"]),
 
@@ -135,18 +140,13 @@ export default defineSchema({
     threadRoot: v.optional(v.string()),
     to: v.string(),
     lines: v.array(v.array(segmentValidator)),
-  }),
+    questsDone: v.optional(v.array(segmentValidator)),
+    held: v.optional(v.literal(true)),
+  }).index("by_held_message", ["workspace", "conversation", "message", "held"]),
 
-  publicReplies: defineTable({
-    workspace: v.string(),
-    conversation: v.string(),
-    message: v.string(),
-    channel: v.string(),
-    threadTs: v.optional(v.string()),
-    sections: v.array(publicSectionValidator),
-    version: v.number(),
-    shown: shownValidator,
-  }).index("by_destination", ["workspace", "conversation", "message", "channel", "threadTs"]),
+  publicReplies: defineTable(publicReplyValidator)
+    .index("by_destination", ["workspace", "conversation", "message", "channel", "threadTs"])
+    .index("by_level_reached", ["reached.member", "reached.level"]),
 
   placedReactions: defineTable({
     workspace: v.string(),
@@ -155,7 +155,24 @@ export default defineSchema({
     emoji: v.array(v.string()),
   }).index("by_message", ["workspace", "conversation", "message"]),
 
-  effectsRecords: defineTable(effectsRecordValidator).index("by_award", ["award", "side"]),
+  effectsRecords: defineTable(effectsRecordValidator).index("by_award", ["award", "side"]).index("by_member_side", ["member", "side"]),
+
+  rewardRecords: defineTable(rewardRecordValidator).index("by_member_key", ["member", "key"]),
+
+  journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
+
+  journeyLaunches: defineTable({
+    workspace: v.string(),
+    at: v.number(),
+  }).index("by_workspace", ["workspace"]),
+
+  questDraws: defineTable(questDrawValidator).index("by_member_week", ["member", "week"]),
+
+  questSwaps: defineTable(questSwapValidator).index("by_member_week", ["member", "week"]),
+
+  questProgress: defineTable(questProgressValidator).index("by_member_week_slot", ["member", "week", "slot"]),
+
+  crateOpenings: defineTable(crateOpeningValidator).index("by_member_key", ["member", "key"]),
 
   effectsBackfill: defineTable({
     before: v.number(),

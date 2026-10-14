@@ -3,6 +3,10 @@ import type { HomeFacts, KudosHome } from "../engine/home";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import type { ProgressSettings } from "../progression/settings";
+import type { JourneyStepFacts } from "../quests/journey";
+import { questOf } from "../quests/pool";
+import type { WeeklyQuests, WeeklySlot } from "../quests/weekly";
+import type { JourneyQuest, JourneyStep, Quest, WeeklyQuest } from "../quests/step";
 import type { ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
@@ -44,7 +48,7 @@ export function renderHome(facts: HomeFacts, home: ShownHome | null, website: st
 }
 
 function memberViewOf(facts: MemberHome, home: ShownHome | null): HomeView {
-  if (home === null) return profileOf(facts, null, null);
+  if (home === null) return profileOf(facts, { progression: null, unlocks: null, quests: null, journey: null });
   return { tabBar: tabBar(home.tabs, home.shown.tab), ...tabOf(facts, home.shown) };
 }
 
@@ -60,7 +64,7 @@ function tabBar(tabs: HomeTab[], selected: HomeTab): Choice[] {
 function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
   switch (shown.tab) {
     case "profile":
-      return profileOf(facts, shown.progression, shown.unlocks);
+      return profileOf(facts, shown);
     case "leaderboard":
       return { title: "Leaderboard", groups: [[periodChoices(shown.period), { kind: "lines", lines: renderEveryoneBoard(shown.board, shown.period) }]] };
     case "settings":
@@ -70,9 +74,13 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
   }
 }
 
-function profileOf(kudos: KudosHome, progression: ToldProgression | null, unlocks: UnlocksHome | null): HomeView {
+type ProfileFacts = Omit<Extract<ShownTab, { tab: "profile" }>, "tab">;
+
+function profileOf(kudos: KudosHome, { progression, unlocks, quests, journey }: ProfileFacts): HomeView {
   const progress = progression === null ? [] : [[...progressOf(progression), ...(unlocks === null ? [] : unlockLinesOf(unlocks))]];
-  return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
+  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests)];
+  const steps = journey === null || journey.length === 0 ? [] : [journey.flatMap(journeyStepLines)];
+  return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...steps, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
 }
 
 function periodChoices(selected: Period): HomeLine {
@@ -159,6 +167,61 @@ function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
   const readyLines = ready.map((feature): HomeLine => ({ kind: "action", ...readyCrateOf(feature) }));
   const nextLine: HomeLine[] = next === null ? [] : [{ kind: "text", text: `Next: ${next.name} at level ${next.level}.` }];
   return [...readyLines, ...nextLine];
+}
+
+function weeklyQuestLines({ week, slots, swapAvailable }: WeeklyQuests): HomeLine[] {
+  const asksToSayWhy = slots.some(({ quest, finishedAt }) => finishedAt === null && questOf(quest).progress.given.saysWhy);
+  const condition: HomeLine[] = asksToSayWhy ? [{ kind: "hint", text: "Saying why counts when your message has 5 or more words besides mentions and emoji." }] : [];
+  return [{ kind: "text", text: bold("Quests this week") }, ...slots.map((slot) => weeklyQuestLine(week, slot, swapAvailable)), ...condition];
+}
+
+function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot, swapAvailable: boolean): HomeLine {
+  if (finishedAt === null) {
+    const text = `${goal} ${bold(`${progress}/${target}`)} · ${bold(`${reward.xp} XP`)}`;
+    return swapAvailable ? { kind: "action", text, action: swapQuest({ kind: "weekly", week, slot }) } : { kind: "text", text };
+  }
+  const text = `✅ ${goal} ${earned(reward.xp)}`;
+  return openedAt === null ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }) } : { kind: "text", text };
+}
+
+const journeyGoals: Record<JourneyStep, { goal: string; condition?: string }> = {
+  "first-thanks": { goal: "Give a kudos that says why.", condition: "It counts when your message has 5 or more words besides mentions and emoji." },
+  "first-quest": { goal: "Finish a weekly quest." },
+  "someone-new": { goal: "Thank someone you haven't thanked before." },
+};
+
+export function journeyGoalOf(step: JourneyStep) {
+  return journeyGoals[step].goal;
+}
+
+function journeyStepLines({ step, reward, finishedAt, openedAt }: JourneyStepFacts): HomeLine[] {
+  const { goal, condition } = journeyGoals[step];
+  if (finishedAt !== null) {
+    const text = `${bold("Journey:")} ✅ ${goal} ${earned(reward.xp)}`;
+    return [openedAt === null ? { kind: "action", text, action: openCrate({ kind: "journey", step }) } : { kind: "text", text }];
+  }
+  const active: HomeLine = { kind: "text", text: `${bold("Journey:")} ${goal} It pays ${bold(`${reward.xp} XP`)}.` };
+  return condition === undefined ? [active] : [active, { kind: "hint", text: condition }];
+}
+
+export function finishedQuestCrateOf(quest: JourneyQuest, xp: number): { text: string; action: HomeAction } {
+  return { text: `✅ You finished a Journey step: ${journeyGoals[quest.step].goal} ${earned(xp)}`, action: openCrate(quest) };
+}
+
+export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp: number): { text: string; action: HomeAction } {
+  return { text: `✅ You finished a quest: ${goal} ${earned(xp)}`, action: openCrate(quest) };
+}
+
+function swapQuest(quest: WeeklyQuest): HomeAction {
+  return { label: "Swap", command: { type: "rerollQuest", quest } };
+}
+
+function openCrate(quest: Quest): HomeAction {
+  return { label: "Open", command: { type: "openQuestCrate", quest } };
+}
+
+function earned(xp: number) {
+  return `You earned ${bold(`${xp} XP`)}.`;
 }
 
 export function readyCrateOf({ feature, name, opens }: ScheduledFeature): { text: string; action: HomeAction } {

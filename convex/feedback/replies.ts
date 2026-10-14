@@ -1,7 +1,12 @@
 import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalQuery, type MutationCtx } from "../_generated/server";
+import type { Doc, Id } from "../_generated/dataModel";
+import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { mentionValidator, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
+import { questsApplyIn, questsExposedTo } from "../quests/flag";
+import type { JourneyStep } from "../quests/step";
+import { lookup } from "../workspace/directory";
+import { journeyGoalOf } from "./home";
 
 export const segmentValidator = v.union(v.object({ text: v.string() }), v.object({ mention: mentionValidator }));
 
@@ -21,15 +26,70 @@ export type Reply =
   | { kind: "invalid"; outcome: Invalid }
   | { kind: "accepted-message-edited" };
 
+export type QuestDone = { kind: "journey"; step: JourneyStep } | { kind: "weekly"; goal: string };
+
+export const questsWaitMs = 10_000;
+
 export async function replyPrivately(ctx: MutationCtx, ref: MessageRef, threadRoot: string | undefined, to: ChatUserId, reply: Reply) {
-  const id = await ctx.db.insert("privateReplies", { ...ref, ...(threadRoot && { threadRoot }), to, lines: renderReply(reply) });
-  await ctx.scheduler.runAfter(0, internal.slack.delivery.deliverPrivateReply, { reply: id });
+  const waitsForQuests = reply.kind === "given" && (await questsDecideFor(ctx, ref.workspace, to));
+  const id = await ctx.db.insert("privateReplies", { ...ref, ...(threadRoot && { threadRoot }), to, lines: renderReply(reply), ...(waitsForQuests && { held: true as const }) });
+  if (waitsForQuests) await ctx.scheduler.runAfter(questsWaitMs, internal.feedback.replies.releaseUnreleased, { reply: id });
+  else await deliver(ctx, id);
 }
+
+async function questsDecideFor(ctx: MutationCtx, workspace: string, giver: ChatUserId) {
+  const person = await lookup(ctx, workspace, giver);
+  return person?.kind === "member" && (await questsExposedTo(ctx, person.member));
+}
+
+export async function releaseSuccessReply(ctx: MutationCtx, message: MessageRef, questsDone: QuestDone[]) {
+  const held = await heldReplyOf(ctx, message);
+  if (held !== null) await release(ctx, held, questsDone.length === 0 ? undefined : questsDoneLine(questsDone));
+}
+
+export const releaseUnreleased = internalMutation({
+  args: { reply: v.id("privateReplies") },
+  handler: async (ctx, { reply }) => {
+    const row = await ctx.db.get(reply);
+    if (row?.held === true) await release(ctx, row, undefined);
+  },
+});
 
 export const privateReply = internalQuery({
   args: { reply: v.id("privateReplies") },
-  handler: async (ctx, { reply }) => ctx.db.get(reply),
+  handler: async (ctx, { reply }) => {
+    const row = await ctx.db.get(reply);
+    if (row === null) return null;
+    const { questsDone, ...stored } = row;
+    const questsStillApply = questsDone !== undefined && (await questsApplyIn(ctx, row.workspace));
+    return { ...stored, lines: questsStillApply ? [...row.lines, questsDone] : row.lines };
+  },
 });
+
+function heldReplyOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef) {
+  return ctx.db
+    .query("privateReplies")
+    .withIndex("by_held_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message).eq("held", true))
+    .first();
+}
+
+async function release(ctx: MutationCtx, { _id }: Doc<"privateReplies">, questsDone: Line | undefined) {
+  await ctx.db.patch(_id, { held: undefined, questsDone });
+  await deliver(ctx, _id);
+}
+
+async function deliver(ctx: MutationCtx, reply: Id<"privateReplies">) {
+  await ctx.scheduler.runAfter(0, internal.slack.delivery.deliverPrivateReply, { reply });
+}
+
+function questsDoneLine(questsDone: QuestDone[]): Line {
+  const goals = new Set(questsDone.map((done) => withoutFullStop(done.kind === "journey" ? journeyGoalOf(done.step) : done.goal)));
+  return [{ text: [...goals].map((goal) => `Quest done: ${goal}`).join(" · ") }];
+}
+
+function withoutFullStop(goal: string) {
+  return goal.endsWith(".") ? goal.slice(0, -1) : goal;
+}
 
 export function renderReply(reply: Reply): Line[] {
   switch (reply.kind) {

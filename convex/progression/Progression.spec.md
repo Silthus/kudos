@@ -1,6 +1,6 @@
 # Progression
 
-Progression: subscribes to kudosGiven, writes one insert-only effects record per side of every award with its base XP, gate decision and catalogue version, derives XP, levels and skill points (one per level from level 5, none for levels 2 to 4), and publishes xpRecorded for each member whose XP it recorded, and levelReached with the member's saved skill points and the XP to the next level; a one-off backfill replays the awards given before its first run into base XP records and tells nobody; it also contributes the thoughtful kudos parse hook, App Home's level, XP to the next level and skill points, and owns a member's progression settings (mute notices, DMs), which the setProgressSettings command sets; and it declares the xp-levels flag (workspace subject, off by default), which every member-facing XP and levels surface reads before it shows anything, while progression keeps recording XP dark.
+Progression: subscribes to kudosGiven, writes one insert-only effects record per side of every award with its base XP, gate decision and catalogue version, derives XP, levels and skill points (one per level from level 5, none for levels 2 to 4), and publishes xpRecorded for each member whose XP it recorded, and levelReached with the member's saved skill points and the XP to the next level; it owns reward records (P87, ADR-0004 as amended): recordReward, in one mutation, inserts one insert-only reward record keyed by what it pays for, with its XP, coins, item and catalogue version, applies its XP once and publishes xpRecorded and levelReached, without a kudos message, for a level it crosses, and a second call with the same key writes and publishes nothing; levels and skill points count reward records like effects records; a one-off backfill replays the awards given before its first run into base XP records and tells nobody; it also contributes the thoughtful kudos parse hook, App Home's level, XP to the next level and skill points, and owns a member's progression settings (mute notices, DMs), which the setProgressSettings command sets; and it declares the xp-levels flag (workspace subject, off by default), which every member-facing XP and levels surface reads before it shows anything, while progression keeps recording XP dark.
 
 ## invariants
 - effects records are insert-only: An effects record, once written, is never changed or deleted, whatever later happens to its award's message, the member's progress or the catalogue.
@@ -17,6 +17,21 @@ Progression: subscribes to kudosGiven, writes one insert-only effects record per
   checklist: commit-ordered-effects dismissed: writing a record issues no external effect; levelReached is published in the same transaction and its subscribers run only after it commits
   checklist: durable-dispatch-intent dismissed: no external dispatch is tied to the record itself
   checklist: declared-target-coverage dismissed: no fan-out to a registry of targets writes records; one subscriber writes them
+  checklist: completion-evidence dismissed: a record is complete when its transaction commits; nothing is queued before its effect
+- reward records are insert-only: A reward record, once written, is never changed or deleted, whatever later happens to the quest or step it paid for, the member's progress, a crate opening or the catalogue.
+  over: every module under convex/, outside its tests and the generated code
+  via: P87: reward records are only ever inserted, never changed or deleted
+  because: a reward record is what finishing a quest or Journey step earned, fixed when it was promised (P86, P87, ADR-0004 as amended); rewriting one would let a catalogue change, a replayed finish or a crate opening take XP back or pay it twice, and XP never goes down (ADR-0002); a crate opening is stored beside the record, never on it (P85)
+  refuted: insertReward overwrote an existing reward record for the same member and key with ctx.db.patch -> the test failed on its no patch, replace or delete assertion (2026-10-13)
+  kinds: storage
+  checklist: scoped-reads dismissed: the invariant is about writes; reward records are read by member and key, with no shared population restricted by scope
+  checklist: encrypted-storage dismissed: a record holds a member id, a key, XP, coins and a catalogue version, nothing designated confidential at rest
+  checklist: key-rotation-compatibility dismissed: nothing is encrypted
+  checklist: input-validation dismissed: a record is built by Quests from its stored activation, and the table's validator checks it again on insert
+  checklist: revision-preservation dismissed: a reward record has no revisions; there is only the first and only write
+  checklist: commit-ordered-effects dismissed: writing a record issues no external effect; its events are published in the same transaction and reach subscribers only after it commits
+  checklist: durable-dispatch-intent dismissed: no external dispatch is tied to the record itself
+  checklist: declared-target-coverage dismissed: no fan-out to a registry of targets writes records; recordReward writes them
   checklist: completion-evidence dismissed: a record is complete when its transaction commits; nothing is queued before its effect
 - an award's side is recorded once: Each side of an award gets exactly one effects record and its XP counts once, however often kudosGiven is delivered or its subscriber runs.
   over: a Given kudos message whose kudosGiven the subscriber records, then the same event delivered to the subscriber twice more
