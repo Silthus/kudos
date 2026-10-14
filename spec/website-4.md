@@ -55,7 +55,7 @@ Rules continue the third slice's numbering, from `WS78`.
 
 ### The pages and the way in
 
-- **WS78. Two feature pages.** The Skill tree's page is `/skills`, its tab `HedgeHug · Skill tree`. The Book's page is `/book`, its tab `HedgeHug · Book`. Each is the web page of its feature, keyed by Unlocks' feature IDs `skillTree` and `book`. The router learns both paths; every other path is still the not-found page (WS1).
+- **WS78. Two feature pages.** The Skill tree's page is `/skills`, its tab `HedgeHug · Skill tree`. The Book's page is `/book`, its tab `HedgeHug · Book`. Each is the web page of its feature, keyed by Unlocks' feature IDs `skillTree` and `book`. The router learns both paths beside the ones earlier slices defined (`/`, `/leaderboard`, `/quests`); every other path is still the not-found page (WS1).
 - **WS79. One page state per feature, from the unlock path.** The website derives a feature page's state from the same `unlocksOf` read that carries `getMyProfile.features` (WS56), through one function, `featurePageOf(path, feature)`, which generalises WS57's `leaderboardStateOf`:
   - `off` while unlocks don't apply (`path` is `null`) or the feature has no entry, because it hasn't shipped (P78);
   - `locked` with the feature's level, `ready`, or `open`, from the entry's `state`.
@@ -68,7 +68,7 @@ Rules continue the third slice's numbering, from `WS78`.
 
   The locked page shows one hedgehog and Max's sentence `{name} opens at level {level}.` with `Go to Home` (WS52's locked page). The ready page shows the feature's crate in place, with a primary `Open` (WS67). Once opened it becomes the page reactively.
 - **WS81. The pages join the home, the nav and the crate.** The website's page registry (`webPageOf`) gains the Skill tree and the Book, so:
-  - the nav lists each one while it is open (WS59), in schedule order: `Home`, `Leaderboard`, `Book`, `Skill tree`;
+  - the nav lists each one while it is open (WS59), with every other open feature that has a web page, in schedule order: `Home`, then `Quests`, `Leaderboard`, `Book` and `Skill tree` as each is open;
   - the home's `Open` card links to the page, with `Spend skill points on perks you choose.` for the Skill tree and `See the tiers you've earned.` for the Book, and never shows a count (WS38's kind of sentence);
   - the reveal's action reads `Go to Skill tree` or `Go to Book` (WS66).
 
@@ -97,7 +97,7 @@ Rules continue the third slice's numbering, from `WS78`.
     - **available:** an outlined node, with `Can buy` in its accessible name;
     - **unavailable:** a muted node, with its reason in its accessible name.
 
-    Each node is a button with `aria-pressed` for the selection, and the selected one carries the primary ring (V4). An upgrade sits below its base, joined by a line, once a row with upgrades ships. Today there is one row and no lines.
+    Each node is a button with `aria-pressed` for the selection. The selected one carries the primary ring (V4) and a visible `Selected` label under its name, distinct from the owned check mark, so selection never rests on colour alone (V24). An upgrade sits below its base, joined by a line, once a row with upgrades ships. Today there is one row and no lines.
   - **Details:** the selected perk's details sit beside the tree on wide screens and in a drawer on narrow ones. They show its name, its P94 copy, `Level {level} or higher`, its cost, and then exactly one of:
     - `Owned since {date}` for an owned perk;
     - the buy action (WS87) for an available one;
@@ -113,19 +113,19 @@ Rules continue the third slice's numbering, from `WS78`.
 
 - **WS87. Buying in the page.** An available perk's details hold one primary button, `Buy for 1 skill point` (`Buy for {n} skill points` for a larger cost), with the line `A spent skill point never comes back.` above it. It is the page's one primary action (V4). Selecting a perk and pressing Buy are two actions, so no confirmation dialog is added.
   - **Sending.** The button sends `buyPerk` (WS88) and reads `Buying…`, disabled and without motion, until the answer.
-  - **`bought`.** The perk turns owned in place, reactively from `getSkillTree`, and the HUD's chip and the header's count drop. A live region says `You bought {name}.` and focus moves to the details' heading. There is no crate, reveal or animation: buying a perk is not a crate (V13).
-  - **`refused`.** Nothing changes. The details show the perk's current state, and the live region says `That couldn't be bought.` followed by the reason the read now shows.
+  - **`bought`.** The perk sent turns owned in place, reactively from `getSkillTree`, and the HUD's chip and the header's count drop. A live region says `You bought {name}.`, naming the perk the purchase was for, never the current selection, and focus moves to that perk's details heading. There is no crate, reveal or animation: buying a perk is not a crate (V13).
+  - **`refused`.** Nothing changes. The live region says `That couldn't be bought.` followed by the answer's reason (WS88): `You already own {name}.`, `Opens at level {level}.`, `Needs {requires} first.` or `No skill points to spend.`. A refusal at the gate carries no reason, and the page follows its own read to the locked, ready or not-found state.
   - **A denial** (WS11). `Buying…` ends, and the frame follows `getMyProfile`'s own answer to the denial page, as on any read.
   - **An error or no answer.** If the call rejects or the connection drops, `Buying…` ends, and the live region says `Couldn't reach HedgeHug. Try again.` with the button enabled. A retry sends the same `request` (WS88), so it returns the first outcome if the first call did commit.
-  - **The key's life.** The browser makes a fresh `request` when the member presses Buy on a perk, keeps it across retries after an error, and drops it after any definite answer (`bought`, `refused` or a denial).
+  - **The pending purchase.** The browser holds at most one pending purchase, the pair `{ perk, request }`. Pressing Buy makes a fresh pair for the selected perk. After an error, Buy on that same perk resends the same pair, so it returns the first outcome. Pressing Buy on a different perk replaces the pair with a fresh one, and the reactive read shows whether the earlier one committed. The pair is dropped after any definite answer (`bought`, `refused` or a denial), on sign-out, and whenever the signed-in member changes. It lives only in the page's memory.
 - **WS88. `buyPerk` is D17's `buyPerk`, behind the Skill tree's gate.** `buyPerk({ perk, request })` in `convex/website/commands.ts` is built on `memberMutation` (WS61).
   - **Arguments.** `perk` is validated by progression's perk validator (#159), so the website accepts exactly what Slack accepts. `request` is a UUID string the browser makes (`crypto.randomUUID()`), validated as one. An argument never names a member.
   - **The gate first.** It checks the Skill tree's page state with query-safe reads: WS55's gate and the Skill tree's entry `open` in `unlocksOf`. If that fails it answers `{ kind: "refused" }` without calling D17, so a website call can never run Unlocks' launch (WS62).
-  - **The key.** The command's platform-neutral idempotency key is `website:{member}:{request}`, built on the server from the verified member and the request. A member's key can't collide with another member's or with Slack's, and a repeated call with the same request returns the first outcome stored under that key (P19).
-  - **The command.** It then calls D17's `runCommand(ctx, workspace, person, { type: "buyPerk", perk, key })`, as #159 defines it. It answers `{ kind: "bought" }` when the stored outcome is a purchase and `{ kind: "refused" }` otherwise. After `bought` it calls `republish(ctx, member)`, so App Home's Skill tree tab shows the perk owned.
+  - **The key.** The command's platform-neutral idempotency key is `website:{member}:{request}`, built on the server from the verified member and the request. A member's key can't collide with another member's or with Slack's. A repeated call with the same request that reached D17 returns the first outcome stored under that key (P19). A refusal at the gate never reaches D17 and stores nothing, so the gate always takes precedence; the browser drops the request after it anyway (WS87).
+  - **The command.** It then calls D17's `runCommand(ctx, workspace, person, { type: "buyPerk", perk, key })`, as #159 defines it, and answers from the command's result, the first or the replayed one: `{ kind: "bought" }` for a purchase, and `{ kind: "refused", reason }` for a refusal, where `reason` is progression's reason kind (`owned`, `level`, `requires`, `points`, or `not-open` for P76's unopened Skill tree), never words. A refusal at the gate answers `{ kind: "refused", reason: null }`. After `bought` it calls `republish(ctx, member)`, so App Home's Skill tree tab shows the perk owned.
   - **Who decides.** Progression alone decides whether the perk may be bought: opened Skill tree, level, prerequisite, not owned, and the points (P19). The website writes no table itself. Besides the command's own effects (the points spent, the owned perk, the stored outcome and `perkBought`), the call may write only the exposure Slack's click sends (O36) and App Home's scheduled republish.
   - **No refund, no undo.** The website offers no way to undo a purchase, because none exists (P4, P5).
-- **WS89. WS10's list grows by the new functions.** WS10's exact list adds `./website/skillTree.ts:getSkillTree`, `./website/book.ts:getBook` and `./website/commands.ts:buyPerk`. WS10's rule text is unchanged. WS64's comparison holds for `buyPerk`: the domain tables and events a website purchase leaves equal those the same purchase through App Home's `Buy` leaves, excluding Slack's `slackReceipts` row, the analytics outbox and scheduled functions, normalising generated IDs, times and the idempotency key's value.
+- **WS89. WS10's list grows by the new functions.** WS10's exact list adds `./website/skillTree.ts:getSkillTree` (ticket 2), `./website/book.ts:getBook` (ticket 5) and `./website/commands.ts:buyPerk` (ticket 4), each in the ticket that introduces it, so every ticket's gate stays green. WS10's rule text is unchanged. WS64's comparison holds for `buyPerk`: the domain tables and events a website purchase leaves equal those the same purchase through App Home's `Buy` leaves, excluding Slack's `slackReceipts` row, the analytics outbox and scheduled functions, normalising generated IDs, times and the idempotency key's value.
 
 ### The Book
 
@@ -219,7 +219,8 @@ export type BookAnswer = { kind: "not-found" } | PageWaits | { kind: "book"; lad
 export const getBook = memberQuery(async (ctx, me): Promise<BookAnswer> => …);
 
 // convex/website/commands.ts (ticket 4)
-export type PurchaseAnswer = { kind: "bought" } | { kind: "refused" };
+export type PurchaseRefusal = "owned" | "level" | "requires" | "points" | "not-open";
+export type PurchaseAnswer = { kind: "bought" } | { kind: "refused"; reason: PurchaseRefusal | null }; // null: refused at the website's gate
 export const buyPerk = memberMutation({ args: { perk: perkValidator, request: v.string() }, handler: … }); // WS88
 
 // convex/website/profile.ts (extended, ticket 2)
@@ -230,7 +231,7 @@ export type MemberProfile = { /* the first three slices' fields */ skillPoints: 
 
 ### Data
 
-There is no new table and no migration. The reads use map #1's tables behind `perksOf`, `achievementsOf` and `unlocksOf`, and the directory's time zone. `buyPerk` writes only what D17's `buyPerk` writes, plus App Home's scheduled republish. The only state the website keeps is in the browser: the pending purchase's `request` while it waits for an answer.
+There is no new table and no migration. The reads use map #1's tables behind `perksOf`, `achievementsOf` and `unlocksOf`, and the directory's time zone. `buyPerk` writes only what D17's `buyPerk` writes, plus App Home's scheduled republish. The only state the website keeps is in the browser: the pending purchase's `{ perk, request }` while it waits for an answer.
 
 ### The flags
 
@@ -273,7 +274,7 @@ These are proposed declarations. Each ticket writes its part and makes `coherenc
 - **Seams, highest first:**
   1. **The page state** with `convex-test`: `featurePageOf` through `getMyProfile` and each page read, for unlocks not applying, the feature unshipped, locked, ready and open. The nav entry, the home card and the page always agree (WS79). The leaderboard's answers are unchanged.
   2. **The skill tree read** with `convex-test` on `main` after #171: a member who hasn't opened the Skill tree, one with points and no perks, one who owns `spark`, one with no points left, and `skill-tree` off. Each value equals `perksOf` read directly, and `skillPoints` in `getMyProfile` equals the read's (WS83, WS84).
-  3. **The purchase** with `convex-test`: each denial writes nothing; an available perk is bought and App Home's republish is scheduled; an owned perk, no points, an unopened Skill tree and `skill-tree` off are refused and change no domain table; the same request twice buys once and answers `bought` twice; two requests for two perks with one point buy one; an unlaunched workspace with `unlocks` on refuses and launches nothing. The same purchase through App Home's `Buy` and through `buyPerk` leaves equal domain tables and events, compared as WS89 says.
+  3. **The purchase** with `convex-test`: each denial writes nothing; an available perk is bought and App Home's republish is scheduled; an owned perk, no points, an unopened Skill tree and `skill-tree` off are refused and change no domain table; the same request twice buys once and answers `bought` twice; a stored refusal replays with its reason after the member levels up; two requests for two perks with one point buy one, and the second answers `points`; a gate refusal stores nothing; an unlaunched workspace with `unlocks` on refuses and launches nothing. The same purchase through App Home's `Buy` and through `buyPerk` leaves equal domain tables and events, compared as WS89 says.
   4. **The Book read** with `convex-test` on `main` after #171: before and after the Book is opened, a ladder with no tier, earned tiers with their dates, all four tiers earned (`next` is `null`), and `achievements` off. Each value equals `achievementsOf` read directly, and no reward appears (WS90, WS91).
   5. **The public surface test**, listing the new functions (WS89).
   6. **The browser package** with Vitest and Testing Library, from typed fixtures:
@@ -282,7 +283,8 @@ These are proposed declarations. Each ticket writes its part and makes `coherenc
      - the Book's locked card sentence;
      - the HUD chip, its count and accessible name, and its absence while `skillPoints` is `null`;
      - the skill tree's nodes in each state, the selection, the details on wide screens and the drawer on narrow ones, `Your perks` and `How perks work`;
-     - `Buying…`, `bought` with the live region and focus, `refused` with its reason, an error with retry reusing the request, and a fresh request after a definite answer;
+     - `Buying…`, `bought` with the live region and focus, `refused` with each reason, an error with retry reusing the pair, a changed selection during an uncertain answer announcing the perk sent, and a fresh pair after a definite answer or sign-out;
+     - the `Selected` label on an unowned node;
      - the Book's ladder cards, medals, earned dates in the member's time zone, the `Next` tag, the progressbar's label, and a ladder in silhouette;
      - axe in light and dark for every state (WS78–WS94).
 - **Proof each ticket owes:**
@@ -307,10 +309,10 @@ Blocking edges (native on GitHub):
 The frontier is ticket 1. After #171 and ticket 1, the skill tree lane (2 → 3 → 4) and the Book lane (5 → 6) run in parallel.
 
 1. **The Skill tree and Book pages follow their unlock.** `featurePageOf` with `leaderboardStateOf` built on it, `/skills` and `/book` in the router with their tabs, the locked page and the ready page's crate in place shared with `/leaderboard`, the page registry, the nav, the home's open cards and `Go to {name}`, and the Book's locked-card sentence. Until tickets 3 and 6, an open page shows one hedgehog, `{name} is open. Find it in Slack's App Home.` and one action that opens the workspace in Slack. Proven with the Skill tree, whose ship flag is on `main`. WS78–WS82. Blocked by nothing on this map (part A has landed on `spec/website-3`); no cross-map condition.
-2. **The skill tree read.** `getSkillTree` from `perksOf`, `getMyProfile.skillPoints`, any additive export progression needs for WS83, and the Coherence entrance. WS80, WS83, WS84. Blocked by 1, and by #171 on `main` cross-map.
+2. **The skill tree read.** `getSkillTree` from `perksOf`, `getMyProfile.skillPoints`, any additive export progression needs for WS83, WS10's list entry, and the Coherence entrance. WS80, WS83, WS84, WS89. Blocked by 1, and by #171 on `main` cross-map.
 3. **The skill tree page.** The tree, its nodes, the details and drawer, `Your perks`, `How perks work`, and the HUD's skill point chip; an available perk's details read `Buy it in Slack's App Home.` until ticket 4. WS84–WS86, WS94. Blocked by 2, and by #171 on `main` cross-map.
-4. **Buy a perk on the website.** `buyPerk` behind the Skill tree's gate and through D17 with the server-built key and App Home's republish, WS10's list, the Buy action with its states and key life, and the Coherence entrance and invariants (*website commands pass one guard*, *a website command never launches unlocks*, *a website command is a D17 command*, *a skill point bought on the website is spent once*). WS87–WS89. Blocked by 3, and by #171 on `main` cross-map.
-5. **The Book read.** `getBook` from `achievementsOf` with the member's time zone, any additive export Achievements needs for WS90, and the Coherence entrance and invariant *the Book names nothing unshipped*. WS80, WS90, WS91, WS93. Blocked by 1, and by #171 on `main` cross-map.
+4. **Buy a perk on the website.** `buyPerk` behind the Skill tree's gate and through D17 with the server-built key, its refusal reasons and App Home's republish, WS10's list entry, the Buy action with its states and its pending purchase, and the Coherence entrance and invariants (*website commands pass one guard*, *a website command never launches unlocks*, *a website command is a D17 command*, *a skill point bought on the website is spent once*). WS87–WS89. Blocked by 3, and by #171 on `main` cross-map.
+5. **The Book read.** `getBook` from `achievementsOf` with the member's time zone, any additive export Achievements needs for WS90, WS10's list entry, and the Coherence entrance and invariant *the Book names nothing unshipped*. WS80, WS89–WS91, WS93. Blocked by 1, and by #171 on `main` cross-map.
 6. **The Book page.** The header, the ladder cards, the medal tokens in light and dark, earned dates, the `Next` tag and bar, and the silhouette. WS92–WS94. Blocked by 5, and by #171 on `main` cross-map.
 7. **Prove the skill tree and the Book on the sandbox.** Merge `origin/main`, deploy the integration branch to `different-dog-467` (the first slice's rules 1 and 2 for the shared sandbox), and check there:
    - a member below level 5 sees `/skills` locked at level 5, and one below level 4 sees `/book` locked at level 4;
@@ -361,3 +363,11 @@ Calls taken at recommendation under the AFK directive:
 13. **Ticket 1 runs before #171**, so the website lane has a frontier while map #1 builds, and the sandbox's Skill tree, which `skill-tree` already ships there, gets its page states now.
 
 The `to-spec` and `to-tickets` skills can only be started by a human, so this spec follows the earlier slices' layout instead.
+
+**Review.** One read-only GPT-6.1 Sol (high) review found 6 issues, 3 major and 3 minor, and all 6 are fixed in this revision:
+- A pending purchase is the pair `{ perk, request }`, so a retry resends exactly that purchase, and the announcement names the perk sent, not the current selection (WS87).
+- `buyPerk` returns progression's refusal reason, so a replayed refusal still says why (WS87, WS88).
+- Each ticket adds its own function to WS10's list, so every ticket's gate stays green (WS89, Slices).
+- Replaying a request's first outcome covers only requests that reached D17; the gate takes precedence and stores nothing (WS88).
+- The routes and the nav keep `/quests` and Quests (WS78, WS81).
+- The selected node carries a visible `Selected` label beside its ring (WS85, V24).
