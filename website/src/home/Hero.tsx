@@ -17,7 +17,7 @@ export function Hero({ member }: { member: MemberProfile }) {
       <div className="flex w-full min-w-0 flex-1 flex-col items-center sm:items-start">
         <span className="hud-label">Character</span>
         <div className="mt-1 max-w-full">
-          <PageTitle tab="Home" id="home-title" size="hero">
+          <PageTitle tab="Profile" id="home-title" size="hero">
             {member.name ?? "You"}
           </PageTitle>
         </div>

@@ -4,6 +4,7 @@ import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
+import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { contrast, websiteDirectory, type Mode } from "./test/themeContrast";
@@ -20,7 +21,7 @@ function paintsOf(element: Element) {
 function heroGraphics() {
   renderApp(shellFixtures.memberAtLevel7);
   const hero = within(screen.getByRole("main")).getByRole("region", { name: "Sam Example" });
-  const avatar = screen.getByRole("button", { name: "Account menu for Sam Example" });
+  const avatar = within(screen.getByRole("banner")).getByRole("link", { name: "Sam Example, level 7" });
   const bar = within(hero).getByRole("progressbar");
   return [
     { part: "the hero ring's arc and track", surfaces: ["card"], elements: [...within(hero).getByRole("img", { name: /^Level 7/ }).querySelectorAll("circle")] },
@@ -41,6 +42,33 @@ describe("WS112 V24: the ring, the XP bar and the pips meet 3:1 against their su
         elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
       );
       expect(measured.length).toBeGreaterThanOrEqual(12);
+      expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});
+
+function railGraphics() {
+  renderApp(shellFixtures.memberWithEveryPanelOpen, fixedLeaderboard(leaderboardFixtures.midBoard), undefined, fixedQuests(questsFixtures.week));
+  const quests = within(screen.getByRole("main")).getByRole("region", { name: "Quests this week" });
+  const standing = within(screen.getByRole("main")).getByRole("region", { name: "Where you stand" });
+  const bar = within(quests).getByRole("progressbar");
+  return [
+    { part: "a quest's progress bar, track and fill", surfaces: ["card"], elements: [bar, bar.firstElementChild!] },
+    { part: "the you ring in Where you stand", surfaces: ["card"], elements: [standing.querySelector("[data-you-ring]")!] },
+  ];
+}
+
+describe("WS112 V24: the rail's progress bars and the you ring meet 3:1 against their card in both modes", () => {
+  beforeEach(() => {
+    fakeSystemTheme(false);
+  });
+
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      const measured = railGraphics().flatMap(({ part, surfaces, elements }) =>
+        elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
+      );
+      expect(measured.map(({ paint }) => paint)).toEqual(["muted-foreground", "muted-foreground", "primary"]);
       expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
     });
   }
@@ -184,6 +212,41 @@ describe("WS339 V24: the visibility switch shows its position at 3:1 in both mod
         { part: "the switched-on thumb on its track", ratio: contrast(mode, quillSwitchPaint(mode, "checked", " .quill-switch__thumb"), onTrack) },
       ];
       expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});
+
+function navMarks() {
+  window.history.replaceState(null, "", "/quests");
+  renderApp(shellFixtures.memberWithEveryNavState);
+  const nav = screen.getByRole("navigation", { name: "Screens" });
+  const tokenOf = (element: Element, prefix: string) => [...element.classList].flatMap((name) => new RegExp(`^${prefix}-((?:muted-|primary-)?foreground|primary)$`).exec(name)?.[1] ?? []);
+  const pill = within(nav).getByRole("link", { name: "Quests" });
+  const next = within(nav).getByRole("link", { name: "Book, locked. Unlocks at level 4" });
+  const later = within(nav).getByRole("link", { name: "Skill tree, locked. Unlocks at level 5" });
+  const ready = within(nav).getByRole("button", { name: "Leaderboard: unlock ready. Open its crate" });
+  return [
+    { part: "the current entry's pill against the bar", paints: tokenOf(pill, "max-lg:bg"), surface: "card", least: 3 },
+    { part: "the pill's label and icon on the pill", paints: tokenOf(pill, "max-lg:text"), surface: "primary", least: 4.5 },
+    { part: "the next unlock's lock and label", paints: tokenOf(next, "text"), surface: "card", least: 4.5 },
+    { part: "a later unlock's lock and label", paints: tokenOf(later, "text"), surface: "card", least: 4.5 },
+    { part: "the next unlock's dashed outline", paints: tokenOf(next, "border"), surface: "card", least: 3 },
+    { part: "the ready entry's crate glyph and label", paints: tokenOf(ready, "text"), surface: "card", least: 4.5 },
+  ];
+}
+
+describe("WS339 V24: the nav's pill, lock and crate meet their contrast against the bar in both modes", () => {
+  beforeEach(() => {
+    fakeSystemTheme(false);
+  });
+
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      const measured = navMarks().flatMap(({ part, paints, surface, least }) => {
+        expect(paints, part).toHaveLength(1);
+        return paints.map((paint) => ({ part, ratio: contrast(mode, paint, surface), least }));
+      });
+      expect(measured.filter(({ ratio, least }) => ratio < least)).toEqual([]);
     });
   }
 });

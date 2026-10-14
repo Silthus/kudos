@@ -1,20 +1,25 @@
 import type { ReactNode } from "react";
 import { HedgehogExplorer, HedgehogMegaphone, HedgehogReading, HedgehogTownCrier } from "@posthog/brand/hoggies";
-import { IconCheck, IconClock } from "@posthog/icons";
+import { IconCheck, IconClock, IconRefresh } from "@posthog/icons";
 import { Button, Card, CardContent } from "@posthog/quill";
 import { attemptMessages, questCrateHomeAttributes, useMoments } from "../crates/moments";
 import { questCrateOf, type CrateFacts, type QuestCrate } from "../crates/readyCrates";
+import { Claimed } from "../crates/RewardCrate";
 import { rewardChipAttributes } from "../crates/RewardFlight";
 import type { Hoggie } from "../features";
 import { PageTitle } from "../PageTitle";
 import { questTargetAttributes } from "../questTarget";
-import type { QuestsAnswer, QuestSlot, WaitingCrate } from "../shell";
+import { sameQuest, useQuestSwap, type QuestSwap } from "../quests/questSwap";
+import type { QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
 import { SlackLink } from "../SlackLink";
 
 type ThisWeek = Extract<QuestsAnswer, { kind: "quests" }>;
 
-export function QuestsPage({ quests }: { quests: ThisWeek }) {
+type QuestsPageProps = { quests: ThisWeek; swapQuest: ShellActions["swapQuest"] };
+
+export function QuestsPage({ quests, swapQuest }: QuestsPageProps) {
   const firstCrate = [...quests.slots, ...quests.waiting].find(({ crate }) => crate !== null)?.seen;
+  const swap = useQuestSwap(swapQuest, quests.slots);
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
@@ -22,19 +27,36 @@ export function QuestsPage({ quests }: { quests: ThisWeek }) {
           <span className="hud-label">Quests</span>
           <PageTitle tab="Quests" size="display">This week</PageTitle>
         </div>
-        <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-          <IconClock aria-hidden="true" className="size-4" />
-          New quests arrive every Monday.
-        </p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+          <p className="inline-flex items-center gap-1.5">
+            <IconClock aria-hidden="true" className="size-4" />
+            New quests arrive every Monday.
+          </p>
+          {quests.slots.length > 0 && <SwapLeft swap={quests.swap} />}
+        </div>
       </header>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
         <div className="flex min-w-0 flex-col gap-6">
-          {quests.slots.length === 0 ? <NoQuests chatUrl={quests.chatUrl} firstCrate={firstCrate} /> : <QuestCards slots={quests.slots} firstCrate={firstCrate} />}
+          {quests.slots.length === 0 ? <NoQuests chatUrl={quests.chatUrl} firstCrate={firstCrate} /> : <QuestCards slots={quests.slots} firstCrate={firstCrate} swappable={quests.swap.available} swap={swap} />}
           <WaitingToOpen waiting={quests.waiting} firstCrate={firstCrate} />
         </div>
         <HowQuestsWork />
       </div>
+      <p role="status" className="sr-only">
+        {swap.announcement}
+      </p>
     </div>
+  );
+}
+
+function SwapLeft({ swap }: { swap: WeekSwap }) {
+  const text = swap.available ? "1 swap left this week" : swap.used ? "Swap used this week" : undefined;
+  if (text === undefined) return null;
+  return (
+    <p className="inline-flex items-center gap-1.5">
+      <IconRefresh aria-hidden="true" className="size-4" />
+      {text}
+    </p>
   );
 }
 
@@ -44,17 +66,19 @@ function openVariantOf(seen: string | null, { firstCrate }: FirstCrate) {
   return seen === firstCrate ? "primary" : "outline";
 }
 
-function QuestCards({ slots, firstCrate }: { slots: QuestSlot[] } & FirstCrate) {
+type Swapping = { swappable: boolean; swap: QuestSwap };
+
+function QuestCards({ slots, firstCrate, ...swapping }: { slots: QuestSlot[] } & FirstCrate & Swapping) {
   return (
     <section aria-label="Your quests" className="flex flex-col gap-3">
       {slots.map((slot) => (
-        <QuestCard key={slot.slot} slot={slot} firstCrate={firstCrate} />
+        <QuestCard key={slot.slot} slot={slot} firstCrate={firstCrate} {...swapping} />
       ))}
     </section>
   );
 }
 
-function QuestCard({ slot, firstCrate }: { slot: QuestSlot } & FirstCrate) {
+function QuestCard({ slot, firstCrate, swappable, swap }: { slot: QuestSlot } & FirstCrate & Swapping) {
   const { slot: quest, kind, goal, progress, reward, state, swapped, seen } = slot;
   const claimed = state === "opened";
   return (
@@ -76,7 +100,7 @@ function QuestCard({ slot, firstCrate }: { slot: QuestSlot } & FirstCrate) {
           </h2>
           <QuestProgress {...progress} />
           <RewardRow xp={reward.xp} seen={seen}>
-            {claimed ? <Claimed /> : <ClaimOf facts={slot} firstCrate={firstCrate} />}
+            {claimed ? <Claimed /> : state === "in-progress" ? <SwapAction slot={slot} swap={swap} swappable={swappable} /> : <ClaimOf facts={slot} firstCrate={firstCrate} />}
           </RewardRow>
         </div>
       </div>
@@ -149,12 +173,24 @@ function Claim({ crate, variant }: { crate: QuestCrate; variant: "primary" | "ou
   );
 }
 
-function Claimed() {
+function SwapAction({ slot, swap, swappable }: { slot: QuestSlot } & Swapping) {
+  const line = swap.lineFor(slot.quest);
+  if (line === undefined && !swappable) return null;
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success px-2 py-0.5 text-[11px] font-medium leading-4 text-success-foreground">
-      <IconCheck aria-hidden="true" className="size-3" />
-      Claimed
-    </span>
+    <div className="flex flex-col items-end gap-1">
+      {line !== undefined && <p className="text-xs font-medium">{line}</p>}
+      {swappable && <SwapButton slot={slot} swap={swap} />}
+    </div>
+  );
+}
+
+function SwapButton({ slot, swap }: { slot: QuestSlot; swap: QuestSwap }) {
+  const sending = swap.sending !== undefined;
+  return (
+    <Button variant="link-muted" size="sm" title="Swap this quest for another. One swap a week." aria-disabled={sending || undefined} onClick={() => swap.swap(slot)}>
+      <IconRefresh aria-hidden="true" className="size-3.5" />
+      {swap.sending !== undefined && sameQuest(swap.sending, slot.quest) ? "Swapping…" : "Swap"}
+    </Button>
   );
 }
 
@@ -214,7 +250,7 @@ function HowQuestsWork() {
             How quests work
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Quests reward thanking someone new, someone you haven't thanked in a while, and thanks that say why. A thanks says why when your message has 5 or more words besides mentions and emoji. New quests arrive every Monday. You can swap one quest a week in Slack's App Home.
+            Quests reward thanking someone new, someone you haven't thanked in a while, and thanks that say why. A thanks says why when your message has 5 or more words besides mentions and emoji. New quests arrive every Monday. You can swap one quest a week.
           </p>
         </CardContent>
       </Card>

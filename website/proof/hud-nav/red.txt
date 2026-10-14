@@ -1,0 +1,51 @@
+# Red: navEntriesOf before nav/entries.ts existed (1fffc24's tests on d0abca6)
+ ❯ TransformPluginContext.transform ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26668:4
+ ❯ EnvironmentPluginContainer.transform ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8545:14
+ ❯ loadAndTransform ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:20184:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  11:32:35
+   Duration  736ms (environment 78%, setup 18%, transform 3%, worker 1%)
+
+
+# Red: the HUD's App tests on d0abca6 plus navEntriesOf
+ ❯ |website| src/nav/hud.test.tsx (17 tests | 16 failed) 2842ms
+     × shows Profile, an open link, a ready crate and the locked entries in schedule order 209ms
+     × makes a locked entry focusable but no link anywhere, with only the next unlock carrying the neutral Lv badge 130ms
+     × tells the next unlock's level in a tooltip on focus 161ms
+     × tells a later unlock's level in a tooltip on focus 100ms
+     × opens a ready feature's crate from its entry, through openFeature and the reveal 100ms
+     × keeps today's nav while unlocks don't apply 111ms
+     × names the first entry Profile, links it home, keeps it current there and titles the tab HedgeHug · Profile 92ms
+     × reads Back to your profile wherever a page sent the member home 210ms
+     × shows icons only from lg to xl, with the label kept as the name, and a filled pill for the current entry below lg 45ms
+     × gives an icon-only entry its label as a tooltip 1095ms
+     × links the avatar to the profile, named with the member's level, beside its own Sign out 164ms
+     × names the avatar without a level while progression is off 166ms
+     × gives the header E's one-pixel bottom shadow 54ms
+     × pops in the new entry after openFeature answers opened 52ms
+     × never pops in under reduced motion 44ms
+     × pops in the skill point chip the skill tree brings 57ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > shows Profile, an open link, a ready crate and the locked entries in schedule order
+ FAIL  |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > makes a locked entry focusable but no link anywhere, with only the next unlock carrying the neutral Lv badge
+ FAIL  |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > tells the next unlock's level in a tooltip on focus
+ FAIL  |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > tells a later unlock's level in a tooltip on focus
+ FAIL  |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > opens a ready feature's crate from its entry, through openFeature and the reveal
+ FAIL  |website| src/nav/hud.test.tsx > WS301: the nav lists every shipped feature with a page, in schedule order, in its state > keeps today's nav while unlocks don't apply
+ FAIL  |website| src/nav/hud.test.tsx > WS302: labels and widths > names the first entry Profile, links it home, keeps it current there and titles the tab HedgeHug · Profile
+ FAIL  |website| src/nav/hud.test.tsx > WS302: labels and widths > reads Back to your profile wherever a page sent the member home
+ FAIL  |website| src/nav/hud.test.tsx > WS302: labels and widths > shows icons only from lg to xl, with the label kept as the name, and a filled pill for the current entry below lg
+ FAIL  |website| src/nav/hud.test.tsx > WS302: labels and widths > gives an icon-only entry its label as a tooltip
+ FAIL  |website| src/nav/hud.test.tsx > WS303: the right of the bar > links the avatar to the profile, named with the member's level, beside its own Sign out
+ FAIL  |website| src/nav/hud.test.tsx > WS303: the right of the bar > names the avatar without a level while progression is off
+ FAIL  |website| src/nav/hud.test.tsx > WS303: the right of the bar > gives the header E's one-pixel bottom shadow
+ FAIL  |website| src/nav/hud.test.tsx > WS304: a feature opened in this tab pops in once > pops in the new entry after openFeature answers opened
+ FAIL  |website| src/nav/hud.test.tsx > WS304: a feature opened in this tab pops in once > never pops in under reduced motion
+ FAIL  |website| src/nav/hud.test.tsx > WS304: a feature opened in this tab pops in once > pops in the skill point chip the skill tree brings
+ Test Files  1 failed (1)
+      Tests  16 failed | 1 passed (17)

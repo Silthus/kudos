@@ -6,6 +6,7 @@ import { fixedQuests, questsFixtures } from "./questsFixtures";
 import type { QuestsRead } from "./questsRead";
 import { shellFixtures, type MyQuests, type OpenAnswer } from "./shell";
 import { renderApp } from "./test/renderApp";
+import { navEntryNames } from "./test/screensNav";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
 
 const withQuests = shellFixtures.memberWithQuests;
@@ -172,15 +173,7 @@ describe("WS73: /quests shows this week's quests while Quests is open", () => {
     expect(within(main()).getByRole("link", { name: "Open Slack (opens in a new tab)" })).toHaveClass("quill-button--variant-outline");
   });
 
-  it("explains how quests work in WS73's words", () => {
-    showQuests(questsFixtures.week);
-    const how = within(main()).getByRole("region", { name: "How quests work" });
-    expect(how).toHaveTextContent(
-      "Quests reward thanking someone new, someone you haven't thanked in a while, and thanks that say why. A thanks says why when your message has 5 or more words besides mentions and emoji. New quests arrive every Monday. You can swap one quest a week in Slack's App Home.",
-    );
-  });
-
-  it("offers no swap, group quest or bonus quest, and never calls a kudos thoughtful", () => {
+  it("offers no group quest or bonus quest, and never calls a kudos thoughtful", () => {
     showQuests(questsFixtures.weekWithLastWeeksCrate);
     expect(within(main()).getAllByRole("button").map((button) => button.textContent)).toEqual(["Claim", "Claim"]);
     expect(main()).not.toHaveTextContent(/group quest|bonus|thoughtful|reroll/i);
@@ -217,22 +210,23 @@ describe("WS73 WS67 WS69: /quests while Quests isn't open", () => {
   });
 });
 
-describe("WS73 WS59: the nav shows Quests while it is open", () => {
-  it("lists Quests after Home and marks it current on /quests", () => {
+describe("WS73 WS301: the nav shows Quests in its state", () => {
+  it("lists Quests after Profile and marks it current on /quests", () => {
     showQuests(questsFixtures.week);
     const quests = within(screens()).getByRole("link", { name: "Quests" });
     expect(quests).toHaveAttribute("href", "/quests");
     expect(quests).toHaveAttribute("aria-current", "page");
-    expect(within(screens()).getAllByRole("link").map((link) => link.textContent)).toEqual(["Home", "Quests"]);
+    expect(navEntryNames()).toEqual(["Profile", "Quests"]);
   });
 
   it.each([
-    ["locked", shellFixtures.memberStartingTheJourney],
-    ["ready", shellFixtures.memberWithQuestsReady],
-  ])("has no Quests item while Quests is %s", (_, member) => {
+    ["locked", shellFixtures.memberStartingTheJourney, "Quests, locked. Unlocks at level 2"],
+    ["ready", shellFixtures.memberWithQuestsReady, "Quests: unlock ready. Open its crate"],
+  ])("has no Quests link while Quests is %s, only its entry in that state", (_, member, entry) => {
     window.history.replaceState(null, "", "/");
     renderApp(member);
-    expect(within(screens()).getAllByRole("link").map((link) => link.textContent)).toEqual(["Home"]);
+    expect(navEntryNames()).toEqual(["Profile", entry]);
+    expect(within(screens()).queryByRole("link", { name: "Quests" })).not.toBeInTheDocument();
   });
 
   it("goes to /quests from the nav without a reload, moving focus to the page title", async () => {
@@ -307,7 +301,7 @@ function flight() {
 }
 
 function avatar() {
-  return screen.getByRole("button", { name: "Account menu for Sam Example" });
+  return screen.getByRole("link", { name: /^Sam Example/ });
 }
 
 function frame() {

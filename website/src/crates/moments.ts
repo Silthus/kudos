@@ -8,6 +8,8 @@ import { hasSeen, markSeen } from "./seen";
 
 export type Attempt = "opening" | "refused" | "unreachable";
 
+export type PopIn = "entry" | "chip";
+
 export type Claimed = { from: Origin | undefined };
 
 export type Reveal = { crate: ReadyCrate; seenBefore: boolean; fromQuests: boolean; claimed: Claimed | undefined };
@@ -27,6 +29,8 @@ export type Moments = {
   close(how: { returnFocus: boolean }): void;
   announcement: string;
   onTheWay: OnTheWay[];
+  popsIn(feature: Feature, where: PopIn): boolean;
+  poppedIn(feature: Feature, where: PopIn): void;
 };
 
 export const attemptMessages: Record<Exclude<Attempt, "opening">, string> = {
@@ -50,6 +54,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   const [attempts, setAttempts] = useState<Partial<Record<string, Attempt>>>({});
   const [reveals, setReveals] = useState<Reveal[]>([]);
   const [announcement, setAnnouncement] = useState("");
+  const [popIns, setPopIns] = useState<string[]>([]);
   const [flights, setFlights] = useState<Flight[]>([]);
   const sending = useRef(new Set<string>());
   const focusAfterClose = useRef<ReadyCrate | undefined>(undefined);
@@ -66,6 +71,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     setAttempts({});
     setReveals([]);
     setAnnouncement("");
+    setPopIns([]);
     setFlights([]);
   }, []);
 
@@ -94,6 +100,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
         const answer = await (crate.kind === "feature" ? commands.openFeature(crate.card.feature) : commands.openQuestCrate(crate.quest));
         if (session.current !== sentIn) return;
         if (answer.kind === "opened") setReveals((queued) => [...queued, { crate, seenBefore: hasSeen(seen), fromQuests, claimed }]);
+        if (answer.kind === "opened" && crate.kind === "feature") setPopIns((waiting) => [...waiting, popInKey(crate.card.feature, "entry"), popInKey(crate.card.feature, "chip")]);
         attemptIs(seen, answer.kind === "refused" ? "refused" : undefined);
         if (answer.kind === "refused") setAnnouncement(attemptMessages.refused);
       } catch {
@@ -157,7 +164,13 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     close,
     announcement,
     onTheWay: [...flights, ...flightsAfterClose.current, ...reveals.flatMap((queued) => flightOf(queued) ?? [])],
+    popsIn: (feature, where) => popIns.includes(popInKey(feature, where)),
+    poppedIn: (feature, where) => setPopIns((waiting) => waiting.filter((key) => key !== popInKey(feature, where))),
   };
+}
+
+function popInKey(feature: Feature, where: PopIn) {
+  return `${where}:${feature}`;
 }
 
 export function useMembersShown(crates: string[] | undefined) {

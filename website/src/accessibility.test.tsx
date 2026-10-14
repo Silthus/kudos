@@ -1,7 +1,8 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
-import type { BoardRead } from "./boardRead";
+import type { BoardAnswer, BoardRead } from "./boardRead";
+import type { QuestsShown } from "./questsRead";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
@@ -39,6 +40,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "home with the leaderboard opened and the skill tree locked", path: "/", visitor: shellFixtures.memberWithTheBoardOpened },
   { name: "home with every shipped feature open", path: "/", visitor: shellFixtures.memberWithEveryFeatureOpen },
   { name: "home with no feature shipped", path: "/", visitor: shellFixtures.memberWithNothingShipped },
+  { name: "quests with the nav in every state", path: "/quests", visitor: shellFixtures.memberWithEveryNavState, quests: questsFixtures.week },
   { name: "home with every panel locked", path: "/", visitor: shellFixtures.memberWithEveryPanelLocked },
   { name: "home with every panel ready", path: "/", visitor: shellFixtures.memberWithEveryPanelReady },
   { name: "home with every panel open", path: "/", visitor: shellFixtures.memberWithEveryPanelOpen },
@@ -71,6 +73,8 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "quests with last week's crate waiting", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithLastWeeksCrate },
   { name: "quests with the same quest's crate waiting from two weeks", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithTheSameQuestWaitingFromTwoWeeks },
   { name: "quests with nothing drawn", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.noDraw },
+  { name: "quests with a swap left", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithASwapLeft },
+  { name: "quests after the week's swap", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekAfterTheSwap },
   { name: "quests of every kind, finished and claimed", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.everyKind },
   { name: "quests locked until level 2", path: "/quests", visitor: shellFixtures.memberStartingTheJourney, quests: questsFixtures.locked },
   { name: "quests ready to open in place", path: "/quests", visitor: shellFixtures.memberWithQuestsReady, quests: questsFixtures.ready },
@@ -112,6 +116,16 @@ describe("WS24: every page passes axe in light and dark", () => {
       expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
     });
 
+    it(`a refused Swap's line on its quest card meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
+      fakeSystemTheme(dark);
+      window.history.replaceState(null, "", "/quests");
+      const { user, container, getByRole } = renderApp(shellFixtures.memberWithQuests, undefined, { swapQuest: async () => ({ kind: "refused" }) }, fixedQuests(questsFixtures.weekWithASwapLeft));
+      const card = within(getByRole("main")).getByRole("heading", { name: "Thank someone and say why, 2 times." }).closest("article")!;
+      await user.click(within(card).getByRole("button", { name: /^Swap/ }));
+      within(card).getByText("That quest couldn't be swapped.");
+      expect(await violationsIn(container, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
+    });
+
     it(`the board grown by Show 5 more above and below meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
       fakeSystemTheme(dark);
       window.history.replaceState(null, "", "/leaderboard");
@@ -131,13 +145,39 @@ describe("WS24: every page passes axe in light and dark", () => {
       expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
     });
 
-    it(`the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
+    it(`the next unlock's tooltip, portaled outside the landmarks, meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
       fakeSystemTheme(dark);
-      const { user, getByRole, findByRole } = renderApp(shellFixtures.member);
-      await user.click(getByRole("button", { name: "Account menu for Sam Example" }));
-      await findByRole("menuitem", { name: "Sign out" });
+      const { user, getByRole } = renderApp(shellFixtures.memberWithEveryNavState);
+      await user.hover(within(getByRole("navigation", { name: "Screens" })).getByRole("link", { name: "Book, locked. Unlocks at level 4" }));
+      await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent("Next unlock · Book"));
       expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
     });
+  }
+});
+
+const railStates: { name: string; board: BoardAnswer | undefined; quests: QuestsShown | undefined; visitor?: ShellState }[] = [
+  { name: "open, mid-board, with a quest in each state", board: leaderboardFixtures.midBoard, quests: questsFixtures.week },
+  { name: "open, tied, with an empty week", board: leaderboardFixtures.tiedBelowTheLead, quests: questsFixtures.noDraw },
+  { name: "open, leading the board with teammates' Slack faces", board: leaderboardFixtures.withTeammatesFaces, quests: questsFixtures.twoQuests },
+  { name: "open, not ranked", board: leaderboardFixtures.notRanked, quests: questsFixtures.nextWeek },
+  { name: "open, off the boards", board: leaderboardFixtures.left, quests: questsFixtures.week },
+  { name: "waiting for both answers", board: undefined, quests: undefined },
+  { name: "with both reads failed", board: { kind: "broken" }, quests: { kind: "broken" } },
+  { name: "locked by the reads before getMyProfile catches up", board: { kind: "locked", level: 3 }, quests: { kind: "locked", level: 2 } },
+  { name: "ready by the reads before getMyProfile catches up", board: { kind: "ready" }, quests: { kind: "ready" } },
+  { name: "at level 7", board: leaderboardFixtures.viewerLeads, quests: questsFixtures.week, visitor: { ...shellFixtures.memberWithEveryPanelOpen, progression: shellFixtures.memberAtLevel7.progression } },
+];
+
+describe("WS111 WS112: every state of the home's rail passes axe in light and dark", () => {
+  for (const dark of [false, true]) {
+    for (const state of railStates) {
+      it(`the rail ${state.name} in ${dark ? "dark" : "light"}`, async () => {
+        fakeSystemTheme(dark);
+        window.history.replaceState(null, "", "/");
+        const { container } = renderApp(state.visitor ?? shellFixtures.memberWithEveryPanelOpen, (period) => (period && state.board), undefined, (asking) => (asking ? state.quests : undefined));
+        expect(await violationsIn(container)).toEqual([]);
+      });
+    }
   }
 });
 

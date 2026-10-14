@@ -38,7 +38,7 @@ function journeyCrate() {
 }
 
 function xpBar() {
-  return within(main()).getByRole("progressbar");
+  return within(main()).getByRole("progressbar", { name: / XP to level / });
 }
 
 function heroRing() {
@@ -50,7 +50,7 @@ function hudRing() {
 }
 
 function avatar() {
-  return within(header()).getByRole("button", { name: /^Account menu/ });
+  return within(header()).getByRole("link", { name: /^Sam Example/ });
 }
 
 function skillPointChip() {

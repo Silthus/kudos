@@ -10,9 +10,13 @@ export function FeatureWaitsPage({ name, waiting, readyCard, chatUrl }: FeatureW
   if (waiting.kind === "ready" && readyCard !== undefined) return <ReadyPage card={readyCard} />;
   return (
     <MaxSays title={name} tab={name} action={waiting.kind === "ready" ? <OpenSlack chatUrl={chatUrl} /> : <GoHome />}>
-      {waiting.kind === "ready" ? `${name} is ready for you. Open it in Slack's App Home.` : `${name} opens at level ${waiting.level}.`}
+      {waiting.kind === "ready" ? readyInSlack(name) : `${name} opens at level ${waiting.level}.`}
     </MaxSays>
   );
+}
+
+export function readyInSlack(name: string) {
+  return `${name} is ready for you. Open it in Slack's App Home.`;
 }
 
 function OpenSlack({ chatUrl }: { chatUrl: string }) {
@@ -26,7 +30,7 @@ function OpenSlack({ chatUrl }: { chatUrl: string }) {
 function GoHome() {
   return (
     <AppLink href="/" className="text-sm font-medium underline underline-offset-4">
-      Go to Home
+      Back to your profile
     </AppLink>
   );
 }
