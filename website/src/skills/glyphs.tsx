@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { IconCalendar, IconCompass, IconDay } from "@posthog/icons";
+import { IconCalendar, IconCompass, IconDay, IconInfinity, IconPiggyBank, IconPulse, IconReceipt, IconSparkles } from "@posthog/icons";
 import type { PerkNode } from "../shell";
 
 export function SkillPointGlyph({ className = "size-3.5" }: { className?: string }) {
@@ -15,6 +15,11 @@ const perkIcons: Record<PerkNode["perk"], ComponentType<{ className?: string }>>
   spark: IconDay,
   rhythm: IconCalendar,
   circle: IconCompass,
+  flame: IconSparkles,
+  cadence: IconPulse,
+  bridge: IconInfinity,
+  treasurer: IconReceipt,
+  banker: IconPiggyBank,
 };
 
 export function PerkIcon({ perk, className = "size-5" }: { perk: PerkNode["perk"]; className?: string }) {

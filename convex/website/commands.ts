@@ -73,6 +73,8 @@ const purchaseRefusals: Record<Refusal, PurchaseRefusal | null> = {
   "tree-locked": "not-open",
   "tree-ready": "not-open",
   retired: null,
+  "coins-not-open": null,
+  "no-coins": null,
 };
 
 export const buyPerk = memberMutation({

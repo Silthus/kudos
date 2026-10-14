@@ -273,7 +273,8 @@ function publishedTypes() {
 async function exposedIn(t: Backend) {
   return t.run(async (ctx) => {
     const rows = (await ctx.db.query("flagExposures").collect()).filter(({ flag }) => flag === skillTree);
-    return Promise.all(rows.map(async ({ member, value }) => ({ user: (await ctx.db.get(member))!.user, value })));
+    const exposed = await Promise.all(rows.map(async ({ member, value }) => ({ user: (await ctx.db.get(member))!.user, value })));
+    return exposed.sort((one, other) => one.user.localeCompare(other.user));
   });
 }
 
