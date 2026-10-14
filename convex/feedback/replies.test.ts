@@ -4,7 +4,7 @@ import { renderReply, type Line, type SkippedMention } from "./replies";
 
 describe("R36 R37: the copy", () => {
   test("Given names three recipients as A, B and C", () => {
-    const lines = renderReply({ kind: "given", outcome: { recipients: ["U_BOB", "U_CAROL", "U_DAN"], perRecipient: 2, left: 0, skipped: [] }, base: 10 });
+    const lines = renderReply({ kind: "given", outcome: { recipients: ["U_BOB", "U_CAROL", "U_DAN"], perRecipient: 2, left: 0, skipped: [] }, base: 10, annotations: {} });
 
     expect(plain(lines)).toEqual(["@U_BOB, @U_CAROL and @U_DAN got 2 kudos from you. That was your last kudos for today, and you'll have 10 more at midnight."]);
   });
@@ -40,6 +40,7 @@ describe("R38: the extras line", () => {
       kind: "given",
       outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 2, skipped: [skipped(person("U_ALICE"), "self")] },
       base: 3,
+      annotations: {},
       extras,
     });
 
@@ -51,7 +52,7 @@ describe("R38: the extras line", () => {
   });
 
   test("a Given reply without extras ends with the Given line", () => {
-    const lines = renderReply({ kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 2, skipped: [] }, base: 3 });
+    const lines = renderReply({ kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 2, skipped: [] }, base: 3, annotations: {} });
 
     expect(plain(lines)).toEqual(["@U_BOB got 1 kudos from you. You have 2 kudos left today."]);
   });

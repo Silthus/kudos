@@ -2,7 +2,8 @@ import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { mentionValidator, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
+import { mentionValidator, type Annotations, type ChatUserId, type Mention, type MessageRef } from "../engine/messageEvent";
+import { couldEarnMoreBySayingWhy, skillTreeAppliesIn } from "../progression/perks";
 import { questsApplyIn, questsExposedTo } from "../quests/flag";
 import type { JourneyStep } from "../quests/step";
 import { lookup } from "../workspace/directory";
@@ -21,7 +22,7 @@ export type OverAllowance = { cost: number; recipients: number; perRecipient: nu
 export type Invalid = { skipped: SkippedMention[] };
 
 export type Reply =
-  | { kind: "given"; outcome: Given; base: number; extras?: Line }
+  | { kind: "given"; outcome: Given; base: number; annotations: Annotations; extras?: Line }
   | { kind: "over-allowance"; outcome: OverAllowance; base: number }
   | { kind: "invalid"; outcome: Invalid }
   | { kind: "accepted-message-edited" };
@@ -30,16 +31,28 @@ export type QuestDone = { kind: "journey"; step: JourneyStep } | { kind: "weekly
 
 export const questsWaitMs = 10_000;
 
+const hintLine: Line = [{ text: "Add why they earned it to earn more." }];
+
 export async function replyPrivately(ctx: MutationCtx, ref: MessageRef, threadRoot: string | undefined, to: ChatUserId, reply: Reply) {
-  const waitsForQuests = reply.kind === "given" && (await questsDecideFor(ctx, ref.workspace, to));
-  const id = await ctx.db.insert("privateReplies", { ...ref, ...(threadRoot && { threadRoot }), to, lines: renderReply(reply), ...(waitsForQuests && { held: true as const }) });
+  const { waitsForQuests, asksWhy } = reply.kind === "given" ? await successReplyFor(ctx, ref.workspace, to, reply.annotations) : notASuccessReply;
+  const id = await ctx.db.insert("privateReplies", {
+    ...ref,
+    ...(threadRoot && { threadRoot }),
+    to,
+    lines: renderReply(reply),
+    ...(asksWhy && { hint: hintLine }),
+    ...(waitsForQuests && { held: true as const }),
+  });
   if (waitsForQuests) await ctx.scheduler.runAfter(questsWaitMs, internal.feedback.replies.releaseUnreleased, { reply: id });
   else await deliver(ctx, id);
 }
 
-async function questsDecideFor(ctx: MutationCtx, workspace: string, giver: ChatUserId) {
+const notASuccessReply = { waitsForQuests: false, asksWhy: false };
+
+async function successReplyFor(ctx: MutationCtx, workspace: string, giver: ChatUserId, annotations: Annotations) {
   const person = await lookup(ctx, workspace, giver);
-  return person?.kind === "member" && (await questsExposedTo(ctx, person.member));
+  if (person?.kind !== "member") return notASuccessReply;
+  return { waitsForQuests: await questsExposedTo(ctx, person.member), asksWhy: await couldEarnMoreBySayingWhy(ctx, person.member, annotations) };
 }
 
 export async function releaseSuccessReply(ctx: MutationCtx, message: MessageRef, questsDone: QuestDone[]) {
@@ -60,9 +73,11 @@ export const privateReply = internalQuery({
   handler: async (ctx, { reply }) => {
     const row = await ctx.db.get(reply);
     if (row === null) return null;
-    const { questsDone, ...stored } = row;
+    const { questsDone, hint, ...stored } = row;
     const questsStillApply = questsDone !== undefined && (await questsApplyIn(ctx, row.workspace));
-    return { ...stored, lines: questsStillApply ? [...row.lines, questsDone] : row.lines };
+    const skillTreeStillApplies = hint !== undefined && (await skillTreeAppliesIn(ctx, row.workspace));
+    const extras = extrasLineOf([...(questsStillApply ? [questsDone] : []), ...(skillTreeStillApplies ? [hint] : [])]);
+    return { ...stored, lines: extras ? [...row.lines, extras] : row.lines };
   },
 });
 
@@ -85,6 +100,11 @@ async function deliver(ctx: MutationCtx, reply: Id<"privateReplies">) {
 function questsDoneLine(questsDone: QuestDone[]): Line {
   const goals = new Set(questsDone.map((done) => withoutFullStop(done.kind === "journey" ? journeyGoalOf(done.step) : done.goal)));
   return [{ text: [...goals].map((goal) => `Quest done: ${goal}`).join(" · ") }];
+}
+
+function extrasLineOf(parts: Line[]): Line | undefined {
+  if (parts.length === 0) return undefined;
+  return parts.flatMap((part, index) => (index === 0 ? part : [{ text: " · " }, ...part]));
 }
 
 function withoutFullStop(goal: string) {
