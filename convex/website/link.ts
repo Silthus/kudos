@@ -19,7 +19,7 @@ export const websiteLinkOf = internalQuery({
   handler: (ctx, { workspace, page }) => websiteLink(ctx, workspace, page),
 });
 
-async function websiteLink(ctx: QueryCtx, workspace: string, page: Page): Promise<string | null> {
+export async function websiteLink(ctx: QueryCtx, workspace: string, page: Page): Promise<string | null> {
   const origin = siteOrigin();
   if (origin === null || workspace !== signInWorkspace()) return null;
   return (await websiteOpen(ctx)) ? `${origin}${routeOf(page)}` : null;

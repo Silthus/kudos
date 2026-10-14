@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import { notificationValidator, type NotificationLine } from "../feedback/notify";
 import { buttonOf, mrkdwn } from "./blocks";
-import { attemptArgs, sendOnce, tryAtMostThreeTimes } from "./delivery";
+import { attemptArgs, sendOnce, slackLink, tryAtMostThreeTimes } from "./delivery";
 
 const directMessageArgs = { member: v.id("members"), workspace: v.string(), user: v.string(), notification: notificationValidator };
 
@@ -24,14 +24,19 @@ export const deliverDirectMessage = observedAction({
 
 function messageOf(lines: NotificationLine[]) {
   const text = lines.map(textOf).join("\n");
-  return lines.every((line) => typeof line === "string") ? { text } : { text, blocks: lines.map(blockOf) };
+  return lines.some(hasButton) ? { text, blocks: lines.map(blockOf) } : { text };
+}
+
+function hasButton(line: NotificationLine) {
+  return typeof line !== "string" && "action" in line;
 }
 
 function blockOf(line: NotificationLine) {
-  if (typeof line === "string") return { type: "section", text: mrkdwn(line) };
-  return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
+  if (typeof line !== "string" && "action" in line) return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
+  return { type: "section", text: mrkdwn(textOf(line)) };
 }
 
 function textOf(line: NotificationLine) {
-  return typeof line === "string" ? line : line.text;
+  if (typeof line === "string") return line;
+  return "link" in line ? slackLink(line.link) : line.text;
 }

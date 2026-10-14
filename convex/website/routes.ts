@@ -13,8 +13,12 @@ const pathOf: Record<Page["page"], string> = {
   book: "/book",
 };
 
+export function listed(page: Page): boolean {
+  return routeList.includes(pathOf[page.page]);
+}
+
 export function routeOf(page: Page): string {
+  if (!listed(page)) return pathOf.home;
   const path = pathOf[page.page];
-  if (!routeList.includes(path)) return pathOf.home;
   return page.page === "leaderboard" && page.period !== "week" ? `${path}?period=${page.period}` : path;
 }
