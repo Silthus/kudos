@@ -388,14 +388,14 @@ export default defineSchema({
     runningTotal: v.optional(v.array(v.number())),
   })
     .index("by_group_period", ["group", "period"])
-    .index("by_member_group_period", ["member", "group", "period"])
-    .index("by_workspace_period", ["workspace", "period"]),
+    .index("by_member_group_period", ["member", "group", "period"]),
 
   attributedGroupTotals: defineTable({
     workspace: v.string(),
     group: v.id("userGroups"),
     period: v.string(),
     kudos: v.number(),
+    runningTotal: v.optional(v.array(v.number())),
   }).index("by_group_period", ["group", "period"]),
 
   countedAttributions: defineTable({

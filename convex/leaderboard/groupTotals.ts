@@ -31,8 +31,9 @@ async function addToPeriod(ctx: MutationCtx, { workspace, group, giver, day, kud
 async function addToGroupPeriod(ctx: MutationCtx, { workspace, group, day, kudos }: AttributedToGroup, period: Period) {
   const key = keyOf(period, day);
   const row = await groupPeriodTotalOf(ctx, group, key);
-  if (row === null) await ctx.db.insert("attributedGroupTotals", { workspace, group, period: key, kudos });
-  else await ctx.db.patch(row._id, { kudos: row.kudos + kudos });
+  const runningTotal = period === "all" ? {} : { runningTotal: withKudosOn(row?.runningTotal ?? [], dayOfPeriod(period, day), kudos) };
+  if (row === null) await ctx.db.insert("attributedGroupTotals", { workspace, group, period: key, kudos, ...runningTotal });
+  else await ctx.db.patch(row._id, { kudos: row.kudos + kudos, ...runningTotal });
 }
 
 export function groupPeriodTotalOf(ctx: QueryCtx, group: GroupId, period: PeriodKey) {

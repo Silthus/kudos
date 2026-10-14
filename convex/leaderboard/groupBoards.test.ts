@@ -112,6 +112,20 @@ describe("GB13, GB14, GB18: groupBoardsOf gives the website the Groups board", {
     expect(await groupsBoard(t, viewer, "week")).toBeNull();
   });
 
+  test("GB1, GB13: a group disabled in Slack leaves the board at once, before reconciliation moves its members", async () => {
+    const t = await testBackendServing(postHog, onForEveryone("groups"));
+    const { members, groups } = await groupsOf(t, { Ants: ["A1", "A2", "A3"], Bees: ["B1", "B2", "B3"] });
+    await attributed(t, members.A1, groups.Ants, 6, "2026-10-13");
+    await attributed(t, members.B1, groups.Bees, 3, "2026-10-13");
+    await t.run((ctx) => ctx.db.patch(groups.Ants, { enabled: false }));
+
+    const board = await groupsBoard(t, "A1", "week");
+
+    expect(board?.rows.map(({ name }) => name)).toEqual(["Bees"]);
+    expect(board?.standing).toEqual({ kind: "not-listed" });
+    expect(board?.mostImproved).toMatchObject({ name: "Bees" });
+  });
+
   test("no Groups board where no group counts", async () => {
     const t = await testBackendServing(postHog, onForEveryone("groups"));
     const { groups } = await groupsOf(t, { Ants: ["A1", "A2", "A3"] });
@@ -139,16 +153,18 @@ describe("GB35: the Groups board at scale", () => {
     expect(board.groups?.mostImproved).toMatchObject({ name: "Group 03", gain: 35 });
   }, 120_000);
 
-  test("1,500 members who each gave for 22 groups over time: the all-time board reads one total per current member within Convex's transaction limits", async () => {
+  test("1,500 members who each gave for their group and 10 earlier ones in each of September and October: the month board reads one range per current member within Convex's transaction limits", async () => {
+    vi.setSystemTime(new Date("2026-10-31T10:00:00Z"));
     postHog.withFlags(onForEveryone("groups"));
     const t = await flagsLoaded(testBackend({ transactionLimits: true }));
     const viewer = await sixtyGroupsOf(t, 1_500);
-    await eachGaveForTheirGroupAndTwentyOneFormerOnes(t);
+    await eachGaveForTheirGroupAndTenEarlierOnes(t, ["2026-09", "2026-10"]);
 
-    const board = await t.run((ctx) => groupBoardsOf(ctx, "T1", viewer, "all"));
+    const board = await t.run((ctx) => groupBoardsOf(ctx, "T1", viewer, "month"));
 
     expect(board.groups?.rows).toHaveLength(60);
-    expect(board.groups?.rows.every(({ perMember, participation, kudos }) => perMember === 31 && participation === 100 && kudos === 775)).toBe(true);
+    expect(board.groups?.rows.every(({ perMember, participation, kudos, climbed }) => perMember === 20 && participation === 100 && kudos === 500 && climbed === null)).toBe(true);
+    expect(board.groups?.improvement).toEqual({ best: 20 });
   }, 300_000);
 });
 
@@ -223,19 +239,22 @@ async function eachGaveDailyFor(t: Backend, month: string, days: number, kudos: 
     for (const [index, group] of groupIds.entries()) {
       const runningTotal = Array.from({ length: days }, (_, day) => kudos(index) * (day + 1));
       for (const member of membersByGroup[index]!) await ctx.db.insert("attributedTotals", { workspace: "T1", group, member, period: `month:${month}`, kudos: kudos(index) * days, runningTotal });
-      await ctx.db.insert("attributedGroupTotals", { workspace: "T1", group, period: `month:${month}`, kudos: kudos(index) * days * membersByGroup[index]!.length });
+      const members = membersByGroup[index]!.length;
+      await ctx.db.insert("attributedGroupTotals", { workspace: "T1", group, period: `month:${month}`, kudos: kudos(index) * days * members, runningTotal: runningTotal.map((total) => total * members) });
     }
   });
 }
 
-async function eachGaveForTheirGroupAndTwentyOneFormerOnes(t: Backend) {
-  for (const [index, group] of groupIds.entries()) {
-    await t.run(async (ctx) => {
-      for (const member of membersByGroup[index]!) {
-        await ctx.db.insert("attributedTotals", { workspace: "T1", group, member, period: "all", kudos: 10 });
-        for (let former = 1; former <= 21; former += 1) await ctx.db.insert("attributedTotals", { workspace: "T1", group: groupIds[(index + former) % 60]!, member, period: "all", kudos: 1 });
-      }
-      await ctx.db.insert("attributedGroupTotals", { workspace: "T1", group, period: "all", kudos: 25 * 10 + 21 * 25 });
-    });
+async function eachGaveForTheirGroupAndTenEarlierOnes(t: Backend, months: string[]) {
+  for (const month of months) {
+    for (const [index, group] of groupIds.entries()) {
+      await t.run(async (ctx) => {
+        for (const member of membersByGroup[index]!) {
+          await ctx.db.insert("attributedTotals", { workspace: "T1", group, member, period: `month:${month}`, kudos: 10, runningTotal: [10] });
+          for (let earlier = 1; earlier <= 10; earlier += 1) await ctx.db.insert("attributedTotals", { workspace: "T1", group: groupIds[(index + earlier) % 60]!, member, period: `month:${month}`, kudos: 1, runningTotal: [1] });
+        }
+        await ctx.db.insert("attributedGroupTotals", { workspace: "T1", group, period: `month:${month}`, kudos: 25 * 10 + 10 * 25, runningTotal: [500] });
+      });
+    }
   }
 }

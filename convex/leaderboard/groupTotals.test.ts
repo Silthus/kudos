@@ -111,17 +111,21 @@ async function groupTotals(t: Backend): Promise<TotalsByKey> {
   return Object.fromEntries(rows.map(({ group, member, period, kudos, runningTotal }: Doc<"attributedTotals">) => [`${group}:${member}:${period}`, { kudos, ...(runningTotal && { runningTotal }) }]));
 }
 
-async function groupPeriodTotals(t: Backend): Promise<Record<string, number>> {
+async function groupPeriodTotals(t: Backend): Promise<TotalsByKey> {
   const rows = await t.run((ctx) => ctx.db.query("attributedGroupTotals").take(100));
-  return Object.fromEntries(rows.map(({ group, period, kudos }) => [`${group}:${period}`, kudos]));
+  return Object.fromEntries(rows.map(({ group, period, kudos, runningTotal }) => [`${group}:${period}`, { kudos, ...(runningTotal && { runningTotal }) }]));
 }
 
-async function groupPeriodTotalsFoldedFromAttributions(t: Backend): Promise<Record<string, number>> {
+async function groupPeriodTotalsFoldedFromAttributions(t: Backend): Promise<TotalsByKey> {
   const attributions = await t.run((ctx) => ctx.db.query("attributions").take(100));
-  const folded: Record<string, number> = {};
-  for (const { group, day, kudos } of attributions) {
+  const folded: TotalsByKey = {};
+  for (const { group, day, kudos } of attributions.toSorted((first, second) => first.at - second.at)) {
     if (group === null) continue;
-    for (const period of periods) folded[`${group}:${keyOf(period, day)}`] = (folded[`${group}:${keyOf(period, day)}`] ?? 0) + kudos;
+    for (const period of periods) {
+      const key = `${group}:${keyOf(period, day)}`;
+      const total = folded[key] ?? { kudos: 0, ...(period !== "all" && { runningTotal: [] }) };
+      folded[key] = { kudos: total.kudos + kudos, ...(period !== "all" && { runningTotal: withKudosOn(total.runningTotal ?? [], dayOfPeriod(period, day), kudos) }) };
+    }
   }
   return folded;
 }
