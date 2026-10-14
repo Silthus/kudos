@@ -4,7 +4,7 @@ import { AppLink } from "../AppLink";
 import { featureCardAttributes } from "../crates/moments";
 import { pageOf, type PagedFeature } from "../features";
 
-type PanelProps = { id: string; label: string; aside?: string; gameObject?: boolean; busy?: boolean; children?: ReactNode };
+type PanelProps = { id: string; label: string; aside?: ReactNode; gameObject?: boolean; busy?: boolean; children?: ReactNode };
 
 export function Panel({ id, label, aside, gameObject = false, busy = false, children }: PanelProps) {
   const titleId = `${id}-panel-title`;
@@ -14,7 +14,7 @@ export function Panel({ id, label, aside, gameObject = false, busy = false, chil
         <h2 id={titleId} className="hud-label">
           {label}
         </h2>
-        {aside !== undefined && <span className="text-xs text-muted-foreground">{aside}</span>}
+        {aside !== undefined && <span className="flex items-center gap-1 text-xs text-muted-foreground">{aside}</span>}
       </div>
       {children}
     </section>
