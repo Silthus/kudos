@@ -8,8 +8,8 @@ const darkSystemQuery = "(prefers-color-scheme: dark)";
 let choiceStorageRefused: ThemeChoice | undefined;
 
 function storedChoice(): ThemeChoice {
+  if (choiceStorageRefused !== undefined) return choiceStorageRefused;
   const stored = readStorage();
-  if (stored === undefined) return choiceStorageRefused ?? "system";
   return stored === "light" || stored === "dark" ? stored : "system";
 }
 
@@ -17,7 +17,7 @@ function readStorage() {
   try {
     return localStorage.getItem(storageKey);
   } catch {
-    return undefined;
+    return null;
   }
 }
 
