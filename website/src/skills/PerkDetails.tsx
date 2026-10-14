@@ -2,7 +2,7 @@ import { Button, Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerH
 import type { PerkNode } from "../shell";
 import { SkillPointGlyph } from "./glyphs";
 import { ownedSince, reasonOf, skillPointsText } from "./perkWords";
-import type { Purchasing } from "./purchase";
+import type { Notice, Purchasing } from "./purchase";
 
 export type SelectedPerk = { perk: PerkNode; level: number };
 
@@ -99,8 +99,13 @@ function BuyAction({ perk, level, purchasing }: DetailsProps) {
 }
 
 function PurchaseNotice({ perk, purchasing: { notice } }: { perk: PerkNode; purchasing: Purchasing }) {
-  if (!notice?.shownInDetails || notice.perk !== perk.perk) return null;
+  if (notice === undefined || !isShownBeside(notice, perk)) return null;
   return <p className="text-xs font-medium">{notice.text}</p>;
+}
+
+function isShownBeside(notice: Notice, perk: PerkNode) {
+  if (notice.perk !== perk.perk || notice.kind === "bought") return false;
+  return notice.kind === "unreachable" || perk.state !== "available";
 }
 
 function PurchaseAnnouncement({ purchasing }: { purchasing: Purchasing }) {

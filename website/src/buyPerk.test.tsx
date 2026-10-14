@@ -197,6 +197,17 @@ describe("WS87: a refused purchase changes nothing and says why", () => {
     expect(announcement()).toHaveTextContent(/^That couldn't be bought\. You already own Spark\.$/);
   });
 
+  it("drops the refusal's line once the read shows the perk can be bought again", async () => {
+    const later = answerLater();
+    const { user, showTree } = buyWith(() => later.answer, skillTreeFixtures.withOnePoint);
+    await user.click(buyButton());
+    showTree(skillTreeFixtures.sparkOwned);
+    await later.settle({ kind: "refused", reason: "points" });
+    showTree(skillTreeFixtures.withOnePoint);
+    expect(shownLinesIn(details())).not.toContain("That couldn't be bought. No skill points to spend.");
+    expect(buyButton()).toHaveAccessibleName("Buy for 1 skill point");
+  });
+
   it.each([null, "not-open"] as const)("gives no reason for a refusal at the gate (%s)", async (reason) => {
     const { user } = buyWith(async () => ({ kind: "refused", reason }));
     await user.click(buyButton());

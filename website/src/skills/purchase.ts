@@ -4,7 +4,7 @@ import type { BuyAnswer, PerkNode, Purchase, ShellActions } from "../shell";
 import type { SelectedPerk } from "./PerkDetails";
 import { boughtText, refusedText } from "./perkWords";
 
-export type Notice = { perk: PerkNode["perk"]; text: string; shownInDetails: boolean };
+export type Notice = { kind: "bought" | "refused" | "unreachable"; perk: PerkNode["perk"]; text: string };
 
 export type Purchasing = { buying: PerkNode["perk"] | undefined; notice: Notice | undefined; buy(selected: SelectedPerk): void };
 
@@ -31,7 +31,7 @@ export function usePurchase(buyPerk: ShellActions["buyPerk"], onBought: (perk: P
     try {
       answered(selected, await buyPerk(purchase));
     } catch {
-      setNotice({ perk: purchase.perk, text: attemptMessages.unreachable, shownInDetails: true });
+      setNotice({ kind: "unreachable", perk: purchase.perk, text: attemptMessages.unreachable });
     } finally {
       setBuying(undefined);
     }
@@ -47,7 +47,7 @@ export function usePurchase(buyPerk: ShellActions["buyPerk"], onBought: (perk: P
 }
 
 function noticeOf({ perk, level }: SelectedPerk, answer: BuyAnswer): Notice | undefined {
-  if (answer.kind === "bought") return { perk: perk.perk, text: boughtText(perk), shownInDetails: false };
-  if (answer.kind === "refused") return { perk: perk.perk, text: refusedText(perk, level, answer.reason), shownInDetails: true };
+  if (answer.kind === "bought") return { kind: "bought", perk: perk.perk, text: boughtText(perk) };
+  if (answer.kind === "refused") return { kind: "refused", perk: perk.perk, text: refusedText(perk, level, answer.reason) };
   return undefined;
 }
