@@ -78,7 +78,7 @@ describe("P63 P64 P76: a tier you earn is told by DM and celebrated in the kudos
     await t.mutation(internal.achievements.achievements.countKudosGiven, { event: earnedBeforeOpening });
     await settle(t);
 
-    expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned First Thanks (Generosity, bronze).\nNext: Generous Soul at 25 kudos given."]);
+    expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given."]);
     expect(tierDmsTo("U_BOB")).toEqual(["🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received."]);
     expect(tierLinesIn("C1")).toEqual([]);
   });

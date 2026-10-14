@@ -15,7 +15,7 @@ const now = new Date("2026-10-13T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
 const catalogue = ladders as unknown as { version: string; ladders: Ladder[] };
 const shippedLadders = [...catalogue.ladders];
-const bothBronzes = "🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned Noticed (Recognition, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Appreciated at 25 kudos received.";
+const bothBronzes = "🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned Noticed (Recognition, bronze).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Appreciated at 25 kudos received.\nNext: Season of Thanks at 3 calendar months with a kudos given.";
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -94,7 +94,7 @@ describe("P62 P64 P65: a member whose Book is open when a batch completes gets o
 
     expect(tierDmsTo("U_ALICE")).toEqual([bothBronzes]);
     expect(tierDmsTo("U_BOB")).toEqual([]);
-    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks and Noticed."]);
+    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks, Noticed and First Chapter."]);
     expect(tierLinesIn("C1")).toEqual([]);
   });
 
@@ -105,7 +105,7 @@ describe("P62 P64 P65: a member whose Book is open when a batch completes gets o
 
     await launchTheBook(t);
 
-    expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned First Thanks (Generosity, bronze).\nNext: Generous Soul at 25 kudos given."]);
+    expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given."]);
     expect(tierLinesEverywhere()).toEqual([]);
   });
 
@@ -132,7 +132,7 @@ describe("P62 P64 P65: a member whose Book is open when a batch completes gets o
     expect(tierDmsTo("U_ALICE")).toEqual([bothBronzes]);
     expect(tierDmsTo("U_BOB")).toHaveLength(1);
     expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "C_NEWS")).toHaveLength(2);
-    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks and Noticed.", "🏅 <@U_BOB> earned First Thanks and Noticed."]);
+    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks, Noticed and First Chapter.", "🏅 <@U_BOB> earned First Thanks, Noticed and First Chapter."]);
   });
 });
 
@@ -164,10 +164,10 @@ describe("P62 P76: a tier is told once, whichever summary tells it", () => {
     await openHome(t, "U_ALICE");
 
     expect(tierDmsTo("U_ALICE")).toEqual([
-      "🏅 You earned First Thanks (Generosity, bronze).\nNext: Generous Soul at 25 kudos given.",
+      "🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given.",
       "🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received.",
     ]);
-    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks.", "🏅 <@U_ALICE> earned Noticed."]);
+    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks and First Chapter.", "🏅 <@U_ALICE> earned Noticed."]);
   });
 
   test("a batch that completes while another is still replaying tells only its own tiers, and the other batch tells the rest when it completes", async () => {
