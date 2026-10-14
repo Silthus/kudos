@@ -97,6 +97,14 @@ export async function awardsInWorkspace(ctx: QueryCtx, workspace: string, page: 
   return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day, at }) => ({ award: _id, giver, recipient, kudos, day, at })) };
 }
 
+export async function awardsOfMessage(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<GivenAward[]> {
+  const awards = await ctx.db
+    .query("awards")
+    .withIndex("by_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
+    .collect();
+  return awards.map(({ _id, giver, recipient, kudos, day }) => ({ award: _id, giver, recipient, kudos, day }));
+}
+
 export async function dayThankedBefore(ctx: QueryCtx, award: AwardId): Promise<DayKey | null> {
   const current = await ctx.db.get(award);
   if (current === null) return null;

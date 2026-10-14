@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakeSlack } from "../../testing/fakeSlack";
-import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
+import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { signingSecret } from "../../testing/signedSlack";
-import { post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { KudosGivenEvent } from "../bus/events";
@@ -28,6 +28,7 @@ const circle = { source: "circle", xp: 5 };
 const deliverForReal = vi.mocked(publish).getMockImplementation()!;
 
 let postHog: FakePostHog;
+let slack: FakeSlack;
 let sentMessages = 0;
 
 beforeEach(() => {
@@ -116,6 +117,53 @@ describe("P16 P18 P20: a giver who owns spark, rhythm and circle earns their bon
     await thank(t, "U_BOB", saysWhy, "2026-10-14T09:00:00Z");
 
     expect(await recordsOf(t, "recipient")).toEqual([{ baseXp: 5, bonus: [] }]);
+  });
+});
+
+describe("SW1 SW3: the giver's gains line shows the bonus XP each owned perk paid, after base XP", () => {
+  test("thanking Bob and Carol in one message that says why shows +20 XP, then spark once, rhythm and circle for each, as the effects records hold", async () => {
+    const { t } = await giverOwning("UTC", "spark", "rhythm", "circle");
+
+    await thank(t, ["U_BOB", "U_CAROL"], saysWhy, "2026-10-14T09:00:00Z");
+
+    expect(gainsLineTo("U_ALICE")).toBe("+20 XP · Spark bonus (+5 XP) · Rhythm bonus (+4 XP) · Circle bonus (+10 XP)");
+    expect(await giverRecords(t)).toEqual([
+      { baseXp: 10, bonus: [spark, rhythm, circle] },
+      { baseXp: 10, bonus: [rhythm, circle] },
+    ]);
+  });
+
+  test("a later kudos the same day shows only the perks it paid, and one that pays none shows base XP alone", async () => {
+    const { t } = await giverOwning("UTC", "spark", "rhythm");
+
+    await thank(t, "U_BOB", saysWhy, "2026-10-14T09:00:00Z");
+    await thank(t, "U_CAROL", saysWhy, "2026-10-14T10:00:00Z");
+    await thank(t, "U_BOB", saysWhy, "2026-10-14T11:00:00Z");
+
+    expect(gainsLinesTo("U_ALICE")).toEqual(["+10 XP · Spark bonus (+5 XP) · Rhythm bonus (+2 XP)", "+10 XP · Rhythm bonus (+2 XP)", "+10 XP"]);
+  });
+
+  test("a reply held for Quests keeps its bonus when released, after the quest it finished", async () => {
+    const { t } = await giverOwning("UTC", "spark");
+    await flagsFromPostHog(t, postHog, ...[...skillTreeFlags, "quests"].map(onForEveryone));
+    await journeyShippedBeforeAnyoneJoined(t);
+    await settle(t);
+
+    await thank(t, "U_BOB", saysWhy, "2026-10-14T13:00:00Z");
+
+    expect(gainsLineTo("U_ALICE")).toBe("+10 XP · Quest done: Give a kudos that says why (+10 XP) · Spark bonus (+5 XP)");
+  });
+
+  test("with skill-tree switched off before Slack takes the reply, the gains line shows base XP only", async () => {
+    const { t } = await giverOwning("UTC", "spark");
+    slack.holdingBack("chat.postEphemeral", "U_ALICE", async () => {
+      await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("skill-tree"));
+      slack.answering("chat.postEphemeral", rateLimitedFor(30));
+    });
+
+    await thank(t, "U_BOB", saysWhy, "2026-10-14T09:00:00Z");
+
+    expect(gainsLineTo("U_ALICE")).toBe("+10 XP");
   });
 });
 
@@ -217,7 +265,7 @@ describe("P5: where the skill tree doesn't apply, no bonus lines are written and
 const startingXp = 1500;
 
 async function giverOwning(timeZone: string, ...perks: PerkId[]) {
-  const slack = new FakeSlack().withMember("U_ALICE", { tz: timeZone }).withMember("U_BOB").withMember("U_CAROL");
+  slack = new FakeSlack().withMember("U_ALICE", { tz: timeZone }).withMember("U_BOB").withMember("U_CAROL");
   postHog = flagsOnForEveryone(slack.fetch, ...skillTreeFlags);
   const t = await unlocksShippedBeforeAnyoneJoined(await flagsLoaded(testBackend()));
   const alice = await t.run(async (ctx) => {
@@ -245,13 +293,22 @@ async function record(t: Backend, event: KudosGivenEvent) {
   await settle(t);
 }
 
-async function thank(t: Backend, recipient: string, words: string, at: string, kudos = 1) {
+async function thank(t: Backend, recipients: string | string[], words: string, at: string, kudos = 1) {
   sentMessages += 1;
   vi.setSystemTime(new Date(at));
   const ts = `${Date.parse(at) / 1000}.${String(sentMessages).padStart(6, "0")}`;
   const kudosEmoji = Array.from({ length: kudos }, () => emoji("taco"));
-  await post(t, [section(text(`${words} `), mention(recipient), ...kudosEmoji)], { user: "U_ALICE", ts });
-  await settle(t);
+  const mentions = [recipients].flat().map((recipient) => mention(recipient));
+  await post(t, [section(text(`${words} `), ...mentions, ...kudosEmoji)], { user: "U_ALICE", ts });
+  await settleInTimeOrder(t);
+}
+
+function gainsLinesTo(user: string) {
+  return slack.ephemeralsTo(user).map(({ text }) => String(text).split("\n").at(-1));
+}
+
+function gainsLineTo(user: string) {
+  return gainsLinesTo(user).at(-1);
 }
 
 async function giverRecords(t: Backend) {
