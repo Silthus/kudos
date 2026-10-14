@@ -185,6 +185,13 @@ export default defineSchema({
     count: v.number(),
   }).index("by_member_ladder", ["member", "ladder"]),
 
+  ladderMarks: defineTable({
+    member: v.id("members"),
+    ladder: ladderValidator,
+    group: v.string(),
+    key: v.string(),
+  }).index("by_member_ladder_group", ["member", "ladder", "group"]),
+
   countedAwards: defineTable({
     award: awardIdValidator,
     member: v.id("members"),

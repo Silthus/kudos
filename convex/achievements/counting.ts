@@ -1,28 +1,25 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { DayKey } from "../engine/allowance";
 import type { AwardId, AwardWithId } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import type { LadderId, Tier } from "./ladders";
+import { countedMemberOf, markOf, stepOf, type Mark, type MeasuredAward } from "./measures";
 import type { BatchId } from "./replay";
 import { earnTier } from "./tiers";
 
 export type Counting = { member: MemberId; ladder: LadderId };
 
-export type DatedAward = AwardWithId & { at: number };
+export type DatedAward = AwardWithId & { at: number; day: DayKey };
 
-const countedMember: Record<LadderId, (award: AwardWithId) => MemberId> = {
-  generosity: ({ giver }) => giver,
-  recognition: ({ recipient }) => recipient,
-};
-
-export function countingOf(ladder: LadderId, award: AwardWithId): Counting {
-  return { member: countedMember[ladder](award), ladder };
+export function countingOf(ladder: LadderId, award: MeasuredAward): Counting {
+  return { member: countedMemberOf(ladder, award), ladder };
 }
 
 export type Earning = { tiers: Tier[]; batch?: BatchId };
 
 export async function countAward(ctx: MutationCtx, workspace: string, counting: Counting, award: DatedAward, { tiers, batch }: Earning): Promise<boolean> {
   if (await isCounted(ctx, counting, award.award)) return false;
-  const { before, after } = await addToCount(ctx, counting, award.kudos);
+  const { before, after } = await addToCount(ctx, counting, await addsOf(ctx, counting, award));
   await ctx.db.insert("countedAwards", { ...counting, award: award.award, count: after, at: award.at });
   const reaching = { workspace, ...counting, award: award.award, at: award.at, batch };
   for (const tier of tiers) if (before < tier.count && tier.count <= after) await earnTier(ctx, reaching, tier);
@@ -40,10 +37,25 @@ export async function countOf(ctx: QueryCtx, counting: Counting): Promise<number
   return (await countRow(ctx, counting))?.count ?? 0;
 }
 
-async function addToCount(ctx: MutationCtx, counting: Counting, kudos: number) {
+async function addsOf(ctx: MutationCtx, counting: Counting, award: DatedAward): Promise<number> {
+  const mark = markOf(counting.ladder, award);
+  const { adds, keeps } = stepOf(award, mark, mark === null ? [] : await markedIn(ctx, counting, mark));
+  if (mark !== null && keeps) await ctx.db.insert("ladderMarks", { ...counting, group: mark.group, key: mark.key });
+  return adds;
+}
+
+async function markedIn(ctx: QueryCtx, { member, ladder }: Counting, { group, distinct }: Mark): Promise<string[]> {
+  const marks = await ctx.db
+    .query("ladderMarks")
+    .withIndex("by_member_ladder_group", (q) => q.eq("member", member).eq("ladder", ladder).eq("group", group))
+    .take(distinct);
+  return marks.map(({ key }) => key);
+}
+
+async function addToCount(ctx: MutationCtx, counting: Counting, adds: number) {
   const row = await countRow(ctx, counting);
   const before = row?.count ?? 0;
-  const after = before + kudos;
+  const after = before + adds;
   if (row === null) await ctx.db.insert("ladderCounts", { ...counting, count: after });
   else await ctx.db.patch(row._id, { count: after });
   return { before, after };

@@ -1,5 +1,5 @@
 import type { LadderFacts } from "../achievements/achievements";
-import type { TierId } from "../achievements/ladders";
+import { countsOf, type TierId } from "../achievements/ladders";
 import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { Period } from "../leaderboard/periods";
@@ -103,13 +103,13 @@ function bookGroups({ book, timeZone }: Extract<ShownTab, { tab: "book" }>): Hom
   return book.ladders.map((facts) => ladderLines(facts, timeZone));
 }
 
-function ladderLines({ name, counts, count, tiers, next }: LadderFacts, timeZone: string | undefined): HomeLine[] {
+function ladderLines({ ladder, name, count, tiers, next }: LadderFacts, timeZone: string | undefined): HomeLine[] {
   const earnedLines = tiers.flatMap(({ tier, name: tierName, earnedAt }): HomeLine[] =>
     earnedAt === null ? [] : [{ kind: "text", text: `${medals[tier]} ${bold(tierName)} · earned ${dateOf(earnedAt, timeZone)}` }],
   );
   const nextTier = tiers.find(({ tier }) => tier === next);
-  const nextLine: HomeLine[] = nextTier === undefined ? [] : [{ kind: "hint", text: `Next: ${bold(nextTier.name)} at ${nextTier.count} ${counts}.` }];
-  return [{ kind: "text", text: `${bold(name)} · ${bold(count)} ${counts}` }, ...earnedLines, ...nextLine];
+  const nextLine: HomeLine[] = nextTier === undefined ? [] : [{ kind: "hint", text: `Next: ${bold(nextTier.name)} at ${nextTier.count} ${countsOf(ladder, nextTier.count)}.` }];
+  return [{ kind: "text", text: `${bold(name)} · ${bold(count)} ${countsOf(ladder, count)}` }, ...earnedLines, ...nextLine];
 }
 
 function dateOf(at: number, timeZone: string | undefined) {

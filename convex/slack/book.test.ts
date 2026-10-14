@@ -8,12 +8,14 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
+import type { LadderId, TierId } from "../achievements/ladders";
 import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const dayMs = 24 * 60 * 60_000;
 const form = { contentType: "application/x-www-form-urlencoded" };
 const bookReady = "*Book* is ready. It opens achievements.";
+const tierOrder: TierId[] = ["bronze", "silver", "gold", "diamond"];
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -64,6 +66,19 @@ describe("P58 P61 P67 P76: a member at level 4 opens the Book and sees the tiers
       "divider",
       "section: *Recognition* · *0* kudos received",
       "context: Next: *Noticed* at 1 kudos received.",
+      "divider",
+      "section: *Connections* · *1* person thanked",
+      "context: Next: *Friendly Face* at 3 different people thanked.",
+      "divider",
+      "section: *Dependability* · *1* day with a kudos given",
+      "context: Next: *Regular* at 10 days with a kudos given.",
+      "divider",
+      "section: *Applause* · *0* days thanking 3+ different people",
+      "context: Next: *Shout-out* at 3 days thanking 3+ different people.",
+      "divider",
+      "section: *Seasons* · *1* calendar month with a kudos given",
+      "section: 🥉 *First Chapter* · earned Oct 13, 2026",
+      "context: Next: *Season of Thanks* at 3 calendar months with a kudos given.",
     ]);
     const bob = await achievementsOf(t, "U_BOB");
     expect(bob?.ladders.find(({ ladder }) => ladder === "recognition")).toMatchObject({
@@ -153,7 +168,66 @@ describe("P62: the Book counts your whole history at its launch", () => {
       "section: *Recognition* · *3* kudos received",
       "section: 🥉 *Noticed* · earned Oct 13, 2026",
       "context: Next: *Appreciated* at 25 kudos received.",
+      "divider",
+      "section: *Connections* · *1* person thanked",
+      "context: Next: *Friendly Face* at 3 different people thanked.",
+      "divider",
+      "section: *Dependability* · *3* days with a kudos given",
+      "context: Next: *Regular* at 10 days with a kudos given.",
+      "divider",
+      "section: *Applause* · *0* days thanking 3+ different people",
+      "context: Next: *Shout-out* at 3 days thanking 3+ different people.",
+      "divider",
+      "section: *Seasons* · *1* calendar month with a kudos given",
+      "section: 🥉 *First Chapter* · earned Oct 13, 2026",
+      "context: Next: *Season of Thanks* at 3 calendar months with a kudos given.",
     ]);
+  });
+});
+
+describe("P58 P59 P62: Connections, Dependability, Applause and Seasons count the people, days and months you thanked", () => {
+  test("a history given before the launch earns its tiers on all four ladders, each dated by the kudos that reached it, and a live kudos to three new people earns Connections silver once", async () => {
+    for (const user of ["U_CAROL", "U_DAVE", "U_ERIN", "U_FRANK", "U_GRACE"]) slack.withMember(user);
+    const t = await workspace({ launched: false });
+    const firstMonth = await giveKudosTo(t, "U_ALICE", ["U_BOB", "U_CAROL"]);
+    const thirdPerson = await giveKudosTo(t, "U_ALICE", ["U_DAVE"]);
+    await onDay(1, () => giveKudosTo(t, "U_ALICE", ["U_BOB", "U_CAROL", "U_DAVE"]));
+    const thirdApplause = await onDay(2, () => giveKudosTo(t, "U_ALICE", ["U_BOB", "U_CAROL", "U_DAVE"]));
+    for (let day = 3; day < 9; day++) await onDay(day, () => giveKudos(t, "U_ALICE", "U_BOB", 1));
+    const tenthDay = await onDay(9, () => giveKudos(t, "U_ALICE", "U_BOB", 1));
+    await onDay(20, () => giveKudos(t, "U_ALICE", "U_BOB", 1));
+    const thirdMonth = await onDay(49, () => giveKudos(t, "U_ALICE", "U_BOB", 1));
+    await withXp(t, "U_ALICE", 305);
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"));
+    vi.setSystemTime(now.getTime() + 50 * dayMs);
+
+    await t.mutation(internal.unlocks.sweep.sweep, {});
+    await settle(t);
+
+    expect(await earnedOnFourLadders(t, "U_ALICE")).toEqual({
+      connections: { count: 3, earned: [{ tier: "bronze", earnedAt: thirdPerson }] },
+      dependability: { count: 12, earned: [{ tier: "bronze", earnedAt: tenthDay }] },
+      applause: { count: 3, earned: [{ tier: "bronze", earnedAt: thirdApplause }] },
+      seasons: {
+        count: 3,
+        earned: [
+          { tier: "bronze", earnedAt: firstMonth },
+          { tier: "silver", earnedAt: thirdMonth },
+        ],
+      },
+    });
+
+    const sixthPerson = await giveKudosTo(t, "U_ALICE", ["U_ERIN", "U_FRANK", "U_GRACE"]);
+    await giveKudosTo(t, "U_ALICE", ["U_ERIN"]);
+
+    expect((await earnedOnFourLadders(t, "U_ALICE")).connections).toEqual({
+      count: 6,
+      earned: [
+        { tier: "bronze", earnedAt: thirdPerson },
+        { tier: "silver", earnedAt: sixthPerson },
+      ],
+    });
+    expect(await earnedTierRows(t, "U_ALICE", "connections")).toEqual(["bronze", "silver"]);
   });
 });
 
@@ -221,6 +295,40 @@ async function giveKudos(t: Backend, giver: string, recipient: string, kudos: nu
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${sentAt}.000100` })));
   await settle(t);
   return sentAt * 1000;
+}
+
+async function giveKudosTo(t: Backend, giver: string, recipients: string[]) {
+  sentMessages += 1;
+  const sentAt = Math.floor(Date.now() / 1000) + sentMessages;
+  const blocks = [section(...recipients.map((recipient) => mention(recipient)), emoji("taco"))];
+  await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${sentAt}.000100` })));
+  await settle(t);
+  return sentAt * 1000;
+}
+
+async function onDay<T>(day: number, give: () => Promise<T>): Promise<T> {
+  vi.setSystemTime(now.getTime() + day * dayMs);
+  return give();
+}
+
+async function earnedOnFourLadders(t: Backend, user: string) {
+  const facts = await achievementsOf(t, user);
+  const ladderFacts = (ladder: LadderId) => {
+    const { count, tiers } = facts!.ladders.find((entry) => entry.ladder === ladder)!;
+    return { count, earned: tiers.filter(({ earnedAt }) => earnedAt !== null).map(({ tier, earnedAt }) => ({ tier, earnedAt })) };
+  };
+  return { connections: ladderFacts("connections"), dependability: ladderFacts("dependability"), applause: ladderFacts("applause"), seasons: ladderFacts("seasons") };
+}
+
+async function earnedTierRows(t: Backend, user: string, ladder: LadderId) {
+  const member = await memberOf(t, user);
+  return t.run(async (ctx) => {
+    const rows = await ctx.db
+      .query("earnedTiers")
+      .withIndex("by_member_ladder_tier", (q) => q.eq("member", member).eq("ladder", ladder))
+      .collect();
+    return rows.map(({ tier }) => tier).sort((one, other) => tierOrder.indexOf(one) - tierOrder.indexOf(other));
+  });
 }
 
 async function openHome(t: Backend, user: string) {

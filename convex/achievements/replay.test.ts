@@ -15,6 +15,7 @@ const now = new Date("2026-10-13T10:00:00Z");
 const dayMs = 24 * 60 * 60_000;
 const catalogue = ladders as unknown as { version: string; ladders: Ladder[] };
 const shippedCatalogue = { version: catalogue.version, ladders: [...catalogue.ladders] };
+const countedFromMarks: LadderId[] = ["connections", "dependability", "applause", "seasons"];
 
 beforeEach(() => {
   vi.useFakeTimers({ now });
@@ -55,7 +56,7 @@ describe("P62: at the Book's launch, achievements count every member's whole his
     await settle(t);
 
     expect(await ladderOf(t, alice, "generosity")).toEqual({ count: 2, earned: [{ tier: "bronze", earnedAt: first.at }] });
-    expect(await replaysIn(t, "T1")).toHaveLength(2);
+    expect(await replaysIn(t, "T1")).toHaveLength(catalogue.ladders.length);
     expect(await batchesIn(t, "T1")).toHaveLength(1);
   });
 
@@ -174,7 +175,7 @@ describe("P60 P62: the replay is keyed by the ladder and tier IDs it evaluated",
   }, 60_000);
 
   test("a ladder added after the launch replays full history once and leaves the other ladders' tiers alone", async () => {
-    withoutLadder("recognition");
+    withoutLadders("recognition");
     const { t, alice, bob } = await withMembers();
     const first = await given(t, alice, bob, { kudos: 2, at: daysAgo(5) });
     await launch(t);
@@ -194,17 +195,49 @@ describe("P60 P62: the replay is keyed by the ladder and tier IDs it evaluated",
   });
 });
 
+describe("P58 P62: Connections, Dependability, Applause and Seasons replay on their own once added", () => {
+  test("added after the launch, the four ladders replay full history once, each tier dated by the award that reached it, and Generosity's and Recognition's tiers stay as they were", async () => {
+    withoutLadders(...countedFromMarks);
+    const { t, alice, bob } = await withMembers();
+    const { carol, dave } = await moreMembers(t);
+    const firstMonth = await given(t, alice, bob, { kudos: 1, at: daysAgo(40) });
+    await given(t, alice, carol, { kudos: 1, at: daysAgo(40) + 1 });
+    const thirdPerson = await given(t, alice, dave, { kudos: 1, at: daysAgo(40) + 2 });
+    await given(t, alice, bob, { kudos: 2, at: daysAgo(10) });
+    await launch(t);
+    await settle(t);
+    const generosityBefore = await earnedRows(t, alice, "generosity");
+    const recognitionBefore = await earnedRows(t, bob, "recognition");
+    expect(await replaysIn(t, "T1")).toHaveLength(2);
+
+    shipped();
+    await launch(t);
+    await settle(t);
+    await launch(t);
+    await settle(t);
+
+    expect(await ladderOf(t, alice, "connections")).toEqual({ count: 3, earned: [{ tier: "bronze", earnedAt: thirdPerson.at }] });
+    expect(await ladderOf(t, alice, "dependability")).toEqual({ count: 2, earned: [] });
+    expect(await ladderOf(t, alice, "applause")).toEqual({ count: 1, earned: [] });
+    expect(await ladderOf(t, alice, "seasons")).toEqual({ count: 2, earned: [{ tier: "bronze", earnedAt: firstMonth.at }] });
+    expect(await earnedRows(t, alice, "generosity")).toEqual(generosityBefore);
+    expect(await earnedRows(t, bob, "recognition")).toEqual(recognitionBefore);
+    expect(await replaysIn(t, "T1")).toHaveLength(6);
+    expect(await batchesIn(t, "T1")).toHaveLength(2);
+  });
+});
+
 describe("P62: one launch batch with a completion barrier", () => {
   test("every tier one launch earns carries its batch, and the batch completes only when all its replays have", async () => {
     const { t, alice, bob } = await withMembers();
     await given(t, alice, bob, { kudos: 25, at: daysAgo(1) });
     await launch(t);
     const [batch] = await batchesIn(t, "T1");
-    const [generosity, recognition] = await replaysIn(t, "T1");
+    const replays = await replaysIn(t, "T1");
 
-    await replayToTheEnd(t, generosity!._id);
+    for (const { _id } of replays.slice(0, -1)) await replayToTheEnd(t, _id);
     expect((await batchesIn(t, "T1"))[0]!.completedAt).toBeUndefined();
-    await replayToTheEnd(t, recognition!._id);
+    await replayToTheEnd(t, replays.at(-1)!._id);
 
     expect((await batchesIn(t, "T1"))[0]!.completedAt).toBe(Date.now());
     expect(await earnedBatches(t, alice, "generosity")).toEqual({ bronze: batch!._id, silver: batch!._id });
@@ -224,6 +257,7 @@ describe("P62: one launch batch with a completion barrier", () => {
 
 describe("P62: a long history replays within Convex's transaction limits", () => {
   test("a member who gave 2,100 kudos, one at a time, replays every one of them", async () => {
+    withoutLadders(...countedFromMarks);
     const t = await flagsLoaded(testBackend({ transactionLimits: true }));
     const { alice, bob } = await membersIn(t);
     await t.run(async (ctx) => {
@@ -243,6 +277,56 @@ describe("P62: a long history replays within Convex's transaction limits", () =>
     ]);
   }, 120_000);
 });
+
+describe("P58 P62: the people, days and months you thanked count within Convex's transaction limits", () => {
+  test("a member who thanked 3 of 30 people every day for 300 days replays all four ladders, and the next kudos counts live", async () => {
+    const t = await flagsLoaded(testBackend({ transactionLimits: true }));
+    const { alice } = await membersIn(t);
+    const people = await t.run(async (ctx) => {
+      const inserted: MemberId[] = [];
+      for (let person = 0; person < 30; person++) inserted.push(await ctx.db.insert("members", { workspace: "T1", user: `U_PERSON_${person}`, kind: "member" }));
+      return inserted;
+    });
+    const thanksOnDay = (day: number) => [0, 1, 2].map((nth) => ({ recipient: people[(3 * day + nth) % people.length]!, at: daysAgo(300 - day) + nth }));
+    await t.run(async (ctx) => {
+      for (let day = 0; day < 300; day++) for (const { recipient, at } of thanksOnDay(day)) await ctx.db.insert("awards", awardRow(alice, recipient, { kudos: 1, at }));
+    });
+
+    await launch(t);
+    await settle(t);
+    await count(t, await given(t, alice, people[0]!, { kudos: 1, at: Date.now() }));
+
+    expect(await ladderOf(t, alice, "connections")).toEqual({
+      count: 30,
+      earned: [
+        { tier: "bronze", earnedAt: thanksOnDay(0)[2]!.at },
+        { tier: "silver", earnedAt: thanksOnDay(1)[2]!.at },
+        { tier: "gold", earnedAt: thanksOnDay(3)[2]!.at },
+        { tier: "diamond", earnedAt: thanksOnDay(7)[2]!.at },
+      ],
+    });
+    expect((await ladderOf(t, alice, "dependability")).count).toBe(301);
+    expect((await ladderOf(t, alice, "dependability")).earned.at(-1)).toEqual({ tier: "diamond", earnedAt: thanksOnDay(249)[0]!.at });
+    expect((await ladderOf(t, alice, "applause")).count).toBe(300);
+    expect((await ladderOf(t, alice, "applause")).earned.at(-1)).toEqual({ tier: "diamond", earnedAt: thanksOnDay(99)[2]!.at });
+    expect(await ladderOf(t, alice, "seasons")).toEqual({
+      count: 11,
+      earned: [
+        { tier: "bronze", earnedAt: thanksOnDay(0)[0]!.at },
+        { tier: "silver", earnedAt: Date.parse("2026-02-01T10:00:00Z") },
+        { tier: "gold", earnedAt: Date.parse("2026-05-01T10:00:00Z") },
+      ],
+    });
+  }, 120_000);
+});
+
+async function moreMembers(t: Backend) {
+  const [carol, dave] = await t.run(async (ctx) => [
+    await ctx.db.insert("members", { workspace: "T1", user: "U_CAROL", kind: "member" }),
+    await ctx.db.insert("members", { workspace: "T1", user: "U_DAVE", kind: "member" }),
+  ]);
+  return { carol: carol!, dave: dave! };
+}
 
 async function withMembers() {
   const t = await flagsLoaded(testBackend());
@@ -337,8 +421,8 @@ function withoutTier(tier: TierId) {
   catalogue.ladders = shippedCatalogue.ladders.map((ladder) => ({ ...ladder, tiers: ladder.tiers.filter((entry) => entry.tier !== tier) }));
 }
 
-function withoutLadder(ladder: LadderId) {
-  catalogue.ladders = shippedCatalogue.ladders.filter((entry) => entry.ladder !== ladder);
+function withoutLadders(...without: LadderId[]) {
+  catalogue.ladders = shippedCatalogue.ladders.filter((entry) => !without.includes(entry.ladder));
 }
 
 function shipped() {

@@ -7,6 +7,7 @@ import { testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { DomainEvent, KudosGivenEvent } from "../bus/events";
 import type { LadderFacts } from "./achievements";
+import type { LadderId } from "./ladders";
 import { publish } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
 
@@ -48,7 +49,7 @@ describe("P59 P61 P93: a tier is earned once and never taken back", () => {
       { tier: "bronze", earnedAt: now.getTime() },
       { tier: "silver", earnedAt: reaching.at },
     ]);
-    expect(earned().filter(({ member }) => member === alice)).toEqual([
+    expect(earned().filter(({ member, ladder }) => member === alice && ladder === "generosity")).toEqual([
       { type: "achievementEarned", workspace: "T1", member: alice, ladder: "generosity", tier: "bronze", at: now.getTime() },
       { type: "achievementEarned", workspace: "T1", member: alice, ladder: "generosity", tier: "silver", at: reaching.at },
     ]);
@@ -106,6 +107,30 @@ describe("P79: achievementsOf gives the website each ladder's facts", () => {
           ],
           next: "silver",
         },
+        notStarted("connections", "Connections", "different people thanked", [
+          ["Friendly Face", 3],
+          ["Connector", 6],
+          ["Social Butterfly", 12],
+          ["Constellation Maker", 24],
+        ]),
+        notStarted("dependability", "Dependability", "days with a kudos given", [
+          ["Regular", 10],
+          ["Mainstay", 30],
+          ["Pillar", 100],
+          ["Cornerstone", 250],
+        ]),
+        notStarted("applause", "Applause", "days thanking 3+ different people", [
+          ["Shout-out", 3],
+          ["Hype Squad", 10],
+          ["Thunderous Applause", 30],
+          ["Grand Chorus", 100],
+        ]),
+        notStarted("seasons", "Seasons", "calendar months with a kudos given", [
+          ["First Chapter", 1],
+          ["Season of Thanks", 3],
+          ["Half-Year Hero", 6],
+          ["Year of Gratitude", 12],
+        ]),
       ],
     });
   });
@@ -159,7 +184,7 @@ async function count(t: Backend, event: KudosGivenEvent) {
   await t.mutation(internal.achievements.achievements.countKudosGiven, { event });
 }
 
-async function ladderOf(t: Backend, member: MemberId, ladder: "generosity" | "recognition") {
+async function ladderOf(t: Backend, member: MemberId, ladder: LadderId) {
   const facts = await t.query(internal.achievements.achievements.achievementsOf, { member });
   return facts!.ladders.find((entry) => entry.ladder === ladder)!;
 }
@@ -173,4 +198,31 @@ function earned() {
     .mocked(publish)
     .mock.calls.map(([, event]) => event)
     .filter((event): event is Extract<DomainEvent, { type: "achievementEarned" }> => event.type === "achievementEarned");
+}
+
+function notStarted(ladder: LadderId, name: string, counts: string, tiers: Array<[string, number]>): LadderFacts {
+  const [bronze, silver, gold, diamond] = tiers;
+  return {
+    ladder,
+    name,
+    counts,
+    count: 0,
+    tiers: [
+      { tier: "bronze", name: bronze![0], count: bronze![1], earnedAt: null, catalogueVersion: null, rewards: [{ kind: "coins", reward: `${ladder}-bronze-coins` }] },
+      { tier: "silver", name: silver![0], count: silver![1], earnedAt: null, catalogueVersion: null, rewards: [{ kind: "kudosEmoji", reward: `${ladder}-silver-kudos-emoji` }] },
+      { tier: "gold", name: gold![0], count: gold![1], earnedAt: null, catalogueVersion: null, rewards: [{ kind: "hedgehog", reward: `${ladder}-gold-hedgehog` }] },
+      {
+        tier: "diamond",
+        name: diamond![0],
+        count: diamond![1],
+        earnedAt: null,
+        catalogueVersion: null,
+        rewards: [
+          { kind: "coins", reward: `${ladder}-diamond-coins` },
+          { kind: "hedgehog", reward: `${ladder}-diamond-hedgehog` },
+        ],
+      },
+    ],
+    next: "bronze",
+  };
 }

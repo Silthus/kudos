@@ -438,6 +438,22 @@
     {
       "name": "launch batch",
       "definition": "The ladders and tiers one mutation finds unevaluated in a workspace, the Book's launch or the first mutation after a deploy that adds one, replayed together: every tier their replays earn carries the batch, and the batch is complete only when all its replays are (P62)."
+    },
+    {
+      "name": "applause",
+      "definition": "The ladder that counts the days a member thanked 3 or more different people, on the giver's day, across any number of messages that day (P58, P59)."
+    },
+    {
+      "name": "seasons",
+      "definition": "The ladder that counts the calendar months in which a member gave a kudos, on the giver's day (P58, P59)."
+    },
+    {
+      "name": "connections",
+      "definition": "The ladder that counts the different people a member has thanked (P58)."
+    },
+    {
+      "name": "dependability",
+      "definition": "The ladder that counts the days on which a member gave a kudos, on the giver's day; a day counts once (P58, P59)."
     }
   ]
 }
