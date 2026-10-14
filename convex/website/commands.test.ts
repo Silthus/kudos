@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { journeyShippedBeforeAnyoneJoined, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { buttonInHome } from "../../testing/slackInteractions";
 import { opens, reachesLevel } from "../../testing/unlocks";
@@ -202,6 +202,23 @@ describe("a website command never launches unlocks", () => {
     expect(before.tables.unlocks).toEqual([]);
     expect(publishedEvents()).toEqual([]);
   });
+
+  const beforeTheJourneyLaunches: Array<{ condition: string; feature: Feature; arrange: () => Promise<{ asSignedIn: Pick<Backend, "mutation"> }> }> = [
+    { condition: "a ready Quests", feature: "quests", arrange: async () => (await launchedThen(...allFlags, "quests"), withLevel(3)) },
+    { condition: "a ready Leaderboard", feature: "leaderboard", arrange: async () => (await launchedThen(...allFlags, "quests"), withLevel(3)) },
+    { condition: "an open Leaderboard", feature: "leaderboard", arrange: () => openedThen(...allFlags, "quests") },
+  ];
+
+  test.each(beforeTheJourneyLaunches)("WS62 WS74 P91: with quests on, unlocks launched and no Journey launch, opening $condition answers refused and neither launches the Journey nor joins anyone", async ({ feature, arrange }) => {
+    const { asSignedIn } = await arrange();
+    const before = await everythingWritten();
+    vi.mocked(publish).mockClear();
+
+    expect(await openFeature(asSignedIn, feature)).toEqual({ kind: "refused" });
+    expect(await everythingWritten()).toEqual(before);
+    expect(before.tables.journeyLaunches).toEqual([]);
+    expect(publishedEvents()).toEqual([]);
+  });
 });
 
 describe("a website command is a D17 command", () => {
@@ -230,6 +247,15 @@ describe("a website command is a D17 command", () => {
     expect(slack.callsTo("views.publish").length).toBeGreaterThan(publishedBefore);
 
     expect(() => buttonInHome(slack, juno.user, "Open")).toThrow(/no Open button/);
+  });
+
+  test("WS62 P91: with the Journey launched, a ready Quests opens for good", async () => {
+    await launchedThen(...allFlags, "quests");
+    await journeyShippedBeforeAnyoneJoined(t);
+    const { member, asSignedIn } = await withLevel(2);
+
+    expect(await openFeature(asSignedIn, "quests")).toEqual({ kind: "opened" });
+    expect(await unlockRowsOf(member)).toMatchObject([{ feature: "quests", openedAt: now.getTime() }]);
   });
 
   test("WS63: a doubled open opens once and answers opened again, keeping the first time", async () => {

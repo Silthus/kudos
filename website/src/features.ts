@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import { HedgehogExplorer, HedgehogMoney, HedgehogOrganized, HedgehogReading, HedgehogStar, HedgehogWizard } from "@posthog/brand/hoggies";
-import { IconStar } from "@posthog/icons";
+import { IconStar, IconTarget } from "@posthog/icons";
 import type { Screen } from "./route";
 import type { Feature, MemberProfile } from "./shell";
 
@@ -24,7 +24,7 @@ const plainNames: Record<Feature, string> = {
 export const plainFeatures = Object.entries(plainNames).map(([feature, name]) => ({ feature: feature as Feature, name }));
 
 const about: Record<Feature, About> = {
-  quests: { sentence: "Weekly quests of your own, and one your group takes on together.", Hog: HedgehogOrganized },
+  quests: { sentence: "Weekly quests of your own.", Hog: HedgehogOrganized },
   leaderboard: { sentence: "See where you and your group stand.", Hog: HedgehogStar },
   book: { sentence: "Stickers from colleagues you thanked or who thanked you, and the achievements you collect.", Hog: HedgehogReading },
   skillTree: { sentence: "Perks you choose with skill points.", Hog: HedgehogWizard },
@@ -34,6 +34,7 @@ const about: Record<Feature, About> = {
 
 const webPages: Partial<Record<Feature, WebPage>> = {
   leaderboard: { screen: "leaderboard", href: "/leaderboard", sentence: "See who's thanking colleagues this week.", Icon: IconStar },
+  quests: { screen: "quests", href: "/quests", sentence: "Your quests this week.", Icon: IconTarget },
 };
 
 export function aboutOf(feature: Feature): About {

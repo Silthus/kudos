@@ -6,12 +6,15 @@ import { Frame } from "./Frame";
 import { LiveShell } from "./LiveApp";
 import { ErrorPage } from "./pages/ErrorPage";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
+import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { builtShell, fixtureActions } from "./shell";
 
 const fixtureLeaderboard = fixedLeaderboard(leaderboardFixtures.midBoard);
 
+const fixtureQuests = fixedQuests(questsFixtures.weekWithLastWeeksCrate);
+
 export function Root({ fixture, convexUrl }: { fixture?: string; convexUrl?: string }) {
-  return <ShellBoundary>{fixture || !convexUrl ? <App visitor={builtShell(fixture)} actions={fixtureActions} useLeaderboard={fixtureLeaderboard} /> : <LiveShell client={new ConvexReactClient(convexUrl)} />}</ShellBoundary>;
+  return <ShellBoundary>{fixture || !convexUrl ? <App visitor={builtShell(fixture)} actions={fixtureActions} useLeaderboard={fixtureLeaderboard} useQuests={fixtureQuests} /> : <LiveShell client={new ConvexReactClient(convexUrl)} />}</ShellBoundary>;
 }
 
 export function ShellBoundary({ children }: { children: ReactNode }) {

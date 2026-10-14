@@ -6,9 +6,9 @@ import { type Annotations, type ChatUserId, type Mention, type MessageRef } from
 import { couldEarnMoreBySayingWhy } from "../progression/perks";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { questsApplyIn, questsExposedTo } from "../quests/flag";
+import { journeyGoalOf } from "../quests/journeyCopy";
 import type { JourneyStep } from "../quests/step";
 import { lookup } from "../workspace/directory";
-import { journeyGoalOf } from "./home";
 
 import type { Line, Segment } from "./segments";
 

@@ -3,7 +3,8 @@ import { ladderValidator, tierValidator } from "../achievements/ladders";
 import { awardIdValidator } from "../engine/awards";
 import { annotationsValidator, messageRefValidator } from "../engine/messageEvent";
 import { perkValidator } from "../progression/tree";
-import { questValidator } from "../quests/step";
+import { questIdValidator } from "../quests/pool";
+import { journeyStepValidator, questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
 import type { MemberId } from "../workspace/directory";
 
@@ -90,11 +91,35 @@ export type UnlockReadyEvent = Infer<typeof unlockReadyEventValidator>;
 
 export type UnlockOpenedEvent = Infer<typeof unlockOpenedEventValidator>;
 
+export const unlocksLaunchedEventValidator = v.object({
+  type: v.literal("unlocksLaunched"),
+  workspace: v.string(),
+  openings: v.array(v.object({ member: v.id("members"), feature: featureValidator })),
+  at: v.number(),
+});
+
+export type UnlocksLaunchedEvent = Infer<typeof unlocksLaunchedEventValidator>;
+
 const questFields = { workspace: v.string(), member: v.id("members"), quest: questValidator, at: v.number() };
 
-export const questFinishedEventValidator = v.object({ type: v.literal("questFinished"), ...questFields });
+export const questFinishedEventValidator = v.object({
+  type: v.literal("questFinished"),
+  ...questFields,
+  poolQuest: v.optional(questIdValidator),
+  reward: v.optional(v.object({ xp: v.number(), coins: v.number() })),
+});
 
-export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields });
+export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields, poolQuest: v.optional(questIdValidator) });
+
+const weekFields = { workspace: v.string(), member: v.id("members"), week: v.string(), at: v.number() };
+
+export const questsDrawnEventValidator = v.object({ type: v.literal("questsDrawn"), ...weekFields, quests: v.array(questIdValidator) });
+
+export const questSwappedEventValidator = v.object({ type: v.literal("questSwapped"), ...weekFields, replaced: questIdValidator, swappedIn: questIdValidator });
+
+export type QuestsDrawnEvent = Infer<typeof questsDrawnEventValidator>;
+
+export type QuestSwappedEvent = Infer<typeof questSwappedEventValidator>;
 
 export const achievementEarnedEventValidator = v.object({
   type: v.literal("achievementEarned"),
@@ -126,6 +151,16 @@ export type QuestFinishedEvent = Infer<typeof questFinishedEventValidator>;
 
 export type QuestOpenedEvent = Infer<typeof questOpenedEventValidator>;
 
+export const journeyStepActivatedEventValidator = v.object({
+  type: v.literal("journeyStepActivated"),
+  workspace: v.string(),
+  member: v.id("members"),
+  step: journeyStepValidator,
+  at: v.number(),
+});
+
+export type JourneyStepActivatedEvent = Infer<typeof journeyStepActivatedEventValidator>;
+
 export type DomainEvent =
   | KudosGivenEvent
   | AttemptFailedEvent
@@ -134,8 +169,12 @@ export type DomainEvent =
   | XpRecordedEvent
   | UnlockReadyEvent
   | UnlockOpenedEvent
+  | UnlocksLaunchedEvent
   | QuestFinishedEvent
   | QuestOpenedEvent
+  | QuestsDrawnEvent
+  | QuestSwappedEvent
+  | JourneyStepActivatedEvent
   | AchievementEarnedEvent
   | PerkBoughtEvent
   | MemberLeftEvent

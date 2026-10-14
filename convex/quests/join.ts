@@ -31,7 +31,7 @@ export const joinJourney = internalMutation({
   handler: async (ctx, { workspace, at, member }) => {
     const finished: Array<{ quest: JourneyQuest; xp: number }> = [];
     for (const step of await journeyStepsApplyingIn(ctx, workspace)) {
-      const activation = await activatedIfOpened(ctx, member, step, at);
+      const activation = await activatedIfOpened(ctx, workspace, member, step, at);
       const finishedAt = activation === null ? null : await finishedAtJoin(ctx, workspace, activation, at);
       if (activation !== null && finishedAt !== null && (await finishSilently(ctx, workspace, activation, finishedAt))) finished.push({ quest: { kind: "journey", step }, xp: activation.reward.xp });
     }
@@ -41,10 +41,10 @@ export const joinJourney = internalMutation({
   },
 });
 
-async function activatedIfOpened(ctx: MutationCtx, member: MemberId, step: JourneyStep, at: number): Promise<JourneyActivation | null> {
+async function activatedIfOpened(ctx: MutationCtx, workspace: string, member: MemberId, step: JourneyStep, at: number): Promise<JourneyActivation | null> {
   const feature = featureOpening(step);
   const openedAt = feature === null ? at : await openedAtOf(ctx, member, feature);
-  return openedAt !== null && openedAt <= at ? activated(ctx, member, step, at, journey) : null;
+  return openedAt !== null && openedAt <= at ? activated(ctx, workspace, member, step, at, journey) : null;
 }
 
 async function finishedAtJoin(ctx: MutationCtx, workspace: string, activation: JourneyActivation, at: number): Promise<number | null> {

@@ -1,0 +1,248 @@
+ ✓ |convex| convex/publicSurface.test.ts > WS10: the public surface is exact > only HTTP routes, Convex Auth's signIn, signOut and isAuthenticated, and the website's signed-in functions are public 512ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > with the website flag off, a finished step's open answers closed 86ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > with a flags key but no workspace key yet, the open answers closed and makes no key 6ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > without a session, the open answers signed-out 15ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > with a signed-out session, a finished step's open answers signed-out 14ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: a quest crate's denial answers as a read does and writes nothing at all > a member who left the workspace with a finished step answers not-a-member 30ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > website commands pass one guard > WS61: the quest is the only argument, so no call names a member 12ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > a website command never launches unlocks > WS74 P77: with every flag on and no unlocks launch, a quest crate's open answers refused and launches nothing 6ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > a website command never launches unlocks > WS74 P91: with unlocks launched and no Journey launch, a quest crate's open answers refused and neither launches the Journey nor joins anyone 7ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74 P85: a finished Journey step's crate opens for good, and App Home's republish is scheduled 12ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74 P85: a finished weekly quest's crate opens for good 20ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: App Home's republished view no longer offers the step's crate 63ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS63 WS74: a doubled open opens once and answers opened again, keeping the first time 13ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: a Journey step still active answers refused and writes nothing at all 8ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: a weekly quest still in progress answers refused and writes nothing at all 20ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: a weekly quest that was never drawn answers refused and writes nothing at all 22ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: a finished step with quests switched off answers refused before any command and writes nothing at all 13ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: a finished step with unlocks switched off answers refused before any command and writes nothing at all 11ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS74: a finished step with xp-levels switched off answers refused before any command and writes nothing at all 12ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > a website command is a D17 command > WS64 WS74: opening on the website leaves the domain tables and events Slack's Open leaves, besides Slack's receipt 23ms
+ ✓ |convex| convex/website/openQuestCrate.test.ts > opening on the website grants nothing > P92: opening a finished step's crate writes only one crate opening, with the XP and every other record as they were 11ms
+ Test Files  2 passed (2)
+      Tests  21 passed (21)
+ ✓ |website| src/QuestsPage.test.tsx > WS5: a quests address keeps the sign-in code > leaves /quests alone while it carries the sign-in code, so Convex Auth redeems it there 28ms
+ ✓ |website| src/liveShell.test.tsx > WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change > a profile read that fails on the first load shows the error page, not a blank page, and leaves focus alone 185ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > lives at /quests with the tab HedgeHug · Quests, the header This week, and when new quests arrive 146ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > shows one card per drawn quest, in slot order, each with its kind, goal and reward 96ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in light 170ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > shows an active step's goal, its hint and what it pays 215ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > WS72 WS74: shows a finished step as its crate with an outline Open 90ms
+ ✓ |website| src/liveShell.test.tsx > WS20 WS24: the live site shows the error page when a call fails, with focus on its title after a state change > a sign-in that can't start shows the error page, focuses its title and forgets the attempt 123ms
+ ✓ |website| src/liveShell.test.tsx > WS20: a socket that never connects shows where the page stands, never a blank page forever > shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds 33ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > exposes each quest's progress as a neutral progressbar labelled done of target 50ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > tags only a swapped quest Swapped 57ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > sends openQuestCrate with the crate's own quest from the read, and shows Opening… without a dialog until it answers 279ms
+ ✓ |website| src/crateMoment.test.tsx > WS65: a ready feature is a closed crate > labels the crate with what it unlocks and what it opens, with one outline Open on the home 314ms
+ ✓ |website| src/liveShell.test.tsx > WS20: a socket that never connects shows where the page stands, never a blank page forever > moves on to the answer by itself once the socket connects 67ms
+ ✓ |website| src/liveShell.test.tsx > WS20: a socket that never connects shows where the page stands, never a blank page forever > stays quiet while a connected socket waits for the answer 7ms
+ ✓ |website| src/liveShell.test.tsx > WS20 WS36: the leaderboard read shows where the page stands, inside the HUD > marks the page busy while the board loads, and shows Can't reach HedgeHug once the socket has stayed unconnected for five seconds 59ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > WS73 WS74: shows a finished quest as its crate with one primary Open, the first crate on the page 50ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > WS73 V4: gives only the first crate on the page a primary Open, and the rest outline 72ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > shows an opened step as done, with the XP it earned 89ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > lists the steps in chain order with no step count 84ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > ends on You earned {xp} XP with Done and Replay, and no way to this week's quests from /quests 152ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > connecting in light 224ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > shows Opening… without a dialog until the server answers, then plays the reveal after opened 191ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > keeps a finished quest's progress beside its crate 40ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > nudges each closed reward crate once, as every closed crate does (V8) 58ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > frames each quest card with corner marks and keeps How quests work a plain reading card (V2) 38ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > is a game object with corner marks, after the hero and the counters and before the feature cards 77ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > is absent while quests don't apply 73ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in light 192ms
+ ✓ |website| src/liveShell.test.tsx > WS20 WS36: the leaderboard read shows where the page stands, inside the HUD > shows the error page under the HUD when the board read fails, and Home still opens in place 186ms
+ ✓ |website| src/liveShell.test.tsx > WS20 WS36: the leaderboard read shows where the page stands, inside the HUD > shows the board once a failed read answers again 81ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > labels a Journey step's reveal Journey reward, and offers this week's quests from the home while Quests is open 241ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > reads ✓ Done for an opened quest 37ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > shows fewer cards when fewer quests were drawn 43ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > lists earlier weeks' unopened crates under Waiting to open, with their goal and reward 42ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72 WS58: the Quests card on the home > links an open Quests to /quests with Your quests this week., and no count 72ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72 WS58: the Quests card on the home > WS75: describes a locked Quests by the quests a member gets, with no group quest 66ms
+ ✓ |website| src/liveShell.test.tsx > WS5: a sign-in started on a deep link comes back to it > asks Convex Auth to bring the member back to /leaderboard?period=month after Slack 33ms
+ ✓ |website| src/liveShell.test.tsx > WS5: a sign-in started on a deep link comes back to it > asks Convex Auth to bring the member back to /quests after Slack 40ms
+ ✓ |website| src/liveShell.test.tsx > WS5: a sign-in started on a deep link comes back to it > asks Convex Auth to bring the member back to / after Slack 34ms
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > shows nothing but the busy frame while Convex Auth redeems the code, never the signed-out page 12ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72 WS58: the Quests card on the home > goes to /quests with Enter, moving focus to the page title 123ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > offers no way to this week's quests while Quests isn't open 157ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in light 181ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > has no Waiting to open section while nothing from an earlier week waits 44ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > shows Max's empty state with one action that opens Slack when nothing was drawn 52ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > explains how quests work in WS73's words 45ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > plays no reveal after refused, and says so on the card and in the live region 79ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > offers no swap, group quest, bonus quest or claim, and never calls a kudos thoughtful 40ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > turns over to the new week when the read answers it 39ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS67 WS69: /quests while Quests isn't open > is the not-found page while quests don't apply 34ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS67 WS69: /quests while Quests isn't open > says at which level Quests opens while it is locked 24ms
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > shows Sign-in didn't finish when the redemption is rejected, instead of loading forever 30ms
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > shows the closed page when the redemption is rejected while the website is closed 24ms
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > lets the failure go once auth settles, so a later signed-out answer shows the plain sign-in page 50ms
+ ✓ |website| src/liveShell.test.tsx > WS5 WS20: a code from Slack that Convex Auth fails to redeem ends the wait > ignores a rejection elsewhere on a page that brought no code from Slack 5ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in light 166ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > closes the crate again after an error, says HedgeHug couldn't be reached, and lets the member retry 107ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > opens an earlier week's waiting crate with its own quest 90ms
+ ✓ |website| src/liveShell.test.tsx > WS66: an open the server never answers ends the wait > closes the crate again after ten seconds without an answer, says HedgeHug couldn't be reached, and a retry opens it 183ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS67 WS69: /quests while Quests isn't open > shows the Quests crate with a primary Open in place while it is ready 26ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS59: the nav shows Quests while it is open > lists Quests after Home and marks it current on /quests 49ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in light 167ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS59: the nav shows Quests while it is open > has no Quests item while Quests is locked 52ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS59: the nav shows Quests while it is open > has no Quests item while Quests is ready 50ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS74 WS66: focus and the live region after a quest crate's reveal > returns focus to the quest's card on /quests when Done closes the reveal, and announces what opened 144ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS59: the nav shows Quests while it is open > goes to /quests from the nav without a reload, moving focus to the page title 140ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in light 164ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS74 WS66: focus and the live region after a quest crate's reveal > returns focus to the Journey step on the home 180ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS74 WS66: focus and the live region after a quest crate's reveal > WS24: moves focus to the page title when the opened crate's card leaves the read, as an earlier week's crate does once opened 151ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS74 WS66: focus and the live region after a quest crate's reveal > opens a crate this member has seen on its end state, keyed by the read's seen key 77ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS68 WS74: the ready pill counts quest and Journey crates > counts the Journey's, this week's and waiting crates after the ready features 39ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS68 WS74: the ready pill counts quest and Journey crates > counts a finished Journey step while Quests is still locked 52ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS68 WS74: the ready pill counts quest and Journey crates > takes a ready feature before any quest crate 73ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS68 WS74: the ready pill counts quest and Journey crates > sends openQuestCrate for the first quest crate, the Journey's, and reveals only after opened 88ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS68 WS74: the ready pill counts quest and Journey crates > is gone once every quest crate is opened 26ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in light 163ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS75 WS74: the keyboard path for a quest crate > opens with Space, skips with Esc, tabs through Done and Replay, and closes with Done, returning focus to the quest's card 152ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS75 WS74: the keyboard path for a quest crate > opens the pill's quest crate with Enter 82ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > ends on the end state with the headline, the line, Go to and Done once the reveal has played 1860ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > points a feature without a web page to Slack's App Home from the end state 154ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > plays no reveal after refused, and says so in the live region 157ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in light 726ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > plays no reveal after a denial and ends Opening…, leaving the page to getMyProfile's own answer 95ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > closes the crate again after an error, says HedgeHug couldn't be reached, and lets the member retry 161ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > skips to the end state with Esc 127ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > skips to the end state with Space 128ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > skips to the end state with a click anywhere on the reveal 113ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in a quiet week in light 689ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > replays the reveal from the end state, and skips it again 186ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > shows the end state at once under reduced motion, fading in 108ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > moves focus into the dialog, and back to the feature's card, now open, when it closes 187ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > closes from the end state with Esc 148ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > announces what opened in the one live region, which stays mounted and readable while the page behind the dialog is inert 125ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home at level 1 in light 712ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal follows the server > goes to the feature's page from the end state 139ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home past level 5 in light 699ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > plays each crate's first reveal in full when two answers arrive together 198ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > drops the reveal when the member signs out, and shows none on the next sign-in 158ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > ignores an answer that arrives after the member signed out 158ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > WS60: ignores an answer for the member shown before when another member replaces them without a sign-out 134ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in light 166ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > WS60: ignores the member shown before's answer when the next member has no features while unlocks don't apply 173ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard open in light 638ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > WS60: ignores the member shown before's answer when the next member has no features when nothing has shipped 100ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > keeps a member's own crates through a ship that adds one, so their open still plays its reveal 91ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with the viewer mid-board in light 151ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard led by the viewer in light 105ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > keeps focus in the dialog after Replay under reduced motion, so Esc still closes it 134ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with a shared lead in light 100ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: the reveal holds up against overlapping answers and sessions > keeps the dialog open when Go to opens in another tab 144ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who isn't ranked in light 104ms
+ ✓ |website| src/crateMoment.test.tsx > WS65 WS66: the crate nudges once, and never while it opens > stops nudging once Open is pressed, and stays still after an error 104ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who left in light 102ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: seen state is kept per member and crate in this browser > opens a crate this member has seen on its end state, with Replay, and never plays it by itself 239ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: seen state is kept per member and crate in this browser > plays another member's first reveal in full in the same browser 214ms
+ ✓ |website| src/crateMoment.test.tsx > WS66: seen state is kept per member and crate in this browser > keeps nothing but the opaque seen key in the browser 97ms
+ ✓ |website| src/crateMoment.test.tsx > WS67: /leaderboard's ready state opens in place > shows the crate with a primary Open in place of WS52's sentence 23ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard locked in light 281ms
+ ✓ |website| src/crateMoment.test.tsx > WS67: /leaderboard's ready state opens in place > becomes the board once opened, and returns focus to the page title when the reveal closes 136ms
+ ✓ |website| src/crateMoment.test.tsx > WS67: /leaderboard's ready state opens in place > keeps WS52's sentence while the board is locked 23ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > counts what is ready to open, and is gone at zero 99ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > shows what went wrong beside the pill after a refusal, away from the home's crate 88ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard ready and the skill tree locked in light 423ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > shows what went wrong beside the pill after an error, away from the home's crate 72ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > leaves a failure on the home to the crate's own message 102ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > is gone while unlocks don't apply 86ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard opened and the skill tree locked in light 357ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > sends the guarded command for the first ready crate in schedule order and reveals only after opened 123ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > ends a refusal from the pill as the crate does, with no reveal 83ms
+ ✓ |website| src/crateMoment.test.tsx > WS68: the ready pill > takes in a crate that becomes ready during the visit without opening a dialog by itself 82ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with every shipped feature open in light 235ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with no feature shipped in light 222ms
+ ✓ |website| src/crateMoment.test.tsx > WS75: the keyboard path > opens with Enter, skips with Esc, replays, and closes with Done, returning focus to the card 251ms
+ ✓ |website| src/crateMoment.test.tsx > WS75: the keyboard path > opens the pill's crate with Space 72ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard locked until level 3 in light 166ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard ready to open in place in light 117ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with two crates and the ready pill in light 420ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > empty leaderboard in light 244ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home starting the Journey with Quests locked in light 265ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with a Journey step in each state and Quests open in light 304ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests this week in light 125ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests with last week's crate waiting in light 170ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests with nothing drawn in light 190ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests locked until level 2 in light 164ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests ready to open in place in light 85ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in light 180ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in light 243ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in light 1291ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > loading in dark 30ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > connecting in dark 158ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > closed in dark 159ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > signed out in dark 161ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > sign-in didn't finish in dark 161ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > checking membership in dark 159ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > membership not checked in dark 161ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not a member in dark 158ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in dark 678ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home in a quiet week in dark 680ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home at level 1 in dark 686ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home past level 5 in dark 758ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > not found in dark 169ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard open in dark 644ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with the viewer mid-board in dark 132ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard led by the viewer in dark 94ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard with a shared lead in dark 92ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who isn't ranked in dark 89ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard for a viewer who left in dark 95ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard locked in dark 264ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard ready and the skill tree locked in dark 410ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with the leaderboard opened and the skill tree locked in dark 343ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with every shipped feature open in dark 234ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with no feature shipped in dark 210ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard locked until level 3 in dark 169ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > leaderboard ready to open in place in dark 110ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with two crates and the ready pill in dark 421ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > empty leaderboard in dark 214ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home starting the Journey with Quests locked in dark 250ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > home with a Journey step in each state and Quests open in dark 280ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests this week in dark 119ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests with last week's crate waiting in dark 165ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests with nothing drawn in dark 193ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests locked until level 2 in dark 161ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > quests ready to open in place in dark 85ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > error in dark 174ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in dark 221ms
+ ✓ |website| src/accessibility.test.tsx > WS24: every page passes axe in light and dark > the open avatar menu, portaled outside the landmarks, meets WCAG 2.2 AA in dark 1281ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate opening in light 493ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate refused in light 502ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate unreachable in light 499ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealing in light 539ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed in light 611ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed under reduced motion in light 588ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate opening in dark 481ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate refused in dark 493ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate unreachable in dark 496ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealing in dark 531ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed in dark 599ms
+ ✓ |website| src/accessibility.test.tsx > WS75: every crate state passes axe in light and dark > the crate revealed under reduced motion in dark 584ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests opening in light 207ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests refused in light 221ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests unreachable in light 226ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests revealing in light 256ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests revealed in light 300ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests revealed under reduced motion in light 280ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home opening in light 352ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home refused in light 362ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home unreachable in light 362ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home revealing in light 388ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home revealed in light 437ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home revealed under reduced motion in light 418ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests opening in dark 205ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests refused in dark 221ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests unreachable in dark 222ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests revealing in dark 253ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests revealed in dark 289ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a quest crate on /quests revealed under reduced motion in dark 273ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home opening in dark 339ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home refused in dark 352ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home unreachable in dark 349ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home revealing in dark 374ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home revealed in dark 424ms
+ ✓ |website| src/accessibility.test.tsx > WS75 WS74: every quest crate state passes axe in light and dark > a Journey crate on the home revealed under reduced motion in dark 415ms
+ Test Files  6 passed (6)
+      Tests  223 passed (223)

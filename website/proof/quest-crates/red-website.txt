@@ -1,0 +1,51 @@
+ ✓ |website| src/QuestsPage.test.tsx > WS5: a quests address keeps the sign-in code > leaves /quests alone while it carries the sign-in code, so Convex Auth redeems it there 27ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > lives at /quests with the tab HedgeHug · Quests, the header This week, and when new quests arrive 123ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > shows one card per drawn quest, in slot order, each with its kind, goal and reward 53ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > shows an active step's goal, its hint and what it pays 178ms
+ × |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > WS72 WS74: shows a finished step as its crate with an outline Open 77ms
+ × |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > sends openQuestCrate with the crate's own quest from the read, and shows Opening… without a dialog until it answers 203ms
+ × |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > ends on You earned {xp} XP with Done and Replay, and no way to this week's quests from /quests 89ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > shows an opened step as done, with the XP it earned 71ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > lists the steps in chain order with no step count 57ms
+ × |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > labels a Journey step's reveal Journey reward, and offers this week's quests from the home while Quests is open 119ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > exposes each quest's progress as a neutral progressbar labelled done of target 46ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > tags only a swapped quest Swapped 38ms
+ × |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > WS73 WS74: shows a finished quest as its crate with one primary Open, the first crate on the page 41ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > is a game object with corner marks, after the hero and the counters and before the feature cards 77ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72: the Journey panel on the home > is absent while quests don't apply 62ms
+ × |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > WS73 V4: gives only the first crate on the page a primary Open, and the rest outline 209ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > keeps a finished quest's progress beside its crate 37ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > nudges each closed reward crate once, as every closed crate does (V8) 37ms
+ × |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > offers no way to this week's quests while Quests isn't open 100ms
+ × |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > plays no reveal after refused, and says so on the card and in the live region 80ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72 WS58: the Quests card on the home > links an open Quests to /quests with Your quests this week., and no count 55ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72 WS58: the Quests card on the home > WS75: describes a locked Quests by the quests a member gets, with no group quest 59ms
+ ✓ |website| src/JourneyPanel.test.tsx > WS72 WS58: the Quests card on the home > goes to /quests with Enter, moving focus to the page title 109ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > frames each quest card with corner marks and keeps How quests work a plain reading card (V2) 32ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > reads ✓ Done for an opened quest 44ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > shows fewer cards when fewer quests were drawn 25ms
+ × |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > closes the crate again after an error, says HedgeHug couldn't be reached, and lets the member retry 70ms
+ × |website| src/questCrateMoment.test.tsx > WS74: opening a quest crate follows the server > opens an earlier week's waiting crate with its own quest 79ms
+ × |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > lists earlier weeks' unopened crates under Waiting to open, with their goal and reward 89ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > has no Waiting to open section while nothing from an earlier week waits 24ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > shows Max's empty state with one action that opens Slack when nothing was drawn 52ms
+ × |website| src/questCrateMoment.test.tsx > WS74 WS66: focus and the live region after a quest crate's reveal > returns focus to the quest's card on /quests when Done closes the reveal, and announces what opened 78ms
+ × |website| src/questCrateMoment.test.tsx > WS74 WS66: focus and the live region after a quest crate's reveal > returns focus to the Journey step on the home 80ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > explains how quests work in WS73's words 24ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > offers no swap, group quest, bonus quest or claim, and never calls a kudos thoughtful 31ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > turns over to the new week when the read answers it 45ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS67 WS69: /quests while Quests isn't open > is the not-found page while quests don't apply 21ms
+ × |website| src/questCrateMoment.test.tsx > WS74 WS66: focus and the live region after a quest crate's reveal > opens a crate this member has seen on its end state, keyed by the read's seen key 73ms
+ × |website| src/questCrateMoment.test.tsx > WS68 WS74: the ready pill counts quest and Journey crates > counts the Journey's, this week's and waiting crates after the ready features 40ms
+ × |website| src/questCrateMoment.test.tsx > WS68 WS74: the ready pill counts quest and Journey crates > counts a finished Journey step while Quests is still locked 51ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS67 WS69: /quests while Quests isn't open > says at which level Quests opens while it is locked 35ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS67 WS69: /quests while Quests isn't open > shows the Quests crate with a primary Open in place while it is ready 25ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS59: the nav shows Quests while it is open > lists Quests after Home and marks it current on /quests 31ms
+ × |website| src/questCrateMoment.test.tsx > WS68 WS74: the ready pill counts quest and Journey crates > takes a ready feature before any quest crate 60ms
+ × |website| src/questCrateMoment.test.tsx > WS68 WS74: the ready pill counts quest and Journey crates > sends openQuestCrate for the first quest crate, the Journey's, and reveals only after opened 67ms
+ ✓ |website| src/questCrateMoment.test.tsx > WS68 WS74: the ready pill counts quest and Journey crates > is gone once every quest crate is opened 30ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS59: the nav shows Quests while it is open > has no Quests item while Quests is locked 64ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS59: the nav shows Quests while it is open > has no Quests item while Quests is ready 37ms
+ ✓ |website| src/QuestsPage.test.tsx > WS73 WS59: the nav shows Quests while it is open > goes to /quests from the nav without a reload, moving focus to the page title 123ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 18 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  18 failed | 31 passed (49)
