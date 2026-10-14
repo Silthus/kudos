@@ -106,9 +106,19 @@ function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate
   const crate = questCrateOf(entry);
   return (
     <article className="hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4" {...questCrateHomeAttributes(entry.seen)}>
+      <WeekOf week={entry.week} />
       <h3 className="text-sm font-medium">{entry.goal}</h3>
       {crate !== undefined && <RewardCrate crate={crate} open={openVariantOf(entry.seen, { firstCrate })} />}
     </article>
+  );
+}
+
+function WeekOf({ week }: Pick<WaitingCrate, "week">) {
+  const monday = new Intl.DateTimeFormat(navigator.languages, { day: "numeric", month: "short", timeZone: "UTC" }).format(Date.parse(`${week}T00:00:00Z`));
+  return (
+    <time dateTime={week} className="hud-label">
+      Week of {monday}
+    </time>
   );
 }
 
