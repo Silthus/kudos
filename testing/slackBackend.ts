@@ -12,8 +12,8 @@ export type Backend = ReturnType<typeof testBackend>;
 const realSetTimeout = globalThis.setTimeout;
 const idleAfterMs = 200;
 
-export function testBackend() {
-  const t = convexTest(schema, modules);
+export function testBackend({ transactionLimits = false }: { transactionLimits?: boolean } = {}) {
+  const t = convexTest({ schema, modules, transactionLimits });
   postHogComponent.register(t);
   staticHostingComponent.register(t);
   return t;

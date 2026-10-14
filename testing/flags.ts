@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 import { components } from "../convex/_generated/api";
 import { FakePostHog, flagsKey, postHogHost, projectToken, routedFetch, type FlagDefinition } from "./fakePostHog";
+import { questsLiveIn } from "../convex/quests/flag";
 import { unlocksLiveIn } from "../convex/unlocks/launch";
 import { testBackend, type Backend } from "./slackBackend";
 
@@ -43,5 +44,11 @@ export async function flagsLoaded(t: Backend) {
 
 export async function unlocksShippedBeforeAnyoneJoined(t: Backend, workspace = "T1") {
   await t.run((ctx) => unlocksLiveIn(ctx, workspace));
+  return t;
+}
+
+export async function journeyShippedBeforeAnyoneJoined(t: Backend, workspace = "T1") {
+  await unlocksShippedBeforeAnyoneJoined(t, workspace);
+  await t.run((ctx) => questsLiveIn(ctx, workspace));
   return t;
 }

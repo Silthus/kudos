@@ -406,6 +406,26 @@
     {
       "name": "ship sweep",
       "definition": "Unlocks' hourly scheduled mutation that turns a feature's flag turning on into readiness: it stores readiness, publishes unlockReady and sends one DM per member for every member at or past the level of a shipped feature who has none stored (P78)."
+    },
+    {
+      "name": "quest",
+      "definition": "A goal a member pursues for a reward: one of the 3 personal quests drawn for their week, the group quest, or a step of the Journey. Finishing it records its reward at once in a reward record; its crate only reveals it. A quest counts only once its feature is open, because quests are goals, not earnings."
+    },
+    {
+      "name": "Journey",
+      "definition": "The fixed chain of onboarding steps, each keyed by a stable step ID such as first-thanks, never by its number. Its first step is active from the start, every other step when its feature is opened; a step's reward is fixed when it becomes active, and finishing records exactly that. Steps never expire, restart, block a level or count toward the weekly quests."
+    },
+    {
+      "name": "reward record",
+      "definition": "One insert-only record of what finishing a quest or Journey step pays: its XP, coins, item and catalogue version, fixed when the quest was drawn or the step became active. It is keyed by what it pays for (a Journey step: member and step) and, like effects records, counts toward XP and levels; progression writes it and applies its XP once."
+    },
+    {
+      "name": "quest pool",
+      "definition": "The versioned catalogue of personal quests a weekly draw picks from: each quest has a stable ID, a kind (breadth, thoughtfulness or participation), its goal copy, its progress predicate over what the member gives, its needs and its reward. It holds only quests whose needs have shipped, and always at least 3 a member can finish alone on the last day of a week."
+    },
+    {
+      "name": "swap",
+      "definition": "A member's once-a-week replacement of one unfinished weekly quest with a feasible quest not in that week's draw, stored for good with the replaced quest, the new quest and the facts that made it feasible (P81, the spec's reroll)."
     }
   ]
 }

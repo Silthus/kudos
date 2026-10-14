@@ -5,6 +5,7 @@ import type { MemberId } from "../workspace/directory";
 import type { Catalogue } from "./catalogue";
 import { gateDecisionOf, gateDecisionValidator } from "./gate";
 import { levelOf, skillPointsEarnedAt, xpToReach } from "./levels";
+import type { RewardRecord } from "./rewards";
 
 export const effectsRecordValidator = v.object({
   award: awardIdValidator,
@@ -29,6 +30,11 @@ export function progress(state: MemberProgress, event: KudosGivenEvent, catalogu
   const effects = effectsFor(state.member, event.awards, { day: event.day, gate: gateDecisionOf(event.annotations) }, catalogue);
   const next = withXpOf(state, effects);
   return { state: next, effects, events: levelsReached(state, next, event) };
+}
+
+export function rewarded(state: MemberProgress, { xp }: Pick<RewardRecord, "xp">, moment: Moment): Omit<Progressed, "effects"> {
+  const next = { ...state, xp: state.xp + xp };
+  return { state: next, events: levelsReached(state, next, moment) };
 }
 
 export function replay(state: MemberProgress, award: GivenAward, catalogue: Catalogue): Progressed {
@@ -63,7 +69,9 @@ function withXpOf(state: MemberProgress, effects: EffectsRecord[]): MemberProgre
   return { ...state, xp: state.xp + effects.reduce((sum, record) => sum + record.baseXp, 0) };
 }
 
-function levelsReached(before: MemberProgress, after: MemberProgress, event: KudosGivenEvent): LevelReachedEvent[] {
+type Moment = Pick<LevelReachedEvent, "workspace" | "message" | "at">;
+
+function levelsReached(before: MemberProgress, after: MemberProgress, { workspace, message, at }: Moment): LevelReachedEvent[] {
   const from = levelOf(before.xp);
   const reached = standing(after);
   const { level, skillPoints } = reached;
@@ -71,14 +79,14 @@ function levelsReached(before: MemberProgress, after: MemberProgress, event: Kud
   return [
     {
       type: "levelReached",
-      workspace: event.workspace,
+      workspace,
       member: after.member,
       level,
       skillPointsGained: skillPointsEarnedAt(level) - skillPointsEarnedAt(from),
       skillPoints,
       xpToNextLevel: xpToNextLevel(reached),
-      message: event.message,
-      at: event.at,
+      ...(message !== undefined && { message }),
+      at,
     },
   ];
 }
