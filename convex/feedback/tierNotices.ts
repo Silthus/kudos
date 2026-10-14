@@ -56,13 +56,13 @@ export const tellBatchSummaries = internalMutation({
   args: { batch: v.id("bookBatches"), cursor: v.union(v.string(), v.null()) },
   handler: async (ctx, { batch, cursor }): Promise<void> => {
     const row = await ctx.db.get(batch);
-    if (row === null || !(await achievementsApplyIn(ctx, row.workspace))) return;
+    if (row?.completedAt === undefined) return;
     const members = await ctx.db
       .query("members")
       .withIndex("by_user", (q) => q.eq("workspace", row.workspace))
       .paginate({ cursor, numItems: membersPerPage });
     for (const { _id: member } of members.page) {
-      if (await earnedIn(ctx, member, batch)) await tellUntoldTiers(ctx, member, batch);
+      if (await wasOpenedBy(ctx, member, row.completedAt)) await tellUntoldTiers(ctx, member, batch);
     }
     if (!members.isDone) await ctx.scheduler.runAfter(0, internal.feedback.tierNotices.tellBatchSummaries, { batch, cursor: members.continueCursor });
   },
@@ -71,16 +71,16 @@ export const tellBatchSummaries = internalMutation({
 async function tellUntoldTiers(ctx: MutationCtx, member: MemberId, batch?: BatchId) {
   const { workspace, user } = await chatUserOf(ctx, member);
   if (!(await achievementsApplyIn(ctx, workspace)) || !(await isOpened(ctx, member, "book"))) return;
-  const tiers = await untoldTiersOf(ctx, member);
+  const tiers = await untoldTiersOf(ctx, member, batch);
   if (tiers.length === 0) return;
   const summary = await ctx.db.insert("tierSummaries", { member, workspace, tiers, batch });
   await notify(ctx, member, { kind: "tiers-earned", tiers });
   if (batch !== undefined) await announce(ctx, workspace, { summary }, tierSection(member, user, tiers));
 }
 
-async function untoldTiersOf(ctx: QueryCtx, member: MemberId): Promise<TierRef[]> {
+async function untoldTiersOf(ctx: QueryCtx, member: MemberId, batch: BatchId | undefined): Promise<TierRef[]> {
   const told = await toldTiersOf(ctx, member);
-  const earned = (await everyTierEarnedBy(ctx, member)).filter(({ hidden }) => hidden !== true);
+  const earned = (await everyTierEarnedBy(ctx, member)).filter((row) => row.hidden !== true && (batch === undefined || row.batch === batch));
   return ladders.ladders.flatMap(({ ladder, tiers }) =>
     tiers.map(({ tier }) => ({ ladder, tier })).filter((ref) => earned.some((row) => isSameTier(row, ref)) && !told.some((each) => isSameTier(each, ref))),
   );
@@ -96,10 +96,6 @@ async function toldTiersOf(ctx: QueryCtx, member: MemberId): Promise<TierRef[]> 
     .withIndex("by_member", (q) => q.eq("member", member))
     .collect();
   return [...notices, ...summaries].flatMap(({ tiers }) => tiers);
-}
-
-async function earnedIn(ctx: QueryCtx, member: MemberId, batch: BatchId) {
-  return (await everyTierEarnedBy(ctx, member)).some((row) => row.batch === batch);
 }
 
 function tierSection(member: MemberId, user: string, tiers: TierRef[]): PublicSection {

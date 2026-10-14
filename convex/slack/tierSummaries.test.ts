@@ -7,6 +7,7 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import { ladders, type Ladder, type LadderId } from "../achievements/ladders";
 import type { MemberId } from "../workspace/directory";
 
@@ -168,7 +169,61 @@ describe("P62 P76: a tier is told once, whichever summary tells it", () => {
     ]);
     expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks.", "🏅 <@U_ALICE> earned Noticed."]);
   });
+
+  test("a batch that completes while another is still replaying tells only its own tiers, and the other batch tells the rest when it completes", async () => {
+    const t = await workspaceWithTheBook("C_NEWS");
+    const alice = await memberWithTheBookOpen(t, "U_ALICE");
+    const [first, second] = await t.run(async (ctx) => [await ctx.db.insert("bookBatches", { workspace: "T1", at: Date.now() }), await ctx.db.insert("bookBatches", { workspace: "T1", at: Date.now() })]);
+    await earned(t, alice, "generosity", first!);
+    await earned(t, alice, "recognition", second!);
+
+    await completeBatch(t, first!);
+    await completeBatch(t, second!);
+
+    expect(tierDmsTo("U_ALICE")).toEqual([
+      "🏅 You earned First Thanks (Generosity, bronze).\nNext: Generous Soul at 25 kudos given.",
+      "🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received.",
+    ]);
+    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks.", "🏅 <@U_ALICE> earned Noticed."]);
+  });
+
+  test("a member who opened the Book after the batch completed hears of its tiers only from the opening's summary, even when the batch's summary runs later", async () => {
+    const t = await workspaceWithTheBook("C_NEWS");
+    const alice = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: "U_ALICE", kind: "member" }));
+    const batch = await t.run((ctx) => ctx.db.insert("bookBatches", { workspace: "T1", at: Date.now(), completedAt: Date.now() }));
+    await earned(t, alice, "generosity", batch);
+    vi.setSystemTime(Date.now() + 60_000);
+    await t.run((ctx) => ctx.db.insert("unlocks", { member: alice, feature: "book", readyAt: Date.now(), openedAt: Date.now() }));
+
+    await t.mutation(internal.feedback.tierNotices.tellBatchSummaries, { batch, cursor: null });
+    await t.mutation(internal.feedback.tierNotices.tellOpeningSummary, { event: { type: "unlockOpened", workspace: "T1", member: alice, feature: "book", at: Date.now() } });
+    await settle(t);
+
+    expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned First Thanks (Generosity, bronze).\nNext: Generous Soul at 25 kudos given."]);
+    expect(tierLinesEverywhere()).toEqual([]);
+  });
 });
+
+async function memberWithTheBookOpen(t: Backend, user: string): Promise<MemberId> {
+  return t.run(async (ctx) => {
+    const member = await ctx.db.insert("members", { workspace: "T1", user, kind: "member" });
+    await ctx.db.insert("unlocks", { member, feature: "book", readyAt: Date.now(), openedAt: Date.now() });
+    return member;
+  });
+}
+
+async function earned(t: Backend, member: MemberId, ladder: LadderId, batch: Id<"bookBatches">) {
+  await t.run(async (ctx) => {
+    const award = await ctx.db.insert("awards", { workspace: "T1", conversation: "C0", message: `${ladder}`, giver: member, recipient: member, kudos: 1, day: "2026-10-12", at: Date.now() - 86_400_000 });
+    await ctx.db.insert("earnedTiers", { member, ladder, tier: "bronze", earnedAt: Date.now() - 86_400_000, award, catalogueVersion: "1", rewards: [], batch });
+  });
+}
+
+async function completeBatch(t: Backend, batch: Id<"bookBatches">) {
+  await t.run((ctx) => ctx.db.patch(batch, { completedAt: Date.now() }));
+  await t.mutation(internal.feedback.tierNotices.tellBatchSummaries, { batch, cursor: null });
+  await settle(t);
+}
 
 async function workspaceBeforeTheBook({ announcementChannel }: { announcementChannel?: string } = {}) {
   const t = await workspaceRow(announcementChannel);
@@ -176,8 +231,8 @@ async function workspaceBeforeTheBook({ announcementChannel }: { announcementCha
   return unlocksShippedBeforeAnyoneJoined(t);
 }
 
-async function workspaceWithTheBook() {
-  return bookShippedBeforeAnyoneJoined(await workspaceRow(undefined));
+async function workspaceWithTheBook(announcementChannel?: string) {
+  return bookShippedBeforeAnyoneJoined(await workspaceRow(announcementChannel));
 }
 
 async function workspaceRow(announcementChannel: string | undefined) {
