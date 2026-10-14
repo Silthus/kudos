@@ -64,6 +64,7 @@ import type * as leaderboard_flag from "../leaderboard/flag.js";
 import type * as leaderboard_improvement from "../leaderboard/improvement.js";
 import type * as leaderboard_improvementLine from "../leaderboard/improvementLine.js";
 import type * as leaderboard_periods from "../leaderboard/periods.js";
+import type * as leaderboard_runningTotal from "../leaderboard/runningTotal.js";
 import type * as leaderboard_totals from "../leaderboard/totals.js";
 import type * as leaderboard_visibility from "../leaderboard/visibility.js";
 import type * as parser_parser from "../parser/parser.js";
@@ -212,6 +213,7 @@ declare const fullApi: ApiFromModules<{
   "leaderboard/improvement": typeof leaderboard_improvement;
   "leaderboard/improvementLine": typeof leaderboard_improvementLine;
   "leaderboard/periods": typeof leaderboard_periods;
+  "leaderboard/runningTotal": typeof leaderboard_runningTotal;
   "leaderboard/totals": typeof leaderboard_totals;
   "leaderboard/visibility": typeof leaderboard_visibility;
   "parser/parser": typeof parser_parser;
