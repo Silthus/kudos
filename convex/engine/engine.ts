@@ -187,11 +187,6 @@ async function insertRow(ctx: MutationCtx, event: MessageEvent, revision: Revisi
   return (await ctx.db.get(id))!;
 }
 
-export async function threadOf(ctx: QueryCtx, ref: MessageRef): Promise<string> {
-  const row = await kudosMessageRow(ctx, ref);
-  return row?.threadRoot ?? ref.message;
-}
-
 export async function threadRootOf(ctx: QueryCtx, ref: MessageRef): Promise<string | null> {
   return (await kudosMessageRow(ctx, ref))?.threadRoot ?? null;
 }

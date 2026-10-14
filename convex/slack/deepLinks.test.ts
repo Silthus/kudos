@@ -4,7 +4,7 @@ import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, readBlocks, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { settle, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, messageChangedEvent, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { notifyJourneyJoined, notifyQuestFinished, notifyWeeklyQuestFinished } from "../feedback/notify";
@@ -92,6 +92,7 @@ describe("SW13 SW14 SW18: the success reply ends its extras line with a link to 
 describe("SW16: replies other than a success and public messages carry no link", () => {
   test("the over-allowance and invalid replies, the edited-message reply and the public reply name no website page", async () => {
     const t = await workspaceDeciding("xp-levels", "website", "everyone-board");
+    await setWorkspaceSettings(t, { announcementChannel: "C_NEWS" });
     await giveKudos(t, "U_ALICE", ["U_BOB"], 11);
     await giveKudos(t, "U_ALICE", ["U_ALICE"]);
     await giveKudos(t, "U_ALICE", ["U_BOB"], 2);

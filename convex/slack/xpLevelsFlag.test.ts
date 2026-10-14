@@ -3,7 +3,7 @@ import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEveryone, onInTheSandboxOnly, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { settle, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { type BlockAction, blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import type { FlagDefinition } from "../../testing/fakePostHog";
@@ -87,15 +87,16 @@ describe("the xp-levels flag hides the slice while it is off", () => {
 
   test("a public level notice Slack held back while the flag was on is not posted once it is off", async () => {
     const t = await workspaceDeciding("sandbox", onForEveryone(xpLevels));
-    slack.holdingBack("chat.postMessage", "C1", async () => {
+    await setWorkspaceSettings(t, { announcementChannel: "C_NEWS" });
+    slack.holdingBack("chat.postMessage", "C_NEWS", async () => {
       await flagsFromPostHog(t, postHog, offForEveryone(xpLevels));
       slack.answering("chat.postMessage", rateLimitedFor(30));
     });
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
-    expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "C1")).toHaveLength(1);
-    expect(slack.messagesIn("C1")).toEqual([]);
+    expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "C_NEWS")).toHaveLength(1);
+    expect(slack.messagesIn("C_NEWS")).toEqual([]);
   });
 
   test("a level-up DM Slack held back while the flag was on is not sent once it is off", async () => {
