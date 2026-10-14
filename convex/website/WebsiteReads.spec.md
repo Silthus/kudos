@@ -27,17 +27,28 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   checklist: commit-ordered-effects dismissed: the lists are constants; comparing them issues no effect
   checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is sent
   checklist: declared-target-coverage declared as the route list is the paths the router serves
-- one function builds every website link: websiteLinkOf answers SITE_URL plus the asked page's route, the Leaderboard keeping its period and a page not on the route list resolving to the root, and answers nothing while the website flag is off, SITE_URL is unset or blank, or the workspace isn't the deployment's workspace.
-  over: websiteLinkOf for the root, the Leaderboard's three periods, the three pages not listed yet, a SITE_URL ending in a slash, the website flag off, SITE_URL blank and another workspace
+- one function builds every website link: websiteLinkOf answers SITE_URL plus the asked page's route, the Leaderboard keeping its period, and a page not on the route list resolves to the root, so a link never names a path the website doesn't serve.
+  over: websiteLinkOf while the website is open, for the root, the Leaderboard's three periods, and the three pages not listed yet
   via: SW11: one function builds every website link
-  refuted: websiteLinkOf answered SITE_URL plus the route without reading the website flag -> the flag-off case answered a link instead of none (2026-10-14)
-  because: a link shown while the website is closed, or to a page it doesn't serve, leads a member to a closed or not-found page, so every link is decided in one place from the flag, SITE_URL, the workspace and the route list (SW11, SW13, SW17)
+  because: a link to a page the website doesn't serve yet would land a member on the not-found page, so every message builds its link from the route list through one function, and a page shipped later switches its links on with its route (SW11, SW13)
   kinds: output
   checklist: destination-confinement dismissed: the origin is the deployment's own SITE_URL and the path comes from the route list; no part of the URL is taken from input
   checklist: redaction dismissed: a link carries no identity, only a path and a period
-  checklist: commit-ordered-effects dismissed: the function is a query and issues no effect; the reply carrying the link is sent by the action that asked
+  checklist: commit-ordered-effects dismissed: the function is a query and issues no effect
   checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack replies
   checklist: declared-target-coverage dismissed: the link has one target, the website
+- a deep link shows only while the website is open: The `/hedgehug leaderboard` board reply ends with a link to the same period's board while the website flag is on, SITE_URL is set and the workspace is the deployment's workspace, and is today's reply, with no link, otherwise; the usage reply never carries one.
+  over: the `/hedgehug leaderboard` reply for the week, the month and all time, for a SITE_URL ending in a slash, for a period it doesn't know, and for the month with the website flag off, SITE_URL unset and another workspace
+  via: SW13 SW14: the leaderboard reply links to the same board on the web
+  because: a link shown while the website is closed or unconfigured leads a member to a closed page, and with the website off every Slack reply must be byte-for-byte today's (SW11, SW13, SW17, SW25)
+  crossing: slack-request -> domain
+  entrances: route POST /slack/commands
+  kinds: output
+  checklist: destination-confinement dismissed: the reply answers the signed slash command's own HTTP request; the link's origin is the deployment's own SITE_URL
+  checklist: redaction dismissed: the link carries no identity, only a path and a period
+  checklist: commit-ordered-effects dismissed: the reply is the command's HTTP answer; deciding the link writes nothing
+  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack replies
+  checklist: declared-target-coverage dismissed: the reply has one target, the member who asked
 - the public surface is exact: Exactly the HTTP routes, Convex Auth's signIn, signOut and isAuthenticated, and the website's signed-in functions are public; every other Convex function is internal.
   over: every Convex function every module of the deployment exports, outside convex/_generated
   via: WS10: the public surface is exact

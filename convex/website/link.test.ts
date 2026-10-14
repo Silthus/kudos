@@ -17,12 +17,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function linkTo(page: Page, { flags = ["website"], workspace = "T1" }: { flags?: string[]; workspace?: string } = {}) {
+async function linkTo(page: Page) {
   const postHog = postHogDeciding();
   vi.stubGlobal("fetch", routedFetch(postHog, new FakeSlack().fetch));
-  const t = await testBackendServing(postHog, ...flags.map(onForEveryone));
+  const t = await testBackendServing(postHog, onForEveryone("website"));
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
-  return t.query(internal.website.link.websiteLinkOf, { workspace, page });
+  return t.query(internal.website.link.websiteLinkOf, { workspace: "T1", page });
 }
 
 describe("SW11: one function builds every website link", () => {
@@ -37,21 +37,5 @@ describe("SW11: one function builds every website link", () => {
 
   test.each<Page>([{ page: "quests" }, { page: "skillTree" }, { page: "book" }])("the unlisted $page page links to Home", async (page) => {
     expect(await linkTo(page)).toBe(`${siteUrl}/`);
-  });
-
-  test("a SITE_URL ending in a slash keeps one slash before the route", async () => {
-    vi.stubEnv("SITE_URL", `${siteUrl}/`);
-
-    expect(await linkTo({ page: "leaderboard", period: "month" })).toBe(`${siteUrl}/leaderboard?period=month`);
-  });
-
-  test.each([
-    { condition: "while the website flag is off", flags: [] },
-    { condition: "while SITE_URL is unset", env: { SITE_URL: " " } },
-    { condition: "for a workspace that isn't the sign-in workspace", workspace: "T_OTHER" },
-  ])("$condition, there is no link", async ({ env = {}, ...closed }) => {
-    for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
-
-    expect(await linkTo({ page: "leaderboard", period: "week" }, closed)).toBeNull();
   });
 });

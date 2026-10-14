@@ -190,6 +190,15 @@ describe("SW13 SW14: the leaderboard reply links to the same board on the web", 
     expect(reply).toEqual({ response_type: "ephemeral", text: [...board, ...below].join("\n") });
   });
 
+  test("a SITE_URL ending in a slash keeps one slash before the route", async () => {
+    vi.stubEnv("SITE_URL", `${siteUrl}/`);
+    const t = await boardOfTwoGivers("website");
+
+    const reply = await command(t, "U1", "leaderboard all");
+
+    expect(reply.text.split("\n").at(-1)).toBe(`<${siteUrl}/leaderboard?period=all|See the full leaderboard on the web>`);
+  });
+
   test("a period it doesn't know answers the usage, with no link", async () => {
     const t = await boardOfTwoGivers("website");
 
