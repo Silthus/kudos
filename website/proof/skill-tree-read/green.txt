@@ -1,0 +1,22 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/skill-tree-read
+
+ ✓ |convex| convex/website/skillTreeCatalogue.test.ts > WS83 P5 P78: the skill tree read shows the catalogue's rows as perksOf gives them > rows come in level order, a prerequisite carries its perk's name, and a retired perk shows only to its owner 82ms
+ ✓ |convex| convex/website/skillTree.test.ts > WS80 WS83: the skill tree read waits for the Skill tree's unlock > a member at level 1 reads it locked at level 5, with no facts, and no skill points 119ms
+ ✓ |convex| convex/website/skillTree.test.ts > WS80 WS83: the skill tree read waits for the Skill tree's unlock > a member at level 5 who hasn't opened the Skill tree reads it ready, with no facts, and no skill points 25ms
+ ✓ |convex| convex/website/skillTree.test.ts > WS83 WS84: the skill tree read projects progression's perksOf > a member with points and no perks reads every first-row perk available, and the HUD's points equal the tree's 28ms
+ ✓ |convex| convex/website/skillTree.test.ts > WS83 WS84: the skill tree read projects progression's perksOf > a member who owns spark reads it owned since they bought it, and the rest still available 34ms
+ ✓ |convex| convex/website/skillTree.test.ts > WS83 WS84: the skill tree read projects progression's perksOf > a member with no points left reads the perks they don't own unavailable for points, and the HUD shows 0 36ms
+ ✓ |convex| convex/website/skillTree.test.ts > P77 WS83: the launch opens the Skill tree for a member who was there > a member the launch opened the Skill tree for below level 5 reads every perk unavailable for its level 21ms
+ ✓ |convex| convex/website/skillTree.test.ts > the website shows only shipped features > WS80 WS84 P78: with skill-tree off, a member who owns spark reads the skill tree not-found and no skill points 20ms
+ ✓ |convex| convex/website/skillTree.test.ts > the website shows only shipped features > WS79 WS80: while unlocks don't apply, the skill tree is not-found though skill-tree is on 9ms
+ ✓ |convex| convex/website/skillTree.test.ts > website reads pass one guard > getSkillTree reads closed while the website flag is off, even with the Skill tree open 14ms
+ ✓ |convex| convex/website/skillTree.test.ts > website reads pass one guard > getSkillTree reads signed out without a session 5ms
+ ✓ |convex| convex/website/skillTree.test.ts > website reads pass one guard > getSkillTree reads not-a-member for a former member with a live session 4ms
+ ✓ |convex| convex/website/skillTree.test.ts > website reads pass one guard > an argument that names another member is rejected by the validator 6ms
+
+ Test Files  2 passed (2)
+      Tests  13 passed (13)
+   Start at  06:50:11
+   Duration  1.18s (transform 52%, import 22%, tests 21%, environment 4%)
+

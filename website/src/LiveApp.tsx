@@ -5,10 +5,12 @@ import { api } from "../../convex/_generated/api";
 import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
 import type { BoardAnswer } from "./boardRead";
+import type { BookShown } from "./bookRead";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
 import { useSocketUnreachable } from "./connection";
 import type { QuestsShown } from "./questsRead";
+import type { SkillTreeShown } from "./skillTreeRead";
 import type { Period, ShellActions, Visitor } from "./shell";
 import { forgetSignInStarted } from "./signInAttempt";
 
@@ -34,6 +36,8 @@ function LiveApp() {
       actions={actions}
       useLeaderboard={(period) => useLiveLeaderboard(period, unreachable)}
       useQuests={(asking) => useLiveQuests(asking, unreachable)}
+      useBook={(asking) => useLiveBook(asking, unreachable)}
+      useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
     />
   );
 }
@@ -54,6 +58,22 @@ function useLiveQuests(asking: boolean, unreachable: boolean): QuestsShown | und
   return quests;
 }
 
+function useLiveBook(asking: boolean, unreachable: boolean): BookShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { book: { query: api.website.book.getBook, args: {} } } : {}), [asking]);
+  const { book } = useQueries(request);
+  if (book instanceof Error) return { kind: "broken" };
+  if (book === undefined && unreachable) return { kind: "connecting" };
+  return book;
+}
+
+function useLiveSkillTree(asking: boolean, unreachable: boolean): SkillTreeShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { skillTree: { query: api.website.skillTree.getSkillTree, args: {} } } : {}), [asking]);
+  const { skillTree } = useQueries(request);
+  if (skillTree instanceof Error) return { kind: "broken" };
+  if (skillTree === undefined && unreachable) return { kind: "connecting" };
+  return skillTree;
+}
+
 type Answers = { authLoading: boolean; redemptionFailed: boolean; unreachable: boolean; profile: MyProfile | undefined };
 
 function visitorOf({ authLoading, redemptionFailed, unreachable, profile }: Answers): Visitor {
@@ -68,10 +88,12 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const { signIn, signOut } = useAuthActions();
   const openFeature = useMutation(api.website.commands.openFeature);
   const openQuestCrate = useMutation(api.website.commands.openQuestCrate);
+  const buyPerk = useMutation(api.website.commands.buyPerk);
   return useMemo(
     () => ({
       openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
       openQuestCrate: (quest) => answerWithin(commandAnswerBudgetMs, openQuestCrate({ quest })),
+      buyPerk: ({ perk, request }) => answerWithin(commandAnswerBudgetMs, buyPerk({ perk, request })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -79,6 +101,6 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, onSignInFailure],
   );
 }
