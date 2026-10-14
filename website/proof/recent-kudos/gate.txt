@@ -1,4 +1,4 @@
-pnpm gate via fleet heavy on 51acced (merged with main)
+pnpm gate via fleet heavy on c40db9f0 (merged with main at 63692f5)
       totality oracle "the website shows only shipped features" over getMyProfile with skill-tree off for a member past level 5, with skill-tree on for a member at level 5, with everyone-board off, and with no feature shipped; getSkillTree and getMyProfile's skillPoints with the tree's ship flag switched off after a member opened the tree and bought spark, and with that flag on before unlocks launched: verified 2026-10-14
       crossing browser -> domain
       refuted 2026-10-14: featureCardsOf listed every scheduled feature instead of unlocks' shipped ones
@@ -36,9 +36,9 @@ Website  website/Website.spec.md
       crossing domain -> browser
       refuted 2026-10-14: let isWebAddress accept every scheme
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
-20 components, 124 bullets: 124 invariants, 0 requirements
-lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T13:44:37.238Z (731 runs)
-defects: 23 recorded, 19 closed (3 guarded, 16 decided, 0 with neither); 0 guard failures
+20 components, 126 bullets: 126 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T13:44:37.238Z (750 runs)
+defects: 23 recorded, 20 closed (4 guarded, 16 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:13  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
@@ -56,6 +56,6 @@ RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       245 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 88, contract 31, receipt 31, panel 23, zone 21; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (692 files), 17 in records
+ADVISORY       255 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 90, contract 31, receipt 31, panel 25, zone 22; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (710 files), 17 in records
 exit 0
