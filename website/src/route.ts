@@ -2,18 +2,34 @@ import { useCallback, useEffect, useState } from "react";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
 
-export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: FeatureScreen } | { page: "not-found" };
+export type Route = { page: "home" } | { page: "leaderboard"; period: Period } | { page: "quests" } | { page: FeatureScreen } | { page: "not-found" };
 
 export type FeatureScreen = "skills" | "book";
 
 export type Screen = Exclude<Route["page"], "not-found">;
 
+const routeAt = {
+  "/": () => ({ page: "home" }),
+  "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search) }),
+  "/quests": () => ({ page: "quests" }),
+  "/skills": () => ({ page: "skills" }),
+  "/book": () => ({ page: "book" }),
+} satisfies Record<string, (search: string) => Route>;
+
+type ServedPath = keyof typeof routeAt;
+
+export const servedPaths = Object.keys(routeAt) as ServedPath[];
+
 export function routeOf({ pathname, search }: { pathname: string; search: string }): Route {
-  if (pathname === "/") return { page: "home" };
-  if (pathname === "/leaderboard") return { page: "leaderboard", period: periodIn(search) };
-  if (pathname === "/skills") return { page: "skills" };
-  if (pathname === "/book") return { page: "book" };
-  return { page: "not-found" };
+  const served = servedPaths.find((path) => path === pathname);
+  return served === undefined ? { page: "not-found" } : routeAt[served](search);
+}
+
+const pathOf: Record<Exclude<Screen, "leaderboard">, ServedPath> = { home: "/", quests: "/quests", skills: "/skills", book: "/book" };
+
+export function hrefOf(route: Route) {
+  if (route.page === "leaderboard") return leaderboardHref(route.period);
+  return route.page === "not-found" ? "/" : pathOf[route.page];
 }
 
 export function leaderboardHref(period: Period) {
@@ -29,13 +45,25 @@ function currentRoute() {
   return routeOf(window.location);
 }
 
+function currentAddress() {
+  return window.location.pathname + window.location.search;
+}
+
+function keepingSignInCode(href: string) {
+  const code = new URLSearchParams(window.location.search).get("code");
+  if (code === null) return href;
+  const address = new URL(href, window.location.origin);
+  address.searchParams.set("code", code);
+  return address.pathname + address.search;
+}
+
 export function useRoute() {
   const [route, setRoute] = useState(currentRoute);
 
   useEffect(() => {
     if (route.page !== "leaderboard") return;
-    const canonical = leaderboardHref(route.period);
-    if (canonical !== window.location.pathname + window.location.search) window.history.replaceState(null, "", canonical);
+    const canonical = keepingSignInCode(leaderboardHref(route.period));
+    if (canonical !== currentAddress()) window.history.replaceState(null, "", canonical);
   }, [route]);
 
   useEffect(() => {

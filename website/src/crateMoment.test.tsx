@@ -2,6 +2,7 @@ import { act, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BoardRead } from "./boardRead";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
+import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures, type CommandAnswer, type MemberProfile, type OpenAnswer, type ShellState } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
@@ -93,13 +94,13 @@ describe("WS66: the reveal follows the server", () => {
   });
 
   it("points a feature without a web page to Slack's App Home from the end state", async () => {
-    const questsReady = shellFixtures.memberWithTheQuestsReady;
-    const { user } = renderApp(questsReady, undefined, { openFeature: async () => ({ kind: "opened" }) });
-    const quests = within(main()).getByRole("heading", { level: 3, name: "Unlocks: Quests" }).closest("article")!;
-    await user.click(within(quests).getByRole("button", { name: "Open" }));
+    const coinsReady = shellFixtures.memberWithTheCoinsReady;
+    const { user } = renderApp(coinsReady, undefined, { openFeature: async () => ({ kind: "opened" }) });
+    const coins = within(main()).getByRole("heading", { level: 3, name: "Unlocks: Coins and inventory" }).closest("article")!;
+    await user.click(within(coins).getByRole("button", { name: "Open" }));
     await user.keyboard("{Escape}");
     const toSlack = within(dialog()!).getByRole("link", { name: "Find it in Slack's App Home. (opens in a new tab)" });
-    expect(toSlack).toHaveAttribute("href", questsReady.chatUrl);
+    expect(toSlack).toHaveAttribute("href", coinsReady.chatUrl);
     expect(within(dialog()!).queryByRole("link", { name: /Go to/ })).toBeNull();
   });
 
@@ -183,17 +184,22 @@ describe("WS66: the reveal follows the server", () => {
     expect(dialog()).toBeNull();
   });
 
-  it("announces what opened in a live region inside the modal dialog, where screen readers still read it", async () => {
-    const { user } = await openTheCrate();
+  it("announces what opened in the one live region, which stays mounted and readable while the page behind the dialog is inert", async () => {
+    const { user } = renderApp(ready, undefined, { openFeature: async () => ({ kind: "opened" }) });
+    const region = announcement();
+    await user.click(openButton());
     await user.keyboard("{Escape}");
-    expect(announcement()).toHaveTextContent("You opened Leaderboard.");
-    expect(announcement()).toHaveAttribute("role", "status");
-    expect(dialog()).toContainElement(announcement());
+    expect(announcement()).toBe(region);
+    expect(region).toHaveTextContent("You opened Leaderboard.");
+    expect(region).toHaveAttribute("role", "status");
+    expect(dialog()).not.toHaveAttribute("aria-modal");
+    expect(main().closest("[inert]")).not.toBeNull();
+    expect(region.closest("[inert]")).toBeNull();
   });
 
   it("goes to the feature's page from the end state", async () => {
     const { user, showVisitor } = await openTheCrate(undefined, ready);
-    showVisitor(shellFixtures.memberWithTheBoard);
+    showVisitor(opened);
     await user.keyboard("{Escape}");
     await user.click(within(dialog()!).getByRole("link", { name: "Go to Leaderboard" }));
     expect(dialog()).toBeNull();
@@ -245,6 +251,19 @@ describe("WS66: the reveal holds up against overlapping answers and sessions", (
     await pending.settle({ kind: "opened" });
     expect(dialog()).toBeNull();
     expect(openButton()).toHaveAccessibleName("Open");
+  });
+
+  it.each([
+    { without: "features while unlocks don't apply", next: { ...ready, features: null } },
+    { without: "features when nothing has shipped", next: shellFixtures.memberWithNothingShipped },
+  ])("WS60: ignores the member shown before's answer when the next member has no $without", async ({ next }) => {
+    const pending = answerLater();
+    const { user, showVisitor } = renderApp(ready, undefined, { openFeature: () => pending.answer });
+    await user.click(openButton());
+    showVisitor(shellFixtures.loading);
+    showVisitor(next);
+    await pending.settle({ kind: "opened" });
+    expect(dialog()).toBeNull();
   });
 
   it("keeps a member's own crates through a ship that adds one, so their open still plays its reveal", async () => {
@@ -372,11 +391,36 @@ describe("WS68: the ready pill", () => {
     { outcome: "a refusal", answer: async () => ({ kind: "refused" }) as const, message: "That couldn't be opened." },
     { outcome: "an error", answer: async () => Promise.reject(new Error("socket closed")), message: "Couldn't reach HedgeHug. Try again." },
   ])("shows what went wrong beside the pill after $outcome, away from the home's crate", async ({ answer, message }) => {
-    window.history.replaceState(null, "", "/leaderboard");
-    const { user } = renderApp(shellFixtures.memberWithEveryFeatureReady, fixedLeaderboard(leaderboardFixtures.midBoard), { openFeature: answer });
+    window.history.replaceState(null, "", "/quests");
+    const { user } = renderApp(shellFixtures.memberWithEveryFeatureReady, undefined, { openFeature: answer });
     await user.click(pill()!);
     expect(within(screen.getByRole("banner")).getByText(message)).toBeVisible();
     expect(pill()).toHaveAccessibleName("2 ready");
+  });
+
+  it("leaves a failure on the home to the crate's own message", async () => {
+    const { user } = renderApp(shellFixtures.memberWithEveryFeatureReady, undefined, { openFeature: async () => ({ kind: "refused" }) });
+    await user.click(pill()!);
+    expect(within(screen.getByRole("banner")).queryByText("That couldn't be opened.")).toBeNull();
+    expect(within(crateNamed("Leaderboard")).getByText("That couldn't be opened.")).toBeVisible();
+  });
+
+  it("shows what went wrong beside the pill on a page that isn't any screen", async () => {
+    window.history.replaceState(null, "", "/nowhere");
+    const everyReady = shellFixtures.memberWithEveryFeatureReady;
+    const onlySkillTreeReady = { ...everyReady, features: everyReady.features!.filter(({ feature }) => feature === "skillTree") };
+    const { user } = renderApp(onlySkillTreeReady, undefined, { openFeature: async () => ({ kind: "refused" }) });
+    await user.click(pill()!);
+    expect(within(screen.getByRole("banner")).getByText("That couldn't be opened.")).toBeVisible();
+  });
+
+  it("leaves a failure on a feature's own page to the crate shown there", async () => {
+    window.history.replaceState(null, "", "/quests");
+    const { user } = renderApp(shellFixtures.memberWithQuestsReady, undefined, { openFeature: async () => ({ kind: "refused" }) }, fixedQuests(questsFixtures.ready));
+    await user.click(pill()!);
+    expect(within(screen.getByRole("banner")).queryByText("That couldn't be opened.")).toBeNull();
+    const readyCrate = within(main()).getByRole("heading", { level: 2, name: "Unlocks: Quests" }).closest("article")!;
+    expect(within(readyCrate).getByText("That couldn't be opened.")).toBeVisible();
   });
 
   it("is gone while unlocks don't apply", () => {

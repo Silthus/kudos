@@ -1,0 +1,15 @@
+# Each deployment's cached flag definitions for the slice flags, read with `convex data --component posthog flagDefinitions` at 2026-10-14T04:30:05.321Z
+
+## <sandbox> (fetchedAt 2026-10-14T04:18:19.868Z)
+956734 everyone-board active=true groups=[{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+957184 quests active=true groups=[{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+956771 unlocks active=true groups=[{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+957148 website active=true groups=[{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+956733 xp-levels active=true groups=[{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+
+## <production> (fetchedAt 2026-10-14T04:18:02.960Z)
+956734 everyone-board active=true groups=[{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+957184 quests active=true groups=[{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+956771 unlocks active=true groups=[{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+957148 website active=true groups=[{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]
+956733 xp-levels active=true groups=[{"aggregation_group_type_index":null,"properties":[{"key":"environment","operator":"exact","type":"person","value":["sandbox"]}],"rollout_percentage":100}]

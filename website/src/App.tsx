@@ -2,6 +2,7 @@ import { useCallback, useRef } from "react";
 import { NavigateProvider } from "./AppLink";
 import { MomentAnnouncement } from "./crates/MomentAnnouncement";
 import { MomentsProvider, useCrateMoments } from "./crates/moments";
+import { readyCratesOf } from "./crates/readyCrates";
 import { RevealDialog } from "./crates/RevealDialog";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -14,6 +15,7 @@ import { HomePage } from "./pages/HomePage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { FeatureInSlackPage } from "./pages/FeatureInSlackPage";
 import { FeatureWaitsPage } from "./pages/FeatureWaitsPage";
+import { QuestsPage } from "./pages/QuestsPage";
 import { NotAMemberPage } from "./pages/NotAMemberPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { SignedOutPage } from "./pages/SignedOutPage";
@@ -21,23 +23,27 @@ import { SignInUnfinishedPage } from "./pages/SignInUnfinishedPage";
 import { UnverifiedPage } from "./pages/UnverifiedPage";
 import { VerifyingPage } from "./pages/VerifyingPage";
 import { useTitleFocusAfterChange, useTitleFocusOnArrival, useTitleFocusWhenTheFocusedElementGoes } from "./pageFocus";
-import { useRoute, type Route } from "./route";
+import type { QuestsRead, QuestsShown } from "./questsRead";
+import { hrefOf, useRoute, type FeatureScreen, type Route } from "./route";
 import type { Feature, MemberProfile, Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome } from "./signInAttempt";
 
-type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead };
+type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead };
 
-export function App({ visitor, actions, useLeaderboard }: AppProps) {
+export function App({ visitor, actions, useLeaderboard, useQuests }: AppProps) {
   const { route, navigate, choosePeriod } = useRoute();
   const shown = useSignInOutcome(visitor);
   const member = shown.kind === "member" ? shown : undefined;
   const onTheBoard = member !== undefined && route.page === "leaderboard";
   const answer = useLeaderboard(onTheBoard ? route.period : undefined);
   const board = useBoardWhileTheNextLoads(answer, onTheBoard);
-  const moments = useCrateMoments(actions.openFeature, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member) });
+  const onQuests = member !== undefined && route.page === "quests";
+  const questsOpen = isQuestsOpenFor(member);
+  const quests = useQuests(onQuests || questsOpen);
+  const moments = useCrateMoments(actions, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member), onQuests });
   const reveal = member !== undefined ? moments.reveal : undefined;
   const revealing = reveal !== undefined;
-  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : pageOf(route, member) ?? shown.kind, { held: revealing });
+  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : (featurePageNameOf(route, member) ?? shown.kind), { held: revealing });
   useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
@@ -49,37 +55,46 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
   );
   const signIn = useCallback(() => {
     rememberSignInStarted();
-    actions.signIn();
-  }, [actions]);
+    actions.signIn(hrefOf(route));
+  }, [actions, route]);
   return (
     <NavigateProvider value={arriveAt}>
       <MomentsProvider value={moments}>
-        <Frame member={member} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading" || (onTheBoard && answer === undefined)} inert={revealing} onSignOut={actions.signOut}>
+        <Frame member={member} ready={member === undefined ? [] : readyCratesOf(member, quests)} current={route.page === "not-found" ? undefined : route.page} busy={shown.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined)} inert={revealing} onSignOut={actions.signOut}>
           <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
-            <Page state={shown} route={route} board={board} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
+            <Page state={shown} route={route} board={board} quests={quests} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
           </ErrorBoundary>
         </Frame>
-        {reveal !== undefined && member !== undefined ? (
-          <RevealDialog key={reveal.card.seen} {...reveal} chatUrl={member.chatUrl} announcement={moments.announcement} onFinish={moments.finish} onClose={moments.close} />
-        ) : (
-          <MomentAnnouncement text={moments.announcement} />
+        {reveal !== undefined && member !== undefined && (
+          <RevealDialog key={reveal.crate.seen} {...reveal} chatUrl={member.chatUrl} questsOpen={questsOpen} onFinish={moments.finish} onClose={moments.close} />
         )}
+        <MomentAnnouncement text={moments.announcement} />
       </MomentsProvider>
     </NavigateProvider>
   );
 }
 
 function cratesOf(member: MemberProfile | undefined) {
-  return member?.features?.map(({ seen }) => seen) ?? [];
+  if (member === undefined) return undefined;
+  const journeyCrates = (member.journey ?? []).flatMap(({ seen }) => seen ?? []);
+  return [...(member.features?.map(({ seen }) => seen) ?? []), ...journeyCrates];
+}
+
+function isQuestsOpenFor(member: MemberProfile | undefined) {
+  return member?.features?.some(({ feature, state }) => feature === "quests" && state === "open") ?? false;
 }
 
 function stillAsking(state: ShellState) {
   return state.kind === "loading" || state.kind === "connecting";
 }
 
-function pageOf(route: Route, member: MemberProfile | undefined) {
-  if (member === undefined || route.page === "home" || route.page === "leaderboard" || route.page === "not-found") return undefined;
+function featurePageNameOf(route: Route, member: MemberProfile | undefined) {
+  if (member === undefined || !isFeatureScreen(route.page)) return undefined;
   return `${route.page} ${cardOf(member, featureOn(route.page))?.state ?? "off"}`;
+}
+
+function isFeatureScreen(page: Route["page"]): page is FeatureScreen {
+  return page === "skills" || page === "book";
 }
 
 function cardOf(member: MemberProfile, feature: Feature) {
@@ -88,6 +103,10 @@ function cardOf(member: MemberProfile, feature: Feature) {
 
 function boardPageOf(board: BoardAnswer | undefined) {
   return board === undefined ? "loading" : `leaderboard ${board.kind}`;
+}
+
+function questsPageOf(quests: QuestsShown | undefined) {
+  return quests === undefined ? "loading" : `quests ${quests.kind}`;
 }
 
 function useBoardWhileTheNextLoads(board: BoardAnswer | undefined, onTheBoard: boolean) {
@@ -101,18 +120,20 @@ type PageProps = {
   state: ShellState;
   route: Route;
   board: BoardAnswer | undefined;
+  quests: QuestsShown | undefined;
   onChoosePeriod: (period: Period) => void;
   onSignIn: () => void;
   onSignOut: () => void;
 };
 
-function Page({ state, route, board, onChoosePeriod, ...actions }: PageProps) {
+function Page({ state, route, board, quests, onChoosePeriod, ...actions }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return null;
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "not-found") return <NotFoundPage />;
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "home") return <HomePage member={state} />;
+  if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} {...actions} />;
   if (route.page !== "leaderboard") return <FeaturePage member={state} feature={featureOn(route.page)} />;
   if (board === undefined) return null;
   if (board.kind === "not-found") return <NotFoundPage />;
@@ -127,6 +148,16 @@ function FeaturePage({ member, feature }: { member: MemberProfile; feature: Feat
   if (card.state === "open") return <FeatureInSlackPage card={card} chatUrl={member.chatUrl} />;
   const waiting = card.state === "locked" ? { kind: "locked" as const, level: card.level } : { kind: "ready" as const };
   return <FeatureWaitsPage name={card.name} waiting={waiting} readyCard={readyCardOf(member, feature)} chatUrl={member.chatUrl} />;
+}
+
+type QuestsAnswerPageProps = { member: MemberProfile; quests: QuestsShown | undefined; onSignIn: () => void; onSignOut: () => void };
+
+function QuestsAnswerPage({ member, quests, ...actions }: QuestsAnswerPageProps) {
+  if (quests === undefined) return null;
+  if (quests.kind === "not-found") return <NotFoundPage />;
+  if (quests.kind === "ready" || quests.kind === "locked") return <FeatureWaitsPage name="Quests" waiting={quests} readyCard={readyCardOf(member, "quests")} chatUrl={member.chatUrl} />;
+  if (quests.kind !== "quests") return <AnswerPage answer={quests} {...actions} />;
+  return <QuestsPage quests={quests} />;
 }
 
 function readyCardOf(member: MemberProfile, feature: Feature) {

@@ -7,10 +7,12 @@ import { workspaceLink } from "../slack/workspaceLink";
 import { followTheClock } from "./clock";
 import { faceOf, type Face } from "./faces";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
+import { journeyStepsOf, type JourneyStep } from "./quests";
 import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, type FeaturePage } from "./unlockPath";
 
 export type { Face } from "./faces";
 export type { FeatureCard, FeaturePage, PageWaits } from "./unlockPath";
+export type { JourneyStep } from "./quests";
 
 export type Kudos = { given: number; received: number };
 
@@ -27,6 +29,7 @@ export type MemberProfile = {
   chatUrl: string;
   leaderboard: FeaturePage;
   features: FeatureCard[] | null;
+  journey: JourneyStep[] | null;
   progression: Progression | null;
 };
 
@@ -48,6 +51,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     chatUrl: workspaceLink(me.workspace),
     leaderboard: await leaderboardStateOf(ctx, me, path),
     features: await featureCardsOf(me, path),
+    journey: await journeyStepsOf(ctx, me),
     progression: await progressionOf(ctx, me),
   };
 });

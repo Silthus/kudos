@@ -3,7 +3,8 @@ import type { Id } from "../_generated/dataModel";
 import type { KudosGivenEvent } from "../bus/events";
 import type { Annotations } from "../engine/messageEvent";
 import { catalogue } from "./catalogue";
-import { progress, standing, type MemberProgress } from "./progress";
+import { progress, standing, type Giving, type ThoughtfulAward, type MemberProgress } from "./progress";
+import type { PerkId } from "./tree";
 
 const alice = "alice" as Id<"members">;
 const bob = "bob" as Id<"members">;
@@ -58,6 +59,72 @@ test.each([
 
   expect(progress(starting(alice), event, catalogue).state.xp).toBe(20);
   expect(progress(starting(bob), event, catalogue).state.xp).toBe(10);
+});
+
+describe("P16 P18 P20: row 5's bonus XP on the giver's qualifying recognitions", () => {
+  const thoughtful = { gate: { version: 1, thoughtful: true, words: 6 } };
+  const spark = { source: "spark", xp: 5 };
+  const rhythm = { source: "rhythm", xp: 2 };
+  const circle = { source: "circle", xp: 5 };
+  const everyPerk: PerkId[] = ["spark", "rhythm", "circle"];
+  const today = "2026-10-13";
+  const yesterday = "2026-10-12";
+  const lastSunday = "2026-10-11";
+
+  test.each([
+    ["the week's first recognition earns every line", everyPerk, [], [spark, rhythm, circle]],
+    ["Bob again the same day earns nothing", everyPerk, [earlier(bob, today)], []],
+    ["Carol after Bob the same day earns rhythm and circle", everyPerk, [earlier(carol, today)], [rhythm, circle]],
+    ["Bob the day after earns spark and rhythm", everyPerk, [earlier(bob, yesterday)], [spark, rhythm]],
+    ["Bob after last week's recognition earns every line", everyPerk, [earlier(bob, lastSunday)], [spark, rhythm, circle]],
+    ["only the perks the giver owns pay", ["circle", "rhythm"], [], [rhythm, circle]],
+    ["a giver without perks earns no lines", [], [], []],
+  ] satisfies Array<[string, PerkId[], ThoughtfulAward[], unknown[]]>)("%s", (_, perks, earlierAwards, lines) => {
+    const { effects, state } = progress(starting(alice), kudosGiven([[bob, 1]], thoughtful), catalogue, { perks, earlier: earlierAwards });
+
+    expect(effects.map(({ bonus }) => bonus ?? [])).toEqual([lines]);
+    expect(state.xp).toBe(10 + lines.reduce((sum, { xp }) => sum + xp, 0));
+  });
+
+  test.each([
+    ["doesn't say why", { gate: { version: 1, thoughtful: false, words: 1 } }],
+    ["has no gate decision", {}],
+  ])("a kudos that %s earns base XP only", (_, annotations) => {
+    const { effects } = progress(starting(alice), kudosGiven([[bob, 1]], annotations), catalogue, owningEveryPerk());
+
+    expect(effects).toEqual([expect.not.objectContaining({ bonus: expect.anything() })]);
+  });
+
+  test("a multi-kudos award earns base XP per kudos and each line once", () => {
+    const { effects, state } = progress(starting(alice), kudosGiven([[bob, 3]], thoughtful), catalogue, owningEveryPerk());
+
+    expect(effects).toEqual([expect.objectContaining({ baseXp: 30, bonus: [spark, rhythm, circle] })]);
+    expect(state.xp).toBe(42);
+  });
+
+  test("a message to Bob and Carol pays spark on its first recognition, and rhythm and circle on each", () => {
+    const { effects, state } = progress(starting(alice), kudosGiven([[bob, 1], [carol, 1]], thoughtful), catalogue, owningEveryPerk());
+
+    expect(effects.map(({ bonus }) => bonus)).toEqual([
+      [spark, rhythm, circle],
+      [rhythm, circle],
+    ]);
+    expect(state.xp).toBe(20 + 12 + 7);
+  });
+
+  test("the recipient's record carries no lines", () => {
+    const { effects } = progress(starting(bob), kudosGiven([[bob, 1]], thoughtful), catalogue, owningEveryPerk());
+
+    expect(effects).toEqual([expect.not.objectContaining({ bonus: expect.anything() })]);
+  });
+
+  function owningEveryPerk(): Giving {
+    return { perks: everyPerk, earlier: [] };
+  }
+
+  function earlier(recipient: Id<"members">, day: string): ThoughtfulAward {
+    return { recipient, day };
+  }
 });
 
 describe("P3 P4 P6 P63: levels, skill points and what the level-up DM needs", () => {

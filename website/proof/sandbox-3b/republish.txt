@@ -1,0 +1,5 @@
+# Jobs scheduled on the sandbox after 04:32:00Z, read at 04:33:40Z from _scheduled_functions (name and state only)
+# The two publishHome jobs are App Home's republish after each `opened` answer; no launch, join or Journey job was scheduled.
+2026-10-14T04:33:10.006Z slack/appHome.js:publishHome success
+2026-10-14T04:33:10.196Z slack/appHome.js:publishHome success
+2026-10-14T04:52:54.819Z analytics/drain.js:drain pending

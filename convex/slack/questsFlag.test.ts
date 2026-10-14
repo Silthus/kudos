@@ -25,14 +25,15 @@ const thoughtful = { gate: { version: 1, thoughtful: true, words: 7 } };
 const form = { contentType: "application/x-www-form-urlencoded" };
 const quests = "quests";
 const todaysReplies = [["<@U_BOB> got 1 kudos from you. You have 9 kudos left today."], ["<@U_BOB> got 1 kudos from you. You have 8 kudos left today."]];
+const todaysRepliesWithXp = todaysReplies.map((lines) => [...lines, "+10 XP"]);
 const questTables = ["journeyLaunches", "journeySteps", "rewardRecords", "questDraws", "questSwaps", "questProgress", "crateOpenings"] as const;
 
-type SliceTurnedOff = { reason: string; flags: FlagDefinition[] };
+type SliceTurnedOff = { reason: string; flags: FlagDefinition[]; gainsLine: string[] };
 
 const sliceTurnedOff: SliceTurnedOff[] = [
-  { reason: "quests turned off", flags: [onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone(quests)] },
-  { reason: "unlocks turned off", flags: [onForEveryone("xp-levels"), offForEveryone("unlocks"), onForEveryone(quests)] },
-  { reason: "xp-levels turned off", flags: [offForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone(quests)] },
+  { reason: "quests turned off", flags: [onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone(quests)], gainsLine: ["+10 XP"] },
+  { reason: "unlocks turned off", flags: [onForEveryone("xp-levels"), offForEveryone("unlocks"), onForEveryone(quests)], gainsLine: ["+10 XP"] },
+  { reason: "xp-levels turned off", flags: [offForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone(quests)], gainsLine: [] },
 ];
 
 let slack: FakeSlack;
@@ -56,14 +57,14 @@ afterEach(() => {
 });
 
 describe("the slice applies only where quests, xp-levels and unlocks all apply", () => {
-  test.each<[string, () => Promise<Backend>]>([
-    ["quests turned off", () => launchedWorkspaceDeciding("sandbox", onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone(quests))],
-    ["quests not created in PostHog", () => launchedWorkspaceDeciding("sandbox", onForEveryone("xp-levels"), onForEveryone("unlocks"))],
-    ["the flags key missing", () => flagsKeyMissing(launchedWorkspaceDeciding("sandbox", ...allOn()))],
-    ["quests on but unlocks off", () => workspaceDeciding("sandbox", onForEveryone("xp-levels"), offForEveryone("unlocks"), onForEveryone(quests))],
-    ["quests on but xp-levels off", () => launchedWorkspaceDeciding("sandbox", offForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone(quests))],
-    ["all three on in the sandbox only, read in production", () => workspaceDeciding("production", ...["xp-levels", "unlocks", quests].map(onInTheSandboxOnly))],
-  ])("%s: kudos that say why get today's success reply at once, and no DM, App Home, sweep or record names a quest or the Journey", async (_, workspace) => {
+  test.each<[string, () => Promise<Backend>, string[][]]>([
+    ["quests turned off", () => launchedWorkspaceDeciding("sandbox", onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone(quests)), todaysRepliesWithXp],
+    ["quests not created in PostHog", () => launchedWorkspaceDeciding("sandbox", onForEveryone("xp-levels"), onForEveryone("unlocks")), todaysRepliesWithXp],
+    ["the flags key missing", () => flagsKeyMissing(launchedWorkspaceDeciding("sandbox", ...allOn())), todaysReplies],
+    ["quests on but unlocks off", () => workspaceDeciding("sandbox", onForEveryone("xp-levels"), offForEveryone("unlocks"), onForEveryone(quests)), todaysRepliesWithXp],
+    ["quests on but xp-levels off", () => launchedWorkspaceDeciding("sandbox", offForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone(quests)), todaysReplies],
+    ["all three on in the sandbox only, read in production", () => workspaceDeciding("production", ...["xp-levels", "unlocks", quests].map(onInTheSandboxOnly)), todaysReplies],
+  ])("%s: kudos that say why get a success reply with no quest at once, and no DM, App Home, sweep or record names a quest or the Journey", async (_, workspace, replies) => {
     const t = await workspace();
 
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
@@ -75,13 +76,13 @@ describe("the slice applies only where quests, xp-levels and unlocks all apply",
     await sweeps(t);
 
     expect(deliveredByTheKudos).toEqual(["slack/delivery:deliverPrivateReply"]);
-    expect(successRepliesTo("U_ALICE")).toEqual(todaysReplies);
+    expect(successRepliesTo("U_ALICE")).toEqual(replies);
     expect([...everyDmLine(), ...publishedHome(slack, "U_ALICE"), ...publishedHome(slack, "U_BOB")].filter(namesTheSlice)).toEqual([]);
     expect(await questRows(t)).toEqual(nothingRecorded());
     expect(exposures()).not.toContainEqual([quests, true]);
   });
 
-  test.each(sliceTurnedOff)("$reason before Slack took a success reply that named a quest: the reply that goes out is today's", async ({ flags }) => {
+  test.each(sliceTurnedOff)("$reason before Slack took a success reply that named a quest: the reply that goes out names no quest", async ({ flags, gainsLine }) => {
     const t = await launchedWorkspaceDeciding("sandbox", ...allOn());
     await openedQuests(t, "U_ALICE", ["say-why", "say-why-twice", "say-why-three-times"]);
     slack.holdingBack("chat.postEphemeral", "U_ALICE", async () => {
@@ -92,7 +93,7 @@ describe("the slice applies only where quests, xp-levels and unlocks all apply",
     await giveKudos(t, "U_ALICE", "U_CAROL", saysWhy);
 
     expect((await questRows(t)).rewardRecords).toContainEqual({ user: "U_ALICE", key: `weekly:${thisWeek}:0` });
-    expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_CAROL> got 1 kudos from you. You have 8 kudos left today."]);
+    expect(successRepliesTo("U_ALICE").at(-1)).toEqual(["<@U_CAROL> got 1 kudos from you. You have 8 kudos left today.", ...gainsLine]);
   });
 
   test("in a workspace Unlocks hasn't launched yet, a kudos that says why records nothing for Quests and ships no Journey", async () => {
@@ -216,7 +217,7 @@ describe("O36: quests exposure", () => {
     const { alice } = await membersInserted(t);
     const ref = { workspace: "T1", conversation: "C1", message: "1760349600.000100" };
 
-    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [] }, base: 10 }));
+    await t.run((ctx) => replyPrivately(ctx, ref, undefined, "U_ALICE", { kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [], awards: [{ kudos: 1 }] }, base: 10, annotations: {} }));
 
     expect(await exposedIn(t)).toEqual([{ member: alice, flag: quests, value: false }]);
   });

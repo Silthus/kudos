@@ -160,6 +160,69 @@ describe("G23: /hedgehug leaderboard", () => {
   });
 });
 
+describe("SW13 SW14: the leaderboard reply links to the same board on the web", () => {
+  const siteUrl = "https://kudos-site.test";
+  const board = ["🥇 <@U1> · 2 kudos", "🥈 <@U2> · 1 kudos"];
+
+  beforeEach(() => {
+    vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+    vi.stubEnv("SITE_URL", siteUrl);
+  });
+
+  async function boardOfTwoGivers(...flagKeys: string[]) {
+    const t = await testBackendServing(postHog, ...["everyone-board", ...flagKeys].map(onForEveryone));
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+    slack.withMember("U1").withMember("U2");
+    await giveKudos(t, "U1", "U_REC", 2, 0);
+    await giveKudos(t, "U2", "U_REC", 1, 1);
+    return t;
+  }
+
+  test.each([
+    { text: "leaderboard", below: ["▲ 2 more kudos than this time last week", `<${siteUrl}/leaderboard|See the full leaderboard on the web>`] },
+    { text: "leaderboard month", below: ["▲ 2 more kudos than this time last month", `<${siteUrl}/leaderboard?period=month|See the full leaderboard on the web>`] },
+    { text: "leaderboard all", below: [`<${siteUrl}/leaderboard?period=all|See the full leaderboard on the web>`] },
+  ])("`/hedgehug $text` ends with a link to its period's board", async ({ text, below }) => {
+    const t = await boardOfTwoGivers("website");
+
+    const reply = await command(t, "U1", text);
+
+    expect(reply).toEqual({ response_type: "ephemeral", text: [...board, ...below].join("\n") });
+  });
+
+  test("a SITE_URL ending in a slash keeps one slash before the route", async () => {
+    vi.stubEnv("SITE_URL", `${siteUrl}/`);
+    const t = await boardOfTwoGivers("website");
+
+    const reply = await command(t, "U1", "leaderboard all");
+
+    expect(reply.text.split("\n").at(-1)).toBe(`<${siteUrl}/leaderboard?period=all|See the full leaderboard on the web>`);
+  });
+
+  test("a period it doesn't know answers the usage, with no link", async () => {
+    const t = await boardOfTwoGivers("website");
+
+    const reply = await command(t, "U1", "leaderboard yesterday");
+
+    expect(reply.text).toBe("Try `/hedgehug leaderboard`, `/hedgehug leaderboard month` or `/hedgehug leaderboard all`.");
+  });
+
+  const closed: Array<{ condition: string; flags: string[]; env?: Record<string, string> }> = [
+    { condition: "while the website flag is off", flags: [] },
+    { condition: "while SITE_URL is unset", flags: ["website"], env: { SITE_URL: "" } },
+    { condition: "while the website is open for another workspace only", flags: ["website"], env: { SLACK_WORKSPACE_ID: "T_OTHER" } },
+  ];
+
+  test.each(closed)("$condition, the reply is today's, with no link", async ({ flags, env = {} }) => {
+    for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
+    const t = await boardOfTwoGivers(...flags);
+
+    const reply = await command(t, "U1", "leaderboard month");
+
+    expect(reply).toEqual({ response_type: "ephemeral", text: [...board, "▲ 2 more kudos than this time last month"].join("\n") });
+  });
+});
+
 async function giveKudos(t: Backend, giver: string, recipient: string, kudos: number, messageIndex: number) {
   const blocks = [section(mention(recipient), ...Array.from({ length: kudos }, () => emoji("taco")))];
   const ts = `${Math.floor(Date.now() / 1000) + messageIndex}.000100`;

@@ -2,26 +2,29 @@ import type { ComponentType, ReactNode } from "react";
 import { IconHome } from "@posthog/icons";
 import { AccountMenu } from "./AccountMenu";
 import { AppLink } from "./AppLink";
-import { ReadyPill } from "./crates/ReadyPill";
+import { ReadyPill, ReadyPillFailure } from "./crates/ReadyPill";
+import { isShownOn, type ReadyCrate } from "./crates/readyCrates";
 import { openWebPagesOf } from "./features";
 import type { Screen } from "./route";
 import type { MemberProfile } from "./shell";
 import { ThemeControl } from "./ThemeControl";
 
-type FrameProps = { member?: MemberProfile; current?: Screen; busy: boolean; inert?: boolean; onSignOut?: () => void; children: ReactNode };
+type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; current?: Screen; busy: boolean; inert?: boolean; onSignOut?: () => void; children: ReactNode };
 
-export function Frame({ member, current, busy, inert, onSignOut, children }: FrameProps) {
+export function Frame({ member, ready = [], current, busy, inert, onSignOut, children }: FrameProps) {
+  const first = ready[0];
   return (
     <div className="hud-root flex min-h-screen flex-col" inert={inert}>
       <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md">
-        <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 md:px-6">
+        <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-sm:gap-x-2 max-sm:gap-y-1 max-sm:pt-2 md:px-6">
           <Wordmark />
           {member && <ScreenNav current={current} member={member} />}
-          <div className="ml-auto flex items-center gap-2">
-            {member && <ReadyPill member={member} />}
+          <div className="ml-auto flex items-center gap-2 max-sm:gap-1.5">
+            {member && <ReadyPill crates={ready} />}
             <ThemeControl />
             {member && onSignOut && <AccountMenu member={member} onSignOut={onSignOut} />}
           </div>
+          {member && first !== undefined && !isShownOn(first, current) && <ReadyPillFailure first={first} />}
         </div>
       </header>
       <main aria-busy={busy || undefined} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8">{children}</main>

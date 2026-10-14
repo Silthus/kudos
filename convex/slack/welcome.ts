@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import type { WelcomeMessage } from "../feedback/welcome";
 import { appHomeLink } from "./appHome";
-import { attemptArgs, sendOnce, tryAtMostThreeTimes } from "./delivery";
+import { attemptArgs, sendOnce, slackLink, tryAtMostThreeTimes } from "./delivery";
 
 export const deliverWelcome = observedAction({
   args: { workspace: v.string(), user: v.string(), ...attemptArgs },
@@ -20,5 +20,6 @@ export const deliverWelcome = observedAction({
 });
 
 function textOf(welcome: WelcomeMessage, workspace: string) {
-  return [...welcome.lines, appHomeLink(workspace, welcome.openAppHome)].join("\n");
+  const website = welcome.website === null ? [] : [slackLink(welcome.website)];
+  return [...welcome.lines, appHomeLink(workspace, welcome.openAppHome), ...website].join("\n");
 }

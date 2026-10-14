@@ -1,0 +1,63 @@
+
+ RUN  v5.0.3 <worktree>
+
+ ❯ |website| src/QuestsPage.test.tsx (26 tests | 1 failed) 1218ms
+   ❯ WS73: /quests shows this week's quests while Quests is open (18)
+     × WS73 V4: keeps one primary action when nothing was drawn and an earlier week's crate waits 49ms
+Not implemented: navigation to another Document
+ ❯ |website| src/crateMoment.test.tsx (43 tests | 1 failed) 8131ms
+   ❯ WS68: the ready pill (9)
+     × leaves a failure on a feature's own page to the crate shown there 54ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/QuestsPage.test.tsx > WS73: /quests shows this week's quests while Quests is open > WS73 V4: keeps one primary action when nothing was drawn and an earlier week's crate waits
+AssertionError: expected <a …(4)><span …(1)></span>
+…(1)</a>
+…(1) to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/QuestsPage.test.tsx:153:23
+    151|     showQuests({ ...questsFixtures.noDraw, waiting: questsFixtures.wee…
+    152|     const primaries = main().querySelectorAll(".quill-button--variant-…
+    153|     expect(primaries).toHaveLength(1);
+       |                       ^
+    154|     expect(primaries[0]).toHaveAccessibleName("Open");
+    155|     expect(within(main()).getByRole("link", { name: "Open Slack (opens…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |website| src/crateMoment.test.tsx > WS68: the ready pill > leaves a failure on a feature's own page to the crate shown there
+AssertionError: expected <p …(1)></p> to be null
+
+- Expected:
+null
+
++ Received:
+<p
+  class="order-last w-full pb-2 text-right text-xs font-medium max-sm:text-left"
+>
+  That couldn't be opened.
+</p>
+
+ ❯ src/crateMoment.test.tsx:412:88
+    410|     const { user } = renderApp(shellFixtures.memberWithQuestsReady, un…
+    411|     await user.click(pill()!);
+    412|     expect(within(screen.getByRole("banner")).queryByText("That couldn…
+       |                                                                                        ^
+    413|     expect(within(crateNamed("Quests")).getByText("That couldn't be op…
+    414|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 67 passed (69)
+   Start at  05:04:19
+   Duration  10.06s (tests 72%, import 16%, environment 7%, transform 4%, setup 1%)
+

@@ -1,21 +1,27 @@
 import type { Feature } from "../../convex/unlocks/feature";
+import type { Quest } from "../../convex/quests/step";
 import type { CommandAnswer } from "../../convex/website/commands";
 import type { Denial } from "../../convex/website/memberQuery";
-import type { FeatureCard, MemberProfile, MyProfile } from "../../convex/website/profile";
+import type { FeatureCard, JourneyStep, MemberProfile, MyProfile } from "../../convex/website/profile";
+import type { QuestsAnswer } from "../../convex/website/quests";
 
-export type { Face, FeatureCard, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
+export type { Face, FeatureCard, JourneyStep, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
+export type { QuestsAnswer, QuestSlot, WaitingCrate } from "../../convex/website/quests";
 export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
 export type { Period } from "../../convex/leaderboard/periods";
 export type { CommandAnswer } from "../../convex/website/commands";
 export type { Feature } from "../../convex/unlocks/feature";
+export type { Quest } from "../../convex/quests/step";
 
 export type OpenAnswer = CommandAnswer | Denial;
+
+export type MyQuests = QuestsAnswer | Denial;
 
 export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } | { kind: "sign-in-unfinished" };
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer> };
+export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer> };
 
 const member: MemberProfile = {
   kind: "member",
@@ -28,6 +34,7 @@ const member: MemberProfile = {
   chatUrl: "https://app.slack.com/client/T1",
   leaderboard: { kind: "off" },
   features: null,
+  journey: null,
   progression: null,
 };
 
@@ -37,11 +44,14 @@ const openedAt = Date.parse("2026-10-13T09:00:00Z");
 
 const leaderboardFeature = { feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 3, seen: "5e3a0c" } as const;
 
-const questsFeature = { feature: "quests", name: "Quests", opens: "your weekly quests", level: 2, seen: "7d20e4" } as const;
 
 const bookFeature = { feature: "book", name: "Book", opens: "your achievements", level: 4, seen: "c4f8a1" } as const;
 
 const skillTreeFeature = { feature: "skillTree", name: "Skill tree", opens: "the tree and your first skill point", level: 5, seen: "9b71d2" } as const;
+
+const questsFeature = { feature: "quests", name: "Quests", opens: "your weekly quests", level: 2, seen: "4c8e1f" } as const;
+
+const coinsFeature = { feature: "coins", name: "Coins and inventory", opens: "the wallet, the store's kudos emoji and your emoji slots", level: 6, seen: "e5b2d8" } as const;
 
 const locked = { state: "locked", readyAt: null, openedAt: null } as const;
 
@@ -68,9 +78,9 @@ const memberWithTheBoardReady: MemberProfile = { ...member, ...onTheUnlockPath({
 
 const memberWithTheBoardOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
 
-const memberWithTheQuestsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...ready }, { ...leaderboardFeature, ...locked }) };
+const memberWithTheCoinsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...ready }) };
 
-const memberWithTheQuestsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...opened }) };
+const memberWithTheCoinsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }) };
 
 const memberWithTheSkillTreeReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...ready }) };
 
@@ -85,6 +95,28 @@ const memberWithEveryFeatureReady: MemberProfile = { ...member, ...onTheUnlockPa
 const memberWithEveryFeatureOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...opened }) };
 
 const memberWithNothingShipped: MemberProfile = { ...member, ...onTheUnlockPath() };
+
+const firstThanks = { step: "first-thanks", goal: "Give a kudos that says why.", hint: "It counts when your message has 5 or more words besides mentions and emoji.", reward: { xp: 10 } } as const;
+
+const firstQuest = { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 } } as const;
+
+const someoneNew = { step: "someone-new", goal: "Thank someone you haven't thanked before.", hint: null, reward: { xp: 30 } } as const;
+
+const activeStep = { state: "active", crate: null, seen: null } as const;
+
+const journeyStarted: JourneyStep[] = [{ ...firstThanks, ...activeStep }];
+
+const journeyUnderway: JourneyStep[] = [
+  { ...firstThanks, state: "opened", crate: null, seen: "a17f03" },
+  { ...firstQuest, state: "finished", crate: { kind: "journey", step: "first-quest" }, seen: "b2c9e4" },
+  { ...someoneNew, ...activeStep },
+];
+
+const memberStartingTheJourney: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...locked }), journey: journeyStarted };
+
+const memberWithQuestsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...ready }), journey: journeyStarted };
+
+const memberWithQuests: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }), journey: journeyUnderway };
 
 const memberWithAQuietWeek: MemberProfile = { ...member, thisWeek: { given: 0, received: 0 } };
 
@@ -107,8 +139,8 @@ export const shellFixtures = {
   memberWaitingForTheBoard,
   memberWithTheBoardReady,
   memberWithTheBoardOpened,
-  memberWithTheQuestsReady,
-  memberWithTheQuestsOpened,
+  memberWithTheCoinsReady,
+  memberWithTheCoinsOpened,
   memberWithTheSkillTreeReady,
   memberWaitingForTheBook,
   memberWithTheBookReady,
@@ -118,6 +150,9 @@ export const shellFixtures = {
   memberWithNothingShipped,
   memberAtLevel1,
   memberAtLevel7,
+  memberStartingTheJourney,
+  memberWithQuestsReady,
+  memberWithQuests,
   error: { kind: "broken" },
 } as const satisfies Record<string, ShellState>;
 
@@ -145,6 +180,9 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-nothing-shipped": shellFixtures.memberWithNothingShipped,
   "member-level-1": shellFixtures.memberAtLevel1,
   "member-level-7": shellFixtures.memberAtLevel7,
+  "member-starting-the-journey": shellFixtures.memberStartingTheJourney,
+  "member-with-quests-ready": shellFixtures.memberWithQuestsReady,
+  "member-with-quests": shellFixtures.memberWithQuests,
   error: shellFixtures.error,
 };
 
@@ -152,4 +190,4 @@ export function builtShell(name: string | undefined): ShellState {
   return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
 
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }) };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }) };
