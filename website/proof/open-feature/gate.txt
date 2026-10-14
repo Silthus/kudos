@@ -49,8 +49,8 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 
  Test Files  68 passed (68)
       Tests  1070 passed (1070)
-   Start at  00:54:17
-   Duration  26.03s (tests 64%, import 18%, transform 8%, environment 8%, setup 1%)
+   Start at  00:58:11
+   Duration  25.55s (tests 65%, import 18%, environment 8%, transform 7%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -300,7 +300,7 @@ Workspace  convex/workspace/Workspace.spec.md
 Website  website/Website.spec.md
   (no invariants)
 16 components, 51 bullets: 51 invariants, 0 requirements
-lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T00:46:54.201Z (288 runs)
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T00:58:03.997Z (290 runs)
 defects: 5 recorded, 5 closed (0 guarded, 5 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
@@ -321,4 +321,3 @@ RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 ADVISORY       123 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 44, receipt 28, zone 10, panel 9, authority 8; reported, never failing, since inside the project its sense wins (--json lists each)
 0 rejected names, 0 unknown nouns (358 files), 17 in records
-exit=0
