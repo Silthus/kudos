@@ -11,6 +11,7 @@ import type { ProgressSettings } from "../progression/settings";
 import type { JourneyStepFacts } from "../quests/journey";
 import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
 import { questOf } from "../quests/pool";
+import type { WeekKey } from "../quests/week";
 import type { UnopenedCrate, WeeklyQuests, WeeklySlot } from "../quests/weekly";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { Feature } from "../unlocks/feature";
@@ -127,7 +128,12 @@ function readyCratesOf(unlocks: UnlocksHome | null): HomeLine[] {
 }
 
 function earlierCratesOf(crates: UnopenedCrate[] | null): HomeLine[] {
-  return (crates ?? []).slice(0, earlierCratesShown).map(({ crate, goal }) => ({ kind: "action", text: `✅ ${goal}`, action: openCrate(crate) }));
+  return (crates ?? []).slice(0, earlierCratesShown).map(({ crate, week, goal }) => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal}`, action: openCrate(crate) }));
+}
+
+function weekLabelOf(week: WeekKey) {
+  const monday = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric" }).format(Date.parse(week));
+  return bold(`Week of ${monday}:`);
 }
 
 function moreEarlierCrates(crates: UnopenedCrate[]): HomeLine[] {
@@ -338,7 +344,7 @@ function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, f
 }
 
 function waitingToOpenLines(crates: UnopenedCrate[]): HomeLine[] {
-  const shown = crates.slice(0, earlierCratesShown).map(({ crate, goal, reward }): HomeLine => ({ kind: "action", text: `✅ ${goal} ${earned(reward.xp)}`, action: openCrate(crate) }));
+  const shown = crates.slice(0, earlierCratesShown).map(({ crate, week, goal, reward }): HomeLine => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal} ${earned(reward.xp)}`, action: openCrate(crate) }));
   return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...moreEarlierCrates(crates)];
 }
 
