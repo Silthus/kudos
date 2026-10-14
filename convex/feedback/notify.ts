@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { achievementsApplyIn } from "../achievements/flag";
 import { tierRefValidator, type TierRef } from "../achievements/ladders";
+import { coinsPaidFor, tierCoinsPaidTo, type TierCoinsPaid } from "../achievements/tierCoins";
 import { everyTierEarnedBy } from "../achievements/tiers";
 import type { LevelReachedEvent } from "../bus/events";
 import { skillTreeLevel } from "../progression/levels";
@@ -106,13 +107,13 @@ export const purchaseReplyStillWanted = internalQuery({
   },
 });
 
-type DeliveryFacts = { website: string | null; openTree: MemberPerks | null; everyTierEarned: TierRef[] };
+type DeliveryFacts = { website: string | null; openTree: MemberPerks | null; everyTierEarned: TierRef[]; tierCoinsShown: TierCoinsPaid };
 
-function renderNotification(notification: Notification, { website, openTree, everyTierEarned }: DeliveryFacts): NotificationLine[] {
+function renderNotification(notification: Notification, { website, openTree, everyTierEarned, tierCoinsShown }: DeliveryFacts): NotificationLine[] {
   if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp, website)];
   if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp, website));
   if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp, website)];
-  if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned);
+  if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned, (ref) => coinsPaidFor(ref, tierCoinsShown));
   if (notification.kind === "coins-opened") return [coinsOpenedLineOf(notification.balance)];
   const crates = notification.ready.map((feature) => readyCrateOf(scheduled(feature), website));
   if (notification.kind !== "level-reached") return crates;
@@ -158,6 +159,7 @@ async function deliveryFactsOf(ctx: QueryCtx, workspace: string, member: MemberI
     website: await websiteOrigin(ctx, workspace),
     openTree: await openTreeOf(ctx, workspace, member, told),
     everyTierEarned: told.kind === "tiers-earned" ? await everyTierEarnedBy(ctx, member) : [],
+    tierCoinsShown: told.kind === "tiers-earned" && (await coinsVisibleTo(ctx, member)) ? await tierCoinsPaidTo(ctx, member) : new Map(),
   };
 }
 

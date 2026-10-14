@@ -16,6 +16,7 @@ import type * as achievements_ladders from "../achievements/ladders.js";
 import type * as achievements_measures from "../achievements/measures.js";
 import type * as achievements_oldFriends from "../achievements/oldFriends.js";
 import type * as achievements_replay from "../achievements/replay.js";
+import type * as achievements_tierCoins from "../achievements/tierCoins.js";
 import type * as achievements_tiers from "../achievements/tiers.js";
 import type * as analytics_boundary from "../analytics/boundary.js";
 import type * as analytics_capture from "../analytics/capture.js";
@@ -169,6 +170,7 @@ declare const fullApi: ApiFromModules<{
   "achievements/measures": typeof achievements_measures;
   "achievements/oldFriends": typeof achievements_oldFriends;
   "achievements/replay": typeof achievements_replay;
+  "achievements/tierCoins": typeof achievements_tierCoins;
   "achievements/tiers": typeof achievements_tiers;
   "analytics/boundary": typeof analytics_boundary;
   "analytics/capture": typeof analytics_capture;
