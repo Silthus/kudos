@@ -199,7 +199,7 @@ describe("CO20: a tier DM line that paid coins says them while coins are visible
       "🏅 You earned First Thanks (Generosity, bronze). +10 🪙\n🏅 You earned First Chapter (Seasons, bronze). +10 🪙\nNext: Generous Soul at 25 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given.",
     ]);
     expect(tierDmsTo("U_BOB")).toEqual(["🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received."]);
-    expect(tierLinesIn("C1")).toEqual(["🏅 <@U_ALICE> earned First Thanks and First Chapter.", "🏅 <@U_BOB> earned Noticed."]);
+    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned First Thanks and First Chapter.", "🏅 <@U_BOB> earned Noticed."]);
   });
 
   test("a diamond line says +100 🪙, and the silver and gold lines, which pay no coins, say none", async () => {
@@ -324,7 +324,7 @@ async function workspace({ announcementChannel }: { announcementChannel?: string
 }
 
 async function workspaceWithCoins() {
-  const t = await workspace();
+  const t = await workspace({ announcementChannel: "C_NEWS" });
   return flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"), onForEveryone("coins"));
 }
 
