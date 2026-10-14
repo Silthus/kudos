@@ -2,14 +2,15 @@ import { act, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
 import type { BoardRead } from "./boardRead";
+import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
-import { shellFixtures, type MyLeaderboard, type MyQuests, type OpenAnswer, type ShellState } from "./shell";
+import { shellFixtures, type MyBook, type MyLeaderboard, type MyQuests, type OpenAnswer, type ShellState } from "./shell";
 import { watchTheViewerRow } from "./test/viewerRow";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
 
-const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard; quests?: MyQuests }[] = [
+const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard; quests?: MyQuests; book?: MyBook }[] = [
   { name: "loading", path: "/", visitor: shellFixtures.loading },
   { name: "connecting", path: "/", visitor: shellFixtures.connecting },
   { name: "closed", path: "/", visitor: shellFixtures.closed },
@@ -42,9 +43,10 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "skill tree locked until level 5", path: "/skills", visitor: shellFixtures.memberWithTheBoardOpened },
   { name: "skill tree ready to open in place", path: "/skills", visitor: shellFixtures.memberWithTheSkillTreeReady },
   { name: "skill tree open, found in Slack", path: "/skills", visitor: shellFixtures.memberWithEveryFeatureOpen },
-  { name: "book locked until level 4", path: "/book", visitor: shellFixtures.memberWaitingForTheBook },
-  { name: "book ready to open in place", path: "/book", visitor: shellFixtures.memberWithTheBookReady },
-  { name: "book open, found in Slack", path: "/book", visitor: shellFixtures.memberWithTheBookOpened },
+  { name: "book locked until level 4", path: "/book", visitor: shellFixtures.memberWaitingForTheBook, book: bookFixtures.locked },
+  { name: "book ready to open in place", path: "/book", visitor: shellFixtures.memberWithTheBookReady, book: bookFixtures.ready },
+  { name: "book with a ladder at bronze and a ladder not started", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.book },
+  { name: "book with every tier of a ladder earned", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyTierEarned },
   { name: "home with the book locked", path: "/", visitor: shellFixtures.memberWaitingForTheBook },
   { name: "home starting the Journey with Quests locked", path: "/", visitor: shellFixtures.memberStartingTheJourney },
   { name: "home with a Journey step in each state and Quests open", path: "/", visitor: shellFixtures.memberWithQuests },
@@ -73,7 +75,7 @@ describe("WS24: every page passes axe in light and dark", () => {
       it(`${page.name} in ${dark ? "dark" : "light"}`, async () => {
         fakeSystemTheme(dark);
         window.history.replaceState(null, "", page.path);
-        const { container } = renderApp(page.visitor, page.board && answering(page.board), undefined, page.quests && fixedQuests(page.quests));
+        const { container } = renderApp(page.visitor, page.board && answering(page.board), undefined, page.quests && fixedQuests(page.quests), page.book && fixedBook(page.book));
         expect(await violationsIn(container)).toEqual([]);
       });
     }

@@ -50,15 +50,6 @@ const featurePages: FeaturePage[] = [
     ready: shellFixtures.memberWithTheSkillTreeReady,
     opened: shellFixtures.memberWithEveryFeatureOpen,
   },
-  {
-    path: "/book",
-    feature: "book",
-    name: "Book",
-    level: 4,
-    locked: shellFixtures.memberWaitingForTheBook,
-    ready: shellFixtures.memberWithTheBookReady,
-    opened: shellFixtures.memberWithTheBookOpened,
-  },
 ];
 
 describe.each(featurePages)("WS78 WS80: $path follows its unlock", ({ path, feature, name, level, locked, ready, opened }) => {

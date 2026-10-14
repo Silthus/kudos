@@ -4,6 +4,7 @@ import { StrictMode } from "react";
 import { vi } from "vitest";
 import { App } from "../App";
 import type { BoardRead } from "../boardRead";
+import type { BookRead } from "../bookRead";
 import type { QuestsRead } from "../questsRead";
 import { ShellBoundary } from "../Root";
 import type { ShellActions, ShellState } from "../shell";
@@ -12,9 +13,11 @@ const noBoard: BoardRead = (period) => (period === undefined ? undefined : { kin
 
 const noQuests: QuestsRead = (asking) => (asking ? { kind: "not-found" } : undefined);
 
+const noBook: BookRead = (asking) => (asking ? { kind: "not-found" } : undefined);
+
 type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate">>;
 
-export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBoard, commands: Commands = {}, readQuests: QuestsRead = noQuests) {
+export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBoard, commands: Commands = {}, readQuests: QuestsRead = noQuests, readBook: BookRead = noBook) {
   const actions = { signIn: vi.fn(), signOut: vi.fn(), openFeature: vi.fn(commands.openFeature ?? (async () => ({ kind: "refused" }) as const)),
     openQuestCrate: vi.fn(commands.openQuestCrate ?? (async () => ({ kind: "refused" }) as const)),
   };
@@ -22,7 +25,7 @@ export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBo
   const appFor = (state: ShellState) => (
     <StrictMode>
       <ShellBoundary>
-        <App visitor={state} actions={actions} useLeaderboard={readLeaderboard} useQuests={readQuests} />
+        <App visitor={state} actions={actions} useLeaderboard={readLeaderboard} useQuests={readQuests} useBook={readBook} />
       </ShellBoundary>
     </StrictMode>
   );

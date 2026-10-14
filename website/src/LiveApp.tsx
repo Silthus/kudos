@@ -5,6 +5,7 @@ import { api } from "../../convex/_generated/api";
 import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
 import type { BoardAnswer } from "./boardRead";
+import type { BookShown } from "./bookRead";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
 import { useSocketUnreachable } from "./connection";
@@ -34,6 +35,7 @@ function LiveApp() {
       actions={actions}
       useLeaderboard={(period) => useLiveLeaderboard(period, unreachable)}
       useQuests={(asking) => useLiveQuests(asking, unreachable)}
+      useBook={(asking) => useLiveBook(asking, unreachable)}
     />
   );
 }
@@ -52,6 +54,14 @@ function useLiveQuests(asking: boolean, unreachable: boolean): QuestsShown | und
   if (quests instanceof Error) return { kind: "broken" };
   if (quests === undefined && unreachable) return { kind: "connecting" };
   return quests;
+}
+
+function useLiveBook(asking: boolean, unreachable: boolean): BookShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { book: { query: api.website.book.getBook, args: {} } } : {}), [asking]);
+  const { book } = useQueries(request);
+  if (book instanceof Error) return { kind: "broken" };
+  if (book === undefined && unreachable) return { kind: "connecting" };
+  return book;
 }
 
 type Answers = { authLoading: boolean; redemptionFailed: boolean; unreachable: boolean; profile: MyProfile | undefined };

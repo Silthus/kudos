@@ -4,6 +4,7 @@ import { ConvexProvider, type ConvexReactClient } from "convex/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
+import { bookFixtures } from "./bookFixtures";
 import { leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures } from "./shell";
 import { fakeSystemTheme } from "./test/systemTheme";
@@ -184,6 +185,27 @@ describe("WS20 WS36: the leaderboard read shows where the page stands, inside th
     boardAnswers(leaderboardFixtures.midBoard);
 
     expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
+  });
+});
+
+describe("WS90 WS92: the live site reads the Book on /book", () => {
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/book");
+    profileRead.mockReturnValue(shellFixtures.memberWithTheBookOpened);
+  });
+
+  it("shows the member's Book from getBook", () => {
+    boardRead.mockReturnValue(bookFixtures.book);
+    renderLiveSite();
+    expect(pageTitle()).toHaveTextContent("Achievements");
+    expect(screen.getByRole("heading", { level: 2, name: "Generosity" })).toBeInTheDocument();
+  });
+
+  it("shows the error page under the HUD when the Book read fails", async () => {
+    boardRead.mockReturnValue(new Error("Too many documents read"));
+    renderLiveSite();
+    expect(await errorPage()).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Screens" })).toBeInTheDocument();
   });
 });
 

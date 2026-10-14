@@ -1,0 +1,48 @@
+import type { BookRead } from "./bookRead";
+import type { LadderCard, MyBook, TierCard } from "./shell";
+
+const at = (iso: string) => Date.parse(iso);
+
+const kudosCounts = [1, 25, 100, 500] as const;
+
+function tiersOf(names: [string, string, string, string], earned: (number | null)[]): TierCard[] {
+  const tiers = ["bronze", "silver", "gold", "diamond"] as const;
+  return tiers.map((tier, i) => ({ tier, name: names[i]!, at: kudosCounts[i]!, earnedAt: earned[i] ?? null }));
+}
+
+const generosityAtBronze: LadderCard = {
+  ladder: "generosity",
+  name: "Generosity",
+  counts: "kudos given",
+  count: 3,
+  tiers: tiersOf(["First Thanks", "Generous Soul", "Heart of the Team", "Patron of Praise"], [at("2026-10-13T22:30:00Z")]),
+  next: { tier: "silver", at: 25 },
+};
+
+const recognitionNotYet: LadderCard = {
+  ladder: "recognition",
+  name: "Recognition",
+  counts: "kudos received",
+  count: 0,
+  tiers: tiersOf(["Noticed", "Appreciated", "Highly Valued", "Hall of Fame"], []),
+  next: { tier: "bronze", at: 1 },
+};
+
+const generosityComplete: LadderCard = {
+  ...generosityAtBronze,
+  count: 512,
+  tiers: tiersOf(["First Thanks", "Generous Soul", "Heart of the Team", "Patron of Praise"], [at("2026-01-12T09:00:00Z"), at("2026-03-02T09:00:00Z"), at("2026-07-21T09:00:00Z"), at("2026-10-01T09:00:00Z")]),
+  next: null,
+};
+
+export const bookFixtures = {
+  book: { kind: "book", ladders: [generosityAtBronze, recognitionNotYet], timeZone: "Europe/Berlin" },
+  everyTierEarned: { kind: "book", ladders: [generosityComplete, recognitionNotYet], timeZone: "Europe/Berlin" },
+  locked: { kind: "locked", level: 4 },
+  ready: { kind: "ready" },
+  notFound: { kind: "not-found" },
+} as const satisfies Record<string, MyBook>;
+
+export function fixedBook(answer: MyBook): BookRead {
+  return (asking) => (asking ? answer : undefined);
+}
