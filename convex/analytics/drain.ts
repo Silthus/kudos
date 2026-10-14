@@ -5,7 +5,7 @@ import { internalAction, internalMutation, type MutationCtx } from "../_generate
 import { captureSettings, type Capture } from "./capture";
 import { postHogExceptionList } from "./exceptions";
 import { failuresLogged } from "./failures";
-import { followPeopleSentLate, forgetRecordedProfiles, personEventsIn, withoutStalePersonEvents } from "./person";
+import { followPeopleSentLate, forgetRecordedProfiles, markDeliveriesUncertain, personEventsIn, withoutStalePersonEvents } from "./person";
 
 const batchSize = 100;
 const answerTimeoutMs = 10_000;
@@ -71,6 +71,7 @@ export const settle = internalMutation({
     } else if (answer === "rejected") {
       await giveUp(ctx, held, "rejected");
     } else {
+      await markDeliveriesUncertain(ctx, held);
       await retryOrGiveUp(ctx, held);
     }
   },

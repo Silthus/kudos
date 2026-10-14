@@ -96,7 +96,7 @@ export const identifyNewPeople = internalMutation({
     for (;;) {
       const waiting = await neverRecorded(ctx).take(identitiesCaughtUpPerPage);
       if (waiting.length === 0) return;
-      if (reader.documentsRead >= documentsReadPerFollowJob) break;
+      if (reader.full) break;
       for (const identity of waiting) await recordProfileChange(ctx, reader, identity);
     }
     await ctx.scheduler.runAfter(0, internal.analytics.person.identifyNewPeople, {});
@@ -110,7 +110,7 @@ export const catchUp = internalMutation({
     if (capture === null) return;
     const reader = new ProfileReader(ctx, capture);
     const page = await ctx.db.query("analyticsIds").paginate({ cursor: cursor ?? null, numItems: identitiesCaughtUpPerPage });
-    for (const identity of page.page) await recordProfileChange(ctx, reader, identity);
+    for (const identity of page.page) await recordCurrentProfile(ctx, reader, identity);
     if (!page.isDone) await ctx.scheduler.runAfter(0, internal.analytics.person.catchUp, { cursor: page.continueCursor });
   },
 });
@@ -144,6 +144,13 @@ export async function followPeopleSentLate(ctx: MutationCtx, sent: { row: Id<"an
   await followMembersLater(ctx, late);
 }
 
+export async function markDeliveriesUncertain(ctx: MutationCtx, rows: OutboxRow[]) {
+  for (const row of rows.filter(isPersonEvent)) {
+    const identity = await identityWithAnalyticsId(ctx, row.distinctId);
+    if (identity !== null) await ctx.db.patch(identity._id, { profileUncertain: true });
+  }
+}
+
 export async function forgetRecordedProfiles(ctx: MutationCtx, rows: OutboxRow[]) {
   for (const row of rows.filter(isPersonEvent)) {
     const identity = await identityWithAnalyticsId(ctx, row.distinctId);
@@ -163,16 +170,22 @@ async function isStale(ctx: QueryCtx, row: OutboxRow) {
 
 async function followWithin<T>(reader: ProfileReader, people: T[], follow: (person: T) => Promise<void>) {
   for (const [index, person] of people.entries()) {
-    if (index > 0 && reader.documentsRead >= documentsReadPerFollowJob) return people.slice(index);
+    if (reader.full) return people.slice(index);
     await follow(person);
   }
   return [];
 }
 
-async function recordProfileChange(ctx: MutationCtx, reader: ProfileReader, identity: Identity) {
+async function recordCurrentProfile(ctx: MutationCtx, reader: ProfileReader, identity: Identity) {
+  if (identity.profileUncertain !== true) return recordProfileChange(ctx, reader, identity);
+  await ctx.db.patch(identity._id, { profileUncertain: undefined });
+  await recordProfileChange(ctx, reader, identity, { evenIfUnchanged: true });
+}
+
+async function recordProfileChange(ctx: MutationCtx, reader: ProfileReader, identity: Identity, { evenIfUnchanged = false } = {}) {
   const profile = await reader.profileOf(identity.member);
   const fingerprint = await fingerprintOf(profile);
-  if (identity.profileFingerprint === fingerprint) return;
+  if (identity.profileFingerprint === fingerprint && !evenIfUnchanged) return;
   const { workspace } = await chatUserOf(ctx, identity.member);
   const firstTime = identity.profileFingerprint === undefined;
   await ctx.db.insert("analyticsOutbox", {
@@ -191,7 +204,8 @@ async function recordProfileChange(ctx: MutationCtx, reader: ProfileReader, iden
 }
 
 class ProfileReader {
-  documentsRead = 0;
+  private documentsRead = 0;
+  private people = 0;
   private readonly handlesByWorkspace = new Map<string, Map<string, string>>();
 
   constructor(
@@ -199,7 +213,12 @@ class ProfileReader {
     readonly capture: Capture,
   ) {}
 
+  get full() {
+    return this.people >= peopleFollowedPerJob || this.documentsRead >= documentsReadPerFollowJob;
+  }
+
   async profileOf(member: MemberId): Promise<PersonProfile> {
+    this.people += 1;
     this.documentsRead += documentsReadPerPerson;
     const facts = await personFactsOf(this.ctx, member);
     if (facts === null) return { environment: this.capture.environment };

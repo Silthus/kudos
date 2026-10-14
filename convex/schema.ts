@@ -291,6 +291,7 @@ export default defineSchema({
     member: v.id("members"),
     analyticsId: v.string(),
     profileFingerprint: v.optional(v.union(v.string(), v.null())),
+    profileUncertain: v.optional(v.boolean()),
   })
     .index("by_member", ["member"])
     .index("by_analytics_id", ["analyticsId"])

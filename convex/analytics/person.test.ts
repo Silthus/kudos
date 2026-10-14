@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, answersWith, postHogHost, projectToken, routedFetch, stallsUntilReleased } from "../../testing/fakePostHog";
+import { FakePostHog, answersWith, failsToConnect, postHogHost, projectToken, routedFetch, stallsUntilReleased, type BatchRequest } from "../../testing/fakePostHog";
 import { makeFunctionReference } from "convex/server";
 import { internal } from "../_generated/api";
 import crons from "../crons";
@@ -197,6 +197,26 @@ describe("F8: a newer person event replaces an older one still waiting", () => {
   });
 });
 
+describe("O18 F9: a person event whose delivery failed may still have landed", () => {
+  test("PostHog applying a failed older profile after the newer one is repaired by the next pass", async () => {
+    const t = testBackend();
+    await annGaveKudos(t);
+    postHog.answering(failsToConnect);
+
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Baker" } }, { eventTs: later(1) });
+    await settleUntil(t, new Date(Date.now() + 30_000));
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Chef" } }, { eventTs: later(2) });
+    await settleInTimeOrder(t);
+    postHogAppliedLast(postHog.requests.find((request) => request.events.some(({ properties }) => (properties.$set as { title?: string } | undefined)?.title === "Baker"))!);
+    const afterTheLateBaker = postHog.personOf(await annsDistinctId(t)).title;
+    await t.mutation(dailyCatchUp(), {});
+    await settle(t);
+
+    expect(afterTheLateBaker).toBe("Baker");
+    expect(postHog.personOf(await annsDistinctId(t))).toMatchObject({ title: "Chef" });
+  });
+});
+
 describe("O17: a person event a drain sent after losing its claim", () => {
   test("a drain that sent an older profile after its lease expired and a newer one was delivered has the current profile sent again", async () => {
     const t = testBackend();
@@ -219,23 +239,25 @@ describe("O17: a person event a drain sent after losing its claim", () => {
 });
 
 describe("Convex's limits: profiles of members in many user groups", () => {
-  test("a mutation that creates many analytics IDs schedules one job to identify them all", async () => {
+  test("mutations that create 1,000 analytics IDs schedule one job, which identifies them all within Convex's transaction limits", async () => {
     const t = testBackend({ transactionLimits: true });
     const members = await t.run(async (ctx) => {
       const inserted = [];
-      for (let index = 0; index < 300; index += 1) inserted.push(await ctx.db.insert("members", { workspace: "T1", user: `U_NEW_${index}`, kind: "member", asOf: 0 }));
+      for (let index = 0; index < 1_000; index += 1) inserted.push(await ctx.db.insert("members", { workspace: "T1", user: `U_NEW_${index}`, kind: "member", asOf: 0 }));
       return inserted;
     });
 
-    await t.run(async (ctx) => {
-      for (const member of members) await analyticsIdOf(ctx, member);
-    });
+    for (let first = 0; first < members.length; first += 250) {
+      await t.run(async (ctx) => {
+        for (const member of members.slice(first, first + 250)) await analyticsIdOf(ctx, member);
+      });
+    }
     const identifyJobs = await t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).filter(({ name }) => name.includes("identifyNewPeople")).length);
     await settle(t);
 
     expect(identifyJobs).toBe(1);
-    expect(new Set(postHog.personEvents().filter(({ event }) => event === "$identify").map(({ distinct_id }) => distinct_id)).size).toBe(300);
-  }, 60_000);
+    expect(new Set(postHog.personEvents().filter(({ event }) => event === "$identify").map(({ distinct_id }) => distinct_id)).size).toBe(1_000);
+  }, 120_000);
 
   test("following 200 people who are each in 25 user groups stays within Convex's transaction limits", async () => {
     const t = testBackend({ transactionLimits: true });
@@ -442,6 +464,11 @@ async function crowdInUserGroups(t: Backend, { people, groups }: { people: numbe
     });
   }
   return crowd;
+}
+
+function postHogAppliedLast(request: BatchRequest) {
+  request.status = 200;
+  request.endedAt = Date.now();
 }
 
 async function recordFollowedPeopleWithoutDraining(t: Backend) {
