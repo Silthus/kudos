@@ -218,10 +218,12 @@ describe("a workspace without user groups", () => {
     const t = testBackend();
     slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: ["U_ANN"] });
     await sync(t);
+    const before = await groupsOf(t, "U_ANN");
     slack.answering("usergroups.users.list", slackError(error));
 
     await t.action(internal.slack.userGroups.refreshMembers, { workspace: "T1", group: "S_GARDEN" });
 
+    expect(before).toEqual([gardeners]);
     expect(await groupsOf(t, "U_ANN")).toEqual([]);
     expect(logged.flatMap((spy) => spy.mock.calls)).toEqual([]);
   });
@@ -375,6 +377,7 @@ describe("Convex's limit of 1,000 scheduled functions per call", () => {
     await t.action(internal.slack.userGroups.syncUserGroups, {});
 
     expect((await pendingJobs(t)).length).toBeLessThan(1_000);
+    expect(await t.run(async (ctx) => (await ctx.db.query("userGroups").collect()).filter(({ enabled }) => !enabled).length)).toBe(1_001);
   });
 });
 
