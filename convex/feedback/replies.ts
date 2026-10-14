@@ -54,12 +54,11 @@ export const privateReply = internalQuery({
   handler: async (ctx, { reply }) => ctx.db.get(reply),
 });
 
-async function heldReplyOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef) {
-  const replies = await ctx.db
+function heldReplyOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef) {
+  return ctx.db
     .query("privateReplies")
-    .withIndex("by_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
-    .collect();
-  return replies.find(({ held }) => held === true) ?? null;
+    .withIndex("by_held_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message).eq("held", true))
+    .first();
 }
 
 async function release(ctx: MutationCtx, { _id, lines }: Doc<"privateReplies">, extras: Line[]) {

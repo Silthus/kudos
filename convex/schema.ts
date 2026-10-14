@@ -110,7 +110,7 @@ export default defineSchema({
     to: v.string(),
     lines: v.array(v.array(segmentValidator)),
     held: v.optional(v.literal(true)),
-  }).index("by_message", ["workspace", "conversation", "message"]),
+  }).index("by_held_message", ["workspace", "conversation", "message", "held"]),
 
   publicReplies: defineTable(publicReplyValidator)
     .index("by_destination", ["workspace", "conversation", "message", "channel", "threadTs"])

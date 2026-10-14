@@ -143,7 +143,7 @@ describe("P71: the success reply names the quests its kudos finished", () => {
       ["<@U_BOB> got 1 kudos from you. You have 9 kudos left today.", "Quest done: Give a kudos that says why"],
       ["<@U_BOB> got 1 kudos from you. You have 8 kudos left today."],
       ["<@U_BOB> got 1 kudos from you. You have 7 kudos left today."],
-      ["<@U_CAROL> got 1 kudos from you. You have 6 kudos left today.", twoTimesDone],
+      ["<@U_CAROL> got 1 kudos from you. You have 6 kudos left today.", `${twoTimesDone} · Quest done: Finish a weekly quest`],
       ["<@U_CAROL> got 1 kudos from you. You have 5 kudos left today."],
     ]);
   });
@@ -155,9 +155,10 @@ describe("P71: the success reply names the quests its kudos finished", () => {
     await sendKudos(t, "U_ALICE", "U_CAROL", saysWhy);
     await settleInTimeOrder(t);
 
-    const naming = successRepliesTo("U_ALICE").filter((lines) => lines.includes(twoTimesDone));
+    const naming = successRepliesTo("U_ALICE").filter((lines) => lines.some((line) => line.includes(twoTimesDone)));
     expect(naming).toHaveLength(1);
     expect(naming[0]![0]).toMatch(new RegExp(`^<@${await finishingRecipientOf(t)}> got 1 kudos from you`));
+    expect(naming[0]![1]).toBe(`${twoTimesDone} · Quest done: Finish a weekly quest`);
   });
 
 });
@@ -222,15 +223,15 @@ async function workspace() {
   return t;
 }
 
-async function giveKudos(t: Backend, giver: string, recipient: string, words: string, at = now.getTime()) {
+async function giveKudos(t: Backend, giver: string, recipient: string, words: string, at = Date.now()) {
   await sendKudos(t, giver, recipient, words, at);
   await settleInTimeOrder(t);
 }
 
-async function sendKudos(t: Backend, giver: string, recipient: string, words: string, at = now.getTime()) {
+async function sendKudos(t: Backend, giver: string, recipient: string, words: string, at = Date.now()) {
   sentMessages += 1;
   const blocks = [section(mention(recipient), text(` ${words} `), emoji("taco"))];
-  await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${at / 1000 + sentMessages}.000100` })));
+  await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${Math.floor(at / 1000) + sentMessages}.000100` })));
 }
 
 function successRepliesTo(user: string) {
