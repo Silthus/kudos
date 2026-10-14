@@ -90,7 +90,7 @@ Verdicts: **port** is an unshipped port that lands now, with the rule and ticket
 | Coin rewards | XP only | **Cut**: coins haven't shipped (WS70). |
 | `Reroll` on the page | swapping stays in Slack | **Cut** (WS73). |
 | `Claim` | crates with `Open` | **Cut** (V13). |
-| A bonus quest per unlock | none | **Cut**: unshipped (WS73). |
+| An extra quest for each opened feature | none | **Cut**: unshipped (WS73). |
 | A hedgehog per quest card | the kind label | **Cut**: a hedgehog carries meaning only in V17's places. |
 
 ### Skill tree (`spec/website-4`)
@@ -336,7 +336,7 @@ None. Every read this slice needs is on `main`. The received-kudos card and its 
 
 - **The recent-kudos card, its read and its words.** Spec #233 designs them, and this slice only reserves its slot (WS108).
 - **Everything #62's round 9 cut:** boosters, auras, drops, rarities, titles, quips, cards, streaks and freezes.
-- **Unshipped features on the home:** coins, the inventory, the hedgehog collection and the gear panel, group boards, the group quest and bonus quests (P78).
+- **Unshipped features on the home:** coins, the inventory, the hedgehog collection and the gear panel, group boards, the group quest and the prototype's extra quest for each opened feature (P78).
 - **Teammates' faces on boards** (follow-up 1) and the skill tree's legend and node shape (follow-up 2).
 - **The command palette** and the Book's totals.
 - **Game rules in the website.** It reads facts and sends commands (#57).
