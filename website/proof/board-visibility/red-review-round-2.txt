@@ -1,0 +1,11 @@
+     × in light 537ms
+     × in dark 147ms
+     × retires the line You're off the leaderboards. once the read has moved past it, so a later change elsewhere never brings it back 245ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+Error: [2mexpect([22m[31melement[39m[2m).toBeEmptyDOMElement()[22m
+AssertionError: expected [] to have a length of 1 but got +0
+      Tests  3 failed | 1 passed | 95 skipped (99)
+     × retires the line Couldn't reach HedgeHug. Try again. once the read has moved past it, so a later change elsewhere never brings it back 1423ms
+     × retires the line You're off the leaderboards. once the read has moved past it, so a later change elsewhere never brings it back 541ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 89 skipped (91)
