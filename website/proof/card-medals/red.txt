@@ -1,0 +1,214 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/card-medals/website
+
+ ❯ |website| src/RightRail.test.tsx (45 tests | 5 failed | 35 skipped) 3519ms
+   ❯ WS343 V16: the public card's best medals, as teammates see them in Slack (10)
+     × lists the card's best four medals best first, each in its tier's metal with the tier's word beside its name 672ms
+     × lists only the medals the card has 708ms
+     × says teammates see any medals earned, shown here once the Book opens, while the Book is locked 356ms
+     × says teammates see any medals earned, shown here once the Book opens, while the Book is ready 233ms
+     × asks for the card only on the home 228ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/RightRail.test.tsx > WS343 V16: the public card's best medals, as teammates see them in Slack > lists the card's best four medals best first, each in its tier's metal with the tier's word beside its name
+TestingLibraryElementError: Unable to find an accessible element with the role "list" and name "Best medals"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "What teammates see":
+  <h2
+    class="hud-label"
+    id="profile-card-panel-title"
+  />
+
+  --------------------------------------------------paragraph:
+
+  Name "":
+  <p
+    class="text-xs text-muted-foreground"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-labelledby="profile-card-panel-title"
+  class="relative flex flex-col gap-3 rounded-xl border bg-card p-4 "
+>
+  <div
+    class="flex items-baseline justify-between gap-3"
+  >
+    <h2
+      class="hud-label"
+      id="profile-card-panel-title"
+    >
+      What teammates see
+    </h2>
+    <span
+      class="text-xs text-muted-foreground"
+    >
+      Public
+    </span>
+  </div>
+  <div
+    class="flex items-center gap-3 rounded-xl border bg-linear-to-br from-card to-muted p-3 shadow-md"
+  >
+    <span
+      aria-hidden="true"
+      class="inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-14"
+    >
+      SE
+    </span>
+    <div
+      class="flex min-w-0 flex-1 items-baseline justify-between gap-2"
+    >
+      <span
+        class="truncate text-lg leading-tight font-semibold"
+      >
+        Sam Example
+      </span>
+    </div>
+  </div>
+  <p
+    class="text-xs text-muted-foreground"
+  >
+    Everyone can see this card. Your XP and the kudos you receive stay with you.
+  </p>
+</section>
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/RightRail.test.tsx:89:25
+     87|   it("lists the card's best four medals best first, each in its tier's…
+     88|     const card = cardShowing(profileCardFixtures.bestFour);
+     89|     expect(within(card).getByRole("list", { name: "Best medals" })).to…
+       |                         ^
+     90|     expect(medalsOn(card)).toEqual([
+     91|       { words: ["Patron of Praise", "Diamond"], metal: "var(--medal-di…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  |website| src/RightRail.test.tsx > WS343 V16: the public card's best medals, as teammates see them in Slack > lists only the medals the card has
+TestingLibraryElementError: Unable to find an accessible element with the role "listitem"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "What teammates see":
+  <h2
+    class="hud-label"
+    id="profile-card-panel-title"
+  />
+
+  --------------------------------------------------paragraph:
+
+  Name "":
+  <p
+    class="text-xs text-muted-foreground"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-labelledby="profile-card-panel-title"
+  class="relative flex flex-col gap-3 rounded-xl border bg-card p-4 "
+>
+  <div
+    class="flex items-baseline justify-between gap-3"
+  >
+    <h2
+      class="hud-label"
+      id="profile-card-panel-title"
+    >
+      What teammates see
+    </h2>
+    <span
+      class="text-xs text-muted-foreground"
+    >
+      Public
+    </span>
+  </div>
+  <div
+    class="flex items-center gap-3 rounded-xl border bg-linear-to-br from-card to-muted p-3 shadow-md"
+  >
+    <span
+      aria-hidden="true"
+      class="inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-14"
+    >
+      SE
+    </span>
+    <div
+      class="flex min-w-0 flex-1 items-baseline justify-between gap-2"
+    >
+      <span
+        class="truncate text-lg leading-tight font-semibold"
+      >
+        Sam Example
+      </span>
+    </div>
+  </div>
+  <p
+    class="text-xs text-muted-foreground"
+  >
+    Everyone can see this card. Your XP and the kudos you receive stay with you.
+  </p>
+</section>
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+ ❯ medalsOn src/RightRail.test.tsx:80:6
+     78| function medalsOn(card: HTMLElement) {
+     79|   return within(card)
+     80|     .getAllByRole("listitem")
+       |      ^
+     81|     .map((medal) => ({ words: within(medal).getAllByText(/.+/).map((wo…
+     82| }
+ ❯ src/RightRail.test.tsx:100:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  |website| src/RightRail.test.tsx > WS343 V16: the public card's best medals, as teammates see them in Slack > says teammates see any medals earned, shown here once the Book opens, while the Book is locked
+ FAIL  |website| src/RightRail.test.tsx > WS343 V16: the public card's best medals, as teammates see them in Slack > says teammates see any medals earned, shown here once the Book opens, while the Book is ready
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  Teammates also see any medals you've earned. They show here once you open the Book.
+Received:
+  What teammates seePublicSESam ExampleEveryone can see this card. Your XP and the kudos you receive stay with you.
+ ❯ src/RightRail.test.tsx:125:18
+    123|     const card = cardShowing(profileCardFixtures.noMedals, member);
+    124|     expect(within(card).queryByRole("list")).not.toBeInTheDocument();
+    125|     expect(card).toHaveTextContent(beforeTheBookOpens);
+       |                  ^
+    126|   });
+    127|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  |website| src/RightRail.test.tsx > WS343 V16: the public card's best medals, as teammates see them in Slack > asks for the card only on the home
+AssertionError: expected "vi.fn()" to be called at least once
+ ❯ src/RightRail.test.tsx:140:18
+    138|     window.history.replaceState(null, "", "/leaderboard");
+    139|     renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leade…
+    140|     expect(read).toHaveBeenCalled();
+       |                  ^
+    141|     expect(read).not.toHaveBeenCalledWith(true);
+    142|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 5 passed | 35 skipped (45)
+   Start at  13:34:41
+   Duration  12.38s (import 32%, tests 29%, transform 25%, environment 12%, setup 2%)
+
+     × WS343: subscribes once to the member's own profile card on the home 202ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 26 skipped (27)
