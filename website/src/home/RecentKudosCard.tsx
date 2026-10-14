@@ -71,7 +71,7 @@ function Row({ entry }: { entry: Entry }) {
   const people = entry.kind === "kudosReceived" ? [entry.giver] : entry.recipients;
   return (
     <li className="flex gap-3">
-      <Faces people={people} />
+      <Faces people={people} className={entry.kind === "kudosGiven" ? "w-16" : ""} />
       <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
         <div className="flex items-baseline justify-between gap-2">
           <span data-testid="recent-kudos-headline" className="min-w-0 font-medium [overflow-wrap:anywhere]">

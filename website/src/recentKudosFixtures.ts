@@ -10,7 +10,7 @@ const lastWeek = Date.parse("2026-10-07T11:00:00");
 function teammate(name: string, picture?: string): Person {
   const initials = name
     .split(" ")
-    .map((word) => word[0])
+    .map((word) => word[0]?.toUpperCase())
     .join("");
   return { name, face: picture === undefined ? { kind: "initials", initials } : { kind: "slack", image: picture, initials } };
 }

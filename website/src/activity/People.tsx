@@ -14,12 +14,12 @@ export function namesOf(people: Person[]) {
   return list.format([...names.slice(0, namesShown - 1), `${others} others`]);
 }
 
-export function Faces({ people }: { people: Person[] }) {
+export function Faces({ people, className = "" }: { people: Person[]; className?: string }) {
   const shown = people.slice(0, facesShown);
   return (
-    <span className="flex shrink-0">
+    <span className={`flex shrink-0 ${className}`}>
       {shown.map((person, index) => (
-        <span key={index} data-testid="person-face" className={`relative rounded-full ring-2 ring-card ${index === 0 ? "" : "-ml-3"}`} style={{ zIndex: shown.length - index }}>
+        <span key={index} data-testid="person-face" className={`relative rounded-full ring-2 ring-card ${index === 0 ? "" : "-ml-4"}`} style={{ zIndex: shown.length - index }}>
           <MemberFace face={person.face} className="size-8" />
         </span>
       ))}
