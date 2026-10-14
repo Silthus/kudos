@@ -13,15 +13,16 @@ export const earnedTierValidator = v.object({
   award: awardIdValidator,
   catalogueVersion: v.string(),
   rewards: v.array(promisedRewardValidator),
+  hidden: v.optional(v.literal(true)),
 });
 
 export type EarnedTier = Infer<typeof earnedTierValidator>;
 
-export type Reaching = { workspace: string; member: MemberId; ladder: LadderId; award: AwardId; at: number };
+export type Reaching = { workspace: string; member: MemberId; ladder: LadderId; award: AwardId; at: number; hidden: boolean };
 
-export async function earnTier(ctx: MutationCtx, { workspace, member, ladder, award, at }: Reaching, { tier, rewards }: Tier): Promise<boolean> {
+export async function earnTier(ctx: MutationCtx, { workspace, member, ladder, award, at, hidden }: Reaching, { tier, rewards }: Tier): Promise<boolean> {
   if ((await earnedTierOf(ctx, member, ladder, tier)) !== null) return false;
-  await ctx.db.insert("earnedTiers", { member, ladder, tier, earnedAt: at, award, catalogueVersion: ladders.version, rewards });
+  await ctx.db.insert("earnedTiers", { member, ladder, tier, earnedAt: at, award, catalogueVersion: ladders.version, rewards, ...(hidden && { hidden }) });
   await publish(ctx, { type: "achievementEarned", workspace, member, ladder, tier, at });
   return true;
 }

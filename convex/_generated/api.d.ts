@@ -46,6 +46,8 @@ import type * as feedback_naming from "../feedback/naming.js";
 import type * as feedback_notify from "../feedback/notify.js";
 import type * as feedback_publicReplies from "../feedback/publicReplies.js";
 import type * as feedback_replies from "../feedback/replies.js";
+import type * as feedback_segments from "../feedback/segments.js";
+import type * as feedback_tierNotices from "../feedback/tierNotices.js";
 import type * as feedback_unlockFilter from "../feedback/unlockFilter.js";
 import type * as feedback_welcome from "../feedback/welcome.js";
 import type * as http from "../http.js";
@@ -168,6 +170,8 @@ declare const fullApi: ApiFromModules<{
   "feedback/notify": typeof feedback_notify;
   "feedback/publicReplies": typeof feedback_publicReplies;
   "feedback/replies": typeof feedback_replies;
+  "feedback/segments": typeof feedback_segments;
+  "feedback/tierNotices": typeof feedback_tierNotices;
   "feedback/unlockFilter": typeof feedback_unlockFilter;
   "feedback/welcome": typeof feedback_welcome;
   http: typeof http;

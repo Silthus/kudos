@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { tierNameOf, tierRefValidator, type TierRef } from "../achievements/ladders";
 import type { MessageRef } from "../engine/messageEvent";
+import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { notify } from "./notify";
 import { setPublicSection, type PublicSection } from "./publicReplies";
@@ -15,10 +16,10 @@ export const tierNoticeValidator = v.object({
   tiers: v.array(tierRefValidator),
 });
 
-export type TiersEarned = { member: MemberId; message: MessageRef; earned: TierRef[] };
+export type TiersEarned = { member: MemberId; message: MessageRef; at: number; earned: TierRef[] };
 
-export async function tellTiersEarned(ctx: MutationCtx, { member, message, earned }: TiersEarned) {
-  if (earned.length === 0 || !(await isOpened(ctx, member, "book"))) return;
+export async function tellTiersEarned(ctx: MutationCtx, { member, message, at, earned }: TiersEarned) {
+  if (earned.length === 0 || !(await wasOpenedBy(ctx, member, at))) return;
   const notice = await tierNoticeRow(ctx, member, message);
   const told = notice?.tiers ?? [];
   const untold = earned.filter((tier) => !told.some((each) => isSameTier(each, tier)));
@@ -38,6 +39,11 @@ function tierSection(member: MemberId, user: string, tiers: TierRef[]): PublicSe
 
 function listOf(names: string[]) {
   return names.length === 1 ? names[0]! : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
+async function wasOpenedBy(ctx: QueryCtx, member: MemberId, at: number) {
+  const openedAt = await openedAtOf(ctx, member, "book");
+  return openedAt !== null && openedAt <= at && (await isOpened(ctx, member, "book"));
 }
 
 function isSameTier(one: TierRef, other: TierRef) {

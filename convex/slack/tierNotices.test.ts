@@ -68,6 +68,21 @@ describe("P63 P64 P76: a tier you earn is told by DM and celebrated in the kudos
     expect(tierLinesIn("C1")).toEqual(["🏅 <@U_ALICE> earned First Thanks."]);
   });
 
+  test("a tier earned before the member opened the Book stays silent, even when the opening lands before the count", async () => {
+    const t = await workspace();
+    const [alice, bob] = await membersWithTheBookOpen(t);
+    const earnedBeforeOpening = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice!, bob!, { at: Date.now() }));
+    vi.setSystemTime(now.getTime() + 60_000);
+    await openTheBook(t, alice!, bob!);
+
+    await t.mutation(internal.achievements.achievements.countKudosGiven, { event: earnedBeforeOpening });
+    await settle(t);
+
+    expect(tierDmsTo("U_ALICE")).toEqual([]);
+    expect(tierDmsTo("U_BOB")).toEqual([]);
+    expect(tierLinesIn("C1")).toEqual([]);
+  });
+
   test("P65: a member who muted notices gets no public line, and their DM still arrives", async () => {
     const t = await workspace();
     const [alice] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
@@ -126,7 +141,7 @@ describe("P63 P64: a tier is told once per member and kudos", () => {
   test("telling the same member and kudos again enqueues nothing new", async () => {
     const t = await workspace();
     const [alice] = await membersWithTheBookOpen(t, "U_ALICE");
-    const told = { member: alice!, message: { workspace: "T1", conversation: "C1", message: kudosTs }, earned: [{ ladder: "generosity" as const, tier: "bronze" as const }] };
+    const told = { member: alice!, message: { workspace: "T1", conversation: "C1", message: kudosTs }, at: now.getTime(), earned: [{ ladder: "generosity" as const, tier: "bronze" as const }] };
 
     await t.run((ctx) => tellTiersEarned(ctx, told));
     await t.run((ctx) => tellTiersEarned(ctx, told));
@@ -245,6 +260,12 @@ async function membersWithTheBookOpen(t: Backend, ...users: string[]): Promise<M
       members.push(member);
     }
     return members;
+  });
+}
+
+async function openTheBook(t: Backend, ...members: MemberId[]) {
+  await t.run(async (ctx) => {
+    for (const member of members) await ctx.db.insert("unlocks", { member, feature: "book", readyAt: Date.now(), openedAt: Date.now() });
   });
 }
 
