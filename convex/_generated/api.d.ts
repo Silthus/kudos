@@ -10,8 +10,10 @@
 
 import type * as achievements_achievements from "../achievements/achievements.js";
 import type * as achievements_achievementsFlag from "../achievements/achievementsFlag.js";
+import type * as achievements_counting from "../achievements/counting.js";
 import type * as achievements_flag from "../achievements/flag.js";
 import type * as achievements_ladders from "../achievements/ladders.js";
+import type * as achievements_replay from "../achievements/replay.js";
 import type * as achievements_tiers from "../achievements/tiers.js";
 import type * as analytics_boundary from "../analytics/boundary.js";
 import type * as analytics_capture from "../analytics/capture.js";
@@ -134,8 +136,10 @@ import type {
 declare const fullApi: ApiFromModules<{
   "achievements/achievements": typeof achievements_achievements;
   "achievements/achievementsFlag": typeof achievements_achievementsFlag;
+  "achievements/counting": typeof achievements_counting;
   "achievements/flag": typeof achievements_flag;
   "achievements/ladders": typeof achievements_ladders;
+  "achievements/replay": typeof achievements_replay;
   "achievements/tiers": typeof achievements_tiers;
   "analytics/boundary": typeof analytics_boundary;
   "analytics/capture": typeof analytics_capture;

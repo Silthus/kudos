@@ -434,6 +434,10 @@
     {
       "name": "qualifying recognition",
       "definition": "The first award from a giver to a recipient on the giver's day whose stored gate decision says it is thoughtful kudos, from a kudos message or, later, a chime-in. Every per-recognition bonus XP line and giving coin pays once per qualifying recognition, however many kudos the award carries; base XP still counts every kudos. Whether an award is one, and whether it is the giver's first of the day or the first to that recipient in the giver's week, is kept for every award whether or not the giver owns a perk (P16, P17)."
+    },
+    {
+      "name": "launch batch",
+      "definition": "The ladders and tiers one mutation finds unevaluated in a workspace, the Book's launch or the first mutation after a deploy that adds one, replayed together: every tier their replays earn carries the batch, and the batch is complete only when all its replays are (P62)."
     }
   ]
 }

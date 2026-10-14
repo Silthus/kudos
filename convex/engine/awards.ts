@@ -89,6 +89,14 @@ export async function awardsGivenBefore(ctx: QueryCtx, before: number, page: Pag
   return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day }) => ({ award: _id, giver, recipient, kudos, day })) };
 }
 
+export async function awardsInWorkspace(ctx: QueryCtx, workspace: string, page: PaginationOptions): Promise<PaginationResult<AwardWithId & { at: number }>> {
+  const result = await ctx.db
+    .query("awards")
+    .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
+    .paginate(page);
+  return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, at }) => ({ award: _id, giver, recipient, kudos, at })) };
+}
+
 export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<Map<MemberId, number>> {
   const awards = await ctx.db
     .query("awards")

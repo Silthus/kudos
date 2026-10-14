@@ -11,6 +11,7 @@ import { internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
+const dayMs = 24 * 60 * 60_000;
 const form = { contentType: "application/x-www-form-urlencoded" };
 const bookReady = "*Book* is ready. It opens achievements.";
 
@@ -121,22 +122,57 @@ describe("P78: the Book's readiness names only what has shipped", () => {
   });
 });
 
+describe("P62: the Book counts your whole history at its launch", () => {
+  test("a member who gave 30 kudos and received 3 before the launch opens the Book and finds Generosity bronze and silver and Recognition bronze, each dated by the kudos that reached it", async () => {
+    const t = await workspace({ launched: false });
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await giveKudos(t, "U_BOB", "U_ALICE", 3);
+    await giveKudos(t, "U_ALICE", "U_BOB", 9);
+    vi.setSystemTime(now.getTime() + dayMs);
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    vi.setSystemTime(now.getTime() + 2 * dayMs);
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    expect(levelUpDmsTo("U_ALICE").map((dm) => dm.text).at(-1)).toBe("🎉 You reached level 4!\nLevel 5 is 285 XP away.");
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"));
+    vi.setSystemTime(now.getTime() + 3 * dayMs);
+
+    await t.mutation(internal.unlocks.sweep.sweep, {});
+    await settle(t);
+    await openHome(t, "U_ALICE");
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Book")));
+
+    expect(publishedHome(slack, "U_ALICE")).toEqual([
+      "actions: Profile | [Book] | Settings",
+      "header: Book",
+      "section: *Generosity* · *30* kudos given",
+      "section: 🥉 *First Thanks* · earned Oct 13, 2026",
+      "section: 🥈 *Generous Soul* · earned Oct 15, 2026",
+      "context: Next: *Heart of the Team* at 100 kudos given.",
+      "divider",
+      "section: *Recognition* · *3* kudos received",
+      "section: 🥉 *Noticed* · earned Oct 13, 2026",
+      "context: Next: *Appreciated* at 25 kudos received.",
+    ]);
+  });
+});
+
 describe("P75: the Book counts from its launch, whatever any flag says later", () => {
-  test("a kudos before the workspace's launch counts nothing; the first one after it launches the Book and counts", async () => {
+  test("a kudos before the workspace's launch counts nothing until the launch, which replays it with its own date; the first one after it launches the Book and counts too", async () => {
     const t = await workspace({ launched: false });
     await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("achievements"));
-    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    const beforeLaunchAt = await giveKudos(t, "U_ALICE", "U_BOB", 1);
     expect(await countedRows(t)).toEqual([]);
     await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"));
     vi.setSystemTime(now.getTime() + 60_000);
 
-    const afterLaunchAt = await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     const generosity = (await achievementsOf(t, "U_ALICE"))?.ladders.find(({ ladder }) => ladder === "generosity");
-    expect(generosity).toMatchObject({ count: 1, tiers: [{ tier: "bronze", earnedAt: afterLaunchAt }, { earnedAt: null }, { earnedAt: null }, { earnedAt: null }] });
+    expect(generosity).toMatchObject({ count: 2, tiers: [{ tier: "bronze", earnedAt: beforeLaunchAt }, { earnedAt: null }, { earnedAt: null }, { earnedAt: null }] });
   });
 
-  test("the ship sweep that makes the Book ready launches it, so a kudos made after the sweep counts even when it is processed later", async () => {
+  test("the ship sweep that makes the Book ready launches it, so the kudos before it is replayed and a kudos made after the sweep counts even when it is processed later", async () => {
     const t = await workspace({ launched: false });
     await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("achievements"));
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
@@ -154,7 +190,7 @@ describe("P75: the Book counts from its launch, whatever any flag says later", (
     await t.mutation(internal.achievements.achievements.countKudosGiven, { event: madeAfterTheSweep });
 
     expect(launchedBySweep).toEqual([sweptAt]);
-    expect((await achievementsOf(t, "U_ALICE"))?.ladders[0]).toMatchObject({ ladder: "generosity", count: 1 });
+    expect((await achievementsOf(t, "U_ALICE"))?.ladders[0]).toMatchObject({ ladder: "generosity", count: 2 });
   });
 
   test("while achievements is off after the launch, kudos still count and earn, and turning it on again shows them", async () => {
