@@ -6,10 +6,10 @@ $ vitest run
 
 Not implemented: navigation to another Document
 
- Test Files  84 passed (84)
-      Tests  1337 passed (1337)
-   Start at  03:46:59
-   Duration  49.17s (tests 72%, import 14%, transform 9%, environment 4%, setup 1%)
+ Test Files  85 passed (85)
+      Tests  1342 passed (1342)
+   Start at  03:56:33
+   Duration  44.09s (tests 71%, import 14%, transform 8%, environment 5%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -393,5 +393,4 @@ RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 ADVISORY       136 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 48, receipt 28, contract 10, zone 10, panel 9; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (419 files), 17 in records
-exit 0
+0 rejected names, 0 unknown nouns (422 files), 17 in records
