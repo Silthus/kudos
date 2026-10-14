@@ -3,7 +3,7 @@ import { routedFetch, type FakePostHog, type FlagDefinition } from "../../testin
 import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { settle, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { type BlockAction, blockActions, buttonInHome, channelPickerInHome, publishedHome } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, slashCommandResponseUrl } from "../../testing/slackMessages";
 import type { QueryCtx } from "../_generated/server";
@@ -143,7 +143,7 @@ describe("F18: what a channel shows or the workspace shares follows the workspac
     ["with the workspace decision on, it posts as before", onForTheWorkspace, ["🎉 <@U_ALICE> reached level 2."]],
   ])("%s", async (_, definitions, notices) => {
     const t = await workspaceDeciding(...definitions);
-    await t.run(async (ctx) => ctx.db.patch((await ctx.db.query("workspaces").first())!._id, { announcementChannel: "C_NEWS" }));
+    await setWorkspaceSettings(t, { announcementChannel: "C_NEWS" });
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 

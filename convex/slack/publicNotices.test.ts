@@ -279,6 +279,17 @@ describe("QM1 QM2 QM3: a public celebration is never posted in a work thread", (
     expect((await t.run((ctx) => ctx.db.get(reply)))?.shown).toEqual({ state: "unposted" });
   });
 
+  test("QM2 QM4: a celebration still waiting when posting stops is never posted", async () => {
+    const t = await announcingIn("C_NEWS");
+    await t.mutation(internal.feedback.publicReplies.celebrateLevel, { event: await levelReached(t, "U_BOB", 2) });
+    await stopPosting(t);
+
+    await settle(t);
+
+    expect(publicNotices()).toEqual([]);
+    expect((await t.run((ctx) => ctx.db.query("publicReplies").collect())).map(({ shown }) => shown)).toEqual([{ state: "unposted" }]);
+  });
+
   test("a reply posted in a thread before the fix is never edited again, and nothing is deleted", async () => {
     const t = await flagsLoaded(testBackend());
     const reply = await storedReply(t, { channel: "C1", threadTs: postedTs }, { state: "posted", ts: "1760349601.000100" });
@@ -379,6 +390,10 @@ async function withAnnouncementChannel(backend: Backend | Promise<Backend>, anno
   const t = await backend;
   await setWorkspaceSettings(t, { announcementChannel });
   return t;
+}
+
+function stopPosting(t: Backend) {
+  return setWorkspaceSettings(t, { announcementChannel: undefined });
 }
 
 async function storedReply(t: Backend, destination: { channel: string; threadTs?: string }, shown: Doc<"publicReplies">["shown"]) {

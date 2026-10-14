@@ -58,7 +58,8 @@ describe("P63 P64 P76: a tier you earn is told by DM and celebrated in the annou
 
     expect(tierDmsTo("U_ALICE")).toHaveLength(1);
     expect(tierDmsTo("U_BOB")).toHaveLength(1);
-    expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "C1")).toEqual([]);
+    expect(publicPosts()).toEqual([]);
+    expect(await t.run((ctx) => ctx.db.query("publicReplies").collect())).toEqual([]);
   });
 
   test("QM1: the tiers a kudos posted in a thread earns are celebrated at the announcement channel's top level, and the kudos message's conversation gets nothing", async () => {
@@ -316,6 +317,10 @@ function tierDmsTo(user: string) {
     .callsTo("chat.postMessage")
     .filter(({ channel, text }) => channel === user && String(text).startsWith("🏅"))
     .map(({ text }) => String(text));
+}
+
+function publicPosts() {
+  return slack.callsTo("chat.postMessage").filter(({ channel }) => !String(channel).startsWith("U"));
 }
 
 function publicPostsIn(channel: string) {

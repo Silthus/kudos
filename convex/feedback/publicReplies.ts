@@ -134,17 +134,18 @@ export function linesOf(reply: Pick<Doc<"publicReplies">, "sections">): Line[] {
 }
 
 async function isShownAtAll(ctx: QueryCtx, row: Doc<"publicReplies">) {
-  return (await xpLevelsShownIn(ctx, row.workspace)) && (await isRewardShownIn(ctx, row)) && (await isInAnnouncementChannel(ctx, row));
+  return (await xpLevelsShownIn(ctx, row.workspace)) && (await isRewardShownIn(ctx, row)) && (await isCelebratedWhereItIs(ctx, row));
 }
 
 async function isRewardShownIn(ctx: QueryCtx, row: Doc<"publicReplies">) {
   return !("reached" in row) || (await questsApplyIn(ctx, row.workspace));
 }
 
-async function isInAnnouncementChannel(ctx: QueryCtx, row: Doc<"publicReplies">) {
+async function isCelebratedWhereItIs(ctx: QueryCtx, row: Doc<"publicReplies">) {
   if (!("conversation" in row)) return true;
-  if (row.threadTs !== undefined) return false;
-  return row.channel !== row.conversation || row.conversation === (await settingsOf(ctx, row.workspace)).announcementChannel;
+  const { announcementChannel } = await settingsOf(ctx, row.workspace);
+  if (announcementChannel === null || row.threadTs !== undefined) return false;
+  return row.channel !== row.conversation || row.conversation === announcementChannel;
 }
 
 async function isShownPublicly(ctx: QueryCtx, { member }: PublicSection) {
