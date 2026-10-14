@@ -7,12 +7,12 @@ const sparkles: ReadonlySet<TierId> = new Set(["gold", "diamond"]);
 
 const pipSpacing = 3.6;
 
-export function Medal({ tier, earned }: { tier: TierId; earned: boolean }) {
+export function Medal({ tier, earned, size = 28 }: { tier: TierId; earned: boolean; size?: number }) {
   const pips = pipsOf[tier];
   const metal = metalOf(tier);
   const ink = earned ? { fill: "var(--card)", stroke: "none" } : { fill: "none", stroke: "var(--muted-foreground)" };
   return (
-    <svg data-medal={earned ? "earned" : "outline"} width={28} height={28} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0 overflow-visible">
+    <svg data-medal={earned ? "earned" : "outline"} width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className="shrink-0 overflow-visible">
       <circle cx="12" cy="12" r="10" fill={earned ? metal : "none"} stroke={earned ? metal : "var(--muted-foreground)"} strokeWidth="1.5" strokeDasharray={earned ? undefined : "2.5 2"} />
       {Array.from({ length: pips }, (_, pip) => (
         <circle key={pip} data-pip="" cx={12 + (pip - (pips - 1) / 2) * pipSpacing} cy="12" r="1.3" strokeWidth="1" {...ink} />
