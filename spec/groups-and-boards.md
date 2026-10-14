@@ -16,7 +16,7 @@ The Everyone board shows who gave the most kudos across the workspace, but peopl
 
 **HedgeHug reads the workspace's Slack user groups and treats each enabled custom one as a group.** It already keeps a copy of them for PostHog (#205); groups build on that copy and never call Slack themselves.
 
-- **A primary group.** A member in several groups counts for one. HedgeHug picks the smallest of their groups for them, and they can pick another in the welcome message or in App Home Settings. A member in one group counts for it; a member in none gives kudos as before.
+- **A primary group.** A member in several groups counts for one. HedgeHug picks the smallest of their groups for them, and they can pick another in the welcome message or in the Settings tab. A member in one group counts for it; a member in none gives kudos as before.
 - **Attribution.** Every kudos counts for the giver's primary group at the moment it was given, once, for good. Switching groups never moves past kudos.
 - **The group boards.** The Leaderboard tab and `/hedgehug leaderboard` gain two boards above the Everyone board: **Groups**, ranked by kudos given per member so small groups compete fairly, with participation breaking ties, and **My group**, the members of the viewer's group by what they gave for it. Each shows the same window as the Everyone board, a private line about the group's progress, and the most improved group. Under the Everyone board, a member who improved more than most of their group is told so.
 - **The group quest.** Each week, each group gets one quest it finishes together: enough members each do one thing, and everyone who helped gets the reward. It shows how many took part, never who.
@@ -40,7 +40,7 @@ The Everyone board shows who gave the most kudos across the workspace, but peopl
 9. As a member in several groups, I want to pick the group I count for in the welcome message, so that the choice is made when I first meet the app.
 10. As a member in several groups, I want a sensible default when I don't pick, so that ignoring the question is fine.
 11. As a member, I want my default to stay put when other people join or leave groups, so that I don't silently change groups.
-12. As a member, I want to change my primary group in App Home Settings at any time, so that I can follow a move to another group.
+12. As a member, I want to change my primary group in the Settings tab at any time, so that I can follow a move to another group.
 13. As a member, I want switching groups never to move my past kudos, so that past weeks stay as they were.
 14. As a member removed from my primary group in Slack, I want to fall back to another group quietly, so that the app doesn't nag me.
 15. As a member who joins my first group, I want it to become my primary group automatically, so that I count without doing anything.
@@ -88,9 +88,9 @@ The Everyone board shows who gave the most kudos across the workspace, but peopl
 49. As a colleague, I want a member's primary group on their profile card, so that I know where they work.
 
 **Rollout and robustness**
-50. As Michael, I want each slice dark behind its own flag, sandbox-only plus my email, so that I roll it out myself.
+50. As the product owner, I want each slice dark behind its own flag, sandbox-only plus my email, so that I roll it out myself.
 51. As a member, I want every count recorded once per kudos message, so that a Slack retry never inflates a board or a quest.
-52. As Michael, I want the facts recorded while the flags are off, so that the boards have history the day they turn on.
+52. As the product owner, I want the facts recorded while the flags are off, so that the boards have history the day they turn on.
 
 ## Rules
 
@@ -107,7 +107,7 @@ The Everyone board shows who gave the most kudos across the workspace, but peopl
 
 - **GB5. One or none** (G6). A member in at least one counting group has exactly one primary group, one of their current counting groups. A member in none has none.
 - **GB6. The default** (amends G7, call 1). A member who has no primary group and gains one or more counting groups gets the **smallest** of them as primary group: the fewest members (GB2), ties broken by Slack group name, then ID. The default **holds** until the member leaves it, it stops counting, or they pick another; it is not recomputed when groups' sizes change.
-- **GB7. Picking** (G8). A member picks their primary group in the welcome message (GB18) or in App Home Settings (GB19), through the D17 command `pickPrimaryGroup`. A pick of one of the member's counting groups is stored and applies to kudos from the instant it is saved; a pick of anything else changes nothing. Picking the current primary group again changes nothing.
+- **GB7. Picking** (G8). A member picks their primary group in the welcome message (GB18) or in the Settings tab (GB19), through the D17 command `pickPrimaryGroup`. A pick of one of the member's counting groups is stored and applies to kudos from the instant it is saved; a pick of anything else changes nothing. Picking the current primary group again changes nothing.
 - **GB8. Fallback** (G9). When a member leaves their primary group, or it is archived, their primary group becomes the default of GB6 over their remaining counting groups, or none. No DM is sent.
 - **GB9. History.** Every change of a member's primary group is recorded, insert-only, with its instant and its cause (`default`, `picked`, `fallback`), and publishes `primaryGroupChanged`. "The primary group at instant t" reads this history.
 
@@ -129,7 +129,7 @@ The Everyone board shows who gave the most kudos across the workspace, but peopl
 ### The welcome message and Settings
 
 - **GB19. The welcome block** (G11, G12). Once groups are available and `groups` applies to the member, the welcome message (R42–R44) gets a group block after its third line: in several counting groups, `Which group do you count for on the leaderboard?` with a dropdown of their groups preselected with their primary group and a **Save** button; in one group, `You count for {group} on the leaderboard.`; in none, no block. **Save** runs `pickPrimaryGroup` and updates the message in place to `Saved. You count for {group} on the leaderboard. You can change it in App Home.`, or `{group} isn't one of your groups anymore. Pick another one.` when the pick is refused. A member welcomed before gets no second welcome message.
-- **GB20. Settings.** Where `groups` applies and groups are available, App Home Settings shows the primary group: a dropdown of the member's counting groups for a member in several, `You count for {group} on the leaderboard.` for a member in one, nothing for a member in none. Choosing in the dropdown runs `pickPrimaryGroup` and republishes App Home.
+- **GB20. Settings.** Where `groups` applies and groups are available, the Settings tab shows the primary group: a dropdown of the member's counting groups for a member in several, `You count for {group} on the leaderboard.` for a member in one, nothing for a member in none. Choosing in the dropdown runs `pickPrimaryGroup` and republishes App Home.
 
 ### The group quest
 
@@ -147,7 +147,7 @@ The Everyone board shows who gave the most kudos across the workspace, but peopl
 
 ### Flags, privacy and robustness
 
-- **GB29. Three flags** (decisions 11, 18). `groups` (GB3–GB20 surfaces), `group-quest` (GB21–GB25) and `groups-admin` (GB26–GB28) each start with `environment = sandbox` plus Michael's email, created by the slice's gate ticket. Each flag is read in the mutation that decides what a member sees (O35), with one exposure per member and value (O36). Turning a flag off hides its surfaces and rewrites nothing; on again shows everything unchanged.
+- **GB29. Three flags** (decisions 11, 18). `groups` (GB3–GB20 surfaces), `group-quest` (GB21–GB25) and `groups-admin` (GB26–GB28) each start with `environment = sandbox` plus the product owner's email, created by the slice's gate ticket. Each flag is read in the mutation that decides what a member sees (O35), with one exposure per member and value (O36). Turning a flag off hides its surfaces and rewrites nothing; on again shows everything unchanged.
 - **GB30. Exactly once** (G44). Attributions, group totals, group quest contributions and group quest rewards are written once per kudos message, member, group and week. A redelivered `kudosGiven`, a retried subscriber, and the attribution and quest subscribers running in either order never count twice.
 - **GB31. Standings stay private** (G45). Individual boards are seen only inside App Home, private replies and the member's own website session. The only public post, the Monday post, names groups only. The group quest names nobody, to anyone.
 - **GB32. The profile card's group** (G28 as amended). The profile card (#53) shows the member's current primary group, from `primaryGroupOf`, where `groups` applies to the viewer and groups are available.
@@ -268,7 +268,7 @@ type GroupsCommand =
 
 ### Slack app changes
 
-None. `usergroups:read` and the `subteam_*` events are already in both manifests (#205); the user group copy waits only on Michael's re-paste of the manifests (#194), which the first ticket checks.
+None. `usergroups:read` and the `subteam_*` events are already in both manifests (#205); the user group copy waits only on the product owner's re-paste of the manifests (#194), which the first ticket checks.
 
 ## Testing Decisions
 
@@ -288,16 +288,16 @@ None. `usergroups:read` and the `subteam_*` events are already in both manifests
 - The sticker book, albums and Team Spirit (#54, which waits on this spec).
 - Rendering the profile card (#53); this spec gives it `primaryGroupOf`.
 - Group auras and group perks (cut, decision 12).
-- Helper names on the group quest (P82 stands until Michael changes it in words).
+- Helper names on the group quest (P82 stands until the product owner changes it in words).
 - A web picker for the primary group or web admin settings (the website map may wrap `pickPrimaryGroup` later; admin stays in Slack).
 - Groups made inside HedgeHug, or from anything but Slack user groups; ranking kudos received, XP or any progression measure; channel leaderboards.
 - Backfilling attributions for kudos given before the first deploy.
 
 ## Further Notes
 
-**Michael's decisions this spec rests on (quoted)**
+**The product owner's decisions this spec rests on (quoted)**
 - Decision 12: "things I would cut: boosters, group auras, drops, rarities, titles, quips, streaks, freezes, journey" (the Journey restored: "the onboarding journey is not cut, the rest is as stated"). So no group perks or auras here.
-- Decision 18: "let's just turn them all on for everyone ... Just make sure that code where it's not yet fully there still has the flags only for me". So each slice starts sandbox-only plus his email.
+- Decision 18: "let's just turn them all on for everyone ... Just make sure that code where it's not yet fully there still has the flags only for me". So each slice starts sandbox-only plus the product owner's email.
 - Decision 15: "add name, mail, and so on to the people properties, and their Slack user ID and also teams". The user group copy this spec builds on.
 
 **Calls this spec makes (each at its recommendation)**
@@ -308,7 +308,7 @@ None. `usergroups:read` and the `subteam_*` events are already in both manifests
 5. **Group quest participants must have opened Quests** (GB21): P75 says a member can't pursue a goal they can't see; a member who opens Quests mid-week joins the next group week.
 6. **The group quest has no crate until coins ship** (GB23): its only reward is coins, which hold nothing before #30 (P86); an empty crate would open to nothing.
 7. **Two group quests** (GB22), `together-say-why` and `together-reach-out`, both always feasible for a group with 2 or more participants; the content catalogue (#27) extends the pool.
-8. **Three slices behind three flags** (GB29): groups and the boards first; the group quest and the admin settings with the Monday post after it, in either order. Michael's priority is the next smallest useful PR; the boards are useful alone, and the Monday post and allowlist matter only to admins. Before widening `groups` in the real workspace, Michael may want the allowlist (slice 3) so that interest groups and on-call aliases don't become default primary groups.
+8. **Three slices behind three flags** (GB29): groups and the boards first; the group quest and the admin settings with the Monday post after it, in either order. Michael's priority is the next smallest useful PR; the boards are useful alone, and the Monday post and allowlist matter only to admins. Before widening `groups` in the real workspace, the product owner may want the allowlist (slice 3) so that interest groups and on-call aliases don't become default primary groups.
 9. **`climbed` instead of last week's rank** (GB18, the website's need 4): a read of places climbed, never a raw earlier position, so no surface can show a member dropping (G18, user story 18). On the Everyone board it comes with the board, not with `groups`, as the website conductor asked.
 10. **No new Slack scopes or events** (Implementation Decisions): #205 added them.
 11. **Participation is a whole percent rounded down, score and gain one decimal** (GB13, GB14), computed once in the domain so Slack and the website agree.

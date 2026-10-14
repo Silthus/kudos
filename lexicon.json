@@ -514,6 +514,10 @@
     {
       "name": "person event",
       "definition": "A PostHog $identify or $set the analytics module records for one analytics ID, carrying the member's profile as person properties ($set, and $unset of what the profile lost) beside O2's properties; the only kind of event that carries a profile, and so names, emails or Slack IDs."
+    },
+    {
+      "name": "admin",
+      "definition": "A workspace's Slack admin or owner, read from the directory; only admins see the Admin tab and run admin commands."
     }
   ]
 }
