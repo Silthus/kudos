@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog, type FlagDefinition } from "../../testing/fakePostHog";
-import { FakeSlack, rateLimitedFor, type SlackCall } from "../../testing/fakeSlack";
+import { FakeSlack, isWelcome, rateLimitedFor, type SlackCall } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
@@ -375,7 +375,7 @@ function publicNotices() {
 type PostedDm = Record<string, unknown>;
 
 function sentDms(): PostedDm[] {
-  return slack.callsTo("chat.postMessage").filter(({ channel, text }) => String(channel).startsWith("U_") && !String(text).startsWith("👋 Welcome"));
+  return slack.callsTo("chat.postMessage").filter(({ channel, text }) => String(channel).startsWith("U_") && !isWelcome({ text }));
 }
 
 function dmsTo(user: string): PostedDm[] {

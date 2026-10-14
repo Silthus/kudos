@@ -11,7 +11,7 @@ const home: Page = { page: "home" };
 
 export const deepLinks = {
   successReply: { page: home, label: "See your progress on the web" },
-  welcome: { page: home, label: openTheWebsite },
+  welcome: { page: home, label: "See your progress" },
   levelReached: { page: home, label: "See your level on the web" },
   featuresShipped: { page: home, label: "See what's ready on the web" },
   journey: { page: home, label: "See your Journey on the web" },
