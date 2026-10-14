@@ -270,7 +270,7 @@ describe("WS87: the skill tree page buys through the live shell's buyPerk", () =
   });
 });
 
-describe("WS90 WS92: the live site reads the Book on /book", () => {
+describe("WS90 WS334: the live site reads the Book on /book", () => {
   beforeEach(() => {
     window.history.replaceState(null, "", "/book");
     profileRead.mockReturnValue(shellFixtures.memberWithTheBookOpened);
@@ -280,7 +280,7 @@ describe("WS90 WS92: the live site reads the Book on /book", () => {
     boardRead.mockReturnValue(bookFixtures.book);
     renderLiveSite();
     expect(pageTitle()).toHaveTextContent("Achievements");
-    expect(screen.getByRole("heading", { level: 2, name: "Generosity" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "1 of 8 tiers earned" })).toBeInTheDocument();
   });
 
   it("shows the error page under the HUD when the Book read fails", async () => {

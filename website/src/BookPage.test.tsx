@@ -468,7 +468,9 @@ describe("WS334: the Book's overview", () => {
 
   it("shows E's book-reading hedgehog", () => {
     showBookAt("/book");
-    expect(overview().querySelector("[data-hog='reading']")?.closest("[aria-hidden='true']")).not.toBeNull();
+    const hog = overview().querySelector("[data-hog='reading']");
+    expect(hog).toBeInTheDocument();
+    expect(hog!.closest("[aria-hidden='true']")).not.toBeNull();
   });
 
   it("leads to the ladder with the fewest left to its next tier, naming the tier and how many to go, with a neutral Next tag", () => {
@@ -527,6 +529,7 @@ describe("WS334: the Book's overview", () => {
       expect.stringMatching(/Half-Year Hero.*Gold · 30 Jun 2026/),
     ]);
     expect(shelved().map((entry) => entry.querySelector("[data-rosette]")?.getAttribute("data-rosette"))).toEqual(["bronze", "diamond", "silver", "gold", "gold"]);
+    expect(shelved().map((entry) => entry.querySelectorAll("[data-medal='earned'] [data-pip]").length)).toEqual([1, 4, 2, 3, 3]);
     expect(within(shelved()[1]!).getByRole("link")).toHaveAttribute("href", "/book?page=connections");
     expect(main()).toHaveTextContent("Newest first");
   });

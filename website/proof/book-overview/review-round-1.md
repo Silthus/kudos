@@ -1,0 +1,5 @@
+1. **Medium — `website/src/book/Overview.tsx:66,151`: borders fail contrast.** The closest-next card and category tiles use the default `border` token, measuring **1.42:1 in light and 1.20:1 in dark** against their card fill, below V24’s 3:1 requirement. The contrast test omits these boundaries. Use a compliant neutral border token and measure both links’ borders against their adjacent surfaces.
+
+2. **Medium — `website/src/book/Overview.tsx:116`: shelf tiers lack medal pips.** Each shelf entry renders only `LadderEmblem`, whose rosette has no pips. Bronze through diamond therefore lack V16/V24’s required “metal plus pips plus its word” representation. Add the earned medal, or tier-specific pips to the shelf rosette, and assert one through four pips.
+
+3. **Low — `website/src/BookPage.test.tsx:471`: the hedgehog test passes when its element is absent.** Removing `[data-hog='reading']` makes optional chaining return `undefined`, which satisfies `.not.toBeNull()`. Assert the element is in the document before checking its `aria-hidden` ancestor.

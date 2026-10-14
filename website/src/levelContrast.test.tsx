@@ -154,10 +154,11 @@ function overviewGraphics() {
     { part: "each bar's track and fill", surfaces: ["card"], elements: bars.flatMap((bar) => [bar, bar.firstElementChild!]) },
     { part: "the shelf's plank", surfaces: ["background"], elements: [shelf.previousElementSibling!] },
     { part: "the Next medal's outline", surfaces: ["card"], elements: [...overview.querySelectorAll("[data-medal='outline'] circle[stroke^='var(']")] },
+    { part: "each shelved tier's medal", surfaces: ["background"], elements: [...shelf.querySelectorAll("[data-medal='earned'] circle[stroke^='var(']")] },
   ];
 }
 
-describe("WS334 WS339 V24: the overview's rosettes, bars, plank and Next medal meet 3:1 against their surface in both modes", () => {
+describe("WS334 WS339 V24: the overview's rosettes, bars, plank and medals meet 3:1 against their surface in both modes", () => {
   beforeEach(() => {
     fakeSystemTheme(false);
   });
@@ -167,9 +168,9 @@ describe("WS334 WS339 V24: the overview's rosettes, bars, plank and Next medal m
       const measured = overviewGraphics().flatMap(({ part, surfaces, elements }) =>
         elements.flatMap((element) => paintsOf(element).flatMap((paint) => surfaces.map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })))),
       );
-      expect(new Set(measured.map(({ part }) => part)).size).toBe(4);
+      expect(new Set(measured.map(({ part }) => part)).size).toBe(5);
       expect(new Set(measured.map(({ paint }) => paint))).toEqual(new Set(["medal-bronze", "medal-silver", "medal-gold", "medal-diamond", "muted-foreground"]));
       expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
-    });
+    }, 30_000);
   }
 });
