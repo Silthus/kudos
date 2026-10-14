@@ -1,4 +1,4 @@
-import { makeFunctionReference } from "convex/server";
+import { getFunctionName, makeFunctionReference } from "convex/server";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type CapturedEvent, type FakePostHog, type FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
@@ -8,8 +8,10 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
+import { publish, subscribers } from "../bus/publish";
 import type { Command } from "../commands/commands";
 import schema from "../schema";
+import { exposed, flag } from "./flags";
 import { record } from "./outbox";
 
 vi.mock("./outbox", async (importOriginal) => {
@@ -17,10 +19,20 @@ vi.mock("./outbox", async (importOriginal) => {
   return { ...actual, record: vi.fn(actual.record) };
 });
 
+vi.mock("./flags", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./flags")>();
+  return { ...actual, flag: vi.fn(actual.flag), exposed: vi.fn(actual.exposed) };
+});
+
+vi.mock("../bus/publish", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../bus/publish")>();
+  return { ...actual, publish: vi.fn(actual.publish) };
+});
+
 type Table = keyof typeof schema.tables;
 type Row = Record<string, unknown> & { _id: string; _creationTime: number };
 type Capture = "on" | "off" | "failing";
-type Setup = { name: string; flags: FlagDefinition[] | "no flags key" };
+type Setup = { name: string; flags: FlagDefinition[] | "no flags key"; boardShown: boolean };
 
 const now = new Date("2026-10-13T10:00:00Z");
 const realSetTimeout = globalThis.setTimeout;
@@ -31,14 +43,19 @@ const week = "2026-10-12";
 const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
 const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board"];
-const notMemberFacing: Table[] = ["slackReceipts", "analyticsIds", "workspaceKeys", "analyticsOutbox", "analyticsDrain", "errorSweep", "watchedJobs", "reportedJobs", "flagExposures"];
+const notMemberFacing: Table[] = ["analyticsIds", "workspaceKeys", "analyticsOutbox", "analyticsDrain", "errorSweep", "watchedJobs", "reportedJobs", "flagExposures"];
 const recordingWrites: Table[] = ["analyticsOutbox", "analyticsIds", "workspaceKeys", "analyticsDrain"];
 const darkFeatureTables: Table[] = ["unlocks", "unlockLaunches", "journeyLaunches", "journeySteps", "questDraws", "questSwaps", "questProgress", "rewardRecords", "crateOpenings", "leaderboardSettings"];
 
-const everyFlagOff: Setup = { name: "every flag off", flags: everyFlag.map(offForEveryone) };
-const flagsKeyMissing: Setup = { name: "the flags key missing", flags: "no flags key" };
-const questsOnUnlocksOff: Setup = { name: "quests on and unlocks off", flags: [onForEveryone("xp-levels"), offForEveryone("unlocks"), onForEveryone("quests"), onForEveryone("everyone-board")] };
-const everyFlagOn: Setup = { name: "every flag on", flags: everyFlag.map(onForEveryone) };
+const everyFlagOff: Setup = { name: "every flag off", flags: everyFlag.map(offForEveryone), boardShown: false };
+const flagsKeyMissing: Setup = { name: "the flags key missing", flags: "no flags key", boardShown: false };
+const questsOnUnlocksOff: Setup = {
+  name: "quests on and unlocks off",
+  flags: [onForEveryone("xp-levels"), offForEveryone("unlocks"), onForEveryone("quests"), onForEveryone("everyone-board")],
+  boardShown: true,
+};
+const everyFlagOn: Setup = { name: "every flag on", flags: everyFlag.map(onForEveryone), boardShown: true };
+const leaderboardRequests = ["leaderboard viewed week app home", "leaderboard viewed month app home", "leaderboard viewed all command", "leaderboard left", "leaderboard joined"];
 const setups = [everyFlagOff, flagsKeyMissing, questsOnUnlocksOff, everyFlagOn];
 
 let slack: FakeSlack;
@@ -74,6 +91,7 @@ describe("E9 E10: analytics sends exactly the facts the features stored, whateve
     expect(await factsSent(t)).toEqual(await factsStored(t));
     expect(kudosGiven().map(({ properties }) => properties.thoughtful)).toEqual([true, true]);
     expect(eventsNamed("level reached").map(({ distinct_id, properties }) => `${distinct_id === giver() ? "giver" : "recipient"} ${String(properties.level)}`)).toEqual(["giver 2", "giver 3", "recipient 2"]);
+    expect(leaderboardEvents()).toEqual(setup.boardShown ? leaderboardRequests : []);
   });
 
   test.each([everyFlagOff, flagsKeyMissing].map((setup) => [setup.name, setup] as const))("with %s, nothing from unlocks, quests or the board is stored or sent", async (_, setup) => {
@@ -83,12 +101,10 @@ describe("E9 E10: analytics sends exactly the facts the features stored, whateve
     for (const table of darkFeatureTables) expect(await rowsOf(t, table), table).toEqual([]);
   });
 
-  test("with quests on and unlocks off, readiness and the board are sent, and nothing from quests", async () => {
+  test("with quests on and unlocks off, readiness is sent, and nothing from quests", async () => {
     const { t } = await walk(questsOnUnlocksOff, "on");
 
     expect(eventsNamed("unlock made ready").map(({ distinct_id, properties }) => `${distinct_id === giver() ? "giver" : "recipient"} ${String(properties.feature)}`)).toEqual(["giver quests", "giver leaderboard", "recipient quests"]);
-    expect(eventsNamed("leaderboard viewed").map(({ properties }) => `${String(properties.period)} ${String(properties.surface)}`)).toEqual(["week app home", "month app home", "all command"]);
-    expect(eventsNamed("leaderboard left", "leaderboard joined").map(({ event }) => event)).toEqual(["leaderboard left", "leaderboard joined"]);
     for (const table of ["journeySteps", "questDraws", "questSwaps", "rewardRecords", "crateOpenings"] as const) expect(await rowsOf(t, table), table).toEqual([]);
   });
 
@@ -152,43 +168,64 @@ describe("E11 O15: with capture on, off or failing, every member gets the same S
 });
 
 describe("E11: recording a product event writes only analytics' own rows and schedules only the drain", () => {
-  test("re-running every recording job of a whole walk with every flag on, each with no analytics ID or workspace key yet", async () => {
-    const { t } = await walk(everyFlagOn, "on");
-    const jobs = [...(await recordingJobsOf(t)), commandsLeaderboardView()];
-    expect(new Set(jobs.map(({ name }) => name))).toEqual(
-      new Set([
-        "analytics/subscribers:recordKudosGiven",
-        "analytics/subscribers:recordMemberWelcomed",
-        "analytics/subscribers:recordLevelReached",
-        "analytics/subscribers:recordUnlockReady",
-        "analytics/subscribers:recordUnlockOpened",
-        "analytics/subscribers:recordJourneyStepActivated",
-        "analytics/subscribers:recordQuestsDrawn",
-        "analytics/subscribers:recordQuestSwapped",
-        "analytics/subscribers:recordQuestFinished",
-        "analytics/subscribers:recordQuestOpened",
-        "analytics/isolatedUsage:recordLeaderboardViewed",
-        "analytics/isolatedUsage:recordLeaderboardVisibilityChanged",
-        "slack/commands:recordLeaderboardViewed",
-      ]),
-    );
+  test("re-running every recording job of two whole walks with every flag on, one of new members and one over members there before the launch, each with no analytics ID or workspace key yet", async () => {
+    const reRun = new Set<string>();
 
-    for (const { name, args } of jobs) {
-      await forgetAnalyticsIdentities(t);
-      const before = await everythingByTable(t);
-      const scheduledBefore = await scheduledJobIds(t);
-      const slackCallsBefore = slack.calls.length;
-
-      await t.mutation(makeFunctionReference<"mutation">(name), args);
-
-      const after = await everythingByTable(t);
-      expect(changedTables(before, after), name).toEqual(expect.arrayContaining(["analyticsOutbox"]));
-      expect(changedTables(before, after).filter((table) => !recordingWrites.includes(table)), name).toEqual([]);
-      expect((await newJobNames(t, scheduledBefore)).filter((job) => job !== "analytics/drain:drain"), name).toEqual([]);
-      expect(slack.calls.length, name).toBe(slackCallsBefore);
+    for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch]) {
+      const { t } = await walked();
+      for (const spy of [flag, exposed, publish]) expect(vi.mocked(spy), "the walk reaches the spied seams").toHaveBeenCalled();
+      for (const job of [...(await recordingJobsOf(t)), commandsLeaderboardView()]) {
+        await expectOnlyObserving(t, job);
+        reRun.add(job.name);
+      }
     }
+
+    expect([...reRun].sort()).toEqual(everyRecorder().sort());
   });
 });
+
+async function expectOnlyObserving(t: Backend, { name, args }: { name: string; args: Record<string, unknown> }) {
+  await forgetAnalyticsIdentities(t);
+  const before = await everythingByTable(t);
+  const scheduledBefore = await scheduledJobIds(t);
+  const slackCallsBefore = slack.calls.length;
+  for (const spy of [flag, exposed, publish]) vi.mocked(spy).mockClear();
+
+  await t.mutation(makeFunctionReference<"mutation">(name), args);
+
+  const changed = changedTables(before, await everythingByTable(t));
+  expect(changed, name).toContain("analyticsOutbox");
+  expect(changed.filter((table) => !recordingWrites.includes(table)), name).toEqual([]);
+  expect((await newJobNames(t, scheduledBefore)).filter((job) => job !== "analytics/drain:drain"), name).toEqual([]);
+  expect(slack.calls.length, name).toBe(slackCallsBefore);
+  expect(vi.mocked(flag), `${name} read a flag`).not.toHaveBeenCalled();
+  expect(vi.mocked(exposed), `${name} sent an exposure`).not.toHaveBeenCalled();
+  expect(vi.mocked(publish), `${name} published a domain event`).not.toHaveBeenCalled();
+}
+
+async function walkOverMembersThereBeforeTheLaunch() {
+  start("on", "flags key set");
+  const t = await flagsFromPostHog(testBackend(), postHog, ...everyFlag.map(onForEveryone));
+  await t.run(async (ctx) => {
+    await ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 });
+    for (const user of ["U_ALICE", "U_BOB"]) await ctx.db.insert("members", { workspace: "T1", user, kind: "member" });
+  });
+
+  await openHome(t, "U_ALICE");
+  await giveKudos(t, "U_ALICE", 11);
+
+  expect(eventsNamed("unlock opened").map(({ properties }) => properties.by)).toContain("launch");
+  expect(eventsNamed("attempt failed")).toHaveLength(1);
+  return { t };
+}
+
+function everyRecorder() {
+  const subscribed = Object.values(subscribers)
+    .flat()
+    .map((subscription) => getFunctionName("subscriber" in subscription ? subscription.subscriber : subscription))
+    .filter((name) => name.startsWith("analytics/"));
+  return [...new Set(subscribed), "analytics/isolatedUsage:recordLeaderboardViewed", "analytics/isolatedUsage:recordLeaderboardVisibilityChanged", "slack/commands:recordLeaderboardViewed"];
+}
 
 async function walk(setup: Setup, capture: Capture) {
   start(capture, setup.flags === "no flags key" ? "no flags key" : "flags key set");
@@ -234,6 +271,7 @@ const failingForProductEvents: typeof record = async (ctx, workspace, events) =>
 async function seenByMembers({ t, answers }: Awaited<ReturnType<typeof walk>>) {
   const stored = await everythingByTable(t);
   const memberFacing = Object.fromEntries(Object.entries(stored).filter(([table]) => !notMemberFacing.includes(table as Table)));
+  memberFacing.slackReceipts = stored.slackReceipts.map(({ eventId: _numberedPerProcess, ...receipt }) => receipt as Row);
   return { answers, slackCalls: callsByConversation(), stored: withStableIds(memberFacing) };
 }
 
@@ -316,6 +354,8 @@ function nextStep() {
 }
 
 async function factsStored(t: Backend) {
+  const draws = (await rowsOf(t, "questDraws")) as unknown as Array<{ week: string; slots: Array<{ slot: number; quest: string }> }>;
+  const swaps = (await rowsOf(t, "questSwaps")) as unknown as Array<{ week: string; swappedIn: { slot: number; quest: string } }>;
   const facts = [
     ...(await rowsOf(t, "levelUps")).map((row) => `${String(row.member)} level reached ${String(row.level)}`),
     ...(await rowsOf(t, "unlocks")).flatMap((row) => [
@@ -325,10 +365,18 @@ async function factsStored(t: Backend) {
     ...(await rowsOf(t, "journeySteps")).map((row) => `${String(row.member)} journey step activated ${String(row.step)}`),
     ...(await rowsOf(t, "questDraws")).flatMap((row) => (row.slots as Array<{ quest: string }>).map(({ quest }) => `${String(row.member)} quest drawn ${quest}`)),
     ...(await rowsOf(t, "questSwaps")).map((row) => `${String(row.member)} quest swapped ${String(row.replaced)} ${(row.swappedIn as { quest: string }).quest}`),
-    ...(await rowsOf(t, "rewardRecords")).map((row) => `${String(row.member)} quest finished ${kindOfKey(row.key)} ${String(row.xp)} ${String(row.coins)}`),
-    ...(await rowsOf(t, "crateOpenings")).map((row) => `${String(row.member)} crate opened ${kindOfKey(row.key)}`),
+    ...(await rowsOf(t, "rewardRecords")).map((row) => `${String(row.member)} quest finished ${questOfKey(row.key)} ${String(row.xp)} ${String(row.coins)}`),
+    ...(await rowsOf(t, "crateOpenings")).map((row) => `${String(row.member)} crate opened ${questOfKey(row.key)}`),
   ];
   return facts.sort();
+
+  function questOfKey(key: unknown) {
+    const [kind, weekOrStep, slot] = String(key).split(":");
+    if (kind === "journey") return `journey ${weekOrStep}`;
+    const swapped = swaps.find((swap) => swap.week === weekOrStep && swap.swappedIn.slot === Number(slot));
+    const drawn = draws.find((draw) => draw.week === weekOrStep)?.slots.find((drawnSlot) => drawnSlot.slot === Number(slot));
+    return `weekly ${swapped?.swappedIn.quest ?? drawn?.quest}`;
+  }
 }
 
 async function factsSent(t: Backend) {
@@ -348,18 +396,14 @@ async function factsSent(t: Backend) {
       case "quest swapped":
         return [`${on} ${String(properties.replaced)} ${String(properties.quest)}`];
       case "quest finished":
-        return [`${on} ${String(properties.kind)} ${String(properties.xp)} ${String(properties.coins)}`];
+        return [`${on} ${String(properties.kind)} ${String(properties.quest)} ${String(properties.xp)} ${String(properties.coins)}`];
       case "crate opened":
-        return [`${on} ${String(properties.kind)}`];
+        return [`${on} ${String(properties.kind)} ${String(properties.quest)}`];
       default:
         return [];
     }
   };
   return productEvents().flatMap(fact).sort();
-}
-
-function kindOfKey(key: unknown) {
-  return String(key).split(":")[0];
 }
 
 async function recordingJobsOf(t: Backend) {
@@ -422,6 +466,12 @@ function productEvents(): CapturedEvent[] {
 
 function eventsNamed(...names: string[]) {
   return productEvents().filter(({ event }) => names.includes(event));
+}
+
+function leaderboardEvents() {
+  return eventsNamed("leaderboard viewed", "leaderboard left", "leaderboard joined").map(({ event, properties }) =>
+    event === "leaderboard viewed" ? `${event} ${String(properties.period)} ${String(properties.surface)}` : event,
+  );
 }
 
 function giver() {
