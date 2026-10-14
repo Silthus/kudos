@@ -2,10 +2,12 @@ import { v, type Infer } from "convex/values";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { exposed, flag } from "../analytics/flags";
 import { publish } from "../bus/publish";
+import type { Annotations } from "../engine/messageEvent";
 import { unlocksAppliedIn } from "../unlocks/launch";
 import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { catalogue } from "./catalogue";
+import { gateDecisionOf } from "./gate";
 import { spendSkillPoints, standingOf } from "./progression";
 import { skillTreeFlag } from "./skillTreeFlag";
 import { perkOf, perkValidator, type Perk, type PerkId } from "./tree";
@@ -37,6 +39,20 @@ export type MemberPerks = { skillPoints: number; owned: OwnedPerk[]; perks: Arra
 
 export async function skillTreeAppliesIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<boolean> {
   return (await flag(ctx, skillTreeFlag, { workspace })) && (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
+}
+
+export async function couldEarnMoreBySayingWhy(ctx: QueryCtx, member: MemberId, annotations: Annotations): Promise<boolean> {
+  if (gateDecisionOf(annotations)?.thoughtful !== false) return false;
+  const { workspace } = await chatUserOf(ctx, member);
+  return (await skillTreeAppliesIn(ctx, workspace)) && (await ownsAPerk(ctx, member));
+}
+
+async function ownsAPerk(ctx: QueryCtx, member: MemberId) {
+  const owned = await ctx.db
+    .query("perksOwned")
+    .withIndex("by_member_perk", (q) => q.eq("member", member))
+    .first();
+  return owned !== null;
 }
 
 export async function skillTreeShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
