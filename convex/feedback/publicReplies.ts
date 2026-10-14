@@ -26,11 +26,14 @@ const replyFields = { workspace: v.string(), channel: v.string(), sections: v.ar
 export const publicReplyValidator = v.union(
   v.object({ ...replyFields, conversation: v.string(), message: v.string(), threadTs: v.optional(v.string()) }),
   v.object({ ...replyFields, reached: v.object({ member: v.id("members"), level: v.number() }) }),
+  v.object({ ...replyFields, summary: v.id("tierSummaries") }),
 );
 
 export type PublicSection = Infer<typeof publicSectionValidator>;
 
 type Destination = { channel: string; threadTs?: string };
+
+type Announced = { reached: { member: MemberId; level: number } } | { summary: Id<"tierSummaries"> };
 
 export const celebrateLevel = internalMutation({
   args: { event: levelReachedEventValidator },
@@ -60,9 +63,14 @@ export async function setPublicSection(ctx: MutationCtx, ref: MessageRef, sectio
 }
 
 async function announceRewardedLevel(ctx: MutationCtx, { workspace, member, level }: LevelReachedEvent, section: PublicSection) {
+  if ((await levelNoticeRow(ctx, member, level)) !== null) return;
+  await announce(ctx, workspace, { reached: { member, level } }, section);
+}
+
+export async function announce(ctx: MutationCtx, workspace: string, announced: Announced, section: PublicSection) {
   const { announcementChannel } = await settingsOf(ctx, workspace);
-  if (announcementChannel === null || (await levelNoticeRow(ctx, member, level)) !== null) return;
-  const notice = { workspace, reached: { member, level }, channel: announcementChannel, sections: [section], version: 1, shown: { state: "posting" as const } };
+  if (announcementChannel === null) return;
+  const notice = { workspace, ...announced, channel: announcementChannel, sections: [section], version: 1, shown: { state: "posting" as const } };
   await deliver(ctx, await ctx.db.insert("publicReplies", notice));
 }
 

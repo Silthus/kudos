@@ -29,6 +29,13 @@ export async function earnTier(ctx: MutationCtx, { workspace, member, ladder, aw
   return true;
 }
 
+export function everyTierEarnedBy(ctx: QueryCtx, member: MemberId): Promise<EarnedTier[]> {
+  return ctx.db
+    .query("earnedTiers")
+    .withIndex("by_member_ladder_tier", (q) => q.eq("member", member))
+    .collect();
+}
+
 export function earnedTiersOf(ctx: QueryCtx, member: MemberId, ladder: LadderId): Promise<EarnedTier[]> {
   return ctx.db
     .query("earnedTiers")

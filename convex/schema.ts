@@ -10,7 +10,7 @@ import { propertiesValidator } from "./analytics/projections";
 import { annotationsValidator, mentionValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
 import { publicReplyValidator } from "./feedback/publicReplies";
-import { tierNoticeValidator } from "./feedback/tierNotices";
+import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
 import { segmentValidator } from "./feedback/segments";
 import { periodValidator } from "./leaderboard/periods";
 import { purchaseOutcomeValidator } from "./progression/purchases";
@@ -207,6 +207,8 @@ export default defineSchema({
   earnedTiers: defineTable(earnedTierValidator).index("by_member_ladder_tier", ["member", "ladder", "tier"]),
 
   tierNotices: defineTable(tierNoticeValidator).index("by_member_message", ["member", "workspace", "conversation", "message"]),
+
+  tierSummaries: defineTable(tierSummaryValidator).index("by_member", ["member"]),
 
   questDraws: defineTable(questDrawValidator).index("by_member_week", ["member", "week"]),
 
