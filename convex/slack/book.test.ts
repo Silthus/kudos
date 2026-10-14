@@ -14,6 +14,7 @@ import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const dayMs = 24 * 60 * 60_000;
+const aLaunchReplayingFifteenKudosOnFourLaddersMs = 30_000;
 const form = { contentType: "application/x-www-form-urlencoded" };
 const bookReady = "*Book* is ready. It opens achievements.";
 const tierOrder: TierId[] = ["bronze", "silver", "gold", "diamond"];
@@ -235,7 +236,7 @@ describe("P58 P59 P62: Connections, Dependability, Applause and Seasons count th
       ],
     });
     expect(await earnedTierRows(t, "U_ALICE", "connections")).toEqual(["bronze", "silver"]);
-  });
+  }, aLaunchReplayingFifteenKudosOnFourLaddersMs);
 });
 
 describe("P58 P62: Old Friends counts thanking someone again 30 or more days after you last did", () => {
