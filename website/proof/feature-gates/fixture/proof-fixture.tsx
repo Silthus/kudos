@@ -9,6 +9,7 @@ import { bookFixtures, fixedBook } from "./src/bookFixtures";
 import { fixedSkillTree, skillTreeFixtures } from "./src/skillTreeFixtures";
 import { fixtureProfileCardFor } from "./src/profileCardFixtures";
 import { fixtureRecentKudos } from "./src/recentKudosFixtures";
+import { fixtureActivityWatch, fixtureReadActivity } from "./src/activityFixtures";
 
 const params = new URLSearchParams(location.search);
 history.replaceState(null, "", (params.get("path") ?? "/") + location.search);
@@ -30,5 +31,5 @@ const actions: ShellActions = {
   },
 };
 const show = () =>
-  root.render(<App visitor={visitor} actions={actions} useLeaderboard={board} useQuests={fixedQuests(questsFixtures[state])} useBook={fixedBook(bookFixtures[state])} useSkillTree={fixedSkillTree(skillTreeFixtures[state])} useProfileCard={fixtureProfileCardFor(visitor)} useRecentKudos={fixtureRecentKudos} />);
+  root.render(<App visitor={visitor} actions={actions} useLeaderboard={board} useQuests={fixedQuests(questsFixtures[state])} useBook={fixedBook(bookFixtures[state])} useSkillTree={fixedSkillTree(skillTreeFixtures[state])} useProfileCard={fixtureProfileCardFor(visitor)} useRecentKudos={fixtureRecentKudos} useActivityWatch={fixtureActivityWatch} readActivity={fixtureReadActivity} />);
 show();

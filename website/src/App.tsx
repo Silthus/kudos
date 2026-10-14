@@ -6,6 +6,7 @@ import { readyCratesOf } from "./crates/readyCrates";
 import { RevealDialog } from "./crates/RevealDialog";
 import { CrateRewardFlight } from "./crates/CrateRewardFlight";
 import { rewardsOf, withTheRewardsHeld } from "./crates/rewards";
+import type { ActivityRead, ActivityShown, ActivityWatch } from "./activityRead";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import type { BookRead, BookShown } from "./bookRead";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -13,6 +14,7 @@ import { Frame } from "./Frame";
 import { ClosedPage } from "./pages/ClosedPage";
 import { ConnectingPage } from "./pages/ConnectingPage";
 import { ErrorPage } from "./pages/ErrorPage";
+import { ActivityPage } from "./pages/ActivityPage";
 import { HomePage } from "./pages/HomePage";
 import { BookPage } from "./pages/BookPage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
@@ -31,14 +33,14 @@ import type { QuestsRead, QuestsShown } from "./questsRead";
 import type { RecentKudosRead } from "./recentKudosRead";
 import { useQuestTargetOnceLanded } from "./questTarget";
 import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
-import { hrefOf, useRoute, type BookPageId, type Route } from "./route";
+import { hrefOf, useRoute, type ActivityFilter, type BookPageId, type Route, type Screen } from "./route";
 import type { MemberProfile, Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome, useSignInWhenAsked } from "./signInAttempt";
 
-type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useSkillTree: SkillTreeRead; useProfileCard: ProfileCardRead; useRecentKudos: RecentKudosRead };
+type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useSkillTree: SkillTreeRead; useProfileCard: ProfileCardRead; useRecentKudos: RecentKudosRead; useActivityWatch: ActivityWatch; readActivity: ActivityRead };
 
-export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useSkillTree, useProfileCard, useRecentKudos }: AppProps) {
-  const { route, navigate, choosePeriod } = useRoute();
+export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useSkillTree, useProfileCard, useRecentKudos, useActivityWatch, readActivity }: AppProps) {
+  const { route, navigate, choosePeriod, chooseFilter } = useRoute();
   const shown = useSignInOutcome(visitor);
   const member = shown.kind === "member" ? shown : undefined;
   const onTheBoard = member !== undefined && route.page === "leaderboard";
@@ -53,6 +55,9 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   const onSkills = member !== undefined && route.page === "skills";
   const skillTree = useSkillTree(onSkills);
   const profileCard = useProfileCard(onHome);
+  const onActivity = member !== undefined && route.page === "activity";
+  const activityWatch = useActivityWatch(onActivity ? route.filter : undefined);
+  const activity = useWatchWhileTheNextLoads(activityWatch, onActivity);
   const membersShown = useMembersShown(cratesOf(member));
   const moments = useCrateMoments(actions, { signedOut: member === undefined && !stillAsking(shown), crates: cratesOf(member), onQuests });
   const reveal = member !== undefined ? moments.reveal : undefined;
@@ -61,7 +66,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   const rewards = member === undefined ? [] : rewardsOf(member, moments.onTheWay);
   const { chart } = moments;
   useLayoutEffect(() => chart(rewards), [chart, rewards]);
-  useTitleFocusAfterChange(onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : onBook ? bookPageOf(book) : onSkills ? skillTreePageOf(skillTree) : shown.kind, { held: revealing });
+  useTitleFocusAfterChange(onActivity ? activityPageOf(activity) : onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : onBook ? bookPageOf(book) : onSkills ? skillTreePageOf(skillTree) : shown.kind, { held: revealing });
   useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
   useQuestTargetOnceLanded(route, onQuests && quests?.kind === "quests");
@@ -86,9 +91,9 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
         {signingIn ? (
           <SignedOutPage returnTo={hrefOf(route)} onSignIn={signIn} />
         ) : (
-          <Frame member={memberShown} ready={readyCrates} current={route.page === "not-found" ? undefined : route.page} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined)} inert={revealing} onSignOut={actions.signOut}>
+          <Frame member={memberShown} ready={readyCrates} current={screenOf(route)} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined) || (onActivity && activityWatch === undefined)} inert={revealing} onSignOut={actions.signOut}>
             <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
-              <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} profileCard={profileCard} useRecentKudos={useRecentKudos} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} onSignIn={signIn} onSignOut={actions.signOut} />
+              <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} onSignIn={signIn} onSignOut={actions.signOut} />
             </ErrorBoundary>
           </Frame>
         )}
@@ -118,6 +123,22 @@ function stillAsking(state: ShellState) {
   return state.kind === "loading" || state.kind === "connecting";
 }
 
+function screenOf(route: Route): Screen | undefined {
+  if (route.page === "not-found") return undefined;
+  return route.page === "activity" ? "home" : route.page;
+}
+
+function activityPageOf(activity: ActivityShown | undefined) {
+  return activity === undefined ? "loading" : `activity ${activity.kind}`;
+}
+
+function useWatchWhileTheNextLoads(watch: ActivityShown | undefined, onActivity: boolean) {
+  const lastShown = useRef<ActivityShown | undefined>(undefined);
+  if (!onActivity) lastShown.current = undefined;
+  else if (watch !== undefined) lastShown.current = watch;
+  return watch ?? lastShown.current;
+}
+
 function boardPageOf(board: BoardAnswer | undefined) {
   return board === undefined ? "loading" : `leaderboard ${board.kind}`;
 }
@@ -141,6 +162,8 @@ function useBoardWhileTheNextLoads(board: BoardAnswer | undefined, onTheBoard: b
   return board ?? lastShown.current;
 }
 
+type ActivityReads = { shown: ActivityShown | undefined; watch: ActivityShown | undefined; read: ActivityRead; onChooseFilter: (filter: ActivityFilter) => void };
+
 type PageProps = {
   state: ShellState;
   route: Route;
@@ -150,6 +173,7 @@ type PageProps = {
   skillTree: SkillTreeShown | undefined;
   profileCard: ProfileCardShown | undefined;
   useRecentKudos: RecentKudosRead;
+  activity: ActivityReads;
   membersShown: number;
   onChoosePeriod: (period: Period) => void;
   onBuyPerk: ShellActions["buyPerk"];
@@ -159,13 +183,14 @@ type PageProps = {
   onSignOut: () => void;
 };
 
-function Page({ state, route, board, quests, book, skillTree, profileCard, useRecentKudos, membersShown, onChoosePeriod, onBuyPerk, onSetBoardVisibility, onSwapQuest, ...actions }: PageProps) {
+function Page({ state, route, board, quests, book, skillTree, profileCard, useRecentKudos, activity, membersShown, onChoosePeriod, onBuyPerk, onSetBoardVisibility, onSwapQuest, ...actions }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return null;
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "not-found") return <NotFoundPage />;
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "home") return quests?.kind === "connecting" || board?.kind === "connecting" ? <ConnectingPage /> : <HomePage member={state} reads={{ quests, board, card: profileCard }} useRecentKudos={useRecentKudos} />;
+  if (route.page === "activity") return <ActivityAnswerPage filter={route.filter} activity={activity} {...actions} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} onSwapQuest={onSwapQuest} {...actions} />;
   if (route.page === "book") return <BookAnswerPage member={state} book={book} page={route.bookPage} {...actions} />;
   if (route.page === "skills") return <SkillTreeAnswerPage key={membersShown} member={state} skillTree={skillTree} onBuyPerk={onBuyPerk} {...actions} />;
@@ -184,6 +209,14 @@ function QuestsAnswerPage({ member, quests, onSwapQuest, ...actions }: QuestsAns
   if (quests.kind === "ready" || quests.kind === "locked") return <FeatureWaitsPage feature="quests" waiting={quests} member={member} />;
   if (quests.kind !== "quests") return <AnswerPage answer={quests} {...actions} />;
   return <QuestsPage quests={quests} swapQuest={onSwapQuest} />;
+}
+
+function ActivityAnswerPage({ filter, activity, ...actions }: { filter: ActivityFilter; activity: ActivityReads; onSignIn: () => void; onSignOut: () => void }) {
+  const { shown } = activity;
+  if (shown === undefined) return null;
+  if (shown.kind === "not-found") return <NotFoundPage />;
+  if (shown.kind !== "activity") return <AnswerPage answer={shown} {...actions} />;
+  return <ActivityPage filter={filter} watch={activity.watch} readActivity={activity.read} onChooseFilter={activity.onChooseFilter} />;
 }
 
 type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; page: BookPageId; onSignIn: () => void; onSignOut: () => void };
