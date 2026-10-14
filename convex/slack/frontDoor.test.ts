@@ -19,7 +19,7 @@ const twice = "Thank someone and say why, 2 times.";
 const threeTimes = "Thank someone and say why, 3 times.";
 const twoDays = "Thank someone and say why on 2 different days.";
 const sayingWhyThreeWays: QuestId[] = ["say-why", "say-why-twice", "say-why-three-times"];
-const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board"];
+const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board", "skill-tree"];
 const sayingWhyCounts = "context: Saying why counts when your message has 5 or more words besides mentions and emoji.";
 const hints = [
   "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
@@ -76,9 +76,14 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       "divider",
       ...hints,
     ]);
-    expect(linkButtonsIn(publishedHomeBlocks(slack, "U_ALICE"))).toEqual([
-      { label: "Open HedgeHug", url: `${siteUrl}/` },
-      { label: "Leaderboard", url: `${siteUrl}/leaderboard` },
+    expect(publishedHomeBlocks(slack, "U_ALICE").filter((block) => readBlocks([block])[0] === "actions: Open HedgeHug | Leaderboard")).toEqual([
+      {
+        type: "actions",
+        elements: [
+          { type: "button", text: { type: "plain_text", text: "Open HedgeHug" }, url: `${siteUrl}/`, action_id: "website-link-0" },
+          { type: "button", text: { type: "plain_text", text: "Leaderboard" }, url: `${siteUrl}/leaderboard`, action_id: "website-link-1" },
+        ],
+      },
     ]);
   });
 
@@ -192,6 +197,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     "section: You have *8* kudos left today. You get *10* more at midnight.",
     "divider",
     "section fields: *Level*\n*3* | *XP to level 4*\n*120*",
+    "section: Next: Skill tree at level 5.",
     "divider",
     "section: *Quests this week*",
     `section: ✅ ${sayWhy} You earned *20 XP*. [button: Open]`,
