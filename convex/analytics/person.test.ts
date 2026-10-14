@@ -217,6 +217,29 @@ describe("O18 F9: a person event whose delivery failed may still have landed", (
   });
 });
 
+describe("O18 F9: an older person event that fails once a newer one was recorded may still have landed", () => {
+  test("PostHog applying it after the newer one is repaired by the next pass", async () => {
+    const t = testBackend();
+    await annGaveKudos(t);
+    let fail = () => {};
+    postHog.answering(() => new Promise<Response>((resolve) => (fail = () => resolve(new Response(null, { status: 503 })))));
+
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Baker" } }, { eventTs: later(1) });
+    await settleInTimeOrder(t, { until: Date.now() + 5_000 });
+    await memberChanged(t, "user_change", { id: "U_ANN", profile: { ...annsSlackProfile, title: "Chef" } }, { eventTs: later(2) });
+    await settleInTimeOrder(t, { until: Date.now() + 1_000 });
+    fail();
+    await settleInTimeOrder(t);
+    postHogAppliedLast(postHog.requests.find((request) => request.events.some(({ properties }) => (properties.$set as { title?: string } | undefined)?.title === "Baker"))!);
+    const afterTheLateBaker = postHog.personOf(await annsDistinctId(t)).title;
+    await t.mutation(dailyCatchUp(), {});
+    await settle(t);
+
+    expect(afterTheLateBaker).toBe("Baker");
+    expect(postHog.personOf(await annsDistinctId(t))).toMatchObject({ title: "Chef" });
+  });
+});
+
 describe("O17: a person event a drain sent after losing its claim", () => {
   test("a drain that sent an older profile after its lease expired and a newer one was delivered has the current profile sent again", async () => {
     const t = testBackend();

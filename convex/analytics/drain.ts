@@ -63,6 +63,7 @@ export const settle = internalMutation({
     const now = Date.now();
     const leased = (await Promise.all(rows.map((id) => ctx.db.get(id)))).filter((row): row is OutboxRow => row?.lease === token && row.dueAt > now);
     await followPeopleSentLate(ctx, people, leased);
+    if (answer === "failed") await markDeliveriesUncertain(ctx, people);
     const held = answer === "delivered" ? leased : await withoutStalePersonEvents(ctx, leased);
     if (answer === "delivered") {
       for (const row of held) await ctx.db.delete(row._id);
@@ -71,7 +72,6 @@ export const settle = internalMutation({
     } else if (answer === "rejected") {
       await giveUp(ctx, held, "rejected");
     } else {
-      await markDeliveriesUncertain(ctx, held);
       await retryOrGiveUp(ctx, held);
     }
   },

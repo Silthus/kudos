@@ -30,6 +30,7 @@ const documentsReadPerFollowJob = 8_000;
 const documentsReadPerPerson = 6;
 
 type Identity = Doc<"analyticsIds">;
+type SentPersonEvent = { row: Id<"analyticsOutbox">; distinctId: string };
 type OutboxRow = Doc<"analyticsOutbox">;
 
 export async function analyticsIdOf(ctx: MutationCtx, member: MemberId) {
@@ -132,7 +133,7 @@ export function personEventsIn(rows: OutboxRow[]) {
   return rows.filter(isPersonEvent).map(({ _id, distinctId }) => ({ row: _id, distinctId }));
 }
 
-export async function followPeopleSentLate(ctx: MutationCtx, sent: { row: Id<"analyticsOutbox">; distinctId: string }[], stillHeld: OutboxRow[]) {
+export async function followPeopleSentLate(ctx: MutationCtx, sent: SentPersonEvent[], stillHeld: OutboxRow[]) {
   const held = new Set(stillHeld.map(({ _id }) => _id));
   const late = [];
   for (const { distinctId } of sent.filter(({ row }) => !held.has(row))) {
@@ -144,9 +145,9 @@ export async function followPeopleSentLate(ctx: MutationCtx, sent: { row: Id<"an
   await followMembersLater(ctx, late);
 }
 
-export async function markDeliveriesUncertain(ctx: MutationCtx, rows: OutboxRow[]) {
-  for (const row of rows.filter(isPersonEvent)) {
-    const identity = await identityWithAnalyticsId(ctx, row.distinctId);
+export async function markDeliveriesUncertain(ctx: MutationCtx, sent: SentPersonEvent[]) {
+  for (const { distinctId } of sent) {
+    const identity = await identityWithAnalyticsId(ctx, distinctId);
     if (identity !== null) await ctx.db.patch(identity._id, { profileUncertain: true });
   }
 }
