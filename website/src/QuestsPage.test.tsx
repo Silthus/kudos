@@ -401,7 +401,7 @@ describe("WS315 E184: the reward flies to the HUD avatar once a Claim's reveal c
 function watchScrolling() {
   const scrolled: Element[] = [];
   Element.prototype.scrollIntoView = function (this: Element) {
-    scrolled.push(this);
+    if (this.closest("main") !== null) scrolled.push(this);
   };
   return scrolled;
 }
