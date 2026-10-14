@@ -5,7 +5,7 @@ import type { ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { messageRefValidator, type Mention, type MessageRef } from "../engine/messageEvent";
 import type { Indicator } from "../feedback/indicator";
-import type { Line, Segment } from "../feedback/replies";
+import type { Line, Segment } from "../feedback/segments";
 import { callSlack, type SlackAnswer } from "./webApi";
 
 export const attemptArgs = { attempt: v.optional(v.number()) };

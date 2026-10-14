@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { dayThankedBefore, type AwardId, type AwardWithId, type GivenAward } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
-import type { LadderId, Tier } from "./ladders";
+import type { LadderId, Tier, TierRef } from "./ladders";
 import { thanksAnOldFriend } from "./oldFriends";
 import type { BatchId } from "./replay";
 import { earnTier } from "./tiers";
@@ -28,15 +28,18 @@ export function countingOf(ladder: LadderId, award: AwardWithId): Counting {
   return { member: countedMember[ladder](award), ladder };
 }
 
-export type Earning = { tiers: Tier[]; batch?: BatchId };
+export type Earning = { tiers: Tier[]; batch?: BatchId; hidden?: true };
 
-export async function countAward(ctx: MutationCtx, workspace: string, counting: Counting, award: DatedAward, { tiers, batch }: Earning): Promise<boolean> {
-  if (await isCounted(ctx, counting, award.award)) return false;
+export async function countAward(ctx: MutationCtx, workspace: string, counting: Counting, award: DatedAward, { tiers, batch, hidden }: Earning): Promise<TierRef[] | null> {
+  if (await isCounted(ctx, counting, award.award)) return null;
   const { before, after } = await addToCount(ctx, counting, await unitsCounted[counting.ladder](ctx, award));
   await ctx.db.insert("countedAwards", { ...counting, award: award.award, count: after, at: award.at });
-  const reaching = { workspace, ...counting, award: award.award, at: award.at, batch };
-  for (const tier of tiers) if (before < tier.count && tier.count <= after) await earnTier(ctx, reaching, tier);
-  return true;
+  const reaching = { workspace, ...counting, award: award.award, at: award.at, batch, hidden };
+  const earned: TierRef[] = [];
+  for (const tier of tiers) {
+    if (before < tier.count && tier.count <= after && (await earnTier(ctx, reaching, tier))) earned.push({ ladder: counting.ladder, tier: tier.tier });
+  }
+  return earned;
 }
 
 export async function awardReaching(ctx: QueryCtx, { member, ladder }: Counting, count: number): Promise<{ award: AwardId; at: number } | null> {

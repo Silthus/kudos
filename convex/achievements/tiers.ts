@@ -15,16 +15,18 @@ export const earnedTierValidator = v.object({
   catalogueVersion: v.string(),
   rewards: v.array(promisedRewardValidator),
   batch: v.optional(v.id("bookBatches")),
+  hidden: v.optional(v.literal(true)),
 });
 
 export type EarnedTier = Infer<typeof earnedTierValidator>;
 
-export type Reaching = { workspace: string; member: MemberId; ladder: LadderId; award: AwardId; at: number; batch?: BatchId };
+export type Reaching = { workspace: string; member: MemberId; ladder: LadderId; award: AwardId; at: number; batch?: BatchId; hidden?: true };
 
-export async function earnTier(ctx: MutationCtx, { workspace, member, ladder, award, at, batch }: Reaching, { tier, rewards }: Tier) {
-  if ((await earnedTierOf(ctx, member, ladder, tier)) !== null) return;
-  await ctx.db.insert("earnedTiers", { member, ladder, tier, earnedAt: at, award, catalogueVersion: ladders.version, rewards, batch });
+export async function earnTier(ctx: MutationCtx, { workspace, member, ladder, award, at, batch, hidden }: Reaching, { tier, rewards }: Tier): Promise<boolean> {
+  if ((await earnedTierOf(ctx, member, ladder, tier)) !== null) return false;
+  await ctx.db.insert("earnedTiers", { member, ladder, tier, earnedAt: at, award, catalogueVersion: ladders.version, rewards, batch, hidden });
   await publish(ctx, { type: "achievementEarned", workspace, member, ladder, tier, at, batch });
+  return true;
 }
 
 export function earnedTiersOf(ctx: QueryCtx, member: MemberId, ladder: LadderId): Promise<EarnedTier[]> {
