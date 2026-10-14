@@ -58,18 +58,18 @@ export function App({ visitor, actions, useLeaderboard }: AppProps) {
             <Page state={shown} route={route} board={board} onChoosePeriod={choosePeriod} onSignIn={signIn} onSignOut={actions.signOut} />
           </ErrorBoundary>
         </Frame>
-        {reveal !== undefined && member !== undefined ? (
-          <RevealDialog key={reveal.card.seen} {...reveal} chatUrl={member.chatUrl} announcement={moments.announcement} onFinish={moments.finish} onClose={moments.close} />
-        ) : (
-          <MomentAnnouncement text={moments.announcement} />
+        {reveal !== undefined && member !== undefined && (
+          <RevealDialog key={reveal.card.seen} {...reveal} chatUrl={member.chatUrl} onFinish={moments.finish} onClose={moments.close} />
         )}
+        <MomentAnnouncement text={moments.announcement} />
       </MomentsProvider>
     </NavigateProvider>
   );
 }
 
 function cratesOf(member: MemberProfile | undefined) {
-  return member?.features?.map(({ seen }) => seen) ?? [];
+  if (member === undefined) return undefined;
+  return member.features?.map(({ seen }) => seen) ?? [];
 }
 
 function stillAsking(state: ShellState) {

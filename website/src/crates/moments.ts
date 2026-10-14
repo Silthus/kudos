@@ -29,7 +29,7 @@ export function useMoments() {
   return useContext(MomentsContext);
 }
 
-type Shown = { signedOut: boolean; crates: string[] };
+type Shown = { signedOut: boolean; crates: string[] | undefined };
 
 export function useCrateMoments(openFeature: ShellActions["openFeature"], { signedOut, crates }: Shown): Moments {
   const [attempts, setAttempts] = useState<Partial<Record<Feature, Attempt>>>({});
@@ -94,6 +94,7 @@ export function useCrateMoments(openFeature: ShellActions["openFeature"], { sign
     ({ returnFocus }: { returnFocus: boolean }) => {
       focusAfterClose.current = returnFocus ? reveal?.card.feature : undefined;
       setReveals((queued) => queued.slice(1));
+      setAnnouncement("");
     },
     [reveal],
   );
@@ -115,14 +116,18 @@ export function useCrateMoments(openFeature: ShellActions["openFeature"], { sign
   };
 }
 
-function useMembersShown(crates: string[]) {
-  const lastCrates = useRef<string[]>([]);
+function useMembersShown(crates: string[] | undefined) {
+  const lastCrates = useRef<string[] | undefined>(undefined);
   const members = useRef(1);
-  if (crates.length > 0) {
-    if (lastCrates.current.length > 0 && !crates.some((key) => lastCrates.current.includes(key))) members.current += 1;
+  if (crates !== undefined) {
+    if (lastCrates.current !== undefined && !sameMember(lastCrates.current, crates)) members.current += 1;
     lastCrates.current = crates;
   }
   return members.current;
+}
+
+function sameMember(before: string[], now: string[]) {
+  return now.some((key) => before.includes(key)) || (before.length === 0 && now.length === 0);
 }
 
 export function featureCardAttributes(feature: Feature) {

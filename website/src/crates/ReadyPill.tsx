@@ -9,26 +9,28 @@ export function ReadyPill({ member }: { member: MemberProfile }) {
   const ready = readyFeaturesOf(member);
   const first = ready[0];
   if (moments === undefined || first === undefined) return null;
-  const attempt = moments.attemptOf(first.feature);
-  const opening = attempt === "opening";
+  const opening = moments.attemptOf(first.feature) === "opening";
   return (
-    <div className="relative">
-      <Button
-        variant="outline"
-        size="sm"
-        aria-disabled={opening || undefined}
-        onClick={() => {
-          if (!opening) moments.open(first);
-        }}
-      >
-        <CrateGlyph className="size-4" />
-        {opening ? <span className="max-sm:sr-only">Opening…</span> : <ReadyCount count={ready.length} />}
-      </Button>
-      {attempt !== undefined && attempt !== "opening" && (
-        <p className="absolute right-0 top-full mt-1 w-max max-w-64 rounded-md border bg-card px-2 py-1 text-xs font-medium shadow-sm">{attemptMessages[attempt]}</p>
-      )}
-    </div>
+    <Button
+      variant="outline"
+      size="sm"
+      aria-disabled={opening || undefined}
+      onClick={() => {
+        if (!opening) moments.open(first);
+      }}
+    >
+      <CrateGlyph className="size-4" />
+      {opening ? "Opening…" : <ReadyCount count={ready.length} />}
+    </Button>
   );
+}
+
+export function ReadyPillFailure({ member }: { member: MemberProfile }) {
+  const moments = useMoments();
+  const first = readyFeaturesOf(member)[0];
+  const attempt = first && moments?.attemptOf(first.feature);
+  if (attempt === undefined || attempt === "opening") return null;
+  return <p className="order-last w-full pb-2 text-right text-xs font-medium max-sm:text-left">{attemptMessages[attempt]}</p>;
 }
 
 function ReadyCount({ count }: { count: number }) {

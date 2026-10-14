@@ -2,7 +2,6 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { IconArrowRight } from "@posthog/icons";
 import { Button, buttonVariants } from "@posthog/quill";
 import { AppLink } from "../AppLink";
-import { MomentAnnouncement } from "./MomentAnnouncement";
 import { aboutOf, webPageOf } from "../features";
 import type { FeatureCard } from "../shell";
 import { SlackLink } from "../SlackLink";
@@ -11,9 +10,9 @@ import type { Reveal } from "./moments";
 
 export const revealPlaysForMs = 1700;
 
-type RevealDialogProps = Reveal & { chatUrl: string; announcement: string; onFinish: (card: FeatureCard) => void; onClose: (how: { returnFocus: boolean }) => void };
+type RevealDialogProps = Reveal & { chatUrl: string; onFinish: (card: FeatureCard) => void; onClose: (how: { returnFocus: boolean }) => void };
 
-export function RevealDialog({ card, seenBefore, chatUrl, announcement, onFinish, onClose }: RevealDialogProps) {
+export function RevealDialog({ card, seenBefore, chatUrl, onFinish, onClose }: RevealDialogProps) {
   const labelId = useId();
   const dialog = useRef<HTMLDivElement>(null);
   const [reducedMotion] = useState(prefersReducedMotion);
@@ -51,7 +50,6 @@ export function RevealDialog({ card, seenBefore, chatUrl, announcement, onFinish
     <div
       ref={dialog}
       role="dialog"
-      aria-modal="true"
       aria-labelledby={labelId}
       tabIndex={-1}
       data-motion={reducedMotion ? "reduced" : "full"}
@@ -66,7 +64,6 @@ export function RevealDialog({ card, seenBefore, chatUrl, announcement, onFinish
         </div>
         {!playing && <EndState key={shownAt} card={card} chatUrl={chatUrl} onClose={onClose} onReplay={replay} />}
       </div>
-      <MomentAnnouncement text={announcement} />
     </div>
   );
 }

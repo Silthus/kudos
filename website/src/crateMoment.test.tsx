@@ -183,17 +183,22 @@ describe("WS66: the reveal follows the server", () => {
     expect(dialog()).toBeNull();
   });
 
-  it("announces what opened in a live region inside the modal dialog, where screen readers still read it", async () => {
-    const { user } = await openTheCrate();
+  it("announces what opened in the one live region, which stays mounted and readable while the page behind the dialog is inert", async () => {
+    const { user } = renderApp(ready, undefined, { openFeature: async () => ({ kind: "opened" }) });
+    const region = announcement();
+    await user.click(openButton());
     await user.keyboard("{Escape}");
-    expect(announcement()).toHaveTextContent("You opened Leaderboard.");
-    expect(announcement()).toHaveAttribute("role", "status");
-    expect(dialog()).toContainElement(announcement());
+    expect(announcement()).toBe(region);
+    expect(region).toHaveTextContent("You opened Leaderboard.");
+    expect(region).toHaveAttribute("role", "status");
+    expect(dialog()).not.toHaveAttribute("aria-modal");
+    expect(main().closest("[inert]")).not.toBeNull();
+    expect(region.closest("[inert]")).toBeNull();
   });
 
   it("goes to the feature's page from the end state", async () => {
     const { user, showVisitor } = await openTheCrate(undefined, ready);
-    showVisitor(shellFixtures.memberWithTheBoard);
+    showVisitor(opened);
     await user.keyboard("{Escape}");
     await user.click(within(dialog()!).getByRole("link", { name: "Go to Leaderboard" }));
     expect(dialog()).toBeNull();
@@ -245,6 +250,19 @@ describe("WS66: the reveal holds up against overlapping answers and sessions", (
     await pending.settle({ kind: "opened" });
     expect(dialog()).toBeNull();
     expect(openButton()).toHaveAccessibleName("Open");
+  });
+
+  it.each([
+    { without: "features while unlocks don't apply", next: { ...ready, features: null } },
+    { without: "features when nothing has shipped", next: shellFixtures.memberWithNothingShipped },
+  ])("WS60: ignores the member shown before's answer when the next member has no $without", async ({ next }) => {
+    const pending = answerLater();
+    const { user, showVisitor } = renderApp(ready, undefined, { openFeature: () => pending.answer });
+    await user.click(openButton());
+    showVisitor(shellFixtures.loading);
+    showVisitor(next);
+    await pending.settle({ kind: "opened" });
+    expect(dialog()).toBeNull();
   });
 
   it("keeps a member's own crates through a ship that adds one, so their open still plays its reveal", async () => {
@@ -377,6 +395,13 @@ describe("WS68: the ready pill", () => {
     await user.click(pill()!);
     expect(within(screen.getByRole("banner")).getByText(message)).toBeVisible();
     expect(pill()).toHaveAccessibleName("2 ready");
+  });
+
+  it("leaves a failure on the home to the crate's own message", async () => {
+    const { user } = renderApp(shellFixtures.memberWithEveryFeatureReady, undefined, { openFeature: async () => ({ kind: "refused" }) });
+    await user.click(pill()!);
+    expect(within(screen.getByRole("banner")).queryByText("That couldn't be opened.")).toBeNull();
+    expect(within(crateNamed("Leaderboard")).getByText("That couldn't be opened.")).toBeVisible();
   });
 
   it("is gone while unlocks don't apply", () => {
