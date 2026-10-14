@@ -40,7 +40,7 @@ function received(key: string, at: number, giver: Person, message: Message): Kud
 }
 
 function given(key: string, at: number, recipients: Person[], message: Message): KudosGiven {
-  return { kind: "kudosGiven", key, at, recipients, kudos: recipients.length, channel: publicChannel, saidWhy: true, permalink: null, message, earned: { xp: 10, questsDone: [] } };
+  return { kind: "kudosGiven", key, at, recipients, kudos: recipients.length, channel: publicChannel, saidWhy: true, permalink: null, message, earned: { xp: 10, questsDone: [], bonuses: [] } };
 }
 
 const threeReceived: RecentKudos = {
