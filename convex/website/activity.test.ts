@@ -293,9 +293,9 @@ describe("AT23 AT24 AT27: what a kudos entry says", () => {
     });
   });
 
-  test("an emoji Slack sent with a skin tone answers it in the emoji's name, to the giver and the recipient", async () => {
+  test("an emoji Slack sent with a skin tone answers it in the emoji's name, without Slack's untoned character, to the giver and the recipient", async () => {
     await activityOn();
-    await post(t, [section(text(`thanks ${reason} `), mention(bob.user), text(" "), emoji("taco"), tonedEmoji("raised_hands", 4))], { user: alice.user, ts: postedTs });
+    await post(t, [section(text(`thanks ${reason} `), mention(bob.user), text(" "), emoji("taco"), tonedEmoji("raised_hands", 4, "1f64c"))], { user: alice.user, ts: postedTs });
     await settle(t);
 
     for (const person of [alice, bob]) {

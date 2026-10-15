@@ -150,7 +150,7 @@ describe("AT2 AT3: a kudos message's words", () => {
     });
   });
 
-  test("keep the skin tone Slack sends beside an emoji's name in the name, as Slack writes a toned emoji", async () => {
+  test("keep the skin tone Slack sends beside an emoji's name in the name, as Slack writes a toned emoji, and drop a character without it", async () => {
     const t = testBackend();
 
     await post(t, [
@@ -160,6 +160,7 @@ describe("AT2 AT3: a kudos message's words", () => {
         text(" "),
         emoji("taco"),
         tonedEmoji("+1", 3, "1f44d-1f3fc"),
+        tonedEmoji("ok_hand", 5, "1f44c"),
         tonedEmoji("wave", 6),
         tonedEmoji("wave::skin-tone-2", 2),
         tonedEmoji("clap", 1),
@@ -174,6 +175,7 @@ describe("AT2 AT3: a kudos message's words", () => {
     expect(kept.segments.filter((segment) => segment.kind === "emoji")).toEqual([
       { kind: "emoji", name: "taco" },
       { kind: "emoji", name: "+1::skin-tone-3", unicode: "👍🏼" },
+      { kind: "emoji", name: "ok_hand::skin-tone-5" },
       { kind: "emoji", name: "wave::skin-tone-6" },
       { kind: "emoji", name: "wave::skin-tone-2" },
       { kind: "emoji", name: "clap" },
