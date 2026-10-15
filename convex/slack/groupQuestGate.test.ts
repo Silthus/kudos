@@ -126,6 +126,19 @@ describe("GB29 GB36: turning a flag the group quest needs off hides it and rewri
     expect(await groupQuestFacts(t)).toEqual(recordedWhileOn);
     expect(groupQuestEvents().filter(({ event }) => event === "crate opened")).toEqual([]);
   });
+
+  test.each([groupQuest, "groups", "quests"])("with %s off at Monday's sweep after the launch, no group quest is drawn and App Home shows none", async (flag) => {
+    const t = await antsOpenedQuests(everyFlagBut(""));
+    await sweepAt(t, lastTuesday);
+    await flagsFromPostHog(t, postHog, ...everyFlagBut(flag, offForEveryone(flag)));
+
+    await sweepAt(t, mondaySweep);
+    await openHome(t, "U_ANN");
+
+    expect(publishedHome(slack, "U_ANN").join("\n")).not.toContain("Ants quest:");
+    expect(await groupQuestFacts(t)).toMatchObject({ launches: [expect.anything()], quests: [] });
+    expect(groupQuestEvents()).toEqual([]);
+  });
 });
 
 describe("GB29 O36: the group-quest exposure", { timeout: 120_000 }, () => {
