@@ -21,7 +21,7 @@ export type CommandAnswer = { kind: "opened" } | { kind: "refused" };
 
 export type SwapAnswer = { kind: "swapped" } | { kind: "refused" };
 
-export type PurchaseRefusal = "owned" | "level" | "requires" | "points" | "not-open";
+export type PurchaseRefusal = "owned" | "level" | "requires" | "points" | "coins" | "coins-not-open" | "not-open";
 
 export type PurchaseAnswer = { kind: "bought" } | { kind: "refused"; reason: PurchaseRefusal | null };
 
@@ -73,8 +73,8 @@ const purchaseRefusals: Record<Refusal, PurchaseRefusal | null> = {
   "tree-locked": "not-open",
   "tree-ready": "not-open",
   retired: null,
-  "coins-not-open": null,
-  "no-coins": null,
+  "coins-not-open": "coins-not-open",
+  "no-coins": "coins",
 };
 
 export const buyPerk = memberMutation({

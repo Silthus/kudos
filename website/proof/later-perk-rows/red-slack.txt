@@ -1,0 +1,62 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/later-perk-rows
+
+ ❯ |convex| convex/slack/coinUpgrades.test.ts (26 tests | 1 failed | 25 skipped) 1052ms
+   ❯ CO22 CO23 CO24: a level-7 member with Coins open buys flame with a skill point and coins (7)
+     × WS345: while the website is open, the level-up DM's Buy on a coin perk links to the web like every other perk 1051ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/slack/coinUpgrades.test.ts > CO22 CO23 CO24: a level-7 member with Coins open buys flame with a skill point and coins > WS345: while the website is open, the level-up DM's Buy on a coin perk links to the web like every other perk
+AssertionError: expected { Object (type, text, ...) } to match object { Object (url) }
+(12 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "url": "https://kudos-site.test/skills",
++   "accessibility_label": "Buy Flame",
++   "action_id": "{\"perk\":\"flame\",\"type\":\"buyPerk\"}",
++   "confirm": {
++     "confirm": {
++       "text": "Buy",
++       "type": "plain_text",
++     },
++     "deny": {
++       "text": "Cancel",
++       "type": "plain_text",
++     },
++     "text": {
++       "text": "This spends 1 skill point and 150 🪙. Skill points and coins are never refunded.",
++       "type": "plain_text",
++     },
++     "title": {
++       "text": "Buy Flame?",
++       "type": "plain_text",
++     },
++   },
++   "text": {
++     "text": "Buy",
++     "type": "plain_text",
++   },
++   "type": "button",
++   "value": "{\"perk\":\"flame\",\"type\":\"buyPerk\"}",
+  }
+
+ ❯ convex/slack/coinUpgrades.test.ts:137:49
+    135|     const levelUp = levelUpDmTo("U_ALICE", 7);
+    136|
+    137|     expect(accessoryBeside(levelUp, "*Flame*")).toMatchObject({ url: `…
+       |                                                 ^
+    138|     expect(accessoryBeside(levelUp, "*Flame*")).not.toHaveProperty("va…
+    139|     expect(accessoryBeside(levelUp, "*Treasurer*")).toMatchObject({ ur…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 25 skipped (26)
+   Start at  16:55:49
+   Duration  2.14s (tests 54%, transform 30%, import 13%, environment 2%)
+
