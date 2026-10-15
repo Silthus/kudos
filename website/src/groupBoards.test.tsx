@@ -5,7 +5,7 @@ import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures, type Leaderboard } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
-import { contrast, type Mode } from "./test/themeContrast";
+import { contrast, contrastOnTint, type Mode } from "./test/themeContrast";
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -116,6 +116,33 @@ describe("WS344 V24: the tab list works by keyboard", () => {
   });
 });
 
+describe("WS344: each card shows its rank as a glanceable number", () => {
+  it("sets the rank apart from the sentence, in primary only on the selected card", () => {
+    visitTheBoard(leaderboardFixtures.withGroupBoards);
+
+    const ranks = boardTabs().map((each) => each.querySelector("[data-rank]"));
+    expect(ranks.map((rank) => rank?.textContent)).toEqual(["#2", "#1", "#9"]);
+    expect(ranks.map((rank) => rank?.classList.contains("text-primary"))).toEqual([false, true, false]);
+  });
+
+  it("shows no number where there is no rank", () => {
+    visitTheBoard(leaderboardFixtures.withMyGroupUnlisted);
+
+    expect(boardTabs().map((each) => each.querySelector("[data-rank]")?.textContent ?? null)).toEqual([null, null, "#9"]);
+  });
+});
+
+describe("WS344 390 px: the podium keeps each phrase whole", () => {
+  it("never breaks inside a score's unit or a participation phrase", async () => {
+    const { user } = visitTheBoard(leaderboardFixtures.withGroupBoards);
+    await user.click(tab("Groups"));
+
+    const podium = within(boardPanel()).getByRole("list", { name: "Top three" });
+    const unbreakable = [...podium.querySelectorAll(".whitespace-nowrap")].map((part) => part.textContent);
+    expect(unbreakable).toEqual(expect.arrayContaining(["per person", "66% gave", "· 6 total", "100% gave", "· 16 total"]));
+  });
+});
+
 describe("WS344 V24: Tab leaves the tab list for the selected board", () => {
   it("moves focus from the selected tab to its board panel, and Shift+Tab back", async () => {
     const { user } = visitTheBoard(leaderboardFixtures.withGroupBoards);
@@ -159,7 +186,8 @@ describe("WS344 GB13: the Groups board", () => {
       expect.stringContaining("Thistle3.2 per person100% gave · 16 total"),
       expect.stringContaining("Bees0.8 per person25% gave · 3 total"),
     ]);
-    expect(within(podium).getAllByRole("img", { name: /crest$/ })).toHaveLength(3);
+    expect(podium.querySelectorAll('[data-crest][aria-hidden="true"]')).toHaveLength(3);
+    expect(within(podium).queryAllByRole("img")).toEqual([]);
   });
 
   it("lists the rest of the window with each group's crest, participation bar, total and score", async () => {
@@ -168,7 +196,7 @@ describe("WS344 GB13: the Groups board", () => {
     const lines = within(screen.getByRole("list", { name: "No. · group, kudos per person" })).getAllByRole("listitem");
     expect(lines.map((line) => line.textContent)).toEqual([expect.stringMatching(/^Rank 4: .*Moss.*50% gave · 3 total.*0\.5$/), expect.stringMatching(/^Rank 5: .*Acorn.*33% gave · 1 total.*0\.3$/)]);
     expect(lines[0]!.querySelector('[data-participation="50"]')).toHaveAttribute("aria-hidden", "true");
-    expect(within(lines[0]!).getByRole("img", { name: "Moss crest" })).toBeInTheDocument();
+    expect(lines[0]!.querySelector("[data-crest]")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("marks the viewer's group with a ring and a label, never by colour alone", async () => {
@@ -201,8 +229,18 @@ describe("WS344 WS45 GB14: only the viewer sees their group's line and the most 
     const panel = privatePanel()!;
     expect(within(panel).getByText("Most improved")).toBeInTheDocument();
     expect(within(panel).getByText("Moss")).toBeInTheDocument();
-    expect(within(panel).getByRole("img", { name: "Moss crest" })).toBeInTheDocument();
+    expect(panel.querySelector("[data-crest]")).not.toBeNull();
+    expect(panel.querySelector("[data-mine-ring]")).toBeNull();
     expect(panel).toHaveTextContent("Team Ants: ▲ 1.5 more per person than this time last week · ▲ 1 place");
+  });
+
+  it("rings the most improved crest when it is the viewer's own group", async () => {
+    const board = leaderboardFixtures.withGroupBoards;
+    const mine = board.groups!.rows.find((row) => row.mine)!;
+    const { user } = visitTheBoard({ ...board, groups: { ...board.groups!, mostImproved: { group: mine.group, name: mine.name, gain: 1.5 } } });
+    await user.click(tab("Groups"));
+
+    expect(privatePanel()!.querySelector("[data-mine-ring]")).not.toBeNull();
   });
 
   it("names the group's best period when it gained nothing", async () => {
@@ -284,6 +322,10 @@ describe("WS339 V24: the group boards pass axe and keep their marks at 3:1", () 
       { part: "the viewer's group's ring", paint: "primary", surface: "card" },
     ])("keeps $part at 3:1", ({ paint, surface }) => {
       expect(contrast(mode, paint, surface)).toBeGreaterThanOrEqual(3);
+    });
+
+    it("keeps the selected card's large rank number at 3:1 on its tint", () => {
+      expect(contrastOnTint(mode, "primary", "fill-selected", { backdrop: "card" })).toBeGreaterThanOrEqual(3);
     });
   });
 });

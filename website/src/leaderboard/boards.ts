@@ -18,24 +18,26 @@ export function peopleBoardOf(board: Leaderboard, chosen: Exclude<BoardId, "grou
   return { period: board.period, chatUrl: board.chatUrl, rows, window, standing };
 }
 
-export function peopleStandingOf({ standing, rows }: PeopleBoard) {
+export type CardStanding = { words: string; rank?: number };
+
+export function peopleStandingOf({ standing, rows }: PeopleBoard): CardStanding {
   switch (standing.kind) {
     case "ranked":
-      return rows[standing.position - 1]?.tied ? `You're tied at #${standing.rank}` : `You're #${standing.rank}`;
+      return { words: rows[standing.position - 1]?.tied ? "You're tied at" : "You're", rank: standing.rank };
     case "not-ranked":
-      return "Not ranked yet";
+      return { words: "Not ranked yet" };
     case "left":
-      return "Off the board";
+      return { words: "Off the board" };
   }
 }
 
-export function groupsStandingOf({ standing, rows }: GroupsBoardShown) {
+export function groupsStandingOf({ standing, rows }: GroupsBoardShown): CardStanding {
   switch (standing.kind) {
     case "ranked":
-      return rows[standing.position - 1]?.tied ? `Your group is tied at #${standing.rank}` : `Your group is #${standing.rank}`;
+      return { words: rows[standing.position - 1]?.tied ? "Your group is tied at" : "Your group is", rank: standing.rank };
     case "not-listed":
-      return "Not listed yet";
+      return { words: "Not listed yet" };
     case "no-group":
-      return "No group yet";
+      return { words: "No group yet" };
   }
 }

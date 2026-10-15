@@ -44,7 +44,7 @@ function GroupsNotes({ groups, period }: { groups: GroupsBoardShown; period: Per
     <OnlyYouSeeThese>
       {mostImproved !== null && (
         <div className="flex items-center gap-3 rounded-lg border bg-background p-2.5 dark:bg-muted/40">
-          <Crest group={mostImproved.group} name={mostImproved.name} size={36} />
+          <Crest group={mostImproved.group} mine={groups.rows.some((row) => row.mine && row.group === mostImproved.group)} size={36} />
           <span className="min-w-0">
             <span className="hud-label flex items-center gap-1">
               <IconTrending aria-hidden="true" className="size-3" /> Most improved

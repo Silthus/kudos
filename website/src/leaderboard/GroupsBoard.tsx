@@ -20,10 +20,10 @@ export function GroupsPodium({ groups: { rows, window } }: { groups: GroupsBoard
         tied: row.tied,
         name: row.name,
         mine: row.mine ? "Your group" : undefined,
-        face: (leads) => <Crest group={row.group} name={row.name} mine={row.mine} size={leads ? 72 : 56} />,
+        face: (leads) => <Crest group={row.group} mine={row.mine} size={leads ? 72 : 56} />,
         value: perPerson(row.perMember),
         unit: "per person",
-        detail: participationOf(row),
+        detail: participationPartsOf(row),
         climbed: row.climbed,
       }),
     );
@@ -69,7 +69,7 @@ function GroupLine({ row }: { row: GroupsBoardRow }) {
         {row.tied && <span className="text-xs">=</span>}
       </span>
       <span className="flex min-w-0 items-center gap-2.5 text-sm">
-        <Crest group={row.group} name={row.name} mine={row.mine} size={30} />
+        <Crest group={row.group} mine={row.mine} size={30} />
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="flex min-w-0 items-center gap-2">
             <span title={row.name} className="truncate font-medium">
@@ -107,8 +107,12 @@ function GapLine() {
   );
 }
 
-function participationOf({ participation, kudos }: GroupsBoardRow) {
-  return `${participation}% gave · ${kudos} total`;
+function participationPartsOf({ participation, kudos }: GroupsBoardRow) {
+  return [`${participation}% gave`, `· ${kudos} total`];
+}
+
+function participationOf(row: GroupsBoardRow) {
+  return participationPartsOf(row).join(" ");
 }
 
 function skipsBefore(positions: number[], index: number) {

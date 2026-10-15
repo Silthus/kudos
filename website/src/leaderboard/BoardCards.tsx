@@ -1,9 +1,9 @@
 import { IconCheck, IconGlobe, IconGroups, IconPeople } from "@posthog/icons";
 import { useRef, type ComponentType, type KeyboardEvent } from "react";
 import type { Leaderboard } from "../shell";
-import { groupsStandingOf, peopleBoardOf, peopleStandingOf, type BoardId } from "./boards";
+import { groupsStandingOf, peopleBoardOf, peopleStandingOf, type BoardId, type CardStanding } from "./boards";
 
-type Card = { label: string; blurb: string; standing: string; Icon: ComponentType<{ className?: string }> };
+type Card = { label: string; blurb: string; standing: CardStanding; Icon: ComponentType<{ className?: string }> };
 
 export type BoardIds = { tab: (board: BoardId) => string; label: (board: BoardId) => string; panel: string };
 
@@ -20,7 +20,9 @@ export function EveryoneCard({ board }: { board: Leaderboard }) {
         </h2>
         <p className="text-xs text-muted-foreground">{blurb}</p>
       </div>
-      <p className="ml-auto text-sm font-medium tabular-nums">{standing}</p>
+      <p className="ml-auto text-sm font-medium tabular-nums">
+        <StandingWords standing={standing} selected={false} />
+      </p>
     </section>
   );
 }
@@ -92,10 +94,20 @@ function BoardTab({ card: { label, blurb, standing, Icon }, board, selected, ids
         </span>
         {selected && <IconCheck data-selected-mark aria-hidden="true" className="size-4 shrink-0" />}
       </span>
-      <span id={standingId} className="text-xs font-medium tabular-nums text-muted-foreground sm:text-sm">
-        {standing}
+      <span id={standingId} className="flex flex-wrap items-baseline gap-x-1 text-xs font-medium tabular-nums text-muted-foreground sm:text-sm">
+        <StandingWords standing={standing} selected={selected} />
       </span>
     </button>
+  );
+}
+
+function StandingWords({ standing: { words, rank }, selected }: { standing: CardStanding; selected: boolean }) {
+  if (rank === undefined) return words;
+  return (
+    <>
+      {words}{" "}
+      <span data-rank className={`text-xl font-bold leading-none sm:text-2xl ${selected ? "text-primary" : "text-foreground"}`}>{`#${rank}`}</span>
+    </>
   );
 }
 

@@ -1,12 +1,12 @@
 import { IconCrown } from "@posthog/icons";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { BoardFace, RankWords, YouLabel } from "./BoardFace";
 import type { PeopleBoard } from "./boards";
 import { Climbed } from "./Climbed";
 
 type Step = "first" | "second" | "third";
 
-export type PodiumSpot = { key: string; rank: number; tied: boolean; name: string; mine: string | undefined; face: (leads: boolean) => ReactNode; value: string; unit: string; detail?: string; climbed: number | null };
+export type PodiumSpot = { key: string; rank: number; tied: boolean; name: string; mine: string | undefined; face: (leads: boolean) => ReactNode; value: string; unit: string; detail?: string[]; climbed: number | null };
 
 const pedestalHeight: Record<Step, string> = { first: "h-20 sm:h-28", second: "h-14 sm:h-20", third: "h-10 sm:h-14" };
 
@@ -63,11 +63,20 @@ function Spot({ spot }: { spot: PodiumSpot }) {
         </span>
         {spot.mine !== undefined && <YouLabel>{spot.mine}</YouLabel>}
       </span>
-      <span className="mt-1 flex items-baseline gap-1">
+      <span className="mt-1 flex flex-col items-center sm:flex-row sm:items-baseline sm:gap-1">
         <span className={`font-bold tabular-nums leading-none ${leads ? "text-3xl sm:text-4xl" : "text-2xl sm:text-3xl"}`}>{spot.value}</span>{" "}
-        <span className="text-[11px] text-muted-foreground">{spot.unit}</span>
+        <span className="whitespace-nowrap text-[11px] text-muted-foreground">{spot.unit}</span>
       </span>
-      {spot.detail !== undefined && <span className="mt-1 text-center text-[11px] tabular-nums text-muted-foreground">{spot.detail}</span>}
+      {spot.detail !== undefined && (
+        <span className="mt-1 text-center text-[11px] tabular-nums text-muted-foreground">
+          {spot.detail.map((part, index) => (
+            <Fragment key={part}>
+              {index > 0 && " "}
+              <span className="whitespace-nowrap">{part}</span>
+            </Fragment>
+          ))}
+        </span>
+      )}
       <Climbed places={spot.climbed} />
       <span
         data-pedestal={step}
