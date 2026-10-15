@@ -16,6 +16,7 @@ import { coinsVisibleTo } from "../wallet/visibility";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { workspaceLaunchDueIn } from "./flag";
 import { memberMutation } from "./memberMutation";
+import { skillPointsOf } from "./skillTree";
 import type { VerifiedMember } from "./memberQuery";
 import { featurePageOf, leaderboardStateOf, unlockPathOf } from "./unlockPath";
 
@@ -110,7 +111,7 @@ export const setBoardVisibility = memberMutation({
 async function appliedShownTo(ctx: QueryCtx, me: VerifiedMember, applied: AppliedReward | undefined): Promise<AppliedReward | null> {
   if (applied === undefined) return null;
   const coinsShown = await coinsVisibleTo(ctx, me.member);
-  const skillPointsShown = featurePageOf(await unlockPathOf(ctx, me), "skillTree").kind === "open";
+  const skillPointsShown = (await skillPointsOf(ctx, me, await unlockPathOf(ctx, me))) !== null;
   const shown = (value: number, isShown: boolean) => (isShown ? value : 0);
   const standingShown = ({ coins, skillPoints, ...standing }: StandingWithCoins) => ({ ...standing, coins: shown(coins, coinsShown), skillPoints: shown(skillPoints, skillPointsShown) });
   return { xp: applied.xp, coins: shown(applied.coins, coinsShown), from: standingShown(applied.from), to: standingShown(applied.to) };

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { journeyShippedBeforeAnyoneJoined, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { journeyShippedBeforeAnyoneJoined, onForEmails, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { buttonInHome } from "../../testing/slackInteractions";
 import { opens, reachesLevel } from "../../testing/unlocks";
@@ -404,6 +404,17 @@ describe("opening on the website applies what Slack's open applies", () => {
     });
   });
 
+  test("CR14: with skill-tree on in the member's own decision but off in the workspace's, the answer's skill points are 0, as getMyProfile shows none", async () => {
+    const { member, asSignedIn } = await aHeldWeeklyQuest(...coinsAndTree);
+    await skillTreeOnOnlyFor(member);
+
+    expect(await skillPointsShownTo(asSignedIn)).toBeNull();
+    expect(await openQuestCrate(asSignedIn, firstSlot)).toEqual({
+      kind: "opened",
+      applied: { xp: 20, coins: 10, from: { xp: 1490, level: 6, coins: 7, skillPoints: 0 }, to: { xp: 1510, level: 7, coins: 17, skillPoints: 0 } },
+    });
+  });
+
   test("CR14: a repeated open answers the numbers the first open applied, after the member's XP, balance and skill points moved on", async () => {
     const { member, asSignedIn } = await aHeldWeeklyQuest(...coinsAndTree);
     const first = await openQuestCrate(asSignedIn, firstSlot);
@@ -431,6 +442,19 @@ async function aHeldWeeklyQuest(...alsoOn: string[]) {
   await drawnIn(t, team.member, ["say-why"], { xp: 20, coins: 10, item: null });
   await thanks(t, team.member, team.teammate);
   return team;
+}
+
+async function skillTreeOnOnlyFor(member: MemberId) {
+  const email = "juno@example.com";
+  await t.run((ctx) => ctx.db.patch(member, { email }));
+  postHog.withFlags(...["website", ...questsFlags, "crate-rewards", "coins"].map(onForEveryone), onForEmails("skill-tree", email));
+  await t.action(components.posthog.lib.refreshFlagDefinitions, {});
+}
+
+async function skillPointsShownTo(caller: Pick<Backend, "query">) {
+  const profile = await caller.query(api.website.profile.getMyProfile, {});
+  if (profile.kind !== "member") throw new Error(`expected a member, got ${profile.kind}`);
+  return profile.skillPoints;
 }
 
 function standsAt(member: MemberId, { xp, coins }: { xp: number; coins: number }) {
