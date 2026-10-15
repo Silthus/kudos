@@ -69,6 +69,7 @@ const member: MemberProfile = {
   skillPoints: null,
   coins: null,
   inventory: null,
+  groups: false,
   settings: false,
 };
 

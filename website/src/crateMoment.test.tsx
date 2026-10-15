@@ -421,7 +421,7 @@ describe("WS68: the ready pill", () => {
     const { user } = renderApp(shellFixtures.memberWithQuestsReady, undefined, { openFeature: async () => ({ kind: "refused" }) }, fixedQuests(questsFixtures.ready));
     await user.click(pill()!);
     expect(within(screen.getByRole("banner")).queryByText("That couldn't be opened.")).toBeNull();
-    const readyCrate = within(main()).getByRole("heading", { level: 1, name: "Quests is ready" }).closest("section")!;
+    const readyCrate = within(main()).getByRole("heading", { level: 1, name: "Quests are ready" }).closest("section")!;
     expect(within(readyCrate).getByText("That couldn't be opened.")).toBeVisible();
   });
 

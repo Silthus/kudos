@@ -1,0 +1,12 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/polish-276/website
+
+Not implemented: navigation to another Document
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  7 passed (7)
+      Tests  333 passed (333)
+   Start at  17:37:09
+   Duration  33.46s (tests 75%, import 15%, environment 5%, transform 4%, setup 1%)
+

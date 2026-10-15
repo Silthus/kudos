@@ -1,5 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import { homeFacts } from "../engine/home";
+import { groupsShownTo } from "../groups/groups";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import { xpLevelsOnFor } from "../progression/xpLevels";
@@ -39,6 +40,7 @@ export type MemberProfile = {
   skillPoints: number | null;
   coins: number | null;
   inventory: MemberInventory | null;
+  groups: boolean;
   settings: boolean;
 };
 
@@ -66,6 +68,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     skillPoints: await skillPointsOf(ctx, me, path),
     coins: (await visibleWalletOf(ctx, me.member))?.balance ?? null,
     inventory: await inventoryShownTo(ctx, me.member),
+    groups: await groupsShownTo(ctx, me.member),
     settings: await settingsShownTo(ctx, me, leaderboard),
   };
 });

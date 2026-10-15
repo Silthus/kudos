@@ -1,0 +1,144 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/polish-276
+
+ ❯ |convex| convex/website/profile.test.ts (31 tests | 5 failed) 1501ms
+   ❯ WS13 WS15 WS18: a member's home answer projects their own homeFacts (5)
+     × a member reads their own kudos left, refill, this week and in total, with where to thank someone in Slack 58ms
+   ❯ groups are named only while groupsShownTo answers (4)
+     × #417: while groups is off, getMyProfile says groups is false, as groupsShownTo does 9ms
+     × #417: while groups is on but no group counts in the…, getMyProfile says groups is false, as groupsShownTo does 8ms
+     × #417: while groups is on and a group counts in the …, getMyProfile says groups is true, as groupsShownTo does 8ms
+     × #417: switching groups off hides the groups fact of a session that was reading it 26ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/profile.test.ts > WS13 WS15 WS18: a member's home answer projects their own homeFacts > a member reads their own kudos left, refill, this week and in total, with where to thank someone in Slack
+AssertionError: expected { allowance: { base: 3, …(2) }, …(12) } to deeply equal { kind: 'member', …(13) }
+
+- Expected
++ Received
+
+@@ -9,11 +9,10 @@
+      "image": "https://avatars.slack-edge.com/juno.png",
+      "initials": "JW",
+      "kind": "slack",
+    },
+    "features": null,
+-   "groups": false,
+    "journey": null,
+    "kind": "member",
+    "kudosEmoji": "taco",
+    "leaderboard": {
+      "kind": "off",
+
+ ❯ convex/website/profile.test.ts:186:41
+    184|     const { asSignedIn } = await aSession(t, juno);
+    185|
+    186|     expect(await myProfile(asSignedIn)).toEqual({
+       |                                         ^
+    187|       kind: "member",
+    188|       name: "Juno Whitlock",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  |convex| convex/website/profile.test.ts > groups are named only while groupsShownTo answers > #417: while groups is off, getMyProfile says groups is false, as groupsShownTo does
+ FAIL  |convex| convex/website/profile.test.ts > groups are named only while groupsShownTo answers > #417: while groups is on but no group counts in the…, getMyProfile says groups is false, as groupsShownTo does
+AssertionError: expected { allowance: { base: 3, …(2) }, …(12) } to match object { kind: 'member', groups: false }
+(23 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "groups": false,
+    "kind": "member",
+  }
+
+ ❯ convex/website/profile.test.ts:312:41
+    310|     const { asSignedIn } = await aSession(t, juno);
+    311|
+    312|     expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member"…
+       |                                         ^
+    313|     expect(await t.run((ctx) => groupsShownTo(ctx, member))).toBe(grou…
+    314|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  |convex| convex/website/profile.test.ts > groups are named only while groupsShownTo answers > #417: while groups is on and a group counts in the …, getMyProfile says groups is true, as groupsShownTo does
+AssertionError: expected { allowance: { base: 3, …(2) }, …(12) } to match object { kind: 'member', groups: true }
+(23 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "groups": true,
+    "kind": "member",
+  }
+
+ ❯ convex/website/profile.test.ts:312:41
+    310|     const { asSignedIn } = await aSession(t, juno);
+    311|
+    312|     expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member"…
+       |                                         ^
+    313|     expect(await t.run((ctx) => groupsShownTo(ctx, member))).toBe(grou…
+    314|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  |convex| convex/website/profile.test.ts > groups are named only while groupsShownTo answers > #417: switching groups off hides the groups fact of a session that was reading it
+AssertionError: expected { allowance: { base: 3, …(2) }, …(12) } to match object { groups: true }
+(24 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "groups": true,
++   "allowance": {
++     "base": 3,
++     "left": 3,
++     "refillsAt": 1791936000000,
++   },
++   "chatUrl": "https://app.slack.com/client/T1",
++   "face": {
++     "image": "https://avatars.slack-edge.com/juno.png",
++     "initials": "JW",
++     "kind": "slack",
++   },
++   "features": null,
++   "journey": null,
++   "kind": "member",
++   "kudosEmoji": "taco",
++   "leaderboard": {
++     "kind": "off",
++   },
++   "lifetime": {
++     "given": 0,
++     "received": 0,
++   },
++   "name": "Juno Whitlock",
++   "progression": null,
++   "skillPoints": null,
++   "thisWeek": {
++     "given": 0,
++     "received": 0,
++   },
+  }
+
+ ❯ convex/website/profile.test.ts:320:41
+    318|     await aCountingGroupWith(await aMember(t, juno.user));
+    319|     const { asSignedIn } = await aSession(t, juno);
+    320|     expect(await myProfile(asSignedIn)).toMatchObject({ groups: true }…
+       |                                         ^
+    321|
+    322|     await switchWebsite(t, postHog, true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 26 passed (31)
+   Start at  15:40:41
+   Duration  9.73s (transform 61%, import 22%, tests 16%, environment 1%)
+

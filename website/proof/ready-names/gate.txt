@@ -1,0 +1,5 @@
+pnpm gate through ~/dev/fleet/fleet heavy on 290aa625 (after merging origin/main 0c260af5):
+ Test Files  209 passed (209)
+      Tests  3909 passed (3909)
+0 rejected names, 0 unknown nouns (883 files), 37 in records
+exit 0

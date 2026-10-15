@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import { IconDay, IconLeave, IconLock, IconQuestion, IconUser } from "@posthog/icons";
 import { CrateGlyph } from "../crates/CrateArt";
-import { webPageOf } from "../features";
+import { isOrAre, webPageOf } from "../features";
 import { leaderboardHref, type Screen } from "../route";
 import { navEntriesOf, type NavEntry } from "../nav/entries";
 import type { FeatureCard, MemberProfile, Period } from "../shell";
@@ -64,7 +64,7 @@ function pageCommandOf(entry: NavEntry, member: MemberProfile): Command {
     return { name, aliases, usage, blurb: blurb ?? page?.sentence ?? "", Icon: entry.Icon, state: "open", run: (words, shell) => (shell.go(hrefFor?.(words) ?? entry.href), close) };
   }
   if (entry.state === "ready") {
-    return { name, aliases, usage, blurb: `${entry.name} is ready. Run it to open its crate.`, Icon: CrateGlyph, state: "ready", run: (_words, shell) => (shell.openCrate(entry.card), close) };
+    return { name, aliases, usage, blurb: `${entry.name} ${isOrAre(entry.card.feature)} ready. Run it to open its crate.`, Icon: CrateGlyph, state: "ready", run: (_words, shell) => (shell.openCrate(entry.card), close) };
   }
   const level = member.progression?.level;
   const unlocks = `${entry.name} unlocks at level ${entry.level}.`;
