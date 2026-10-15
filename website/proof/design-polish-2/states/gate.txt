@@ -1,1 +1,3 @@
 Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
+$ pnpm typecheck && pnpm test && pnpm coherence
+$ tsc --noEmit && tsc --noEmit -p website

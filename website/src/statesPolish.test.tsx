@@ -44,9 +44,14 @@ describe("#481 3 V23: an empty timeline is Max's empty state, with one hedgehog,
     await pages.answer(aPage([], null));
     const empty = main().querySelector<HTMLElement>("[data-timeline-empty]")!;
     expect(empty).toHaveTextContent(sentence);
-    expect(empty.querySelector("svg[aria-hidden='true'], svg")).not.toBeNull();
+    const illustrations = [...empty.children].filter((child) => child.tagName.toLowerCase() === "svg");
+    expect(illustrations).toHaveLength(1);
+    expect(illustrations[0]).toHaveAttribute("aria-hidden", "true");
+    expect(within(empty).queryByRole("img")).toBeNull();
     const action = within(empty).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" });
     expect(action).toHaveAttribute("href", member.chatUrl);
+    expect(action).toHaveClass("quill-button--variant-outline");
+    expect(main().querySelector(".quill-button--variant-primary")).toBeNull();
     expect(within(main()).getAllByRole("link", { name: /Thank someone in Slack/ })).toEqual([action]);
   });
 

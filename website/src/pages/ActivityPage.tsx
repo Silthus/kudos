@@ -108,7 +108,7 @@ function EmptyTimeline({ filter, chatUrl }: { filter: ActivityFilter; chatUrl: s
     <section data-timeline-empty tabIndex={-1} aria-label="Nothing yet" className="flex flex-col items-center gap-4 rounded-lg border bg-card px-4 py-10 text-center outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <HedgehogTownCrier size={96} title="" />
       <p className="max-w-md text-balance text-sm text-muted-foreground">{filterNamed(filter).empty}</p>
-      <SlackLink chatUrl={chatUrl} variant="primary">
+      <SlackLink chatUrl={chatUrl} variant="outline">
         Thank someone in Slack
       </SlackLink>
     </section>
