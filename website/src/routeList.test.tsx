@@ -11,6 +11,12 @@ describe("SW10: the route list is the paths the router serves", () => {
     expect(routeList).toContain("/activity");
     expect(servedPaths).toContain("/activity");
   });
+
+  test("#467: both lists hold /book/collection", () => {
+    expect(routeList).toContain("/book/collection");
+    expect(servedPaths).toContain("/book/collection");
+    expect(routeOf(new URL("https://kudos-site.test/book/collection"))).toEqual({ page: "book", bookPage: "collection" });
+  });
 });
 
 describe("#435: the router reads every target a Slack link carries", () => {

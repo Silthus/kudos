@@ -30,7 +30,17 @@ export type { CommandAnswer, PurchaseAnswer, PurchaseRefusal, SwapAnswer } from 
 export type { GroupChoice, MessageKind, MessagePlace, MessageSetting, MySettings } from "../../convex/website/settings";
 export type { Feature } from "../../convex/unlocks/feature";
 export type { Quest, WeeklyQuest } from "../../convex/quests/step";
-export type { Activity, ActivityEntry, KudosGiven, KudosReceived, LevelUp, Message, MyActivity, MyRecentKudos, MySpotlight, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
+export type { KudosGiven, KudosReceived, LevelUp, Message, MyRecentKudos, MySpotlight, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
+import type { Activity as ServedActivity, ActivityEntry as ServedActivityEntry, MyActivity as ServedMyActivity } from "../../convex/website/activity";
+import type { Found } from "./activity/found";
+
+export type { Found };
+
+export type ActivityEntry = ServedActivityEntry | Found;
+
+export type Activity = Omit<ServedActivity, "entries"> & { entries: ActivityEntry[] };
+
+export type MyActivity = Exclude<ServedMyActivity, ServedActivity> | Activity;
 
 export type GroupsBoardRow = GroupsBoardShown["rows"][number];
 

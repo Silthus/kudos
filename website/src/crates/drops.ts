@@ -12,6 +12,10 @@ export type WithADrop = { drop?: Drop | null };
 
 const rarityMarks: Record<Rarity, string> = { common: "⬜", uncommon: "🟩", rare: "🟦", epic: "🟪", legendary: "🟧" };
 
+export function rarityMarkOf(rarity: Rarity) {
+  return rarityMarks[rarity];
+}
+
 export function rarityWordsOf(rarity: Rarity) {
   return `${rarityMarks[rarity]} ${rarity.charAt(0).toUpperCase()}${rarity.slice(1)}`;
 }

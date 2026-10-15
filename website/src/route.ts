@@ -23,7 +23,7 @@ export type Route =
   | { page: "settings" }
   | { page: "not-found" };
 
-export type BookPageId = CategoryId | "overview" | "earned";
+export type BookPageId = CategoryId | "overview" | "earned" | "collection";
 
 export type Screen = Exclude<Route["page"], "not-found" | "activity">;
 
@@ -35,6 +35,7 @@ const routeAt = {
   "/skills": (search) => ({ page: "skills", perk: perkIn(search), crate: crateIn(search) }),
   "/book": (search) => ({ page: "book", bookPage: categoryAsked(search), crate: crateIn(search) }),
   "/book/earned": () => ({ page: "book", bookPage: "earned" }),
+  "/book/collection": (search) => ({ page: "book", bookPage: "collection", crate: crateIn(search) }),
   "/settings": () => ({ page: "settings" }),
 } satisfies Record<string, (search: string) => Route>;
 

@@ -1,9 +1,8 @@
 import { HedgehogStampApproved } from "@posthog/brand/hoggies";
 import { Arrow } from "../Arrow";
 import { buttonVariants } from "@posthog/quill";
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { AppLink } from "../AppLink";
-import { hasSeen, markSeen } from "../crates/seen";
 import { PageTitle } from "../PageTitle";
 import type { LadderCard } from "../shell";
 import { SlackLink } from "../SlackLink";
@@ -12,6 +11,7 @@ import { tierWords } from "./dates";
 import { Medal } from "./Medal";
 import { newestEarned, type Shelved } from "./progress";
 import { listOf, rewardsAreYours, RewardGains } from "./Rewards";
+import { useFreshKeys } from "./useFreshKeys";
 import "./earned.css";
 
 export function EarnedPage({ ladders, chatUrl }: { ladders: LadderCard[]; chatUrl: string }) {
@@ -101,8 +101,5 @@ function sentenceOf({ ladder, tier }: Shelved) {
 }
 
 function useFirstShowing(earned: Shelved[]) {
-  const keys = earned.flatMap(({ tier }) => tier.seen ?? []).join(" ");
-  const [fresh] = useState(() => keys.split(" ").some((key) => !hasSeen(key)));
-  useEffect(() => keys.split(" ").forEach(markSeen), [keys]);
-  return fresh;
+  return useFreshKeys(earned.flatMap(({ tier }) => tier.seen ?? [])).size > 0;
 }

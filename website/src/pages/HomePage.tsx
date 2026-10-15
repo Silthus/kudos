@@ -1,6 +1,6 @@
 import { FirstKudosNudge, hasGivenNoKudos } from "../home/FirstKudosNudge";
 import { Hero } from "../home/Hero";
-import { MainColumnPanels, RightRailPanels, type RailReads } from "../home/FeaturePanels";
+import { MainColumnPanels, RightRailPanels, type HomeReads } from "../home/FeaturePanels";
 import { InventoryPanel } from "../home/InventoryPanel";
 import { JourneyPanel } from "../home/JourneyPanel";
 import { ProfileCardPanel } from "../home/ProfileCardPanel";
@@ -9,7 +9,7 @@ import { RecentKudosCard } from "../home/RecentKudosCard";
 import type { RecentKudosRead } from "../recentKudosRead";
 import type { MemberProfile } from "../shell";
 
-export function HomePage({ member, reads, useRecentKudos }: { member: MemberProfile; reads: RailReads; useRecentKudos: RecentKudosRead }) {
+export function HomePage({ member, reads, useRecentKudos }: { member: MemberProfile; reads: HomeReads; useRecentKudos: RecentKudosRead }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
@@ -18,7 +18,7 @@ export function HomePage({ member, reads, useRecentKudos }: { member: MemberProf
         {hasGivenNoKudos(member) && <FirstKudosNudge member={member} />}
         <JourneyPanel journey={member.journey} />
         <InventoryPanel member={member} />
-        <MainColumnPanels member={member} />
+        <MainColumnPanels member={member} collection={reads.collection} />
       </div>
       <div className="flex min-w-0 flex-col gap-6">
         <ProfileCardPanel member={member} card={reads.card} />
