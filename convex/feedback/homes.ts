@@ -13,6 +13,7 @@ import { skillTreeShownTo } from "../progression/skillTree";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { questsShownTo } from "../quests/flag";
 import { activateJourneyOf, journeyOf, type JourneyStepFacts } from "../quests/journey";
+import { journeyCopyFor, type JourneyStepCopy } from "../quests/journeyCopy";
 import { thisWeeksQuestsOf, unopenedCratesOf, type UnopenedCrate, type WeeklyQuests } from "../quests/weekly";
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
 import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
@@ -33,7 +34,7 @@ export const homeTabValidator = v.union(v.literal("profile"), v.literal("leaderb
 export type HomeTab = Infer<typeof homeTabValidator>;
 
 export type ShownTab =
-  | { tab: "profile"; progression: ToldProgression | null; unlocks: UnlocksHome | null; quests: WeeklyQuests | null; earlierCrates: UnopenedCrate[] | null; journey: JourneyStepFacts[] | null }
+  | { tab: "profile"; progression: ToldProgression | null; unlocks: UnlocksHome | null; quests: WeeklyQuests | null; earlierCrates: UnopenedCrate[] | null; journey: JourneyStepShown[] | null }
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
   | { tab: "skillTree"; perks: MemberPerks; coinsName: string }
@@ -52,6 +53,12 @@ type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: bool
 type HomeSelection = { tab: HomeTab; period: Period };
 
 const opensOn: HomeSelection = { tab: "profile", period: "week" };
+
+export type JourneyStepShown = JourneyStepFacts & JourneyStepCopy;
+
+async function journeyShownTo(ctx: QueryCtx, member: MemberId): Promise<JourneyStepShown[]> {
+  return Promise.all((await journeyOf(ctx, member)).map(async (facts) => ({ ...facts, ...(await journeyCopyFor(ctx, member, facts.step)) })));
+}
 
 type Door = { frontDoor: boolean };
 
@@ -154,7 +161,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         unlocks: namedForStore(await unlocksHomeOf(ctx, viewer.member), slices.store),
         quests: slices.quests ? await openedQuestsOf(ctx, viewer.member) : null,
         earlierCrates: slices.quests ? await openedEarlierCratesOf(ctx, viewer.member) : null,
-        journey: slices.quests ? await journeyOf(ctx, viewer.member) : null,
+        journey: slices.quests ? await journeyShownTo(ctx, viewer.member) : null,
       };
     case "leaderboard":
       return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period) };

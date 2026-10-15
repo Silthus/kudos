@@ -9,8 +9,7 @@ import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import type { PurchaseOutcome, Refusal } from "../progression/purchases";
 import { hasCoinPrice, perkOf, type Perk } from "../progression/tree";
 import type { ProgressSettings } from "../progression/settings";
-import type { JourneyStepFacts } from "../quests/journey";
-import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
+import { journeyGoalOf } from "../quests/journeyCopy";
 import { rewardKeyOf } from "../quests/crates";
 import { questOf } from "../quests/pool";
 import type { WeekKey } from "../quests/week";
@@ -25,7 +24,7 @@ import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
 import { questCratePageOf, readyCratePageOf, urlOf, type Page } from "../website/routes";
 import { coinsPartOf, inCoins } from "./coins";
-import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
+import type { HomeTab, JourneyStepShown, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { renderEveryoneBoard } from "./leaderboard";
 import { openTheWebsite, productName, skillPointsOf, slashCommand } from "./naming";
 import { medals } from "./medals";
@@ -169,7 +168,7 @@ function weeklyCratesOf(quests: WeeklyQuests | null, website: string): HomeLine[
   return unopened.map(({ slot, goal }) => ({ kind: "action", text: `✅ ${goal}`, action: openCrate({ kind: "weekly", week: quests.week, slot }, website) }));
 }
 
-function journeyCratesOf(journey: JourneyStepFacts[] | null, website: string): HomeLine[] {
+function journeyCratesOf(journey: JourneyStepShown[] | null, website: string): HomeLine[] {
   const unopened = (journey ?? []).filter(({ finishedAt, openedAt }) => finishedAt !== null && openedAt === null);
   return unopened.map(({ step }) => ({ kind: "action", text: `✅ ${journeyGoalOf(step)}`, action: openCrate({ kind: "journey", step }, website) }));
 }
@@ -465,8 +464,7 @@ function waitingToOpenLines(crates: UnopenedCrate[]): HomeLine[] {
   return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...moreEarlierCrates(crates)];
 }
 
-function journeyStepLines({ step, reward, finishedAt, openedAt }: JourneyStepFacts): HomeLine[] {
-  const { goal, hint } = journeyCopyOf(step);
+function journeyStepLines({ step, goal, hint, reward, finishedAt, openedAt }: JourneyStepShown): HomeLine[] {
   if (finishedAt !== null) {
     const text = `${bold("Journey:")} ✅ ${goal} ${earned(reward.xp)}`;
     return [openedAt === null ? { kind: "action", text, action: openCrate({ kind: "journey", step }, null) } : { kind: "text", text }];

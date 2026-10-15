@@ -2,7 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import { rewardKeyOf } from "../quests/crates";
 import { questsApplyTo } from "../quests/flag";
 import { projectedJourneyOf, type ProjectedJourneyStep } from "../quests/journey";
-import { journeyCopyOf } from "../quests/journeyCopy";
+import { journeyCopyFor } from "../quests/journeyCopy";
 import { questOf, type PoolQuest } from "../quests/pool";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { WeekKey } from "../quests/week";
@@ -69,7 +69,7 @@ export const getQuests = memberQuery(async (ctx, me): Promise<QuestsAnswer> => {
 
 export async function journeyStepsOf(ctx: QueryCtx, me: VerifiedMember): Promise<JourneyStep[] | null> {
   if (!(await questsApplyTo(ctx, me.member))) return null;
-  return Promise.all((await projectedJourneyOf(ctx, me.member)).map((step) => journeyStepOf(me, step)));
+  return Promise.all((await projectedJourneyOf(ctx, me.member)).map((step) => journeyStepOf(ctx, me, step)));
 }
 
 async function questSlotOf(me: VerifiedMember, { swap }: DrawnWeek, facts: DrawnWeek["slots"][number]): Promise<QuestSlot> {
@@ -93,12 +93,12 @@ async function waitingCrateOf(me: VerifiedMember, { crate, week, goal, reward }:
   return { goal, week, reward: { xp: reward.xp }, crate, seen: await seenKeyOfCrate(me, crate) };
 }
 
-async function journeyStepOf(me: VerifiedMember, facts: ProjectedJourneyStep): Promise<JourneyStep> {
+async function journeyStepOf(ctx: QueryCtx, me: VerifiedMember, facts: ProjectedJourneyStep): Promise<JourneyStep> {
   const { step, reward, crate } = facts;
   const state = crateStateOf(facts, "active");
   return {
     step,
-    ...journeyCopyOf(step),
+    ...(await journeyCopyFor(ctx, me.member, step)),
     reward: { xp: reward.xp },
     state,
     crate: state === "finished" ? crate : null,

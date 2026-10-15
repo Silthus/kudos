@@ -12,7 +12,7 @@ import { skillTreeAppliesIn } from "../progression/skillTree";
 import { purchaseOutcomeValidator } from "../progression/purchases";
 import { progressSettingsOf } from "../progression/settings";
 import { xpLevelsOnFor, xpLevelsShownTo } from "../progression/xpLevels";
-import { journeyStepAppliesIn, questsApplyTo } from "../quests/flag";
+import { journeyStepAppliesTo, questsApplyTo } from "../quests/flag";
 import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type WeeklyQuest } from "../quests/step";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
@@ -155,10 +155,10 @@ async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, n
 
 async function questsStillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: QuestNotification): Promise<QuestNotification | null> {
   if (!(await questsApplyTo(ctx, member))) return null;
-  if (notification.kind === "quest-finished") return (await journeyStepAppliesIn(ctx, workspace, notification.quest.step)) ? notification : null;
+  if (notification.kind === "quest-finished") return (await journeyStepAppliesTo(ctx, workspace, member, notification.quest.step)) ? notification : null;
   if (notification.kind === "weekly-quest-finished") return notification;
   const finished: typeof notification.finished = [];
-  for (const entry of notification.finished) if (await journeyStepAppliesIn(ctx, workspace, entry.quest.step)) finished.push(entry);
+  for (const entry of notification.finished) if (await journeyStepAppliesTo(ctx, workspace, member, entry.quest.step)) finished.push(entry);
   return { ...notification, finished };
 }
 

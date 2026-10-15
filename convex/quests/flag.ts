@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { achievementsApplyIn } from "../achievements/flag";
 import { exposed, memberDecision, workspaceDecision } from "../analytics/flags";
 import { unlockPathShownIn, unlockPathShownTo } from "../unlocks/launch";
+import { storeVisibleTo } from "../store/visibility";
 import { previewMomentOf } from "../unlocks/previewMoments";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { joinMember } from "./join";
@@ -17,8 +18,15 @@ export async function questsApplyTo(ctx: QueryCtx | MutationCtx, member: MemberI
   return (await memberDecision(ctx, questsFlag, member)) && (await unlockPathShownTo(ctx, member));
 }
 
-export async function journeyStepAppliesIn(ctx: QueryCtx | MutationCtx, workspace: string, step: JourneyStep): Promise<boolean> {
-  return step !== "two-days" || (await achievementsApplyIn(ctx, workspace));
+export async function journeyStepAppliesTo(ctx: QueryCtx | MutationCtx, workspace: string, member: MemberId, step: JourneyStep): Promise<boolean> {
+  switch (step) {
+    case "two-days":
+      return achievementsApplyIn(ctx, workspace);
+    case "your-emoji":
+      return (await storeVisibleTo(ctx, member)) && (await journeyStartedFor(ctx, member)) !== null;
+    default:
+      return true;
+  }
 }
 
 export async function questsShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
