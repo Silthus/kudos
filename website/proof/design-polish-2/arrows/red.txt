@@ -1,0 +1,90 @@
+
+ RUN  v5.0.3 /tmp/dp2/red2/website
+
+ ❯ |website| src/arrowLinks.test.tsx (4 tests | 4 failed) 628ms
+   ❯ #481 hover: every arrow link nudges its arrow on hover, and holds still under reduced motion (4)
+     × on the home's panel links and the recent-kudos card 248ms
+     × on the bonus quest's Go to link 85ms
+     × on the Book overview's closest next tier 256ms
+     × on the earned page's See achievements 39ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/arrowLinks.test.tsx > #481 hover: every arrow link nudges its arrow on hover, and holds still under reduced motion > on the home's panel links and the recent-kudos card
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"group"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  group[39m
+Received:
+[31m  inline-flex items-center gap-1 self-start text-sm font-medium underline-offset-4 hover:underline[39m
+ ❯ expectArrowNudge src/arrowLinks.test.tsx:25:16
+     23|
+     24| function expectArrowNudge(link: HTMLElement) {
+     25|   expect(link).toHaveClass("group");
+       |                ^
+     26|   const arrow = [...link.querySelectorAll("svg")].at(-1);
+     27|   expect(arrow).toBeDefined();
+ ❯ src/arrowLinks.test.tsx:36:81
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  |website| src/arrowLinks.test.tsx > #481 hover: every arrow link nudges its arrow on hover, and holds still under reduced motion > on the bonus quest's Go to link
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"group"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  group[39m
+Received:
+[31m  inline-flex items-center gap-1 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline[39m
+ ❯ expectArrowNudge src/arrowLinks.test.tsx:25:16
+     23|
+     24| function expectArrowNudge(link: HTMLElement) {
+     25|   expect(link).toHaveClass("group");
+       |                ^
+     26|   const arrow = [...link.querySelectorAll("svg")].at(-1);
+     27|   expect(arrow).toBeDefined();
+ ❯ src/arrowLinks.test.tsx:42:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  |website| src/arrowLinks.test.tsx > #481 hover: every arrow link nudges its arrow on hover, and holds still under reduced motion > on the Book overview's closest next tier
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"transition-transform motion-safe:group-hover:translate-x-0.5"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  transition-transform motion-safe:group-hover:translate-x-0.5[39m
+Received:
+[31m  LemonIcon hidden size-4 shrink-0 text-muted-foreground sm:block[39m
+ ❯ expectArrowNudge src/arrowLinks.test.tsx:29:17
+     27|   expect(arrow).toBeDefined();
+     28|   expect(arrow).toHaveAttribute("aria-hidden", "true");
+     29|   expect(arrow).toHaveClass(...nudge);
+       |                 ^
+     30| }
+     31|
+ ❯ src/arrowLinks.test.tsx:48:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  |website| src/arrowLinks.test.tsx > #481 hover: every arrow link nudges its arrow on hover, and holds still under reduced motion > on the earned page's See achievements
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"group"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  group[39m
+Received:
+[31m  quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-default sm:ml-auto[39m
+ ❯ expectArrowNudge src/arrowLinks.test.tsx:25:16
+     23|
+     24| function expectArrowNudge(link: HTMLElement) {
+     25|   expect(link).toHaveClass("group");
+       |                ^
+     26|   const arrow = [...link.querySelectorAll("svg")].at(-1);
+     27|   expect(arrow).toBeDefined();
+ ❯ src/arrowLinks.test.tsx:54:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  21:49:03
+   Duration  3.32s (import 39%, transform 21%, tests 20%, environment 16%, setup 4%)
+
