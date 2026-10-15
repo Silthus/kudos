@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { focusPageTitle } from "../pageFocus";
-import type { Feature, ShellActions } from "../shell";
+import type { CrateAnswer, Feature, ShellActions } from "../shell";
 import { rewardWords } from "../quests/QuestReward";
 import { dropOf, type Drop } from "./drops";
 import { rewardLabelOf, type ReadyCrate } from "./readyCrates";
-import type { OnTheWay, Reward, RewardKind } from "./rewards";
+import { climbRewardOf, type Climb, type OnTheWay, type Reward, type RewardKind } from "./rewards";
 import { hasSeen, markSeen } from "./seen";
 
 export type Attempt = "opening" | "refused" | "unreachable";
@@ -13,7 +13,7 @@ export type PopIn = "entry" | "chip";
 
 export type Reveal = { crate: ReadyCrate; seenBefore: boolean; fromQuests: boolean; drop: Drop | null };
 
-export type Flight = { crate: ReadyCrate; landed: RewardKind[]; setOut: boolean; reward?: Reward };
+export type Flight = { crate: ReadyCrate; landed: RewardKind[]; setOut: boolean; reward?: Reward; climb?: Climb };
 
 export type Moments = {
   attemptOf(crate: ReadyCrate): Attempt | undefined;
@@ -85,10 +85,10 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   const onQuestsNow = useRef(onQuests);
   onQuestsNow.current = onQuests;
 
-  const queue = useCallback((crate: ReadyCrate, fromQuests: boolean, drop: Drop | null) => {
+  const queue = useCallback((crate: ReadyCrate, fromQuests: boolean, drop: Drop | null, climb: Climb | undefined) => {
     const seenBefore = hasSeen(crate.seen);
     setReveals((queued) => (queued.some((shown) => shown.crate.seen === crate.seen) ? queued : [...queued, { crate, seenBefore, fromQuests, drop }]));
-    if (!seenBefore) setFlights((queued) => (queued.some((flying) => flying.crate.seen === crate.seen) ? queued : [...queued, { crate, landed: [], setOut: false }]));
+    if (!seenBefore) setFlights((queued) => (queued.some((flying) => flying.crate.seen === crate.seen) ? queued : [...queued, flightOf(crate, climb)]));
   }, []);
 
   const open = useCallback(
@@ -103,7 +103,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
       try {
         const answer = await (crate.kind === "feature" ? commands.openFeature(crate.card.feature) : commands.openQuestCrate(crate.quest));
         if (session.current !== sentIn) return;
-        if (answer.kind === "opened") queue(crate, fromQuests, dropOf(answer));
+        if (answer.kind === "opened") queue(crate, fromQuests, dropOf(answer), climbOf(answer));
         if (answer.kind === "opened" && crate.kind === "feature") setPopIns((waiting) => [...waiting, popInKey(crate.card.feature, "entry"), popInKey(crate.card.feature, "chip")]);
         attemptIs(seen, answer.kind === "refused" ? "refused" : undefined);
         if (answer.kind === "refused") setAnnouncement(attemptMessages.refused);
@@ -174,6 +174,16 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
 
 function uncharted({ setOut, reward }: Flight) {
   return setOut && reward === undefined;
+}
+
+function flightOf(crate: ReadyCrate, climb: Climb | undefined): Flight {
+  const idle = { crate, landed: [], setOut: false };
+  if (climb === undefined) return idle;
+  return climb === null ? { ...idle, climb } : { ...idle, climb, setOut: true, reward: climbRewardOf(climb) };
+}
+
+function climbOf(answer: { kind: "opened" } & Partial<Pick<Extract<CrateAnswer, { kind: "opened" }>, "applied">>): Climb | undefined {
+  return answer.applied;
 }
 
 function popInKey(feature: Feature, where: PopIn) {

@@ -1,14 +1,34 @@
 import { levelOf, skillPointsEarnedAt, xpToReach } from "../../../convex/progression/levels";
-import type { MemberProfile, Progression } from "../shell";
+import type { AppliedReward, MemberProfile, Progression } from "../shell";
 import type { ReadyCrate } from "./readyCrates";
 
 export type RewardKind = "xp" | "skillPoints" | "coins";
 
 export type Reward = Record<RewardKind, number>;
 
-export type OnTheWay = { crate: ReadyCrate; landed: RewardKind[]; reward?: Reward };
+export type Climb = AppliedReward | null;
+
+export type OnTheWay = { crate: ReadyCrate; landed: RewardKind[]; reward?: Reward; climb?: Climb };
+
+export function climbRewardOf({ xp, coins, from, to }: AppliedReward): Reward {
+  return { xp, skillPoints: Math.max(0, to.skillPoints - from.skillPoints), coins };
+}
+
+export function listedRewardOf(crate: ReadyCrate): Reward {
+  if (crate.kind === "feature") return { xp: 0, skillPoints: 0, coins: 0 };
+  return { xp: crate.reward.xp, skillPoints: 0, coins: crate.reward.coins ?? 0 };
+}
+
+function holds({ climb }: OnTheWay) {
+  return climb !== null;
+}
 
 export function rewardsOf(member: MemberProfile, onTheWay: OnTheWay[]): Reward[] {
+  const rewards = heldRewardsOf(member, onTheWay.filter(holds));
+  return onTheWay.map((item) => (item.climb === null ? (item.reward ?? listedRewardOf(item.crate)) : rewards.shift()!));
+}
+
+function heldRewardsOf(member: MemberProfile, onTheWay: OnTheWay[]): Reward[] {
   let xpLandingLater = 0;
   const xpRewards = [...onTheWay]
     .reverse()
@@ -23,15 +43,18 @@ export function rewardsOf(member: MemberProfile, onTheWay: OnTheWay[]): Reward[]
 }
 
 export function withTheRewardsHeld(member: MemberProfile, onTheWay: OnTheWay[]): MemberProfile {
-  if (onTheWay.length === 0) return member;
-  const rewards = rewardsOf(member, onTheWay);
-  const held = (kind: RewardKind) => onTheWay.reduce((sum, { landed }, at) => (landed.includes(kind) ? sum : sum + rewards[at]![kind]), 0);
+  const holding = onTheWay.filter(holds);
+  if (holding.length === 0) return member;
+  const rewards = heldRewardsOf(member, holding);
+  const held = (kind: RewardKind) => holding.reduce((sum, { landed }, at) => (landed.includes(kind) ? sum : sum + rewards[at]![kind]), 0);
+  const pinned = (kind: RewardKind) => holding.find(({ landed }) => !landed.includes(kind))?.climb?.from[kind];
   const { progression, skillPoints, coins } = member;
+  const pinnedXp = pinned("xp");
   return {
     ...member,
-    progression: progression === null ? null : progressionBefore(progression, held("xp")),
-    skillPoints: skillPoints === null ? null : Math.max(0, skillPoints - held("skillPoints")),
-    coins: coins === null ? null : Math.max(0, coins - held("coins")),
+    progression: progression === null ? null : pinnedXp === undefined ? progressionBefore(progression, held("xp")) : progressionAt(pinnedXp),
+    skillPoints: skillPoints === null ? null : (pinned("skillPoints") ?? Math.max(0, skillPoints - held("skillPoints"))),
+    coins: coins === null ? null : (pinned("coins") ?? Math.max(0, coins - held("coins"))),
   };
 }
 
