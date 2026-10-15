@@ -228,6 +228,37 @@ describe("#435: a target waits out a connecting read", () => {
   });
 });
 
+describe("#435: a quest or perk target waits for its page's content", () => {
+  it("lands /quests?quest= once Quests turn from ready to open", () => {
+    const scrolled = watchScrolling();
+    visit("/quests?quest=1");
+    let answer: QuestsShown = questsFixtures.ready;
+    const read: QuestsRead = (asking) => (asking ? answer : undefined);
+    const { showVisitor } = renderApp(shellFixtures.memberWithTheQuestsReady, undefined, undefined, read);
+    expect(scrolled).toEqual([]);
+    answer = questsFixtures.week;
+    showVisitor(shellFixtures.memberWithTheQuestsOpened);
+
+    const goal = questsFixtures.week.slots[1]!.goal;
+    expect(within(main()).getByRole("heading", { name: goal })).toHaveFocus();
+  });
+
+  it("lands /skills?perk= once the Skill tree turns from ready to open", () => {
+    preferWideScreen();
+    const scrolled = watchScrolling();
+    visit("/skills?perk=circle");
+    let answer: SkillTreeShown = skillTreeFixtures.ready;
+    const read: SkillTreeRead = (asking) => (asking ? answer : undefined);
+    const { showVisitor } = renderApp(shellFixtures.memberWithTheSkillTreeReady, undefined, undefined, undefined, undefined, read);
+    expect(scrolled).toEqual([]);
+    answer = skillTreeFixtures.withPoints;
+    showVisitor(withTheTree);
+
+    expect(scrolled).toEqual([perkNode("Circle")]);
+    expect(perkNode("Circle")).toHaveFocus();
+  });
+});
+
 describe("#435: a target survives sign-in", () => {
   it.each(["/skills?perk=spark", "/quests?crate=quests", "/?crate=journey", "/book?crate=book", "/leaderboard?period=month&crate=leaderboard"])("signs in back to %s", async (path) => {
     visit(path);

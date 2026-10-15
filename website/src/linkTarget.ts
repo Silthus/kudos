@@ -14,12 +14,14 @@ export function perkTargetAttributes(perk: PerkNode["perk"]) {
   return { "data-perk-target": perk };
 }
 
-type Landing = { selector: string; arrive: (target: HTMLElement) => void };
+export type Landed = { quest: boolean; perk: boolean; crate: boolean };
+
+type Landing = { kind: keyof Landed; selector: string; arrive: (target: HTMLElement) => void };
 
 function landingOf(route: Route): Landing | undefined {
-  if (route.page === "quests" && route.quest !== undefined) return { selector: `[data-quest-target="${route.quest}"]`, arrive: (card) => card.querySelector<HTMLElement>("h2, h3")?.focus() };
-  if (route.page === "skills" && route.perk !== undefined) return { selector: `[data-perk-target="${route.perk}"]`, arrive: pressThePerk };
-  if ("crate" in route && route.crate !== undefined) return { selector: `[data-crate-target="${route.crate}"]`, arrive: (crate) => crate.querySelector<HTMLElement>("button")?.focus() };
+  if (route.page === "quests" && route.quest !== undefined) return { kind: "quest", selector: `[data-quest-target="${route.quest}"]`, arrive: (card) => card.querySelector<HTMLElement>("h2, h3")?.focus() };
+  if (route.page === "skills" && route.perk !== undefined) return { kind: "perk", selector: `[data-perk-target="${route.perk}"]`, arrive: pressThePerk };
+  if ("crate" in route && route.crate !== undefined) return { kind: "crate", selector: `[data-crate-target="${route.crate}"]`, arrive: (crate) => crate.querySelector<HTMLElement>("button")?.focus() };
   return undefined;
 }
 
@@ -28,11 +30,11 @@ function pressThePerk(node: HTMLElement) {
   node.click();
 }
 
-export function useLinkTargetOnceLanded(route: Route, landed: boolean) {
+export function useLinkTargetOnceLanded(route: Route, landed: Landed) {
   const handled = useRef<Route | undefined>(undefined);
   useEffect(() => {
     const landing = landingOf(route);
-    if (landing === undefined || !landed || handled.current === route) return;
+    if (landing === undefined || !landed[landing.kind] || handled.current === route) return;
     handled.current = route;
     const target = document.querySelector<HTMLElement>(`main ${landing.selector}`);
     if (target === null) return;
