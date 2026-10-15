@@ -107,16 +107,40 @@ describe("ST20 ST22 ST23: the store is dark wherever it isn't shown", { timeout:
     expect(eventsPublishedSince(0)).not.toContain("itemBought");
   });
 
-  test("with store on for Alice's email only, every other member's Slack calls, and which of their messages are kudos, equal those with store off", async () => {
-    const whilePreviewed = await bobsSideOfBothWalks(previewedByAlice);
+  test("with store on for Alice's email only, every other member's Slack calls, and which of their messages are kudos, equal those with store off, and nothing public names the store", async () => {
+    const whilePreviewed = await othersSideOfBothWalks(previewedByAlice);
     vi.clearAllTimers();
     vi.mocked(publish).mockClear();
-    const whileOff = await bobsSideOfBothWalks(storeOff);
+    const whileOff = await othersSideOfBothWalks(storeOff);
 
     expect(whilePreviewed.told.filter(namesTheStore)).toEqual([]);
+    expect(whilePreviewed.saidInPublic.filter(namesTheStore)).toEqual([]);
+    expect(whilePreviewed.saidInPublic).toEqual(expect.arrayContaining(["🏅 <@U_ALICE> earned Generous Soul and Friendly Face."]));
     expect(whilePreviewed.calls).toEqual(whileOff.calls);
     expect(whilePreviewed.kudos).toEqual(whileOff.kudos);
     expect(whilePreviewed.collection).toEqual([{ item: ribbon, source: "tier" }]);
+  });
+
+  test.each(["coins", "xp-levels", "unlocks"])("once Alice's store was shown and her slots filled, turning %s off hides it again: nothing names the store, inventoryOf answers null, her loadout claims nothing and stale clicks write nothing", async (off) => {
+    const t = await workspaceDeciding(...previewedByAlice);
+    await walkEveryStorePath(t, "U_ALICE");
+    const before = slack.calls.length;
+
+    await flagsFromPostHog(t, postHog, ...featuresOnBut(off), onForEmails(store, alicesEmail));
+    vi.setSystemTime(tuesday + 2 * dayMs);
+    const loadoutKudos = await giveKudos(t, "U_ALICE", ["U_DANA"], saysWhy, ["hedgehog", "ribbon"]);
+    await openHome(t, "U_ALICE");
+    const stored = await everythingStoredButExposures(t);
+    const published = vi.mocked(publish).mock.calls.length;
+    await click(t, "U_ALICE", { type: "buyItem", item: "kudos-emoji-gem" });
+    await pick(t, "U_ALICE", { type: "equip", item: ribbon, slot: "emoji-3" });
+    await click(t, "U_ALICE", { type: "takeOff", slot: "emoji-1" });
+
+    expect(slack.calls.slice(before).flatMap(readCall).filter(namesTheStore)).toEqual([]);
+    expect(await kudosMessagesOf(t, "U_ALICE")).not.toContain(loadoutKudos);
+    expect(await inventoryOf(t, "U_ALICE")).toBeNull();
+    expect(await everythingStoredButExposures(t)).toEqual(stored);
+    expect(eventsPublishedSince(published)).toEqual([]);
   });
 });
 
@@ -125,18 +149,20 @@ describe("ST22 O35 O36: the store flag turned off and on, its stale clicks and i
     const t = await workspaceDeciding(...previewedByAlice);
     await walkEveryStorePath(t, "U_ALICE");
     await openHome(t, "U_ALICE");
-    const shown = { home: publishedHome(slack, "U_ALICE"), inventory: await inventoryOf(t, "U_ALICE") };
+    const shown = { home: publishedHome(slack, "U_ALICE"), inventory: await inventoryOf(t, "U_ALICE"), goals: await goalsInActivityOf(t, "U_ALICE") };
     const recorded = await everythingStoredButExposures(t);
 
     await flagsFromPostHog(t, postHog, ...storeOff);
     await openHome(t, "U_ALICE");
-    const hidden = publishedHome(slack, "U_ALICE");
+    const hidden = { home: publishedHome(slack, "U_ALICE"), goals: await goalsInActivityOf(t, "U_ALICE") };
     await flagsFromPostHog(t, postHog, ...previewedByAlice);
     await openHome(t, "U_ALICE");
 
-    expect(hidden.filter(namesTheStore)).toEqual([]);
+    expect(shown.goals).toContain(yourEmojiGoal);
+    expect(hidden.home.filter(namesTheStore)).toEqual([]);
+    expect(hidden.goals).not.toContain(yourEmojiGoal);
     expect(await everythingStoredButExposures(t)).toEqual(recorded);
-    expect({ home: publishedHome(slack, "U_ALICE"), inventory: await inventoryOf(t, "U_ALICE") }).toEqual(shown);
+    expect({ home: publishedHome(slack, "U_ALICE"), inventory: await inventoryOf(t, "U_ALICE"), goals: await goalsInActivityOf(t, "U_ALICE") }).toEqual(shown);
   });
 
   test.each([
@@ -230,12 +256,13 @@ async function walkEveryStorePath(t: Backend, user: string) {
   return { loadoutKudos };
 }
 
-async function bobsSideOfBothWalks(definitions: FlagDefinition[]) {
+async function othersSideOfBothWalks(definitions: FlagDefinition[]) {
   const t = await workspaceDeciding(...definitions);
   await walkEveryStorePath(t, "U_ALICE");
   await walkEveryStorePath(t, "U_BOB");
-  const calls = slackCallsAbout("U_BOB");
-  return { calls: calls.map((call) => JSON.stringify(withoutTimestamps(call))).sort(), told: calls.flatMap(readCall), kudos: await kudosMessagesOf(t, "U_BOB"), collection: (await storeRowsOf(t, "U_BOB")).collection };
+  const calls = [...slackCallsAbout("U_BOB"), ...slackCallsAbout("U_CAROL")];
+  const saidInPublic = slack.calls.filter(({ method, args }) => method === "chat.postMessage" && String(args.channel).startsWith("C")).flatMap(readCall);
+  return { calls: calls.map((call) => JSON.stringify(withoutTimestamps(call))).sort(), told: calls.flatMap(readCall), saidInPublic, kudos: await kudosMessagesOf(t, "U_BOB"), collection: (await storeRowsOf(t, "U_BOB")).collection };
 }
 
 async function workspaceDeciding(...definitions: FlagDefinition[]) {
