@@ -8,14 +8,14 @@ import { publish } from "../bus/publish";
 import { republish } from "../feedback/homes";
 import { attributedToGroupPage } from "../groups/attribution";
 import { groupsFlag } from "../groups/flag";
-import { countsAsGroup, groupModeOf, groupsShownTo, memberGroupsOf, type GroupId, type GroupMode, type GroupRef } from "../groups/groups";
+import { availableIn, countsAsGroup, groupModeOf, groupsShownTo, memberGroupsOf, type GroupId, type GroupMode, type GroupRef } from "../groups/groups";
 import { primaryGroupAt } from "../groups/history";
 import { reconcilePageOf } from "../groups/reconcile";
 import { rewardOf } from "../progression/rewards";
 import { openedAtOf } from "../unlocks/unlocks";
 import type { MemberId } from "../workspace/directory";
 import { maxUserGroupsKept } from "../workspace/userGroups";
-import { questsApplyTo } from "./flag";
+import { questsApplyIn, questsApplyTo } from "./flag";
 import { crateOpeningOf, groupWeekOfRewardKey, rewardKeyOf, rewardKeyPrefixOf } from "./crates";
 import { finishQuest } from "./finish";
 import { doesGroupQuestAction, drawGroupQuest, groupGoalOf, groupQuestPool, groupTargetOf, type GroupQuestId } from "./groupPool";
@@ -230,8 +230,12 @@ async function hasContributed(ctx: QueryCtx, { group, week }: Doc<"groupQuests">
   return contribution !== null;
 }
 
-async function groupQuestAppliesTo(ctx: QueryCtx | MutationCtx, member: MemberId): Promise<boolean> {
+export async function groupQuestAppliesTo(ctx: QueryCtx | MutationCtx, member: MemberId): Promise<boolean> {
   return (await memberDecision(ctx, groupQuestFlag, member)) && (await groupsShownTo(ctx, member)) && (await questsApplyTo(ctx, member));
+}
+
+async function groupQuestAppliesIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
+  return (await workspaceDecision(ctx, groupQuestFlag, workspace)) && (await workspaceDecision(ctx, groupsFlag, workspace)) && (await availableIn(ctx, workspace)) && (await questsApplyIn(ctx, workspace));
 }
 
 async function takesPart(ctx: MutationCtx, member: MemberId, weekStart: number): Promise<boolean> {
@@ -271,7 +275,7 @@ async function isDueToDraw(ctx: MutationCtx, workspace: string, week: WeekKey, n
     .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
     .unique();
   if (launch !== null) return launch.at < weekStartOf(week, undefined) && (await drawnWeekIn(ctx, workspace, week)) === null;
-  if (await workspaceDecision(ctx, groupQuestFlag, workspace)) await ctx.db.insert("groupQuestLaunches", { workspace, at: now });
+  if (await groupQuestAppliesIn(ctx, workspace)) await ctx.db.insert("groupQuestLaunches", { workspace, at: now });
   return false;
 }
 
