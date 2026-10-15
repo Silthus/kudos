@@ -34,14 +34,14 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: navigation to another Document
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -276,9 +276,9 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
  Test Files  213 passed (213)
-      Tests  3992 passed (3992)
-   Start at  16:36:54
-   Duration  292.01s (tests 85%, import 8%, transform 4%, environment 3%, setup 1%)
+      Tests  4015 passed (4015)
+   Start at  16:45:29
+   Duration  297.68s (tests 89%, import 6%, transform 4%, environment 2%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -1024,6 +1024,10 @@ Website reads  convex/website/WebsiteReads.spec.md
       crossing browser -> domain
       refuted 2026-10-13: progressionOf no longer returned null while xp-levels is off
       kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  groups are named only while groupsShownTo answers  invariant
+      totality oracle "groups are named only while groupsShownTo answers" over getMyProfile while groups is off beside a counting group, while it is on with no counting group, while it is on with one, and switched off under an open session: verified 2026-10-15
+      crossing browser -> domain
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
   only the allowed workspace signs in, and only while open  invariant
       totality oracle "WS3 WS6: only the allowed workspace signs in, and only while open" over the sign-in callback for a profile from another workspace, an empty Slack user, an unset SLACK_WORKSPACE_ID, and the flag off: verified 2026-10-14
       crossing browser -> session
@@ -1098,8 +1102,8 @@ Website  website/Website.spec.md
       crossing domain -> browser
       refuted 2026-10-14: let isWebAddress accept every scheme
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
-24 components, 173 bullets: 172 invariants, 1 requirement
-lacking: enforcement 0, refutation 1, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-15T13:33:54.984Z (1008 runs)
+24 components, 174 bullets: 173 invariants, 1 requirement
+lacking: enforcement 0, refutation 1, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-15T16:13:05.492Z (1012 runs)
 defects: 24 recorded, 21 closed (4 guarded, 17 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/40334844-d155-48a4-b941-3e32437d9232.jsonl:5  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/696ccc8a-ab74-4e24-9b64-c36adb12ef08.jsonl:6  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
@@ -1138,6 +1142,6 @@ RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:28  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/fecc2f56-01b5-4d62-9295-680f82cdb9ca.jsonl:4  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       317 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 105, contract 39, receipt 34, panel 33, zone 22; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (900 files), 37 in records
+ADVISORY       319 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 107, contract 39, receipt 34, panel 33, zone 22; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (903 files), 37 in records
 gate-exit 0
