@@ -8,13 +8,13 @@ import { featureCrateOf } from "./readyCrates";
 
 type CrateProps = { card: FeatureCard; heading: "h2" | "h3"; open: "primary" | "outline"; artWidth: number; framed?: boolean };
 
-const frame = "hud-panel relative h-full rounded-xl border bg-card p-4";
+const frame = "hud-panel relative h-full rounded-lg border bg-card p-4";
 
 export function Crate({ card, heading: Heading, open, artWidth, framed = true }: CrateProps) {
   const crate = useFeatureCrate(card);
   return (
     <article className={`flex items-center gap-4 ${framed ? frame : ""}`}>
-      <CrateArt phase="closed" width={artWidth} Hog={hogOf(card.feature)} nudge={crate.nudge} seen={card.seen} />
+      <CrateArt phase="closed" width={artWidth} Hog={hogOf(card.feature)} nudge={crate.nudge} />
       <div className="flex min-w-0 flex-col items-start gap-1">
         <Heading className="text-sm font-medium">{`Unlocks: ${card.name}`}</Heading>
         <p className="text-xs text-muted-foreground">{`It opens ${card.opens}.`}</p>
@@ -39,7 +39,7 @@ export function useFeatureCrate(card: FeatureCard): FeatureCrateAttempt {
     failure: attempt === undefined || opening ? undefined : attemptMessages[attempt],
     nudge: !stillSinceOpen,
     open: () => {
-      if (!opening) moments?.claim(crate);
+      if (!opening) moments?.open(crate);
     },
   };
 }

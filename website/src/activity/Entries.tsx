@@ -56,7 +56,7 @@ function KudosEntry({ side, headline, face, entry, slackName, index, timeZone, c
       tabIndex={-1}
       data-entry-index={index}
       data-side={side}
-      className={`flex gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring ${given ? "justify-end" : "justify-start"}`}
+      className={`flex gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring ${given ? "justify-end" : "justify-start"}`}
     >
       {face !== undefined && <div className="shrink-0 pt-6">{face}</div>}
       <div className={`flex max-w-[80%] min-w-0 flex-col gap-1.5 ${given ? "items-end text-right" : "items-start"}`}>

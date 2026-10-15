@@ -1,9 +1,10 @@
-import type { Leaderboard, LeaderboardRow } from "../shell";
+import type { LeaderboardRow } from "../shell";
+import type { PeopleBoard } from "./boards";
 import { periodNamed } from "./periods";
 
 export type Story = { headline: string; deck: string };
 
-export function storyOf(board: Leaderboard): Story | undefined {
+export function storyOf(board: PeopleBoard): Story | undefined {
   const leaders = board.rows.filter((row) => row.rank === 1);
   const [leader] = leaders;
   if (leader === undefined) return undefined;
@@ -16,7 +17,7 @@ function headlineOf(leaders: LeaderboardRow[], phrase: string) {
   return leader!.you ? `You lead ${phrase}.` : `${leader!.name} leads ${phrase}.`;
 }
 
-function standingInTheDeck({ standing, rows }: Leaderboard) {
+function standingInTheDeck({ standing, rows }: PeopleBoard) {
   if (standing.kind === "left") return " You're off the board by choice.";
   if (standing.kind !== "ranked" || standing.rank === 1) return "";
   const mine = rows[standing.position - 1]!;

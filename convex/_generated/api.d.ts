@@ -200,6 +200,7 @@ import type * as website_clock from "../website/clock.js";
 import type * as website_commands from "../website/commands.js";
 import type * as website_faces from "../website/faces.js";
 import type * as website_flag from "../website/flag.js";
+import type * as website_groupBoards from "../website/groupBoards.js";
 import type * as website_hosting from "../website/hosting.js";
 import type * as website_leaderboard from "../website/leaderboard.js";
 import type * as website_link from "../website/link.js";
@@ -423,6 +424,7 @@ declare const fullApi: ApiFromModules<{
   "website/commands": typeof website_commands;
   "website/faces": typeof website_faces;
   "website/flag": typeof website_flag;
+  "website/groupBoards": typeof website_groupBoards;
   "website/hosting": typeof website_hosting;
   "website/leaderboard": typeof website_leaderboard;
   "website/link": typeof website_link;

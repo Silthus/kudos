@@ -8,7 +8,7 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
 
 - **V1. The HUD frame.** Every signed-in screen has the same top bar: the HedgeHug wordmark, the screen nav, skill points and coins once unlocked, the ready pill, and the member's hedgehog avatar with its level ring.
 - **V2. Corner marks frame game objects only.** These are the home hero, the character and inventory panel, skill tree nodes, quest cards, crates and moments: things the member owns or can act on. Reading surfaces stay plain Quill cards and tables: the leaderboard list, achievement pages, albums, sign-in, errors and empty states. The small uppercase label is used only as a panel's label.
-- **V3. Colour comes from Quill's tokens.** There are three named exceptions:
+- **V3. Colour comes from Quill's tokens, with the surfaces set to posthog.com's.** The canvas, cards, muted fills, chrome and borders take posthog.com's values in each mode (light: canvas `#EEEFE9`, card `#FDFDF8`, muted `#E5E7E0`, border `#BFC1B7`; dark: canvas `#1E1F23`, card `#25262B`, muted `#2D2E37`, border `#3E424F`, secondary text `#AEB3C4`), and the canvas is flat: no gradient or glow behind the HUD. Everything else, including primary, stays Quill's. There are three named exceptions:
   - the moment bands (V12)
   - the medal metals (V16)
   - a company profile's own colour, used only as the background behind that person's face (V19)
@@ -40,7 +40,7 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
   | blue `#106fb2` | `#ffffff` | 5.33:1 |
   | night `#141414` | `#ffffff` | 18.4:1 |
 
-- **V13. Crates show their reward.** A feature the member's level has made ready, and a quest reward, each open as a crate in a full-screen reveal. Buying a perk or a hedgehog is not a crate. The label shows what is inside before it opens ("Quest reward · 40 XP · 10 coins", "Unlocks: Leaderboard"). Opening reveals what the member has already earned and never decides it.
+- **V13. Crates show their reward.** A feature the member's level has made ready, and a quest reward, each open as a crate in a full-screen reveal. Buying a perk or a hedgehog is not a crate. A closed crate names only its kind ("Quest reward", "Journey reward", "Unlocks: Leaderboard") and never what is inside; the opening bursts each reward out and flies it into the HUD home that holds it (#452). Opening reveals what the member has already earned and never decides it.
 - **V14. Kudos received is quiet.** It leads with the giver's face, name and message. XP and the new sticker count follow quietly below, with no crate or chest.
 - **V15. Nothing interrupts a visit.** An event that happens while the member is on the site, such as a level up, joins the HUD's ready pill, and the member opens it when they want.
 
@@ -83,7 +83,7 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
 ## Accessibility
 
 - **V24. WCAG 2.2 AA in both modes.**
-  - **Contrast:** 4.5:1 for text, and 3:1 for icons, borders and rings.
+  - **Contrast:** 4.5:1 for text, and 3:1 for icons, rings, and the border of a control that nothing but its border identifies (an input, a switch track, an outline). A card's or separator's border is decorative and takes posthog.com's border value.
   - **Colour is never the only signal:**
     - "you" is a ring plus a label
     - a tier is a metal plus pips plus its word
