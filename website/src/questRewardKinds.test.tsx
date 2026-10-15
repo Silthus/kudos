@@ -86,7 +86,7 @@ describe("WS348: a quest paying coins shows the coin glyph and value wherever it
   });
 });
 
-describe("WS348: a quest paying only XP, or a member whose coins aren't shown, sees no coins", () => {
+describe("WS348: a read that carries no coins, because the quest pays none or getQuests hides them, shows no coins", () => {
   it("shows no coins on the cards, the bonus, the waiting crate or the home's rows", () => {
     const { unmount } = onQuests(xpOnly);
     expect(coinsIn(main())).toEqual([]);
