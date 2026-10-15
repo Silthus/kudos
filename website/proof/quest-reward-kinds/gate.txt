@@ -1,0 +1,6 @@
+pnpm gate on 306248b4 (merge of origin/main 57fcd36e), via ~/dev/fleet/fleet heavy
+ Test Files  212 passed (212)
+      Tests  3987 passed (3987)
+lacking: enforcement 0, refutation 1, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-15T16:13:05.492Z (1012 runs)
+0 rejected names, 0 unknown nouns (895 files), 37 in records
+exit 0
