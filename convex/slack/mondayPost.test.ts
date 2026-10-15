@@ -8,19 +8,6 @@ import { type BlockAction, blockActions, buttonInHome, channelPickerInHome, grou
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 
-const lastWeeksBoard = vi.hoisted(() => ({ fails: false }));
-
-vi.mock("../leaderboard/groupBoards", async (importOriginal) => {
-  const groupBoards = await importOriginal<typeof import("../leaderboard/groupBoards")>();
-  return {
-    ...groupBoards,
-    workspaceGroupsBoardOf: (...args: Parameters<typeof groupBoards.workspaceGroupsBoardOf>) => {
-      if (lastWeeksBoard.fails) throw new Error("last week's board couldn't be read");
-      return groupBoards.workspaceGroupsBoardOf(...args);
-    },
-  };
-});
-
 const wednesday = new Date("2026-10-14T10:00:00Z");
 const announcementChannel = "C_ANNOUNCE";
 const slackBoundaryTimeoutMs = 30_000;
@@ -44,7 +31,6 @@ beforeEach(() => {
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
   slack = new FakeSlack();
   sentMessages = 0;
-  lastWeeksBoard.fails = false;
 });
 
 afterEach(() => {
@@ -279,6 +265,23 @@ describe("GB28: the Monday post goes out at most once a week", { timeout: slackB
     expect(mondayPosts()).toHaveLength(1);
   });
 
+  test("a hold that other messages keep extending uses up no try, and the post goes out once it ends", async () => {
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    await click(t, "U_ALICE", "Switch on");
+    await giveKudosInWeek(t);
+    await settleUpTo(t, Date.parse("2026-10-19T06:59:00Z"));
+
+    for (const minutes of [1, 2, 3, 4]) {
+      await t.mutation(internal.slack.rateLimits.hold, { workspace: "T1", method: "chat.postMessage", until: Date.parse("2026-10-19T07:00:00Z") + minutes * minute });
+      await settleUpTo(t, Date.parse("2026-10-19T07:00:00Z") + minutes * minute - 30_000);
+    }
+    await settleUpTo(t, Date.parse("2026-10-19T08:00:00Z"));
+
+    expect(mondayPostTimes()).toEqual([Date.parse("2026-10-19T07:04:00Z")]);
+    expect(mondayPosts()).toHaveLength(1);
+  });
+
   test("a post Slack keeps rate-limiting is given up after three tries that week, and next week's goes out", async () => {
     const t = await workspaceWithGroups();
     await adminTabOpen(t, "U_ALICE");
@@ -403,15 +406,18 @@ describe("GB28: the job rechecks the channel and groups before posting", { timeo
 });
 
 describe("GB28: next Monday's post is booked even when this week's claim fails", { timeout: slackBoundaryTimeoutMs }, () => {
-  test("a claim that throws leaves next Monday's job in place, and next week's post goes out", async () => {
+  test("a claim that throws, on two claims stored for one week, leaves next Monday's job in place, and next week's post goes out", async () => {
     const t = await workspaceWithGroups();
     await adminTabOpen(t, "U_ALICE");
     await click(t, "U_ALICE", "Switch on");
     await giveKudosInWeek(t);
-    lastWeeksBoard.fails = true;
+    await t.run(async (ctx) => {
+      const unreadable = { workspace: "T1", week: "2026-10-19", claimedAt: Date.now(), channel: announcementChannel, outcome: "claimed" as const };
+      await ctx.db.insert("mondayPostClaims", unreadable);
+      await ctx.db.insert("mondayPostClaims", unreadable);
+    });
 
     await settleUpTo(t, Date.parse("2026-10-19T08:00:00Z"));
-    lastWeeksBoard.fails = false;
     expect(mondayPosts()).toEqual([]);
 
     await giveKudosInWeek(t);

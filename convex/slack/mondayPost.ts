@@ -15,15 +15,16 @@ export const postMondayPost = observedAction({
     const claimed = await ctx.runMutation(internal.leaderboard.mondayPost.claimWeek, { workspace, generation });
     if (claimed === null) return;
     const sent = await attemptCall(ctx, workspace, "chat.postMessage", { channel: claimed.channel, text: slackTextOf(renderMondayPost(claimed.post)) });
-    const sendableAt = neverReceivedUntil(sent);
-    if (sendableAt !== null && attempt < attemptsAtMost) await ctx.runMutation(internal.leaderboard.mondayPost.postAgainLater, { workspace, generation, claim: claimed.claim, at: sendableAt, attempt: attempt + 1 });
+    const nextTry = nextTryOf(sent, attempt);
+    if (nextTry !== null) await ctx.runMutation(internal.leaderboard.mondayPost.postAgainLater, { workspace, generation, claim: claimed.claim, ...nextTry });
     else await ctx.runMutation(internal.leaderboard.mondayPost.recordOutcome, { claim: claimed.claim, outcome: outcomeOf(sent) });
   },
 });
 
-function neverReceivedUntil(sent: Attempt): number | null {
-  if (sent.kind === "held") return sent.until;
-  return sent.kind === "failed" && sent.retryAt !== undefined ? sent.retryAt : null;
+function nextTryOf(sent: Attempt, attempt: number): { at: number; attempt: number } | null {
+  if (sent.kind === "held") return { at: sent.until, attempt };
+  if (sent.kind !== "failed" || sent.retryAt === undefined || attempt >= attemptsAtMost) return null;
+  return { at: sent.retryAt, attempt: attempt + 1 };
 }
 
 function outcomeOf(sent: Attempt): MondayPostOutcome {
