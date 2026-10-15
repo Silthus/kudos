@@ -148,7 +148,7 @@ function RewardRow({ reward, seen, children }: { reward: QuestReward; seen: stri
     <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
       <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tabular-nums text-muted-foreground">
         <span {...rewardChipAttributes(seen)}>{`+${reward.xp} XP`}</span>
-        {reward.coins !== undefined && <Coins coins={reward.coins} />}
+        {reward.coins !== undefined && <Coins coins={reward.coins} seen={seen} />}
       </span>
       {children}
     </div>

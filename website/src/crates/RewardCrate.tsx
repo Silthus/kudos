@@ -25,7 +25,7 @@ export function RewardCrate({ crate, open }: RewardCrateProps) {
           {crate.reward.coins !== undefined && (
             <>
               {" · "}
-              <Coins coins={crate.reward.coins} />
+              <Coins coins={crate.reward.coins} seen={crate.seen} />
             </>
           )}
         </p>

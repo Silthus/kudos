@@ -1,0 +1,50 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/quest-reward-kinds
+
+ ❯ |website| src/questRewardKinds.test.tsx (15 tests | 2 failed | 11 skipped) 1129ms
+   ❯ WS348 #354: a quest's coins fly into the header's coins chip (4)
+     × holds the chip short of the quest's coins from the reveal, flies +10 coins from the card's coins once the XP lands, and counts up once it lands 330ms
+     × never flies under reduced motion: the chip shows the balance at once with a short fade 245ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/questRewardKinds.test.tsx > WS348 #354: a quest's coins fly into the header's coins chip > holds the chip short of the quest's coins from the reveal, flies +10 coins from the card's coins once the XP lands, and counts up once it lands
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAccessibleName()[22m
+
+Expected element to have accessible name:
+[32m  30 coins to spend[39m
+Received:
+[31m  40 coins to spend[39m
+ ❯ src/questRewardKinds.test.tsx:167:25
+    165|     placeAt(coinsChip(), { x: 900, y: 10, width: 60, height: 32 });
+    166|     await user.click(within(cardOf(finishedGoal)).getByRole("button", …
+    167|     expect(coinsChip()).toHaveAccessibleName("30 coins to spend");
+       |                         ^
+    168|     await user.keyboard("{Escape}");
+    169|     await user.click(within(screen.getByRole("dialog")).getByRole("but…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |website| src/questRewardKinds.test.tsx > WS348 #354: a quest's coins fly into the header's coins chip > never flies under reduced motion: the chip shows the balance at once with a short fade
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"reward-faded"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  reward-faded[39m
+Received:
+[31m  inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums[39m
+ ❯ src/questRewardKinds.test.tsx:206:25
+    204|     expect(flight()).toBeNull();
+    205|     expect(coinsChip()).toHaveTextContent("40");
+    206|     expect(coinsChip()).toHaveClass("reward-faded");
+       |                         ^
+    207|   });
+    208|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed | 11 skipped (15)
+   Start at  16:22:24
+   Duration  3.54s (import 33%, tests 33%, transform 18%, environment 13%, setup 3%)
+
