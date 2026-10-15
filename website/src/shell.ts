@@ -278,6 +278,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-quests": shellFixtures.memberWithQuests,
   "member-with-quests-at-level-2": shellFixtures.memberWithQuestsAtLevel2,
   "member-crossing-into-level-6": shellFixtures.memberCrossingIntoLevel6,
+  "member-with-the-inventory": shellFixtures.memberWithTheInventory,
   error: shellFixtures.error,
 };
 
