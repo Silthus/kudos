@@ -84,6 +84,8 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "quests this week", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.week },
   { name: "quests with last week's crate waiting", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithLastWeeksCrate },
   { name: "quests with the same quest's crate waiting from two weeks", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithTheSameQuestWaitingFromTwoWeeks },
+  { name: "quests with the Journey's next step as the bonus quest", path: "/quests", visitor: shellFixtures.memberCrossingIntoLevel6, quests: questsFixtures.weekWithABonus },
+  { name: "quests with a finished bonus quest to claim", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithAFinishedBonus },
   { name: "quests with nothing drawn", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.noDraw },
   { name: "quests with a swap left", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithASwapLeft },
   { name: "quests after the week's swap", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekAfterTheSwap },
@@ -171,6 +173,7 @@ describe("WS24: every page passes axe in light and dark", () => {
 
 const railStates: { name: string; board: BoardAnswer | undefined; quests: QuestsShown | undefined; visitor?: ShellState; card?: MyProfileCard }[] = [
   { name: "open, mid-board, with a quest in each state", board: leaderboardFixtures.midBoard, quests: questsFixtures.week },
+  { name: "open, with the Journey's next step as the last quest row", board: leaderboardFixtures.midBoard, quests: questsFixtures.weekWithABonus },
   { name: "open, tied, with an empty week", board: leaderboardFixtures.tiedBelowTheLead, quests: questsFixtures.noDraw },
   { name: "open, leading the board with teammates' Slack faces", board: leaderboardFixtures.withTeammatesFaces, quests: questsFixtures.twoQuests },
   { name: "open, not ranked", board: leaderboardFixtures.notRanked, quests: questsFixtures.nextWeek },

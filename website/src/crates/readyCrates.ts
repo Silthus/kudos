@@ -27,9 +27,14 @@ export function readyCratesOf(member: MemberProfile, quests: QuestsShown | undef
   return [...readyFeaturesOf(member).map(featureCrateOf), ...questCratesOf(member, quests)];
 }
 
-export function isShownOn(crate: ReadyCrate, screen: Screen | undefined) {
+export function isShownOn(crate: ReadyCrate, screen: Screen | undefined, quests: QuestsShown | undefined) {
   if (crate.kind === "feature") return screen === "home" || (screen !== undefined && screen === webPageOf(crate.card.feature)?.screen);
-  return screen === (crate.quest.kind === "journey" ? "home" : "quests");
+  if (crate.quest.kind === "weekly") return screen === "quests";
+  return screen === "home" || (screen === "quests" && isTheBonus(crate, quests));
+}
+
+function isTheBonus({ seen }: QuestCrate, quests: QuestsShown | undefined) {
+  return quests?.kind === "quests" && quests.bonus?.seen === seen;
 }
 
 function questCratesOf({ journey }: MemberProfile, quests: QuestsShown | undefined) {

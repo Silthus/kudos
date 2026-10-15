@@ -1,24 +1,26 @@
 import type { ReactNode } from "react";
 import { HedgehogExplorer, HedgehogMegaphone, HedgehogReading, HedgehogTownCrier } from "@posthog/brand/hoggies";
-import { IconCheck, IconClock, IconRefresh } from "@posthog/icons";
+import { IconArrowRight, IconCheck, IconClock, IconRefresh } from "@posthog/icons";
 import { Button, Card, CardContent } from "@posthog/quill";
+import { AppLink } from "../AppLink";
 import { attemptMessages, questCrateHomeAttributes, useMoments } from "../crates/moments";
 import { questCrateOf, type CrateFacts, type QuestCrate } from "../crates/readyCrates";
 import { Claimed } from "../crates/RewardCrate";
 import { rewardChipAttributes } from "../crates/RewardFlight";
-import type { Hoggie } from "../features";
+import { aboutOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "../features";
 import { PageTitle } from "../PageTitle";
 import { questTargetAttributes } from "../questTarget";
+import { QuestTag } from "../quests/QuestTag";
 import { sameQuest, useQuestSwap, type QuestSwap } from "../quests/questSwap";
-import type { QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
+import type { JourneyStep, MemberProfile, QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
 import { SlackLink } from "../SlackLink";
 
 type ThisWeek = Extract<QuestsAnswer, { kind: "quests" }>;
 
-type QuestsPageProps = { quests: ThisWeek; swapQuest: ShellActions["swapQuest"] };
+type QuestsPageProps = { quests: ThisWeek; member: MemberProfile; swapQuest: ShellActions["swapQuest"] };
 
-export function QuestsPage({ quests, swapQuest }: QuestsPageProps) {
-  const firstCrate = [...quests.slots, ...quests.waiting].find(({ crate }) => crate !== null)?.seen;
+export function QuestsPage({ quests, member, swapQuest }: QuestsPageProps) {
+  const firstCrate = [...quests.slots, ...(quests.bonus === null ? [] : [quests.bonus]), ...quests.waiting].find(({ crate }) => crate !== null)?.seen;
   const swap = useQuestSwap(swapQuest, quests.slots);
   return (
     <div className="flex flex-col gap-6">
@@ -38,6 +40,7 @@ export function QuestsPage({ quests, swapQuest }: QuestsPageProps) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
         <div className="flex min-w-0 flex-col gap-6">
           {quests.slots.length === 0 ? <NoQuests chatUrl={quests.chatUrl} firstCrate={firstCrate} /> : <QuestCards slots={quests.slots} firstCrate={firstCrate} swappable={quests.swap.available} swap={swap} />}
+          {quests.bonus !== null && <BonusQuest step={quests.bonus} page={pageElsewhereOf(member, quests.bonus)} firstCrate={firstCrate} />}
           <WaitingToOpen waiting={quests.waiting} firstCrate={firstCrate} />
         </div>
         <HowQuestsWork />
@@ -89,13 +92,13 @@ function QuestCard({ slot, firstCrate, swappable, swap }: { slot: QuestSlot } & 
       {...questCrateHomeAttributes(seen)}
     >
       <div className="flex items-start gap-3 sm:gap-4">
-        <QuestArt kind={kind} claimed={claimed} />
+        <QuestArt Hog={artOf[kind]} claimed={claimed} />
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="hud-label">{kind}</span>
-            {swapped && <span className="rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">Swapped</span>}
+            {swapped && <QuestTag>Swapped</QuestTag>}
           </div>
-          <h2 tabIndex={-1} className="text-base font-semibold leading-snug">
+          <h2 tabIndex={-1} className={questHeading}>
             {goal}
           </h2>
           <QuestProgress {...progress} />
@@ -108,10 +111,11 @@ function QuestCard({ slot, firstCrate, swappable, swap }: { slot: QuestSlot } & 
   );
 }
 
+const questHeading = "w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4";
+
 const artOf: Record<QuestSlot["kind"], Hoggie> = { "Say why": HedgehogReading, "Reach out": HedgehogExplorer, "Join in": HedgehogMegaphone };
 
-function QuestArt({ kind, claimed }: { kind: QuestSlot["kind"]; claimed: boolean }) {
-  const Hog = artOf[kind];
+function QuestArt({ Hog, claimed }: { Hog: Hoggie; claimed: boolean }) {
   return (
     <span data-quest-art aria-hidden="true" className="relative flex shrink-0 items-center justify-center rounded-xl bg-muted/60" style={{ width: 64, height: 64 }}>
       <Hog size={55} title="" className={claimed ? "grayscale" : undefined} />
@@ -191,6 +195,64 @@ function SwapButton({ slot, swap }: { slot: QuestSlot; swap: QuestSwap }) {
       <IconRefresh aria-hidden="true" className="size-3.5" />
       {swap.sending !== undefined && sameQuest(swap.sending, slot.quest) ? "Swapping…" : "Swap"}
     </Button>
+  );
+}
+
+function pageElsewhereOf(member: MemberProfile, { feature }: JourneyStep) {
+  const page = feature === null ? undefined : openWebPageOf(member, feature);
+  return page?.screen === "quests" ? undefined : page;
+}
+
+type BonusQuestProps = { step: JourneyStep; page: WebPage | undefined } & FirstCrate;
+
+function BonusQuest(props: BonusQuestProps) {
+  return (
+    <section aria-labelledby="bonus-quest-title" className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <h2 id="bonus-quest-title" className="hud-label">
+          Bonus quest
+        </h2>
+        <p className="text-sm text-muted-foreground">Your Journey's next step. It stays until you finish it.</p>
+      </div>
+      <BonusCard {...props} />
+    </section>
+  );
+}
+
+function BonusCard({ step, page, firstCrate }: BonusQuestProps) {
+  const { goal, hint, reward, state, seen, feature } = step;
+  const active = state === "active";
+  return (
+    <article className="hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground" {...questTargetAttributes("journey")} {...questCrateHomeAttributes(seen)}>
+      <div className="flex items-start gap-3 sm:gap-4">
+        <QuestArt Hog={feature === null ? HedgehogReading : aboutOf(feature).Hog} claimed={false} />
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="hud-label">Journey</span>
+            {active && <QuestTag>New</QuestTag>}
+          </div>
+          <h3 tabIndex={-1} className={questHeading}>
+            {goal}
+          </h3>
+          {hint !== null && <p className="text-sm text-muted-foreground">{hint}</p>}
+          <RewardRow xp={reward.xp} seen={seen}>
+            <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
+              {page !== undefined && feature !== null && <GoTo page={page} name={plainNameOf(feature)} />}
+              <ClaimOf facts={step} firstCrate={firstCrate} />
+            </div>
+          </RewardRow>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function GoTo({ page, name }: { page: WebPage; name: string }) {
+  return (
+    <AppLink href={page.href} className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+      Go to {name}
+      <IconArrowRight aria-hidden="true" className="size-3.5" />
+    </AppLink>
   );
 }
 
