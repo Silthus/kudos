@@ -65,6 +65,7 @@ Store: a member's items and the store that sells them for coins, knowing nothing
   over: a seeded sequence of grants, equips of owned, unowned and unknown items and take-offs, read after each step through inventoryOf's slots and owned items
   via: ST7: every slot holds an owned item
   because: every emoji in a slot counts as a kudos for its owner (ST8); a slot holding an item the member doesn't own would let them thank people with an emoji they never bought or earned (ST3, ST7, ST13)
+  refuted: equip no longer checked that the member owns the item -> a slot held a rocket the member never owned after the sequence's first equip (2026-10-15)
   kinds: state
   checklist: scoped-reads dismissed: equip reads the clicking member's own collection and slots by member
   checklist: revalidated-permission dismissed: nothing is queued; equip checks the store, Coins and ownership in its own mutation
@@ -81,6 +82,7 @@ Store: a member's items and the store that sells them for coins, knowing nothing
   over: a seeded sequence of grants, equips into filled, empty and the same slots, and take-offs, read after each step through inventoryOf's slots
   via: ST7: an item fills at most one slot
   because: an item is owned once (ST5), so it counts once and shows once; an emoji in two slots would hold a slot for nothing and give the website two slot entries for one item (ST7, ST26)
+  refuted: equip put the item in the slot without taking it out of the slot it was in -> 🦔 filled two slots after step 31 of the sequence (2026-10-15)
   kinds: state
   checklist: scoped-reads dismissed: equip reads and writes the clicking member's own slots by member
   checklist: revalidated-permission dismissed: nothing is queued; equip runs in the clicking member's mutation
