@@ -7,7 +7,7 @@ import { ReadyPill, ReadyPillFailure } from "./crates/ReadyPill";
 import { hudAvatarAttributes, skillPointChipAttributes } from "./crates/RewardFlight";
 import { useCountUp } from "./countUp";
 import { useMoments } from "./crates/moments";
-import { featureCrateOf, isShownOn, type ReadyCrate } from "./crates/readyCrates";
+import { featureCrateOf, type ReadyCrate } from "./crates/readyCrates";
 import { LeveledFace } from "./LeveledFace";
 import { levelRingName } from "./LevelRing";
 import { ScreenNav, usePopIn } from "./nav/ScreenNav";
@@ -21,9 +21,9 @@ import { chipName } from "./skills/perkWords";
 import { useTheme } from "./theme";
 import { ThemeControl } from "./ThemeControl";
 
-type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; current?: Screen; busy: boolean; inert?: boolean; notice?: ReactNode; onSignOut?: () => void; children: ReactNode };
+type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; readyElsewhere?: ReadyCrate[]; current?: Screen; busy: boolean; inert?: boolean; notice?: ReactNode; onSignOut?: () => void; children: ReactNode };
 
-export function Frame({ member, ready = [], current, busy, inert, notice, onSignOut, children }: FrameProps) {
+export function Frame({ member, ready = [], readyElsewhere = [], current, busy, inert, notice, onSignOut, children }: FrameProps) {
   const palette = usePalette(member !== undefined && !inert);
   return (
     <>
@@ -40,7 +40,7 @@ export function Frame({ member, ready = [], current, busy, inert, notice, onSign
               <ThemeControl />
               {member && onSignOut && <SignOut onSignOut={onSignOut} />}
             </div>
-            {member && <ReadyPillFailure crates={ready.filter((crate) => !isShownOn(crate, current))} />}
+            {member && <ReadyPillFailure crates={readyElsewhere} />}
           </div>
         </header>
         <main aria-busy={busy || undefined} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8">
