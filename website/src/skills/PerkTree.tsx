@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { IconArrowRightDown, IconCheck, IconLock } from "@posthog/icons";
 import type { PerkNode, TreeRow } from "../shell";
 import { CoinGlyph, PerkIcon, SkillPointGlyph } from "./glyphs";
+import { perkTargetAttributes } from "../linkTarget";
 import { nodeNameOf } from "./perkWords";
 import { chainOf, hasUpgrades, kindOf, layoutOf, upgradedFrom, upgradedTo, type Chain, type NodeKind, type PlacedRow } from "./upgrades";
 
@@ -143,6 +144,7 @@ function Node({ perk, chain, level, selected, popped, onSelect, onPopped, nodeRe
       aria-pressed={selected}
       aria-label={nodeNameOf(perk, level, chain)}
       onClick={onSelect}
+      {...(kind !== "unavailable" && perkTargetAttributes(perk.perk))}
       className="group relative flex w-full max-w-28 flex-col items-center rounded-lg px-1 pb-1 pt-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <span

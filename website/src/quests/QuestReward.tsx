@@ -16,12 +16,3 @@ export function Coins({ coins, seen = null }: { coins: number; seen?: string | n
     </span>
   );
 }
-
-export function CoinsGained({ coins }: { coins: number }) {
-  return (
-    <span data-reward="coins" className="inline-flex items-center gap-1.5">
-      <CoinGlyph className="size-4" />
-      {`+${coinsText(coins)}`}
-    </span>
-  );
-}
