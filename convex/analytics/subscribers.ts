@@ -10,6 +10,7 @@ import {
   questFinishedEventValidator,
   questOpenedEventValidator,
   questsDrawnEventValidator,
+  groupQuestDrawnEventValidator,
   questSwappedEventValidator,
   unlockOpenedEventValidator,
   unlockReadyEventValidator,
@@ -28,6 +29,7 @@ import {
   projectQuestFinished,
   projectQuestOpened,
   projectQuestsDrawn,
+  projectGroupQuestDrawn,
   projectQuestSwapped,
   projectUnlockOpened,
   projectUnlockReady,
@@ -87,6 +89,13 @@ export const recordQuestsDrawn = internalMutation({
   args: { event: questsDrawnEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, projectQuestsDrawn(event)));
+  },
+});
+
+export const recordGroupQuestDrawn = internalMutation({
+  args: { event: groupQuestDrawnEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, projectGroupQuestDrawn(event)));
   },
 });
 
