@@ -4,15 +4,21 @@ import { kudosGivenEventValidator } from "../bus/events";
 import { republish } from "../feedback/homes";
 import { tellTiersEarned } from "../feedback/tierNotices";
 import { isOpened } from "../feedback/unlockFilter";
+import { tierItemOf, type CatalogueItem } from "../store/catalogue";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { countAward, countingOf, countOf } from "./counting";
 import { achievementsLiveIn, bookAppliesIn, bookLaunchedAt } from "./flag";
 import { coinsPaidBy, ladders, ladderOf, type LadderId, type Tier, type TierId, type TierRef } from "./ladders";
 import { laddersCountedLiveIn, replayWhatIsNew } from "./replay";
-import { tierCoinsPaidTo, type TierCoinsPaid } from "./tierCoins";
+import { tierRewardsRecordedFor, type TierRewardsRecorded } from "./tierRewards";
 import { earnedTiersOf, type EarnedTier } from "./tiers";
 
-export type RewardFacts = { kind: "kudosEmoji" | "hedgehog"; reward: string } | { kind: "coins"; reward: string; coins: number; recordedAt?: number | null };
+export type TierItemFacts = Pick<CatalogueItem, "item" | "name" | "emoji" | "art">;
+
+export type RewardFacts =
+  | { kind: "hedgehog"; reward: string }
+  | { kind: "kudosEmoji"; reward: string; item: TierItemFacts; recordedAt?: number | null }
+  | { kind: "coins"; reward: string; coins: number; recordedAt?: number | null };
 
 export type TierFacts = { tier: TierId; name: string; count: number; earnedAt: number | null; catalogueVersion: string | null; rewards: RewardFacts[] };
 
@@ -55,27 +61,34 @@ export async function achievementFactsOf(ctx: QueryCtx, member: MemberId): Promi
 
 export async function bookFactsOf(ctx: QueryCtx, member: MemberId): Promise<AchievementFacts> {
   const facts: LadderFacts[] = [];
-  const paid = await tierCoinsPaidTo(ctx, member);
-  for (const { ladder } of ladders.ladders) facts.push(await ladderFactsOf(ctx, member, ladder, paid));
+  const recorded = await tierRewardsRecordedFor(ctx, member);
+  for (const { ladder } of ladders.ladders) facts.push(await ladderFactsOf(ctx, member, ladder, recorded));
   return { ladders: facts };
 }
 
-async function ladderFactsOf(ctx: QueryCtx, member: MemberId, ladder: LadderId, paid: TierCoinsPaid): Promise<LadderFacts> {
+async function ladderFactsOf(ctx: QueryCtx, member: MemberId, ladder: LadderId, recorded: TierRewardsRecorded): Promise<LadderFacts> {
   const count = await countOf(ctx, { member, ladder });
   const earned = await earnedTiersOf(ctx, member, ladder);
   const { name, counts, tiers } = ladderOf(ladder);
-  const tierFacts = tiers.map((tier) => tierFactsOf(tier, earned.find((row) => row.tier === tier.tier), paid));
+  const tierFacts = tiers.map((tier) => tierFactsOf(ladder, tier, earned.find((row) => row.tier === tier.tier), recorded));
   return { ladder, name, counts, count, tiers: tierFacts, next: tierFacts.find(({ earnedAt }) => earnedAt === null)?.tier ?? null };
 }
 
-function tierFactsOf({ tier, name, count, rewards }: Tier, earned: EarnedTier | undefined, paid: TierCoinsPaid): TierFacts {
-  if (earned === undefined) return { tier, name, count, earnedAt: null, catalogueVersion: null, rewards: rewardFactsOf({ tier, rewards }) };
-  return { tier, name, count, earnedAt: earned.earnedAt, catalogueVersion: earned.catalogueVersion, rewards: rewardFactsOf({ tier, rewards: earned.rewards }, paid) };
+function tierFactsOf(ladder: LadderId, { tier, name, count, rewards }: Tier, earned: EarnedTier | undefined, recorded: TierRewardsRecorded): TierFacts {
+  if (earned === undefined) return { tier, name, count, earnedAt: null, catalogueVersion: null, rewards: rewardFactsOf(ladder, { tier, rewards }) };
+  return { tier, name, count, earnedAt: earned.earnedAt, catalogueVersion: earned.catalogueVersion, rewards: rewardFactsOf(ladder, { tier, rewards: earned.rewards }, recorded) };
 }
 
-function rewardFactsOf({ tier, rewards }: Pick<Tier, "tier" | "rewards">, paid?: TierCoinsPaid): RewardFacts[] {
+function rewardFactsOf(ladder: LadderId, { tier, rewards }: Pick<Tier, "tier" | "rewards">, recorded?: TierRewardsRecorded): RewardFacts[] {
   return rewards.map(({ kind, reward }) => {
-    if (kind !== "coins") return { kind, reward };
-    return { kind, reward, coins: coinsPaidBy(tier), ...(paid !== undefined && { recordedAt: paid.get(reward)?.recordedAt ?? null }) };
+    const recordedAt = recorded === undefined ? {} : { recordedAt: recorded.get(reward)?.recordedAt ?? null };
+    if (kind === "coins") return { kind, reward, coins: coinsPaidBy(tier), ...recordedAt };
+    if (kind === "kudosEmoji") return { kind, reward, item: tierItemFactsOf(ladder), ...recordedAt };
+    return { kind, reward };
   });
+}
+
+function tierItemFactsOf(ladder: LadderId): TierItemFacts {
+  const { item, name, emoji, art } = tierItemOf(ladder);
+  return { item, name, emoji, art };
 }

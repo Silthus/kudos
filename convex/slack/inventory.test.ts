@@ -233,6 +233,42 @@ describe("ST22 ST23: a preview changes nothing for anyone else", { timeout: 30_0
   });
 });
 
+describe("ST25: Not yours yet lists each tier emoji the member doesn't own, while the Book is open", { timeout: 30_000 }, () => {
+  test("with the Book open, the tab ends with each silver emoji not earned yet and its tier, and the earned one waits in the Collection", async () => {
+    const t = await workspaceDeciding(...previewedByAlice, onForEveryone("achievements"));
+    await coinsOpenedBy(t, "U_ALICE");
+    await bookOpenFor(t, "U_ALICE");
+    const member = await memberOf(t, "U_ALICE");
+    await t.run((ctx) => grantItem(ctx, { member, item: "kudos-emoji-ribbon", source: "tier", arrivedAt: Date.now() }));
+
+    await openHome(t, "U_ALICE");
+    await click(t, "U_ALICE", "Inventory");
+
+    const tab = publishedHome(slack, "U_ALICE");
+    expect(tab).toContain("section: 🎀 Ribbon [static_select: Put in slot]");
+    expect(tab.slice(tab.indexOf("section: *Not yours yet*") - 1)).toEqual([
+      "divider",
+      "section: *Not yours yet*",
+      "section: 💖 Sparkling Heart · Silver in Recognition",
+      "section: 🧩 Jigsaw · Silver in Connections",
+      "section: ⚓ Anchor · Silver in Dependability",
+      "section: 🎊 Confetti · Silver in Applause",
+      "section: 🍁 Maple Leaf · Silver in Seasons",
+      "section: 🧸 Teddy Bear · Silver in Old Friends",
+    ]);
+  });
+
+  test("with the Book not open, the tab has no Not yours yet", async () => {
+    const t = await workspaceDeciding(...previewedByAlice, onForEveryone("achievements"));
+    await coinsOpenedBy(t, "U_ALICE");
+
+    await openHome(t, "U_ALICE");
+    await click(t, "U_ALICE", "Inventory");
+
+    expect(publishedHome(slack, "U_ALICE").join("\n")).not.toMatch(/Not yours yet|Silver in/);
+  });
+});
+
 async function everyoneElseOf(definitions: FlagDefinition[]) {
   const t = await workspaceDeciding(...definitions);
   await coinsOpenedBy(t, "U_ALICE");
@@ -322,6 +358,18 @@ async function memberOf(t: Backend, user: string): Promise<MemberId> {
       .unique(),
   );
   return row!._id;
+}
+
+async function bookOpenFor(t: Backend, user: string) {
+  const member = await memberOf(t, user);
+  await t.run(async (ctx) => {
+    const row = await ctx.db
+      .query("unlocks")
+      .withIndex("by_member_feature", (q) => q.eq("member", member).eq("feature", "book"))
+      .unique();
+    if (row === null) await ctx.db.insert("unlocks", { member, feature: "book", readyAt: Date.now(), openedAt: Date.now() });
+    else await ctx.db.patch(row._id, { openedAt: Date.now() });
+  });
 }
 
 async function xpOf(t: Backend, user: string, xp: number) {

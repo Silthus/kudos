@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { achievementsApplyIn } from "../achievements/flag";
 import { tierRefValidator, type TierRef } from "../achievements/ladders";
-import { coinsPaidFor, tierCoinsPaidTo, type TierCoinsPaid } from "../achievements/tierCoins";
+import { recordedRewardsOf, tierRewardsRecordedFor, type TierRewardsRecorded } from "../achievements/tierRewards";
 import { everyTierEarnedBy } from "../achievements/tiers";
 import type { LevelReachedEvent } from "../bus/events";
 import { skillTreeLevel } from "../progression/levels";
@@ -16,7 +16,7 @@ import { journeyStepAppliesIn, questsApplyTo } from "../quests/flag";
 import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type WeeklyQuest } from "../quests/step";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
-import { storeShownTo } from "../store/visibility";
+import { storeShownTo, storeVisibleTo } from "../store/visibility";
 import { namedFor, scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
 import { websiteOriginFor } from "../website/link";
@@ -113,13 +113,13 @@ export const purchaseReplyStillWanted = internalQuery({
   },
 });
 
-type DeliveryFacts = { website: string | null; openTree: MemberPerks | null; everyTierEarned: TierRef[]; tierCoinsShown: TierCoinsPaid; inventoryWith: string | null };
+type DeliveryFacts = { website: string | null; openTree: MemberPerks | null; everyTierEarned: TierRef[]; tierRewardsShown: TierRewardsRecorded; inventoryWith: string | null };
 
-function renderNotification(notification: Notification, { website, openTree, everyTierEarned, tierCoinsShown, inventoryWith }: DeliveryFacts): NotificationLine[] {
+function renderNotification(notification: Notification, { website, openTree, everyTierEarned, tierRewardsShown, inventoryWith }: DeliveryFacts): NotificationLine[] {
   if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp, website)];
   if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp, website));
   if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp, website)];
-  if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned, (ref) => coinsPaidFor(ref, tierCoinsShown));
+  if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned, (ref) => recordedRewardsOf(ref, tierRewardsShown));
   if (notification.kind === "coins-opened") return [inventoryWith === null ? coinsOpenedLineOf(notification.balance) : inventoryOpenedLineOf(notification.balance, inventoryWith)];
   const crates = notification.ready.map((feature) => readyCrateOf(namedFor(scheduled(feature), inventoryWith !== null), website));
   if (notification.kind !== "level-reached") return crates;
@@ -169,9 +169,16 @@ async function deliveryFactsOf(ctx: QueryCtx, workspace: string, member: MemberI
     website,
     openTree: await openTreeOf(ctx, workspace, member, told),
     everyTierEarned: told.kind === "tiers-earned" ? await everyTierEarnedBy(ctx, member) : [],
-    tierCoinsShown: told.kind === "tiers-earned" && (await coinsVisibleTo(ctx, member)) ? await tierCoinsPaidTo(ctx, member) : new Map(),
+    tierRewardsShown: told.kind === "tiers-earned" ? await tierRewardsShownTo(ctx, member) : new Map(),
     inventoryWith: namesCoins(told) && (await storeShownTo(ctx, member)) ? (await settingsOf(ctx, workspace)).kudosEmoji : null,
   };
+}
+
+async function tierRewardsShownTo(ctx: QueryCtx, member: MemberId): Promise<TierRewardsRecorded> {
+  if (!(await coinsVisibleTo(ctx, member))) return new Map();
+  const itemsShown = await storeVisibleTo(ctx, member);
+  const recorded = await tierRewardsRecordedFor(ctx, member);
+  return new Map([...recorded].map(([reward, record]) => [reward, { ...record, item: itemsShown ? record.item : null }]));
 }
 
 function namesCoins(told: Notification) {

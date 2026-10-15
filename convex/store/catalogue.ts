@@ -40,8 +40,14 @@ export const catalogue = {
 
 export const starterItem: ItemId = starter.item;
 
+export type TierItem = CatalogueItem & { source: { kind: "tier"; ladder: LadderId; tier: "silver" } };
+
 export function itemOf(item: ItemId): CatalogueItem | undefined {
   return catalogue.items.find((entry) => entry.item === item);
+}
+
+export function tierItemOf(ladder: LadderId): TierItem {
+  return catalogue.items.find((entry: CatalogueItem): entry is TierItem => entry.source.kind === "tier" && entry.source.ladder === ladder)!;
 }
 
 function kudosEmoji(id: string, emoji: string, glyph: string, name: string, source: Source): CatalogueItem {

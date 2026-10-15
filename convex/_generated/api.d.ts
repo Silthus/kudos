@@ -17,6 +17,8 @@ import type * as achievements_measures from "../achievements/measures.js";
 import type * as achievements_oldFriends from "../achievements/oldFriends.js";
 import type * as achievements_replay from "../achievements/replay.js";
 import type * as achievements_tierCoins from "../achievements/tierCoins.js";
+import type * as achievements_tierEmoji from "../achievements/tierEmoji.js";
+import type * as achievements_tierRewards from "../achievements/tierRewards.js";
 import type * as achievements_tiers from "../achievements/tiers.js";
 import type * as activity_activity from "../activity/activity.js";
 import type * as activity_activityFlag from "../activity/activityFlag.js";
@@ -204,6 +206,8 @@ declare const fullApi: ApiFromModules<{
   "achievements/oldFriends": typeof achievements_oldFriends;
   "achievements/replay": typeof achievements_replay;
   "achievements/tierCoins": typeof achievements_tierCoins;
+  "achievements/tierEmoji": typeof achievements_tierEmoji;
+  "achievements/tierRewards": typeof achievements_tierRewards;
   "achievements/tiers": typeof achievements_tiers;
   "activity/activity": typeof activity_activity;
   "activity/activityFlag": typeof activity_activityFlag;

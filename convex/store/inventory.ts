@@ -4,7 +4,7 @@ import type { ParseHook } from "../parser/parser";
 import { openedAtOf, stateOf } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-import { catalogue, itemOf, starterItem, type CatalogueItem, type ItemId } from "./catalogue";
+import { catalogue, itemOf, starterItem, type CatalogueItem, type ItemId, type TierItem } from "./catalogue";
 import { slots, type CollectedItem, type Slot } from "./rows";
 import { storeVisibleAndExposedTo, storeVisibleTo } from "./visibility";
 
@@ -18,7 +18,7 @@ export type Inventory = {
   catalogue: Array<CatalogueItem & { onSale: boolean }>;
 };
 
-export type InventoryHome = { slots: Array<CatalogueItem | null>; collection: CatalogueItem[]; store: StoreItem[] };
+export type InventoryHome = { slots: Array<CatalogueItem | null>; collection: CatalogueItem[]; store: StoreItem[]; notYoursYet: TierItem[] };
 
 export type StoreItem = CatalogueItem & { source: { kind: "store"; price: number } };
 
@@ -53,8 +53,10 @@ export async function inventoryHomeOf(ctx: QueryCtx, member: MemberId): Promise<
   const owned = await ownedBy(ctx, member);
   const unslotted = owned.filter(({ item }) => !slotted.has(item));
   const ownedOrSlotted = new Set([...slotted, ...owned.map(({ item }) => item)]);
-  const store = storeItemsIn(await workspaceEmojiOf(ctx, member)).filter(({ item }) => !ownedOrSlotted.has(item));
-  return { slots: loadout.map(({ item }) => (item === null ? null : (itemOf(item) ?? null))), collection: unslotted.flatMap(({ item }) => itemOf(item) ?? []), store };
+  const workspaceEmoji = await workspaceEmojiOf(ctx, member);
+  const store = storeItemsIn(workspaceEmoji).filter(({ item }) => !ownedOrSlotted.has(item));
+  const notYoursYet = (await tierItemsListedFor(ctx, member, workspaceEmoji)).filter(({ item }) => !ownedOrSlotted.has(item));
+  return { slots: loadout.map(({ item }) => (item === null ? null : (itemOf(item) ?? null))), collection: unslotted.flatMap(({ item }) => itemOf(item) ?? []), store, notYoursYet };
 }
 
 export async function grantItem(ctx: MutationCtx, granted: CollectedItem): Promise<boolean> {
@@ -87,10 +89,9 @@ async function inventoryFor(ctx: QueryCtx, member: MemberId): Promise<Inventory>
   const owned = await ownedBy(ctx, member);
   const ownedOrSlotted = new Set([...owned.map(({ item }) => item), ...loadout.flatMap(({ item }) => (item === null ? [] : [item]))]);
   const workspaceEmoji = await workspaceEmojiOf(ctx, member);
-  const bookOpen = (await stateOf(ctx, member, "book")) === "open";
+  const tierItems = new Set((await tierItemsListedFor(ctx, member, workspaceEmoji)).map(({ item }) => item));
   const forSale = (entry: CatalogueItem) => listedIn(workspaceEmoji, entry) && !ownedOrSlotted.has(entry.item);
-  const notYoursYet = (entry: CatalogueItem) => entry.source.kind === "tier" && bookOpen && entry.emoji !== workspaceEmoji;
-  const shown = (entry: CatalogueItem) => ownedOrSlotted.has(entry.item) || forSale(entry) || notYoursYet(entry);
+  const shown = (entry: CatalogueItem) => ownedOrSlotted.has(entry.item) || forSale(entry) || tierItems.has(entry.item);
   return {
     slots: loadout,
     owned,
@@ -104,6 +105,11 @@ function isMutation(ctx: QueryCtx | MutationCtx): ctx is MutationCtx {
 
 function listedIn(workspaceEmoji: string, entry: CatalogueItem): entry is StoreItem {
   return entry.source.kind === "store" && entry.emoji !== workspaceEmoji;
+}
+
+async function tierItemsListedFor(ctx: QueryCtx, member: MemberId, workspaceEmoji: string): Promise<TierItem[]> {
+  if ((await stateOf(ctx, member, "book")) !== "open") return [];
+  return catalogue.items.filter((entry: CatalogueItem): entry is TierItem => entry.source.kind === "tier" && entry.emoji !== workspaceEmoji);
 }
 
 function storeItemsIn(workspaceEmoji: string): StoreItem[] {

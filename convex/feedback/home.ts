@@ -1,5 +1,6 @@
 import type { LadderFacts } from "../achievements/achievements";
 import { countsOf, ladderOf, tierOf, type TierId, type TierRef } from "../achievements/ladders";
+import type { TierRewardsTold } from "../achievements/tierRewards";
 import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { Period } from "../leaderboard/periods";
@@ -194,14 +195,16 @@ function ladderLines({ ladder, name, count, tiers, next }: LadderFacts, timeZone
   return [{ kind: "text", text: `${bold(name)} · ${bold(count)} ${countsOf(ladder, count)}` }, ...earnedLines, ...nextLine];
 }
 
-export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[], coinsPaidFor: (ref: TierRef) => number): string[] {
-  const earnedLines = told.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).${tierCoinsPartOf(coinsPaidFor(ref))}`);
+export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[], rewardsOf: (ref: TierRef) => TierRewardsTold): string[] {
+  const earnedLines = told.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).${tierRewardsPartOf(rewardsOf(ref))}`);
   const ladders = [...new Set(told.map(({ ladder }) => ladder))];
   return [...earnedLines, ...ladders.flatMap((ladder) => nextTierLine(ladder, [...told, ...everyTierEarned]))];
 }
 
-function tierCoinsPartOf(coins: number) {
-  return coins === 0 ? "" : ` ${coinsPartOf(coins)}`;
+function tierRewardsPartOf({ coins, items }: TierRewardsTold) {
+  const coinsPart = coins === 0 ? [] : [coinsPartOf(coins)];
+  const itemParts = items.flatMap((item) => itemOf(item) ?? []).map(({ emoji, name }) => `+ :${emoji}: ${name} for your kudos emoji slots`);
+  return [...coinsPart, ...itemParts].map((part) => ` ${part}`).join("");
 }
 
 function nextTierLine(ladder: TierRef["ladder"], earned: TierRef[]): string[] {
@@ -231,7 +234,7 @@ type RefusalLines = { after: (item: CatalogueItem | null) => HomeLine[]; unplace
 function inventoryGroups({ balance, inventory, kudosEmoji, refused }: Extract<ShownTab, { tab: "inventory" }>): HomeLine[][] {
   const told = refusalLinesOf(inventory, refused, balance);
   const slots = [{ kind: "text", text: bold("Your kudos emoji") }, ...slotLinesOf(inventory, told), { kind: "hint", text: `Each emoji in a slot counts as a kudos, like :${kudosEmoji}:.` }] satisfies HomeLine[];
-  return [[{ kind: "text", text: inCoins(balance) }], slots, ...collectionLinesOf(inventory, told), ...storeLinesOf(inventory, told)];
+  return [[{ kind: "text", text: inCoins(balance) }], slots, ...collectionLinesOf(inventory, told), ...storeLinesOf(inventory, told), ...notYoursYetLinesOf(inventory)];
 }
 
 function slotLinesOf({ slots }: InventoryHome, { after }: RefusalLines): HomeLine[] {
@@ -258,6 +261,11 @@ function putInSlotLineOf(item: CatalogueItem): HomeLine {
 function storeLinesOf({ store }: InventoryHome, { after, unplaced }: RefusalLines): HomeLine[][] {
   if (store.length === 0 && unplaced.length === 0) return [];
   return [[{ kind: "text", text: bold("Store") }, ...store.flatMap((item): HomeLine[] => [{ kind: "action", ...itemOfferOf(item) }, ...after(item)]), ...unplaced]];
+}
+
+function notYoursYetLinesOf({ notYoursYet }: InventoryHome): HomeLine[][] {
+  if (notYoursYet.length === 0) return [];
+  return [[{ kind: "text", text: bold("Not yours yet") }, ...notYoursYet.map((item): HomeLine => ({ kind: "text", text: `${itemLabelOf(item)} · Silver in ${ladderOf(item.source.ladder).name}` }))]];
 }
 
 function itemOfferOf(item: StoreItem): { text: string; action: HomeAction } {
