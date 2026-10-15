@@ -1,0 +1,11 @@
+# 2026-10-15T15:51:07Z read-only HEAD requests, no redirects followed
+## https://a.slack-edge.com/production-standard-emoji-assets/14.0/apple-medium/1f389.png
+HTTP/2 200 
+content-type: image/png
+access-control-allow-origin: *
+cross-origin-resource-policy: cross-origin
+## https://emoji.slack-edge.com/
+HTTP/2 301 
+content-type: text/html
+location: https://slack-infra-latency.slack.com/emoji-serve-team
+cross-origin-resource-policy: cross-origin

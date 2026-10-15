@@ -1,0 +1,62 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/web-settings
+
+ ❯ |convex| convex/website/settings.test.ts (23 tests | 2 failed | 21 skipped) 535ms
+   ❯ a website command is a D17 command (11)
+     ❯ the message setting (7)
+       × WS335 P77: with unlocks on and no unlocks launch, it answers refused and launches nothing 333ms
+     ❯ the group pick (4)
+       × WS335 P77: with unlocks on and no unlocks launch, it answers refused and launches nothing 200ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/settings.test.ts > a website command is a D17 command > the message setting > WS335 P77: with unlocks on and no unlocks launch, it answers refused and launches nothing
+AssertionError: expected { kind: 'set', place: 'dm' } to deeply equal { kind: 'refused' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "refused",
++   "kind": "set",
++   "place": "dm",
+  }
+
+ ❯ convex/website/settings.test.ts:256:72
+    254|       const before = await everythingWritten();
+    255|
+    256|       expect(await setMessageSetting(asSignedIn, "kudos-reply", "dm"))…
+       |                                                                        ^
+    257|       expect(await everythingWritten()).toEqual(before);
+    258|       expect(before.tables.unlockLaunches).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |convex| convex/website/settings.test.ts > a website command is a D17 command > the group pick > WS335 P77: with unlocks on and no unlocks launch, it answers refused and launches nothing
+AssertionError: expected { …(2) } to deeply equal { kind: 'refused' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "refused",
++   "group": "0000000000000000010010userGroups",
++   "kind": "picked",
+  }
+
+ ❯ convex/website/settings.test.ts:321:59
+    319|       vi.mocked(publish).mockClear();
+    320|
+    321|       expect(await pickPrimaryGroup(asSignedIn, Zebras!)).toEqual({ ki…
+       |                                                           ^
+    322|       expect(await everythingWritten()).toEqual(before);
+    323|       expect(before.tables.unlockLaunches).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 21 skipped (23)
+   Start at  15:44:55
+   Duration  2.37s (transform 54%, tests 27%, import 17%, environment 3%)
+

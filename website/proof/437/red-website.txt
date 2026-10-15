@@ -1,0 +1,33 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/web-settings/website
+
+ ❯ |website| src/SettingsPage.test.tsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/SettingsPage.test.tsx [ src/SettingsPage.test.tsx ]
+Error: Failed to resolve import "./settingsFixtures" from "src/SettingsPage.test.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/coder/dev/kudos-wt/web-settings/website/src/SettingsPage.test.tsx:5:48
+  3  |  import { beforeEach, describe, expect, it, vi } from "vitest";
+  4  |  import { commandsOf } from "./palette/commands";
+  5  |  import { fixedSettings, settingsFixtures } from "./settingsFixtures";
+     |                                                   ^
+  6  |  import { shellFixtures } from "./shell";
+  7  |  import { renderApp } from "./test/renderApp";
+ ❯ TransformPluginContext._formatLog ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8766:39
+ ❯ TransformPluginContext.error ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8763:14
+ ❯ normalizeUrl ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26632:18
+ ❯ ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26702:30
+ ❯ TransformPluginContext.transform ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26668:4
+ ❯ EnvironmentPluginContainer.transform ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8545:14
+ ❯ loadAndTransform ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:20184:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  15:46:31
+   Duration  856ms (environment 76%, setup 21%, transform 3%)
+
