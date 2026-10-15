@@ -48,7 +48,7 @@ export const recordLeaderboardVisibilityChanged = internalMutation({
   },
 });
 
-export const pickSurfaceValidator = v.union(v.literal("welcome"), v.literal("settings"));
+export const pickSurfaceValidator = v.union(v.literal("welcome"), v.literal("settings"), v.literal("website"));
 
 const primaryGroupPickValidator = v.object({
   workspace: v.string(),

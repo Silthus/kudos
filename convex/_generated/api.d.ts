@@ -206,6 +206,7 @@ import type * as website_profileCard from "../website/profileCard.js";
 import type * as website_quests from "../website/quests.js";
 import type * as website_routes from "../website/routes.js";
 import type * as website_seen from "../website/seen.js";
+import type * as website_settings from "../website/settings.js";
 import type * as website_signIn from "../website/signIn.js";
 import type * as website_skillTree from "../website/skillTree.js";
 import type * as website_unlockPath from "../website/unlockPath.js";
@@ -424,6 +425,7 @@ declare const fullApi: ApiFromModules<{
   "website/quests": typeof website_quests;
   "website/routes": typeof website_routes;
   "website/seen": typeof website_seen;
+  "website/settings": typeof website_settings;
   "website/signIn": typeof website_signIn;
   "website/skillTree": typeof website_skillTree;
   "website/unlockPath": typeof website_unlockPath;

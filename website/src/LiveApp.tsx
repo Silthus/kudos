@@ -17,6 +17,7 @@ import { useSocketUnreachable } from "./connection";
 import type { ProfileCardShown } from "./profileCardRead";
 import type { QuestsShown } from "./questsRead";
 import type { Direction, RecentKudosShown } from "./recentKudosRead";
+import type { SettingsShown } from "./settingsRead";
 import type { SkillTreeShown } from "./skillTreeRead";
 import type { ActivityFilter } from "./route";
 import type { SpotlightDraw } from "./spotlightRead";
@@ -49,6 +50,7 @@ function LiveApp() {
       useQuests={(asking) => useLiveQuests(asking, unreachable)}
       useBook={(asking) => useLiveBook(asking, unreachable)}
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
+      useSettings={(asking) => useLiveSettings(asking, unreachable)}
       useProfileCard={useLiveProfileCard}
       useRecentKudos={useLiveRecentKudos}
       useActivityWatch={useLiveActivityWatch}
@@ -99,6 +101,14 @@ function useLiveSkillTree(asking: boolean, unreachable: boolean): SkillTreeShown
   return skillTree;
 }
 
+function useLiveSettings(asking: boolean, unreachable: boolean): SettingsShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { settings: { query: api.website.settings.getSettings, args: {} } } : {}), [asking]);
+  const { settings } = useQueries(request);
+  if (settings instanceof Error) return { kind: "broken" };
+  if (settings === undefined && unreachable) return { kind: "connecting" };
+  return settings;
+}
+
 function useLiveProfileCard(asking: boolean): ProfileCardShown | undefined {
   const request = useMemo((): RequestForQueries => (asking ? { card: { query: api.website.profileCard.getProfileCard, args: {} } } : {}), [asking]);
   const { card } = useQueries(request);
@@ -147,6 +157,8 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const buyPerk = useMutation(api.website.commands.buyPerk);
   const swapQuest = useMutation(api.website.commands.swapQuest);
   const setBoardVisibility = useSentOnce(api.website.commands.setBoardVisibility);
+  const setMessageSetting = useSentOnce(api.website.commands.setMessageSetting);
+  const pickPrimaryGroup = useSentOnce(api.website.commands.pickPrimaryGroup);
   return useMemo(
     () => ({
       openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
@@ -154,6 +166,8 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       buyPerk: ({ perk, request }) => answerWithin(commandAnswerBudgetMs, buyPerk({ perk, request })),
       swapQuest: (quest) => answerWithin(commandAnswerBudgetMs, swapQuest({ quest })),
       setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
+      setMessageSetting: (kind, place) => answerWithin(commandAnswerBudgetMs, setMessageSetting({ kind, place })),
+      pickPrimaryGroup: (group) => answerWithin(commandAnswerBudgetMs, pickPrimaryGroup({ group })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -161,7 +175,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, swapQuest, setBoardVisibility, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, onSignInFailure],
   );
 }
 
