@@ -86,6 +86,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
 - the router reads every target a link carries: Every target the backend's link function writes into a link, a quest's slot, a perk and a crate, is read back by the website's router as the same target, so a Slack link that names a perk or a ready crate lands on it.
   over: urlOf in convex/website/routes.ts read back through routeOf in website/src/route.ts, for `quest`, `perk` on `/skills`, `crate` on `/quests`, `/leaderboard`, `/book` and `/skills`, and `crate=journey` on the root
   via: #435: the router reads every target a Slack link carries
+  refuted: let perkIn in website/src/route.ts answer no perk -> the contract test failed reading /skills?perk=spark (2026-10-15)
   because: map #1 links the level-up DM's `Buy` to a perk and each crate's `Open` to its crate (#435), and a parameter the router dropped would land the member on the plain page with nothing to say why (SW10, SW11)
   kinds: output
   checklist: destination-confinement dismissed: the target is a perk ID or a crate name from a fixed list; the router drops any other value
