@@ -1,7 +1,8 @@
 import type { QueryCtx } from "../_generated/server";
 import { treePerksOf, type MemberPerks, type PerkState } from "../progression/perks";
-import { isCoinPerk, type PerkId } from "../progression/tree";
+import type { PerkId } from "../progression/tree";
 import { workspaceLink } from "../slack/workspaceLink";
+import { visibleWalletOf } from "../wallet/wallet";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 import { featurePageOf, unlockPathOf, type PageWaits, type UnlockPath } from "./unlockPath";
 
@@ -9,16 +10,17 @@ export type PerkNode = {
   perk: PerkId;
   name: string;
   copy: string;
-  cost: { skillPoints: number };
+  cost: { skillPoints: number; coins: number };
   requires: string | null;
+  upgrades: PerkId | null;
   state: "owned" | "available" | "unavailable";
-  reason: "level" | "requires" | "points" | null;
+  reason: "level" | "requires" | "points" | "coins" | null;
   ownedAt: number | null;
 };
 
 export type TreeRow = { level: number; perks: PerkNode[] };
 
-export type SkillTreeAnswer = { kind: "not-found" } | PageWaits | { kind: "tree"; skillPoints: number; rows: TreeRow[]; chatUrl: string };
+export type SkillTreeAnswer = { kind: "not-found" } | PageWaits | { kind: "tree"; skillPoints: number; coins: number | null; rows: TreeRow[]; chatUrl: string };
 
 export type MySkillTree = Denial | SkillTreeAnswer;
 
@@ -30,6 +32,7 @@ const nodeStates = {
   "below-row": { state: "unavailable", reason: "level" },
   "needs-prerequisite": { state: "unavailable", reason: "requires" },
   "no-skill-points": { state: "unavailable", reason: "points" },
+  "no-coins": { state: "unavailable", reason: "coins" },
 } as const satisfies Partial<Record<PerkState, Pick<PerkNode, "state" | "reason">>>;
 
 type ShownPerk = CataloguePerk & { state: keyof typeof nodeStates };
@@ -40,7 +43,8 @@ export const getSkillTree = memberQuery(async (ctx, me): Promise<SkillTreeAnswer
   if (page.kind !== "open") return page;
   const perks = await treePerksOf(ctx, me.member);
   if (perks === null) return { kind: "not-found" };
-  return { kind: "tree", skillPoints: perks.skillPoints, rows: rowsOf(perks.perks), chatUrl: workspaceLink(me.workspace) };
+  const coins = (await visibleWalletOf(ctx, me.member))?.balance ?? null;
+  return { kind: "tree", skillPoints: perks.skillPoints, coins, rows: rowsOf(perks.perks), chatUrl: workspaceLink(me.workspace) };
 });
 
 export async function skillPointsOf(ctx: QueryCtx, me: VerifiedMember, path: UnlockPath): Promise<number | null> {
@@ -55,16 +59,17 @@ function rowsOf(catalogue: CataloguePerk[]): TreeRow[] {
 }
 
 function isShown(perk: CataloguePerk): perk is ShownPerk {
-  return perk.state in nodeStates && (perk.state === "owned" || !isCoinPerk(perk));
+  return perk.state in nodeStates;
 }
 
-function nodeOf({ perk, name, copy, skillPoints, requires, state, boughtAt }: ShownPerk, catalogue: CataloguePerk[]): PerkNode {
+function nodeOf({ perk, name, copy, skillPoints, coins, requires, upgrades, state, boughtAt }: ShownPerk, catalogue: CataloguePerk[]): PerkNode {
   return {
     perk,
     name,
     copy,
-    cost: { skillPoints },
+    cost: { skillPoints, coins },
     requires: requires === null ? null : nameOf(requires, catalogue),
+    upgrades,
     ...nodeStates[state],
     ownedAt: state === "owned" ? boughtAt : null,
   };
