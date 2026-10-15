@@ -555,10 +555,34 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
 - the group quest is dark where it doesn't apply: With `group-quest` off, missing in PostHog, unread without the flags key or on in the sandbox only while in production, or on while `groups` or `quests` is off, a week of Monday sweeps, kudos that say why and a stale group crate Open records no group quest launch, week, quest, contribution, reward record, pending crate or crate opening, publishes no group quest event, and sends Slack exactly what the same week sends with no group quest sweep at all.
   over: one group of 4 members who opened Quests the week before, swept last Tuesday, at Monday 00:10 UTC and the next Tuesday, three kudos that say why on Tuesday, every member's App Home that day and the next week, and a stale Open on the group's crate, in each of the six states beside the same week with no sweep, and the same week with every flag on as the positive control
   via: GB25 GB29: the group quest is invisible and records nothing where it doesn't apply
+  refuted: groupQuestAppliesIn no longer read the groups workspace decision, so the sweep launched the group quest where groups is off -> 1 of 7 tests failed: with group-quest on but groups off, the stored launch and week broke the assertion that nothing of the group quest is recorded (2026-10-15)
   because: decision 18 ships the group quest to production dark (GB29), and GB25 records draws, progress and rewards only where it applies; a launch recorded while `groups` or `quests` was off would draw a week mid-week once they turned on (call 14), and a crate opened with `groups` off is a group quest fact where none applies
   kinds: state, output
+  checklist: revalidated-permission dismissed: the launch reads the workspace decision in the sweep that records it, and each draw, contribution, reward and Open reads the member's predicate in its own mutation
+  checklist: legal-state-succession dismissed: where the group quest doesn't apply nothing of it is written; its rows are inserted once and never changed
+  checklist: resumption-coverage dismissed: no launch is recorded where it doesn't apply, so no tally or draw chain starts to resume
+  checklist: declared-target-coverage dismissed: the surfaces are App Home, the stale Open, the sweep and the kudos subscriber, each covered by a case of the oracle
+  checklist: separation-of-duties dismissed: the flags are switched in PostHog by the owner, outside this deployment
+  checklist: supersession-safety dismissed: every flag is read fresh in the mutation that decides; nothing stored records a value except the exposure, which is per value
+  checklist: worker-fencing dismissed: no worker owns a group week or a member; one mutation reads the flags and decides
+  checklist: commit-ordered-effects dismissed: App Home is published and group quest events are scheduled after the mutation that read the flags commits
+  checklist: destination-confinement dismissed: the decision only withholds lines and records; where App Home and the events go is unchanged
+  checklist: redaction dismissed: the decision removes the whole group quest line and its crates rather than scrubbing content inside them
+  checklist: circuit-breaker-policy dismissed: the flags are read from the PostHog component's cached definitions, never by calling PostHog per read
 - turning off a flag the group quest needs rewrites nothing: With a group quest drawn and finished, turning `group-quest`, `groups` or `quests` off hides the group quest line, its Open and an earlier week's waiting crate from App Home, a stale Open and a kudos then record nothing, and turning it on again in the same week shows App Home exactly as before; turned off after the launch but before Monday's sweep, that week draws no quest.
   over: a group of 4 whose three givers finished the week's quest, with each of the three flags turned off on Wednesday and on again, turned off the next week with the crate still unopened, and turned off between the launch and Monday's sweep, read through App Home, the group quest's stored facts and its events
   via: GB29 GB36: turning a flag the group quest needs off hides it and rewrites nothing; on again shows it unchanged
+  refuted: takesPart no longer read the groups decision, so the draw counted participants to whom groups doesn't apply -> 1 of 9 tests failed: with groups off at Monday's sweep after the launch, a group quest was drawn (2026-10-15)
   because: GB29 turns a flag off by hiding its surfaces and rewriting nothing, and GB36 records nothing new while a flag GB25 needs is off; a crate opened or a reward rewritten while off would change what the member finds when it comes back
   kinds: state, output
+  checklist: revalidated-permission dismissed: App Home, the stale Open, the kudos subscriber and the draw each read the member's predicate when they run, never a value stored while it was on
+  checklist: legal-state-succession dismissed: turning a flag off writes nothing; quests, contributions, reward records and crate openings recorded while on stay as they were
+  checklist: resumption-coverage dismissed: a draw chain that runs while a flag is off counts no participant to whom it doesn't apply, and the week mark only records that the sweep ran
+  checklist: declared-target-coverage dismissed: the surfaces are the line, its Open, the waiting crate, the stale Open, the kudos subscriber and the draw, each covered by a case of the oracle
+  checklist: separation-of-duties dismissed: the flags are switched in PostHog by the owner, outside this deployment
+  checklist: supersession-safety dismissed: every flag is read fresh in the mutation that decides; nothing stored records a value except the exposure, which is per value
+  checklist: worker-fencing dismissed: no worker owns a group week or a member; one mutation reads the flags and decides
+  checklist: commit-ordered-effects dismissed: App Home is published and group quest events are scheduled after the mutation that read the flags commits
+  checklist: destination-confinement dismissed: the decision only withholds lines and records; where App Home and the events go is unchanged
+  checklist: redaction dismissed: the decision hides the whole group quest line and its crates rather than scrubbing content inside them
+  checklist: circuit-breaker-policy dismissed: the flags are read from the PostHog component's cached definitions, never by calling PostHog per read
