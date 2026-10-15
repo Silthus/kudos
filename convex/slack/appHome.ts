@@ -14,6 +14,7 @@ import { buttonOf, mrkdwn, plainText, urlButtonOf } from "./blocks";
 import { encodeHomeAction } from "./interactivity";
 import { attemptArgs, failedAttempt, sendOnce, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser, refreshUser } from "./directory";
+import { customEmojiPickerOf } from "./customEmojiPicker";
 import { groupOptionsOf, groupSelectOf, optionListsOf } from "./groupPicker";
 
 export type HomeOpened = { type: "app_home_opened"; user: string; tab: "home" | "messages" };
@@ -128,6 +129,7 @@ function blockOf(line: HomeLine) {
   if (line.kind === "pick") return { type: "section", text: mrkdwn(line.text), accessory: pickerOf(line) };
   if (line.kind === "pick-group") return { type: "section", text: mrkdwn(line.text), accessory: groupSelectOf(settingsPick, line.groups, line.picked) };
   if (line.kind === "pick-groups") return { type: "section", text: mrkdwn(line.text), accessory: groupPickerOf(line) };
+  if (line.kind === "pick-custom-emoji") return { type: "section", text: mrkdwn(line.text), accessory: customEmojiPickerOf(line) };
   if (line.kind === "link") return { type: "section", text: mrkdwn(`<${line.url}|${line.label}>`) };
   if (line.kind === "links") return { type: "actions", elements: line.links.map(linkButtonOf) };
   return { type: "section", text: mrkdwn(line.text) };

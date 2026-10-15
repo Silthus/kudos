@@ -1,6 +1,8 @@
 import { internal } from "../_generated/api";
 import { observedHttpAction } from "../analytics/boundary";
 import { commandOf, type Command } from "../commands/commands";
+import type { ActionCtx } from "../_generated/server";
+import { customEmojiOptionOf, customEmojiPickerAction } from "./customEmojiPicker";
 import { readSignedBody } from "./signature";
 
 type Action = {
@@ -11,6 +13,8 @@ type Action = {
   selected_option?: { value?: string } | null;
   selected_options?: Array<{ value: string }>;
 };
+
+type OptionsRequest = { type: "block_suggestion"; team: { id: string }; user: { id: string }; action_id: string; value: string };
 
 type Selections = Record<string, string>;
 
@@ -32,6 +36,7 @@ export const slackInteractivity = observedHttpAction(async (ctx, request) => {
   if (body === null) return new Response(null, { status: 401 });
 
   const payload = payloadOf(body);
+  if (isOptionsRequest(payload)) return Response.json({ options: await customEmojiOptionsFor(ctx, payload) });
   if (!isMemberClick(payload)) return new Response(null, { status: 200 });
   const selections = selectionsIn(payload.state);
   const commands = payload.actions.flatMap((action) => commandsOf(action, selections));
@@ -66,6 +71,8 @@ function selectedCommandOf(action: Action, selections: Selections): unknown {
       return { type: action.action_id, channel: action.selected_channel ?? null };
     case "multi_static_select":
       return { type: action.action_id, mode: "allowlist", allowlist: (action.selected_options ?? []).map(({ value }) => value) };
+    case "multi_external_select":
+      return { type: action.action_id, emoji: (action.selected_options ?? []).map(({ value }) => value) };
     case "static_select":
       return optionCommandOf(action);
     case "button":
@@ -110,6 +117,17 @@ function isObject(value: unknown): value is Record<string, unknown> {
 function payloadOf(body: Uint8Array<ArrayBuffer>): unknown {
   const payload = new URLSearchParams(new TextDecoder().decode(body)).get("payload");
   return payload === null ? null : JSON.parse(payload);
+}
+
+async function customEmojiOptionsFor(ctx: ActionCtx, { team, user, action_id, value }: OptionsRequest) {
+  if (action_id !== customEmojiPickerAction) return [];
+  const names = await ctx.runQuery(internal.store.customKudosEmoji.customKudosEmojiOptions, { workspace: team.id, user: user.id, typed: value });
+  return names.map(customEmojiOptionOf);
+}
+
+function isOptionsRequest(payload: unknown): payload is OptionsRequest {
+  const request = payload as Partial<OptionsRequest> | null;
+  return request?.type === "block_suggestion" && typeof request.action_id === "string" && typeof request.value === "string" && typeof request.team?.id === "string" && typeof request.user?.id === "string";
 }
 
 function isMemberClick(payload: unknown): payload is MemberClick {
