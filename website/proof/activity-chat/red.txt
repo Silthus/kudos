@@ -1,0 +1,147 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/activity-chat/website
+
+ ❯ |website| src/RecentKudosCard.test.tsx (25 tests | 1 failed) 7172ms
+   ❯ #409: emoji drawn inline on the card (1)
+     × draws a standard shortcode Slack sent without unicode as its character 608ms
+ ❯ |website| src/ActivityPage.test.tsx (51 tests | 5 failed) 7484ms
+   ❯ #409: a chat-style timeline, received on the left and given on the right (5)
+     × keeps each kind on its side under the all filter 130ms
+     × keeps each kind on its side under the received filter 126ms
+     × keeps each kind on its side under the given filter 298ms
+     × puts a given kudos' recipients and what it earned under its words 65ms
+   ❯ #409: emoji drawn inline in a kudos message (1)
+     × draws Slack's unicode, a standard shortcode, an alias and a skin tone as characters, and a custom emoji as its name 57ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > keeps each kind on its side under the all filter
+AssertionError: expected [ undefined, undefined, …(2) ] to deeply equal [ 'received', 'given', 'centre', …(1) ]
+
+- Expected
++ Received
+
+  [
+-   "received",
+-   "given",
+-   "centre",
+-   "received",
++   undefined,
++   undefined,
++   undefined,
++   undefined,
+  ]
+
+ ❯ src/ActivityPage.test.tsx:593:36
+    591|     openActivity({ path: `/activity?filter=${filter}`, read: pages.rea…
+    592|     await pages.answer(0, aPage([...entries], null));
+    593|     expect(articles().map(sideOf)).toEqual(sides);
+       |                                    ^
+    594|   });
+    595|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > keeps each kind on its side under the received filter
+AssertionError: expected [ undefined, undefined ] to deeply equal [ 'received', 'received' ]
+
+- Expected
++ Received
+
+  [
+-   "received",
+-   "received",
++   undefined,
++   undefined,
+  ]
+
+ ❯ src/ActivityPage.test.tsx:593:36
+    591|     openActivity({ path: `/activity?filter=${filter}`, read: pages.rea…
+    592|     await pages.answer(0, aPage([...entries], null));
+    593|     expect(articles().map(sideOf)).toEqual(sides);
+       |                                    ^
+    594|   });
+    595|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > keeps each kind on its side under the given filter
+AssertionError: expected [ undefined ] to deeply equal [ 'given' ]
+
+- Expected
++ Received
+
+  [
+-   "given",
++   undefined,
+  ]
+
+ ❯ src/ActivityPage.test.tsx:593:36
+    591|     openActivity({ path: `/activity?filter=${filter}`, read: pages.rea…
+    592|     await pages.answer(0, aPage([...entries], null));
+    593|     expect(articles().map(sideOf)).toEqual(sides);
+       |                                    ^
+    594|   });
+    595|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > puts a given kudos' recipients and what it earned under its words
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/ActivityPage.test.tsx:608:70
+    606|     const theWords = within(entry).getByTestId("kudos-message-words");
+    607|     const after = (element: Element) => (theWords.compareDocumentPosit…
+    608|     expect(within(entry).getAllByTestId("person-face").every(after)).t…
+       |                                                                      ^
+    609|     expect(after(within(entry).getByRole("list", { name: "Earned" })))…
+    610|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  |website| src/ActivityPage.test.tsx > #409: emoji drawn inline in a kudos message > draws Slack's unicode, a standard shortcode, an alias and a skin tone as characters, and a custom emoji as its name
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  Shipped 🎉🚀👍👍🏼🙋🏿‍♂️:partyparrot:
+Received:
+  Shipped 🎉:rocket::thumbsup::+1::skin-tone-3::man-raising-hand::skin-tone-6::partyparrot:
+ ❯ src/ActivityPage.test.tsx:629:22
+    627|     ]);
+    628|     const theWords = within(article("Ada Lindqvist thanked you")).getB…
+    629|     expect(theWords).toHaveTextContent("Shipped 🎉🚀👍👍🏼🙋🏿‍♂️:part…
+       |                      ^
+    630|     expect(within(theWords).getByText(":partyparrot:")).toHaveAttribut…
+    631|     expect(theWords.querySelector("img")).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  |website| src/RecentKudosCard.test.tsx > #409: emoji drawn inline on the card > draws a standard shortcode Slack sent without unicode as its character
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  Nice work 🙌
+Received:
+  Nice work :raised_hands:
+ ❯ src/RecentKudosCard.test.tsx:287:63
+    285|     const entry = { ...threeReceived.entries[0]!, message: { kind: "te…
+    286|     homeAnswering({ kind: "recent", entries: [entry] });
+    287|     expect(within(card()).getByTestId("kudos-message-words")).toHaveTe…
+       |                                                               ^
+    288|   });
+    289| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  6 failed | 70 passed (76)
+   Start at  16:59:52
+   Duration  12.67s (tests 60%, import 22%, transform 12%, environment 5%, setup 1%)
+

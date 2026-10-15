@@ -5,6 +5,7 @@ import { everyoneBoardFlag } from "../leaderboard/flag";
 import { questsFlag } from "../quests/questsFlag";
 import { skillTreeLevel } from "../progression/levels";
 import { skillTreeFlag } from "../progression/skillTreeFlag";
+import { coinsFlag } from "../wallet/coinsFlag";
 import type { MemberId } from "../workspace/directory";
 import type { Feature } from "./feature";
 
@@ -19,7 +20,7 @@ export const schedule = {
     { feature: "leaderboard", level: 3, name: "Leaderboard", opens: "the boards", shipsWith: everyoneBoardFlag },
     { feature: "book", level: 4, name: "Book", opens: "achievements", shipsWith: achievementsFlag },
     { feature: "skillTree", level: skillTreeLevel, name: "Skill tree", opens: "the tree and your first skill point", shipsWith: skillTreeFlag },
-    { feature: "coins", level: 6, name: "Coins and inventory", opens: "the wallet, the store's kudos emoji and your emoji slots", shipsWith: null },
+    { feature: "coins", level: 6, name: "Coins", opens: "your wallet and the coin perks", shipsWith: coinsFlag },
     { feature: "hedgehogs", level: 7, name: "Hedgehogs", opens: "the hedgehog collection, your avatar and the store's hedgehogs", shipsWith: null },
   ],
 } as const satisfies { version: string; features: readonly ScheduledFeature[] };

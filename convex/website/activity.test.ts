@@ -4,7 +4,7 @@ import { FakeSlack, slackError } from "../../testing/fakeSlack";
 import { deleteMessage, edit, memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text, userGroup } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSession, switchWebsite } from "../../testing/website";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
 import type { Activity, ActivityEntry } from "./activity";
 
@@ -310,7 +310,18 @@ describe("AT23 AT24 AT27: what a kudos entry says", () => {
     ]);
   });
 
-  test("a kudos whose author left Slack answers removed at once, and its words stay private", async () => {
+  test("a kudos deleted from a public channel reads its channel as unknown, never private", async () => {
+    await activityOn();
+    await post(t, thanksBob, { user: alice.user, ts: postedTs });
+    await settle(t);
+
+    await deleteMessage(t, { user: alice.user, ts: postedTs, previous: thanksBob });
+    await settle(t);
+
+    expect(await messageSeenBy(bob)).toEqual({ message: { kind: "unavailable", reason: "deleted" }, channel: { visibility: "unknown" }, saidWhy: true });
+  });
+
+  test("a kudos whose author left Slack answers removed at once, from an unknown channel", async () => {
     await activityOn();
     await post(t, thanksBob, { user: alice.user, ts: postedTs });
     await settle(t);
@@ -318,18 +329,47 @@ describe("AT23 AT24 AT27: what a kudos entry says", () => {
     await memberChanged(t, "user_change", { id: alice.user, team_id: "T1", deleted: true });
     await settle(t);
 
-    expect(await messageSeenBy(bob)).toEqual({ message: { kind: "unavailable", reason: "removed" }, channel: { visibility: "private" }, saidWhy: true });
+    expect(await messageSeenBy(bob)).toEqual({ message: { kind: "unavailable", reason: "removed" }, channel: { visibility: "unknown" }, saidWhy: true });
     const [entry] = (await activityOf(await signedIn(bob), { filter: "all" })).entries;
     expect(entry).toMatchObject({ giver: { name: "A teammate", face: { kind: "initials", initials: "?" } } });
   });
 
-  test("a kudos given before its words were kept answers not-captured from a private channel, without a said-why decision", async () => {
-    await activityOn();
+  async function aKudosGivenBeforeCapture() {
     const giver = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: alice.user, kind: "member", name: alice.name, asOf: 0 }));
     const recipient = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user: bob.user, kind: "member", name: bob.name, asOf: 0 }));
     await t.run((ctx) => ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: "1700000000.000100", giver, recipient, kudos: 1, day: "2023-11-14", at: 1700000000000 }));
+    return { workspace: "T1", conversation: "C1", message: "1700000000.000100" };
+  }
 
-    expect(await messageSeenBy(bob)).toEqual({ message: { kind: "unavailable", reason: "not-captured" }, channel: { visibility: "private" }, saidWhy: null });
+  test("a kudos given before its words were kept answers not-captured from an unknown channel, without a said-why decision", async () => {
+    await activityOn();
+    await aKudosGivenBeforeCapture();
+
+    expect(await messageSeenBy(bob)).toEqual({ message: { kind: "unavailable", reason: "not-captured" }, channel: { visibility: "unknown" }, saidWhy: null });
+  });
+
+  test("AT35: a kudos whose words the backfill filled reads its channel as unknown", async () => {
+    await activityOn();
+    await post(t, thanksBob, { user: alice.user, ts: postedTs });
+    await settle(t);
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("kudosTexts").collect()) await ctx.db.delete(row._id);
+    });
+    const words = `thanks ${reason} `;
+
+    const hydration = await t.mutation(internal.slack.backfill.hydrateWords, {
+      fetched: {
+        ref: { workspace: "T1", conversation: "C1", message: postedTs },
+        author: alice.user,
+        revision: 1760435000000100n,
+        edited: false,
+        content: { mentions: [{ kind: "person", user: bob.user }], emoji: ["taco"], text: words },
+        segments: [{ kind: "text", text: words }],
+      },
+    });
+
+    expect(hydration).toEqual({ kind: "hydrated" });
+    expect(await messageSeenBy(bob)).toEqual({ message: { kind: "text", segments: [{ kind: "text", text: words }], edited: false }, channel: { visibility: "unknown" }, saidWhy: true });
   });
 
   test("a private channel's kudos reads private, a short one did not say why, and mentions read as names and handles", async () => {

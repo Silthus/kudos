@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import type { FakePostHog } from "../../testing/fakePostHog";
+import type { FakePostHog, FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonInHome } from "../../testing/slackInteractions";
@@ -175,6 +175,22 @@ describe("P62 P64 P65: a member whose Book is open when a batch completes gets o
   });
 });
 
+describe("CO20: a launch batch's summary says each tier's coins while coins are visible", { timeout: 30_000 }, () => {
+  test("a member with the Book and Coins open gets the batch's summary with +10 🪙 on each bronze line", async () => {
+    const t = await workspaceBeforeTheBook();
+    await giveKudos(t, "U_ALICE", "U_BOB");
+    await giveKudos(t, "U_BOB", "U_ALICE");
+    await bookOpenFor(t, "U_ALICE");
+    await coinsOpenFor(t, "U_ALICE");
+
+    await launchTheBook(t, onForEveryone("coins"));
+
+    expect(tierDmsTo("U_ALICE")).toEqual([
+      "🏅 You earned First Thanks (Generosity, bronze). +10 🪙\n🏅 You earned Noticed (Recognition, bronze). +10 🪙\n🏅 You earned First Chapter (Seasons, bronze). +10 🪙\nNext: Generous Soul at 25 kudos given.\nNext: Appreciated at 25 kudos received.\nNext: Season of Thanks at 3 calendar months with a kudos given.",
+    ]);
+  });
+});
+
 describe("P62 P76: a tier is told once, whichever summary tells it", () => {
   test("a replayed opening tells nothing again", async () => {
     const t = await workspaceBeforeTheBook();
@@ -308,8 +324,8 @@ async function workspaceRow(announcementChannel: string | undefined) {
   return t;
 }
 
-async function launchTheBook(t: Backend) {
-  await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"));
+async function launchTheBook(t: Backend, ...alsoOn: FlagDefinition[]) {
+  await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"), ...alsoOn);
   vi.setSystemTime(Date.now() + 60_000);
   await t.mutation(internal.unlocks.sweep.sweep, {});
   await settle(t);
@@ -331,6 +347,10 @@ async function openTheBookInAppHome(t: Backend, user: string) {
   await openHome(t, user);
   await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, buttonInHome(slack, user, "Open")), form));
   await settle(t);
+}
+
+async function coinsOpenFor(t: Backend, user: string) {
+  await t.run(async (ctx) => ctx.db.insert("unlocks", { member: await memberIn(ctx, user), feature: "coins", readyAt: Date.now(), openedAt: Date.now() }));
 }
 
 async function bookOpenFor(t: Backend, ...users: string[]) {

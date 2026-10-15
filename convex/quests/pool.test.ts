@@ -14,8 +14,9 @@ describe("P83: every quest in the pool keeps the guardrails", () => {
     expect(fallbacks.map(({ quest }) => quest)).toEqual(["say-why"]);
   });
 
-  test("P86: each quest pays 20 XP, with no coins or item while those haven't shipped", () => {
-    expect(new Set(questPool.quests.map(({ reward }) => JSON.stringify(reward)))).toEqual(new Set([JSON.stringify({ xp: 20, coins: 0, item: null })]));
+  test("P86 CO6: each quest pays 20 XP and 10 coins, with no item while items haven't shipped, at pool version 2", () => {
+    expect(new Set(questPool.quests.map(({ reward }) => JSON.stringify(reward)))).toEqual(new Set([JSON.stringify({ xp: 20, coins: 10, item: null })]));
+    expect(questPool.version).toBe("2");
   });
 
   test("each quest has its own stable ID", () => {

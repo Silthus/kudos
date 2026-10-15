@@ -1,0 +1,547 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/later-perk-rows/website
+
+ ❯ |website| src/laterPerkRows.test.tsx (17 tests | 15 failed) 3888ms
+   ❯ WS345: every row the read lists, each upgrade under the perk it replaces (7)
+     × puts each upgrade in its base's column, and a perk that upgrades nothing in the next free one 243ms
+     × joins each base to its upgrade with a connector: solid once both are owned, dashed while the upgrade isn't 193ms
+     × shows a replaced base as Upgraded, captioned with the upgrade that took it over, and says so 108ms
+     × marks an owned upgrade with its base's glyph and names the base it replaced 85ms
+     × shows coin costs beside skill points in the pill and the node's name, and no coins for a perk without a price 119ms
+     × names an upgrade the member can't pay for in coins 131ms
+   ❯ WS327 WS345: Upgraded joins the legend with the upgrades (1)
+     × names Owned, Can buy, Upgraded and Locked while the tree has an upgrade 111ms
+   ❯ WS326: the coins chip joins the header with coins (2)
+     × shows the wallet's coins between the skill points and the level while the read carries them 201ms
+   ❯ WS345: an upgrade's details (2)
+     × gives the cost in skill points and coins, the perk it upgrades, and Buy for both 127ms
+     × says the upgrade took a replaced base over 691ms
+   ❯ WS345: the upgrade-aware ledger (1)
+     × lists one entry per chain: the upgrade with the base it replaced, never the base on its own 160ms
+   ❯ an owned coin perk whose copy is hidden with coins (2)
+     × draws no empty line in the ledger or the details 180ms
+     × gives the drawer no empty description 414ms
+   ❯ WS339 V24: the upgrade looks meet 3:1 against the card in both modes (2)
+     × in light 205ms
+     × in dark 133ms
+ ❯ |website| src/buyPerk.test.tsx (37 tests | 2 failed) 8582ms
+   ❯ WS87: a refused purchase changes nothing and says why (11)
+     × WS345: says That couldn't be bought. Not enough coi… for an upgrade refused for coins 126ms
+     × WS345: says That couldn't be bought. Open Coins fir… for an upgrade refused for coins-not-open 387ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/buyPerk.test.tsx > WS87: a refused purchase changes nothing and says why > WS345: says That couldn't be bought. Not enough coi… for an upgrade refused for coins
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  /^That couldn't be bought. Not enough coins.$/[39m
+Received:
+[31m  That couldn't be bought.[39m
+ ❯ src/buyPerk.test.tsx:244:28
+    242|     await user.click(nodeOf("Flame"));
+    243|     await user.click(buyButton());
+    244|     expect(announcement()).toHaveTextContent(new RegExp(`^${says}$`));
+       |                            ^
+    245|     expect(details()).toHaveTextContent(says);
+    246|     expect(buyButton()).toHaveAccessibleName("Buy for 1 skill point an…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯
+
+ FAIL  |website| src/buyPerk.test.tsx > WS87: a refused purchase changes nothing and says why > WS345: says That couldn't be bought. Open Coins fir… for an upgrade refused for coins-not-open
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  /^That couldn't be bought. Open Coins first.$/[39m
+Received:
+[31m  That couldn't be bought.[39m
+ ❯ src/buyPerk.test.tsx:244:28
+    242|     await user.click(nodeOf("Flame"));
+    243|     await user.click(buyButton());
+    244|     expect(announcement()).toHaveTextContent(new RegExp(`^${says}$`));
+       |                            ^
+    245|     expect(details()).toHaveTextContent(says);
+    246|     expect(buyButton()).toHaveAccessibleName("Buy for 1 skill point an…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > WS345: every row the read lists, each upgrade under the perk it replaces > puts each upgrade in its base's column, and a perk that upgrades nothing in the next free one
+AssertionError: expected [ '', '', '' ] to deeply equal [ '1', '2', '3' ]
+
+- Expected
++ Received
+
+  [
+-   "1",
+-   "2",
+-   "3",
++   "",
++   "",
++   "",
+  ]
+
+ ❯ src/laterPerkRows.test.tsx:85:57
+     83|     showTree(skillTreeFixtures.everyRow);
+     84|     const columnOf = (name: string) => cellOf(name).style.gridColumnSt…
+     85|     expect(["Spark", "Rhythm", "Circle"].map(columnOf)).toEqual(["1", …
+       |                                                         ^
+     86|     expect(["Flame", "Cadence", "Bridge", "Treasurer"].map(columnOf)).…
+     87|     expect(columnOf("Banker")).toBe(columnOf("Treasurer"));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > WS345: every row the read lists, each upgrade under the perk it replaces > joins each base to its upgrade with a connector: solid once both are owned, dashed while the upgrade isn't
+TestingLibraryElementError: Unable to find an element by: [data-testid="upgrade-connector"]
+
+Ignored nodes: comments, script, style
+[36m<section[39m
+  [33maria-labelledby[39m=[32m"perk-tree-title"[39m
+  [33mclass[39m=[32m"hud-panel relative flex flex-col gap-4 rounded-xl border bg-card p-4"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"flex flex-wrap items-center justify-between gap-x-4 gap-y-2"[39m
+  [36m>[39m
+    [36m<h2[39m
+      [33mclass[39m=[32m"hud-label"[39m
+      [33mid[39m=[32m"perk-tree-title"[39m
+    [36m>[39m
+      [0mPerk tree[0m
+    [36m</h2>[39m
+    [36m<ul[39m
+      [33maria-label[39m=[32m"Legend"[39m
+      [33mclass[39m=[32m"flex items-center gap-3 text-[11px] text-muted-foreground"[39m
+    [36m>[39m
+      [36m<li[39m
+        [33mclass[39m=[32m"flex items-center gap-1"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"size-3 rounded-[3px] bg-foreground"[39m
+          [33mdata-testid[39m=[32m"legend-swatch"[39m
+        [36m/>[39m
+        [0mOwned[0m
+      [36m</li>[39m
+      [36m<li[39m
+        [33mclass[39m=[32m"flex items-center gap-1"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"size-3 rounded-[3px] border-[1.5px] border-foreground bg-card"[39m
+          [33mdata-testid[39m=[32m"legend-swatch"[39m
+        [36m/>[39m
+        [0mCan buy[0m
+      [36m</li>[39m
+      [36m<li[39m
+        [33mclass[39m=[32m"flex items-center gap-1"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33maria-hidden[39m=[32m"true"[39m
+          [33mclass[39m=[32m"size-3 rounded-[3px] border border-dashed border-muted-foreground bg-muted"[39m
+          [33mdata-testid[39m=[32m"legend-swatch"[39m
+        [36m/>[39m
+        [0mLocked[0m
+      [36m</li>[39m
+    [36m</ul>[39m
+  [36m</div>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex items-center gap-2"[39m
+    [36m>[39m
+      [36m<h3[39m
+        [33mclass[39m=[32m"hud-label shrink-0"[39m
+      [36m>[39m
+        [0mLevel 5[0m
+      [36m</h3>[39m
+      [36m<span[39m
+        [33maria-hidden[39m=[32m"true"[39m
+        [33mclass[39m=[32m"h-px flex-1 bg-border"[39m
+      [36m/>[39m
+    [36m</div>[39m
+    [36m<ul[39m
+      [33mclass[39m=[32m"grid grid-cols-3 gap-2 sm:max-w-sm"[39m
+    [36m>[39m
+      [36m<li[39m
+        [33mclass[39m=[32m"flex justify-center"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-label[39m=[32m"Spark. Owned."[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mclass[39m=[32m"group flex w-full max-w-28 flex-col items-center rounded-lg px-1 pb-1 pt-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"relative flex size-11 items-center justify-center rounded-lg transition-colors group-hover:brightness-95 border-2 border-foreground bg-foreground text-background  "[39m
+            [33mdata-testid[39m=[32m"perk-square"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"contents"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"LemonIcon shrink-0 size-5"[39m
+                [33mfill[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"100%"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M12.0002 3.79083V2.26758M5.8418 18.6586L4.7647 19.7357M12.0002 22.7327V21.2094M19.2353 5.26468L18.1582 6.34179M20.709 12.5001H22.2322M18.1582 18.6586L19.2353 19.7357M1.76758 12.5001H3.29083M4.76462 5.26462L5.84173 6.34173M15.7123 8.78781C17.7626 10.8381 17.7626 14.1622 15.7123 16.2124C13.6621 18.2627 10.3379 18.2627 8.28769 16.2124C6.23744 14.1622 6.23744 10.8381 8.28769 8.78781C10.3379 6.73756 13.6621 6.73756 15.7123 8.78781Z"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"1.5"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</span>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-card text-foreground ring-1 ring-foreground"[39m
+              [33mdata-testid[39m=[32m"owned-check"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33mclass[39m=[32m"LemonIcon size-3"[39m
+                [33mfill[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"100%"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<g[39m
+                  [33mclip-path[39m=[32m"url(#icon/check__a)"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33mclip-rule[39m=[32m"evenodd"[39m
+                    [33md[39m=[32m"M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"[39m
+                    [33mfill-rule[39m=[32m"evenodd"[39m
+                  [36m/>[39m
+                [36m</g>[39m
+                [36m<defs>[39m
+                  [36m<clippath[39m
+                    [33mid[39m=[32m"icon/check__a"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M0 0h20v18H0z"[39m
+                      [33mtransform[39m=[32m"translate(2 3)"[39m
+                    [36m/>[39m
+                  [36m</clippath>[39m
+                [36m</defs>[39m
+              [36m</svg>[39m
+            [36m</span>[39m
+          [36m</span>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"mt-1.5 w-full truncate text-center text-[11px] leading-[14px] tracking-tight font-medium "[39m
+          [36m>[39m
+            [0mSpark[0m
+          [36m</span>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"mt-0.5 flex h-4 items-center"[39m
+          [36m/>[39m
+        [36m</button>[39m
+      [36m</li>[39m
+      [36m<li[39m
+        [33mclass[39m=[32m"flex justify-center"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-label[39m=[32m"Rhythm. Owned."[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mclass[39m=[32m"gr...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+ ❯ src/laterPerkRows.test.tsx:92:31
+     90|   it("joins each base to its upgrade with a connector: solid once both…
+     91|     showTree(skillTreeFixtures.everyRow);
+     92|     expect(within(perkTree()).getAllByTestId("upgrade-connector")).toH…
+       |                               ^
+     93|     expect(connectorUnder("Spark")).toHaveClass("border-solid", "borde…
+     94|     expect(connectorUnder("Rhythm")).toHaveClass("border-dashed", "bor…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > WS345: every row the read lists, each upgrade under the perk it replaces > shows a replaced base as Upgraded, captioned with the upgrade that took it over, and says so
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAccessibleName()[22m
+
+Expected element to have accessible name:
+[32m  Spark. Upgraded to Flame.[39m
+Received:
+[31m  Spark. Owned.[39m
+ ❯ src/laterPerkRows.test.tsx:103:29
+    101|   it("shows a replaced base as Upgraded, captioned with the upgrade th…
+    102|     showTree(skillTreeFixtures.everyRow);
+    103|     expect(nodeOf("Spark")).toHaveAccessibleName("Spark. Upgraded to F…
+       |                             ^
+    104|     expect(within(nodeOf("Spark")).getByTestId("upgraded-to")).toHaveT…
+    105|     expect(squareOf("Spark")).toHaveClass("border-dashed", "bg-card");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > WS345: every row the read lists, each upgrade under the perk it replaces > marks an owned upgrade with its base's glyph and names the base it replaced
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAccessibleName()[22m
+
+Expected element to have accessible name:
+[32m  Flame. Owned. Upgraded from Spark.[39m
+Received:
+[31m  Flame. Owned.[39m
+ ❯ src/laterPerkRows.test.tsx:112:29
+    110|   it("marks an owned upgrade with its base's glyph and names the base …
+    111|     showTree(skillTreeFixtures.everyRow);
+    112|     expect(nodeOf("Flame")).toHaveAccessibleName("Flame. Owned. Upgrad…
+       |                             ^
+    113|     expect(within(squareOf("Flame")).getByTestId("owned-check")).toBeI…
+    114|     expect(within(squareOf("Flame")).getByTestId("upgraded-from")).toB…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > WS345: every row the read lists, each upgrade under the perk it replaces > shows coin costs beside skill points in the pill and the node's name, and no coins for a perk without a price
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  /^1\s*200$/[39m
+Received:
+[31m  1[39m
+ ❯ src/laterPerkRows.test.tsx:119:64
+    117|   it("shows coin costs beside skill points in the pill and the node's …
+    118|     showTree(skillTreeFixtures.everyRow);
+    119|     expect(within(nodeOf("Cadence")).getByTestId("perk-cost")).toHaveT…
+       |                                                                ^
+    120|     expect(within(nodeOf("Cadence")).getByTestId("perk-cost").querySel…
+    121|     expect(nodeOf("Cadence")).toHaveAccessibleName("Cadence. Can buy. …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > WS345: every row the read lists, each upgrade under the perk it replaces > names an upgrade the member can't pay for in coins
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAccessibleName()[22m
+
+Expected element to have accessible name:
+[32m  Flame. Not enough coins. Costs 1 skill point and 150 coins.[39m
+Received:
+[31m  Flame. No skill points to spend. Costs 1 skill point.[39m
+ ❯ src/laterPerkRows.test.tsx:129:29
+    127|   it("names an upgrade the member can't pay for in coins", () => {
+    128|     showTree(skillTreeFixtures.tooFewCoins);
+    129|     expect(nodeOf("Flame")).toHaveAccessibleName("Flame. Not enough co…
+       |                             ^
+    130|     expect(within(squareOf("Flame")).getByTestId("lock-mark")).toBeInT…
+    131|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > WS327 WS345: Upgraded joins the legend with the upgrades > names Owned, Can buy, Upgraded and Locked while the tree has an upgrade
+AssertionError: expected [ 'Owned', 'Can buy', 'Locked' ] to deeply equal [ Array(4) ]
+
+- Expected
++ Received
+
+  [
+    "Owned",
+    "Can buy",
+-   "Upgraded",
+    "Locked",
+  ]
+
+ ❯ src/laterPerkRows.test.tsx:137:71
+    135|   it("names Owned, Can buy, Upgraded and Locked while the tree has an …
+    136|     showTree(skillTreeFixtures.everyRow);
+    137|     expect(within(legend()).getAllByRole("listitem").map(spokenText)).…
+       |                                                                       ^
+    138|   });
+    139| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > WS326: the coins chip joins the header with coins > shows the wallet's coins between the skill points and the level while the read carries them
+AssertionError: expected [ '3 skill points', 'Level 7' ] to deeply equal [ '3 skill points', '180 coins', …(1) ]
+
+- Expected
++ Received
+
+  [
+    "3 skill points",
+-   "180 coins",
+    "Level 7",
+  ]
+
+ ❯ src/laterPerkRows.test.tsx:144:37
+    142|   it("shows the wallet's coins between the skill points and the level …
+    143|     showTree(skillTreeFixtures.everyRow);
+    144|     expect(chips().map(spokenText)).toEqual(["3 skill points", "180 co…
+       |                                     ^
+    145|   });
+    146|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > WS345: an upgrade's details > gives the cost in skill points and coins, the perk it upgrades, and Buy for both
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  1 skill point and 200 coins[39m
+Received:
+[31m  1 skill point[39m
+ ❯ src/laterPerkRows.test.tsx:158:68
+    156|     const { user } = showTree(skillTreeFixtures.everyRow);
+    157|     await user.click(nodeOf("Cadence"));
+    158|     expect(within(details()).getByText("Cost").nextElementSibling).toH…
+       |                                                                    ^
+    159|     expect(within(details()).getByText("Upgrades").nextElementSibling)…
+    160|     expect(within(details()).getByRole("button", { name: "Buy for 1 sk…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > WS345: an upgrade's details > says the upgrade took a replaced base over
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  Flame took over this perk. Its stronger effect is the one that counts now.[39m
+Received:
+[31m  Perk detailsSpark+5 XP the first time each day you thank someone and say why.LevelLevel 5 or higherCost1 skill pointOwned since 13 Oct 2026[39m
+ ❯ src/laterPerkRows.test.tsx:168:23
+    166|     const { user } = showTree(skillTreeFixtures.everyRow);
+    167|     await user.click(nodeOf("Spark"));
+    168|     expect(details()).toHaveTextContent("Flame took over this perk. It…
+       |                       ^
+    169|     expect(within(details()).queryByRole("button", { name: /^Buy/ })).…
+    170|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > WS345: the upgrade-aware ledger > lists one entry per chain: the upgrade with the base it replaced, never the base on its own
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  Your perks · 2 active[39m
+Received:
+[31m  Your perks · 3 active[39m
+ ❯ src/laterPerkRows.test.tsx:176:68
+    174|   it("lists one entry per chain: the upgrade with the base it replaced…
+    175|     showTree(skillTreeFixtures.everyRow);
+    176|     expect(within(yourPerks()).getByRole("heading", { level: 2 })).toH…
+       |                                                                    ^
+    177|     expect(within(yourPerks()).getAllByRole("heading", { level: 3 }).m…
+    178|     expect(within(yourPerks()).getByRole("heading", { name: "Flame" })…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > an owned coin perk whose copy is hidden with coins > draws no empty line in the ledger or the details
+AssertionError: expected [ <p …(1)></p>, …(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   <p
++     class="text-xs leading-snug text-muted-foreground"
++   />,
++   <p
++     class="text-sm"
++   />,
++ ]
+
+ ❯ src/laterPerkRows.test.tsx:192:98
+    190|     await user.click(nodeOf("Treasurer"));
+    191|     expect(within(yourPerks()).getByRole("heading", { name: "Treasurer…
+    192|     expect(emptyParagraphs().filter((paragraph) => paragraph.getAttrib…
+       |                                                                                                  ^
+    193|   });
+    194|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > an owned coin perk whose copy is hidden with coins > gives the drawer no empty description
+Error: [2mexpect([22m[31melement[39m[2m).not.toHaveAttribute([22m[32m[32m"aria-describedby"[32m[39m[2m) // element.hasAttribute("aria-describedby")[22m
+
+Expected the element not to have attribute:
+[32m  aria-describedby[39m
+Received:
+[31m  aria-describedby="base-ui-_r_4l_"[39m
+ ❯ src/laterPerkRows.test.tsx:199:24
+    197|     await user.click(nodeOf("Treasurer"));
+    198|     const drawer = await screen.findByRole("dialog");
+    199|     expect(drawer).not.toHaveAttribute("aria-describedby");
+       |                        ^
+    200|     expect(emptyParagraphs().filter((paragraph) => paragraph.getAttrib…
+    201|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/17]⎯
+
+ FAIL  |website| src/laterPerkRows.test.tsx > WS339 V24: the upgrade looks meet 3:1 against the card in both modes > in light
+ FAIL  |website| src/laterPerkRows.test.tsx > WS339 V24: the upgrade looks meet 3:1 against the card in both modes > in dark
+TestingLibraryElementError: Unable to find an element by: [data-testid="upgraded-from"]
+
+Ignored nodes: comments, script, style
+[36m<span[39m
+  [33mclass[39m=[32m"relative flex size-11 items-center justify-center rounded-lg transition-colors group-hover:brightness-95 border-2 border-foreground bg-foreground text-background  "[39m
+  [33mdata-testid[39m=[32m"perk-square"[39m
+[36m>[39m
+  [36m<span[39m
+    [33maria-hidden[39m=[32m"true"[39m
+    [33mclass[39m=[32m"contents"[39m
+  [36m>[39m
+    [36m<svg[39m
+      [33mclass[39m=[32m"LemonIcon shrink-0 size-5"[39m
+      [33mfill[39m=[32m"currentColor"[39m
+      [33mviewBox[39m=[32m"0 0 24 24"[39m
+      [33mwidth[39m=[32m"100%"[39m
+      [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+    [36m>[39m
+      [36m<path[39m
+        [33md[39m=[32m"M13.75 7.75a.75.75 0 0 0-1.5 0c0 2.426-.536 4.001-1.517 4.983-.982.981-2.557 1.517-4.983 1.517a.75.75 0 0 0 0 1.5c2.426 0 4.001.536 4.983 1.517.981.982 1.517 2.557 1.517 4.983a.75.75 0 0 0 1.5 0c0-2.426.536-4.001 1.517-4.983.982-.981 2.557-1.517 4.983-1.517a.75.75 0 0 0 0-1.5c-2.426 0-4.001-.536-4.983-1.517-.981-.982-1.517-2.557-1.517-4.983ZM6 5.5a.5.5 0 0 0-1 0c0 .98-.217 1.573-.572 1.928S3.48 8 2.5 8a.5.5 0 0 0 0 1c.98 0 1.573.217 1.928.572S5 10.52 5 11.5a.5.5 0 0 0 1 0c0-.98.217-1.573.572-1.928S7.52 9 8.5 9a.5.5 0 0 0 0-1c-.98 0-1.573-.217-1.928-.572S6 6.48 6 5.5ZM11 1.5a.5.5 0 0 0-1 0c0 .633-.14.975-.333 1.167C9.475 2.86 9.133 3 8.5 3a.5.5 0 0 0 0 1c.633 0 .975.14 1.167.333.192.192.333.534.333 1.167a.5.5 0 0 0 1 0c0-.633.14-.975.333-1.167C11.525 4.14 11.867 4 12.5 4a.5.5 0 0 0 0-1c-.633 0-.975-.14-1.167-.333C11.14 2.475 11 2.133 11 1.5Z"[39m
+      [36m/>[39m
+    [36m</svg>[39m
+  [36m</span>[39m
+  [36m<span[39m
+    [33mclass[39m=[32m"absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-card text-foreground ring-1 ring-foreground"[39m
+    [33mdata-testid[39m=[32m"owned-check"[39m
+  [36m>[39m
+    [36m<svg[39m
+      [33mclass[39m=[32m"LemonIcon size-3"[39m
+      [33mfill[39m=[32m"currentColor"[39m
+      [33mviewBox[39m=[32m"0 0 24 24"[39m
+      [33mwidth[39m=[32m"100%"[39m
+      [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+    [36m>[39m
+      [36m<g[39m
+        [33mclip-path[39m=[32m"url(#icon/check__a)"[39m
+      [36m>[39m
+        [36m<path[39m
+          [33mclip-rule[39m=[32m"evenodd"[39m
+          [33md[39m=[32m"M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"[39m
+          [33mfill-rule[39m=[32m"evenodd"[39m
+        [36m/>[39m
+      [36m</g>[39m
+      [36m<defs>[39m
+        [36m<clippath[39m
+          [33mid[39m=[32m"icon/check__a"[39m
+        [36m>[39m
+          [36m<path[39m
+            [33md[39m=[32m"M0 0h20v18H0z"[39m
+            [33mtransform[39m=[32m"translate(2 3)"[39m
+          [36m/>[39m
+        [36m</clippath>[39m
+      [36m</defs>[39m
+    [36m</svg>[39m
+  [36m</span>[39m
+[36m</span>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ upgradeGraphics src/laterPerkRows.test.tsx:215:77
+    213|     return [
+    214|       { part: "the Upgraded outline", element: squareOf("Spark") },
+    215|       { part: "the upgraded-from badge", element: within(squareOf("Fla…
+       |                                                                             ^
+    216|       ...within(perkTree()).getAllByTestId("upgrade-connector").map((e…
+    217|       ...within(perkTree()).getAllByTestId("coin-glyph").map((element)…
+ ❯ src/laterPerkRows.test.tsx:224:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/17]⎯
+
+
+ Test Files  2 failed | 1 passed (3)
+      Tests  17 failed | 55 passed (72)
+   Start at  16:58:52
+   Duration  17.28s (tests 41%, import 29%, transform 20%, environment 8%, setup 2%)
+

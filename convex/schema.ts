@@ -25,6 +25,7 @@ import { journeyActivationValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
 import { featureValidator } from "./unlocks/feature";
 import { memberProfileFields } from "./workspace/memberProfile";
+import { coinSpendValidator } from "./wallet/wallet";
 
 export default defineSchema({
   ...authTables,
@@ -106,6 +107,22 @@ export default defineSchema({
   })
     .index("by_group", ["workspace", "group", "user"])
     .index("by_user", ["workspace", "user"]),
+
+  customEmoji: defineTable({
+    workspace: v.string(),
+    name: v.string(),
+    image: v.string(),
+    listing: v.number(),
+  })
+    .index("by_name", ["workspace", "name"])
+    .index("by_listing", ["workspace", "listing"]),
+
+  customEmojiListings: defineTable({
+    workspace: v.string(),
+    begun: v.number(),
+    written: v.optional(v.number()),
+    refreshDueAt: v.optional(v.number()),
+  }).index("by_workspace", ["workspace"]),
 
   kudosMessages: defineTable({
     workspace: v.string(),
@@ -213,6 +230,19 @@ export default defineSchema({
   rewardRecords: defineTable(rewardRecordValidator)
     .index("by_member_key", ["member", "key"])
     .index("by_member_cause", ["member", "cause.workspace", "cause.conversation", "cause.message"]),
+
+  receivingGivers: defineTable({
+    recipient: v.id("members"),
+    week: v.string(),
+    giver: v.id("members"),
+  }).index("by_recipient_week", ["recipient", "week"]),
+
+  wallets: defineTable({
+    member: v.id("members"),
+    balance: v.number(),
+  }).index("by_member", ["member"]),
+
+  coinSpends: defineTable(coinSpendValidator).index("by_member", ["member"]),
 
   journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
 
