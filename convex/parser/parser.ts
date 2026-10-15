@@ -1,4 +1,4 @@
-import type { QueryCtx } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { thoughtfulKudos } from "../progression/gate";
@@ -9,7 +9,7 @@ export type ParseContext = { workspace: string; giver: MemberId | undefined };
 
 export type ParseHook = {
   name: string;
-  kudosEmoji?(ctx: QueryCtx, context: ParseContext): Promise<string[]>;
+  kudosEmoji?(ctx: MutationCtx, context: ParseContext): Promise<string[]>;
   annotate?(content: MessageContent, context: ParseContext): Annotations;
 };
 
@@ -22,7 +22,7 @@ const workspaceEmoji: ParseHook = {
 
 export const parseHooks: ParseHook[] = [workspaceEmoji, loadoutHook, thoughtfulKudos];
 
-export async function kudosMessageOf(ctx: QueryCtx, content: CountableContent, context: ParseContext): Promise<KudosMessage | null> {
+export async function kudosMessageOf(ctx: MutationCtx, content: CountableContent, context: ParseContext): Promise<KudosMessage | null> {
   if (content.mentions.length === 0) return null;
   const claims = await claimsOf(ctx, context);
   const kudosEmoji = claimedIn(content, claims);
@@ -35,19 +35,19 @@ export function annotationsOf(content: MessageContent, context: ParseContext): A
   return Object.assign({}, ...parseHooks.map((hook) => hook.annotate?.(content, context) ?? {}));
 }
 
-export async function fingerprintOf(ctx: QueryCtx, content: CountableContent, context: ParseContext): Promise<string> {
+export async function fingerprintOf(ctx: MutationCtx, content: CountableContent, context: ParseContext): Promise<string> {
   const mentions = [...new Set(content.mentions.map((mention) => JSON.stringify(mention)))].sort();
   const kudosEmoji = (await kudosEmojiIn(ctx, content, context)).sort();
   return JSON.stringify({ mentions, kudosEmoji });
 }
 
-async function kudosEmojiIn(ctx: QueryCtx, content: CountableContent, context: ParseContext) {
+async function kudosEmojiIn(ctx: MutationCtx, content: CountableContent, context: ParseContext) {
   return claimedIn(content, await claimsOf(ctx, context));
 }
 
 type Claim = { hook: ParseHook; claimed: Set<string> };
 
-function claimsOf(ctx: QueryCtx, context: ParseContext): Promise<Claim[]> {
+function claimsOf(ctx: MutationCtx, context: ParseContext): Promise<Claim[]> {
   return Promise.all(parseHooks.map(async (hook) => ({ hook, claimed: new Set(await (hook.kudosEmoji?.(ctx, context) ?? [])) })));
 }
 

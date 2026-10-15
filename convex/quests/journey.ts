@@ -157,7 +157,9 @@ async function advanceYourEmoji(ctx: MutationCtx, event: KudosGivenEvent): Promi
     const yourEmoji = await activated(ctx, event.workspace, event.giver, "your-emoji", event.at, journey);
     return finishedOrNull(ctx, event.workspace, yourEmoji, Math.max(event.at, yourEmoji.activatedAt), event.message);
   }
-  if (await journeyStepAppliesTo(ctx, event.workspace, event.giver, "your-emoji")) await activated(ctx, event.workspace, event.giver, "your-emoji", Date.now(), journey);
+  if ((await activationOf(ctx, event.giver, "your-emoji")) === null && (await journeyStepAppliesTo(ctx, event.workspace, event.giver, "your-emoji"))) {
+    await activated(ctx, event.workspace, event.giver, "your-emoji", Date.now(), journey);
+  }
   return null;
 }
 

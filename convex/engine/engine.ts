@@ -109,7 +109,7 @@ async function followWords(ctx: MutationCtx, event: MessageEvent, existing: Kudo
   else await forgetWords(ctx, event.ref);
 }
 
-async function changesKudosOf(ctx: QueryCtx, event: MessageEvent, row: KudosMessageRow, context: ParseContext) {
+async function changesKudosOf(ctx: MutationCtx, event: MessageEvent, row: KudosMessageRow, context: ParseContext) {
   return (await fingerprintOf(ctx, event.content, context)) !== (await fingerprintOf(ctx, row.content, context));
 }
 

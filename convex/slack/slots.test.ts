@@ -5,7 +5,7 @@ import { flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, postHogDe
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonInHome, menuOptionInHome, menuOptionsInHome, publishedHome, publishedHomeBlocks, staleButtonOf, staleMenuOptionOf } from "../../testing/slackInteractions";
-import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, messageChangedEvent, messageEvent, section, text } from "../../testing/slackMessages";
 import type { KudosGivenEvent } from "../bus/events";
 import { grantItem } from "../store/inventory";
 import type { MemberId } from "../workspace/directory";
@@ -128,6 +128,62 @@ describe("ST7 ST8: Take off and Put in slot change which emoji count", { timeout
   });
 });
 
+describe("ST10: edits and rechecks parse with the loadout at the time", { timeout: 30_000 }, () => {
+  test("a message the engine stored doesn't become a kudos when it is edited in prose only after its emoji went into a slot", async () => {
+    const t = await aliceWhoOpenedCoins({ owning: [rocket] });
+    await openInventory(t, "U_ALICE");
+    const message = await postMessage(t, saysWhy, ["rocket"]);
+    await editMessage(t, message, 1, `${saysWhy}, really`, ["rocket"]);
+    const before = (await kudosGivenEvents(t)).length;
+
+    await send(t, blockActions("U_ALICE", menuOptionInHome(slack, "U_ALICE", "🚀 Rocket", "Slot 2")));
+    await editMessage(t, message, 2, `${saysWhy}, really and truly`, ["rocket"]);
+
+    expect(await kudosGivenEvents(t)).toHaveLength(before);
+  });
+
+  test("an edit that adds a slotted emoji to a message the engine stored gives with the loadout at the edit", async () => {
+    const t = await aliceWhoOpenedCoins({ owning: [rocket] });
+    await openInventory(t, "U_ALICE");
+    const message = await postMessage(t, saysWhy, []);
+    await editMessage(t, message, 1, `${saysWhy}, really`, []);
+    await send(t, blockActions("U_ALICE", menuOptionInHome(slack, "U_ALICE", "🚀 Rocket", "Slot 2")));
+
+    await editMessage(t, message, 2, `${saysWhy}, really`, ["rocket"]);
+
+    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ kudosEmoji: "rocket", loadoutEmoji: ["rocket"], awards: [{ kudos: 1 }] });
+  });
+
+  test("an edit of a message the engine never stored is its first revision, so after Put in slot a prose-only edit gives (accepted)", async () => {
+    const t = await aliceWhoOpenedCoins({ owning: [rocket] });
+    await openInventory(t, "U_ALICE");
+    const message = await postMessage(t, saysWhy, ["rocket"]);
+    const before = (await kudosGivenEvents(t)).length;
+    await send(t, blockActions("U_ALICE", menuOptionInHome(slack, "U_ALICE", "🚀 Rocket", "Slot 2")));
+
+    await editMessage(t, message, 1, `${saysWhy}, really`, ["rocket"]);
+
+    expect((await kudosGivenEvents(t)).slice(before)).toMatchObject([{ kudosEmoji: "rocket", loadoutEmoji: ["rocket"], awards: [{ kudos: 1 }] }]);
+  });
+
+  test("an attempt waiting for a directory recheck costs what the loadout claims when it is evaluated", async () => {
+    const t = await aliceWhoOpenedCoins({ owning: [rocket] });
+    await openInventory(t, "U_ALICE");
+    await send(t, blockActions("U_ALICE", menuOptionInHome(slack, "U_ALICE", "🚀 Rocket", "Slot 2")));
+    slack.joiningAt("U_DAVE", new Date(Date.now() + 5 * 60_000));
+    const before = (await kudosGivenEvents(t)).length;
+
+    await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention("U_DAVE"), text(` ${saysWhy} `), emoji("taco"), emoji("rocket"))], { user: "U_ALICE", ts: nextTs() })));
+    await t.finishInProgressScheduledFunctions();
+    await t.fetch("/slack/interactivity", await signedRequest(blockActions("U_ALICE", buttonBeside("Slot 2 · 🚀 Rocket")), form));
+    await t.finishInProgressScheduledFunctions();
+    await settleInTimeOrder(t);
+
+    expect((await kudosGivenEvents(t)).slice(before)).toMatchObject([{ kudosEmoji: "taco", awards: [{ kudos: 1 }] }]);
+    expect((await kudosGivenEvents(t)).at(-1)).not.toHaveProperty("loadoutEmoji");
+  });
+});
+
 describe("ST22: a stale Put in slot or Take off where the store is dark", { timeout: 30_000 }, () => {
   test.each([
     ["store off", [...xpAndUnlocksOn, coinsForAlice, offForEveryone("store")]],
@@ -177,10 +233,30 @@ async function workspaceDeciding(...definitions: FlagDefinition[]) {
 }
 
 async function giveKudos(t: Backend, giver: string, recipients: string[], words: string, emojiNames = ["taco"]) {
-  sentMessages += 1;
-  const blocks = [section(...recipients.flatMap((recipient) => [mention(recipient), text(" ")]), text(`${words} `), ...emojiNames.map((name) => emoji(name)))];
-  await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${Math.floor(Date.now() / 1000) + sentMessages}.000100` })));
+  await t.fetch("/slack/events", await signedRequest(messageEvent(blocksOf(recipients, words, emojiNames), { user: giver, ts: nextTs() })));
   await settleInTimeOrder(t);
+}
+
+async function postMessage(t: Backend, words: string, emojiNames: string[]) {
+  const ts = nextTs();
+  await t.fetch("/slack/events", await signedRequest(messageEvent(blocksOf(["U_BOB"], words, emojiNames), { user: "U_ALICE", ts })));
+  await settleInTimeOrder(t);
+  return ts;
+}
+
+async function editMessage(t: Backend, ts: string, edit: number, words: string, emojiNames: string[]) {
+  const editedTs = `${Math.floor(Date.now() / 1000) + 60 * edit}.000200`;
+  await t.fetch("/slack/events", await signedRequest(messageChangedEvent(blocksOf(["U_BOB"], words, emojiNames), { user: "U_ALICE", ts, editedTs })));
+  await settleInTimeOrder(t);
+}
+
+function blocksOf(recipients: string[], words: string, emojiNames: string[]) {
+  return [section(...recipients.flatMap((recipient) => [mention(recipient), text(" ")]), text(`${words} `), ...emojiNames.map((name) => emoji(name)))];
+}
+
+function nextTs() {
+  sentMessages += 1;
+  return `${Math.floor(Date.now() / 1000) + sentMessages}.000100`;
 }
 
 async function openInventory(t: Backend, user: string) {
@@ -197,6 +273,13 @@ async function send(t: Backend, interaction: string) {
 
 function slotLinesOf(home: string[]) {
   return home.filter((line) => line.startsWith("section: Slot "));
+}
+
+function buttonBeside(line: string) {
+  const block = publishedHomeBlocks(slack, "U_ALICE").find((each) => each.text?.text === line);
+  const button = block?.accessory;
+  expect(button, `a button beside ${line}`).toBeDefined();
+  return { type: "button", action_id: button!.action_id!, value: button!.value, block_id: block!.block_id } as Parameters<typeof blockActions>[1];
 }
 
 function takeOffButtonBeside(line: string) {

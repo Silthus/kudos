@@ -32,9 +32,8 @@ export const inventoryOf = internalQuery({
   handler: async (ctx, { member }): Promise<Inventory | null> => ((await storeVisibleTo(ctx, member)) ? inventoryFor(ctx, member) : null),
 });
 
-export async function loadoutEmojiOf(ctx: QueryCtx, member: MemberId): Promise<string[]> {
-  const visible = isMutation(ctx) ? await storeVisibleAndExposedTo(ctx, member) : await storeVisibleTo(ctx, member);
-  if (!visible) return [];
+export async function loadoutEmojiOf(ctx: MutationCtx, member: MemberId): Promise<string[]> {
+  if (!(await storeVisibleAndExposedTo(ctx, member))) return [];
   return (await loadoutOf(ctx, member)).flatMap(({ item }) => (item === null ? [] : (itemOf(item)?.emoji ?? [])));
 }
 
@@ -97,10 +96,6 @@ async function inventoryFor(ctx: QueryCtx, member: MemberId): Promise<Inventory>
     owned,
     catalogue: catalogue.items.filter(shown).map((entry) => ({ ...entry, onSale: forSale(entry) })),
   };
-}
-
-function isMutation(ctx: QueryCtx | MutationCtx): ctx is MutationCtx {
-  return "insert" in ctx.db;
 }
 
 function listedIn(workspaceEmoji: string, entry: CatalogueItem): entry is StoreItem {
