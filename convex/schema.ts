@@ -24,7 +24,8 @@ import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
 import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
-import { journeyActivationValidator } from "./quests/journey";
+import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
+import { journeyActivationValidator, rewardValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
 import { collectedItemValidator, itemPurchaseValidator, loadoutSlotValidator } from "./store/rows";
 import { featureValidator } from "./unlocks/feature";
@@ -352,6 +353,25 @@ export default defineSchema({
   questSwaps: defineTable(questSwapValidator).index("by_member_week", ["member", "week"]),
 
   questProgress: defineTable(questProgressValidator).index("by_member_week_slot", ["member", "week", "slot"]),
+
+  groupQuestLaunches: defineTable({ workspace: v.string(), at: v.number() }).index("by_workspace", ["workspace"]),
+
+  groupQuestWeeks: defineTable({ workspace: v.string(), week: v.string(), drawnAt: v.number() }).index("by_workspace_week", ["workspace", "week"]),
+
+  groupQuests: defineTable({
+    workspace: v.string(),
+    group: v.id("userGroups"),
+    week: v.string(),
+    quest: groupQuestIdValidator,
+    participants: v.array(v.id("members")),
+    target: v.number(),
+    reward: rewardValidator,
+    catalogueVersion: v.string(),
+    feasibleBecause: groupFeasibleBecauseValidator,
+    drawnAt: v.number(),
+  }).index("by_group_week", ["group", "week"]),
+
+  groupQuestParticipants: defineTable({ member: v.id("members"), week: v.string(), group: v.id("userGroups") }).index("by_member_week", ["member", "week"]),
 
   crateOpenings: defineTable(crateOpeningValidator).index("by_member_key", ["member", "key"]),
 

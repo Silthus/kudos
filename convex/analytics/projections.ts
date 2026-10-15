@@ -2,6 +2,7 @@ import { v, type Infer } from "convex/values";
 import type {
   AchievementEarnedEvent,
   AttemptFailedEvent,
+  GroupQuestDrawnEvent,
   JourneyStepActivatedEvent,
   KudosGivenEvent,
   LevelReachedEvent,
@@ -179,6 +180,10 @@ export function projectUnlocksLaunched({ workspace, openings, at }: UnlocksLaunc
 
 export function projectQuestsDrawn(event: QuestsDrawnEvent): ProductEvent[] {
   return event.quests.map((quest) => ({ event: "quest drawn", subject: { member: event.member }, at: event.at, properties: { quest } }));
+}
+
+export function projectGroupQuestDrawn({ quest, participants, at }: GroupQuestDrawnEvent): ProductEvent[] {
+  return participants.map((member) => ({ event: "quest drawn", subject: { member }, at, properties: { quest, kind: "group" } }));
 }
 
 export function projectQuestSwapped(event: QuestSwappedEvent): ProductEvent {

@@ -19,6 +19,7 @@ import { rewardValidator, type Reward } from "./journey";
 import { pendingWeeklyCratesBefore } from "./pendingCrates";
 import { feasibility, feasibleBecauseValidator, questIdValidator, questOf, questPool, type DrawFacts, type FeasibleBecause, type PoolQuest, type QuestId, type Recipient } from "./pool";
 import { counts, isRecipient, questProgress, type CountedAward, type QuestAward } from "./progress";
+import { drawRank } from "./rank";
 import type { WeeklyQuest } from "./step";
 import { daysLeftInWeek, weekKeyOf, weekKeyOfDay, weekStartOf, type WeekKey } from "./week";
 
@@ -337,9 +338,7 @@ function slotOf(slot: number, { quest: { quest, reward }, feasibleBecause }: Fea
 }
 
 function rankOf(member: MemberId, week: WeekKey, { quest }: PoolQuest) {
-  let hash = 0x811c9dc5;
-  for (const character of `${member}:${week}:${quest}`) hash = Math.imul(hash ^ character.charCodeAt(0), 0x01000193) >>> 0;
-  return hash;
+  return drawRank(`${member}:${week}:${quest}`);
 }
 
 async function timeZoneOf(ctx: QueryCtx, member: MemberId) {
