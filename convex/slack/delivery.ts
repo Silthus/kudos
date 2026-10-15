@@ -4,6 +4,7 @@ import type { Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { messageRefValidator, type Mention, type MessageRef } from "../engine/messageEvent";
+import type { Beside } from "../feedback/beside";
 import type { DeepLink } from "../feedback/deepLinks";
 import type { Indicator } from "../feedback/indicator";
 import type { Line, Segment } from "../feedback/segments";
@@ -11,17 +12,19 @@ import { settingsFooterText } from "./appHomeLinks";
 import { callSlack, type SlackAnswer } from "./webApi";
 
 export const attemptArgs = { attempt: v.optional(v.number()) };
+export const besideValidator = v.object({ conversation: v.string(), threadRoot: v.optional(v.string()) });
 const atMostAttempts = 3;
 const longestRetryDelayMs = 60 * 60 * 1000;
 const goneErrors = new Set(["message_not_found", "channel_not_found", "not_in_channel", "is_archived", "not_reactable", "invalid_name"]);
+const refusedAsEphemeral = new Set(["user_not_in_channel", "channel_not_found", "not_in_channel"]);
 const reactionShown = new Set(["already_reacted"]);
 const reactionNotShown = new Set(["no_reaction"]);
 
 export type Attempt<Data = object> =
   | { kind: "delivered"; answer: SlackAnswer<Data> }
-  | { kind: "gone" }
+  | { kind: "gone"; error: string }
   | { kind: "held"; until: number }
-  | { kind: "failed"; retryAt?: number }
+  | { kind: "failed"; retryAt?: number; error?: string }
   | { kind: "unknown" };
 export type Retry = { at: number; attempt: number } | null;
 type Send = (attempt: number) => Promise<Retry>;
@@ -58,6 +61,18 @@ export async function sendOnce(ctx: ActionCtx, workspace: string, method: string
   return retryAfter(result, attempt);
 }
 
+export async function sendBesideOrAsDirectMessage(ctx: ActionCtx, workspace: string, user: string, beside: Beside, content: Record<string, unknown>, attempt: number): Promise<Retry> {
+  const ephemeral = { channel: beside.conversation, user, ...content, ...(beside.threadRoot && { thread_ts: beside.threadRoot }) };
+  const result = await attemptCall(ctx, workspace, "chat.postEphemeral", ephemeral);
+  if (result.kind === "delivered") return null;
+  if (isRefusedAsEphemeral(result)) return sendOnce(ctx, workspace, "chat.postMessage", { channel: user, ...content }, attempt);
+  return result.kind === "gone" ? null : retryAfter(result, attempt);
+}
+
+function isRefusedAsEphemeral(result: Attempt) {
+  return (result.kind === "gone" || result.kind === "failed") && result.error !== undefined && refusedAsEphemeral.has(result.error);
+}
+
 export function failedAttempt(attempt: number, retryAfterMs?: number): Retry {
   return retryAfter({ kind: "failed", ...(retryAfterMs !== undefined && { retryAt: Date.now() + retryAfterMs }) }, attempt);
 }
@@ -81,12 +96,9 @@ async function reconcileIndicator(ctx: ActionCtx, ref: MessageRef, attempt: numb
 async function sendPrivateReply(ctx: ActionCtx, reply: Id<"privateReplies">, attempt: number): Promise<Retry> {
   const row = await ctx.runQuery(internal.feedback.replies.privateReply, { reply });
   if (row === null) return null;
-  const message = {
-    channel: row.conversation,
-    user: row.to,
-    text: [slackTextOf(row.lines), ...(row.footer === null ? [] : [settingsFooterText(row.workspace, row.footer)])].join("\n"),
-    ...(row.threadRoot && { thread_ts: row.threadRoot }),
-  };
+  const text = [slackTextOf(row.lines), ...(row.footer === null ? [] : [settingsFooterText(row.workspace, row.footer)])].join("\n");
+  if (row.asDirectMessage) return sendOnce(ctx, row.workspace, "chat.postMessage", { channel: row.to, text }, attempt);
+  const message = { channel: row.conversation, user: row.to, text, ...(row.threadRoot && { thread_ts: row.threadRoot }) };
   return sendOnce(ctx, row.workspace, "chat.postEphemeral", message, attempt);
 }
 
@@ -122,12 +134,12 @@ export async function attemptCall<Data = object>(
   const answer = await answerOrUnknown<Data>(method, args);
   if (answer === "unknown") return { kind: "unknown" };
   if (answer.ok || alsoDelivered.has(answer.error)) return { kind: "delivered", answer };
-  if (goneErrors.has(answer.error)) return { kind: "gone" };
+  if (goneErrors.has(answer.error)) return { kind: "gone", error: answer.error };
   console.warn(`${method} failed: ${answer.error}`);
-  if (answer.retryAfterMs === undefined) return { kind: "failed" };
+  if (answer.retryAfterMs === undefined) return { kind: "failed", error: answer.error };
   const retryAt = Date.now() + answer.retryAfterMs;
   await ctx.runMutation(internal.slack.rateLimits.hold, { workspace, method, until: retryAt });
-  return { kind: "failed", retryAt };
+  return { kind: "failed", retryAt, error: answer.error };
 }
 
 async function answerOrUnknown<Data>(method: string, args: Record<string, unknown>): Promise<SlackAnswer<Data> | "unknown"> {

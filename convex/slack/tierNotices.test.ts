@@ -274,7 +274,7 @@ describe("P76 P78: where the Book doesn't apply, no tier is announced", () => {
 });
 
 describe("P63 P64 P69: Settings and Admin say they cover achievements where the Book applies", () => {
-  test("the mute and DM settings name achievements", async () => {
+  test("the mute and DM switches name achievements", async () => {
     const t = await workspace();
     await membersWithTheBookOpen(t, "U_ALICE");
     await openHome(t, "U_ALICE");

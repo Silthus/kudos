@@ -288,7 +288,7 @@ export async function activated(ctx: MutationCtx, workspace: string, member: Mem
 
 async function finish(ctx: MutationCtx, workspace: string, activation: JourneyActivation, at: number, cause?: MessageRef): Promise<boolean> {
   if (!(await finishSilently(ctx, workspace, activation, at, cause))) return false;
-  await notifyQuestFinished(ctx, activation.member, { kind: "journey", step: activation.step }, activation.reward.xp);
+  await notifyQuestFinished(ctx, activation.member, { kind: "journey", step: activation.step }, activation.reward.xp, cause);
   return true;
 }
 

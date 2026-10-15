@@ -2,7 +2,7 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { ladderValidator } from "./achievements/ladders";
-import { messageKindValidator } from "./messageSettings/kinds";
+import { messageKindValidator, messagePlaceValidator } from "./messageSettings/kinds";
 import { bookReplayCursorValidator, bookReplayValidator } from "./achievements/replay";
 import { earnedTierValidator } from "./achievements/tiers";
 import { exceptionValidator } from "./analytics/exceptions";
@@ -345,6 +345,7 @@ export default defineSchema({
     member: v.id("members"),
     kind: messageKindValidator,
     on: v.boolean(),
+    place: v.optional(messagePlaceValidator),
   }).index("by_member_kind", ["member", "kind"]),
 
   unlocks: defineTable({

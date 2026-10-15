@@ -12,6 +12,10 @@ export const messageKindValidator = v.union(
 
 export type MessageKind = Infer<typeof messageKindValidator>;
 
+export const messagePlaceValidator = v.union(v.literal("channel"), v.literal("dm"), v.literal("none"));
+
+export type MessagePlace = Infer<typeof messagePlaceValidator>;
+
 export type MessageKindEntry = { kind: MessageKind; label: string; description: string };
 
 export const messageKinds: readonly MessageKindEntry[] = [
@@ -25,3 +29,12 @@ export const messageKinds: readonly MessageKindEntry[] = [
 ];
 
 export const directMessageKinds: readonly MessageKind[] = ["level-ups", "new-features", "quests", "achievements"];
+
+export const placesChosenFrom: Record<Exclude<MessageKind, "tips">, readonly MessagePlace[]> = {
+  "kudos-reply": ["channel", "dm", "none"],
+  "level-ups": ["dm", "channel", "none"],
+  "new-features": ["dm", "none"],
+  quests: ["dm", "channel", "none"],
+  achievements: ["dm", "channel", "none"],
+  celebrations: ["channel", "none"],
+};

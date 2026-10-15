@@ -2,7 +2,7 @@ import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { periodValidator } from "../leaderboard/periods";
-import { messageKindValidator } from "../messageSettings/kinds";
+import { messageKindValidator, messagePlaceValidator } from "../messageSettings/kinds";
 import { failuresLogged } from "./failures";
 import { recordUsage, usageNotRecorded } from "./usage";
 
@@ -53,6 +53,7 @@ const messageSettingChangeValidator = v.object({
   member: v.id("members"),
   setting: messageKindValidator,
   on: v.boolean(),
+  place: v.optional(messagePlaceValidator),
   at: v.number(),
 });
 

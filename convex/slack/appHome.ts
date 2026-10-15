@@ -8,6 +8,7 @@ import { renderHome, type Choice, type HomeLine, type HomeView } from "../feedba
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { lookup } from "../workspace/directory";
 import { buttonOf, mrkdwn, plainText, urlButtonOf } from "./blocks";
+import { encodeHomeAction } from "./interactivity";
 import { attemptArgs, failedAttempt, sendOnce, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser, refreshUser } from "./directory";
 
@@ -110,6 +111,7 @@ function blockOf(line: HomeLine) {
   if (line.kind === "hint") return { type: "context", elements: [mrkdwn(line.text)] };
   if (line.kind === "action") return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
   if (line.kind === "pick-channel") return { type: "section", text: mrkdwn(line.text), accessory: channelPickerOf(line) };
+  if (line.kind === "pick") return { type: "section", text: mrkdwn(line.text), accessory: pickerOf(line) };
   if (line.kind === "link") return { type: "section", text: mrkdwn(`<${line.url}|${line.label}>`) };
   if (line.kind === "links") return { type: "actions", elements: line.links.map(linkButtonOf) };
   return { type: "section", text: mrkdwn(line.text) };
@@ -121,6 +123,12 @@ function buttonsOf(choices: Choice[]) {
 
 function linkButtonOf({ label, url }: { label: string; url: string }, index: number) {
   return urlButtonOf({ label, url, actionId: `website-link-${index}` });
+}
+
+function pickerOf({ id, placeholder, options }: Extract<HomeLine, { kind: "pick" }>) {
+  const selectOptions = options.map(({ label, command }) => ({ text: plainText(label), value: encodeHomeAction(command) }));
+  const initial = options.findIndex(({ selected }) => selected);
+  return { type: "static_select", action_id: id, placeholder: plainText(placeholder), options: selectOptions, ...(initial >= 0 && { initial_option: selectOptions[initial] }) };
 }
 
 function channelPickerOf({ picks, picked }: Extract<HomeLine, { kind: "pick-channel" }>) {

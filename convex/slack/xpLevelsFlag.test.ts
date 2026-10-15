@@ -123,7 +123,7 @@ describe("the xp-levels flag hides the slice while it is off", () => {
     const response = await click(t, "U_ALICE", turnOffDms);
 
     expect(response.status).toBe(200);
-    expect(await dmSetting(t, "U_ALICE")).toBe(true);
+    expect(await dmsSwitch(t, "U_ALICE")).toBe(true);
     expect(publishedHome(slack, "U_ALICE")).toEqual(coreHome);
   });
 });
@@ -213,7 +213,7 @@ async function standing(t: Backend, user: string) {
   return t.run((ctx) => standingOf(ctx, member));
 }
 
-async function dmSetting(t: Backend, user: string) {
+async function dmsSwitch(t: Backend, user: string) {
   const member = await memberOf(t, user);
   return (await t.run((ctx) => notificationSwitchesOf(ctx, member))).dms;
 }
