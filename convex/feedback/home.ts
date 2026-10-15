@@ -20,7 +20,8 @@ import type { WeekKey } from "../quests/week";
 import type { UnopenedCrate, WeeklyQuests, WeeklySlot } from "../quests/weekly";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { Feature } from "../unlocks/feature";
-import { itemOf, type CatalogueItem } from "../store/catalogue";
+import { itemOf, priceOf, type CatalogueItem } from "../store/catalogue";
+import type { CustomKudosEmojiPicker } from "../store/customKudosEmoji";
 import type { InventoryHome, StoreItem } from "../store/inventory";
 import { slots as slotNames, type ItemRefusal } from "../store/rows";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
@@ -58,6 +59,7 @@ export type HomeLine =
   | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] }
   | { kind: "pick-group"; text: string; groups: GroupRef[]; picked: GroupId }
   | { kind: "pick-groups"; text: string; groups: GroupModeFacts["groups"]; picked: GroupModeFacts["allowlist"] }
+  | { kind: "pick-custom-emoji"; text: string; picked: string[] }
   | { kind: "pick"; id: string; text: string; placeholder: string; options: Choice[] }
   | { kind: "link"; label: string; url: string }
   | { kind: "links"; links: Array<{ label: string; url: string }> };
@@ -297,8 +299,7 @@ function refusalLinesOf({ slots, collection, store }: InventoryHome, refused: It
 function refusalTextOf({ item, reason }: ItemRefusal, balance: number): string[] {
   switch (reason) {
     case "no-coins": {
-      const source = itemOf(item)?.source;
-      const short = (source?.kind === "store" ? source.price : 0) - balance;
+      const short = (priceOf(item) ?? 0) - balance;
       return short > 0 ? [`You need ${short} more 🪙.`] : [];
     }
     case "owned":
@@ -310,8 +311,8 @@ function refusalTextOf({ item, reason }: ItemRefusal, balance: number): string[]
   }
 }
 
-function itemLabelOf({ art, emoji, name }: CatalogueItem) {
-  return `${art.kind === "unicode" ? art.glyph : `:${emoji}:`} ${name}`;
+function itemLabelOf({ art, name }: CatalogueItem) {
+  return art.kind === "unicode" ? `${art.glyph} ${name}` : name;
 }
 
 export function perkOfferOf(perk: Perk, website: string | null): { text: string; action: HomeAction } {
@@ -444,11 +445,20 @@ function changeOf(key: keyof NotificationSwitches, value: boolean): Partial<Noti
   return { [key]: value };
 }
 
-function adminGroups({ announcementChannel, achievements, groupMode }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
+function adminGroups({ announcementChannel, achievements, groupMode, customKudosEmoji }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
   const what = celebrated(achievements);
   const channelLines = announcementChannel === null ? noChannelLines(what) : announcementChannelLines(what, announcementChannel);
   const groupModeLines = groupMode === null ? [] : [groupModeLinesOf(groupMode)];
-  return [channelLines, ...groupModeLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+  const customKudosEmojiLines = customKudosEmoji === null ? [] : [customKudosEmojiLinesOf(customKudosEmoji)];
+  return [channelLines, ...groupModeLines, ...customKudosEmojiLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+}
+
+function customKudosEmojiLinesOf(picker: CustomKudosEmojiPicker): HomeLine[] {
+  const pick: HomeLine =
+    picker.kind === "reinstall"
+      ? { kind: "text", text: "Reinstall the app to pick custom emoji." }
+      : { kind: "pick-custom-emoji", text: "Pick custom emoji members can buy as kudos emoji for 100 🪙.", picked: picker.picked };
+  return [{ kind: "text", text: bold("Custom kudos emoji") }, pick];
 }
 
 function groupModeLinesOf({ mode, groups, allowlist }: GroupModeFacts): HomeLine[] {
