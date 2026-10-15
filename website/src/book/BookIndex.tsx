@@ -49,11 +49,8 @@ function IndexEntry({ page, current, children }: { page: BookPageId; current: Bo
 export function BookPagePicker({ chapters, current }: IndexProps) {
   const navigate = useNavigate();
   return (
-    <label className="relative mb-2 flex flex-col gap-1">
-      <span className="hud-label flex items-center gap-1.5">
-        <IconBook className="size-3.5" /> Book page
-      </span>
-      <select value={bookHref(current)} onChange={(event) => navigate(event.target.value)} className="h-11 w-full appearance-none rounded-lg border border-muted-foreground bg-card pl-3 pr-9 text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+    <div className="relative mb-2 flex flex-col gap-1">
+      <select aria-label="Book page" value={bookHref(current)} onChange={(event) => navigate(event.target.value)} className="h-11 w-full appearance-none rounded-lg border border-muted-foreground bg-card pl-3 pr-9 text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
         <option value={bookHref("overview")}>Overview</option>
         <optgroup label="Achievements">
           {chapters.map(({ category }) => (
@@ -64,6 +61,6 @@ export function BookPagePicker({ chapters, current }: IndexProps) {
         </optgroup>
       </select>
       <IconChevronDown aria-hidden="true" className="pointer-events-none absolute bottom-3.5 right-3 size-4 text-muted-foreground" />
-    </label>
+    </div>
   );
 }

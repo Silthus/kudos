@@ -17,10 +17,10 @@ import { skillPointsText } from "../skills/perkWords";
 export function Hero({ member }: { member: MemberProfile }) {
   const { progression } = member;
   return (
-    <section aria-labelledby="home-title" className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:gap-7 sm:py-4 sm:text-left">
+    <section aria-labelledby="home-title" className="flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:gap-7 sm:py-4">
       <MemberFace face={member.face} className="size-28" />
       {progression !== null && <HeroRing progression={progression} />}
-      <div className="flex w-full min-w-0 flex-1 flex-col items-center sm:items-start">
+      <div className="flex w-full min-w-0 flex-1 flex-col items-start">
         <span className="hud-label">Character</span>
         <div className="mt-1 max-w-full">
           <PageTitle tab="Profile" id="home-title" size="hero">
@@ -93,7 +93,7 @@ function XpBar({ progression }: { progression: Progression }) {
 function KudosLeftToday({ allowance: { left, base, refillsAt } }: { allowance: MemberProfile["allowance"] }) {
   const refill = new Date(refillsAt);
   return (
-    <div className="mt-4 flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1.5 border-t pt-4 sm:justify-start">
+    <div className="mt-4 flex w-full flex-wrap items-center justify-start gap-x-3 gap-y-1.5 border-t pt-4">
       <span className="hud-label">Kudos left today</span>
       <span className="hud-display text-2xl font-bold leading-none tabular-nums">
         {left}
