@@ -9,7 +9,7 @@ import { Claimed } from "../crates/RewardCrate";
 import { rewardChipAttributes } from "../crates/RewardFlight";
 import { hogOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "../features";
 import { PageTitle } from "../PageTitle";
-import { questTargetAttributes } from "../questTarget";
+import { questTargetAttributes } from "../linkTarget";
 import { Coins } from "../quests/QuestReward";
 import { QuestTag } from "../quests/QuestTag";
 import { sameQuest, useQuestSwap, type QuestSwap } from "../quests/questSwap";

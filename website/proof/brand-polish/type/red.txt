@@ -1,0 +1,40 @@
+ FAIL  |website| src/displayTitles.test.tsx > WS310 #453: page titles take variant E's display sizes in RoundHog at the brand's Bold, 800 > sets /book's title at E's text-4xl with no extra leading
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"hud-display font-extrabold text-4xl leading-none"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  hud-display font-extrabold text-4xl leading-none[39m
+Received:
+[31m  hud-display font-bold outline-none text-4xl leading-none[39m
+ ❯ src/displayTitles.test.tsx:42:25
+     40|     renderApp(shellFixtures.memberWithTheBookOpened, undefined, undefi…
+     41|     expect(pageTitle()).toHaveTextContent("Achievements");
+     42|     expect(pageTitle()).toHaveClass("hud-display", "font-extrabold", "…
+       |                         ^
+     43|   });
+     44|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  |website| src/displayTitles.test.tsx > WS310 #453: page titles take variant E's display sizes in RoundHog at the brand's Bold, 800 > sets /leaderboard's headline at E's fluid clamp with a 0.95 line height and balanced wrapping, breaking a long name
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"hud-display font-extrabold text-[clamp(1.75rem,5vw,3rem)] leading-[0.95] text-balance"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  hud-display font-extrabold text-[clamp(1.75rem,5vw,3rem)] leading-[0.95] text-balance[39m
+Received:
+[31m  hud-display font-bold outline-none text-[clamp(1.75rem,5vw,3rem)] leading-[0.95] text-balance wrap-anywhere[39m
+ ❯ src/displayTitles.test.tsx:48:25
+     46|     visit("/leaderboard");
+     47|     renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(leade…
+     48|     expect(pageTitle()).toHaveClass("hud-display", "font-extrabold", "…
+       |                         ^
+     49|     expect(pageTitle()).toHaveClass("wrap-anywhere");
+     50|     expect(pageTitle()).not.toHaveClass("text-2xl");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  7 failed (7)
+   Start at  18:04:26
+   Duration  5.39s (environment 35%, transform 23%, import 20%, setup 15%, tests 7%)
+
