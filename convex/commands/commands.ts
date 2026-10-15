@@ -150,6 +150,7 @@ function conforms(validator: GenericValidator, value: unknown): boolean {
     case "boolean":
       return typeof value === "boolean";
     case "string":
+    case "id":
       return typeof value === "string";
     case "float64":
       return typeof value === "number";

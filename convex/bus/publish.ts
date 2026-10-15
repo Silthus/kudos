@@ -46,7 +46,7 @@ export const subscribers: Registry = {
   memberLeft: [internal.quests.journey.recheckSomeoneNew, internal.engine.kudosText.forgetWordsOfLeaver],
   memberRejoined: [internal.quests.journey.recheckRejoined],
   primaryGroupChanged: [],
-  awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed],
+  awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed, internal.quests.groupQuest.followAwardsAttributed],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {

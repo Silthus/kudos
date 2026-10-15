@@ -9,8 +9,10 @@ import crons from "../crons";
 import type { GroupId } from "../groups/groups";
 import { pickPrimaryGroup } from "../groups/pick";
 import { reconcileMember } from "../groups/reconcile";
+import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { keepOpen } from "../unlocks/unlocks";
 import type { MemberId } from "../workspace/directory";
+import { openQuestCrate } from "./open";
 
 const minuteMs = 60 * 1000;
 const hourMs = 60 * minuteMs;
@@ -20,6 +22,7 @@ const lastTuesday = Date.parse("2026-10-13T10:00:00Z");
 const monday = Date.parse("2026-10-19T00:00:00Z");
 const tuesday = Date.parse("2026-10-20T10:00:00Z");
 const wednesday = Date.parse("2026-10-21T10:00:00Z");
+const saturday = Date.parse("2026-10-24T10:00:00Z");
 const thisWeek = "2026-10-19";
 const nextWeek = "2026-10-26";
 const auckland = "Pacific/Auckland";
@@ -252,6 +255,36 @@ describe("GB24 GB31 GB33: groupQuestOf and quest drawn give counts, never names"
     expect(await groupQuestOf(t, members.U_A1!)).toBeNull();
   });
 
+  test("groupQuestOf gives each participant how many took part and whether they did, done once the target is reached, and a crate only to a contributor", async () => {
+    const { t, members, groups } = await antsOfFiveDrew();
+    await gives(t, members.U_A1!, members.U_A2!, tuesday);
+    expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ tookPart: 1, target: 3, you: true, done: false, crate: null });
+    expect(await groupQuestOf(t, members.U_A2!)).toMatchObject({ tookPart: 1, target: 3, you: false, done: false, crate: null });
+
+    await gives(t, members.U_A2!, members.U_A1!, tuesday);
+    await gives(t, members.U_A3!, members.U_A1!, tuesday);
+    await gives(t, members.U_A4!, members.U_A1!, tuesday);
+
+    const key = groupRewardKey(groups.Ants!, thisWeek);
+    expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ tookPart: 3, target: 3, you: true, done: true, crate: { key, opened: false } });
+    expect(await groupQuestOf(t, members.U_A5!)).toMatchObject({ tookPart: 3, target: 3, you: false, done: true, crate: null });
+    const said = JSON.stringify(await groupQuestOf(t, members.U_A5!));
+    for (const named of ["U_A1", "U_A2", "U_A3", "U_A4", members.U_A1!, members.U_A2!, members.U_A3!, members.U_A4!]) expect(said).not.toContain(named);
+  });
+
+  test("quest finished goes to each rewarded contributor with kind group, the quest and the reward, and no property names a group or a member", async () => {
+    const { t, members, groups } = await antsOfFiveDrew();
+    await gives(t, members.U_A1!, members.U_A2!, tuesday);
+    await gives(t, members.U_A2!, members.U_A1!, tuesday);
+    await gives(t, members.U_A3!, members.U_A1!, tuesday);
+
+    const events = groupQuestsFinished();
+    expect(events.map(({ properties: { kind, quest, xp, coins } }) => ({ kind, quest, xp, coins }))).toEqual([0, 1, 2].map(() => ({ kind: "group", quest: "together-say-why", xp: 0, coins: 15 })));
+    expect(new Set(events.map(({ distinct_id }) => distinct_id)).size).toBe(3);
+    const said = JSON.stringify(events.map(({ properties }) => properties));
+    for (const named of [groups.Ants, "S_ANTS", "Ants", ...Object.keys(members), ...Object.values(members)]) expect(said).not.toContain(named);
+  });
+
   test("quest drawn goes to each participant with kind group and the quest, and no property names a group or a member", async () => {
     const { t, members, groups } = await workspace({ Ants: ["U_A1", "U_A2", "U_A3"] });
     await openQuests(t, Object.values(members), lastTuesday);
@@ -267,6 +300,158 @@ describe("GB24 GB31 GB33: groupQuestOf and quest drawn give counts, never names"
     expect(new Set(events.map(({ distinct_id }) => distinct_id)).size).toBe(3);
     const said = JSON.stringify(events.map(({ properties }) => properties));
     for (const named of [groups.Ants, "S_ANTS", "Ants", ...Object.keys(members), ...Object.values(members)]) expect(said).not.toContain(named);
+  });
+});
+
+describe("GB22 GB23: participants finish the group quest together, and each contributor gets the reward once", { timeout: 60_000 }, () => {
+  test("three participants who each give a kudos that says why reach the target and get one reward each; a fourth on Saturday gets one at their contribution; one next Monday gets none", async () => {
+    const { t, members, groups } = await antsOfFiveDrew();
+    const [ann, al, amy, abe, ada] = [members.U_A1!, members.U_A2!, members.U_A3!, members.U_A4!, members.U_A5!];
+
+    await gives(t, ann, al, tuesday);
+    await gives(t, al, amy, tuesday + hourMs);
+    expect(await groupRewardsOf(t)).toEqual([]);
+    await gives(t, amy, ann, wednesday);
+    expect(await groupRewardsOf(t)).toEqual([ann, al, amy].map((member) => groupReward(member, groups.Ants!, thisWeek)));
+
+    await gives(t, abe, ann, saturday);
+    expect(await groupRewardsOf(t)).toEqual([ann, al, amy, abe].map((member) => groupReward(member, groups.Ants!, thisWeek)));
+
+    await gives(t, ada, ann, monday + weekMs + hourMs);
+    expect(await groupRewardsOf(t)).toEqual([ann, al, amy, abe].map((member) => groupReward(member, groups.Ants!, thisWeek)));
+  });
+
+  test("a kudos that doesn't say why, or a kudos to a recipient in the group for together-reach-out, isn't a contribution", async () => {
+    const { t, members } = await antsOfFiveDrew();
+
+    await gives(t, members.U_A1!, members.U_A2!, tuesday, { saysWhy: false });
+
+    expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ tookPart: 0, you: false });
+  });
+
+  test("together-reach-out counts a kudos to a recipient whose primary group at the spend instant isn't the group, and not one to a fellow member", async () => {
+    const { t, members, groups } = await workspace({ Ants: ["U_A1", "U_A2", "U_A3"], Bees: ["U_B1"] });
+    await openQuests(t, Object.values(members), lastTuesday);
+    await launched(t);
+    const weekStart = await firstWeekDrawing(t, groups.Ants!, "together-reach-out");
+
+    await gives(t, members.U_A1!, members.U_A2!, weekStart + dayMs, { saysWhy: true });
+    expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ quest: "together-reach-out", tookPart: 0, you: false });
+
+    await gives(t, members.U_A1!, members.U_B1!, weekStart + dayMs + hourMs, { saysWhy: false });
+    expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ quest: "together-reach-out", tookPart: 1, you: true });
+  });
+
+  test("a kudos spent Sunday 23:59 UTC and processed on Monday counts for the week it was spent in", async () => {
+    const { t, members, groups } = await workspace({ Ants: ["U_A1", "U_A2"] }, { timeZones: { U_A1: auckland } });
+    await openQuests(t, Object.values(members), lastTuesday);
+    await launched(t);
+    await sweepAt(t, monday + 10 * minuteMs);
+
+    await gives(t, members.U_A1!, members.U_A2!, monday + weekMs - minuteMs, { processedAt: monday + weekMs + 5 * minuteMs });
+
+    expect(await groupRewardsOf(t)).toEqual([groupReward(members.U_A1!, groups.Ants!, thisWeek)]);
+  });
+
+  test("two kudos from one participant count one contribution, and a redelivered awardsAttributed changes nothing", async () => {
+    const { t, members } = await antsOfFiveDrew();
+
+    await gives(t, members.U_A1!, members.U_A2!, tuesday);
+    await gives(t, members.U_A1!, members.U_A3!, wednesday);
+    await redeliverLatestAwardsAttributed(t);
+    await redeliverLatestAwardsAttributed(t);
+
+    expect(await groupQuestOf(t, members.U_A2!)).toMatchObject({ tookPart: 1, you: false, done: false });
+    expect(await groupRewardsOf(t)).toEqual([]);
+  });
+
+  test("a redelivered awardsAttributed of the contribution that reaches the target records each reward once and sends quest finished once each", async () => {
+    const { t, members } = await antsOfFiveDrew();
+    await gives(t, members.U_A1!, members.U_A2!, tuesday);
+    await gives(t, members.U_A2!, members.U_A3!, tuesday);
+    await gives(t, members.U_A3!, members.U_A1!, tuesday);
+
+    await redeliverLatestAwardsAttributed(t);
+
+    expect(await groupRewardsOf(t)).toHaveLength(3);
+    expect(groupQuestsFinished()).toHaveLength(3);
+  });
+});
+
+describe("GB36: the week's lifecycle", { timeout: 60_000 }, () => {
+  test("a participant who switched group mid-week contributes nothing more to the old quest, and what they contributed stays", async () => {
+    const { t, members, groups } = await workspace({ Ants: ["U_A1", "U_A2", "U_A3", "U_SWITCH"], Bees: ["U_SWITCH", "U_B1", "U_B2", "U_B3", "U_B4"] });
+    await picks(t, members.U_SWITCH!, groups.Ants!, lastTuesday);
+    await openQuests(t, Object.values(members), lastTuesday);
+    await launched(t);
+    await sweepAt(t, monday + 10 * minuteMs);
+
+    await gives(t, members.U_SWITCH!, members.U_B1!, tuesday);
+    await picks(t, members.U_SWITCH!, groups.Bees!, wednesday);
+    await gives(t, members.U_SWITCH!, members.U_B1!, wednesday + hourMs);
+    await gives(t, members.U_A1!, members.U_B1!, wednesday + hourMs);
+    expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ tookPart: 2, done: false });
+    await gives(t, members.U_A2!, members.U_B1!, wednesday + hourMs);
+
+    expect(await groupQuestOf(t, members.U_SWITCH!)).toMatchObject({ group: { group: groups.Ants, name: "Ants" }, tookPart: 3, you: true, done: true });
+    expect(await groupQuestOf(t, members.U_B1!)).toMatchObject({ tookPart: 0, you: false });
+    expect((await groupRewardsOf(t)).map(({ member, key }) => ({ member, key }))).toEqual(
+      [members.U_A1!, members.U_A2!, members.U_SWITCH!].map((member) => ({ member, key: groupRewardKey(groups.Ants!, thisWeek) })),
+    );
+  });
+
+  test("archiving the group mid-week ends its quest: later kudos contribute nothing, and the rewards already recorded stay", async () => {
+    const { t, members, groups } = await workspace({ Ants: ["U_A1", "U_A2", "U_A3", "U_A4"], Bees: ["U_B1", "U_B2"] });
+    await openQuests(t, Object.values(members), lastTuesday);
+    await launched(t);
+    await sweepAt(t, monday + 10 * minuteMs);
+    await gives(t, members.U_B1!, members.U_A1!, tuesday);
+    await gives(t, members.U_A1!, members.U_B1!, tuesday);
+    await gives(t, members.U_A2!, members.U_B1!, tuesday);
+
+    await archived(t, "Bees", wednesday);
+    await archived(t, "Ants", wednesday);
+    await gives(t, members.U_B2!, members.U_A1!, wednesday + hourMs);
+    await gives(t, members.U_A3!, members.U_B1!, wednesday + hourMs);
+
+    expect((await groupRewardsOf(t)).map(({ member, key }) => ({ member, key }))).toEqual([{ member: members.U_B1!, key: groupRewardKey(groups.Bees!, thisWeek) }]);
+    expect(await t.run((ctx) => ctx.db.query("groupQuestContributions").collect())).toHaveLength(3);
+  });
+
+  test("while group-quest is off nothing is recorded; turned on again in the same week, contributions count from then", async () => {
+    const { t, members } = await antsOfFiveDrew();
+    postHog = flagsOnForEveryone(new FakeSlack().fetch, ...everyFlag.filter((flag) => flag !== "group-quest"));
+    await flagsLoaded(t);
+
+    await gives(t, members.U_A1!, members.U_A2!, tuesday);
+    expect(await t.run((ctx) => ctx.db.query("groupQuestContributions").collect())).toEqual([]);
+
+    postHog = flagsOnForEveryone(new FakeSlack().fetch, ...everyFlag);
+    await flagsLoaded(t);
+    await gives(t, members.U_A2!, members.U_A1!, wednesday);
+
+    expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ tookPart: 1, you: false });
+    expect(await groupQuestOf(t, members.U_A2!)).toMatchObject({ tookPart: 1, you: true });
+  });
+});
+
+describe("GB23 P85: a group reward's crate waits for its member and opens once", { timeout: 60_000 }, () => {
+  test("a contributor's reward is a pending crate that groupQuestOf shows and openQuestCrate opens once; a participant without the reward can't open it", async () => {
+    const { t, members, groups } = await antsOfFiveDrew();
+    for (const [giver, recipient] of [["U_A1", "U_A2"], ["U_A2", "U_A3"], ["U_A3", "U_A1"]] as const) await gives(t, members[giver]!, members[recipient]!, tuesday);
+    const crate = { kind: "group" as const, group: groups.Ants!, week: thisWeek };
+    const key = groupRewardKey(groups.Ants!, thisWeek);
+    expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ crate: { key, opened: false } });
+
+    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate))).toBe("done");
+    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate))).toBe("done");
+    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A4!, crate))).toBe("refused");
+    await settle(t);
+
+    expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ crate: { key, opened: true } });
+    expect(await t.run((ctx) => ctx.db.query("crateOpenings").collect())).toHaveLength(1);
+    expect(await t.run((ctx) => ctx.db.query("pendingCrates").collect())).toEqual([members.U_A2!, members.U_A3!].map((member) => expect.objectContaining({ member, key })));
+    expect(postHog.productEvents().filter(({ event }) => event === "crate opened").map(({ properties: { kind, quest } }) => ({ kind, quest }))).toEqual([{ kind: "group", quest: "together-say-why" }]);
   });
 });
 
@@ -353,4 +538,69 @@ function groupQuestOf(t: Backend, member: MemberId) {
 
 function groupQuestsDrawn() {
   return postHog.productEvents().filter((event) => event.event === "quest drawn" && event.properties.kind === "group");
+}
+
+function groupQuestsFinished() {
+  return postHog.productEvents().filter((event) => event.event === "quest finished" && event.properties.kind === "group");
+}
+
+async function antsOfFiveDrew() {
+  const drawn = await workspace({ Ants: ["U_A1", "U_A2", "U_A3", "U_A4", "U_A5"] });
+  await openQuests(drawn.t, Object.values(drawn.members), lastTuesday);
+  await launched(drawn.t);
+  await sweepAt(drawn.t, monday + 10 * minuteMs);
+  return drawn;
+}
+
+async function firstWeekDrawing(t: Backend, group: GroupId, quest: string) {
+  for (let week = 0; week < 12; week += 1) {
+    const weekStart = monday + week * weekMs;
+    await sweepAt(t, weekStart + 10 * minuteMs);
+    const drawn = await t.run((ctx) => ctx.db.query("groupQuests").collect());
+    if (drawn.some((row) => row.group === group && row.drawnAt === weekStart + 10 * minuteMs && row.quest === quest)) return weekStart;
+  }
+  throw new Error(`the group never drew ${quest} in 12 weeks`);
+}
+
+let messages = 0;
+
+async function gives(t: Backend, giver: MemberId, recipient: MemberId, at: number, { saysWhy = true, processedAt = at }: { saysWhy?: boolean; processedAt?: number } = {}) {
+  vi.setSystemTime(processedAt);
+  messages += 1;
+  const message = { workspace: "T1", conversation: "C1", message: `${Math.floor(at / 1000)}.${String(messages).padStart(6, "0")}` };
+  const saidWhy = saysWhy ? { annotations: { gate: { version: 1, thoughtful: true, words: 7 } } } : {};
+  const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, giver, recipient, { message, at, day: new Date(at).toISOString().slice(0, 10), ...saidWhy }));
+  await t.mutation(internal.groups.attribution.attributeKudosGiven, { event });
+  await settle(t);
+}
+
+async function redeliverLatestAwardsAttributed(t: Backend) {
+  const attribution = await t.run((ctx) => ctx.db.query("attributions").order("desc").first());
+  if (attribution === null) throw new Error("nothing was attributed");
+  const { _id, _creationTime, conversation, message, ...facts } = attribution;
+  const event = { type: "awardsAttributed" as const, message: { workspace: facts.workspace, conversation, message }, ...facts };
+  await t.mutation(internal.quests.groupQuest.followAwardsAttributed, { event });
+  await settle(t);
+}
+
+async function archived(t: Backend, name: string, at: number) {
+  vi.setSystemTime(at);
+  const group = `S_${name.toUpperCase()}`;
+  const listed = [{ workspace: "T1", group, handle: name.toLowerCase(), name, enabled: false, automatic: false }];
+  await t.mutation(internal.workspace.userGroups.keepUserGroups, { listed, scope: { kind: "one-group", workspace: "T1", group }, asOf: at });
+  await settle(t);
+}
+
+function groupRewardKey(group: GroupId, week: string) {
+  return `group:${group}:${week}`;
+}
+
+function groupReward(member: MemberId, group: GroupId, week: string) {
+  return { member, key: groupRewardKey(group, week), xp: 0, coins: 15, item: null, catalogueVersion: "1" };
+}
+
+async function groupRewardsOf(t: Backend) {
+  const rows = await t.run((ctx) => ctx.db.query("rewardRecords").collect());
+  const inMemberOrder = rows.toSorted((one, other) => one.member.localeCompare(other.member) || one.key.localeCompare(other.key));
+  return inMemberOrder.filter(({ key }) => key.startsWith("group:")).map(({ member, key, xp, coins, item, catalogueVersion }) => ({ member, key, xp, coins, item, catalogueVersion }));
 }

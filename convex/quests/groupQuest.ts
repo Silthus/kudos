@@ -3,18 +3,24 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { exposed, memberDecision, workspaceDecision } from "../analytics/flags";
+import { awardsAttributedEventValidator, type AwardsAttributedEvent } from "../bus/events";
 import { publish } from "../bus/publish";
+import { republish } from "../feedback/homes";
 import { groupsFlag } from "../groups/flag";
 import { countsAsGroup, groupModeOf, groupsShownTo, memberGroupsOf, type GroupId, type GroupMode, type GroupRef } from "../groups/groups";
 import { primaryGroupAt } from "../groups/history";
 import { reconcilePageOf } from "../groups/reconcile";
+import { rewardOf } from "../progression/rewards";
 import { openedAtOf } from "../unlocks/unlocks";
 import type { MemberId } from "../workspace/directory";
 import { maxUserGroupsKept } from "../workspace/userGroups";
 import { questsApplyTo } from "./flag";
-import { drawGroupQuest, groupGoalOf, groupQuestPool, groupTargetOf, type GroupQuestId } from "./groupPool";
+import { crateOpeningOf, rewardKeyOf } from "./crates";
+import { finishQuest } from "./finish";
+import { doesGroupQuestAction, drawGroupQuest, groupGoalOf, groupQuestPool, groupTargetOf, type GroupQuestId } from "./groupPool";
 import { groupQuestFlag } from "./groupQuestFlag";
 import type { Reward } from "./journey";
+import type { GroupQuestCrate } from "./step";
 import { weekKeyOf, weekStartOf, type WeekKey } from "./week";
 
 const membersPerPage = 100;
@@ -87,6 +93,19 @@ export const drawGroupQuests = internalMutation({
   },
 });
 
+export const followAwardsAttributed = internalMutation({
+  args: { event: awardsAttributedEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    const drawn = await groupQuestContributedToBy(ctx, event);
+    if (drawn === null || (await hasContributed(ctx, drawn, event.giver))) return;
+    const before = await contributorsOf(ctx, drawn);
+    const { workspace, giver, message, at } = event;
+    await ctx.db.insert("groupQuestContributions", { workspace, group: drawn.group, week: drawn.week, member: giver, message, at });
+    for (const member of rewardedBy(drawn, before, giver)) await rewardContributor(ctx, drawn, member, at);
+    await republish(ctx, giver);
+  },
+});
+
 export const groupQuestOf = internalQuery({
   args: { member: v.id("members") },
   handler: async (ctx, { member }): Promise<GroupQuest | null> => ((await groupQuestAppliesTo(ctx, member)) ? groupQuestFor(ctx, member, Date.now()) : null),
@@ -106,22 +125,70 @@ export async function groupQuestFor(ctx: QueryCtx, member: MemberId, at: number)
   const group = drawn === null || !drawn.participants.includes(member) ? null : await ctx.db.get(drawn.group);
   if (drawn === null || group === null) return null;
   const { quest, target, reward } = drawn;
+  const tookPart = (await contributorsOf(ctx, drawn)).length;
   return {
     group: { group: group._id, name: group.name },
     quest,
     goal: groupGoalOf(quest, group.name),
     week,
     endsAt: weekStartOf(week, undefined) + weekMs,
-    tookPart: 0,
+    tookPart,
     target,
-    you: false,
-    done: false,
+    you: await hasContributed(ctx, drawn, member),
+    done: tookPart === target,
     reward,
-    crate: null,
+    crate: await crateOf(ctx, member, crateOfWeek(drawn)),
   };
 }
 
-async function groupQuestAppliesTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+export async function groupQuestIdOf(ctx: QueryCtx, { group, week }: GroupQuestCrate): Promise<GroupQuestId | null> {
+  return (await groupQuestIn(ctx, group, week))?.quest ?? null;
+}
+
+async function groupQuestContributedToBy(ctx: QueryCtx, { group, giver, at, awards }: AwardsAttributedEvent): Promise<Doc<"groupQuests"> | null> {
+  const drawn = group === null ? null : await groupQuestIn(ctx, group, groupWeekOf(at));
+  if (drawn === null || !drawn.participants.includes(giver) || !doesGroupQuestAction(drawn.quest, drawn.group, awards)) return null;
+  return (await groupQuestAppliesTo(ctx, giver)) ? drawn : null;
+}
+
+function rewardedBy({ target }: Doc<"groupQuests">, before: MemberId[], contributor: MemberId): MemberId[] {
+  if (before.length >= target) return [contributor];
+  return before.length + 1 === target ? [...before, contributor] : [];
+}
+
+async function rewardContributor(ctx: MutationCtx, drawn: Doc<"groupQuests">, member: MemberId, at: number) {
+  if (!(await groupQuestAppliesTo(ctx, member))) return;
+  const { workspace, reward, catalogueVersion, quest } = drawn;
+  await finishQuest(ctx, workspace, member, crateOfWeek(drawn), { reward, catalogueVersion, poolQuest: quest }, at);
+}
+
+async function crateOf(ctx: QueryCtx, member: MemberId, quest: GroupQuestCrate): Promise<GroupQuest["crate"]> {
+  const key = rewardKeyOf(quest);
+  if ((await rewardOf(ctx, member, key)) === null) return null;
+  return { key, opened: (await crateOpeningOf(ctx, member, key)) !== null };
+}
+
+function crateOfWeek({ group, week }: Doc<"groupQuests">): GroupQuestCrate {
+  return { kind: "group", group, week };
+}
+
+async function contributorsOf(ctx: QueryCtx, { group, week, target }: Doc<"groupQuests">): Promise<MemberId[]> {
+  const contributions = await ctx.db
+    .query("groupQuestContributions")
+    .withIndex("by_group_week_member", (q) => q.eq("group", group).eq("week", week))
+    .take(target);
+  return contributions.map(({ member }) => member);
+}
+
+async function hasContributed(ctx: QueryCtx, { group, week }: Doc<"groupQuests">, member: MemberId): Promise<boolean> {
+  const contribution = await ctx.db
+    .query("groupQuestContributions")
+    .withIndex("by_group_week_member", (q) => q.eq("group", group).eq("week", week).eq("member", member))
+    .unique();
+  return contribution !== null;
+}
+
+async function groupQuestAppliesTo(ctx: QueryCtx | MutationCtx, member: MemberId): Promise<boolean> {
   return (await memberDecision(ctx, groupQuestFlag, member)) && (await groupsShownTo(ctx, member)) && (await questsApplyTo(ctx, member));
 }
 

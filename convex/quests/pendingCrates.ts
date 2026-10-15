@@ -12,7 +12,7 @@ import type { WeekKey } from "./week";
 const rewardsPerPage = 100;
 
 export async function crateFinished(ctx: MutationCtx, member: MemberId, quest: Quest) {
-  if (quest.kind === "weekly") await ctx.db.insert("pendingCrates", { member, key: rewardKeyOf(quest) });
+  if (quest.kind !== "journey") await ctx.db.insert("pendingCrates", { member, key: rewardKeyOf(quest) });
 }
 
 export async function crateOpened(ctx: MutationCtx, member: MemberId, key: string) {

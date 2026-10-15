@@ -6,9 +6,9 @@ import { type FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { onForEveryone, postHogDeciding, testBackendServing, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { memberChanged, settle, type Backend } from "../../testing/slackBackend";
-import { publishedHome } from "../../testing/slackInteractions";
-import { appHomeOpened } from "../../testing/slackMessages";
+import { memberChanged, settle, settleInTimeOrder, type Backend } from "../../testing/slackBackend";
+import { blockActions, buttonIn, publishedHome, publishedHomeBlocks, type Block, type BlockAction } from "../../testing/slackInteractions";
+import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import crons from "../crons";
 import { keepOpen } from "../unlocks/unlocks";
 
@@ -18,7 +18,10 @@ const mondaySweep = Date.parse("2026-10-19T00:10:00Z");
 const groupsSyncedAt = Date.parse("2026-10-06T10:00:00Z");
 const ants = ["U_ANN", "U_AL", "U_AMY", "U_ABE"];
 const everyFlag = ["xp-levels", "unlocks", "quests", "groups", "group-quest"];
+const tuesday = Date.parse("2026-10-20T10:00:00Z");
 const groupQuestLine = "section: Ants quest: Thank someone and say why. · 0 of 3 took part";
+const groupQuestDoneLine = "section: Ants quest: Thank someone and say why. · 3 of 3 took part · ✅";
+const saysWhy = "thanks for untangling the release notes today";
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -62,6 +65,36 @@ describe("GB21 GB24: across a Monday 00:00 UTC, a group of 4 participants gets o
   });
 });
 
+describe("GB23 GB24: a week of kudos that say why finishes the group quest, and App Home shows it done with counts only", { timeout: 60_000 }, () => {
+  test("three Ants who each give a kudos that says why see 3 of 3 took part · ✅ with their crate to open; Abe, who gave none, sees it done without one; no success reply speaks of the group quest", async () => {
+    const t = await antsOpenedQuests();
+    await sweepAt(t, lastTuesday);
+    await sweepAt(t, mondaySweep);
+
+    vi.setSystemTime(tuesday);
+    for (const [giver, recipient] of [["U_ANN", "U_AL"], ["U_AL", "U_AMY"], ["U_AMY", "U_ANN"]] as const) await giveKudos(t, giver, recipient, saysWhy);
+    for (const user of ants) await openHome(t, user);
+
+    for (const user of ["U_ANN", "U_AL", "U_AMY"]) expect(publishedHome(slack, user)).toContain(`${groupQuestDoneLine} [button: Open]`);
+    expect(publishedHome(slack, "U_ABE")).toContain(groupQuestDoneLine);
+    for (const user of ants) expect(slack.ephemeralsTo(user).map(({ text }) => String(text)).join("\n")).not.toContain("Ants");
+  });
+
+  test("Open on the group quest's crate opens it once and leaves the done line", async () => {
+    const t = await antsOpenedQuests();
+    await sweepAt(t, lastTuesday);
+    await sweepAt(t, mondaySweep);
+    vi.setSystemTime(tuesday);
+    for (const [giver, recipient] of [["U_ANN", "U_AL"], ["U_AL", "U_AMY"], ["U_AMY", "U_ANN"]] as const) await giveKudos(t, giver, recipient, saysWhy);
+    await openHome(t, "U_ANN");
+
+    await click(t, "U_ANN", groupQuestCrateIn(publishedHomeBlocks(slack, "U_ANN")));
+
+    expect(publishedHome(slack, "U_ANN")).toContain(groupQuestDoneLine);
+    expect(await t.run((ctx) => ctx.db.query("crateOpenings").collect())).toEqual([expect.objectContaining({ key: expect.stringMatching(/^group:/) })]);
+  });
+});
+
 async function antsOpenedQuests(): Promise<Backend> {
   const t = await testBackendServing(postHog, ...everyFlag.map(onForEveryone));
   await unlocksShippedBeforeAnyoneJoined(t);
@@ -94,6 +127,24 @@ async function sweepAt(t: Backend, at: number) {
   const job = crons.crons["draw each group's weekly group quest"];
   if (job === undefined) throw new Error("no cron job draws each group's weekly group quest");
   await t.mutation(makeFunctionReference<"mutation">(job.name), {});
+  await settle(t);
+}
+
+let sentMessages = 0;
+
+async function giveKudos(t: Backend, giver: string, recipient: string, words: string) {
+  sentMessages += 1;
+  const blocks = [section(mention(recipient), text(` ${words} `), emoji("taco"))];
+  await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${Math.floor(Date.now() / 1000) + sentMessages}.000100` })));
+  await settleInTimeOrder(t);
+}
+
+function groupQuestCrateIn(blocks: Block[]) {
+  return buttonIn(blocks.filter(({ text }) => text?.text.startsWith("Ants quest:")), "Open");
+}
+
+async function click(t: Backend, user: string, action: BlockAction) {
+  await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, action), { contentType: "application/x-www-form-urlencoded" }));
   await settle(t);
 }
 

@@ -104,16 +104,18 @@ export const unlocksLaunchedEventValidator = v.object({
 
 export type UnlocksLaunchedEvent = Infer<typeof unlocksLaunchedEventValidator>;
 
+const poolQuestIdValidator = v.union(questIdValidator, groupQuestIdValidator);
+
 const questFields = { workspace: v.string(), member: v.id("members"), quest: questValidator, at: v.number() };
 
 export const questFinishedEventValidator = v.object({
   type: v.literal("questFinished"),
   ...questFields,
-  poolQuest: v.optional(questIdValidator),
+  poolQuest: v.optional(poolQuestIdValidator),
   reward: v.optional(v.object({ xp: v.number(), coins: v.number() })),
 });
 
-export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields, poolQuest: v.optional(questIdValidator) });
+export const questOpenedEventValidator = v.object({ type: v.literal("questOpened"), ...questFields, poolQuest: v.optional(poolQuestIdValidator) });
 
 const weekFields = { workspace: v.string(), member: v.id("members"), week: v.string(), at: v.number() };
 

@@ -507,8 +507,10 @@ function asksToSayWhy(quests: WeeklyQuests | null, groupQuest: GroupQuest | null
   return personal || (groupQuest !== null && !groupQuest.done && groupQuest.quest === "together-say-why");
 }
 
-function groupQuestLine({ group, goal, tookPart, target, done }: GroupQuest): HomeLine {
-  return { kind: "text", text: `${group.name} quest: ${goal} · ${tookPart} of ${target} took part${done ? " · ✅" : ""}` };
+function groupQuestLine({ group, week, goal, tookPart, target, done, crate }: GroupQuest): HomeLine {
+  const text = `${group.name} quest: ${goal} · ${tookPart} of ${target} took part${done ? " · ✅" : ""}`;
+  if (crate === null || crate.opened) return { kind: "text", text };
+  return { kind: "action", text, action: openCrate({ kind: "group", group: group.group, week }, null) };
 }
 
 function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot, { swapAvailable, cratesShownApart, website }: QuestRows & { swapAvailable: boolean }): HomeLine {

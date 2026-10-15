@@ -8,7 +8,14 @@ export const crateOpeningValidator = v.object({ member: v.id("members"), key: v.
 export const pendingCrateValidator = v.object({ member: v.id("members"), key: v.string() });
 
 export function rewardKeyOf(quest: Quest) {
-  return quest.kind === "journey" ? `${rewardKeyPrefixOf("journey")}${quest.step}` : `${rewardKeyPrefixOf("weekly")}${quest.week}:${quest.slot}`;
+  switch (quest.kind) {
+    case "journey":
+      return `${rewardKeyPrefixOf("journey")}${quest.step}`;
+    case "weekly":
+      return `${rewardKeyPrefixOf("weekly")}${quest.week}:${quest.slot}`;
+    case "group":
+      return `${rewardKeyPrefixOf("group")}${quest.group}:${quest.week}`;
+  }
 }
 
 export function weeklyQuestOfRewardKey(key: string): WeeklyQuest | null {
