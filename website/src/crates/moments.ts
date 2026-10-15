@@ -17,6 +17,7 @@ export type Flight = { crate: ReadyCrate; landed: RewardKind[]; setOut: boolean;
 
 export type Moments = {
   attemptOf(crate: ReadyCrate): Attempt | undefined;
+  opening: boolean;
   open(crate: ReadyCrate): void;
   reveal: Reveal | undefined;
   waitsToReveal(crate: ReadyCrate): boolean;
@@ -24,7 +25,6 @@ export type Moments = {
   chart(rewards: Reward[]): void;
   setOut(crate: ReadyCrate): void;
   landed(crate: ReadyCrate, kind: RewardKind): void;
-  land(crate: ReadyCrate): void;
   finish(crate: ReadyCrate): void;
   close(how: { returnFocus: boolean }): void;
   announcement: string;
@@ -140,10 +140,11 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   const close = useCallback(
     ({ returnFocus }: { returnFocus: boolean }) => {
       focusAfterClose.current = returnFocus ? reveal?.crate : undefined;
+      if (reveal !== undefined) land(reveal.crate);
       setReveals((queued) => queued.slice(1));
       setAnnouncement("");
     },
-    [reveal],
+    [reveal, land],
   );
 
   useEffect(() => {
@@ -155,6 +156,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
 
   return {
     attemptOf: (crate) => attempts[crate.seen],
+    opening: Object.values(attempts).includes("opening"),
     open: (crate) => void open(crate),
     reveal,
     waitsToReveal: (crate) => reveals.slice(1).some((queued) => queued.crate.seen === crate.seen),
@@ -162,7 +164,6 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     chart,
     setOut,
     landed,
-    land,
     finish,
     close,
     announcement,

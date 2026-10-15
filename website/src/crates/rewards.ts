@@ -47,7 +47,10 @@ export function withTheRewardsHeld(member: MemberProfile, onTheWay: OnTheWay[]):
   if (holding.length === 0) return member;
   const rewards = heldRewardsOf(member, holding);
   const held = (kind: RewardKind) => holding.reduce((sum, { landed }, at) => (landed.includes(kind) ? sum : sum + rewards[at]![kind]), 0);
-  const pinned = (kind: RewardKind) => holding.find(({ landed }) => !landed.includes(kind))?.climb?.from[kind];
+  const pinned = (kind: RewardKind) => {
+    const first = holding.find(({ landed }) => !landed.includes(kind)) ?? holding.at(-1);
+    return first?.climb?.[first.landed.includes(kind) ? "to" : "from"][kind];
+  };
   const { progression, skillPoints, coins } = member;
   const pinnedXp = pinned("xp");
   return {

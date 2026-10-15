@@ -157,11 +157,61 @@ describe("#450: the climb on the open, from the answer's from to its to", () => 
 
     landAll(flight()!);
     advance(600);
-    expect(hud().level).toBe("Level 6, 450 XP to level 7");
+    expect(hud().level).toBe("Level 6, 490 XP to level 7");
     landAll(flight()!);
     landAll(flight()!);
     advance(1000);
+    expect(hud()).toEqual({ level: "Level 6, 490 XP to level 7", skillPoints: "2", coins: "236" });
+    fireEvent.click(within(dialog()!).getByRole("button", { name: "Done" }));
+    advance(1000);
     expect(hud()).toEqual({ level: "Level 6, 450 XP to level 7", skillPoints: "2", coins: "241" });
+  });
+
+  it("shows the answer's to once a token lands, not a read that moved past it, and celebrates the level the crate earned (review round 1)", async () => {
+    const twoLevelsOn: MemberProfile = { ...afterTheOpen, progression: { level: 7, xp: 1510, levelStartsAt: 1500, nextLevelAt: 2100, xpToNextLevel: 590 }, skillPoints: 3, coins: 250 };
+    await claim(acrossLevel6, twoLevelsOn);
+    expect(hud()).toEqual({ level: "Level 5, 10 XP to level 6", skillPoints: "1", coins: "226" });
+    burst();
+
+    landAll(flight()!);
+    advance(600);
+    expect(hud().level).toBe("Level 6, 490 XP to level 7");
+    expect(screen.getByTestId("level-up-announcement")).toHaveTextContent("You reached level 6. You earned 1 skill point.");
+    landAll(flight()!);
+    expect(skillPointChip()).toHaveAccessibleName("2 skill points to spend");
+    landAll(flight()!);
+    expect(coinsChip()).toHaveAccessibleName("236 coins to spend");
+    advance(1000);
+    expect(dialog()).toHaveAttribute("data-phase", "ended");
+    expect(hud()).toEqual({ level: "Level 6, 490 XP to level 7", skillPoints: "2", coins: "236" });
+    fireEvent.click(within(dialog()!).getByRole("button", { name: "Done" }));
+    advance(1000);
+    expect(hud()).toEqual({ level: "Level 7, 590 XP to level 8", skillPoints: "3", coins: "250" });
+  });
+
+  it("celebrates a crossed level once when the read reached it before the answer pinned the header below it (review round 1)", async () => {
+    let answer!: (opened: OpenAnswer) => void;
+    window.history.replaceState(null, "", "/quests");
+    const before: MemberProfile = { ...afterTheOpen, progression: { level: 5, xp: 990, levelStartsAt: 600, nextLevelAt: 1000, xpToNextLevel: 10 }, skillPoints: 1, coins: 226 };
+    const { showVisitor } = renderApp(before, undefined, { openQuestCrate: () => new Promise((resolve) => (answer = resolve)) }, fixedQuests(paying));
+    vi.useFakeTimers();
+    fireEvent.click(within(cardOf(coinsQuest)).getByRole("button", { name: "Claim" }));
+    showVisitor(afterTheOpen);
+    expect(screen.getByTestId("level-up-announcement")).toHaveTextContent("");
+    await act(async () => answer({ kind: "opened", applied: acrossLevel6 }));
+    expect(hud().level).toBe("Level 5, 10 XP to level 6");
+    expect(screen.getByTestId("level-up-announcement")).toHaveTextContent("");
+    burst();
+
+    landAll(flight()!);
+    advance(600);
+    expect(document.querySelectorAll("[data-level-up]")).toHaveLength(1);
+    expect(screen.getByTestId("level-up-announcement")).toHaveTextContent("You reached level 6. You earned 1 skill point.");
+    landAll(flight()!);
+    landAll(flight()!);
+    advance(3000);
+    expect(document.querySelectorAll("[data-level-up]")).toHaveLength(0);
+    expect(hud()).toEqual({ level: "Level 6, 490 XP to level 7", skillPoints: "2", coins: "236" });
   });
 
   it("reveals without a climb when applied is null: the crate still bursts, the header never moves", async () => {

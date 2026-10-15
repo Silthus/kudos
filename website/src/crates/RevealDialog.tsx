@@ -35,10 +35,9 @@ type RevealDialogProps = Reveal & {
   onClose: Close;
   onSetOut: (crate: ReadyCrate) => void;
   onRewardLanded: (crate: ReadyCrate, kind: RewardKind) => void;
-  onLanded: (crate: ReadyCrate) => void;
 };
 
-export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, questsOpen, othersReady, flying, shown, onFinish, onClose, onSetOut, onRewardLanded, onLanded }: RevealDialogProps) {
+export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, questsOpen, othersReady, flying, shown, onFinish, onClose, onSetOut, onRewardLanded }: RevealDialogProps) {
   const labelId = useId();
   const dialog = useRef<HTMLDivElement>(null);
   const [reducedMotion] = useState(prefersReducedMotion);
@@ -59,10 +58,6 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
     const timer = setTimeout(() => setPhase(phase === "charging" ? "bursting" : onStage !== undefined && flies ? "flying" : "ended"), phase === "charging" ? crateChargesForMs : burstPlaysForMs);
     return () => clearTimeout(timer);
   }, [phase, onStage, flies]);
-
-  useEffect(() => {
-    if (phase === "flying" && onStage === undefined) setPhase("ended");
-  }, [phase, onStage]);
 
   useEffect(() => {
     if (phase !== "charging") onSetOut(crate);
@@ -94,7 +89,10 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
 
   const onRewardTaken = useCallback((kind: RewardKind) => setFlown((taken) => (taken.includes(kind) ? taken : [...taken, kind])), []);
   const landed = useCallback((kind: RewardKind) => !rehearsing && onRewardLanded(crate, kind), [rehearsing, crate, onRewardLanded]);
-  const land = useCallback(() => (rehearsing ? setRehearsing(false) : onLanded(crate)), [rehearsing, crate, onLanded]);
+  const land = useCallback(() => {
+    setRehearsing(false);
+    setPhase("ended");
+  }, []);
 
   return (
     <div
