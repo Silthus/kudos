@@ -1,10 +1,12 @@
-Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
 $ pnpm typecheck && pnpm test && pnpm coherence
 $ tsc --noEmit && tsc --noEmit -p website
 $ vitest run
 
  RUN  v5.0.3 /home/coder/dev/kudos-wt/hero-spend
 
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -258,11 +260,14 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
- Test Files  179 passed (179)
-      Tests  3437 passed (3437)
-   Start at  17:33:36
-   Duration  199.73s (tests 85%, import 8%, environment 3%, transform 2%, setup 1%)
+ Test Files  209 passed (209)
+      Tests  3902 passed (3902)
+   Start at  15:40:33
+   Duration  236.40s (tests 89%, import 7%, environment 2%, transform 2%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -277,6 +282,10 @@ Achievements  convex/achievements/Achievements.spec.md
   a tier's coins are paid once  invariant
       totality oracle "CO1 CO7: a tier's coins are paid once, whether it is earned live or by the backfill" over a kudos earning bronze tiers with every flag off delivered twice, 60 members holding all 28 tiers paid by the backfill run twice under Convex's transaction limits, and a tier earned live between two backfill pages, read through the reward records, the wallet balances and the backfill's totals: verified 2026-10-14
       refuted 2026-10-14: payTierCoins wrote each coin reward's record and credit directly, without recordReward's check that its key was already recorded
+      kinds state: 7 shapes apply, 1 declared, 6 dismissed
+  a silver tier's emoji is granted once  invariant
+      totality oracle "ST16 ST17: a silver tier's emoji is granted once, whether it is earned live or by the backfill" over a kudos earning the giver's and the recipient's silver tiers with every flag off delivered twice, 60 members holding all 28 tiers granted by the backfill run twice under Convex's transaction limits, and a silver tier earned live between two backfill pages, read through the reward records, the collection rows and the backfill's totals: verified 2026-10-15
+      refuted 2026-10-15: grantTierEmoji inserted each silver reward record directly, without recordReward's check that its key was already recorded
       kinds state: 7 shapes apply, 1 declared, 6 dismissed
   every award counts once across the replay and live counting  invariant
       totality oracle "P62: the replay and live counting count every award once" over a kudos given during the replay whose subscriber runs before the replay finishes, a delayed subscriber of a kudos given before the launch that runs after the replay, and a kudos given after the replay, read through each ladder's count and earned tiers: verified 2026-10-14
@@ -373,8 +382,9 @@ Engine  convex/engine/Engine.spec.md
       kinds message, revision: 9 shapes apply, 1 declared, 8 dismissed
 Feedback  convex/feedback/Feedback.spec.md
   private replies reach only the giver  invariant
-      totality oracle "R33: replies reach only the giver" over every message the app asks Slack to send for a Given, an Over allowance and an Invalid kudos message, posted in a channel and in a thread: verified 2026-10-14
+      totality oracle "R33: replies reach only the giver" over every message the app asks Slack to send for a Given, an Over allowance and an Invalid kudos message, posted in a channel and in a thread, and a Given reply its giver chose as a DM: verified 2026-10-15
       refuted 2026-10-13: sendPrivateReply posted the reply with chat.postMessage instead of chat.postEphemeral
+      refuted 2026-10-15: sendPrivateReply posted a reply its giver chose as a DM with chat.postMessage to the kudos message's conversation instead of the giver's user ID
       kinds output, message: 12 shapes apply, 0 declared, 12 dismissed
   one public reply per kudos message  invariant
       totality oracle "D18: the one public reply" over every public reply the app asks Slack to post or edit for a kudos message: one member and two members levelling up through it, a level reached after the reply was posted, one reached while the post is in flight, a post whose answer is lost and one that failed after Slack accepted it: verified 2026-10-14
@@ -400,7 +410,7 @@ Feedback  convex/feedback/Feedback.spec.md
       refuted 2026-10-14: tellBatchSummaries told every member with the Book open now, not only those who had opened it by the batch's completion
       kinds message, output: 12 shapes apply, 2 declared, 10 dismissed
   the front door needs a link to the website  invariant
-      totality oracle "SW19 SW20 SW21 SW22: App Home is the website's front door while the website's link function answers a link" over App Home for a member with every flag on at level 3 who opened Quests and the Leaderboard, last week's crate waiting after the Monday turn and its stale `Open`, 7 crates waiting from an earlier week, the same member before opening them, a member before unlocks apply with the Everyone board shown, a member at level 5, a member at level 5 who opened Quests, the Leaderboard, the Book and the skill tree, the remembered tab of each and the tab switches of the last two clicked from an earlier view, the settings and announcement channel tabs of a workspace owner, a Swap and a stale `Open` clicked in the summary, and the member with every flag on while the website flag is off, SITE_URL is unset and the website is open for another workspace only: verified 2026-10-14
+      totality oracle "SW19 SW20 SW21 SW22: App Home is the website's front door while the website's link function answers a link" over App Home for a member with every flag on at level 3 who opened Quests and the Leaderboard, last week's crate waiting after the Monday turn and its stale `Open`, 7 crates waiting from an earlier week, the same member before opening them, a member before unlocks apply with the Everyone board shown, a member at level 5, a member at level 5 who opened Quests, the Leaderboard, the Book and the skill tree, the remembered tab of each and the tab switches of the last two clicked from an earlier view, the settings and announcement channel tabs of a workspace owner, a stale `Open` clicked in the summary, and the member with every flag on while the website flag is off, SITE_URL is unset and the website is open for another workspace only: verified 2026-10-14
       crossing slack-request -> domain
       refuted 2026-10-14: tabsBesideProfile showed the Leaderboard tab whenever the Leaderboard was shown, ignoring the front door
       refuted 2026-10-14: tabsBesideProfile showed the tabs of the Book and the skill tree whenever they were open, ignoring the front door
@@ -414,6 +424,11 @@ Feedback  convex/feedback/Feedback.spec.md
       crossing slack-request -> domain
       refuted 2026-10-14: the level-up DM offered each perk with the purchase command whatever the website's link function answered
       refuted 2026-10-14: the level-up DM decided its website origin by the workspace decision alone, not the member's
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
+  a quest's swap button links to the website  invariant
+      totality oracle "each quest's Swap in Slack links to its card on the Quests page while the website is open" over App Home of a member with every flag on at level 3 who opened Quests and the Leaderboard while the website is open, a click on its `Swap` link on Saturday and on a `Swap` command left from an earlier view, the same App Home for a member previewing the website while it is closed for the workspace, and the same App Home with the website flag off and its `Swap` clicked: verified 2026-10-14
+      crossing slack-request -> domain
+      refuted 2026-10-14: Swap rendered the rerollQuest command whatever the website's link function answered
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
   a feature's lines wait for its opening  invariant
       totality oracle "P76: a feature's lines wait for its opening" over the level-up DMs and App Home views the app asks Slack to send to a member reaching levels 5 and 6, with the skill tree unshipped, shipped and ready, and opened, and the member's stored skill points; and the App Home tab bar, the Leaderboard tab and the `/hedgehug leaderboard` reply for a member at level 1, at level 3 before opening and after opening the Leaderboard, with everyone-board on and off, and the board another member sees: verified 2026-10-13
@@ -454,6 +469,43 @@ Feedback  convex/feedback/Feedback.spec.md
       refuted 2026-10-14: announceRewardedLevel no longer read whether quests applies in the workspace decision
       refuted 2026-10-14: the desired public reply stopped rechecking quests for a reward-reached notice
       kinds output: 5 shapes apply, 0 declared, 11 dismissed
+Groups  convex/groups/Groups.spec.md
+  the primary group history is insert-only  invariant
+      totality oracle "GB9: the primary group history is only ever inserted, never changed or deleted" over every module under convex that isn't a test, read as source: verified 2026-10-14
+      refuted 2026-10-14: recordChange patched the member's latest history entry instead of inserting a new one
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  a member's primary group is one of the groups they count in  invariant
+      totality oracle "GB5: a member's primary group is always one of their counting groups, or none when they have none" over every directory member's primary group after each of a member leaving their primary group, a group being disabled, a member being deactivated, a disabled group coming back and the member returning, delivered as signed subteam and user_change events: verified 2026-10-14
+      refuted 2026-10-14: reconcile kept a member's primary group whether or not it was still one of the groups they count in
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  only an admin where groups applies changes the group mode  invariant
+      totality oracle "GB26: only admins where `groups` applies set the group mode" over setGroupMode as a forged button and as a forged group picker selection from a member who isn't an admin, and as a forged button from an admin with `groups` off, each delivered as a signed Slack interaction after the group mode was set once: verified 2026-10-14
+      refuted 2026-10-14: setsGroupMode let a member through when they were an admin or the `groups` flag applied to them, instead of both
+      kinds identity, state: 10 shapes apply, 0 declared, 10 dismissed
+  in allowlist mode only the groups on the allowlist count  invariant
+      totality oracle "GB1, GB8: in allowlist mode only the groups an admin picks count" over an admin switching to allowlist mode, picking two of three groups, picking none, switching back to every group and to allowlist mode again, delivered as signed Slack interactions, with each member's counting groups, primary group and history read after each step: verified 2026-10-14
+      refuted 2026-10-14: countsAsGroup counted every enabled custom group in allowlist mode too
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  an attribution is insert-only  invariant
+      totality oracle "GB10: an attribution is only ever inserted, never changed or deleted" over every module under convex that isn't a test, read as source: verified 2026-10-14
+      refuted 2026-10-14: a redelivered kudosGiven replaced the message's attribution instead of finding it and returning
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  an attribution follows the history at the spend instant  invariant
+      totality oracle "GB9, GB10: the history at the spend instant wins over a later change" over kudos messages whose subscriber runs after a later pick, after a pick in the same millisecond, and twice, read through awardsAttributed: verified 2026-10-14
+      refuted 2026-10-14: the attribution read each person's primary group in force when the subscriber ran instead of at the spend instant
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  a pick stores only one of the member's counting groups  invariant
+      totality oracle "GB19: the welcome message's group block" over a Save in the welcome message for a group the member left in Slack, for one the copy dropped before any reconciliation page reached them, for the group already primary, and for one of their groups, delivered as signed interactivity payloads: verified 2026-10-14
+      refuted 2026-10-14: pickPrimaryGroup stored the pick without reconciling the member first
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  slice 1 is invisible where groups doesn't apply  invariant
+      totality oracle "GB29: slice 1 is invisible where groups doesn't apply" over one story of kudos over two weeks by members in two groups, one of them in both and one of them an admin, with everyone-board and xp-levels on, read in each of the four off states beside the same story in a workspace without user groups, and a stale welcome Save, Settings pick, group mode button and allowlist pick in each: verified 2026-10-14
+      refuted 2026-10-14: groupsShownTo answered groups available without reading the groups flag
+      kinds message, state: 15 shapes apply, 0 declared, 15 dismissed
+  each groups decision sends one exposure per member and value  invariant
+      totality oracle "O36: the groups exposure" over a member meeting groups in the welcome, every App Home tab and the replies while on, again while on, then twice while off, and a flag on for one member's email beside a member it doesn't name: verified 2026-10-14
+      refuted 2026-10-14: groupsApplyTo decided the groups flag without sending its exposure
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
 Leaderboard  convex/leaderboard/Leaderboard.spec.md
   the leaderboard counts kudos given, never kudos received  invariant
       totality oracle "G13: the board counts kudos given, never kudos received" over the totals and this week's Everyone board after one member gives kudos to two others in one message and one of them gives kudos back, seen by the member who only received: verified 2026-10-13
@@ -474,6 +526,74 @@ Leaderboard  convex/leaderboard/Leaderboard.spec.md
       totality oracle "#83: the Everyone board is invisible while everyone-board is off" over `/hedgehug leaderboard month` and App Home opened in each of the three off states, and a Leaderboard and a Settings click left from App Home published while the flag was on: verified 2026-10-13
       refuted 2026-10-13: isEveryoneBoardShownTo answered true without reading the everyone-board flag
       kinds message, state: 15 shapes apply, 0 declared, 15 dismissed
+  a board row never states a drop  invariant
+      totality oracle "GB18: places climbed" over this week's, this month's on a 31st and all time's Everyone board through rankedBoardOf, with members who rose, fell, stayed and are new, and a viewer who left the boards: verified 2026-10-14
+      refuted 2026-10-14: placesClimbed gave every row that was on last period's board its position before minus its position now, a fall or a stay included
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  the Everyone board reads within Convex's limits  invariant
+      totality oracle "GB35: the Everyone board at scale" over the month board on October 31st of a workspace of 1,500 members who each gave kudos every day of September and October, read through rankedBoardOf with Convex's transaction limits enforced: verified 2026-10-14
+      refuted 2026-10-14: the comparison added up each member's day rows of the previous period instead of reading the running total on their one totals row
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  every day counts once in a running total, live or filled  invariant
+      totality oracle "GB35: running totals for the totals counted before they shipped" over the running totals and this week's improvement line of a member whose totals were counted before running totals shipped, who gave kudos live before the fill, filled in pages of one, and filled again: verified 2026-10-14
+      refuted 2026-10-14: a live count on a total without a running total started one from that count alone, which the fill then skipped
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  a group total never exists without its attribution  invariant
+      totality oracle "GB12: group totals follow attribution" over every group total after kudos messages attributed twice and counted before, during and after their scheduled awardsAttributed, a giver who changed group in between and a giver without a group: verified 2026-10-14
+      refuted 2026-10-14: countAwardsAttributed added a message's kudos on every delivery of awardsAttributed without checking or leaving its counted mark
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  a Groups board row never states a drop  invariant
+      totality oracle "GB18: places climbed on the Groups board" over this week's and all time's Groups board from the pure board function, with groups that rose, fell and stayed, and one that rose from no kudos attributed last week: verified 2026-10-14
+      refuted 2026-10-14: the Groups board's placesClimbed gave every group that had kudos attributed last period its position before minus its position now, a fall or a stay included
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  the group's line never states a loss  invariant
+      totality oracle "GB14: the group's lines" over the line and the most improved group of groups that gave more, the same, fewer, and a gain that rounds to 0.0, with and without a completed period with kudos: verified 2026-10-14
+      refuted 2026-10-14: the group's line reported any gain other than 0.0, a loss per person included
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  the Groups board reads within Convex's limits  invariant
+      totality oracle "GB35: the Groups board at scale" over the month board on October 31st of a workspace of 1,500 members in 60 groups who each gave kudos every day of September and October, and of 1,500 members who each gave for their group and 10 earlier ones in each of those months, read through groupBoardsOf with Convex's transaction limits enforced: verified 2026-10-14
+      refuted 2026-10-14: each group's primary members were read by scanning every member's groups row instead of the group's one index range
+      refuted 2026-10-14: each group's givers were found among all its group totals of both periods, members who left the group included
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
+Message settings  convex/messageSettings/MessageSettings.spec.md
+  a message a member turned off is never sent  invariant
+      totality oracle "QM16: a message a member turned off is never sent" over the level-up DM and the public celebration of a level reached through a kudos message with `level-ups` or `celebrations` turned off from App Home; a level-up DM Slack held back while the member turned `level-ups` off; a DM of each of the six notification kinds already on its way, delivered while its kind is on and again once it is off; and a DM of each kind written while it is off, turned on again before Slack would take it; and a level up on its way beside a kudos whose place became none after its lines were read: verified 2026-10-15
+      crossing slack-request -> domain
+      refuted 2026-10-14: wantsNotification in convex/feedback/notify.ts answered true without reading the member's message setting
+      refuted 2026-10-14: notify in convex/feedback/notify.ts wrote every DM whatever the member's message setting, leaving only the delivery re-check
+      refuted 2026-10-15: placeBesideTheKudos answered dm for every place but the channel, so a None read at delivery sent the DM
+      kinds output, state: 11 shapes apply, 0 declared, 11 dismissed
+  errors that need action are never silenced  invariant
+      totality oracle "QM13: errors that need action are never silenced" over a kudos over the giver's allowance, a kudos naming nobody who can receive kudos, and a kudos to a teammate that also named a bot and a user group, given by a member who turned off every kind that applies to them: verified 2026-10-15
+      crossing slack-request -> domain
+      refuted 2026-10-14: tellGiver in convex/engine/engine.ts sent no reply, error replies included, while the giver's kudos-reply setting was off
+      refuted 2026-10-14: successReplyWritten in convex/feedback/replies.ts dropped the skip lines of a Given reply while the giver's kudos-reply setting was off
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
+  the after-kudos reply and its tips honour their settings  invariant
+      totality oracle "QM17 QM18: the after-kudos reply and its tips honour their settings" over a kudos with `kudos-reply` off; a reply held for Quests that skipped nobody and one that skipped a bot, released after `kudos-reply` turned off; a kudos and a held reply with `tips` off for a giver the hint applies to; and a reply and a hint written while their kind was off, turned on again before Slack would take them: verified 2026-10-15
+      crossing slack-request -> domain
+      refuted 2026-10-15: privateReply in convex/feedback/replies.ts no longer rechecked the giver's kudos-reply setting when Slack took the reply
+      kinds output, state: 11 shapes apply, 0 declared, 11 dismissed
+  the settings footer is only on private messages a member can tune  invariant
+      totality oracle "QM21: the footer says where to change what I send you" over the success reply and a DM of each of the six notification kinds with the flag on, the level-up DM and its public celebration in the announcement channel, the Over allowance, Invalid and accepted-message-edited replies with the flag on, the success reply and level-up DM with the flag off, and a level-up DM written while the flag was off and taken by Slack after it turned on: verified 2026-10-15
+      crossing slack-request -> domain
+      refuted 2026-10-15: settingsFooterFor in convex/feedback/settingsFooter.ts answered the footer for every member, whatever their message-settings decision
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
+  message settings are dark wherever message-settings is off  invariant
+      totality oracle "QM22 QM30: message settings are dark wherever message-settings is off" over every Slack call of one walk down every message path (the success reply, the welcome, Journey and weekly quest DMs, level-up DMs, the Coins DM, Book tier DMs, the public celebrations in the announcement channel and App Home's Settings tab) for two members with `message-settings` off, not created, and on while the flags key is missing, and the same walk with it on for one member's email only: verified 2026-10-15
+      crossing slack-request -> domain
+      refuted 2026-10-15: settingsFooterFor in convex/feedback/settingsFooter.ts answered the footer for every member, whatever their message-settings decision
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
+  turning message-settings off changes no setting  invariant
+      totality oracle "QM22: the message-settings flag turned off and on, its stale clicks and its exposure" over a member who turned `level-ups`, `celebrations` and `kudos-reply` off with the flag on, through a level up and App Home with it off and App Home with it on again; a stale `Turn off` and a stale setMessageSetting clicked after the flag turned off, with and without App Home opened in between; and the exposures of a member with the flag on for their email and one without, through the flag turned off and on again: verified 2026-10-15
+      crossing slack-request -> domain
+      refuted 2026-10-15: isMessageSettingShownTo in convex/commands/commands.ts accepted setMessageSetting whatever the member's message-settings decision, asking only whether the kind applies
+      kinds state, output: 11 shapes apply, 0 declared, 11 dismissed
+  a Buy never answers in public  invariant
+      totality oracle "QM26: a Buy never answers in public" over a `Buy` clicked in a level up delivered in the channel inside a thread, the same click with Slack refusing the ephemeral with `channel_not_found`, and a `Buy` clicked in a level-up DM: verified 2026-10-15
+      crossing slack-request -> domain
+      refuted 2026-10-15: receiveHomeClick in convex/slack/receipts.ts dropped the ephemeral container, so deliverPurchaseReply posted the answer with chat.postMessage to the clicked ephemeral's channel
+      kinds output: 5 shapes apply, 0 declared, 6 dismissed
 Parser  convex/parser/Parser.spec.md
   (no invariants)
 Profile card  convex/profileCard/ProfileCard.spec.md
@@ -538,6 +658,11 @@ Progression  convex/progression/Progression.spec.md
       refuted 2026-10-14: perksPayingIn paid owned perks whatever the skill tree's predicate said
       kinds state: 7 shapes apply, 0 declared, 7 dismissed
 Quests  convex/quests/Quests.spec.md
+  your-emoji finishes on a kudos that says why with a loadout emoji  invariant
+      totality oracle "ST19: your-emoji, the Journey's last step" over at the Slack boundary, a member who opened Coins with the store visible giving kudos with 🦔 that say why, with only the workspace's emoji, and with 🦔 without saying why, the first such kudos read after its activation was removed, the hint with 🦔 slotted and with every slot empty, a member whose Coins was opened before the store turned on for them, a kudos from before the opening followed late, the opening's activation and an App Home publish replayed after the finish, and the store turned off before the step, after it, and between its finish and Slack taking the reply, read through the reward records, the wallet, the success reply, questsOf, the website's activity, the DMs and App Home: verified 2026-10-15
+      refuted 2026-10-15: the finishing rule accepted a kudos with no loadout emoji
+      refuted 2026-10-15: the success reply kept every quest done at delivery
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
   a Journey step's reward is recorded once  invariant
       totality oracle "P8 P87: a Journey step's reward is recorded once" over a kudos that says why from a level 1 member, delivered twice to both subscribers in each order, read through the member's standing, the published levelReached and questFinished events and questsOf: verified 2026-10-13
       refuted 2026-10-13: recordReward no longer skipped a reward key already recorded
@@ -697,6 +822,10 @@ Slack  convex/slack/Slack.spec.md
       totality oracle "R35: a delivery whose message or channel is gone stops for good" over reactions.add and chat.postEphemeral answering message_not_found, channel_not_found and not_in_channel, and reactions.add answering is_archived, not_reactable and invalid_name: verified 2026-10-13
       refuted 2026-10-13: attemptCall in convex/slack/delivery.ts no longer classified message_not_found, channel_not_found and not_in_channel as gone
       kinds message: 8 shapes apply, 1 declared, 7 dismissed
+  the Leaderboard tab reads within Convex's limits  invariant
+      totality oracle "GB35: the Leaderboard tab at scale" over App Home published for a member of a workspace of 1,500 members in 60 groups who all gave kudos, whose remembered tab is the all-time Leaderboard, with everyone-board and groups on and Convex's transaction limits enforced: verified 2026-10-14
+      refuted 2026-10-14: shownHomeOf read the Groups board beside the Everyone board in its one mutation, and the publishing action read none of its own
+      kinds state: 7 shapes apply, 0 declared, 7 dismissed
   a failed directory check is tried again  invariant
       totality oracle "a failed directory check is tried again" over a check whose recheck fails once, and a check whose recheck fails every time: verified 2026-10-14
       refuted 2026-10-14: checkDirectory's failure retry ladder in convex/slack/directory.ts emptied
@@ -709,6 +838,42 @@ Slack  convex/slack/Slack.spec.md
       totality oracle "a stranded verification is tried again" over a verification Convex stopped before it ran, one stopped 10 minutes before the sweep, one waiting out a 30-minute Retry-After, one without a due time, two sweeps before the fresh try runs, one more stranded verification than a page holds, one whose every try Convex stops, and one stopped on its third try after 2 failed ones: verified 2026-10-14
       refuted 2026-10-14: tryAgainCountingTheStrandedTry in convex/slack/verifyMember.ts no longer scheduled the fresh try
       kinds state: 7 shapes apply, 0 declared, 7 dismissed
+Store  convex/store/Store.spec.md
+  only the store writes the collection, the loadout and item purchases  invariant
+      totality oracle "ST5 ST6 ST13: only the store writes the collection, the loadout and item purchases, and the collection and purchases are insert-only" over every module under convex/, outside its tests and the generated code: verified 2026-10-15
+      refuted 2026-10-14: grantItem moved an owned item's arrival time with a patch
+      refuted 2026-10-15: the website's buyPerk wrapper also stored an item purchase under its request key
+      kinds storage: 9 shapes apply, 1 declared, 8 dismissed
+  an item is granted to a member at most once  invariant
+      totality oracle "ST5: an item is granted to a member at most once" over a tier item granted, then granted again later, read through grantItem's answers and inventoryOf's owned items: verified 2026-10-14
+      refuted 2026-10-14: grantItem inserted an item without looking for the member's earlier row
+      kinds storage, state: 15 shapes apply, 1 declared, 14 dismissed
+  a purchase spends coins once per idempotency key  invariant
+      totality oracle "a purchase spends coins once per idempotency key" over a purchase repeated with its key, the same key naming another item, a refusal for coins repeated after earning them, and a new key buying again, read through buyItem's answers, the collection, the spend records and the balance against its records: verified 2026-10-15
+      refuted 2026-10-15: buyItem answered a stored outcome only for a refused key
+      kinds state, storage: 15 shapes apply, 1 declared, 14 dismissed
+  every slot holds an owned item  invariant
+      totality oracle "ST7: every slot holds an owned item" over a seeded sequence of grants, equips of owned, unowned and unknown items and take-offs, read after each step through inventoryOf's slots and owned items: verified 2026-10-15
+      refuted 2026-10-15: equip no longer checked that the member owns the item
+      kinds state: 7 shapes apply, 1 declared, 10 dismissed
+  an item fills at most one slot  invariant
+      totality oracle "ST7: an item fills at most one slot" over a seeded sequence of grants, equips into filled, empty and the same slots, and take-offs, read after each step through inventoryOf's slots: verified 2026-10-15
+      refuted 2026-10-15: equip put the item in the slot without taking it out of the slot it was in
+      kinds state: 7 shapes apply, 1 declared, 10 dismissed
+  a loadout emoji counts only for its owner and only where the store is visible  invariant
+      totality oracle "ST8 ST9 ST22: a loadout emoji counts only for its owner and only where the store is visible" over messages with 🦔 from its owner with the store visible, from another member, from a member with Coins open and the store not shown, and from the owner with the store off, not created and coins off, read through the giver's replies and the published kudosGiven events: verified 2026-10-14
+      refuted 2026-10-14: loadoutEmojiOf claimed the loadout without asking whether the store is visible to the giver
+      kinds state: 7 shapes apply, 1 declared, 10 dismissed
+  the store is dark wherever it isn't shown  invariant
+      totality oracle "ST20 ST22 ST23: the store is dark wherever it isn't shown" over one walk down every store path (Coins' readiness and opening, App Home and its Inventory tab, a silver tier's DM, a Buy, two Put in slot and a Take off, and a kudos with only loadout emoji) for a member with `store` on for their email, off, not created, on while the flags key is missing, and on with `coins`, `xp-levels` or `unlocks` off; the previewer once each of `coins`, `xp-levels` and `unlocks` turns off after their slots were filled; and the other members' side of both members' walks, with every public message, with `store` on for the first member's email and off: verified 2026-10-15
+      crossing slack-request -> domain
+      refuted 2026-10-15: storeShownTo in convex/store/visibility.ts answered whether coins apply to the member, ignoring their store decision
+      kinds output, state: 11 shapes apply, 0 declared, 11 dismissed
+  turning the store off takes nothing away  invariant
+      totality oracle "ST22 O35 O36: the store flag turned off and on, its stale clicks and its exposure" over a member who bought, slotted and took off kudos emoji and finished `your-emoji` with `store` on for their email, through App Home and their activity with it off and on again; stale `Buy`, `Put in slot` and `Take off` clicks after the flag turned off and with `store` off or on with `coins`, `xp-levels` or `unlocks` off, read through every stored row and the domain events published; and the exposures of a member with the flag on for their email and one without, through the flag turned off and on again: verified 2026-10-15
+      crossing slack-request -> domain
+      refuted 2026-10-15: equip in convex/store/equipping.ts no longer asked whether the store is shown to the member before filling a slot
+      kinds state, output: 11 shapes apply, 0 declared, 11 dismissed
 Unlocks  convex/unlocks/Unlocks.spec.md
   opening grants nothing  invariant
       totality oracle "P92: opening grants nothing" over every table of the schema, read before and after openUnlock opens a ready Leaderboard for a member with an effects record, XP and a level, and every event published by the open: verified 2026-10-13
@@ -917,14 +1082,27 @@ Website  website/Website.spec.md
       crossing domain -> browser
       refuted 2026-10-14: let isWebAddress accept every scheme
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
-21 components, 137 bullets: 137 invariants, 0 requirements
-lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-14T15:24:36.997Z (838 runs)
-defects: 23 recorded, 20 closed (4 guarded, 16 decided, 0 with neither); 0 guard failures
+24 components, 172 bullets: 172 invariants, 0 requirements
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-15T13:33:54.984Z (1008 runs)
+defects: 24 recorded, 21 closed (4 guarded, 17 decided, 0 with neither); 0 guard failures
+RECORDED NAME  .coherence/journal/40334844-d155-48a4-b941-3e32437d9232.jsonl:5  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/696ccc8a-ab74-4e24-9b64-c36adb12ef08.jsonl:6  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:3  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:13  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:16  "karma"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/6ec3ca51-9291-45c4-93cc-0c482677c04d.jsonl:18  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/7cc87bf5-5d24-4a33-8864-94353c0f2411.jsonl:2  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/815c49d5-1e7b-4811-b37f-108f50b0a4e4.jsonl:3  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/815c49d5-1e7b-4811-b37f-108f50b0a4e4.jsonl:4  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/815c49d5-1e7b-4811-b37f-108f50b0a4e4.jsonl:4  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/815c49d5-1e7b-4811-b37f-108f50b0a4e4.jsonl:5  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/815c49d5-1e7b-4811-b37f-108f50b0a4e4.jsonl:5  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/815c49d5-1e7b-4811-b37f-108f50b0a4e4.jsonl:5  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/89b71ff5-416c-4053-804e-d0fd62d7eda8.jsonl:1  "dm setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/89b71ff5-416c-4053-804e-d0fd62d7eda8.jsonl:1  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/89b71ff5-416c-4053-804e-d0fd62d7eda8.jsonl:1  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/89b71ff5-416c-4053-804e-d0fd62d7eda8.jsonl:1  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:15  "super kudos"  rejected for chime-in; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:24  "gift"  rejected for award; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:25  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
@@ -934,9 +1112,16 @@ RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:56 
 RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:56  "badge"  rejected for achievement; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:57  "super kudos"  rejected for chime-in; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/98a16857-4130-4352-bc84-0de7554b0a1c.jsonl:68  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/a0643646-9816-465f-bc08-1f33bf1c6143.jsonl:4  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/c1ff609f-71cf-494b-bb31-9387506efd04.jsonl:2  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/c1ff609f-71cf-494b-bb31-9387506efd04.jsonl:3  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/c1ff609f-71cf-494b-bb31-9387506efd04.jsonl:5  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/cce035c7-db94-42ee-b0cd-7fd62b48955e.jsonl:2  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:2  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17  "team aura"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       268 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 92, contract 33, receipt 33, panel 28, zone 22; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (770 files), 17 in records
+RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:28  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+RECORDED NAME  .coherence/journal/fecc2f56-01b5-4d62-9295-680f82cdb9ca.jsonl:4  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
+ADVISORY       308 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 103, contract 37, receipt 34, panel 28, zone 22; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (882 files), 37 in records
 exit 0
