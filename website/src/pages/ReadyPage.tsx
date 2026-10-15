@@ -13,7 +13,7 @@ export function ReadyPage({ card, member }: { card: FeatureCard; member: MemberP
         <PageTitle tab={card.name} size="headline">{`${card.name} ${isOrAre(card.feature)} ready`}</PageTitle>
         <p className="night-band-quiet max-w-md text-balance text-base">{sentenceOf(card.feature, member)}</p>
         <div className="mt-6 cursor-pointer" onClick={crate.open}>
-          <CrateArt phase="closed" width={200} Hog={Hog} nudge={crate.nudge} seen={card.seen} />
+          <CrateArt phase="closed" width={200} Hog={Hog} nudge={crate.nudge} />
         </div>
         {crate.failure !== undefined && <p className="text-sm font-medium">{crate.failure}</p>}
         <OpenButton crate={crate} variant="primary" size="lg" className="mt-2 h-11 px-6 text-base" />

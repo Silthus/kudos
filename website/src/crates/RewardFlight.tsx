@@ -8,6 +8,7 @@ export type RewardFlightProps = {
   source: () => Origin | undefined;
   target: () => HTMLElement | null;
   amount: string;
+  glow?: string;
   onArrived: (target: HTMLElement) => void;
   onLanded: (how: Arrival) => void;
 };
@@ -27,12 +28,8 @@ const chipLandsLast = "260ms";
 
 const settleMs = 900;
 
-export function rewardChipAttributes(seen: string | null) {
-  return seen === null ? {} : { "data-reward-chip": seen };
-}
-
-export function rewardCoinsAttributes(seen: string | null) {
-  return seen === null ? {} : { "data-reward-coins": seen };
+export function rewardTokenAttributes(kind: string) {
+  return { "data-reward-token": kind };
 }
 
 export function hudAvatarAttributes() {
@@ -55,12 +52,8 @@ export function coinsChipAttributes() {
   return { "data-coins-chip": "" };
 }
 
-export function rewardChipOrigin(seen: string): Origin | undefined {
-  return document.querySelector<HTMLElement>(`main [data-reward-chip="${seen}"]`)?.getBoundingClientRect();
-}
-
-export function rewardCoinsOrigin(seen: string): Origin | undefined {
-  return document.querySelector<HTMLElement>(`main [data-reward-coins="${seen}"]`)?.getBoundingClientRect();
+export function rewardTokenOrigin(kind: string): Origin | undefined {
+  return document.querySelector<HTMLElement>(`[role="dialog"] [data-reward-token="${kind}"]`)?.getBoundingClientRect();
 }
 
 export function hudAvatar() {
@@ -90,12 +83,17 @@ export function coinsChip() {
 }
 
 export function isInView(element: HTMLElement) {
+  if (underAMoment()) return false;
   const { top, bottom, width } = element.getBoundingClientRect();
   const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
   return width > 0 && top >= headerBottom && bottom <= window.innerHeight;
 }
 
-export function RewardFlight({ source, target, amount, onArrived, onLanded }: RewardFlightProps) {
+function underAMoment() {
+  return document.querySelector(".moment-scrim") !== null;
+}
+
+export function RewardFlight({ source, target, amount, glow, onArrived, onLanded }: RewardFlightProps) {
   const [course, setCourse] = useState<Course>();
   const flying = useRef<HTMLSpanElement>(null);
 
@@ -128,7 +126,7 @@ export function RewardFlight({ source, target, amount, onArrived, onLanded }: Re
 
   if (course === undefined) return null;
   return (
-    <span ref={flying} data-reward-flight aria-hidden="true" className="reward-flight" style={styleOf(course)}>
+    <span ref={flying} data-reward-flight aria-hidden="true" className="reward-flight" data-look={glow === undefined ? undefined : "token"} style={styleOf(course, glow)}>
       <span data-particle className="reward-flight-chip" style={{ "--delay": chipLandsLast } as CSSProperties}>
         {amount}
       </span>
@@ -162,6 +160,6 @@ function centreOf(start: number, size: number) {
   return start + size / 2;
 }
 
-function styleOf({ from, dx, dy }: Course) {
-  return { left: from.left, top: from.top, width: from.width, height: from.height, "--flight-x": `${dx}px`, "--flight-y": `${dy}px` } as CSSProperties;
+function styleOf({ from, dx, dy }: Course, glow: string | undefined) {
+  return { left: from.left, top: from.top, width: from.width, height: from.height, "--flight-x": `${dx}px`, "--flight-y": `${dy}px`, ...(glow !== undefined && { "--token-glow": glow }) } as CSSProperties;
 }

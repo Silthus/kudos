@@ -1,55 +1,97 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
-import { IconArrowRight, IconCheck, IconSparkles } from "@posthog/icons";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { IconArrowRight, IconCheck } from "@posthog/icons";
 import { Button, buttonVariants } from "@posthog/quill";
 import { AppLink } from "../AppLink";
 import { hogOf, isOrAre, waitsOf, webPageOf } from "../features";
-import type { Feature, FeatureCard } from "../shell";
-import { CoinsGained, rewardWords } from "../quests/QuestReward";
+import type { Feature, FeatureCard, MemberProfile } from "../shell";
+import { rewardWords } from "../quests/QuestReward";
 import { prefersReducedMotion } from "../reducedMotion";
 import { SlackLink } from "../SlackLink";
 import { CrateArt, CrateGlyph } from "./CrateArt";
-import { attemptMessages, useMoments, type Reveal } from "./moments";
+import { CrateRewardFlight } from "./CrateRewardFlight";
+import type { Drop } from "./drops";
+import { attemptMessages, useMoments, type Flight, type Reveal } from "./moments";
 import { rewardLabelOf, type QuestCrate, type ReadyCrate } from "./readyCrates";
+import type { Reward, RewardKind } from "./rewards";
+import { flyingKindsOf, RewardChips, TokenStage, tokensOf, type TokenKind } from "./RewardTokens";
 
-export const revealPlaysForMs = 1700;
+export const crateChargesForMs = 700;
+
+export const burstPlaysForMs = 1300;
+
+type Phase = "charging" | "bursting" | "flying" | "ended";
 
 type Close = (how: { returnFocus: boolean }) => void;
 
-type RevealDialogProps = Reveal & { chatUrl: string; questsOpen: boolean; othersReady: ReadyCrate[]; onFinish: (crate: ReadyCrate) => void; onClose: Close };
+export type Flying = { flight: Flight; reward: Reward };
 
-export function RevealDialog({ crate, seenBefore, fromQuests, chatUrl, questsOpen, othersReady, onFinish, onClose }: RevealDialogProps) {
+type RevealDialogProps = Reveal & {
+  chatUrl: string;
+  questsOpen: boolean;
+  othersReady: ReadyCrate[];
+  flying: Flying | undefined;
+  shown: MemberProfile;
+  onFinish: (crate: ReadyCrate) => void;
+  onClose: Close;
+  onSetOut: (crate: ReadyCrate) => void;
+  onRewardLanded: (crate: ReadyCrate, kind: RewardKind) => void;
+  onLanded: (crate: ReadyCrate) => void;
+};
+
+export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, questsOpen, othersReady, flying, shown, onFinish, onClose, onSetOut, onRewardLanded, onLanded }: RevealDialogProps) {
   const labelId = useId();
   const dialog = useRef<HTMLDivElement>(null);
   const [reducedMotion] = useState(prefersReducedMotion);
-  const [playing, setPlaying] = useState(!seenBefore && !reducedMotion);
+  const [phase, setPhase] = useState<Phase>(seenBefore || reducedMotion ? "ended" : "charging");
   const [shownAt, setShownAt] = useState(0);
+  const [flown, setFlown] = useState<TokenKind[]>([]);
+  const reward = useRewardOnStage(flying, crate);
+  const tokens = tokensOf(reward, drop);
+  const flies = flyingKindsOf(reward).length > 0;
+  const playing = phase !== "ended";
+  const headroom = useHeadroom();
 
   useEffect(() => {
-    if (!playing) return;
-    dialog.current?.focus();
-    const timer = setTimeout(() => setPlaying(false), revealPlaysForMs);
+    if (phase === "charging") dialog.current?.focus();
+    if (phase !== "charging" && phase !== "bursting") return;
+    const timer = setTimeout(() => setPhase(phase === "charging" ? "bursting" : flying !== undefined && flies ? "flying" : "ended"), phase === "charging" ? crateChargesForMs : burstPlaysForMs);
     return () => clearTimeout(timer);
-  }, [playing]);
+  }, [phase, flying, flies]);
+
+  useEffect(() => {
+    if (phase === "flying" && flying === undefined) setPhase("ended");
+  }, [phase, flying]);
+
+  useEffect(() => {
+    if (phase !== "charging") onSetOut(crate);
+  }, [phase, crate, onSetOut]);
 
   useEffect(() => {
     if (!playing) onFinish(crate);
   }, [playing, crate, onFinish]);
 
+  const skip = () => setPhase("ended");
+
   const replay = () => {
-    if (reducedMotion) setShownAt((times) => times + 1);
-    else setPlaying(true);
+    if (reducedMotion) return setShownAt((times) => times + 1);
+    setFlown([]);
+    setPhase("charging");
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key === "Tab") return keepFocusIn(dialog.current, event);
     if (playing && (event.key === "Escape" || event.key === " ")) {
       event.preventDefault();
-      setPlaying(false);
+      skip();
     } else if (!playing && event.key === "Escape") {
       event.preventDefault();
       onClose({ returnFocus: true });
     }
   };
+
+  const onRewardTaken = useCallback((kind: RewardKind) => setFlown((taken) => (taken.includes(kind) ? taken : [...taken, kind])), []);
+  const landed = useCallback((kind: RewardKind) => onRewardLanded(crate, kind), [crate, onRewardLanded]);
+  const land = useCallback(() => onLanded(crate), [crate, onLanded]);
 
   return (
     <div
@@ -58,30 +100,57 @@ export function RevealDialog({ crate, seenBefore, fromQuests, chatUrl, questsOpe
       aria-labelledby={labelId}
       tabIndex={-1}
       data-motion={reducedMotion ? "reduced" : "full"}
+      data-phase={phase}
       onKeyDown={onKeyDown}
-      onClick={() => playing && setPlaying(false)}
+      onClick={() => playing && skip()}
       className="moment-scrim fixed inset-0 z-50 overflow-y-auto"
+      style={headroom}
     >
-      <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-3 px-5 pb-12 pt-[clamp(2.5rem,8vh,5rem)] text-center">
+      <div className="moment-stage mx-auto flex w-full max-w-2xl flex-col items-center gap-3 px-5 pb-12 text-center">
         <span id={labelId} className="hud-label moment-label">
           {crate.kind === "feature" ? `Level ${crate.card.level} unlock` : rewardLabelOf(crate)}
         </span>
-        <div className="pb-6 pt-36">
+        <div className="crate-stage pb-6 pt-36">
+          {(phase === "bursting" || phase === "flying") && <TokenStage key={shownAt} tokens={tokens} flown={flown} />}
           <CrateArt phase={playing ? "opening" : "open"} width={220} Hog={hogOf(crate.kind === "feature" ? crate.card.feature : "quests")} />
         </div>
-        {!playing && crate.kind === "feature" && <EndState key={shownAt} card={crate.card} chatUrl={chatUrl} othersReady={othersReady} onClose={onClose} onReplay={replay} />}
-        {!playing && crate.kind === "quest" && <RewardEndState key={shownAt} crate={crate} offerQuests={questsOpen && !fromQuests} onClose={onClose} onReplay={replay} />}
+        {flying !== undefined && (phase === "flying" || phase === "ended") && (
+          <CrateRewardFlight reward={flying.reward} shown={shown} landAtOnce={phase === "ended"} onRewardTaken={onRewardTaken} onRewardLanded={landed} onLanded={land} />
+        )}
+        {!playing && crate.kind === "feature" && <EndState key={shownAt} card={crate.card} chips={<RewardChips tokens={tokens} />} chatUrl={chatUrl} othersReady={othersReady} onClose={onClose} onReplay={replay} />}
+        {!playing && crate.kind === "quest" && <RewardEndState key={shownAt} crate={crate} chips={<RewardChips tokens={tokens} />} offerQuests={questsOpen && !fromQuests} onClose={onClose} onReplay={replay} />}
       </div>
     </div>
   );
 }
 
-type EndStateProps = { card: FeatureCard; chatUrl: string; othersReady: ReadyCrate[]; onClose: Close; onReplay: () => void };
+function useRewardOnStage(flying: Flying | undefined, crate: ReadyCrate) {
+  const charted = useRef<Reward>(undefined);
+  if (flying !== undefined) charted.current = flying.reward;
+  return charted.current ?? rewardOf(crate);
+}
 
-function EndState({ card, chatUrl, othersReady, onClose, onReplay }: EndStateProps) {
+function rewardOf(crate: ReadyCrate): Reward {
+  if (crate.kind === "feature") return { xp: 0, skillPoints: 0, coins: 0 };
+  return { xp: crate.reward.xp, skillPoints: 0, coins: crate.reward.coins ?? 0 };
+}
+
+function useHeadroom(): CSSProperties | undefined {
+  const [headroom, setHeadroom] = useState<CSSProperties>();
+  useLayoutEffect(() => {
+    const header = document.querySelector("header")?.getBoundingClientRect().height ?? 0;
+    setHeadroom({ "--hud-height": `${header}px` } as CSSProperties);
+  }, []);
+  return headroom;
+}
+
+type EndStateProps = { card: FeatureCard; chips: ReactNode; chatUrl: string; othersReady: ReadyCrate[]; onClose: Close; onReplay: () => void };
+
+function EndState({ card, chips, chatUrl, othersReady, onClose, onReplay }: EndStateProps) {
   return (
     <EndFrame
       headline={`${card.name} ${isOrAre(card.feature)} open`}
+      chips={chips}
       onClose={onClose}
       onReplay={onReplay}
       go={<GoThere card={card} chatUrl={chatUrl} onGo={() => onClose({ returnFocus: false })} />}
@@ -162,40 +231,16 @@ function NextCount({ count }: { count: number }) {
   );
 }
 
-type RewardEndStateProps = { crate: QuestCrate; offerQuests: boolean; onClose: Close; onReplay: () => void };
+type RewardEndStateProps = { crate: QuestCrate; chips: ReactNode; offerQuests: boolean; onClose: Close; onReplay: () => void };
 
-function RewardEndState({ crate, offerQuests, onClose, onReplay }: RewardEndStateProps) {
+function RewardEndState({ crate, chips, offerQuests, onClose, onReplay }: RewardEndStateProps) {
   const toQuests = offerQuests && (
     <AppLink href="/quests" onFollow={() => onClose({ returnFocus: false })} className={buttonVariants({ variant: "primary" })}>
       See this week's quests
       <IconArrowRight aria-hidden="true" className="size-4" />
     </AppLink>
   );
-  return <EndFrame headline={`You earned ${rewardWords(crate.reward)}`} chips={<RewardChips crate={crate} />} onClose={onClose} onReplay={onReplay} go={toQuests} />;
-}
-
-function RewardChips({ crate: { reward } }: { crate: QuestCrate }) {
-  return (
-    <ul aria-label="Rewards" className="flex flex-wrap items-center justify-center gap-2">
-      <RewardChip at={0}>
-        <IconSparkles aria-hidden="true" className="size-4 shrink-0" />
-        {`+${reward.xp} XP`}
-      </RewardChip>
-      {reward.coins !== undefined && (
-        <RewardChip at={1}>
-          <CoinsGained coins={reward.coins} />
-        </RewardChip>
-      )}
-    </ul>
-  );
-}
-
-function RewardChip({ at, children }: { at: number; children: ReactNode }) {
-  return (
-    <li className="moment-line inline-flex h-9 items-center gap-1.5 rounded-full border bg-card px-3 text-sm font-semibold tabular-nums text-card-foreground shadow-sm" style={{ "--line-delay": `${0.1 + at * 0.12}s` } as CSSProperties}>
-      {children}
-    </li>
-  );
+  return <EndFrame headline={`You earned ${rewardWords(crate.reward)}`} chips={chips} onClose={onClose} onReplay={onReplay} go={toQuests} />;
 }
 
 type EndFrameProps = { headline: string; chips?: ReactNode; go: ReactNode; next?: ReactNode; onClose: Close; onReplay: () => void; children?: ReactNode };

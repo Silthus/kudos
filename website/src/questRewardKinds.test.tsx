@@ -1,6 +1,7 @@
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { burstPlaysForMs, crateChargesForMs } from "./crates/RevealDialog";
 import { bonusSteps, fixedQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures, type JourneyStep, type MemberProfile, type MyQuests, type OpenAnswer } from "./shell";
 import { renderApp } from "./test/renderApp";
@@ -71,12 +72,13 @@ describe("WS348: a quest paying coins shows the coin glyph and value wherever it
     expect(coinsIn(homeRowOf("Give a kudos that says why with one of your kudos emoji."))).toEqual([{ text: "20 coins", glyph: true }]);
   });
 
-  it("shows a Journey step's coins on its line and on its crate's label", () => {
+  it("shows a Journey step's coins on its line, and nothing on its crate's label (#452)", () => {
     renderApp({ ...shellFixtures.memberWithQuests, journey: [bonusSteps.yourEmoji, { ...yourEmojiFinished, step: "two-days", goal: "Say why on 2 different days." }] });
 
     expect(journeyStepOf("Give a kudos that says why with one of your kudos emoji.")).toHaveTextContent("Pays 40 XP · 20 coins");
-    expect(within(journeyStepOf("Say why on 2 different days.")).getByText(/^Journey reward · 40 XP/)).toHaveTextContent("Journey reward · 40 XP · 20 coins");
-    expect(coinsIn(journeyStepOf("Say why on 2 different days."))).toEqual([{ text: "20 coins", glyph: true }]);
+    expect(within(journeyStepOf("Say why on 2 different days.")).getByText("Journey reward")).toBeInTheDocument();
+    expect(journeyStepOf("Say why on 2 different days.")).not.toHaveTextContent(/XP|coin/);
+    expect(coinsIn(journeyStepOf("Say why on 2 different days."))).toEqual([]);
   });
 
   it("shows an opened Journey step's earned coins", () => {
@@ -133,7 +135,7 @@ describe("WS348 WS66: the reveal's end state shows one chip per reward kind afte
   });
 });
 
-describe("WS348 #354: a quest's coins fly into the header's coins chip", () => {
+describe("WS348 #354 #452: a quest's coins fly out of the reveal into the header's coins chip", () => {
   const withForty: MemberProfile = { ...shellFixtures.memberWithQuests, progression: { level: 2, xp: 40, levelStartsAt: 20, nextLevelAt: 100, xpToNextLevel: 60 }, coins: 40 };
   const finishedGoal = "Thank someone you haven't thanked before.";
 
@@ -145,6 +147,10 @@ describe("WS348 #354: a quest's coins fly into the header's coins chip", () => {
     return document.querySelector<HTMLElement>("[data-reward-flight]");
   }
 
+  function tokenOf(kind: string) {
+    return screen.getByRole("dialog").querySelector<HTMLElement>(`[data-reward-token="${kind}"]`)!;
+  }
+
   function placeAt(element: Element, rect: { x: number; y: number; width: number; height: number }) {
     vi.spyOn(element, "getBoundingClientRect").mockReturnValue(DOMRect.fromRect(rect));
   }
@@ -153,20 +159,24 @@ describe("WS348 #354: a quest's coins fly into the header's coins chip", () => {
     for (const particle of flying.querySelectorAll("[data-particle]")) fireEvent.animationEnd(particle);
   }
 
-  async function claimAndClose(user: ReturnType<typeof renderApp>["user"]) {
-    await user.click(within(cardOf(finishedGoal)).getByRole("button", { name: "Claim" }));
-    await user.keyboard("{Escape}");
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+  function advance(ms: number) {
+    act(() => vi.advanceTimersByTime(ms));
   }
 
-  it("holds the chip short of the quest's coins from the reveal, flies +10 coins from the card's coins once the XP lands, and counts up once it lands", async () => {
-    const { user } = onQuests(payingCoins, undefined, withForty);
-    placeAt(cardOf(finishedGoal).querySelector('[data-reward="coins"]')!, { x: 160, y: 700, width: 30, height: 16 });
+  async function claimUntilTheTokensFly() {
+    vi.useFakeTimers();
+    fireEvent.click(within(cardOf(finishedGoal)).getByRole("button", { name: "Claim" }));
+    await act(async () => {});
+    advance(crateChargesForMs);
+    if (tokenOf("coins") !== null) placeAt(tokenOf("coins"), { x: 160, y: 700, width: 30, height: 16 });
     placeAt(coinsChip(), { x: 900, y: 10, width: 60, height: 32 });
-    await user.click(within(cardOf(finishedGoal)).getByRole("button", { name: "Claim" }));
+    advance(burstPlaysForMs);
+  }
+
+  it("holds the chip short of the quest's coins from the reveal, flies +10 coins from its token once the XP lands, and counts up once it lands", async () => {
+    onQuests(payingCoins, undefined, withForty);
+    await claimUntilTheTokensFly();
     expect(coinsChip()).toHaveAccessibleName("30 coins to spend");
-    await user.keyboard("{Escape}");
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
 
     expect(flight()).toHaveTextContent("+20 XP");
     landAll(flight()!);
@@ -175,20 +185,17 @@ describe("WS348 #354: a quest's coins fly into the header's coins chip", () => {
     expect(flight()!.style.getPropertyValue("--flight-x")).toBe("755px");
     expect(flight()!.style.getPropertyValue("--flight-y")).toBe("-682px");
     expect(coinsChip()).toHaveTextContent("30");
-    vi.useFakeTimers();
     landAll(flight()!);
     expect(flight()).toBeNull();
     expect(coinsChip()).toHaveClass("reward-landed");
-    act(() => vi.advanceTimersByTime(1000));
+    advance(1000);
     expect(coinsChip()).toHaveTextContent("40");
   });
 
   it("flies only the XP from a quest paying no coins, and never holds the chip", async () => {
-    const { user } = onQuests(xpOnly, undefined, withForty);
-    await user.click(within(cardOf(finishedGoal)).getByRole("button", { name: "Claim" }));
+    onQuests(xpOnly, undefined, withForty);
+    await claimUntilTheTokensFly();
     expect(coinsChip()).toHaveTextContent("40");
-    await user.keyboard("{Escape}");
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
 
     landAll(flight()!);
     expect(flight()).toBeNull();
@@ -197,9 +204,10 @@ describe("WS348 #354: a quest's coins fly into the header's coins chip", () => {
 
   it("never flies under reduced motion: the chip shows the balance at once with a short fade", async () => {
     preferReducedMotion();
-    const { user } = onQuests(payingCoins, undefined, withForty);
-    await user.click(within(cardOf(finishedGoal)).getByRole("button", { name: "Claim" }));
-    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+    onQuests(payingCoins, undefined, withForty);
+    vi.useFakeTimers();
+    fireEvent.click(within(cardOf(finishedGoal)).getByRole("button", { name: "Claim" }));
+    await act(async () => {});
 
     expect(flight()).toBeNull();
     expect(coinsChip()).toHaveTextContent("40");
@@ -207,8 +215,12 @@ describe("WS348 #354: a quest's coins fly into the header's coins chip", () => {
   });
 
   it("lets the flight go when the coins chip isn't shown", async () => {
-    const { user } = onQuests(payingCoins, undefined, { ...withForty, coins: null });
-    await claimAndClose(user);
+    onQuests(payingCoins, undefined, { ...withForty, coins: null });
+    vi.useFakeTimers();
+    fireEvent.click(within(cardOf(finishedGoal)).getByRole("button", { name: "Claim" }));
+    await act(async () => {});
+    advance(crateChargesForMs);
+    advance(burstPlaysForMs);
 
     landAll(flight()!);
     expect(flight()).toBeNull();

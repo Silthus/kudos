@@ -1,0 +1,1603 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/loot-crates
+
+ ❯ |website| src/lootCrates.test.tsx (11 tests | 11 failed) 8323ms
+   ❯ #452: a closed crate spoils nothing (2)
+     × labels a quest crate with its kind alone, never the amounts inside 512ms
+     × charges the crate first, naming nothing, then bursts each reward out as a token while the HUD holds its values 359ms
+   ❯ #452: each token flies into the HUD home that holds it, which counts up as it lands (5)
+     × keeps the HUD in view above the reveal, inert, so the tokens have somewhere to land 269ms
+     × flies the XP token into the HUD level ring, even while the hero's bar lies under the reveal 1333ms
+     × completes the old level, turns it over, then flies the skill point and the coins from their tokens onto the chips, which count up 722ms
+     × ends on one clear finish once the last token lands: the headline, the chips and Done 1242ms
+     × flies from a crate the ready pill opened too 665ms
+   ❯ #452: skipping and reduced motion land every reward at once (3)
+     × lands everything when Esc skips the charge, and ends on the finish 343ms
+     × lands the rest when a click skips mid-flight 2477ms
+     × shows a calm static reveal under reduced motion: the finish and every value at once, nothing flies 221ms
+   ❯ #452: the reveal has a slot for a collectible with its rarity, which no read fills yet (1)
+     × bursts the collectible out as a card with its rarity, keeps it on the stage, and lists it in the finish 176ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #452: a closed crate spoils nothing > labels a quest crate with its kind alone, never the amounts inside
+Error: [2mexpect([22m[31melement[39m[2m).not.toHaveTextContent()[22m
+
+Expected element not to have text content:
+[32m  /XP|coin/[39m
+Received:
+[31m  Finish a weekly quest.Journey reward · 20 XPOpen[39m
+ ❯ src/lootCrates.test.tsx:134:22
+    132|
+    133|     expect(step).toHaveTextContent("Journey reward");
+    134|     expect(step).not.toHaveTextContent(/XP|coin/);
+       |                      ^
+    135|     expect(within(step).getByRole("button", { name: "Open" })).toBeInT…
+    136|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #452: a closed crate spoils nothing > charges the crate first, naming nothing, then bursts each reward out as a token while the HUD holds its values
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAttribute([22m[32m[32m"data-phase"[32m[39m[2m, [22m[32m[32m"charging"[32m[39m[2m) // element.getAttribute("data-phase") === "charging"[22m
+
+Expected the element to have attribute:
+[32m  data-phase="charging"[39m
+Received:
+[31m  null[39m
+ ❯ src/lootCrates.test.tsx:141:22
+    139|     await claimTheCoinsQuest();
+    140|
+    141|     expect(dialog()).toHaveAttribute("data-phase", "charging");
+       |                      ^
+    142|     expect(tokens()).toEqual([]);
+    143|     expect(dialog()).not.toHaveTextContent(/\d+ XP|coin/);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #452: each token flies into the HUD home that holds it, which counts up as it lands > keeps the HUD in view above the reveal, inert, so the tokens have somewhere to land
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAttribute([22m[32m[32m"data-revealing"[32m[39m[2m) // element.hasAttribute("data-revealing")[22m
+
+Expected the element to have attribute:
+[32m  data-revealing[39m
+Received:
+[31m  null[39m
+ ❯ src/lootCrates.test.tsx:159:21
+    157|     await claimTheCoinsQuest();
+    158|
+    159|     expect(frame()).toHaveAttribute("data-revealing");
+       |                     ^
+    160|     expect(header().closest("[inert]")).not.toBeNull();
+    161|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #452: each token flies into the HUD home that holds it, which counts up as it lands > flies the XP token into the HUD level ring, even while the hero's bar lies under the reveal
+TestingLibraryElementError: Unable to find an element with the role "progressbar" and name `/ XP to level /`
+
+Here are the available roles:
+
+  banner:
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"flex flex-wrap items-end justify-between gap-x-6 gap-y-2"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "This week":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display font-bold outline-none text-4xl leading-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Thank someone and say why, 3 times.":
+  [36m<h2[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Thank someone you haven't thanked before.":
+  [36m<h2[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Thank someone you haven't thanked in the last 30 days.":
+  [36m<h2[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Bonus quest":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"bonus-quest-title"[39m
+  [36m/>[39m
+
+  Name "Give a kudos that says why with one of your kudos emoji.":
+  [36m<h3[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Waiting to open":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"waiting-title"[39m
+  [36m/>[39m
+
+  Name "Thank someone and say why on 2 different days.":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "How quests work":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"how-quests-work-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm leading-relaxed text-muted-foreground"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Your quests":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Your quests"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  Name "Bonus quest":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"bonus-quest-title"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  Name "Waiting to open":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"waiting-title"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  Name "How quests work":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"how-quests-work-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  article:
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground "[39m
+    [33mdata-quest-target[39m=[32m"0"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground "[39m
+    [33mdata-quest-crate[39m=[32m"c41d77"[39m
+    [33mdata-quest-target[39m=[32m"1"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground opacity-90"[39m
+    [33mdata-claimed[39m=[32m"true"[39m
+    [33mdata-quest-crate[39m=[32m"d90a12"[39m
+    [33mdata-quest-target[39m=[32m"2"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground"[39m
+    [33mdata-quest-target[39m=[32m"journey"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4"[39m
+    [33mdata-quest-crate[39m=[32m"e3b5c8"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "1 of 3":
+  [36m<div[39m
+    [33maria-label[39m=[32m"1 of 3"[39m
+    [33maria-valuemax[39m=[32m"3"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"1"[39m
+    [33mclass[39m=[32m"h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  Name "1 of 1":
+  [36m<div[39m
+    [33maria-label[39m=[32m"1 of 1"[39m
+    [33maria-valuemax[39m=[32m"1"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"1"[39m
+    [33mclass[39m=[32m"h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  Name "1 of 1":
+  [36m<div[39m
+    [33maria-label[39m=[32m"1 of 1"[39m
+    [33maria-valuemax[39m=[32m"1"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"1"[39m
+    [33mclass[39m=[32m"h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Claim":
+  [36m<button[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mtabindex[39m=[32m"0"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Claim":
+  [36m<button[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-outline quill-button--size-sm"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mtabindex[39m=[32m"0"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  [36m<time[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mdatetime[39m=[32m"2026-10-05"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"sr-only"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"flex flex-col gap-6"[39m
+  [36m>[39m
+    [36m<header[39m
+      [33mclass[39m=[32m"flex flex-wrap items-end justify-between gap-x-6 gap-y-2"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col gap-1"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"hud-label"[39m
+        [36m>[39m
+          [0mQuests[0m
+        [36m</span>[39m
+        [36m<h1[39m
+          [33mclass[39m=[32m"hud-display font-bold outline-none text-4xl leading-none"[39m
+          [33mtabindex[39m=[32m"-1"[39m
+        [36m>[39m
+          [0mThis week[0m
+        [36m</h1>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground"[39m
+      [36m>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"LemonIcon size-4"[39m
+            [33mfill[39m=[32m"currentColor"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"100%"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33mclip-rule[39m=[32m"evenodd"[39m
+              [33md[39m=[32m"M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm10-5a.75.75 0 0 1 .75.75v3.94l2.53 2.53a.75.75 0 1 1-1.06 1.06l-2.75-2.75a.75.75 0 0 1-.22-.53V7.75A.75.75 0 0 1 12 7Z"[39m
+              [33mfill-rule[39m=[32m"evenodd"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mNew quests arrive every Monday.[0m
+        [36m</p>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"LemonIcon size-4"[39m
+            [33mfill[39m=[32m"currentColor"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"100%"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33mclip-rule[39m=[32m"evenodd"[39m
+              [33md[39m=[32m"M4.75 3C5.16421 3 5.5 3.33579 5.5 3.75V5.71122C7.1554 4.03743 9.4791 3 12 3C16.9706 3 21 7.02944 21 12C21 12.3803 20.9764 12.7555 20.9304 13.1241C20.8792 13.5351 20.5044 13.8267 20.0934 13.7755C19.6823 13.7242 19.3907 13.3495 19.4419 12.9384C19.4802 12.6313 19.5 12.3181 19.5 12C19.5 7.85786 16.1421 4.5 12 4.5C9.77612 4.5 7.73561 5.46681 6.3448 7H8.75C9.16421 7 9.5 7.33579 9.5 7.75C9.5 8.16421 9.16421 8.5 8.75 8.5H5.25C4.55964 8.5 4 7.94036 4 7.25V3.75C4 3.33579 4.33579 3 4.75 3ZM3.90663 10.2245C4.31766 10.2758 4.60932 10.6505 4.55806 11.0616C4.51977 11.3687 4.5 11.6819 4.5 12C4.5 16.1421 7.85786 19.5 12 19.5C14.2239 19.5 16.2644 18.5332 17.6552 17H15.2618C14.8476 17 14.5118 16.6642 14.5118 16.25C14.5118 15.8358 14.8476 15.5 15.2618 15.5H18.7618C19.4522 15.5 20.0118 16.0596 20.0118 16.75V20.25C20.0118 20.6642 19.6761 21 19.2618 21C18.8476 21 18.5118 20.6642 18.5118 20.25V18.2768C16.8557 19.9576 14.5269 21 12 21C7.02944 21 3 16.9706 3 12C3 11.6197 3.02364 11.2445 3.06959 10.8759C3.12085 10.4649 3.4956 10.1733 3.90663 10.2245Z"[39m
+              [33mfill-rule[39m=[32m"evenodd"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mSwap used this week[0m
+        [36m</p>[39m
+      [36m</div>[39m
+    [36m</header>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-w-0 flex-col gap-6"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Your quests"[39m
+          [33mclass[39m=[32m"flex flex-col gap-3"[39m
+        [36m>[39m
+          [36m<article[39m
+            [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground "[39m
+            [33mdata-quest-target[39m=[32m"0"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-start gap-3 sm:gap-4"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"relative flex shrink-0 items-center justify-center rounded-xl bg-muted/60"[39m
+                [33mdata-quest-art[39m=[32m"true"[39m
+                [33mstyle[39m=[32m"width: 64px; height: 64px;"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mviewBox[39m=[32m"0 0 1000 1000"[39m
+                  [33mwidth[39m=[32m"55"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<ellipse[39m
+                    [33mcx[39m=[32m"491.2"[39m
+                    [33mcy[39m=[32m"874.37"[39m
+                    [33mfill[39m=[32m"#472d0b"[39m
+                    [33mfill-opacity[39m=[32m".24"[39m
+                    [33mrx[39m=[32m"294"[39m
+                    [33mry[39m=[32m"43"[39m
+                    [33mtransform[39m=[32m"rotate(-.57 491.2 874.37)"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m229.31 526.18-1.6.75-.28.13z"[39m
+                    [33mfill[39m=[32m"#320601"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M166.1 489.94c6.68 4.22 13.46 8.29 20.18 12.43l23.05 14.18c5.84 3.59 11.66 7.24 17.5 10.84-5.84-3.6-11.66-7.24-17.5-10.84l-23.04-14.18 23.04 14.18 17.5 10.84.13-.08.07-.05 1.72-.98.2-.12.33-.17q.04-.04.1-.06-.03 0-.05.03l1.25-.69.37-.2.78-.42 1-.55 1.18-.62-1.05.56 1.05-.56.92-.49-.9.48 2.13-1.15.77-.41-.09.04.88-.46-.39-.24q-5.81-3.6-11.62-7.17l-22.4-13.8-17.14-10.55c-4.66-2.88-9.36-5.68-14-8.62l-.1-.06-.05-.03-.06-.04-.06-.03-.05-.03q-.03 0-.06-.04l-.04-.02q-.04-.01-.07-.04-.02 0-.03-.02l-.08-.04h-.03l-.28-.12h-.01l-.06-.02-.08-.03H171a5.35 5.35 0 0 0-6.67 2.6c-1.1 2.3-.43 5.34 1.8 6.74zm42.99 82.24.44.32.25.15q1.09.7 2.23 1.32h.03a30 30 0 0 0 7.53 2.83h.06l.15.04q2.6.56 5.28.61c8.8.14 17.57-3.64 23.1-10.58l.35-.42q2.34-3.02 3.84-6.47l-.33.16c-6.4 3.4-13.76 6.55-21.04 5.93l-.53.16q-1.15.27-2.31.45l-.8.07h.04l-.41.03-.68.04-.56.01-.51-.02q-.98-.05-1.95-.17-1.22-.18-2.4-.49l-.63-.2q-.84-.25-1.63-.6-1.14-.5-2.22-1.12l-1.05-.7-.14-.1a5.4 5.4 0 0 0-7.4 1....
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ xpBar src/lootCrates.test.tsx:78:25
+     76|
+     77| function xpBar() {
+     78|   return within(main()).getByRole("progressbar", { name: / XP to level…
+       |                         ^
+     79| }
+     80|
+ ❯ claimUntilTheTokensFly src/lootCrates.test.tsx:117:11
+ ❯ src/lootCrates.test.tsx:164:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #452: each token flies into the HUD home that holds it, which counts up as it lands > completes the old level, turns it over, then flies the skill point and the coins from their tokens onto the chips, which count up
+TestingLibraryElementError: Unable to find an element with the role "progressbar" and name `/ XP to level /`
+
+Here are the available roles:
+
+  banner:
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"flex flex-wrap items-end justify-between gap-x-6 gap-y-2"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "This week":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display font-bold outline-none text-4xl leading-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Thank someone and say why, 3 times.":
+  [36m<h2[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Thank someone you haven't thanked before.":
+  [36m<h2[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Thank someone you haven't thanked in the last 30 days.":
+  [36m<h2[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Bonus quest":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"bonus-quest-title"[39m
+  [36m/>[39m
+
+  Name "Give a kudos that says why with one of your kudos emoji.":
+  [36m<h3[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Waiting to open":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"waiting-title"[39m
+  [36m/>[39m
+
+  Name "Thank someone and say why on 2 different days.":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "How quests work":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"how-quests-work-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm leading-relaxed text-muted-foreground"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Your quests":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Your quests"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  Name "Bonus quest":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"bonus-quest-title"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  Name "Waiting to open":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"waiting-title"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  Name "How quests work":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"how-quests-work-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  article:
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground "[39m
+    [33mdata-quest-target[39m=[32m"0"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground "[39m
+    [33mdata-quest-crate[39m=[32m"c41d77"[39m
+    [33mdata-quest-target[39m=[32m"1"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground opacity-90"[39m
+    [33mdata-claimed[39m=[32m"true"[39m
+    [33mdata-quest-crate[39m=[32m"d90a12"[39m
+    [33mdata-quest-target[39m=[32m"2"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground"[39m
+    [33mdata-quest-target[39m=[32m"journey"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4"[39m
+    [33mdata-quest-crate[39m=[32m"e3b5c8"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "1 of 3":
+  [36m<div[39m
+    [33maria-label[39m=[32m"1 of 3"[39m
+    [33maria-valuemax[39m=[32m"3"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"1"[39m
+    [33mclass[39m=[32m"h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  Name "1 of 1":
+  [36m<div[39m
+    [33maria-label[39m=[32m"1 of 1"[39m
+    [33maria-valuemax[39m=[32m"1"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"1"[39m
+    [33mclass[39m=[32m"h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  Name "1 of 1":
+  [36m<div[39m
+    [33maria-label[39m=[32m"1 of 1"[39m
+    [33maria-valuemax[39m=[32m"1"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"1"[39m
+    [33mclass[39m=[32m"h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Claim":
+  [36m<button[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mtabindex[39m=[32m"0"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Claim":
+  [36m<button[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-outline quill-button--size-sm"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mtabindex[39m=[32m"0"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  [36m<time[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mdatetime[39m=[32m"2026-10-05"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"sr-only"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"flex flex-col gap-6"[39m
+  [36m>[39m
+    [36m<header[39m
+      [33mclass[39m=[32m"flex flex-wrap items-end justify-between gap-x-6 gap-y-2"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col gap-1"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"hud-label"[39m
+        [36m>[39m
+          [0mQuests[0m
+        [36m</span>[39m
+        [36m<h1[39m
+          [33mclass[39m=[32m"hud-display font-bold outline-none text-4xl leading-none"[39m
+          [33mtabindex[39m=[32m"-1"[39m
+        [36m>[39m
+          [0mThis week[0m
+        [36m</h1>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground"[39m
+      [36m>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"LemonIcon size-4"[39m
+            [33mfill[39m=[32m"currentColor"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"100%"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33mclip-rule[39m=[32m"evenodd"[39m
+              [33md[39m=[32m"M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm10-5a.75.75 0 0 1 .75.75v3.94l2.53 2.53a.75.75 0 1 1-1.06 1.06l-2.75-2.75a.75.75 0 0 1-.22-.53V7.75A.75.75 0 0 1 12 7Z"[39m
+              [33mfill-rule[39m=[32m"evenodd"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mNew quests arrive every Monday.[0m
+        [36m</p>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"LemonIcon size-4"[39m
+            [33mfill[39m=[32m"currentColor"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"100%"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33mclip-rule[39m=[32m"evenodd"[39m
+              [33md[39m=[32m"M4.75 3C5.16421 3 5.5 3.33579 5.5 3.75V5.71122C7.1554 4.03743 9.4791 3 12 3C16.9706 3 21 7.02944 21 12C21 12.3803 20.9764 12.7555 20.9304 13.1241C20.8792 13.5351 20.5044 13.8267 20.0934 13.7755C19.6823 13.7242 19.3907 13.3495 19.4419 12.9384C19.4802 12.6313 19.5 12.3181 19.5 12C19.5 7.85786 16.1421 4.5 12 4.5C9.77612 4.5 7.73561 5.46681 6.3448 7H8.75C9.16421 7 9.5 7.33579 9.5 7.75C9.5 8.16421 9.16421 8.5 8.75 8.5H5.25C4.55964 8.5 4 7.94036 4 7.25V3.75C4 3.33579 4.33579 3 4.75 3ZM3.90663 10.2245C4.31766 10.2758 4.60932 10.6505 4.55806 11.0616C4.51977 11.3687 4.5 11.6819 4.5 12C4.5 16.1421 7.85786 19.5 12 19.5C14.2239 19.5 16.2644 18.5332 17.6552 17H15.2618C14.8476 17 14.5118 16.6642 14.5118 16.25C14.5118 15.8358 14.8476 15.5 15.2618 15.5H18.7618C19.4522 15.5 20.0118 16.0596 20.0118 16.75V20.25C20.0118 20.6642 19.6761 21 19.2618 21C18.8476 21 18.5118 20.6642 18.5118 20.25V18.2768C16.8557 19.9576 14.5269 21 12 21C7.02944 21 3 16.9706 3 12C3 11.6197 3.02364 11.2445 3.06959 10.8759C3.12085 10.4649 3.4956 10.1733 3.90663 10.2245Z"[39m
+              [33mfill-rule[39m=[32m"evenodd"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mSwap used this week[0m
+        [36m</p>[39m
+      [36m</div>[39m
+    [36m</header>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-w-0 flex-col gap-6"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Your quests"[39m
+          [33mclass[39m=[32m"flex flex-col gap-3"[39m
+        [36m>[39m
+          [36m<article[39m
+            [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground "[39m
+            [33mdata-quest-target[39m=[32m"0"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-start gap-3 sm:gap-4"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"relative flex shrink-0 items-center justify-center rounded-xl bg-muted/60"[39m
+                [33mdata-quest-art[39m=[32m"true"[39m
+                [33mstyle[39m=[32m"width: 64px; height: 64px;"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mviewBox[39m=[32m"0 0 1000 1000"[39m
+                  [33mwidth[39m=[32m"55"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<ellipse[39m
+                    [33mcx[39m=[32m"491.2"[39m
+                    [33mcy[39m=[32m"874.37"[39m
+                    [33mfill[39m=[32m"#472d0b"[39m
+                    [33mfill-opacity[39m=[32m".24"[39m
+                    [33mrx[39m=[32m"294"[39m
+                    [33mry[39m=[32m"43"[39m
+                    [33mtransform[39m=[32m"rotate(-.57 491.2 874.37)"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m229.31 526.18-1.6.75-.28.13z"[39m
+                    [33mfill[39m=[32m"#320601"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M166.1 489.94c6.68 4.22 13.46 8.29 20.18 12.43l23.05 14.18c5.84 3.59 11.66 7.24 17.5 10.84-5.84-3.6-11.66-7.24-17.5-10.84l-23.04-14.18 23.04 14.18 17.5 10.84.13-.08.07-.05 1.72-.98.2-.12.33-.17q.04-.04.1-.06-.03 0-.05.03l1.25-.69.37-.2.78-.42 1-.55 1.18-.62-1.05.56 1.05-.56.92-.49-.9.48 2.13-1.15.77-.41-.09.04.88-.46-.39-.24q-5.81-3.6-11.62-7.17l-22.4-13.8-17.14-10.55c-4.66-2.88-9.36-5.68-14-8.62l-.1-.06-.05-.03-.06-.04-.06-.03-.05-.03q-.03 0-.06-.04l-.04-.02q-.04-.01-.07-.04-.02 0-.03-.02l-.08-.04h-.03l-.28-.12h-.01l-.06-.02-.08-.03H171a5.35 5.35 0 0 0-6.67 2.6c-1.1 2.3-.43 5.34 1.8 6.74zm42.99 82.24.44.32.25.15q1.09.7 2.23 1.32h.03a30 30 0 0 0 7.53 2.83h.06l.15.04q2.6.56 5.28.61c8.8.14 17.57-3.64 23.1-10.58l.35-.42q2.34-3.02 3.84-6.47l-.33.16c-6.4 3.4-13.76 6.55-21.04 5.93l-.53.16q-1.15.27-2.31.45l-.8.07h.04l-.41.03-.68.04-.56.01-.51-.02q-.98-.05-1.95-.17-1.22-.18-2.4-.49l-.63-.2q-.84-.25-1.63-.6-1.14-.5-2.22-1.12l-1.05-.7-.14-.1a5.4 5.4 0 0 0-7.4 1....
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ xpBar src/lootCrates.test.tsx:78:25
+     76|
+     77| function xpBar() {
+     78|   return within(main()).getByRole("progressbar", { name: / XP to level…
+       |                         ^
+     79| }
+     80|
+ ❯ claimUntilTheTokensFly src/lootCrates.test.tsx:117:11
+ ❯ src/lootCrates.test.tsx:174:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #452: each token flies into the HUD home that holds it, which counts up as it lands > ends on one clear finish once the last token lands: the headline, the chips and Done
+TestingLibraryElementError: Unable to find an element with the role "progressbar" and name `/ XP to level /`
+
+Here are the available roles:
+
+  banner:
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"flex flex-wrap items-end justify-between gap-x-6 gap-y-2"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "This week":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display font-bold outline-none text-4xl leading-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Thank someone and say why, 3 times.":
+  [36m<h2[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Thank someone you haven't thanked before.":
+  [36m<h2[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Thank someone you haven't thanked in the last 30 days.":
+  [36m<h2[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Bonus quest":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"bonus-quest-title"[39m
+  [36m/>[39m
+
+  Name "Give a kudos that says why with one of your kudos emoji.":
+  [36m<h3[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Waiting to open":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"waiting-title"[39m
+  [36m/>[39m
+
+  Name "Thank someone and say why on 2 different days.":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "How quests work":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"how-quests-work-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm leading-relaxed text-muted-foreground"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Your quests":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Your quests"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  Name "Bonus quest":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"bonus-quest-title"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  Name "Waiting to open":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"waiting-title"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  Name "How quests work":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"how-quests-work-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  article:
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground "[39m
+    [33mdata-quest-target[39m=[32m"0"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground "[39m
+    [33mdata-quest-crate[39m=[32m"c41d77"[39m
+    [33mdata-quest-target[39m=[32m"1"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground opacity-90"[39m
+    [33mdata-claimed[39m=[32m"true"[39m
+    [33mdata-quest-crate[39m=[32m"d90a12"[39m
+    [33mdata-quest-target[39m=[32m"2"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground"[39m
+    [33mdata-quest-target[39m=[32m"journey"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4"[39m
+    [33mdata-quest-crate[39m=[32m"e3b5c8"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "1 of 3":
+  [36m<div[39m
+    [33maria-label[39m=[32m"1 of 3"[39m
+    [33maria-valuemax[39m=[32m"3"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"1"[39m
+    [33mclass[39m=[32m"h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  Name "1 of 1":
+  [36m<div[39m
+    [33maria-label[39m=[32m"1 of 1"[39m
+    [33maria-valuemax[39m=[32m"1"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"1"[39m
+    [33mclass[39m=[32m"h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  Name "1 of 1":
+  [36m<div[39m
+    [33maria-label[39m=[32m"1 of 1"[39m
+    [33maria-valuemax[39m=[32m"1"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"1"[39m
+    [33mclass[39m=[32m"h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Claim":
+  [36m<button[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mtabindex[39m=[32m"0"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Claim":
+  [36m<button[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-outline quill-button--size-sm"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mtabindex[39m=[32m"0"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  [36m<time[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mdatetime[39m=[32m"2026-10-05"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"sr-only"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"flex flex-col gap-6"[39m
+  [36m>[39m
+    [36m<header[39m
+      [33mclass[39m=[32m"flex flex-wrap items-end justify-between gap-x-6 gap-y-2"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col gap-1"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"hud-label"[39m
+        [36m>[39m
+          [0mQuests[0m
+        [36m</span>[39m
+        [36m<h1[39m
+          [33mclass[39m=[32m"hud-display font-bold outline-none text-4xl leading-none"[39m
+          [33mtabindex[39m=[32m"-1"[39m
+        [36m>[39m
+          [0mThis week[0m
+        [36m</h1>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground"[39m
+      [36m>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"LemonIcon size-4"[39m
+            [33mfill[39m=[32m"currentColor"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"100%"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33mclip-rule[39m=[32m"evenodd"[39m
+              [33md[39m=[32m"M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm10-5a.75.75 0 0 1 .75.75v3.94l2.53 2.53a.75.75 0 1 1-1.06 1.06l-2.75-2.75a.75.75 0 0 1-.22-.53V7.75A.75.75 0 0 1 12 7Z"[39m
+              [33mfill-rule[39m=[32m"evenodd"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mNew quests arrive every Monday.[0m
+        [36m</p>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"LemonIcon size-4"[39m
+            [33mfill[39m=[32m"currentColor"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"100%"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33mclip-rule[39m=[32m"evenodd"[39m
+              [33md[39m=[32m"M4.75 3C5.16421 3 5.5 3.33579 5.5 3.75V5.71122C7.1554 4.03743 9.4791 3 12 3C16.9706 3 21 7.02944 21 12C21 12.3803 20.9764 12.7555 20.9304 13.1241C20.8792 13.5351 20.5044 13.8267 20.0934 13.7755C19.6823 13.7242 19.3907 13.3495 19.4419 12.9384C19.4802 12.6313 19.5 12.3181 19.5 12C19.5 7.85786 16.1421 4.5 12 4.5C9.77612 4.5 7.73561 5.46681 6.3448 7H8.75C9.16421 7 9.5 7.33579 9.5 7.75C9.5 8.16421 9.16421 8.5 8.75 8.5H5.25C4.55964 8.5 4 7.94036 4 7.25V3.75C4 3.33579 4.33579 3 4.75 3ZM3.90663 10.2245C4.31766 10.2758 4.60932 10.6505 4.55806 11.0616C4.51977 11.3687 4.5 11.6819 4.5 12C4.5 16.1421 7.85786 19.5 12 19.5C14.2239 19.5 16.2644 18.5332 17.6552 17H15.2618C14.8476 17 14.5118 16.6642 14.5118 16.25C14.5118 15.8358 14.8476 15.5 15.2618 15.5H18.7618C19.4522 15.5 20.0118 16.0596 20.0118 16.75V20.25C20.0118 20.6642 19.6761 21 19.2618 21C18.8476 21 18.5118 20.6642 18.5118 20.25V18.2768C16.8557 19.9576 14.5269 21 12 21C7.02944 21 3 16.9706 3 12C3 11.6197 3.02364 11.2445 3.06959 10.8759C3.12085 10.4649 3.4956 10.1733 3.90663 10.2245Z"[39m
+              [33mfill-rule[39m=[32m"evenodd"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mSwap used this week[0m
+        [36m</p>[39m
+      [36m</div>[39m
+    [36m</header>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-w-0 flex-col gap-6"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Your quests"[39m
+          [33mclass[39m=[32m"flex flex-col gap-3"[39m
+        [36m>[39m
+          [36m<article[39m
+            [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground "[39m
+            [33mdata-quest-target[39m=[32m"0"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-start gap-3 sm:gap-4"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"relative flex shrink-0 items-center justify-center rounded-xl bg-muted/60"[39m
+                [33mdata-quest-art[39m=[32m"true"[39m
+                [33mstyle[39m=[32m"width: 64px; height: 64px;"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mviewBox[39m=[32m"0 0 1000 1000"[39m
+                  [33mwidth[39m=[32m"55"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<ellipse[39m
+                    [33mcx[39m=[32m"491.2"[39m
+                    [33mcy[39m=[32m"874.37"[39m
+                    [33mfill[39m=[32m"#472d0b"[39m
+                    [33mfill-opacity[39m=[32m".24"[39m
+                    [33mrx[39m=[32m"294"[39m
+                    [33mry[39m=[32m"43"[39m
+                    [33mtransform[39m=[32m"rotate(-.57 491.2 874.37)"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m229.31 526.18-1.6.75-.28.13z"[39m
+                    [33mfill[39m=[32m"#320601"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M166.1 489.94c6.68 4.22 13.46 8.29 20.18 12.43l23.05 14.18c5.84 3.59 11.66 7.24 17.5 10.84-5.84-3.6-11.66-7.24-17.5-10.84l-23.04-14.18 23.04 14.18 17.5 10.84.13-.08.07-.05 1.72-.98.2-.12.33-.17q.04-.04.1-.06-.03 0-.05.03l1.25-.69.37-.2.78-.42 1-.55 1.18-.62-1.05.56 1.05-.56.92-.49-.9.48 2.13-1.15.77-.41-.09.04.88-.46-.39-.24q-5.81-3.6-11.62-7.17l-22.4-13.8-17.14-10.55c-4.66-2.88-9.36-5.68-14-8.62l-.1-.06-.05-.03-.06-.04-.06-.03-.05-.03q-.03 0-.06-.04l-.04-.02q-.04-.01-.07-.04-.02 0-.03-.02l-.08-.04h-.03l-.28-.12h-.01l-.06-.02-.08-.03H171a5.35 5.35 0 0 0-6.67 2.6c-1.1 2.3-.43 5.34 1.8 6.74zm42.99 82.24.44.32.25.15q1.09.7 2.23 1.32h.03a30 30 0 0 0 7.53 2.83h.06l.15.04q2.6.56 5.28.61c8.8.14 17.57-3.64 23.1-10.58l.35-.42q2.34-3.02 3.84-6.47l-.33.16c-6.4 3.4-13.76 6.55-21.04 5.93l-.53.16q-1.15.27-2.31.45l-.8.07h.04l-.41.03-.68.04-.56.01-.51-.02q-.98-.05-1.95-.17-1.22-.18-2.4-.49l-.63-.2q-.84-.25-1.63-.6-1.14-.5-2.22-1.12l-1.05-.7-.14-.1a5.4 5.4 0 0 0-7.4 1....
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ xpBar src/lootCrates.test.tsx:78:25
+     76|
+     77| function xpBar() {
+     78|   return within(main()).getByRole("progressbar", { name: / XP to level…
+       |                         ^
+     79| }
+     80|
+ ❯ claimUntilTheTokensFly src/lootCrates.test.tsx:117:11
+ ❯ src/lootCrates.test.tsx:201:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #452: each token flies into the HUD home that holds it, which counts up as it lands > flies from a crate the ready pill opened too
+AssertionError: expected [] to deeply equal [ '+20 XP', '+1 skill point' ]
+
+- Expected
++ Received
+
+- [
+-   "+20 XP",
+-   "+1 skill point",
+- ]
++ []
+
+ ❯ src/lootCrates.test.tsx:220:56
+    218|     await act(async () => {});
+    219|     advance(crateChargesForMs);
+    220|     expect(tokens().map((token) => token.textContent)).toEqual(["+20 X…
+       |                                                        ^
+    221|     advance(burstPlaysForMs);
+    222|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #452: skipping and reduced motion land every reward at once > lands everything when Esc skips the charge, and ends on the finish
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAttribute([22m[32m[32m"data-phase"[32m[39m[2m, [22m[32m[32m"ended"[32m[39m[2m) // element.getAttribute("data-phase") === "ended"[22m
+
+Expected the element to have attribute:
+[32m  data-phase="ended"[39m
+Received:
+[31m  null[39m
+ ❯ src/lootCrates.test.tsx:232:22
+    230|     fireEvent.keyDown(dialog()!, { key: "Escape" });
+    231|
+    232|     expect(dialog()).toHaveAttribute("data-phase", "ended");
+       |                      ^
+    233|     expect(flight()).toBeNull();
+    234|     expect(tokens()).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #452: skipping and reduced motion land every reward at once > lands the rest when a click skips mid-flight
+TestingLibraryElementError: Unable to find an element with the role "progressbar" and name `/ XP to level /`
+
+Here are the available roles:
+
+  banner:
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"flex flex-wrap items-end justify-between gap-x-6 gap-y-2"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "This week":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display font-bold outline-none text-4xl leading-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Thank someone and say why, 3 times.":
+  [36m<h2[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Thank someone you haven't thanked before.":
+  [36m<h2[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Thank someone you haven't thanked in the last 30 days.":
+  [36m<h2[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Bonus quest":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"bonus-quest-title"[39m
+  [36m/>[39m
+
+  Name "Give a kudos that says why with one of your kudos emoji.":
+  [36m<h3[39m
+    [33mclass[39m=[32m"w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Waiting to open":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"waiting-title"[39m
+  [36m/>[39m
+
+  Name "Thank someone and say why on 2 different days.":
+  [36m<h3[39m
+    [33mclass[39m=[32m"text-sm font-medium"[39m
+  [36m/>[39m
+
+  Name "How quests work":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"how-quests-work-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm leading-relaxed text-muted-foreground"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Your quests":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Your quests"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  Name "Bonus quest":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"bonus-quest-title"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  Name "Waiting to open":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"waiting-title"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  Name "How quests work":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"how-quests-work-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  article:
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground "[39m
+    [33mdata-quest-target[39m=[32m"0"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground "[39m
+    [33mdata-quest-crate[39m=[32m"c41d77"[39m
+    [33mdata-quest-target[39m=[32m"1"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground opacity-90"[39m
+    [33mdata-claimed[39m=[32m"true"[39m
+    [33mdata-quest-crate[39m=[32m"d90a12"[39m
+    [33mdata-quest-target[39m=[32m"2"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground"[39m
+    [33mdata-quest-target[39m=[32m"journey"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<article[39m
+    [33mclass[39m=[32m"hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4"[39m
+    [33mdata-quest-crate[39m=[32m"e3b5c8"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "1 of 3":
+  [36m<div[39m
+    [33maria-label[39m=[32m"1 of 3"[39m
+    [33maria-valuemax[39m=[32m"3"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"1"[39m
+    [33mclass[39m=[32m"h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  Name "1 of 1":
+  [36m<div[39m
+    [33maria-label[39m=[32m"1 of 1"[39m
+    [33maria-valuemax[39m=[32m"1"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"1"[39m
+    [33mclass[39m=[32m"h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  Name "1 of 1":
+  [36m<div[39m
+    [33maria-label[39m=[32m"1 of 1"[39m
+    [33maria-valuemax[39m=[32m"1"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"1"[39m
+    [33mclass[39m=[32m"h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Claim":
+  [36m<button[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-sm"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mtabindex[39m=[32m"0"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Claim":
+  [36m<button[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-outline quill-button--size-sm"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mtabindex[39m=[32m"0"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  [36m<time[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mdatetime[39m=[32m"2026-10-05"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"sr-only"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"flex flex-col gap-6"[39m
+  [36m>[39m
+    [36m<header[39m
+      [33mclass[39m=[32m"flex flex-wrap items-end justify-between gap-x-6 gap-y-2"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col gap-1"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"hud-label"[39m
+        [36m>[39m
+          [0mQuests[0m
+        [36m</span>[39m
+        [36m<h1[39m
+          [33mclass[39m=[32m"hud-display font-bold outline-none text-4xl leading-none"[39m
+          [33mtabindex[39m=[32m"-1"[39m
+        [36m>[39m
+          [0mThis week[0m
+        [36m</h1>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground"[39m
+      [36m>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"LemonIcon size-4"[39m
+            [33mfill[39m=[32m"currentColor"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"100%"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33mclip-rule[39m=[32m"evenodd"[39m
+              [33md[39m=[32m"M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm10-5a.75.75 0 0 1 .75.75v3.94l2.53 2.53a.75.75 0 1 1-1.06 1.06l-2.75-2.75a.75.75 0 0 1-.22-.53V7.75A.75.75 0 0 1 12 7Z"[39m
+              [33mfill-rule[39m=[32m"evenodd"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mNew quests arrive every Monday.[0m
+        [36m</p>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"inline-flex items-center gap-1.5"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"LemonIcon size-4"[39m
+            [33mfill[39m=[32m"currentColor"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"100%"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33mclip-rule[39m=[32m"evenodd"[39m
+              [33md[39m=[32m"M4.75 3C5.16421 3 5.5 3.33579 5.5 3.75V5.71122C7.1554 4.03743 9.4791 3 12 3C16.9706 3 21 7.02944 21 12C21 12.3803 20.9764 12.7555 20.9304 13.1241C20.8792 13.5351 20.5044 13.8267 20.0934 13.7755C19.6823 13.7242 19.3907 13.3495 19.4419 12.9384C19.4802 12.6313 19.5 12.3181 19.5 12C19.5 7.85786 16.1421 4.5 12 4.5C9.77612 4.5 7.73561 5.46681 6.3448 7H8.75C9.16421 7 9.5 7.33579 9.5 7.75C9.5 8.16421 9.16421 8.5 8.75 8.5H5.25C4.55964 8.5 4 7.94036 4 7.25V3.75C4 3.33579 4.33579 3 4.75 3ZM3.90663 10.2245C4.31766 10.2758 4.60932 10.6505 4.55806 11.0616C4.51977 11.3687 4.5 11.6819 4.5 12C4.5 16.1421 7.85786 19.5 12 19.5C14.2239 19.5 16.2644 18.5332 17.6552 17H15.2618C14.8476 17 14.5118 16.6642 14.5118 16.25C14.5118 15.8358 14.8476 15.5 15.2618 15.5H18.7618C19.4522 15.5 20.0118 16.0596 20.0118 16.75V20.25C20.0118 20.6642 19.6761 21 19.2618 21C18.8476 21 18.5118 20.6642 18.5118 20.25V18.2768C16.8557 19.9576 14.5269 21 12 21C7.02944 21 3 16.9706 3 12C3 11.6197 3.02364 11.2445 3.06959 10.8759C3.12085 10.4649 3.4956 10.1733 3.90663 10.2245Z"[39m
+              [33mfill-rule[39m=[32m"evenodd"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mSwap used this week[0m
+        [36m</p>[39m
+      [36m</div>[39m
+    [36m</header>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-w-0 flex-col gap-6"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Your quests"[39m
+          [33mclass[39m=[32m"flex flex-col gap-3"[39m
+        [36m>[39m
+          [36m<article[39m
+            [33mclass[39m=[32m"hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground "[39m
+            [33mdata-quest-target[39m=[32m"0"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-start gap-3 sm:gap-4"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"relative flex shrink-0 items-center justify-center rounded-xl bg-muted/60"[39m
+                [33mdata-quest-art[39m=[32m"true"[39m
+                [33mstyle[39m=[32m"width: 64px; height: 64px;"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mviewBox[39m=[32m"0 0 1000 1000"[39m
+                  [33mwidth[39m=[32m"55"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<ellipse[39m
+                    [33mcx[39m=[32m"491.2"[39m
+                    [33mcy[39m=[32m"874.37"[39m
+                    [33mfill[39m=[32m"#472d0b"[39m
+                    [33mfill-opacity[39m=[32m".24"[39m
+                    [33mrx[39m=[32m"294"[39m
+                    [33mry[39m=[32m"43"[39m
+                    [33mtransform[39m=[32m"rotate(-.57 491.2 874.37)"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m229.31 526.18-1.6.75-.28.13z"[39m
+                    [33mfill[39m=[32m"#320601"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M166.1 489.94c6.68 4.22 13.46 8.29 20.18 12.43l23.05 14.18c5.84 3.59 11.66 7.24 17.5 10.84-5.84-3.6-11.66-7.24-17.5-10.84l-23.04-14.18 23.04 14.18 17.5 10.84.13-.08.07-.05 1.72-.98.2-.12.33-.17q.04-.04.1-.06-.03 0-.05.03l1.25-.69.37-.2.78-.42 1-.55 1.18-.62-1.05.56 1.05-.56.92-.49-.9.48 2.13-1.15.77-.41-.09.04.88-.46-.39-.24q-5.81-3.6-11.62-7.17l-22.4-13.8-17.14-10.55c-4.66-2.88-9.36-5.68-14-8.62l-.1-.06-.05-.03-.06-.04-.06-.03-.05-.03q-.03 0-.06-.04l-.04-.02q-.04-.01-.07-.04-.02 0-.03-.02l-.08-.04h-.03l-.28-.12h-.01l-.06-.02-.08-.03H171a5.35 5.35 0 0 0-6.67 2.6c-1.1 2.3-.43 5.34 1.8 6.74zm42.99 82.24.44.32.25.15q1.09.7 2.23 1.32h.03a30 30 0 0 0 7.53 2.83h.06l.15.04q2.6.56 5.28.61c8.8.14 17.57-3.64 23.1-10.58l.35-.42q2.34-3.02 3.84-6.47l-.33.16c-6.4 3.4-13.76 6.55-21.04 5.93l-.53.16q-1.15.27-2.31.45l-.8.07h.04l-.41.03-.68.04-.56.01-.51-.02q-.98-.05-1.95-.17-1.22-.18-2.4-.49l-.63-.2q-.84-.25-1.63-.6-1.14-.5-2.22-1.12l-1.05-.7-.14-.1a5.4 5.4 0 0 0-7.4 1....
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ xpBar src/lootCrates.test.tsx:78:25
+     76|
+     77| function xpBar() {
+     78|   return within(main()).getByRole("progressbar", { name: / XP to level…
+       |                         ^
+     79| }
+     80|
+ ❯ claimUntilTheTokensFly src/lootCrates.test.tsx:117:11
+ ❯ src/lootCrates.test.tsx:244:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #452: skipping and reduced motion land every reward at once > shows a calm static reveal under reduced motion: the finish and every value at once, nothing flies
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAttribute([22m[32m[32m"data-phase"[32m[39m[2m, [22m[32m[32m"ended"[32m[39m[2m) // element.getAttribute("data-phase") === "ended"[22m
+
+Expected the element to have attribute:
+[32m  data-phase="ended"[39m
+Received:
+[31m  null[39m
+ ❯ src/lootCrates.test.tsx:261:22
+    259|
+    260|     expect(dialog()).toHaveAttribute("data-motion", "reduced");
+    261|     expect(dialog()).toHaveAttribute("data-phase", "ended");
+       |                      ^
+    262|     expect(flight()).toBeNull();
+    263|     expect(tokens()).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #452: the reveal has a slot for a collectible with its rarity, which no read fills yet > bursts the collectible out as a card with its rarity, keeps it on the stage, and lists it in the finish
+AssertionError: expected [] to deeply equal [ '+20 XP', '+1 skill point', …(2) ]
+
+- Expected
++ Received
+
+- [
+-   "+20 XP",
+-   "+1 skill point",
+-   "+10 coins",
+-   "Wizard",
+- ]
++ []
+
+ ❯ src/lootCrates.test.tsx:280:56
+    278|     advance(crateChargesForMs);
+    279|
+    280|     expect(tokens().map((token) => token.textContent)).toEqual(["+20 X…
+       |                                                        ^
+    281|     expect(tokenOf("item")).toHaveAttribute("data-rarity", "epic");
+    282|     fireEvent.keyDown(dialog()!, { key: "Escape" });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  11 failed (11)
+   Start at  18:01:50
+   Duration  26.82s (tests 31%, transform 23%, environment 23%, import 20%, setup 3%)
+
