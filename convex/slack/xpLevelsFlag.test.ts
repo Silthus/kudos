@@ -57,7 +57,7 @@ describe("the xp-levels flag hides the slice while it is off", () => {
     await openHome(t, "U_ALICE");
 
     expect(slack.callsTo("views.publish").filter(({ user_id }) => user_id === "U_BOB")).toEqual([]);
-    expect(slack.callsTo("chat.postMessage").map(({ channel }) => channel)).toEqual(["U_ALICE", "U_BOB"]);
+    expect(slack.callsTo("chat.postMessage").map(({ channel }) => channel).sort()).toEqual(["U_ALICE", "U_BOB"]);
     expect(slack.callsTo("users.info")).toHaveLength(lookUpsBeforeOpening);
     expect(publishedHome(slack, "U_ALICE")).toEqual(coreHome);
   });

@@ -116,11 +116,13 @@ describe("F16: xp-levels and everyone-board previewed by one member's email", ()
       [xpLevels, true],
       ["unlocks", false],
       ["message-settings", false],
+      ["groups", false],
       [everyoneBoard, true],
     ]);
     expect(await exposuresOf(t, "U_BOB")).toEqual([
       [xpLevels, false],
       ["message-settings", false],
+      ["groups", false],
       [everyoneBoard, false],
     ]);
   });

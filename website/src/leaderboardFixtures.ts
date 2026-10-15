@@ -8,7 +8,7 @@ function row(position: number, rank: number, name: string, kudos: number, { tied
     .split(" ")
     .map((word) => word[0])
     .join("");
-  return { position, rank, tied, name, face: me ? you : { kind: "initials", initials }, kudos, you: me };
+  return { position, rank, tied, name, face: me ? you : { kind: "initials", initials }, kudos, you: me, climbed: null };
 }
 
 const teammatesPictures: Record<string, string> = {

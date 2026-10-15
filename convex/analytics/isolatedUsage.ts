@@ -9,7 +9,7 @@ import { recordUsage, usageNotRecorded } from "./usage";
 const leaderboardViewValidator = v.object({
   workspace: v.string(),
   member: v.id("members"),
-  board: v.literal("everyone"),
+  board: v.union(v.literal("everyone"), v.literal("groups"), v.literal("my-group")),
   period: periodValidator,
   surface: v.union(v.literal("app-home"), v.literal("command")),
   at: v.number(),
@@ -45,6 +45,28 @@ export const recordLeaderboardVisibilityChanged = internalMutation({
   args: leaderboardVisibilityChangeValidator,
   handler: async (ctx, change): Promise<void> => {
     await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "leaderboardVisibilityChanged", ...change }));
+  },
+});
+
+export const pickSurfaceValidator = v.union(v.literal("welcome"), v.literal("settings"));
+
+const primaryGroupPickValidator = v.object({
+  workspace: v.string(),
+  member: v.id("members"),
+  surface: pickSurfaceValidator,
+  at: v.number(),
+});
+
+export type PrimaryGroupPick = Infer<typeof primaryGroupPickValidator>;
+
+export async function reportPrimaryGroupPicked(ctx: MutationCtx, pick: PrimaryGroupPick) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordPrimaryGroupPicked, pick);
+}
+
+export const recordPrimaryGroupPicked = internalMutation({
+  args: primaryGroupPickValidator,
+  handler: async (ctx, pick): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "primaryGroupPicked", ...pick }));
   },
 });
 

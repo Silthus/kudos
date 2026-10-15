@@ -1,7 +1,13 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
+import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { reportLeaderboardViewed, reportLeaderboardVisibilityChanged, reportMessageSettingChanged } from "../analytics/isolatedUsage";
+import { pickSurfaceValidator, reportLeaderboardViewed, reportLeaderboardVisibilityChanged, reportMessageSettingChanged, reportPrimaryGroupPicked } from "../analytics/isolatedUsage";
+import { groupsShownAndExposedTo } from "../groups/groups";
+import { pickPrimaryGroup } from "../groups/pick";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
+import { setGroupMode } from "../groups/groupMode";
+import { groupModeValidator } from "../groups/mode";
+import { boardsShownTo } from "../leaderboard/boards";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
 import { messageSettingsShownTo } from "../messageSettings/flag";
@@ -32,6 +38,8 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
   v.object({ type: v.literal("rerollQuest"), quest: weeklyQuestValidator }),
   v.object({ type: v.literal("buyPerk"), perk: perkValidator }),
+  v.object({ type: v.literal("pickPrimaryGroup"), group: v.string(), surface: pickSurfaceValidator }),
+  v.object({ type: v.literal("setGroupMode"), mode: groupModeValidator, allowlist: v.optional(v.array(v.string())) }),
 );
 
 export type Command = Infer<typeof commandValidator>;
@@ -77,10 +85,21 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     case "rerollQuest":
       await rerollQuest(ctx, member, command.quest);
       return null;
+    case "setGroupMode": {
+      const { type: _, ...change } = command;
+      if (await setGroupMode(ctx, workspace, person, change)) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
+      return null;
+    }
     case "buyPerk": {
       const outcome = await buyPerk(ctx, member, command.perk, idempotencyKey);
       if (outcome !== null) await showHomeTab(ctx, workspace, person, "skillTree");
       return outcome;
+    }
+    case "pickPrimaryGroup": {
+      const group = ctx.db.normalizeId("userGroups", command.group);
+      if (group === null || !(await groupsShownAndExposedTo(ctx, member))) return null;
+      if ((await pickPrimaryGroup(ctx, member, group)) === "picked") await reportPrimaryGroupPicked(ctx, { workspace, member, surface: command.surface, at: Date.now() });
+      return null;
     }
   }
 }
@@ -99,8 +118,8 @@ async function changeMessageSetting(ctx: MutationCtx, workspace: string, member:
   if (await setMessageSetting(ctx, member, kind, place)) await reportMessageSettingChanged(ctx, { workspace, member, setting: kind, on: place !== "none", place, at: Date.now() });
 }
 
-function leaderboardViewedInAppHome(ctx: MutationCtx, workspace: string, member: MemberId, period: Period) {
-  return reportLeaderboardViewed(ctx, { workspace, member, board: "everyone", period, surface: "app-home", at: Date.now() });
+async function leaderboardViewedInAppHome(ctx: MutationCtx, workspace: string, member: MemberId, period: Period) {
+  for (const board of await boardsShownTo(ctx, member)) await reportLeaderboardViewed(ctx, { workspace, member, board, period, surface: "app-home", at: Date.now() });
 }
 
 function conforms(validator: GenericValidator, value: unknown): boolean {
@@ -119,6 +138,8 @@ function conforms(validator: GenericValidator, value: unknown): boolean {
       return typeof value === "number";
     case "null":
       return value === null;
+    case "array":
+      return Array.isArray(value) && value.every((element) => conforms(validator.element, element));
     default:
       return false;
   }

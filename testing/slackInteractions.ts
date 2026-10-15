@@ -2,15 +2,30 @@ import { expect } from "vitest";
 import type { FakeSlack } from "./fakeSlack";
 
 export type TextObject = { type: string; text: string };
-type SelectOption = { text: TextObject; value: string };
-type Element = { type: string; text?: TextObject; style?: string; initial_channel?: string; action_id?: string; value?: string; url?: string; options?: SelectOption[]; initial_option?: SelectOption };
+type Option = { text: TextObject; value: string };
+type Element = {
+  type: string;
+  text?: TextObject;
+  style?: string;
+  initial_channel?: string;
+  action_id?: string;
+  value?: string;
+  url?: string;
+  options?: Option[];
+  option_groups?: Array<{ label: TextObject; options: Option[] }>;
+  initial_option?: Option;
+  initial_options?: Option[];
+};
 export type Block = { type: string; block_id?: string; text?: TextObject; fields?: TextObject[]; elements?: Array<TextObject | Element>; accessory?: Element };
 type HomeView = { type: string; blocks: Block[] };
 
 export type BlockAction =
   | { type: "button"; action_id: string; value?: string; block_id?: string }
   | { type: "channels_select"; action_id: string; selected_channel: string | null; block_id?: string }
-  | { type: "static_select"; action_id: string; selected_option: { value: string }; block_id?: string };
+  | { type: "static_select"; action_id: string; selected_option: { value: string }; block_id?: string }
+  | { type: "multi_static_select"; action_id: string; selected_options: Option[]; block_id?: string };
+
+export type MessageState = Record<string, Record<string, { type: "static_select"; selected_option: { value: string } | null }>>;
 
 export function publishedHomeBlocks(slack: FakeSlack, user: string): Block[] {
   const view = slack.homeShownTo(user) as HomeView | undefined;
@@ -58,6 +73,21 @@ export function channelPickerInHome(slack: FakeSlack, user: string, channel: str
   return { type: "channels_select", action_id: picker!.action_id!, selected_channel: channel };
 }
 
+export function groupPickerInHome(slack: FakeSlack, user: string, ...picked: string[]): BlockAction {
+  const picker = publishedHomeBlocks(slack, user)
+    .flatMap(elementsOf)
+    .find((element) => element.type === "multi_static_select");
+  expect(picker, `a group picker in ${user}'s App Home`).toBeDefined();
+  const options = optionsOf(picker!);
+  const selected = picked.map((name) => options.find(({ text }) => text.text === name));
+  expect(selected, `${picked.join(", ")} among the picker's options`).not.toContain(undefined);
+  return { type: "multi_static_select", action_id: picker!.action_id!, selected_options: selected as Option[] };
+}
+
+export function optionsOf(element: Element): Option[] {
+  return element.options ?? (element.option_groups ?? []).flatMap(({ options }) => options);
+}
+
 export function optionPickedInHome(slack: FakeSlack, user: string, row: string, option: string): BlockAction {
   const picker = publishedHomeBlocks(slack, user).find((block) => block.text?.text.startsWith(`*${row}*`))?.accessory;
   const picked = picker?.options?.find(({ text }) => text.text === option);
@@ -69,7 +99,7 @@ let interactions = 0;
 
 export type ClickedMessage = { channel: string; ts: string; ephemeral?: boolean; threadTs?: string };
 
-export function blockActions(user: string, action: BlockAction, options: { team?: string; inMessage?: ClickedMessage } = {}) {
+export function blockActions(user: string, action: BlockAction, options: { team?: string; inMessage?: ClickedMessage; state?: MessageState } = {}) {
   const team = options.team ?? "T1";
   interactions += 1;
   const payload = {
@@ -80,6 +110,7 @@ export function blockActions(user: string, action: BlockAction, options: { team?
     trigger_id: `${interactions}.1760349600.trigger`,
     ...(options.inMessage === undefined ? homeContainer() : messageContainer(options.inMessage)),
     actions: [{ block_id: "b1", ...action, action_ts: "1760349600.000300" }],
+    ...(options.state !== undefined && { state: { values: options.state } }),
   };
   return new URLSearchParams({ payload: JSON.stringify(payload) }).toString();
 }
@@ -109,6 +140,8 @@ function readBlock(block: Block) {
 }
 
 function readButton(button: Element) {
+  if (button.type === "static_select") return readSelect(button);
+  if (button.type === "multi_static_select") return `[multi_static_select: ${(button.initial_options ?? []).map(({ text }) => plainText(text)).join(", ") || "none"}]`;
   const label = plainText(button.text);
   return button.style === "primary" ? `[${label}]` : label;
 }
@@ -117,7 +150,29 @@ function readAccessory(element: Element) {
   if (element.type === "button" && element.url !== undefined) return `[link: ${plainText(element.text)} ${element.url}]`;
   if (element.type === "button") return `[button: ${plainText(element.text)}]`;
   if (element.type === "static_select") return `[select: ${plainText(element.initial_option?.text)}]`;
+  if (element.type === "multi_static_select") return readButton(element);
   return `[${element.type}: ${element.initial_channel ?? "none"}]`;
+}
+
+function readSelect(select: Element) {
+  const options = [...(select.options ?? []), ...(select.option_groups ?? []).flatMap((group) => group.options)];
+  const picked = select.initial_option === undefined ? "none" : plainText(select.initial_option.text);
+  return `[select: ${picked} of ${options.map((option) => plainText(option.text)).join(", ")}]`;
+}
+
+export function selectIn(blocks: Block[]): Element & { action_id: string; block_id?: string } {
+  for (const block of blocks) {
+    const select = elementsOf(block).find((element) => element.type === "static_select");
+    if (select) return { ...select, action_id: select.action_id!, ...(block.block_id && { block_id: block.block_id }) };
+  }
+  throw new Error("no select among the blocks");
+}
+
+export function optionNamed(select: Element, label: string): string {
+  const options = [...(select.options ?? []), ...(select.option_groups ?? []).flatMap((group) => group.options)];
+  const option = options.find((candidate) => candidate.text.text === label);
+  if (option === undefined) throw new Error(`no ${label} option in the select`);
+  return option.value;
 }
 
 function plainText(text: TextObject | undefined) {

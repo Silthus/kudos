@@ -2,6 +2,9 @@ import type { LadderFacts } from "../achievements/achievements";
 import { countsOf, ladderOf, tierOf, type TierId, type TierRef } from "../achievements/ladders";
 import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
+import type { GroupChoice } from "../groups/pick";
+import type { GroupId, GroupRef } from "../groups/groups";
+import type { GroupModeFacts } from "../groups/groupMode";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
@@ -23,7 +26,8 @@ import type { FrontDoorLinks } from "../website/link";
 import { questCratePageOf, readyCratePageOf, urlOf, type Page } from "../website/routes";
 import { coinsPartOf, inCoins } from "./coins";
 import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
-import { renderEveryoneBoard } from "./leaderboard";
+import { countsFor, pickQuestion } from "./groupCopy";
+import { renderBoards } from "./leaderboard";
 import { openTheWebsite, productName, skillPointsOf, slashCommand } from "./naming";
 import { medals } from "./medals";
 import type { Line } from "./segments";
@@ -49,6 +53,8 @@ export type HomeLine =
   | { kind: "lines"; lines: Line[] }
   | { kind: "action"; text: string; action: HomeAction }
   | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] }
+  | { kind: "pick-group"; text: string; groups: GroupRef[]; picked: GroupId }
+  | { kind: "pick-groups"; text: string; groups: GroupModeFacts["groups"]; picked: GroupModeFacts["allowlist"] }
   | { kind: "pick"; id: string; text: string; placeholder: string; options: Choice[] }
   | { kind: "link"; label: string; url: string }
   | { kind: "links"; links: Array<{ label: string; url: string }> };
@@ -101,7 +107,7 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
     case "profile":
       return profileOf(facts, shown);
     case "leaderboard":
-      return { title: "Leaderboard", groups: [[periodChoices(shown.period), { kind: "lines", lines: renderEveryoneBoard(shown.board, shown.period) }]] };
+      return { title: "Leaderboard", groups: leaderboardGroups(shown) };
     case "book":
       return { title: "Book", groups: bookGroups(shown) };
     case "skillTree":
@@ -111,6 +117,11 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
     case "admin":
       return { title: "Admin", groups: adminGroups(shown) };
   }
+}
+
+function leaderboardGroups({ period, board, groups, myGroup }: Extract<ShownTab, { tab: "leaderboard" }>): HomeLine[][] {
+  const [first = [], ...rest] = renderBoards(groups, myGroup, board, period).map(({ lines }) => lines);
+  return [[periodChoices(period), { kind: "lines", lines: first }], ...rest.map((lines): HomeLine[] => [{ kind: "lines", lines }])];
 }
 
 type ProfileFacts = Omit<Extract<ShownTab, { tab: "profile" }>, "tab">;
@@ -276,12 +287,18 @@ export function whyNotOf({ state, row, requires, skillPoints, coins }: Perk & { 
   }
 }
 
-function settingsGroups({ onTheBoards, progress, messages, achievements, channelPicked }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
+function settingsGroups({ onTheBoards, progress, messages, achievements, channelPicked, groups }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
   const leaderboard = onTheBoards === null ? [] : [leaderboardSwitch(onTheBoards)];
+  const primaryGroup = groups === null ? [] : [[primaryGroupSetting(groups)]];
   const copy = settingCopyOf(achievements, channelPicked);
   const progression = progress === null ? [] : [[setting(copy, progress, "muteNotices"), setting(copy, progress, "dms")]];
   const sent = messages === null ? [] : [whatISendYouOf(messages)];
-  return [...leaderboard, ...progression, ...sent];
+  return [...leaderboard, ...primaryGroup, ...progression, ...sent];
+}
+
+function primaryGroupSetting({ primary, groups }: GroupChoice): HomeLine {
+  if (groups.length === 1) return { kind: "text", text: countsFor(primary) };
+  return { kind: "pick-group", text: pickQuestion, groups, picked: primary.group };
 }
 
 function whatISendYouOf(messages: MessageSetting[]): HomeLine[] {
@@ -344,10 +361,23 @@ function changeOf(key: keyof NotificationSwitches, value: boolean): Partial<Noti
   return { [key]: value };
 }
 
-function adminGroups({ announcementChannel, achievements }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
+function adminGroups({ announcementChannel, achievements, groupMode }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
   const what = celebrated(achievements);
   const channelLines = announcementChannel === null ? noChannelLines(what) : announcementChannelLines(what, announcementChannel);
-  return [channelLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+  const groupModeLines = groupMode === null ? [] : [groupModeLinesOf(groupMode)];
+  return [channelLines, ...groupModeLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+}
+
+function groupModeLinesOf({ mode, groups, allowlist }: GroupModeFacts): HomeLine[] {
+  const modes: HomeLine = {
+    kind: "choices",
+    choices: [
+      { label: "Every group", command: { type: "setGroupMode", mode: "all" }, selected: mode === "all" },
+      { label: "Only these groups", command: { type: "setGroupMode", mode: "allowlist" }, selected: mode === "allowlist" },
+    ],
+  };
+  const picker: HomeLine[] = mode === "allowlist" ? [{ kind: "pick-groups", text: "Pick the groups that count.", groups, picked: allowlist }] : [];
+  return [{ kind: "text", text: bold("Groups that count") }, modes, ...picker];
 }
 
 function noChannelLines(what: string): HomeLine[] {

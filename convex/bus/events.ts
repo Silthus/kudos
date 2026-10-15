@@ -1,6 +1,8 @@
 import { v, type Infer } from "convex/values";
 import { ladderValidator, tierValidator } from "../achievements/ladders";
 import { awardIdValidator } from "../engine/awards";
+import { attributedAwardValidator, groupOrNoneValidator } from "../groups/attributedAward";
+import { primaryGroupCauseValidator } from "../groups/cause";
 import { annotationsValidator, messageRefValidator } from "../engine/messageEvent";
 import { perkValidator } from "../progression/tree";
 import { questIdValidator } from "../quests/pool";
@@ -151,6 +153,33 @@ export type QuestFinishedEvent = Infer<typeof questFinishedEventValidator>;
 
 export type QuestOpenedEvent = Infer<typeof questOpenedEventValidator>;
 
+export const primaryGroupChangedEventValidator = v.object({
+  type: v.literal("primaryGroupChanged"),
+  workspace: v.string(),
+  member: v.id("members"),
+  from: v.union(v.id("userGroups"), v.null()),
+  to: v.union(v.id("userGroups"), v.null()),
+  cause: primaryGroupCauseValidator,
+  at: v.number(),
+});
+
+export type PrimaryGroupChangedEvent = Infer<typeof primaryGroupChangedEventValidator>;
+
+const attributedFields = {
+  workspace: v.string(),
+  message: messageRefValidator,
+  giver: v.id("members"),
+  group: groupOrNoneValidator,
+  kudos: v.number(),
+  day: v.string(),
+  at: v.number(),
+  awards: v.array(attributedAwardValidator),
+};
+
+export const awardsAttributedEventValidator = v.object({ type: v.literal("awardsAttributed"), ...attributedFields });
+
+export type AwardsAttributedEvent = Infer<typeof awardsAttributedEventValidator>;
+
 export const journeyStepActivatedEventValidator = v.object({
   type: v.literal("journeyStepActivated"),
   workspace: v.string(),
@@ -178,7 +207,9 @@ export type DomainEvent =
   | AchievementEarnedEvent
   | PerkBoughtEvent
   | MemberLeftEvent
-  | MemberRejoinedEvent;
+  | MemberRejoinedEvent
+  | PrimaryGroupChangedEvent
+  | AwardsAttributedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];

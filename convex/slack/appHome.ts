@@ -4,13 +4,16 @@ import { internalMutation, type ActionCtx, type MutationCtx } from "../_generate
 import { observedAction } from "../analytics/boundary";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import type { HomeFacts } from "../engine/home";
+import type { Command } from "../commands/commands";
 import { renderHome, type Choice, type HomeLine, type HomeView } from "../feedback/home";
+import type { ShownHome } from "../feedback/homes";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { lookup } from "../workspace/directory";
 import { buttonOf, mrkdwn, plainText, urlButtonOf } from "./blocks";
 import { encodeHomeAction } from "./interactivity";
 import { attemptArgs, failedAttempt, sendOnce, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser, refreshUser } from "./directory";
+import { groupOptionsOf, groupSelectOf, optionListsOf } from "./groupPicker";
 
 export type HomeOpened = { type: "app_home_opened"; user: string; tab: "home" | "messages" };
 
@@ -76,7 +79,15 @@ async function desiredHomeOf(ctx: ActionCtx, home: Home): Promise<{ kind: "view"
   if (facts.kind === "unavailable") return facts;
   const frontDoor = await ctx.runQuery(internal.website.link.frontDoorLinksOf, { workspace: home.workspace, user: home.user });
   const shown = await ctx.runMutation(internal.feedback.homes.shownHomeOf, { workspace: home.workspace, user: home.user, frontDoor: frontDoor !== null });
-  return { kind: "view", view: homeView(renderHome(facts, shown, frontDoor)) };
+  return { kind: "view", view: homeView(renderHome(facts, await withGroupBoards(ctx, home, shown), frontDoor)) };
+}
+
+async function withGroupBoards(ctx: ActionCtx, { workspace, user }: Home, home: ShownHome | null): Promise<ShownHome | null> {
+  if (home?.shown.tab !== "leaderboard") return home;
+  const viewer = { workspace, viewer: user, period: home.shown.period };
+  const groups = await ctx.runQuery(internal.leaderboard.groupBoards.groupsBoardOf, viewer);
+  const myGroup = await ctx.runQuery(internal.leaderboard.myGroupBoard.myGroupBoardViewOf, viewer);
+  return { ...home, shown: { ...home.shown, groups, myGroup } };
 }
 
 async function changedWhileSent(ctx: ActionCtx, { workspace, user }: Home, sent: SlackHomeView) {
@@ -104,6 +115,8 @@ function homeView({ tabBar, title, groups }: HomeView) {
 
 const divider = { type: "divider" };
 
+const settingsPick = JSON.stringify({ type: "pickPrimaryGroup", surface: "settings" });
+
 function blockOf(line: HomeLine) {
   if (line.kind === "fields") return { type: "section", fields: line.fields.map(mrkdwn) };
   if (line.kind === "choices") return buttonsOf(line.choices);
@@ -112,6 +125,8 @@ function blockOf(line: HomeLine) {
   if (line.kind === "action") return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
   if (line.kind === "pick-channel") return { type: "section", text: mrkdwn(line.text), accessory: channelPickerOf(line) };
   if (line.kind === "pick") return { type: "section", text: mrkdwn(line.text), accessory: pickerOf(line) };
+  if (line.kind === "pick-group") return { type: "section", text: mrkdwn(line.text), accessory: groupSelectOf(settingsPick, line.groups, line.picked) };
+  if (line.kind === "pick-groups") return { type: "section", text: mrkdwn(line.text), accessory: groupPickerOf(line) };
   if (line.kind === "link") return { type: "section", text: mrkdwn(`<${line.url}|${line.label}>`) };
   if (line.kind === "links") return { type: "actions", elements: line.links.map(linkButtonOf) };
   return { type: "section", text: mrkdwn(line.text) };
@@ -133,4 +148,16 @@ function pickerOf({ id, placeholder, options }: Extract<HomeLine, { kind: "pick"
 
 function channelPickerOf({ picks, picked }: Extract<HomeLine, { kind: "pick-channel" }>) {
   return { type: "channels_select", action_id: picks, placeholder: plainText("Pick a channel"), ...(picked !== null && { initial_channel: picked }) };
+}
+
+function groupPickerOf({ groups, picked }: Extract<HomeLine, { kind: "pick-groups" }>) {
+  const options = groupOptionsOf(groups);
+  const initial = options.filter(({ value }) => picked.includes(value));
+  return {
+    type: "multi_static_select",
+    action_id: "setGroupMode" satisfies Command["type"],
+    placeholder: plainText("Pick groups"),
+    ...optionListsOf(options),
+    ...(initial.length > 0 && { initial_options: initial }),
+  };
 }

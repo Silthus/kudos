@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { withholdingWords } from "../analytics/exceptions";
 import { commandValidator, runCommand } from "../commands/commands";
+import { welcomePickOf } from "../feedback/welcome";
 import { messageDeletedValidator, messageEventValidator } from "../engine/messageEvent";
 import { republish } from "../feedback/homes";
 import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
@@ -53,9 +54,10 @@ export const receiveHomeClick = internalMutation({
     user: v.string(),
     commands: v.array(commandValidator),
     conversation: v.optional(v.string()),
+    message: v.optional(v.string()),
     ephemeral: v.optional(v.object({ threadRoot: v.optional(v.string()) })),
   },
-  handler: async (ctx, { user, commands, conversation, ephemeral, ...receipt }) => {
+  handler: async (ctx, { user, commands, conversation, message, ephemeral, ...receipt }) => {
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
     const person = await lookup(ctx, receipt.workspace, user);
@@ -65,6 +67,10 @@ export const receiveHomeClick = internalMutation({
       if (outcome !== null && conversation !== undefined) {
         const answeredIn = ephemeral === undefined ? { conversation } : { conversation: user, beside: { conversation, ...ephemeral } };
         await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, ...answeredIn, outcome });
+      }
+      if (command.type === "pickPrimaryGroup" && command.surface === "welcome" && conversation !== undefined && message !== undefined) {
+        const pick = await welcomePickOf(ctx, person.member, command.group);
+        if (pick !== null) await ctx.scheduler.runAfter(0, internal.slack.welcome.updateWelcome, { workspace: receipt.workspace, user, conversation, message, pick });
       }
     }
     await republish(ctx, person.member);
