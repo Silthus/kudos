@@ -167,6 +167,8 @@ const memberWithTheInventory: MemberProfile = {
 
 const memberWithCustomEmoji: MemberProfile = { ...memberWithTheInventory, inventory: inventoryFixtures.withCustomEmoji };
 
+const memberShortOfCoins: MemberProfile = { ...memberWithTheInventory, coins: 40 };
+
 const memberWithCoinsBeforeTheStore: MemberProfile = { ...memberWithCoinsOpened, coins: 40 };
 
 const memberAcrossTheSheet: MemberProfile = {
@@ -260,6 +262,7 @@ export const shellFixtures = {
   memberWithCoinsOpened,
   memberWithTheInventory,
   memberWithCustomEmoji,
+  memberShortOfCoins,
   memberWithCoinsBeforeTheStore,
   memberWithNothingShipped,
   memberWithEveryNavState,
@@ -315,6 +318,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-crossing-into-level-6": shellFixtures.memberCrossingIntoLevel6,
   "member-with-the-inventory": shellFixtures.memberWithTheInventory,
   "member-with-custom-emoji": shellFixtures.memberWithCustomEmoji,
+  "member-short-of-coins": shellFixtures.memberShortOfCoins,
   error: shellFixtures.error,
 };
 
