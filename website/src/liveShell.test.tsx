@@ -253,7 +253,7 @@ describe("WS111: the home's rail reads through the live shell", () => {
     return [...subscriptions].filter(({ query }) => query === name).map(({ args }) => args);
   }
 
-  it("subscribes to this week's board and its group boards once while the Leaderboard is open, and adds no second getQuests", () => {
+  it("subscribes to this week's board once while the Leaderboard is open, and adds no second getQuests", () => {
     profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelOpen);
     boardRead.mockReturnValue(undefined);
     renderLiveSite();
@@ -264,6 +264,15 @@ describe("WS111: the home's rail reads through the live shell", () => {
     expect(within(screen.getByRole("main")).getByRole("region", { name: "Where you stand" })).toHaveAttribute("aria-busy", "true");
     expect(subscriptionsTo("website/leaderboard:getLeaderboard")).toEqual([{ period: "week" }]);
     expect(subscriptionsTo("website/quests:getQuests")).toEqual([{}]);
+    expect(subscriptionsTo("website/groupBoards:getGroupBoards")).toEqual([]);
+  });
+
+  it("WS344: adds one subscription to this week's group boards while groups show to the member", () => {
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryPanelOpen, groups: true });
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+
+    expect(subscriptionsTo("website/leaderboard:getLeaderboard")).toEqual([{ period: "week" }]);
     expect(subscriptionsTo("website/groupBoards:getGroupBoards")).toEqual([{ period: "week" }]);
   });
 

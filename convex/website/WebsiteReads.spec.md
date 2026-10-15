@@ -304,7 +304,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   entrances: query getProfileCard
   kinds: read
   checklist: scoped-reads declared as website reads pass one guard
-  checklist: redaction dismissed: the answer adds only the name of the member's own primary group, which the card shows to every teammate; no group ID or other member
+  checklist: redaction dismissed: the answer adds only the name of the signed-in member's own primary group, gated by their own groups decision, as GB32 puts it on their card; no group ID or other member
 - the website's peer line is the board's: getLeaderboard's peer is the peer line rankedBoardOf gives the signed-in member, the percent and their primary group, and null while groups don't show to them, so the website and Slack's board name the same peer line.
   over: getLeaderboard for a member ahead of most of their group this week with groups on, and the same member with groups off
   via: WS344 GB16: getLeaderboard carries the Everyone board's peer line

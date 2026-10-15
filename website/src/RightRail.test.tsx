@@ -47,8 +47,10 @@ function showingBoard(answer: BoardAnswer | undefined, member: MemberProfile = e
   return railOf(member, { board: (period) => (period === undefined ? undefined : answer) });
 }
 
+const inAGroup = { ...everyPanelOpen, groups: true };
+
 function standingOn(board: Leaderboard) {
-  railOf(everyPanelOpen, { board: fixedLeaderboard(board) });
+  railOf(inAGroup, { board: fixedLeaderboard(board) });
   return panel("Where you stand");
 }
 
@@ -299,11 +301,19 @@ describe("WS110: Where you stand", () => {
     expect(within(standing).getByRole("link", { name: "Open the leaderboard" })).toBeInTheDocument();
   });
 
-  it("asks the board for this week, with its group boards, only while the Leaderboard is open", () => {
+  it("asks the board for this week only while the Leaderboard is open", () => {
     const asked = vi.fn<BoardRead>(() => undefined);
     const { showVisitor } = railOf(shellFixtures.memberWithEveryPanelLocked, { board: asked });
     expect(asked.mock.calls.map(([period]) => period).filter((period) => period !== undefined)).toEqual([]);
     showVisitor(everyPanelOpen);
+    expect(asked).toHaveBeenLastCalledWith("week", false);
+  });
+
+  it("WS344: asks for the group boards with this week's board only while groups show to the member", () => {
+    const asked = vi.fn<BoardRead>(() => undefined);
+    const { showVisitor } = railOf(everyPanelOpen, { board: asked });
+    expect(asked).toHaveBeenLastCalledWith("week", false);
+    showVisitor(inAGroup);
     expect(asked).toHaveBeenLastCalledWith("week", true);
   });
 });
