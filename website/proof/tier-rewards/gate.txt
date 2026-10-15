@@ -1,15 +1,10 @@
+# pnpm gate under fleet heavy on cf0720a1 (origin/main 0c260af5 and later merged at 17553908)
+$ pnpm typecheck && pnpm test && pnpm coherence
 $ tsc --noEmit && tsc --noEmit -p website
-⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
- FAIL  |convex| convex/quests/newWeek.test.ts > P80: the hourly sweep stays within Convex's limits and draws a week once > for 105 members who opened Quests and 5 who didn't, each deciding quests for themselves, each sweep mutation schedules at most 100 draws within Convex's transaction limits, and a second run draws nothing new
-Error: Test timed out in 60000ms.
- Test Files  1 failed | 179 passed (180)
-      Tests  1 failed | 3460 passed (3461)
-gate exit 1
-
-## Rerun of the one timed-out test (quests/newWeek, untouched by this diff)
- Test Files  1 passed (1)
-      Tests  18 passed (18)
-
-## pnpm coherence on the same tree
-0 rejected names, 0 unknown nouns (774 files), 17 in records
-coherence exit 0
+$ vitest run
+ Test Files  210 passed (210)
+      Tests  3934 passed (3934)
+$ coherence spec --check && coherence lexicon --check
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-15T15:47:35.644Z (1010 runs)
+0 rejected names, 0 unknown nouns (886 files), 37 in records
+gate exit 0
