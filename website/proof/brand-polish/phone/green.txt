@@ -8,3 +8,5 @@ Error: Test timed out in 5000ms.
 HomePage.test.tsx rerun alone (one 5 s timeout above while the box ran five gates):
  Test Files  1 passed (1)
       Tests  34 passed (34)
+ Test Files  1 passed (1)
+      Tests  3 passed (3)

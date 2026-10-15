@@ -23,3 +23,11 @@ Chromium through the T3 preview, the `member-with-every-feature-open` fixture bu
 | Book, dark | [before](before-book-390-dark.png) | [after](after-book-390-dark.png) |
 | Podium with a long name, light | | [after](after-podium-long-name-390-light.png) (the name set in the DOM) |
 | Podium with a long name, dark | | [after](after-podium-long-name-390-dark.png) |
+
+## Review
+
+[review-gpt-6.1-sol.md](review-gpt-6.1-sol.md): GPT-6.1 Sol, round 1, no high findings. The one low finding, that the podium test's title claimed an ellipsis it can't see in jsdom, is **fixed**: the test is titled as the DOM check it is, and the browser measurement above carries the ellipsis.
+
+## Gate
+
+[gate.txt](gate.txt): `fleet heavy -- pnpm gate` green on this tree.

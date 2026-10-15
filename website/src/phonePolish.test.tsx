@@ -39,11 +39,11 @@ describe("#434 3: the home on a phone keeps one alignment", () => {
   });
 });
 
-describe("#434 4: a long name on the podium truncates with an ellipsis and keeps its full name", () => {
+describe("#434 4: a long name on the podium carries the truncation rule and keeps its full name", () => {
   const longName = "Maximiliana Featherstonehaugh-Wojciechowska";
   const board = { ...leaderboardFixtures.midBoard, rows: leaderboardFixtures.midBoard.rows.map((row, i) => (i === 0 ? { ...row, name: longName } : row)) };
 
-  it("marks the name to truncate, titles it in full, and reads it in full", () => {
+  it("carries the truncate class, a title with the full name and the full name as text; the ellipsis itself is measured in the browser (proof README)", () => {
     visit("/leaderboard");
     renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(board));
     const podium = within(screen.getByRole("main")).getByRole("list", { name: "Top three" });
