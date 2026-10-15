@@ -5,6 +5,7 @@ import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures, type MemberProfile } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
+import { contrast, contrastOnTint, type Mode } from "./test/themeContrast";
 
 const { memberWithTheInventory, memberWithCoinsBeforeTheStore, memberWithTheBoard } = shellFixtures;
 
@@ -132,5 +133,33 @@ describe("WS322: how it counts names coins once they show", () => {
 
   it("names no coins while they're hidden", () => {
     expect(howItCounts(memberWithTheBoard)).toHaveTextContent("Only kudos given count. Kudos received, XP, levels and achievements never rank anyone.");
+  });
+});
+
+describe("WS339 V24: an equipped tile's slot mark and the coin glyph stay readable", () => {
+  function tokenOf(element: Element, prefix: "bg" | "text") {
+    const tokens = [...element.classList].flatMap((name) => new RegExp(`^${prefix}-([a-z-]+)$`).exec(name)?.[1] ?? []).filter((token) => !/^(xs|sm|lg|\[)/.test(token));
+    expect(tokens, `one ${prefix} colour on ${element.tagName}`).toHaveLength(1);
+    return tokens[0]!;
+  }
+
+  function equippedTile() {
+    renderApp(memberWithTheInventory);
+    return within(within(kudosEmoji()).getByRole("list", { name: "Yours" })).getAllByRole("listitem")[0]!;
+  }
+
+  describe.each<Mode>(["light", "dark"])("in %s mode", (mode) => {
+    it("draws the check mark at 3:1 and the slot number at 4.5:1 on the equipped tile", () => {
+      const tile = equippedTile();
+      const mark = tile.querySelector("[data-slot-mark]")!;
+      const surface = tokenOf(tile, "bg");
+      expect(contrastOnTint(mode, tokenOf(mark.querySelector("svg")!, "text"), surface, { backdrop: "card" })).toBeGreaterThanOrEqual(3);
+      expect(contrastOnTint(mode, tokenOf(mark, "text"), surface, { backdrop: "card" })).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it("draws the coin glyph at 3:1 on the panel", () => {
+      renderApp(memberWithTheInventory);
+      expect(contrast(mode, tokenOf(within(inventory()).getAllByTestId("coin-glyph")[0]!, "text"), "card")).toBeGreaterThanOrEqual(3);
+    });
   });
 });
