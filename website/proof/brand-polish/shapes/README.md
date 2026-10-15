@@ -16,3 +16,9 @@ Chromium through the T3 preview, the `member-with-every-feature-open` fixture bu
 | Home, 1280, light | [before](before-home-1280-light.png) | [after](after-home-1280-light.png) |
 | Home, 390, light | [before](before-home-390-light.png) (audit, Inter) | [after](after-home-390-light.png) |
 | Quests, 1280, dark | [before](before-quests-1280-dark.png) (audit, Inter) | [after](after-quests-1280-dark.png) |
+
+## Review
+
+[review-gpt-6.1-sol.md](review-gpt-6.1-sol.md): GPT-6.1 Sol, round 1, no high findings.
+
+1. The "every panel and card" test skipped the profile card's gradient frame (`from-card`, not `bg-card`) and accepted any three matches. **Fixed**: the test now includes `.from-card` frames, asserts the public card's frame is among them, and expects at least four. Ready crates and the Journey's step crates stay out on purpose: `website/src/crates/` is #452's, and its `Crate.tsx` frame keeps `rounded-xl` until that lane lands.

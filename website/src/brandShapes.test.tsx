@@ -14,18 +14,20 @@ function banner() {
   return screen.getByRole("banner");
 }
 
-function cardsOnThePage() {
-  return [...document.querySelectorAll("main section.bg-card, main article.bg-card, main div.bg-card")];
+function framesOnThePage() {
+  return [...document.querySelectorAll("main section.bg-card, main article.bg-card, main div.bg-card, main .from-card")];
 }
 
 describe("#453: cards and chips take posthog.com's corners", () => {
-  it("frames every panel and card at Quill's card radius, never rounder", () => {
+  it("frames every panel and card at Quill's card radius, never rounder, the profile card's gradient frame included", () => {
     renderApp(memberWithEveryFeatureOpen);
-    const cards = cardsOnThePage();
-    expect(cards.length).toBeGreaterThanOrEqual(3);
-    for (const card of cards) {
-      expect(card).toHaveClass("rounded-lg");
-      expect(card).not.toHaveClass("rounded-xl");
+    const frames = framesOnThePage();
+    const publicCard = within(screen.getByRole("region", { name: "What teammates see" })).getByText("Sam Example").closest(".from-card")!;
+    expect(frames).toContain(publicCard);
+    expect(frames.length).toBeGreaterThanOrEqual(4);
+    for (const frame of frames) {
+      expect(frame).toHaveClass("rounded-lg");
+      expect(frame).not.toHaveClass("rounded-xl");
     }
   });
 
