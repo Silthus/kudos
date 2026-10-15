@@ -21,3 +21,14 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: commit-ordered-effects dismissed: rendering issues no external effect
   checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
   checklist: declared-target-coverage dismissed: there is no fan-out; one message renders in one place
+- a link lands on a crate and never opens it: A link with `?crate={feature}` on that feature's page, or `?crate=journey` on the root, scrolls the ready crate into view and focuses its `Open` once the page's answer lands, and never opens the crate, so the member chooses the moment of the reveal; an unknown crate, another page's crate or one that isn't waiting leaves the plain page.
+  over: useLinkTargetOnceLanded in website/src/linkTarget.ts, run by App over the ready band of each feature page and the home's Journey panel, for a ready crate, a Journey step's crate, an unknown crate and another page's crate
+  via: #435: ?crate={feature} lands on the page's ready crate
+  refuted: pressed the crate's Open on arrival instead of focusing it -> the four ready pages' and the Journey crate's landings found an open command sent (2026-10-15)
+  because: opening a crate is a write the member owns, and its reveal is their moment (#230, D4); a link that opened it would spend the moment before they saw the page, so a link only takes them to the crate (#435)
+  kinds: output
+  checklist: destination-confinement dismissed: the website sends nothing on arrival; the crate opens only when the member presses Open
+  checklist: redaction dismissed: the target names a feature or the Journey, never a member
+  checklist: commit-ordered-effects dismissed: arriving issues no command and no external effect
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
+  checklist: declared-target-coverage dismissed: there is no fan-out; one page lands on one crate
