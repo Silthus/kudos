@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { act, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { shellFixtures, type LoadoutReply } from "./shell";
+import { shellFixtures, type LoadoutReply, type MemberProfile, type Slot } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 import { contrast, websiteDirectory, type Mode } from "./test/themeContrast";
@@ -41,6 +41,16 @@ function gear() {
 
 function status() {
   return within(gear()).getByRole("status");
+}
+
+function withSunflowerIn(chosen: Slot): MemberProfile {
+  const inventory = memberWithTheInventory.inventory!;
+  return { ...memberWithTheInventory, inventory: { ...inventory, slots: inventory.slots.map((each) => (each.slot === chosen ? { ...each, item: "kudos-emoji-sunflower" } : each)) } };
+}
+
+function withEmptySlot(chosen: Slot): MemberProfile {
+  const inventory = memberWithTheInventory.inventory!;
+  return { ...memberWithTheInventory, inventory: { ...inventory, slots: inventory.slots.map((each) => (each.slot === chosen ? { ...each, item: null } : each)) } };
 }
 
 function deferred() {
@@ -136,15 +146,31 @@ describe("WS341 E101–E107: the centre-stage picker", () => {
     expect(status()).toHaveTextContent("Sunflower went into Emoji 3.");
   });
 
-  it("drives by keyboard: Enter opens a slot, Enter picks, and Take off empties it", async () => {
-    const { user, actions } = renderApp(memberWithTheInventory, undefined, { takeOff: async (chosen) => ({ kind: "takenOff", slot: chosen }) });
+  it("drives by keyboard: Enter opens a slot and Enter on a tile equips it, which the next read shows in the slot", async () => {
+    const { user, actions, showVisitor } = renderApp(memberWithTheInventory, undefined, { equip: async (item, chosen) => ({ kind: "equipped", item, slot: chosen }) });
+
+    slot(/^Emoji 3/).focus();
+    await user.keyboard("{Enter}");
+    within(picker()).getByRole("button", { name: "Equip Sunflower in Emoji 3" }).focus();
+    await user.keyboard("{Enter}");
+    showVisitor(withSunflowerIn("emoji-3"));
+
+    expect(actions.equip).toHaveBeenCalledExactlyOnceWith("kudos-emoji-sunflower", "emoji-3");
+    expect(slot(/^Emoji 3/)).toHaveAccessibleName("Emoji 3: Sunflower. Change it");
+    expect(slot(/^Emoji 3/)).toHaveFocus();
+  });
+
+  it("drives by keyboard: Enter on Take off empties the slot, which the next read shows", async () => {
+    const { user, actions, showVisitor } = renderApp(memberWithTheInventory, undefined, { takeOff: async (chosen) => ({ kind: "takenOff", slot: chosen }) });
 
     slot(/^Emoji 2/).focus();
     await user.keyboard("{Enter}");
     within(picker()).getByRole("button", { name: "Take off" }).focus();
     await user.keyboard("{Enter}");
+    showVisitor(withEmptySlot("emoji-2"));
 
     expect(actions.takeOff).toHaveBeenCalledExactlyOnceWith("emoji-2");
+    expect(slot(/^Emoji 2/)).toHaveAccessibleName("Emoji 2: empty. Change it");
     expect(slot(/^Emoji 2/)).toHaveFocus();
     expect(status()).toHaveTextContent("Rocket came off Emoji 2.");
   });
@@ -200,6 +226,34 @@ describe("WS341 E101–E107: the centre-stage picker", () => {
     await act(async () => pending.answer({ kind: "equipped", item: "kudos-emoji-sunflower", slot: "emoji-3" }));
 
     expect(equip).toHaveBeenCalledOnce();
+  });
+
+  it("leaves a slot opened while an equip was on its way open, with focus where the member put it", async () => {
+    const pending = deferred();
+    const { user } = renderApp(memberWithTheInventory, undefined, { equip: () => pending.reply });
+
+    await user.click(slot(/^Emoji 3/));
+    await user.click(within(picker()).getByRole("button", { name: "Equip Sunflower in Emoji 3" }));
+    await user.click(slot(/^Emoji 1/));
+    await act(async () => pending.answer({ kind: "equipped", item: "kudos-emoji-sunflower", slot: "emoji-3" }));
+
+    expect(picker()).toHaveAccessibleName("Choose for Emoji 1");
+    expect(within(picker()).getByRole("button", { name: "Keep Hedgehog in Emoji 1" })).toHaveFocus();
+    expect(status()).toHaveTextContent("Sunflower went into Emoji 3.");
+  });
+
+  it("sends one command across both sides while one is on its way", async () => {
+    const pending = deferred();
+    const takeOff = vi.fn(() => pending.reply);
+    const { user } = renderApp(memberWithTheInventory, undefined, { takeOff });
+
+    await user.click(slot(/^Emoji 2/));
+    await user.click(within(picker()).getByRole("button", { name: "Take off" }));
+    await user.click(within(character()).getByRole("button", { name: "Inventory" }));
+    await user.click(within(inventory()).getByRole("button", { name: "Take off Hedgehog, in Emoji 1" }));
+    await act(async () => pending.answer({ kind: "takenOff", slot: "emoji-2" }));
+
+    expect(takeOff).toHaveBeenCalledExactlyOnceWith("emoji-2");
   });
 });
 
@@ -276,6 +330,20 @@ describe("WS341 E117–E119 E126: equipping in place on the Inventory side", () 
     expect(within(inventory()).queryByRole("group", { name: "Put Sunflower in" })).not.toBeInTheDocument();
     expect(status()).toHaveTextContent("Sunflower went into Emoji 2, replacing Rocket.");
     expect(within(yours()).getByRole("button", { name: "Wear Sunflower" })).toHaveFocus();
+  });
+
+  it("keeps a slot choice opened while an equip was on its way", async () => {
+    const pending = deferred();
+    const { user } = await onTheInventorySide({ equip: () => pending.reply });
+
+    await user.click(within(yours()).getByRole("button", { name: "Wear Sunflower" }));
+    await user.click(within(inventory()).getByRole("button", { name: "Emoji 3, empty" }));
+    await user.click(within(inventory()).getByRole("button", { name: "Cancel" }));
+    await user.click(within(yours()).getByRole("button", { name: "Wear Sunflower" }));
+    await act(async () => pending.answer({ kind: "equipped", item: "kudos-emoji-sunflower", slot: "emoji-3" }));
+
+    expect(within(inventory()).getByRole("group", { name: "Put Sunflower in" })).toBeInTheDocument();
+    expect(within(inventory()).getByRole("button", { name: "Emoji 3, empty" })).toHaveFocus();
   });
 
   it("cancels the slot choice by Cancel or Escape without a command, focus back on the tile", async () => {

@@ -8,7 +8,8 @@ The proof for WS341's Character side and in-place equipping. The screenshots com
 - [`green-convex.txt`](green-convex.txt): the same file after the change, 16 of 16 passing. It covers the guard, the gate before D17 with no launch recorded, the answers, repeat safety, App Home's republish, and the equal-to-Slack comparison.
 - [`refutation-no-gate.txt`](refutation-no-gate.txt): the gate replaced by `true`. With quests on and no Journey launch, or achievements on and no Book launch, equip answered `equipped`, and 2 tests failed.
 - [`red-website.txt`](red-website.txt): `website/src/characterPanel.test.tsx` on `main`'s tree, 27 of 27 failing.
-- [`green-website.txt`](green-website.txt): that file and #283's `inventory.test.tsx` after the change, 47 of 47 passing.
+- [`red-review-round-1.txt`](red-review-round-1.txt): the review's race findings as tests before their fix, 3 failing: a late answer closing a newer picker or slot choice, and a second command sent after switching sides.
+- [`green-website.txt`](green-website.txt): that file and #283's `inventory.test.tsx` after the review fixes, 51 of 51 passing.
 
 ## Screenshots
 

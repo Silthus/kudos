@@ -3,11 +3,11 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { InventoryItem, ItemSource, MemberInventory, MemberProfile, Slot } from "../shell";
 import { CoinGlyph } from "../skills/glyphs";
 import { coinsText } from "../skills/perkWords";
-import { cameOff, itemIn, ItemArt, ownedIn, slotName, useLoadoutCommand, wentInto, type LoadoutActions, type Owned } from "./gear";
+import { cameOff, itemIn, ItemArt, ownedIn, slotName, wentInto, type LoadoutActions, type Owned, type SendLoadout } from "./gear";
 
-type InventorySideProps = { member: MemberProfile; inventory: MemberInventory; loadout: LoadoutActions };
+type InventorySideProps = { member: MemberProfile; inventory: MemberInventory; loadout: LoadoutActions; send: SendLoadout };
 
-export function InventorySide({ member, inventory, loadout }: InventorySideProps) {
+export function InventorySide({ member, inventory, loadout, send }: InventorySideProps) {
   const [line, setLine] = useState<string>();
   return (
     <div className="flex flex-col gap-4">
@@ -24,7 +24,7 @@ export function InventorySide({ member, inventory, loadout }: InventorySideProps
         </p>
         {member.coins !== null && <Balance coins={member.coins} />}
       </div>
-      <KudosEmojiSection inventory={inventory} kudosEmoji={member.kudosEmoji} loadout={loadout} onSaid={setLine} />
+      <KudosEmojiSection inventory={inventory} kudosEmoji={member.kudosEmoji} loadout={loadout} send={send} onSaid={setLine} />
     </div>
   );
 }
@@ -38,17 +38,18 @@ function Balance({ coins }: { coins: number }) {
   );
 }
 
-type KudosEmojiSectionProps = { inventory: MemberInventory; kudosEmoji: string; loadout: LoadoutActions; onSaid: (line: string) => void };
+type KudosEmojiSectionProps = { inventory: MemberInventory; kudosEmoji: string; loadout: LoadoutActions; send: SendLoadout; onSaid: (line: string) => void };
 
-function KudosEmojiSection({ inventory, kudosEmoji, loadout, onSaid }: KudosEmojiSectionProps) {
+function KudosEmojiSection({ inventory, kudosEmoji, loadout, send, onSaid }: KudosEmojiSectionProps) {
   const [choosingFor, setChoosingFor] = useState<InventoryItem | null>(null);
   const tiles = useRef(new Map<string, HTMLButtonElement>());
-  const send = useLoadoutCommand();
+  const choice = useRef(0);
   const yours = ownedIn(inventory);
   const notYet = inventory.catalogue.filter(({ item }) => !yours.some(({ entry }) => entry.item === item));
   const equipped = inventory.slots.filter(({ item }) => item !== null).length;
 
   const stopChoosing = (item: InventoryItem) => {
+    choice.current += 1;
     tiles.current.get(item.item)?.focus();
     setChoosingFor(null);
   };
@@ -60,12 +61,16 @@ function KudosEmojiSection({ inventory, kudosEmoji, loadout, onSaid }: KudosEmoj
   };
 
   const press = ({ entry, slot }: Owned) => {
-    if (slot === null) return setChoosingFor(entry);
+    if (slot === null) {
+      choice.current += 1;
+      return setChoosingFor(entry);
+    }
     void change(() => loadout.takeOff(slot), cameOff(entry, slot));
   };
 
   const putIn = async (item: InventoryItem, slot: Slot) => {
-    if (await change(() => loadout.equip(item.item, slot), wentInto(item, slot, itemIn(inventory, slot)))) stopChoosing(item);
+    const asked = choice.current;
+    if ((await change(() => loadout.equip(item.item, slot), wentInto(item, slot, itemIn(inventory, slot)))) && choice.current === asked) stopChoosing(item);
   };
 
   return (

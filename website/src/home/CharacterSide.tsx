@@ -2,39 +2,43 @@ import { IconCheck, IconEmoji } from "@posthog/icons";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { MemberFace } from "../Face";
 import type { InventoryItem, MemberInventory, MemberProfile, Slot } from "../shell";
-import { cameOff, itemIn, ItemArt, ownedIn, slotHolding, slotName, useLoadoutCommand, wentInto, type LoadoutActions, type Owned } from "./gear";
+import { cameOff, itemIn, ItemArt, ownedIn, slotHolding, slotName, wentInto, type LoadoutActions, type Owned, type SendLoadout } from "./gear";
 
 type Landed = { slot: Slot; beat: number };
 
-type CharacterSideProps = { member: MemberProfile; inventory: MemberInventory; loadout: LoadoutActions };
+type CharacterSideProps = { member: MemberProfile; inventory: MemberInventory; loadout: LoadoutActions; send: SendLoadout };
 
-export function CharacterSide({ member, inventory, loadout }: CharacterSideProps) {
+export function CharacterSide({ member, inventory, loadout, send }: CharacterSideProps) {
   const [picking, setPicking] = useState<Slot | null>(null);
   const [landed, setLanded] = useState<Landed>();
   const [line, setLine] = useState<string>();
   const [stageTurns, setStageTurns] = useState(0);
   const slotButtons = useRef(new Map<Slot, HTMLButtonElement>());
-  const send = useLoadoutCommand();
+  const choice = useRef(0);
 
   const open = (slot: Slot) => {
+    choice.current += 1;
     if (picking === null) setStageTurns((turns) => turns + 1);
     setPicking(slot);
     setLine(undefined);
   };
 
   const close = (slot: Slot, changed = false) => {
+    choice.current += 1;
     slotButtons.current.get(slot)?.focus();
     setPicking(null);
     setStageTurns((turns) => turns + 1);
-    if (changed) setLanded({ slot, beat: (landed?.beat ?? 0) + 1 });
+    if (changed) setLanded((before) => ({ slot, beat: (before?.beat ?? 0) + 1 }));
   };
 
   const change = async (slot: Slot, command: () => ReturnType<LoadoutActions["equip"]>, changedLine: string) => {
+    const asked = choice.current;
     const sent = await send(command);
     if (sent === null) return;
     if (sent.kind === "not-changed") return setLine(sent.line);
     setLine(changedLine);
-    close(slot, true);
+    if (choice.current === asked) close(slot, true);
+    else setLanded((before) => ({ slot, beat: (before?.beat ?? 0) + 1 }));
   };
 
   const equip = (slot: Slot, item: InventoryItem) => void change(slot, () => loadout.equip(item.item, slot), wentInto(item, slot, itemIn(inventory, slot)));
@@ -48,7 +52,7 @@ export function CharacterSide({ member, inventory, loadout }: CharacterSideProps
   return (
     <div className="flex flex-col gap-3" onKeyDown={closeOnEscape}>
       <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-[minmax(0,1fr)_7rem] sm:grid-rows-3">
-        <div className="col-span-3 flex min-h-64 flex-col overflow-hidden rounded-lg border bg-muted sm:col-span-1 sm:row-span-3">
+        <div className="col-span-3 flex flex-col overflow-hidden rounded-lg border bg-muted sm:col-span-1 sm:row-span-3">
           {picking === null ? (
             <Portrait key={stageTurns} member={member} inventory={inventory} turned={stageTurns > 0} />
           ) : (
@@ -80,14 +84,14 @@ export function CharacterSide({ member, inventory, loadout }: CharacterSideProps
 function Portrait({ member, inventory, turned }: { member: MemberProfile; inventory: MemberInventory; turned: boolean }) {
   const worn = inventory.slots.flatMap(({ slot }) => itemIn(inventory, slot) ?? []);
   return (
-    <div className={`flex flex-1 flex-col items-center justify-center gap-3 px-3 py-5 text-center ${turned ? "gear-stage-turn" : ""}`}>
-      <MemberFace face={member.face} className="size-24 text-lg" />
+    <div className={`flex min-h-64 flex-1 flex-col items-center justify-center gap-3 px-3 py-5 text-center ${turned ? "gear-stage-turn" : ""}`}>
+      <MemberFace face={member.face} className="size-32 text-xl" />
       <div className="flex flex-col items-center gap-1.5 leading-tight">
         <span className="hud-display text-2xl font-bold">{member.name}</span>
         {worn.length > 0 && (
           <span role="img" aria-label={`Your kudos emoji: ${worn.map(({ name }) => name).join(", ")}`} className="flex justify-center gap-1.5">
             {worn.map((item) => (
-              <ItemArt key={item.item} item={item} className="size-6 text-xl" />
+              <ItemArt key={item.item} item={item} className="size-8 text-2xl" />
             ))}
           </span>
         )}
