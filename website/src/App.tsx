@@ -97,7 +97,8 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   const takingToSlack = useSignInWhenAsked(shown, signIn);
   const page: ShellState = takingToSlack ? { kind: "loading" } : (memberShown ?? shown);
   const busy = page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined) || (onSettings && settings === undefined) || (onActivity && activityWatch === undefined);
-  useLinkTargetOnceLanded(route, page.kind === "member" && !busy);
+  const connecting = [onTheBoard || onHome ? board : undefined, onQuests || onHome ? quests : undefined, onBook ? book : undefined, onSkills ? skillTree : undefined, onSettings ? settings : undefined].some((answer) => answer?.kind === "connecting");
+  useLinkTargetOnceLanded(route, page.kind === "member" && !busy && !connecting);
   const signingIn = page.kind === "signed-out" && route.page !== "not-found";
   const readyCrates = member === undefined ? [] : readyCratesOf(member, quests);
   return (

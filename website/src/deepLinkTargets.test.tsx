@@ -4,8 +4,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import type { BoardRead } from "./boardRead";
+import type { QuestsRead, QuestsShown } from "./questsRead";
 import { shellFixtures, type MemberProfile, type MySkillTree, type ShellState } from "./shell";
-import type { SkillTreeRead } from "./skillTreeRead";
+import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
@@ -175,6 +176,55 @@ describe("#435: ?crate={feature} lands on the page's ready crate", () => {
     renderApp(shellFixtures.memberStartingTheJourney);
 
     expect(scrolled).toEqual([]);
+  });
+});
+
+describe("#435: a target waits out a connecting read", () => {
+  it("lands /skills?perk= once the tree answers after connecting", () => {
+    preferWideScreen();
+    const scrolled = watchScrolling();
+    visit("/skills?perk=circle");
+    let answer: SkillTreeShown | undefined;
+    const read: SkillTreeRead = (asking) => (asking ? answer : undefined);
+    const { showVisitor } = renderApp(withTheTree, undefined, undefined, undefined, undefined, read);
+    answer = { kind: "connecting" };
+    showVisitor({ ...withTheTree });
+    expect(scrolled).toEqual([]);
+    answer = skillTreeFixtures.withPoints;
+    showVisitor({ ...withTheTree });
+
+    expect(scrolled).toEqual([perkNode("Circle")]);
+    expect(perkNode("Circle")).toHaveFocus();
+  });
+
+  it("lands /quests?quest= once the quests answer after connecting", () => {
+    const scrolled = watchScrolling();
+    visit("/quests?quest=1");
+    let answer: QuestsShown | undefined;
+    const read: QuestsRead = (asking) => (asking ? answer : undefined);
+    const { showVisitor } = renderApp(shellFixtures.memberWithQuests, undefined, undefined, read);
+    answer = { kind: "connecting" };
+    showVisitor({ ...shellFixtures.memberWithQuests });
+    expect(scrolled).toEqual([]);
+    answer = questsFixtures.week;
+    showVisitor({ ...shellFixtures.memberWithQuests });
+
+    const goal = questsFixtures.week.slots[1]!.goal;
+    expect(within(main()).getByRole("heading", { name: goal })).toHaveFocus();
+  });
+
+  it("lands /?crate=journey once the home's reads answer after connecting", () => {
+    const scrolled = watchScrolling();
+    visit("/?crate=journey");
+    let answer: QuestsShown | undefined = { kind: "connecting" };
+    const read: QuestsRead = (asking) => (asking ? answer : undefined);
+    const { showVisitor } = renderApp(shellFixtures.memberWithQuests, undefined, undefined, read);
+    expect(scrolled).toEqual([]);
+    answer = questsFixtures.week;
+    showVisitor({ ...shellFixtures.memberWithQuests });
+
+    const step = within(within(main()).getByRole("region", { name: "Journey" })).getByRole("heading", { name: "Finish a weekly quest." }).closest("li")!;
+    expect(within(step).getByRole("button", { name: "Open" })).toHaveFocus();
   });
 });
 
