@@ -14,7 +14,7 @@ let postHog: FakePostHog;
 
 beforeEach(() => {
   vi.useFakeTimers({ now: mondayAtNine });
-  postHog = postHogDeciding().withFlags(onForEveryone("monday-post"));
+  postHog = postHogDeciding().withFlags(onForEveryone("monday-post"), onForEveryone("xp-levels"));
   vi.stubGlobal("fetch", routedFetch(postHog, new FakeSlack().fetch));
 });
 
