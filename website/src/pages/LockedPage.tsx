@@ -1,14 +1,14 @@
 import { IconLock } from "@posthog/icons";
 import { buttonVariants } from "@posthog/quill";
 import { AppLink } from "../AppLink";
-import { aboutOf } from "../features";
+import { hogOf, sentenceOf } from "../features";
 import { PageTitle } from "../PageTitle";
-import type { Feature } from "../shell";
+import type { Feature, MemberProfile } from "../shell";
 
-type LockedPageProps = { feature: Feature; name: string; level: number };
+type LockedPageProps = { feature: Feature; name: string; level: number; member: MemberProfile };
 
-export function LockedPage({ feature, name, level }: LockedPageProps) {
-  const { sentence, Hog } = aboutOf(feature);
+export function LockedPage({ feature, name, level, member }: LockedPageProps) {
+  const Hog = hogOf(feature);
   return (
     <section className="hud-panel mx-auto flex w-full max-w-3xl flex-col items-center gap-4 rounded-xl border bg-card px-4 py-10 text-center text-card-foreground md:py-14">
       <span className="relative inline-flex">
@@ -23,7 +23,7 @@ export function LockedPage({ feature, name, level }: LockedPageProps) {
         <span className="hud-label mb-3 block">{name}</span>
         <span className="block">{`Unlocks at level ${level}`}</span>
       </PageTitle>
-      <p className="max-w-md text-balance text-base">{sentence}</p>
+      <p className="max-w-md text-balance text-base">{sentenceOf(feature, member)}</p>
       <AppLink href="/" className={`${buttonVariants({ variant: "primary" })} mt-2`}>
         Back to your profile
       </AppLink>

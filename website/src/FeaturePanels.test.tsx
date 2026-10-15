@@ -92,15 +92,16 @@ describe("WS97 WS102: one panel per shipped feature, in its slot", () => {
     expect(headings).not.toContain("Still locked");
   });
 
-  it("walks the keyboard from the hero's action through the main column's panels, then the rail's quest rows, standing row and links, in reading order", async () => {
+  it("walks the keyboard from the hero's actions through the main column's panels, then the rail's quest rows, standing row and links, in reading order", async () => {
     const { user } = withTheRailsReads({ ...shellFixtures.memberWithEveryPanelOpen, chatUrl: "https://app.slack.com/client/T1" });
     within(hero()).getByRole("link", { name: /Thank someone in Slack/ }).focus();
     const path = [];
-    for (let step = 0; step < 8; step++) {
+    for (let step = 0; step < 9; step++) {
       await user.tab();
       path.push(document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent);
     }
     expect(path).toEqual([
+      "Spend 2 skill points",
       "Open the Book",
       "Open the Skill tree",
       "Thank someone and say why, 3 times.",
@@ -121,7 +122,7 @@ describe("WS97 WS102: one panel per shipped feature, in its slot", () => {
 describe("WS103: a locked panel", () => {
   it.each([
     ["Quests", 2, "Weekly quests of your own."],
-    ["Leaderboard", 3, "See where you and your group stand."],
+    ["Leaderboard", 3, "See where you stand."],
     ["Book", 4, "Achievements you earn as you thank colleagues and they thank you."],
     ["Skill tree", 5, "Perks you choose with skill points."],
   ])("shows %s's level and its one sentence, with no progress, action or game frame", (name, level, sentence) => {
@@ -134,6 +135,11 @@ describe("WS103: a locked panel", () => {
     expect(within(locked).queryByRole("button")).not.toBeInTheDocument();
     expect(within(locked).queryByRole("link")).not.toBeInTheDocument();
     expect(locked).not.toHaveClass("hud-panel");
+  });
+
+  it("names the member's group in the Leaderboard's sentence only while groups are shown to them (#417)", () => {
+    renderApp({ ...shellFixtures.memberWithEveryPanelLocked, groups: true });
+    expect(panel("Leaderboard")).toHaveTextContent("See where you and your group stand.");
   });
 
   it("shows the feature's hedgehog in silhouette under a padlock, hidden from assistive technology", () => {

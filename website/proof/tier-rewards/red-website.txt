@@ -1,0 +1,30 @@
+ ❯ |website| src/tierRewards.test.tsx (20 tests | 13 failed) 19636ms
+     × names each tier's coin reward on its ladder card, earned or not, and nothing on a tier without one 651ms
+     × gives the reward line words a screen reader reads with its tier 260ms
+     × shows each shelved tier's reward on the recently earned shelf, and says it in the entry's name 841ms
+     × is /book/earned, celebrating the newest earned tier with its medal and reward under the Book's nav entry 108ms
+     × celebrates together every tier one kudos earned, and only those 166ms
+     × names no reward for a tier whose reward isn't shown 114ms
+     × plays its reveal once per tier: the first visit is fresh, the next shows the end state 179ms
+     × is fresh again for a newer tier, keyed by its own seen key 303ms
+     × leads to the Book with See achievements, without a reload, and back to Slack in a new tab 350ms
+     × says nothing is earned yet, and leads to the Book, before the member's first tier 33ms
+     × answers like /book while the Book is locked 34ms
+     × animates only without a reduced-motion preference, and never loops 1ms
+     × keeps the band's words at 4.5:1 on E's lemon 1ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/tierRewards.test.tsx > WS347 WS91: each tier's reward line in the Book > names each tier's coin reward on its ladder card, earned or not, and nothing on a tier without one
+ FAIL  |website| src/tierRewards.test.tsx > WS347 WS91: each tier's reward line in the Book > gives the reward line words a screen reader reads with its tier
+ FAIL  |website| src/tierRewards.test.tsx > WS347 WS91: each tier's reward line in the Book > shows each shelved tier's reward on the recently earned shelf, and says it in the entry's name
+ FAIL  |website| src/tierRewards.test.tsx > WS347: the achievement-earned page > is /book/earned, celebrating the newest earned tier with its medal and reward under the Book's nav entry
+ FAIL  |website| src/tierRewards.test.tsx > WS347: the achievement-earned page > celebrates together every tier one kudos earned, and only those
+ FAIL  |website| src/tierRewards.test.tsx > WS347: the achievement-earned page > names no reward for a tier whose reward isn't shown
+ FAIL  |website| src/tierRewards.test.tsx > WS347: the achievement-earned page > plays its reveal once per tier: the first visit is fresh, the next shows the end state
+ FAIL  |website| src/tierRewards.test.tsx > WS347: the achievement-earned page > is fresh again for a newer tier, keyed by its own seen key
+ FAIL  |website| src/tierRewards.test.tsx > WS347: the achievement-earned page > leads to the Book with See achievements, without a reload, and back to Slack in a new tab
+ FAIL  |website| src/tierRewards.test.tsx > WS347: the achievement-earned page > says nothing is earned yet, and leads to the Book, before the member's first tier
+ FAIL  |website| src/tierRewards.test.tsx > WS347: the achievement-earned page > answers like /book while the Book is locked
+ FAIL  |website| src/tierRewards.test.tsx > WS347: the achievement-earned page > animates only without a reduced-motion preference, and never loops
+ FAIL  |website| src/tierRewards.test.tsx > WS347: the achievement-earned page > keeps the band's words at 4.5:1 on E's lemon
+ Test Files  1 failed (1)
+      Tests  13 failed | 7 passed (20)

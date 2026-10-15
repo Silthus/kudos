@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/web-settings
+
+
+ Test Files  2 passed (2)
+      Tests  51 passed (51)
+   Start at  16:02:49
+   Duration  3.05s (tests 39%, transform 37%, import 22%, environment 2%)
+

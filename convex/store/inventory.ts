@@ -30,8 +30,12 @@ export const loadoutHook: ParseHook = {
 
 export const inventoryOf = internalQuery({
   args: { member: v.id("members") },
-  handler: async (ctx, { member }): Promise<Inventory | null> => ((await storeVisibleTo(ctx, member)) ? inventoryFor(ctx, member) : null),
+  handler: (ctx, { member }) => visibleInventoryOf(ctx, member),
 });
+
+export async function visibleInventoryOf(ctx: QueryCtx, member: MemberId): Promise<Inventory | null> {
+  return (await storeVisibleTo(ctx, member)) ? inventoryFor(ctx, member) : null;
+}
 
 export async function loadoutEmojiOf(ctx: MutationCtx, member: MemberId): Promise<string[]> {
   if (!(await storeVisibleAndExposedTo(ctx, member))) return [];

@@ -1,19 +1,24 @@
 import type { QueryCtx } from "../_generated/server";
 import { homeFacts } from "../engine/home";
+import { groupsShownTo } from "../groups/groups";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import { xpLevelsOnFor } from "../progression/xpLevels";
 import { workspaceLink } from "../slack/workspaceLink";
+import { visibleWalletOf } from "../wallet/wallet";
 import { followTheClock } from "./clock";
 import { faceOf, type Face } from "./faces";
+import { inventoryShownTo, type MemberInventory } from "./inventory";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 import { journeyStepsOf, type JourneyStep } from "./quests";
+import { settingsShownTo } from "./settings";
 import { skillPointsOf } from "./skillTree";
 import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, type FeaturePage } from "./unlockPath";
 
 export type { Face } from "./faces";
 export type { FeatureCard, FeaturePage, PageWaits } from "./unlockPath";
 export type { JourneyStep } from "./quests";
+export type { InventoryItem, ItemSource, MemberInventory } from "./inventory";
 
 export type Kudos = { given: number; received: number };
 
@@ -33,6 +38,10 @@ export type MemberProfile = {
   journey: JourneyStep[] | null;
   progression: Progression | null;
   skillPoints: number | null;
+  coins: number | null;
+  inventory: MemberInventory | null;
+  groups: boolean;
+  settings: boolean;
 };
 
 export type MyProfile = Denial | MemberProfile;
@@ -42,6 +51,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
   const facts = await homeFacts(ctx, me.workspace, me.user);
   if (facts?.kind !== "member") return { kind: "not-a-member" };
   const path = await unlockPathOf(ctx, me);
+  const leaderboard = await leaderboardStateOf(ctx, me, path);
   return {
     kind: "member",
     ...(me.name !== undefined && { name: me.name }),
@@ -51,11 +61,15 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     thisWeek: { given: facts.givenWeek, received: facts.receivedWeek },
     lifetime: { given: facts.given, received: facts.received },
     chatUrl: workspaceLink(me.workspace),
-    leaderboard: await leaderboardStateOf(ctx, me, path),
+    leaderboard,
     features: await featureCardsOf(me, path),
     journey: await journeyStepsOf(ctx, me),
     progression: await progressionOf(ctx, me),
     skillPoints: await skillPointsOf(ctx, me, path),
+    coins: (await visibleWalletOf(ctx, me.member))?.balance ?? null,
+    inventory: await inventoryShownTo(ctx, me.member),
+    groups: await groupsShownTo(ctx, me.member),
+    settings: await settingsShownTo(ctx, me, leaderboard),
   };
 });
 

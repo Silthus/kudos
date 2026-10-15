@@ -8,9 +8,9 @@ export type QuestTarget = number | "journey";
 
 export type ActivityFilter = "all" | "received" | "given";
 
-export type Route = { page: "home" } | { page: "activity"; filter: ActivityFilter } | { page: "leaderboard"; period: Period } | { page: "quests"; quest?: QuestTarget } | { page: "book"; bookPage: BookPageId } | { page: "skills" } | { page: "not-found" };
+export type Route = { page: "home" } | { page: "activity"; filter: ActivityFilter } | { page: "leaderboard"; period: Period } | { page: "quests"; quest?: QuestTarget } | { page: "book"; bookPage: BookPageId } | { page: "skills" } | { page: "settings" } | { page: "not-found" };
 
-export type BookPageId = CategoryId | "overview";
+export type BookPageId = CategoryId | "overview" | "earned";
 
 export type Screen = Exclude<Route["page"], "not-found" | "activity">;
 
@@ -21,6 +21,8 @@ const routeAt = {
   "/quests": (search) => ({ page: "quests", quest: questIn(search) }),
   "/skills": () => ({ page: "skills" }),
   "/book": (search) => ({ page: "book", bookPage: categoryAsked(search) }),
+  "/book/earned": () => ({ page: "book", bookPage: "earned" }),
+  "/settings": () => ({ page: "settings" }),
 } satisfies Record<string, (search: string) => Route>;
 
 type ServedPath = keyof typeof routeAt;

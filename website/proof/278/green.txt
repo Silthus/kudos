@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/hero-spend/website
+
+
+ Test Files  3 passed (3)
+      Tests  80 passed (80)
+   Start at  17:15:57
+   Duration  17.82s (tests 65%, transform 16%, import 14%, environment 4%, setup 1%)
+
