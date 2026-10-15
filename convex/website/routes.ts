@@ -56,11 +56,12 @@ export function listedPageOf(feature: Feature): Page | null {
 }
 
 export function readyCratePageOf(feature: Feature): Page {
-  return listedPageOf(feature) ?? { page: "home" };
+  const page = listedPageOf(feature);
+  return page === null ? { page: "home" } : { ...page, crate: feature };
 }
 
 export function questCratePageOf(quest: Quest): Page {
-  return quest.kind === "journey" ? { page: "home" } : { page: "quests" };
+  return quest.kind === "journey" ? { page: "home", crate: "journey" } : { page: "quests" };
 }
 
 export function urlOf(origin: string, page: Page) {
