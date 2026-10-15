@@ -1,5 +1,5 @@
 import type { QuestsRead } from "./questsRead";
-import type { MyQuests, QuestSlot, QuestsAnswer, WaitingCrate } from "./shell";
+import type { JourneyStep, MyQuests, QuestSlot, QuestsAnswer, WaitingCrate } from "./shell";
 
 const chatUrl = "https://app.slack.com/client/T1";
 
@@ -61,7 +61,7 @@ const lastWeeksCrate: WaitingCrate = { goal: "Thank someone and say why on 2 dif
 
 const twoWeeksAgosCrateOfTheSameQuest: WaitingCrate = { ...lastWeeksCrate, week: "2026-09-28", crate: { kind: "weekly", week: "2026-09-28", slot: 2 }, seen: "a7f2c1" };
 
-const week: QuestsAnswer = { kind: "quests", slots: [inProgress, finished, openedAndSwapped], swap: { used: true, available: false }, waiting: [], chatUrl };
+const week: QuestsAnswer = { kind: "quests", slots: [inProgress, finished, openedAndSwapped], swap: { used: true, available: false }, waiting: [], bonus: null, chatUrl };
 
 const sayingWhyTwice: QuestSlot = { ...joiningIn, kind: "Say why", goal: "Thank someone and say why, 2 times.", progress: { done: 0, target: 2 } };
 
@@ -75,6 +75,14 @@ const nextWeek: QuestsAnswer = {
   swap: { used: false, available: true },
 };
 
+const someoneNew: JourneyStep = { step: "someone-new", goal: "Thank someone you haven't thanked before.", hint: null, reward: { xp: 30 }, state: "active", crate: null, seen: null, feature: "leaderboard" };
+
+const firstThanks: JourneyStep = { step: "first-thanks", goal: "Give a kudos that says why.", hint: "It counts when your message has 5 or more words besides mentions and emoji.", reward: { xp: 10 }, state: "active", crate: null, seen: null, feature: null };
+
+const firstQuestFinished: JourneyStep = { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 }, state: "finished", crate: { kind: "journey", step: "first-quest" }, seen: "b2c9e4", feature: "quests" };
+
+export const bonusSteps = { someoneNew, firstThanks, firstQuestFinished };
+
 export const questsFixtures = {
   week,
   weekWithAFinishedQuestEach: { ...week, slots: [{ ...finished, slot: 0, quest: { kind: "weekly", week: thisWeek, slot: 0 }, crate: { kind: "weekly", week: thisWeek, slot: 0 }, seen: "f0e1d2" }, finished], swap: { used: false, available: false } },
@@ -86,7 +94,9 @@ export const questsFixtures = {
   twoQuests: { ...week, slots: [inProgress, finished], swap: { used: false, available: false } },
   everyKind: { ...week, slots: [inProgress, finished, joiningIn] },
   nextWeek,
-  noDraw: { kind: "quests", slots: [], swap: { used: false, available: false }, waiting: [], chatUrl },
+  weekWithABonus: { ...week, bonus: someoneNew },
+  weekWithAFinishedBonus: { ...week, slots: [inProgress, openedAndSwapped], bonus: firstQuestFinished },
+  noDraw: { kind: "quests", slots: [], swap: { used: false, available: false }, waiting: [], bonus: null, chatUrl },
   locked: { kind: "locked", level: 2 },
   ready: { kind: "ready" },
   notFound: { kind: "not-found" },
