@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import { welcomedAsValidator, type WelcomeMessage } from "../feedback/welcome";
-import { appHomeLink, appHomeUrl } from "./appHome";
+import { appHomeLink, appHomeUrl } from "./appHomeLinks";
 import { mrkdwn, urlButtonOf } from "./blocks";
 import { attemptArgs, sendOnce, slackLink, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 

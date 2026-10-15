@@ -18,6 +18,7 @@ import type {
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
 import type { Period } from "../leaderboard/periods";
+import type { MessageKind } from "../messageSettings/kinds";
 import type { Feature } from "../unlocks/feature";
 import { gateDecisionOf } from "../progression/gate";
 import { defaultKudosEmoji } from "../workspace/settings";
@@ -50,6 +51,7 @@ export type ProductEvent = {
     | "leaderboard viewed"
     | "leaderboard left"
     | "leaderboard joined"
+    | "message setting changed"
     | "profile card viewed"
     | "$feature_flag_called";
   subject: { member: MemberId };
@@ -62,6 +64,7 @@ export type UsageFact =
   | { kind: "commandUsed"; workspace: string; member: MemberId; alias: boolean; result: KudosCommandResult; at: number }
   | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: "everyone"; period: Period; surface: LeaderboardSurface; at: number }
   | { kind: "leaderboardVisibilityChanged"; workspace: string; member: MemberId; visible: boolean; at: number }
+  | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; at: number }
   | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number };
 
 export type LeaderboardSurface = "app-home" | "command";
@@ -217,6 +220,8 @@ export function projectUsage(fact: UsageFact): ProductEvent {
       return { event: "leaderboard viewed", subject, at: fact.at, properties: { board: fact.board, period: fact.period, surface: surfaceNames[fact.surface] } };
     case "leaderboardVisibilityChanged":
       return { event: fact.visible ? "leaderboard joined" : "leaderboard left", subject, at: fact.at, properties: {} };
+    case "messageSettingChanged":
+      return { event: "message setting changed", subject, at: fact.at, properties: { kind: fact.setting, on: fact.on } };
     case "profileCardViewed":
       return { event: "profile card viewed", subject, at: fact.at, properties: { own: fact.own, surface: fact.surface } };
   }

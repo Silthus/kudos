@@ -2,6 +2,7 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { ladderValidator } from "./achievements/ladders";
+import { messageKindValidator } from "./messageSettings/kinds";
 import { bookReplayCursorValidator, bookReplayValidator } from "./achievements/replay";
 import { earnedTierValidator } from "./achievements/tiers";
 import { exceptionValidator } from "./analytics/exceptions";
@@ -205,6 +206,7 @@ export default defineSchema({
     message: v.string(),
     threadRoot: v.optional(v.string()),
     to: v.string(),
+    given: v.optional(v.array(segmentValidator)),
     lines: v.array(v.array(segmentValidator)),
     questsDone: v.optional(v.array(segmentValidator)),
     hint: v.optional(v.array(segmentValidator)),
@@ -338,6 +340,12 @@ export default defineSchema({
     dms: v.optional(v.boolean()),
     muteNotices: v.optional(v.boolean()),
   }).index("by_member", ["member"]),
+
+  messageSettings: defineTable({
+    member: v.id("members"),
+    kind: messageKindValidator,
+    on: v.boolean(),
+  }).index("by_member_kind", ["member", "kind"]),
 
   unlocks: defineTable({
     member: v.id("members"),

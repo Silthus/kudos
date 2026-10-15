@@ -8,7 +8,7 @@ import { type BlockAction, blockActions, buttonInHome, publishedHome } from "../
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import type { FlagDefinition } from "../../testing/fakePostHog";
 import { standingOf } from "../progression/progression";
-import { progressSettingsOf } from "../progression/settings";
+import { notificationSwitchesOf } from "../messageSettings/messageSettings";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
@@ -215,5 +215,5 @@ async function standing(t: Backend, user: string) {
 
 async function dmSetting(t: Backend, user: string) {
   const member = await memberOf(t, user);
-  return (await t.run((ctx) => progressSettingsOf(ctx, member))).dms;
+  return (await t.run((ctx) => notificationSwitchesOf(ctx, member))).dms;
 }
