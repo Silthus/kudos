@@ -46,7 +46,7 @@ function given(key: string, at: number, recipients: Person[], message: Message):
 const threeReceived: RecentKudos = {
   kind: "recent",
   entries: [
-    received("r1", today, ada, words({ kind: "text", text: "Thanks for pairing on the release checklist, it saved us a whole afternoon " }, { kind: "emoji", name: "tada", unicode: "🎉" })),
+    received("r1", today, ada, words({ kind: "emoji", name: "hedgehug", image: "/favicon.svg" }, { kind: "text", text: " Thanks for pairing on the release checklist, it saved us a whole afternoon " }, { kind: "emoji", name: "tada", unicode: "🎉" })),
     received("r2", yesterday, bo, { ...words({ kind: "text", text: "The new onboarding doc is " }, { kind: "text", text: "so", bold: true }, { kind: "text", text: " clear. See " }, { kind: "link", url: "https://example.com/onboarding", label: "the doc" }), edited: true }),
     received("r3", lastWeek, formerTeammate, { kind: "unavailable", reason: "not-captured" }),
   ],

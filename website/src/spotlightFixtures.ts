@@ -34,7 +34,7 @@ const pairing = thankYou(
   "2026-10-12T10:15:00",
   ada,
   [bo],
-  words({ kind: "text", text: "Thanks for pairing on the release checklist, it saved us a whole afternoon " }, { kind: "emoji", name: "tada", unicode: "🎉" }),
+  words({ kind: "text", text: "Thanks for pairing on the release checklist, it saved us a whole afternoon " }, { kind: "emoji", name: "tada", unicode: "🎉" }, { kind: "emoji", name: "hedgehug", image: "/favicon.svg" }),
   "https://example.slack.com/archives/C01/p1760264100000100",
 );
 
