@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
-import { FakeSlack, slackError, type SlackArgs } from "../../testing/fakeSlack";
+import { FakeSlack, rateLimitedFor, slackError, type SlackArgs } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonIn, buttonInHome, optionPickedInHome, publishedHome, staleButtonOf, type Block, type BlockAction, type ClickedMessage } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -140,6 +140,20 @@ describe("QM24: in the channel, beside the kudos message that caused it", () => 
 
     expect(levelUpsTo("U_ALICE")).toEqual([]);
     expect(levelUpEphemeralsTo("U_ALICE")).toEqual([{ channel: "C1", text: `${levelUp}\n${footer}` }]);
+  });
+
+  test("a level up Slack held back as a DM arrives beside its kudos once the member picks In the channel", async () => {
+    const t = await settingsOpen([messageSettings, "xp-levels"], "U_CAROL");
+    slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
+      await place(t, "U_ALICE", "level-ups", "channel");
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await giveKudos(t, "U_ALICE", "U_BOB", { threadTs: threadRoot });
+
+    expect(levelUpsTo("U_ALICE")).toHaveLength(1);
+    expect(slack.messagesIn("U_ALICE").filter(({ text }) => String(text).startsWith("🎉 You reached level"))).toEqual([]);
+    expect(levelUpEphemeralsTo("U_ALICE")).toEqual([{ channel: "C1", thread_ts: threadRoot, text: `${levelUp}\n${footer}` }]);
   });
 
   test("a level up reached by a kudos in a thread arrives in that thread", async () => {

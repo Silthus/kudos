@@ -15,6 +15,7 @@ import { xpLevelsOnFor, xpLevelsShownTo } from "../progression/xpLevels";
 import { journeyStepAppliesIn, questsApplyTo } from "../quests/flag";
 import type { MessageKind } from "../messageSettings/kinds";
 import { placeOf, wantsMessage } from "../messageSettings/messageSettings";
+import { messageSettingsOnFor } from "../messageSettings/flag";
 import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type WeeklyQuest } from "../quests/step";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
@@ -98,7 +99,8 @@ export async function notify(ctx: MutationCtx, member: MemberId, notification: N
   const place = await placeOf(ctx, member, messageKindOfNotification(notification));
   if (place === "none") return;
   const { workspace, user } = await chatUserOf(ctx, member);
-  await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverDirectMessage, { member, workspace, user, notification, ...(kudos && place === "channel" && { kudos }) });
+  const placedAtDelivery = kudos !== undefined && (place === "channel" || (await messageSettingsOnFor(ctx, member)));
+  await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverDirectMessage, { member, workspace, user, notification, ...(placedAtDelivery && { kudos }) });
 }
 
 export function messageKindOfNotification(notification: Notification): MessageKind {
