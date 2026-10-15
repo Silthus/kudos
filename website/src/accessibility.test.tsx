@@ -44,6 +44,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "home with the leaderboard ready and the skill tree locked", path: "/", visitor: shellFixtures.memberWithTheBoardReady },
   { name: "home with the leaderboard opened and the skill tree locked", path: "/", visitor: shellFixtures.memberWithTheBoardOpened },
   { name: "home with every shipped feature open", path: "/", visitor: shellFixtures.memberWithEveryFeatureOpen },
+  { name: "home with the inventory and the coins chip", path: "/", visitor: shellFixtures.memberWithTheInventory },
   { name: "home with no feature shipped", path: "/", visitor: shellFixtures.memberWithNothingShipped },
   { name: "quests with the nav in every state", path: "/quests", visitor: shellFixtures.memberWithEveryNavState, quests: questsFixtures.week },
   { name: "home with every panel locked", path: "/", visitor: shellFixtures.memberWithEveryPanelLocked },

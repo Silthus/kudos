@@ -6,9 +6,9 @@ import { SidePanel as Panel } from "./SidePanel";
 import { Spotlight } from "./Spotlight";
 import { VisibilitySwitch } from "./VisibilitySwitch";
 
-type SidePanelsProps = { board: Leaderboard; drawSpotlight: SpotlightDraw; onSetBoardVisibility: ShellActions["setBoardVisibility"] };
+type SidePanelsProps = { board: Leaderboard; coinsShown: boolean; drawSpotlight: SpotlightDraw; onSetBoardVisibility: ShellActions["setBoardVisibility"] };
 
-export function SidePanels({ board, drawSpotlight, onSetBoardVisibility }: SidePanelsProps) {
+export function SidePanels({ board, coinsShown, drawSpotlight, onSetBoardVisibility }: SidePanelsProps) {
   const { improvement, period } = board;
   const line = improvement === null || period === "all" ? undefined : improvementLine(improvement, period);
   return (
@@ -20,7 +20,7 @@ export function SidePanels({ board, drawSpotlight, onSetBoardVisibility }: SideP
         </Panel>
       )}
       <Panel id="how-it-counts-title" label="How it counts">
-        <p className="text-muted-foreground">Only kudos given count. Kudos received, XP, levels and achievements never rank anyone.</p>
+        <p className="text-muted-foreground">{`Only kudos given count. Kudos received, XP, levels${coinsShown ? ", coins" : ""} and achievements never rank anyone.`}</p>
         <VisibilitySwitch onTheBoards={board.onTheBoards} setBoardVisibility={onSetBoardVisibility} />
       </Panel>
     </div>

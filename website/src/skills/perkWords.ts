@@ -12,6 +12,10 @@ export function coinsText(coins: number) {
   return coins === 1 ? "1 coin" : `${coins} coins`;
 }
 
+export function coinsToSpend(coins: number) {
+  return `${coinsText(coins)} to spend`;
+}
+
 export function costText({ skillPoints, coins }: PerkNode["cost"]) {
   return coins > 0 ? `${skillPointsText(skillPoints)} and ${coinsText(coins)}` : skillPointsText(skillPoints);
 }
