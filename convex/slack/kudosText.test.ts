@@ -3,7 +3,7 @@ import { FakePostHog, postHogHost, projectToken, routedFetch } from "../../testi
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { deleteMessage, deleteThreadParent, edit, everythingStored, kudosReceived, memberChanged, post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { broadcast, channel, channelMessage, codeBlock, emoji, link, list, mention, messageEvent, quote, section, text, unicodeEmoji, userGroup, type MessageOptions, type RichElement } from "../../testing/slackMessages";
+import { broadcast, channel, channelMessage, codeBlock, emoji, link, list, mention, messageEvent, quote, section, text, tonedEmoji, unicodeEmoji, userGroup, type MessageOptions, type RichElement } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { ReportableError } from "../analytics/exceptions";
 import { forgetPageSize, wordsOf } from "../engine/kudosText";
@@ -148,6 +148,38 @@ describe("AT2 AT3: a kudos message's words", () => {
       author: "U_ALICE",
       gate: { version: 1, thoughtful: true },
     });
+  });
+
+  test("keep the skin tone Slack sends beside an emoji's name in the name, as Slack writes a toned emoji", async () => {
+    const t = testBackend();
+
+    await post(t, [
+      section(
+        text(`thanks ${reason} `),
+        mention("U_BOB"),
+        text(" "),
+        emoji("taco"),
+        tonedEmoji("+1", 3, "1f44d-1f3fc"),
+        tonedEmoji("wave", 6),
+        tonedEmoji("wave::skin-tone-2", 2),
+        tonedEmoji("clap", 1),
+        tonedEmoji("pray", 7),
+        { type: "emoji", name: "muscle", skin_tone: "4" } as never,
+      ),
+    ]);
+    await settle(t);
+
+    const kept = await words(t);
+    if (kept.kind !== "text") throw new Error(`expected the words, got ${kept.reason}`);
+    expect(kept.segments.filter((segment) => segment.kind === "emoji")).toEqual([
+      { kind: "emoji", name: "taco" },
+      { kind: "emoji", name: "+1::skin-tone-3", unicode: "👍🏼" },
+      { kind: "emoji", name: "wave::skin-tone-6" },
+      { kind: "emoji", name: "wave::skin-tone-2" },
+      { kind: "emoji", name: "clap" },
+      { kind: "emoji", name: "pray" },
+      { kind: "emoji", name: "muscle" },
+    ]);
   });
 
   test("of a private channel are private, and a message that says why carries that gate decision", async () => {

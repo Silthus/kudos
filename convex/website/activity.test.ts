@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack, slackError } from "../../testing/fakeSlack";
 import { deleteMessage, edit, memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { emoji, mention, section, text, userGroup } from "../../testing/slackMessages";
+import { emoji, mention, section, text, tonedEmoji, userGroup } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
@@ -291,6 +291,18 @@ describe("AT23 AT24 AT27: what a kudos entry says", () => {
       ],
       edited: true,
     });
+  });
+
+  test("an emoji Slack sent with a skin tone answers it in the emoji's name, to the giver and the recipient", async () => {
+    await activityOn();
+    await post(t, [section(text(`thanks ${reason} `), mention(bob.user), text(" "), emoji("taco"), tonedEmoji("raised_hands", 4))], { user: alice.user, ts: postedTs });
+    await settle(t);
+
+    for (const person of [alice, bob]) {
+      const { message } = await messageSeenBy(person);
+      if (message.kind !== "text") throw new Error(`expected the words, got ${message.kind}`);
+      expect(message.segments.at(-1)).toEqual({ kind: "emoji", name: "raised_hands::skin-tone-4" });
+    }
   });
 
   test("a kudos deleted in Slack, or edited so it no longer is one, stays as a fact without its words", async () => {

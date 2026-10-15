@@ -10,6 +10,7 @@ export type RichElement = {
   range?: string;
   name?: string;
   unicode?: string;
+  skin_tone?: number;
   text?: string;
   url?: string;
   style?: Style;
@@ -22,6 +23,8 @@ type TextSegment = Extract<WordSegment, { kind: "text" }>;
 const styleFlags = ["bold", "italic", "strike", "code"] as const;
 const lineBreak: WordSegment = { kind: "break" };
 const codeContainers = new Set(["rich_text_preformatted"]);
+const skinToneSuffix = "::skin-tone-";
+const skinTones = new Set([2, 3, 4, 5, 6]);
 
 export const segmentsKeptAtMost = 2_000;
 
@@ -60,7 +63,7 @@ function leafSegmentsOf(element: RichElement, style: Style): WordSegment[] {
     case "broadcast":
       return isText(element.range) ? [{ kind: "broadcast", range: element.range }] : [];
     case "emoji":
-      return isText(element.name) ? [emojiSegmentOf(element.name, element.unicode)] : [];
+      return isText(element.name) ? [emojiSegmentOf(tonedNameOf(element.name, element.skin_tone), element.unicode)] : [];
     case "link":
       return isText(element.url) ? [{ kind: "link", url: element.url, ...(isText(element.text) && { label: element.text }) }] : [];
     default:
@@ -81,6 +84,11 @@ function styled(text: string, style: Style): TextSegment {
 function emojiSegmentOf(name: string, unicode: string | undefined): WordSegment {
   const character = characterOf(unicode);
   return { kind: "emoji", name, ...(character && { unicode: character }) };
+}
+
+function tonedNameOf(name: string, skinTone: unknown) {
+  if (name.includes(skinToneSuffix) || typeof skinTone !== "number" || !skinTones.has(skinTone)) return name;
+  return `${name}${skinToneSuffix}${skinTone}`;
 }
 
 function characterOf(unicode: string | undefined) {
