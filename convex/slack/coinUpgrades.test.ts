@@ -148,6 +148,14 @@ describe("CO22 CO23 CO24: a level-7 member with Coins open buys flame with a ski
 
     expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "D_ALICE").map(({ text }) => text)).toEqual(["I couldn't buy Flame. Open Coins first."]);
   });
+
+  test("ST21: where the store is shown, that refusal names Coins and inventory", async () => {
+    const t = await aliceWithTheTreeOpen({ owns: ["spark"], coins: 150, coinsOpen: false, flags: [...previewedByAlice, onForEmails("store", alicesEmail)] });
+
+    await send(t, blockActions("U_ALICE", buyButtonOf("flame"), { inMessage: { channel: "D_ALICE", ts: "1760349700.000100" } }));
+
+    expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "D_ALICE").map(({ text }) => text)).toEqual(["I couldn't buy Flame. Open Coins and inventory first."]);
+  });
 });
 
 describe("CO24 CO30: a purchase spends once per idempotency key", { timeout: 30_000 }, () => {

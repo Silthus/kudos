@@ -109,7 +109,7 @@ export const purchaseReplyStillWanted = internalQuery({
     const { workspace } = await chatUserOf(ctx, member);
     if (!(await skillTreeAppliesIn(ctx, workspace))) return null;
     if (isCoinPerk(perkOf(outcome.perk)) && !(await coinsApplyTo(ctx, member))) return null;
-    return purchaseReplyOf(outcome);
+    return purchaseReplyOf(outcome, namedFor(scheduled("coins"), await storeShownTo(ctx, member)).name);
   },
 });
 

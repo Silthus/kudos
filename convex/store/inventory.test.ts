@@ -78,6 +78,14 @@ describe("ST26: inventoryOf, as the website reads it", () => {
     expect(onSaleOf(inventory!.catalogue)).toEqual([[hedgehog, false], ...storeEmoji.map((item) => [item, true]), ...tierEmoji.map((item) => [item, false])]);
   });
 
+  test("ST4: a tier emoji that is the workspace's own emoji is never listed as not yours yet", async () => {
+    const { t, member } = await memberWhoOpenedCoins([...storeOn, onForEveryone("achievements")], { kudosEmoji: "ribbon", opening: ["book", "coins"] });
+
+    const inventory = await t.query(internal.store.inventory.inventoryOf, { member });
+
+    expect(inventory!.catalogue.map(({ item }) => item)).not.toContain("kudos-emoji-ribbon");
+  });
+
   test.each([
     ["the store is turned off", [...["xp-levels", "unlocks", "coins"].map(onForEveryone), offForEveryone("store")]],
     ["coins are turned off", [...["xp-levels", "unlocks", "store"].map(onForEveryone), offForEveryone("coins")]],

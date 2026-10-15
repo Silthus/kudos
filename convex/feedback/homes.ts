@@ -19,7 +19,7 @@ import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/
 import { inventoryHomeOf, type InventoryHome } from "../store/inventory";
 import { storeShownAndExposedTo } from "../store/visibility";
 import { unlocksShownTo } from "../unlocks/launch";
-import { namedFor } from "../unlocks/schedule";
+import { namedFor, scheduled } from "../unlocks/schedule";
 import { unlocksHomeOf, type UnlocksHome } from "../unlocks/unlocks";
 import { coinsVisibleAndExposedTo } from "../wallet/visibility";
 import { balanceOf } from "../wallet/wallet";
@@ -35,7 +35,7 @@ export type ShownTab =
   | { tab: "profile"; progression: ToldProgression | null; unlocks: UnlocksHome | null; quests: WeeklyQuests | null; earlierCrates: UnopenedCrate[] | null; journey: JourneyStepFacts[] | null }
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
-  | { tab: "skillTree"; perks: MemberPerks }
+  | { tab: "skillTree"; perks: MemberPerks; coinsName: string }
   | { tab: "inventory"; balance: number; inventory: InventoryHome; kudosEmoji: string }
   | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null; achievements: boolean }
   | { tab: "admin"; announcementChannel: string | null; achievements: boolean };
@@ -160,7 +160,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
     case "book":
       return { tab, book: await bookFactsOf(ctx, viewer.member), timeZone: (await ctx.db.get(viewer.member))?.timeZone };
     case "skillTree":
-      return { tab, perks: await memberPerksOf(ctx, viewer.member) };
+      return { tab, perks: await memberPerksOf(ctx, viewer.member), coinsName: namedFor(scheduled("coins"), slices.store).name };
     case "inventory":
       return { tab, balance: await balanceOf(ctx, viewer.member), inventory: await inventoryHomeOf(ctx, viewer.member), kudosEmoji: (await settingsOf(ctx, viewer.workspace)).kudosEmoji };
     case "settings":

@@ -107,6 +107,20 @@ describe("ST20 ST21 ST24 ST25: opening Coins opens the inventory, previewed by o
     expect(await exposuresOf(t, "U_ALICE")).toEqual([[store, true]]);
     expect(await exposuresOf(t, "U_CAROL")).toEqual([[store, false]]);
   });
+
+  test("F25: once the store turns off, the previewer's next message with 🦔 sends the false exposure, without App Home", async () => {
+    const t = await workspaceDeciding(...previewedByAlice);
+    await coinsOpenedBy(t, "U_ALICE");
+
+    await flagsFromPostHog(t, postHog, ...storeOff);
+    vi.setSystemTime(tuesday + dayMs);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["hedgehog"]);
+
+    expect(await exposuresOf(t, "U_ALICE")).toEqual([
+      [store, true],
+      [store, false],
+    ]);
+  });
 });
 
 describe("ST8 ST11: 🦔 in the giver's loadout counts as a kudos", { timeout: 30_000 }, () => {

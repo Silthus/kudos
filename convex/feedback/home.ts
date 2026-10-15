@@ -105,7 +105,7 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
     case "book":
       return { title: "Book", groups: bookGroups(shown) };
     case "skillTree":
-      return { title: "Skill tree", groups: skillTreeGroups(shown.perks) };
+      return { title: "Skill tree", groups: skillTreeGroups(shown) };
     case "inventory":
       return { title: "Inventory", groups: inventoryGroups(shown) };
     case "settings":
@@ -209,17 +209,17 @@ function dateOf(at: number, timeZone: string | undefined) {
   return new Intl.DateTimeFormat("en-US", { timeZone: timeZone ?? "UTC", month: "short", day: "numeric", year: "numeric" }).format(at);
 }
 
-function skillTreeGroups(tree: MemberPerks): HomeLine[][] {
+function skillTreeGroups({ perks: tree, coinsName }: Extract<ShownTab, { tab: "skillTree" }>): HomeLine[][] {
   const condition: HomeLine = { kind: "hint", text: "Bonuses count when your message has 5 or more words besides mentions and emoji." };
   const toSpend: HomeLine[][] = ownsEveryPerk(tree) ? [] : [[{ kind: "text", text: `You have ${bold(skillPointsOf(tree.skillPoints))} to spend.` }]];
-  return [...toSpend, [...tree.perks.flatMap(perkLines), condition]];
+  return [...toSpend, [...tree.perks.flatMap((perk) => perkLines(perk, coinsName)), condition]];
 }
 
-function perkLines(perk: TreePerk): HomeLine[] {
+function perkLines(perk: TreePerk, coinsName: string): HomeLine[] {
   const { name, copy, state } = perk;
   if (state === "owned") return [{ kind: "text", text: [`✅ ${bold(name)} · Owned`, copy].filter(Boolean).join("\n") }];
   if (state === "buyable") return [{ kind: "action", ...perkOfferOf(perk, null) }];
-  return [{ kind: "text", text: perkTextOf(perk) }, { kind: "hint", text: whyNotOf({ ...perk, state }) }];
+  return [{ kind: "text", text: perkTextOf(perk) }, { kind: "hint", text: whyNotOf({ ...perk, state }, coinsName) }];
 }
 
 function inventoryGroups({ balance, inventory, kudosEmoji }: Extract<ShownTab, { tab: "inventory" }>): HomeLine[][] {
@@ -266,14 +266,14 @@ function coinsOf(coins: number) {
   return `${coins} 🪙`;
 }
 
-export function purchaseReplyOf(outcome: PurchaseOutcome) {
+export function purchaseReplyOf(outcome: PurchaseOutcome, coinsName = scheduled("coins").name) {
   const perk = perkOf(outcome.perk);
-  return outcome.kind === "bought" ? `You bought ${perk.name}.` : `I couldn't buy ${perk.name}. ${whyNotOf({ ...perk, state: outcome.reason })}`;
+  return outcome.kind === "bought" ? `You bought ${perk.name}.` : `I couldn't buy ${perk.name}. ${whyNotOf({ ...perk, state: outcome.reason }, coinsName)}`;
 }
 
 type TreePerk = MemberPerks["perks"][number];
 
-export function whyNotOf({ state, row, requires, skillPoints, coins }: Perk & { state: Refusal }) {
+export function whyNotOf({ state, row, requires, skillPoints, coins }: Perk & { state: Refusal }, coinsName = scheduled("coins").name) {
   switch (state) {
     case "tree-locked":
       return unopenedTextOf(scheduled("skillTree"), "locked");
@@ -290,7 +290,7 @@ export function whyNotOf({ state, row, requires, skillPoints, coins }: Perk & { 
     case "no-skill-points":
       return `You need ${skillPointsOf(skillPoints)}.`;
     case "coins-not-open":
-      return `Open ${scheduled("coins").name} first.`;
+      return `Open ${coinsName} first.`;
     case "no-coins":
       return `You need ${coinsOf(coins)}.`;
   }

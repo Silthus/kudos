@@ -6,7 +6,7 @@ import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { catalogue, itemOf, starterItem, type CatalogueItem, type ItemId } from "./catalogue";
 import type { CollectedItem, Slot } from "./rows";
-import { storeVisibleTo } from "./visibility";
+import { storeVisibleAndExposedTo, storeVisibleTo } from "./visibility";
 
 export type LoadoutSlot = { slot: Slot; item: ItemId | null };
 
@@ -33,7 +33,8 @@ export const inventoryOf = internalQuery({
 });
 
 export async function loadoutEmojiOf(ctx: QueryCtx, member: MemberId): Promise<string[]> {
-  if (!(await storeVisibleTo(ctx, member))) return [];
+  const visible = isMutation(ctx) ? await storeVisibleAndExposedTo(ctx, member) : await storeVisibleTo(ctx, member);
+  if (!visible) return [];
   return (await loadoutOf(ctx, member)).flatMap(({ item }) => (item === null ? [] : (itemOf(item)?.emoji ?? [])));
 }
 
@@ -77,12 +78,17 @@ async function inventoryFor(ctx: QueryCtx, member: MemberId): Promise<Inventory>
   const workspaceEmoji = await workspaceEmojiOf(ctx, member);
   const bookOpen = (await stateOf(ctx, member, "book")) === "open";
   const forSale = (entry: CatalogueItem) => listedIn(workspaceEmoji, entry) && !ownedOrSlotted.has(entry.item);
-  const shown = (entry: CatalogueItem) => ownedOrSlotted.has(entry.item) || forSale(entry) || (entry.source.kind === "tier" && bookOpen);
+  const notYoursYet = (entry: CatalogueItem) => entry.source.kind === "tier" && bookOpen && entry.emoji !== workspaceEmoji;
+  const shown = (entry: CatalogueItem) => ownedOrSlotted.has(entry.item) || forSale(entry) || notYoursYet(entry);
   return {
     slots: loadout,
     owned,
     catalogue: catalogue.items.filter(shown).map((entry) => ({ ...entry, onSale: forSale(entry) })),
   };
+}
+
+function isMutation(ctx: QueryCtx | MutationCtx): ctx is MutationCtx {
+  return "insert" in ctx.db;
 }
 
 function listedIn(workspaceEmoji: string, { source, emoji }: CatalogueItem) {
