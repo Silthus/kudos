@@ -20,7 +20,7 @@ export function EveryoneCard({ board }: { board: Leaderboard }) {
         </h2>
         <p className="text-xs text-muted-foreground">{blurb}</p>
       </div>
-      <p className="ml-auto text-sm font-medium tabular-nums">
+      <p className="ml-auto shrink-0 whitespace-nowrap text-sm font-medium tabular-nums">
         <StandingWords standing={standing} selected={false} />
       </p>
     </section>
