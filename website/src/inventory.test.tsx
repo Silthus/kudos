@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
@@ -7,7 +7,7 @@ import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 import { contrast, contrastOnTint, type Mode } from "./test/themeContrast";
 
-const { memberWithTheInventory, memberWithCoinsBeforeTheStore, memberWithTheBoard } = shellFixtures;
+const { memberWithTheInventory, memberWithCustomEmoji, memberWithCoinsBeforeTheStore, memberWithTheBoard } = shellFixtures;
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -161,5 +161,56 @@ describe("WS339 V24: an equipped tile's slot mark and the coin glyph stay readab
       renderApp(memberWithTheInventory);
       expect(contrast(mode, tokenOf(within(inventory()).getAllByTestId("coin-glyph")[0]!, "text"), "card")).toBeGreaterThanOrEqual(3);
     });
+  });
+});
+
+describe("WS341 ST36: a custom kudos emoji shows its Slack picture, and its name when the picture fails", () => {
+  function itemNamed(list: "Yours" | "Not yours yet", name: string) {
+    const items = within(within(kudosEmoji()).getByRole("list", { name: list })).getAllByRole("listitem");
+    return items.find((item) => item.textContent?.includes(name))!;
+  }
+
+  it("draws an owned and a for-sale custom emoji as their pictures, named by their names", () => {
+    renderApp(memberWithCustomEmoji);
+
+    const owned = itemNamed("Yours", ":partyparrot:");
+    expect(owned.querySelector("img")).toHaveAttribute("src", "https://emoji.slack-edge.com/T1/partyparrot/a1b2.png");
+    expect(owned.querySelector("img")).toHaveAttribute("alt", ":partyparrot:");
+    expect(within(owned).queryByRole("img")).toBeNull();
+    expect(readAloudIn(within(kudosEmoji()).getByRole("list", { name: "Yours" }))).toEqual(["Hedgehog, in slot 1", ":partyparrot:, in slot 2"]);
+    expect(itemNamed("Not yours yet", ":shipit:").querySelector("img")).toHaveAttribute("alt", ":shipit:");
+  });
+
+  it("dims a for-sale picture but never its fallback name, which stays inside its row", () => {
+    renderApp(memberWithCustomEmoji);
+
+    const forSale = itemNamed("Not yours yet", ":shipit:");
+    expect(forSale.querySelector("img")).toHaveClass("opacity-60");
+    fireEvent.error(forSale.querySelector("img")!);
+
+    const fallback = forSale.querySelector("[data-custom-emoji]")!;
+    expect(fallback.closest("[class*='opacity-']")).toBeNull();
+    expect(fallback).toHaveClass("truncate", "max-w-full");
+    expect(fallback.parentElement!.parentElement).toHaveClass("max-w-24");
+  });
+
+  it("shows the name chip in the picture's place once the picture fails to load", () => {
+    renderApp(memberWithCustomEmoji);
+
+    const owned = itemNamed("Yours", ":partyparrot:");
+    fireEvent.error(owned.querySelector("img")!);
+
+    expect(owned.querySelector("img")).toBeNull();
+    expect(owned.querySelector("[data-custom-emoji]")).toHaveTextContent(":partyparrot:");
+    expect(readAloudIn(within(kudosEmoji()).getByRole("list", { name: "Yours" }))).toEqual(["Hedgehog, in slot 1", ":partyparrot:, in slot 2"]);
+  });
+
+  it.each([false, true])("passes axe with dark mode %s", async (dark) => {
+    fakeSystemTheme(dark);
+    renderApp(memberWithCustomEmoji);
+
+    const results = await axe.run(inventory(), { rules: { "color-contrast": { enabled: false } } });
+
+    expect(results.violations).toEqual([]);
   });
 });

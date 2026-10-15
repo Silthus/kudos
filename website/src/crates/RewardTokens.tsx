@@ -89,7 +89,7 @@ export function RewardChips({ tokens }: { tokens: Token[] }) {
   return (
     <ul aria-label="Rewards" className="flex flex-wrap items-center justify-center gap-2">
       {tokens.map((token, at) => (
-        <li key={token.kind} className="moment-line inline-flex h-9 items-center gap-1.5 rounded-full border bg-card px-3 text-sm font-semibold tabular-nums text-card-foreground shadow-sm" style={{ "--line-delay": `${0.1 + at * 0.12}s` } as CSSProperties} data-reward={token.kind === "coins" ? "coins" : undefined}>
+        <li key={token.kind} className="moment-line inline-flex h-9 items-center gap-1.5 rounded-full border bg-card px-3 text-sm font-bold tabular-nums text-card-foreground shadow-sm" style={{ "--line-delay": `${0.1 + at * 0.12}s` } as CSSProperties} data-reward={token.kind === "coins" ? "coins" : undefined}>
           {token.drop === undefined ? (
             <>
               <span className="text-base leading-none">{token.glyph}</span>

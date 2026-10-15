@@ -14,13 +14,13 @@ export function EveryoneCard({ board }: { board: Leaderboard }) {
       <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <Icon className="size-5" />
       </span>
-      <div className="flex min-w-0 flex-col">
+      <div className="flex min-w-0 flex-col wrap-anywhere">
         <h2 id="everyone-board-title" className="text-lg font-semibold leading-tight">
           {label}
         </h2>
         <p className="text-xs text-muted-foreground">{blurb}</p>
       </div>
-      <p className="ml-auto text-sm font-medium tabular-nums">
+      <p className="ml-auto shrink-0 whitespace-nowrap text-sm font-medium tabular-nums">
         <StandingWords standing={standing} selected={false} />
       </p>
     </section>

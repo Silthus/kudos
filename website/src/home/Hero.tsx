@@ -18,8 +18,10 @@ export function Hero({ member }: { member: MemberProfile }) {
   const { progression } = member;
   return (
     <section aria-labelledby="home-title" className="flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:gap-7 sm:py-4">
-      <MemberFace face={member.face} className="size-28" />
-      {progression !== null && <HeroRing progression={progression} />}
+      <div className="flex items-center gap-5 sm:contents">
+        <MemberFace face={member.face} className="size-28" />
+        {progression !== null && <HeroRing progression={progression} />}
+      </div>
       <div className="flex w-full min-w-0 flex-1 flex-col items-start">
         <span className="hud-label">Character</span>
         <div className="mt-1 max-w-full">
