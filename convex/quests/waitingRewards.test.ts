@@ -182,7 +182,7 @@ describe("CR9 CR10 CR11: a reward waiting in its crate is told as waiting, and a
 
     const home = publishedHome(slack, "U_ALICE");
     expect(home).toContain(`section: ✅ ${sayWhyGoal} · 300 XP waits in your crate ${openOnTheWeb("/quests")}`);
-    expect(home).toContain(`section: ✅ ${firstQuestGoal} · 20 XP waits in your crate ${openOnTheWeb("/")}`);
+    expect(home).toContain(`section: ✅ ${firstQuestGoal} · 20 XP waits in your crate ${openOnTheWeb("/?crate=journey")}`);
     expect(home).toContain(`section: ✅ ${sayWhyGoal} *300 XP* waits in your crate.`);
     expect(home.filter((line) => line.includes("You earned"))).toEqual([]);
 
