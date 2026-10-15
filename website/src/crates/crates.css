@@ -96,6 +96,45 @@
   transform: translate(-50%, -50%) scale(0.3);
 }
 
+.crate-seam {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 47%;
+  height: 6%;
+  border-radius: 9999px;
+  background: var(--band-lemon);
+  filter: blur(7px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.crate-flash {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 130%;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: radial-gradient(closest-side, #ffffff, color-mix(in oklab, var(--band-lemon) 60%, transparent) 45%, transparent 75%);
+  opacity: 0;
+  transform: translate(-50%, -50%);
+}
+
+.crate-ring {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  border: 4px solid var(--band-lemon);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%);
+}
+
 .crate-art[data-phase="open"] .crate-hog {
   opacity: 1;
   transform: translate(-50%, 6%);
@@ -115,6 +154,181 @@
   background: color-mix(in oklab, var(--band-night) 96%, transparent);
   color: var(--band-night-ink);
   --crate-edge: var(--band-night-edge);
+  --rarity-common: #ffffff;
+  --rarity-uncommon: #1eff00;
+  --rarity-rare: #0070dd;
+  --rarity-epic: #a335ee;
+  --rarity-legendary: #ff8000;
+}
+
+.moment-stage {
+  padding-top: calc(var(--hud-height, 3.5rem) + clamp(1.5rem, 5vh, 3rem));
+}
+
+.hud-root[data-revealing] > header {
+  z-index: 55;
+}
+
+.crate-stage {
+  position: relative;
+}
+
+.reward-tokens {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  max-width: calc(100vw - 2rem);
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 5.5rem;
+  pointer-events: none;
+}
+
+.reward-tokens[data-stage="charging"] {
+  visibility: hidden;
+}
+
+.reward-tokens[data-stage="ended"] .reward-token-slot:has(.reward-token) {
+  display: none;
+}
+
+.reward-tokens[data-stage="ended"] {
+  margin-bottom: 4rem;
+}
+
+.reward-token-slot {
+  display: block;
+}
+
+.reward-token {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 3px solid var(--token-glow);
+  background: var(--band-night);
+  color: var(--band-night-ink);
+  padding: 0.375rem 1.125rem;
+  font-family: RoundHog, var(--font-sans);
+  font-size: clamp(1.25rem, 5vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  box-shadow:
+    0 0 0 4px color-mix(in oklab, var(--token-glow) 35%, transparent),
+    0 0 36px color-mix(in oklab, var(--token-glow) 60%, transparent);
+  transition:
+    opacity 0.15s ease-out,
+    transform 0.15s ease-out;
+}
+
+.reward-token[data-flown] {
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.reward-token-sparks {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.reward-token-spark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--token-glow);
+  opacity: 0;
+  translate: -50% -50%;
+  --angle: calc(var(--spark) * 60deg + 15deg);
+}
+
+.drop-card {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 10.5rem;
+  border-radius: 1rem;
+  border: 3px solid var(--token-glow);
+  background: var(--band-night);
+  color: var(--band-night-ink);
+  padding: 0.75rem 0.75rem 0.625rem;
+  box-shadow:
+    0 0 0 4px color-mix(in oklab, var(--token-glow) 35%, transparent),
+    0 0 44px color-mix(in oklab, var(--token-glow) 65%, transparent);
+}
+
+.drop-card[data-rarity="legendary"] {
+  background: linear-gradient(160deg, color-mix(in oklab, var(--band-night) 70%, var(--rarity-legendary)), var(--band-night) 60%);
+  box-shadow:
+    0 0 0 4px color-mix(in oklab, var(--token-glow) 45%, transparent),
+    0 0 72px color-mix(in oklab, var(--token-glow) 85%, transparent);
+}
+
+.drop-card-art {
+  display: flex;
+  width: 6.5rem;
+  height: 6.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--token-glow) 22%, transparent);
+}
+
+.drop-art-unknown {
+  display: block;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--band-night-ink) 10%, transparent);
+}
+
+.drop-card-name {
+  font-family: RoundHog, var(--font-sans);
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.drop-card-copy {
+  position: absolute;
+  right: -0.5rem;
+  top: -0.5rem;
+  border-radius: 9999px;
+  background: var(--band-night-ink);
+  color: var(--band-night);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.drop-card-copy[data-new] {
+  background: var(--band-lemon);
+  color: var(--band-lemon-ink);
+  transform: rotate(8deg);
+}
+
+.drop-card-rarity {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--token-glow) 60%, white);
+}
+
+.drop-card[data-rarity="common"] .drop-card-rarity {
+  color: var(--band-night-quiet);
 }
 
 .moment-scrim:focus-visible {
@@ -131,6 +345,41 @@
   }
   .crate-art[data-phase="opening"] {
     animation: crate-shake 0.7s linear both;
+  }
+  .crate-art[data-phase="opening"] .crate-seam {
+    animation: crate-seam 0.7s ease-in both;
+  }
+  .crate-art[data-phase="opening"] .crate-flash {
+    animation: crate-flash 0.7s ease-out 0.7s both;
+  }
+  .crate-art[data-phase="opening"] .crate-ring {
+    animation: crate-ring 0.8s ease-out 0.72s both;
+  }
+  .reward-tokens[data-stage="popped"] .reward-token,
+  .reward-tokens[data-stage="popped"] .drop-card {
+    animation: reward-token-pop 0.75s cubic-bezier(0.2, 0.9, 0.3, 1.35) var(--pop-delay, 0ms) both;
+  }
+  .reward-tokens[data-stage="popped"] .reward-token[data-flown] {
+    animation: reward-token-leave 0.15s ease-out both;
+  }
+  .reward-tokens[data-stage="popped"] .reward-token::after,
+  .reward-tokens[data-stage="popped"] .drop-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.5) 50%, transparent 65%);
+    transform: translateX(-120%);
+    animation: reward-token-shimmer 0.9s ease-in-out calc(var(--pop-delay, 0ms) + 0.6s) both;
+  }
+  .reward-tokens[data-stage="popped"] .reward-token-spark {
+    animation: reward-token-spark 0.8s cubic-bezier(0.1, 0.7, 0.3, 1) calc(var(--pop-delay, 0ms) + 0.3s) both;
+  }
+  .reward-tokens[data-stage="popped"] .drop-card[data-rarity="legendary"] {
+    animation:
+      reward-token-pop 0.9s cubic-bezier(0.2, 0.9, 0.3, 1.35) var(--pop-delay, 0ms) both,
+      drop-legendary-flare 1.2s ease-out calc(var(--pop-delay, 0ms) + 0.5s) both;
   }
   .crate-art[data-phase="opening"] .crate-lid {
     animation: crate-lid 0.8s cubic-bezier(0.2, 0.7, 0.4, 1) 0.7s both;
@@ -181,6 +430,98 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes crate-seam {
+  from {
+    opacity: 0.2;
+  }
+  to {
+    opacity: 1;
+    filter: blur(10px);
+  }
+}
+
+@keyframes crate-flash {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.2);
+  }
+}
+
+@keyframes crate-ring {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(3);
+  }
+}
+
+@keyframes reward-token-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(14rem) scale(0.3) rotate(-8deg);
+  }
+  45% {
+    opacity: 1;
+  }
+  70% {
+    transform: translateY(-0.75rem) scale(1.12) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes reward-token-leave {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes reward-token-shimmer {
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes reward-token-spark {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateX(0) scale(0.2);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateX(4.5rem) scale(1);
+  }
+}
+
+@keyframes drop-legendary-flare {
+  0% {
+    filter: brightness(1);
+  }
+  25% {
+    filter: brightness(1.6) saturate(1.3);
+  }
+  100% {
+    filter: brightness(1);
   }
 }
 
@@ -271,6 +612,23 @@
 .reward-flight-particle {
   position: absolute;
   animation: reward-flight 0.7s cubic-bezier(0.5, 0, 0.7, 1) var(--delay, 0ms) both;
+}
+
+.reward-flight[data-look="token"] .reward-flight-chip {
+  border: 2px solid var(--token-glow);
+  background: var(--band-night);
+  color: var(--band-night-ink);
+  font-family: RoundHog, var(--font-sans);
+  font-size: 1.125rem;
+  padding: 0.25rem 0.875rem;
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--token-glow) 35%, transparent),
+    0 0 24px color-mix(in oklab, var(--token-glow) 60%, transparent);
+}
+
+.reward-flight[data-look="token"] .reward-flight-particle {
+  background: var(--token-glow);
+  box-shadow: none;
 }
 
 .reward-flight-chip {
@@ -399,6 +757,10 @@
 @media (prefers-reduced-motion: reduce) {
   .reward-flight {
     visibility: hidden;
+  }
+
+  .reward-token-spark {
+    display: none;
   }
 
   .reward-flight-chip,

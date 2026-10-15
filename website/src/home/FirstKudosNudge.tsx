@@ -8,7 +8,7 @@ export function hasGivenNoKudos(member: MemberProfile) {
 
 export function FirstKudosNudge({ member }: { member: MemberProfile }) {
   return (
-    <section aria-labelledby="first-kudos-title" className="flex items-start gap-3 rounded-xl border bg-card p-4">
+    <section aria-labelledby="first-kudos-title" className="flex items-start gap-3 rounded-lg border bg-card p-4">
       <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-muted-foreground bg-muted">
         <IconMessage aria-hidden="true" className="size-5 text-foreground" />
       </span>

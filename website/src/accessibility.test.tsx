@@ -1,6 +1,6 @@
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import axe from "axe-core";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import type { QuestsShown } from "./questsRead";
 import { bookFixtures, fixedBook } from "./bookFixtures";
@@ -13,6 +13,7 @@ import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { spotlightFixtures } from "./spotlightFixtures";
 import type { SpotlightDraw } from "./spotlightRead";
 import { watchTheViewerRow } from "./test/viewerRow";
+import { burstPlaysForMs, crateChargesForMs } from "./crates/RevealDialog";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "./test/systemTheme";
 
@@ -364,11 +365,14 @@ describe("WS315 WS339: the reward's flight passes axe in light and dark", () => 
     it(`flies to the HUD avatar in ${dark ? "dark" : "light"}`, async () => {
       fakeSystemTheme(dark);
       window.history.replaceState(null, "", "/quests");
-      const { user } = renderApp(shellFixtures.memberWithQuests, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, fixedQuests(questsFixtures.week));
-      await user.click(within(screen.getByRole("main")).getByRole("button", { name: "Claim" }));
-      await user.keyboard("{Escape}");
-      await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+      renderApp(shellFixtures.memberWithQuests, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, fixedQuests(questsFixtures.week));
+      vi.useFakeTimers();
+      fireEvent.click(within(screen.getByRole("main")).getByRole("button", { name: "Claim" }));
+      await act(async () => {});
+      act(() => vi.advanceTimersByTime(crateChargesForMs));
+      act(() => vi.advanceTimersByTime(burstPlaysForMs));
       expect(document.querySelector("[data-reward-flight]")).not.toBeNull();
+      vi.useRealTimers();
       expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
     });
   }

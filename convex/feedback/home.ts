@@ -76,7 +76,7 @@ const periods: Array<{ period: Period; label: string }> = [
 
 const earlierCratesShown = 5;
 
-const pageNames: Record<Page["page"], string> = { home: "home", leaderboard: "Leaderboard", quests: "Quests", skillTree: "Skill tree", book: "Book" };
+const pageNames: Record<Page["page"], string> = { home: "home", leaderboard: "Leaderboard", quests: "Quests", skillTree: "Skill tree", book: "Book", bookEarned: "Book" };
 
 const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, earlierCrates: null, journey: null };
 

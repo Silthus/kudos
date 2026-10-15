@@ -47,7 +47,7 @@ export const getLeaderboard = memberQuery({
   },
 });
 
-function leaderboardRowOf({ position, rank, tied, name, picture, kudos, viewer, climbed }: RankedRow, myFace: Face): LeaderboardRow {
+export function leaderboardRowOf({ position, rank, tied, name, picture, kudos, viewer, climbed }: RankedRow, myFace: Face): LeaderboardRow {
   const teammate = teammateOf(name, picture);
   return { position, rank, tied, name: teammate.name, face: viewer ? myFace : teammate.face, kudos, you: viewer, climbed };
 }

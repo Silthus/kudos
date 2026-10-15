@@ -107,7 +107,7 @@ function FirstPageWaiting({ state, onTryAgain }: { state: TimelineState; onTryAg
   const retrying = state.status === "first" && state.askedBy !== null;
   if (state.status !== "failed" && !retrying) return null;
   return (
-    <div className="flex flex-col items-start gap-3 rounded-xl border bg-card p-4 text-sm">
+    <div className="flex flex-col items-start gap-3 rounded-lg border bg-card p-4 text-sm">
       <p>Couldn't load your activity.</p>
       <Button variant="outline" size="sm" aria-disabled={retrying || undefined} onClick={() => !retrying && onTryAgain()}>
         {retrying ? "Loading…" : "Try again"}

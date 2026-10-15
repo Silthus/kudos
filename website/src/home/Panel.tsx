@@ -9,7 +9,7 @@ type PanelProps = { id: string; label: string; aside?: ReactNode; gameObject?: b
 export function Panel({ id, label, aside, gameObject = false, busy = false, children }: PanelProps) {
   const titleId = `${id}-panel-title`;
   return (
-    <section aria-labelledby={titleId} aria-busy={busy || undefined} className={`relative flex flex-col gap-3 rounded-xl border bg-card p-4 ${gameObject ? "hud-panel" : ""}`}>
+    <section aria-labelledby={titleId} aria-busy={busy || undefined} className={`relative flex flex-col gap-3 rounded-lg border bg-card p-4 ${gameObject ? "hud-panel" : ""}`}>
       <div className="flex items-baseline justify-between gap-3">
         <h2 id={titleId} className="hud-label">
           {label}

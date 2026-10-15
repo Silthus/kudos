@@ -21,13 +21,13 @@ import { chipName, coinsToSpend } from "./skills/perkWords";
 import { useTheme } from "./theme";
 import { ThemeControl } from "./ThemeControl";
 
-type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; readyElsewhere?: ReadyCrate[]; current?: Screen; busy: boolean; inert?: boolean; notice?: ReactNode; onSignOut?: () => void; children: ReactNode };
+type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; readyElsewhere?: ReadyCrate[]; current?: Screen; busy: boolean; revealing?: boolean; notice?: ReactNode; onSignOut?: () => void; children: ReactNode };
 
-export function Frame({ member, ready = [], readyElsewhere = [], current, busy, inert, notice, onSignOut, children }: FrameProps) {
-  const palette = usePalette(member !== undefined && !inert);
+export function Frame({ member, ready = [], readyElsewhere = [], current, busy, revealing = false, notice, onSignOut, children }: FrameProps) {
+  const palette = usePalette(member !== undefined && !revealing);
   return (
     <>
-      <div className="hud-root flex min-h-screen flex-col" inert={inert || palette.open}>
+      <div className="hud-root flex min-h-screen flex-col" inert={revealing || palette.open} data-revealing={revealing || undefined}>
         <header className="sticky top-0 z-40 border-b bg-card/85 shadow-[0_1px_0_0_color-mix(in_oklab,var(--foreground)_4%,transparent)] backdrop-blur-md">
           <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-lg:gap-y-1 max-lg:pt-2 max-sm:gap-x-2 md:px-6">
             <Wordmark />
@@ -87,7 +87,7 @@ function PaletteChip({ onOpen }: { onOpen: () => void }) {
       onClick={onOpen}
       aria-label="Open the command palette"
       title="Command palette"
-      className="hidden h-8 items-center whitespace-nowrap rounded-full border border-dashed border-muted-foreground px-2.5 font-mono text-[11px] text-muted-foreground transition-colors hover:border-primary hover:text-foreground sm:inline-flex"
+      className="hidden h-8 items-center whitespace-nowrap rounded-md border border-dashed border-muted-foreground px-2.5 font-mono text-[11px] text-muted-foreground transition-colors hover:border-primary hover:text-foreground sm:inline-flex"
     >
       {paletteShortcut()}
     </button>
@@ -111,7 +111,7 @@ function SkillPointChip({ points }: { points: number }) {
   const counted = useCountUp(points);
   return (
     <span onAnimationEnd={onAnimationEnd} className={`inline-flex ${popIn}`}>
-      <AppLink href="/skills" aria-label={chipName(points)} className="inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums hover:bg-fill-hover" {...skillPointChipAttributes()}>
+      <AppLink href="/skills" aria-label={chipName(points)} className="inline-flex h-8 items-center gap-1.5 rounded-md border bg-card px-2.5 text-sm font-medium tabular-nums hover:bg-fill-hover" {...skillPointChipAttributes()}>
         <SkillPointGlyph />
         {counted}
       </AppLink>
@@ -124,7 +124,7 @@ function CoinsChip({ coins }: { coins: number }) {
   const counted = useCountUp(coins);
   const name = coinsToSpend(coins);
   return (
-    <span role="img" aria-label={name} title={name} onAnimationEnd={onAnimationEnd} className={`inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums ${popIn}`} {...coinsChipAttributes()}>
+    <span role="img" aria-label={name} title={name} onAnimationEnd={onAnimationEnd} className={`inline-flex h-8 items-center gap-1.5 rounded-md border bg-card px-2.5 text-sm font-medium tabular-nums ${popIn}`} {...coinsChipAttributes()}>
       <CoinGlyph />
       {counted}
     </span>
