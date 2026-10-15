@@ -51,7 +51,7 @@ export async function groupsShownTo(ctx: QueryCtx | MutationCtx, member: MemberI
   return (await memberDecision(ctx, groupsFlag, member)) && (await availableIn(ctx, (await chatUserOf(ctx, member)).workspace));
 }
 
-export async function isGroupsShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+export async function groupsShownAndExposedTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
   return (await groupsApplyTo(ctx, member)) && (await availableIn(ctx, (await chatUserOf(ctx, member)).workspace));
 }
 

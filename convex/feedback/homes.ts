@@ -5,7 +5,7 @@ import { bookFactsOf, type AchievementFacts } from "../achievements/achievements
 import { achievementsApplyIn, achievementsShownTo } from "../achievements/flag";
 import { groupModeShownTo, type GroupModeFacts } from "../groups/groupMode";
 import { xpRecordedEventValidator } from "../bus/events";
-import { isGroupsShownTo, type GroupId } from "../groups/groups";
+import { groupsShownAndExposedTo, type GroupId } from "../groups/groups";
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";
 import type { GroupsBoard } from "../leaderboard/groupsBoard";
 import type { MyGroupBoardView } from "../leaderboard/myGroupBoard";
@@ -142,7 +142,7 @@ async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMe
   const coins = unlocks && (await coinsVisibleAndExposedTo(ctx, person.member));
   const messages = await messageSettingsShownTo(ctx, person.member);
   const sharedSettings = await xpLevelsShownIn(ctx, workspace);
-  const groups = (await isGroupsShownTo(ctx, person.member)) ? await groupChoiceOf(ctx, person.member) : null;
+  const groups = (await groupsShownAndExposedTo(ctx, person.member)) ? await groupChoiceOf(ctx, person.member) : null;
   return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, coins, messages, admin: person.admin, sharedSettings, groups };
 }
 

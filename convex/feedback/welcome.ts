@@ -4,7 +4,7 @@ import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from
 import { bookAppliesIn } from "../achievements/flag";
 import { analyticsIdOf } from "../analytics/person";
 import { groupsApplyTo } from "../groups/flag";
-import { isGroupsShownTo, primaryGroupOf, type GroupId, type GroupRef } from "../groups/groups";
+import { groupsShownAndExposedTo, primaryGroupOf, type GroupId, type GroupRef } from "../groups/groups";
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";
 import { reconcileMember } from "../groups/reconcile";
 import { skillTreeAppliesIn } from "../progression/skillTree";
@@ -61,7 +61,7 @@ type WelcomePick = Infer<typeof welcomePickValidator>;
 
 export async function welcomePickOf(ctx: MutationCtx, member: MemberId, picked: string): Promise<WelcomePick | null> {
   const group = ctx.db.normalizeId("userGroups", picked);
-  if (group === null || !(await isGroupsShownTo(ctx, member))) return null;
+  if (group === null || !(await groupsShownAndExposedTo(ctx, member))) return null;
   return { group, saved: (await primaryGroupOf(ctx, member))?.group === group };
 }
 
@@ -69,7 +69,7 @@ export const welcomeGroupsOf = internalMutation({
   args: { workspace: v.string(), user: v.string(), pick: v.optional(welcomePickValidator) },
   handler: async (ctx, { workspace, user, pick }): Promise<WelcomeGroups | null> => {
     const person = await lookup(ctx, workspace, user);
-    if (person?.kind !== "member" || !(await isGroupsShownTo(ctx, person.member))) return null;
+    if (person?.kind !== "member" || !(await groupsShownAndExposedTo(ctx, person.member))) return null;
     await reconcileMember(ctx, person.member);
     const choice = await groupChoiceOf(ctx, person.member);
     if (pick === undefined) return choice === null ? null : { lines: [isPicked(choice) ? pickQuestion : countsFor(choice.primary)], picker: pickerOf(choice) };

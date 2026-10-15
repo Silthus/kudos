@@ -2,7 +2,7 @@ import { v, type GenericValidator, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { pickSurfaceValidator, reportLeaderboardViewed, reportLeaderboardVisibilityChanged, reportMessageSettingChanged, reportPrimaryGroupPicked } from "../analytics/isolatedUsage";
-import { isGroupsShownTo } from "../groups/groups";
+import { groupsShownAndExposedTo } from "../groups/groups";
 import { pickPrimaryGroup } from "../groups/pick";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
 import { setGroupMode } from "../groups/groupMode";
@@ -97,7 +97,7 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     }
     case "pickPrimaryGroup": {
       const group = ctx.db.normalizeId("userGroups", command.group);
-      if (group === null || !(await isGroupsShownTo(ctx, member))) return null;
+      if (group === null || !(await groupsShownAndExposedTo(ctx, member))) return null;
       if ((await pickPrimaryGroup(ctx, member, group)) === "picked") await reportPrimaryGroupPicked(ctx, { workspace, member, surface: command.surface, at: Date.now() });
       return null;
     }

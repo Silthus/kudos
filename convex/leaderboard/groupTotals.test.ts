@@ -6,8 +6,6 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import type { AwardsAttributedEvent, KudosGivenEvent } from "../bus/events";
 import type { GroupId } from "../groups/groups";
 import type { MemberId } from "../workspace/directory";
-import { dayOfPeriod, keyOf, periods } from "./periods";
-import { withKudosOn } from "./runningTotal";
 
 const thursday = new Date("2026-10-15T10:00:00Z");
 
@@ -36,10 +34,29 @@ describe("GB12: group totals follow attribution", { timeout: 30_000 }, () => {
     await attribute(t, await kudos(t, cy, ann, 1, "2026-10-14", "5"));
     await settle(t);
 
-    const totals = await groupTotals(t);
-    expect(totals).toEqual(await totalsFoldedFromAttributions(t));
-    expect(await groupPeriodTotals(t)).toEqual(await groupPeriodTotalsFoldedFromAttributions(t));
-    expect(Object.keys(totals).filter((key) => key.endsWith(":all"))).toEqual([`${zebras}:${ann}:all`, `${zebras}:${bob}:all`, `${gardeners}:${ann}:all`]);
+    expect(await groupTotals(t)).toEqual({
+      [`${zebras}:${ann}:week:2026-09-28`]: { kudos: 2, runningTotal: [0, 0, 2] },
+      [`${zebras}:${ann}:month:2026-09`]: { kudos: 2, runningTotal: [...quietDays(29), 2] },
+      [`${zebras}:${ann}:week:2026-10-12`]: { kudos: 1, runningTotal: [1] },
+      [`${zebras}:${ann}:month:2026-10`]: { kudos: 1, runningTotal: [...quietDays(11), 1] },
+      [`${zebras}:${ann}:all`]: { kudos: 3 },
+      [`${zebras}:${bob}:week:2026-10-12`]: { kudos: 3, runningTotal: [0, 0, 3] },
+      [`${zebras}:${bob}:month:2026-10`]: { kudos: 3, runningTotal: [...quietDays(13), 3] },
+      [`${zebras}:${bob}:all`]: { kudos: 3 },
+      [`${gardeners}:${ann}:week:2026-10-12`]: { kudos: 4, runningTotal: [0, 0, 4] },
+      [`${gardeners}:${ann}:month:2026-10`]: { kudos: 4, runningTotal: [...quietDays(13), 4] },
+      [`${gardeners}:${ann}:all`]: { kudos: 4 },
+    });
+    expect(await groupPeriodTotals(t)).toEqual({
+      [`${zebras}:week:2026-09-28`]: { kudos: 2, runningTotal: [0, 0, 2] },
+      [`${zebras}:month:2026-09`]: { kudos: 2, runningTotal: [...quietDays(29), 2] },
+      [`${zebras}:week:2026-10-12`]: { kudos: 4, runningTotal: [1, 1, 4] },
+      [`${zebras}:month:2026-10`]: { kudos: 4, runningTotal: [...quietDays(11), 1, 1, 4] },
+      [`${zebras}:all`]: { kudos: 6 },
+      [`${gardeners}:week:2026-10-12`]: { kudos: 4, runningTotal: [0, 0, 4] },
+      [`${gardeners}:month:2026-10`]: { kudos: 4, runningTotal: [...quietDays(13), 4] },
+      [`${gardeners}:all`]: { kudos: 4 },
+    });
   });
 });
 
@@ -116,31 +133,6 @@ async function groupPeriodTotals(t: Backend): Promise<TotalsByKey> {
   return Object.fromEntries(rows.map(({ group, period, kudos, runningTotal }) => [`${group}:${period}`, { kudos, ...(runningTotal && { runningTotal }) }]));
 }
 
-async function groupPeriodTotalsFoldedFromAttributions(t: Backend): Promise<TotalsByKey> {
-  const attributions = await t.run((ctx) => ctx.db.query("attributions").take(100));
-  const folded: TotalsByKey = {};
-  for (const { group, day, kudos } of attributions.toSorted((first, second) => first.at - second.at)) {
-    if (group === null) continue;
-    for (const period of periods) {
-      const key = `${group}:${keyOf(period, day)}`;
-      const total = folded[key] ?? { kudos: 0, ...(period !== "all" && { runningTotal: [] }) };
-      folded[key] = { kudos: total.kudos + kudos, ...(period !== "all" && { runningTotal: withKudosOn(total.runningTotal ?? [], dayOfPeriod(period, day), kudos) }) };
-    }
-  }
-  return folded;
+function quietDays(count: number): number[] {
+  return Array.from({ length: count }, () => 0);
 }
-
-async function totalsFoldedFromAttributions(t: Backend): Promise<TotalsByKey> {
-  const attributions = await t.run((ctx) => ctx.db.query("attributions").take(100));
-  const folded: TotalsByKey = {};
-  for (const { group, giver, day, kudos } of attributions.toSorted((first, second) => first.at - second.at)) {
-    if (group === null) continue;
-    for (const period of periods) {
-      const key = `${group}:${giver}:${keyOf(period, day)}`;
-      const total = folded[key] ?? { kudos: 0, ...(period !== "all" && { runningTotal: [] }) };
-      folded[key] = { kudos: total.kudos + kudos, ...(period !== "all" && { runningTotal: withKudosOn(total.runningTotal ?? [], dayOfPeriod(period, day), kudos) }) };
-    }
-  }
-  return folded;
-}
-
