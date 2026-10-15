@@ -541,6 +541,19 @@ describe("WS214: Show new activity", () => {
     expect(within(main()).queryByRole("button", { name: "Show new activity" })).not.toBeInTheDocument();
   });
 
+  it("lands on Max's empty state, and keeps it focused, when the newest page answers nothing because the raised kudos went away (#481 3)", async () => {
+    const { user, pages, watcher, showVisitor } = await openedWatching(aPage([aReceived("new", now - minute, { giver: teammates.eli }), ...shown], null));
+    await pages.answer(0, aPage(shown, null));
+    await user.click(within(main()).getByRole("button", { name: "Show new activity" }));
+    watcher.state.answer = aPage([], null);
+    showVisitor(member);
+    await pages.answer(1, aPage([], null));
+    const empty = main().querySelector("[data-timeline-empty]");
+    expect(empty).toHaveFocus();
+    expect(empty).toHaveTextContent("Your activity shows here once you thank someone or reach a level.");
+    expect(within(empty as HTMLElement).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" })).toBeInTheDocument();
+  });
+
   it("keeps focus on the page title while the newest page loads, and there when it fails", async () => {
     const { user, pages } = await openedWatching(aPage([aReceived("new", now - minute, { giver: teammates.eli }), ...shown], null));
     await pages.answer(0, aPage(shown, null));
