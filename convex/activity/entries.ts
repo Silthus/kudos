@@ -15,7 +15,7 @@ export type Segment =
 
 export type Message = { kind: "text"; segments: Segment[]; edited: boolean } | { kind: "unavailable"; reason: "deleted" | "removed" | "not-captured" };
 
-export type Channel = { visibility: "public" | "private" };
+export type Channel = { visibility: "public" | "private" | "unknown" };
 
 export type QuestDone = { kind: "weekly"; goal: string; xp: number } | { kind: "journey"; goal: string; xp: number };
 
