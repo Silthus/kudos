@@ -2,6 +2,7 @@ import { internal } from "../_generated/api";
 import type { ActionCtx } from "../_generated/server";
 import { observedHttpAction } from "../analytics/boundary";
 import { isHomeTabOpened } from "./appHome";
+import { emojiChangeOf, isEmojiChanged } from "./customEmoji";
 import { directoryRecordOfEvent, isMemberChanged } from "./directory";
 import { isUserGroupChanged, userGroupChangeOf } from "./userGroups";
 import { isMessage, mayAffectKudos, messageEventOf, type EventCallback } from "./normalize";
@@ -30,6 +31,9 @@ async function receiveSlackEvent(ctx: ActionCtx, request: Request) {
   } else if (envelope.type === "event_callback" && isUserGroupChanged(envelope.event)) {
     const userGroupChanged = userGroupChangeOf(envelope.team_id, envelope.event_id, envelope.event);
     if (userGroupChanged !== null) await ctx.runMutation(internal.slack.receipts.receiveUserGroupChanged, userGroupChanged);
+  } else if (envelope.type === "event_callback" && isEmojiChanged(envelope.event)) {
+    const emojiChanged = emojiChangeOf(envelope.team_id, envelope.event_id);
+    if (emojiChanged !== null) await ctx.runMutation(internal.slack.receipts.receiveEmojiChanged, emojiChanged);
   } else if (envelope.type === "event_callback") {
     const event = messageEventOf(envelope);
     if (isMessage(envelope.event) && !mayAffectKudos(event)) return new Response(null, { status: 200 });

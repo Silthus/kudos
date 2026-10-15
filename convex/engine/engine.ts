@@ -109,7 +109,7 @@ async function followWords(ctx: MutationCtx, event: MessageEvent, existing: Kudo
   else await forgetWords(ctx, event.ref);
 }
 
-async function changesKudosOf(ctx: QueryCtx, event: MessageEvent, row: KudosMessageRow, context: ParseContext) {
+async function changesKudosOf(ctx: MutationCtx, event: MessageEvent, row: KudosMessageRow, context: ParseContext) {
   return (await fingerprintOf(ctx, event.content, context)) !== (await fingerprintOf(ctx, row.content, context));
 }
 
@@ -319,6 +319,7 @@ async function decide(ctx: MutationCtx, row: KudosMessageRow, giver: Member, kud
     awards: await insertAwards(ctx, refOf(row), awards, day, row.spendsAt),
     via: "message",
     kudosEmoji,
+    ...(kudos.loadoutEmoji.length === 0 ? {} : { loadoutEmoji: kudos.loadoutEmoji }),
     annotations: row.annotations,
     allowance: { dailyOpening: allowance.opening, dailyLeft: left },
   });

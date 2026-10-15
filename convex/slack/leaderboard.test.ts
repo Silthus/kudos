@@ -131,7 +131,7 @@ describe("G23: /hedgehug leaderboard", () => {
     await giveKudosOn(t, "2026-10-13T09:00:00Z", "U2", 1);
 
     expect((await command(t, "U1", "leaderboard")).text).toBe(
-      ["🥇 <@U1> · 3 kudos", "🥈 <@U2> · 1 kudos", "▲ 2 more kudos than this time last week · ▲ 1 places"].join("\n"),
+      ["🥇 <@U1> · 3 kudos", "🥈 <@U2> · 1 kudos", "▲ 2 more kudos than this time last week · ▲ 1 place"].join("\n"),
     );
   });
 

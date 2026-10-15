@@ -15,6 +15,7 @@ export const subscribers: Registry = {
     internal.quests.quests.followKudosGiven,
     internal.achievements.achievements.countKudosGiven,
     internal.leaderboard.totals.countKudosGiven,
+    internal.groups.attribution.attributeKudosGiven,
     internal.analytics.subscribers.recordKudosGiven,
   ],
   attemptFailed: [internal.analytics.subscribers.recordAttemptFailed],
@@ -40,8 +41,11 @@ export const subscribers: Registry = {
   journeyStepActivated: [internal.analytics.subscribers.recordJourneyStepActivated],
   achievementEarned: [internal.analytics.subscribers.recordAchievementEarned],
   perkBought: [internal.analytics.subscribers.recordPerkBought],
+  itemBought: [],
   memberLeft: [internal.quests.journey.recheckSomeoneNew, internal.engine.kudosText.forgetWordsOfLeaver],
   memberRejoined: [internal.quests.journey.recheckRejoined],
+  primaryGroupChanged: [],
+  awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {
