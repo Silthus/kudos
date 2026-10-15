@@ -103,6 +103,42 @@ describe("ST31 ST32: an admin picks custom kudos emoji that join the store", { t
     expect(once.map(({ name }) => name)).toEqual(["partyparrot", "shipit"]);
   });
 
+  test("an admin picks at most 20, which the picker says and a longer stale pick keeps to its first 20", async () => {
+    const t = await workspaceDeciding(...everyoneDeciding);
+    const names = Array.from({ length: 21 }, (_, index) => `team${String(index).padStart(2, "0")}`);
+    for (const name of names) slack.withCustomEmoji(name, `https://emoji.slack-edge.com/T1/${name}/1.png`);
+    await t.action(internal.slack.customEmoji.syncCustomEmoji, {});
+    await openAdmin(t, "U_DANA");
+
+    await send(t, blockActions("U_DANA", stalePicksOf(picker, ...names)));
+
+    expect(externalPickerInHome(slack, "U_DANA")).toMatchObject({ max_selected_items: 20 });
+    expect((await pickedRowsOf(t)).map(({ name }) => name)).toEqual(names.slice(0, 20));
+  });
+
+  test("a custom emoji with an 80-character name keeps every Slack label within Slack's limits", async () => {
+    const long = `ship_${"a".repeat(75)}`;
+    const t = await workspaceDeciding(...everyoneDeciding);
+    slack.withCustomEmoji(long, shipitArt);
+    await t.action(internal.slack.customEmoji.syncCustomEmoji, {});
+    await aliceOpensCoinsWith(t, 100);
+    await openAdmin(t, "U_DANA");
+
+    const [option] = await suggestedOptions(t, "U_DANA", "ship_");
+    await send(t, blockActions("U_DANA", stalePicksOf(picker, long)));
+    await openInventory(t, "U_ALICE");
+    const buy = accessoryBeside("U_ALICE", `:${long}: · 100 🪙`);
+    await send(t, blockActions("U_ALICE", { type: "button", action_id: String(buy.action_id), value: String(buy.value) }));
+    await send(t, blockActions("U_ALICE", menuOptionInHome(slack, "U_ALICE", `:${long}:`, "Slot 2")));
+    const takeOff = accessoryBeside("U_ALICE", `Slot 2 · :${long}:`);
+
+    expect(option).toEqual({ text: { type: "plain_text", text: `:${long.slice(0, 73)}…` }, value: long });
+    expect(String(buy.accessibility_label).length).toBeLessThanOrEqual(75);
+    expect((buy.confirm as { title: { text: string } }).title.text.length).toBeLessThanOrEqual(100);
+    expect(String(takeOff.accessibility_label).length).toBeLessThanOrEqual(75);
+    expect(await coinsOf(t, "U_ALICE")).toBe(0);
+  });
+
   test("a name that isn't one of the workspace's custom emoji is not picked", async () => {
     const t = await workspaceDeciding(...everyoneDeciding);
     await openAdmin(t, "U_DANA");
@@ -341,15 +377,25 @@ async function send(t: Backend, interaction: string) {
 }
 
 async function suggested(t: Backend, user: string, typed: string): Promise<string[]> {
+  return (await suggestedOptions(t, user, typed)).map(({ text }) => text.text);
+}
+
+async function suggestedOptions(t: Backend, user: string, typed: string) {
   const response = await t.fetch("/slack/interactivity", await signedRequest(blockSuggestion(user, picker, typed), form));
   expect(response.status).toBe(200);
   const { options } = (await response.json()) as { options: Array<{ text: { type: string; text: string }; value: string }> };
-  return options.map(({ text }) => text.text);
+  return options;
 }
 
 function adminSection(home: string[]) {
   const start = home.indexOf("section: *Custom kudos emoji*");
   return start < 0 ? [] : home.slice(start, start + 2);
+}
+
+function accessoryBeside(user: string, line: string) {
+  const block = publishedHomeBlocks(slack, user).find((each) => each.text?.text === line);
+  expect(block?.accessory, `an accessory beside ${line}`).toBeDefined();
+  return block!.accessory as Record<string, unknown>;
 }
 
 function buyButtonBeside(line: string) {

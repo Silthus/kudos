@@ -16,6 +16,8 @@ type Admin = { member: MemberId; admin: boolean };
 
 const optionsPerSearch = 100;
 
+export const customKudosEmojiPerWorkspace = 20;
+
 const noCustomItems: CustomItems = { all: [], picked: [] };
 
 export const customKudosEmojiOptions = internalQuery({
@@ -87,6 +89,7 @@ async function picksCustomKudosEmoji(ctx: MutationCtx, { member, admin }: Admin)
 async function originalsOf(ctx: QueryCtx, workspace: string, names: string[]) {
   const originals = new Map<string, string>();
   for (const name of names) {
+    if (originals.size === customKudosEmojiPerWorkspace) break;
     const original = await originalCustomEmojiOf(ctx, workspace, name);
     if (original !== null) originals.set(original.name, original.image);
   }
