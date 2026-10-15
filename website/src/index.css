@@ -9,14 +9,38 @@
 @font-face {
   font-family: RoundHog;
   font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("@posthog/brand/fonts/RoundHog.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: RoundHog;
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("@posthog/brand/fonts/RoundHog-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: RoundHog;
+  font-style: normal;
   font-weight: 700;
+  font-display: swap;
+  src: url("@posthog/brand/fonts/RoundHog-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: RoundHog;
+  font-style: normal;
+  font-weight: 800;
   font-display: swap;
   src: url("@posthog/brand/fonts/RoundHog-Bold.woff2") format("woff2");
 }
 
 :root {
   --primary-foreground: oklch(0.13 0.028 262);
-  --font-sans: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: RoundHog, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --band-tangerine: #ff5c1c;
   --band-lemon: #ffce1c;
   --band-lemon-ink: #141414;
@@ -48,7 +72,7 @@ body {
 
 .hud-display {
   font-family: RoundHog, var(--font-sans);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.025em;
 }
 
 .hud-root {
@@ -110,11 +134,11 @@ body {
 }
 
 .hud-label {
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.2;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--muted-foreground);
 }
 

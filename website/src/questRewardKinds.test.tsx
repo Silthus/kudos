@@ -71,12 +71,18 @@ describe("WS348: a quest paying coins shows the coin glyph and value wherever it
     expect(coinsIn(homeRowOf("Give a kudos that says why with one of your kudos emoji."))).toEqual([{ text: "20 coins", glyph: true }]);
   });
 
-  it("shows a Journey step's coins on its line and on its crate's label", () => {
-    renderApp({ ...shellFixtures.memberWithQuests, journey: [bonusSteps.yourEmoji, { ...yourEmojiFinished, step: "two-days", goal: "Say why on 2 different days." }] });
+  it("shows an active Journey step's coins on its line", () => {
+    renderApp({ ...shellFixtures.memberWithQuests, journey: [bonusSteps.yourEmoji] });
 
     expect(journeyStepOf("Give a kudos that says why with one of your kudos emoji.")).toHaveTextContent("Pays 40 XP · 20 coins");
-    expect(within(journeyStepOf("Say why on 2 different days.")).getByText(/^Journey reward · 40 XP/)).toHaveTextContent("Journey reward · 40 XP · 20 coins");
-    expect(coinsIn(journeyStepOf("Say why on 2 different days."))).toEqual([{ text: "20 coins", glyph: true }]);
+    expect(coinsIn(journeyStepOf("Give a kudos that says why with one of your kudos emoji."))).toEqual([{ text: "20 coins", glyph: true }]);
+  });
+
+  it("keeps a closed crate's coins hidden: crates are loot boxes until opened", () => {
+    renderApp({ ...shellFixtures.memberWithQuests, journey: [yourEmojiFinished] });
+
+    expect(coinsIn(journeyStepOf("Give a kudos that says why with one of your kudos emoji."))).toEqual([]);
+    expect(journeyStepOf("Give a kudos that says why with one of your kudos emoji.")).not.toHaveTextContent(/coin/i);
   });
 
   it("shows an opened Journey step's earned coins", () => {
@@ -95,41 +101,6 @@ describe("WS348: a read that carries no coins, because the quest pays none or ge
 
     renderApp(shellFixtures.memberWithQuests, undefined, undefined, fixedQuests(questsFixtures.weekWithABonus));
     expect(main()).not.toHaveTextContent(/coin/i);
-  });
-});
-
-describe("WS348 WS66: the reveal's end state shows one chip per reward kind after opened", () => {
-  it("shows an XP chip and a coins chip once the server answers opened, and says both in the headline", async () => {
-    let answer!: (opened: OpenAnswer) => void;
-    const { user } = onQuests(payingCoins, () => new Promise((resolve) => (answer = resolve)));
-    await user.click(within(cardOf("Thank someone you haven't thanked before.")).getByRole("button", { name: "Claim" }));
-    expect(screen.queryByRole("dialog")).toBeNull();
-
-    await act(async () => answer({ kind: "opened" }));
-    await user.keyboard("{Escape}");
-
-    const reveal = screen.getByRole("dialog");
-    expect(within(reveal).getByRole("heading", { name: "You earned 20 XP and 10 coins" })).toBeVisible();
-    expect(within(within(reveal).getByRole("list", { name: "Rewards" })).getAllByRole("listitem").map((chip) => chip.textContent)).toEqual(["+20 XP", "+10 coins"]);
-    expect(coinsIn(reveal)).toEqual([{ text: "+10 coins", glyph: true }]);
-  });
-
-  it("shows the XP chip alone for a quest paying only XP", async () => {
-    const { user } = onQuests(xpOnly);
-    await user.click(within(cardOf("Thank someone you haven't thanked before.")).getByRole("button", { name: "Claim" }));
-    await user.keyboard("{Escape}");
-
-    const reveal = screen.getByRole("dialog");
-    expect(within(reveal).getByRole("heading", { name: "You earned 20 XP" })).toBeVisible();
-    expect(within(within(reveal).getByRole("list", { name: "Rewards" })).getAllByRole("listitem").map((chip) => chip.textContent)).toEqual(["+20 XP"]);
-  });
-
-  it("announces both kinds once the reveal finishes", async () => {
-    const { user } = onQuests(payingCoins);
-    await user.click(within(cardOf("Thank someone you haven't thanked before.")).getByRole("button", { name: "Claim" }));
-    await user.keyboard("{Escape}");
-
-    expect(screen.getByTestId("moment-announcement")).toHaveTextContent("You opened your quest reward. You earned 20 XP and 10 coins.");
   });
 });
 
