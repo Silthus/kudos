@@ -8,6 +8,8 @@ import type { QuestsAnswer } from "../../convex/website/quests";
 import type { BookAnswer } from "../../convex/website/book";
 import type { ProfileCardAnswer } from "../../convex/website/profileCard";
 import type { MySkillTree } from "../../convex/website/skillTree";
+import type { GroupBoards, GroupsBoardShown } from "../../convex/website/groupBoards";
+import type { Leaderboard as EveryoneBoard, MyLeaderboard as MyEveryoneBoard } from "../../convex/website/leaderboard";
 import { inventoryFixtures } from "./inventoryFixtures";
 
 export type { Face, FeatureCard, InventoryItem, ItemSource, JourneyStep, MemberInventory, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
@@ -16,12 +18,20 @@ export type { BookAnswer, LadderCard, TierCard, TierReward } from "../../convex/
 export type { TierId } from "../../convex/achievements/ladders";
 export type { Medal } from "../../convex/profileCard/profileCard";
 export type { MySkillTree, PerkNode, SkillTreeAnswer, TreeRow } from "../../convex/website/skillTree";
-export type { Leaderboard, LeaderboardRow, MyLeaderboard } from "../../convex/website/leaderboard";
+export type { LeaderboardRow } from "../../convex/website/leaderboard";
+export type { GroupBoards, GroupsBoardShown, MyGroupBoards, MyGroupBoardShown } from "../../convex/website/groupBoards";
+export type { GroupId } from "../../convex/groups/groups";
 export type { Period } from "../../convex/leaderboard/periods";
 export type { CommandAnswer, PurchaseAnswer, PurchaseRefusal, SwapAnswer } from "../../convex/website/commands";
 export type { Feature } from "../../convex/unlocks/feature";
 export type { Quest, WeeklyQuest } from "../../convex/quests/step";
 export type { Activity, ActivityEntry, KudosGiven, KudosReceived, LevelUp, Message, MyActivity, MyRecentKudos, MySpotlight, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
+
+export type GroupsBoardRow = GroupsBoardShown["rows"][number];
+
+export type Leaderboard = EveryoneBoard & Omit<GroupBoards, "kind">;
+
+export type MyLeaderboard = Exclude<MyEveryoneBoard, EveryoneBoard> | Leaderboard;
 
 export type OpenAnswer = CommandAnswer | Denial;
 

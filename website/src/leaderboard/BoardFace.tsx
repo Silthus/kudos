@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { MemberFace } from "../Face";
 import type { LeaderboardRow } from "../shell";
 
@@ -10,10 +11,10 @@ export function BoardFace({ row, className }: { row: LeaderboardRow; className: 
   );
 }
 
-export function YouLabel() {
-  return <span className="rounded-full border border-primary px-1.5 py-px text-[11px] font-medium leading-tight">You</span>;
+export function YouLabel({ children = "You" }: { children?: ReactNode }) {
+  return <span className="whitespace-nowrap rounded-full border border-primary px-1.5 py-px text-[11px] font-medium leading-tight">{children}</span>;
 }
 
-export function RankWords({ row }: { row: LeaderboardRow }) {
+export function RankWords({ row }: { row: { rank: number; tied: boolean } }) {
   return <span className="sr-only">{`Rank ${row.rank}${row.tied ? ", tied" : ""}: `}</span>;
 }
