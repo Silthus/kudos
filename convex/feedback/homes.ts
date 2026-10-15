@@ -17,6 +17,7 @@ import { thisWeeksQuestsOf, unopenedCratesOf, type UnopenedCrate, type WeeklyQue
 import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
 import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { inventoryHomeOf, type InventoryHome } from "../store/inventory";
+import { itemRefusalValidator, type ItemRefusal } from "../store/rows";
 import { storeShownAndExposedTo } from "../store/visibility";
 import { unlocksShownTo } from "../unlocks/launch";
 import { namedFor, scheduled } from "../unlocks/schedule";
@@ -36,7 +37,7 @@ export type ShownTab =
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
   | { tab: "skillTree"; perks: MemberPerks; coinsName: string }
-  | { tab: "inventory"; balance: number; inventory: InventoryHome; kudosEmoji: string }
+  | { tab: "inventory"; balance: number; inventory: InventoryHome; kudosEmoji: string; refused: ItemRefusal | null }
   | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null; achievements: boolean }
   | { tab: "admin"; announcementChannel: string | null; achievements: boolean };
 
@@ -64,8 +65,8 @@ const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices & Door
 ];
 
 export const shownHomeOf = internalMutation({
-  args: { workspace: v.string(), user: v.string(), frontDoor: v.boolean() },
-  handler: async (ctx, { workspace, user, frontDoor }): Promise<ShownHome | null> => {
+  args: { workspace: v.string(), user: v.string(), frontDoor: v.boolean(), refused: v.optional(itemRefusalValidator) },
+  handler: async (ctx, { workspace, user, frontDoor, refused }): Promise<ShownHome | null> => {
     const person = await lookup(ctx, workspace, user);
     if (person?.kind !== "member") return null;
     const slices = await slicesShownTo(ctx, workspace, person);
@@ -74,7 +75,7 @@ export const shownHomeOf = internalMutation({
     if (tabs.length === 0) return null;
     const { tab, period } = await selectionOf(ctx, person.member);
     const viewer = { workspace, user, member: person.member };
-    return { tabs, shown: await shownTabOf(ctx, viewer, slices, { tab: tabs.includes(tab) ? tab : "profile", period }) };
+    return { tabs, shown: await shownTabOf(ctx, viewer, slices, { tab: tabs.includes(tab) ? tab : "profile", period }, refused ?? null) };
   },
 });
 
@@ -110,8 +111,8 @@ export async function republishOnRoleChange(ctx: MutationCtx, before: MemberFact
   if (await xpLevelsOnFor(ctx, member)) await republish(ctx, member);
 }
 
-export async function republish(ctx: MutationCtx, member: MemberId) {
-  await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, await chatUserOf(ctx, member));
+export async function republish(ctx: MutationCtx, member: MemberId, refused?: ItemRefusal) {
+  await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { ...(await chatUserOf(ctx, member)), ...(refused !== undefined && { refused }) });
 }
 
 export async function isLeaderboardShownTo(ctx: MutationCtx, workspace: string, member: MemberId) {
@@ -142,7 +143,7 @@ function tabsOf(slices: Slices & Door): HomeTab[] {
 
 type Viewer = { workspace: string; user: string; member: MemberId };
 
-async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection): Promise<ShownTab> {
+async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection, refused: ItemRefusal | null): Promise<ShownTab> {
   switch (tab) {
     case "profile":
       if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, earlierCrates: null, journey: null };
@@ -162,7 +163,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
     case "skillTree":
       return { tab, perks: await memberPerksOf(ctx, viewer.member), coinsName: namedFor(scheduled("coins"), slices.store).name };
     case "inventory":
-      return { tab, balance: await balanceOf(ctx, viewer.member), inventory: await inventoryHomeOf(ctx, viewer.member), kudosEmoji: (await settingsOf(ctx, viewer.workspace)).kudosEmoji };
+      return { tab, balance: await balanceOf(ctx, viewer.member), inventory: await inventoryHomeOf(ctx, viewer.member), kudosEmoji: (await settingsOf(ctx, viewer.workspace)).kudosEmoji, refused };
     case "settings":
       return {
         tab,

@@ -18,7 +18,9 @@ export type Inventory = {
   catalogue: Array<CatalogueItem & { onSale: boolean }>;
 };
 
-export type InventoryHome = { slots: Array<CatalogueItem | null>; collection: CatalogueItem[] };
+export type InventoryHome = { slots: Array<CatalogueItem | null>; collection: CatalogueItem[]; store: StoreItem[] };
+
+export type StoreItem = CatalogueItem & { source: { kind: "store"; price: number } };
 
 export const slots: readonly Slot[] = ["emoji-1", "emoji-2", "emoji-3"];
 
@@ -50,14 +52,25 @@ export async function loadoutOf(ctx: QueryCtx, member: MemberId): Promise<Loadou
 export async function inventoryHomeOf(ctx: QueryCtx, member: MemberId): Promise<InventoryHome> {
   const loadout = await loadoutOf(ctx, member);
   const slotted = new Set(loadout.map(({ item }) => item));
-  const unslotted = (await ownedBy(ctx, member)).filter(({ item }) => !slotted.has(item));
-  return { slots: loadout.map(({ item }) => (item === null ? null : (itemOf(item) ?? null))), collection: unslotted.flatMap(({ item }) => itemOf(item) ?? []) };
+  const owned = await ownedBy(ctx, member);
+  const unslotted = owned.filter(({ item }) => !slotted.has(item));
+  const ownedOrSlotted = new Set([...slotted, ...owned.map(({ item }) => item)]);
+  const store = storeItemsIn(await workspaceEmojiOf(ctx, member)).filter(({ item }) => !ownedOrSlotted.has(item));
+  return { slots: loadout.map(({ item }) => (item === null ? null : (itemOf(item) ?? null))), collection: unslotted.flatMap(({ item }) => itemOf(item) ?? []), store };
 }
 
 export async function grantItem(ctx: MutationCtx, granted: CollectedItem): Promise<boolean> {
   if ((await collectedRow(ctx, granted.member, granted.item)) !== null) return false;
   await ctx.db.insert("collection", granted);
   return true;
+}
+
+export async function storeItemFor(ctx: QueryCtx, member: MemberId, item: ItemId): Promise<StoreItem | null> {
+  return storeItemsIn(await workspaceEmojiOf(ctx, member)).find((entry) => entry.item === item) ?? null;
+}
+
+export async function owns(ctx: QueryCtx, member: MemberId, item: ItemId): Promise<boolean> {
+  return (await collectedRow(ctx, member, item)) !== null;
 }
 
 export async function ownedBy(ctx: QueryCtx, member: MemberId): Promise<OwnedItem[]> {
@@ -91,8 +104,12 @@ function isMutation(ctx: QueryCtx | MutationCtx): ctx is MutationCtx {
   return "insert" in ctx.db;
 }
 
-function listedIn(workspaceEmoji: string, { source, emoji }: CatalogueItem) {
-  return source.kind === "store" && emoji !== workspaceEmoji;
+function listedIn(workspaceEmoji: string, entry: CatalogueItem): entry is StoreItem {
+  return entry.source.kind === "store" && entry.emoji !== workspaceEmoji;
+}
+
+function storeItemsIn(workspaceEmoji: string): StoreItem[] {
+  return catalogue.items.filter((entry: CatalogueItem) => listedIn(workspaceEmoji, entry));
 }
 
 async function workspaceEmojiOf(ctx: QueryCtx, member: MemberId) {

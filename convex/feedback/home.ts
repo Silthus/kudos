@@ -16,8 +16,9 @@ import type { WeekKey } from "../quests/week";
 import type { UnopenedCrate, WeeklyQuests, WeeklySlot } from "../quests/weekly";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { Feature } from "../unlocks/feature";
-import type { CatalogueItem } from "../store/catalogue";
-import type { InventoryHome } from "../store/inventory";
+import { itemOf, type CatalogueItem } from "../store/catalogue";
+import type { InventoryHome, StoreItem } from "../store/inventory";
+import type { ItemRefusal } from "../store/rows";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
@@ -222,18 +223,55 @@ function perkLines(perk: TreePerk, coinsName: string): HomeLine[] {
   return [{ kind: "text", text: perkTextOf(perk) }, { kind: "hint", text: whyNotOf({ ...perk, state }, coinsName) }];
 }
 
-function inventoryGroups({ balance, inventory, kudosEmoji }: Extract<ShownTab, { tab: "inventory" }>): HomeLine[][] {
-  const slots = [{ kind: "text", text: bold("Your kudos emoji") }, ...slotLinesOf(inventory), { kind: "hint", text: `Each emoji in a slot counts as a kudos, like :${kudosEmoji}:.` }] satisfies HomeLine[];
-  return [[{ kind: "text", text: inCoins(balance) }], slots, ...collectionLinesOf(inventory)];
+type RefusalLines = { after: (item: CatalogueItem | null) => HomeLine[]; unplaced: HomeLine[] };
+
+function inventoryGroups({ balance, inventory, kudosEmoji, refused }: Extract<ShownTab, { tab: "inventory" }>): HomeLine[][] {
+  const told = refusalLinesOf(inventory, refused, balance);
+  const slots = [{ kind: "text", text: bold("Your kudos emoji") }, ...slotLinesOf(inventory, told), { kind: "hint", text: `Each emoji in a slot counts as a kudos, like :${kudosEmoji}:.` }] satisfies HomeLine[];
+  return [[{ kind: "text", text: inCoins(balance) }], slots, ...collectionLinesOf(inventory, told), ...storeLinesOf(inventory, told)];
 }
 
-function slotLinesOf({ slots }: InventoryHome): HomeLine[] {
-  return slots.map((item, index) => ({ kind: "text", text: `Slot ${index + 1} · ${item === null ? "empty" : itemLabelOf(item)}` }));
+function slotLinesOf({ slots }: InventoryHome, { after }: RefusalLines): HomeLine[] {
+  return slots.flatMap((item, index): HomeLine[] => [{ kind: "text", text: `Slot ${index + 1} · ${item === null ? "empty" : itemLabelOf(item)}` }, ...after(item)]);
 }
 
-function collectionLinesOf({ collection }: InventoryHome): HomeLine[][] {
+function collectionLinesOf({ collection }: InventoryHome, { after }: RefusalLines): HomeLine[][] {
   if (collection.length === 0) return [];
-  return [[{ kind: "text", text: bold("Collection") }, ...collection.map((item): HomeLine => ({ kind: "text", text: itemLabelOf(item) }))]];
+  return [[{ kind: "text", text: bold("Collection") }, ...collection.flatMap((item): HomeLine[] => [{ kind: "text", text: itemLabelOf(item) }, ...after(item)])]];
+}
+
+function storeLinesOf({ store }: InventoryHome, { after, unplaced }: RefusalLines): HomeLine[][] {
+  if (store.length === 0 && unplaced.length === 0) return [];
+  return [[{ kind: "text", text: bold("Store") }, ...store.flatMap((item): HomeLine[] => [{ kind: "action", ...itemOfferOf(item) }, ...after(item)]), ...unplaced]];
+}
+
+function itemOfferOf(item: StoreItem): { text: string; action: HomeAction } {
+  const [label, price] = [itemLabelOf(item), coinsOf(item.source.price)];
+  const confirm = { title: `Buy ${label} for ${price}?`, text: "Coins are never refunded.", confirm: "Buy", deny: "Cancel" };
+  return { text: `${label} · ${price}`, action: { label: "Buy", command: { type: "buyItem", item: item.item }, accessibilityLabel: `Buy ${item.name}`, confirm } };
+}
+
+function refusalLinesOf({ slots, collection, store }: InventoryHome, refused: ItemRefusal | null, balance: number): RefusalLines {
+  const lines: HomeLine[] = refused === null ? [] : refusalTextOf(refused, balance).map((text) => ({ kind: "hint", text }));
+  const isRefused = (item: CatalogueItem | null) => item !== null && item.item === refused?.item;
+  const placed = [...slots, ...collection, ...store].some(isRefused);
+  return { after: (item) => (isRefused(item) ? lines : []), unplaced: placed ? [] : lines };
+}
+
+function refusalTextOf({ item, reason }: ItemRefusal, balance: number): string[] {
+  switch (reason) {
+    case "no-coins": {
+      const source = itemOf(item)?.source;
+      const short = (source?.kind === "store" ? source.price : 0) - balance;
+      return short > 0 ? [`You need ${short} more 🪙.`] : [];
+    }
+    case "owned":
+      return ["You already own it."];
+    case "not-for-sale":
+      return ["It isn't for sale."];
+    case "coins-not-open":
+      return [];
+  }
 }
 
 function itemLabelOf({ art, emoji, name }: CatalogueItem) {

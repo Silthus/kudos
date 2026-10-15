@@ -13,6 +13,8 @@ import { perkValidator } from "../progression/tree";
 import { openQuestCrate } from "../quests/open";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { rerollQuest } from "../quests/weekly";
+import { buyItem } from "../store/buying";
+import type { ItemPurchaseOutcome } from "../store/rows";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { featureValidator } from "../unlocks/feature";
 import { openUnlock } from "../unlocks/unlocks";
@@ -29,15 +31,18 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
   v.object({ type: v.literal("rerollQuest"), quest: weeklyQuestValidator }),
   v.object({ type: v.literal("buyPerk"), perk: perkValidator }),
+  v.object({ type: v.literal("buyItem"), item: v.string() }),
 );
 
 export type Command = Infer<typeof commandValidator>;
+
+export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | null;
 
 export function commandOf(candidate: unknown): Command | null {
   return conforms(commandValidator, candidate) ? (candidate as Command) : null;
 }
 
-export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, idempotencyKey: string): Promise<PurchaseOutcome | null> {
+export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, idempotencyKey: string): Promise<CommandOutcome> {
   const { member } = person;
   switch (command.type) {
     case "showHomeTab": {
@@ -74,6 +79,11 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     case "buyPerk": {
       const outcome = await buyPerk(ctx, member, command.perk, idempotencyKey);
       if (outcome !== null) await showHomeTab(ctx, workspace, person, "skillTree");
+      return outcome;
+    }
+    case "buyItem": {
+      const outcome = await buyItem(ctx, member, command.item, idempotencyKey);
+      if (outcome !== null) await showHomeTab(ctx, workspace, person, "inventory");
       return outcome;
     }
   }

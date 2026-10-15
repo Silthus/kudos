@@ -5,7 +5,7 @@ import { perkValidator } from "../progression/tree";
 import type { MemberId } from "../workspace/directory";
 import { coinsVisibleTo } from "./visibility";
 
-export const spentForValidator = v.object({ perk: perkValidator });
+export const spentForValidator = v.union(v.object({ perk: perkValidator }), v.object({ item: v.string() }));
 
 export const coinSpendValidator = v.object({ member: v.id("members"), coins: v.number(), for: spentForValidator, at: v.number() });
 

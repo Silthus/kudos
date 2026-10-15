@@ -7,6 +7,7 @@ import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import type { HomeFacts } from "../engine/home";
 import { renderHome, type Choice, type HomeLine, type HomeView } from "../feedback/home";
 import { xpLevelsShownTo } from "../progression/xpLevels";
+import { itemRefusalValidator, type ItemRefusal } from "../store/rows";
 import { lookup } from "../workspace/directory";
 import { buttonOf, mrkdwn, plainText, urlButtonOf } from "./blocks";
 import { attemptArgs, failedAttempt, sendOnce, slackTextOf, tryAtMostThreeTimes } from "./delivery";
@@ -37,7 +38,7 @@ export const reportLookedUpHomeOpening = internalMutation({
 });
 
 export const publishHome = observedAction({
-  args: { workspace: v.string(), user: v.string(), opened: v.optional(v.boolean()), unreportedOpeningAt: v.optional(v.number()), ...attemptArgs },
+  args: { workspace: v.string(), user: v.string(), opened: v.optional(v.boolean()), refused: v.optional(itemRefusalValidator), unreportedOpeningAt: v.optional(v.number()), ...attemptArgs },
   handler: async (ctx, { attempt = 1, unreportedOpeningAt, ...home }) => {
     let unreported = unreportedOpeningAt;
     await tryAtMostThreeTimes(
@@ -75,7 +76,7 @@ export function appHomeUrl(workspace: string) {
   return `slack://app?${new URLSearchParams({ team: workspace, id: appId(), tab: "home" })}`;
 }
 
-type Home = { workspace: string; user: string; opened?: boolean };
+type Home = { workspace: string; user: string; opened?: boolean; refused?: ItemRefusal };
 
 type Unavailable = { kind: "unavailable"; retryAfterMs?: number };
 
@@ -83,12 +84,12 @@ async function desiredHomeOf(ctx: ActionCtx, home: Home): Promise<{ kind: "view"
   const facts = await homeFactsOf(ctx, home);
   if (facts.kind === "unavailable") return facts;
   const frontDoor = await ctx.runQuery(internal.website.link.frontDoorLinksOf, { workspace: home.workspace, user: home.user });
-  const shown = await ctx.runMutation(internal.feedback.homes.shownHomeOf, { workspace: home.workspace, user: home.user, frontDoor: frontDoor !== null });
+  const shown = await ctx.runMutation(internal.feedback.homes.shownHomeOf, { workspace: home.workspace, user: home.user, frontDoor: frontDoor !== null, ...(home.refused !== undefined && { refused: home.refused }) });
   return { kind: "view", view: homeView(renderHome(facts, shown, frontDoor)) };
 }
 
-async function changedWhileSent(ctx: ActionCtx, { workspace, user }: Home, sent: SlackHomeView) {
-  const desired = await desiredHomeOf(ctx, { workspace, user });
+async function changedWhileSent(ctx: ActionCtx, { workspace, user, refused }: Home, sent: SlackHomeView) {
+  const desired = await desiredHomeOf(ctx, { workspace, user, ...(refused !== undefined && { refused }) });
   return desired.kind === "view" && JSON.stringify(desired.view) !== JSON.stringify(sent);
 }
 

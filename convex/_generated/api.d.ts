@@ -144,6 +144,7 @@ import type * as slack_webApi from "../slack/webApi.js";
 import type * as slack_welcome from "../slack/welcome.js";
 import type * as slack_workspaceLink from "../slack/workspaceLink.js";
 import type * as slack_workspaceUrl from "../slack/workspaceUrl.js";
+import type * as store_buying from "../store/buying.js";
 import type * as store_catalogue from "../store/catalogue.js";
 import type * as store_inventory from "../store/inventory.js";
 import type * as store_rows from "../store/rows.js";
@@ -329,6 +330,7 @@ declare const fullApi: ApiFromModules<{
   "slack/welcome": typeof slack_welcome;
   "slack/workspaceLink": typeof slack_workspaceLink;
   "slack/workspaceUrl": typeof slack_workspaceUrl;
+  "store/buying": typeof store_buying;
   "store/catalogue": typeof store_catalogue;
   "store/inventory": typeof store_inventory;
   "store/rows": typeof store_rows;

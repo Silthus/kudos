@@ -6,6 +6,7 @@ import { commandValidator, runCommand } from "../commands/commands";
 import { messageDeletedValidator, messageEventValidator } from "../engine/messageEvent";
 import { republish } from "../feedback/homes";
 import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
+import type { ItemRefusal } from "../store/rows";
 import { directoryEntryValidator, lookup } from "../workspace/directory";
 import { recordPerson } from "./directory";
 import { reportHomeOpened } from "./appHome";
@@ -52,11 +53,15 @@ export const receiveHomeClick = internalMutation({
     await ctx.db.insert("slackReceipts", receipt);
     const person = await lookup(ctx, receipt.workspace, user);
     if (person?.kind !== "member") return;
+    let refused: ItemRefusal | undefined;
     for (const command of commands) {
       const outcome = await runCommand(ctx, receipt.workspace, person, command, `slack:${receipt.eventId}`);
-      if (outcome !== null && conversation !== undefined) await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, conversation, outcome });
+      if (outcome === null) continue;
+      if ("perk" in outcome) {
+        if (conversation !== undefined) await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, conversation, outcome });
+      } else if (outcome.kind === "refused") refused = outcome;
     }
-    await republish(ctx, person.member);
+    await republish(ctx, person.member, refused);
   },
 });
 
