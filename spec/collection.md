@@ -136,7 +136,7 @@ The product owner, 2026-10-15 (decision 25): the Book becomes a collection of ho
   ```
 
   `rarities` is in CL3's order, common first and legendary last, `chance` its weight. `PageWaits` is exactly `getBook`'s. `hoggies` is every catalogue hoggie, in catalogue order, with `count` 0 and `firstAt` null for one not held. `seen` is the website's member-scoped seen key `seenKeyOf(member, "hoggie:{hoggie}:{firstAt}")` for a held hoggie, so the Book can mark new arrivals as it marks new tiers. It reads every drop record of the member through one index range.
-- **CL16. App Home.** While `collection` is on and the Book is open, both App Home views (the profile and the front door's summary) carry one line after the crates: `Hoggies: {owned} of {total} · last found: {name} ({⬜ Common})`, with a link to the Book on the website. A member with no drop sees `Hoggies: 0 of 151 · every crate you open drops one.` Opening a crate in Slack sends no new message (decision 22): the open's App Home republish shows the line.
+- **CL16. App Home.** While `collection` is on and the Book is open, both App Home views (the profile and the front door's summary) carry one line after the crates: `Hoggies: {owned} of {total} · last found: {name} ({⬜ Common})`, with a link to the Book on the website. A member with no drop sees `Hoggies: 0 of 151 · every crate you open drops one.` A crate opened in Slack sends no new message (decision 22): the open's App Home republish shows the line.
 - **CL17. Events.** The drop publishes `hoggieDropped { workspace, member, crate, hoggie, rarity, copy, at }` on the bus, and analytics projects it as the product event `hoggie dropped` with `rarity`, `is_new` and `crate_kind` (`weekly`, `journey` or `unlock`), never the hoggie's name. Nothing else subscribes in this stopping point.
 
 #### Rollout
@@ -244,7 +244,7 @@ Catalogue order within a rarity is the order above.
 | `demand-gen` | Demand Gen | `cowboy-lasso`, `town-crier`, `lemonade` |
 | `dev-experience` | Dev Experience | `996`, `cereal`, `hipster` |
 | `editorial` | Editorial | `reporter`, `greek`, `soapbox` |
-| `error-tracking` | Error Tracking | `error`, `panic`, `stop`, `reaper` |
+| `error-tracking` | `Error Tracking` | `error`, `panic`, `stop`, `reaper` |
 | `experiments` | Experiments | `experiment`, `beaker`, `doctor` |
 | `feature-flags` | Feature Flags | `drake-nah`, `drake-yah`, `card` |
 | `forward-deployed-engineering` | Forward Deployed Engineering | `explorer`, `safari`, `campfire-cowboy` |
@@ -291,7 +291,7 @@ The product owner can swap hoggies between rosters, rename nothing, in a later c
 6. Decision 18 (2026-10-14): "Just make sure that code where it's not yet fully there still has the flags only for me, but for everyone else, just turn them on."
 7. Decision 12 (2026-10-13) cut "drops, rarities"; decision 25 brings rarities back for hoggies, and drops come back as one per opened crate, not the old per-kudos chance (P40–P44 stay cut).
 
-**The website conductor's answer** (map #57, 2026-10-15) accepted the contract: `drop` is a sibling of `applied`, and the reveal plays the rewards, then the hoggie card with its rarity; `Drop` stays identical on `openQuestCrate`, `openFeature` and `openCrate`; `getCollection` is its own query, feeding a Collection page in the Book, with `PageWaits` exactly as `getBook` answers; `rarities` runs common to legendary and the website groups hoggies by rarity itself; the website maps slugs to art from `@posthog/brand` 0.13.0 itself and draws a silhouette for a slug without art. It asked for the drop on the activity timeline in stopping point 1 if the read budget allows, which it does (CL21). Map #57 owns amending its visual language: V13 ("Opening reveals what the member has already earned and never decides it") and "There are no rarity colours" give way to CL3 and CL8.
+**The website conductor's answer** (map #57, 2026-10-15) accepted the contract: `drop` is a sibling of `applied`, and the reveal plays the rewards, then the hoggie card with its rarity; `Drop` stays identical on `openQuestCrate`, `openFeature` and `openCrate`; `getCollection` is its own query, feeding a Collection page in the Book, with `PageWaits` exactly as `getBook` answers; `rarities` runs common to legendary and the website groups hoggies by rarity itself; the website maps slugs to art from `@posthog/brand` 0.13.0 itself and draws a silhouette for a slug without art. It asked for the drop on the activity timeline in stopping point 1 if the read budget allows, which it does (CL21). Map #57 owns amending its visual language: V13 (a crate "never decides" what it holds) and "There are no rarity colours" give way to CL3 and CL8.
 
 **Calls taken at recommendation** are listed with their journal IDs in the resolution on #454.
 

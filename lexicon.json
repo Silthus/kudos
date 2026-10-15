@@ -594,6 +594,14 @@
     {
       "name": "Buy",
       "definition": "The button on a perk offer, in App Home's Skill tree tab, in a level-up message and on the website, that buys the perk for the member who clicks it; its answer, what they bought or why not, reaches only that member (QM26)."
+    },
+    {
+      "name": "hoggie",
+      "definition": "An official PostHog hedgehog illustration from @posthog/brand, named by its slug, that a member collects in the Book: every crate a member opens drops one, drawn by its rarity at the open, and duplicates count up. A hoggie is not an item: it fills no slot, is never sold and is never a kudos emoji."
+    },
+    {
+      "name": "crest",
+      "definition": "A team's crest from @posthog/brand, named by its slug, that a member collects in the Book once they hold at least one of every hoggie on its roster of two to four hoggies; it is collected once, at the drop that completed the roster, and never taken back. It is the art of a team, not a group."
     }
   ],
   "retired": [
