@@ -42,3 +42,4 @@ In every run the HUD held level 5, 1 skill point and 226 coins from the answer u
 - The flight plays inside the reveal for every crate, however it was opened, replacing #354's flight after Done. The ready pill's and the next crate's opens fly too.
 - Each token's glow comes from the band colours (XP lemon, skill point blue, coins tangerine) and a drop's from its rarity; V3's "no rarity colours" line waits for #467.
 - The flight pins its reward when the tokens burst, not when the answer arrives, so a Skill tree crate's skill point, whose read lands after the answer, is held and flown.
+- A crate this browser has seen before opens on the finish at once with the crate's recorded XP and coins and no flight; the skill point it once earned is a level-up consequence the crate alone can't name, so that finish lists XP, coins and the drop only (checked live by sampling the page over a seen-before and a fresh reveal).
