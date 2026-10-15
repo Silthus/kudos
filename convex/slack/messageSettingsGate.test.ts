@@ -8,7 +8,7 @@ import { blockActions, publishedHome, publishedHomeBlocks, readBlocks, staleButt
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import type { DomainEvent } from "../bus/events";
 import { publish } from "../bus/publish";
-import { xpToReach } from "../progression/levels";
+import { levelOf, xpToReach } from "../progression/levels";
 import { recordReward } from "../progression/progression";
 import { questOf, questPool, type QuestId } from "../quests/pool";
 import type { MemberId } from "../workspace/directory";
@@ -195,10 +195,21 @@ async function walkEveryMessagePath(t: Backend, user: string) {
 }
 
 async function aLevelUpFor(t: Backend, user: string) {
-  const member = await memberOf(t, user);
-  const level = await t.run(async (ctx) => (await ctx.db.query("memberProgress").withIndex("by_member", (q) => q.eq("member", member)).unique())!.level);
+  const level = await levelNow(t, user);
   await xpOf(t, user, xpToReach(level + 1) - 1);
   await giveKudos(t, user, [friendsOf[user]![0]], "thanks");
+  expect(await levelNow(t, user)).toBe(level + 1);
+}
+
+async function levelNow(t: Backend, user: string) {
+  const member = await memberOf(t, user);
+  const progress = await t.run((ctx) =>
+    ctx.db
+      .query("memberProgress")
+      .withIndex("by_member", (q) => q.eq("member", member))
+      .unique(),
+  );
+  return levelOf(progress!.xp);
 }
 
 async function bothWalks(definitions: FlagDefinition[]) {
