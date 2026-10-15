@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { Message, Segment } from "../shell";
 import { emojiCharacterOf } from "./emoji";
 
@@ -60,12 +60,25 @@ function StyledText({ segment }: { segment: Extract<Segment, { kind: "text" }> }
   return styled;
 }
 
-function EmojiOf({ segment }: { segment: Extract<Segment, { kind: "emoji" }> }) {
+type Emoji = Extract<Segment, { kind: "emoji" }>;
+
+function EmojiOf({ segment }: { segment: Emoji }) {
   const character = segment.unicode ?? emojiCharacterOf(segment.name);
   if (character !== undefined) return character;
+  if (segment.image !== undefined) return <EmojiPicture key={segment.image} name={segment.name} image={segment.image} />;
+  return <EmojiName name={segment.name} />;
+}
+
+function EmojiPicture({ name, image }: { name: string; image: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <EmojiName name={name} />;
+  return <img src={image} alt={`:${name}:`} onError={() => setFailed(true)} className="inline h-[1.2em] w-auto align-[-0.25em]" />;
+}
+
+function EmojiName({ name }: { name: string }) {
   return (
     <span data-custom-emoji className="rounded bg-background/60 px-1 text-[0.9em] text-foreground/70">
-      {`:${segment.name}:`}
+      {`:${name}:`}
     </span>
   );
 }

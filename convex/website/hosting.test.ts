@@ -57,7 +57,8 @@ describe("WS26: the static catch-all comes after Slack's routes", () => {
 
 const uploadedSlackPhotos = "https://avatars.slack-edge.com";
 const gravatarPhotos = "https://secure.gravatar.com";
-const slackPictureHosts = [uploadedSlackPhotos, gravatarPhotos];
+const customEmojiPictures = ["https://emoji.slack-edge.com", "https://a.slack-edge.com"];
+const slackPictureHosts = [uploadedSlackPhotos, gravatarPhotos, ...customEmojiPictures];
 
 describe("WS25: every HTML response carries the strict Content Security Policy header", () => {
   test("GET / answers HTML with the policy", async () => {

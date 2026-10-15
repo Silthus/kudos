@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { KudosMessage } from "./activity/KudosMessage";
 import type { Message, Segment } from "./shell";
@@ -52,6 +52,31 @@ describe("WS210: one renderer for a kudos message", () => {
     const container = shown(words({ kind: "emoji", name: "tada", unicode: "🎉" }, { kind: "emoji", name: "partyparrot" }));
 
     expect(container).toHaveTextContent("🎉:partyparrot:");
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("draws a custom emoji with a picture as that picture at text size, named by its colons", () => {
+    shown(words({ kind: "text", text: "Shipped " }, { kind: "emoji", name: "partyparrot", image: "https://emoji.slack-edge.com/T1/partyparrot/abc.gif" }));
+
+    const picture = screen.getByRole("img", { name: ":partyparrot:" });
+    expect(picture).toHaveAttribute("src", "https://emoji.slack-edge.com/T1/partyparrot/abc.gif");
+    expect(picture).toHaveClass("h-[1.2em]", "w-auto", "inline");
+    expect(screen.queryByText(":partyparrot:")).toBeNull();
+  });
+
+  it("draws a custom emoji whose picture fails to load as its name between colons", () => {
+    const container = shown(words({ kind: "emoji", name: "partyparrot", image: "https://emoji.slack-edge.com/T1/partyparrot/gone.gif" }));
+
+    fireEvent.error(screen.getByRole("img", { name: ":partyparrot:" }));
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(container).toHaveTextContent(":partyparrot:");
+  });
+
+  it("draws an emoji's unicode before its picture", () => {
+    const container = shown(words({ kind: "emoji", name: "tada", unicode: "🎉", image: "https://emoji.slack-edge.com/T1/tada/abc.png" }));
+
+    expect(container).toHaveTextContent("🎉");
     expect(container.querySelector("img")).toBeNull();
   });
 
