@@ -1,0 +1,87 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/quest-reward-kinds
+
+ ❯ |convex| convex/website/quests.test.ts (41 tests | 2 failed | 37 skipped) 395ms
+   ❯ WS348 CO26 CO29: a quest's coins show only while the member's wallet answers (4)
+     × with Coins open, every slot, waiting crate, the bonus and the Journey read the coins their reward records 240ms
+     × a finished Journey step keeps its coins on the crate it waits in 61ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS348 CO26 CO29: a quest's coins show only while the member's wallet answers > with Coins open, every slot, waiting crate, the bonus and the Journey read the coins their reward records
+AssertionError: expected { slots: [ { xp: 20 } ], …(3) } to deeply equal { …(4) }
+
+- Expected
++ Received
+
+@@ -9,24 +9,21 @@
+        },
+        "step": "first-thanks",
+      },
+      {
+        "reward": {
+-         "coins": 20,
+          "xp": 40,
+        },
+        "step": "your-emoji",
+      },
+    ],
+    "slots": [
+      {
+-       "coins": 10,
+        "xp": 20,
+      },
+    ],
+    "waiting": [
+      {
+-       "coins": 10,
+        "xp": 20,
+      },
+    ],
+  }
+
+ ❯ convex/website/quests.test.ts:596:82
+    594|     await drawnIn(member, "2026-10-19", ["say-why-twice"], 10);
+    595|
+    596|     expect(rewardsOf(await openQuests(asSignedIn), await journeyOf(asS…
+       |                                                                                  ^
+    597|       slots: [{ xp: 20, coins: 10 }],
+    598|       waiting: [{ xp: 20, coins: 10 }],
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS348 CO26 CO29: a quest's coins show only while the member's wallet answers > a finished Journey step keeps its coins on the crate it waits in
+AssertionError: expected { …(8) } to match object { state: 'finished', …(2) }
+(5 matching properties omitted from actual)
+
+- Expected
++ Received
+
+@@ -2,10 +2,9 @@
+    "crate": {
+      "kind": "journey",
+      "step": "your-emoji",
+    },
+    "reward": {
+-     "coins": 20,
+      "xp": 40,
+    },
+    "state": "finished",
+  }
+
+ ❯ convex/website/quests.test.ts:611:86
+    609|     await t.run((ctx) => ctx.db.insert("rewardRecords", { member, key:…
+    610|
+    611|     expect((await journeyOf(asSignedIn))?.find(({ step }) => step === …
+       |                                                                                      ^
+    612|   });
+    613|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed | 37 skipped (41)
+   Start at  16:15:12
+   Duration  2.05s (transform 56%, tests 20%, import 20%, environment 3%)
+

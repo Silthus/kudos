@@ -31,6 +31,10 @@ export function rewardChipAttributes(seen: string | null) {
   return seen === null ? {} : { "data-reward-chip": seen };
 }
 
+export function rewardCoinsAttributes(seen: string | null) {
+  return seen === null ? {} : { "data-reward-coins": seen };
+}
+
 export function hudAvatarAttributes() {
   return { "data-hud-avatar": "" };
 }
@@ -47,8 +51,16 @@ export function skillPointChipAttributes() {
   return { "data-skill-point-chip": "" };
 }
 
+export function coinsChipAttributes() {
+  return { "data-coins-chip": "" };
+}
+
 export function rewardChipOrigin(seen: string): Origin | undefined {
   return document.querySelector<HTMLElement>(`main [data-reward-chip="${seen}"]`)?.getBoundingClientRect();
+}
+
+export function rewardCoinsOrigin(seen: string): Origin | undefined {
+  return document.querySelector<HTMLElement>(`main [data-reward-coins="${seen}"]`)?.getBoundingClientRect();
 }
 
 export function hudAvatar() {
@@ -71,6 +83,10 @@ export function levelDisplay() {
 
 export function skillPointChip() {
   return document.querySelector<HTMLElement>("header [data-skill-point-chip]");
+}
+
+export function coinsChip() {
+  return document.querySelector<HTMLElement>("header [data-coins-chip]");
 }
 
 export function isInView(element: HTMLElement) {
