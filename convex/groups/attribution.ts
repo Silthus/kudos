@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { kudosGivenEventValidator, membersNamedIn, type KudosGivenEvent } from "../bus/events";
+import { kudosGivenEventValidator, membersNamedIn, type AwardsAttributedEvent, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import type { MessageRef } from "../engine/messageEvent";
 import { gateDecisionOf } from "../progression/gate";
@@ -32,6 +32,15 @@ function attributionOf({ workspace, message, giver, awards, annotations, day, at
   const attributed = awards.map(({ award, recipient, kudos }) => ({ award, recipient, kudos, saysWhy, recipientGroup: groupAtSpend.get(recipient) ?? null }));
   const kudos = awards.reduce((sum, award) => sum + award.kudos, 0);
   return { message, facts: { workspace, giver, group: groupAtSpend.get(giver) ?? null, kudos, day, at, awards: attributed } };
+}
+
+export async function attributedToGroupPage(ctx: QueryCtx, group: GroupId, { from, to }: { from: number; to: number }, cursor: string | null, numItems: number) {
+  const { page, isDone, continueCursor } = await ctx.db
+    .query("attributions")
+    .withIndex("by_group_at", (q) => q.eq("group", group).gte("at", from).lt("at", to))
+    .paginate({ cursor, numItems });
+  const events = page.map(({ _id, _creationTime, conversation, message, ...facts }): AwardsAttributedEvent => ({ type: "awardsAttributed", message: { workspace: facts.workspace, conversation, message }, ...facts }));
+  return { events, isDone, continueCursor };
 }
 
 async function primaryGroupsAt(ctx: QueryCtx, people: MemberId[], at: number) {

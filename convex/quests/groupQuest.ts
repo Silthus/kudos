@@ -6,6 +6,7 @@ import { exposed, memberDecision, workspaceDecision } from "../analytics/flags";
 import { awardsAttributedEventValidator, type AwardsAttributedEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { republish } from "../feedback/homes";
+import { attributedToGroupPage } from "../groups/attribution";
 import { groupsFlag } from "../groups/flag";
 import { countsAsGroup, groupModeOf, groupsShownTo, memberGroupsOf, type GroupId, type GroupMode, type GroupRef } from "../groups/groups";
 import { primaryGroupAt } from "../groups/history";
@@ -108,11 +109,8 @@ export const catchUpContributions = internalMutation({
   handler: async (ctx, { quest, cursor }): Promise<void> => {
     const drawn = (await ctx.db.get(quest))!;
     const weekStart = weekStartOf(drawn.week, undefined);
-    const { page, isDone, continueCursor } = await ctx.db
-      .query("attributions")
-      .withIndex("by_group_at", (q) => q.eq("group", drawn.group).gte("at", weekStart).lt("at", weekStart + weekMs))
-      .paginate({ cursor, numItems: attributionsPerCatchUp });
-    for (const { _id, _creationTime, conversation, message, ...facts } of page) await contribute(ctx, { type: "awardsAttributed", message: { workspace: facts.workspace, conversation, message }, ...facts });
+    const { events, isDone, continueCursor } = await attributedToGroupPage(ctx, drawn.group, { from: weekStart, to: weekStart + weekMs }, cursor, attributionsPerCatchUp);
+    for (const event of events) await contribute(ctx, event);
     if (!isDone) await ctx.scheduler.runAfter(0, internal.quests.groupQuest.catchUpContributions, { quest, cursor: continueCursor });
   },
 });
