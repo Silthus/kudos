@@ -13,6 +13,7 @@ const inProgress: QuestSlot = {
   progress: { done: 1, target: 3 },
   reward: { xp: 20 },
   state: "in-progress",
+  waiting: false,
   swapped: false,
   crate: null,
   seen: null,
@@ -26,6 +27,7 @@ const finished: QuestSlot = {
   progress: { done: 1, target: 1 },
   reward: { xp: 20 },
   state: "finished",
+  waiting: false,
   swapped: false,
   crate: { kind: "weekly", week: thisWeek, slot: 1 },
   seen: "c41d77",
@@ -39,6 +41,7 @@ const openedAndSwapped: QuestSlot = {
   progress: { done: 1, target: 1 },
   reward: { xp: 20 },
   state: "opened",
+  waiting: false,
   swapped: true,
   crate: null,
   seen: "d90a12",
@@ -52,12 +55,13 @@ const joiningIn: QuestSlot = {
   progress: { done: 0, target: 1 },
   reward: { xp: 20 },
   state: "in-progress",
+  waiting: false,
   swapped: false,
   crate: null,
   seen: null,
 };
 
-const lastWeeksCrate: WaitingCrate = { goal: "Thank someone and say why on 2 different days.", week: "2026-10-05", reward: { xp: 20 }, crate: { kind: "weekly", week: "2026-10-05", slot: 0 }, seen: "e3b5c8" };
+const lastWeeksCrate: WaitingCrate = { goal: "Thank someone and say why on 2 different days.", week: "2026-10-05", reward: { xp: 20 }, crate: { kind: "weekly", week: "2026-10-05", slot: 0 }, seen: "e3b5c8", waiting: false };
 
 const twoWeeksAgosCrateOfTheSameQuest: WaitingCrate = { ...lastWeeksCrate, week: "2026-09-28", crate: { kind: "weekly", week: "2026-09-28", slot: 2 }, seen: "a7f2c1" };
 
@@ -75,11 +79,11 @@ const nextWeek: QuestsAnswer = {
   swap: { used: false, available: true },
 };
 
-const someoneNew: JourneyStep = { step: "someone-new", goal: "Thank someone you haven't thanked before.", hint: null, reward: { xp: 30 }, state: "active", crate: null, seen: null, feature: "leaderboard" };
+const someoneNew: JourneyStep = { step: "someone-new", goal: "Thank someone you haven't thanked before.", hint: null, reward: { xp: 30 }, state: "active", waiting: false, crate: null, seen: null, feature: "leaderboard" };
 
-const firstThanks: JourneyStep = { step: "first-thanks", goal: "Give a kudos that says why.", hint: "It counts when your message has 5 or more words besides mentions and emoji.", reward: { xp: 10 }, state: "active", crate: null, seen: null, feature: null };
+const firstThanks: JourneyStep = { step: "first-thanks", goal: "Give a kudos that says why.", hint: "It counts when your message has 5 or more words besides mentions and emoji.", reward: { xp: 10 }, state: "active", waiting: false, crate: null, seen: null, feature: null };
 
-const firstQuestFinished: JourneyStep = { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 }, state: "finished", crate: { kind: "journey", step: "first-quest" }, seen: "b2c9e4", feature: "quests" };
+const firstQuestFinished: JourneyStep = { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 }, state: "finished", waiting: false, crate: { kind: "journey", step: "first-quest" }, seen: "b2c9e4", feature: "quests" };
 
 export const bonusSteps = { someoneNew, firstThanks, firstQuestFinished };
 

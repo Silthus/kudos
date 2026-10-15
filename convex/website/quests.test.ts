@@ -232,8 +232,8 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     await questsOpenFor(member, "say-why-twice", "not-in-30-days");
 
     expect((await openQuests(asSignedIn)).slots).toEqual([
-      { slot: 0, quest: { kind: "weekly", week: thisWeek, slot: 0 }, kind: "Say why", goal: "Thank someone and say why, 2 times.", progress: { done: 0, target: 2 }, reward: { xp: 20 }, state: "in-progress", swapped: false, crate: null, seen: null },
-      { slot: 1, quest: { kind: "weekly", week: thisWeek, slot: 1 }, kind: "Reach out", goal: "Thank someone you haven't thanked in the last 30 days.", progress: { done: 0, target: 1 }, reward: { xp: 20 }, state: "in-progress", swapped: false, crate: null, seen: null },
+      { slot: 0, quest: { kind: "weekly", week: thisWeek, slot: 0 }, kind: "Say why", goal: "Thank someone and say why, 2 times.", progress: { done: 0, target: 2 }, reward: { xp: 20 }, state: "in-progress", swapped: false, crate: null, seen: null, waiting: false },
+      { slot: 1, quest: { kind: "weekly", week: thisWeek, slot: 1 }, kind: "Reach out", goal: "Thank someone you haven't thanked in the last 30 days.", progress: { done: 0, target: 1 }, reward: { xp: 20 }, state: "in-progress", swapped: false, crate: null, seen: null, waiting: false },
     ]);
   });
 
@@ -244,7 +244,7 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     await opensCrate(member, { kind: "weekly", week: thisWeek, slot: 0 });
 
     expect((await openQuests(asSignedIn)).slots).toEqual([
-      { slot: 0, quest: { kind: "weekly", week: thisWeek, slot: 0 }, kind: "Say why", goal: "Thank someone and say why.", progress: { done: 1, target: 1 }, reward: { xp: 20 }, state: "opened", swapped: false, crate: null, seen: expect.any(String) },
+      { slot: 0, quest: { kind: "weekly", week: thisWeek, slot: 0 }, kind: "Say why", goal: "Thank someone and say why.", progress: { done: 1, target: 1 }, reward: { xp: 20 }, state: "opened", swapped: false, crate: null, seen: expect.any(String), waiting: false },
       {
         slot: 1,
         quest: { kind: "weekly", week: thisWeek, slot: 1 },
@@ -256,8 +256,9 @@ describe("WS70: getQuests reads the quests module's facts", () => {
         swapped: false,
         crate: { kind: "weekly", week: thisWeek, slot: 1 },
         seen: expect.any(String),
+        waiting: false,
       },
-      { slot: 2, quest: { kind: "weekly", week: thisWeek, slot: 2 }, kind: "Say why", goal: "Thank someone and say why, 3 times.", progress: { done: 1, target: 3 }, reward: { xp: 20 }, state: "in-progress", swapped: false, crate: null, seen: null },
+      { slot: 2, quest: { kind: "weekly", week: thisWeek, slot: 2 }, kind: "Say why", goal: "Thank someone and say why, 3 times.", progress: { done: 1, target: 3 }, reward: { xp: 20 }, state: "in-progress", swapped: false, crate: null, seen: null, waiting: false },
     ]);
   });
 
@@ -281,6 +282,7 @@ describe("WS70: getQuests reads the quests module's facts", () => {
       swapped: true,
       crate: null,
       seen: null,
+      waiting: false,
     });
   });
 
@@ -359,7 +361,7 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     const afterTheTurn = await openQuests(asSignedIn);
 
     expect(afterTheTurn.slots).toEqual([]);
-    expect(afterTheTurn.waiting).toEqual([{ goal: "Thank someone and say why.", week: thisWeek, reward: { xp: 20 }, crate: { kind: "weekly", week: thisWeek, slot: 0 }, seen: expect.any(String) }]);
+    expect(afterTheTurn.waiting).toEqual([{ goal: "Thank someone and say why.", week: thisWeek, reward: { xp: 20 }, crate: { kind: "weekly", week: thisWeek, slot: 0 }, seen: expect.any(String), waiting: false }]);
 
     await opensCrate(member, afterTheTurn.waiting[0]!.crate);
 
@@ -411,6 +413,67 @@ describe("WS70: getQuests reads the quests module's facts", () => {
   });
 });
 
+describe("CR13: waiting says a finished crate's reward still waits in it", () => {
+  beforeEach(async () => {
+    await flagsOn(...questsFlags, "crate-rewards");
+    await journeyShippedBeforeAnyoneJoined(t);
+  });
+
+  test("a finished weekly quest waits until its crate is opened, and an earlier week's unopened crate still waits after the turn", async () => {
+    const { member, asSignedIn, teammate } = await aTeam();
+    await questsOpenFor(member, "say-why", "someone-new", "say-why-three-times");
+    await thanks(member, teammate.member);
+
+    expect((await openQuests(asSignedIn)).slots.map(({ state, waiting }) => ({ state, waiting }))).toEqual([
+      { state: "finished", waiting: true },
+      { state: "finished", waiting: true },
+      { state: "in-progress", waiting: false },
+    ]);
+
+    await opensCrate(member, { kind: "weekly", week: thisWeek, slot: 0 });
+
+    expect((await openQuests(asSignedIn)).slots.map(({ state, waiting }) => ({ state, waiting }))).toEqual([
+      { state: "opened", waiting: false },
+      { state: "finished", waiting: true },
+      { state: "in-progress", waiting: false },
+    ]);
+
+    vi.setSystemTime(nextMonday);
+
+    expect((await openQuests(asSignedIn)).waiting).toEqual([
+      { goal: "Thank someone you haven't thanked before.", week: thisWeek, reward: { xp: 20 }, crate: { kind: "weekly", week: thisWeek, slot: 1 }, seen: expect.any(String), waiting: true },
+    ]);
+  });
+
+  test("a finished Journey step waits in getMyProfile's journey and getQuests' bonus until its crate is opened", async () => {
+    const { member, asSignedIn, teammate } = await aTeam();
+    await questsOpenFor(member);
+    await thanks(member, teammate.member);
+
+    expect(await journeyOf(asSignedIn)).toEqual([expect.objectContaining({ step: "first-thanks", state: "finished", waiting: true })]);
+    expect((await openQuests(asSignedIn)).bonus).toMatchObject({ step: "first-thanks", state: "finished", waiting: true });
+
+    await opensCrate(member, firstThanks);
+
+    expect(await journeyOf(asSignedIn)).toEqual([expect.objectContaining({ step: "first-thanks", state: "opened", waiting: false })]);
+  });
+
+  test("CR4: a reward finished while crate-rewards was off counted at its finish, so its crates never wait", async () => {
+    const { member, asSignedIn, teammate } = await aTeam();
+    await flagsOn(...questsFlags);
+    await questsOpenFor(member, "say-why");
+    await thanks(member, teammate.member);
+    await flagsOn(...questsFlags, "crate-rewards");
+
+    expect((await openQuests(asSignedIn)).slots.map(({ state, waiting }) => ({ state, waiting }))).toEqual([{ state: "finished", waiting: false }]);
+    expect(await journeyOf(asSignedIn)).toEqual([expect.objectContaining({ state: "finished", waiting: false })]);
+
+    vi.setSystemTime(nextMonday);
+
+    expect((await openQuests(asSignedIn)).waiting.map(({ waiting }) => waiting)).toEqual([false]);
+  });
+});
+
 describe("P85: the pending-crate index lists every crate still waiting, within Convex's limits", () => {
   beforeEach(questsApply);
 
@@ -433,7 +496,7 @@ describe("WS71: getMyProfile's journey", () => {
   test("P88: a website-first member with no stored activation reads first-thanks active, with its copy and the catalogue's reward", async () => {
     const { asSignedIn } = await signedIn();
 
-    expect(await journeyOf(asSignedIn)).toEqual([{ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "active", crate: null, seen: null, feature: null }]);
+    expect(await journeyOf(asSignedIn)).toEqual([{ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "active", crate: null, seen: null, feature: null, waiting: false }]);
     expect(await t.run((ctx) => ctx.db.query("journeySteps").collect())).toEqual([]);
   });
 
@@ -449,7 +512,7 @@ describe("WS71: getMyProfile's journey", () => {
     await thanks(member, teammate.member);
 
     const finished = await journeyOf(asSignedIn);
-    expect(finished).toEqual([{ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "finished", crate: firstThanks, seen: expect.any(String), feature: null }]);
+    expect(finished).toEqual([{ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "finished", crate: firstThanks, seen: expect.any(String), feature: null, waiting: false }]);
 
     await opensCrate(member, firstThanks);
 
@@ -462,8 +525,8 @@ describe("WS71: getMyProfile's journey", () => {
     await t.mutation(internal.quests.journey.activateJourney, { event: { type: "unlockOpened", workspace: "T1", member, feature: "quests", at: Date.now() } });
 
     expect(await journeyOf(asSignedIn)).toEqual([
-      { step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "active", crate: null, seen: null, feature: null },
-      { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 }, state: "active", crate: null, seen: null, feature: "quests" },
+      { step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "active", crate: null, seen: null, feature: null, waiting: false },
+      { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 }, state: "active", crate: null, seen: null, feature: "quests", waiting: false },
     ]);
   });
 
@@ -511,7 +574,7 @@ describe("WS317: getQuests' bonus is the Journey's next step", () => {
     await questsOpenFor(member);
     await joined(member);
 
-    expect(await bonusOf(asSignedIn)).toEqual({ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "active", crate: null, seen: null, feature: null });
+    expect(await bonusOf(asSignedIn)).toEqual({ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "active", crate: null, seen: null, feature: null, waiting: false });
   });
 
   test("P85: a finished step stays the bonus with its crate and seen key until it's opened", async () => {
@@ -520,7 +583,7 @@ describe("WS317: getQuests' bonus is the Journey's next step", () => {
     await joined(member);
     await thanks(member, teammate.member);
 
-    expect(await bonusOf(asSignedIn)).toEqual({ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "finished", crate: firstThanks, seen: expect.any(String), feature: null });
+    expect(await bonusOf(asSignedIn)).toEqual({ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "finished", crate: firstThanks, seen: expect.any(String), feature: null, waiting: false });
   });
 
   test("once a step is opened, the next step is the bonus, with the feature it belongs to", async () => {
@@ -529,7 +592,7 @@ describe("WS317: getQuests' bonus is the Journey's next step", () => {
     await joined(member);
     await finishedAndOpened(member, "first-thanks");
 
-    expect(await bonusOf(asSignedIn)).toEqual({ step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 }, state: "active", crate: null, seen: null, feature: "quests" });
+    expect(await bonusOf(asSignedIn)).toEqual({ step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 }, state: "active", crate: null, seen: null, feature: "quests", waiting: false });
   });
 
   test("P88: a website-first member who hasn't joined reads no bonus, and the read joins nobody", async () => {

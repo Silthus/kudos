@@ -11,8 +11,10 @@ import { api, components, internal } from "../_generated/api";
 import { publish } from "../bus/publish";
 import { allowanceDay } from "../engine/allowance";
 import type { QuestId } from "../quests/pool";
+import type { Reward } from "../quests/journey";
 import type { Quest } from "../quests/step";
 import schema from "../schema";
+import { balanceOf, credit } from "../wallet/wallet";
 import type { MemberId } from "../workspace/directory";
 
 vi.mock("../bus/publish", async (importOriginal) => {
@@ -82,8 +84,8 @@ async function aFinishedJourneyStepIn(backend: Backend = t) {
   return team;
 }
 
-function drawnIn(backend: Backend, member: MemberId, quests: QuestId[]) {
-  const slots = quests.map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 15 } }));
+function drawnIn(backend: Backend, member: MemberId, quests: QuestId[], reward: Reward = { xp: 20, coins: 0, item: null }) {
+  const slots = quests.map((quest, slot) => ({ slot, quest, reward, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 15 } }));
   return backend.run((ctx) => ctx.db.insert("questDraws", { member, week: thisWeek, drawnAt: Date.now(), slots }));
 }
 
@@ -237,7 +239,7 @@ describe("a website command is a D17 command", () => {
     const republishedBefore = await homeRepublishesFor(juno.user);
     vi.mocked(publish).mockClear();
 
-    expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "opened" });
+    expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "opened", applied: null });
 
     expect(await crateOpeningsOf(member)).toMatchObject([{ key: "journey:first-thanks", at: now.getTime() }]);
     expect(publishedEvents()).toEqual([{ type: "questOpened", workspace: "T1", member, quest: firstThanks, at: now.getTime() }]);
@@ -247,7 +249,7 @@ describe("a website command is a D17 command", () => {
   test("WS74 P85: a finished weekly quest's crate opens for good", async () => {
     const { member, asSignedIn } = await aFinishedWeeklyQuest();
 
-    expect(await openQuestCrate(asSignedIn, firstSlot)).toEqual({ kind: "opened" });
+    expect(await openQuestCrate(asSignedIn, firstSlot)).toEqual({ kind: "opened", applied: null });
 
     expect(await crateOpeningsOf(member)).toContainEqual(expect.objectContaining({ key: `weekly:${thisWeek}:0` }));
     expect(publishedEvents()).toContainEqual({ type: "questOpened", workspace: "T1", member, quest: firstSlot, poolQuest: "say-why", at: now.getTime() });
@@ -271,7 +273,7 @@ describe("a website command is a D17 command", () => {
     await openQuestCrate(asSignedIn);
     vi.setSystemTime(now.getTime() + 60_000);
 
-    expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "opened" });
+    expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "opened", applied: null });
     expect(await crateOpeningsOf(member)).toMatchObject([{ key: "journey:first-thanks", at: now.getTime() }]);
     expect(publishedEvents().filter(({ type }) => type === "questOpened")).toHaveLength(1);
   });
@@ -324,7 +326,7 @@ describe("a website command is a D17 command", () => {
 
     const websiteSide = await aFinishedJourneyStepIn(t);
     vi.mocked(publish).mockClear();
-    expect(await openQuestCrate(websiteSide.asSignedIn)).toEqual({ kind: "opened" });
+    expect(await openQuestCrate(websiteSide.asSignedIn)).toEqual({ kind: "opened", applied: null });
     const fromWebsite = { tables: await everyTable(t), events: publishedEvents() };
 
     expect(comparable(fromWebsite, websiteSide)).toEqual(comparable(fromSlack, slackSide));
@@ -338,7 +340,7 @@ describe("opening on the website applies what Slack's open applies", () => {
     const before = await everyTable();
     vi.mocked(publish).mockClear();
 
-    await openQuestCrate(asSignedIn);
+    expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "opened", applied: null });
 
     const after = await everyTable();
     expect({ ...after, crateOpenings: [] }).toEqual({ ...before, crateOpenings: [] });
@@ -355,7 +357,7 @@ describe("opening on the website applies what Slack's open applies", () => {
 
     const websiteSide = await aHeldJourneyStepIn(t);
     vi.mocked(publish).mockClear();
-    expect(await openQuestCrate(websiteSide.asSignedIn)).toEqual({ kind: "opened" });
+    expect(await openQuestCrate(websiteSide.asSignedIn)).toEqual({ kind: "opened", applied: firstThanksApplied });
     const fromWebsite = { tables: await everyTable(t), events: publishedEvents() };
 
     expect(comparable(fromWebsite, websiteSide)).toEqual(comparable(fromSlack, slackSide));
@@ -366,18 +368,82 @@ describe("opening on the website applies what Slack's open applies", () => {
     expect(fromWebsite.tables.memberProgress).toMatchObject([{ member: websiteSide.member, xp: 10 }]);
   });
 
-  test("CR3: a website open after Slack's Open of a held crate applies nothing", async () => {
+  test("CR3 CR14: a website open after Slack's Open of a held crate applies nothing and answers what Slack's Open applied", async () => {
     const { backend, asSignedIn } = await aHeldJourneyStepIn();
     await openFromAppHome(backend);
     const before = await everyTable();
     vi.mocked(publish).mockClear();
 
-    expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "opened" });
+    expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "opened", applied: firstThanksApplied });
 
     expect(await everyTable()).toEqual(before);
     expect(publishedEvents()).toEqual([]);
   });
+
+  test("CR14: a held weekly crate's open answers what it applied, crossing a level, with coins and skill points while the member sees them", async () => {
+    const { asSignedIn } = await aHeldWeeklyQuest(...coinsAndTree);
+
+    expect(await openQuestCrate(asSignedIn, firstSlot)).toEqual({
+      kind: "opened",
+      applied: { xp: 20, coins: 10, from: { xp: 1490, level: 6, coins: 7, skillPoints: 2 }, to: { xp: 1510, level: 7, coins: 17, skillPoints: 3 } },
+    });
+  });
+
+  test("CR14: a held Journey step's open that crosses no level answers its XP with the level unchanged", async () => {
+    const { asSignedIn } = await aHeldJourneyStepIn();
+
+    expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "opened", applied: firstThanksApplied });
+  });
+
+  test("CR14: while coins and the skill tree are hidden from the member, the answer's coins and skill points are 0", async () => {
+    const { asSignedIn } = await aHeldWeeklyQuest();
+
+    expect(await openQuestCrate(asSignedIn, firstSlot)).toEqual({
+      kind: "opened",
+      applied: { xp: 20, coins: 0, from: { xp: 1490, level: 6, coins: 0, skillPoints: 0 }, to: { xp: 1510, level: 7, coins: 0, skillPoints: 0 } },
+    });
+  });
+
+  test("CR14: a repeated open answers the numbers the first open applied, after the member's XP, balance and skill points moved on", async () => {
+    const { member, asSignedIn } = await aHeldWeeklyQuest(...coinsAndTree);
+    const first = await openQuestCrate(asSignedIn, firstSlot);
+    await standsAt(member, { xp: 2600, coins: 40 });
+    vi.setSystemTime(now.getTime() + 60_000);
+
+    expect(await openQuestCrate(asSignedIn, firstSlot)).toEqual(first);
+    expect(first).toMatchObject({ applied: { from: { xp: 1490 }, to: { xp: 1510 } } });
+  });
 });
+
+const coinsAndTree = ["coins", "skill-tree"];
+
+const firstThanksApplied = { xp: 10, coins: 0, from: { xp: 0, level: 1, coins: 0, skillPoints: 0 }, to: { xp: 10, level: 1, coins: 0, skillPoints: 0 } };
+
+async function aHeldWeeklyQuest(...alsoOn: string[]) {
+  await flagsOn(t, ...questsFlags, "crate-rewards", ...alsoOn);
+  await journeyShippedBeforeAnyoneJoined(t);
+  const team = await aTeamIn();
+  await standsAt(team.member, { xp: 1490, coins: 7 });
+  await reachesLevel(t, team.member, 6);
+  await opens(t, team.member, "quests");
+  if (alsoOn.includes("skill-tree")) await opens(t, team.member, "skillTree");
+  if (alsoOn.includes("coins")) await opens(t, team.member, "coins");
+  await drawnIn(t, team.member, ["say-why"], { xp: 20, coins: 10, item: null });
+  await thanks(t, team.member, team.teammate);
+  return team;
+}
+
+function standsAt(member: MemberId, { xp, coins }: { xp: number; coins: number }) {
+  return t.run(async (ctx) => {
+    const progress = await ctx.db
+      .query("memberProgress")
+      .withIndex("by_member", (q) => q.eq("member", member))
+      .unique();
+    if (progress === null) await ctx.db.insert("memberProgress", { member, xp, pointsSpent: 0 });
+    else await ctx.db.patch(progress._id, { xp });
+    await credit(ctx, member, coins - (await balanceOf(ctx, member)));
+  });
+}
 
 async function aHeldJourneyStepIn(backend: Backend = t) {
   await flagsOn(backend, ...questsFlags, "crate-rewards");

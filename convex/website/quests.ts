@@ -25,12 +25,13 @@ export type QuestSlot = {
   progress: { done: number; target: number };
   reward: { xp: number };
   state: "in-progress" | "finished" | "opened";
+  waiting: boolean;
   swapped: boolean;
   crate: WeeklyQuest | null;
   seen: string | null;
 };
 
-export type WaitingCrate = { goal: string; week: WeekKey; reward: { xp: number }; crate: WeeklyQuest; seen: string };
+export type WaitingCrate = { goal: string; week: WeekKey; reward: { xp: number }; crate: WeeklyQuest; seen: string; waiting: boolean };
 
 export type WeekSwap = { used: boolean; available: boolean };
 
@@ -42,6 +43,7 @@ export type JourneyStep = {
   hint: string | null;
   reward: { xp: number };
   state: "active" | "finished" | "opened";
+  waiting: boolean;
   crate: JourneyQuest | null;
   seen: string | null;
   feature: Feature | null;
@@ -87,7 +89,7 @@ function hasJoined({ step, activatedAt }: ProjectedJourneyStep) {
 }
 
 async function questSlotOf(me: VerifiedMember, { swap }: DrawnWeek, facts: DrawnWeek["slots"][number]): Promise<QuestSlot> {
-  const { slot, quest, goal, progress, target, reward, crate } = facts;
+  const { slot, quest, goal, progress, target, reward, crate, waiting } = facts;
   const state = crateStateOf(facts, "in-progress");
   return {
     slot,
@@ -97,24 +99,26 @@ async function questSlotOf(me: VerifiedMember, { swap }: DrawnWeek, facts: Drawn
     progress: { done: progress, target },
     reward: { xp: reward.xp },
     state,
+    waiting,
     swapped: swap?.slot === slot,
     crate: state === "finished" ? crate : null,
     seen: state === "in-progress" ? null : await seenKeyOfCrate(me, crate),
   };
 }
 
-async function waitingCrateOf(me: VerifiedMember, { crate, week, goal, reward }: UnopenedCrate): Promise<WaitingCrate> {
-  return { goal, week, reward: { xp: reward.xp }, crate, seen: await seenKeyOfCrate(me, crate) };
+async function waitingCrateOf(me: VerifiedMember, { crate, week, goal, reward, waiting }: UnopenedCrate): Promise<WaitingCrate> {
+  return { goal, week, reward: { xp: reward.xp }, crate, seen: await seenKeyOfCrate(me, crate), waiting };
 }
 
 async function journeyStepOf(ctx: QueryCtx, me: VerifiedMember, facts: ProjectedJourneyStep): Promise<JourneyStep> {
-  const { step, reward, crate } = facts;
+  const { step, reward, crate, waiting } = facts;
   const state = crateStateOf(facts, "active");
   return {
     step,
     ...(await journeyCopyFor(ctx, me.member, step)),
     reward: { xp: reward.xp },
     state,
+    waiting,
     crate: state === "finished" ? crate : null,
     seen: state === "active" ? null : await seenKeyOfCrate(me, crate),
     feature: featureOpening(step),
