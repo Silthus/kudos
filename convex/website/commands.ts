@@ -8,6 +8,7 @@ import { kindAppliesTo, placeOf, placesOf } from "../messageSettings/messageSett
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
 import type { Refusal } from "../progression/purchases";
+import type { AppliedReward, StandingWithCoins } from "../progression/rewards";
 import { perkValidator } from "../progression/tree";
 import { journeyStartedFor, questsApplyTo } from "../quests/flag";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
@@ -15,14 +16,18 @@ import { swappedSlotIn } from "../quests/weekly";
 import { featureValidator } from "../unlocks/feature";
 import { unlockPathShownTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
+import { coinsVisibleTo } from "../wallet/visibility";
 import { userGroupsOf } from "../workspace/userGroups";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { workspaceLaunchDueIn } from "./flag";
 import { memberMutation } from "./memberMutation";
+import { skillPointsOf } from "./skillTree";
 import type { VerifiedMember } from "./memberQuery";
 import { featurePageOf, leaderboardStateOf, unlockPathOf } from "./unlockPath";
 
 export type CommandAnswer = { kind: "opened" } | { kind: "refused" };
+
+export type CrateAnswer = { kind: "opened"; applied: AppliedReward | null } | { kind: "refused" };
 
 export type SwapAnswer = { kind: "swapped" } | { kind: "refused" };
 
@@ -37,7 +42,7 @@ export type MessageSettingAnswer = { kind: "set"; place: MessagePlace } | { kind
 export type GroupPickAnswer = { kind: "picked"; group: string } | { kind: "refused" };
 
 const opened: CommandAnswer = { kind: "opened" };
-const refused: CommandAnswer = { kind: "refused" };
+const refused = { kind: "refused" } as const;
 
 export const openFeature = memberMutation({
   args: { feature: featureValidator },
@@ -52,12 +57,13 @@ export const openFeature = memberMutation({
 
 export const openQuestCrate = memberMutation({
   args: { quest: questValidator },
-  handler: async (ctx, me, person, { quest }): Promise<CommandAnswer> => {
+  handler: async (ctx, me, person, { quest }): Promise<CrateAnswer> => {
     if (!(await questsLaunchedFor(ctx, me))) return refused;
     await runCommand(ctx, me.workspace, person, { type: "openQuestCrate", quest }, `website:openQuestCrate:${me.member}:${rewardKeyOf(quest)}`);
-    if ((await crateOpeningOf(ctx, me.member, rewardKeyOf(quest))) === null) return refused;
+    const opening = await crateOpeningOf(ctx, me.member, rewardKeyOf(quest));
+    if (opening === null) return refused;
     await republish(ctx, me.member);
-    return opened;
+    return { kind: "opened", applied: await appliedShownTo(queryOnly(ctx), me, opening.applied) };
   },
 });
 
@@ -110,6 +116,15 @@ export const setBoardVisibility = memberMutation({
     return { kind: "set", visible: stored };
   },
 });
+
+async function appliedShownTo(ctx: QueryCtx, me: VerifiedMember, applied: AppliedReward | undefined): Promise<AppliedReward | null> {
+  if (applied === undefined) return null;
+  const coinsShown = await coinsVisibleTo(ctx, me.member);
+  const skillPointsShown = (await skillPointsOf(ctx, me, await unlockPathOf(ctx, me))) !== null;
+  const shown = (value: number, isShown: boolean) => (isShown ? value : 0);
+  const standingShown = ({ coins, skillPoints, ...standing }: StandingWithCoins) => ({ ...standing, coins: shown(coins, coinsShown), skillPoints: shown(skillPoints, skillPointsShown) });
+  return { xp: applied.xp, coins: shown(applied.coins, coinsShown), from: standingShown(applied.from), to: standingShown(applied.to) };
+}
 
 export const setMessageSetting = memberMutation({
   args: { kind: messageKindValidator, place: messagePlaceValidator },

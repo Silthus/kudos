@@ -280,8 +280,8 @@ describe("WS213: the three kinds of entry", () => {
         earned: {
           xp: 30,
           questsDone: [
-            { kind: "weekly", goal: "Thank two teammates", xp: 40 },
-            { kind: "journey", goal: "Thank someone in a new channel", xp: 50 },
+            { kind: "weekly", goal: "Thank two teammates", xp: 40, waiting: false },
+            { kind: "journey", goal: "Thank someone in a new channel", xp: 50, waiting: false },
           ],
           bonuses: [
             { perk: { id: "spark", name: "Spark" }, why: "Your first kudos today", xp: 5 },
@@ -309,7 +309,7 @@ describe("WS213: the three kinds of entry", () => {
   });
 
   it("shows only the parts of Earned that are there, and no Earned line while earned is null", async () => {
-    await openedWith([aGiven("xp-hidden", now - minute, { recipients: [teammates.bo], earned: { xp: null, questsDone: [{ kind: "weekly", goal: "Thank two teammates", xp: 40 }], bonuses: [] } }), aGiven("nothing", now - 2 * minute, { recipients: [teammates.cleo], earned: null })]);
+    await openedWith([aGiven("xp-hidden", now - minute, { recipients: [teammates.bo], earned: { xp: null, questsDone: [{ kind: "weekly", goal: "Thank two teammates", xp: 40, waiting: false }], bonuses: [] } }), aGiven("nothing", now - 2 * minute, { recipients: [teammates.cleo], earned: null })]);
     expect(within(within(article("You thanked Bo Okafor")).getByRole("list", { name: "Earned" })).getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Finished Thank two teammates · +40 XP"]);
     expect(within(article("You thanked Cleo Marchetti")).queryByRole("list", { name: "Earned" })).not.toBeInTheDocument();
   });

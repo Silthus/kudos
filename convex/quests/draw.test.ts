@@ -48,6 +48,7 @@ describe("P80: opening Quests draws up to 3 different quests the member can fini
         target: expect.any(Number),
         finishedAt: null,
         openedAt: null,
+        waiting: false,
       });
     }
     expect(new Set(week.slots.map(({ quest }) => quest)).size).toBe(3);
