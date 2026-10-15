@@ -1,12 +1,25 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone } from "../../testing/flags";
-import { FakeSlack, landsButTimesOut, slackError } from "../../testing/fakeSlack";
+import { FakeSlack, landsButTimesOut, rateLimitedFor, slackError } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, settle, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
-import { type BlockAction, blockActions, buttonInHome, menuOptionInHome, publishedHome, staleButtonOf } from "../../testing/slackInteractions";
+import { type BlockAction, blockActions, buttonInHome, channelPickerInHome, groupPickerInHome, menuOptionInHome, publishedHome, staleButtonOf } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
+
+const lastWeeksBoard = vi.hoisted(() => ({ fails: false }));
+
+vi.mock("../leaderboard/groupBoards", async (importOriginal) => {
+  const groupBoards = await importOriginal<typeof import("../leaderboard/groupBoards")>();
+  return {
+    ...groupBoards,
+    workspaceGroupsBoardOf: (...args: Parameters<typeof groupBoards.workspaceGroupsBoardOf>) => {
+      if (lastWeeksBoard.fails) throw new Error("last week's board couldn't be read");
+      return groupBoards.workspaceGroupsBoardOf(...args);
+    },
+  };
+});
 
 const wednesday = new Date("2026-10-14T10:00:00Z");
 const announcementChannel = "C_ANNOUNCE";
@@ -31,6 +44,7 @@ beforeEach(() => {
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
   slack = new FakeSlack();
   sentMessages = 0;
+  lastWeeksBoard.fails = false;
 });
 
 afterEach(() => {
@@ -237,6 +251,49 @@ describe("GB28: the Monday post goes out at most once a week", { timeout: slackB
 
     expect(mondayPostTimes()).toEqual([Date.parse("2026-10-19T07:00:00Z"), Date.parse("2026-10-26T08:00:00Z")]);
   });
+
+  test("a post Slack rate-limits goes out once, after the Retry-After", async () => {
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    await click(t, "U_ALICE", "Switch on");
+    await giveKudosInWeek(t);
+    slack.answering("chat.postMessage", rateLimitedFor(30));
+
+    await settleUpTo(t, Date.parse("2026-10-19T08:00:00Z"));
+
+    expect(mondayPostTimes()).toEqual([Date.parse("2026-10-19T07:00:00Z"), Date.parse("2026-10-19T07:00:30Z")]);
+    expect(mondayPosts()).toHaveLength(1);
+  });
+
+  test("a post waiting on a rate-limit hold from an earlier message goes out once the hold ends", async () => {
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    await click(t, "U_ALICE", "Switch on");
+    await giveKudosInWeek(t);
+    await settleUpTo(t, Date.parse("2026-10-19T06:59:00Z"));
+    await t.mutation(internal.slack.rateLimits.hold, { workspace: "T1", method: "chat.postMessage", until: Date.parse("2026-10-19T07:02:00Z") });
+
+    await settleUpTo(t, Date.parse("2026-10-19T08:00:00Z"));
+
+    expect(mondayPostTimes()).toEqual([Date.parse("2026-10-19T07:02:00Z")]);
+    expect(mondayPosts()).toHaveLength(1);
+  });
+
+  test("a post Slack keeps rate-limiting is given up after three tries that week, and next week's goes out", async () => {
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    await click(t, "U_ALICE", "Switch on");
+    await giveKudosInWeek(t);
+    slack.answering("chat.postMessage", rateLimitedFor(30), rateLimitedFor(30), rateLimitedFor(30));
+
+    await settleUpTo(t, Date.parse("2026-10-21T10:00:00Z"));
+    expect(mondayPostTimes()).toHaveLength(3);
+    expect(mondayPosts()).toEqual([]);
+
+    await giveKudosInWeek(t);
+    await settleUpTo(t, Date.parse("2026-10-26T08:00:00Z"));
+    expect(mondayPosts()).toHaveLength(1);
+  });
 });
 
 describe("GB28, GB31: the Monday post names groups, never a person", { timeout: slackBoundaryTimeoutMs }, () => {
@@ -291,6 +348,75 @@ describe("GB28, GB31: the Monday post names groups, never a person", { timeout: 
 
     expect(mondayPostLinesOf(publishedHome(slack, "U_ALICE"))).toContain("section: I can't post in <#C_ANNOUNCE>. Add me to it or pick another channel.");
     expect(slack.callsTo("chat.postMessage").filter(isMondayPost)).toHaveLength(1);
+  });
+
+  test.each(["no_permission", "restricted_action", "restricted_action_read_only_channel", "restricted_action_thread_only_channel", "ekm_access_denied"])(
+    "when Slack refuses my post in the announcement channel with %s, the Admin tab says I can't post there and the week is skipped",
+    async (refusal) => {
+      const t = await workspaceWithGroups();
+      await adminTabOpen(t, "U_ALICE");
+      await click(t, "U_ALICE", "Switch on");
+      await giveKudosInWeek(t);
+      slack.answering("chat.postMessage", slackError(refusal));
+
+      await settleUpTo(t, Date.parse("2026-10-19T08:00:00Z"));
+
+      expect(mondayPostLinesOf(publishedHome(slack, "U_ALICE"))).toContain("section: I can't post in <#C_ANNOUNCE>. Add me to it or pick another channel.");
+      expect(slack.callsTo("chat.postMessage").filter(isMondayPost)).toHaveLength(1);
+    },
+  );
+});
+
+describe("GB28: the job rechecks the channel and groups before posting", { timeout: slackBoundaryTimeoutMs }, () => {
+  test("after an admin stops posting in the announcement channel, no post goes out; after they pick a channel again, it does", async () => {
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    await click(t, "U_ALICE", "Switch on");
+    await giveKudosInWeek(t);
+
+    await click(t, "U_ALICE", "Stop posting");
+    await settleUpTo(t, Date.parse("2026-10-21T10:00:00Z"));
+    expect(mondayPosts()).toEqual([]);
+
+    await interact(t, "U_ALICE", channelPickerInHome(slack, "U_ALICE", announcementChannel));
+    await giveKudosInWeek(t);
+    await settleUpTo(t, Date.parse("2026-10-26T08:00:00Z"));
+    expect(mondayPostTimes()).toEqual([Date.parse("2026-10-26T08:00:00Z")]);
+  });
+
+  test("while no group counts, no post goes out; once every group counts again, it does", async () => {
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    await click(t, "U_ALICE", "Switch on");
+    await giveKudosInWeek(t);
+
+    await click(t, "U_ALICE", "Only these groups");
+    await interact(t, "U_ALICE", groupPickerInHome(slack, "U_ALICE"));
+    await settleUpTo(t, Date.parse("2026-10-21T10:00:00Z"));
+    expect(mondayPosts()).toEqual([]);
+
+    await click(t, "U_ALICE", "Every group");
+    await giveKudosInWeek(t);
+    await settleUpTo(t, Date.parse("2026-10-26T08:00:00Z"));
+    expect(mondayPostTimes()).toEqual([Date.parse("2026-10-26T08:00:00Z")]);
+  });
+});
+
+describe("GB28: next Monday's post is booked even when this week's claim fails", { timeout: slackBoundaryTimeoutMs }, () => {
+  test("a claim that throws leaves next Monday's job in place, and next week's post goes out", async () => {
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    await click(t, "U_ALICE", "Switch on");
+    await giveKudosInWeek(t);
+    lastWeeksBoard.fails = true;
+
+    await settleUpTo(t, Date.parse("2026-10-19T08:00:00Z"));
+    lastWeeksBoard.fails = false;
+    expect(mondayPosts()).toEqual([]);
+
+    await giveKudosInWeek(t);
+    await settleUpTo(t, Date.parse("2026-10-26T08:00:00Z"));
+    expect(mondayPostTimes()).toEqual([Date.parse("2026-10-26T08:00:00Z")]);
   });
 });
 

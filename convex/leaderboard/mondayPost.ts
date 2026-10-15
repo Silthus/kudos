@@ -61,12 +61,21 @@ async function switchOn(ctx: MutationCtx, workspace: string, settings: Settings 
   return { ...settings, ...switchedOn };
 }
 
+const jobArgs = { workspace: v.string(), generation: v.number() };
+
+export const bookNextPost = internalMutation({
+  args: jobArgs,
+  handler: async (ctx, { workspace, generation }) => {
+    const settings = await switchedOnAt(ctx, workspace, generation);
+    if (settings !== null) await scheduleNextPost(ctx, settings);
+  },
+});
+
 export const claimWeek = internalMutation({
-  args: { workspace: v.string(), generation: v.number() },
+  args: jobArgs,
   handler: async (ctx, { workspace, generation }): Promise<ClaimedWeek | null> => {
-    const settings = await settingsRow(ctx, workspace);
-    if (settings === null || !settings.on || settings.generation !== generation) return null;
-    await scheduleNextPost(ctx, settings);
+    const settings = await switchedOnAt(ctx, workspace, generation);
+    if (settings === null) return null;
     const thisMonday = weekOf(allowanceDay(Date.now(), settings.timeZone)).monday;
     if (Date.now() < postingTimeOf(thisMonday, settings.timeZone) || (await claimOf(ctx, workspace, thisMonday)) !== null) return null;
     const channel = await postableChannelIn(ctx, workspace);
@@ -74,6 +83,16 @@ export const claimWeek = internalMutation({
     const post = await lastWeeksPostOf(ctx, workspace, thisMonday);
     const claim = await ctx.db.insert("mondayPostClaims", { workspace, week: thisMonday, claimedAt: Date.now(), channel, outcome: post.givers === 0 ? "nobody-gave" : "claimed" });
     return post.givers === 0 ? null : { claim, channel, post };
+  },
+});
+
+export const postAgainLater = internalMutation({
+  args: { ...jobArgs, claim: v.id("mondayPostClaims"), at: v.number(), attempt: v.number() },
+  handler: async (ctx, { claim, at, ...job }) => {
+    const row = await ctx.db.get(claim);
+    if (row === null || row.outcome !== "claimed") return;
+    await ctx.db.delete(claim);
+    await ctx.scheduler.runAt(at, internal.slack.mondayPost.postMondayPost, job);
   },
 });
 
@@ -86,6 +105,11 @@ export const recordOutcome = internalMutation({
     await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace: row.workspace });
   },
 });
+
+async function switchedOnAt(ctx: QueryCtx, workspace: string, generation: number) {
+  const settings = await settingsRow(ctx, workspace);
+  return settings?.on && settings.generation === generation ? settings : null;
+}
 
 function nextPostAfter(at: number, timeZone: string): number {
   const thisMonday = weekOf(allowanceDay(at, timeZone)).monday;
