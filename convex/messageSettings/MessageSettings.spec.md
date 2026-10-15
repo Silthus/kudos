@@ -1,6 +1,6 @@
 # Message settings
 
-A member's message settings, one value per kind of message HedgeHug sends them (QM12–QM16, QM22, QM27). The catalogue holds seven kinds, each with a stable ID, a label and a one-line description: `kudos-reply`, `tips`, `level-ups`, `new-features`, `quests`, `achievements` and `celebrations`. Every kind is on until the member changes it; a member whose stored progress settings turned DMs off has the four DM kinds off, and one who muted public notices has `celebrations` off, read as defaults with no migration (QM14). The `messageSettings` table keeps one row per member and kind, written only by setMessageSetting, which writes the value asked for and changes nothing when it is already the member's value, so a repeated request needs no request key and stores no outcome (QM15). wantsMessage answers whether a member wants a kind, whatever the `message-settings` flag says (QM22); `Feedback` asks it before a DM or a public section is written and again when Slack takes it (QM16). messageSettingsOf reads each kind with its label, description, whether it applies to the member and whether it is on (QM20, QM27). Today's two App Home switches show and set the effective values through the module: `Mute notices` sets `celebrations`, `Turn off DMs` sets the four DM kinds (QM14). The `message-settings` flag, safe default off, decides by the member decision, with its exposure in the mutations that render App Home, whether App Home's Settings tab lists the kinds and offers setMessageSetting (QM20, QM22).
+A member's message settings, one value per kind of message HedgeHug sends them (QM12–QM16, QM22, QM27). The catalogue holds seven kinds, each with a stable ID, a label and a one-line description: `kudos-reply`, `tips`, `level-ups`, `new-features`, `quests`, `achievements` and `celebrations`. Every kind is on until the member changes it; a member whose stored progress settings turned DMs off has the four DM kinds off, and one who muted public notices has `celebrations` off, read as defaults with no migration (QM14). The `messageSettings` table keeps one row per member and kind, written only by setMessageSetting, which writes the value asked for and changes nothing when it is already the member's value, so a repeated request needs no request key and stores no outcome (QM15). wantsMessage answers whether a member wants a kind, whatever the `message-settings` flag says (QM22); `Feedback` asks it before a DM or a public section is written and again when Slack takes it (QM16). messageSettingsOf reads each kind with its label, description, whether it applies to the member and whether it is on (QM20, QM27). Today's two App Home switches show and set the effective values through the module: `Mute notices` sets `celebrations`, `Turn off DMs` sets the four DM kinds (QM14). The `message-settings` flag, safe default off, decides by the member decision, with its exposure in the mutations that render App Home, whether App Home's Settings tab lists the kinds and offers setMessageSetting (QM20, QM22). `Feedback` asks it for the after-kudos reply too, when the reply is written and again when Slack takes it, a reply held for Quests included: with `kudos-reply` off a Given reply that skipped nobody is not sent, and one that skipped a mention is sent with its skip lines only, without the gains line, the hint or the link (QM17); with `tips` off the hint is left out of the extras line (QM18). While `message-settings` is on in the member decision when Slack takes it, read without exposure, the success reply and every DM of a tunable kind, the tier summaries included, end with the footer `Change what I send you` linking App Home, then `in App Home's Settings tab.`; never a public reply or notice, an Over allowance, Invalid or accepted-message-edited reply, a reply holding only skip lines, the welcome, a `Buy` answer or a command reply (QM21).
 
 ## invariants
 - a message a member turned off is never sent: A DM of a kind the member turned off, or has off from their stored progress settings, is never sent: it is not written while the kind is off, and one already on its way is not sent once it is off when Slack takes it; a member's section is left out of every public reply posted or edited while their `celebrations` is off, as muted notices are today. Both hold whatever the `message-settings` flag says.
@@ -23,16 +23,49 @@ A member's message settings, one value per kind of message HedgeHug sends them (
   checklist: resumption-coverage dismissed: setting a kind is one write, not a batch
   checklist: circuit-breaker-policy dismissed: no failure history diverts or suppresses a call
   checklist: declared-target-coverage dismissed: a setting gates one member's messages; nothing fans out
-- errors that need action are never silenced: The Over allowance and Invalid replies reach the giver whatever their message settings say, every kind turned off included.
-  over: a kudos over the giver's allowance and a kudos naming nobody who can receive kudos, given by a member who turned off every kind that applies to them
+- errors that need action are never silenced: The Over allowance and Invalid replies, and the skip lines of a Given reply that skipped a mention, reach the giver whatever their message settings say, every kind turned off included.
+  over: a kudos over the giver's allowance, a kudos naming nobody who can receive kudos, and a kudos to a teammate that also named a bot and a user group, given by a member who turned off every kind that applies to them
   via: QM13: errors that need action are never silenced
-  because: a failed kudos the giver never hears about leaves them thinking a teammate was thanked (QM13, user story 30); only a message they can act on keeps the failure visible
+  because: a failed kudos, or a mention skipped in a kudos that thanked someone else, that the giver never hears about leaves them thinking a teammate was thanked (QM13, QM17, user story 30); only a message they can act on keeps the failure visible
   crossing: slack-request -> domain
   entrances: route POST /slack/events, route POST /slack/interactivity
   refuted: tellGiver in convex/engine/engine.ts sent no reply, error replies included, while the giver's kudos-reply setting was off -> the test failed, no Over allowance or Invalid reply sent (2026-10-14)
+  refuted: successReplyWritten in convex/feedback/replies.ts dropped the skip lines of a Given reply while the giver's kudos-reply setting was off -> 1 of 2 tests failed, the kudos that skipped a bot and a group sent no reply (2026-10-14)
   kinds: output
   checklist: destination-confinement dismissed: the error replies go where they go today, beside the kudos message to its author
   checklist: redaction dismissed: settings add nothing to an error reply
   checklist: commit-ordered-effects dismissed: the reply is scheduled from the mutation that decided the outcome, as today
   checklist: circuit-breaker-policy dismissed: no failure history diverts or suppresses a call
   checklist: declared-target-coverage dismissed: an error reply goes to one giver; nothing fans out
+- the after-kudos reply and its tips honour their settings: A Given reply is checked against the giver's `kudos-reply` and `tips` settings when it is written and again when Slack takes it, a reply held for Quests included: with `kudos-reply` off only its skip lines are sent, and nothing when it skipped nobody, and with `tips` off its extras line has no hint; a reply or a hint written while its kind was off is not sent once the kind is on again.
+  over: a kudos with `kudos-reply` off; a reply held for Quests that skipped nobody and one that skipped a bot, released after `kudos-reply` turned off; a kudos and a held reply with `tips` off for a giver the hint applies to; and a reply and a hint written while their kind was off, turned on again before Slack would take them
+  via: QM17 QM18: the after-kudos reply and its tips honour their settings
+  because: the after-kudos reply is the most frequent message HedgeHug sends; a member who turned it or its tips off and still gets them sees the Settings tab ignored on every kudos they give (QM17, QM18)
+  crossing: slack-request -> domain
+  entrances: route POST /slack/events, route POST /slack/interactivity
+  refuted: privateReply in convex/feedback/replies.ts no longer rechecked the giver's kudos-reply setting when Slack took the reply -> 2 of 7 tests failed, both held replies released after kudos-reply turned off sent the Given line and gains (2026-10-15)
+  kinds: output, state
+  checklist: revalidated-permission dismissed: no permission is involved; each delivery attempt rereads the giver's current settings before Slack is called
+  checklist: destination-confinement dismissed: the settings decide only which lines are sent, never where; the reply goes where it goes today
+  checklist: redaction dismissed: a setting adds nothing to a reply; it only withholds lines
+  checklist: separation-of-duties dismissed: a member sets only their own settings; no approval is involved
+  checklist: legal-state-succession dismissed: each setting is a plain on or off value; every value can follow every other
+  checklist: supersession-safety dismissed: each delivery attempt reads the latest committed settings
+  checklist: worker-fencing dismissed: no worker owns a reply; each delivery attempt rereads the settings
+  checklist: commit-ordered-effects dismissed: the reply is scheduled from the mutation that wrote it, as today
+  checklist: resumption-coverage dismissed: one reply is one write, not a batch
+  checklist: circuit-breaker-policy dismissed: no failure history diverts or suppresses a call
+  checklist: declared-target-coverage dismissed: a reply goes to one giver; nothing fans out
+- the settings footer is only on private messages a member can tune: The footer that links App Home's Settings tab ends the success reply and every DM of a tunable kind while `message-settings` is on in the member decision when Slack takes it, and never ends a public reply or notice, an Over allowance, Invalid or accepted-message-edited reply, or anything while the flag is off.
+  over: the success reply and a DM of each of the six notification kinds with the flag on, the level-up DM and its public celebration in the announcement channel, the Over allowance, Invalid and accepted-message-edited replies with the flag on, the success reply and level-up DM with the flag off, and a level-up DM written while the flag was off and taken by Slack after it turned on
+  via: QM21: the footer says where to change what I send you
+  because: the footer tells one member where their own settings are; on a public message it would show a member decision in the shared announcement channel (F18), and on an error it would suggest the error can be turned off (QM13, QM21)
+  crossing: slack-request -> domain
+  entrances: route POST /slack/events
+  refuted: settingsFooterFor in convex/feedback/settingsFooter.ts answered the footer for every member, whatever their message-settings decision -> 1 of 11 tests failed, the success reply with the flag off ended with the footer (2026-10-15)
+  kinds: output
+  checklist: destination-confinement dismissed: the footer adds a line to private messages only; it never changes where a message goes
+  checklist: redaction dismissed: the footer holds a fixed link to App Home and no member data
+  checklist: commit-ordered-effects dismissed: the footer is decided in the delivery query, after the mutation that wrote the message committed
+  checklist: circuit-breaker-policy dismissed: no failure history diverts or suppresses a call
+  checklist: declared-target-coverage dismissed: each footer goes to the one member its message goes to

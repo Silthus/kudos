@@ -1,18 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEveryone, postHogDeciding } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, publishedHome, publishedHomeBlocks, type BlockAction } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, messageChangedEvent, messageEvent, section, userGroup, type RichElement } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
-import type { QueryCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { Annotations } from "../engine/messageEvent";
 import { notify, type Notification } from "../feedback/notify";
+import { questsWaitMs, replyPrivately, type Reply, type SkippedMention, type SkipReason } from "../feedback/replies";
 import { messageKinds, type MessageKind } from "../messageSettings/kinds";
 import { setMessageSetting } from "../messageSettings/messageSettings";
 
 const now = new Date("2026-10-14T10:00:00Z");
+const aKudosMessage = { workspace: "T1", conversation: "C1", message: "1760436000.999900" };
 const form = { contentType: "application/x-www-form-urlencoded" };
 const messageSettings = "message-settings";
 
@@ -37,6 +40,21 @@ const offRows = {
 const whatISendYou = "section: *What I send you*";
 const levelUpDm = "🎉 You reached level 2!\nLevel 3 is 80 XP away.";
 const levelUpPost = "🎉 <@U_ALICE> reached level 2.";
+const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.";
+const givenToBob = "<@U_BOB> got 1 kudos from you.";
+const hint = "Add why they earned it to earn more.";
+const skippedBot = "I skipped <@U_BOT>: bots don't receive kudos.";
+const skippedGroup = "I skipped <!subteam^S_TEAM>: `@here`, `@channel` and user groups don't receive kudos, so tag people individually.";
+const withoutWhy = { gate: { version: 1, thoughtful: false, words: 1 } };
+
+const queuedDms: Array<[string, string, Notification]> = [
+  ["level-reached", "Level ups", { kind: "level-reached", level: 2, skillPoints: null, xpToNextLevel: 80, ready: [] }],
+  ["features-shipped", "New features", { kind: "features-shipped", ready: ["leaderboard"] }],
+  ["quest-finished", "Quests and Journey", { kind: "quest-finished", quest: { kind: "journey", step: "first-thanks" }, xp: 20 }],
+  ["journey-joined", "Quests and Journey", { kind: "journey-joined", finished: [{ quest: { kind: "journey", step: "first-thanks" }, xp: 20 }] }],
+  ["weekly-quest-finished", "Quests and Journey", { kind: "weekly-quest-finished", quest: { kind: "weekly", week: "2026-10-12", slot: 0 }, goal: "Thank 3 teammates", xp: 30 }],
+  ["tiers-earned", "Book tiers", { kind: "tiers-earned", tiers: [{ ladder: "generosity", tier: "bronze" }] }],
+];
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -47,7 +65,7 @@ beforeEach(() => {
   vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
-  slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB");
+  slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB").withMember("U_BOT", { is_bot: true }).withUserGroup("S_TEAM", { users: ["U_BOB"] });
   postHog = postHogDeciding("sandbox");
   vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
   sentMessages = 0;
@@ -126,7 +144,7 @@ describe("QM16: a message a member turned off is never sent", () => {
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(postsIn("C_NEWS")).toEqual([]);
-    expect(levelUpDmsTo("U_ALICE")).toEqual([levelUpDm]);
+    expect(levelUpDmsTo("U_ALICE")).toEqual([`${levelUpDm}\n${footer}`]);
   });
 
   test("a level-up DM Slack held back is not sent once the member turned level ups off", async () => {
@@ -142,16 +160,8 @@ describe("QM16: a message a member turned off is never sent", () => {
     expect(levelUpDmsTo("U_ALICE")).toEqual([]);
   });
 
-  const queued: Array<[string, string, Notification]> = [
-    ["level-reached", "Level ups", { kind: "level-reached", level: 2, skillPoints: null, xpToNextLevel: 80, ready: [] }],
-    ["features-shipped", "New features", { kind: "features-shipped", ready: ["leaderboard"] }],
-    ["quest-finished", "Quests and Journey", { kind: "quest-finished", quest: { kind: "journey", step: "first-thanks" }, xp: 20 }],
-    ["journey-joined", "Quests and Journey", { kind: "journey-joined", finished: [{ quest: { kind: "journey", step: "first-thanks" }, xp: 20 }] }],
-    ["weekly-quest-finished", "Quests and Journey", { kind: "weekly-quest-finished", quest: { kind: "weekly", week: "2026-10-12", slot: 0 }, goal: "Thank 3 teammates", xp: 30 }],
-    ["tiers-earned", "Book tiers", { kind: "tiers-earned", tiers: [{ ladder: "generosity", tier: "bronze" }] }],
-  ];
 
-  test.each(queued)("a %s DM already on its way is sent while %s is on, and not once it is off", async (_, label, notification) => {
+  test.each(queuedDms)("a %s DM already on its way is sent while %s is on, and not once it is off", async (_, label, notification) => {
     const t = await everythingShipped();
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await bookOpenedBy(t, "U_ALICE");
@@ -169,7 +179,7 @@ describe("QM16: a message a member turned off is never sent", () => {
     expect(slack.messagesIn("U_ALICE").length - before).toBe(1);
   });
 
-  test.each(queued)("a %s DM written while %s is off is not sent, even once it is on again before Slack would take it", async (_, label, notification) => {
+  test.each(queuedDms)("a %s DM written while %s is off is not sent, even once it is on again before Slack would take it", async (_, label, notification) => {
     const t = await everythingShipped();
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await bookOpenedBy(t, "U_ALICE");
@@ -202,6 +212,157 @@ describe("QM13: errors that need action are never silenced", () => {
       expect.stringMatching(/^This needs 11 kudos/),
       expect.stringMatching(/^Nobody in this message can receive kudos/),
     ]);
+  });
+});
+
+describe("QM13: errors that need action are never silenced", () => {
+  test("with every kind turned off, a kudos that skipped a bot and a group still tells the giver who wasn't thanked, and only that", async () => {
+    const t = await settingsOpen([messageSettings, "xp-levels"], { announcementChannel: "C_NEWS" });
+    for (const label of ["After-kudos reply", "Level ups", "Public celebrations"]) await turn(t, "U_ALICE", label);
+    const before = ephemeralsTo("U_ALICE").length;
+
+    await giveKudosNaming(t, "U_ALICE", [mention("U_BOB"), mention("U_BOT"), userGroup("S_TEAM")]);
+
+    expect(ephemeralsTo("U_ALICE").slice(before)).toEqual([`${skippedBot}\n${skippedGroup}`]);
+  });
+});
+
+describe("QM17 QM18: the after-kudos reply and its tips honour their settings", () => {
+  test("after-kudos reply off: a kudos that skipped nobody gets no reply", async () => {
+    const t = await settingsOpen([messageSettings, "xp-levels"]);
+    await turn(t, "U_ALICE", "After-kudos reply");
+    const before = ephemeralsTo("U_ALICE").length;
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(ephemeralsTo("U_ALICE").slice(before)).toEqual([]);
+  });
+
+  test.each([
+    ["skipped nobody", [], []],
+    ["skipped a bot", [skippedMention("U_BOT", "bot")], [skippedBot]],
+  ] as const)("a reply held for Quests that %s, released after the after-kudos reply turned off, sends its skip lines and nothing else", async (_, skipped, sent) => {
+    const t = await questsHoldingReplies();
+    await t.run((ctx) => replyPrivately(ctx, aKudosMessage, undefined, "U_ALICE", aGivenReply({ skipped: [...skipped] })));
+    const before = ephemeralsTo("U_ALICE").length;
+
+    await turn(t, "U_ALICE", "After-kudos reply");
+    vi.advanceTimersByTime(questsWaitMs);
+    await settle(t);
+
+    expect(ephemeralsTo("U_ALICE").slice(before)).toEqual(sent.length === 0 ? [] : [sent.join("\n")]);
+  });
+
+  test("a reply written while the after-kudos reply is off is not sent, even once it is on again before Slack would take it", async () => {
+    const t = await sparkOwnedBy("U_ALICE");
+    const before = ephemeralsTo("U_ALICE").length;
+
+    await whileTurnedOff(t, "U_ALICE", "kudos-reply", (ctx) => replyPrivately(ctx, aKudosMessage, undefined, "U_ALICE", aGivenReply({})));
+    await settle(t);
+
+    expect(ephemeralsTo("U_ALICE").slice(before)).toEqual([]);
+  });
+
+  test("a hint written while tips are off is not sent, even once they are on again before Slack would take it", async () => {
+    const t = await sparkOwnedBy("U_ALICE");
+
+    await whileTurnedOff(t, "U_ALICE", "tips", (ctx) => replyPrivately(ctx, aKudosMessage, undefined, "U_ALICE", aGivenReply({ annotations: withoutWhy })));
+    await settle(t);
+
+    expect(ephemeralsTo("U_ALICE").at(-1)).toBe(`${givenToBob} You have 9 kudos left today.\n+10 XP\n${footer}`);
+  });
+
+  test("tips off: the success reply keeps its gains and loses only the hint", async () => {
+    const t = await sparkOwnedBy("U_ALICE");
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    const withTips = ephemeralsTo("U_ALICE").at(-1);
+
+    await turn(t, "U_ALICE", "Tips");
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(withTips).toBe(`${givenToBob} You have 9 kudos left today.\n+10 XP · ${hint}\n${footer}`);
+    expect(ephemeralsTo("U_ALICE").at(-1)).toBe(`${givenToBob} You have 8 kudos left today.\n+10 XP\n${footer}`);
+  });
+
+  test("a reply held for Quests, released after tips turned off, has no hint", async () => {
+    const t = await questsHoldingReplies();
+    await sparkBoughtBy(t, "U_ALICE");
+    await t.run((ctx) => replyPrivately(ctx, aKudosMessage, undefined, "U_ALICE", aGivenReply({ annotations: withoutWhy })));
+
+    await turn(t, "U_ALICE", "Tips");
+    vi.advanceTimersByTime(questsWaitMs);
+    await settle(t);
+
+    expect(ephemeralsTo("U_ALICE").at(-1)).toBe(`${givenToBob} You have 9 kudos left today.\n+10 XP\n${footer}`);
+  });
+});
+
+describe("QM21: the footer says where to change what I send you", () => {
+  test("the success reply ends with the footer while message-settings is on", async () => {
+    const t = await workspaceWith([messageSettings, "xp-levels"]);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(ephemeralsTo("U_ALICE")).toEqual([`${givenToBob} You have 9 kudos left today.\n+10 XP\n${footer}`]);
+  });
+
+  test.each(queuedDms)("a %s DM ends with the footer", async (_, __, notification) => {
+    const t = await everythingShippedAndOpenedBy("U_ALICE");
+
+    await deliver(t, "U_ALICE", notification);
+
+    const sent = slack.callsTo("chat.postMessage").findLast(({ channel }) => channel === "U_ALICE")!;
+    expect(String(sent.text).split("\n").at(-1)).toBe(footer);
+    if (Array.isArray(sent.blocks)) expect(sent.blocks.at(-1)).toEqual({ type: "section", text: { type: "mrkdwn", text: footer } });
+  });
+
+  test("the public celebration in the announcement channel has no footer, while the level-up DM has it", async () => {
+    const t = await workspaceWith([messageSettings, "xp-levels"], { announcementChannel: "C_NEWS" });
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(postsIn("C_NEWS")).toEqual([levelUpPost]);
+    expect(levelUpDmsTo("U_ALICE")).toEqual([`${levelUpDm}\n${footer}`]);
+  });
+
+  test("Over allowance, Invalid and accepted-message-edited replies have no footer", async () => {
+    const t = await workspaceWith([messageSettings, "xp-levels"]);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    const before = ephemeralsTo("U_ALICE").length;
+
+    await editLastKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_ALICE", "U_BOB", 11);
+    await giveKudos(t, "U_ALICE", "U_ALICE", 1);
+
+    expect(ephemeralsTo("U_ALICE").slice(before)).toEqual([
+      "This message already gave kudos, so your edit doesn't change them. To give more, send a new message.",
+      expect.stringMatching(/^This needs 11 kudos[^\n]*$/),
+      expect.stringMatching(/^Nobody in this message can receive kudos[^\n]*$/),
+    ]);
+  });
+
+  test("with the flag off, the success reply and the level-up DM are today's, with no footer", async () => {
+    const t = await workspaceWith(["xp-levels"]);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(ephemeralsTo("U_ALICE").at(-1)).toBe(`${givenToBob} You have 8 kudos left today.\n+10 XP`);
+    expect(levelUpDmsTo("U_ALICE")).toEqual([levelUpDm]);
+  });
+
+  test("the footer follows the member decision when Slack takes the message, not when it was written", async () => {
+    const t = await workspaceWith(["xp-levels"]);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
+      await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone(messageSettings));
+      slack.answering("chat.postMessage", rateLimitedFor(30));
+    });
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(levelUpDmsTo("U_ALICE")).toEqual([`${levelUpDm}\n${footer}`]);
   });
 });
 
@@ -375,6 +536,53 @@ async function everythingShipped() {
   return t;
 }
 
+async function everythingShippedAndOpenedBy(user: string) {
+  const t = await everythingShipped();
+  await giveKudos(t, user, "U_BOB", 1);
+  await bookOpenedBy(t, user);
+  await leaderboardReadyFor(t, user);
+  return t;
+}
+
+async function questsHoldingReplies() {
+  const t = await settingsOpen([messageSettings, "xp-levels", "unlocks", "quests", "skill-tree"]);
+  await unlocksShippedBeforeAnyoneJoined(t);
+  return t;
+}
+
+async function sparkOwnedBy(user: string) {
+  const t = await unlocksShippedBeforeAnyoneJoined(await workspaceWith([messageSettings, "xp-levels", "unlocks", "skill-tree"]));
+  await t.run(async (ctx) => {
+    await ctx.db.insert("members", { workspace: "T1", user, kind: "member" });
+    await ctx.db.insert("members", { workspace: "T1", user: "U_BOB", kind: "member" });
+  });
+  await sparkBoughtBy(t, user);
+  await openHome(t, user);
+  await click(t, user, "Settings");
+  return t;
+}
+
+async function sparkBoughtBy(t: Backend, user: string) {
+  await t.run(async (ctx) => ctx.db.insert("perksOwned", { member: await memberIn(ctx, user), perk: "spark", boughtAt: Date.now(), catalogueVersion: "1" }));
+}
+
+async function whileTurnedOff(t: Backend, user: string, kind: MessageKind, write: (ctx: MutationCtx) => Promise<void>) {
+  await t.run(async (ctx) => {
+    const member = await memberIn(ctx, user);
+    await setMessageSetting(ctx, member, kind, false);
+    await write(ctx);
+    await setMessageSetting(ctx, member, kind, true);
+  });
+}
+
+function aGivenReply({ skipped = [], annotations = {} }: { skipped?: SkippedMention[]; annotations?: Annotations }): Reply {
+  return { kind: "given", outcome: { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped, awards: [{ kudos: 1 }] }, base: 10, annotations };
+}
+
+function skippedMention(user: string, reason: SkipReason): SkippedMention {
+  return { mention: { kind: "person", user }, reason };
+}
+
 async function bookOpenedBy(t: Backend, user: string) {
   await t.run(async (ctx) => ctx.db.insert("unlocks", { member: await memberIn(ctx, user), feature: "book", readyAt: Date.now(), openedAt: Date.now() }));
 }
@@ -416,8 +624,24 @@ async function memberIn(ctx: QueryCtx, user: string) {
 async function giveKudos(t: Backend, giver: string, recipient: string, kudos: number) {
   sentMessages += 1;
   const blocks = [section(mention(recipient), ...Array.from({ length: kudos }, () => emoji("taco")))];
-  await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${now.getTime() / 1000 + sentMessages}.000100` })));
+  await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: tsOf(sentMessages) })));
   await settle(t);
+}
+
+async function giveKudosNaming(t: Backend, giver: string, mentioned: RichElement[]) {
+  sentMessages += 1;
+  await t.fetch("/slack/events", await signedRequest(messageEvent([section(...mentioned, emoji("taco"))], { user: giver, ts: tsOf(sentMessages) })));
+  await settle(t);
+}
+
+async function editLastKudos(t: Backend, giver: string, recipient: string, kudos: number) {
+  const blocks = [section(mention(recipient), ...Array.from({ length: kudos }, () => emoji("taco")))];
+  await t.fetch("/slack/events", await signedRequest(messageChangedEvent(blocks, { user: giver, ts: tsOf(sentMessages), editedTs: `${now.getTime() / 1000 + sentMessages}.000200` })));
+  await settle(t);
+}
+
+function tsOf(sent: number) {
+  return `${now.getTime() / 1000 + sent}.000100`;
 }
 
 async function openHome(t: Backend, user: string) {

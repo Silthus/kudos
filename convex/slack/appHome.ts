@@ -2,7 +2,6 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
-import { ReportableError } from "../analytics/exceptions";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import type { HomeFacts } from "../engine/home";
 import { renderHome, type Choice, type HomeLine, type HomeView } from "../feedback/home";
@@ -67,14 +66,6 @@ export const publishHome = observedAction({
   },
 });
 
-export function appHomeLink(workspace: string, label: string) {
-  return `<${appHomeUrl(workspace)}|${label}>`;
-}
-
-export function appHomeUrl(workspace: string) {
-  return `slack://app?${new URLSearchParams({ team: workspace, id: appId(), tab: "home" })}`;
-}
-
 type Home = { workspace: string; user: string; opened?: boolean };
 
 type Unavailable = { kind: "unavailable"; retryAfterMs?: number };
@@ -134,10 +125,4 @@ function linkButtonOf({ label, url }: { label: string; url: string }, index: num
 
 function channelPickerOf({ picks, picked }: Extract<HomeLine, { kind: "pick-channel" }>) {
   return { type: "channels_select", action_id: picks, placeholder: plainText("Pick a channel"), ...(picked !== null && { initial_channel: picked }) };
-}
-
-function appId() {
-  const id = process.env.SLACK_APP_ID;
-  if (!id) throw new ReportableError("SLACK_APP_ID is not set");
-  return id;
 }

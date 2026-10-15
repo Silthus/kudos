@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import { notificationValidator, type NotificationLine } from "../feedback/notify";
 import { purchaseOutcomeValidator } from "../progression/purchases";
+import { settingsFooterText } from "./appHomeLinks";
 import { buttonOf, mrkdwn } from "./blocks";
 import { attemptArgs, sendOnce, slackLink, tryAtMostThreeTimes } from "./delivery";
 
@@ -16,7 +17,7 @@ export const deliverDirectMessage = observedAction({
       async (attempt) => {
         const lines = await ctx.runQuery(internal.feedback.notify.linesStillWanted, { member: message.member, notification: message.notification });
         if (lines === null) return null;
-        return sendOnce(ctx, message.workspace, "chat.postMessage", { channel: message.user, ...messageOf(lines) }, attempt);
+        return sendOnce(ctx, message.workspace, "chat.postMessage", { channel: message.user, ...messageOf(lines, message.workspace) }, attempt);
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.directMessages.deliverDirectMessage, { ...message, attempt: retry.attempt }),
     );
@@ -38,21 +39,23 @@ export const deliverPurchaseReply = observedAction({
   },
 });
 
-function messageOf(lines: NotificationLine[]) {
-  const text = lines.map(textOf).join("\n");
-  return lines.some(hasButton) ? { text, blocks: lines.map(blockOf) } : { text };
+function messageOf(lines: NotificationLine[], workspace: string) {
+  const text = lines.map((line) => textOf(line, workspace)).join("\n");
+  return lines.some(hasButton) ? { text, blocks: lines.map((line) => blockOf(line, workspace)) } : { text };
 }
 
 function hasButton(line: NotificationLine) {
   return typeof line !== "string" && "action" in line;
 }
 
-function blockOf(line: NotificationLine) {
+function blockOf(line: NotificationLine, workspace: string) {
   if (typeof line !== "string" && "action" in line) return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
-  return { type: "section", text: mrkdwn(textOf(line)) };
+  return { type: "section", text: mrkdwn(textOf(line, workspace)) };
 }
 
-function textOf(line: NotificationLine) {
+function textOf(line: NotificationLine, workspace: string) {
   if (typeof line === "string") return line;
-  return "link" in line ? slackLink(line.link) : line.text;
+  if ("link" in line) return slackLink(line.link);
+  if ("footer" in line) return settingsFooterText(workspace, line.footer);
+  return line.text;
 }

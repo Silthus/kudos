@@ -189,6 +189,7 @@ export default defineSchema({
     message: v.string(),
     threadRoot: v.optional(v.string()),
     to: v.string(),
+    given: v.optional(v.array(segmentValidator)),
     lines: v.array(v.array(segmentValidator)),
     questsDone: v.optional(v.array(segmentValidator)),
     hint: v.optional(v.array(segmentValidator)),

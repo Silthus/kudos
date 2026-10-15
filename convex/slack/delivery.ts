@@ -7,6 +7,7 @@ import { messageRefValidator, type Mention, type MessageRef } from "../engine/me
 import type { DeepLink } from "../feedback/deepLinks";
 import type { Indicator } from "../feedback/indicator";
 import type { Line, Segment } from "../feedback/segments";
+import { settingsFooterText } from "./appHomeLinks";
 import { callSlack, type SlackAnswer } from "./webApi";
 
 export const attemptArgs = { attempt: v.optional(v.number()) };
@@ -83,7 +84,7 @@ async function sendPrivateReply(ctx: ActionCtx, reply: Id<"privateReplies">, att
   const message = {
     channel: row.conversation,
     user: row.to,
-    text: slackTextOf(row.lines),
+    text: [slackTextOf(row.lines), ...(row.footer === null ? [] : [settingsFooterText(row.workspace, row.footer)])].join("\n"),
     ...(row.threadRoot && { thread_ts: row.threadRoot }),
   };
   return sendOnce(ctx, row.workspace, "chat.postEphemeral", message, attempt);

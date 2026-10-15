@@ -23,6 +23,7 @@ import { chatUserOf, type MemberId } from "../workspace/directory";
 import { deepLinkFrom, deepLinks, type DeepLink } from "./deepLinks";
 import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, purchaseReplyOf, readyCrateOf, tiersEarnedLines, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
+import { settingsFooterFor, type SettingsFooter } from "./settingsFooter";
 import { isOpened, whenOpened } from "./unlockFilter";
 
 export const notificationValidator = v.union(
@@ -42,7 +43,7 @@ export const notificationValidator = v.union(
 
 export type Notification = Infer<typeof notificationValidator>;
 
-export type NotificationLine = string | { text: string; action: HomeAction } | { link: DeepLink };
+export type NotificationLine = string | { text: string; action: HomeAction } | { link: DeepLink } | { footer: SettingsFooter };
 
 const linkedPages = {
   "level-reached": deepLinks.levelReached,
@@ -101,7 +102,8 @@ export const linesStillWanted = internalQuery({
     const lines = told === null ? [] : renderNotification(told, await deliveryFactsOf(ctx, workspace, member, told, website));
     if (lines.length === 0) return null;
     const link = deepLinkFrom(website, linkedPages[notification.kind]);
-    return link === null ? lines : [...lines, { link }];
+    const footer = await settingsFooterFor(ctx, member);
+    return [...lines, ...(link === null ? [] : [{ link }]), ...(footer === null ? [] : [{ footer }])];
   },
 });
 

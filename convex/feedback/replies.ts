@@ -14,9 +14,11 @@ import { xpLevelsShownTo } from "../progression/xpLevels";
 import { questsExposedTo } from "../quests/flag";
 import { journeyGoalOf } from "../quests/journeyCopy";
 import { journeyStepValidator } from "../quests/step";
+import { wantsMessage } from "../messageSettings/messageSettings";
 import { lookup, type MemberId } from "../workspace/directory";
 import { deepLinkOf, deepLinks, type DeepLink } from "./deepLinks";
 import type { Line, Segment } from "./segments";
+import { settingsFooterFor } from "./settingsFooter";
 
 export const questDoneValidator = v.union(
   v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number() }),
@@ -46,23 +48,29 @@ export const questsWaitMs = 10_000;
 
 const hintLine: Line = [{ text: "Add why they earned it to earn more." }];
 
+type WrittenReply = Pick<Doc<"privateReplies">, "given" | "lines" | "gains" | "hint" | "held">;
+
 export async function replyPrivately(ctx: MutationCtx, ref: MessageRef, threadRoot: string | undefined, to: ChatUserId, reply: Reply) {
   const giver = await lookup(ctx, ref.workspace, to);
   const member = giver?.kind === "member" ? giver.member : undefined;
-  const gains = reply.kind === "given" ? await gainsWritten(ctx, member, ref, reply) : undefined;
-  const waitsForQuests = reply.kind === "given" && member !== undefined && (await questsExposedTo(ctx, member));
-  const asksWhy = reply.kind === "given" && member !== undefined && (await couldEarnMoreBySayingWhy(ctx, member, reply.annotations));
-  const id = await ctx.db.insert("privateReplies", {
-    ...ref,
-    ...(threadRoot && { threadRoot }),
-    to,
-    lines: renderReply(reply),
-    ...(gains && { gains }),
-    ...(asksWhy && { hint: hintLine }),
-    ...(waitsForQuests && { held: true as const }),
-  });
-  if (waitsForQuests) await ctx.scheduler.runAfter(questsWaitMs, internal.feedback.replies.releaseUnreleased, { reply: id });
+  const written = reply.kind === "given" ? await successReplyWritten(ctx, member, ref, reply) : { lines: renderReply(reply) };
+  if (saysNothing(written)) return;
+  const id = await ctx.db.insert("privateReplies", { ...ref, ...(threadRoot && { threadRoot }), to, ...written });
+  if (written.held) await ctx.scheduler.runAfter(questsWaitMs, internal.feedback.replies.releaseUnreleased, { reply: id });
   else await deliver(ctx, id);
+}
+
+async function successReplyWritten(ctx: MutationCtx, member: MemberId | undefined, ref: MessageRef, reply: Extract<Reply, { kind: "given" }>): Promise<WrittenReply> {
+  const lines = skippedLines(reply.outcome.skipped);
+  if (member !== undefined && !(await wantsMessage(ctx, member, "kudos-reply"))) return { lines };
+  const gains = await gainsWritten(ctx, member, ref, reply);
+  const waitsForQuests = member !== undefined && (await questsExposedTo(ctx, member));
+  const asksWhy = member !== undefined && (await couldEarnMoreBySayingWhy(ctx, member, reply.annotations)) && (await wantsMessage(ctx, member, "tips"));
+  return { given: givenLine(reply.outcome, reply.base), lines, gains, ...(asksWhy && { hint: hintLine }), ...(waitsForQuests && { held: true as const }) };
+}
+
+function saysNothing({ given, lines }: WrittenReply) {
+  return given === undefined && lines.length === 0;
 }
 
 async function gainsWritten(ctx: MutationCtx, member: MemberId | undefined, ref: MessageRef, { outcome, annotations }: Extract<Reply, { kind: "given" }>): Promise<Gains> {
@@ -91,12 +99,25 @@ export const privateReply = internalQuery({
   handler: async (ctx, { reply }) => {
     const row = await ctx.db.get(reply);
     if (row === null) return null;
-    const { gains, hint, questsDone: _, ...stored } = row;
-    const hintShown = hint !== undefined && (await skillTreeAppliesIn(ctx, row.workspace)) ? hint : null;
-    const extrasLine = gains === undefined ? null : extrasLineOf(await gainsShownTo(ctx, row.workspace, row.to, gains), hintShown, await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
-    return { ...stored, lines: extrasLine === null ? row.lines : [...row.lines, extrasLine] };
+    const { given, gains, hint, questsDone: _, ...stored } = row;
+    if (gains === undefined) return { ...stored, footer: null };
+    const member = await memberOf(ctx, row.workspace, row.to);
+    if (member !== null && !(await wantsMessage(ctx, member, "kudos-reply"))) return row.lines.length === 0 ? null : { ...stored, footer: null };
+    const extrasLine = extrasLineOf(await gainsShownTo(ctx, row.workspace, member, gains), await hintShownTo(ctx, row.workspace, member, hint), await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
+    const lines = [...(given === undefined ? [] : [given]), ...row.lines, ...(extrasLine === null ? [] : [extrasLine])];
+    return { ...stored, lines, footer: await settingsFooterFor(ctx, member) };
   },
 });
+
+async function memberOf(ctx: QueryCtx, workspace: string, to: ChatUserId): Promise<MemberId | null> {
+  const person = await lookup(ctx, workspace, to);
+  return person?.kind === "member" ? person.member : null;
+}
+
+async function hintShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null, hint: Line | undefined): Promise<Line | null> {
+  if (hint === undefined || !(await skillTreeAppliesIn(ctx, workspace))) return null;
+  return member === null || (await wantsMessage(ctx, member, "tips")) ? hint : null;
+}
 
 function heldReplyOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef) {
   return ctx.db
@@ -114,9 +135,7 @@ async function deliver(ctx: MutationCtx, reply: Id<"privateReplies">) {
   await ctx.scheduler.runAfter(0, internal.slack.delivery.deliverPrivateReply, { reply });
 }
 
-async function gainsShownTo(ctx: QueryCtx, workspace: string, to: ChatUserId, { xp, questsDone = [], bonus = [] }: Gains): Promise<Required<Gains>> {
-  const person = await lookup(ctx, workspace, to);
-  const member = person?.kind === "member" ? person.member : null;
+async function gainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null, { xp, questsDone = [], bonus = [] }: Gains): Promise<Required<Gains>> {
   return {
     xp: (await xpGainsShownTo(ctx, workspace, member)) ? xp : 0,
     questsDone: questsDone.length > 0 && (await questGainsShownTo(ctx, workspace, member)) ? questsDone : [],
