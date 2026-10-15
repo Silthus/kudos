@@ -71,8 +71,18 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   checklist: commit-ordered-effects dismissed: the lists are constants; comparing them issues no effect
   checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is sent
   checklist: declared-target-coverage declared as the route list is the paths the router serves
+- the router reads every target a link carries: Every target the backend's link function writes into a link, a quest's slot, a perk and a crate, is read back by the website's router as the same target, so a Slack link that names a perk or a ready crate lands on it.
+  over: urlOf in convex/website/routes.ts read back through routeOf in website/src/route.ts, for `quest`, `perk` on `/skills`, `crate` on `/quests`, `/leaderboard`, `/book` and `/skills`, and `crate=journey` on the root
+  via: #435: the router reads every target a Slack link carries
+  because: map #1 links the level-up DM's `Buy` to a perk and each crate's `Open` to its crate (#435), and a parameter the router dropped would land the member on the plain page with nothing to say why (SW10, SW11)
+  kinds: output
+  checklist: destination-confinement dismissed: the target is a perk ID or a crate name from a fixed list; the router drops any other value
+  checklist: redaction dismissed: a target names a perk or a feature, never a member
+  checklist: commit-ordered-effects dismissed: parsing a link issues no effect
+  checklist: circuit-breaker-policy dismissed: nothing is sent
+  checklist: declared-target-coverage dismissed: the link has one target, the website
 - one function builds every website link: websiteLinkOf answers SITE_URL plus the asked page's route, the Leaderboard keeping its period, and a page not on the route list resolves to the root, so a link never names a path the website doesn't serve.
-  over: websiteLinkOf while the website is open, for the root, the Leaderboard's three periods, the Quests page, and the `/skills` and `/book` pages
+  over: websiteLinkOf while the website is open, for the root, the Leaderboard's three periods, the Quests page, and the `/skills` and `/book` pages, and for the documented targets: `perk` on `/skills`, `crate` with a feature on its page and `crate=journey` on the root
   via: SW11: one function builds every website link
   refuted: routeOf answered an unlisted page's own path instead of the root -> the three unlisted pages linked to /quests, /skills and /book (2026-10-14)
   because: a link to a page the website doesn't serve yet would land a member on the not-found page, so every message builds its link from the route list through one function, and a page shipped later switches its links on with its route (SW11, SW13)

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { routeList } from "../../convex/website/routes";
-import { servedPaths } from "./route";
+import { routeList, urlOf, type Page } from "../../convex/website/routes";
+import { routeOf, servedPaths, type Route } from "./route";
 
 describe("SW10: the route list is the paths the router serves", () => {
   test("Slack links to exactly the paths the website's router serves", () => {
@@ -10,5 +10,24 @@ describe("SW10: the route list is the paths the router serves", () => {
   test("WS203: both lists hold /activity", () => {
     expect(routeList).toContain("/activity");
     expect(servedPaths).toContain("/activity");
+  });
+});
+
+describe("#435: the router reads every target a Slack link carries", () => {
+  const origin = "https://kudos-site.test";
+
+  test.each<{ link: string; page: Page; route: Route }>([
+    { link: "/quests?quest=2", page: { page: "quests", quest: 2 }, route: { page: "quests", quest: 2 } },
+    { link: "/skills?perk=spark", page: { page: "skillTree", perk: "spark" }, route: { page: "skills", perk: "spark" } },
+    { link: "/skills?crate=skillTree", page: { page: "skillTree", crate: "skillTree" }, route: { page: "skills", crate: "skillTree" } },
+    { link: "/quests?crate=quests", page: { page: "quests", crate: "quests" }, route: { page: "quests", crate: "quests" } },
+    { link: "/leaderboard?crate=leaderboard", page: { page: "leaderboard", period: "week", crate: "leaderboard" }, route: { page: "leaderboard", period: "week", crate: "leaderboard" } },
+    { link: "/leaderboard?period=month&crate=leaderboard", page: { page: "leaderboard", period: "month", crate: "leaderboard" }, route: { page: "leaderboard", period: "month", crate: "leaderboard" } },
+    { link: "/book?crate=book", page: { page: "book", crate: "book" }, route: { page: "book", bookPage: "overview", crate: "book" } },
+    { link: "/?crate=journey", page: { page: "home", crate: "journey" }, route: { page: "home", crate: "journey" } },
+  ])("$link", ({ link, page, route }) => {
+    const url = urlOf(origin, page);
+    expect(url).toBe(`${origin}${link}`);
+    expect(routeOf(new URL(url))).toEqual(route);
   });
 });

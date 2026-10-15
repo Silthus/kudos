@@ -36,7 +36,7 @@ import { useTitleFocusAfterChange, useTitleFocusOnArrival, useTitleFocusWhenTheF
 import type { ProfileCardRead, ProfileCardShown } from "./profileCardRead";
 import type { QuestsRead, QuestsShown } from "./questsRead";
 import type { RecentKudosRead } from "./recentKudosRead";
-import { useQuestTargetOnceLanded } from "./questTarget";
+import { useLinkTargetOnceLanded } from "./linkTarget";
 import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
 import type { SpotlightDraw } from "./spotlightRead";
 import { hrefOf, useRoute, type ActivityFilter, type BookPageId, type Route, type Screen } from "./route";
@@ -79,7 +79,6 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   useTitleFocusAfterChange(onActivity ? activityPageOf(activity) : onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : onBook ? bookPageOf(book) : onSkills ? skillTreePageOf(skillTree) : shown.kind, { held: revealing });
   useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
-  useQuestTargetOnceLanded(route, onQuests && quests?.kind === "quests");
   const arriveAt = useCallback(
     (href: string) => {
       expectArrival();
@@ -93,6 +92,8 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   }, [actions, route]);
   const takingToSlack = useSignInWhenAsked(shown, signIn);
   const page: ShellState = takingToSlack ? { kind: "loading" } : (memberShown ?? shown);
+  const busy = page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined) || (onActivity && activityWatch === undefined);
+  useLinkTargetOnceLanded(route, page.kind === "member" && !busy);
   const signingIn = page.kind === "signed-out" && route.page !== "not-found";
   const readyCrates = member === undefined ? [] : readyCratesOf(member, quests);
   return (
@@ -101,7 +102,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
         {signingIn ? (
           <SignedOutPage returnTo={hrefOf(route)} onSignIn={signIn} />
         ) : (
-          <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined) || (onActivity && activityWatch === undefined)} inert={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
+          <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={busy} inert={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
             <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
               <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} onSignIn={signIn} onSignOut={actions.signOut} />
             </ErrorBoundary>
