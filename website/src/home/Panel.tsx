@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { IconArrowRight } from "@posthog/icons";
+import { Arrow } from "../Arrow";
 import { AppLink } from "../AppLink";
 import { featureCardAttributes } from "../crates/moments";
 import { pageOf, type PagedFeature } from "../features";
@@ -30,9 +30,9 @@ const goTo: Record<PagedFeature, string> = {
 
 export function PageLink({ feature }: { feature: PagedFeature }) {
   return (
-    <AppLink href={pageOf(feature).href} className="inline-flex items-center gap-1 self-start text-sm font-medium underline-offset-4 hover:underline" {...featureCardAttributes(feature)}>
+    <AppLink href={pageOf(feature).href} className="group inline-flex items-center gap-1 self-start text-sm font-medium underline-offset-4 hover:underline" {...featureCardAttributes(feature)}>
       {goTo[feature]}
-      <IconArrowRight aria-hidden="true" className="size-3.5" />
+      <Arrow />
     </AppLink>
   );
 }

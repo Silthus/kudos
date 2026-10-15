@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { HedgehogExplorer, HedgehogMegaphone, HedgehogReading, HedgehogTownCrier } from "@posthog/brand/hoggies";
-import { IconArrowRight, IconCheck, IconClock, IconRefresh } from "@posthog/icons";
+import { IconCheck, IconClock, IconRefresh } from "@posthog/icons";
+import { Arrow } from "../Arrow";
 import { Button, Card, CardContent } from "@posthog/quill";
 import { AppLink } from "../AppLink";
 import { attemptMessages, questCrateHomeAttributes, useMoments } from "../crates/moments";
@@ -252,9 +253,9 @@ function BonusCard({ step, page, firstCrate }: BonusQuestProps) {
 
 function GoTo({ page, name }: { page: WebPage; name: string }) {
   return (
-    <AppLink href={page.href} className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+    <AppLink href={page.href} className="group inline-flex items-center gap-1 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
       Go to {name}
-      <IconArrowRight aria-hidden="true" className="size-3.5" />
+      <Arrow />
     </AppLink>
   );
 }
