@@ -66,6 +66,24 @@ export async function settleUntil(t: Backend, until: Date) {
   }
 }
 
+export async function settleUpTo(t: Backend, until: number) {
+  for (let fired = 0; fired < 1_000; fired += 1) {
+    await t.finishInProgressScheduledFunctions();
+    const next = await nextJobAt(t);
+    if (next === null || next > until) {
+      vi.advanceTimersByTime(Math.max(0, until - Date.now()));
+      return;
+    }
+    vi.advanceTimersToNextTimer();
+  }
+  throw new Error("settleUpTo: more than 1,000 timers fired");
+}
+
+async function nextJobAt(t: Backend) {
+  const pending = await t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).filter(({ state }) => state.kind === "pending"));
+  return pending.length === 0 ? null : Math.min(...pending.map(({ scheduledTime }) => scheduledTime));
+}
+
 export async function convexStops(t: Backend, functionName: string) {
   await t.run(async (ctx) => {
     for (const job of await pendingJobsOf(ctx, functionName)) await ctx.scheduler.cancel(job._id);
