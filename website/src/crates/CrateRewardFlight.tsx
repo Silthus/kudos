@@ -2,10 +2,10 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { levelShare } from "../LevelRing";
 import { prefersReducedMotion } from "../reducedMotion";
 import type { MemberProfile } from "../shell";
-import { skillPointsText } from "../skills/perkWords";
+import { coinsText, skillPointsText } from "../skills/perkWords";
 import type { Flight } from "./moments";
 import { crossesALevel, type Reward, type RewardKind } from "./rewards";
-import { heroRing, hudAvatar, levelDisplay, rewardChipOrigin, RewardFlight, settle, skillPointChip, xpDisplay, type Arrival, type Origin } from "./RewardFlight";
+import { coinsChip, heroRing, hudAvatar, levelDisplay, rewardChipOrigin, rewardCoinsOrigin, RewardFlight, settle, skillPointChip, xpDisplay, type Arrival, type Origin } from "./RewardFlight";
 
 type Hop = { kind: RewardKind; amount: string; source: () => Origin | undefined; target: () => HTMLElement | null };
 
@@ -72,12 +72,13 @@ export function CrateRewardFlight({ flight, reward: rewardNow, shown, onRewardLa
   return <RewardFlight key={hop} source={current.source} target={current.target} amount={current.amount} onArrived={onArrived} onLanded={onHopLanded} />;
 }
 
-function hopsOf({ crate, from }: Flight, { xp, skillPoints }: Reward): Hop[] {
+function hopsOf({ crate, from }: Flight, { xp, skillPoints, coins }: Reward): Hop[] {
   const fromTheCrate = () => rewardChipOrigin(crate.seen) ?? from;
   const xpHop: Hop | undefined = xp > 0 ? { kind: "xp", amount: `+${xp} XP`, source: fromTheCrate, target: xpDisplay } : undefined;
   const pointsHop: Hop | undefined =
     skillPoints > 0 ? { kind: "skillPoints", amount: `+${skillPointsText(skillPoints)}`, source: xpHop === undefined ? fromTheCrate : () => levelDisplay()?.getBoundingClientRect(), target: skillPointChip } : undefined;
-  return [xpHop, pointsHop].filter((hop) => hop !== undefined);
+  const coinsHop: Hop | undefined = coins > 0 ? { kind: "coins", amount: `+${coinsText(coins)}`, source: () => rewardCoinsOrigin(crate.seen) ?? fromTheCrate(), target: coinsChip } : undefined;
+  return [xpHop, pointsHop, coinsHop].filter((hop) => hop !== undefined);
 }
 
 export function fillFrom(target: HTMLElement, { progression: before }: MemberProfile, xp: number) {
