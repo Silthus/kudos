@@ -1,0 +1,69 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/design-polish-2b/website
+
+ ❯ |website| src/statesPolish.test.tsx (6 tests | 5 failed) 748ms
+   ❯ #481 3 V23: an empty timeline is Max's empty state, with one hedgehog, one sentence and one action to Slack (4)
+     × on all 291ms
+     × on received 122ms
+     × on given 71ms
+   ❯ #481 4: the story is centred on a wide screen (1)
+     × centres the header and the timeline column, which keep their reading width 93ms
+   ❯ #481 5: Max's pages share one shape for their one action (1)
+     × styles the not-found page's way back as an outline button, like the error page's Try again 106ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/statesPolish.test.tsx > #481 3 V23: an empty timeline is Max's empty state, with one hedgehog, one sentence and one action to Slack > on all
+ FAIL  |website| src/statesPolish.test.tsx > #481 3 V23: an empty timeline is Max's empty state, with one hedgehog, one sentence and one action to Slack > on received
+ FAIL  |website| src/statesPolish.test.tsx > #481 3 V23: an empty timeline is Max's empty state, with one hedgehog, one sentence and one action to Slack > on given
+AssertionError: expected null not to be null
+ ❯ src/statesPolish.test.tsx:47:69
+     45|     const empty = main().querySelector<HTMLElement>("[data-timeline-em…
+     46|     expect(empty).toHaveTextContent(sentence);
+     47|     expect(empty.querySelector("svg[aria-hidden='true'], svg")).not.to…
+       |                                                                     ^
+     48|     const action = within(empty).getByRole("link", { name: "Thank some…
+     49|     expect(action).toHaveAttribute("href", member.chatUrl);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  |website| src/statesPolish.test.tsx > #481 4: the story is centred on a wide screen > centres the header and the timeline column, which keep their reading width
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"mx-auto max-w-3xl"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  mx-auto max-w-3xl[39m
+Received:
+[31m  flex w-full max-w-3xl flex-wrap items-end justify-between gap-x-6 gap-y-3[39m
+ ❯ src/statesPolish.test.tsx:66:20
+     64|     await pages.answer(aPage([], null));
+     65|     const header = main().querySelector("header")!;
+     66|     expect(header).toHaveClass("mx-auto", "max-w-3xl");
+       |                    ^
+     67|     const column = main().querySelector("[data-timeline-empty]")!.pare…
+     68|     expect(column).toHaveClass("mx-auto", "max-w-3xl");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  |website| src/statesPolish.test.tsx > #481 5: Max's pages share one shape for their one action > styles the not-found page's way back as an outline button, like the error page's Try again
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"quill-button--variant-outline"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  quill-button--variant-outline[39m
+Received:
+[31m  text-sm font-medium underline underline-offset-4[39m
+ ❯ src/statesPolish.test.tsx:78:18
+     76|     const back = screen.getByRole("link", { name: "Back to your profil…
+     77|     expect(back).toHaveAttribute("href", "/");
+     78|     expect(back).toHaveClass("quill-button--variant-outline");
+       |                  ^
+     79|     expect(back).not.toHaveClass("underline");
+     80|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 1 passed (6)
+   Start at  21:03:51
+   Duration  4.72s (transform 37%, import 31%, tests 16%, environment 13%, setup 3%)
+

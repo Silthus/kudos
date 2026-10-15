@@ -232,7 +232,7 @@ function Page({ state, route, board, quests, book, skillTree, settings, profileC
   if (route.page === "not-found") return <NotFoundPage />;
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "home") return quests?.kind === "connecting" || board?.kind === "connecting" ? <ConnectingPage /> : <HomePage member={state} reads={{ quests, board, card: profileCard }} useRecentKudos={useRecentKudos} />;
-  if (route.page === "activity") return <ActivityAnswerPage filter={route.filter} activity={activity} {...actions} />;
+  if (route.page === "activity") return <ActivityAnswerPage filter={route.filter} activity={activity} chatUrl={state.chatUrl} {...actions} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} onSwapQuest={onSwapQuest} {...actions} />;
   if (route.page === "book") return <BookAnswerPage member={state} book={book} page={route.bookPage} {...actions} />;
   if (route.page === "settings") return <SettingsAnswerPage settings={settings} actions={settingsActions} {...actions} />;
@@ -254,12 +254,12 @@ function QuestsAnswerPage({ member, quests, onSwapQuest, ...actions }: QuestsAns
   return <QuestsPage quests={quests} member={member} swapQuest={onSwapQuest} />;
 }
 
-function ActivityAnswerPage({ filter, activity, ...actions }: { filter: ActivityFilter; activity: ActivityReads; onSignIn: () => void; onSignOut: () => void }) {
+function ActivityAnswerPage({ filter, activity, chatUrl, ...actions }: { filter: ActivityFilter; activity: ActivityReads; chatUrl: string; onSignIn: () => void; onSignOut: () => void }) {
   const { shown } = activity;
   if (shown === undefined) return null;
   if (shown.kind === "not-found") return <NotFoundPage />;
   if (shown.kind !== "activity") return <AnswerPage answer={shown} {...actions} />;
-  return <ActivityPage filter={filter} watch={activity.watch} readActivity={activity.read} onChooseFilter={activity.onChooseFilter} />;
+  return <ActivityPage filter={filter} watch={activity.watch} readActivity={activity.read} chatUrl={chatUrl} onChooseFilter={activity.onChooseFilter} />;
 }
 
 type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; page: BookPageId; onSignIn: () => void; onSignOut: () => void };
