@@ -17,7 +17,7 @@ import { journeyGoalOf } from "../quests/journeyCopy";
 import { rewardKeyOf } from "../quests/crates";
 import { questOf } from "../quests/pool";
 import type { WeekKey } from "../quests/week";
-import type { GroupQuest } from "../quests/groupQuest";
+import type { GroupQuest, WaitingGroupCrate } from "../quests/groupQuest";
 import type { UnopenedCrate, WeeklyQuests, WeeklySlot } from "../quests/weekly";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { Feature } from "../unlocks/feature";
@@ -77,7 +77,7 @@ const earlierCratesShown = 5;
 
 const pageNames: Record<Page["page"], string> = { home: "home", leaderboard: "Leaderboard", quests: "Quests", skillTree: "Skill tree", book: "Book" };
 
-const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, groupQuest: null, earlierCrates: null, journey: null };
+const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, groupQuest: null, earlierCrates: null, earlierGroupCrates: null, journey: null };
 
 export function renderHome(facts: HomeFacts, home: ShownHome | null, frontDoor: FrontDoorLinks | null): HomeView {
   if (facts.kind === "not-a-member") {
@@ -132,18 +132,26 @@ function leaderboardGroups({ period, board, groups, myGroup }: Extract<ShownTab,
 
 type ProfileFacts = Omit<Extract<ShownTab, { tab: "profile" }>, "tab">;
 
-function profileOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, journey }: ProfileFacts): HomeView {
+function profileOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, earlierGroupCrates, journey }: ProfileFacts): HomeView {
   const progress = progression === null ? [] : [[...progressOf(progression), ...(unlocks === null ? [] : unlockLinesOf(unlocks))]];
   const weekly = questsThisWeek(quests, groupQuest, { cratesShownApart: false, website: null });
-  const earlier = earlierCrates === null || earlierCrates.length === 0 ? [] : [waitingToOpenLines(earlierCrates)];
+  const waitingToOpen = waitingToOpenLines(earlierCrates ?? [], earlierGroupCrates ?? []);
+  const earlier = waitingToOpen.length === 0 ? [] : [waitingToOpen];
   const steps = journey === null || journey.length === 0 ? [] : [journey.flatMap(journeyStepLines)];
   return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...earlier, ...steps, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
 }
 
-function summaryOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, journey }: ProfileFacts, links: FrontDoorLinks): HomeView {
+function summaryOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, earlierGroupCrates, journey }: ProfileFacts, links: FrontDoorLinks): HomeView {
   const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)])];
   const { origin } = links;
-  const waiting = [...readyCratesOf(unlocks, origin), ...earlierCratesOf(earlierCrates, origin), ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...moreEarlierCrates(earlierCrates ?? [])];
+  const waiting = [
+    ...readyCratesOf(unlocks, origin),
+    ...earlierCratesOf(earlierCrates, origin),
+    ...weeklyCratesOf(quests, origin),
+    ...journeyCratesOf(journey, origin),
+    ...moreEarlierCrates(earlierCrates ?? []),
+    ...(earlierGroupCrates ?? []).map(earlierGroupCrateLine),
+  ];
   const weekly = questsThisWeek(quests, groupQuest, { cratesShownApart: true, website: origin });
   return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
 }
@@ -522,9 +530,14 @@ function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, f
   return openedAt === null && !cratesShownApart ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }, null) } : { kind: "text", text };
 }
 
-function waitingToOpenLines(crates: UnopenedCrate[]): HomeLine[] {
+function waitingToOpenLines(crates: UnopenedCrate[], groupCrates: WaitingGroupCrate[]): HomeLine[] {
+  if (crates.length + groupCrates.length === 0) return [];
   const shown = crates.slice(0, earlierCratesShown).map(({ crate, week, goal, reward }): HomeLine => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal} ${earned(reward.xp)}`, action: openCrate(crate, null) }));
-  return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...moreEarlierCrates(crates)];
+  return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...moreEarlierCrates(crates), ...groupCrates.map(earlierGroupCrateLine)];
+}
+
+function earlierGroupCrateLine({ crate, group, goal }: WaitingGroupCrate): HomeLine {
+  return { kind: "action", text: `${weekLabelOf(crate.week)} ✅ ${group} quest: ${goal}`, action: openCrate(crate, null) };
 }
 
 function journeyStepLines({ step, goal, hint, reward, finishedAt, openedAt }: JourneyStepShown): HomeLine[] {

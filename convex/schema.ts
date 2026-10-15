@@ -152,7 +152,9 @@ export default defineSchema({
     day: v.string(),
     at: v.number(),
     awards: v.array(attributedAwardValidator),
-  }).index("by_message", ["workspace", "conversation", "message"]),
+  })
+    .index("by_message", ["workspace", "conversation", "message"])
+    .index("by_group_at", ["group", "at"]),
 
   customEmoji: defineTable({
     workspace: v.string(),

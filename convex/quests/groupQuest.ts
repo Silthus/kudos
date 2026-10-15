@@ -15,7 +15,7 @@ import { openedAtOf } from "../unlocks/unlocks";
 import type { MemberId } from "../workspace/directory";
 import { maxUserGroupsKept } from "../workspace/userGroups";
 import { questsApplyTo } from "./flag";
-import { crateOpeningOf, rewardKeyOf } from "./crates";
+import { crateOpeningOf, groupWeekOfRewardKey, rewardKeyOf, rewardKeyPrefixOf } from "./crates";
 import { finishQuest } from "./finish";
 import { doesGroupQuestAction, drawGroupQuest, groupGoalOf, groupQuestPool, groupTargetOf, type GroupQuestId } from "./groupPool";
 import { groupQuestFlag } from "./groupQuestFlag";
@@ -27,6 +27,7 @@ const membersPerPage = 100;
 const groupsPerPage = 25;
 const participantsPerEvent = 500;
 const workspacesPerSweep = 500;
+const attributionsPerCatchUp = 50;
 const weekMs = 7 * 24 * 60 * 60 * 1000;
 
 const tallyValidator = v.array(v.object({ group: v.id("userGroups"), membersInside: v.number(), participants: v.array(v.id("members")) }));
@@ -48,6 +49,8 @@ export type GroupQuest = {
   reward: Reward;
   crate: { key: string; opened: boolean } | null;
 };
+
+export type WaitingGroupCrate = { crate: GroupQuestCrate; group: string; goal: string };
 
 export const sweep = internalMutation({
   args: {},
@@ -96,13 +99,21 @@ export const drawGroupQuests = internalMutation({
 export const followAwardsAttributed = internalMutation({
   args: { event: awardsAttributedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    const drawn = await groupQuestContributedToBy(ctx, event);
-    if (drawn === null || (await hasContributed(ctx, drawn, event.giver))) return;
-    const before = await contributorsOf(ctx, drawn);
-    const { workspace, giver, message, at } = event;
-    await ctx.db.insert("groupQuestContributions", { workspace, group: drawn.group, week: drawn.week, member: giver, message, at });
-    for (const member of rewardedBy(drawn, before, giver)) await rewardContributor(ctx, drawn, member, at);
-    await republish(ctx, giver);
+    await contribute(ctx, event);
+  },
+});
+
+export const catchUpContributions = internalMutation({
+  args: { quest: v.id("groupQuests"), cursor: v.union(v.string(), v.null()) },
+  handler: async (ctx, { quest, cursor }): Promise<void> => {
+    const drawn = (await ctx.db.get(quest))!;
+    const weekStart = weekStartOf(drawn.week, undefined);
+    const { page, isDone, continueCursor } = await ctx.db
+      .query("attributions")
+      .withIndex("by_group_at", (q) => q.eq("group", drawn.group).gte("at", weekStart).lt("at", weekStart + weekMs))
+      .paginate({ cursor, numItems: attributionsPerCatchUp });
+    for (const { _id, _creationTime, conversation, message, ...facts } of page) await contribute(ctx, { type: "awardsAttributed", message: { workspace: facts.workspace, conversation, message }, ...facts });
+    if (!isDone) await ctx.scheduler.runAfter(0, internal.quests.groupQuest.catchUpContributions, { quest, cursor: continueCursor });
   },
 });
 
@@ -141,8 +152,41 @@ export async function groupQuestFor(ctx: QueryCtx, member: MemberId, at: number)
   };
 }
 
+export async function earlierGroupCratesOf(ctx: QueryCtx, member: MemberId, at: number): Promise<WaitingGroupCrate[]> {
+  const prefix = rewardKeyPrefixOf("group");
+  const pending = await ctx.db
+    .query("pendingCrates")
+    .withIndex("by_member_key", (q) => q.eq("member", member).gte("key", prefix).lt("key", `${prefix}\uffff`))
+    .collect();
+  const waiting: WaitingGroupCrate[] = [];
+  for (const { key } of pending) {
+    const crate = await groupCrateOfKey(ctx, key);
+    if (crate !== null && crate.crate.week !== groupWeekOf(at)) waiting.push(crate);
+  }
+  return waiting.sort((one, other) => one.crate.week.localeCompare(other.crate.week));
+}
+
+async function groupCrateOfKey(ctx: QueryCtx, key: string): Promise<WaitingGroupCrate | null> {
+  const parsed = groupWeekOfRewardKey(key);
+  const group = parsed === null ? null : ctx.db.normalizeId("userGroups", parsed.group);
+  const row = group === null ? null : await ctx.db.get(group);
+  const drawn = row === null ? null : await groupQuestIn(ctx, row._id, parsed!.week);
+  if (row === null || drawn === null) return null;
+  return { crate: crateOfWeek(drawn), group: row.name, goal: groupGoalOf(drawn.quest, row.name) };
+}
+
 export async function groupQuestIdOf(ctx: QueryCtx, { group, week }: GroupQuestCrate): Promise<GroupQuestId | null> {
   return (await groupQuestIn(ctx, group, week))?.quest ?? null;
+}
+
+async function contribute(ctx: MutationCtx, event: AwardsAttributedEvent) {
+  const drawn = await groupQuestContributedToBy(ctx, event);
+  if (drawn === null || (await hasContributed(ctx, drawn, event.giver))) return;
+  const before = await contributorsOf(ctx, drawn);
+  const { workspace, giver, message, at } = event;
+  await ctx.db.insert("groupQuestContributions", { workspace, group: drawn.group, week: drawn.week, member: giver, message, at });
+  for (const member of rewardedBy(drawn, before, giver)) await rewardContributor(ctx, drawn, member, at);
+  await republish(ctx, giver);
 }
 
 async function groupQuestContributedToBy(ctx: QueryCtx, { group, giver, at, awards }: AwardsAttributedEvent): Promise<Doc<"groupQuests"> | null> {
@@ -216,7 +260,8 @@ async function drawFor(ctx: MutationCtx, { workspace, week, members, mode }: Dra
   const quest = drawGroupQuest(group, week, feasibleBecause);
   const drawnAt = Date.now();
   const { version: catalogueVersion, reward } = groupQuestPool;
-  await ctx.db.insert("groupQuests", { workspace, group, week, quest, participants, target: groupTargetOf(participants.length), reward, catalogueVersion, feasibleBecause, drawnAt });
+  const drawn = await ctx.db.insert("groupQuests", { workspace, group, week, quest, participants, target: groupTargetOf(participants.length), reward, catalogueVersion, feasibleBecause, drawnAt });
+  await ctx.scheduler.runAfter(0, internal.quests.groupQuest.catchUpContributions, { quest: drawn, cursor: null });
   for (let start = 0; start < participants.length; start += participantsPerEvent) {
     await publish(ctx, { type: "groupQuestDrawn", workspace, week, quest, participants: participants.slice(start, start + participantsPerEvent), at: drawnAt });
   }

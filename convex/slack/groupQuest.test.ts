@@ -22,6 +22,7 @@ const tuesday = Date.parse("2026-10-20T10:00:00Z");
 const groupQuestLine = "section: Ants quest: Thank someone and say why. · 0 of 3 took part";
 const groupQuestDoneLine = "section: Ants quest: Thank someone and say why. · 3 of 3 took part · ✅";
 const saysWhy = "thanks for untangling the release notes today";
+const earlierGroupCrateLine = "section: *Week of Oct 19:* ✅ Ants quest: Thank someone and say why.";
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -92,6 +93,25 @@ describe("GB23 GB24: a week of kudos that say why finishes the group quest, and 
 
     expect(publishedHome(slack, "U_ANN")).toContain(groupQuestDoneLine);
     expect(await t.run((ctx) => ctx.db.query("crateOpenings").collect())).toEqual([expect.objectContaining({ key: expect.stringMatching(/^group:/) })]);
+  });
+});
+
+describe("GB23 P85: a group crate left unopened waits in App Home after its week", { timeout: 60_000 }, () => {
+  test("next week, App Home lists Ann's unopened Ants crate under Waiting to open, and Open opens it", async () => {
+    const t = await antsOpenedQuests();
+    await sweepAt(t, lastTuesday);
+    await sweepAt(t, mondaySweep);
+    vi.setSystemTime(tuesday);
+    for (const [giver, recipient] of [["U_ANN", "U_AL"], ["U_AL", "U_AMY"], ["U_AMY", "U_ANN"]] as const) await giveKudos(t, giver, recipient, saysWhy);
+
+    vi.setSystemTime(tuesday + 7 * 24 * 60 * 60 * 1000);
+    await openHome(t, "U_ANN");
+    expect(publishedHome(slack, "U_ANN")).toContain(`${earlierGroupCrateLine} [button: Open]`);
+
+    await click(t, "U_ANN", buttonIn(publishedHomeBlocks(slack, "U_ANN").filter(({ text }) => text?.text === earlierGroupCrateLine.replace("section: ", "")), "Open"));
+
+    expect(publishedHome(slack, "U_ANN").join("\n")).not.toContain("Ants quest:");
+    expect(await t.run((ctx) => ctx.db.query("crateOpenings").collect())).toEqual([expect.objectContaining({ key: expect.stringMatching(/^group:.+:2026-10-19$/) })]);
   });
 });
 

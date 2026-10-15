@@ -23,6 +23,11 @@ export function weeklyQuestOfRewardKey(key: string): WeeklyQuest | null {
   return match === null ? null : { kind: "weekly", week: match[1]!, slot: Number(match[2]) };
 }
 
+export function groupWeekOfRewardKey(key: string): { group: string; week: string } | null {
+  const match = new RegExp(`^${rewardKeyPrefixOf("group")}([^:]+):(.+)$`).exec(key);
+  return match === null ? null : { group: match[1]!, week: match[2]! };
+}
+
 export function journeyQuestOfRewardKey(key: string): JourneyQuest | null {
   const step = journeyStepValidator.members.map(({ value }) => value).find((candidate) => key === rewardKeyOf({ kind: "journey", step: candidate }));
   return step === undefined ? null : { kind: "journey", step };

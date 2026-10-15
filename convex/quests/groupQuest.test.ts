@@ -321,12 +321,14 @@ describe("GB22 GB23: participants finish the group quest together, and each cont
     expect(await groupRewardsOf(t)).toEqual([ann, al, amy, abe].map((member) => groupReward(member, groups.Ants!, thisWeek)));
   });
 
-  test("a kudos that doesn't say why, or a kudos to a recipient in the group for together-reach-out, isn't a contribution", async () => {
+  test("for together-say-why, a kudos that doesn't say why isn't a contribution and one that does is", async () => {
     const { t, members } = await antsOfFiveDrew();
 
     await gives(t, members.U_A1!, members.U_A2!, tuesday, { saysWhy: false });
+    expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ quest: "together-say-why", tookPart: 0, you: false });
 
-    expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ tookPart: 0, you: false });
+    await gives(t, members.U_A1!, members.U_A2!, tuesday + hourMs);
+    expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ quest: "together-say-why", tookPart: 1, you: true });
   });
 
   test("together-reach-out counts a kudos to a recipient whose primary group at the spend instant isn't the group, and not one to a fellow member", async () => {
@@ -351,6 +353,20 @@ describe("GB22 GB23: participants finish the group quest together, and each cont
     await gives(t, members.U_A1!, members.U_A2!, monday + weekMs - minuteMs, { processedAt: monday + weekMs + 5 * minuteMs });
 
     expect(await groupRewardsOf(t)).toEqual([groupReward(members.U_A1!, groups.Ants!, thisWeek)]);
+  });
+
+  test("a kudos spent on Monday and processed before the week's draw counts once the draw runs, once", async () => {
+    const { t, members, groups } = await workspace({ Ants: ["U_A1", "U_A2"] });
+    await openQuests(t, Object.values(members), lastTuesday);
+    await launched(t);
+
+    await gives(t, members.U_A1!, members.U_A2!, monday + 5 * minuteMs);
+    await sweepAt(t, monday + 10 * minuteMs);
+    expect(await groupRewardsOf(t)).toEqual([groupReward(members.U_A1!, groups.Ants!, thisWeek)]);
+
+    await redeliverLatestAwardsAttributed(t);
+    expect(await groupRewardsOf(t)).toEqual([groupReward(members.U_A1!, groups.Ants!, thisWeek)]);
+    expect(await groupQuestOf(t, members.U_A2!)).toMatchObject({ tookPart: 1, done: true });
   });
 
   test("two kudos from one participant count one contribution, and a redelivered awardsAttributed changes nothing", async () => {
@@ -380,15 +396,19 @@ describe("GB22 GB23: participants finish the group quest together, and each cont
 
 describe("GB36: the week's lifecycle", { timeout: 60_000 }, () => {
   test("a participant who switched group mid-week contributes nothing more to the old quest, and what they contributed stays", async () => {
-    const { t, members, groups } = await workspace({ Ants: ["U_A1", "U_A2", "U_A3", "U_SWITCH"], Bees: ["U_SWITCH", "U_B1", "U_B2", "U_B3", "U_B4"] });
+    const { t, members, groups } = await workspace({ Ants: ["U_A1", "U_A2", "U_A3", "U_SWITCH", "U_MOVER"], Bees: ["U_SWITCH", "U_MOVER", "U_B1", "U_B2", "U_B3", "U_B4"] });
     await picks(t, members.U_SWITCH!, groups.Ants!, lastTuesday);
+    await picks(t, members.U_MOVER!, groups.Ants!, lastTuesday);
     await openQuests(t, Object.values(members), lastTuesday);
     await launched(t);
     await sweepAt(t, monday + 10 * minuteMs);
 
     await gives(t, members.U_SWITCH!, members.U_B1!, tuesday);
     await picks(t, members.U_SWITCH!, groups.Bees!, wednesday);
+    await picks(t, members.U_MOVER!, groups.Bees!, wednesday);
     await gives(t, members.U_SWITCH!, members.U_B1!, wednesday + hourMs);
+    await gives(t, members.U_MOVER!, members.U_B2!, wednesday + hourMs);
+    expect(await groupQuestOf(t, members.U_MOVER!)).toMatchObject({ group: { group: groups.Ants, name: "Ants" }, tookPart: 1, you: false });
     await gives(t, members.U_A1!, members.U_B1!, wednesday + hourMs);
     expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ tookPart: 2, done: false });
     await gives(t, members.U_A2!, members.U_B1!, wednesday + hourMs);
