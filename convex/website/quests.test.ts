@@ -8,9 +8,11 @@ import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { allowanceDay } from "../engine/allowance";
+import { rewardKeyOf } from "../quests/crates";
+import { activated, activateJourneyOf, journey } from "../quests/journey";
 import { openQuestCrate } from "../quests/open";
 import { questOf, type QuestId } from "../quests/pool";
-import type { Quest } from "../quests/step";
+import { featureOpening, type JourneyStep as JourneyStepId, type Quest } from "../quests/step";
 import { rerollQuest } from "../quests/weekly";
 import { workspaceLink } from "../slack/workspaceLink";
 import type { MemberId } from "../workspace/directory";
@@ -222,7 +224,7 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     const { member, asSignedIn } = await signedIn();
     await questsOpenFor(member);
 
-    expect(await questsOf(asSignedIn)).toEqual({ kind: "quests", slots: [], swap: { used: false, available: false }, waiting: [], chatUrl: workspaceLink("T1") });
+    expect(await questsOf(asSignedIn)).toEqual({ kind: "quests", slots: [], swap: { used: false, available: false }, waiting: [], bonus: null, chatUrl: workspaceLink("T1") });
   });
 
   test("P80: fewer than three drawn quests read as that many slots, in slot order, each in progress at 0", async () => {
@@ -431,7 +433,7 @@ describe("WS71: getMyProfile's journey", () => {
   test("P88: a website-first member with no stored activation reads first-thanks active, with its copy and the catalogue's reward", async () => {
     const { asSignedIn } = await signedIn();
 
-    expect(await journeyOf(asSignedIn)).toEqual([{ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "active", crate: null, seen: null }]);
+    expect(await journeyOf(asSignedIn)).toEqual([{ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "active", crate: null, seen: null, feature: null }]);
     expect(await t.run((ctx) => ctx.db.query("journeySteps").collect())).toEqual([]);
   });
 
@@ -447,7 +449,7 @@ describe("WS71: getMyProfile's journey", () => {
     await thanks(member, teammate.member);
 
     const finished = await journeyOf(asSignedIn);
-    expect(finished).toEqual([{ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "finished", crate: firstThanks, seen: expect.any(String) }]);
+    expect(finished).toEqual([{ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "finished", crate: firstThanks, seen: expect.any(String), feature: null }]);
 
     await opensCrate(member, firstThanks);
 
@@ -460,8 +462,8 @@ describe("WS71: getMyProfile's journey", () => {
     await t.mutation(internal.quests.journey.activateJourney, { event: { type: "unlockOpened", workspace: "T1", member, feature: "quests", at: Date.now() } });
 
     expect(await journeyOf(asSignedIn)).toEqual([
-      { step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "active", crate: null, seen: null },
-      { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 }, state: "active", crate: null, seen: null },
+      { step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "active", crate: null, seen: null, feature: null },
+      { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 }, state: "active", crate: null, seen: null, feature: "quests" },
     ]);
   });
 
@@ -473,6 +475,92 @@ describe("WS71: getMyProfile's journey", () => {
     const facts = (await domainFactsOf(member))!.journey;
 
     expect(journey!.map(({ step, reward }) => ({ step, reward }))).toEqual(facts.map(({ step, reward }) => ({ step, reward: { xp: reward.xp } })));
+  });
+});
+
+describe("WS317: getQuests' bonus is the Journey's next step", () => {
+  beforeEach(async () => {
+    await questsApply();
+    vi.advanceTimersByTime(60_000);
+  });
+
+  async function joined(member: MemberId) {
+    await t.run((ctx) => activateJourneyOf(ctx, member));
+  }
+
+  async function finishedAndOpened(member: MemberId, step: JourneyStepId) {
+    const at = Date.now();
+    const key = rewardKeyOf({ kind: "journey", step });
+    await t.run(async (ctx) => {
+      await activated(ctx, "T1", member, step, at, journey);
+      await ctx.db.insert("rewardRecords", { member, key, xp: 20, coins: 0, item: null, catalogueVersion: journey.version, at });
+      await ctx.db.insert("crateOpenings", { member, key, at });
+    });
+  }
+
+  function scheduledJobs() {
+    return t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  }
+
+  async function bonusOf(asSignedIn: Pick<Backend, "query">) {
+    return (await openQuests(asSignedIn)).bonus;
+  }
+
+  test("a joined member's active first-thanks is the bonus, with no feature", async () => {
+    const { member, asSignedIn } = await signedIn();
+    await questsOpenFor(member);
+    await joined(member);
+
+    expect(await bonusOf(asSignedIn)).toEqual({ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "active", crate: null, seen: null, feature: null });
+  });
+
+  test("P85: a finished step stays the bonus with its crate and seen key until it's opened", async () => {
+    const { member, asSignedIn, teammate } = await aTeam();
+    await questsOpenFor(member);
+    await joined(member);
+    await thanks(member, teammate.member);
+
+    expect(await bonusOf(asSignedIn)).toEqual({ step: "first-thanks", ...firstThanksCopy, reward: { xp: 10 }, state: "finished", crate: firstThanks, seen: expect.any(String), feature: null });
+  });
+
+  test("once a step is opened, the next step is the bonus, with the feature it belongs to", async () => {
+    const { member, asSignedIn } = await signedIn();
+    await questsOpenFor(member);
+    await joined(member);
+    await finishedAndOpened(member, "first-thanks");
+
+    expect(await bonusOf(asSignedIn)).toEqual({ step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 }, state: "active", crate: null, seen: null, feature: "quests" });
+  });
+
+  test("P88: a website-first member who hasn't joined reads no bonus, and the read joins nobody", async () => {
+    const { member, asSignedIn } = await signedIn();
+    await questsOpenFor(member);
+    const scheduledBefore = await scheduledJobs();
+
+    expect(await bonusOf(asSignedIn)).toBeNull();
+    expect(await t.run((ctx) => ctx.db.query("journeySteps").collect())).toEqual([]);
+    expect(await scheduledJobs()).toEqual(scheduledBefore);
+  });
+
+  test("with every step opened, there is no bonus", async () => {
+    const { member, asSignedIn } = await signedIn();
+    await questsOpenFor(member);
+    await joined(member);
+    for (const step of ["first-thanks", "first-quest", "someone-new"] as const) await finishedAndOpened(member, step);
+
+    expect((await journeyOf(asSignedIn))!.every(({ state }) => state === "opened")).toBe(true);
+    expect(await bonusOf(asSignedIn)).toBeNull();
+  });
+
+  test("getMyProfile's Journey steps carry the feature each step belongs to, from Quests' own mapping", async () => {
+    const { member, asSignedIn } = await signedIn();
+    await questsOpenFor(member);
+    await joined(member);
+
+    expect((await journeyOf(asSignedIn))!.map(({ step, feature }) => ({ step, feature }))).toEqual([
+      { step: "first-thanks", feature: featureOpening("first-thanks") },
+      { step: "first-quest", feature: featureOpening("first-quest") },
+    ]);
   });
 });
 
