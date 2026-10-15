@@ -1,8 +1,8 @@
 import type { ViewedBoard } from "../analytics/projections";
 import type { GroupId } from "../groups/groups";
 import type { BoardRow, BoardView } from "../leaderboard/board";
-import type { GroupImprovement, GroupsBoard, GroupsBoardRow } from "../leaderboard/groupsBoard";
-import { improvementLine, placesClimbedPart } from "../leaderboard/improvementLine";
+import type { GroupsBoard, GroupsBoardRow } from "../leaderboard/groupsBoard";
+import { groupImprovementLine, improvementLine } from "../leaderboard/improvementLine";
 import type { MyGroupBoardView } from "../leaderboard/myGroupBoard";
 import type { Peer } from "../leaderboard/peer";
 import type { Period } from "../leaderboard/periods";
@@ -51,7 +51,7 @@ function peerLine(peer: Peer | null): Line[] {
 function renderGroupsBoard(board: GroupsBoard<GroupId>, period: Period): Line[] {
   const rows = board.window.flatMap((position, index) => [...(skipsBefore(board.window, index) ? [[{ text: "…" }]] : []), groupRow(board.rows[position - 1]!)]);
   const mine = board.rows.find(({ mine }) => mine);
-  const improvement = board.improvement === null || mine === undefined || period === "all" ? [] : [[{ text: groupImprovementLine(board.improvement, mine, period) }]];
+  const improvement = board.improvement === null || mine === undefined || period === "all" ? [] : [[{ text: groupImprovementLine(board.improvement, asWritten(mine), period) }]];
   const mostImproved = board.mostImproved === null ? [] : [[{ text: `📈 Most improved: ${asWritten(board.mostImproved)}` }]];
   return [[{ text: "*Groups*" }], ...rows, ...improvement, ...mostImproved];
 }
@@ -80,11 +80,6 @@ function boardRow({ rank, id, value }: BoardRow): Line {
 function groupRow(row: GroupsBoardRow<GroupId>): Line {
   const { rank, perMember, participation, kudos } = row;
   return [{ text: `${medalOf(rank)} ${asWritten(row)} · ${perMember.toFixed(1)} per person · ${participation}% gave · ${kudos} kudos` }];
-}
-
-function groupImprovementLine(improvement: GroupImprovement, group: GroupsBoardRow<GroupId>, period: Exclude<Period, "all">) {
-  if ("best" in improvement) return `${asWritten(group)}'s best ${period} so far: ${improvement.best.toFixed(1)} per person.`;
-  return `▲ ${improvement.gain.toFixed(1)} more per person than this time last ${period}${placesClimbedPart(improvement.places)}`;
 }
 
 function skipsBefore(window: number[], index: number) {

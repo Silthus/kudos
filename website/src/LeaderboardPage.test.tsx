@@ -79,14 +79,14 @@ describe("WS37 WS1: the leaderboard lives at /leaderboard, with the period in th
     visit(path);
     const read = vi.fn<BoardRead>(fixedLeaderboard(leaderboardFixtures.midBoard));
     renderApp(withTheBoard, read);
-    expect(read).toHaveBeenLastCalledWith(period);
+    expect(read).toHaveBeenLastCalledWith(period, true);
   });
 
   it("reads any other period as this week and rewrites the address without a reload", () => {
     visit("/leaderboard?period=year");
     const read = vi.fn<BoardRead>(fixedLeaderboard(leaderboardFixtures.midBoard));
     renderApp(withTheBoard, read);
-    expect(read).toHaveBeenLastCalledWith("week");
+    expect(read).toHaveBeenLastCalledWith("week", true);
     expect(window.location.pathname + window.location.search).toBe("/leaderboard");
   });
 
@@ -203,7 +203,7 @@ describe("WS39: the board card and the periods", () => {
     thisMonth.focus();
     await user.keyboard("{Enter}");
     expect(window.location.pathname + window.location.search).toBe("/leaderboard?period=month");
-    expect(read).toHaveBeenLastCalledWith("month");
+    expect(read).toHaveBeenLastCalledWith("month", true);
     expect(within(main()).getByRole("button", { name: "This month" })).toHaveAttribute("aria-pressed", "true");
     expect(within(main()).getByRole("button", { name: "This month" })).toHaveFocus();
     expect(within(main()).getByText("Everyone · This month")).toBeInTheDocument();
