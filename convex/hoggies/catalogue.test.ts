@@ -52,14 +52,14 @@ describe("CL8: the draw", () => {
     expect(await drawnWith("one deployment")).not.toEqual(await drawnWith("another deployment"));
   });
 
-  test("the draw is SHA-256 of secret, member, crate and version: the first 4 bytes pick the rarity by cumulative weight, the next 4 the hoggie", async () => {
-    const input = `s:${member}:unlock:book:1`;
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input)));
-    const fraction = (offset: number) => new DataView(digest.buffer).getUint32(offset) / 2 ** 32;
-    let start = 0;
-    const rarity = rarities.find(({ weight }) => fraction(0) * 100 < (start += weight))!.rarity;
-    const hoggies = hoggiesOfRarity(rarity);
-
-    expect(await drawOf({ secret: "s", member, crate: "unlock:book", version: 1 })).toEqual({ rarity, hoggie: hoggies[Math.floor(fraction(4) * hoggies.length)]!.hoggie });
+  test.each([
+    { secret: "s", crate: "unlock:book", rarity: "common", hoggie: "burger" },
+    { secret: "s", crate: "weekly:2026-10-12:0", rarity: "uncommon", hoggie: "basketball-coach" },
+    { secret: "s", crate: "weekly:2026-10-12:12", rarity: "rare", hoggie: "puzzle" },
+    { secret: "s", crate: "weekly:2026-10-12:1", rarity: "epic", hoggie: "katy-perry" },
+    { secret: "s", crate: "weekly:2026-10-12:5", rarity: "legendary", hoggie: "transformer" },
+    { secret: "", crate: "journey:first-thanks", rarity: "epic", hoggie: "the-bride" },
+  ])("version 1 with secret '$secret' draws $hoggie ($rarity) for $crate, as the appendix's order and CL8's SHA-256 steps fix it", async ({ secret, crate, rarity, hoggie }) => {
+    expect(await drawOf({ secret, member, crate, version: 1 })).toEqual({ rarity, hoggie });
   });
 });
