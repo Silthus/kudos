@@ -5,6 +5,7 @@ import type { GroupsBoardShown, Leaderboard, Period, ShellActions } from "../she
 import type { SpotlightDraw } from "../spotlightRead";
 import type { BoardId } from "./boards";
 import { Crest } from "./Crest";
+import { peerLine } from "./peerLine";
 import { SidePanel as Panel } from "./SidePanel";
 import { Spotlight } from "./Spotlight";
 import { VisibilitySwitch } from "./VisibilitySwitch";
@@ -27,11 +28,12 @@ export function SidePanels({ board, shown, coinsShown, drawSpotlight, onSetBoard
 
 const groupsCount = "Groups score kudos given per person, so a small group can top the board. The share who gave sits beside it.";
 
-function EveryoneNotes({ board: { improvement, period } }: { board: Leaderboard }) {
+function EveryoneNotes({ board: { improvement, peer, period } }: { board: Leaderboard }) {
   if (improvement === null || period === "all") return null;
   return (
     <OnlyYouSeeThese>
       <Note>{improvementLine(improvement, period)}</Note>
+      {peer !== null && <Note>{peerLine(peer)}</Note>}
     </OnlyYouSeeThese>
   );
 }

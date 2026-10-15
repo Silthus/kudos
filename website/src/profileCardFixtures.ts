@@ -6,12 +6,13 @@ const highlyValued: Medal = { ladder: "recognition", tier: "gold", name: "Highly
 const connector: Medal = { ladder: "connections", tier: "silver", name: "Connector" };
 const regular: Medal = { ladder: "dependability", tier: "bronze", name: "Regular" };
 
-const card = { kind: "card", name: "Sam Example", level: 7 } as const;
+const card = { kind: "card", name: "Sam Example", level: 7, group: null } as const;
 
 export const profileCardFixtures = {
   bestFour: { ...card, medals: [patronOfPraise, highlyValued, connector, regular] },
   twoMedals: { ...card, medals: [highlyValued, regular] },
   noMedals: { ...card, medals: [] },
+  inAGroup: { ...card, group: "Team Ants", medals: [highlyValued, regular] },
   notFound: { kind: "not-found" },
 } as const satisfies Record<string, MyProfileCard>;
 

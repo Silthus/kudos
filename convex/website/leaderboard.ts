@@ -1,4 +1,5 @@
 import type { Improvement } from "../leaderboard/improvement";
+import type { Peer } from "../leaderboard/peer";
 import { periodValidator, type Period } from "../leaderboard/periods";
 import { rankedBoardOf, type RankedRow, type Standing } from "../leaderboard/totals";
 import { isOnTheBoards } from "../leaderboard/visibility";
@@ -18,6 +19,7 @@ export type Leaderboard = {
   window: number[];
   standing: Standing;
   improvement: Improvement | null;
+  peer: Peer | null;
   onTheBoards: boolean;
 };
 
@@ -32,7 +34,7 @@ export const getLeaderboard = memberQuery({
     if (state.kind === "off") return { kind: "not-found" };
     if (state.kind !== "open") return state;
     await followTheClock(ctx);
-    const { rows, window, standing, improvement } = await rankedBoardOf(ctx, me.workspace, me.user, period);
+    const { rows, window, standing, improvement, peer } = await rankedBoardOf(ctx, me.workspace, me.user, period);
     const myFace = await faceOf(ctx, me);
     return {
       kind: "board",
@@ -42,6 +44,7 @@ export const getLeaderboard = memberQuery({
       window,
       standing,
       improvement,
+      peer,
       onTheBoards: await isOnTheBoards(ctx, me.member),
     };
   },
