@@ -26,7 +26,7 @@ export const customKudosEmojiOptions = internalQuery({
   handler: async (ctx, { workspace, user, typed }): Promise<string[]> => {
     const person = await lookup(ctx, workspace, user);
     if (person?.kind !== "member" || !person.admin || !(await customKudosEmojiShownTo(ctx, person.member))) return [];
-    return (await originalCustomEmojiStartingWith(ctx, workspace, typed.trim().replace(/^:|:$/g, ""), optionsPerSearch)).map(({ name }) => name);
+    return (await originalCustomEmojiStartingWith(ctx, workspace, typed.trim().toLowerCase().replace(/^:|:$/g, ""), optionsPerSearch)).map(({ name }) => name);
   },
 });
 
@@ -62,7 +62,7 @@ export async function customKudosEmojiPickerFor(ctx: MutationCtx, workspace: str
 }
 
 export async function setCustomKudosEmoji(ctx: MutationCtx, workspace: string, person: Admin, names: string[]): Promise<boolean> {
-  if (!(await picksCustomKudosEmoji(ctx, person))) return false;
+  if (!(await picksCustomKudosEmoji(ctx, person)) || (await customEmojiScopeMissingIn(ctx, workspace))) return false;
   const wanted = await originalsOf(ctx, workspace, names);
   const rows = await customRowsIn(ctx, workspace);
   const at = Date.now();

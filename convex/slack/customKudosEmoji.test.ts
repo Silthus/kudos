@@ -89,6 +89,29 @@ describe("ST31 ST32: an admin picks custom kudos emoji that join the store", { t
     expect((await pickedRowsOf(t)).map(({ name, url }) => ({ name, url }))).toEqual([{ name: "shipit", url: shipitArt }]);
   });
 
+  test("a search typed with capitals finds the workspace's lowercase emoji", async () => {
+    const t = await workspaceDeciding(...everyoneDeciding);
+    await openAdmin(t, "U_DANA");
+
+    expect(await suggested(t, "U_DANA", "Ship")).toEqual([":shipit:"]);
+  });
+
+  test("a pick read while a sync is between batches, with two names aliasing each other, picks the emoji the newer listing names", async () => {
+    const t = await workspaceDeciding(...everyoneDeciding);
+    await openAdmin(t, "U_DANA");
+    await t.run(async (ctx) => {
+      const shipitRow = await ctx.db
+        .query("customEmoji")
+        .withIndex("by_name", (q) => q.eq("workspace", "T1").eq("name", "shipit"))
+        .unique();
+      await ctx.db.patch(shipitRow!._id, { aliasOf: "ship" });
+    });
+
+    await send(t, blockActions("U_DANA", stalePicksOf(picker, "ship")));
+
+    expect((await pickedRowsOf(t)).map(({ name, url }) => ({ name, url }))).toEqual([{ name: "shipit", url: shipitArt }]);
+  });
+
   test("the same picks twice leave the same picked emoji", async () => {
     const t = await workspaceDeciding(...everyoneDeciding);
     await openAdmin(t, "U_DANA");
@@ -252,6 +275,17 @@ describe("ST34: without emoji:read the picker asks for a reinstall", { timeout: 
     const withoutScope = publishedHome(slack, "U_DANA");
     expect(adminSection(withoutScope)).toEqual(["section: *Custom kudos emoji*", `section: ${reinstall}`]);
     expect(withoutScope.filter((line) => !adminSection(withoutScope).includes(line))).toEqual(withScope.filter((line) => !adminSection(withScope).includes(line)));
+  });
+  test("a picker left open while the scope goes missing keeps the workspace's picks", async () => {
+    const t = await workspaceDeciding(...everyoneDeciding);
+    await openAdmin(t, "U_DANA");
+    await send(t, blockActions("U_DANA", stalePicksOf(picker, "shipit")));
+
+    slack.answering("emoji.list", slackError("missing_scope"));
+    await t.action(internal.slack.customEmoji.syncCustomEmoji, {});
+    await send(t, blockActions("U_DANA", stalePicksOf(picker, "shipit", "partyparrot")));
+
+    expect((await pickedRowsOf(t)).map(({ name }) => name)).toEqual(["shipit"]);
   });
 });
 

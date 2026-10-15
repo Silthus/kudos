@@ -16,8 +16,7 @@ export async function customEmojiImageOf(ctx: QueryCtx, workspace: string, name:
 
 export async function originalCustomEmojiOf(ctx: QueryCtx, workspace: string, name: string): Promise<ListedEmoji | null> {
   const row = await emojiRow(ctx, workspace, name);
-  if (row?.aliasOf === undefined) return row === null ? null : { name: row.name, image: row.image };
-  return originalCustomEmojiOf(ctx, workspace, row.aliasOf);
+  return row === null ? null : { name: row.aliasOf ?? row.name, image: row.image };
 }
 
 export async function originalCustomEmojiStartingWith(ctx: QueryCtx, workspace: string, typed: string, limit: number): Promise<ListedEmoji[]> {
