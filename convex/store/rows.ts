@@ -19,6 +19,8 @@ export const itemPurchaseOutcomeValidator = v.union(v.object({ kind: v.literal("
 
 export const itemPurchaseValidator = v.object({ member: v.id("members"), key: v.string(), outcome: itemPurchaseOutcomeValidator });
 
+export const customKudosEmojiValidator = v.object({ workspace: v.string(), name: v.string(), url: v.string(), pickedAt: v.number(), unpickedAt: v.optional(v.number()) });
+
 export type Slot = Infer<typeof slotValidator>;
 
 export const slots: readonly Slot[] = ["emoji-1", "emoji-2", "emoji-3"];

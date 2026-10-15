@@ -10,6 +10,8 @@ export type CatalogueItem = { item: ItemId; kind: "kudosEmoji"; name: string; em
 
 const storePrice = 100;
 
+const customItemPrefix = "custom:";
+
 const starter = kudosEmoji("hedgehog", "hedgehog", "🦔", "Hedgehog", { kind: "starter" });
 
 export const catalogue = {
@@ -42,8 +44,28 @@ export const starterItem: ItemId = starter.item;
 
 export type TierItem = CatalogueItem & { source: { kind: "tier"; ladder: LadderId; tier: "silver" } };
 
+export type StoreItem = CatalogueItem & { source: { kind: "store"; price: number } };
+
 export function itemOf(item: ItemId): CatalogueItem | undefined {
   return catalogue.items.find((entry) => entry.item === item);
+}
+
+export function customItemOf(name: string, url: string): StoreItem {
+  return { item: `${customItemPrefix}${name}`, kind: "kudosEmoji", name: `:${name}:`, emoji: name, art: { kind: "custom", url }, source: { kind: "store", price: storePrice } };
+}
+
+export function isCustomItem(item: ItemId | null): item is ItemId {
+  return item?.startsWith(customItemPrefix) ?? false;
+}
+
+export function kudosEmojiNameOf(item: ItemId): string | undefined {
+  return isCustomItem(item) ? item.slice(customItemPrefix.length) : itemOf(item)?.emoji;
+}
+
+export function priceOf(item: ItemId): number | undefined {
+  if (isCustomItem(item)) return storePrice;
+  const source = itemOf(item)?.source;
+  return source?.kind === "store" ? source.price : undefined;
 }
 
 export function tierItemOf(ladder: LadderId): TierItem {

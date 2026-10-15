@@ -41,9 +41,9 @@ async function changeLoadout(ctx: MutationCtx, member: MemberId, itemIn: (curren
     .query("loadouts")
     .withIndex("by_member_slot", (q) => q.eq("member", member))
     .collect();
-  for (const { slot, item } of changed) {
+  for (const [index, { slot, item }] of changed.entries()) {
     const row = stored.find((each) => each.slot === slot);
     if (row === undefined) await ctx.db.insert("loadouts", { member, slot, item });
-    else if (row.item !== item) await ctx.db.patch(row._id, { item });
+    else if (item !== current[index]!.item) await ctx.db.patch(row._id, { item });
   }
 }

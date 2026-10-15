@@ -23,6 +23,7 @@ import { activateJourneyOf, journeyOf, type JourneyStepFacts } from "../quests/j
 import { journeyCopyFor, type JourneyStepCopy } from "../quests/journeyCopy";
 import { thisWeeksQuestsOf, unopenedCratesOf, type UnopenedCrate, type WeeklyQuests } from "../quests/weekly";
 import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
+import { customKudosEmojiPickerFor, type CustomKudosEmojiPicker } from "../store/customKudosEmoji";
 import { inventoryHomeOf, type InventoryHome } from "../store/inventory";
 import { itemRefusalValidator, type ItemRefusal } from "../store/rows";
 import { storeShownAndExposedTo } from "../store/visibility";
@@ -46,7 +47,7 @@ export type ShownTab =
   | { tab: "skillTree"; perks: MemberPerks; coinsName: string }
   | { tab: "inventory"; balance: number; inventory: InventoryHome; kudosEmoji: string; refused: ItemRefusal | null }
   | { tab: "settings"; onTheBoards: boolean | null; progress: NotificationSwitches | null; messages: MessageSetting[] | null; achievements: boolean; channelPicked: boolean; groups: GroupChoice | null }
-  | { tab: "admin"; announcementChannel: string | null; achievements: boolean; groupMode: GroupModeFacts | null };
+  | { tab: "admin"; announcementChannel: string | null; achievements: boolean; groupMode: GroupModeFacts | null; customKudosEmoji: CustomKudosEmojiPicker | null };
 
 export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
 
@@ -209,6 +210,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel,
         achievements: await achievementsApplyIn(ctx, viewer.workspace),
         groupMode: await groupModeShownTo(ctx, viewer.workspace, viewer),
+        customKudosEmoji: await customKudosEmojiPickerFor(ctx, viewer.workspace, viewer),
       };
   }
 }

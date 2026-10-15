@@ -47,7 +47,7 @@ export function renderManifest(environment: Environment, siteUrl: string) {
           "user_change",
         ],
       },
-      interactivity: { is_enabled: true, request_url: route("/slack/interactivity") },
+      interactivity: { is_enabled: true, request_url: route("/slack/interactivity"), message_menu_options_url: route("/slack/interactivity") },
       org_deploy_enabled: false,
       socket_mode_enabled: false,
       token_rotation_enabled: false,
