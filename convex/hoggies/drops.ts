@@ -34,15 +34,29 @@ export async function dropOf(ctx: QueryCtx, member: MemberId, crate: CrateKey): 
 }
 
 export async function* dropsNewestFirst(ctx: QueryCtx, member: MemberId, before: DropBefore): AsyncGenerator<DroppedAt> {
-  const sameInstant = ctx.db
-    .query("drops")
-    .withIndex("by_member_at", (q) => q.eq("member", member).eq("at", before.at).lt("n", before.n))
-    .order("desc");
-  const older = ctx.db
-    .query("drops")
-    .withIndex("by_member_at", (q) => (before.at === Infinity ? q.eq("member", member) : q.eq("member", member).lt("at", before.at)))
-    .order("desc");
-  for (const rows of before.at === Infinity ? [older] : [sameInstant, older]) for await (const record of rows) yield { at: record.at, n: record.n, drop: shownDrop(record) };
+  for (const range of rangesBefore(before)) {
+    const rows = ctx.db
+      .query("drops")
+      .withIndex("by_member_at", (q) => {
+        const dropped = q.eq("member", member);
+        if (range.kind === "all") return dropped;
+        if (range.kind === "instant") return dropped.eq("at", range.at).lt("n", range.nBefore);
+        return range.withInstant ? dropped.lte("at", range.at) : dropped.lt("at", range.at);
+      })
+      .order("desc");
+    for await (const record of rows) yield { at: record.at, n: record.n, drop: shownDrop(record) };
+  }
+}
+
+type DropRange = { kind: "all" } | { kind: "instant"; at: number; nBefore: number } | { kind: "older"; at: number; withInstant: boolean };
+
+function rangesBefore({ at, n }: DropBefore): DropRange[] {
+  if (at === Infinity) return [{ kind: "all" }];
+  if (n === Infinity || n === -Infinity) return [{ kind: "older", at, withInstant: n === Infinity }];
+  return [
+    { kind: "instant", at, nBefore: n },
+    { kind: "older", at, withInstant: false },
+  ];
 }
 
 function shownDrop({ hoggie, rarity, copy }: DropRecord): Drop {
