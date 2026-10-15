@@ -1,4 +1,5 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
+import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { pickSurfaceValidator, reportLeaderboardViewed, reportLeaderboardVisibilityChanged, reportPrimaryGroupPicked } from "../analytics/isolatedUsage";
 import { isGroupsShownTo } from "../groups/groups";
