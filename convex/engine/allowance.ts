@@ -7,7 +7,8 @@ export type Week = { monday: DayKey; sunday: DayKey };
 
 export type DailyAllowance = { opening: number; left: number; spend(kudos: number): Promise<void> };
 
-const dayMs = 24 * 60 * 60 * 1000;
+const hourMs = 60 * 60 * 1000;
+const dayMs = 24 * hourMs;
 
 export function allowanceDay(at: number, timeZone: string | undefined): DayKey {
   return new Intl.DateTimeFormat("en-CA", { timeZone: dayZoneOf(timeZone) }).format(at);
@@ -27,6 +28,19 @@ export function nextAllowanceDayStart(at: number, timeZone: string | undefined) 
     else tomorrow = middle;
   }
   return tomorrow;
+}
+
+export function wallClockAt(day: DayKey, hour: number, timeZone: string | undefined): number {
+  const asIfUtc = Date.parse(`${day}T00:00:00Z`) + hour * hourMs;
+  const firstGuess = asIfUtc - offsetAt(asIfUtc, timeZone);
+  return asIfUtc - offsetAt(firstGuess, timeZone);
+}
+
+function offsetAt(at: number, timeZone: string | undefined): number {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: dayZoneOf(timeZone), hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" }).formatToParts(at);
+  const part = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((entry) => entry.type === type)!.value);
+  const wallClock = Date.UTC(part("year"), part("month") - 1, part("day"), part("hour"), part("minute"), part("second"));
+  return wallClock - (at - (at % 1000));
 }
 
 export function weekOf(day: DayKey): Week {

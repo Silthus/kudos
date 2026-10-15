@@ -1,0 +1,11 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/loot-crates
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  21:15:20
+   Duration  8.01s (tests 68%, import 15%, transform 10%, environment 6%, setup 1%)
+
