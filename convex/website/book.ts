@@ -1,5 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
-import { achievementFactsOf, type LadderFacts, type RewardFacts, type TierFacts } from "../achievements/achievements";
+import { bookFactsOf, type LadderFacts, type RewardFacts, type TierFacts } from "../achievements/achievements";
+import { bookAppliesIn } from "../achievements/flag";
 import type { LadderId, TierId } from "../achievements/ladders";
 import { dayZoneOf } from "../engine/allowance";
 import type { Art } from "../store/catalogue";
@@ -16,17 +17,28 @@ export type TierCard = { tier: TierId; name: string; at: number; earnedAt: numbe
 
 export type LadderCard = { ladder: LadderId; name: string; counts: string; count: number; tiers: TierCard[]; next: { tier: TierId; at: number } | null };
 
-export type BookAnswer = { kind: "not-found" } | PageWaits | { kind: "book"; ladders: LadderCard[]; timeZone: string };
+export type BookAnswer = NotFound | PageWaits | { kind: "book"; ladders: LadderCard[]; timeZone: string };
+
+export type BookPage = NotFound | PageWaits | { kind: "open" };
+
+type NotFound = { kind: "not-found" };
+
+const notFound: NotFound = { kind: "not-found" };
 
 export const getBook = memberQuery(async (ctx, me): Promise<BookAnswer> => {
-  const page = featurePageOf(await unlockPathOf(ctx, me), "book");
-  if (page.kind === "off") return { kind: "not-found" };
+  const page = await bookPageOf(ctx, me);
   if (page.kind !== "open") return page;
-  const facts = await achievementFactsOf(ctx, me.member);
-  if (facts === null) return { kind: "not-found" };
+  const facts = await bookFactsOf(ctx, me.member);
   const shown = { member: me.member, coins: await coinsVisibleTo(ctx, me.member), store: await storeVisibleTo(ctx, me.member) };
   return { kind: "book", ladders: await Promise.all(facts.ladders.map((ladder) => ladderCardOf(ladder, shown))), timeZone: await timeZoneOf(ctx, me) };
 });
+
+export async function bookPageOf(ctx: QueryCtx, me: VerifiedMember): Promise<BookPage> {
+  const page = featurePageOf(await unlockPathOf(ctx, me), "book");
+  if (page.kind === "off") return notFound;
+  if (page.kind !== "open") return page;
+  return (await bookAppliesIn(ctx, me.workspace)) ? page : notFound;
+}
 
 type Shown = { member: MemberId; coins: boolean; store: boolean };
 

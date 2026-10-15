@@ -86,6 +86,7 @@ import type * as groups_mode from "../groups/mode.js";
 import type * as groups_pick from "../groups/pick.js";
 import type * as groups_reconcile from "../groups/reconcile.js";
 import type * as hoggies_catalogue from "../hoggies/catalogue.js";
+import type * as hoggies_collection from "../hoggies/collection.js";
 import type * as hoggies_crateKey from "../hoggies/crateKey.js";
 import type * as hoggies_draw from "../hoggies/draw.js";
 import type * as hoggies_drops from "../hoggies/drops.js";
@@ -202,6 +203,7 @@ import type * as website_abandonedHandshakes from "../website/abandonedHandshake
 import type * as website_activity from "../website/activity.js";
 import type * as website_book from "../website/book.js";
 import type * as website_clock from "../website/clock.js";
+import type * as website_collection from "../website/collection.js";
 import type * as website_commands from "../website/commands.js";
 import type * as website_faces from "../website/faces.js";
 import type * as website_flag from "../website/flag.js";
@@ -316,6 +318,7 @@ declare const fullApi: ApiFromModules<{
   "groups/pick": typeof groups_pick;
   "groups/reconcile": typeof groups_reconcile;
   "hoggies/catalogue": typeof hoggies_catalogue;
+  "hoggies/collection": typeof hoggies_collection;
   "hoggies/crateKey": typeof hoggies_crateKey;
   "hoggies/draw": typeof hoggies_draw;
   "hoggies/drops": typeof hoggies_drops;
@@ -432,6 +435,7 @@ declare const fullApi: ApiFromModules<{
   "website/activity": typeof website_activity;
   "website/book": typeof website_book;
   "website/clock": typeof website_clock;
+  "website/collection": typeof website_collection;
   "website/commands": typeof website_commands;
   "website/faces": typeof website_faces;
   "website/flag": typeof website_flag;

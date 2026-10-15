@@ -5,6 +5,8 @@ import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { GroupChoice } from "../groups/pick";
 import type { GroupId, GroupRef } from "../groups/groups";
+import { rarityLabel } from "../hoggies/catalogue";
+import type { HoggiesHome } from "../hoggies/collection";
 import type { GroupModeFacts } from "../groups/groupMode";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
@@ -78,7 +80,7 @@ const earlierCratesShown = 5;
 
 const pageNames: Record<Page["page"], string> = { home: "home", leaderboard: "Leaderboard", quests: "Quests", skillTree: "Skill tree", book: "Book", bookEarned: "Book" };
 
-const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, earlierCrates: null, journey: null };
+const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, earlierCrates: null, journey: null, hoggies: null };
 
 export function renderHome(facts: HomeFacts, home: ShownHome | null, frontDoor: FrontDoorLinks | null): HomeView {
   if (facts.kind === "not-a-member") {
@@ -133,20 +135,20 @@ function leaderboardGroups({ period, board, groups, myGroup }: Extract<ShownTab,
 
 type ProfileFacts = Omit<Extract<ShownTab, { tab: "profile" }>, "tab">;
 
-function profileOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrates, journey }: ProfileFacts): HomeView {
+function profileOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrates, journey, hoggies }: ProfileFacts): HomeView {
   const progress = progression === null ? [] : [[...progressOf(progression), ...(unlocks === null ? [] : unlockLinesOf(unlocks))]];
   const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: false, website: null })];
   const earlier = earlierCrates === null || earlierCrates.length === 0 ? [] : [waitingToOpenLines(earlierCrates)];
   const steps = journey === null || journey.length === 0 ? [] : [journey.flatMap(journeyStepLines)];
-  return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...earlier, ...steps, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
+  return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...earlier, ...steps, ...hoggiesLinesOf(hoggies, null), [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
 }
 
-function summaryOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrates, journey }: ProfileFacts, links: FrontDoorLinks): HomeView {
+function summaryOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrates, journey, hoggies }: ProfileFacts, links: FrontDoorLinks): HomeView {
   const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)])];
   const { origin } = links;
   const waiting = [...readyCratesOf(unlocks, origin), ...earlierCratesOf(earlierCrates, origin), ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...moreEarlierCrates(earlierCrates ?? [])];
   const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: true, website: origin })];
-  return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
+  return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...hoggiesLinesOf(hoggies, origin), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
 }
 
 function levelLineOf({ level, xpToNextLevel, skillPoints, coins }: ToldProgression): HomeLine {
@@ -187,6 +189,17 @@ function journeyCratesOf(journey: JourneyStepShown[] | null, website: string): H
 
 function waitingPartOf(xp: number, waiting: boolean) {
   return waiting ? ` · ${xp} XP waits in your crate` : "";
+}
+
+function hoggiesLinesOf(hoggies: HoggiesHome | null, website: string | null): HomeLine[][] {
+  if (hoggies === null) return [];
+  const text = `Hoggies: ${hoggies.owned} of ${hoggies.total} · ${lastFoundPartOf(hoggies)}`;
+  if (website === null) return [[{ kind: "text", text }]];
+  return [[{ kind: "action", text, action: linkOnTheWeb({ label: "View", spoken: "View your hoggies", id: "hoggies" }, { page: "book" }, website) }]];
+}
+
+function lastFoundPartOf({ lastFound }: HoggiesHome) {
+  return lastFound === null ? "every crate you open drops one." : `last found: ${lastFound.name} (${rarityLabel(lastFound.rarity)})`;
 }
 
 function websiteButtonsOf({ origin, pages }: FrontDoorLinks): HomeLine {
