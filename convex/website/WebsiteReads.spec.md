@@ -298,6 +298,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
 - the website card names the primary group while groups show: getProfileCard's group is the name primaryGroupOf gives the signed-in member while groupsShownTo answers true for them, read without an exposure, and null otherwise, so a member without a primary group or whom groups don't show to reads no group.
   over: getProfileCard for a member whose primary group is Ants, for a member with no primary group, and with groups on for one email, read by that member and by another in the same group
   via: WS344 GB32: the card names the member's primary group while groups applies
+  refuted: getProfileCard read primaryGroupOf without checking groupsShownTo -> a member groups are off for read Ants on their card instead of no group (2026-10-15)
   because: GB32 puts the member's primary group on their profile card where groups applies and groups are available, and variant E shows it under the name (#284, #294)
   crossing: browser -> domain
   entrances: query getProfileCard
@@ -307,6 +308,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
 - the website's peer line is the board's: getLeaderboard's peer is the peer line rankedBoardOf gives the signed-in member, the percent and their primary group, and null while groups don't show to them, so the website and Slack's board name the same peer line.
   over: getLeaderboard for a member ahead of most of their group this week with groups on, and the same member with groups off
   via: WS344 GB16: getLeaderboard carries the Everyone board's peer line
+  refuted: getLeaderboard answered peer null instead of rankedBoardOf's peer -> a member ahead of most of their group read no peer line (2026-10-15)
   because: GB16 adds the peer line right after the Everyone board's improvement line, and the website shows that board (#285, #294)
   crossing: browser -> domain
   entrances: query getLeaderboard
