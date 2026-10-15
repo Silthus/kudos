@@ -49,8 +49,12 @@ describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => 
     ]);
   });
 
-  test("sends App Home clicks to the deployment's interactivity route", () => {
-    expect(manifest.settings.interactivity).toEqual({ is_enabled: true, request_url: "https://example-deployment.convex.site/slack/interactivity" });
+  test("sends App Home clicks and the custom emoji picker's searches (ST31) to the deployment's interactivity route", () => {
+    expect(manifest.settings.interactivity).toEqual({
+      is_enabled: true,
+      request_url: "https://example-deployment.convex.site/slack/interactivity",
+      message_menu_options_url: "https://example-deployment.convex.site/slack/interactivity",
+    });
   });
 
   test("names the bot HedgeHug, capitalized like the product", () => {

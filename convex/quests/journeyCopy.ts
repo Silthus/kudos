@@ -1,5 +1,5 @@
 import type { QueryCtx } from "../_generated/server";
-import { itemOf } from "../store/catalogue";
+import { kudosEmojiNameOf } from "../store/catalogue";
 import { loadoutOf } from "../store/inventory";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
@@ -34,7 +34,7 @@ async function yourEmojiHintOf(ctx: QueryCtx, member: MemberId): Promise<string>
 
 async function firstSlottedEmojiOf(ctx: QueryCtx, member: MemberId): Promise<string | null> {
   for (const { item } of await loadoutOf(ctx, member)) {
-    const emoji = item === null ? undefined : itemOf(item)?.emoji;
+    const emoji = item === null ? undefined : kudosEmojiNameOf(item);
     if (emoji !== undefined) return emoji;
   }
   return null;

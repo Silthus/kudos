@@ -24,7 +24,8 @@ export type BlockAction =
   | { type: "button"; action_id: string; value?: string; block_id?: string }
   | { type: "channels_select"; action_id: string; selected_channel: string | null; block_id?: string }
   | { type: "static_select"; action_id: string; selected_option: Option | { value: string } | null; block_id?: string }
-  | { type: "multi_static_select"; action_id: string; selected_options: Option[]; block_id?: string };
+  | { type: "multi_static_select"; action_id: string; selected_options: Option[]; block_id?: string }
+  | { type: "multi_external_select"; action_id: string; selected_options: Array<Option | { value: string }>; block_id?: string };
 
 export type MessageState = Record<string, Record<string, { type: "static_select"; selected_option: { value: string } | null }>>;
 
@@ -106,6 +107,37 @@ export function groupPickerInHome(slack: FakeSlack, user: string, ...picked: str
   return { type: "multi_static_select", action_id: picker!.action_id!, selected_options: selected as Option[] };
 }
 
+export function externalPickerInHome(slack: FakeSlack, user: string) {
+  const picker = publishedHomeBlocks(slack, user)
+    .flatMap(elementsOf)
+    .find((element) => element.type === "multi_external_select");
+  expect(picker, `an external picker in ${user}'s App Home`).toBeDefined();
+  return picker!;
+}
+
+export function externalPicksInHome(slack: FakeSlack, user: string, ...picked: string[]): BlockAction {
+  const picker = externalPickerInHome(slack, user);
+  return { type: "multi_external_select", action_id: picker.action_id!, selected_options: picked.map((value) => ({ value })) };
+}
+
+export function stalePicksOf(actionId: string, ...picked: string[]): BlockAction {
+  return { type: "multi_external_select", action_id: actionId, selected_options: picked.map((value) => ({ value })) };
+}
+
+export function blockSuggestion(user: string, actionId: string, typed: string, { team = "T1" } = {}) {
+  const payload = {
+    type: "block_suggestion",
+    team: { id: team, domain: "kudos" },
+    user: { id: user, team_id: team },
+    api_app_id: "A_KUDOS",
+    action_id: actionId,
+    block_id: "b1",
+    value: typed,
+    ...homeContainer(),
+  };
+  return new URLSearchParams({ payload: JSON.stringify(payload) }).toString();
+}
+
 export function optionsOf(element: Element): Option[] {
   return element.options ?? (element.option_groups ?? []).flatMap(({ options }) => options);
 }
@@ -174,6 +206,7 @@ function readAccessory(element: Element) {
   if (element.type === "static_select" && element.initial_option === undefined) return `[static_select: ${plainText(element.placeholder)}]`;
   if (element.type === "static_select") return `[select: ${plainText(element.initial_option?.text)}]`;
   if (element.type === "multi_static_select") return readButton(element);
+  if (element.type === "multi_external_select") return `[multi_external_select: ${(element.initial_options ?? []).map(({ text }) => plainText(text)).join(", ") || "none"}]`;
   return `[${element.type}: ${element.initial_channel ?? "none"}]`;
 }
 
