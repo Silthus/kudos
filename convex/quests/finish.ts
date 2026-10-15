@@ -8,12 +8,13 @@ import type { MemberId } from "../workspace/directory";
 import { rewardKeyOf } from "./crates";
 import { rewardHeldFor } from "./crateRewardsFlag";
 import { questsApplyTo } from "./flag";
+import type { GroupQuestId } from "./groupPool";
 import type { Reward } from "./journey";
 import { crateFinished } from "./pendingCrates";
 import type { QuestId } from "./pool";
 import type { Quest } from "./step";
 
-export type PromisedReward = { reward: Reward; catalogueVersion: string; poolQuest?: QuestId };
+export type PromisedReward = { reward: Reward; catalogueVersion: string; poolQuest?: QuestId | GroupQuestId };
 
 export async function finishQuest(ctx: MutationCtx, workspace: string, member: MemberId, quest: Quest, { reward, catalogueVersion, poolQuest }: PromisedReward, at: number, cause?: MessageRef): Promise<boolean> {
   const key = rewardKeyOf(quest);

@@ -20,6 +20,7 @@ import { memberPerksOf, ownsEveryPerk, type MemberPerks } from "../progression/p
 import { skillTreeShownTo } from "../progression/skillTree";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { questsShownTo } from "../quests/flag";
+import { earlierGroupCratesOf, groupQuestFor, groupQuestShownAndExposedTo, type GroupQuest, type WaitingGroupCrate } from "../quests/groupQuest";
 import { activateJourneyOf, journeyOf, type JourneyStepFacts } from "../quests/journey";
 import { journeyCopyFor, type JourneyStepCopy } from "../quests/journeyCopy";
 import { thisWeeksQuestsOf, unopenedCratesOf, type UnopenedCrate, type WeeklyQuests } from "../quests/weekly";
@@ -42,7 +43,16 @@ export const homeTabValidator = v.union(v.literal("profile"), v.literal("leaderb
 export type HomeTab = Infer<typeof homeTabValidator>;
 
 export type ShownTab =
-  | { tab: "profile"; progression: ToldProgression | null; unlocks: UnlocksHome | null; quests: WeeklyQuests | null; earlierCrates: UnopenedCrate[] | null; journey: JourneyStepShown[] | null }
+  | {
+      tab: "profile";
+      progression: ToldProgression | null;
+      unlocks: UnlocksHome | null;
+      quests: WeeklyQuests | null;
+      groupQuest: GroupQuest | null;
+      earlierCrates: UnopenedCrate[] | null;
+      earlierGroupCrates: WaitingGroupCrate[] | null;
+      journey: JourneyStepShown[] | null;
+    }
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView; groups: GroupsBoard<GroupId> | null; myGroup: MyGroupBoardView | null }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
   | { tab: "skillTree"; perks: MemberPerks; coinsName: string }
@@ -177,13 +187,14 @@ type Viewer = { workspace: string; user: string; member: MemberId; timeZone: str
 async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection, refused: ItemRefusal | null): Promise<ShownTab> {
   switch (tab) {
     case "profile":
-      if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, earlierCrates: null, journey: null };
-      if (!slices.unlocks) return { tab, progression: { ...(await progressionHomeOf(ctx, viewer.member)), skillTreeTab: false, coins: null }, unlocks: null, quests: null, earlierCrates: null, journey: null };
+      if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null };
+      if (!slices.unlocks) return { tab, progression: { ...(await progressionHomeOf(ctx, viewer.member)), skillTreeTab: false, coins: null }, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null };
       return {
         tab,
         progression: await toldProgressionOf(ctx, viewer.member, slices),
         unlocks: namedForStore(await unlocksHomeOf(ctx, viewer.member), slices.store),
         quests: slices.quests ? await openedQuestsOf(ctx, viewer.member) : null,
+        ...(slices.quests ? await openedGroupQuestOf(ctx, viewer.member) : noGroupQuest),
         earlierCrates: slices.quests ? await openedEarlierCratesOf(ctx, viewer.member) : null,
         journey: slices.quests ? await journeyShownTo(ctx, viewer.member) : null,
       };
@@ -227,6 +238,14 @@ async function applyingMessageSettingsOf(ctx: QueryCtx, member: MemberId) {
 
 async function openedQuestsOf(ctx: MutationCtx, member: MemberId) {
   return (await isOpened(ctx, member, "quests")) ? thisWeeksQuestsOf(ctx, member, Date.now()) : null;
+}
+
+const noGroupQuest = { groupQuest: null, earlierGroupCrates: null };
+
+async function openedGroupQuestOf(ctx: MutationCtx, member: MemberId) {
+  if (!(await isOpened(ctx, member, "quests")) || !(await groupQuestShownAndExposedTo(ctx, member))) return noGroupQuest;
+  const now = Date.now();
+  return { groupQuest: await groupQuestFor(ctx, member, now), earlierGroupCrates: await earlierGroupCratesOf(ctx, member, now) };
 }
 
 async function openedEarlierCratesOf(ctx: MutationCtx, member: MemberId) {
