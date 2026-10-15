@@ -11,6 +11,7 @@ import type { GroupsBoard } from "../leaderboard/groupsBoard";
 import type { MyGroupBoardView } from "../leaderboard/myGroupBoard";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
+import { mondayPostSwitchShownTo, type MondayPostSwitch } from "../leaderboard/mondayPost";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { messageSettingsShownTo } from "../messageSettings/flag";
@@ -46,7 +47,7 @@ export type ShownTab =
   | { tab: "skillTree"; perks: MemberPerks; coinsName: string }
   | { tab: "inventory"; balance: number; inventory: InventoryHome; kudosEmoji: string; refused: ItemRefusal | null }
   | { tab: "settings"; onTheBoards: boolean | null; progress: NotificationSwitches | null; messages: MessageSetting[] | null; achievements: boolean; channelPicked: boolean; groups: GroupChoice | null }
-  | { tab: "admin"; announcementChannel: string | null; achievements: boolean; groupMode: GroupModeFacts | null };
+  | { tab: "admin"; announcementChannel: string | null; achievements: boolean; groupMode: GroupModeFacts | null; mondayPost: MondayPostSwitch | null };
 
 export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
 
@@ -101,8 +102,8 @@ export const shownHomeOf = internalMutation({
     const tabs = tabsOf({ ...slices, frontDoor });
     if (tabs.length === 0) return null;
     const { tab, period } = await selectionOf(ctx, person.member);
-    const viewer = { workspace, user, member: person.member };
-    return { tabs, shown: await shownTabOf(ctx, { ...viewer, admin: person.admin }, slices, { tab: tabs.includes(tab) ? tab : "profile", period }, refused ?? null) };
+    const viewer = { workspace, user, member: person.member, timeZone: person.timeZone, admin: person.admin };
+    return { tabs, shown: await shownTabOf(ctx, viewer, slices, { tab: tabs.includes(tab) ? tab : "profile", period }, refused ?? null) };
   },
 });
 
@@ -170,7 +171,7 @@ function tabsOf(slices: Slices & Door): HomeTab[] {
   return besideProfile.length === 0 ? [] : ["profile", ...besideProfile];
 }
 
-type Viewer = { workspace: string; user: string; member: MemberId; admin: boolean };
+type Viewer = { workspace: string; user: string; member: MemberId; timeZone: string | undefined; admin: boolean };
 
 async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection, refused: ItemRefusal | null): Promise<ShownTab> {
   switch (tab) {
@@ -209,6 +210,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel,
         achievements: await achievementsApplyIn(ctx, viewer.workspace),
         groupMode: await groupModeShownTo(ctx, viewer.workspace, viewer),
+        mondayPost: await mondayPostSwitchShownTo(ctx, viewer.workspace, viewer),
       };
   }
 }

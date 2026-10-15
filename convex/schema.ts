@@ -18,6 +18,7 @@ import { publicReplyValidator } from "./feedback/publicReplies";
 import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
 import { gainsValidator } from "./feedback/replies";
 import { segmentValidator } from "./feedback/segments";
+import { mondayPostOutcomeValidator } from "./leaderboard/mondayPostOutcome";
 import { periodValidator } from "./leaderboard/periods";
 import { purchaseOutcomeValidator } from "./progression/purchases";
 import { effectsRecordValidator } from "./progression/progress";
@@ -483,6 +484,21 @@ export default defineSchema({
   })
     .index("by_period", ["workspace", "period"])
     .index("by_member_period", ["member", "period"]),
+
+  mondayPostSettings: defineTable({
+    workspace: v.string(),
+    on: v.boolean(),
+    timeZone: v.string(),
+    generation: v.number(),
+  }).index("by_workspace", ["workspace"]),
+
+  mondayPostClaims: defineTable({
+    workspace: v.string(),
+    week: v.string(),
+    claimedAt: v.number(),
+    channel: v.string(),
+    outcome: mondayPostOutcomeValidator,
+  }).index("by_workspace_week", ["workspace", "week"]),
 
   leaderboardSettings: defineTable({
     member: v.id("members"),

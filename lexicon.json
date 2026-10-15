@@ -594,6 +594,10 @@
     {
       "name": "Buy",
       "definition": "The button on a perk offer, in App Home's Skill tree tab, in a level-up message and on the website, that buys the perk for the member who clicks it; its answer, what they bought or why not, reaches only that member (QM26)."
+    },
+    {
+      "name": "Monday post",
+      "definition": "The weekly public post in the announcement channel that celebrates last week's top groups (GB28): up to three groups with their kudos per person, the most improved group and how many people gave kudos, never naming a member. An admin switches it on with setMondayPost in the Admin tab; it goes out every Monday at 9:00 in the admin's time zone, at most once per week, and not in a week nobody gave."
     }
   ],
   "retired": [

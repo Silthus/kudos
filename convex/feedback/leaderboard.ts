@@ -91,6 +91,6 @@ function skipsBefore(window: number[], index: number) {
   return index > 0 && window[index]! > window[index - 1]! + 1;
 }
 
-function medalOf(rank: number) {
+export function medalOf(rank: number) {
   return medals[rank - 1] ?? `${rank}.`;
 }

@@ -46,6 +46,11 @@ async function groupsBoardReadOf(ctx: QueryCtx, workspace: string, viewer: strin
   return { board, viewer: { user: viewer, member: person.member }, compared, viewersGroup };
 }
 
+export async function workspaceGroupsBoardOf(ctx: QueryCtx, workspace: string, compared: Compared): Promise<GroupsBoard<GroupId>> {
+  const groups = await Promise.all((await countingGroupsWithPrimaryMembersIn(ctx, workspace)).map((group) => groupReadOf(ctx, group, compared, null)));
+  return groupsBoard({ period: "week", viewerGroup: null, best: null, groups: groups.map(({ facts }) => facts) });
+}
+
 export async function groupsBoardShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   if (!(await groupsShownTo(ctx, member))) return false;
   const groups = await countingGroupsWithPrimaryMembersIn(ctx, (await chatUserOf(ctx, member)).workspace);
