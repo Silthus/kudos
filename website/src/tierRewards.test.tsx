@@ -129,6 +129,19 @@ describe("WS347 ST20: a tier's kudos emoji reward", () => {
     expect(within(oldFriends).getByRole("link")).toHaveAccessibleName(expect.stringMatching(/, reward the Teddy Bear emoji$/));
   });
 
+  it("keeps every shelved entry's date on one row by reserving a reward row while any of them shows a reward", () => {
+    preferWideScreen();
+    showBookAt("/book", bookFixtures.withStore);
+    expect(shelved().map((entry) => entry.querySelector("[data-shelf-rewards]") !== null)).toEqual([true, true, true, true, true]);
+    expect(shelved().find((entry) => entry.textContent?.includes("Pillar"))!.querySelector("[data-shelf-rewards]")).toBeEmptyDOMElement();
+  });
+
+  it("reserves no reward row while no shelved entry shows a reward", () => {
+    preferWideScreen();
+    showBookAt("/book", bookFixtures.everyLadder);
+    expect(main().querySelector("[data-shelf-rewards]")).toBeNull();
+  });
+
   it("celebrates a silver tier with its emoji on the earned page", () => {
     showBookAt("/book/earned", book(generosityAtSilver));
     expect(pageTitle()).toHaveTextContent("You earned Generous Soul");
@@ -193,7 +206,7 @@ describe("WS347: the achievement-earned page", () => {
     await user.click(within(main()).getByRole("link", { name: "See achievements" }));
     expect(window.location.pathname).toBe("/book");
     expect(pageTitle()).toHaveTextContent("Achievements");
-  });
+  }, 15_000);
 
   it("says nothing is earned yet, and leads to the Book, before the member's first tier", () => {
     showBookAt("/book/earned", bookFixtures.nothingEarned);

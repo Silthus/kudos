@@ -88,6 +88,7 @@ function RecentlyEarned({ ladders, chapters, timeZone }: OverviewProps & { chapt
   const shelf = recentlyEarned(ladders).slice(0, wide ? 5 : 3);
   if (shelf.length === 0) return null;
   const now = Date.now();
+  const rewardRow = shelf.some(({ tier }) => tier.rewards.length > 0);
   return (
     <section className="flex flex-col gap-3">
       <SectionHeading id={headingId} aside="Newest first">
@@ -97,7 +98,7 @@ function RecentlyEarned({ ladders, chapters, timeZone }: OverviewProps & { chapt
         <span aria-hidden="true" className="absolute inset-x-0 top-[68px] h-1.5 rounded-sm bg-muted-foreground" />
         <ol aria-labelledby={headingId} className={`relative grid gap-x-2 ${wide ? "grid-cols-5" : "grid-cols-3"}`}>
           {shelf.map((entry, i) => (
-            <ShelfItem key={entry.ladder.ladder} entry={entry} fresh={i === 0 && isNew(entry, now)} href={pageOf(entry.ladder, chapters)} timeZone={timeZone} wide={wide} />
+            <ShelfItem key={entry.ladder.ladder} entry={entry} fresh={i === 0 && isNew(entry, now)} href={pageOf(entry.ladder, chapters)} timeZone={timeZone} wide={wide} rewardRow={rewardRow} />
           ))}
         </ol>
       </div>
@@ -105,7 +106,9 @@ function RecentlyEarned({ ladders, chapters, timeZone }: OverviewProps & { chapt
   );
 }
 
-function ShelfItem({ entry: { ladder, tier }, fresh, href, timeZone, wide }: { entry: Shelved; fresh: boolean; href: string; timeZone: string; wide: boolean }) {
+type ShelfItemProps = { entry: Shelved; fresh: boolean; href: string; timeZone: string; wide: boolean; rewardRow: boolean };
+
+function ShelfItem({ entry: { ladder, tier }, fresh, href, timeZone, wide, rewardRow }: ShelfItemProps) {
   return (
     <li className="min-w-0">
       <AppLink
@@ -118,12 +121,14 @@ function ShelfItem({ entry: { ladder, tier }, fresh, href, timeZone, wide }: { e
           {fresh && <Tag className="absolute -left-1 -top-1">New</Tag>}
         </span>
         <span className="mt-4 line-clamp-2 w-full text-balance break-words px-1 text-sm font-medium leading-tight">{tier.name}</span>
-        <EarnedLine tier={tier} timeZone={timeZone} wide={wide} />
-        {tier.rewards.length > 0 && (
-          <span className="mt-1 flex flex-wrap justify-center gap-x-2 text-[11px] leading-tight tabular-nums text-muted-foreground">
-            <RewardGains rewards={tier.rewards} />
-          </span>
-        )}
+        <span className="mt-auto flex w-full flex-col">
+          <EarnedLine tier={tier} timeZone={timeZone} wide={wide} />
+          {rewardRow && (
+            <span data-shelf-rewards="" className="mt-1 flex min-h-4 flex-wrap justify-center gap-x-2 px-1 text-[11px] leading-tight tabular-nums text-muted-foreground">
+              <RewardGains rewards={tier.rewards} />
+            </span>
+          )}
+        </span>
       </AppLink>
     </li>
   );
@@ -136,7 +141,7 @@ function rewardNamed({ rewards }: Shelved["tier"]) {
 function EarnedLine({ tier, timeZone, wide }: { tier: Shelved["tier"]; timeZone: string; wide: boolean }) {
   const date = dateWords(tier.earnedAt, timeZone);
   return (
-    <span className="mt-auto flex w-full items-center justify-center gap-1 px-1 pt-1 text-[11px] leading-tight tabular-nums text-muted-foreground">
+    <span className="flex w-full items-center justify-center gap-1 px-1 pt-1 text-[11px] leading-tight tabular-nums text-muted-foreground">
       <Medal tier={tier.tier} earned size={18} />
       {wide ? (
         <span className="truncate">{`${tierWords[tier.tier]} · ${date}`}</span>
