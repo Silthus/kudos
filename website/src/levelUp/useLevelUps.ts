@@ -12,6 +12,7 @@ export function useLevelUps(member: MemberProfile | undefined, who: number, hold
   const [announcement, setAnnouncement] = useState("");
   const baseline = useRef<Baseline | undefined>(undefined);
   const celebrated = useRef(0);
+  const celebratedUpTo = useRef(0);
   const level = member?.progression?.level;
   const signedIn = member !== undefined;
   const shownNow = useRef(member);
@@ -22,13 +23,15 @@ export function useLevelUps(member: MemberProfile | undefined, who: number, hold
     const before = baseline.current;
     if (shown === undefined || level === undefined || before?.who !== who) {
       baseline.current = level === undefined ? undefined : { who, level };
+      celebratedUpTo.current = 0;
       setLevelUp(undefined);
       setAnnouncement("");
       return;
     }
     if (holding) return;
     baseline.current = { who, level };
-    if (level <= before.level) return;
+    if (level <= before.level || level <= celebratedUpTo.current) return;
+    celebratedUpTo.current = level;
     celebrated.current += 1;
     const reached = levelUpOf(shown, before.level, level, celebrated.current);
     setLevelUp(reached);

@@ -47,11 +47,18 @@ export function CrateRewardFlight({ reward: rewardNow, shown, landAtOnce, rehear
     onLanded();
   }, [onLanded]);
 
+  const landTheRest = useCallback(() => {
+    if (finished.current) return;
+    for (const { kind } of course.slice(hop)) onRewardLanded(kind);
+    finish();
+  }, [course, hop, onRewardLanded, finish]);
+
   useLayoutEffect(() => {
     if (current !== undefined && !still) return;
+    if (finished.current) return;
     fadeIn(course.slice(hop));
-    finish();
-  }, [current, still, course, hop, finish]);
+    landTheRest();
+  }, [current, still, course, hop, landTheRest]);
 
   useEffect(() => {
     if (current !== undefined && !still && !levellingUp) onRewardTaken(current.kind);
@@ -78,7 +85,7 @@ export function CrateRewardFlight({ reward: rewardNow, shown, landAtOnce, rehear
     [current, reward, rehearsal, onRewardLanded],
   );
 
-  const onHopLanded = useCallback((how: Arrival) => how === "cancelled" && finish(), [finish]);
+  const onHopLanded = useCallback((how: Arrival) => how === "cancelled" && landTheRest(), [landTheRest]);
 
   if (current === undefined || still || levellingUp) return null;
   return <RewardFlight key={hop} source={current.source} target={current.target} amount={current.amount} glow={current.glow} onArrived={onArrived} onLanded={onHopLanded} />;

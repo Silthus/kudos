@@ -75,7 +75,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   const revealing = reveal !== undefined;
   const climb = useClimbOnReturn(member, membersShown, readActivity);
   const memberShown = member === undefined ? undefined : climb.shownOf(withTheRewardsHeld(member, moments.onTheWay));
-  const levels = useLevelUps(memberShown, membersShown, climb.climbing);
+  const levels = useLevelUps(memberShown, membersShown, climb.climbing || moments.opening);
   const rewards = member === undefined ? [] : rewardsOf(member, moments.onTheWay);
   const { chart } = moments;
   useLayoutEffect(() => chart(rewards), [chart, rewards]);
@@ -127,7 +127,6 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
             onClose={moments.close}
             onSetOut={moments.setOut}
             onRewardLanded={moments.landed}
-            onLanded={moments.land}
           />
         )}
         {climb.chips !== undefined && memberShown !== undefined && <ClimbFlight chips={climb.chips} shown={memberShown} onLanded={climb.landed} onFinished={climb.finish} />}

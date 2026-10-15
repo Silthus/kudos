@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./src/App";
 import { fixtureReadsFor } from "./src/fixtureReads";
 import { fixedQuests, questsFixtures } from "./src/questsFixtures";
-import { fixtureActions, shellFixtures, type Drop, type MemberProfile, type MyQuests, type OpenAnswer, type ShellActions } from "./src/shell";
+import { fixtureActions, shellFixtures, type AppliedReward, type Drop, type MemberProfile, type MyQuests, type OpenAnswer, type ShellActions } from "./src/shell";
 
 const params = new URLSearchParams(location.search);
 history.replaceState(null, "", (params.get("path") ?? "/") + location.search);
@@ -19,13 +19,21 @@ const drop = drops[params.get("drop") ?? ""];
 const featureCrate = params.get("crate") === "feature";
 const skillTreeReady = shellFixtures.memberWithTheSkillTreeReady;
 let visitor: MemberProfile = featureCrate ? { ...skillTreeReady, progression: { level: 5, xp: 610, levelStartsAt: 600, nextLevelAt: 1000, xpToNextLevel: 390 }, coins: 236 } : { ...shellFixtures.memberCrossingIntoLevel6, coins: params.get("coins") === "0" ? null : 236 };
-const quests: MyQuests = params.get("coins") === "0" ? questsFixtures.week : questsFixtures.weekPayingCoins;
+const applied: Record<string, AppliedReward | null> = {
+  across: { xp: 20, coins: 10, from: { xp: 990, level: 5, coins: 226, skillPoints: 1 }, to: { xp: 1010, level: 6, coins: 236, skillPoints: 2 } },
+  within: { xp: 20, coins: 10, from: { xp: 1010, level: 6, coins: 226, skillPoints: 2 }, to: { xp: 1030, level: 6, coins: 236, skillPoints: 2 } },
+  null: null,
+};
+const climb = applied[params.get("applied") ?? ""];
+const paying = params.get("coins") === "0" ? questsFixtures.week : questsFixtures.weekPayingCoins;
+const waiting = params.get("waiting") === "1";
+const quests: MyQuests = !waiting || paying.kind !== "quests" ? paying : { ...paying, slots: paying.slots.map((slot) => (slot.state === "finished" ? { ...slot, waiting: true } : slot)), waiting: paying.waiting.map((crate) => ({ ...crate, waiting: true })) };
 const delayMs = Number(params.get("delay") ?? 400);
 const root = createRoot(document.getElementById("root")!);
 
 const answer = async (): Promise<OpenAnswer> => {
   await new Promise((resolve) => setTimeout(resolve, delayMs));
-  return { kind: "opened", ...(drop !== undefined && { drop }) };
+  return { kind: "opened", ...(drop !== undefined && { drop }), ...(climb !== undefined && { applied: climb }) };
 };
 
 const openFeature: ShellActions["openFeature"] = async (feature) => {

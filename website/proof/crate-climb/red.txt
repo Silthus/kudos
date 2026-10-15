@@ -1,0 +1,105 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/loot-crates
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ❯ |website| src/crateClimb.test.tsx (10 tests | 4 failed) 8399ms
+   ❯ #450: the climb on the open, from the answer's from to its to (6)
+     × climbs from the stored answer's numbers even when the read has moved past them, as after an open in Slack 272ms
+     × reveals without a climb when applied is null: the crate still bursts, the header never moves 248ms
+   ❯ #450: +N XP waiting while a reward waits in its crate (4)
+     × says it on the finished quest card, the bonus card and an earlier week's crate on /quests, and not on a card whose reward counted 110ms
+     × says it on the home's quest rows and the Journey's finished step 215ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/crateClimb.test.tsx > #450: the climb on the open, from the answer's from to its to > climbs from the stored answer's numbers even when the read has moved past them, as after an open in Slack
+AssertionError: expected { …(3) } to deeply equal { …(3) }
+
+- Expected
++ Received
+
+  {
+-   "coins": "226",
+-   "level": "Level 5, 10 XP to level 6",
+-   "skillPoints": "1",
++   "coins": "231",
++   "level": "Level 6, 470 XP to level 7",
++   "skillPoints": "2",
+  }
+
+ ❯ src/crateClimb.test.tsx:155:19
+    153|     const movedOn: MemberProfile = { ...afterTheOpen, progression: { l…
+    154|     await claim(acrossLevel6, movedOn);
+    155|     expect(hud()).toEqual({ level: "Level 5, 10 XP to level 6", skillP…
+       |                   ^
+    156|     burst();
+    157|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  |website| src/crateClimb.test.tsx > #450: the climb on the open, from the answer's from to its to > reveals without a climb when applied is null: the crate still bursts, the header never moves
+AssertionError: expected { …(3) } to deeply equal { …(3) }
+
+- Expected
++ Received
+
+  {
+-   "coins": "236",
+-   "level": "Level 6, 490 XP to level 7",
+-   "skillPoints": "2",
++   "coins": "226",
++   "level": "Level 5, 10 XP to level 6",
++   "skillPoints": "1",
+  }
+
+ ❯ src/crateClimb.test.tsx:170:20
+    168|     await claim(null);
+    169|     const before = hud();
+    170|     expect(before).toEqual({ level: "Level 6, 490 XP to level 7", skil…
+       |                    ^
+    171|     burst();
+    172|     expect(tokens()).toEqual(["+20 XP", "+10 coins"]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  |website| src/crateClimb.test.tsx > #450: +N XP waiting while a reward waits in its crate > says it on the finished quest card, the bonus card and an earlier week's crate on /quests, and not on a card whose reward counted
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  +20 XP waiting[39m
+Received:
+[31m  Reach outThank someone you haven't thanked before.1 of 1+20 XP10 coinsClaim[39m
+ ❯ src/crateClimb.test.tsx:211:32
+    209|     renderApp(afterTheOpen, undefined, undefined, fixedQuests(finished…
+    210|
+    211|     expect(cardOf(coinsQuest)).toHaveTextContent("+20 XP waiting");
+       |                                ^
+    212|     expect(cardOf("Give a kudos that says why with one of your kudos e…
+    213|     expect(cardOf("Thank someone and say why on 2 different days.")).t…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  |website| src/crateClimb.test.tsx > #450: +N XP waiting while a reward waits in its crate > says it on the home's quest rows and the Journey's finished step
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  +20 XP waiting[39m
+Received:
+[31m  Thank someone you haven't thanked before. 10 coins Claim[39m
+ ❯ src/crateClimb.test.tsx:224:98
+    222|     const journey = within(main()).getByRole("region", { name: "Journe…
+    223|
+    224|     expect(within(rows).getByRole("link", { name: new RegExp(`^${coins…
+       |                                                                                                  ^
+    225|     expect(within(rows).getByRole("link", { name: /^Give a kudos that …
+    226|     expect(within(journey).getByRole("heading", { name: "Finish a week…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 6 passed (10)
+   Start at  20:57:00
+   Duration  13.78s (tests 62%, transform 17%, import 15%, environment 5%, setup 1%)
+
