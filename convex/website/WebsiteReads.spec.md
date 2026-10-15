@@ -178,7 +178,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   because: unlocks' launch grandfathers every member at once and belongs to Slack until the product owner switches unlocks on (P77, WS62); a website call that reached openUnlock before the launch would run it through unlocksLiveIn
   crossing: browser -> domain
   entrances: mutation openFeature, mutation openQuestCrate, mutation buyPerk, mutation buyItem, mutation setBoardVisibility, mutation swapQuest, mutation setMessageSetting, mutation pickPrimaryGroup
-  refuted: buyItem checked only the store's visibility, not the Journey's and the Book's recorded launches -> with quests on and no Journey launch, and with achievements on and no Book launch, the purchase answered refused with no-coins instead of no reason kind, storing a refusal (2026-10-15)
+  refuted: buyItem checked only the store's visibility, not the Journey's and the Book's recorded launches -> with quests on and no Journey launch, and with achievements on and no Book launch, the purchase answered bought (2026-10-15)
   refuted: buyPerk checked only the tree feature's entry on the unlock path, not the Journey's and the Book's recorded launches -> with quests on and no Journey launch the purchase answered bought, and with achievements on and no Book launch the purchase answered bought (2026-10-14)
   refuted: openFeature and openQuestCrate didn't check the Book's recorded launch -> with achievements on and no Book launch, opening a ready Leaderboard and a finished Journey step answered opened, and App Home's republish would record the Book's launch (2026-10-14)
   refuted: openFeature checked the Journey's recorded launch only for Quests -> with quests on, unlocks launched and no Journey launch, opening a ready or open Leaderboard answered opened, and activateJourney or App Home's republish would record the Journey's launch (2026-10-14)
@@ -204,7 +204,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   because: Unlocks alone decides what may open (D17, P73, WS62, WS64); a website path that wrote its own state could open what Slack still holds, and the reveal must follow only what Unlocks recorded
   crossing: browser -> domain
   entrances: mutation openFeature, mutation openQuestCrate, mutation buyPerk, mutation buyItem, mutation setBoardVisibility, mutation swapQuest, mutation setMessageSetting, mutation pickPrimaryGroup
-  refuted: buyItem ran Commands' buyItem with only the recorded launches as its gate -> a purchase before Coins opened stored a coins-not-open refusal under the request's key (2026-10-15)
+  refuted: buyItem ran Commands' buyItem with only the recorded launches as its gate -> a purchase before Coins opened answered refused with coins-not-open instead of no reason kind (2026-10-15)
   refuted: buyPerk answered progression's below-row refusal as points -> the perk above the member's level answered points instead of level (2026-10-14)
   refuted: openQuestCrate answered opened without reading the quests module's crate opening -> the active step, the unfinished and the never-drawn weekly quest answered opened (2026-10-14)
   refuted: openFeature answered opened without reading unlocks' state after the command -> the locked Leaderboard and the unshipped Skill tree answered opened (2026-10-14)
@@ -237,7 +237,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   because: a spent coin never comes back (ST13), and a browser retries after a dropped connection with the same request (WS87), so a retry that reached Commands must return the first outcome rather than buy again (ST14, WS335)
   crossing: browser -> domain
   entrances: mutation buyItem
-  refuted: buyItem built the purchase key from the item instead of the request -> two requests for two items each stored their own outcome, and a request whose string a Slack Buy's event carried still bought (2026-10-15)
+  refuted: buyItem built the purchase key with the call's time appended -> the same request sent twice answered refused instead of bought again (2026-10-15)
   kinds: state
   checklist: revalidated-permission dismissed: the store reads Coins, the item's sale, ownership and the balance in the same mutation that spends
   checklist: legal-state-succession declared as a coin spent on the website for an item is spent once
