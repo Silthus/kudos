@@ -80,7 +80,7 @@ describe("P88 P89: opening the Book makes two-days active, and kudos that say wh
     await followKudosGiven(t, await thoughtfulKudos(t, alice, bob, monday + minuteMs, "2026-10-12"));
     await followKudosGiven(t, await thoughtfulKudos(t, alice, bob, wednesday, "2026-10-14"));
 
-    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: monday, reward: twoDaysReward, catalogueVersion: "2", finishedAt: wednesday, openedAt: null });
+    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: monday, reward: twoDaysReward, catalogueVersion: "2", finishedAt: wednesday, openedAt: null, waiting: false });
   });
 });
 
@@ -274,7 +274,7 @@ describe("P91: two-days works whether the Book ships before the Journey or after
     await hourlySweep(t);
 
     const alice = await memberOf(t, "U_ALICE");
-    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: tuesday, reward: twoDaysReward, catalogueVersion: "2", finishedAt: null, openedAt: null });
+    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: tuesday, reward: twoDaysReward, catalogueVersion: "2", finishedAt: null, openedAt: null, waiting: false });
 
     aMinuteLater();
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
@@ -302,7 +302,7 @@ describe("P91: two-days works whether the Book ships before the Journey or after
     await openHome(t, "U_ALICE");
 
     const alice = await memberOf(t, "U_ALICE");
-    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: expect.any(Number), reward: twoDaysReward, catalogueVersion: "2", finishedAt: null, openedAt: null });
+    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: expect.any(Number), reward: twoDaysReward, catalogueVersion: "2", finishedAt: null, openedAt: null, waiting: false });
     expect((await twoDaysOf(t, alice))!.activatedAt).toBeGreaterThanOrEqual(wednesday);
     expect(journeyIn(publishedHome(slack, "U_ALICE"))).toContain(twoDaysActive);
 

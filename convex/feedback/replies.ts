@@ -12,6 +12,7 @@ import { skillTreeAppliesIn } from "../progression/skillTree";
 import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { journeyStepNamedTo, questsExposedTo } from "../quests/flag";
+import { rewardWaits } from "../quests/crates";
 import { journeyGoalOf } from "../quests/journeyCopy";
 import { journeyStepValidator } from "../quests/step";
 import { placeOf, wantsMessage } from "../messageSettings/messageSettings";
@@ -23,11 +24,15 @@ import type { Line, Segment } from "./segments";
 import { settingsFooterFor } from "./settingsFooter";
 
 export const questDoneValidator = v.union(
-  v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number(), coins: v.optional(v.number()) }),
-  v.object({ kind: v.literal("weekly"), goal: v.string(), xp: v.number(), coins: v.optional(v.number()) }),
+  v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number(), coins: v.optional(v.number()), heldRewardKey: v.optional(v.string()) }),
+  v.object({ kind: v.literal("weekly"), goal: v.string(), xp: v.number(), coins: v.optional(v.number()), heldRewardKey: v.optional(v.string()) }),
 );
 
 export type QuestDone = Infer<typeof questDoneValidator>;
+
+type Shown<Done> = Done extends unknown ? Omit<Done, "heldRewardKey"> & { waiting: boolean } : never;
+
+type QuestDoneShown = Shown<QuestDone>;
 
 export const gainsValidator = v.object({
   xp: v.number(),
@@ -37,6 +42,8 @@ export const gainsValidator = v.object({
 });
 
 type Gains = Infer<typeof gainsValidator>;
+
+type GainsShown = Omit<Required<Gains>, "questsDone"> & { questsDone: QuestDoneShown[] };
 
 export type SkipReason = "self" | "bot" | "not-a-member" | "group-or-broadcast";
 export type SkippedMention = { mention: Mention; reason: SkipReason };
@@ -145,7 +152,7 @@ async function deliver(ctx: MutationCtx, reply: Id<"privateReplies">) {
   await ctx.scheduler.runAfter(0, internal.slack.delivery.deliverPrivateReply, { reply });
 }
 
-async function gainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null, { xp, coins = 0, questsDone = [], bonus = [] }: Gains): Promise<Required<Gains>> {
+async function gainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId | null, { xp, coins = 0, questsDone = [], bonus = [] }: Gains): Promise<GainsShown> {
   const coinsEarned = coins > 0 || questsDone.some((done) => (done.coins ?? 0) > 0);
   const coinsVisible = coinsEarned && (await areCoinsVisibleTo(ctx, member));
   return {
@@ -156,17 +163,21 @@ async function gainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId |
   };
 }
 
-async function questsStillShown(ctx: QueryCtx, workspace: string, member: MemberId | null, questsDone: QuestDone[]): Promise<QuestDone[]> {
-  const shown: QuestDone[] = [];
-  for (const done of questsDone) if (done.kind !== "journey" || member === null || (await journeyStepNamedTo(ctx, workspace, member, done.step))) shown.push(done);
+async function questsStillShown(ctx: QueryCtx, workspace: string, member: MemberId | null, questsDone: QuestDone[]): Promise<QuestDoneShown[]> {
+  const shown: QuestDoneShown[] = [];
+  for (const done of questsDone) if (done.kind !== "journey" || member === null || (await journeyStepNamedTo(ctx, workspace, member, done.step))) shown.push(await withWaitingOf(ctx, member, done));
   return shown;
+}
+
+async function withWaitingOf(ctx: QueryCtx, member: MemberId | null, { heldRewardKey, ...done }: QuestDone): Promise<QuestDoneShown> {
+  return { ...done, waiting: heldRewardKey !== undefined && member !== null && (await rewardWaits(ctx, member, heldRewardKey)) };
 }
 
 async function areCoinsVisibleTo(ctx: QueryCtx, member: MemberId | null) {
   return member !== null && (await coinsVisibleTo(ctx, member));
 }
 
-function extrasLineOf({ xp, coins, questsDone, bonus }: Required<Gains>, hint: Line | null, link: DeepLink | null): Line | null {
+function extrasLineOf({ xp, coins, questsDone, bonus }: GainsShown, hint: Line | null, link: DeepLink | null): Line | null {
   const parts: Line[] = [
     ...(xp > 0 ? [[{ text: `+${xp} XP` }]] : []),
     ...(coins > 0 ? [[{ text: coinsPartOf(coins) }]] : []),
@@ -182,19 +193,20 @@ function bonusParts(bonus: BonusLine[]): Line[] {
   return bonus.map(({ source, xp }) => [{ text: `${perkOf(source).name} bonus (+${xp} XP)` }]);
 }
 
-function withoutCoins({ coins: _, ...done }: QuestDone): QuestDone {
+function withoutCoins({ coins: _, ...done }: QuestDoneShown): QuestDoneShown {
   return done;
 }
 
-function questsDoneParts(questsDone: QuestDone[]): Line[] {
+function questsDoneParts(questsDone: QuestDoneShown[]): Line[] {
   return questsDone.map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} (${questRewardOf(done)})` }]);
 }
 
-function questRewardOf({ xp, coins = 0 }: QuestDone) {
-  return coins > 0 ? `+${xp} XP, ${coinsPartOf(coins)}` : `+${xp} XP`;
+function questRewardOf({ xp, coins = 0, waiting }: QuestDoneShown) {
+  const gains = coins > 0 ? `+${xp} XP, ${coinsPartOf(coins)}` : `+${xp} XP`;
+  return waiting ? `${gains} waiting in your crate` : gains;
 }
 
-function goalOf(done: QuestDone) {
+function goalOf(done: QuestDoneShown) {
   return done.kind === "journey" ? journeyGoalOf(done.step) : done.goal;
 }
 

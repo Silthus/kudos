@@ -188,13 +188,13 @@ const firstQuest = { step: "first-quest", goal: "Finish a weekly quest.", hint: 
 
 const someoneNew = { step: "someone-new", goal: "Thank someone you haven't thanked before.", hint: null, reward: { xp: 30 }, feature: "leaderboard" } as const;
 
-const activeStep = { state: "active", crate: null, seen: null } as const;
+const activeStep = { state: "active", waiting: false, crate: null, seen: null } as const;
 
 const journeyStarted: JourneyStep[] = [{ ...firstThanks, ...activeStep }];
 
 const journeyUnderway: JourneyStep[] = [
-  { ...firstThanks, state: "opened", crate: null, seen: "a17f03" },
-  { ...firstQuest, state: "finished", crate: { kind: "journey", step: "first-quest" }, seen: "b2c9e4" },
+  { ...firstThanks, state: "opened", waiting: false, crate: null, seen: "a17f03" },
+  { ...firstQuest, state: "finished", waiting: false, crate: { kind: "journey", step: "first-quest" }, seen: "b2c9e4" },
   { ...someoneNew, ...activeStep },
 ];
 
