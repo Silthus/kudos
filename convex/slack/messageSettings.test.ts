@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, isWelcome, rateLimitedFor } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
-import { blockActions, publishedHome, publishedHomeBlocks, type BlockAction } from "../../testing/slackInteractions";
+import { blockActions, optionPickedInHome, publishedHome, publishedHomeBlocks, type BlockAction } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageChangedEvent, messageEvent, section, userGroup, type RichElement } from "../../testing/slackMessages";
@@ -12,7 +12,7 @@ import type { Annotations } from "../engine/messageEvent";
 import { notify, type Notification } from "../feedback/notify";
 import { questsWaitMs, replyPrivately, type Reply, type SkippedMention, type SkipReason } from "../feedback/replies";
 import { messageKinds, type MessageKind } from "../messageSettings/kinds";
-import { setMessageSetting } from "../messageSettings/messageSettings";
+import { placeOf, setMessageSetting } from "../messageSettings/messageSettings";
 
 const now = new Date("2026-10-14T10:00:00Z");
 const aKudosMessage = { workspace: "T1", conversation: "C1", message: "1760436000.999900" };
@@ -20,21 +20,21 @@ const form = { contentType: "application/x-www-form-urlencoded" };
 const messageSettings = "message-settings";
 
 const rows = {
-  kudosReply: "section: *After-kudos reply* — What a kudos you gave earned you, right after you send it. [button: Turn off]",
-  tips: "section: *Tips* — Short tips on earning more, like saying why you're thanking someone. [button: Turn off]",
-  levelUps: "section: *Level ups* — When you reach a level, with what it opens for you. [button: Turn off]",
-  newFeatures: "section: *New features* — When a new feature is ready for you to open. [button: Turn off]",
-  quests: "section: *Quests and Journey* — When you finish a quest or a Journey step. [button: Turn off]",
-  achievements: "section: *Book tiers* — When you earn an achievement tier. [button: Turn off]",
-  celebrations: "section: *Public celebrations* — Your level ups and tiers in the announcement channel. [button: Turn off]",
+  kudosReply: "section: *After-kudos reply* — What a kudos you gave earned you, right after you send it. [select: In the channel]",
+  tips: "section: *Tips* — Short tips on earning more, like saying why you're thanking someone. [select: In the channel]",
+  levelUps: "section: *Level ups* — When you reach a level, with what it opens for you. [select: As a DM]",
+  newFeatures: "section: *New features* — When a new feature is ready for you to open. [select: As a DM]",
+  quests: "section: *Quests and Journey* — When you finish a quest or a Journey step. [select: As a DM]",
+  achievements: "section: *Book tiers* — When you earn an achievement tier. [select: As a DM]",
+  celebrations: "section: *Public celebrations* — Your level ups and tiers in the announcement channel. [select: In the announcement channel]",
 };
 
 const offRows = {
-  levelUps: "section: *Level ups* · Off — When you reach a level, with what it opens for you. [button: Turn on]",
-  newFeatures: "section: *New features* · Off — When a new feature is ready for you to open. [button: Turn on]",
-  quests: "section: *Quests and Journey* · Off — When you finish a quest or a Journey step. [button: Turn on]",
-  achievements: "section: *Book tiers* · Off — When you earn an achievement tier. [button: Turn on]",
-  celebrations: "section: *Public celebrations* · Off — Your level ups and tiers in the announcement channel. [button: Turn on]",
+  levelUps: "section: *Level ups* · Off — When you reach a level, with what it opens for you. [select: None]",
+  newFeatures: "section: *New features* · Off — When a new feature is ready for you to open. [select: None]",
+  quests: "section: *Quests and Journey* · Off — When you finish a quest or a Journey step. [select: None]",
+  achievements: "section: *Book tiers* · Off — When you earn an achievement tier. [select: None]",
+  celebrations: "section: *Public celebrations* · Off — Your level ups and tiers in the announcement channel. [select: None]",
 };
 
 const whatISendYou = "section: *What I send you*";
@@ -149,7 +149,7 @@ describe("QM16: a message a member turned off is never sent", () => {
 
   test("a level-up DM Slack held back is not sent once the member turned level ups off", async () => {
     const t = await settingsOpen([messageSettings, "xp-levels"]);
-    const turnOff = rowButton("U_ALICE", "Level ups");
+    const turnOff = optionPickedInHome(slack, "U_ALICE", "Level ups", "None");
     slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
       await t.fetch("/slack/interactivity", await signedRequest(blockActions("U_ALICE", turnOff), form));
       slack.answering("chat.postMessage", rateLimitedFor(30));
@@ -208,7 +208,7 @@ describe("QM16: a message a member turned off is never sent", () => {
     await t.run(async (ctx) => {
       const member = await memberIn(ctx, "U_ALICE");
       await notify(ctx, member, notification);
-      await setMessageSetting(ctx, member, messageKindOf(label), true);
+      await setMessageSetting(ctx, member, messageKindOf(label), "dm");
     });
     await settle(t);
 
@@ -473,7 +473,7 @@ describe("QM14: today's settings are read as defaults, and today's switches show
 describe("QM15 QM28: setting a message setting is safe to repeat, and a real change records message setting changed", () => {
   test("Turn off sent twice changes nothing the second time and records one event, and Turn on records the next", async () => {
     const t = await settingsOpen([messageSettings, "xp-levels"]);
-    const turnOff = rowButton("U_ALICE", "Level ups");
+    const turnOff = optionPickedInHome(slack, "U_ALICE", "Level ups", "None");
 
     await interact(t, "U_ALICE", turnOff);
     await interact(t, "U_ALICE", turnOff);
@@ -616,9 +616,10 @@ async function sparkBoughtBy(t: Backend, user: string) {
 async function whileTurnedOff(t: Backend, user: string, kind: MessageKind, write: (ctx: MutationCtx) => Promise<void>) {
   await t.run(async (ctx) => {
     const member = await memberIn(ctx, user);
-    await setMessageSetting(ctx, member, kind, false);
+    const place = await placeOf(ctx, member, kind);
+    await setMessageSetting(ctx, member, kind, "none");
     await write(ctx);
-    await setMessageSetting(ctx, member, kind, true);
+    await setMessageSetting(ctx, member, kind, place);
   });
 }
 
@@ -704,14 +705,11 @@ async function click(t: Backend, user: string, label: string) {
   return interact(t, user, button!);
 }
 
-function rowButton(user: string, label: string): BlockAction {
-  const row = publishedHomeBlocks(slack, user).find((block) => block.text?.text.startsWith(`*${label}*`));
-  expect(row?.accessory, `the ${label} row in ${user}'s App Home`).toBeDefined();
-  return row!.accessory as BlockAction;
-}
-
 async function turn(t: Backend, user: string, label: string) {
-  return interact(t, user, rowButton(user, label));
+  const picker = publishedHomeBlocks(slack, user).find((block) => block.text?.text.startsWith(`*${label}*`))?.accessory;
+  expect(picker, `the ${label} row in ${user}'s App Home`).toBeDefined();
+  const turnedOff = picker!.initial_option?.text.text === "None";
+  return interact(t, user, optionPickedInHome(slack, user, label, turnedOff ? picker!.options![0]!.text.text : "None"));
 }
 
 async function command(t: Backend, user: string, value: Record<string, unknown>) {

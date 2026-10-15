@@ -14,7 +14,7 @@ import { xpLevelsShownTo } from "../progression/xpLevels";
 import { questsExposedTo } from "../quests/flag";
 import { journeyGoalOf } from "../quests/journeyCopy";
 import { journeyStepValidator } from "../quests/step";
-import { wantsMessage } from "../messageSettings/messageSettings";
+import { placeOf, wantsMessage } from "../messageSettings/messageSettings";
 import { coinsShownTo, coinsVisibleTo } from "../wallet/visibility";
 import { lookup, type MemberId } from "../workspace/directory";
 import { coinsPartOf } from "./coins";
@@ -108,12 +108,13 @@ export const privateReply = internalQuery({
     const row = await ctx.db.get(reply);
     if (row === null) return null;
     const { given, gains, hint, questsDone: _, ...stored } = row;
-    if (gains === undefined) return { ...stored, footer: null };
+    if (gains === undefined) return { ...stored, footer: null, asDirectMessage: false };
     const member = await memberOf(ctx, row.workspace, row.to);
-    if (member !== null && !(await wantsMessage(ctx, member, "kudos-reply"))) return row.lines.length === 0 ? null : { ...stored, footer: null };
+    const place = member === null ? "channel" : await placeOf(ctx, member, "kudos-reply");
+    if (place === "none") return row.lines.length === 0 ? null : { ...stored, footer: null, asDirectMessage: false };
     const extrasLine = extrasLineOf(await gainsShownTo(ctx, row.workspace, member, gains), await hintShownTo(ctx, row.workspace, member, hint), await deepLinkOf(ctx, row.workspace, deepLinks.successReply));
     const lines = [...(given === undefined ? [] : [given]), ...row.lines, ...(extrasLine === null ? [] : [extrasLine])];
-    return { ...stored, lines, footer: await settingsFooterFor(ctx, member) };
+    return { ...stored, lines, footer: await settingsFooterFor(ctx, member), asDirectMessage: place === "dm" };
   },
 });
 

@@ -1,13 +1,14 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
+import { messageRefValidator } from "../engine/messageEvent";
 import { notificationValidator, type NotificationLine } from "../feedback/notify";
 import { purchaseOutcomeValidator } from "../progression/purchases";
 import { settingsFooterText } from "./appHomeLinks";
 import { buttonOf, mrkdwn } from "./blocks";
-import { attemptArgs, sendOnce, slackLink, tryAtMostThreeTimes } from "./delivery";
+import { attemptArgs, besideValidator, sendBesideOrAsDirectMessage, sendOnce, slackLink, tryAtMostThreeTimes } from "./delivery";
 
-const directMessageArgs = { member: v.id("members"), workspace: v.string(), user: v.string(), notification: notificationValidator };
+const directMessageArgs = { member: v.id("members"), workspace: v.string(), user: v.string(), notification: notificationValidator, kudos: v.optional(messageRefValidator) };
 
 export const deliverDirectMessage = observedAction({
   args: { ...directMessageArgs, ...attemptArgs },
@@ -17,7 +18,11 @@ export const deliverDirectMessage = observedAction({
       async (attempt) => {
         const lines = await ctx.runQuery(internal.feedback.notify.linesStillWanted, { member: message.member, notification: message.notification });
         if (lines === null) return null;
-        return sendOnce(ctx, message.workspace, "chat.postMessage", { channel: message.user, ...messageOf(lines, message.workspace) }, attempt);
+        const content = messageOf(lines, message.workspace);
+        const destination = message.kudos === undefined ? "dm" : await ctx.runQuery(internal.feedback.beside.placeBesideTheKudos, { member: message.member, notification: message.notification, kudos: message.kudos });
+        if (destination === "none") return null;
+        if (destination === "dm") return sendOnce(ctx, message.workspace, "chat.postMessage", { channel: message.user, ...content }, attempt);
+        return sendBesideOrAsDirectMessage(ctx, message.workspace, message.user, destination, content, attempt);
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.directMessages.deliverDirectMessage, { ...message, attempt: retry.attempt }),
     );
@@ -25,13 +30,14 @@ export const deliverDirectMessage = observedAction({
 });
 
 export const deliverPurchaseReply = observedAction({
-  args: { member: v.id("members"), workspace: v.string(), conversation: v.string(), outcome: purchaseOutcomeValidator, ...attemptArgs },
+  args: { member: v.id("members"), workspace: v.string(), conversation: v.string(), beside: v.optional(besideValidator), outcome: purchaseOutcomeValidator, ...attemptArgs },
   handler: async (ctx, { attempt = 1, ...reply }) => {
     await tryAtMostThreeTimes(
       attempt,
       async (attempt) => {
         const text = await ctx.runQuery(internal.feedback.notify.purchaseReplyStillWanted, { member: reply.member, outcome: reply.outcome });
         if (text === null) return null;
+        if (reply.beside !== undefined) return sendBesideOrAsDirectMessage(ctx, reply.workspace, reply.conversation, reply.beside, { text }, attempt);
         return sendOnce(ctx, reply.workspace, "chat.postMessage", { channel: reply.conversation, text }, attempt);
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.directMessages.deliverPurchaseReply, { ...reply, attempt: retry.attempt }),

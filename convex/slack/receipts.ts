@@ -47,15 +47,25 @@ export const receiveHomeOpened = internalMutation({
 });
 
 export const receiveHomeClick = internalMutation({
-  args: { workspace: v.string(), eventId: v.string(), user: v.string(), commands: v.array(commandValidator), conversation: v.optional(v.string()) },
-  handler: async (ctx, { user, commands, conversation, ...receipt }) => {
+  args: {
+    workspace: v.string(),
+    eventId: v.string(),
+    user: v.string(),
+    commands: v.array(commandValidator),
+    conversation: v.optional(v.string()),
+    ephemeral: v.optional(v.object({ threadRoot: v.optional(v.string()) })),
+  },
+  handler: async (ctx, { user, commands, conversation, ephemeral, ...receipt }) => {
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
     const person = await lookup(ctx, receipt.workspace, user);
     if (person?.kind !== "member") return;
     for (const command of commands) {
       const outcome = await runCommand(ctx, receipt.workspace, person, command, `slack:${receipt.eventId}`);
-      if (outcome !== null && conversation !== undefined) await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, conversation, outcome });
+      if (outcome !== null && conversation !== undefined) {
+        const answeredIn = ephemeral === undefined ? { conversation } : { conversation: user, beside: { conversation, ...ephemeral } };
+        await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, ...answeredIn, outcome });
+      }
     }
     await republish(ctx, person.member);
   },

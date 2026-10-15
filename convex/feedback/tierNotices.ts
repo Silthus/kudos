@@ -44,7 +44,7 @@ export async function tellTiersEarned(ctx: MutationCtx, { member, message, at, e
   const tiers = [...told, ...untold];
   if (notice === null) await ctx.db.insert("tierNotices", { member, ...message, tiers });
   else await ctx.db.patch(notice._id, { tiers });
-  await notify(ctx, member, { kind: "tiers-earned", tiers: untold });
+  await notify(ctx, member, { kind: "tiers-earned", tiers: untold }, message);
   const { user } = await chatUserOf(ctx, member);
   await setPublicSection(ctx, message, tierSection(member, user, tiers));
 }

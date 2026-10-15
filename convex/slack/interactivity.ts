@@ -3,14 +3,14 @@ import { observedHttpAction } from "../analytics/boundary";
 import { commandOf, type Command } from "../commands/commands";
 import { readSignedBody } from "./signature";
 
-type Action = { type: string; action_id: string; value?: string; selected_channel?: string | null };
+type Action = { type: string; action_id: string; value?: string; selected_channel?: string | null; selected_option?: { value?: string } | null };
 
 type MemberClick = {
   type: "block_actions";
   team: { id: string };
   user: { id: string };
   trigger_id: string;
-  container: { type: "view" } | { type: "message"; channel_id: string };
+  container: { type: "view" } | { type: "message"; channel_id: string; is_ephemeral?: boolean; thread_ts?: string };
   view?: { type: string };
   actions: Action[];
 };
@@ -28,22 +28,28 @@ export const slackInteractivity = observedHttpAction(async (ctx, request) => {
     eventId: payload.trigger_id,
     user: payload.user.id,
     commands,
-    ...(payload.container.type === "message" && { conversation: payload.container.channel_id }),
+    ...(payload.container.type === "message" && conversationOf(payload.container)),
   });
   return new Response(null, { status: 200 });
 });
+
+function conversationOf({ channel_id, is_ephemeral, thread_ts }: Extract<MemberClick["container"], { type: "message" }>) {
+  if (is_ephemeral !== true) return { conversation: channel_id };
+  return { conversation: channel_id, ephemeral: thread_ts === undefined ? {} : { threadRoot: thread_ts } };
+}
 
 export function encodeHomeAction(command: Command) {
   return JSON.stringify(command);
 }
 
 function commandsOf(action: Action): Command[] {
-  const command = commandOf(action.type === "channels_select" ? { type: action.action_id, channel: action.selected_channel ?? null } : buttonCommandOf(action));
+  const command = commandOf(action.type === "channels_select" ? { type: action.action_id, channel: action.selected_channel ?? null } : selectedCommandOf(action));
   return command === null ? [] : [command];
 }
 
-function buttonCommandOf({ type, value }: Action): unknown {
-  if (type !== "button" || value === undefined) return null;
+function selectedCommandOf({ type, value: buttonValue, selected_option }: Action): unknown {
+  const value = type === "static_select" ? selected_option?.value : type === "button" ? buttonValue : undefined;
+  if (value === undefined) return null;
   try {
     return JSON.parse(value);
   } catch {

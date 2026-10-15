@@ -7,6 +7,7 @@ import { skillTreeLevel } from "../progression/levels";
 import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import type { PurchaseOutcome, Refusal } from "../progression/purchases";
 import { hasCoinPrice, perkOf, type Perk } from "../progression/tree";
+import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
 import type { MessageSetting, NotificationSwitches } from "../messageSettings/messageSettings";
 import type { JourneyStepFacts } from "../quests/journey";
 import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
@@ -48,6 +49,7 @@ export type HomeLine =
   | { kind: "lines"; lines: Line[] }
   | { kind: "action"; text: string; action: HomeAction }
   | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] }
+  | { kind: "pick"; id: string; text: string; placeholder: string; options: Choice[] }
   | { kind: "link"; label: string; url: string }
   | { kind: "links"; links: Array<{ label: string; url: string }> };
 
@@ -286,9 +288,16 @@ function whatISendYouOf(messages: MessageSetting[]): HomeLine[] {
   return [{ kind: "text", text: bold("What I send you") }, ...messages.map(messageSettingLineOf)];
 }
 
-function messageSettingLineOf({ kind, label, description, on }: MessageSetting): HomeLine {
+function messageSettingLineOf({ kind, label, description, on, place, places }: MessageSetting): HomeLine {
   const text = on ? `${bold(label)} — ${description}` : `${bold(label)} · Off — ${description}`;
-  return { kind: "action", text, action: { label: on ? "Turn off" : "Turn on", command: { type: "setMessageSetting", kind, on: !on } } };
+  const options = places.map((each) => ({ label: placeLabelOf(kind, each), command: { type: "setMessageSetting" as const, kind, place: each }, selected: each === place }));
+  return { kind: "pick", id: `message-place:${kind}`, text, placeholder: `Where I get ${label}`, options };
+}
+
+function placeLabelOf(kind: MessageKind, place: MessagePlace) {
+  if (place === "none") return "None";
+  if (place === "dm") return "As a DM";
+  return kind === "celebrations" ? "In the announcement channel" : "In the channel";
 }
 
 function leaderboardSwitch(onTheBoards: boolean): HomeLine[] {

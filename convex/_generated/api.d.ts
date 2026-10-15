@@ -53,6 +53,7 @@ import type * as engine_messageEvent from "../engine/messageEvent.js";
 import type * as engine_spotlight from "../engine/spotlight.js";
 import type * as engine_spotlightDraws from "../engine/spotlightDraws.js";
 import type * as engine_totals from "../engine/totals.js";
+import type * as feedback_beside from "../feedback/beside.js";
 import type * as feedback_coins from "../feedback/coins.js";
 import type * as feedback_deepLinks from "../feedback/deepLinks.js";
 import type * as feedback_home from "../feedback/home.js";
@@ -239,6 +240,7 @@ declare const fullApi: ApiFromModules<{
   "engine/spotlight": typeof engine_spotlight;
   "engine/spotlightDraws": typeof engine_spotlightDraws;
   "engine/totals": typeof engine_totals;
+  "feedback/beside": typeof feedback_beside;
   "feedback/coins": typeof feedback_coins;
   "feedback/deepLinks": typeof feedback_deepLinks;
   "feedback/home": typeof feedback_home;

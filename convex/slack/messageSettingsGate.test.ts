@@ -4,7 +4,7 @@ import { FakeSlack, isWelcome, type SlackCall } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, publishedHome, publishedHomeBlocks, readBlocks, staleButtonOf, type Block, type BlockAction } from "../../testing/slackInteractions";
+import { blockActions, optionPickedInHome, publishedHome, publishedHomeBlocks, readBlocks, staleButtonOf, type Block, type BlockAction } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import type { DomainEvent } from "../bus/events";
 import { publish } from "../bus/publish";
@@ -129,7 +129,7 @@ describe("QM22: the message-settings flag turned off and on, its stale clicks an
   test("a Turn off from the Settings tab published while message-settings was on, clicked after it turned off, writes nothing and publishes nothing", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await walkEveryMessagePath(t, "U_ALICE");
-    const turnOffLevelUps = rowButton("U_ALICE", "Level ups");
+    const turnOffLevelUps = optionPickedInHome(slack, "U_ALICE", "Level ups", "None");
     await flagsFromPostHog(t, postHog, ...settingsOff);
     await openSettingsTab(t, "U_ALICE");
     const todaysTab = publishedHome(slack, "U_ALICE");
@@ -147,7 +147,7 @@ describe("QM22: the message-settings flag turned off and on, its stale clicks an
   test("a stale Turn off clicked before App Home shows today's tab again stores no setting and records no change, and the click shows today's tab", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await walkEveryMessagePath(t, "U_ALICE");
-    const turnOffLevelUps = rowButton("U_ALICE", "Level ups");
+    const turnOffLevelUps = optionPickedInHome(slack, "U_ALICE", "Level ups", "None");
     await flagsFromPostHog(t, postHog, ...settingsOff);
 
     await interact(t, "U_ALICE", turnOffLevelUps);
@@ -264,13 +264,10 @@ async function click(t: Backend, user: string, command: unknown) {
 }
 
 async function turn(t: Backend, user: string, label: string) {
-  await interact(t, user, rowButton(user, label));
-}
-
-function rowButton(user: string, label: string): BlockAction {
-  const row = publishedHomeBlocks(slack, user).find((block) => block.text?.text.startsWith(`*${label}*`));
-  expect(row?.accessory, `the ${label} row in ${user}'s App Home`).toBeDefined();
-  return row!.accessory as BlockAction;
+  const picker = publishedHomeBlocks(slack, user).find((block) => block.text?.text.startsWith(`*${label}*`))?.accessory;
+  expect(picker, `the ${label} row in ${user}'s App Home`).toBeDefined();
+  const turnedOff = picker!.initial_option?.text.text === "None";
+  await interact(t, user, optionPickedInHome(slack, user, label, turnedOff ? picker!.options![0]!.text.text : "None"));
 }
 
 async function interact(t: Backend, user: string, action: BlockAction) {

@@ -6,6 +6,7 @@ import { tierRefValidator, type TierRef } from "../achievements/ladders";
 import { coinsPaidFor, tierCoinsPaidTo, type TierCoinsPaid } from "../achievements/tierCoins";
 import { everyTierEarnedBy } from "../achievements/tiers";
 import type { LevelReachedEvent } from "../bus/events";
+import type { MessageRef } from "../engine/messageEvent";
 import { skillTreeLevel } from "../progression/levels";
 import { memberPerksOf, ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import { skillTreeAppliesIn } from "../progression/skillTree";
@@ -13,7 +14,8 @@ import { purchaseOutcomeValidator } from "../progression/purchases";
 import { xpLevelsOnFor, xpLevelsShownTo } from "../progression/xpLevels";
 import { journeyStepAppliesIn, questsApplyTo } from "../quests/flag";
 import type { MessageKind } from "../messageSettings/kinds";
-import { wantsMessage } from "../messageSettings/messageSettings";
+import { placeOf, wantsMessage } from "../messageSettings/messageSettings";
+import { messageSettingsOnFor } from "../messageSettings/flag";
 import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type WeeklyQuest } from "../quests/step";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
@@ -70,10 +72,10 @@ const messageKindOf: Record<Notification["kind"], MessageKind> = {
   "coins-opened": "new-features",
 };
 
-export async function notifyLevelReached(ctx: MutationCtx, { member, level, skillPoints, xpToNextLevel }: LevelReachedEvent, ready: ScheduledFeature[]) {
+export async function notifyLevelReached(ctx: MutationCtx, { member, level, skillPoints, xpToNextLevel, message }: LevelReachedEvent, ready: ScheduledFeature[]) {
   if (!(await xpLevelsShownTo(ctx, member))) return;
   const unlocksShown = await unlocksShownTo(ctx, member);
-  await notify(ctx, member, { kind: "level-reached", level, skillPoints, xpToNextLevel, ready: unlocksShown ? featuresOf(ready) : [] });
+  await notify(ctx, member, { kind: "level-reached", level, skillPoints, xpToNextLevel, ready: unlocksShown ? featuresOf(ready) : [] }, message);
 }
 
 export async function notifyFeaturesShipped(ctx: MutationCtx, member: MemberId, ready: ScheduledFeature[]) {
@@ -81,22 +83,28 @@ export async function notifyFeaturesShipped(ctx: MutationCtx, member: MemberId, 
   await notify(ctx, member, { kind: "features-shipped", ready: featuresOf(ready) });
 }
 
-export async function notifyQuestFinished(ctx: MutationCtx, member: MemberId, quest: JourneyQuest, xp: number) {
-  await notify(ctx, member, { kind: "quest-finished", quest, xp });
+export async function notifyQuestFinished(ctx: MutationCtx, member: MemberId, quest: JourneyQuest, xp: number, kudos?: MessageRef) {
+  await notify(ctx, member, { kind: "quest-finished", quest, xp }, kudos);
 }
 
 export async function notifyJourneyJoined(ctx: MutationCtx, member: MemberId, finished: Array<{ quest: JourneyQuest; xp: number }>) {
   await notify(ctx, member, { kind: "journey-joined", finished });
 }
 
-export async function notifyWeeklyQuestFinished(ctx: MutationCtx, member: MemberId, quest: WeeklyQuest, goal: string, xp: number) {
-  await notify(ctx, member, { kind: "weekly-quest-finished", quest, goal, xp });
+export async function notifyWeeklyQuestFinished(ctx: MutationCtx, member: MemberId, quest: WeeklyQuest, goal: string, xp: number, kudos?: MessageRef) {
+  await notify(ctx, member, { kind: "weekly-quest-finished", quest, goal, xp }, kudos);
 }
 
-export async function notify(ctx: MutationCtx, member: MemberId, notification: Notification) {
-  if (!(await wantsNotification(ctx, member, notification))) return;
+export async function notify(ctx: MutationCtx, member: MemberId, notification: Notification, kudos?: MessageRef) {
+  const place = await placeOf(ctx, member, messageKindOfNotification(notification));
+  if (place === "none") return;
   const { workspace, user } = await chatUserOf(ctx, member);
-  await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverDirectMessage, { member, workspace, user, notification });
+  const placedAtDelivery = kudos !== undefined && (place === "channel" || (await messageSettingsOnFor(ctx, member)));
+  await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverDirectMessage, { member, workspace, user, notification, ...(placedAtDelivery && { kudos }) });
+}
+
+export function messageKindOfNotification(notification: Notification): MessageKind {
+  return messageKindOf[notification.kind];
 }
 
 export const linesStillWanted = internalQuery({
@@ -204,5 +212,5 @@ function featuresOf(ready: ScheduledFeature[]) {
 }
 
 function wantsNotification(ctx: QueryCtx, member: MemberId, notification: Notification) {
-  return wantsMessage(ctx, member, messageKindOf[notification.kind]);
+  return wantsMessage(ctx, member, messageKindOfNotification(notification));
 }
