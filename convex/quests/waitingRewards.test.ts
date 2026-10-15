@@ -72,6 +72,18 @@ describe("CR9 CR10 CR11: a reward waiting in its crate is told as waiting, and a
     expect(gainsLinesTo("U_ALICE").at(-1)).toBe("+10 XP · Quest done: Thank someone and say why (+300 XP waiting in your crate) · Quest done: Finish a weekly quest (+20 XP waiting in your crate)");
   });
 
+  test("CR9: a reply delivered after its crate was opened reads +10 XP", async () => {
+    const t = await workspaceDeciding(...held);
+    await giveKudos(t, "U_ALICE", "U_BOB");
+    const reply = await t.run(async (ctx) => (await ctx.db.query("privateReplies").collect()).find(({ to }) => to === "U_ALICE")!._id);
+    const delivered = async () => (await t.query(internal.feedback.replies.privateReply, { reply }))?.lines.at(-1)?.map((segment) => ("text" in segment ? segment.text : "")).join("");
+    await openHome(t, "U_ALICE");
+
+    await click(t, "U_ALICE", journeyOpenButtonInHome("U_ALICE"));
+
+    expect(await delivered()).toBe("+10 XP · Quest done: Give a kudos that says why (+10 XP)");
+  });
+
   test("CR9: a reward that counted at its finish reads +10 XP, as today", async () => {
     const t = await workspaceDeciding(...notHeld);
 

@@ -39,6 +39,6 @@ async function questsFinishedBy(ctx: MutationCtx, event: KudosGivenEvent): Promi
 }
 
 async function gainsOf(ctx: MutationCtx, member: MemberId, quest: Quest, { xp, coins }: Reward) {
-  const waiting = await rewardWaits(ctx, member, rewardKeyOf(quest));
-  return { xp, ...(coins > 0 && { coins }), ...(waiting && { waiting }) };
+  const key = rewardKeyOf(quest);
+  return { xp, ...(coins > 0 && { coins }), ...((await rewardWaits(ctx, member, key)) && { heldRewardKey: key }) };
 }
