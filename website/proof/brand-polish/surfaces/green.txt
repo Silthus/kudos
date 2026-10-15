@@ -9,3 +9,7 @@
 featureGates.test.tsx rerun alone (the two reveal-order failures above were 5 s timeouts while three builds ran):
  Test Files  1 passed (1)
       Tests  66 passed (66)
+
+After review round 1, medalMetals.test.tsx resolves the website overrides through themeContrast.ts:
+ Test Files  1 passed (1)
+      Tests  16 passed (16)

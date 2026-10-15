@@ -83,7 +83,7 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
 ## Accessibility
 
 - **V24. WCAG 2.2 AA in both modes.**
-  - **Contrast:** 4.5:1 for text, and 3:1 for icons, borders and rings.
+  - **Contrast:** 4.5:1 for text, and 3:1 for icons, rings, and the border of a control that nothing but its border identifies (an input, a switch track, an outline). A card's or separator's border is decorative and takes posthog.com's border value.
   - **Colour is never the only signal:**
     - "you" is a ring plus a label
     - a tier is a metal plus pips plus its word
