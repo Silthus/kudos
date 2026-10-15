@@ -1,0 +1,5 @@
+Sandbox launch rows, before the driver (16:34 UTC) and after the last website call (16:50 UTC).
+Rows hold only times and the workspace key; the comparison is what counts.
+unlockLaunches: 1 row before, 1 row after, unchanged
+journeyLaunches: 1 row before, 1 row after, unchanged
+bookLaunches: 1 row before, 1 row after, unchanged

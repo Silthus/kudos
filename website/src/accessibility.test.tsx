@@ -59,6 +59,8 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "skill tree ready to open in place", path: "/skills", visitor: shellFixtures.memberWithTheSkillTreeReady, skillTree: skillTreeFixtures.ready },
   { name: "skill tree with points and nothing owned", path: "/skills", visitor: shellFixtures.memberWithEveryFeatureOpen, skillTree: skillTreeFixtures.withPoints },
   { name: "skill tree with one perk owned, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithOneSkillPoint, skillTree: skillTreeFixtures.sparkOwned, wide: true },
+  { name: "skill tree with every row, upgrades and coin costs", path: "/skills", visitor: shellFixtures.memberAtLevel7WithOneSkillPoint, skillTree: skillTreeFixtures.everyRow },
+  { name: "skill tree with every row, upgrades and coin costs, on a wide screen", path: "/skills", visitor: shellFixtures.memberAtLevel7WithOneSkillPoint, skillTree: skillTreeFixtures.everyRow, wide: true },
   { name: "skill tree with no skill points left, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithNoSkillPointsLeft, skillTree: skillTreeFixtures.noPointsLeft, wide: true },
   { name: "skill tree below its row, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithNoSkillPointsLeft, skillTree: skillTreeFixtures.belowTheRow, wide: true },
   { name: "skill tree with a perk that needs its base, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithOneSkillPoint, skillTree: skillTreeFixtures.needsABase, wide: true },

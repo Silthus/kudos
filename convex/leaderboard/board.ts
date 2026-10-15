@@ -30,12 +30,16 @@ export function ranking<E extends Entry>(entries: E[], viewer: string | null): R
   return { rows, window: windowOf(rows.length, rows.findIndex((row) => row.viewer) + 1) };
 }
 
-export function positionOf(entries: Entry[], viewer: string): number | null {
-  const position = rankedRows(entries, viewer).findIndex((row) => row.viewer) + 1;
-  return position === 0 ? null : position;
+export function placesClimbed(now: Entry[], before: Entry[]): Map<string, number> {
+  const positionBefore = new Map(rankedRows(before, null).map((row) => [row.id, row.position]));
+  return new Map(rankedRows(now, null).flatMap(({ id, position }) => climbOf(id, positionBefore.get(id), position)));
 }
 
-function windowOf(ranked: number, viewerPosition: number): number[] {
+function climbOf(id: string, before: number | undefined, now: number): Array<[string, number]> {
+  return before !== undefined && before > now ? [[id, before - now]] : [];
+}
+
+export function windowOf(ranked: number, viewerPosition: number): number[] {
   if (viewerPosition === 0) return positions(1, Math.min(topPositions, ranked));
   if (viewerPosition <= lastPositionShowingTheFirstTen) return positions(1, Math.min(mostRows, ranked));
   const aroundViewer = positions(viewerPosition - positionsAroundViewer, Math.min(viewerPosition + positionsAroundViewer, ranked));

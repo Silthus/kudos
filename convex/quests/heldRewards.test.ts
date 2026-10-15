@@ -10,7 +10,7 @@ import { coinsPaidBy } from "../achievements/ladders";
 import { payTierCoins } from "../achievements/tierCoins";
 import type { QueryCtx } from "../_generated/server";
 import { standingOf } from "../progression/progression";
-import { setProgressSettings } from "../progression/settings";
+import { setNotificationSwitches } from "../messageSettings/messageSettings";
 import { balanceOf } from "../wallet/wallet";
 import type { MemberId } from "../workspace/directory";
 import { finishQuest } from "./finish";
@@ -74,7 +74,7 @@ describe("CR1 CR2: a quest's reward finished while crate-rewards is on waits in 
   test("with DMs off, the finish still republishes App Home with the crate", async () => {
     const t = await workspaceDeciding(...held);
     await openHome(t, "U_ALICE");
-    await t.run(async (ctx) => setProgressSettings(ctx, await memberIn(ctx, "U_ALICE"), { dms: false }));
+    await t.run(async (ctx) => setNotificationSwitches(ctx, await memberIn(ctx, "U_ALICE"), { dms: false }));
     const homesBefore = slack.callsTo("views.publish").length;
 
     await giveKudos(t, "U_ALICE", "U_BOB");
@@ -89,7 +89,7 @@ describe("CR1 CR2: a quest's reward finished while crate-rewards is on waits in 
     await openHome(t, "U_CAROL");
     const alice = await t.run((ctx) => memberIn(ctx, "U_ALICE"));
     await t.run((ctx) => ctx.db.insert("unlocks", { member: alice, feature: "leaderboard", readyAt: Date.now() }));
-    await t.run((ctx) => setProgressSettings(ctx, alice, { dms: false }));
+    await t.run((ctx) => setNotificationSwitches(ctx, alice, { dms: false }));
     await openHome(t, "U_ALICE");
     await click(t, "U_ALICE", buttonBeside(publishedHomeBlocks(slack, "U_ALICE"), "*Leaderboard* is ready", "Open"));
     const homesBefore = homesPublishedTo("U_ALICE");

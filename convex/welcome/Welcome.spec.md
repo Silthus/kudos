@@ -1,6 +1,6 @@
 # Welcome
 
-Welcome: the first kudosGiven subscriber. It records each member it welcomes and asks feedback for the welcome message the first time a Given award names them, as giver or recipient, with the counterpart by Slack user (the giver for a recipient, the recipients for a giver), and publishes memberWelcomed for each member it welcomes. It welcomes at most 100 members per mutation, each with its welcome row, its delivery and its memberWelcomed, and schedules itself with the event and a cursor over the event's members for the rest (QM10).
+Welcome: the first kudosGiven subscriber. It records each member it welcomes with that counterpart and asks feedback for the welcome message the first time a Given award names them, as giver or recipient, with the counterpart by Slack user (the giver for a recipient, the recipients for a giver), and publishes memberWelcomed for each member it welcomes. It welcomes at most 100 members per mutation, each with its welcome row, its delivery and its memberWelcomed, and schedules itself with the event and a cursor over the event's members for the rest (QM10).
 
 ## invariants
 - welcomed at most once: A member gets the welcome message at most once, ever, whatever Slack redelivers and whichever Given awards name them later.

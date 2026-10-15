@@ -6,6 +6,7 @@ import type { ChatUserId } from "../engine/messageEvent";
 import { ReportableError } from "../analytics/exceptions";
 import { followMembersLater } from "../analytics/person";
 import { publish } from "../bus/publish";
+import { reconcileMember, reconcileUser } from "../groups/reconcile";
 import { memberProfileFieldNames, memberProfileFields, type MemberProfile } from "./memberProfile";
 
 export type MemberId = Id<"members">;
@@ -123,8 +124,10 @@ function differsFrom(row: Doc<"members">, profile: MemberProfile) {
 export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }: DirectoryRecord) {
   const row = { workspace, user, timeZone: undefined, asOf, ...entry };
   const existing = await memberRow(ctx, workspace, user);
-  if (existing === null) await ctx.db.insert("members", row);
-  else if (!isOlder(asOf, existing.asOf)) {
+  if (existing === null) {
+    await ctx.db.insert("members", row);
+    await reconcileUser(ctx, workspace, user, Date.now());
+  } else if (!isOlder(asOf, existing.asOf)) {
     await replace(ctx, existing, keepingNewerProfile(existing, row));
     await followMembersLater(ctx, [existing._id]);
   }
@@ -163,6 +166,7 @@ async function replace(ctx: MutationCtx, existing: Doc<"members">, row: MemberRo
   const membership = { workspace: row.workspace, member: existing._id, at: Date.now() };
   if (existing.kind === "member" && row.kind !== "member") await publish(ctx, { type: "memberLeft", ...membership });
   if (existing.kind !== "member" && row.kind === "member") await publish(ctx, { type: "memberRejoined", ...membership });
+  if ((existing.kind === "member") !== (row.kind === "member")) await reconcileMember(ctx, existing._id, Date.now());
 }
 
 export function isOlder(asOf: number, known: number | undefined) {

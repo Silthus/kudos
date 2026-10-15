@@ -3,20 +3,31 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { bookFactsOf, type AchievementFacts } from "../achievements/achievements";
 import { achievementsApplyIn, achievementsShownTo } from "../achievements/flag";
+import { groupModeShownTo, type GroupModeFacts } from "../groups/groupMode";
 import { xpRecordedEventValidator } from "../bus/events";
+import { groupsShownAndExposedTo, type GroupId } from "../groups/groups";
+import { groupChoiceOf, type GroupChoice } from "../groups/pick";
+import type { GroupsBoard } from "../leaderboard/groupsBoard";
+import type { MyGroupBoardView } from "../leaderboard/myGroupBoard";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import type { Period } from "../leaderboard/periods";
 import { everyoneBoardOf, type EveryoneBoardView } from "../leaderboard/totals";
 import { isOnTheBoards } from "../leaderboard/visibility";
+import { messageSettingsShownTo } from "../messageSettings/flag";
+import { messageSettingsOf, notificationSwitchesOf, type MessageSetting, type NotificationSwitches } from "../messageSettings/messageSettings";
 import { memberPerksOf, ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import { skillTreeShownTo } from "../progression/skillTree";
 import { progressionHomeOf, type ProgressionHome } from "../progression/progression";
 import { questsShownTo } from "../quests/flag";
 import { activateJourneyOf, journeyOf, type JourneyStepFacts } from "../quests/journey";
+import { journeyCopyFor, type JourneyStepCopy } from "../quests/journeyCopy";
 import { thisWeeksQuestsOf, unopenedCratesOf, type UnopenedCrate, type WeeklyQuests } from "../quests/weekly";
-import { progressSettingsOf, type ProgressSettings } from "../progression/settings";
 import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
+import { inventoryHomeOf, type InventoryHome } from "../store/inventory";
+import { itemRefusalValidator, type ItemRefusal } from "../store/rows";
+import { storeShownAndExposedTo } from "../store/visibility";
 import { unlocksShownTo } from "../unlocks/launch";
+import { namedFor, scheduled } from "../unlocks/schedule";
 import { unlocksHomeOf, type UnlocksHome } from "../unlocks/unlocks";
 import { coinsVisibleAndExposedTo } from "../wallet/visibility";
 import { balanceOf } from "../wallet/wallet";
@@ -24,17 +35,18 @@ import { adminsIn, chatUserOf, lookup, type MemberFacts, type MemberId } from ".
 import { settingsOf } from "../workspace/settings";
 import { isOpened, whenOpened } from "./unlockFilter";
 
-export const homeTabValidator = v.union(v.literal("profile"), v.literal("leaderboard"), v.literal("book"), v.literal("skillTree"), v.literal("settings"), v.literal("admin"));
+export const homeTabValidator = v.union(v.literal("profile"), v.literal("leaderboard"), v.literal("book"), v.literal("skillTree"), v.literal("inventory"), v.literal("settings"), v.literal("admin"));
 
 export type HomeTab = Infer<typeof homeTabValidator>;
 
 export type ShownTab =
-  | { tab: "profile"; progression: ToldProgression | null; unlocks: UnlocksHome | null; quests: WeeklyQuests | null; earlierCrates: UnopenedCrate[] | null; journey: JourneyStepFacts[] | null }
-  | { tab: "leaderboard"; period: Period; board: EveryoneBoardView }
+  | { tab: "profile"; progression: ToldProgression | null; unlocks: UnlocksHome | null; quests: WeeklyQuests | null; earlierCrates: UnopenedCrate[] | null; journey: JourneyStepShown[] | null }
+  | { tab: "leaderboard"; period: Period; board: EveryoneBoardView; groups: GroupsBoard<GroupId> | null; myGroup: MyGroupBoardView | null }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
-  | { tab: "skillTree"; perks: MemberPerks }
-  | { tab: "settings"; onTheBoards: boolean | null; progress: ProgressSettings | null; achievements: boolean }
-  | { tab: "admin"; announcementChannel: string | null; achievements: boolean };
+  | { tab: "skillTree"; perks: MemberPerks; coinsName: string }
+  | { tab: "inventory"; balance: number; inventory: InventoryHome; kudosEmoji: string; refused: ItemRefusal | null }
+  | { tab: "settings"; onTheBoards: boolean | null; progress: NotificationSwitches | null; messages: MessageSetting[] | null; achievements: boolean; channelPicked: boolean; groups: GroupChoice | null }
+  | { tab: "admin"; announcementChannel: string | null; achievements: boolean; groupMode: GroupModeFacts | null };
 
 export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
 
@@ -42,11 +54,31 @@ export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoin
 
 export type HomeMember = Extract<MemberFacts, { kind: "member" }>;
 
-type Slices = { board: boolean; leaderboard: boolean; xp: boolean; unlocks: boolean; quests: boolean; book: boolean; skillTree: boolean; coins: boolean; admin: boolean; sharedSettings: boolean };
+type Slices = {
+  board: boolean;
+  leaderboard: boolean;
+  xp: boolean;
+  unlocks: boolean;
+  quests: boolean;
+  book: boolean;
+  skillTree: boolean;
+  coins: boolean;
+  store: boolean;
+  messages: boolean;
+  admin: boolean;
+  sharedSettings: boolean;
+  groups: GroupChoice | null;
+};
 
 type HomeSelection = { tab: HomeTab; period: Period };
 
 const opensOn: HomeSelection = { tab: "profile", period: "week" };
+
+export type JourneyStepShown = JourneyStepFacts & JourneyStepCopy;
+
+async function journeyShownTo(ctx: QueryCtx, member: MemberId): Promise<JourneyStepShown[]> {
+  return Promise.all((await journeyOf(ctx, member)).map(async (facts) => ({ ...facts, ...(await journeyCopyFor(ctx, member, facts.step)) })));
+}
 
 type Door = { frontDoor: boolean };
 
@@ -54,13 +86,14 @@ const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices & Door
   { tab: "leaderboard", shownWith: ({ leaderboard, frontDoor }) => leaderboard && !frontDoor },
   { tab: "book", shownWith: ({ book, frontDoor }) => book && !frontDoor },
   { tab: "skillTree", shownWith: ({ skillTree, frontDoor }) => skillTree && !frontDoor },
-  { tab: "settings", shownWith: ({ board, xp }) => board || xp },
+  { tab: "inventory", shownWith: ({ coins, store }) => coins && store },
+  { tab: "settings", shownWith: ({ board, xp, messages, groups }) => board || xp || messages || groups !== null },
   { tab: "admin", shownWith: ({ sharedSettings, admin }) => sharedSettings && admin },
 ];
 
 export const shownHomeOf = internalMutation({
-  args: { workspace: v.string(), user: v.string(), frontDoor: v.boolean() },
-  handler: async (ctx, { workspace, user, frontDoor }): Promise<ShownHome | null> => {
+  args: { workspace: v.string(), user: v.string(), frontDoor: v.boolean(), refused: v.optional(itemRefusalValidator) },
+  handler: async (ctx, { workspace, user, frontDoor, refused }): Promise<ShownHome | null> => {
     const person = await lookup(ctx, workspace, user);
     if (person?.kind !== "member") return null;
     const slices = await slicesShownTo(ctx, workspace, person);
@@ -69,7 +102,7 @@ export const shownHomeOf = internalMutation({
     if (tabs.length === 0) return null;
     const { tab, period } = await selectionOf(ctx, person.member);
     const viewer = { workspace, user, member: person.member };
-    return { tabs, shown: await shownTabOf(ctx, viewer, slices, { tab: tabs.includes(tab) ? tab : "profile", period }) };
+    return { tabs, shown: await shownTabOf(ctx, { ...viewer, admin: person.admin }, slices, { tab: tabs.includes(tab) ? tab : "profile", period }, refused ?? null) };
   },
 });
 
@@ -105,8 +138,8 @@ export async function republishOnRoleChange(ctx: MutationCtx, before: MemberFact
   if (await xpLevelsOnFor(ctx, member)) await republish(ctx, member);
 }
 
-export async function republish(ctx: MutationCtx, member: MemberId) {
-  await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, await chatUserOf(ctx, member));
+export async function republish(ctx: MutationCtx, member: MemberId, refused?: ItemRefusal) {
+  await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { ...(await chatUserOf(ctx, member)), ...(refused !== undefined && { refused }) });
 }
 
 export async function isLeaderboardShownTo(ctx: MutationCtx, workspace: string, member: MemberId) {
@@ -121,8 +154,11 @@ async function slicesShownTo(ctx: MutationCtx, workspace: string, person: HomeMe
   const book = unlocks && (await achievementsShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "book"));
   const skillTree = (await skillTreeShownTo(ctx, person.member)) && (await isOpened(ctx, person.member, "skillTree"));
   const coins = unlocks && (await coinsVisibleAndExposedTo(ctx, person.member));
+  const store = unlocks && (await storeShownAndExposedTo(ctx, person.member));
+  const messages = await messageSettingsShownTo(ctx, person.member);
   const sharedSettings = await xpLevelsShownIn(ctx, workspace);
-  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, coins, admin: person.admin, sharedSettings };
+  const groups = (await groupsShownAndExposedTo(ctx, person.member)) ? await groupChoiceOf(ctx, person.member) : null;
+  return { board, leaderboard: board && (await isLeaderboardOpenTo(ctx, person.member, unlocks)), xp, unlocks, quests, book, skillTree, coins, store, messages, admin: person.admin, sharedSettings, groups };
 }
 
 async function isLeaderboardOpenTo(ctx: QueryCtx, member: MemberId, unlocksShown: boolean) {
@@ -134,9 +170,9 @@ function tabsOf(slices: Slices & Door): HomeTab[] {
   return besideProfile.length === 0 ? [] : ["profile", ...besideProfile];
 }
 
-type Viewer = { workspace: string; user: string; member: MemberId };
+type Viewer = { workspace: string; user: string; member: MemberId; admin: boolean };
 
-async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection): Promise<ShownTab> {
+async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection, refused: ItemRefusal | null): Promise<ShownTab> {
   switch (tab) {
     case "profile":
       if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, earlierCrates: null, journey: null };
@@ -144,27 +180,45 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
       return {
         tab,
         progression: await toldProgressionOf(ctx, viewer.member, slices),
-        unlocks: await unlocksHomeOf(ctx, viewer.member),
+        unlocks: namedForStore(await unlocksHomeOf(ctx, viewer.member), slices.store),
         quests: slices.quests ? await openedQuestsOf(ctx, viewer.member) : null,
         earlierCrates: slices.quests ? await openedEarlierCratesOf(ctx, viewer.member) : null,
-        journey: slices.quests ? await journeyOf(ctx, viewer.member) : null,
+        journey: slices.quests ? await journeyShownTo(ctx, viewer.member) : null,
       };
     case "leaderboard":
-      return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period) };
+      return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period), groups: null, myGroup: null };
     case "book":
       return { tab, book: await bookFactsOf(ctx, viewer.member), timeZone: (await ctx.db.get(viewer.member))?.timeZone };
     case "skillTree":
-      return { tab, perks: await memberPerksOf(ctx, viewer.member) };
+      return { tab, perks: await memberPerksOf(ctx, viewer.member), coinsName: namedFor(scheduled("coins"), slices.store).name };
+    case "inventory":
+      return { tab, balance: await balanceOf(ctx, viewer.member), inventory: await inventoryHomeOf(ctx, viewer.member), kudosEmoji: (await settingsOf(ctx, viewer.workspace)).kudosEmoji, refused };
     case "settings":
       return {
         tab,
         onTheBoards: slices.board ? await isOnTheBoards(ctx, viewer.member) : null,
-        progress: slices.xp ? await progressSettingsOf(ctx, viewer.member) : null,
+        progress: slices.xp && !slices.messages ? await notificationSwitchesOf(ctx, viewer.member) : null,
+        messages: slices.messages ? await applyingMessageSettingsOf(ctx, viewer.member) : null,
         achievements: await achievementsApplyIn(ctx, viewer.workspace),
+        groups: slices.groups,
+        channelPicked: (await settingsOf(ctx, viewer.workspace)).announcementChannel !== null,
       };
     case "admin":
-      return { tab, announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel, achievements: await achievementsApplyIn(ctx, viewer.workspace) };
+      return {
+        tab,
+        announcementChannel: (await settingsOf(ctx, viewer.workspace)).announcementChannel,
+        achievements: await achievementsApplyIn(ctx, viewer.workspace),
+        groupMode: await groupModeShownTo(ctx, viewer.workspace, viewer),
+      };
   }
+}
+
+function namedForStore({ ready, next }: UnlocksHome, storeShown: boolean): UnlocksHome {
+  return { ready: ready.map((entry) => namedFor(entry, storeShown)), next: next === null ? null : namedFor(next, storeShown) };
+}
+
+async function applyingMessageSettingsOf(ctx: QueryCtx, member: MemberId) {
+  return (await messageSettingsOf(ctx, member)).filter(({ applies }) => applies);
 }
 
 async function openedQuestsOf(ctx: MutationCtx, member: MemberId) {

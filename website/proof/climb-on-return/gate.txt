@@ -1,0 +1,6 @@
+fleet heavy -- pnpm gate on a28b1c2c (merge of origin/main)
+ Test Files  186 passed (186)
+      Tests  3593 passed (3593)
+lacking: enforcement 0, refutation 0, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-15T08:06:23.818Z (880 runs)
+0 rejected names, 0 unknown nouns (810 files), 37 in records
+exit 0

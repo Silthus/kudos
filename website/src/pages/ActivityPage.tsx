@@ -119,13 +119,13 @@ function FirstPageWaiting({ state, onTryAgain }: { state: TimelineState; onTryAg
 function Entries({ state, timeZone }: { state: TimelineState; timeZone: string | undefined }) {
   const now = Date.now();
   return (
-    <ol aria-label="Your activity" className="relative flex flex-col gap-3 before:absolute before:top-6 before:bottom-2 before:left-[1.25rem] before:w-px before:bg-muted-foreground/40">
+    <ol aria-label="Your activity" className="flex flex-col gap-4">
       {state.entries.map((entry, index) => {
         const day = dayKeyOf(entry.at, timeZone);
         const startsADay = index === 0 || dayKeyOf(state.entries[index - 1]!.at, timeZone) !== day;
         return (
           <li key={entryIdOf(entry)} className="flex flex-col gap-3">
-            {startsADay && <h2 className="relative z-10 ml-[3.25rem] pt-2 text-xs font-semibold text-muted-foreground first:pt-0">{dayHeadingOf(entry.at, now, timeZone)}</h2>}
+            {startsADay && <h2 className="self-center rounded-full bg-muted px-3 py-0.5 text-xs font-semibold text-muted-foreground">{dayHeadingOf(entry.at, now, timeZone)}</h2>}
             <Entry entry={entry} index={index} timeZone={timeZone} />
           </li>
         );
@@ -142,14 +142,14 @@ function TimelineEnd({ state, loadMoreButton, onLoadMore, onNearTheEnd }: Timeli
   if (state.status === "end") {
     if (state.entries.length === 0) return null;
     return (
-      <p data-timeline-start tabIndex={-1} className="ml-[3.25rem] text-sm text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <p data-timeline-start tabIndex={-1} className="self-center text-sm text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
         That's the start of your activity.
       </p>
     );
   }
   const loading = state.status === "loading";
   return (
-    <div ref={end} className="ml-[3.25rem] flex">
+    <div ref={end} className="flex justify-center">
       <Button ref={loadMoreButton} variant="outline" size="sm" aria-disabled={loading || undefined} onClick={() => !loading && onLoadMore()}>
         {loading ? "Loading…" : state.status === "failed" ? "Try again" : "Load more"}
       </Button>

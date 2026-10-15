@@ -4,7 +4,7 @@ import { applyHeldReward } from "../progression/progression";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf } from "./crates";
-import { journeyStepAppliesIn, questsLiveFor } from "./flag";
+import { journeyStepAppliesTo, questsLiveFor } from "./flag";
 import { crateOpened } from "./pendingCrates";
 import type { Quest } from "./step";
 import { poolQuestOf } from "./weekly";
@@ -14,7 +14,7 @@ export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: 
   const reward = await rewardOf(ctx, member, key);
   if (reward === null || !(await questsLiveFor(ctx, member))) return "refused";
   const { workspace } = await chatUserOf(ctx, member);
-  if (quest.kind === "journey" && !(await journeyStepAppliesIn(ctx, workspace, quest.step))) return "refused";
+  if (quest.kind === "journey" && !(await journeyStepAppliesTo(ctx, workspace, member, quest.step))) return "refused";
   if ((await crateOpeningOf(ctx, member, key)) !== null) return "done";
   const at = Date.now();
   const applied = await appliedAtOpen(ctx, workspace, reward, at);

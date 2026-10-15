@@ -188,7 +188,7 @@ describe("G22: a member who left the boards is on nobody's board, their own incl
     await giveKudosOn(t, "2026-10-06T10:00:00Z", "U_ANN", 1);
     await giveKudos(t, "U_BOB", 1);
     await giveKudos(t, "U_ANN", 3);
-    expect((await command(t, "U_ANN", "leaderboard")).text).toContain("▲ 2 more kudos than this time last week · ▲ 1 places");
+    expect((await command(t, "U_ANN", "leaderboard")).text).toContain("▲ 2 more kudos than this time last week · ▲ 1 place");
     await openHome(t, "U_ANN");
     await click(t, "U_ANN", "Settings");
 

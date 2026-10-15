@@ -3,8 +3,9 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { kudosGivenEventValidator, type KudosGivenEvent, type MemberWelcomedEvent } from "../bus/events";
 import { publish } from "../bus/publish";
-import { requestWelcome, type WelcomedAs } from "../feedback/welcome";
+import { requestWelcome } from "../feedback/welcome";
 import { chatUserOf, type MemberId } from "../workspace/directory";
+import type { WelcomedAs } from "./welcomedAs";
 
 const membersPerPage = 100;
 
@@ -21,8 +22,9 @@ export const welcomeNewMembers = internalMutation({
 
 async function welcome(ctx: MutationCtx, event: KudosGivenEvent, { member, as }: Welcomed) {
   if (await isWelcomed(ctx, member)) return;
-  await ctx.db.insert("welcomes", { member });
-  await requestWelcome(ctx, member, await welcomedAs(ctx, event, as));
+  const welcomed = await welcomedAs(ctx, event, as);
+  await ctx.db.insert("welcomes", { member, welcomed });
+  await requestWelcome(ctx, member, welcomed);
   await publish(ctx, { type: "memberWelcomed", workspace: event.workspace, member, as, at: Date.now() });
 }
 

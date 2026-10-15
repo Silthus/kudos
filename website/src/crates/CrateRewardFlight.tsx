@@ -80,7 +80,7 @@ function hopsOf({ crate, from }: Flight, { xp, skillPoints }: Reward): Hop[] {
   return [xpHop, pointsHop].filter((hop) => hop !== undefined);
 }
 
-function fillFrom(target: HTMLElement, { progression: before }: MemberProfile, xp: number) {
+export function fillFrom(target: HTMLElement, { progression: before }: MemberProfile, xp: number) {
   const frame = target.closest<HTMLElement>(".hud-root");
   if (before === null || frame === null) return false;
   const levelling = crossesALevel(before, xp);
@@ -89,7 +89,7 @@ function fillFrom(target: HTMLElement, { progression: before }: MemberProfile, x
   return levelling;
 }
 
-function dingTheLevel() {
+export function dingTheLevel() {
   for (const ring of [heroRing(), hudAvatar()]) if (ring !== null) settle(ring, ["reward-landed"]);
 }
 

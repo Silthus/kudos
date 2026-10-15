@@ -67,7 +67,7 @@ describe("P88 P89: opening Quests or the Leaderboard shows its Journey step, and
     const later = aMinuteLater();
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
-    expect(await rewardRecordsOf(t, "journey:first-quest")).toEqual([{ key: "journey:first-quest", xp: 20, catalogueVersion: "1", at: later }]);
+    expect(await rewardRecordsOf(t, "journey:first-quest")).toEqual([{ key: "journey:first-quest", xp: 20, catalogueVersion: "2", at: later }]);
     expect(journeyDmsTo("U_ALICE").map(({ text }) => text)).toEqual([expect.stringContaining("Give a kudos that says why"), finishedFirstQuest]);
     expect(readBlocks(journeyDmsTo("U_ALICE")[1]!.blocks as Block[])).toEqual([`section: ${finishedFirstQuest} [button: Open]`]);
     expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([firstThanksDone, firstQuestDone]);
@@ -86,7 +86,7 @@ describe("P88 P89: opening Quests or the Leaderboard shows its Journey step, and
     const later = aMinuteLater();
     await giveKudos(t, "U_ALICE", "U_BOB", "thanks");
 
-    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "1", at: later }]);
+    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "2", at: later }]);
     expect(await standing(t, "U_ALICE")).toEqual({ xp: 40, level: 2, skillPoints: 0 });
     expect(journeyDmsTo("U_ALICE").map(({ text }) => text)).toEqual([finishedSomeoneNew]);
     expect(readBlocks(journeyDmsTo("U_ALICE")[0]!.blocks as Block[])).toEqual([`section: ${finishedSomeoneNew} [button: Open]`]);
@@ -122,8 +122,8 @@ describe("P88 P89: opening Quests or the Leaderboard shows its Journey step, and
     const journey = (await t.query(internal.quests.quests.questsOf, { member: alice }))!.journey;
 
     expect(journey.filter(({ step }) => step !== "first-thanks")).toEqual([
-      { step: "first-quest", activatedAt: now.getTime(), reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", finishedAt: null, openedAt: null },
-      { step: "someone-new", activatedAt: now.getTime() + minuteMs, reward: { xp: 30, coins: 0, item: null }, catalogueVersion: "1", finishedAt: now.getTime() + 2 * minuteMs, openedAt: null },
+      { step: "first-quest", activatedAt: now.getTime(), reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "2", finishedAt: null, openedAt: null },
+      { step: "someone-new", activatedAt: now.getTime() + minuteMs, reward: { xp: 30, coins: 0, item: null }, catalogueVersion: "2", finishedAt: now.getTime() + 2 * minuteMs, openedAt: null },
     ]);
   });
 
@@ -171,7 +171,7 @@ describe("P90: a Journey step that opens with a feature counts only what follows
     aMinuteLater();
     await openHome(t, "U_ALICE");
 
-    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "1", at: thanked }]);
+    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "2", at: thanked }]);
     expect(await t.run(async (ctx) => (await ctx.db.query("journeySteps").collect()).find((row) => row.member === alice && row.step === "someone-new")?.activatedAt)).toBe(openedAt);
   });
 
@@ -199,7 +199,7 @@ describe("P90: a Journey step that opens with a feature counts only what follows
 
     await opened(t, alice, feature, now.getTime());
 
-    expect(await rewardRecordsOf(t, `journey:${step}`)).toEqual([{ key: `journey:${step}`, xp: step === "first-quest" ? 20 : 30, catalogueVersion: "1", at: now.getTime() + minuteMs }]);
+    expect(await rewardRecordsOf(t, `journey:${step}`)).toEqual([{ key: `journey:${step}`, xp: step === "first-quest" ? 20 : 30, catalogueVersion: "2", at: now.getTime() + minuteMs }]);
   });
 
   test("first-quest: a weekly quest finished before the step became active doesn't finish it", async () => {
@@ -231,7 +231,7 @@ describe("P90: someone-new never strands a member", () => {
     await t.fetch("/slack/events", await signedRequest(memberEvent("user_change", { id: "U_ALICE" })));
     await settle(t);
 
-    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "1", at: later }]);
+    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "2", at: later }]);
   });
 
   test("a leave rechecks every member with someone-new active within Convex's limits, and finishes the one who has now thanked everyone", async () => {
@@ -265,7 +265,7 @@ describe("P90: someone-new never strands a member", () => {
     const later = aMinuteLater();
     await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Open"));
 
-    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "1", at: later }]);
+    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "2", at: later }]);
     expect(journeyDmsTo("U_ALICE").map(({ text }) => text)).toEqual([finishedSomeoneNew]);
     expect(journeyIn(publishedHome(slack, "U_ALICE")).at(-1)).toBe(someoneNewDone);
   });
@@ -283,7 +283,7 @@ describe("P90: someone-new never strands a member", () => {
     await t.fetch("/slack/events", await signedRequest(memberEvent("user_change", { id: "U_CAROL", deleted: true })));
     await settle(t);
 
-    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "1", at: later }]);
+    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "2", at: later }]);
     expect(journeyDmsTo("U_ALICE").map(({ text }) => text)).toEqual([finishedSomeoneNew]);
   });
 });
@@ -299,7 +299,7 @@ describe("P87 P90: a Journey step that opens with a feature finishes once", () =
     for (const event of [weeklyFinished, weeklyFinished, nextWeekly]) await t.mutation(internal.quests.journey.finishFirstQuest, { event });
     await settle(t);
 
-    expect(await rewardRecordsOf(t, "journey:first-quest")).toEqual([{ key: "journey:first-quest", xp: 20, catalogueVersion: "1", at: now.getTime() + minuteMs }]);
+    expect(await rewardRecordsOf(t, "journey:first-quest")).toEqual([{ key: "journey:first-quest", xp: 20, catalogueVersion: "2", at: now.getTime() + minuteMs }]);
     expect(journeyFinished("first-quest")).toHaveLength(1);
     expect(await t.run((ctx) => standingOf(ctx, alice))).toEqual({ xp: 20, level: 2, skillPoints: 0 });
   });
@@ -316,7 +316,7 @@ describe("P87 P90: a Journey step that opens with a feature finishes once", () =
     for (const delivery of [1, 2]) await t.mutation(internal.quests.journey.recheckSomeoneNew, { event: left });
     await settle(t);
 
-    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "1", at: now.getTime() + minuteMs }]);
+    expect(await rewardRecordsOf(t, "journey:someone-new")).toEqual([{ key: "journey:someone-new", xp: 30, catalogueVersion: "2", at: now.getTime() + minuteMs }]);
     expect(journeyFinished("someone-new")).toHaveLength(1);
   });
 });

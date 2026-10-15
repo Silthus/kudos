@@ -56,7 +56,7 @@ function progressionBefore(progression: Progression, reward: number): Progressio
   return progressionAt(xp);
 }
 
-function progressionAt(xp: number): Progression {
+export function progressionAt(xp: number): Progression {
   const level = levelOf(xp);
   const nextLevelAt = xpToReach(level + 1);
   return { level, xp, levelStartsAt: xpToReach(level), nextLevelAt, xpToNextLevel: nextLevelAt - xp };
