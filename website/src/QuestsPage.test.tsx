@@ -309,9 +309,14 @@ describe("WS73 WS67 WS69: /quests while Quests isn't open", () => {
     expect(pageTitle()).toHaveTextContent("Unlocks at level 2");
   });
 
+  it("says Quests are ready in Slack while quests answer ready and unlocks don't apply", () => {
+    renderApp(shellFixtures.member, undefined, undefined, fixedQuests(questsFixtures.ready));
+    expect(main()).toHaveTextContent("Quests are ready for you. Open them in Slack's App Home.");
+  });
+
   it("shows the Quests crate with a primary Open in place while it is ready", () => {
     renderApp(shellFixtures.memberWithQuestsReady, undefined, undefined, fixedQuests(questsFixtures.ready));
-    const crate = within(main()).getByRole("heading", { level: 1, name: "Quests is ready" }).closest("section")!;
+    const crate = within(main()).getByRole("heading", { level: 1, name: "Quests are ready" }).closest("section")!;
     expect(within(crate).getByRole("button", { name: "Open" })).toHaveClass("quill-button--variant-primary");
   });
 });

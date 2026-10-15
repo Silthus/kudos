@@ -64,6 +64,28 @@ describe("WS312 WS339 V24: the first-kudos nudge's icon and its frame meet 3:1 i
   }
 });
 
+describe("WS313 WS339 V24: the hero's spend link, its outline and its glyph, meets 3:1 in both modes", () => {
+  beforeEach(() => {
+    fakeSystemTheme(false);
+  });
+
+  for (const mode of ["light", "dark"] as const) {
+    it(`in ${mode}`, () => {
+      renderApp(shellFixtures.memberWithEveryFeatureOpen);
+      const spend = within(screen.getByRole("main")).getByRole("link", { name: "Spend 2 skill points" });
+      const glyph = spend.querySelector("svg")!;
+      expect(glyph).toHaveClass("text-completed-foreground");
+      const parts = [
+        ...paintsOf(spend).map((paint) => ({ part: "the outline", paint })),
+        { part: "the skill point glyph", paint: "completed-foreground" },
+      ];
+      expect(parts.map(({ paint }) => paint)).toEqual(["muted-foreground", "completed-foreground"]);
+      const measured = parts.flatMap(({ part, paint }) => ["background", "muted"].map((surface) => ({ part, paint, surface, ratio: contrast(mode, paint, surface) })));
+      expect(measured.filter(({ ratio }) => ratio < 3)).toEqual([]);
+    });
+  }
+});
+
 function railGraphics() {
   renderApp(shellFixtures.memberWithEveryPanelOpen, fixedLeaderboard(leaderboardFixtures.midBoard), undefined, fixedQuests(questsFixtures.week));
   const quests = within(screen.getByRole("main")).getByRole("region", { name: "Quests this week" });
