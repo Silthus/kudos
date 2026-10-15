@@ -60,7 +60,7 @@ const linkedPages = {
   "quest-finished": deepLinks.journey,
   "journey-joined": deepLinks.journey,
   "weekly-quest-finished": deepLinks.weeklyQuest,
-  "tiers-earned": deepLinks.successReply,
+  "tiers-earned": deepLinks.tiersEarned,
   "coins-opened": deepLinks.successReply,
 } satisfies Record<Notification["kind"], unknown>;
 
