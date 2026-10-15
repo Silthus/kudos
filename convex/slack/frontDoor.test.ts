@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import type { FakePostHog } from "../../testing/fakePostHog";
+import type { FakePostHog, FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { flagsFromPostHog, flagsOnForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsFromPostHog, flagsOnForEveryone, onForEmails, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlocks, publishedViews, readBlocks, staleButtonOf, type Block } from "../../testing/slackInteractions";
@@ -14,6 +14,7 @@ const saturday = Date.parse("2026-10-17T10:00:00Z");
 const nextMonday = Date.parse("2026-10-19T10:00:00Z");
 const dayMs = 24 * 60 * 60 * 1000;
 const siteUrl = "https://kudos-site.test";
+const alicesEmail = "alice@example.com";
 const form = { contentType: "application/x-www-form-urlencoded" };
 const saysWhy = "thanks for untangling the release notes today";
 const sayWhy = "Thank someone and say why.";
@@ -23,6 +24,7 @@ const twoDays = "Thank someone and say why on 2 different days.";
 const sayingWhyThreeWays: QuestId[] = ["say-why", "say-why-twice", "say-why-three-times"];
 const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board", "skill-tree"];
 const openOnTheWeb = (path: string) => `[link: Open ${siteUrl}${path}]`;
+const swapOnTheWeb = (slot: number) => `[link: Swap ${siteUrl}/quests?quest=${slot}]`;
 const sayingWhyCounts = "context: Saying why counts when your message has 5 or more words besides mentions and emoji.";
 const hints = [
   "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
@@ -71,8 +73,8 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       "divider",
       "section: *Quests this week*",
       `section: ✅ ${sayWhy} You earned *20 XP*.`,
-      `section: ${twice} *1/2* · *20 XP* [button: Swap]`,
-      `section: ${threeTimes} *1/3* · *20 XP* [button: Swap]`,
+      `section: ${twice} *1/2* · *20 XP* ${swapOnTheWeb(1)}`,
+      `section: ${threeTimes} *1/3* · *20 XP* ${swapOnTheWeb(2)}`,
       sayingWhyCounts,
       "divider",
       "actions: Open HedgeHug | Quests | Leaderboard",
@@ -194,7 +196,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       "actions: [On] | Off",
       "context: When it's off, nobody sees you on the leaderboards, you included.",
       "divider",
-      "section: I celebrate your level ups in public. [button: Mute notices]",
+      "section: I'll celebrate your level ups in public once your workspace picks a channel. [button: Mute notices]",
       "section: I send you a DM when you reach a level. [button: Turn off DMs]",
       "divider",
       websiteLink,
@@ -203,7 +205,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(admin.slice(-2)).toEqual(["divider", websiteLink]);
   });
 
-  test("Swap on a quest works through the interactivity path, and a stale Open from before the links still opens its crate", async () => {
+  test("opening the ready features swaps their Open for page buttons, and a stale Open from before the links still opens its crate", async () => {
     const t = await workspace(...everyFlag, "website");
     await levelThreeWithQuestsDrawn(t);
     expect(linkButtonsIn(publishedHomeBlocks(slack, "U_ALICE")).map(({ label }) => label)).toEqual(["Open HedgeHug"]);
@@ -212,17 +214,6 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
 
     expect(publishedHome(slack, "U_ALICE").filter((line) => line.includes("is ready."))).toEqual([]);
     expect(linkButtonsIn(publishedHomeBlocks(slack, "U_ALICE")).map(({ label }) => label)).toEqual(["Open HedgeHug", "Quests", "Leaderboard"]);
-    vi.setSystemTime(saturday);
-
-    await send(t, buttonBeside(twice, "Swap"));
-
-    expect(questsIn(publishedHome(slack, "U_ALICE"))).toEqual([
-      "section: *Quests this week*",
-      `section: ${sayWhy} *0/1* · *20 XP*`,
-      `section: ${twoDays} *0/2* · *20 XP*`,
-      `section: ${threeTimes} *0/3* · *20 XP*`,
-      sayingWhyCounts,
-    ]);
 
     await send(t, blockActions("U_ALICE", staleButtonOf({ type: "openQuestCrate", quest: { kind: "journey", step: "first-thanks" } })));
 
@@ -390,6 +381,74 @@ describe("each crate's Open in Slack links to the page where it opens while the 
   });
 });
 
+describe("each quest's Swap in Slack links to its card on the Quests page while the website is open", { timeout: 30_000 }, () => {
+  test("each quest still to finish has a Swap that links to its own card on /quests and names the page to screen readers", async () => {
+    const t = await workspace(...everyFlag, "website");
+    await levelThreeWithQuestsDrawn(t);
+    await openReadyFeatures(t);
+
+    expect(questsIn(publishedHome(slack, "U_ALICE"))).toEqual([
+      "section: *Quests this week*",
+      `section: ${sayWhy} *0/1* · *20 XP* ${swapOnTheWeb(0)}`,
+      `section: ${twice} *0/2* · *20 XP* ${swapOnTheWeb(1)}`,
+      `section: ${threeTimes} *0/3* · *20 XP* ${swapOnTheWeb(2)}`,
+      sayingWhyCounts,
+    ]);
+    expect(accessoryBeside(twice)).toEqual({
+      type: "button",
+      text: { type: "plain_text", text: "Swap" },
+      url: `${siteUrl}/quests?quest=1`,
+      action_id: "website-link:swap:weekly:2026-10-12:1",
+      accessibility_label: "Swap on HedgeHug's Quests page",
+    });
+  });
+
+  test("clicking a Swap link swaps nothing and publishes App Home no more, while a Swap left from an earlier view still swaps its quest", async () => {
+    const t = await workspace(...everyFlag, "website");
+    await levelThreeWithQuestsDrawn(t);
+    await openReadyFeatures(t);
+    vi.setSystemTime(saturday);
+    const published = publishedViews(slack, "U_ALICE").length;
+
+    const response = await send(t, buttonBeside(twice, "Swap"));
+
+    expect(response.status).toBe(200);
+    expect(publishedViews(slack, "U_ALICE")).toHaveLength(published);
+    expect(await swapsOf(t, "U_ALICE")).toEqual([]);
+
+    await send(t, blockActions("U_ALICE", staleButtonOf({ type: "rerollQuest", quest: { kind: "weekly", week: "2026-10-12", slot: 1 } })));
+
+    expect(questsIn(publishedHome(slack, "U_ALICE"))).toEqual([
+      "section: *Quests this week*",
+      `section: ${sayWhy} *0/1* · *20 XP*`,
+      `section: ${twoDays} *0/2* · *20 XP*`,
+      `section: ${threeTimes} *0/3* · *20 XP*`,
+      sayingWhyCounts,
+    ]);
+  });
+
+  test("for a member previewing the website while it is closed for the workspace, Swap links through the page's sign-in entry", async () => {
+    slack.withMember("U_ALICE", { profile: { email: alicesEmail } });
+    const t = await workspace(...everyFlag, onForEmails("website", alicesEmail));
+    await levelThreeWithQuestsDrawn(t);
+    await openReadyFeatures(t);
+
+    expect(accessoryBeside(twice)).toMatchObject({ url: `${siteUrl}/sign-in/quests?quest=1`, action_id: "website-link:swap:weekly:2026-10-12:1" });
+  });
+
+  test("while the website flag is off, Swap is today's command and swaps its quest", async () => {
+    const t = await workspace(...everyFlag);
+    await levelThreeWithQuestsDrawn(t);
+    await openReadyFeatures(t);
+    vi.setSystemTime(saturday);
+    expect(questsIn(publishedHome(slack, "U_ALICE"))[2]).toBe(`section: ${twice} *0/2* · *20 XP* [button: Swap]`);
+
+    await send(t, buttonBeside(twice, "Swap"));
+
+    expect(questsIn(publishedHome(slack, "U_ALICE"))[2]).toBe(`section: ${twoDays} *0/2* · *20 XP*`);
+  });
+});
+
 function accessoryBeside(text: string) {
   return publishedHomeBlocks(slack, "U_ALICE").find((block) => readBlocks([block])[0]?.startsWith(`section: ${text}`))?.accessory;
 }
@@ -402,8 +461,8 @@ function linkButtonsIn(blocks: Block[]): LinkButton[] {
   );
 }
 
-async function workspace(...flags: string[]) {
-  const t = await flagsFromPostHog(testBackend(), postHog, ...flags.map(onForEveryone));
+async function workspace(...flags: Array<string | FlagDefinition>) {
+  const t = await flagsFromPostHog(testBackend(), postHog, ...flags.map((flag) => (typeof flag === "string" ? onForEveryone(flag) : flag)));
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
   return unlocksShippedBeforeAnyoneJoined(t);
@@ -451,6 +510,16 @@ async function waitingFromAnEarlierWeek(t: Backend, user: string, crates: number
       await ctx.db.insert("pendingCrates", { member, key });
     }
   });
+}
+
+async function swapsOf(t: Backend, user: string) {
+  const member = await memberOf(t, user);
+  return t.run((ctx) =>
+    ctx.db
+      .query("questSwaps")
+      .withIndex("by_member_week", (q) => q.eq("member", member))
+      .collect(),
+  );
 }
 
 async function memberOf(t: Backend, user: string) {

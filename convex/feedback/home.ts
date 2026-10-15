@@ -7,7 +7,8 @@ import { skillTreeLevel } from "../progression/levels";
 import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import type { PurchaseOutcome, Refusal } from "../progression/purchases";
 import { hasCoinPrice, perkOf, type Perk } from "../progression/tree";
-import type { ProgressSettings } from "../progression/settings";
+import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
+import type { MessageSetting, NotificationSwitches } from "../messageSettings/messageSettings";
 import type { JourneyStepFacts } from "../quests/journey";
 import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
 import { rewardKeyOf } from "../quests/crates";
@@ -48,6 +49,7 @@ export type HomeLine =
   | { kind: "lines"; lines: Line[] }
   | { kind: "action"; text: string; action: HomeAction }
   | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] }
+  | { kind: "pick"; id: string; text: string; placeholder: string; options: Choice[] }
   | { kind: "link"; label: string; url: string }
   | { kind: "links"; links: Array<{ label: string; url: string }> };
 
@@ -115,7 +117,7 @@ type ProfileFacts = Omit<Extract<ShownTab, { tab: "profile" }>, "tab">;
 
 function profileOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrates, journey }: ProfileFacts): HomeView {
   const progress = progression === null ? [] : [[...progressOf(progression), ...(unlocks === null ? [] : unlockLinesOf(unlocks))]];
-  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: false })];
+  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: false, website: null })];
   const earlier = earlierCrates === null || earlierCrates.length === 0 ? [] : [waitingToOpenLines(earlierCrates)];
   const steps = journey === null || journey.length === 0 ? [] : [journey.flatMap(journeyStepLines)];
   return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...earlier, ...steps, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
@@ -125,7 +127,7 @@ function summaryOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrat
   const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)])];
   const { origin } = links;
   const waiting = [...readyCratesOf(unlocks, origin), ...earlierCratesOf(earlierCrates, origin), ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...moreEarlierCrates(earlierCrates ?? [])];
-  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: true })];
+  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: true, website: origin })];
   return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
 }
 
@@ -274,11 +276,28 @@ export function whyNotOf({ state, row, requires, skillPoints, coins }: Perk & { 
   }
 }
 
-function settingsGroups({ onTheBoards, progress, achievements }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
+function settingsGroups({ onTheBoards, progress, messages, achievements, channelPicked }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
   const leaderboard = onTheBoards === null ? [] : [leaderboardSwitch(onTheBoards)];
-  const copy = settingCopyOf(achievements);
+  const copy = settingCopyOf(achievements, channelPicked);
   const progression = progress === null ? [] : [[setting(copy, progress, "muteNotices"), setting(copy, progress, "dms")]];
-  return [...leaderboard, ...progression];
+  const sent = messages === null ? [] : [whatISendYouOf(messages)];
+  return [...leaderboard, ...progression, ...sent];
+}
+
+function whatISendYouOf(messages: MessageSetting[]): HomeLine[] {
+  return [{ kind: "text", text: bold("What I send you") }, ...messages.map(messageSettingLineOf)];
+}
+
+function messageSettingLineOf({ kind, label, description, on, place, places }: MessageSetting): HomeLine {
+  const text = on ? `${bold(label)} — ${description}` : `${bold(label)} · Off — ${description}`;
+  const options = places.map((each) => ({ label: placeLabelOf(kind, each), command: { type: "setMessageSetting" as const, kind, place: each }, selected: each === place }));
+  return { kind: "pick", id: `message-place:${kind}`, text, placeholder: `Where I get ${label}`, options };
+}
+
+function placeLabelOf(kind: MessageKind, place: MessagePlace) {
+  if (place === "none") return "None";
+  if (place === "dm") return "As a DM";
+  return kind === "celebrations" ? "In the announcement channel" : "In the channel";
 }
 
 function leaderboardSwitch(onTheBoards: boolean): HomeLine[] {
@@ -297,11 +316,12 @@ function leaderboardSwitch(onTheBoards: boolean): HomeLine[] {
 
 type SettingCopy = Record<"whenOn" | "whenOff", { text: string; label: string }>;
 
-function settingCopyOf(achievements: boolean): Record<keyof ProgressSettings, SettingCopy> {
+function settingCopyOf(achievements: boolean, channelPicked: boolean): Record<keyof NotificationSwitches, SettingCopy> {
+  const what = celebrated(achievements);
   return {
     muteNotices: {
       whenOn: { text: "I don't post public notices about you.", label: "Unmute notices" },
-      whenOff: { text: `I celebrate your ${celebrated(achievements)} in public.`, label: "Mute notices" },
+      whenOff: { text: channelPicked ? `I celebrate your ${what} in public.` : `I'll celebrate your ${what} in public once your workspace picks a channel.`, label: "Mute notices" },
     },
     dms: {
       whenOn: { text: achievements ? "I send you a DM when you reach a level or earn an achievement." : "I send you a DM when you reach a level.", label: "Turn off DMs" },
@@ -314,13 +334,13 @@ function celebrated(achievements: boolean) {
   return achievements ? "level ups and achievements" : "level ups";
 }
 
-function setting(copy: Record<keyof ProgressSettings, SettingCopy>, settings: ProgressSettings, key: keyof ProgressSettings): HomeLine {
+function setting(copy: Record<keyof NotificationSwitches, SettingCopy>, settings: NotificationSwitches, key: keyof NotificationSwitches): HomeLine {
   const on = settings[key];
   const { text, label } = copy[key][on ? "whenOn" : "whenOff"];
   return { kind: "action", text, action: { label, command: { type: "setProgressSettings", ...changeOf(key, !on) } } };
 }
 
-function changeOf(key: keyof ProgressSettings, value: boolean): Partial<ProgressSettings> {
+function changeOf(key: keyof NotificationSwitches, value: boolean): Partial<NotificationSwitches> {
   return { [key]: value };
 }
 
@@ -362,19 +382,21 @@ function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
   return [...readyLines, ...nextLine];
 }
 
-function weeklyQuestLines({ week, slots, swapAvailable }: WeeklyQuests, { cratesShownApart }: { cratesShownApart: boolean }): HomeLine[] {
+type QuestRows = { cratesShownApart: boolean; website: string | null };
+
+function weeklyQuestLines({ week, slots, swapAvailable }: WeeklyQuests, rows: QuestRows): HomeLine[] {
   const asksToSayWhy = slots.some(({ quest, finishedAt }) => finishedAt === null && questOf(quest).progress.given.saysWhy);
   const condition: HomeLine[] = asksToSayWhy ? [{ kind: "hint", text: "Saying why counts when your message has 5 or more words besides mentions and emoji." }] : [];
-  return [{ kind: "text", text: bold("Quests this week") }, ...slots.map((slot) => weeklyQuestLine(week, slot, swapAvailable, cratesShownApart)), ...condition];
+  return [{ kind: "text", text: bold("Quests this week") }, ...slots.map((slot) => weeklyQuestLine(week, slot, { swapAvailable, ...rows })), ...condition];
 }
 
-function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot, swapAvailable: boolean, crateShownApart: boolean): HomeLine {
+function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot, { swapAvailable, cratesShownApart, website }: QuestRows & { swapAvailable: boolean }): HomeLine {
   if (finishedAt === null) {
     const text = `${goal} ${bold(`${progress}/${target}`)} · ${bold(`${reward.xp} XP`)}`;
-    return swapAvailable ? { kind: "action", text, action: swapQuest({ kind: "weekly", week, slot }) } : { kind: "text", text };
+    return swapAvailable ? { kind: "action", text, action: swapQuest({ kind: "weekly", week, slot }, website) } : { kind: "text", text };
   }
   const text = `✅ ${goal} ${earned(reward.xp)}`;
-  return openedAt === null && !crateShownApart ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }, null) } : { kind: "text", text };
+  return openedAt === null && !cratesShownApart ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }, null) } : { kind: "text", text };
 }
 
 function waitingToOpenLines(crates: UnopenedCrate[]): HomeLine[] {
@@ -400,8 +422,9 @@ export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp:
   return { text: `✅ You finished a quest: ${goal} ${earned(xp)}`, action: openCrate(quest, website) };
 }
 
-function swapQuest(quest: WeeklyQuest): HomeAction {
-  return { label: "Swap", command: { type: "rerollQuest", quest } };
+function swapQuest(quest: WeeklyQuest, website: string | null): HomeAction {
+  if (website === null) return { label: "Swap", command: { type: "rerollQuest", quest } };
+  return linkOnTheWeb({ label: "Swap", spoken: "Swap", id: `swap:${rewardKeyOf(quest)}` }, { page: "quests", quest: quest.slot }, website);
 }
 
 function openCrate(quest: Quest, website: string | null): HomeAction {

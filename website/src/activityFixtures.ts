@@ -54,14 +54,14 @@ const story: ActivityEntry[] = [
     giver: teammates.ada,
     saidWhy: true,
     permalink: "https://example.slack.com/archives/C1/p1",
-    message: words("Thanks for pairing on the release checklist, it saved us a whole afternoon ", { kind: "emoji", name: "tada", unicode: "🎉" }),
+    message: words("Thanks for pairing on the release checklist, it saved us a whole afternoon ", { kind: "emoji", name: "tada", unicode: "🎉" }, { kind: "emoji", name: "raised_hands::skin-tone-4" }),
   }),
   aGiven("incident", fixtureNow - 3 * hour, {
     recipients: [teammates.cleo, teammates.dev],
     kudos: 2,
     saidWhy: true,
     permalink: "https://example.slack.com/archives/C1/p2",
-    message: words("Thank you both for jumping on the incident at midnight. The write-up is ", { kind: "link", url: "https://example.com/incident", label: "here" }),
+    message: words("Thank you both for jumping on the incident at midnight ", { kind: "emoji", name: "fire_engine" }, { kind: "text", text: " The write-up is " }, { kind: "link", url: "https://example.com/incident", label: "here" }, { kind: "text", text: " " }, { kind: "emoji", name: "partyparrot" }),
     earned: {
       xp: 30,
       questsDone: [{ kind: "weekly", goal: "Thank two teammates", xp: 40 }],
@@ -80,8 +80,8 @@ const story: ActivityEntry[] = [
     message: words("For the whole team offsite ", { kind: "broadcast", range: "here" }),
     earned: { xp: 10, questsDone: [{ kind: "journey", goal: "Thank five teammates at once", xp: 50 }], bonuses: [] },
   }),
-  aReceived("old-kudos", fixtureNow - 75 * hour, { giver: teammates.former, message: { kind: "unavailable", reason: "not-captured" } }),
-  aReceived("deleted", fixtureNow - 76 * hour, { giver: teammates.eli, message: { kind: "unavailable", reason: "deleted" } }),
+  aReceived("old-kudos", fixtureNow - 75 * hour, { giver: teammates.former, channel: { visibility: "unknown" }, message: { kind: "unavailable", reason: "not-captured" } }),
+  aReceived("deleted", fixtureNow - 76 * hour, { giver: teammates.eli, channel: { visibility: "unknown" }, message: { kind: "unavailable", reason: "deleted" } }),
   aLevelUp(5, fixtureNow - 80 * hour),
 ];
 

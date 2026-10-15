@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { fixedRecentKudos, recentKudosFixtures } from "./recentKudosFixtures";
 import type { RecentKudosRead, RecentKudosShown } from "./recentKudosRead";
-import { shellFixtures, type KudosGiven, type Person, type RecentKudos } from "./shell";
+import { shellFixtures, type KudosGiven, type KudosReceived, type Person, type RecentKudos } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
@@ -277,5 +277,13 @@ describe("WS201: the card shows only while the read answers it", () => {
     await user.click(switchOption("Given"));
 
     expect(queryCard()).not.toBeInTheDocument();
+  });
+});
+
+describe("#409: emoji drawn inline on the card", () => {
+  it("draws a standard shortcode Slack sent without unicode as its character", () => {
+    const entry: KudosReceived = { ...(threeReceived.entries[0] as KudosReceived), message: { kind: "text", segments: [{ kind: "text", text: "Nice work " }, { kind: "emoji", name: "raised_hands" }], edited: false } };
+    homeAnswering({ kind: "recent", entries: [entry] });
+    expect(within(card()).getByTestId("kudos-message-words")).toHaveTextContent("Nice work 🙌");
   });
 });

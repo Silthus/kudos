@@ -59,6 +59,7 @@ export class FakeSlack {
   private readonly callTimes = new Map<SlackCall, number>();
   private readonly holds: Array<{ method: string; about: string; meanwhile: () => Promise<void> }> = [];
   private readonly channelMessages = new Map<string, ChannelMessage[]>();
+  private readonly customEmoji = new Map<string, string>();
   private workspaceUrl = "https://t1.slack.com/";
 
   withWorkspaceUrl(url: string) {
@@ -78,6 +79,16 @@ export class FakeSlack {
 
   withoutUserGroup(id: string) {
     this.userGroups.delete(id);
+    return this;
+  }
+
+  withCustomEmoji(name: string, value: string) {
+    this.customEmoji.set(name, value);
+    return this;
+  }
+
+  withoutCustomEmoji(name: string) {
+    this.customEmoji.delete(name);
     return this;
   }
 
@@ -170,6 +181,7 @@ export class FakeSlack {
       return user && hasJoined ? { ok: true, user } : { ok: false, error: "user_not_found" };
     }
     if (method === "users.list") return { ok: true, members: [...this.users.values()], response_metadata: { next_cursor: "" } };
+    if (method === "emoji.list") return { ok: true, emoji: Object.fromEntries(this.customEmoji), cache_ts: "1760349600.000000" };
     if (method === "usergroups.list") return { ok: true, usergroups: this.userGroupsListed(args) };
     if (method === "usergroups.users.list") {
       const group = this.userGroups.get(field("usergroup"));

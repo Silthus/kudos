@@ -1,13 +1,15 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
 import type { MutationCtx } from "../_generated/server";
-import { reportLeaderboardViewed, reportLeaderboardVisibilityChanged } from "../analytics/isolatedUsage";
+import { reportLeaderboardViewed, reportLeaderboardVisibilityChanged, reportMessageSettingChanged } from "../analytics/isolatedUsage";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
+import { messageSettingsShownTo } from "../messageSettings/flag";
+import { messageKindValidator, messagePlaceValidator, type MessageKind, type MessagePlace } from "../messageSettings/kinds";
+import { kindAppliesTo, placesOf, placeWhenOn, setMessageSetting, setNotificationSwitches } from "../messageSettings/messageSettings";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import { buyPerk } from "../progression/perks";
 import type { PurchaseOutcome } from "../progression/purchases";
-import { setProgressSettings } from "../progression/settings";
 import { perkValidator } from "../progression/tree";
 import { openQuestCrate } from "../quests/open";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
@@ -23,6 +25,8 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("showLeaderboard"), period: periodValidator }),
   v.object({ type: v.literal("setLeaderboardVisibility"), visible: v.boolean() }),
   v.object({ type: v.literal("setProgressSettings"), muteNotices: v.optional(v.boolean()), dms: v.optional(v.boolean()) }),
+  v.object({ type: v.literal("setMessageSetting"), kind: messageKindValidator, place: messagePlaceValidator }),
+  v.object({ type: v.literal("setMessageSetting"), kind: messageKindValidator, on: v.boolean() }),
   v.object({ type: v.literal("setAnnouncementChannel"), channel: v.union(v.string(), v.null()) }),
   v.object({ type: v.literal("openUnlock"), feature: featureValidator }),
   v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
@@ -55,9 +59,12 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return null;
     case "setProgressSettings": {
       const { type: _, ...changes } = command;
-      if (await xpLevelsShownTo(ctx, member)) await setProgressSettings(ctx, member, changes);
+      if (await xpLevelsShownTo(ctx, member)) await setNotificationSwitches(ctx, member, changes);
       return null;
     }
+    case "setMessageSetting":
+      if (await isMessageSettingShownTo(ctx, member, command.kind)) await changeMessageSetting(ctx, workspace, member, command.kind, await placeAskedBy(ctx, member, command));
+      return null;
     case "setAnnouncementChannel":
       await setAnnouncementChannel(ctx, workspace, person, command.channel);
       return null;
@@ -76,6 +83,20 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return outcome;
     }
   }
+}
+
+async function isMessageSettingShownTo(ctx: MutationCtx, member: MemberId, kind: MessageKind) {
+  return (await messageSettingsShownTo(ctx, member)) && (await kindAppliesTo(ctx, member, kind));
+}
+
+async function placeAskedBy(ctx: MutationCtx, member: MemberId, command: Extract<Command, { type: "setMessageSetting" }>): Promise<MessagePlace> {
+  if ("place" in command) return command.place;
+  return command.on ? placeWhenOn(ctx, member, command.kind) : "none";
+}
+
+async function changeMessageSetting(ctx: MutationCtx, workspace: string, member: MemberId, kind: MessageKind, place: MessagePlace) {
+  if (!(await placesOf(ctx, member, kind)).includes(place)) return;
+  if (await setMessageSetting(ctx, member, kind, place)) await reportMessageSettingChanged(ctx, { workspace, member, setting: kind, on: place !== "none", place, at: Date.now() });
 }
 
 function leaderboardViewedInAppHome(ctx: MutationCtx, workspace: string, member: MemberId, period: Period) {
