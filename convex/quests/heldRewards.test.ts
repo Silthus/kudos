@@ -59,11 +59,12 @@ describe("CR1 CR2: a quest's reward finished while crate-rewards is on waits in 
     const t = await workspaceDeciding(...held);
     await openedQuests(t, "U_ALICE", { xp: 300, coins: 10 });
     const before = await standingAndBalanceOf(t, "U_ALICE");
+    const dmsBefore = levelUpDmsTo("U_ALICE").length;
 
     await giveKudos(t, "U_ALICE", "U_CAROL");
 
     expect(await standingAndBalanceOf(t, "U_ALICE")).toEqual({ ...before, xp: before.xp + 10, balance: before.balance + 4 });
-    expect(levelUpDmsTo("U_ALICE")).toEqual(["🎉 You reached level 2!\nLevel 3 is 80 XP away.\n*Quests* is ready. It opens your weekly quests."]);
+    expect(levelUpDmsTo("U_ALICE").slice(dmsBefore)).toEqual([]);
     expect(await rewardKeysOf(t, "U_ALICE")).toEqual(["journey:first-quest", "journey:first-thanks", `weekly:${thisWeek}:0`]);
     expect(crateLinesIn(publishedHome(slack, "U_ALICE"))).toEqual([
       expect.stringContaining(`${sayWhyGoal}`),

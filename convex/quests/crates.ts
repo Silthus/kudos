@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { appliedRewardValidator, rewardOf, type RewardRecord } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
@@ -34,7 +35,7 @@ export async function recordWaits(ctx: QueryCtx, reward: RewardRecord | null): P
   return reward?.held === true && (await crateOpeningOf(ctx, reward.member, reward.key)) === null;
 }
 
-export function waitsUnopened(reward: RewardRecord | null, opening: object | null): boolean {
+export function waitsUnopened(reward: RewardRecord | null, opening: Doc<"crateOpenings"> | null): boolean {
   return reward?.held === true && opening === null;
 }
 
