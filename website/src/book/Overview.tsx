@@ -110,7 +110,7 @@ function ShelfItem({ entry: { ladder, tier }, fresh, href, timeZone, wide }: { e
       <AppLink
         href={href}
         aria-label={`${tier.name}, ${tierWords[tier.tier]} ${ladder.name}, earned ${dateWords(tier.earnedAt, timeZone)}${fresh ? ", new" : ""}`}
-        className="flex flex-col items-center rounded-lg pb-1 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="flex h-full flex-col items-center rounded-lg pb-1 text-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       >
         <span className="relative">
           <LadderEmblem ladder={ladder.ladder} best={tier.tier} size={72} />
@@ -126,7 +126,7 @@ function ShelfItem({ entry: { ladder, tier }, fresh, href, timeZone, wide }: { e
 function EarnedLine({ tier, timeZone, wide }: { tier: Shelved["tier"]; timeZone: string; wide: boolean }) {
   const date = dateWords(tier.earnedAt, timeZone);
   return (
-    <span className="mt-1 flex w-full items-center justify-center gap-1 px-1 text-[11px] leading-tight tabular-nums text-muted-foreground">
+    <span className="mt-auto flex w-full items-center justify-center gap-1 px-1 pt-1 text-[11px] leading-tight tabular-nums text-muted-foreground">
       <Medal tier={tier.tier} earned size={18} />
       {wide ? (
         <span className="truncate">{`${tierWords[tier.tier]} · ${date}`}</span>

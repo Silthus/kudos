@@ -66,3 +66,9 @@
     transform: none;
   }
 }
+
+@media (max-width: 63.9375rem) {
+  .nav-rail {
+    mask-image: linear-gradient(to right, transparent, #000 0.75rem, #000 calc(100% - 0.75rem), transparent);
+  }
+}
