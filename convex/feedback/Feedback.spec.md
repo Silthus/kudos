@@ -219,6 +219,7 @@ Feedback: the indicator on each kudos message as desired state and the private r
   via: CR9 CR10 CR11: a reward waiting in its crate is told as waiting, and as earned once its crate opens
   refuted: the wait check read only the record's held mark and ignored its crate opening -> 2 of 12 tests failed on their assertions: the DM delivered after the open and the profile's opened rows still said waits in your crate (2026-10-15)
   refuted: the wait check ignored the record's held mark, so any unopened crate's reward read as waiting -> 3 of 12 tests failed on their assertions: the reply, the DM and the front door of rewards that counted at their finish said waiting (2026-10-15)
+  refuted: the success reply said waiting for every held record it stored, without reading the crate opening at delivery -> the reply delivered after its crate was opened said (+10 XP waiting in your crate), alone 1 of 13 failing on its assertion (2026-10-15)
   because: a held reward counts for nothing until its crate opens (CR2), so a line saying the member earned it would promise XP their bar doesn't show, and the Open button would lose its reason (decision 23 on #411); a DM worded when it was queued would still say waiting after a quick open, so the wording is decided at delivery
   kinds: output, message
   checklist: destination-confinement dismissed: each line goes only where it went before, the reply to its giver, the DM or ephemeral to its member and App Home to its member
