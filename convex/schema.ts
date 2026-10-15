@@ -490,6 +490,7 @@ export default defineSchema({
     on: v.boolean(),
     timeZone: v.string(),
     generation: v.number(),
+    nextPostAt: v.optional(v.number()),
   }).index("by_workspace", ["workspace"]),
 
   mondayPostClaims: defineTable({

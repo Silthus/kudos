@@ -5,6 +5,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { exposed, memberDecision, workspaceDecision, type Flag } from "../analytics/flags";
 import { allowanceDay, wallClockAt, weekOf, type DayKey } from "../engine/allowance";
 import { availableIn } from "../groups/groups";
+import { xpLevelsShownIn } from "../progression/xpLevels";
 import type { MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { workspaceGroupsBoardOf } from "./groupBoards";
@@ -49,11 +50,15 @@ export async function setMondayPost(ctx: MutationCtx, workspace: string, person:
   if ((await switchableChannelIn(ctx, workspace)) === null) return false;
   const timeZone = change.timeZone ?? (settings?.on ? settings.timeZone : zoneOf(person));
   if (settings?.on && settings.timeZone === timeZone) return false;
-  const switchedOn = { workspace, on: true, timeZone, generation: (settings?.generation ?? 0) + 1 };
-  if (settings === null) await ctx.db.insert("mondayPostSettings", switchedOn);
-  else await ctx.db.patch(settings._id, switchedOn);
-  await scheduleNextPost(ctx, switchedOn);
+  await scheduleNextPost(ctx, await switchOn(ctx, workspace, settings, timeZone));
   return true;
+}
+
+async function switchOn(ctx: MutationCtx, workspace: string, settings: Settings | null, timeZone: string): Promise<Settings> {
+  const switchedOn = { workspace, on: true, timeZone, generation: (settings?.generation ?? 0) + 1, nextPostAt: undefined };
+  if (settings === null) return (await ctx.db.get(await ctx.db.insert("mondayPostSettings", switchedOn)))!;
+  await ctx.db.patch(settings._id, switchedOn);
+  return { ...settings, ...switchedOn };
 }
 
 export const claimWeek = internalMutation({
@@ -105,8 +110,12 @@ async function switchOff(ctx: MutationCtx, settings: Settings | null) {
   return true;
 }
 
-async function scheduleNextPost(ctx: MutationCtx, { workspace, timeZone, generation }: Pick<Settings, "workspace" | "timeZone" | "generation">) {
-  await ctx.scheduler.runAt(nextPostAfter(Date.now(), timeZone), internal.slack.mondayPost.postMondayPost, { workspace, generation });
+async function scheduleNextPost(ctx: MutationCtx, settings: Settings) {
+  const { workspace, timeZone, generation } = settings;
+  const nextPostAt = nextPostAfter(Date.now(), timeZone);
+  if (settings.nextPostAt === nextPostAt) return;
+  await ctx.db.patch(settings._id, { nextPostAt });
+  await ctx.scheduler.runAt(nextPostAt, internal.slack.mondayPost.postMondayPost, { workspace, generation });
 }
 
 async function postableChannelIn(ctx: MutationCtx, workspace: string) {
@@ -115,7 +124,7 @@ async function postableChannelIn(ctx: MutationCtx, workspace: string) {
 }
 
 async function switchableChannelIn(ctx: QueryCtx, workspace: string) {
-  if (!(await availableIn(ctx, workspace))) return null;
+  if (!(await xpLevelsShownIn(ctx, workspace)) || !(await availableIn(ctx, workspace))) return null;
   return (await settingsOf(ctx, workspace)).announcementChannel;
 }
 

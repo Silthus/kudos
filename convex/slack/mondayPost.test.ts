@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { flagsLoaded, flagsOnForEveryone } from "../../testing/flags";
+import type { FakePostHog } from "../../testing/fakePostHog";
+import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone } from "../../testing/flags";
 import { FakeSlack, landsButTimesOut, slackError } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
@@ -20,6 +21,7 @@ const week = 7 * 24 * 60 * minute;
 const switchedOff = ["section: *Monday post*", "section: I can post last week's top groups in <#C_ANNOUNCE> every Monday at 9:00. [button: Switch on]"];
 
 let slack: FakeSlack;
+let postHog: FakePostHog;
 let sentMessages = 0;
 
 beforeEach(() => {
@@ -205,6 +207,19 @@ describe("GB28: the Monday post goes out at most once a week", { timeout: slackB
     await t.action(internal.slack.mondayPost.postMondayPost, { workspace: "T1", generation: await generationOf(t) });
 
     expect(mondayPostTimes()).toEqual([Date.parse("2026-10-19T07:00:00Z")]);
+    expect((await mondayPostJobs(t)).map(({ scheduledTime }) => scheduledTime)).toEqual([Date.parse("2026-10-26T08:00:00Z")]);
+  });
+
+  test("with `xp-levels` off in the workspace, which hides the Admin tab, the job posts nothing", async () => {
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    await click(t, "U_ALICE", "Switch on");
+    await giveKudosInWeek(t);
+
+    await flagsFromPostHog(t, postHog, offForEveryone("xp-levels"), onForEveryone("groups"), onForEveryone("monday-post"));
+    await settleUpTo(t, Date.parse("2026-10-19T07:00:00Z"));
+
+    expect(mondayPosts()).toEqual([]);
   });
 
   test("a post whose answer is lost isn't sent again that week, and next week's goes out", async () => {
@@ -282,7 +297,7 @@ describe("GB28, GB31: the Monday post names groups, never a person", { timeout: 
 type Setup = { channel?: string | null; groups?: boolean; adminZone?: string; flags?: string[] };
 
 async function workspaceWithGroups({ channel = announcementChannel, groups = true, adminZone = "Europe/Berlin", flags = ["xp-levels", "groups", "monday-post"] }: Setup = {}) {
-  flagsOnForEveryone(slack.fetch, ...flags);
+  postHog = flagsOnForEveryone(slack.fetch, ...flags);
   slack.withMember("U_ALICE", { is_admin: true, tz: adminZone, real_name: nameOf("U_ALICE") });
   for (const user of everyone.slice(1)) slack.withMember(user, { real_name: nameOf(user) });
   if (groups) slack.withUserGroup("S_OWL", { name: "Owls", users: owls }).withUserGroup("S_ZEBRA", { name: "Zebras", users: zebras });
