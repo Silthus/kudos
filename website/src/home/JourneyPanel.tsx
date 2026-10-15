@@ -2,7 +2,7 @@ import { questCrateHomeAttributes } from "../crates/moments";
 import { questCrateOf } from "../crates/readyCrates";
 import { Done, RewardCrate } from "../crates/RewardCrate";
 import { crateTargetAttributes } from "../linkTarget";
-import { Coins, rewardWords } from "../quests/QuestReward";
+import { Coins, rewardWords, xpLineOf } from "../quests/QuestReward";
 import type { JourneyStep } from "../shell";
 
 export function JourneyPanel({ journey }: { journey: JourneyStep[] | null }) {
@@ -22,7 +22,7 @@ export function JourneyPanel({ journey }: { journey: JourneyStep[] | null }) {
 }
 
 function StepItem(step: JourneyStep) {
-  const { goal, hint, reward, state, seen } = step;
+  const { goal, hint, reward, state, seen, waiting } = step;
   const crate = questCrateOf(step);
   return (
     <li className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0" {...questCrateHomeAttributes(seen)} {...(crate !== undefined && crateTargetAttributes("journey"))}>
@@ -41,6 +41,7 @@ function StepItem(step: JourneyStep) {
           </p>
         </>
       )}
+      {state === "finished" && waiting && <p className="text-xs font-medium tabular-nums text-muted-foreground">{xpLineOf(reward, waiting)}</p>}
       {crate !== undefined && <RewardCrate crate={crate} open="outline" />}
       {state === "opened" && <Done>{`You earned ${rewardWords(reward)}`}</Done>}
     </li>

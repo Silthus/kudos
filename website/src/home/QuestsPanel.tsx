@@ -1,5 +1,5 @@
 import { AppLink } from "../AppLink";
-import { Coins } from "../quests/QuestReward";
+import { Coins, xpLineOf } from "../quests/QuestReward";
 import { QuestTag } from "../quests/QuestTag";
 import { Claimed } from "../crates/RewardCrate";
 import { MaxLine } from "../Max";
@@ -36,11 +36,12 @@ function QuestRows({ slots, bonus }: { slots: QuestSlot[]; bonus: JourneyStep | 
   );
 }
 
-function BonusRow({ step: { goal, state, reward } }: { step: JourneyStep }) {
+function BonusRow({ step: { goal, state, reward, waiting } }: { step: JourneyStep }) {
   return (
     <li className="relative flex flex-col gap-1.5 rounded-lg px-2 py-2 hover:bg-fill-hover">
       <AppLink href={questsHref("journey")} className="flex items-start justify-between gap-2 text-sm leading-snug after:absolute after:inset-0 after:rounded-lg">
         <span className="min-w-0 flex-1">{goal}</span>
+        <Waiting reward={reward} waiting={waiting} />
         <CoinsOf reward={reward} />
         <New />
         {state === "finished" && <Claim />}
@@ -58,12 +59,13 @@ function New() {
   );
 }
 
-function QuestRow({ slot: { slot, goal, progress, state, reward } }: { slot: QuestSlot }) {
+function QuestRow({ slot: { slot, goal, progress, state, reward, waiting } }: { slot: QuestSlot }) {
   const finished = state === "finished";
   return (
     <li className="relative flex flex-col gap-1.5 rounded-lg px-2 py-2 hover:bg-fill-hover">
       <AppLink href={questsHref(finished ? slot : undefined)} className="flex items-start justify-between gap-2 text-sm leading-snug after:absolute after:inset-0 after:rounded-lg">
         <span className="min-w-0 flex-1">{goal}</span>
+        <Waiting reward={reward} waiting={waiting} />
         <CoinsOf reward={reward} />
         {finished && <Claim />}
       </AppLink>
@@ -74,6 +76,16 @@ function QuestRow({ slot: { slot, goal, progress, state, reward } }: { slot: Que
         </span>
       )}
     </li>
+  );
+}
+
+function Waiting({ reward, waiting }: { reward: QuestReward; waiting: boolean }) {
+  if (!waiting) return null;
+  return (
+    <>
+      {" "}
+      <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">{xpLineOf(reward, waiting)}</span>
+    </>
   );
 }
 
