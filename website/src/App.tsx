@@ -19,6 +19,7 @@ import { ClosedPage } from "./pages/ClosedPage";
 import { ConnectingPage } from "./pages/ConnectingPage";
 import { ErrorPage } from "./pages/ErrorPage";
 import { ActivityPage } from "./pages/ActivityPage";
+import { LoadingPage } from "./pages/LoadingPage";
 import { HomePage } from "./pages/HomePage";
 import { BookPage } from "./pages/BookPage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
@@ -227,7 +228,7 @@ type PageProps = {
 
 function Page({ state, route, board, quests, book, skillTree, settings, profileCard, useRecentKudos, activity, drawSpotlight, membersShown, onChoosePeriod, onBuyPerk, onSetBoardVisibility, onSwapQuest, settingsActions, ...actions }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
-  if (state.kind === "loading") return null;
+  if (state.kind === "loading") return <LoadingPage />;
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "not-found") return <NotFoundPage />;
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
