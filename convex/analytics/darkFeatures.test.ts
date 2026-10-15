@@ -42,7 +42,7 @@ const week = "2026-10-12";
 const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
 const members = ["U_ALICE", "U_BOB"];
-const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board"];
+const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board", "collection"];
 const notMemberFacing: Table[] = ["analyticsIds", "workspaceKeys", "analyticsOutbox", "analyticsDrain", "errorSweep", "watchedJobs", "reportedJobs", "flagExposures"];
 const recordingJobs = ["analytics/drain:drain", "analytics/person:identifyNewPeople"];
 const recordingWrites: Table[] = ["analyticsOutbox", "analyticsIds", "workspaceKeys", "analyticsDrain"];
@@ -126,6 +126,7 @@ describe("E9 E10: analytics sends exactly the facts the features stored, whateve
         "quest swapped",
         "quest finished",
         "crate opened",
+        "hoggie dropped",
         "leaderboard viewed",
         "leaderboard left",
         "leaderboard joined",

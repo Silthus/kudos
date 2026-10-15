@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { withoutCollectionExposure } from "../../testing/hoggies";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
@@ -48,7 +49,7 @@ describe("CR3 P92: opening a crate applies its held reward once", () => {
     expect(await open(t, alice)).toBe("done");
 
     const after = await everyTable(t);
-    expect({ ...after, crateOpenings: [] }).toEqual(before);
+    expect(withoutCollectionExposure({ ...after, crateOpenings: [] })).toEqual(before);
     expect(after.crateOpenings).toEqual([{ _id: expect.anything(), _creationTime: expect.any(Number), member: alice, key: "journey:first-thanks", at: openedAt }]);
     expect(published()).toEqual([{ type: "questOpened", workspace: "T1", member: alice, quest: firstThanks, at: openedAt }]);
   });
@@ -63,7 +64,7 @@ describe("CR3 P92: opening a crate applies its held reward once", () => {
     expect(await open(t, alice)).toBe("done");
 
     const after = await everyTable(t);
-    expect({ ...after, crateOpenings: [], memberProgress: [], wallets: [] }).toEqual({ ...before, memberProgress: [], wallets: [] });
+    expect(withoutCollectionExposure({ ...after, crateOpenings: [], memberProgress: [], wallets: [] })).toEqual({ ...before, memberProgress: [], wallets: [] });
     const from = { xp: 15, level: 1, coins: 3, skillPoints: 0 };
     const to = { xp: 25, level: 2, coins: 3, skillPoints: 0 };
     expect(after.crateOpenings).toEqual([expect.objectContaining({ member: alice, key: "journey:first-thanks", at: openedAt, applied: { xp: 10, coins: 0, from, to } })]);

@@ -9,7 +9,7 @@ export const crateOpeningValidator = v.object({ member: v.id("members"), key: v.
 
 export const pendingCrateValidator = v.object({ member: v.id("members"), key: v.string() });
 
-export function rewardKeyOf(quest: Quest) {
+export function rewardKeyOf(quest: Quest): `${Quest["kind"]}:${string}` {
   return quest.kind === "journey" ? `${rewardKeyPrefixOf("journey")}${quest.step}` : `${rewardKeyPrefixOf("weekly")}${quest.week}:${quest.slot}`;
 }
 
@@ -23,7 +23,7 @@ export function journeyQuestOfRewardKey(key: string): JourneyQuest | null {
   return step === undefined ? null : { kind: "journey", step };
 }
 
-export function rewardKeyPrefixOf(kind: Quest["kind"]) {
+export function rewardKeyPrefixOf<K extends Quest["kind"]>(kind: K): `${K}:` {
   return `${kind}:`;
 }
 

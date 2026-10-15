@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { withoutCollectionExposure } from "../../testing/hoggies";
 import { FakeSlack } from "../../testing/fakeSlack";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
@@ -136,7 +137,7 @@ describe("P92: opening grants nothing", () => {
     await open(t, alice, "leaderboard");
 
     const after = await everyTable(t);
-    expect({ ...after, unlocks: [] }).toEqual({ ...before, unlocks: [] });
+    expect(withoutCollectionExposure({ ...after, unlocks: [] })).toEqual({ ...before, unlocks: [] });
     expect(after.unlocks).toEqual(before.unlocks.map((row) => ({ ...row, openedAt: now.getTime() })));
     expect(published("unlockOpened")).toHaveLength(1);
   });

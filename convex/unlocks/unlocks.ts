@@ -5,6 +5,7 @@ import { levelReachedEventValidator } from "../bus/events";
 import { publish } from "../bus/publish";
 import { rangesBefore, type Before } from "../engine/awards";
 import { republish } from "../feedback/homes";
+import { dropFor } from "../hoggies/drops";
 import { notifyLevelReached } from "../feedback/notify";
 import { xpLevelsOnFor } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
@@ -37,19 +38,31 @@ export async function openUnlock(ctx: MutationCtx, member: MemberId, feature: Fe
   if (!(await unlocksShownTo(ctx, member))) return "refused";
   const { workspace } = await chatUserOf(ctx, member);
   if ((await stateOf(ctx, member, feature)) !== "ready") return "refused";
-  await keepOpen(ctx, { workspace, member, at: Date.now() }, feature);
+  const opening = { workspace, member, at: Date.now() };
+  if (!(await storeOpening(ctx, opening, feature))) return "done";
+  await dropFor(ctx, member, `unlock:${feature}`, opening.at);
+  await publishOpened(ctx, opening, feature);
   return "done";
 }
 
 export type Opening = { workspace: string; member: MemberId; at: number; byLaunch?: true };
 
-export async function keepOpen(ctx: MutationCtx, { workspace, member, at, byLaunch }: Opening, feature: Feature): Promise<boolean> {
+export async function keepOpen(ctx: MutationCtx, opening: Opening, feature: Feature): Promise<boolean> {
+  if (!(await storeOpening(ctx, opening, feature))) return false;
+  await publishOpened(ctx, opening, feature);
+  return true;
+}
+
+async function storeOpening(ctx: MutationCtx, { member, at }: Opening, feature: Feature): Promise<boolean> {
   const row = await unlockRow(ctx, member, feature);
   if (row?.openedAt !== undefined) return false;
   if (row === null) await ctx.db.insert("unlocks", { member, feature, readyAt: at, openedAt: at });
   else await ctx.db.patch(row._id, { openedAt: at });
-  await publish(ctx, { type: "unlockOpened", workspace, member, feature, at, ...(byLaunch && { byLaunch }) });
   return true;
+}
+
+function publishOpened(ctx: MutationCtx, { workspace, member, at, byLaunch }: Opening, feature: Feature) {
+  return publish(ctx, { type: "unlockOpened", workspace, member, feature, at, ...(byLaunch && { byLaunch }) });
 }
 
 export const memberUnlocks = internalQuery({

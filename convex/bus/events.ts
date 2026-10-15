@@ -8,6 +8,7 @@ import { perkValidator } from "../progression/tree";
 import { questIdValidator } from "../quests/pool";
 import { journeyStepValidator, questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
+import { rarityValidator } from "../hoggies/catalogue";
 import type { MemberId } from "../workspace/directory";
 
 export const awardValidator = v.object({ award: awardIdValidator, giver: v.id("members"), recipient: v.id("members"), kudos: v.number() });
@@ -195,6 +196,19 @@ export const journeyStepActivatedEventValidator = v.object({
 
 export type JourneyStepActivatedEvent = Infer<typeof journeyStepActivatedEventValidator>;
 
+export const hoggieDroppedEventValidator = v.object({
+  type: v.literal("hoggieDropped"),
+  workspace: v.string(),
+  member: v.id("members"),
+  crate: v.string(),
+  hoggie: v.string(),
+  rarity: rarityValidator,
+  copy: v.number(),
+  at: v.number(),
+});
+
+export type HoggieDroppedEvent = Infer<typeof hoggieDroppedEventValidator>;
+
 export type DomainEvent =
   | KudosGivenEvent
   | AttemptFailedEvent
@@ -215,7 +229,8 @@ export type DomainEvent =
   | MemberLeftEvent
   | MemberRejoinedEvent
   | PrimaryGroupChangedEvent
-  | AwardsAttributedEvent;
+  | AwardsAttributedEvent
+  | HoggieDroppedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];
