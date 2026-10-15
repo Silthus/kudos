@@ -1,6 +1,10 @@
 import { v } from "convex/values";
 import { runCommand } from "../commands/commands";
 import { republish } from "../feedback/homes";
+import { countingGroupsOf, groupsShownTo, primaryGroupOf } from "../groups/groups";
+import { messageSettingsOnFor } from "../messageSettings/flag";
+import { messageKindValidator, messagePlaceValidator, type MessageKind, type MessagePlace } from "../messageSettings/kinds";
+import { kindAppliesTo, placeOf, placesOf } from "../messageSettings/messageSettings";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
 import type { Refusal } from "../progression/purchases";
@@ -26,6 +30,10 @@ export type PurchaseRefusal = "owned" | "level" | "requires" | "points" | "coins
 export type PurchaseAnswer = { kind: "bought" } | { kind: "refused"; reason: PurchaseRefusal | null };
 
 export type VisibilityAnswer = { kind: "set"; visible: boolean } | { kind: "refused" };
+
+export type MessageSettingAnswer = { kind: "set"; place: MessagePlace } | { kind: "refused" };
+
+export type GroupPickAnswer = { kind: "picked"; group: string } | { kind: "refused" };
 
 const opened: CommandAnswer = { kind: "opened" };
 const refused: CommandAnswer = { kind: "refused" };
@@ -102,6 +110,30 @@ export const setBoardVisibility = memberMutation({
   },
 });
 
+export const setMessageSetting = memberMutation({
+  args: { kind: messageKindValidator, place: messagePlaceValidator },
+  handler: async (ctx, me, person, { kind, place }): Promise<MessageSettingAnswer> => {
+    if (!(await placeOfferedWithEveryLaunchRecorded(queryOnly(ctx), me, kind, place))) return refused;
+    const before = await placeOf(ctx, me.member, kind);
+    await runCommand(ctx, me.workspace, person, { type: "setMessageSetting", kind, place }, `website:setMessageSetting:${me.member}:${kind}`);
+    const stored = await placeOf(ctx, me.member, kind);
+    if (stored !== before) await republish(ctx, me.member);
+    return stored === place ? { kind: "set", place } : refused;
+  },
+});
+
+export const pickPrimaryGroup = memberMutation({
+  args: { group: v.string() },
+  handler: async (ctx, me, person, { group }): Promise<GroupPickAnswer> => {
+    if (!(await groupOfferedWithEveryLaunchRecorded(queryOnly(ctx), me, group))) return refused;
+    const before = await primaryGroupOf(ctx, me.member);
+    await runCommand(ctx, me.workspace, person, { type: "pickPrimaryGroup", group, surface: "website" }, `website:pickPrimaryGroup:${me.member}`);
+    const picked = await primaryGroupOf(ctx, me.member);
+    if (picked?.group !== before?.group) await republish(ctx, me.member);
+    return picked?.group === group ? { kind: "picked", group } : refused;
+  },
+});
+
 function queryOnly({ db, ...rest }: MutationCtx): QueryCtx {
   return { ...rest, db: { get: db.get.bind(db), query: db.query.bind(db), normalizeId: db.normalizeId.bind(db), system: db.system } };
 }
@@ -118,6 +150,16 @@ async function treeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember
 
 async function boardOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
   return (await leaderboardStateOf(ctx, me, await unlockPathOf(ctx, me))).kind === "open" && (await noLaunchWaitsFor(ctx, me));
+}
+
+async function placeOfferedWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember, kind: MessageKind, place: MessagePlace) {
+  if (!(await messageSettingsOnFor(ctx, me.member)) || !(await kindAppliesTo(ctx, me.member, kind))) return false;
+  return (await placesOf(ctx, me.member, kind)).includes(place) && (await noLaunchWaitsFor(ctx, me));
+}
+
+async function groupOfferedWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember, group: string) {
+  if (!(await groupsShownTo(ctx, me.member))) return false;
+  return (await countingGroupsOf(ctx, me.member)).some((offered) => offered.group === group) && (await noLaunchWaitsFor(ctx, me));
 }
 
 async function launchesRecordedFor(ctx: QueryCtx, me: VerifiedMember) {

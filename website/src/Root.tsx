@@ -12,6 +12,7 @@ import { fixtureProfileCardFor } from "./profileCardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { fixtureRecentKudos } from "./recentKudosFixtures";
 import { builtShell, fixtureActions, type ShellState } from "./shell";
+import { fixedSettings, settingsFixtures } from "./settingsFixtures";
 import { fixtureSkillTreeFor } from "./skillTreeFixtures";
 import { fixtureSpotlight } from "./spotlightFixtures";
 
@@ -19,12 +20,14 @@ const fixtureLeaderboard = fixedLeaderboard(leaderboardFixtures.midBoard);
 
 const fixtureQuests = fixedQuests(questsFixtures.weekWithLastWeeksCrate);
 
+const fixtureSettings = fixedSettings(settingsFixtures.everything);
+
 export function Root({ fixture, convexUrl }: { fixture?: string; convexUrl?: string }) {
   return <ShellBoundary>{fixture || !convexUrl ? <FixtureApp visitor={builtShell(fixture)} /> : <LiveShell client={new ConvexReactClient(convexUrl)} />}</ShellBoundary>;
 }
 
 function FixtureApp({ visitor }: { visitor: ShellState }) {
-  return <App visitor={visitor} actions={fixtureActions} useLeaderboard={fixtureLeaderboard} useQuests={fixtureQuests} useBook={fixtureBookFor(visitor)} useSkillTree={fixtureSkillTreeFor(visitor)} useProfileCard={fixtureProfileCardFor(visitor)} useRecentKudos={fixtureRecentKudos} useActivityWatch={fixtureActivityWatch} readActivity={fixtureReadActivity} drawSpotlight={fixtureSpotlight} />;
+  return <App visitor={visitor} actions={fixtureActions} useLeaderboard={fixtureLeaderboard} useQuests={fixtureQuests} useBook={fixtureBookFor(visitor)} useSkillTree={fixtureSkillTreeFor(visitor)} useProfileCard={fixtureProfileCardFor(visitor)} useRecentKudos={fixtureRecentKudos} useActivityWatch={fixtureActivityWatch} readActivity={fixtureReadActivity} drawSpotlight={fixtureSpotlight} useSettings={fixtureSettings} />;
 }
 
 export function ShellBoundary({ children }: { children: ReactNode }) {

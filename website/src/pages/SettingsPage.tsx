@@ -1,0 +1,48 @@
+import { Panel } from "../home/Panel";
+import { VisibilitySwitch } from "../leaderboard/VisibilitySwitch";
+import { PageTitle } from "../PageTitle";
+import { GroupPicker } from "../settings/GroupPicker";
+import { MessageSettingRow } from "../settings/MessageSettingRow";
+import type { MessageSetting, MySettings, ShellActions } from "../shell";
+
+type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup"> };
+
+export function SettingsPage({ settings: { messages, board, group }, actions }: SettingsPageProps) {
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <span className="hud-label">You</span>
+        <PageTitle tab="Settings" size="display">
+          Settings
+        </PageTitle>
+        <p className="text-sm text-muted-foreground">Your choices in one place. Changes here show in Slack's App Home too.</p>
+      </header>
+      {messages !== null && <Messages messages={messages} setMessageSetting={actions.setMessageSetting} />}
+      {board !== null && (
+        <Panel id="leaderboards" label="Leaderboards">
+          <p className="text-sm text-muted-foreground">When you're off, nobody sees you on the leaderboards, you included.</p>
+          <VisibilitySwitch onTheBoards={board.onTheBoards} setBoardVisibility={actions.setBoardVisibility} />
+        </Panel>
+      )}
+      {group !== null && (
+        <Panel id="your-group" label="Your group">
+          <p className="text-sm text-muted-foreground">Your kudos count for one group on the leaderboard.</p>
+          <GroupPicker choice={group} pickPrimaryGroup={actions.pickPrimaryGroup} />
+        </Panel>
+      )}
+    </div>
+  );
+}
+
+function Messages({ messages, setMessageSetting }: { messages: MessageSetting[]; setMessageSetting: ShellActions["setMessageSetting"] }) {
+  return (
+    <Panel id="messages" label="Messages">
+      <p className="text-sm text-muted-foreground">In the channel means a message only you see, beside the kudos that caused it. If I can't post it there, it comes as a DM.</p>
+      <div className="flex flex-col">
+        {messages.map((setting) => (
+          <MessageSettingRow key={setting.kind} setting={setting} setMessageSetting={setMessageSetting} />
+        ))}
+      </div>
+    </Panel>
+  );
+}

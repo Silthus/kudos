@@ -8,6 +8,7 @@ import { followTheClock } from "./clock";
 import { faceOf, type Face } from "./faces";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 import { journeyStepsOf, type JourneyStep } from "./quests";
+import { settingsShownTo } from "./settings";
 import { skillPointsOf } from "./skillTree";
 import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, type FeaturePage } from "./unlockPath";
 
@@ -33,6 +34,7 @@ export type MemberProfile = {
   journey: JourneyStep[] | null;
   progression: Progression | null;
   skillPoints: number | null;
+  settings: boolean;
 };
 
 export type MyProfile = Denial | MemberProfile;
@@ -56,6 +58,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     journey: await journeyStepsOf(ctx, me),
     progression: await progressionOf(ctx, me),
     skillPoints: await skillPointsOf(ctx, me, path),
+    settings: await settingsShownTo(ctx, me),
   };
 });
 

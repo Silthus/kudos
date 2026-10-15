@@ -35,6 +35,7 @@ const pageCommands: Record<Screen, PageCommand> = {
   leaderboard: { name: "lb", aliases: ["leaderboard", "board"], usage: "lb [--week|--month|--all]", hrefFor: (words) => leaderboardHref(periodIn(words)) },
   book: { name: "book", aliases: ["achievements"] },
   skills: { name: "skills", aliases: ["perks", "tree"] },
+  settings: { name: "settings", aliases: ["prefs", "config"], blurb: "Where your messages arrive, the leaderboards and your group." },
 };
 
 const periodFlags: Period[] = ["week", "month", "all"];

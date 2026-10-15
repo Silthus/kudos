@@ -195,6 +195,7 @@ describe("WS13 WS15 WS18: a member's home answer projects their own homeFacts", 
       journey: null,
       progression: null,
       skillPoints: null,
+      settings: false,
     });
   });
 
