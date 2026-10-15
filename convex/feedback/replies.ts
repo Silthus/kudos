@@ -195,10 +195,8 @@ function withoutFullStop(goal: string) {
   return goal.endsWith(".") ? goal.slice(0, -1) : goal;
 }
 
-export function renderReply(reply: Reply): Line[] {
+export function renderReply(reply: Exclude<Reply, { kind: "given" }>): Line[] {
   switch (reply.kind) {
-    case "given":
-      return [givenLine(reply.outcome, reply.base), ...skippedLines(reply.outcome.skipped)];
     case "over-allowance":
       return [overAllowanceLine(reply.outcome, reply.base)];
     case "invalid":
