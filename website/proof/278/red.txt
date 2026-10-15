@@ -1,0 +1,395 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/hero-spend/website
+
+ ❯ |website| src/FeaturePanels.test.tsx (26 tests | 1 failed) 5864ms
+   ❯ WS97 WS102: one panel per shipped feature, in its slot (8)
+     × walks the keyboard from the hero's actions through the main column's panels, then the rail's quest rows, standing row and links, in reading order 640ms
+ ❯ |website| src/HomePage.test.tsx (34 tests | 4 failed) 9574ms
+   ❯ WS313 V4: spending skill points from the hero (6)
+     × offers Spend 2 skill points as an outline link to /skills after the allowance row, while the Skill tree panel keeps its count 74ms
+     × offers Spend 1 skill point as an outline link to /skills after the allowance row, while the Skill tree panel keeps its count 98ms
+     × keeps the page's one primary action on the hero's Slack link, or on the first-kudos nudge while it shows 297ms
+     × leads to the Skill tree page 184ms
+ ❯ |website| src/levelContrast.test.tsx (20 tests | 2 failed) 14765ms
+   ❯ WS313 WS339 V24: the hero's spend link, its outline and its glyph, meets 3:1 in both modes (2)
+     × in light 1370ms
+     × in dark 712ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/FeaturePanels.test.tsx > WS97 WS102: one panel per shipped feature, in its slot > walks the keyboard from the hero's actions through the main column's panels, then the rail's quest rows, standing row and links, in reading order
+AssertionError: expected [ 'Open the Book', …(8) ] to deeply equal [ 'Spend 2 skill points', …(8) ]
+
+- Expected
++ Received
+
+  [
+-   "Spend 2 skill points",
+    "Open the Book",
+    "Open the Skill tree",
+    "Thank someone and say why, 3 times.",
+    "Thank someone you haven't thanked before. Claim",
+    "Thank someone you haven't thanked in the last 30 days.",
+    "See all quests",
+    "Everyone this week: you're #9",
+    "Open the leaderboard",
++   "HedgeHugThanks a HogProfileQuestsLeaderboardBookSkill treeCtrl K21 readySESECharacterSam ExampleThank someone for work you noticed. Mention them in a Slack message with :taco: and say what they did.Thank someone in Slack (opens in a new tab)Kudos left today1/3Refills at 12:00 AMYou've given 14 kudos and received 9.This week you gave 2 kudos and received 1.BookSee the tiers you've earned.Open the BookSkill tree2 skill points to spendOpen the Skill treeWhat teammates seePublicSESam ExampleEveryone can see this card. Your XP and the kudos you receive stay with you.Quests this weekNew quests every Monday.Thank someone and say why, 3 times.1/3Thank someone you haven't thanked before. ClaimThank someone you haven't thanked in the last 30 days.ClaimedSee all questsWhere you standThis week#9EveryoneThe whole company on one boardHS12Above you: Hal Sato, 12 kudos givenSE11YouYou: 11 kudos givenIQ10Below you: Ivy Quinn, 10 kudos givenOpen the leaderboard",
+  ]
+
+ ❯ src/FeaturePanels.test.tsx:103:18
+    101|       path.push(document.activeElement?.getAttribute("aria-label") ?? …
+    102|     }
+    103|     expect(path).toEqual([
+       |                  ^
+    104|       "Spend 2 skill points",
+    105|       "Open the Book",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS313 V4: spending skill points from the hero > offers Spend 2 skill points as an outline link to /skills after the allowance row, while the Skill tree panel keeps its count
+ FAIL  |website| src/HomePage.test.tsx > WS313 V4: spending skill points from the hero > offers Spend 1 skill point as an outline link to /skills after the allowance row, while the Skill tree panel keeps its count
+Error: expect(received).toHaveAccessibleName()
+
+received value must be an HTMLElement or an SVGElement.
+Received has type:  Null
+Received has value: null
+ ❯ src/HomePage.test.tsx:169:21
+    167|   ])("offers $name as an outline link to /skills after the allowance r…
+    168|     renderApp(member);
+    169|     expect(spend()).toHaveAccessibleName(name);
+       |                     ^
+    170|     expect(spend()).toHaveAttribute("href", "/skills");
+    171|     expect(spend()).toHaveClass("quill-button--variant-outline");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS313 V4: spending skill points from the hero > keeps the page's one primary action on the hero's Slack link, or on the first-kudos nudge while it shows
+Error: expect(received).toHaveClass()
+
+received value must be an HTMLElement or an SVGElement.
+Received has type:  Null
+Received has value: null
+ ❯ src/HomePage.test.tsx:196:21
+    194|     const nudge = within(main()).getByRole("region", { name: "Give you…
+    195|     expect(primaries()).toEqual([within(nudge).getByRole("link", { nam…
+    196|     expect(spend()).toHaveClass("quill-button--variant-outline");
+       |                     ^
+    197|   });
+    198|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  |website| src/HomePage.test.tsx > WS313 V4: spending skill points from the hero > leads to the Skill tree page
+AssertionError: expected '/' to be '/skills' // Object.is equality
+
+Expected: "/skills"
+Received: "/"
+
+ ❯ src/HomePage.test.tsx:202:38
+    200|     const { user } = renderApp(shellFixtures.memberWithEveryFeatureOpe…
+    201|     await user.click(spend()!);
+    202|     expect(window.location.pathname).toBe("/skills");
+       |                                      ^
+    203|   });
+    204| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  |website| src/levelContrast.test.tsx > WS313 WS339 V24: the hero's spend link, its outline and its glyph, meets 3:1 in both modes > in light
+ FAIL  |website| src/levelContrast.test.tsx > WS313 WS339 V24: the hero's spend link, its outline and its glyph, meets 3:1 in both modes > in dark
+TestingLibraryElementError: Unable to find an accessible element with the role "link" and name "Spend 2 skill points"
+
+Here are the accessible roles:
+
+  region:
+
+  Name "Sam Example":
+  <section
+    aria-labelledby="home-title"
+    class="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:gap-7 sm:py-4 sm:text-left"
+  />
+
+  Name "Book":
+  <section
+    aria-labelledby="book-panel-title"
+    class="relative flex flex-col gap-3 rounded-xl border bg-card p-4 "
+  />
+
+  Name "Skill tree":
+  <section
+    aria-labelledby="skillTree-panel-title"
+    class="relative flex flex-col gap-3 rounded-xl border bg-card p-4 "
+  />
+
+  Name "What teammates see":
+  <section
+    aria-labelledby="profile-card-panel-title"
+    class="relative flex flex-col gap-3 rounded-xl border bg-card p-4 "
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "Sam Example":
+  <h1
+    class="hud-display font-bold outline-none text-4xl leading-none wrap-anywhere"
+    id="home-title"
+    tabindex="-1"
+  />
+
+  Name "Book":
+  <h2
+    class="hud-label"
+    id="book-panel-title"
+  />
+
+  Name "Skill tree":
+  <h2
+    class="hud-label"
+    id="skillTree-panel-title"
+  />
+
+  Name "What teammates see":
+  <h2
+    class="hud-label"
+    id="profile-card-panel-title"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="mt-3 text-sm text-muted-foreground"
+  />
+
+  Name "":
+  <p
+    class="mt-2 text-xs text-muted-foreground tabular-nums"
+  />
+
+  Name "":
+  <p
+    class="flex items-center gap-3 text-sm"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  Name "":
+  <p
+    class="text-sm text-muted-foreground"
+  />
+
+  Name "":
+  <p
+    class="text-xs text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Thank someone in Slack (opens in a new tab)":
+  <a
+    class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"
+    href="https://app.slack.com/client/T1"
+    rel="noreferrer"
+    target="_blank"
+  />
+
+  Name "Open the Book":
+  <a
+    class="inline-flex items-center gap-1 self-start text-sm font-medium underline-offset-4 hover:underline"
+    data-feature-card="book"
+    href="/book"
+  />
+
+  Name "Open the Skill tree":
+  <a
+    class="inline-flex items-center gap-1 self-start text-sm font-medium underline-offset-4 hover:underline"
+    data-feature-card="skillTree"
+    href="/skills"
+  />
+
+  --------------------------------------------------
+  img:
+
+  Name "1 of 3 kudos left today":
+  <span
+    aria-label="1 of 3 kudos left today"
+    class="inline-flex items-center gap-1"
+    role="img"
+  />
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  <time
+    datetime="2026-10-14T00:00:00.000Z"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <div
+    class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start"
+  >
+    <div
+      class="flex min-w-0 flex-col gap-6"
+    >
+      <section
+        aria-labelledby="home-title"
+        class="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:gap-7 sm:py-4 sm:text-left"
+      >
+        <span
+          aria-hidden="true"
+          class="inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-32"
+        >
+          SE
+        </span>
+        <div
+          class="flex w-full min-w-0 flex-1 flex-col items-center sm:items-start"
+        >
+          <span
+            class="hud-label"
+          >
+            Character
+          </span>
+          <div
+            class="mt-1 max-w-full"
+          >
+            <h1
+              class="hud-display font-bold outline-none text-4xl leading-none wrap-anywhere"
+              id="home-title"
+              tabindex="-1"
+            >
+              Sam Example
+            </h1>
+          </div>
+          <p
+            class="mt-3 text-sm text-muted-foreground"
+          >
+            Thank someone for work you noticed. Mention them in a Slack message with :
+            taco
+            : and say what they did.
+          </p>
+          <div
+            class="mt-3"
+          >
+            <a
+              class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"
+              href="https://app.slack.com/client/T1"
+              rel="noreferrer"
+              target="_blank"
+            >
+              Thank someone in Slack
+               
+              <span
+                class="sr-only"
+              >
+                (opens in a new tab)
+              </span>
+              <svg
+                aria-hidden="true"
+                class="LemonIcon size-4"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                width="100%"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M13 3.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V5.56l-7.97 7.97a.75.75 0 1 1-1.06-1.06l7.97-7.97h-4.69a.75.75 0 0 1-.75-.75ZM5.324 5H9.25a.75.75 0 1 1 0 1.5h-3.9c-.292 0-.467 0-.596.011a.628.628 0 0 0-.12.018.25.25 0 0 0-.105.104.626.626 0 0 0-.018.121c-.01.13-.011.304-.011.596v11.3c0 .292 0 .467.011.596a.625.625 0 0 0 .018.12.25.25 0 0 0 .104.105.638.638 0 0 0 .121.018c.13.01.304.011.596.011h11.3c.292 0 .467 0 .596-.011a.636.636 0 0 0 .12-.018.25.25 0 0 0 .105-.105.636.636 0 0 0 .018-.12c.01-.13.011-.304.011-.596V14a.75.75 0 0 1 1.5 0v4.676c0 .258 0 .494-.016.692a1.775 1.775 0 0 1-.175.677 1.75 1.75 0 0 1-.765.764c-.23.118-.463.157-.676.175-.198.016-.434.016-.692.016H5.324c-.258 0-.494 0-.692-.016a1.775 1.775 0 0 1-.676-.175 1.75 1.75 0 0 1-.765-.765 1.774 1.774 0 0 1-.175-.676A9.053 9.053 0 0 1 3 18.676V7.324c0-.258 0-.494.016-.692.018-.213.057-.446.175-.676a1.75 1.75 0 0 1 .765-.765c.23-.118.463-.157.676-.175C4.83 5 5.066 5 5.324 5ZM17.47 19.37v-.002Zm-.1.1h-.003Zm-12.74 0h.002Zm-.1-.102a.02.02 0 0 1 0 .001Zm0-12.737v.001Zm.102-.102h-.001Z"
+                  fill-rule="evenodd"
+                />
+              </svg>
+            </a>
+          </div>
+          <div
+            class="mt-4 flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1.5 border-t pt-4 sm:justify-start"
+          >
+            <span
+              class="hud-label"
+            >
+              Kudos left today
+            </span>
+            <span
+              class="hud-display text-2xl font-bold leading-none tabular-nums"
+            >
+              1
+              <span
+                class="text-sm text-muted-foreground"
+              >
+                /
+                3
+              </span>
+            </span>
+            <span
+              aria-label="1 of 3 kudos left today"
+              class="inline-flex items-center gap-1"
+              role="img"
+            >
+              <span
+                class="h-3.5 w-2.5 rounded-sm bg-foreground"
+              />
+              <span
+                class="h-3.5 w-2.5 rounded-sm border border-muted-foreground"
+              />
+              <span
+                class="h-3.5 w-2.5 rounded-sm border border-muted-foreground"
+              />
+            </span>
+            <span
+              class="text-xs text-muted-foreground"
+            >
+              Refills at 
+              <time
+                datetime="2026-10-14T00:00:00.000Z"
+              >
+                12:00 AM
+              </time>
+            </span>
+          </div>
+          <p
+            class="mt-2 text-xs text-muted-foreground tabular-nums"
+          >
+            You've given 
+            14
+             kudos and received 
+            9
+            .
+          </p>
+          <div
+            class="mt-4 w-full border-t pt-4"
+          >
+            <p
+              class="flex items-center gap-3 text-sm"
+            >
+              <svg
+                [33...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/levelContrast.test.tsx:75:54
+     73|     it(`in ${mode}`, () => {
+     74|       renderApp(shellFixtures.memberWithEveryFeatureOpen);
+     75|       const spend = within(screen.getByRole("main")).getByRole("link",…
+       |                                                      ^
+     76|       const glyph = spend.querySelector("svg")!;
+     77|       expect(glyph).toHaveClass("text-completed-foreground");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  7 failed | 73 passed (80)
+   Start at  17:15:35
+   Duration  20.51s (tests 68%, import 18%, transform 7%, environment 6%, setup 1%)
+
