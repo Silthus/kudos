@@ -87,7 +87,7 @@ function QuestCard({ slot, firstCrate, swappable, swap }: { slot: QuestSlot } & 
   const claimed = state === "opened";
   return (
     <article
-      className={`hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground ${claimed ? "opacity-90" : ""}`}
+      className={`hud-panel relative scroll-mt-28 rounded-lg border bg-card p-4 text-card-foreground ${claimed ? "opacity-90" : ""}`}
       data-claimed={claimed || undefined}
       {...questTargetAttributes(quest)}
       {...questCrateHomeAttributes(seen)}
@@ -118,7 +118,7 @@ const artOf: Record<QuestSlot["kind"], Hoggie> = { "Say why": HedgehogReading, "
 
 function QuestArt({ Hog, claimed }: { Hog: Hoggie; claimed: boolean }) {
   return (
-    <span data-quest-art aria-hidden="true" className="relative flex shrink-0 items-center justify-center rounded-xl bg-muted/60" style={{ width: 64, height: 64 }}>
+    <span data-quest-art aria-hidden="true" className="relative flex shrink-0 items-center justify-center rounded-lg bg-muted/60" style={{ width: 64, height: 64 }}>
       <Hog size={55} title="" className={claimed ? "grayscale" : undefined} />
       {claimed && (
         <span data-claimed-check className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-success text-success-foreground ring-2 ring-card">
@@ -227,7 +227,7 @@ function BonusCard({ step, page, firstCrate }: BonusQuestProps) {
   const { goal, hint, reward, state, seen, feature } = step;
   const active = state === "active";
   return (
-    <article className="hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground" {...questTargetAttributes("journey")} {...questCrateHomeAttributes(seen)}>
+    <article className="hud-panel relative scroll-mt-28 rounded-lg border bg-card p-4 text-card-foreground" {...questTargetAttributes("journey")} {...questCrateHomeAttributes(seen)}>
       <div className="flex items-start gap-3 sm:gap-4">
         <QuestArt Hog={feature === null ? HedgehogReading : hogOf(feature)} claimed={false} />
         <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -276,7 +276,7 @@ function WaitingToOpen({ waiting, firstCrate }: { waiting: WaitingCrate[] } & Fi
 
 function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate) {
   return (
-    <article className="hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4" {...questCrateHomeAttributes(entry.seen)}>
+    <article className="hud-panel relative flex flex-col gap-2 rounded-lg border bg-card p-4" {...questCrateHomeAttributes(entry.seen)}>
       <WeekOf week={entry.week} />
       <h3 className="text-sm font-medium">{entry.goal}</h3>
       <RewardRow reward={entry.reward} seen={entry.seen}>
@@ -297,7 +297,7 @@ function WeekOf({ week }: Pick<WaitingCrate, "week">) {
 
 function NoQuests({ chatUrl, firstCrate }: { chatUrl: string } & FirstCrate) {
   return (
-    <section aria-label="Your quests this week" className="flex flex-col items-center gap-4 rounded-xl border bg-card px-4 py-10 text-center">
+    <section aria-label="Your quests this week" className="flex flex-col items-center gap-4 rounded-lg border bg-card px-4 py-10 text-center">
       <HedgehogTownCrier size={96} title="" />
       <p className="text-sm text-muted-foreground">You have no quests this week.</p>
       <SlackLink chatUrl={chatUrl} variant={firstCrate === undefined ? "primary" : "outline"}>
