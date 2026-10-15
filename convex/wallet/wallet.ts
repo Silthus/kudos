@@ -42,7 +42,7 @@ export async function spend(ctx: MutationCtx, spending: CoinSpend): Promise<Spen
   return "spent";
 }
 
-function wholeCoins(coins: number) {
+export function wholeCoins(coins: number) {
   if (!Number.isInteger(coins) || coins < 0) throw new ReportableError("not a whole number of coins");
   return coins;
 }

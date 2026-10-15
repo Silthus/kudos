@@ -1,9 +1,11 @@
 import { v } from "convex/values";
+import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { appliedRewardValidator, rewardOf, type RewardRecord } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
 import { journeyStepValidator, type JourneyQuest, type Quest, type WeeklyQuest } from "./step";
 
-export const crateOpeningValidator = v.object({ member: v.id("members"), key: v.string(), at: v.number() });
+export const crateOpeningValidator = v.object({ member: v.id("members"), key: v.string(), at: v.number(), applied: v.optional(appliedRewardValidator) });
 
 export const pendingCrateValidator = v.object({ member: v.id("members"), key: v.string() });
 
@@ -23,6 +25,18 @@ export function journeyQuestOfRewardKey(key: string): JourneyQuest | null {
 
 export function rewardKeyPrefixOf(kind: Quest["kind"]) {
   return `${kind}:`;
+}
+
+export async function rewardWaits(ctx: QueryCtx, member: MemberId, key: string): Promise<boolean> {
+  return recordWaits(ctx, await rewardOf(ctx, member, key));
+}
+
+export async function recordWaits(ctx: QueryCtx, reward: RewardRecord | null): Promise<boolean> {
+  return reward?.held === true && (await crateOpeningOf(ctx, reward.member, reward.key)) === null;
+}
+
+export function waitsUnopened(reward: RewardRecord | null, opening: Doc<"crateOpenings"> | null): boolean {
+  return reward?.held === true && opening === null;
 }
 
 export function crateOpeningOf(ctx: QueryCtx, member: MemberId, key: string) {

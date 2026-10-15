@@ -19,7 +19,7 @@ import { gateDecisionOf } from "../progression/gate";
 import { rewardOf, rewardsKeyedFrom } from "../progression/rewards";
 import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
-import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf } from "./crates";
+import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf, waitsUnopened } from "./crates";
 import { finishQuest } from "./finish";
 import { journeyStartedFor, journeyStepAppliesTo, questsLiveFor } from "./flag";
 import { featureOpening, journeyStepOpenedBy, journeyStepValidator, type JourneyQuest, type JourneyStep } from "./step";
@@ -243,7 +243,7 @@ async function isFinished(ctx: QueryCtx, { member, step }: JourneyActivation) {
   return (await rewardOf(ctx, member, rewardKeyOf({ kind: "journey", step }))) !== null;
 }
 
-export type JourneyStepFacts = Omit<JourneyActivation, "member"> & { finishedAt: number | null; openedAt: number | null };
+export type JourneyStepFacts = Omit<JourneyActivation, "member"> & { finishedAt: number | null; openedAt: number | null; waiting: boolean };
 
 export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<JourneyStepFacts[]> {
   const { workspace } = await chatUserOf(ctx, member);
@@ -255,7 +255,7 @@ export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<Journe
     const key = rewardKeyOf({ kind: "journey", step });
     const finish = await rewardOf(ctx, member, key);
     const opening = await crateOpeningOf(ctx, member, key);
-    facts.push({ step, activatedAt, reward, catalogueVersion, finishedAt: finish?.at ?? null, openedAt: opening?.at ?? null });
+    facts.push({ step, activatedAt, reward, catalogueVersion, finishedAt: finish?.at ?? null, openedAt: opening?.at ?? null, waiting: waitsUnopened(finish, opening) });
   }
   return facts;
 }
@@ -270,7 +270,7 @@ export async function projectedJourneyOf(ctx: QueryCtx, member: MemberId): Promi
 
 function firstThanksBeforeActivation({ version, steps }: JourneyCatalogue): Omit<ProjectedJourneyStep, "crate"> {
   const { reward } = steps.find(({ step }) => step === "first-thanks")!;
-  return { step: "first-thanks", activatedAt: null, reward, catalogueVersion: version, finishedAt: null, openedAt: null };
+  return { step: "first-thanks", activatedAt: null, reward, catalogueVersion: version, finishedAt: null, openedAt: null, waiting: false };
 }
 
 export async function activateJourneyOf(ctx: MutationCtx, member: MemberId): Promise<void> {

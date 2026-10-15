@@ -52,12 +52,12 @@ describe("P91: members already playing join the Journey once, when it ships", ()
     await hourlySweep(t);
 
     expect(await journeyOf(t, "U_ALICE")).toEqual([
-      { step: "first-thanks", activatedAt: shipped, reward: firstThanksReward, catalogueVersion: "2", finishedAt: shipped, openedAt: null },
-      { step: "someone-new", activatedAt: shipped, reward: someoneNewReward, catalogueVersion: "2", finishedAt: null, openedAt: null },
+      { step: "first-thanks", activatedAt: shipped, reward: firstThanksReward, catalogueVersion: "2", finishedAt: shipped, openedAt: null, waiting: false },
+      { step: "someone-new", activatedAt: shipped, reward: someoneNewReward, catalogueVersion: "2", finishedAt: null, openedAt: null, waiting: false },
     ]);
     expect(await journeyOf(t, "U_BOB")).toEqual([
-      { step: "first-thanks", activatedAt: shipped, reward: firstThanksReward, catalogueVersion: "2", finishedAt: null, openedAt: null },
-      { step: "someone-new", activatedAt: shipped, reward: someoneNewReward, catalogueVersion: "2", finishedAt: null, openedAt: null },
+      { step: "first-thanks", activatedAt: shipped, reward: firstThanksReward, catalogueVersion: "2", finishedAt: null, openedAt: null, waiting: false },
+      { step: "someone-new", activatedAt: shipped, reward: someoneNewReward, catalogueVersion: "2", finishedAt: null, openedAt: null, waiting: false },
     ]);
     expect(journeyDmsTo("U_ALICE").map(({ text }) => text)).toEqual([finishedFirstThanks]);
     expect(readBlocks(journeyDmsTo("U_ALICE")[0]!.blocks as Block[])).toEqual([`section: ${finishedFirstThanks} [button: Open]`]);
@@ -169,6 +169,7 @@ describe("P91: members already playing join the Journey once, when it ships", ()
       catalogueVersion: "2",
       finishedAt: null,
       openedAt: null,
+      waiting: false,
     });
   });
 
@@ -204,6 +205,7 @@ describe("P91 ST19: a member who opened Coins before the Journey shipped joins y
       catalogueVersion: "2",
       finishedAt: null,
       openedAt: null,
+      waiting: false,
     });
     expect((await journeyOf(t, "U_BOB")).map(({ step }) => step)).not.toContain("your-emoji");
     expect(journeyDmsTo("U_ALICE")).toEqual([]);

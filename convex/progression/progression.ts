@@ -13,9 +13,9 @@ import type { Award, AwardWithId } from "../engine/awards";
 import { insertEffects, isRecorded, thoughtfulAwardsBefore } from "./effects";
 import { baseXpOf, bonusPaidIn, coinsIn, effectsFor, noGiving, progress, rewarded, sideOf, standing, xpToNextLevel, type BonusLine, type Giving, type MemberProgress, type Progressed, type Standing } from "./progress";
 import { receivingOf, receivingWeekOf, recordReceiving } from "./receiving";
-import { insertReward, rewardOf, type RewardRecord } from "./rewards";
+import { insertReward, rewardOf, type AppliedReward, type RewardRecord, type StandingWithCoins } from "./rewards";
 import { perksPayingIn } from "./skillTree";
-import { credit } from "../wallet/wallet";
+import { balanceOf, credit, wholeCoins } from "../wallet/wallet";
 
 const membersAPage = 100;
 
@@ -63,15 +63,30 @@ export function giverXpOf(awards: Pick<Award, "kudos">[]): number {
 }
 
 export async function recordReward(ctx: MutationCtx, workspace: string, reward: RewardRecord): Promise<"recorded" | "already recorded"> {
-  const { member, at } = reward;
-  if ((await rewardOf(ctx, member, reward.key)) !== null) return "already recorded";
+  if ((await rewardOf(ctx, reward.member, reward.key)) !== null) return "already recorded";
+  wholeCoins(reward.coins);
   await insertReward(ctx, reward);
-  await credit(ctx, member, reward.coins);
-  const { state, events } = rewarded(await progressOf(ctx, member), reward, { workspace, at });
+  if (reward.held !== true) await applyReward(ctx, workspace, reward, reward.at);
+  return "recorded";
+}
+
+export async function applyHeldReward(ctx: MutationCtx, workspace: string, reward: RewardRecord, at: number): Promise<AppliedReward> {
+  const from = await standingWithCoinsOf(ctx, reward.member);
+  await applyReward(ctx, workspace, reward, at);
+  return { xp: reward.xp, coins: reward.coins, from, to: await standingWithCoinsOf(ctx, reward.member) };
+}
+
+async function applyReward(ctx: MutationCtx, workspace: string, { member, xp, coins }: RewardRecord, at: number) {
+  await credit(ctx, member, coins);
+  const { state, events } = rewarded(await progressOf(ctx, member), { xp }, { workspace, at });
   await saveProgress(ctx, state);
   await publish(ctx, { type: "xpRecorded", workspace, member, at });
   for (const levelReached of events) await publish(ctx, levelReached);
-  return "recorded";
+}
+
+async function standingWithCoinsOf(ctx: QueryCtx, member: MemberId): Promise<StandingWithCoins> {
+  const { xp, level, skillPoints } = await standingOf(ctx, member);
+  return { xp, level, coins: await balanceOf(ctx, member), skillPoints };
 }
 
 export async function unrecordedAwardsOf<A extends AwardWithId>(ctx: QueryCtx, member: MemberId, awards: A[]): Promise<A[]> {
