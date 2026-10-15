@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { IconUser } from "@posthog/icons";
+import { IconGear, IconUser } from "@posthog/icons";
 import { webPageOf, type WebPage } from "../features";
 import type { Screen } from "../route";
 import type { Feature, FeatureCard, MemberProfile } from "../shell";
@@ -16,12 +16,18 @@ export type NavEntry = OpenEntry | ReadyEntry | LockedEntry;
 
 export const profileEntry: OpenEntry = { state: "open", screen: "home", href: "/", name: "Profile", Icon: IconUser };
 
+export const settingsEntry: OpenEntry = { state: "open", screen: "settings", href: "/settings", name: "Settings", Icon: IconGear };
+
 const fallbackLeaderboard = { feature: "leaderboard", name: "Leaderboard", state: "open" } as const;
 
-export function navEntriesOf({ features, leaderboard }: Pick<MemberProfile, "features" | "leaderboard">): NavEntry[] {
-  if (features === null) return [profileEntry, ...(leaderboard.kind === "open" ? [openEntryOf(fallbackLeaderboard, webPageOf("leaderboard")!)] : [])];
+export function navEntriesOf(member: Pick<MemberProfile, "features" | "leaderboard" | "settings">): NavEntry[] {
+  return [profileEntry, ...featureEntriesOf(member), ...(member.settings ? [settingsEntry] : [])];
+}
+
+function featureEntriesOf({ features, leaderboard }: Pick<MemberProfile, "features" | "leaderboard">): NavEntry[] {
+  if (features === null) return leaderboard.kind === "open" ? [openEntryOf(fallbackLeaderboard, webPageOf("leaderboard")!)] : [];
   const nextUnlock = features.find(({ feature, state }) => state === "locked" && webPageOf(feature) !== undefined);
-  return [profileEntry, ...features.flatMap((card) => featureEntryOf(card, card === nextUnlock))];
+  return features.flatMap((card) => featureEntryOf(card, card === nextUnlock));
 }
 
 function featureEntryOf(card: FeatureCard, next: boolean): NavEntry[] {
