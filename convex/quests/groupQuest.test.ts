@@ -2,7 +2,7 @@ import { makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import crons from "../crons";
@@ -472,6 +472,20 @@ describe("GB23 P85: a group reward's crate waits for its member and opens once",
     expect(await t.run((ctx) => ctx.db.query("crateOpenings").collect())).toHaveLength(1);
     expect(await t.run((ctx) => ctx.db.query("pendingCrates").collect())).toEqual([members.U_A2!, members.U_A3!].map((member) => expect.objectContaining({ member, key })));
     expect(postHog.productEvents().filter(({ event }) => event === "crate opened").map(({ properties: { kind, quest } }) => ({ kind, quest }))).toEqual([{ kind: "group", quest: "together-say-why" }]);
+  });
+});
+
+describe("CL6: a group quest's crate drops no hoggie", { timeout: 60_000 }, () => {
+  test("a contributor's group crate opened while collection is on stores no drop and publishes no hoggieDropped", async () => {
+    const { t, members, groups } = await antsOfFiveDrew();
+    await flagsFromPostHog(t, postHog, ...[...everyFlag, "collection"].map(onForEveryone));
+    for (const [giver, recipient] of [["U_A1", "U_A2"], ["U_A2", "U_A3"], ["U_A3", "U_A1"]] as const) await gives(t, members[giver]!, members[recipient]!, tuesday);
+
+    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, { kind: "group", group: groups.Ants!, week: thisWeek }))).toBe("done");
+    await settle(t);
+
+    expect(await t.run((ctx) => ctx.db.query("drops").collect())).toEqual([]);
+    expect(postHog.productEvents().filter(({ event }) => event === "hoggie dropped")).toEqual([]);
   });
 });
 
