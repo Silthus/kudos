@@ -38,4 +38,16 @@ describe("SW11: one function builds every website link", () => {
   ])("a listed page links to SITE_URL plus its route: $link", async ({ page, link }) => {
     expect(await linkTo(page)).toBe(link);
   });
+
+  test.each<{ page: Page; link: string }>([
+    { page: { page: "skillTree", perk: "spark" }, link: `${siteUrl}/skills?perk=spark` },
+    { page: { page: "skillTree", crate: "skillTree" }, link: `${siteUrl}/skills?crate=skillTree` },
+    { page: { page: "quests", crate: "quests" }, link: `${siteUrl}/quests?crate=quests` },
+    { page: { page: "leaderboard", period: "week", crate: "leaderboard" }, link: `${siteUrl}/leaderboard?crate=leaderboard` },
+    { page: { page: "leaderboard", period: "month", crate: "leaderboard" }, link: `${siteUrl}/leaderboard?period=month&crate=leaderboard` },
+    { page: { page: "book", crate: "book" }, link: `${siteUrl}/book?crate=book` },
+    { page: { page: "home", crate: "journey" }, link: `${siteUrl}/?crate=journey` },
+  ])("#435: a link to a perk or a ready crate carries its target: $link", async ({ page, link }) => {
+    expect(await linkTo(page)).toBe(link);
+  });
 });

@@ -1,21 +1,24 @@
 import { v, type Infer } from "convex/values";
 import { internalQuery, type QueryCtx } from "../_generated/server";
 import { periodValidator } from "../leaderboard/periods";
+import { perkValidator } from "../progression/tree";
 import { signInWorkspace } from "../slack/signIn";
 import type { Feature } from "../unlocks/feature";
 import { scheduled } from "../unlocks/schedule";
 import { lookup, type MemberId } from "../workspace/directory";
 import { websiteOpen, websiteOpenTo } from "./flag";
-import { listedPageOf, signInEntry, urlOf, type Page } from "./routes";
+import { crateTargetValidator, listedPageOf, signInEntry, urlOf, type Page } from "./routes";
 import { openFeaturesOf } from "./unlockPath";
 
+const crate = v.optional(crateTargetValidator);
+
 export const pageValidator = v.union(
-  v.object({ page: v.literal("home") }),
-  v.object({ page: v.literal("leaderboard"), period: periodValidator }),
-  v.object({ page: v.literal("quests"), quest: v.optional(v.number()) }),
-  v.object({ page: v.literal("skillTree") }),
-  v.object({ page: v.literal("book") }),
-  v.object({ page: v.literal("bookEarned") }),
+  v.object({ page: v.literal("home"), crate }),
+  v.object({ page: v.literal("leaderboard"), period: periodValidator, crate }),
+  v.object({ page: v.literal("quests"), quest: v.optional(v.number()), crate }),
+  v.object({ page: v.literal("skillTree"), perk: v.optional(perkValidator), crate }),
+  v.object({ page: v.literal("book"), crate }),
+  v.object({ page: v.literal("bookEarned"), crate }),
 );
 
 const frontDoorLinksValidator = v.object({ origin: v.string(), pages: v.array(v.object({ label: v.string(), url: v.string() })) });

@@ -15,7 +15,7 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
 
   The bands and the metals are each defined once as tokens with light and dark values. There are no rarity colours.
 - **V4. Primary marks one thing:** the next action, the selection, or "you". Progress bars, owned items and counters are neutral.
-- **V5. RoundHog is for display only.** That covers the wordmark, page titles, the level number, moment headlines, and the one big stat on a hero or moment. Everything else is Inter, and numbers in tables use tabular figures.
+- **V5. RoundHog sets every word**, the way posthog.com does, at the brand's four weights: Regular 400 for body text, Medium 500 for emphasis such as the current nav entry, SemiBold 700 for headings and the one big stat on a hero or moment, and Bold 800 for page titles and moment headlines. Display type (the wordmark, page titles, the level number, moment headlines, the big stat) is tracked at −0.025em; everything else at its natural spacing. Panel labels are 11 px, 700, uppercase, tracked at 0.08em. Numbers in tables use tabular figures. The only other face is the monospace stack, for code, paths and keyboard hints.
 
 ## Light and dark
 
