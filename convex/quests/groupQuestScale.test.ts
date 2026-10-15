@@ -1,6 +1,7 @@
 import { makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakeSlack } from "../../testing/fakeSlack";
+import type { FakePostHog } from "../../testing/fakePostHog";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import crons from "../crons";
@@ -13,10 +14,12 @@ const memberCount = 1_500;
 const groupCount = 60;
 const seededPerTransaction = 100;
 
+let postHog: FakePostHog;
+
 beforeEach(() => {
   vi.useFakeTimers({ now: lastTuesday });
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
-  flagsOnForEveryone(new FakeSlack().fetch, "xp-levels", "unlocks", "quests", "groups", "group-quest");
+  postHog = flagsOnForEveryone(new FakeSlack().fetch, "xp-levels", "unlocks", "quests", "groups", "group-quest");
   for (const level of ["log", "info", "warn", "error", "debug"] as const) vi.spyOn(console, level).mockImplementation(() => {});
 });
 
@@ -31,7 +34,7 @@ describe("GB35: the group quest draw stays within Convex's limits per mutation",
   test("in a workspace of 1,500 members in 60 groups who all opened Quests, the Monday sweep draws 60 group quests with under 1,000 scheduled functions", { timeout: 600_000 }, async () => {
     const t = await flagsLoaded(testBackend({ transactionLimits: true }));
     await unlocksShippedBeforeAnyoneJoined(t);
-    await workspaceOfGroupsWhoOpenedQuests(t);
+    await workspaceOfGroupsWhoOpenedQuests(t, groupCount);
 
     vi.setSystemTime(mondaySweep);
     await t.mutation(sweepJob(), {});
@@ -42,9 +45,23 @@ describe("GB35: the group quest draw stays within Convex's limits per mutation",
     expect(new Set(drawn.map(({ participants }) => participants.length))).toEqual(new Set([memberCount / groupCount]));
     expect(await t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").take(1_000)).length)).toBeLessThan(1_000);
   });
+
+  test("a single group of 1,500 participants draws its quest and records quest drawn for every participant", { timeout: 600_000 }, async () => {
+    const t = await flagsLoaded(testBackend({ transactionLimits: true }));
+    await unlocksShippedBeforeAnyoneJoined(t);
+    await workspaceOfGroupsWhoOpenedQuests(t, 1);
+
+    vi.setSystemTime(mondaySweep);
+    await t.mutation(sweepJob(), {});
+    await settle(t);
+
+    const drawn = await t.run((ctx) => ctx.db.query("groupQuests").take(2));
+    expect(drawn.map(({ participants, target }) => ({ participants: participants.length, target }))).toEqual([{ participants: memberCount, target: 3 }]);
+    expect(postHog.productEvents().filter((event) => event.event === "quest drawn" && event.properties.kind === "group")).toHaveLength(memberCount);
+  });
 });
 
-async function workspaceOfGroupsWhoOpenedQuests(t: Backend) {
+async function workspaceOfGroupsWhoOpenedQuests(t: Backend, groupCount: number) {
   const groups = await t.run(async (ctx) => {
     const groups: GroupId[] = [];
     for (let index = 0; index < groupCount; index += 1) {

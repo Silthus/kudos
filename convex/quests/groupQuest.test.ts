@@ -7,6 +7,8 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import crons from "../crons";
 import type { GroupId } from "../groups/groups";
+import { pickPrimaryGroup } from "../groups/pick";
+import { reconcileMember } from "../groups/reconcile";
 import { keepOpen } from "../unlocks/unlocks";
 import type { MemberId } from "../workspace/directory";
 
@@ -88,6 +90,17 @@ describe("GB21 GB22: at Monday 00:00 UTC, the hourly sweep draws one group quest
     for (const user of ["U_LATE", "U_S1", "U_NEW"]) expect(await groupQuestOf(t, members[user]!)).toBeNull();
   });
 
+  test("a member deactivated on Tuesday, before the week's first sweep, stays one of Monday's participants, so the target stays 3", async () => {
+    const { t, members } = await workspace({ Ants: ["U_A1", "U_A2", "U_A3", "U_A4"] });
+    await openQuests(t, Object.values(members), lastTuesday);
+    await launched(t);
+    await deactivated(t, members.U_A4!, tuesday);
+
+    await sweepAt(t, tuesday + hourMs);
+
+    expect((await groupQuestsOf(t)).map(({ participants, target }) => ({ participants, target }))).toEqual([{ participants: ["U_A1", "U_A2", "U_A3", "U_A4"].map((user) => members[user]), target: 3 }]);
+  });
+
   test("a member in Pacific/Auckland is a participant of the group week that starts at Monday 00:00 UTC", async () => {
     const { t, members } = await workspace({ Ants: ["U_A1", "U_A2"] }, { timeZones: { U_A1: auckland } });
     await openQuests(t, Object.values(members), lastTuesday);
@@ -156,6 +169,22 @@ describe("GB22: the week's group quest is drawn deterministically among the feas
     expect(drawn).toHaveLength(12);
     expect(new Set(drawn.map(({ quest }) => quest))).toEqual(new Set(["together-say-why"]));
     expect(new Set(drawn.map(({ feasibleBecause }) => feasibleBecause.membersOutside))).toEqual(new Set([0]));
+  });
+
+  test("a group that holds every member's primary group when the draw runs never draws together-reach-out, even when one of them was outside it at Monday 00:00, in 12 weeks", async () => {
+    const { t, members, groups } = await workspace({ Ants: ["U_A1", "U_A2", "U_A3", "U_SWITCH"], Bees: ["U_SWITCH"] });
+    await openQuests(t, Object.values(members), lastTuesday);
+    await launched(t);
+
+    for (let week = 0; week < 12; week += 1) {
+      await picks(t, members.U_SWITCH!, groups.Bees!, monday + week * weekMs - minuteMs);
+      await picks(t, members.U_SWITCH!, groups.Ants!, monday + week * weekMs + 5 * minuteMs);
+      await sweepAt(t, monday + week * weekMs + 10 * minuteMs);
+    }
+
+    const drawn = await groupQuestsOf(t);
+    expect(drawn.map(({ group }) => group)).toEqual(Array.from({ length: 12 }, () => groups.Ants));
+    expect(new Set(drawn.map(({ quest }) => quest))).toEqual(new Set(["together-say-why"]));
   });
 
   test("a group with a member outside it draws both quests over 12 weeks, and another backend draws the same quest for the same group and week", async () => {
@@ -255,7 +284,7 @@ async function workspace(groupsByName: Groups, { timeZones = {}, groupless = [] 
       const group = `S_${name.toUpperCase()}`;
       groups[name] = await ctx.db.insert("userGroups", { workspace: "T1", group, handle: name.toLowerCase(), name, enabled: true, automatic: false, members: users.length, asOf: at, membersAsOf: at, changedAt: at });
       for (const user of users) {
-        members[user] = await ctx.db.insert("members", { workspace: "T1", user, kind: "member", timeZone: timeZones[user], asOf: at });
+        members[user] ??= await ctx.db.insert("members", { workspace: "T1", user, kind: "member", timeZone: timeZones[user], asOf: at });
         await ctx.db.insert("userGroupMembers", { workspace: "T1", group, user });
       }
     }
@@ -272,6 +301,21 @@ async function joins(t: Backend, user: string, group: string, at: number) {
   vi.setSystemTime(at);
   await t.run((ctx) => ctx.db.insert("userGroupMembers", { workspace: "T1", group, user }));
   await t.mutation(internal.groups.reconcile.reconcileUsers, { workspace: "T1", users: [user], cause: { at, groups: [group] } });
+  await settle(t);
+}
+
+async function deactivated(t: Backend, member: MemberId, at: number) {
+  vi.setSystemTime(at);
+  await t.run(async (ctx) => {
+    await ctx.db.patch(member, { kind: "not-a-member" });
+    await reconcileMember(ctx, member, at);
+  });
+  await settle(t);
+}
+
+async function picks(t: Backend, member: MemberId, group: GroupId, at: number) {
+  vi.setSystemTime(at);
+  await t.run((ctx) => pickPrimaryGroup(ctx, member, group));
   await settle(t);
 }
 

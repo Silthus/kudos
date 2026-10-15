@@ -371,8 +371,6 @@ export default defineSchema({
     drawnAt: v.number(),
   }).index("by_group_week", ["group", "week"]),
 
-  groupQuestParticipants: defineTable({ member: v.id("members"), week: v.string(), group: v.id("userGroups") }).index("by_member_week", ["member", "week"]),
-
   crateOpenings: defineTable(crateOpeningValidator).index("by_member_key", ["member", "key"]),
 
   pendingCrates: defineTable(pendingCrateValidator).index("by_member_key", ["member", "key"]),
