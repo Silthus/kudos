@@ -74,7 +74,7 @@ describe("WS348: a quest paying coins shows the coin glyph and value wherever it
   it("shows a Journey step's coins on its line and on its crate's label", () => {
     renderApp({ ...shellFixtures.memberWithQuests, journey: [bonusSteps.yourEmoji, { ...yourEmojiFinished, step: "two-days", goal: "Say why on 2 different days." }] });
 
-    expect(journeyStepOf("Give a kudos that says why with one of your kudos emoji.")).toHaveTextContent("Pays 40 XP and 20 coins");
+    expect(journeyStepOf("Give a kudos that says why with one of your kudos emoji.")).toHaveTextContent("Pays 40 XP · 20 coins");
     expect(within(journeyStepOf("Say why on 2 different days.")).getByText(/^Journey reward · 40 XP/)).toHaveTextContent("Journey reward · 40 XP · 20 coins");
     expect(coinsIn(journeyStepOf("Say why on 2 different days."))).toEqual([{ text: "20 coins", glyph: true }]);
   });

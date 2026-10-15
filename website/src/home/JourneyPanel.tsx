@@ -33,7 +33,7 @@ function StepItem(step: JourneyStep) {
             {`Pays ${reward.xp} XP`}
             {reward.coins !== undefined && (
               <>
-                {" and "}
+                {" · "}
                 <Coins coins={reward.coins} />
               </>
             )}
