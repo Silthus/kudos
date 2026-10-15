@@ -12,7 +12,7 @@ import { CrateRewardFlight } from "./CrateRewardFlight";
 import type { Drop } from "./drops";
 import { attemptMessages, useMoments, type Flight, type Reveal } from "./moments";
 import { rewardLabelOf, type QuestCrate, type ReadyCrate } from "./readyCrates";
-import type { Reward, RewardKind } from "./rewards";
+import { listedRewardOf, type Reward, type RewardKind } from "./rewards";
 import { flyingKindsOf, RewardChips, TokenStage, tokensOf, type Stage, type TokenKind } from "./RewardTokens";
 
 export const crateChargesForMs = 700;
@@ -35,10 +35,9 @@ type RevealDialogProps = Reveal & {
   onClose: Close;
   onSetOut: (crate: ReadyCrate) => void;
   onRewardLanded: (crate: ReadyCrate, kind: RewardKind) => void;
-  onLanded: (crate: ReadyCrate) => void;
 };
 
-export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, questsOpen, othersReady, flying, shown, onFinish, onClose, onSetOut, onRewardLanded, onLanded }: RevealDialogProps) {
+export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, questsOpen, othersReady, flying, shown, onFinish, onClose, onSetOut, onRewardLanded }: RevealDialogProps) {
   const labelId = useId();
   const dialog = useRef<HTMLDivElement>(null);
   const [reducedMotion] = useState(prefersReducedMotion);
@@ -59,10 +58,6 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
     const timer = setTimeout(() => setPhase(phase === "charging" ? "bursting" : onStage !== undefined && flies ? "flying" : "ended"), phase === "charging" ? crateChargesForMs : burstPlaysForMs);
     return () => clearTimeout(timer);
   }, [phase, onStage, flies]);
-
-  useEffect(() => {
-    if (phase === "flying" && onStage === undefined) setPhase("ended");
-  }, [phase, onStage]);
 
   useEffect(() => {
     if (phase !== "charging") onSetOut(crate);
@@ -94,7 +89,10 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
 
   const onRewardTaken = useCallback((kind: RewardKind) => setFlown((taken) => (taken.includes(kind) ? taken : [...taken, kind])), []);
   const landed = useCallback((kind: RewardKind) => !rehearsing && onRewardLanded(crate, kind), [rehearsing, crate, onRewardLanded]);
-  const land = useCallback(() => (rehearsing ? setRehearsing(false) : onLanded(crate)), [rehearsing, crate, onLanded]);
+  const land = useCallback(() => {
+    setRehearsing(false);
+    setPhase("ended");
+  }, []);
 
   return (
     <div
@@ -118,7 +116,7 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
           <CrateArt phase={playing ? "opening" : "open"} width={220} Hog={hogOf(crate.kind === "feature" ? crate.card.feature : "quests")} />
         </div>
         {onStage !== undefined && (phase === "flying" || phase === "ended") && (
-          <CrateRewardFlight key={rehearsing ? "rehearsal" : "flight"} reward={onStage.reward} shown={shown} landAtOnce={phase === "ended"} rehearsal={rehearsing} onRewardTaken={onRewardTaken} onRewardLanded={landed} onLanded={land} />
+          <CrateRewardFlight key={rehearsing ? "rehearsal" : "flight"} reward={onStage.reward} shown={shown} landAtOnce={phase === "ended"} rehearsal={rehearsing || onStage.flight.climb === null} onRewardTaken={onRewardTaken} onRewardLanded={landed} onLanded={land} />
         )}
         {!playing && crate.kind === "feature" && <EndState key={shownAt} card={crate.card} chips={<RewardChips tokens={tokens} />} chatUrl={chatUrl} othersReady={othersReady} onClose={onClose} onReplay={replay} />}
         {!playing && crate.kind === "quest" && <RewardEndState key={shownAt} crate={crate} chips={<RewardChips tokens={tokens} />} offerQuests={questsOpen && !fromQuests} onClose={onClose} onReplay={replay} />}
@@ -139,12 +137,7 @@ function rehearsalOf(crate: ReadyCrate, reward: Reward): Flying {
 function useRewardOnStage(flying: Flying | undefined, crate: ReadyCrate) {
   const charted = useRef<Reward>(undefined);
   if (flying !== undefined) charted.current = flying.reward;
-  return charted.current ?? rewardOf(crate);
-}
-
-function rewardOf(crate: ReadyCrate): Reward {
-  if (crate.kind === "feature") return { xp: 0, skillPoints: 0, coins: 0 };
-  return { xp: crate.reward.xp, skillPoints: 0, coins: crate.reward.coins ?? 0 };
+  return charted.current ?? listedRewardOf(crate);
 }
 
 function useHeadroom(): CSSProperties | undefined {

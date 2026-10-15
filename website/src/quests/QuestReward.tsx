@@ -2,6 +2,10 @@ import type { QuestReward } from "../shell";
 import { CoinGlyph } from "../skills/glyphs";
 import { coinsText } from "../skills/perkWords";
 
+export function xpLineOf({ xp }: QuestReward, waiting: boolean) {
+  return waiting ? `+${xp} XP waiting` : `+${xp} XP`;
+}
+
 export function rewardWords({ xp, coins }: QuestReward) {
   return coins === undefined ? `${xp} XP` : `${xp} XP and ${coinsText(coins)}`;
 }
