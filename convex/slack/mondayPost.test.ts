@@ -153,6 +153,33 @@ describe("GB28: the Monday post goes out every Monday at 9:00 in the admin's tim
     expect(mondayPostLinesOf(publishedHome(slack, "U_ALICE"))).toContain("section: I post it at 9:00 in this time zone. [select: America/New York]");
     expect(mondayPostTimes()).toEqual([Date.parse("2026-10-19T13:00:00Z")]);
   });
+  test("an admin who picks another time zone after this week's post gets next week's post at 9:00 there", async () => {
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    await click(t, "U_ALICE", "Switch on");
+    await giveKudosInWeek(t);
+    await settleUpTo(t, Date.parse("2026-10-19T08:00:00Z"));
+
+    await interact(t, "U_ALICE", menuOptionInHome(slack, "U_ALICE", "I post it at 9:00 in this time zone.", "America/New York"));
+    await giveKudosInWeek(t);
+    await settleUpTo(t, Date.parse("2026-10-26T13:00:00Z"));
+
+    expect(mondayPostTimes()).toEqual([Date.parse("2026-10-19T07:00:00Z"), Date.parse("2026-10-26T13:00:00Z")]);
+  });
+
+  test("a job that runs before 9:00 on Monday posts nothing, and the post goes out at 9:00", async () => {
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    await click(t, "U_ALICE", "Switch on");
+    await giveKudosInWeek(t);
+    await settleUpTo(t, Date.parse("2026-10-19T06:00:00Z"));
+
+    await t.action(internal.slack.mondayPost.postMondayPost, { workspace: "T1", generation: await generationOf(t) });
+    expect(mondayPosts()).toEqual([]);
+
+    await settleUpTo(t, Date.parse("2026-10-19T07:00:00Z"));
+    expect(mondayPostTimes()).toEqual([Date.parse("2026-10-19T07:00:00Z")]);
+  });
 });
 
 describe("GB28: the Monday post goes out at most once a week", { timeout: slackBoundaryTimeoutMs }, () => {

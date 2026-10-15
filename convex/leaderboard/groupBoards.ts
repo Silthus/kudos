@@ -39,7 +39,7 @@ async function groupsBoardReadOf(ctx: QueryCtx, workspace: string, viewer: strin
   const today = allowanceDay(Date.now(), person.timeZone);
   const compared = comparedOn(period, today);
   const viewerGroup = (await memberGroupsOf(ctx, person.member))?.primary ?? null;
-  const groups = await Promise.all((await countingGroupsWithPrimaryMembersIn(ctx, workspace)).map((group) => groupReadOf(ctx, group, compared, viewerGroup)));
+  const groups = await Promise.all((await countingGroupsWithPrimaryMembersIn(ctx, workspace)).map((group) => groupReadOf(ctx, group, compared, group.group === viewerGroup)));
   const best = period === "all" || viewerGroup === null ? null : await bestCompletedPeriod(ctx, viewerGroup, period, today);
   const board = groupsBoard({ period, viewerGroup, best, groups: groups.map(({ facts }) => facts) });
   const viewersGroup = groups.find(({ facts }) => facts.group === viewerGroup)?.kudos;
@@ -47,7 +47,7 @@ async function groupsBoardReadOf(ctx: QueryCtx, workspace: string, viewer: strin
 }
 
 export async function workspaceGroupsBoardOf(ctx: QueryCtx, workspace: string, compared: Compared): Promise<GroupsBoard<GroupId>> {
-  const groups = await Promise.all((await countingGroupsWithPrimaryMembersIn(ctx, workspace)).map((group) => groupReadOf(ctx, group, compared, null)));
+  const groups = await Promise.all((await countingGroupsWithPrimaryMembersIn(ctx, workspace)).map((group) => groupReadOf(ctx, group, compared, true)));
   return groupsBoard({ period: "week", viewerGroup: null, best: null, groups: groups.map(({ facts }) => facts) });
 }
 
@@ -68,8 +68,8 @@ async function countingGroupsWithPrimaryMembersIn(ctx: QueryCtx, workspace: stri
   return groups;
 }
 
-async function groupReadOf(ctx: QueryCtx, { group, name, members }: GroupMembers, compared: Compared, viewerGroup: GroupId | null): Promise<GroupRead> {
-  const memberTotals = group === viewerGroup ? await groupMemberTotalsOf(ctx, group, members, compared) : await Promise.all(members.map((member) => memberTotalsOf(ctx, member, group, compared)));
+async function groupReadOf(ctx: QueryCtx, { group, name, members }: GroupMembers, compared: Compared, readsWholeGroup: boolean): Promise<GroupRead> {
+  const memberTotals = readsWholeGroup ? await groupMemberTotalsOf(ctx, group, members, compared) : await Promise.all(members.map((member) => memberTotalsOf(ctx, member, group, compared)));
   return { facts: await factsOf(ctx, { group, name, members }, memberTotals, compared), kudos: { group: { group, name }, members: memberTotals } };
 }
 

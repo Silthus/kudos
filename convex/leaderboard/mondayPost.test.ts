@@ -9,7 +9,6 @@ const mondayAtNine = new Date("2026-10-19T09:00:00Z");
 const lastWeek = "week:2026-10-12";
 const weekBefore = "week:2026-10-05";
 const groups = 60;
-const membersPerGroup = 25;
 
 let postHog: FakePostHog;
 
@@ -27,23 +26,36 @@ afterEach(() => {
 describe("GB35: the Monday post at scale", () => {
   test("1,500 members in 60 groups who all gave last week and the week before: claiming the week reads last week's top groups and givers within Convex's transaction limits", async () => {
     const t = await flagsLoaded(testBackend({ transactionLimits: true }));
-    await sixtyGroupsWhoGaveForTwoWeeks(t);
+    await sixtyGroupsWhoGaveForTwoWeeks(t, 25);
 
     const claimed = await t.mutation(internal.leaderboard.mondayPost.claimWeek, { workspace: "T1", generation: 1 });
 
-    expect(claimed?.post).toEqual({
-      groups: [
-        { rank: 1, name: "Group 04", perMember: 5 },
-        { rank: 1, name: "Group 09", perMember: 5 },
-        { rank: 1, name: "Group 14", perMember: 5 },
-      ],
-      mostImproved: "Group 04",
-      givers: 1_500,
-    });
+    expect(claimed?.post).toEqual(topGroupsPostedWith(1_500));
   }, 300_000);
+
+  test("4,200 members in 60 groups: claiming the week reads one range per group's week, never one per member, within Convex's transaction limits", async () => {
+    const t = await flagsLoaded(testBackend({ transactionLimits: true }));
+    await sixtyGroupsWhoGaveForTwoWeeks(t, 70);
+
+    const claimed = await t.mutation(internal.leaderboard.mondayPost.claimWeek, { workspace: "T1", generation: 1 });
+
+    expect(claimed?.post).toEqual(topGroupsPostedWith(4_200));
+  }, 600_000);
 });
 
-async function sixtyGroupsWhoGaveForTwoWeeks(t: Backend) {
+function topGroupsPostedWith(givers: number) {
+  return {
+    groups: [
+      { rank: 1, name: "Group 04", perMember: 5 },
+      { rank: 1, name: "Group 09", perMember: 5 },
+      { rank: 1, name: "Group 14", perMember: 5 },
+    ],
+    mostImproved: "Group 04",
+    givers,
+  };
+}
+
+async function sixtyGroupsWhoGaveForTwoWeeks(t: Backend, membersPerGroup: number) {
   await t.run(async (ctx) => {
     await ctx.db.insert("workspaces", { workspace: "T1", announcementChannel: "C_ANNOUNCE" });
     await ctx.db.insert("mondayPostSettings", { workspace: "T1", on: true, timeZone: "UTC", generation: 1 });

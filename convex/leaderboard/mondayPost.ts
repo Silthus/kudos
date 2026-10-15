@@ -61,9 +61,9 @@ export const claimWeek = internalMutation({
   handler: async (ctx, { workspace, generation }): Promise<ClaimedWeek | null> => {
     const settings = await settingsRow(ctx, workspace);
     if (settings === null || !settings.on || settings.generation !== generation) return null;
-    const thisMonday = weekOf(allowanceDay(Date.now(), settings.timeZone)).monday;
-    if ((await claimOf(ctx, workspace, thisMonday)) !== null) return null;
     await scheduleNextPost(ctx, settings);
+    const thisMonday = weekOf(allowanceDay(Date.now(), settings.timeZone)).monday;
+    if (Date.now() < postingTimeOf(thisMonday, settings.timeZone) || (await claimOf(ctx, workspace, thisMonday)) !== null) return null;
     const channel = await postableChannelIn(ctx, workspace);
     if (channel === null) return null;
     const post = await lastWeeksPostOf(ctx, workspace, thisMonday);
@@ -84,8 +84,12 @@ export const recordOutcome = internalMutation({
 
 function nextPostAfter(at: number, timeZone: string): number {
   const thisMonday = weekOf(allowanceDay(at, timeZone)).monday;
-  const thisWeeks = wallClockAt(thisMonday, postedAtHour, timeZone);
-  return thisWeeks > at ? thisWeeks : wallClockAt(dayAfter(thisMonday, 7), postedAtHour, timeZone);
+  const thisWeeks = postingTimeOf(thisMonday, timeZone);
+  return thisWeeks > at ? thisWeeks : postingTimeOf(dayAfter(thisMonday, 7), timeZone);
+}
+
+function postingTimeOf(monday: DayKey, timeZone: string) {
+  return wallClockAt(monday, postedAtHour, timeZone);
 }
 
 async function setsMondayPost(ctx: MutationCtx, { member, admin }: Admin) {
