@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
-import { FakeSlack, rateLimitedFor } from "../../testing/fakeSlack";
+import { FakeSlack, isWelcome, rateLimitedFor } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, publishedHome, publishedHomeBlocks, type BlockAction } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -304,6 +304,16 @@ describe("QM21: the footer says where to change what I send you", () => {
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(ephemeralsTo("U_ALICE")).toEqual([`${givenToBob} You have 9 kudos left today.\n+10 XP\n${footer}`]);
+  });
+
+  test("the welcome a first kudos sends has no footer", async () => {
+    const t = await workspaceWith([messageSettings, "xp-levels"]);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    const welcomes = slack.callsTo("chat.postMessage").filter(isWelcome);
+    expect(welcomes).not.toEqual([]);
+    expect(welcomes.map(({ text }) => String(text)).filter((text) => text.includes("Change what I send you"))).toEqual([]);
   });
 
   test.each(queuedDms)("a %s DM ends with the footer", async (_, __, notification) => {
