@@ -14,6 +14,12 @@ beforeEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
+function showInventory(member: MemberProfile) {
+  const rendered = renderApp(member);
+  fireEvent.click(within(screen.getByRole("main")).getByRole("button", { name: "Inventory" }));
+  return rendered;
+}
+
 function inventory() {
   return within(screen.getByRole("main")).getByRole("region", { name: "Inventory" });
 }
@@ -36,6 +42,12 @@ function readAloudIn(list: HTMLElement) {
     });
 }
 
+function namesOfTilesIn(list: HTMLElement) {
+  return within(list)
+    .getAllByRole("button")
+    .map((tile) => tile.getAttribute("aria-label"));
+}
+
 function glyphsIn(list: HTMLElement) {
   return within(list)
     .getAllByRole("listitem")
@@ -52,28 +64,28 @@ function coinsChip() {
 
 describe("WS341 ST26: the inventory side of the home's main slot, read only", () => {
   it("holds the kudos emoji section with the slots in use, the owned items with their slots, and the balance", () => {
-    renderApp(memberWithTheInventory);
+    showInventory(memberWithTheInventory);
 
     expect(inventory()).toHaveTextContent("236 coins");
     expect(within(kudosEmoji()).getByRole("heading", { level: 3, name: "Kudos emoji" })).toBeInTheDocument();
     expect(kudosEmoji()).toHaveTextContent("Equipped 2/3");
     expect(kudosEmoji()).toHaveTextContent("Each emoji in a slot counts as a kudos, like :taco:.");
     const yours = within(kudosEmoji()).getByRole("list", { name: "Yours" });
-    expect(readAloudIn(yours)).toEqual(["Hedgehog, in slot 1", "Rocket, in slot 2", "Sunflower"]);
+    expect(namesOfTilesIn(yours)).toEqual(["Take off Hedgehog, in Emoji 1", "Take off Rocket, in Emoji 2", "Wear Sunflower"]);
     expect(glyphsIn(yours)).toEqual(["🦔", "🚀", "🌻"]);
   });
 
   it("lists what isn't yours yet with its price in coins or the silver tier that gives it, and offers no Buy yet", () => {
-    renderApp(memberWithTheInventory);
+    showInventory(memberWithTheInventory);
 
     const notYet = within(kudosEmoji()).getByRole("list", { name: "Not yours yet" });
     expect(readAloudIn(notYet)).toEqual(["Glowing Star100 coins", "Gem100 coins", "RibbonSilver in Generosity"]);
     expect(glyphsIn(notYet)).toEqual(["🌟", "💎", "🎀"]);
-    expect(within(inventory()).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(inventory()).queryByRole("button", { name: /Buy/ })).not.toBeInTheDocument();
   });
 
   it("has no hedgehog section until hedgehogs ship", () => {
-    renderApp(memberWithTheInventory);
+    showInventory(memberWithTheInventory);
 
     expect(within(inventory()).queryByRole("heading", { name: "Hedgehogs" })).not.toBeInTheDocument();
   });
@@ -89,7 +101,7 @@ describe("WS341 ST26: the inventory side of the home's main slot, read only", ()
 
   it.each([false, true])("passes axe with dark mode %s", async (dark) => {
     fakeSystemTheme(dark);
-    renderApp(memberWithTheInventory);
+    showInventory(memberWithTheInventory);
 
     const results = await axe.run(inventory(), { rules: { "color-contrast": { enabled: false } } });
 
@@ -144,8 +156,8 @@ describe("WS339 V24: an equipped tile's slot mark and the coin glyph stay readab
   }
 
   function equippedTile() {
-    renderApp(memberWithTheInventory);
-    return within(within(kudosEmoji()).getByRole("list", { name: "Yours" })).getAllByRole("listitem")[0]!;
+    showInventory(memberWithTheInventory);
+    return within(within(kudosEmoji()).getByRole("list", { name: "Yours" })).getAllByRole("button")[0]!;
   }
 
   describe.each<Mode>(["light", "dark"])("in %s mode", (mode) => {
@@ -158,7 +170,7 @@ describe("WS339 V24: an equipped tile's slot mark and the coin glyph stay readab
     });
 
     it("draws the coin glyph at 3:1 on the panel", () => {
-      renderApp(memberWithTheInventory);
+      showInventory(memberWithTheInventory);
       expect(contrast(mode, tokenOf(within(inventory()).getAllByTestId("coin-glyph")[0]!, "text"), "card")).toBeGreaterThanOrEqual(3);
     });
   });
@@ -171,18 +183,18 @@ describe("WS341 ST36: a custom kudos emoji shows its Slack picture, and its name
   }
 
   it("draws an owned and a for-sale custom emoji as their pictures, named by their names", () => {
-    renderApp(memberWithCustomEmoji);
+    showInventory(memberWithCustomEmoji);
 
     const owned = itemNamed("Yours", ":partyparrot:");
     expect(owned.querySelector("img")).toHaveAttribute("src", "https://emoji.slack-edge.com/T1/partyparrot/a1b2.png");
     expect(owned.querySelector("img")).toHaveAttribute("alt", ":partyparrot:");
     expect(within(owned).queryByRole("img")).toBeNull();
-    expect(readAloudIn(within(kudosEmoji()).getByRole("list", { name: "Yours" }))).toEqual(["Hedgehog, in slot 1", ":partyparrot:, in slot 2"]);
+    expect(namesOfTilesIn(within(kudosEmoji()).getByRole("list", { name: "Yours" }))).toEqual(["Take off Hedgehog, in Emoji 1", "Take off :partyparrot:, in Emoji 2"]);
     expect(itemNamed("Not yours yet", ":shipit:").querySelector("img")).toHaveAttribute("alt", ":shipit:");
   });
 
   it("dims a for-sale picture but never its fallback name, which stays inside its row", () => {
-    renderApp(memberWithCustomEmoji);
+    showInventory(memberWithCustomEmoji);
 
     const forSale = itemNamed("Not yours yet", ":shipit:");
     expect(forSale.querySelector("img")).toHaveClass("opacity-60");
@@ -195,19 +207,19 @@ describe("WS341 ST36: a custom kudos emoji shows its Slack picture, and its name
   });
 
   it("shows the name chip in the picture's place once the picture fails to load", () => {
-    renderApp(memberWithCustomEmoji);
+    showInventory(memberWithCustomEmoji);
 
     const owned = itemNamed("Yours", ":partyparrot:");
     fireEvent.error(owned.querySelector("img")!);
 
     expect(owned.querySelector("img")).toBeNull();
     expect(owned.querySelector("[data-custom-emoji]")).toHaveTextContent(":partyparrot:");
-    expect(readAloudIn(within(kudosEmoji()).getByRole("list", { name: "Yours" }))).toEqual(["Hedgehog, in slot 1", ":partyparrot:, in slot 2"]);
+    expect(namesOfTilesIn(within(kudosEmoji()).getByRole("list", { name: "Yours" }))).toEqual(["Take off Hedgehog, in Emoji 1", "Take off :partyparrot:, in Emoji 2"]);
   });
 
   it.each([false, true])("passes axe with dark mode %s", async (dark) => {
     fakeSystemTheme(dark);
-    renderApp(memberWithCustomEmoji);
+    showInventory(memberWithCustomEmoji);
 
     const results = await axe.run(inventory(), { rules: { "color-contrast": { enabled: false } } });
 

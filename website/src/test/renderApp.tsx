@@ -35,7 +35,7 @@ const noSettings: SettingsRead = (asking) => (asking ? { kind: "not-found" } : u
 
 const noProfileCard: ProfileCardRead = (asking) => (asking ? { kind: "not-found" } : undefined);
 
-type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate" | "buyPerk" | "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "swapQuest">>;
+type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate" | "buyPerk" | "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "swapQuest" | "equip" | "takeOff">>;
 
 export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBoard, commands: Commands = {}, readQuests: QuestsRead = noQuests, readBook: BookRead = noBook, readSkillTree: SkillTreeRead = noSkillTree, readProfileCard: ProfileCardRead = noProfileCard, readRecentKudos: RecentKudosRead = noRecentKudos, activity: ActivityReads = noActivity, drawSpotlight: SpotlightDraw = noSpotlight, readSettings: SettingsRead = noSettings) {
   const actions = { signIn: vi.fn(), signOut: vi.fn(), openFeature: vi.fn(commands.openFeature ?? (async () => ({ kind: "refused" }) as const)),
@@ -45,6 +45,8 @@ export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBo
     setMessageSetting: vi.fn(commands.setMessageSetting ?? (async () => ({ kind: "refused" }) as const)),
     pickPrimaryGroup: vi.fn(commands.pickPrimaryGroup ?? (async () => ({ kind: "refused" }) as const)),
     swapQuest: vi.fn(commands.swapQuest ?? (async () => ({ kind: "refused" }) as const)),
+    equip: vi.fn(commands.equip ?? (async () => ({ kind: "refused" }) as const)),
+    takeOff: vi.fn(commands.takeOff ?? (async () => ({ kind: "refused" }) as const)),
   };
   const user = userEvent.setup();
   const appFor = (state: ShellState) => (

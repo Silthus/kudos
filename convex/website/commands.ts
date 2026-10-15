@@ -7,6 +7,9 @@ import { messageKindValidator, messagePlaceValidator, type MessageKind, type Mes
 import { kindAppliesTo, placeOf, placesOf } from "../messageSettings/messageSettings";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
+import { loadoutOf } from "../store/inventory";
+import { slotValidator, type Slot } from "../store/rows";
+import { storeVisibleTo } from "../store/visibility";
 import type { Refusal } from "../progression/purchases";
 import type { AppliedReward, StandingWithCoins } from "../progression/rewards";
 import { perkValidator } from "../progression/tree";
@@ -40,6 +43,8 @@ export type VisibilityAnswer = { kind: "set"; visible: boolean } | { kind: "refu
 export type MessageSettingAnswer = { kind: "set"; place: MessagePlace } | { kind: "refused" };
 
 export type GroupPickAnswer = { kind: "picked"; group: string } | { kind: "refused" };
+
+export type LoadoutAnswer = { kind: "equipped"; slot: Slot; item: string } | { kind: "takenOff"; slot: Slot } | { kind: "refused" };
 
 const opened: CommandAnswer = { kind: "opened" };
 const refused = { kind: "refused" } as const;
@@ -117,6 +122,34 @@ export const setBoardVisibility = memberMutation({
   },
 });
 
+export const equip = memberMutation({
+  args: { item: v.string(), slot: slotValidator },
+  handler: async (ctx, me, person, { item, slot }): Promise<LoadoutAnswer> => {
+    if (!(await inventoryOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
+    const held = await itemIn(ctx, me, slot);
+    await runCommand(ctx, me.workspace, person, { type: "equip", item, slot }, `website:equip:${me.member}:${slot}`);
+    if ((await itemIn(ctx, me, slot)) !== item) return refused;
+    if (held !== item) await republish(ctx, me.member);
+    return { kind: "equipped", slot, item };
+  },
+});
+
+export const takeOff = memberMutation({
+  args: { slot: slotValidator },
+  handler: async (ctx, me, person, { slot }): Promise<LoadoutAnswer> => {
+    if (!(await inventoryOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
+    const held = await itemIn(ctx, me, slot);
+    await runCommand(ctx, me.workspace, person, { type: "takeOff", slot }, `website:takeOff:${me.member}:${slot}`);
+    if ((await itemIn(ctx, me, slot)) !== null) return refused;
+    if (held !== null) await republish(ctx, me.member);
+    return { kind: "takenOff", slot };
+  },
+});
+
+async function itemIn(ctx: QueryCtx, me: VerifiedMember, slot: Slot) {
+  return (await loadoutOf(ctx, me.member)).find((each) => each.slot === slot)?.item ?? null;
+}
+
 async function appliedShownTo(ctx: QueryCtx, me: VerifiedMember, applied: AppliedReward | undefined): Promise<AppliedReward | null> {
   if (applied === undefined) return null;
   const coinsShown = await coinsVisibleTo(ctx, me.member);
@@ -162,6 +195,10 @@ function isUuid(request: string) {
 
 async function treeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
   return featurePageOf(await unlockPathOf(ctx, me), "skillTree").kind === "open" && (await noLaunchWaitsFor(ctx, me));
+}
+
+async function inventoryOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
+  return (await storeVisibleTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
 }
 
 async function boardOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
