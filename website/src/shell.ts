@@ -161,6 +161,8 @@ const memberWithTheInventory: MemberProfile = {
   inventory: inventoryFixtures.twoEquippedOfThree,
 };
 
+const memberWithCustomEmoji: MemberProfile = { ...memberWithTheInventory, inventory: inventoryFixtures.withCustomEmoji };
+
 const memberWithCoinsBeforeTheStore: MemberProfile = { ...memberWithCoinsOpened, coins: 40 };
 
 const memberAcrossTheSheet: MemberProfile = {
@@ -253,6 +255,7 @@ export const shellFixtures = {
   memberWithCoinsReady,
   memberWithCoinsOpened,
   memberWithTheInventory,
+  memberWithCustomEmoji,
   memberWithCoinsBeforeTheStore,
   memberWithNothingShipped,
   memberWithEveryNavState,
@@ -307,6 +310,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-quests-at-level-2": shellFixtures.memberWithQuestsAtLevel2,
   "member-crossing-into-level-6": shellFixtures.memberCrossingIntoLevel6,
   "member-with-the-inventory": shellFixtures.memberWithTheInventory,
+  "member-with-custom-emoji": shellFixtures.memberWithCustomEmoji,
   error: shellFixtures.error,
 };
 

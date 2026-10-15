@@ -257,9 +257,9 @@ function EndFrame({ headline, chips, go, next, onClose, onReplay, children }: En
   useEffect(() => firstActionIn(end.current)?.focus(), []);
   return (
     <div ref={end} className="moment-end flex w-full flex-col items-center gap-4">
-      <h2 className="hud-display text-[clamp(2rem,8vw,3rem)] font-bold leading-tight text-balance">{headline}</h2>
+      <h2 className="hud-display text-[clamp(2rem,8vw,3rem)] font-extrabold leading-tight text-balance">{headline}</h2>
       {chips}
-      <div className="flex w-full max-w-md flex-col gap-4 rounded-2xl bg-card p-5 text-left text-card-foreground shadow-2xl">
+      <div className="flex w-full max-w-md flex-col gap-4 rounded-lg bg-card p-5 text-left text-card-foreground shadow-2xl">
         {children}
         <div className={`flex flex-wrap items-center gap-2 ${children === undefined ? "" : "border-t pt-4"}`}>
           {go}

@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { Message, Segment } from "../shell";
+import { CustomEmoji, EmojiName } from "../CustomEmoji";
 import { emojiCharacterOf, skinTonedCharacterOf } from "./emoji";
 
 type Words = Extract<Message, { kind: "text" }>;
@@ -66,23 +67,10 @@ function EmojiOf({ segment }: { segment: Emoji }) {
   const tonedCharacter = skinTonedCharacterOf(segment.name);
   if (tonedCharacter !== undefined) return tonedCharacter;
   if (segment.unicode !== undefined) return segment.unicode;
-  if (segment.image !== undefined) return <EmojiPicture key={segment.image} name={segment.name} image={segment.image} />;
-  return emojiCharacterOf(segment.name) ?? <EmojiName name={segment.name} />;
+  if (segment.image !== undefined) return <CustomEmoji key={segment.image} label={`:${segment.name}:`} image={segment.image} className="inline h-[1.2em] w-auto align-[-0.25em]" />;
+  return emojiCharacterOf(segment.name) ?? <EmojiName label={`:${segment.name}:`} />;
 }
 
-function EmojiPicture({ name, image }: { name: string; image: string }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return <EmojiName name={name} />;
-  return <img src={image} alt={`:${name}:`} onError={() => setFailed(true)} className="inline h-[1.2em] w-auto align-[-0.25em]" />;
-}
-
-function EmojiName({ name }: { name: string }) {
-  return (
-    <span data-custom-emoji className="rounded bg-background/60 px-1 text-[0.9em] text-foreground/70">
-      {`:${name}:`}
-    </span>
-  );
-}
 
 function Mention({ children }: { children: string }) {
   return <span className="font-medium">{children}</span>;
