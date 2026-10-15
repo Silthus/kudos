@@ -10,7 +10,7 @@ import { fakeSystemTheme } from "./test/systemTheme";
 const withQuests = shellFixtures.memberWithQuests;
 const thisWeeksCrate = { kind: "weekly", week: "2026-10-12", slot: 1 } as const;
 const journeyCrate = { kind: "journey", step: "first-quest" } as const;
-const finishedStep: JourneyStep = { step: "first-thanks", goal: "Give a kudos that says why.", hint: null, reward: { xp: 10 }, state: "finished", crate: { kind: "journey", step: "first-thanks" }, seen: "77aa01" };
+const finishedStep: JourneyStep = { step: "first-thanks", goal: "Give a kudos that says why.", hint: null, reward: { xp: 10 }, state: "finished", crate: { kind: "journey", step: "first-thanks" }, seen: "77aa01", feature: null };
 const questsLockedWithAFinishedStep: MemberProfile = { ...shellFixtures.memberStartingTheJourney, journey: [finishedStep] };
 
 beforeEach(() => {

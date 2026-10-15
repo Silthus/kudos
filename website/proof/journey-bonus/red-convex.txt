@@ -1,0 +1,143 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/journey-bonus
+
+ ❯ |convex| convex/website/quests.test.ts (36 tests | 5 failed | 31 skipped) 254ms
+   ❯ WS317: getQuests' bonus is the Journey's next step (5)
+     × a joined member's active first-thanks is the bonus, with no feature 112ms
+     × a finished step stays the bonus with its crate until it's opened, then the next step takes its place with the feature it belongs to 44ms
+     × P88: a website-first member who hasn't joined reads no bonus, and the read joins nobody 20ms
+     × with every step opened, there is no bonus 51ms
+     × getMyProfile's Journey steps carry the feature each step belongs to, from Quests' own mapping 26ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS317: getQuests' bonus is the Journey's next step > a joined member's active first-thanks is the bonus, with no feature
+AssertionError: expected undefined to deeply equal { step: 'first-thanks', …(7) }
+
+- Expected:
+{
+  "crate": null,
+  "feature": null,
+  "goal": "Give a kudos that says why.",
+  "hint": "It counts when your message has 5 or more words besides mentions and emoji.",
+  "reward": {
+    "xp": 10,
+  },
+  "seen": null,
+  "state": "active",
+  "step": "first-thanks",
+}
+
++ Received:
+undefined
+
+ ❯ convex/website/quests.test.ts:510:39
+    508|     await joined(member);
+    509|
+    510|     expect(await bonusOf(asSignedIn)).toEqual({ step: "first-thanks", …
+       |                                       ^
+    511|   });
+    512|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS317: getQuests' bonus is the Journey's next step > a finished step stays the bonus with its crate until it's opened, then the next step takes its place with the feature it belongs to
+AssertionError: expected undefined to match object { step: 'first-thanks', …(3) }
+
+- Expected:
+{
+  "crate": {
+    "kind": "journey",
+    "step": "first-thanks",
+  },
+  "seen": Any<String>,
+  "state": "finished",
+  "step": "first-thanks",
+}
+
++ Received:
+undefined
+
+ ❯ convex/website/quests.test.ts:519:39
+    517|     await thanks(member, teammate.member);
+    518|
+    519|     expect(await bonusOf(asSignedIn)).toMatchObject({ step: "first-tha…
+       |                                       ^
+    520|
+    521|     await opensCrate(member, firstThanks);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS317: getQuests' bonus is the Journey's next step > P88: a website-first member who hasn't joined reads no bonus, and the read joins nobody
+AssertionError: expected undefined to be null
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ convex/website/quests.test.ts:530:39
+    528|     await questsOpenFor(member);
+    529|
+    530|     expect(await bonusOf(asSignedIn)).toBeNull();
+       |                                       ^
+    531|     expect(await t.run((ctx) => ctx.db.query("journeySteps").collect()…
+    532|     expect(await t.run((ctx) => ctx.db.query("_scheduled_functions").c…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS317: getQuests' bonus is the Journey's next step > with every step opened, there is no bonus
+AssertionError: expected undefined to be null
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ convex/website/quests.test.ts:542:39
+    540|
+    541|     expect((await journeyOf(asSignedIn))!.every(({ state }) => state =…
+    542|     expect(await bonusOf(asSignedIn)).toBeNull();
+       |                                       ^
+    543|   });
+    544|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  |convex| convex/website/quests.test.ts > WS317: getQuests' bonus is the Journey's next step > getMyProfile's Journey steps carry the feature each step belongs to, from Quests' own mapping
+AssertionError: expected [ Array(2) ] to deeply equal [ Array(2) ]
+
+- Expected
++ Received
+
+  [
+    {
+-     "feature": null,
++     "feature": undefined,
+      "step": "first-thanks",
+    },
+    {
+-     "feature": "quests",
++     "feature": undefined,
+      "step": "first-quest",
+    },
+  ]
+
+ ❯ convex/website/quests.test.ts:550:92
+    548|     await joined(member);
+    549|
+    550|     expect((await journeyOf(asSignedIn))!.map(({ step, feature }) => (…
+       |                                                                                            ^
+    551|       { step: "first-thanks", feature: featureOpening("first-thanks") …
+    552|       { step: "first-quest", feature: featureOpening("first-quest") },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 31 skipped (36)
+   Start at  16:35:00
+   Duration  1.21s (transform 51%, tests 23%, import 22%, environment 4%)
+
