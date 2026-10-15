@@ -66,7 +66,7 @@ describe("P88 P89: opening the Book makes two-days active, and kudos that say wh
     vi.setSystemTime(wednesday);
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
-    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "2", at: wednesday }]);
     expect(journeyDmsTo("U_ALICE").map(({ text }) => text)).toContain(finishedTwoDays);
     expect(readBlocks(journeyDmsTo("U_ALICE").at(-1)!.blocks as Block[])).toEqual([`section: ${finishedTwoDays} [button: Open]`]);
     expect(lastReplyTo("U_ALICE").at(-1)).toBe("+10 XP · Quest done: Give kudos that say why on 2 different days (+30 XP)");
@@ -80,7 +80,7 @@ describe("P88 P89: opening the Book makes two-days active, and kudos that say wh
     await followKudosGiven(t, await thoughtfulKudos(t, alice, bob, monday + minuteMs, "2026-10-12"));
     await followKudosGiven(t, await thoughtfulKudos(t, alice, bob, wednesday, "2026-10-14"));
 
-    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: monday, reward: twoDaysReward, catalogueVersion: "1", finishedAt: wednesday, openedAt: null });
+    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: monday, reward: twoDaysReward, catalogueVersion: "2", finishedAt: wednesday, openedAt: null });
   });
 });
 
@@ -111,7 +111,7 @@ describe("P90: two-days has its own finishing rule, never someone-new's", () => 
     vi.setSystemTime(thursday);
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
-    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: thursday }]);
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "2", at: thursday }]);
   });
 
   test("a member who already thanked every other member doesn't finish two-days when the Book opens", async () => {
@@ -156,7 +156,7 @@ describe("P90: two-days has its own finishing rule, never someone-new's", () => 
     await followKudosGiven(t, second);
 
     expect(await effectsRecordCount(t)).toBe(0);
-    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "2", at: wednesday }]);
   });
 
   test("a kudosGiven counts only awards up to its own: Monday's, read after Wednesday's award is stored, doesn't finish it, and Wednesday's does", async () => {
@@ -171,7 +171,7 @@ describe("P90: two-days has its own finishing rule, never someone-new's", () => 
 
     await followKudosGiven(t, second);
 
-    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "2", at: wednesday }]);
   });
 
   test("Wednesday's kudosGiven followed late by Monday's finishes it dated Wednesday, the later of its two days", async () => {
@@ -183,7 +183,7 @@ describe("P90: two-days has its own finishing rule, never someone-new's", () => 
     await followKudosGiven(t, second);
     await followKudosGiven(t, first);
 
-    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "2", at: wednesday }]);
   });
 
   test("AT25: Wednesday's kudos, which finishes it at its own instant, is its cause", async () => {
@@ -229,7 +229,7 @@ describe("P90: two-days has its own finishing rule, never someone-new's", () => 
 
     await followKudosGiven(t, await thoughtfulKudos(t, alice!, bob!, wednesday, "2026-10-14"));
 
-    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "2", at: wednesday }]);
   }, 120_000);
 
   test("kudos that say why on 2 days after the opening, read before the activation's subscriber runs, finish it at the second", async () => {
@@ -240,7 +240,7 @@ describe("P90: two-days has its own finishing rule, never someone-new's", () => 
 
     await opened(t, alice, "book", monday);
 
-    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "2", at: wednesday }]);
   });
 });
 
@@ -255,7 +255,7 @@ describe("P87 P90: two-days finishes once", () => {
     await followKudosGiven(t, finishing);
     await opened(t, alice, "book", monday);
 
-    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "1", at: wednesday }]);
+    expect(await rewardRecordsOf(t, "journey:two-days")).toEqual([{ key: "journey:two-days", xp: 30, catalogueVersion: "2", at: wednesday }]);
     expect(journeyFinished("two-days")).toHaveLength(1);
     expect(await activationsOf(t, "two-days")).toBe(1);
   });
@@ -274,7 +274,7 @@ describe("P91: two-days works whether the Book ships before the Journey or after
     await hourlySweep(t);
 
     const alice = await memberOf(t, "U_ALICE");
-    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: tuesday, reward: twoDaysReward, catalogueVersion: "1", finishedAt: null, openedAt: null });
+    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: tuesday, reward: twoDaysReward, catalogueVersion: "2", finishedAt: null, openedAt: null });
 
     aMinuteLater();
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
@@ -302,7 +302,7 @@ describe("P91: two-days works whether the Book ships before the Journey or after
     await openHome(t, "U_ALICE");
 
     const alice = await memberOf(t, "U_ALICE");
-    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: expect.any(Number), reward: twoDaysReward, catalogueVersion: "1", finishedAt: null, openedAt: null });
+    expect(await twoDaysOf(t, alice)).toEqual({ step: "two-days", activatedAt: expect.any(Number), reward: twoDaysReward, catalogueVersion: "2", finishedAt: null, openedAt: null });
     expect((await twoDaysOf(t, alice))!.activatedAt).toBeGreaterThanOrEqual(wednesday);
     expect(journeyIn(publishedHome(slack, "U_ALICE"))).toContain(twoDaysActive);
 

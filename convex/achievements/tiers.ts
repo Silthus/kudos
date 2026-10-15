@@ -5,6 +5,7 @@ import { awardIdValidator, type AwardId } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import type { BatchId } from "./replay";
 import { payTierCoins } from "./tierCoins";
+import { grantTierEmoji } from "./tierEmoji";
 import { ladders, ladderValidator, promisedRewardValidator, tierValidator, type LadderId, type Tier, type TierId } from "./ladders";
 
 export const earnedTierValidator = v.object({
@@ -27,6 +28,7 @@ export async function earnTier(ctx: MutationCtx, { workspace, member, ladder, aw
   if ((await earnedTierOf(ctx, member, ladder, tier)) !== null) return false;
   await ctx.db.insert("earnedTiers", { member, ladder, tier, earnedAt: at, award, catalogueVersion: ladders.version, rewards, batch, hidden });
   await payTierCoins(ctx, workspace, { member, tier, rewards, catalogueVersion: ladders.version }, at);
+  await grantTierEmoji(ctx, workspace, { member, ladder, rewards, catalogueVersion: ladders.version }, at);
   await publish(ctx, { type: "achievementEarned", workspace, member, ladder, tier, at, batch });
   return true;
 }

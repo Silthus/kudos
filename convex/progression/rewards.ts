@@ -8,7 +8,7 @@ export const rewardRecordValidator = v.object({
   key: v.string(),
   xp: v.number(),
   coins: v.number(),
-  item: v.null(),
+  item: v.union(v.string(), v.null()),
   catalogueVersion: v.string(),
   at: v.number(),
   cause: v.optional(messageRefValidator),

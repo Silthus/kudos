@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { Message, Segment } from "../shell";
+import { emojiCharacterOf } from "./emoji";
 
 type Words = Extract<Message, { kind: "text" }>;
 
@@ -40,7 +41,7 @@ function SegmentOf({ segment, linked }: { segment: Segment; linked: boolean }): 
     case "channel":
       return <span className="text-muted-foreground">#channel</span>;
     case "emoji":
-      return segment.unicode ?? `:${segment.name}:`;
+      return <EmojiOf segment={segment} />;
     case "link":
       return <LinkOf url={segment.url} label={segment.label ?? segment.url} linked={linked} />;
     case "break":
@@ -57,6 +58,16 @@ function StyledText({ segment }: { segment: Extract<Segment, { kind: "text" }> }
   if (segment.italic) styled = <em>{styled}</em>;
   if (segment.bold) styled = <strong>{styled}</strong>;
   return styled;
+}
+
+function EmojiOf({ segment }: { segment: Extract<Segment, { kind: "emoji" }> }) {
+  const character = segment.unicode ?? emojiCharacterOf(segment.name);
+  if (character !== undefined) return character;
+  return (
+    <span data-custom-emoji className="rounded bg-background/60 px-1 text-[0.9em] text-foreground/70">
+      {`:${segment.name}:`}
+    </span>
+  );
 }
 
 function Mention({ children }: { children: string }) {

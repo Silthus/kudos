@@ -12,7 +12,7 @@ import { openFeaturesOf } from "./unlockPath";
 export const pageValidator = v.union(
   v.object({ page: v.literal("home") }),
   v.object({ page: v.literal("leaderboard"), period: periodValidator }),
-  v.object({ page: v.literal("quests") }),
+  v.object({ page: v.literal("quests"), quest: v.optional(v.number()) }),
   v.object({ page: v.literal("skillTree") }),
   v.object({ page: v.literal("book") }),
 );

@@ -158,8 +158,8 @@ export async function unopenedCratesOf(ctx: QueryCtx, member: MemberId, at: numb
   const unopened: UnopenedCrate[] = [];
   for (const { key } of await pendingWeeklyCratesBefore(ctx, member, thisWeek)) {
     const crate = weeklyQuestOfRewardKey(key)!;
-    const { xp, coins, item, at: finishedAt } = (await rewardOf(ctx, member, key))!;
-    unopened.push({ crate, week: crate.week, goal: await weeklyGoalOf(ctx, member, crate), reward: { xp, coins, item }, finishedAt });
+    const { xp, coins, at: finishedAt } = (await rewardOf(ctx, member, key))!;
+    unopened.push({ crate, week: crate.week, goal: await weeklyGoalOf(ctx, member, crate), reward: { xp, coins, item: null }, finishedAt });
   }
   return unopened.sort((one, other) => one.finishedAt - other.finishedAt);
 }
@@ -239,7 +239,7 @@ async function advanceSlot(ctx: MutationCtx, event: KudosGivenEvent, { member, w
   const before = questProgress(pooled, counted);
   const after = questProgress(pooled, [...counted, ...fresh]);
   if (after === pooled.progress.target && (await finishQuest(ctx, event.workspace, member, quest, { ...slot, poolQuest: slot.quest }, event.at, event.message))) {
-    await notifyWeeklyQuestFinished(ctx, member, quest, pooled.goal, slot.reward.xp);
+    await notifyWeeklyQuestFinished(ctx, member, quest, pooled.goal, slot.reward.xp, event.message);
     return "finished";
   }
   return after === before ? "unchanged" : "advanced";

@@ -13,6 +13,12 @@ type ShipFlag = Flag<boolean>;
 
 export type ScheduledFeature = { feature: Feature; level: number; name: string; opens: string; shipsWith: ShipFlag | null };
 
+type Naming = Pick<ScheduledFeature, "name" | "opens">;
+
+const namedWithTheStore: Partial<Record<Feature, Naming>> = {
+  coins: { name: "Coins and inventory", opens: "your wallet, the store's kudos emoji and your emoji slots" },
+};
+
 export const schedule = {
   version: "1",
   features: [
@@ -27,6 +33,11 @@ export const schedule = {
 
 export function scheduled(feature: Feature): ScheduledFeature {
   return schedule.features.find((entry) => entry.feature === feature)!;
+}
+
+export function namedFor(entry: ScheduledFeature, storeShown: boolean): ScheduledFeature {
+  const naming = storeShown ? namedWithTheStore[entry.feature] : undefined;
+  return naming === undefined ? entry : { ...entry, ...naming };
 }
 
 export function shippedIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<ScheduledFeature[]> {
