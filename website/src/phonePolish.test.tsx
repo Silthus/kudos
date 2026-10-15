@@ -88,5 +88,7 @@ describe("#481 2: the Everyone card's standing never wraps", () => {
     const card = within(screen.getByRole("main")).getByRole("heading", { level: 2, name: "Everyone" }).closest("section")!;
     const standing = card.querySelector("[data-rank]")!.parentElement!;
     expect(standing).toHaveClass("whitespace-nowrap", "shrink-0");
+    const label = within(card).getByRole("heading", { level: 2, name: "Everyone" }).parentElement!;
+    expect(label).toHaveClass("min-w-0", "wrap-anywhere");
   });
 });
