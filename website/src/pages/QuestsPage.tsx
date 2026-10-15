@@ -6,7 +6,6 @@ import { AppLink } from "../AppLink";
 import { attemptMessages, questCrateHomeAttributes, useMoments } from "../crates/moments";
 import { questCrateOf, type CrateFacts, type QuestCrate } from "../crates/readyCrates";
 import { Claimed } from "../crates/RewardCrate";
-import { rewardChipAttributes } from "../crates/RewardFlight";
 import { hogOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "../features";
 import { PageTitle } from "../PageTitle";
 import { questTargetAttributes } from "../linkTarget";
@@ -147,8 +146,8 @@ function RewardRow({ reward, seen, children }: { reward: QuestReward; seen: stri
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
       <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tabular-nums text-muted-foreground">
-        <span {...rewardChipAttributes(seen)}>{`+${reward.xp} XP`}</span>
-        {reward.coins !== undefined && <Coins coins={reward.coins} seen={seen} />}
+        <span>{`+${reward.xp} XP`}</span>
+        {reward.coins !== undefined && <Coins coins={reward.coins} />}
       </span>
       {children}
     </div>
@@ -172,7 +171,7 @@ function Claim({ crate, variant }: { crate: QuestCrate; variant: "primary" | "ou
         size="sm"
         aria-disabled={claiming || undefined}
         onClick={() => {
-          if (!claiming) moments?.claim(crate);
+          if (!claiming) moments?.open(crate);
         }}
       >
         {claiming ? "Claiming…" : "Claim"}

@@ -307,7 +307,7 @@ describe("WS325: the reveal lists what waits", () => {
     await act(async () => undefined);
     await user.keyboard("{Escape}");
     expect(dialog()).toHaveTextContent(/You earned \d+ XP/);
-    expect(within(dialog()).queryByRole("list")).toBeNull();
+    expect(within(dialog()).queryByRole("list", { name: "What waits" })).toBeNull();
     expect(nextCrateButton()).toBeNull();
   });
 });

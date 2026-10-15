@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/loot-crates
+
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  18:37:01
+   Duration  9.76s (tests 50%, import 22%, environment 13%, transform 13%, setup 2%)
+
