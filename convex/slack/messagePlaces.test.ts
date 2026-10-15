@@ -97,6 +97,23 @@ describe("QM23: each kind is one choice of place", () => {
   });
 });
 
+describe("QM23: tips follow their reply", () => {
+  test("a stale Turn on for tips, while the reply arrives as a DM, turns tips on beside that DM", async () => {
+    const t = await unlocksShippedBeforeAnyoneJoined(await settingsOpen([messageSettings, "xp-levels", "unlocks", "skill-tree"]));
+
+    await command(t, "U_ALICE", { type: "setMessageSetting", kind: "kudos-reply", place: "dm" });
+    await command(t, "U_ALICE", { type: "setMessageSetting", kind: "tips", on: false });
+    await command(t, "U_ALICE", { type: "setMessageSetting", kind: "tips", on: true });
+
+    expect(settingChanges()).toEqual([
+      { kind: "kudos-reply", on: true, place: "dm" },
+      { kind: "tips", on: false, place: "none" },
+      { kind: "tips", on: true, place: "dm" },
+    ]);
+    expect(placesOffered("U_ALICE", "Tips")).toEqual(["As a DM", "None"]);
+  });
+});
+
 describe("QM23: the after-kudos reply as a DM", () => {
   test("arrives as a DM to the giver with its gains line and footer, and no ephemeral", async () => {
     const t = await settingsOpen([messageSettings, "xp-levels"]);

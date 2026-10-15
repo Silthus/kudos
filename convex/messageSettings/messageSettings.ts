@@ -62,6 +62,7 @@ export async function setMessageSetting(ctx: MutationCtx, member: MemberId, kind
 }
 
 export async function placeWhenOn(ctx: QueryCtx, member: MemberId, kind: MessageKind): Promise<MessagePlace> {
+  if (kind === "tips") return placeOfTheReply(ctx, member);
   const chosen = await chosenPlaceOf(ctx, member, kind);
   return chosen === "none" ? defaultPlaceOf(kind) : chosen;
 }
