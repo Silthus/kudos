@@ -20,6 +20,7 @@ export type Route =
   | ({ page: "quests"; quest?: QuestTarget } & Targets)
   | ({ page: "book"; bookPage: BookPageId } & Targets)
   | ({ page: "skills"; perk?: PerkId } & Targets)
+  | { page: "settings" }
   | { page: "not-found" };
 
 export type BookPageId = CategoryId | "overview" | "earned";
@@ -34,6 +35,7 @@ const routeAt = {
   "/skills": (search) => ({ page: "skills", perk: perkIn(search), crate: crateIn(search) }),
   "/book": (search) => ({ page: "book", bookPage: categoryAsked(search), crate: crateIn(search) }),
   "/book/earned": () => ({ page: "book", bookPage: "earned" }),
+  "/settings": () => ({ page: "settings" }),
 } satisfies Record<string, (search: string) => Route>;
 
 type ServedPath = keyof typeof routeAt;

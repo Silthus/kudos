@@ -18,8 +18,8 @@ export function LadderEmblem({ ladder, best, size = 72 }: { ladder: LadderCard["
   return (
     <span data-emblem={best === null ? "silhouette" : "earned"} aria-hidden="true" className="relative grid shrink-0 place-items-center" style={{ width: size, height: size }}>
       <Rosette tier={best} />
-      <span className="absolute inset-[15%] grid place-items-center overflow-hidden rounded-full">
-        <Hog size={Math.round(size * 0.8)} title="" className={`max-w-none translate-y-[8%] ${best === null ? "book-silhouette" : ""}`} />
+      <span className={`absolute inset-[15%] grid place-items-center overflow-hidden rounded-full ${best === null ? "hog-silhouette" : ""}`}>
+        <Hog size={Math.round(size * 0.8)} title="" className="max-w-none translate-y-[8%]" />
       </span>
     </span>
   );

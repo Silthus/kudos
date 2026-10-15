@@ -1,0 +1,191 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/custom-emoji-pictures
+
+ ❯ |website| src/KudosMessage.test.tsx (17 tests | 2 failed) 643ms
+   ❯ WS210: one renderer for a kudos message (15)
+     × draws a custom emoji with a picture as that picture at text size, named by its colons 407ms
+     × draws a custom emoji whose picture fails to load as its name between colons 53ms
+ ❯ |convex| convex/website/hosting.test.ts (5 tests | 1 failed) 490ms
+   ❯ WS25: every HTML response carries the strict Content Security Policy header (3)
+     × GET / answers HTML with the policy 137ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > draws a custom emoji with a picture as that picture at text size, named by its colons
+TestingLibraryElementError: Unable to find an accessible element with the role "img" and name ":partyparrot:"
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"[overflow-wrap:anywhere] "[39m
+    [33mdata-testid[39m=[32m"kudos-message-words"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<p[39m
+      [33mclass[39m=[32m"[overflow-wrap:anywhere] "[39m
+      [33mdata-testid[39m=[32m"kudos-message-words"[39m
+    [36m>[39m
+      [0mShipped [0m
+      [36m<span[39m
+        [33mclass[39m=[32m"rounded bg-background/60 px-1 text-[0.9em] text-foreground/70"[39m
+        [33mdata-custom-emoji[39m=[32m"true"[39m
+      [36m>[39m
+        [0m:partyparrot:[0m
+      [36m</span>[39m
+    [36m</p>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/KudosMessage.test.tsx:61:28
+     59|     shown(words({ kind: "text", text: "Shipped " }, { kind: "emoji", n…
+     60|
+     61|     const picture = screen.getByRole("img", { name: ":partyparrot:" });
+       |                            ^
+     62|     expect(picture).toHaveAttribute("src", "https://emoji.slack-edge.c…
+     63|     expect(picture).toHaveClass("h-[1.2em]", "w-auto", "inline");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > draws a custom emoji whose picture fails to load as its name between colons
+TestingLibraryElementError: Unable to find an accessible element with the role "img" and name ":partyparrot:"
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"[overflow-wrap:anywhere] "[39m
+    [33mdata-testid[39m=[32m"kudos-message-words"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<p[39m
+      [33mclass[39m=[32m"[overflow-wrap:anywhere] "[39m
+      [33mdata-testid[39m=[32m"kudos-message-words"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"rounded bg-background/60 px-1 text-[0.9em] text-foreground/70"[39m
+        [33mdata-custom-emoji[39m=[32m"true"[39m
+      [36m>[39m
+        [0m:partyparrot:[0m
+      [36m</span>[39m
+    [36m</p>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/KudosMessage.test.tsx:70:28
+     68|     const container = shown(words({ kind: "emoji", name: "partyparrot"…
+     69|
+     70|     fireEvent.error(screen.getByRole("img", { name: ":partyparrot:" })…
+       |                            ^
+     71|
+     72|     expect(container.querySelector("img")).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  |convex| convex/website/hosting.test.ts > WS25: every HTML response carries the strict Content Security Policy header > GET / answers HTML with the policy
+AssertionError: expected [ '\'self\'', …(3) ] to deeply equal [ '\'self\'', …(5) ]
+
+- Expected
++ Received
+
+  [
+    "'self'",
+    "https://avatars.slack-edge.com",
+    "https://secure.gravatar.com",
+-   "https://emoji.slack-edge.com",
+-   "https://a.slack-edge.com",
+    "https://res.cloudinary.com",
+  ]
+
+ ❯ convex/website/hosting.test.ts:75:32
+     73|     expect(csp.get("style-src")).toEqual(["'self'"]);
+     74|     expect(csp.get("connect-src")).toEqual(["'self'", deploymentUrl, "…
+     75|     expect(csp.get("img-src")).toEqual(["'self'", ...slackPictureHosts…
+       |                                ^
+     76|     expect(csp.get("font-src")).toEqual(["'self'"]);
+     77|     expect(csp.get("object-src")).toEqual(["'none'"]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 19 passed (22)
+   Start at  15:41:15
+   Duration  8.08s (transform 67%, environment 12%, tests 10%, import 6%, setup 5%)
+
+## review round 1, red: the taco test on 690bc8ca
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/custom-emoji-pictures
+
+ ❯ |website| src/KudosMessage.test.tsx (18 tests | 1 failed) 381ms
+   ❯ WS210: one renderer for a kudos message (16)
+     × draws a custom emoji's picture even where its name is also a standard shortcode 30ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > draws a custom emoji's picture even where its name is also a standard shortcode
+TestingLibraryElementError: Unable to find an accessible element with the role "img" and name ":taco:"
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"[overflow-wrap:anywhere] "[39m
+    [33mdata-testid[39m=[32m"kudos-message-words"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<p[39m
+      [33mclass[39m=[32m"[overflow-wrap:anywhere] "[39m
+      [33mdata-testid[39m=[32m"kudos-message-words"[39m
+    [36m>[39m
+      [0m🌮[0m
+    [36m</p>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/KudosMessage.test.tsx:79:19
+     77|     const container = shown(words({ kind: "emoji", name: "taco", image…
+     78|
+     79|     expect(screen.getByRole("img", { name: ":taco:" })).toHaveAttribut…
+       |                   ^
+     80|     expect(container).not.toHaveTextContent("🌮");
+     81|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 17 passed (18)
+   Start at  16:03:55
+   Duration  1.79s (environment 42%, tests 23%, transform 14%, setup 12%, import 9%)
+

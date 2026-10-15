@@ -1,0 +1,131 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/web-settings
+
+ ❯ |convex| convex/website/settings.test.ts (24 tests | 1 failed | 23 skipped) 1044ms
+   ❯ a website command is a D17 command (10)
+     ❯ the group pick (4)
+       × a group Slack has removed the member from, before reconciling caught up, answers refused and writes nothing 1043ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/settings.test.ts > a website command is a D17 command > the group pick > a group Slack has removed the member from, before reconciling caught up, answers refused and writes nothing
+AssertionError: expected { tables: { …(87) }, …(1) } to deeply equal { tables: { …(87) }, …(1) }
+
+- Expected
++ Received
+
+@@ -198,24 +198,65 @@
+        "scheduledTime": 1791972123000,
+        "state": {
+          "kind": "success",
+        },
+      },
++     {
++       "_creationTime": 1791972123000.002,
++       "_id": "000000010034_scheduled_functions",
++       "args": [
++         {
++           "generation": "be5f1504-3778-411d-9908-3dc5e21597e6",
++         },
++       ],
++       "name": "analytics/drain:drain",
++       "scheduledTime": 1791972123000,
++       "state": {
++         "kind": "pending",
++       },
++     },
+    ],
+    "tables": {
+      "allowanceSpending": [],
+-     "analyticsDrain": [],
++     "analyticsDrain": [
++       {
++         "_creationTime": 1791972123000.003,
++         "_id": "000000000000010035analyticsDrain",
++         "generation": "be5f1504-3778-411d-9908-3dc5e21597e6",
++         "job": "000000010034_scheduled_functions",
++       },
++     ],
+      "analyticsIds": [
+        {
+          "_creationTime": 1791972000000.002,
+          "_id": "00000000000000010002analyticsIds",
+          "analyticsId": "41824fe2-90ae-4da1-97fe-f7e8ac127661",
+          "member": "0000000000000000000010001members",
+          "profileFingerprint": "2faf400d41ac012a85d2a0cf996966ca4407efd64887fd0bbf232b3896aa0b7c",
+        },
+      ],
+-     "analyticsOutbox": [],
++     "analyticsOutbox": [
++       {
++         "_creationTime": 1791972123000.001,
++         "_id": "00000000000010033analyticsOutbox",
++         "distinctId": "41824fe2-90ae-4da1-97fe-f7e8ac127661",
++         "dueAt": 1791972123000,
++         "event": "$feature_flag_called",
++         "failures": 0,
++         "properties": {
++           "environment": "sandbox",
++           "feature_flag": "groups",
++           "feature_flag_response": true,
++           "locally_evaluated": true,
++           "taxonomy_version": 1,
++           "workspace_key": "3a2b4014-5efd-4de9-a4de-b0f8dfc25758",
++         },
++         "state": "pending",
++         "timestamp": 1791972123000,
++         "uuid": "b9044f89-6e3b-4340-9cbf-838f3501a48d",
++       },
++     ],
+      "attributedGroupTotals": [],
+      "attributedTotals": [],
+      "attributions": [],
+      "authAccounts": [],
+      "authRateLimits": [],
+@@ -251,10 +292,17 @@
+      "flagExposures": [
+        {
+          "_creationTime": 1791972000000.004,
+          "_id": "0000000000000010004flagExposures",
+          "flag": "website",
++         "member": "0000000000000000000010001members",
++         "value": true,
++       },
++       {
++         "_creationTime": 1791972123000,
++         "_id": "0000000000000010032flagExposures",
++         "flag": "groups",
+          "member": "0000000000000000000010001members",
+          "value": true,
+        },
+      ],
+      "givenByDay": [],
+@@ -278,11 +326,10 @@
+        {
+          "_creationTime": 1791972000000.0215,
+          "_id": "00000000000000010022memberGroups",
+          "groups": [
+            "0000000000000000010010userGroups",
+-           "0000000000000000010011userGroups",
+          ],
+          "member": "0000000000000000000010001members",
+          "primary": "0000000000000000010010userGroups",
+          "workspace": "T1",
+        },
+
+ ❯ convex/website/settings.test.ts:309:41
+    307|
+    308|       expect(await pickPrimaryGroup(asSignedIn, other)).toEqual({ kind…
+    309|       expect(await everythingWritten()).toEqual(before);
+       |                                         ^
+    310|     });
+    311|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 23 skipped (24)
+   Start at  16:02:29
+   Duration  3.37s (transform 49%, tests 33%, import 13%, environment 4%)
+
