@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import type { FakePostHog } from "../../testing/fakePostHog";
+import type { FakePostHog, FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -52,12 +52,12 @@ describe("P91: members already playing join the Journey once, when it ships", ()
     await hourlySweep(t);
 
     expect(await journeyOf(t, "U_ALICE")).toEqual([
-      { step: "first-thanks", activatedAt: shipped, reward: firstThanksReward, catalogueVersion: "1", finishedAt: shipped, openedAt: null },
-      { step: "someone-new", activatedAt: shipped, reward: someoneNewReward, catalogueVersion: "1", finishedAt: null, openedAt: null },
+      { step: "first-thanks", activatedAt: shipped, reward: firstThanksReward, catalogueVersion: "2", finishedAt: shipped, openedAt: null },
+      { step: "someone-new", activatedAt: shipped, reward: someoneNewReward, catalogueVersion: "2", finishedAt: null, openedAt: null },
     ]);
     expect(await journeyOf(t, "U_BOB")).toEqual([
-      { step: "first-thanks", activatedAt: shipped, reward: firstThanksReward, catalogueVersion: "1", finishedAt: null, openedAt: null },
-      { step: "someone-new", activatedAt: shipped, reward: someoneNewReward, catalogueVersion: "1", finishedAt: null, openedAt: null },
+      { step: "first-thanks", activatedAt: shipped, reward: firstThanksReward, catalogueVersion: "2", finishedAt: null, openedAt: null },
+      { step: "someone-new", activatedAt: shipped, reward: someoneNewReward, catalogueVersion: "2", finishedAt: null, openedAt: null },
     ]);
     expect(journeyDmsTo("U_ALICE").map(({ text }) => text)).toEqual([finishedFirstThanks]);
     expect(readBlocks(journeyDmsTo("U_ALICE")[0]!.blocks as Block[])).toEqual([`section: ${finishedFirstThanks} [button: Open]`]);
@@ -166,7 +166,7 @@ describe("P91: members already playing join the Journey once, when it ships", ()
       step: "someone-new",
       activatedAt: shipped,
       reward: someoneNewReward,
-      catalogueVersion: "1",
+      catalogueVersion: "2",
       finishedAt: null,
       openedAt: null,
     });
@@ -184,6 +184,42 @@ describe("P91: members already playing join the Journey once, when it ships", ()
 
     expect(await journeyOf(t, "U_ALICE")).toHaveLength(2);
     expect(await journeyOf(t, "U_CAROL")).toEqual([]);
+  });
+});
+
+describe("P91 ST19: a member who opened Coins before the Journey shipped joins your-emoji where the store is shown", () => {
+  test("the join activates your-emoji at the ship moment for the member who opened Coins, finishes nothing and sends no DM, and leaves it out for a member who didn't", async () => {
+    const t = await workspaceWith("U_ALICE", "U_BOB", "U_CAROL");
+    await unlocksShippedBeforeAnyoneJoined(t);
+    await coinsOpenedFor(t, "U_ALICE");
+
+    await questsTurnOn(t, onForEveryone("coins"), onForEveryone("store"));
+    const shipped = aMinuteLater();
+    await hourlySweep(t);
+
+    expect((await journeyOf(t, "U_ALICE")).find(({ step }) => step === "your-emoji")).toEqual({
+      step: "your-emoji",
+      activatedAt: shipped,
+      reward: { xp: 40, coins: 20, item: null },
+      catalogueVersion: "2",
+      finishedAt: null,
+      openedAt: null,
+    });
+    expect((await journeyOf(t, "U_BOB")).map(({ step }) => step)).not.toContain("your-emoji");
+    expect(journeyDmsTo("U_ALICE")).toEqual([]);
+  });
+
+  test("with the store not shown, the join leaves your-emoji out for the member who opened Coins", async () => {
+    const t = await workspaceWith("U_ALICE", "U_BOB", "U_CAROL");
+    await unlocksShippedBeforeAnyoneJoined(t);
+    await coinsOpenedFor(t, "U_ALICE");
+
+    await questsTurnOn(t, onForEveryone("coins"));
+    aMinuteLater();
+    await hourlySweep(t);
+
+    expect((await journeyOf(t, "U_ALICE")).map(({ step }) => step)).not.toContain("your-emoji");
+    expect(await t.run(async (ctx) => (await ctx.db.query("journeySteps").collect()).filter(({ step }) => step === "your-emoji"))).toEqual([]);
   });
 });
 
@@ -247,8 +283,13 @@ async function recordWithoutDecisionIn(ctx: Parameters<Parameters<Backend["run"]
   }
 }
 
-async function questsTurnOn(t: Backend) {
-  await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("everyone-board"), onForEveryone("quests"));
+async function questsTurnOn(t: Backend, ...alsoOn: FlagDefinition[]) {
+  await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("everyone-board"), onForEveryone("quests"), ...alsoOn);
+}
+
+async function coinsOpenedFor(t: Backend, user: string) {
+  const member = await memberOf(t, user);
+  await t.run((ctx) => ctx.db.insert("unlocks", { member, feature: "coins", readyAt: Date.now(), openedAt: Date.now() }));
 }
 
 function aMinuteLater() {

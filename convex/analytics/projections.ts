@@ -18,6 +18,7 @@ import type {
 import type { Award } from "../engine/awards";
 import type { KudosCommandResult } from "../feedback/kudosCommand";
 import type { Period } from "../leaderboard/periods";
+import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
 import type { Feature } from "../unlocks/feature";
 import { gateDecisionOf } from "../progression/gate";
 import { defaultKudosEmoji } from "../workspace/settings";
@@ -50,6 +51,8 @@ export type ProductEvent = {
     | "leaderboard viewed"
     | "leaderboard left"
     | "leaderboard joined"
+    | "primary group picked"
+    | "message setting changed"
     | "profile card viewed"
     | "$feature_flag_called";
   subject: { member: MemberId };
@@ -60,9 +63,15 @@ export type ProductEvent = {
 export type UsageFact =
   | { kind: "appHomeOpened"; workspace: string; member: MemberId; at: number }
   | { kind: "commandUsed"; workspace: string; member: MemberId; alias: boolean; result: KudosCommandResult; at: number }
-  | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: "everyone"; period: Period; surface: LeaderboardSurface; at: number }
+  | { kind: "leaderboardViewed"; workspace: string; member: MemberId; board: ViewedBoard; period: Period; surface: LeaderboardSurface; at: number }
   | { kind: "leaderboardVisibilityChanged"; workspace: string; member: MemberId; visible: boolean; at: number }
+  | { kind: "primaryGroupPicked"; workspace: string; member: MemberId; surface: PickSurface; at: number }
+  | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; at: number }
   | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number };
+
+export type PickSurface = "welcome" | "settings";
+
+export type ViewedBoard = "everyone" | "groups" | "my-group";
 
 export type LeaderboardSurface = "app-home" | "command";
 
@@ -217,6 +226,10 @@ export function projectUsage(fact: UsageFact): ProductEvent {
       return { event: "leaderboard viewed", subject, at: fact.at, properties: { board: fact.board, period: fact.period, surface: surfaceNames[fact.surface] } };
     case "leaderboardVisibilityChanged":
       return { event: fact.visible ? "leaderboard joined" : "leaderboard left", subject, at: fact.at, properties: {} };
+    case "primaryGroupPicked":
+      return { event: "primary group picked", subject, at: fact.at, properties: { surface: fact.surface } };
+    case "messageSettingChanged":
+      return { event: "message setting changed", subject, at: fact.at, properties: { kind: fact.setting, on: fact.on, ...(fact.place !== undefined && { place: fact.place }) } };
     case "profileCardViewed":
       return { event: "profile card viewed", subject, at: fact.at, properties: { own: fact.own, surface: fact.surface } };
   }

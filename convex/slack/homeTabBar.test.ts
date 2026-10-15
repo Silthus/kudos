@@ -23,7 +23,7 @@ const coreHome = [
 
 const levelLine = "section fields: *Level*\n*2* | *XP to level 3*\n*80*";
 const leaderboardSwitch = "section: *Show me on the leaderboards*";
-const muteNotices = "section: I celebrate your level ups in public. [button: Mute notices]";
+const muteNotices = "section: I'll celebrate your level ups in public once your workspace picks a channel. [button: Mute notices]";
 const dms = "section: I send you a DM when you reach a level. [button: Turn off DMs]";
 
 let slack: FakeSlack;

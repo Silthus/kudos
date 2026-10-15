@@ -1,28 +1,36 @@
 import type { LadderFacts } from "../achievements/achievements";
 import { countsOf, ladderOf, tierOf, type TierId, type TierRef } from "../achievements/ladders";
+import type { TierRewardsTold } from "../achievements/tierRewards";
 import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
+import type { GroupChoice } from "../groups/pick";
+import type { GroupId, GroupRef } from "../groups/groups";
+import type { GroupModeFacts } from "../groups/groupMode";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
 import type { PurchaseOutcome, Refusal } from "../progression/purchases";
 import { hasCoinPrice, perkOf, type Perk } from "../progression/tree";
-import type { ProgressSettings } from "../progression/settings";
-import type { JourneyStepFacts } from "../quests/journey";
-import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
+import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
+import type { MessageSetting, NotificationSwitches } from "../messageSettings/messageSettings";
+import { journeyGoalOf } from "../quests/journeyCopy";
 import { rewardKeyOf } from "../quests/crates";
 import { questOf } from "../quests/pool";
 import type { WeekKey } from "../quests/week";
 import type { UnopenedCrate, WeeklyQuests, WeeklySlot } from "../quests/weekly";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { Feature } from "../unlocks/feature";
+import { itemOf, type CatalogueItem } from "../store/catalogue";
+import type { InventoryHome, StoreItem } from "../store/inventory";
+import { slots as slotNames, type ItemRefusal } from "../store/rows";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
 import { questCratePageOf, readyCratePageOf, urlOf, type Page } from "../website/routes";
 import { coinsPartOf, inCoins } from "./coins";
-import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
-import { renderEveryoneBoard } from "./leaderboard";
+import type { HomeTab, JourneyStepShown, ShownHome, ShownTab, ToldProgression } from "./homes";
+import { countsFor, pickQuestion } from "./groupCopy";
+import { renderBoards } from "./leaderboard";
 import { openTheWebsite, productName, skillPointsOf, slashCommand } from "./naming";
 import { medals } from "./medals";
 import type { Line } from "./segments";
@@ -48,12 +56,15 @@ export type HomeLine =
   | { kind: "lines"; lines: Line[] }
   | { kind: "action"; text: string; action: HomeAction }
   | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] }
+  | { kind: "pick-group"; text: string; groups: GroupRef[]; picked: GroupId }
+  | { kind: "pick-groups"; text: string; groups: GroupModeFacts["groups"]; picked: GroupModeFacts["allowlist"] }
+  | { kind: "pick"; id: string; text: string; placeholder: string; options: Choice[] }
   | { kind: "link"; label: string; url: string }
   | { kind: "links"; links: Array<{ label: string; url: string }> };
 
 type MemberHome = Extract<HomeFacts, { kind: "member" }>;
 
-const tabLabels: Record<HomeTab, string> = { profile: "Profile", leaderboard: "Leaderboard", book: "Book", skillTree: "Skill tree", settings: "Settings", admin: "Admin" };
+const tabLabels: Record<HomeTab, string> = { profile: "Profile", leaderboard: "Leaderboard", book: "Book", skillTree: "Skill tree", inventory: "Inventory", settings: "Settings", admin: "Admin" };
 
 const periods: Array<{ period: Period; label: string }> = [
   { period: "week", label: "This week" },
@@ -99,11 +110,13 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
     case "profile":
       return profileOf(facts, shown);
     case "leaderboard":
-      return { title: "Leaderboard", groups: [[periodChoices(shown.period), { kind: "lines", lines: renderEveryoneBoard(shown.board, shown.period) }]] };
+      return { title: "Leaderboard", groups: leaderboardGroups(shown) };
     case "book":
       return { title: "Book", groups: bookGroups(shown) };
     case "skillTree":
-      return { title: "Skill tree", groups: skillTreeGroups(shown.perks) };
+      return { title: "Skill tree", groups: skillTreeGroups(shown) };
+    case "inventory":
+      return { title: "Inventory", groups: inventoryGroups(shown) };
     case "settings":
       return { title: "Settings", groups: settingsGroups(shown) };
     case "admin":
@@ -111,11 +124,16 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
   }
 }
 
+function leaderboardGroups({ period, board, groups, myGroup }: Extract<ShownTab, { tab: "leaderboard" }>): HomeLine[][] {
+  const [first = [], ...rest] = renderBoards(groups, myGroup, board, period).map(({ lines }) => lines);
+  return [[periodChoices(period), { kind: "lines", lines: first }], ...rest.map((lines): HomeLine[] => [{ kind: "lines", lines }])];
+}
+
 type ProfileFacts = Omit<Extract<ShownTab, { tab: "profile" }>, "tab">;
 
 function profileOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrates, journey }: ProfileFacts): HomeView {
   const progress = progression === null ? [] : [[...progressOf(progression), ...(unlocks === null ? [] : unlockLinesOf(unlocks))]];
-  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: false })];
+  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: false, website: null })];
   const earlier = earlierCrates === null || earlierCrates.length === 0 ? [] : [waitingToOpenLines(earlierCrates)];
   const steps = journey === null || journey.length === 0 ? [] : [journey.flatMap(journeyStepLines)];
   return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...earlier, ...steps, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
@@ -125,7 +143,7 @@ function summaryOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrat
   const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)])];
   const { origin } = links;
   const waiting = [...readyCratesOf(unlocks, origin), ...earlierCratesOf(earlierCrates, origin), ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...moreEarlierCrates(earlierCrates ?? [])];
-  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: true })];
+  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: true, website: origin })];
   return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
 }
 
@@ -160,7 +178,7 @@ function weeklyCratesOf(quests: WeeklyQuests | null, website: string): HomeLine[
   return unopened.map(({ slot, goal }) => ({ kind: "action", text: `✅ ${goal}`, action: openCrate({ kind: "weekly", week: quests.week, slot }, website) }));
 }
 
-function journeyCratesOf(journey: JourneyStepFacts[] | null, website: string): HomeLine[] {
+function journeyCratesOf(journey: JourneyStepShown[] | null, website: string): HomeLine[] {
   const unopened = (journey ?? []).filter(({ finishedAt, openedAt }) => finishedAt !== null && openedAt === null);
   return unopened.map(({ step }) => ({ kind: "action", text: `✅ ${journeyGoalOf(step)}`, action: openCrate({ kind: "journey", step }, website) }));
 }
@@ -186,14 +204,16 @@ function ladderLines({ ladder, name, count, tiers, next }: LadderFacts, timeZone
   return [{ kind: "text", text: `${bold(name)} · ${bold(count)} ${countsOf(ladder, count)}` }, ...earnedLines, ...nextLine];
 }
 
-export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[], coinsPaidFor: (ref: TierRef) => number): string[] {
-  const earnedLines = told.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).${tierCoinsPartOf(coinsPaidFor(ref))}`);
+export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[], rewardsOf: (ref: TierRef) => TierRewardsTold): string[] {
+  const earnedLines = told.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).${tierRewardsPartOf(rewardsOf(ref))}`);
   const ladders = [...new Set(told.map(({ ladder }) => ladder))];
   return [...earnedLines, ...ladders.flatMap((ladder) => nextTierLine(ladder, [...told, ...everyTierEarned]))];
 }
 
-function tierCoinsPartOf(coins: number) {
-  return coins === 0 ? "" : ` ${coinsPartOf(coins)}`;
+function tierRewardsPartOf({ coins, items }: TierRewardsTold) {
+  const coinsPart = coins === 0 ? [] : [coinsPartOf(coins)];
+  const itemParts = items.flatMap((item) => itemOf(item) ?? []).map(({ emoji, name }) => `+ :${emoji}: ${name} for your kudos emoji slots`);
+  return [...coinsPart, ...itemParts].map((part) => ` ${part}`).join("");
 }
 
 function nextTierLine(ladder: TierRef["ladder"], earned: TierRef[]): string[] {
@@ -205,17 +225,89 @@ function dateOf(at: number, timeZone: string | undefined) {
   return new Intl.DateTimeFormat("en-US", { timeZone: timeZone ?? "UTC", month: "short", day: "numeric", year: "numeric" }).format(at);
 }
 
-function skillTreeGroups(tree: MemberPerks): HomeLine[][] {
+function skillTreeGroups({ perks: tree, coinsName }: Extract<ShownTab, { tab: "skillTree" }>): HomeLine[][] {
   const condition: HomeLine = { kind: "hint", text: "Bonuses count when your message has 5 or more words besides mentions and emoji." };
   const toSpend: HomeLine[][] = ownsEveryPerk(tree) ? [] : [[{ kind: "text", text: `You have ${bold(skillPointsOf(tree.skillPoints))} to spend.` }]];
-  return [...toSpend, [...tree.perks.flatMap(perkLines), condition]];
+  return [...toSpend, [...tree.perks.flatMap((perk) => perkLines(perk, coinsName)), condition]];
 }
 
-function perkLines(perk: TreePerk): HomeLine[] {
+function perkLines(perk: TreePerk, coinsName: string): HomeLine[] {
   const { name, copy, state } = perk;
   if (state === "owned") return [{ kind: "text", text: [`✅ ${bold(name)} · Owned`, copy].filter(Boolean).join("\n") }];
   if (state === "buyable") return [{ kind: "action", ...perkOfferOf(perk, null) }];
-  return [{ kind: "text", text: perkTextOf(perk) }, { kind: "hint", text: whyNotOf({ ...perk, state }) }];
+  return [{ kind: "text", text: perkTextOf(perk) }, { kind: "hint", text: whyNotOf({ ...perk, state }, coinsName) }];
+}
+
+type RefusalLines = { after: (item: CatalogueItem | null) => HomeLine[]; unplaced: HomeLine[] };
+
+function inventoryGroups({ balance, inventory, kudosEmoji, refused }: Extract<ShownTab, { tab: "inventory" }>): HomeLine[][] {
+  const told = refusalLinesOf(inventory, refused, balance);
+  const slots = [{ kind: "text", text: bold("Your kudos emoji") }, ...slotLinesOf(inventory, told), { kind: "hint", text: `Each emoji in a slot counts as a kudos, like :${kudosEmoji}:.` }] satisfies HomeLine[];
+  return [[{ kind: "text", text: inCoins(balance) }], slots, ...collectionLinesOf(inventory, told), ...storeLinesOf(inventory, told), ...notYoursYetLinesOf(inventory)];
+}
+
+function slotLinesOf({ slots }: InventoryHome, { after }: RefusalLines): HomeLine[] {
+  return slots.flatMap((item, index): HomeLine[] => [slotLineOf(item, index), ...after(item)]);
+}
+
+function slotLineOf(item: CatalogueItem | null, index: number): HomeLine {
+  const slot = slotNames[index]!;
+  if (item === null) return { kind: "text", text: `Slot ${index + 1} · empty` };
+  const takeOff: HomeAction = { label: "Take off", command: { type: "takeOff", slot }, accessibilityLabel: `Take ${item.name} out of slot ${index + 1}` };
+  return { kind: "action", text: `Slot ${index + 1} · ${itemLabelOf(item)}`, action: takeOff };
+}
+
+function collectionLinesOf({ collection }: InventoryHome, { after }: RefusalLines): HomeLine[][] {
+  if (collection.length === 0) return [];
+  return [[{ kind: "text", text: bold("Collection") }, ...collection.flatMap((item): HomeLine[] => [putInSlotLineOf(item), ...after(item)])]];
+}
+
+function putInSlotLineOf(item: CatalogueItem): HomeLine {
+  const options = slotNames.map((slot, index): Choice => ({ label: `Slot ${index + 1}`, command: { type: "equip", item: item.item, slot }, selected: false }));
+  return { kind: "pick", id: `put-in-slot:${item.item}`, text: itemLabelOf(item), placeholder: "Put in slot", options };
+}
+
+function storeLinesOf({ store }: InventoryHome, { after, unplaced }: RefusalLines): HomeLine[][] {
+  if (store.length === 0 && unplaced.length === 0) return [];
+  return [[{ kind: "text", text: bold("Store") }, ...store.flatMap((item): HomeLine[] => [{ kind: "action", ...itemOfferOf(item) }, ...after(item)]), ...unplaced]];
+}
+
+function notYoursYetLinesOf({ notYoursYet }: InventoryHome): HomeLine[][] {
+  if (notYoursYet.length === 0) return [];
+  return [[{ kind: "text", text: bold("Not yours yet") }, ...notYoursYet.map((item): HomeLine => ({ kind: "text", text: `${itemLabelOf(item)} · Silver in ${ladderOf(item.source.ladder).name}` }))]];
+}
+
+function itemOfferOf(item: StoreItem): { text: string; action: HomeAction } {
+  const [label, price] = [itemLabelOf(item), coinsOf(item.source.price)];
+  const confirm = { title: `Buy ${label} for ${price}?`, text: "Coins are never refunded.", confirm: "Buy", deny: "Cancel" };
+  return { text: `${label} · ${price}`, action: { label: "Buy", command: { type: "buyItem", item: item.item }, accessibilityLabel: `Buy ${item.name}`, confirm } };
+}
+
+function refusalLinesOf({ slots, collection, store }: InventoryHome, refused: ItemRefusal | null, balance: number): RefusalLines {
+  const lines: HomeLine[] = refused === null ? [] : refusalTextOf(refused, balance).map((text) => ({ kind: "hint", text }));
+  const isRefused = (item: CatalogueItem | null) => item !== null && item.item === refused?.item;
+  const placed = [...slots, ...collection, ...store].some(isRefused);
+  return { after: (item) => (isRefused(item) ? lines : []), unplaced: placed ? [] : lines };
+}
+
+function refusalTextOf({ item, reason }: ItemRefusal, balance: number): string[] {
+  switch (reason) {
+    case "no-coins": {
+      const source = itemOf(item)?.source;
+      const short = (source?.kind === "store" ? source.price : 0) - balance;
+      return short > 0 ? [`You need ${short} more 🪙.`] : [];
+    }
+    case "owned":
+      return ["You already own it."];
+    case "not-for-sale":
+      return ["It isn't for sale."];
+    case "coins-not-open":
+      return [];
+  }
+}
+
+function itemLabelOf({ art, emoji, name }: CatalogueItem) {
+  return `${art.kind === "unicode" ? art.glyph : `:${emoji}:`} ${name}`;
 }
 
 export function perkOfferOf(perk: Perk, website: string | null): { text: string; action: HomeAction } {
@@ -244,14 +336,14 @@ function coinsOf(coins: number) {
   return `${coins} 🪙`;
 }
 
-export function purchaseReplyOf(outcome: PurchaseOutcome) {
+export function purchaseReplyOf(outcome: PurchaseOutcome, coinsName = scheduled("coins").name) {
   const perk = perkOf(outcome.perk);
-  return outcome.kind === "bought" ? `You bought ${perk.name}.` : `I couldn't buy ${perk.name}. ${whyNotOf({ ...perk, state: outcome.reason })}`;
+  return outcome.kind === "bought" ? `You bought ${perk.name}.` : `I couldn't buy ${perk.name}. ${whyNotOf({ ...perk, state: outcome.reason }, coinsName)}`;
 }
 
 type TreePerk = MemberPerks["perks"][number];
 
-export function whyNotOf({ state, row, requires, skillPoints, coins }: Perk & { state: Refusal }) {
+export function whyNotOf({ state, row, requires, skillPoints, coins }: Perk & { state: Refusal }, coinsName = scheduled("coins").name) {
   switch (state) {
     case "tree-locked":
       return unopenedTextOf(scheduled("skillTree"), "locked");
@@ -268,17 +360,40 @@ export function whyNotOf({ state, row, requires, skillPoints, coins }: Perk & { 
     case "no-skill-points":
       return `You need ${skillPointsOf(skillPoints)}.`;
     case "coins-not-open":
-      return `Open ${scheduled("coins").name} first.`;
+      return `Open ${coinsName} first.`;
     case "no-coins":
       return `You need ${coinsOf(coins)}.`;
   }
 }
 
-function settingsGroups({ onTheBoards, progress, achievements }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
+function settingsGroups({ onTheBoards, progress, messages, achievements, channelPicked, groups }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
   const leaderboard = onTheBoards === null ? [] : [leaderboardSwitch(onTheBoards)];
-  const copy = settingCopyOf(achievements);
+  const primaryGroup = groups === null ? [] : [[primaryGroupSetting(groups)]];
+  const copy = settingCopyOf(achievements, channelPicked);
   const progression = progress === null ? [] : [[setting(copy, progress, "muteNotices"), setting(copy, progress, "dms")]];
-  return [...leaderboard, ...progression];
+  const sent = messages === null ? [] : [whatISendYouOf(messages)];
+  return [...leaderboard, ...primaryGroup, ...progression, ...sent];
+}
+
+function primaryGroupSetting({ primary, groups }: GroupChoice): HomeLine {
+  if (groups.length === 1) return { kind: "text", text: countsFor(primary) };
+  return { kind: "pick-group", text: pickQuestion, groups, picked: primary.group };
+}
+
+function whatISendYouOf(messages: MessageSetting[]): HomeLine[] {
+  return [{ kind: "text", text: bold("What I send you") }, ...messages.map(messageSettingLineOf)];
+}
+
+function messageSettingLineOf({ kind, label, description, on, place, places }: MessageSetting): HomeLine {
+  const text = on ? `${bold(label)} — ${description}` : `${bold(label)} · Off — ${description}`;
+  const options = places.map((each) => ({ label: placeLabelOf(kind, each), command: { type: "setMessageSetting" as const, kind, place: each }, selected: each === place }));
+  return { kind: "pick", id: `message-place:${kind}`, text, placeholder: `Where I get ${label}`, options };
+}
+
+function placeLabelOf(kind: MessageKind, place: MessagePlace) {
+  if (place === "none") return "None";
+  if (place === "dm") return "As a DM";
+  return kind === "celebrations" ? "In the announcement channel" : "In the channel";
 }
 
 function leaderboardSwitch(onTheBoards: boolean): HomeLine[] {
@@ -297,11 +412,12 @@ function leaderboardSwitch(onTheBoards: boolean): HomeLine[] {
 
 type SettingCopy = Record<"whenOn" | "whenOff", { text: string; label: string }>;
 
-function settingCopyOf(achievements: boolean): Record<keyof ProgressSettings, SettingCopy> {
+function settingCopyOf(achievements: boolean, channelPicked: boolean): Record<keyof NotificationSwitches, SettingCopy> {
+  const what = celebrated(achievements);
   return {
     muteNotices: {
       whenOn: { text: "I don't post public notices about you.", label: "Unmute notices" },
-      whenOff: { text: `I celebrate your ${celebrated(achievements)} in public.`, label: "Mute notices" },
+      whenOff: { text: channelPicked ? `I celebrate your ${what} in public.` : `I'll celebrate your ${what} in public once your workspace picks a channel.`, label: "Mute notices" },
     },
     dms: {
       whenOn: { text: achievements ? "I send you a DM when you reach a level or earn an achievement." : "I send you a DM when you reach a level.", label: "Turn off DMs" },
@@ -314,20 +430,33 @@ function celebrated(achievements: boolean) {
   return achievements ? "level ups and achievements" : "level ups";
 }
 
-function setting(copy: Record<keyof ProgressSettings, SettingCopy>, settings: ProgressSettings, key: keyof ProgressSettings): HomeLine {
+function setting(copy: Record<keyof NotificationSwitches, SettingCopy>, settings: NotificationSwitches, key: keyof NotificationSwitches): HomeLine {
   const on = settings[key];
   const { text, label } = copy[key][on ? "whenOn" : "whenOff"];
   return { kind: "action", text, action: { label, command: { type: "setProgressSettings", ...changeOf(key, !on) } } };
 }
 
-function changeOf(key: keyof ProgressSettings, value: boolean): Partial<ProgressSettings> {
+function changeOf(key: keyof NotificationSwitches, value: boolean): Partial<NotificationSwitches> {
   return { [key]: value };
 }
 
-function adminGroups({ announcementChannel, achievements }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
+function adminGroups({ announcementChannel, achievements, groupMode }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
   const what = celebrated(achievements);
   const channelLines = announcementChannel === null ? noChannelLines(what) : announcementChannelLines(what, announcementChannel);
-  return [channelLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+  const groupModeLines = groupMode === null ? [] : [groupModeLinesOf(groupMode)];
+  return [channelLines, ...groupModeLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+}
+
+function groupModeLinesOf({ mode, groups, allowlist }: GroupModeFacts): HomeLine[] {
+  const modes: HomeLine = {
+    kind: "choices",
+    choices: [
+      { label: "Every group", command: { type: "setGroupMode", mode: "all" }, selected: mode === "all" },
+      { label: "Only these groups", command: { type: "setGroupMode", mode: "allowlist" }, selected: mode === "allowlist" },
+    ],
+  };
+  const picker: HomeLine[] = mode === "allowlist" ? [{ kind: "pick-groups", text: "Pick the groups that count.", groups, picked: allowlist }] : [];
+  return [{ kind: "text", text: bold("Groups that count") }, modes, ...picker];
 }
 
 function noChannelLines(what: string): HomeLine[] {
@@ -362,19 +491,21 @@ function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
   return [...readyLines, ...nextLine];
 }
 
-function weeklyQuestLines({ week, slots, swapAvailable }: WeeklyQuests, { cratesShownApart }: { cratesShownApart: boolean }): HomeLine[] {
+type QuestRows = { cratesShownApart: boolean; website: string | null };
+
+function weeklyQuestLines({ week, slots, swapAvailable }: WeeklyQuests, rows: QuestRows): HomeLine[] {
   const asksToSayWhy = slots.some(({ quest, finishedAt }) => finishedAt === null && questOf(quest).progress.given.saysWhy);
   const condition: HomeLine[] = asksToSayWhy ? [{ kind: "hint", text: "Saying why counts when your message has 5 or more words besides mentions and emoji." }] : [];
-  return [{ kind: "text", text: bold("Quests this week") }, ...slots.map((slot) => weeklyQuestLine(week, slot, swapAvailable, cratesShownApart)), ...condition];
+  return [{ kind: "text", text: bold("Quests this week") }, ...slots.map((slot) => weeklyQuestLine(week, slot, { swapAvailable, ...rows })), ...condition];
 }
 
-function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot, swapAvailable: boolean, crateShownApart: boolean): HomeLine {
+function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot, { swapAvailable, cratesShownApart, website }: QuestRows & { swapAvailable: boolean }): HomeLine {
   if (finishedAt === null) {
     const text = `${goal} ${bold(`${progress}/${target}`)} · ${bold(`${reward.xp} XP`)}`;
-    return swapAvailable ? { kind: "action", text, action: swapQuest({ kind: "weekly", week, slot }) } : { kind: "text", text };
+    return swapAvailable ? { kind: "action", text, action: swapQuest({ kind: "weekly", week, slot }, website) } : { kind: "text", text };
   }
   const text = `✅ ${goal} ${earned(reward.xp)}`;
-  return openedAt === null && !crateShownApart ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }, null) } : { kind: "text", text };
+  return openedAt === null && !cratesShownApart ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }, null) } : { kind: "text", text };
 }
 
 function waitingToOpenLines(crates: UnopenedCrate[]): HomeLine[] {
@@ -382,8 +513,7 @@ function waitingToOpenLines(crates: UnopenedCrate[]): HomeLine[] {
   return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...moreEarlierCrates(crates)];
 }
 
-function journeyStepLines({ step, reward, finishedAt, openedAt }: JourneyStepFacts): HomeLine[] {
-  const { goal, hint } = journeyCopyOf(step);
+function journeyStepLines({ step, goal, hint, reward, finishedAt, openedAt }: JourneyStepShown): HomeLine[] {
   if (finishedAt !== null) {
     const text = `${bold("Journey:")} ✅ ${goal} ${earned(reward.xp)}`;
     return [openedAt === null ? { kind: "action", text, action: openCrate({ kind: "journey", step }, null) } : { kind: "text", text }];
@@ -400,8 +530,9 @@ export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp:
   return { text: `✅ You finished a quest: ${goal} ${earned(xp)}`, action: openCrate(quest, website) };
 }
 
-function swapQuest(quest: WeeklyQuest): HomeAction {
-  return { label: "Swap", command: { type: "rerollQuest", quest } };
+function swapQuest(quest: WeeklyQuest, website: string | null): HomeAction {
+  if (website === null) return { label: "Swap", command: { type: "rerollQuest", quest } };
+  return linkOnTheWeb({ label: "Swap", spoken: "Swap", id: `swap:${rewardKeyOf(quest)}` }, { page: "quests", quest: quest.slot }, website);
 }
 
 function openCrate(quest: Quest, website: string | null): HomeAction {

@@ -73,7 +73,7 @@ describe("P63: the level-up DM", () => {
     expect(levelUpDms()[1]?.text).toBe("🎉 You reached level 2!\nLevel 3 is 80 XP away.");
   });
 
-  test("a member whose DM setting is off gets no DM while the other side of the same award gets theirs, and their XP, level and welcome stay as they were", async () => {
+  test("a member who turned DMs off gets no DM while the other side of the same award gets theirs, and their XP, level and welcome stay as they were", async () => {
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await turnDmsOff(t, "U_ALICE");

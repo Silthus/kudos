@@ -30,8 +30,13 @@ export function listed(page: Page): boolean {
 
 export function routeOf(page: Page): string {
   if (!listed(page)) return pathOf.home;
-  const path = pathOf[page.page];
-  return page.page === "leaderboard" && page.period !== "week" ? `${path}?period=${page.period}` : path;
+  return `${pathOf[page.page]}${searchOf(page)}`;
+}
+
+function searchOf(page: Page) {
+  if (page.page === "leaderboard" && page.period !== "week") return `?period=${page.period}`;
+  if (page.page === "quests" && page.quest !== undefined) return `?quest=${page.quest}`;
+  return "";
 }
 
 export function listedPageOf(feature: Feature): Page | null {

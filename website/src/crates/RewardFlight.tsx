@@ -73,7 +73,7 @@ export function skillPointChip() {
   return document.querySelector<HTMLElement>("header [data-skill-point-chip]");
 }
 
-function isInView(element: HTMLElement) {
+export function isInView(element: HTMLElement) {
   const { top, bottom, width } = element.getBoundingClientRect();
   const headerBottom = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
   return width > 0 && top >= headerBottom && bottom <= window.innerHeight;
@@ -123,14 +123,17 @@ export function RewardFlight({ source, target, amount, onArrived, onLanded }: Re
   );
 }
 
-const settling = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+const settling = new WeakMap<HTMLElement, Map<string, ReturnType<typeof setTimeout>>>();
 
 export function settle(target: HTMLElement, classes: string[], forMs = settleMs) {
-  clearTimeout(settling.get(target));
+  const timers = settling.get(target) ?? new Map<string, ReturnType<typeof setTimeout>>();
+  settling.set(target, timers);
+  const key = classes.join(" ");
+  clearTimeout(timers.get(key));
   target.classList.remove(...classes);
   void target.offsetWidth;
   target.classList.add(...classes);
-  settling.set(target, setTimeout(() => target.classList.remove(...classes), forMs));
+  timers.set(key, setTimeout(() => target.classList.remove(...classes), forMs));
 }
 
 function courseOf(from: Origin | undefined, target: HTMLElement | null): Course | undefined {

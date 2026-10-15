@@ -124,7 +124,7 @@ describe("CO22 CO23 CO24: a level-7 member with Coins open buys flame with a ski
     expect(await treeTables(t)).toEqual(before);
   });
 
-  test("while the website is open, which doesn't draw coin perks yet, the level-up DM's Buy on a coin perk stays a Slack button and buys it, and other perks link to the web", async () => {
+  test("WS345: while the website is open, the level-up DM's Buy on a coin perk links to the web like every other perk", async () => {
     vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
     vi.stubEnv("SITE_URL", siteUrl);
     const t = await aliceWithTheTreeOpen({ owns: ["spark"], coins: 150, level: 6, flags: [...previewedByAlice, onForEveryone("website")] });
@@ -133,12 +133,11 @@ describe("CO22 CO23 CO24: a level-7 member with Coins open buys flame with a ski
 
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
     const levelUp = levelUpDmTo("U_ALICE", 7);
-    await send(t, blockActions("U_ALICE", buttonIn(levelUp, "Buy", "*Flame*"), { inMessage: { channel: "D_ALICE", ts: "1760349700.000100" } }));
 
-    expect(JSON.parse(accessoryBeside(levelUp, "*Flame*")?.value ?? "null")).toEqual({ type: "buyPerk", perk: "flame" });
-    expect(accessoryBeside(levelUp, "*Flame*")).not.toHaveProperty("url");
+    expect(accessoryBeside(levelUp, "*Flame*")).toMatchObject({ url: `${siteUrl}/skills` });
+    expect(accessoryBeside(levelUp, "*Flame*")).not.toHaveProperty("value");
+    expect(accessoryBeside(levelUp, "*Treasurer*")).toMatchObject({ url: `${siteUrl}/skills` });
     expect(accessoryBeside(levelUp, "*Rhythm*")).toMatchObject({ url: `${siteUrl}/skills` });
-    expect(await perksOwnedBy(t, "U_ALICE")).toEqual(["spark", "flame"]);
   });
 
   test("a Buy from the level-up DM that Coins isn't open for says so in the conversation", async () => {
@@ -147,6 +146,14 @@ describe("CO22 CO23 CO24: a level-7 member with Coins open buys flame with a ski
     await send(t, blockActions("U_ALICE", buyButtonOf("flame"), { inMessage: { channel: "D_ALICE", ts: "1760349700.000100" } }));
 
     expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "D_ALICE").map(({ text }) => text)).toEqual(["I couldn't buy Flame. Open Coins first."]);
+  });
+
+  test("ST21: where the store is shown, that refusal names Coins and inventory", async () => {
+    const t = await aliceWithTheTreeOpen({ owns: ["spark"], coins: 150, coinsOpen: false, flags: [...previewedByAlice, onForEmails("store", alicesEmail)] });
+
+    await send(t, blockActions("U_ALICE", buyButtonOf("flame"), { inMessage: { channel: "D_ALICE", ts: "1760349700.000100" } }));
+
+    expect(slack.callsTo("chat.postMessage").filter(({ channel }) => channel === "D_ALICE").map(({ text }) => text)).toEqual(["I couldn't buy Flame. Open Coins and inventory first."]);
   });
 });
 

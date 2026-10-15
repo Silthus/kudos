@@ -5,6 +5,7 @@ import { detailsHeadingId, PerkDetailsDrawer, PerkDetailsPanel, PurchaseAnnounce
 import { PerkTree } from "../skills/PerkTree";
 import { TreeHeader } from "../skills/TreeHeader";
 import { usePurchase } from "../skills/purchase";
+import { chainOf } from "../skills/upgrades";
 import { isWideScreen, useWideScreen } from "../useWideScreen";
 import { YourPerks } from "../skills/YourPerks";
 
@@ -65,7 +66,7 @@ function useDetailsHeadingFocus() {
 }
 
 function selectedIn(rows: TreeRow[], chosen: PerkNode["perk"] | undefined): SelectedPerk | undefined {
-  const shown = rows.flatMap(({ level, perks }) => perks.map((perk) => ({ perk, level })));
+  const shown = rows.flatMap(({ level, perks }) => perks.map((perk) => ({ perk, level, chain: chainOf(perk, rows) })));
   return shown.find(({ perk }) => perk.perk === chosen) ?? shown.find(({ perk }) => perk.state === "available") ?? shown[0];
 }
 
