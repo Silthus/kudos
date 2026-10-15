@@ -90,8 +90,8 @@ function NotYoursYet({ items }: { items: InventoryItem[] }) {
       <ul aria-labelledby="inventory-not-yet" className="grid gap-1.5 sm:grid-cols-2">
         {items.map((item) => (
           <li key={item.item} className="flex min-h-11 items-center gap-2.5 rounded-md border border-dashed px-2.5 py-1.5">
-            <span className="shrink-0 opacity-60">
-              <ItemArt item={item} className="size-7 text-lg" />
+            <span className="max-w-24 shrink-0">
+              <ItemArt item={item} className="size-7 text-lg opacity-60" />
             </span>
             <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.name}</span>
             <HowToGet source={item.source} />
@@ -123,7 +123,7 @@ function ItemArt({ item: { art, name }, className }: { item: InventoryItem; clas
   if (art.kind === "custom") {
     return (
       <span aria-hidden="true" className="flex max-w-full min-w-0 items-center justify-center">
-        <CustomEmoji key={art.url} label={name} image={art.url} className={`object-contain ${className}`} nameClassName="max-w-full truncate text-xs" />
+        <CustomEmoji key={art.url} label={name} image={art.url} className={`object-contain ${className}`} nameClassName="block max-w-full truncate text-xs" />
       </span>
     );
   }

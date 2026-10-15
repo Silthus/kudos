@@ -176,8 +176,22 @@ describe("WS341 ST36: a custom kudos emoji shows its Slack picture, and its name
     const owned = itemNamed("Yours", ":partyparrot:");
     expect(owned.querySelector("img")).toHaveAttribute("src", "https://emoji.slack-edge.com/T1/partyparrot/a1b2.png");
     expect(owned.querySelector("img")).toHaveAttribute("alt", ":partyparrot:");
+    expect(within(owned).queryByRole("img")).toBeNull();
     expect(readAloudIn(within(kudosEmoji()).getByRole("list", { name: "Yours" }))).toEqual(["Hedgehog, in slot 1", ":partyparrot:, in slot 2"]);
     expect(itemNamed("Not yours yet", ":shipit:").querySelector("img")).toHaveAttribute("alt", ":shipit:");
+  });
+
+  it("dims a for-sale picture but never its fallback name, which stays inside its row", () => {
+    renderApp(memberWithCustomEmoji);
+
+    const forSale = itemNamed("Not yours yet", ":shipit:");
+    expect(forSale.querySelector("img")).toHaveClass("opacity-60");
+    fireEvent.error(forSale.querySelector("img")!);
+
+    const fallback = forSale.querySelector("[data-custom-emoji]")!;
+    expect(fallback.closest("[class*='opacity-']")).toBeNull();
+    expect(fallback).toHaveClass("truncate", "max-w-full");
+    expect(fallback.parentElement!.parentElement).toHaveClass("max-w-24");
   });
 
   it("shows the name chip in the picture's place once the picture fails to load", () => {
@@ -188,6 +202,7 @@ describe("WS341 ST36: a custom kudos emoji shows its Slack picture, and its name
 
     expect(owned.querySelector("img")).toBeNull();
     expect(owned.querySelector("[data-custom-emoji]")).toHaveTextContent(":partyparrot:");
+    expect(readAloudIn(within(kudosEmoji()).getByRole("list", { name: "Yours" }))).toEqual(["Hedgehog, in slot 1", ":partyparrot:, in slot 2"]);
   });
 
   it.each([false, true])("passes axe with dark mode %s", async (dark) => {
