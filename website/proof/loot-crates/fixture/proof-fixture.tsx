@@ -17,15 +17,28 @@ const drops: Record<string, Drop> = {
 };
 
 const drop = drops[params.get("drop") ?? ""];
-const visitor: MemberProfile = { ...shellFixtures.memberCrossingIntoLevel6, coins: params.get("coins") === "0" ? null : 236 };
+const featureCrate = params.get("crate") === "feature";
+const skillTreeReady = shellFixtures.memberWithTheSkillTreeReady;
+let visitor: MemberProfile = featureCrate ? { ...skillTreeReady, progression: { level: 5, xp: 610, levelStartsAt: 600, nextLevelAt: 1000, xpToNextLevel: 390 }, coins: 236 } : { ...shellFixtures.memberCrossingIntoLevel6, coins: params.get("coins") === "0" ? null : 236 };
 const quests: MyQuests = params.get("coins") === "0" ? questsFixtures.week : questsFixtures.weekPayingCoins;
 const delayMs = Number(params.get("delay") ?? 400);
+const root = createRoot(document.getElementById("root")!);
 
-const opened = async (): Promise<OpenAnswer> => {
+const answer = async (): Promise<OpenAnswer> => {
   await new Promise((resolve) => setTimeout(resolve, delayMs));
   return { kind: "opened", ...(drop !== undefined && { drop }) };
 };
 
-const actions: ShellActions = { ...fixtureActions, openQuestCrate: opened, openFeature: opened };
+const openFeature: ShellActions["openFeature"] = async (feature) => {
+  const answered = await answer();
+  setTimeout(() => {
+    visitor = { ...visitor, features: (visitor.features ?? []).map((card) => (card.feature === feature ? { ...card, state: "open", openedAt: Date.now() } : card)), skillPoints: 1 };
+    show();
+  }, 50);
+  return answered;
+};
 
-createRoot(document.getElementById("root")!).render(<App visitor={visitor} actions={actions} {...fixtureReadsFor(visitor)} useQuests={fixedQuests(quests)} />);
+const actions: ShellActions = { ...fixtureActions, openQuestCrate: answer, openFeature };
+
+const show = () => root.render(<App visitor={visitor} actions={actions} {...fixtureReadsFor(visitor)} useQuests={fixedQuests(quests)} />);
+show();

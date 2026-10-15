@@ -137,7 +137,8 @@ describe("#452: a closed crate spoils nothing", () => {
 
     expect(dialog()).toHaveAttribute("data-phase", "charging");
     expect(tokens()).toEqual([]);
-    expect(dialog()).not.toHaveTextContent(/\d+ XP|coin/);
+    expect(dialog()!.querySelector('[aria-hidden="true"][data-stage="charging"]')).not.toBeNull();
+    expect(within(dialog()!).getByText("Quest reward")).toBeInTheDocument();
     advance(crateChargesForMs);
     expect(dialog()).toHaveAttribute("data-phase", "bursting");
     expect(tokens().map((token) => token.textContent)).toEqual(["+20 XP", "+1 skill point", "+10 coins"]);

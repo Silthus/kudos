@@ -174,19 +174,28 @@
 }
 
 .reward-tokens {
-  position: absolute;
-  left: 50%;
-  top: 0;
+  position: relative;
   z-index: 2;
   display: flex;
-  width: max-content;
   max-width: calc(100vw - 2rem);
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: center;
   gap: 0.75rem;
-  translate: -50% 0;
+  margin-bottom: 5.5rem;
   pointer-events: none;
+}
+
+.reward-tokens[data-stage="charging"] {
+  visibility: hidden;
+}
+
+.reward-tokens[data-stage="ended"] .reward-token-slot:has(.reward-token) {
+  display: none;
+}
+
+.reward-tokens[data-stage="ended"] {
+  margin-bottom: 4rem;
 }
 
 .reward-token-slot {
@@ -346,12 +355,12 @@
   .crate-art[data-phase="opening"] .crate-ring {
     animation: crate-ring 0.8s ease-out 0.72s both;
   }
-  .reward-token,
-  .drop-card {
+  .reward-tokens[data-stage="popped"] .reward-token,
+  .reward-tokens[data-stage="popped"] .drop-card {
     animation: reward-token-pop 0.75s cubic-bezier(0.2, 0.9, 0.3, 1.35) var(--pop-delay, 0ms) both;
   }
-  .reward-token::after,
-  .drop-card::after {
+  .reward-tokens[data-stage="popped"] .reward-token::after,
+  .reward-tokens[data-stage="popped"] .drop-card::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -361,10 +370,10 @@
     transform: translateX(-120%);
     animation: reward-token-shimmer 0.9s ease-in-out calc(var(--pop-delay, 0ms) + 0.6s) both;
   }
-  .reward-token-spark {
+  .reward-tokens[data-stage="popped"] .reward-token-spark {
     animation: reward-token-spark 0.8s cubic-bezier(0.1, 0.7, 0.3, 1) calc(var(--pop-delay, 0ms) + 0.3s) both;
   }
-  .drop-card[data-rarity="legendary"] {
+  .reward-tokens[data-stage="popped"] .drop-card[data-rarity="legendary"] {
     animation:
       reward-token-pop 0.9s cubic-bezier(0.2, 0.9, 0.3, 1.35) var(--pop-delay, 0ms) both,
       drop-legendary-flare 1.2s ease-out calc(var(--pop-delay, 0ms) + 0.5s) both;

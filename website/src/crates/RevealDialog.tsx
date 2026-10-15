@@ -13,7 +13,7 @@ import type { Drop } from "./drops";
 import { attemptMessages, useMoments, type Flight, type Reveal } from "./moments";
 import { rewardLabelOf, type QuestCrate, type ReadyCrate } from "./readyCrates";
 import type { Reward, RewardKind } from "./rewards";
-import { flyingKindsOf, RewardChips, TokenStage, tokensOf, type TokenKind } from "./RewardTokens";
+import { flyingKindsOf, RewardChips, TokenStage, tokensOf, type Stage, type TokenKind } from "./RewardTokens";
 
 export const crateChargesForMs = 700;
 
@@ -110,8 +110,8 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
         <span id={labelId} className="hud-label moment-label">
           {crate.kind === "feature" ? `Level ${crate.card.level} unlock` : rewardLabelOf(crate)}
         </span>
-        <div className="crate-stage pb-6 pt-36">
-          {(phase === "bursting" || phase === "flying") && <TokenStage key={shownAt} tokens={tokens} flown={flown} />}
+        <div className={`crate-stage flex flex-col items-center pb-6 ${tokens.length > 0 ? "pt-4" : "pt-36"}`}>
+          <TokenStage key={shownAt} tokens={tokens} stage={stageOf(phase)} flown={flown} />
           <CrateArt phase={playing ? "opening" : "open"} width={220} Hog={hogOf(crate.kind === "feature" ? crate.card.feature : "quests")} />
         </div>
         {flying !== undefined && (phase === "flying" || phase === "ended") && (
@@ -122,6 +122,11 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
       </div>
     </div>
   );
+}
+
+function stageOf(phase: Phase): Stage {
+  if (phase === "charging") return "charging";
+  return phase === "ended" ? "ended" : "popped";
 }
 
 function useRewardOnStage(flying: Flying | undefined, crate: ReadyCrate) {

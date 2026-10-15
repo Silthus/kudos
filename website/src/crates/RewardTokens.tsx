@@ -30,23 +30,27 @@ export function flyingKindsOf(reward: Reward): RewardKind[] {
   return flyingOrder.filter((kind) => reward[kind] > 0);
 }
 
-type TokenStageProps = { tokens: Token[]; flown: TokenKind[] };
+export type Stage = "charging" | "popped" | "ended";
 
-export function TokenStage({ tokens, flown }: TokenStageProps) {
+type TokenStageProps = { tokens: Token[]; stage: Stage; flown: TokenKind[] };
+
+export function TokenStage({ tokens, stage, flown }: TokenStageProps) {
+  if (tokens.length === 0) return null;
+  const onStage = stage !== "charging";
   return (
-    <ul aria-hidden="true" className="reward-tokens">
+    <ul aria-hidden="true" className="reward-tokens" data-stage={stage}>
       {tokens.map((token, at) => (
         <li key={token.kind} className="reward-token-slot" style={{ "--pop-delay": `${at * 140}ms` } as CSSProperties}>
-          {token.drop === undefined ? <PoppedToken token={token} flown={flown.includes(token.kind)} /> : <DropCard drop={token.drop} />}
+          {token.drop === undefined ? <PoppedToken token={token} onStage={stage === "popped"} flown={flown.includes(token.kind)} /> : <DropCard drop={token.drop} onStage={onStage} />}
         </li>
       ))}
     </ul>
   );
 }
 
-function PoppedToken({ token, flown }: { token: Token; flown: boolean }) {
+function PoppedToken({ token, onStage, flown }: { token: Token; onStage: boolean; flown: boolean }) {
   return (
-    <span className="reward-token" data-flown={flown || undefined} style={{ "--token-glow": token.glow } as CSSProperties} {...rewardTokenAttributes(token.kind)}>
+    <span className="reward-token" data-flown={flown || undefined} style={{ "--token-glow": token.glow } as CSSProperties} {...(onStage && rewardTokenAttributes(token.kind))}>
       <Sparks />
       {token.glyph}
       {token.words}
@@ -54,9 +58,9 @@ function PoppedToken({ token, flown }: { token: Token; flown: boolean }) {
   );
 }
 
-function DropCard({ drop }: { drop: Drop }) {
+function DropCard({ drop, onStage }: { drop: Drop; onStage: boolean }) {
   return (
-    <span className="drop-card" data-rarity={drop.rarity} style={{ "--token-glow": `var(--rarity-${drop.rarity})` } as CSSProperties} {...rewardTokenAttributes("drop")}>
+    <span className="drop-card" data-rarity={drop.rarity} style={{ "--token-glow": `var(--rarity-${drop.rarity})` } as CSSProperties} {...(onStage && rewardTokenAttributes("drop"))}>
       <Sparks />
       <span className="drop-card-art">
         <DropArtwork art={drop.art} size={88} />
