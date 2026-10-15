@@ -2,6 +2,7 @@ import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx } from "../_generated/server";
 import { periodValidator } from "../leaderboard/periods";
+import { messageKindValidator, messagePlaceValidator } from "../messageSettings/kinds";
 import { failuresLogged } from "./failures";
 import { recordUsage, usageNotRecorded } from "./usage";
 
@@ -66,5 +67,27 @@ export const recordPrimaryGroupPicked = internalMutation({
   args: primaryGroupPickValidator,
   handler: async (ctx, pick): Promise<void> => {
     await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "primaryGroupPicked", ...pick }));
+  },
+});
+
+const messageSettingChangeValidator = v.object({
+  workspace: v.string(),
+  member: v.id("members"),
+  setting: messageKindValidator,
+  on: v.boolean(),
+  place: v.optional(messagePlaceValidator),
+  at: v.number(),
+});
+
+export type MessageSettingChange = Infer<typeof messageSettingChangeValidator>;
+
+export async function reportMessageSettingChanged(ctx: MutationCtx, change: MessageSettingChange) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordMessageSettingChanged, change);
+}
+
+export const recordMessageSettingChanged = internalMutation({
+  args: messageSettingChangeValidator,
+  handler: async (ctx, change): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "messageSettingChanged", ...change }));
   },
 });

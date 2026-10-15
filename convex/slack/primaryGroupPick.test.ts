@@ -8,6 +8,7 @@ import {
   buttonIn,
   buttonInHome,
   optionNamed,
+  optionsOf,
   publishedHome,
   publishedHomeBlocks,
   readBlocks,
@@ -164,19 +165,21 @@ describe("GB20: the primary group in Settings", () => {
     const t = await workspaceWithGroups(onForEveryone("groups"));
     await openSettings(t, "U_ANN");
 
-    expect(publishedHome(slack, "U_ANN")).toContain(`section: ${pickQuestion} [select: Zebras of Gardeners, Zebras]`);
+    expect(publishedHome(slack, "U_ANN")).toContain(`section: ${pickQuestion} [select: Zebras]`);
+    expect(settingsOptionsOf("U_ANN")).toEqual(["Gardeners", "Zebras"]);
   });
 
   test("a member in several groups picks from a dropdown, and App Home republishes with the pick selected", async () => {
     const t = await workspaceWithGroups(onForEveryone("groups"), onForEveryone("everyone-board"));
     await openSettings(t, "U_ANN");
 
-    expect(publishedHome(slack, "U_ANN")).toContain(`section: ${pickQuestion} [select: Zebras of Gardeners, Zebras]`);
+    expect(publishedHome(slack, "U_ANN")).toContain(`section: ${pickQuestion} [select: Zebras]`);
 
     await chooseInSettings(t, "U_ANN", "Gardeners");
 
     expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Gardeners");
-    expect(publishedHome(slack, "U_ANN")).toContain(`section: ${pickQuestion} [select: Gardeners of Gardeners, Zebras]`);
+    expect(publishedHome(slack, "U_ANN")).toContain(`section: ${pickQuestion} [select: Gardeners]`);
+    expect(settingsOptionsOf("U_ANN")).toEqual(["Gardeners", "Zebras"]);
   });
 
   test("a member in one group reads which group they count for, and a member in none sees nothing of groups", async () => {
@@ -325,6 +328,10 @@ function welcomeUpdatesTo(user: string) {
     .callsTo("chat.update")
     .filter((update) => update.channel === user && update.ts === ts)
     .map((update) => readBlocks(update.blocks as Block[]));
+}
+
+function settingsOptionsOf(user: string) {
+  return optionsOf(selectIn(publishedHomeBlocks(slack, user))).map(({ text }) => text.text);
 }
 
 function groupLinesIn(home: unknown[]) {

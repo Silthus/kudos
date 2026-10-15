@@ -88,9 +88,16 @@ export function optionsOf(element: Element): Option[] {
   return element.options ?? (element.option_groups ?? []).flatMap(({ options }) => options);
 }
 
+export function optionPickedInHome(slack: FakeSlack, user: string, row: string, option: string): BlockAction {
+  const picker = publishedHomeBlocks(slack, user).find((block) => block.text?.text.startsWith(`*${row}*`))?.accessory;
+  const picked = picker?.options?.find(({ text }) => text.text === option);
+  expect(picked, `${option} in the ${row} picker in ${user}'s App Home`).toBeDefined();
+  return { type: "static_select", action_id: picker!.action_id!, selected_option: { value: picked!.value } };
+}
+
 let interactions = 0;
 
-export type ClickedMessage = { channel: string; ts: string };
+export type ClickedMessage = { channel: string; ts: string; ephemeral?: boolean; threadTs?: string };
 
 export function blockActions(user: string, action: BlockAction, options: { team?: string; inMessage?: ClickedMessage; state?: MessageState } = {}) {
   const team = options.team ?? "T1";
@@ -112,8 +119,9 @@ function homeContainer() {
   return { container: { type: "view", view_id: "V_HOME" }, view: { id: "V_HOME", type: "home" } };
 }
 
-function messageContainer({ channel, ts }: ClickedMessage) {
-  return { container: { type: "message", message_ts: ts, channel_id: channel, is_ephemeral: false }, channel: { id: channel }, message: { type: "message", ts } };
+function messageContainer({ channel, ts, ephemeral = false, threadTs }: ClickedMessage) {
+  const container = { type: "message", message_ts: ts, channel_id: channel, is_ephemeral: ephemeral, ...(threadTs && { thread_ts: threadTs }) };
+  return { container, channel: { id: channel }, ...(!ephemeral && { message: { type: "message", ts } }) };
 }
 
 function elementsOf(block: Block): Element[] {
@@ -141,7 +149,7 @@ function readButton(button: Element) {
 function readAccessory(element: Element) {
   if (element.type === "button" && element.url !== undefined) return `[link: ${plainText(element.text)} ${element.url}]`;
   if (element.type === "button") return `[button: ${plainText(element.text)}]`;
-  if (element.type === "static_select") return readSelect(element);
+  if (element.type === "static_select") return `[select: ${plainText(element.initial_option?.text)}]`;
   return `[${element.type}: ${element.initial_channel ?? "none"}]`;
 }
 

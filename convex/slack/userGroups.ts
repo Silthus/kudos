@@ -5,7 +5,7 @@ import { observedAction } from "../analytics/boundary";
 import { ReportableError } from "../analytics/exceptions";
 import { keepsMembers, maxUserGroupsKept, type UserGroup } from "../workspace/userGroups";
 import { textOf } from "./directory";
-import { readSlack, slackErrorCodeOf, type SlackAnswer, type SlackFailure } from "./webApi";
+import { nextRateLimitedAttempt, readSlack, retryDelayOf, slackErrorCodeOf, type SlackAnswer } from "./webApi";
 
 type SlackUserGroup = { id?: unknown; team_id?: unknown; handle?: unknown; name?: unknown; date_delete?: unknown; auto_type?: unknown; user_count?: unknown };
 
@@ -22,7 +22,6 @@ const withoutUserGroups = "plan_upgrade_required";
 const goneUserGroup = "no_such_subteam";
 const membersListSpacingMs = 3_000;
 const membersListsPerRun = 100;
-const maxAttempts = 3;
 const maxMembersKept = 7_500;
 const attemptArgs = { attempt: v.optional(v.number()) };
 
@@ -42,7 +41,7 @@ export const syncUserGroups = observedAction({
     const asOf = Date.now();
     const listing = await userGroupsListed();
     if (listing.kind === "rate-limited") {
-      await ctx.scheduler.runAfter(listing.retryAfterMs, internal.slack.userGroups.syncUserGroups, { attempt: nextAttempt(attempt, "usergroups.list") });
+      await ctx.scheduler.runAfter(listing.retryAfterMs, internal.slack.userGroups.syncUserGroups, { attempt: nextRateLimitedAttempt(attempt, "usergroups.list") });
       return;
     }
     await ctx.runMutation(internal.workspace.userGroups.keepUserGroups, { listed: listing.groups, scope: { kind: "every-group" }, asOf });
@@ -61,7 +60,7 @@ export const refreshUserGroup = observedAction({
     const asOf = Date.now();
     const listing = await userGroupsListed();
     if (listing.kind === "rate-limited") {
-      await ctx.scheduler.runAfter(listing.retryAfterMs, internal.slack.userGroups.refreshUserGroup, { workspace, group, attempt: nextAttempt(attempt, "usergroups.list") });
+      await ctx.scheduler.runAfter(listing.retryAfterMs, internal.slack.userGroups.refreshUserGroup, { workspace, group, attempt: nextRateLimitedAttempt(attempt, "usergroups.list") });
       return;
     }
     const listed = listing.groups.filter((listedGroup) => listedGroup.workspace === workspace && listedGroup.group === group);
@@ -85,7 +84,7 @@ async function refreshMembersOf(ctx: ActionCtx, key: GroupKey, attempt: number) 
   const asOf = Date.now();
   const answer = await readSlack<{ users?: unknown }>("usergroups.users.list", { usergroup: key.group, include_disabled: "true" });
   if (!answer.ok && answer.error === "ratelimited") {
-    await ctx.scheduler.runAfter(retryDelayOf(answer), internal.slack.userGroups.refreshMembers, { ...key, attempt: nextAttempt(attempt, "usergroups.users.list") });
+    await ctx.scheduler.runAfter(retryDelayOf(answer), internal.slack.userGroups.refreshMembers, { ...key, attempt: nextRateLimitedAttempt(attempt, "usergroups.users.list") });
     return;
   }
   const users = !answer.ok && (answer.error === withoutUserGroups || answer.error === goneUserGroup) ? [] : membersOf(answer);
@@ -131,13 +130,4 @@ function userGroupOf(listed: unknown): UserGroup[] {
 function memberCountOf(userCount: unknown): number | undefined {
   const count = typeof userCount === "string" ? Number(userCount) : userCount;
   return typeof count === "number" && Number.isInteger(count) && count >= 0 ? count : undefined;
-}
-
-function nextAttempt(attempt: number, method: string) {
-  if (attempt >= maxAttempts) throw new ReportableError(`Slack ${method} stayed rate limited`);
-  return attempt + 1;
-}
-
-function retryDelayOf({ retryAfterMs }: SlackFailure) {
-  return typeof retryAfterMs === "number" && Number.isFinite(retryAfterMs) ? retryAfterMs : 1_000;
 }

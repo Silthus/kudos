@@ -2,7 +2,6 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
-import { ReportableError } from "../analytics/exceptions";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import type { HomeFacts } from "../engine/home";
 import type { Command } from "../commands/commands";
@@ -11,6 +10,7 @@ import type { ShownHome } from "../feedback/homes";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { lookup } from "../workspace/directory";
 import { buttonOf, mrkdwn, plainText, urlButtonOf } from "./blocks";
+import { encodeHomeAction } from "./interactivity";
 import { attemptArgs, failedAttempt, sendOnce, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser, refreshUser } from "./directory";
 import { groupOptionsOf, groupSelectOf, optionListsOf } from "./groupPicker";
@@ -70,14 +70,6 @@ export const publishHome = observedAction({
   },
 });
 
-export function appHomeLink(workspace: string, label: string) {
-  return `<${appHomeUrl(workspace)}|${label}>`;
-}
-
-export function appHomeUrl(workspace: string) {
-  return `slack://app?${new URLSearchParams({ team: workspace, id: appId(), tab: "home" })}`;
-}
-
 type Home = { workspace: string; user: string; opened?: boolean };
 
 type Unavailable = { kind: "unavailable"; retryAfterMs?: number };
@@ -132,6 +124,7 @@ function blockOf(line: HomeLine) {
   if (line.kind === "hint") return { type: "context", elements: [mrkdwn(line.text)] };
   if (line.kind === "action") return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
   if (line.kind === "pick-channel") return { type: "section", text: mrkdwn(line.text), accessory: channelPickerOf(line) };
+  if (line.kind === "pick") return { type: "section", text: mrkdwn(line.text), accessory: pickerOf(line) };
   if (line.kind === "pick-group") return { type: "section", text: mrkdwn(line.text), accessory: groupSelectOf(settingsPick, line.groups, line.picked) };
   if (line.kind === "pick-groups") return { type: "actions", elements: [groupPickerOf(line)] };
   if (line.kind === "link") return { type: "section", text: mrkdwn(`<${line.url}|${line.label}>`) };
@@ -145,6 +138,12 @@ function buttonsOf(choices: Choice[]) {
 
 function linkButtonOf({ label, url }: { label: string; url: string }, index: number) {
   return urlButtonOf({ label, url, actionId: `website-link-${index}` });
+}
+
+function pickerOf({ id, placeholder, options }: Extract<HomeLine, { kind: "pick" }>) {
+  const selectOptions = options.map(({ label, command }) => ({ text: plainText(label), value: encodeHomeAction(command) }));
+  const initial = options.findIndex(({ selected }) => selected);
+  return { type: "static_select", action_id: id, placeholder: plainText(placeholder), options: selectOptions, ...(initial >= 0 && { initial_option: selectOptions[initial] }) };
 }
 
 function channelPickerOf({ picks, picked }: Extract<HomeLine, { kind: "pick-channel" }>) {
@@ -161,10 +160,4 @@ function groupPickerOf({ groups, picked }: Extract<HomeLine, { kind: "pick-group
     ...optionListsOf(options),
     ...(initial.length > 0 && { initial_options: initial }),
   };
-}
-
-function appId() {
-  const id = process.env.SLACK_APP_ID;
-  if (!id) throw new ReportableError("SLACK_APP_ID is not set");
-  return id;
 }

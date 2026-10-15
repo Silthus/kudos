@@ -2,6 +2,7 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { ladderValidator } from "./achievements/ladders";
+import { messageKindValidator, messagePlaceValidator } from "./messageSettings/kinds";
 import { bookReplayCursorValidator, bookReplayValidator } from "./achievements/replay";
 import { earnedTierValidator } from "./achievements/tiers";
 import { exceptionValidator } from "./analytics/exceptions";
@@ -151,6 +152,22 @@ export default defineSchema({
     awards: v.array(attributedAwardValidator),
   }).index("by_message", ["workspace", "conversation", "message"]),
 
+  customEmoji: defineTable({
+    workspace: v.string(),
+    name: v.string(),
+    image: v.string(),
+    listing: v.number(),
+  })
+    .index("by_name", ["workspace", "name"])
+    .index("by_listing", ["workspace", "listing"]),
+
+  customEmojiListings: defineTable({
+    workspace: v.string(),
+    begun: v.number(),
+    written: v.optional(v.number()),
+    refreshDueAt: v.optional(v.number()),
+  }).index("by_workspace", ["workspace"]),
+
   kudosMessages: defineTable({
     workspace: v.string(),
     conversation: v.string(),
@@ -234,6 +251,7 @@ export default defineSchema({
     message: v.string(),
     threadRoot: v.optional(v.string()),
     to: v.string(),
+    given: v.optional(v.array(segmentValidator)),
     lines: v.array(v.array(segmentValidator)),
     questsDone: v.optional(v.array(segmentValidator)),
     hint: v.optional(v.array(segmentValidator)),
@@ -367,6 +385,13 @@ export default defineSchema({
     dms: v.optional(v.boolean()),
     muteNotices: v.optional(v.boolean()),
   }).index("by_member", ["member"]),
+
+  messageSettings: defineTable({
+    member: v.id("members"),
+    kind: messageKindValidator,
+    on: v.boolean(),
+    place: v.optional(messagePlaceValidator),
+  }).index("by_member_kind", ["member", "kind"]),
 
   unlocks: defineTable({
     member: v.id("members"),

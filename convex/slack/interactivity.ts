@@ -8,7 +8,7 @@ type Action = {
   action_id: string;
   value?: string;
   selected_channel?: string | null;
-  selected_option?: { value: string } | null;
+  selected_option?: { value?: string } | null;
   selected_options?: Array<{ value: string }>;
 };
 
@@ -21,7 +21,7 @@ type MemberClick = {
   team: { id: string };
   user: { id: string };
   trigger_id: string;
-  container: { type: "view" } | { type: "message"; channel_id: string; message_ts: string };
+  container: { type: "view" } | { type: "message"; channel_id: string; message_ts?: string; is_ephemeral?: boolean; thread_ts?: string };
   view?: { type: string };
   state?: MessageState;
   actions: Action[];
@@ -41,32 +41,53 @@ export const slackInteractivity = observedHttpAction(async (ctx, request) => {
     eventId: payload.trigger_id,
     user: payload.user.id,
     commands,
-    ...(payload.container.type === "message" && { conversation: payload.container.channel_id, message: payload.container.message_ts }),
+    ...(payload.container.type === "message" && conversationOf(payload.container)),
   });
   return new Response(null, { status: 200 });
 });
+
+function conversationOf({ channel_id, message_ts, is_ephemeral, thread_ts }: Extract<MemberClick["container"], { type: "message" }>) {
+  if (is_ephemeral !== true) return { conversation: channel_id, ...(message_ts !== undefined && { message: message_ts }) };
+  return { conversation: channel_id, ephemeral: thread_ts === undefined ? {} : { threadRoot: thread_ts } };
+}
 
 export function encodeHomeAction(command: Command) {
   return JSON.stringify(command);
 }
 
 function commandsOf(action: Action, selections: Selections): Command[] {
-  const command = action.type === "button" ? buttonCommandOf(action, selections) : commandOf(selectCommandOf(action));
+  const command = commandOf(selectedCommandOf(action, selections));
   return command === null ? [] : [command];
 }
 
-function selectCommandOf(action: Action): unknown {
-  if (action.type === "channels_select") return { type: action.action_id, channel: action.selected_channel ?? null };
-  if (action.type === "multi_static_select") return { type: action.action_id, mode: "allowlist", allowlist: (action.selected_options ?? []).map(({ value }) => value) };
-  if (action.type !== "static_select" || action.selected_option == null) return null;
-  const command = parsed(action.action_id);
-  return isObject(command) ? { ...command, group: action.selected_option.value } : null;
+function selectedCommandOf(action: Action, selections: Selections): unknown {
+  switch (action.type) {
+    case "channels_select":
+      return { type: action.action_id, channel: action.selected_channel ?? null };
+    case "multi_static_select":
+      return { type: action.action_id, mode: "allowlist", allowlist: (action.selected_options ?? []).map(({ value }) => value) };
+    case "static_select":
+      return optionCommandOf(action);
+    case "button":
+      return buttonCommandOf(action, selections);
+    default:
+      return null;
+  }
 }
 
-function buttonCommandOf({ value }: Action, selections: Selections): Command | null {
+function optionCommandOf({ action_id, selected_option }: Action): unknown {
+  const picked = selected_option?.value;
+  if (picked === undefined) return null;
+  const encoded = parsed(picked);
+  if (isObject(encoded)) return encoded;
+  const command = parsed(action_id);
+  return isObject(command) ? { ...command, group: picked } : null;
+}
+
+function buttonCommandOf({ value }: Action, selections: Selections): unknown {
   const command = value === undefined ? null : parsed(value);
   if (!isObject(command)) return null;
-  return commandOf({ ...command, ...selections }) ?? commandOf(command);
+  return commandOf({ ...command, ...selections }) ?? command;
 }
 
 function selectionsIn(state: MessageState | undefined): Selections {

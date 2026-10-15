@@ -3,7 +3,7 @@ import { internal } from "../_generated/api";
 import { observedAction } from "../analytics/boundary";
 import { welcomePickValidator, type WelcomeGroups, type WelcomeMessage } from "../feedback/welcome";
 import { welcomedAsValidator } from "../welcome/welcomedAs";
-import { appHomeLink, appHomeUrl } from "./appHome";
+import { appHomeLink, appHomeUrl } from "./appHomeLinks";
 import { mrkdwn, plainText, urlButtonOf } from "./blocks";
 import { attemptArgs, sendOnce, slackLink, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 import { groupSelectOf } from "./groupPicker";
