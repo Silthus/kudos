@@ -7,9 +7,11 @@ import { ProfileCardPanel } from "../home/ProfileCardPanel";
 import { MemberTabs } from "../home/MemberTabs";
 import { RecentKudosCard } from "../home/RecentKudosCard";
 import type { RecentKudosRead } from "../recentKudosRead";
-import type { MemberProfile } from "../shell";
+import type { MemberProfile, ShellActions } from "../shell";
 
-export function HomePage({ member, reads, useRecentKudos }: { member: MemberProfile; reads: RailReads; useRecentKudos: RecentKudosRead }) {
+type HomePageProps = { member: MemberProfile; reads: RailReads; useRecentKudos: RecentKudosRead; onBuyItem: ShellActions["buyItem"] };
+
+export function HomePage({ member, reads, useRecentKudos, onBuyItem }: HomePageProps) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
@@ -17,7 +19,7 @@ export function HomePage({ member, reads, useRecentKudos }: { member: MemberProf
         <Hero member={member} />
         {hasGivenNoKudos(member) && <FirstKudosNudge member={member} />}
         <JourneyPanel journey={member.journey} />
-        <InventoryPanel member={member} />
+        <InventoryPanel member={member} buyItem={onBuyItem} />
         <MainColumnPanels member={member} />
       </div>
       <div className="flex min-w-0 flex-col gap-6">

@@ -111,7 +111,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
         ) : (
           <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={busy} revealing={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
             <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
-              <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} settings={settings} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} settingsActions={actions} onSignIn={signIn} onSignOut={actions.signOut} />
+              <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} settings={settings} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onBuyItem={actions.buyItem} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} settingsActions={actions} onSignIn={signIn} onSignOut={actions.signOut} />
             </ErrorBoundary>
           </Frame>
         )}
@@ -218,6 +218,7 @@ type PageProps = {
   membersShown: number;
   onChoosePeriod: (period: Period) => void;
   onBuyPerk: ShellActions["buyPerk"];
+  onBuyItem: ShellActions["buyItem"];
   onSetBoardVisibility: ShellActions["setBoardVisibility"];
   onSwapQuest: ShellActions["swapQuest"];
   settingsActions: SettingsActions;
@@ -225,13 +226,13 @@ type PageProps = {
   onSignOut: () => void;
 };
 
-function Page({ state, route, board, quests, book, skillTree, settings, profileCard, useRecentKudos, activity, drawSpotlight, membersShown, onChoosePeriod, onBuyPerk, onSetBoardVisibility, onSwapQuest, settingsActions, ...actions }: PageProps) {
+function Page({ state, route, board, quests, book, skillTree, settings, profileCard, useRecentKudos, activity, drawSpotlight, membersShown, onChoosePeriod, onBuyPerk, onBuyItem, onSetBoardVisibility, onSwapQuest, settingsActions, ...actions }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return <LoadingPage shape={loadingShapeOf(route)} />;
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "not-found") return <NotFoundPage />;
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
-  if (route.page === "home") return quests?.kind === "connecting" || board?.kind === "connecting" ? <ConnectingPage /> : <HomePage member={state} reads={{ quests, board, card: profileCard }} useRecentKudos={useRecentKudos} />;
+  if (route.page === "home") return quests?.kind === "connecting" || board?.kind === "connecting" ? <ConnectingPage /> : <HomePage key={membersShown} member={state} reads={{ quests, board, card: profileCard }} useRecentKudos={useRecentKudos} onBuyItem={onBuyItem} />;
   if (route.page === "activity") return <ActivityAnswerPage filter={route.filter} activity={activity} chatUrl={state.chatUrl} {...actions} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} onSwapQuest={onSwapQuest} {...actions} />;
   if (route.page === "book") return <BookAnswerPage member={state} book={book} page={route.bookPage} {...actions} />;
