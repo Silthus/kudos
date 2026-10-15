@@ -1,0 +1,106 @@
+
+ RUN  v5.0.3 /tmp/dp2/red2/website
+
+ ❯ |website| src/statesPolish.test.tsx (6 tests | 5 failed) 614ms
+   ❯ #481 3 V23: an empty timeline is Max's empty state, with one hedgehog, one sentence and one action to Slack (4)
+     × on all 224ms
+     × on received 106ms
+     × on given 64ms
+   ❯ #481 4: the story is centred on a wide screen (1)
+     × centres the header and the timeline column, which keep their reading width 69ms
+   ❯ #481 5: Max's pages share one shape for their one action (1)
+     × styles the not-found page's way back as an outline button, like the error page's Try again 93ms
+ ❯ |website| src/ActivityPage.test.tsx (54 tests | 1 failed) 4079ms
+   ❯ WS214: Show new activity (8)
+     × lands on Max's empty state, and keeps it focused, when the newest page answers nothing because the raised kudos went away (#481 3) 143ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/ActivityPage.test.tsx > WS214: Show new activity > lands on Max's empty state, and keeps it focused, when the newest page answers nothing because the raised kudos went away (#481 3)
+TestingLibraryElementError: Unable to find an accessible element with the role "link" and name "Thank someone in Slack (opens in a new tab)"
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+[36m<p[39m
+  [33mclass[39m=[32m"text-sm text-muted-foreground outline-none"[39m
+  [33mdata-timeline-empty[39m=[32m"true"[39m
+  [33mtabindex[39m=[32m"-1"[39m
+[36m>[39m
+  [0mYour activity shows here once you thank someone or reach a level.[0m
+[36m</p>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/ActivityPage.test.tsx:554:41
+    552|     expect(empty).toHaveFocus();
+    553|     expect(empty).toHaveTextContent("Your activity shows here once you…
+    554|     expect(within(empty as HTMLElement).getByRole("link", { name: "Tha…
+       |                                         ^
+    555|   });
+    556|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  |website| src/statesPolish.test.tsx > #481 3 V23: an empty timeline is Max's empty state, with one hedgehog, one sentence and one action to Slack > on all
+ FAIL  |website| src/statesPolish.test.tsx > #481 3 V23: an empty timeline is Max's empty state, with one hedgehog, one sentence and one action to Slack > on received
+ FAIL  |website| src/statesPolish.test.tsx > #481 3 V23: an empty timeline is Max's empty state, with one hedgehog, one sentence and one action to Slack > on given
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/statesPolish.test.tsx:48:27
+     46|     expect(empty).toHaveTextContent(sentence);
+     47|     const illustrations = [...empty.children].filter((child) => child.…
+     48|     expect(illustrations).toHaveLength(1);
+       |                           ^
+     49|     expect(illustrations[0]).toHaveAttribute("aria-hidden", "true");
+     50|     expect(within(empty).queryByRole("img")).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  |website| src/statesPolish.test.tsx > #481 4: the story is centred on a wide screen > centres the header and the timeline column, which keep their reading width
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"mx-auto max-w-3xl"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  mx-auto max-w-3xl[39m
+Received:
+[31m  flex w-full max-w-3xl flex-wrap items-end justify-between gap-x-6 gap-y-3[39m
+ ❯ src/statesPolish.test.tsx:71:20
+     69|     await pages.answer(aPage([], null));
+     70|     const header = main().querySelector("header")!;
+     71|     expect(header).toHaveClass("mx-auto", "max-w-3xl");
+       |                    ^
+     72|     const column = main().querySelector("[data-timeline-empty]")!.pare…
+     73|     expect(column).toHaveClass("mx-auto", "max-w-3xl");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  |website| src/statesPolish.test.tsx > #481 5: Max's pages share one shape for their one action > styles the not-found page's way back as an outline button, like the error page's Try again
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"quill-button--variant-outline"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  quill-button--variant-outline[39m
+Received:
+[31m  text-sm font-medium underline underline-offset-4[39m
+ ❯ src/statesPolish.test.tsx:83:18
+     81|     const back = screen.getByRole("link", { name: "Back to your profil…
+     82|     expect(back).toHaveAttribute("href", "/");
+     83|     expect(back).toHaveClass("quill-button--variant-outline");
+       |                  ^
+     84|     expect(back).not.toHaveClass("underline");
+     85|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  6 failed | 54 passed (60)
+   Start at  21:27:05
+   Duration  7.24s (tests 44%, import 24%, transform 21%, environment 10%, setup 2%)
+

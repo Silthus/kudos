@@ -36,6 +36,11 @@ export function comparedOn(period: Period, today: DayKey): Compared {
   return { now: keyOf(period, today), before: period === "all" ? null : sameDayLastPeriod(period, today) };
 }
 
+export function wholeWeekBefore(monday: DayKey): Compared {
+  const lastMonday = dayKeyOf(utcMidnightOf(monday) - 7 * dayMs);
+  return { now: keyOf("week", lastMonday), before: { key: keyOf("week", dayKeyOf(utcMidnightOf(lastMonday) - 7 * dayMs)), day: 6 } };
+}
+
 export function lastPeriodUpToTheSameDay(period: ComparedPeriod, today: DayKey): Days {
   return period === "week" ? lastWeekUpTo(today) : lastMonthUpTo(today);
 }

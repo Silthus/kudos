@@ -1,0 +1,27 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/design-polish-2/website
+
+ ❯ |website| src/loadingPolish.test.tsx (3 tests | 1 failed) 434ms
+   ❯ #481 loading: a quiet placeholder holds the page's shape while the profile loads (3)
+     × draws a hidden, wordless, unanimated placeholder under the busy main 149ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/loadingPolish.test.tsx > #481 loading: a quiet placeholder holds the page's shape while the profile loads > draws a hidden, wordless, unanimated placeholder under the busy main
+AssertionError: expected null not to be null
+ ❯ src/loadingPolish.test.tsx:24:23
+     22|     expect(main()).toHaveAttribute("aria-busy", "true");
+     23|     const shape = placeholder();
+     24|     expect(shape).not.toBeNull();
+       |                       ^
+     25|     expect(shape).toHaveAttribute("aria-hidden", "true");
+     26|     expect(shape).toHaveTextContent("");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  21:28:45
+   Duration  4.19s (import 38%, transform 34%, environment 14%, tests 11%, setup 3%)
+

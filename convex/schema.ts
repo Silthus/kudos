@@ -18,6 +18,7 @@ import { publicReplyValidator } from "./feedback/publicReplies";
 import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
 import { gainsValidator } from "./feedback/replies";
 import { segmentValidator } from "./feedback/segments";
+import { mondayPostOutcomeValidator } from "./leaderboard/mondayPostOutcome";
 import { periodValidator } from "./leaderboard/periods";
 import { purchaseOutcomeValidator } from "./progression/purchases";
 import { effectsRecordValidator } from "./progression/progress";
@@ -25,7 +26,8 @@ import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
 import { dropTallyValidator, dropValidator, hoggieTallyValidator } from "./hoggies/records";
 import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
-import { journeyActivationValidator } from "./quests/journey";
+import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
+import { journeyActivationValidator, rewardValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
 import { collectedItemValidator, customKudosEmojiValidator, itemPurchaseValidator, loadoutSlotValidator } from "./store/rows";
 import { featureValidator } from "./unlocks/feature";
@@ -152,7 +154,9 @@ export default defineSchema({
     day: v.string(),
     at: v.number(),
     awards: v.array(attributedAwardValidator),
-  }).index("by_message", ["workspace", "conversation", "message"]),
+  })
+    .index("by_message", ["workspace", "conversation", "message"])
+    .index("by_group_at", ["group", "at"]),
 
   customEmoji: defineTable({
     workspace: v.string(),
@@ -358,6 +362,32 @@ export default defineSchema({
 
   questProgress: defineTable(questProgressValidator).index("by_member_week_slot", ["member", "week", "slot"]),
 
+  groupQuestLaunches: defineTable({ workspace: v.string(), at: v.number() }).index("by_workspace", ["workspace"]),
+
+  groupQuestWeeks: defineTable({ workspace: v.string(), week: v.string(), drawnAt: v.number() }).index("by_workspace_week", ["workspace", "week"]),
+
+  groupQuests: defineTable({
+    workspace: v.string(),
+    group: v.id("userGroups"),
+    week: v.string(),
+    quest: groupQuestIdValidator,
+    participants: v.array(v.id("members")),
+    target: v.number(),
+    reward: rewardValidator,
+    catalogueVersion: v.string(),
+    feasibleBecause: groupFeasibleBecauseValidator,
+    drawnAt: v.number(),
+  }).index("by_group_week", ["group", "week"]),
+
+  groupQuestContributions: defineTable({
+    workspace: v.string(),
+    group: v.id("userGroups"),
+    week: v.string(),
+    member: v.id("members"),
+    message: messageRefValidator,
+    at: v.number(),
+  }).index("by_group_week_member", ["group", "week", "member"]),
+
   crateOpenings: defineTable(crateOpeningValidator).index("by_member_key", ["member", "key"]),
 
   pendingCrates: defineTable(pendingCrateValidator).index("by_member_key", ["member", "key"]),
@@ -494,6 +524,22 @@ export default defineSchema({
   })
     .index("by_period", ["workspace", "period"])
     .index("by_member_period", ["member", "period"]),
+
+  mondayPostSettings: defineTable({
+    workspace: v.string(),
+    on: v.boolean(),
+    timeZone: v.string(),
+    generation: v.number(),
+    nextPostAt: v.optional(v.number()),
+  }).index("by_workspace", ["workspace"]),
+
+  mondayPostClaims: defineTable({
+    workspace: v.string(),
+    week: v.string(),
+    claimedAt: v.number(),
+    channel: v.string(),
+    outcome: mondayPostOutcomeValidator,
+  }).index("by_workspace_week", ["workspace", "week"]),
 
   leaderboardSettings: defineTable({
     member: v.id("members"),

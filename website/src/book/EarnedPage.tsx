@@ -1,5 +1,5 @@
 import { HedgehogStampApproved } from "@posthog/brand/hoggies";
-import { IconArrowRight } from "@posthog/icons";
+import { Arrow } from "../Arrow";
 import { buttonVariants } from "@posthog/quill";
 import { useEffect, useState, type ReactNode } from "react";
 import { AppLink } from "../AppLink";
@@ -87,9 +87,9 @@ function Actions({ children }: { children?: ReactNode }) {
   return (
     <div className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
       {children}
-      <AppLink href={bookHref("overview")} className={`${buttonVariants({ variant: "primary" })} sm:ml-auto`}>
+      <AppLink href={bookHref("overview")} className={`group ${buttonVariants({ variant: "primary" })} sm:ml-auto`}>
         See achievements
-        <IconArrowRight aria-hidden="true" className="size-4" />
+        <Arrow className="size-4" />
       </AppLink>
     </div>
   );

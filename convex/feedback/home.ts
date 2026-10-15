@@ -8,6 +8,8 @@ import type { GroupId, GroupRef } from "../groups/groups";
 import { rarityLabel } from "../hoggies/catalogue";
 import type { HoggiesHome } from "../hoggies/collection";
 import type { GroupModeFacts } from "../groups/groupMode";
+import type { MondayPostSwitch } from "../leaderboard/mondayPost";
+import { timeZonesOffered } from "../leaderboard/timeZones";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
@@ -19,6 +21,7 @@ import { journeyGoalOf } from "../quests/journeyCopy";
 import { rewardKeyOf } from "../quests/crates";
 import { questOf } from "../quests/pool";
 import type { WeekKey } from "../quests/week";
+import type { GroupQuest, WaitingGroupCrate } from "../quests/groupQuest";
 import type { UnopenedCrate, WeeklyQuests, WeeklySlot } from "../quests/weekly";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { Feature } from "../unlocks/feature";
@@ -80,7 +83,7 @@ const earlierCratesShown = 5;
 
 const pageNames: Record<Page["page"], string> = { home: "home", leaderboard: "Leaderboard", quests: "Quests", skillTree: "Skill tree", book: "Book", bookEarned: "Book" };
 
-const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, earlierCrates: null, journey: null, hoggies: null };
+const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, groupQuest: null, earlierCrates: null, earlierGroupCrates: null, journey: null, hoggies: null };
 
 export function renderHome(facts: HomeFacts, home: ShownHome | null, frontDoor: FrontDoorLinks | null): HomeView {
   if (facts.kind === "not-a-member") {
@@ -135,19 +138,21 @@ function leaderboardGroups({ period, board, groups, myGroup }: Extract<ShownTab,
 
 type ProfileFacts = Omit<Extract<ShownTab, { tab: "profile" }>, "tab">;
 
-function profileOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrates, journey, hoggies }: ProfileFacts): HomeView {
+function profileOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, earlierGroupCrates, journey, hoggies }: ProfileFacts): HomeView {
   const progress = progression === null ? [] : [[...progressOf(progression), ...(unlocks === null ? [] : unlockLinesOf(unlocks))]];
-  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: false, website: null })];
-  const earlier = earlierCrates === null || earlierCrates.length === 0 ? [] : [waitingToOpenLines(earlierCrates)];
+  const weekly = questsThisWeek(quests, groupQuest, { cratesShownApart: false, website: null });
+  const waitingToOpen = waitingToOpenLines(earlierCrates ?? [], earlierGroupCrates ?? []);
+  const earlier = waitingToOpen.length === 0 ? [] : [waitingToOpen];
   const steps = journey === null || journey.length === 0 ? [] : [journey.flatMap(journeyStepLines)];
   return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...earlier, ...steps, ...hoggiesLinesOf(hoggies, null), [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
 }
 
-function summaryOf(kudos: KudosHome, { progression, unlocks, quests, earlierCrates, journey, hoggies }: ProfileFacts, links: FrontDoorLinks): HomeView {
+function summaryOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, earlierGroupCrates, journey, hoggies }: ProfileFacts, links: FrontDoorLinks): HomeView {
   const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)])];
   const { origin } = links;
-  const waiting = [...readyCratesOf(unlocks, origin), ...earlierCratesOf(earlierCrates, origin), ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...moreEarlierCrates(earlierCrates ?? [])];
-  const weekly = quests === null || quests.slots.length === 0 ? [] : [weeklyQuestLines(quests, { cratesShownApart: true, website: origin })];
+  const earlier = cappedEarlierCrates(earlierCratesOf(earlierCrates, origin), earlierGroupCrates);
+  const waiting = [...readyCratesOf(unlocks, origin), ...earlier.shown, ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...earlier.more];
+  const weekly = questsThisWeek(quests, groupQuest, { cratesShownApart: true, website: origin });
   return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...hoggiesLinesOf(hoggies, origin), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
 }
 
@@ -162,7 +167,12 @@ function readyCratesOf(unlocks: UnlocksHome | null, website: string): HomeLine[]
 }
 
 function earlierCratesOf(crates: UnopenedCrate[] | null, website: string): HomeLine[] {
-  return (crates ?? []).slice(0, earlierCratesShown).map(({ crate, week, goal, reward, waiting }) => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal}${waitingPartOf(reward.xp, waiting)}`, action: openCrate(crate, website) }));
+  return (crates ?? []).map(({ crate, week, goal, reward, waiting }) => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal}${waitingPartOf(reward.xp, waiting)}`, action: openCrate(crate, website) }));
+}
+
+function cappedEarlierCrates(weekly: HomeLine[], groupCrates: WaitingGroupCrate[] | null): { shown: HomeLine[]; more: HomeLine[] } {
+  const lines = [...weekly, ...(groupCrates ?? []).map(earlierGroupCrateLine)];
+  return { shown: lines.slice(0, earlierCratesShown), more: moreEarlierCrates(lines.length - earlierCratesShown) };
 }
 
 function weekLabelOf(week: WeekKey) {
@@ -170,8 +180,7 @@ function weekLabelOf(week: WeekKey) {
   return bold(`Week of ${monday}:`);
 }
 
-function moreEarlierCrates(crates: UnopenedCrate[]): HomeLine[] {
-  const more = crates.length - earlierCratesShown;
+function moreEarlierCrates(more: number): HomeLine[] {
   if (more <= 0) return [];
   return [{ kind: "hint", text: more === 1 ? "1 more crate from earlier weeks waits to open." : `${more} more crates from earlier weeks wait to open.` }];
 }
@@ -458,12 +467,30 @@ function changeOf(key: keyof NotificationSwitches, value: boolean): Partial<Noti
   return { [key]: value };
 }
 
-function adminGroups({ announcementChannel, achievements, groupMode, customKudosEmoji }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
+function adminGroups({ announcementChannel, achievements, groupMode, mondayPost, customKudosEmoji }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
   const what = celebrated(achievements);
   const channelLines = announcementChannel === null ? noChannelLines(what) : announcementChannelLines(what, announcementChannel);
   const groupModeLines = groupMode === null ? [] : [groupModeLinesOf(groupMode)];
+  const mondayPostLines = mondayPost === null ? [] : [mondayPostLinesOf(mondayPost)];
   const customKudosEmojiLines = customKudosEmoji === null ? [] : [customKudosEmojiLinesOf(customKudosEmoji)];
-  return [channelLines, ...groupModeLines, ...customKudosEmojiLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+  return [channelLines, ...groupModeLines, ...mondayPostLines, ...customKudosEmojiLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+}
+
+function mondayPostLinesOf({ channel, on, timeZone, cantPost }: MondayPostSwitch): HomeLine[] {
+  const where = `<#${channel}>`;
+  const heading: HomeLine = { kind: "text", text: bold("Monday post") };
+  const cantPostNote: HomeLine[] = cantPost ? [{ kind: "text", text: `I can't post in ${where}. Add me to it or pick another channel.` }] : [];
+  if (!on) {
+    const switchOn: HomeLine = { kind: "action", text: `I can post last week's top groups in ${where} every Monday at 9:00.`, action: { label: "Switch on", command: { type: "setMondayPost", on: true } } };
+    return [heading, switchOn, ...cantPostNote];
+  }
+  const switchOff: HomeLine = { kind: "action", text: `Every Monday I post last week's top groups in ${where}.`, action: { label: "Switch off", command: { type: "setMondayPost", on: false } } };
+  return [heading, switchOff, timeZonePickOf(timeZone), ...cantPostNote];
+}
+
+function timeZonePickOf(picked: string): HomeLine {
+  const options = timeZonesOffered(picked).map((timeZone) => ({ label: timeZone.replaceAll("_", " "), command: { type: "setMondayPost" as const, on: true, timeZone }, selected: timeZone === picked }));
+  return { kind: "pick", id: "setMondayPost", text: "I post it at 9:00 in this time zone.", placeholder: "Pick a time zone", options };
 }
 
 function customKudosEmojiLinesOf(picker: CustomKudosEmojiPicker): HomeLine[] {
@@ -520,10 +547,23 @@ function unlockLinesOf({ ready, next }: UnlocksHome): HomeLine[] {
 
 type QuestRows = { cratesShownApart: boolean; website: string | null };
 
-function weeklyQuestLines({ week, slots, swapAvailable }: WeeklyQuests, rows: QuestRows): HomeLine[] {
-  const asksToSayWhy = slots.some(({ quest, finishedAt }) => finishedAt === null && questOf(quest).progress.given.saysWhy);
-  const condition: HomeLine[] = asksToSayWhy ? [{ kind: "hint", text: "Saying why counts when your message has 5 or more words besides mentions and emoji." }] : [];
-  return [{ kind: "text", text: bold("Quests this week") }, ...slots.map((slot) => weeklyQuestLine(week, slot, { swapAvailable, ...rows })), ...condition];
+function questsThisWeek(quests: WeeklyQuests | null, groupQuest: GroupQuest | null, rows: QuestRows): HomeLine[][] {
+  const slots = quests === null ? [] : quests.slots.map((slot) => weeklyQuestLine(quests.week, slot, { swapAvailable: quests.swapAvailable, ...rows }));
+  const together = groupQuest === null ? [] : [groupQuestLine(groupQuest)];
+  if (slots.length + together.length === 0) return [];
+  const condition: HomeLine[] = asksToSayWhy(quests, groupQuest) ? [{ kind: "hint", text: "Saying why counts when your message has 5 or more words besides mentions and emoji." }] : [];
+  return [[{ kind: "text", text: bold("Quests this week") }, ...slots, ...together, ...condition]];
+}
+
+function asksToSayWhy(quests: WeeklyQuests | null, groupQuest: GroupQuest | null): boolean {
+  const personal = (quests?.slots ?? []).some(({ quest, finishedAt }) => finishedAt === null && questOf(quest).progress.given.saysWhy);
+  return personal || (groupQuest !== null && !groupQuest.done && groupQuest.quest === "together-say-why");
+}
+
+function groupQuestLine({ group, week, goal, tookPart, target, done, crate }: GroupQuest): HomeLine {
+  const text = `${group.name} quest: ${goal} · ${tookPart} of ${target} took part${done ? " · ✅" : ""}`;
+  if (crate === null || crate.opened) return { kind: "text", text };
+  return { kind: "action", text, action: openCrate({ kind: "group", group: group.group, week }, null) };
 }
 
 function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt, waiting }: WeeklySlot, { swapAvailable, cratesShownApart, website }: QuestRows & { swapAvailable: boolean }): HomeLine {
@@ -535,9 +575,15 @@ function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, f
   return openedAt === null && !cratesShownApart ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }, null) } : { kind: "text", text };
 }
 
-function waitingToOpenLines(crates: UnopenedCrate[]): HomeLine[] {
-  const shown = crates.slice(0, earlierCratesShown).map(({ crate, week, goal, reward, waiting }): HomeLine => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal} ${rewardTold(reward.xp, waiting)}`, action: openCrate(crate, null) }));
-  return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...moreEarlierCrates(crates)];
+function waitingToOpenLines(crates: UnopenedCrate[], groupCrates: WaitingGroupCrate[]): HomeLine[] {
+  if (crates.length + groupCrates.length === 0) return [];
+  const weekly = crates.map(({ crate, week, goal, reward, waiting }): HomeLine => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal} ${rewardTold(reward.xp, waiting)}`, action: openCrate(crate, null) }));
+  const { shown, more } = cappedEarlierCrates(weekly, groupCrates);
+  return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...more];
+}
+
+function earlierGroupCrateLine({ crate, group, goal }: WaitingGroupCrate): HomeLine {
+  return { kind: "action", text: `${weekLabelOf(crate.week)} ✅ ${group} quest: ${goal}`, action: openCrate(crate, null) };
 }
 
 function journeyStepLines({ step, goal, hint, reward, finishedAt, openedAt, waiting }: JourneyStepShown): HomeLine[] {

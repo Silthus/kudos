@@ -15,7 +15,7 @@ const now = new Date("2026-10-13T10:00:00Z");
 const siteUrl = "https://kudos-site.test";
 const ref = { workspace: "T1", conversation: "C1", message: "1760349600.000100" };
 const givenToBob: Given = { recipients: ["U_BOB"], perRecipient: 1, left: 9, skipped: [], awards: [{ kudos: 1 }] };
-const leaderboardReady = `section: *Leaderboard* is ready. It opens the boards. [link: Open ${siteUrl}/leaderboard]`;
+const leaderboardReady = `section: *Leaderboard* is ready. It opens the boards. [link: Open ${siteUrl}/leaderboard?crate=leaderboard]`;
 const openLeaderboardCommand = JSON.stringify({ type: "openUnlock", feature: "leaderboard" });
 const openLeaderboard = { type: "button", action_id: openLeaderboardCommand, value: openLeaderboardCommand } as const;
 const form = { contentType: "application/x-www-form-urlencoded" };
@@ -182,7 +182,7 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
     await notified(t, (ctx) => notifyQuestFinished(ctx, alice, { kind: "journey", step: "first-thanks" }, 50));
 
     expect(dmsTo("U_ALICE").map(readDm)).toEqual([
-      [`section: ✅ You finished a Journey step: Give a kudos that says why. You earned *50 XP*. [link: Open ${siteUrl}/]`, `section: <${siteUrl}/|See your Journey on the web>`],
+      [`section: ✅ You finished a Journey step: Give a kudos that says why. You earned *50 XP*. [link: Open ${siteUrl}/?crate=journey]`, `section: <${siteUrl}/|See your Journey on the web>`],
     ]);
   });
 
@@ -194,8 +194,8 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
 
     expect(dmsTo("U_ALICE").map(readDm)).toEqual([
       [
-        `section: ✅ You finished a Journey step: Give a kudos that says why. You earned *50 XP*. [link: Open ${siteUrl}/]`,
-        `section: ✅ You finished a Journey step: Thank someone you haven't thanked before. You earned *50 XP*. [link: Open ${siteUrl}/]`,
+        `section: ✅ You finished a Journey step: Give a kudos that says why. You earned *50 XP*. [link: Open ${siteUrl}/?crate=journey]`,
+        `section: ✅ You finished a Journey step: Thank someone you haven't thanked before. You earned *50 XP*. [link: Open ${siteUrl}/?crate=journey]`,
         `section: <${siteUrl}/|See your Journey on the web>`,
       ],
     ]);

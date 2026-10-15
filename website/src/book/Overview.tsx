@@ -1,5 +1,5 @@
 import { HedgehogReadingIsMagic } from "@posthog/brand/hoggies";
-import { IconArrowRight } from "@posthog/icons";
+import { Arrow } from "../Arrow";
 import { Card, CardContent } from "@posthog/quill";
 import { useId, type ReactNode } from "react";
 import { AppLink } from "../AppLink";
@@ -77,7 +77,7 @@ function ClosestNextTier({ closest: { ladder, tier, toGo }, chapters }: { closes
         </div>
         <span className="text-sm font-medium tabular-nums">{toGo} to go</span>
       </div>
-      <IconArrowRight aria-hidden="true" className="hidden size-4 shrink-0 text-muted-foreground sm:block" />
+      <Arrow className="hidden size-4 shrink-0 text-muted-foreground sm:block" />
     </AppLink>
   );
 }

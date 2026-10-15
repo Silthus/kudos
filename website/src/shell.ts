@@ -1,7 +1,7 @@
 import type { Feature } from "../../convex/unlocks/feature";
 import type { Quest, WeeklyQuest } from "../../convex/quests/step";
 import type { PerkId } from "../../convex/progression/tree";
-import type { CommandAnswer, GroupPickAnswer, MessageSettingAnswer, PurchaseAnswer, SwapAnswer, VisibilityAnswer } from "../../convex/website/commands";
+import type { CommandAnswer, CrateAnswer, GroupPickAnswer, MessageSettingAnswer, PurchaseAnswer, SwapAnswer, VisibilityAnswer } from "../../convex/website/commands";
 import type { MessageKind, MessagePlace, SettingsAnswer } from "../../convex/website/settings";
 import type { Denial } from "../../convex/website/memberQuery";
 import type { WithADrop } from "./crates/drops";
@@ -38,7 +38,10 @@ export type Leaderboard = EveryoneBoard & Omit<GroupBoards, "kind">;
 
 export type MyLeaderboard = Exclude<MyEveryoneBoard, EveryoneBoard> | Leaderboard;
 
-export type OpenAnswer = (CommandAnswer | Denial) & WithADrop;
+export type OpenAnswer = (CommandAnswer | CrateAnswer | Denial) & WithADrop;
+
+export type { AppliedReward } from "../../convex/progression/rewards";
+export type { CrateAnswer } from "../../convex/website/commands";
 
 export type Purchase = { perk: PerkId; request: string };
 
@@ -158,6 +161,8 @@ const memberWithTheInventory: MemberProfile = {
   inventory: inventoryFixtures.twoEquippedOfThree,
 };
 
+const memberWithCustomEmoji: MemberProfile = { ...memberWithTheInventory, inventory: inventoryFixtures.withCustomEmoji };
+
 const memberWithCoinsBeforeTheStore: MemberProfile = { ...memberWithCoinsOpened, coins: 40 };
 
 const memberAcrossTheSheet: MemberProfile = {
@@ -250,6 +255,7 @@ export const shellFixtures = {
   memberWithCoinsReady,
   memberWithCoinsOpened,
   memberWithTheInventory,
+  memberWithCustomEmoji,
   memberWithCoinsBeforeTheStore,
   memberWithNothingShipped,
   memberWithEveryNavState,
@@ -304,6 +310,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-quests-at-level-2": shellFixtures.memberWithQuestsAtLevel2,
   "member-crossing-into-level-6": shellFixtures.memberCrossingIntoLevel6,
   "member-with-the-inventory": shellFixtures.memberWithTheInventory,
+  "member-with-custom-emoji": shellFixtures.memberWithCustomEmoji,
   error: shellFixtures.error,
 };
 

@@ -19,6 +19,7 @@ import { ClosedPage } from "./pages/ClosedPage";
 import { ConnectingPage } from "./pages/ConnectingPage";
 import { ErrorPage } from "./pages/ErrorPage";
 import { ActivityPage } from "./pages/ActivityPage";
+import { LoadingPage, type LoadingShape } from "./pages/LoadingPage";
 import { HomePage } from "./pages/HomePage";
 import { BookPage } from "./pages/BookPage";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
@@ -75,7 +76,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   const revealing = reveal !== undefined;
   const climb = useClimbOnReturn(member, membersShown, readActivity);
   const memberShown = member === undefined ? undefined : climb.shownOf(withTheRewardsHeld(member, moments.onTheWay));
-  const levels = useLevelUps(memberShown, membersShown, climb.climbing);
+  const levels = useLevelUps(memberShown, membersShown, climb.climbing || moments.opening);
   const rewards = member === undefined ? [] : rewardsOf(member, moments.onTheWay);
   const { chart } = moments;
   useLayoutEffect(() => chart(rewards), [chart, rewards]);
@@ -127,7 +128,6 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
             onClose={moments.close}
             onSetOut={moments.setOut}
             onRewardLanded={moments.landed}
-            onLanded={moments.land}
           />
         )}
         {climb.chips !== undefined && memberShown !== undefined && <ClimbFlight chips={climb.chips} shown={memberShown} onLanded={climb.landed} onFinished={climb.finish} />}
@@ -227,45 +227,50 @@ type PageProps = {
 
 function Page({ state, route, board, quests, book, skillTree, settings, profileCard, useRecentKudos, activity, drawSpotlight, membersShown, onChoosePeriod, onBuyPerk, onSetBoardVisibility, onSwapQuest, settingsActions, ...actions }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
-  if (state.kind === "loading") return null;
+  if (state.kind === "loading") return <LoadingPage shape={loadingShapeOf(route)} />;
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "not-found") return <NotFoundPage />;
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "home") return quests?.kind === "connecting" || board?.kind === "connecting" ? <ConnectingPage /> : <HomePage member={state} reads={{ quests, board, card: profileCard }} useRecentKudos={useRecentKudos} />;
-  if (route.page === "activity") return <ActivityAnswerPage filter={route.filter} activity={activity} {...actions} />;
+  if (route.page === "activity") return <ActivityAnswerPage filter={route.filter} activity={activity} chatUrl={state.chatUrl} {...actions} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} onSwapQuest={onSwapQuest} {...actions} />;
   if (route.page === "book") return <BookAnswerPage member={state} book={book} page={route.bookPage} {...actions} />;
   if (route.page === "settings") return <SettingsAnswerPage settings={settings} actions={settingsActions} {...actions} />;
   if (route.page === "skills") return <SkillTreeAnswerPage key={membersShown} member={state} skillTree={skillTree} onBuyPerk={onBuyPerk} {...actions} />;
-  if (board === undefined) return null;
+  if (board === undefined) return <LoadingPage shape="board" />;
   if (board.kind === "not-found") return <NotFoundPage />;
   if (board.kind === "ready" || board.kind === "locked") return <FeatureWaitsPage feature="leaderboard" waiting={board} member={state} />;
   if (board.kind !== "board") return <AnswerPage answer={board} {...actions} />;
   return <LeaderboardPage board={board} coinsShown={state.coins !== null} period={route.period} drawSpotlight={drawSpotlight} onChoosePeriod={onChoosePeriod} onSetBoardVisibility={onSetBoardVisibility} />;
 }
 
+function loadingShapeOf({ page }: Route): LoadingShape {
+  if (page === "home" || page === "quests" || page === "not-found") return "home";
+  return page === "leaderboard" ? "board" : "column";
+}
+
 type QuestsAnswerPageProps = { member: MemberProfile; quests: QuestsShown | undefined; onSwapQuest: ShellActions["swapQuest"]; onSignIn: () => void; onSignOut: () => void };
 
 function QuestsAnswerPage({ member, quests, onSwapQuest, ...actions }: QuestsAnswerPageProps) {
-  if (quests === undefined) return null;
+  if (quests === undefined) return <LoadingPage />;
   if (quests.kind === "not-found") return <NotFoundPage />;
   if (quests.kind === "ready" || quests.kind === "locked") return <FeatureWaitsPage feature="quests" waiting={quests} member={member} />;
   if (quests.kind !== "quests") return <AnswerPage answer={quests} {...actions} />;
   return <QuestsPage quests={quests} member={member} swapQuest={onSwapQuest} />;
 }
 
-function ActivityAnswerPage({ filter, activity, ...actions }: { filter: ActivityFilter; activity: ActivityReads; onSignIn: () => void; onSignOut: () => void }) {
+function ActivityAnswerPage({ filter, activity, chatUrl, ...actions }: { filter: ActivityFilter; activity: ActivityReads; chatUrl: string; onSignIn: () => void; onSignOut: () => void }) {
   const { shown } = activity;
-  if (shown === undefined) return null;
+  if (shown === undefined) return <LoadingPage shape="column" />;
   if (shown.kind === "not-found") return <NotFoundPage />;
   if (shown.kind !== "activity") return <AnswerPage answer={shown} {...actions} />;
-  return <ActivityPage filter={filter} watch={activity.watch} readActivity={activity.read} onChooseFilter={activity.onChooseFilter} />;
+  return <ActivityPage filter={filter} watch={activity.watch} readActivity={activity.read} chatUrl={chatUrl} onChooseFilter={activity.onChooseFilter} />;
 }
 
 type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; page: BookPageId; onSignIn: () => void; onSignOut: () => void };
 
 function BookAnswerPage({ member, book, page, ...actions }: BookAnswerPageProps) {
-  if (book === undefined) return null;
+  if (book === undefined) return <LoadingPage shape="column" />;
   if (book.kind === "not-found") return <NotFoundPage />;
   if (book.kind === "ready" || book.kind === "locked") return <FeatureWaitsPage feature="book" waiting={book} member={member} />;
   if (book.kind !== "book") return <AnswerPage answer={book} {...actions} />;
@@ -275,7 +280,7 @@ function BookAnswerPage({ member, book, page, ...actions }: BookAnswerPageProps)
 type SkillTreeAnswerPageProps = { member: MemberProfile; skillTree: SkillTreeShown | undefined; onBuyPerk: ShellActions["buyPerk"]; onSignIn: () => void; onSignOut: () => void };
 
 function SkillTreeAnswerPage({ member, skillTree, onBuyPerk, ...actions }: SkillTreeAnswerPageProps) {
-  if (skillTree === undefined) return null;
+  if (skillTree === undefined) return <LoadingPage shape="column" />;
   if (skillTree.kind === "not-found") return <NotFoundPage />;
   if (skillTree.kind === "ready" || skillTree.kind === "locked") return <FeatureWaitsPage feature="skillTree" waiting={skillTree} member={member} />;
   if (skillTree.kind !== "tree") return <AnswerPage answer={skillTree} {...actions} />;
@@ -285,7 +290,7 @@ function SkillTreeAnswerPage({ member, skillTree, onBuyPerk, ...actions }: Skill
 type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup">;
 
 function SettingsAnswerPage({ settings, actions, ...answers }: { settings: SettingsShown | undefined; actions: SettingsActions; onSignIn: () => void; onSignOut: () => void }) {
-  if (settings === undefined) return null;
+  if (settings === undefined) return <LoadingPage shape="column" />;
   if (settings.kind === "not-found") return <NotFoundPage />;
   if (settings.kind !== "settings") return <AnswerPage answer={settings} {...answers} />;
   return <SettingsPage settings={settings} actions={actions} />;

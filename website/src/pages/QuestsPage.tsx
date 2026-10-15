@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { HedgehogExplorer, HedgehogMegaphone, HedgehogReading, HedgehogTownCrier } from "@posthog/brand/hoggies";
-import { IconArrowRight, IconCheck, IconClock, IconRefresh } from "@posthog/icons";
+import { IconCheck, IconClock, IconRefresh } from "@posthog/icons";
+import { Arrow } from "../Arrow";
 import { Button, Card, CardContent } from "@posthog/quill";
 import { AppLink } from "../AppLink";
 import { attemptMessages, questCrateHomeAttributes, useMoments } from "../crates/moments";
@@ -9,7 +10,7 @@ import { Claimed } from "../crates/RewardCrate";
 import { hogOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "../features";
 import { PageTitle } from "../PageTitle";
 import { questTargetAttributes } from "../linkTarget";
-import { Coins } from "../quests/QuestReward";
+import { Coins, xpLineOf } from "../quests/QuestReward";
 import { QuestTag } from "../quests/QuestTag";
 import { sameQuest, useQuestSwap, type QuestSwap } from "../quests/questSwap";
 import type { JourneyStep, MemberProfile, QuestReward, QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
@@ -82,7 +83,7 @@ function QuestCards({ slots, firstCrate, ...swapping }: { slots: QuestSlot[] } &
 }
 
 function QuestCard({ slot, firstCrate, swappable, swap }: { slot: QuestSlot } & FirstCrate & Swapping) {
-  const { slot: quest, kind, goal, progress, reward, state, swapped, seen } = slot;
+  const { slot: quest, kind, goal, progress, reward, state, swapped, seen, waiting } = slot;
   const claimed = state === "opened";
   return (
     <article
@@ -102,7 +103,7 @@ function QuestCard({ slot, firstCrate, swappable, swap }: { slot: QuestSlot } & 
             {goal}
           </h2>
           <QuestProgress {...progress} />
-          <RewardRow reward={reward} seen={seen}>
+          <RewardRow reward={reward} waiting={waiting}>
             {claimed ? <Claimed /> : state === "in-progress" ? <SwapAction slot={slot} swap={swap} swappable={swappable} /> : <ClaimOf facts={slot} firstCrate={firstCrate} />}
           </RewardRow>
         </div>
@@ -142,11 +143,11 @@ function QuestProgress({ done, target }: QuestSlot["progress"]) {
   );
 }
 
-function RewardRow({ reward, seen, children }: { reward: QuestReward; seen: string | null; children: ReactNode }) {
+function RewardRow({ reward, waiting, children }: { reward: QuestReward; waiting: boolean; children: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
       <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tabular-nums text-muted-foreground">
-        <span>{`+${reward.xp} XP`}</span>
+        <span>{xpLineOf(reward, waiting)}</span>
         {reward.coins !== undefined && <Coins coins={reward.coins} />}
       </span>
       {children}
@@ -223,7 +224,7 @@ function BonusQuest(props: BonusQuestProps) {
 }
 
 function BonusCard({ step, page, firstCrate }: BonusQuestProps) {
-  const { goal, hint, reward, state, seen, feature } = step;
+  const { goal, hint, reward, state, seen, feature, waiting } = step;
   const active = state === "active";
   return (
     <article className="hud-panel relative scroll-mt-28 rounded-lg border bg-card p-4 text-card-foreground" {...questTargetAttributes("journey")} {...questCrateHomeAttributes(seen)}>
@@ -238,7 +239,7 @@ function BonusCard({ step, page, firstCrate }: BonusQuestProps) {
             {goal}
           </h3>
           {hint !== null && <p className="text-sm text-muted-foreground">{hint}</p>}
-          <RewardRow reward={reward} seen={seen}>
+          <RewardRow reward={reward} waiting={waiting}>
             <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
               {page !== undefined && feature !== null && <GoTo page={page} name={plainNameOf(feature)} />}
               <ClaimOf facts={step} firstCrate={firstCrate} />
@@ -252,9 +253,9 @@ function BonusCard({ step, page, firstCrate }: BonusQuestProps) {
 
 function GoTo({ page, name }: { page: WebPage; name: string }) {
   return (
-    <AppLink href={page.href} className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+    <AppLink href={page.href} className="group inline-flex items-center gap-1 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
       Go to {name}
-      <IconArrowRight aria-hidden="true" className="size-3.5" />
+      <Arrow />
     </AppLink>
   );
 }
@@ -278,7 +279,7 @@ function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate
     <article className="hud-panel relative flex flex-col gap-2 rounded-lg border bg-card p-4" {...questCrateHomeAttributes(entry.seen)}>
       <WeekOf week={entry.week} />
       <h3 className="text-sm font-medium">{entry.goal}</h3>
-      <RewardRow reward={entry.reward} seen={entry.seen}>
+      <RewardRow reward={entry.reward} waiting={entry.waiting}>
         <ClaimOf facts={entry} firstCrate={firstCrate} />
       </RewardRow>
     </article>

@@ -8,6 +8,7 @@ import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHo
 import { setGroupMode } from "../groups/groupMode";
 import { groupModeValidator } from "../groups/mode";
 import { boardsShownTo } from "../leaderboard/boards";
+import { setMondayPost } from "../leaderboard/mondayPost";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
 import { messageSettingsShownTo } from "../messageSettings/flag";
@@ -44,6 +45,7 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("buyPerk"), perk: perkValidator }),
   v.object({ type: v.literal("pickPrimaryGroup"), group: v.string(), surface: pickSurfaceValidator }),
   v.object({ type: v.literal("setGroupMode"), mode: groupModeValidator, allowlist: v.optional(v.array(v.string())) }),
+  v.object({ type: v.literal("setMondayPost"), on: v.boolean(), timeZone: v.optional(v.string()) }),
   v.object({ type: v.literal("buyItem"), item: v.string() }),
   v.object({ type: v.literal("equip"), item: v.string(), slot: slotValidator }),
   v.object({ type: v.literal("takeOff"), slot: slotValidator }),
@@ -98,6 +100,11 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     case "setGroupMode": {
       const { type: _, ...change } = command;
       if (await setGroupMode(ctx, workspace, person, change)) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
+      return null;
+    }
+    case "setMondayPost": {
+      const { type: _, ...change } = command;
+      if (await setMondayPost(ctx, workspace, person, change)) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
       return null;
     }
     case "buyPerk": {
@@ -155,6 +162,7 @@ function conforms(validator: GenericValidator, value: unknown): boolean {
     case "boolean":
       return typeof value === "boolean";
     case "string":
+    case "id":
       return typeof value === "string";
     case "float64":
       return typeof value === "number";

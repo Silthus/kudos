@@ -37,6 +37,7 @@ export const subscribers: Registry = {
   ],
   questOpened: [internal.analytics.subscribers.recordQuestOpened],
   questsDrawn: [internal.analytics.subscribers.recordQuestsDrawn],
+  groupQuestDrawn: [internal.analytics.subscribers.recordGroupQuestDrawn],
   questSwapped: [internal.analytics.subscribers.recordQuestSwapped],
   journeyStepActivated: [internal.analytics.subscribers.recordJourneyStepActivated],
   achievementEarned: [internal.analytics.subscribers.recordAchievementEarned],
@@ -45,7 +46,7 @@ export const subscribers: Registry = {
   memberLeft: [internal.quests.journey.recheckSomeoneNew, internal.engine.kudosText.forgetWordsOfLeaver],
   memberRejoined: [internal.quests.journey.recheckRejoined],
   primaryGroupChanged: [],
-  awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed],
+  awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed, internal.quests.groupQuest.followAwardsAttributed],
   hoggieDropped: [internal.analytics.subscribers.recordHoggieDropped],
 };
 

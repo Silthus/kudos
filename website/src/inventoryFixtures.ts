@@ -40,4 +40,24 @@ const starterOnly: MemberInventory = {
   catalogue: [hedgehog, { ...rocket, onSale: true }, { ...sunflower, onSale: true }],
 };
 
-export const inventoryFixtures = { twoEquippedOfThree, starterOnly } as const;
+function customEmoji(name: string, onSale: boolean): InventoryItem {
+  return { item: `custom:${name}`, kind: "kudosEmoji", name: `:${name}:`, emoji: name, art: { kind: "custom", url: `https://emoji.slack-edge.com/T1/${name}/a1b2.png` }, source: sold, onSale };
+}
+
+const partyParrot = customEmoji("partyparrot", false);
+const shipIt = customEmoji("shipit", true);
+
+const withCustomEmoji: MemberInventory = {
+  slots: [
+    { slot: "emoji-1", item: hedgehog.item },
+    { slot: "emoji-2", item: partyParrot.item },
+    { slot: "emoji-3", item: null },
+  ],
+  owned: [
+    { item: hedgehog.item, arrivedAt: arrived },
+    { item: partyParrot.item, arrivedAt: arrived + hour },
+  ],
+  catalogue: [hedgehog, partyParrot, shipIt],
+};
+
+export const inventoryFixtures = { twoEquippedOfThree, starterOnly, withCustomEmoji } as const;

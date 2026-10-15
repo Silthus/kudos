@@ -11,6 +11,7 @@ import { internal } from "../_generated/api";
 import { publish, subscribers } from "../bus/publish";
 import type { Command } from "../commands/commands";
 import schema from "../schema";
+import { keepOpen } from "../unlocks/unlocks";
 import { exposed, memberDecision, workspaceDecision } from "./flags";
 import { record } from "./outbox";
 
@@ -37,7 +38,7 @@ type Setup = { name: string; flags: FlagDefinition[] | "no flags key"; boardShow
 const now = new Date("2026-10-13T10:00:00Z");
 const stepMs = 10 * 60_000;
 const stepWindowMs = 9 * 60_000;
-const aTotalityOverEveryRecorderWalksThreeTimesMs = 20_000;
+const aTotalityOverEveryRecorderWalksFourTimesMs = 30_000;
 const week = "2026-10-12";
 const saysWhy = "thanks for untangling the release notes today";
 const form = { contentType: "application/x-www-form-urlencoded" };
@@ -177,10 +178,10 @@ describe("E11 O15: with capture on, off or failing, every member gets the same S
 });
 
 describe("E11: recording a product event writes only analytics' own rows and schedules only the drain and the identify job", () => {
-  test("re-running every recording job of three whole walks with every flag on, one of new members, one over members there before the launch and one through the skill tree and the Book, each with no analytics ID or workspace key yet", async () => {
+  test("re-running every recording job of four whole walks with every flag on, one of new members, one over members there before the launch, one through the skill tree and the Book and one through a group quest, each with no analytics ID or workspace key yet", async () => {
     const reRun = new Set<string>();
 
-    for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook]) {
+    for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook, walkThroughAGroupQuest]) {
       const { t } = await walked();
       for (const spy of [memberDecision, workspaceDecision, exposed, publish]) expect(vi.mocked(spy), "the walk reaches the spied seams").toHaveBeenCalled();
       for (const job of [...(await recordingJobsOf(t)), commandsLeaderboardView()]) {
@@ -190,7 +191,7 @@ describe("E11: recording a product event writes only analytics' own rows and sch
     }
 
     expect([...reRun].sort()).toEqual(everyRecorder().sort());
-  }, aTotalityOverEveryRecorderWalksThreeTimesMs);
+  }, aTotalityOverEveryRecorderWalksFourTimesMs);
 });
 
 async function expectOnlyObserving(t: Backend, { name, args }: { name: string; args: Record<string, unknown> }) {
@@ -242,6 +243,30 @@ async function walkThroughTheSkillTreeAndTheBook() {
 
   expect(eventsNamed("perk bought")).toHaveLength(1);
   expect(eventsNamed("achievement earned")).not.toHaveLength(0);
+  return { t };
+}
+
+async function walkThroughAGroupQuest() {
+  start("on", "flags key set");
+  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "groups", "group-quest"].map(onForEveryone));
+  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
+  await journeyShippedBeforeAnyoneJoined(t);
+  for (const user of members) await openHome(t, user);
+  await t.run(async (ctx) => {
+    await ctx.db.insert("userGroups", { workspace: "T1", group: "S_ANTS", handle: "ants", name: "Ants", enabled: true, automatic: false, members: members.length, asOf: Date.now(), changedAt: Date.now() });
+    await ctx.db.insert("groupQuestLaunches", { workspace: "T1", at: Date.now() });
+    for (const user of members) await ctx.db.insert("userGroupMembers", { workspace: "T1", group: "S_ANTS", user });
+  });
+  await t.mutation(internal.groups.reconcile.reconcileWorkspace, { workspace: "T1" });
+  await t.run(async (ctx) => {
+    for (const { _id: member } of await ctx.db.query("members").take(members.length)) await keepOpen(ctx, { workspace: "T1", member, at: Date.now() }, "quests");
+  });
+
+  vi.setSystemTime(Date.parse("2026-10-19T00:10:00Z"));
+  await t.mutation(internal.quests.groupQuest.sweep, {});
+  await settled(t);
+
+  expect(eventsNamed("quest drawn").filter(({ properties }) => properties.kind === "group")).toHaveLength(members.length);
   return { t };
 }
 

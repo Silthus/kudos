@@ -117,6 +117,10 @@ function hasRunningTotal(total: Total): total is Total & { runningTotal: Running
   return total.runningTotal !== undefined;
 }
 
+export async function giversIn(ctx: QueryCtx, workspace: string, period: PeriodKey): Promise<number> {
+  return (await totalsIn(ctx, workspace, period)).filter(({ kudos }) => kudos > 0).length;
+}
+
 function totalsIn(ctx: QueryCtx, workspace: string, period: PeriodKey) {
   return ctx.db
     .query("givenTotals")
