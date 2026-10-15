@@ -200,6 +200,7 @@ describe("WS13 WS15 WS18: a member's home answer projects their own homeFacts", 
       coins: null,
       inventory: null,
       groups: false,
+      settings: false,
     });
   });
 
