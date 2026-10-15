@@ -12,7 +12,7 @@ import { rewardOf } from "../progression/rewards";
 import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-import { crateOpeningOf, rewardKeyOf, weeklyQuestOfRewardKey } from "./crates";
+import { crateOpeningOf, rewardKeyOf, waitsUnopened, weeklyQuestOfRewardKey } from "./crates";
 import { finishQuest } from "./finish";
 import { questsLiveFor } from "./flag";
 import { rewardValidator, type Reward } from "./journey";
@@ -56,11 +56,11 @@ type Swap = Infer<typeof questSwapValidator>;
 
 type FeasibleQuest = { quest: PoolQuest; feasibleBecause: FeasibleBecause };
 
-export type WeeklySlot = Slot & { goal: string; progress: number; target: number; finishedAt: number | null; openedAt: number | null };
+export type WeeklySlot = Slot & { goal: string; progress: number; target: number; finishedAt: number | null; openedAt: number | null; waiting: boolean };
 
 export type QuestSwap = { slot: number; replaced: QuestId; quest: QuestId; swappedAt: number };
 
-export type UnopenedCrate = { crate: WeeklyQuest; week: WeekKey; goal: string; reward: Reward; finishedAt: number };
+export type UnopenedCrate = { crate: WeeklyQuest; week: WeekKey; goal: string; reward: Reward; finishedAt: number; waiting: boolean };
 
 export type DrawnWeek = Omit<WeeklyQuests, "slots"> & { slots: Array<WeeklySlot & { crate: WeeklyQuest }> };
 
@@ -74,7 +74,7 @@ export const drawWeeklyQuests = internalMutation({
   },
 });
 
-export type FinishedWeeklyQuest = { goal: string; reward: Slot["reward"] };
+export type FinishedWeeklyQuest = { crate: WeeklyQuest; goal: string; reward: Slot["reward"] };
 
 export async function advanceWeeklyQuests(ctx: MutationCtx, event: KudosGivenEvent): Promise<FinishedWeeklyQuest[]> {
   let shownChanged = (await drawWhenDue(ctx, event.giver, event.at)) === "drawn";
@@ -86,7 +86,7 @@ export async function advanceWeeklyQuests(ctx: MutationCtx, event: KudosGivenEve
     const awards = open.length === 0 ? [] : await questAwardsOf(ctx, event);
     for (const slot of open) {
       const advanced = await advanceSlot(ctx, event, draw, slot, awards);
-      if (advanced === "finished") finished.push({ goal: questOf(slot.quest).goal, reward: slot.reward });
+      if (advanced === "finished") finished.push({ crate: weeklyQuest(draw.week, slot), goal: questOf(slot.quest).goal, reward: slot.reward });
       shownChanged = advanced !== "unchanged" || shownChanged;
     }
   }
@@ -159,8 +159,8 @@ export async function unopenedCratesOf(ctx: QueryCtx, member: MemberId, at: numb
   const unopened: UnopenedCrate[] = [];
   for (const { key } of await pendingWeeklyCratesBefore(ctx, member, thisWeek)) {
     const crate = weeklyQuestOfRewardKey(key)!;
-    const { xp, coins, at: finishedAt } = (await rewardOf(ctx, member, key))!;
-    unopened.push({ crate, week: crate.week, goal: await weeklyGoalOf(ctx, member, crate), reward: { xp, coins, item: null }, finishedAt });
+    const { xp, coins, at: finishedAt, held } = (await rewardOf(ctx, member, key))!;
+    unopened.push({ crate, week: crate.week, goal: await weeklyGoalOf(ctx, member, crate), reward: { xp, coins, item: null }, finishedAt, waiting: held === true });
   }
   return unopened.sort((one, other) => one.finishedAt - other.finishedAt);
 }
@@ -217,7 +217,7 @@ async function weeklySlotOf(ctx: QueryCtx, { member, week }: Draw, slot: Slot): 
   const finish = await rewardOf(ctx, member, key);
   const opening = await crateOpeningOf(ctx, member, key);
   const progress = questProgress(pooled, await countedFor(ctx, member, week, slot));
-  return { ...slot, goal: pooled.goal, progress, target: pooled.progress.target, finishedAt: finish?.at ?? null, openedAt: opening?.at ?? null };
+  return { ...slot, goal: pooled.goal, progress, target: pooled.progress.target, finishedAt: finish?.at ?? null, openedAt: opening?.at ?? null, waiting: waitsUnopened(finish, opening) };
 }
 
 async function unfinishedSlotsOf(ctx: QueryCtx, draw: Draw, slots: Slot[]): Promise<Slot[]> {

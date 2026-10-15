@@ -12,9 +12,18 @@ export const rewardRecordValidator = v.object({
   catalogueVersion: v.string(),
   at: v.number(),
   cause: v.optional(messageRefValidator),
+  held: v.optional(v.literal(true)),
 });
 
 export type RewardRecord = Infer<typeof rewardRecordValidator>;
+
+const standingWithCoinsValidator = v.object({ xp: v.number(), level: v.number(), coins: v.number(), skillPoints: v.number() });
+
+export const appliedRewardValidator = v.object({ xp: v.number(), coins: v.number(), from: standingWithCoinsValidator, to: standingWithCoinsValidator });
+
+export type AppliedReward = Infer<typeof appliedRewardValidator>;
+
+export type StandingWithCoins = AppliedReward["from"];
 
 export async function insertReward(ctx: MutationCtx, reward: RewardRecord) {
   await ctx.db.insert("rewardRecords", reward);

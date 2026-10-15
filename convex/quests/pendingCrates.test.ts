@@ -44,9 +44,9 @@ describe("P85: the pending-crate index lists every crate still waiting, within C
     const waiting = await waitingFor(t, alice);
 
     expect(waiting).toEqual([
-      { crate: { kind: "weekly", week: twoWeeksAgo, slot: 1 }, week: twoWeeksAgo, goal: "Thank someone and say why, 2 times.", reward, finishedAt: Date.parse("2026-09-29T10:00:00Z") },
-      { crate: { kind: "weekly", week: lastWeek, slot: 0 }, week: lastWeek, goal: "Thank someone and say why, 3 times.", reward, finishedAt: Date.parse("2026-10-06T10:00:00Z") },
-      { crate: { kind: "weekly", week: lastWeek, slot: 1 }, week: lastWeek, goal: "Thank someone you haven't thanked before.", reward, finishedAt: Date.parse("2026-10-08T10:00:00Z") },
+      { crate: { kind: "weekly", week: twoWeeksAgo, slot: 1 }, week: twoWeeksAgo, goal: "Thank someone and say why, 2 times.", reward, finishedAt: Date.parse("2026-09-29T10:00:00Z"), waiting: false },
+      { crate: { kind: "weekly", week: lastWeek, slot: 0 }, week: lastWeek, goal: "Thank someone and say why, 3 times.", reward, finishedAt: Date.parse("2026-10-06T10:00:00Z"), waiting: false },
+      { crate: { kind: "weekly", week: lastWeek, slot: 1 }, week: lastWeek, goal: "Thank someone you haven't thanked before.", reward, finishedAt: Date.parse("2026-10-08T10:00:00Z"), waiting: false },
     ]);
     expect(await t.run(async (ctx) => (await ctx.db.query("pendingCrates").collect()).map(({ key }) => key).sort())).toEqual([
       `weekly:${twoWeeksAgo}:1`,

@@ -163,7 +163,7 @@ function readyCratesOf(unlocks: UnlocksHome | null, website: string): HomeLine[]
 }
 
 function earlierCratesOf(crates: UnopenedCrate[] | null, website: string): HomeLine[] {
-  return (crates ?? []).map(({ crate, week, goal }) => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal}`, action: openCrate(crate, website) }));
+  return (crates ?? []).map(({ crate, week, goal, reward, waiting }) => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal}${waitingPartOf(reward.xp, waiting)}`, action: openCrate(crate, website) }));
 }
 
 function cappedEarlierCrates(weekly: HomeLine[], groupCrates: WaitingGroupCrate[] | null): { shown: HomeLine[]; more: HomeLine[] } {
@@ -184,12 +184,16 @@ function moreEarlierCrates(more: number): HomeLine[] {
 function weeklyCratesOf(quests: WeeklyQuests | null, website: string): HomeLine[] {
   if (quests === null) return [];
   const unopened = quests.slots.filter(({ finishedAt, openedAt }) => finishedAt !== null && openedAt === null);
-  return unopened.map(({ slot, goal }) => ({ kind: "action", text: `✅ ${goal}`, action: openCrate({ kind: "weekly", week: quests.week, slot }, website) }));
+  return unopened.map(({ slot, goal, reward, waiting }) => ({ kind: "action", text: `✅ ${goal}${waitingPartOf(reward.xp, waiting)}`, action: openCrate({ kind: "weekly", week: quests.week, slot }, website) }));
 }
 
 function journeyCratesOf(journey: JourneyStepShown[] | null, website: string): HomeLine[] {
   const unopened = (journey ?? []).filter(({ finishedAt, openedAt }) => finishedAt !== null && openedAt === null);
-  return unopened.map(({ step }) => ({ kind: "action", text: `✅ ${journeyGoalOf(step)}`, action: openCrate({ kind: "journey", step }, website) }));
+  return unopened.map(({ step, reward, waiting }) => ({ kind: "action", text: `✅ ${journeyGoalOf(step)}${waitingPartOf(reward.xp, waiting)}`, action: openCrate({ kind: "journey", step }, website) }));
+}
+
+function waitingPartOf(xp: number, waiting: boolean) {
+  return waiting ? ` · ${xp} XP waits in your crate` : "";
 }
 
 function websiteButtonsOf({ origin, pages }: FrontDoorLinks): HomeLine {
@@ -529,18 +533,18 @@ function groupQuestLine({ group, week, goal, tookPart, target, done, crate }: Gr
   return { kind: "action", text, action: openCrate({ kind: "group", group: group.group, week }, null) };
 }
 
-function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt }: WeeklySlot, { swapAvailable, cratesShownApart, website }: QuestRows & { swapAvailable: boolean }): HomeLine {
+function weeklyQuestLine(week: string, { slot, goal, reward, progress, target, finishedAt, openedAt, waiting }: WeeklySlot, { swapAvailable, cratesShownApart, website }: QuestRows & { swapAvailable: boolean }): HomeLine {
   if (finishedAt === null) {
     const text = `${goal} ${bold(`${progress}/${target}`)} · ${bold(`${reward.xp} XP`)}`;
     return swapAvailable ? { kind: "action", text, action: swapQuest({ kind: "weekly", week, slot }, website) } : { kind: "text", text };
   }
-  const text = `✅ ${goal} ${earned(reward.xp)}`;
+  const text = `✅ ${goal} ${rewardTold(reward.xp, waiting)}`;
   return openedAt === null && !cratesShownApart ? { kind: "action", text, action: openCrate({ kind: "weekly", week, slot }, null) } : { kind: "text", text };
 }
 
 function waitingToOpenLines(crates: UnopenedCrate[], groupCrates: WaitingGroupCrate[]): HomeLine[] {
   if (crates.length + groupCrates.length === 0) return [];
-  const weekly = crates.map(({ crate, week, goal, reward }): HomeLine => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal} ${earned(reward.xp)}`, action: openCrate(crate, null) }));
+  const weekly = crates.map(({ crate, week, goal, reward, waiting }): HomeLine => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal} ${rewardTold(reward.xp, waiting)}`, action: openCrate(crate, null) }));
   const { shown, more } = cappedEarlierCrates(weekly, groupCrates);
   return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...more];
 }
@@ -549,21 +553,21 @@ function earlierGroupCrateLine({ crate, group, goal }: WaitingGroupCrate): HomeL
   return { kind: "action", text: `${weekLabelOf(crate.week)} ✅ ${group} quest: ${goal}`, action: openCrate(crate, null) };
 }
 
-function journeyStepLines({ step, goal, hint, reward, finishedAt, openedAt }: JourneyStepShown): HomeLine[] {
+function journeyStepLines({ step, goal, hint, reward, finishedAt, openedAt, waiting }: JourneyStepShown): HomeLine[] {
   if (finishedAt !== null) {
-    const text = `${bold("Journey:")} ✅ ${goal} ${earned(reward.xp)}`;
+    const text = `${bold("Journey:")} ✅ ${goal} ${rewardTold(reward.xp, waiting)}`;
     return [openedAt === null ? { kind: "action", text, action: openCrate({ kind: "journey", step }, null) } : { kind: "text", text }];
   }
   const active: HomeLine = { kind: "text", text: `${bold("Journey:")} ${goal} It pays ${bold(`${reward.xp} XP`)}.` };
   return hint === null ? [active] : [active, { kind: "hint", text: hint }];
 }
 
-export function finishedQuestCrateOf(quest: JourneyQuest, xp: number, website: string | null): { text: string; action: HomeAction } {
-  return { text: `✅ You finished a Journey step: ${journeyGoalOf(quest.step)} ${earned(xp)}`, action: openCrate(quest, website) };
+export function finishedQuestCrateOf(quest: JourneyQuest, xp: number, waiting: boolean, website: string | null): { text: string; action: HomeAction } {
+  return { text: `✅ You finished a Journey step: ${journeyGoalOf(quest.step)} ${rewardTold(xp, waiting)}`, action: openCrate(quest, website) };
 }
 
-export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp: number, website: string | null): { text: string; action: HomeAction } {
-  return { text: `✅ You finished a quest: ${goal} ${earned(xp)}`, action: openCrate(quest, website) };
+export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp: number, waiting: boolean, website: string | null): { text: string; action: HomeAction } {
+  return { text: `✅ You finished a quest: ${goal} ${rewardTold(xp, waiting)}`, action: openCrate(quest, website) };
 }
 
 function swapQuest(quest: WeeklyQuest, website: string | null): HomeAction {
@@ -576,8 +580,8 @@ function openCrate(quest: Quest, website: string | null): HomeAction {
   return openOnTheWeb(rewardKeyOf(quest), questCratePageOf(quest), website);
 }
 
-function earned(xp: number) {
-  return `You earned ${bold(`${xp} XP`)}.`;
+function rewardTold(xp: number, waiting: boolean) {
+  return waiting ? `${bold(`${xp} XP`)} waits in your crate.` : `You earned ${bold(`${xp} XP`)}.`;
 }
 
 export function readyCrateOf({ feature, name, opens }: ScheduledFeature, website: string | null): { text: string; action: HomeAction } {

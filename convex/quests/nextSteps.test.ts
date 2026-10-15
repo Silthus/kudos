@@ -122,8 +122,8 @@ describe("P88 P89: opening Quests or the Leaderboard shows its Journey step, and
     const journey = (await t.query(internal.quests.quests.questsOf, { member: alice }))!.journey;
 
     expect(journey.filter(({ step }) => step !== "first-thanks")).toEqual([
-      { step: "first-quest", activatedAt: now.getTime(), reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "2", finishedAt: null, openedAt: null },
-      { step: "someone-new", activatedAt: now.getTime() + minuteMs, reward: { xp: 30, coins: 0, item: null }, catalogueVersion: "2", finishedAt: now.getTime() + 2 * minuteMs, openedAt: null },
+      { step: "first-quest", activatedAt: now.getTime(), reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "2", finishedAt: null, openedAt: null, waiting: false },
+      { step: "someone-new", activatedAt: now.getTime() + minuteMs, reward: { xp: 30, coins: 0, item: null }, catalogueVersion: "2", finishedAt: now.getTime() + 2 * minuteMs, openedAt: null, waiting: false },
     ]);
   });
 
