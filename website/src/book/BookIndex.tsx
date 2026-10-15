@@ -9,7 +9,7 @@ type IndexProps = { chapters: Chapter[]; current: BookPageId };
 export function BookIndex({ chapters, current }: IndexProps) {
   return (
     <nav aria-label="Book pages" className="sticky top-24">
-      <div className="relative flex flex-col gap-1 rounded-xl border bg-card p-2">
+      <div className="relative flex flex-col gap-1 rounded-lg border bg-card p-2">
         <div className="flex items-center gap-2 px-2 pb-1 pt-1.5">
           <IconBook className="size-4 text-muted-foreground" />
           <span className="text-base font-semibold">Book</span>

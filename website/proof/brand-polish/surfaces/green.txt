@@ -1,0 +1,15 @@
+     × counts every other ready crate, in the ready pill's order 5511ms
+     × keeps focus on the button while the next crate opens, then reveals it and focuses its end state 2582ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/featureGates.test.tsx > WS325: the reveal opens the next ready crate > counts every other ready crate, in the ready pill's order
+ FAIL  |website| src/featureGates.test.tsx > WS325: the reveal opens the next ready crate > keeps focus on the button while the next crate opens, then reveals it and focuses its end state
+ Test Files  1 failed | 9 passed (10)
+      Tests  2 failed | 309 passed (311)
+
+featureGates.test.tsx rerun alone (the two reveal-order failures above were 5 s timeouts while three builds ran):
+ Test Files  1 passed (1)
+      Tests  66 passed (66)
+
+After review round 1, medalMetals.test.tsx resolves the website overrides through themeContrast.ts:
+ Test Files  1 passed (1)
+      Tests  16 passed (16)

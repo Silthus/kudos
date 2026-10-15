@@ -14,7 +14,7 @@ export const detailsHeadingId = "perk-details-title";
 export function PerkDetailsPanel({ purchasing, ...selected }: DetailsProps) {
   const { perk } = selected;
   return (
-    <section aria-labelledby="perk-details-label" className="hud-panel relative flex flex-col gap-4 rounded-xl border bg-card p-4 lg:sticky lg:top-24">
+    <section aria-labelledby="perk-details-label" className="hud-panel relative flex flex-col gap-4 rounded-lg border bg-card p-4 lg:sticky lg:top-24">
       <span id="perk-details-label" className="hud-label">
         Perk details
       </span>

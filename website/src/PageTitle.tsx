@@ -14,7 +14,7 @@ export function PageTitle({ tab, id, size = "page", children }: { tab: string; i
     document.title = `HedgeHug · ${tab}`;
   }, [tab]);
   return (
-    <h1 id={id} tabIndex={-1} className={`hud-display font-bold outline-none ${sizes[size]}`}>
+    <h1 id={id} tabIndex={-1} className={`hud-display font-extrabold outline-none ${sizes[size]}`}>
       {children}
     </h1>
   );

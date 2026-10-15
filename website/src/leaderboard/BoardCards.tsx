@@ -10,7 +10,7 @@ export type BoardIds = { tab: (board: BoardId) => string; label: (board: BoardId
 export function EveryoneCard({ board }: { board: Leaderboard }) {
   const { label, blurb, standing, Icon } = cardOf(board, "everyone");
   return (
-    <section aria-labelledby="everyone-board-title" className="flex items-center gap-3 rounded-xl border bg-card p-4">
+    <section aria-labelledby="everyone-board-title" className="flex items-center gap-3 rounded-lg border bg-card p-4">
       <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <Icon className="size-5" />
       </span>
@@ -82,7 +82,7 @@ function BoardTab({ card: { label, blurb, standing, Icon }, board, selected, ids
       aria-describedby={standingId}
       tabIndex={selected ? 0 : -1}
       onClick={() => onSelect(board)}
-      className={`flex min-w-0 flex-col gap-2 rounded-xl border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-4 ${selected ? "border-primary bg-fill-selected shadow-[inset_0_-3px_0_var(--primary)]" : "bg-card hover:bg-fill-hover"}`}
+      className={`flex min-w-0 flex-col gap-2 rounded-lg border p-3 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:p-4 ${selected ? "border-primary bg-fill-selected shadow-[inset_0_-3px_0_var(--primary)]" : "bg-card hover:bg-fill-hover"}`}
     >
       <span className="flex min-w-0 items-start gap-2 sm:items-center sm:gap-3">
         <CardIcon Icon={Icon} selected={selected} />

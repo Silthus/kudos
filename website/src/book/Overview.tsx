@@ -64,7 +64,7 @@ function ClosestNextTier({ closest: { ladder, tier, toGo }, chapters }: { closes
     <AppLink
       href={pageOf(ladder, chapters)}
       aria-label={`Closest next tier: ${tier.name}, ${ladderLine}, ${toGo} to go`}
-      className="group flex items-center gap-4 rounded-xl border bg-card p-3 hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:p-4"
+      className="group flex items-center gap-4 rounded-lg border bg-card p-3 hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:p-4"
     >
       <LadderEmblem ladder={ladder.ladder} best={best?.tier ?? null} size={60} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -176,7 +176,7 @@ function CategoryTile({ chapter: { category, ladders } }: { chapter: Chapter }) 
     <AppLink
       href={bookHref(category.id)}
       aria-label={`${category.name}, ${earned} of ${total} tiers earned`}
-      className="flex h-full items-center gap-3 rounded-xl border bg-card p-3 hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      className="flex h-full items-center gap-3 rounded-lg border bg-card p-3 hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <span data-hog={category.id} aria-hidden="true" className="shrink-0">
         <category.Emblem size={68} title="" />

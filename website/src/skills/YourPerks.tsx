@@ -7,7 +7,7 @@ type ActivePerk = { perk: PerkNode; base: PerkNode | undefined };
 export function YourPerks({ rows }: { rows: TreeRow[] }) {
   const active = activeInPurchaseOrder(rows);
   return (
-    <section aria-labelledby="your-perks-title" className="hud-panel relative flex flex-col gap-3 rounded-xl border bg-card p-4">
+    <section aria-labelledby="your-perks-title" className="hud-panel relative flex flex-col gap-3 rounded-lg border bg-card p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 id="your-perks-title" className="hud-label">
           {`Your perks · ${active.length} active`}
