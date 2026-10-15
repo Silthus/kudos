@@ -10,7 +10,7 @@ import type { ProfileCardAnswer } from "../../convex/website/profileCard";
 import type { MySkillTree } from "../../convex/website/skillTree";
 
 export type { Face, FeatureCard, JourneyStep, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
-export type { QuestsAnswer, QuestSlot, WaitingCrate, WeekSwap } from "../../convex/website/quests";
+export type { QuestReward, QuestsAnswer, QuestSlot, WaitingCrate, WeekSwap } from "../../convex/website/quests";
 export type { BookAnswer, LadderCard, TierCard } from "../../convex/website/book";
 export type { TierId } from "../../convex/achievements/ladders";
 export type { Medal } from "../../convex/profileCard/profileCard";

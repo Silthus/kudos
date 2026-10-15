@@ -44,10 +44,11 @@ function isTheSkillTree(crate: ReadyCrate) {
 
 function xpRewardOf(crate: ReadyCrate, { progression, skillPoints }: MemberProfile, xpLandingLater: number): Reward {
   if (crate.kind === "feature") return { xp: 0, skillPoints: 0 };
-  if (progression === null || skillPoints === null) return { xp: crate.xp, skillPoints: 0 };
+  const { xp } = crate.reward;
+  if (progression === null || skillPoints === null) return { xp, skillPoints: 0 };
   const levelOnceLanded = progressionBefore(progression, xpLandingLater).level;
-  const levelBefore = progressionBefore(progression, xpLandingLater + crate.xp).level;
-  return { xp: crate.xp, skillPoints: skillPointsEarnedAt(levelOnceLanded) - skillPointsEarnedAt(levelBefore) };
+  const levelBefore = progressionBefore(progression, xpLandingLater + xp).level;
+  return { xp, skillPoints: skillPointsEarnedAt(levelOnceLanded) - skillPointsEarnedAt(levelBefore) };
 }
 
 function progressionBefore(progression: Progression, reward: number): Progression {
