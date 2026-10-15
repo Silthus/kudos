@@ -55,16 +55,20 @@ async function activityOf(caller: Caller, args: { filter: Filter; cursor?: strin
   return answer;
 }
 
-async function everyPage(caller: Caller, filter: Filter, limit: number) {
-  const entries: ActivityEntry[] = [];
+async function everyAnswer(caller: Caller, filter: Filter, limit: number) {
+  const answers: Activity[] = [];
   let cursor: string | null = null;
-  for (let page = 0; page < 100; page++) {
+  do {
     const answer: Activity = await activityOf(caller, { filter, cursor, limit });
-    entries.push(...answer.entries);
+    answers.push(answer);
     cursor = answer.cursor;
-    if (cursor === null) return entries;
-  }
-  throw new Error("the pages never ended");
+  } while (cursor !== null && answers.length < 100);
+  if (cursor !== null) throw new Error("the pages never ended");
+  return answers;
+}
+
+async function everyPage(caller: Caller, filter: Filter, limit: number) {
+  return (await everyAnswer(caller, filter, limit)).flatMap(({ entries }) => entries);
 }
 
 function seen(entry: ActivityEntry) {
@@ -89,6 +93,10 @@ const rare = catalogue.hoggies.find(({ rarity }) => rarity === "rare")!;
 
 async function aDrop(member: MemberId, { hoggie, rarity }: { hoggie: string; rarity: Rarity }, at: number, n: number, copy = 1) {
   await t.run((ctx) => ctx.db.insert("drops", { member, crate: `weekly:2026-10-12:${n}`, hoggie, rarity, n, copy, catalogueVersion: catalogue.version, at }));
+}
+
+async function aLevelUp(member: MemberId, level: number, at: number) {
+  await t.run((ctx) => ctx.db.insert("levelUps", { member, level, ready: [], at }));
 }
 
 async function aKudos(giver: MemberId, recipient: MemberId, message: string, at: number) {
@@ -128,6 +136,7 @@ describe("CL21: found entries in order, filters and pages", () => {
     const team = await aTeam();
     await aKudos(team.teammate, team.member, "1.1", evening);
     await aDrop(team.member, rare, noon, 3);
+    await aLevelUp(team.member, 2, noon);
     await aKudos(team.member, team.teammate, "1.2", noon);
     await aDrop(team.member, otherCommon!, noon, 2);
     await aKudos(team.teammate, team.member, "1.3", noon);
@@ -138,6 +147,7 @@ describe("CL21: found entries in order, filters and pages", () => {
 
   const newestFirst = [
     `kudosReceived at ${evening}`,
+    `level 2 at ${noon}`,
     `kudosGiven at ${noon}`,
     `kudosReceived at ${noon}`,
     `found ${rare.hoggie} at ${noon}`,
@@ -146,7 +156,7 @@ describe("CL21: found entries in order, filters and pages", () => {
     `found ${common!.hoggie} at ${morning}`,
   ];
 
-  test("sit in time order between the kudos, below the kudos of their instant and the later drop first", async () => {
+  test("sit in time order between the kudos, below the level-up and kudos of their instant and the later drop first", async () => {
     await collection(true);
     const { asSignedIn } = await aMorningOfKudosAndDrops();
 
@@ -162,6 +172,7 @@ describe("CL21: found entries in order, filters and pages", () => {
 
     expect((await everyPage(asSignedIn, "received", 20)).map(seen)).toEqual(newestFirst.filter((line) => line.startsWith("kudosReceived")));
     expect((await everyPage(asSignedIn, "given", 20)).map(seen)).toEqual(newestFirst.filter((line) => line.startsWith("kudosGiven")));
+    expect((await everyPage(asSignedIn, "all", 20)).map(seen)).toEqual(newestFirst);
   });
 
   test("page across every cursor, repeating and skipping none, each with its own key", async () => {
@@ -189,35 +200,45 @@ describe("CL21: found entries in order, filters and pages", () => {
     ]);
   });
 
-  test("with collection off, every page equals the timeline without any drop", async () => {
+  test("with collection off, every page equals the timeline without any drop, cursors and time zone included", async () => {
     await collection(false);
     const { member, teammate, asSignedIn } = await aTeam();
     await aKudos(teammate, member, "1.1", evening);
     await aKudos(member, teammate, "1.2", noon);
     await aKudos(teammate, member, "1.3", morning);
-    const pagesOf = async () => Promise.all([1, 2, 20].flatMap((limit) => (["all", "received", "given"] as const).map((filter) => everyPage(asSignedIn, filter, limit))));
+    const pagesOf = () => Promise.all([1, 2, 20].flatMap((limit) => (["all", "received", "given"] as const).map((filter) => everyAnswer(asSignedIn, filter, limit))));
     const withoutDrops = await pagesOf();
 
     await aDrop(member, rare, noon, 1);
     await aDrop(member, common!, morning, 2);
+    await aDrop(member, otherCommon!, evening, 3);
 
     expect(await pagesOf()).toEqual(withoutDrops);
+    expect(withoutDrops[0]!.flatMap(({ entries }) => entries).map(seen)).toEqual([`kudosReceived at ${evening}`, `kudosGiven at ${noon}`, `kudosReceived at ${morning}`]);
+    expect(withoutDrops[0]!.map(({ cursor }) => cursor === null)).toEqual([false, false, true]);
   });
 });
 
 describe("CL21 AT18: a page with drops stays within Convex's limits", () => {
-  test("a member with thousands of kudos and of drops inside one instant pages within Convex's limits, repeating none", { timeout: 120_000 }, async () => {
+  test("a member with more drops than a query may read, and thousands of kudos, pages from inside an instant of drops into older ones, repeating none", { timeout: 180_000 }, async () => {
     t = testBackend({ transactionLimits: true });
     await collection(true);
     const { member, teammate, asSignedIn } = await aTeam();
-    const kudosAt = Date.parse("2026-10-14T09:00:00Z");
-    const foundAt = kudosAt + minute;
-    for (let batch = 0; batch < 3; batch++) {
+    const foundAt = Date.parse("2026-10-14T09:00:00Z");
+    const kudosAt = foundAt - 24 * 60 * minute;
+    const drops = 33_000;
+    const inTheInstant = 60;
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 3000; index++) {
+        await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `received-${index}`, giver: teammate, recipient: member, kudos: 1, day: "2026-10-13", at: kudosAt });
+        await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `given-${index}`, giver: member, recipient: teammate, kudos: 1, day: "2026-10-13", at: kudosAt });
+      }
+    });
+    for (let batch = 0; batch < drops; batch += 8000) {
       await t.run(async (ctx) => {
-        for (let index = batch * 1000; index < (batch + 1) * 1000; index++) {
-          await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `received-${index}`, giver: teammate, recipient: member, kudos: 1, day: "2026-10-14", at: kudosAt });
-          await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `given-${index}`, giver: member, recipient: teammate, kudos: 1, day: "2026-10-14", at: kudosAt });
-          await ctx.db.insert("drops", { member, crate: `weekly:2026-10-12:${index}`, hoggie: common!.hoggie, rarity: "common", n: index + 1, copy: index + 1, catalogueVersion: catalogue.version, at: foundAt });
+        for (let n = batch + 1; n <= Math.min(drops, batch + 8000); n++) {
+          const at = n > drops - inTheInstant ? foundAt : foundAt - (drops - inTheInstant - n + 1);
+          await ctx.db.insert("drops", { member, crate: `weekly:2026-10-12:${n}`, hoggie: common!.hoggie, rarity: "common", n, copy: n, catalogueVersion: catalogue.version, at });
         }
       });
     }
@@ -225,6 +246,7 @@ describe("CL21 AT18: a page with drops stays within Convex's limits", () => {
     const first = await activityOf(asSignedIn, { filter: "all", limit: 50 });
     const next = await activityOf(asSignedIn, { filter: "all", cursor: first.cursor, limit: 50 });
 
-    expect([...first.entries, ...next.entries].map((entry) => (entry.kind === "found" ? entry.drop.copy : entry.kind))).toEqual(Array.from({ length: 100 }, (_, index) => 3000 - index));
+    const shown = [...first.entries, ...next.entries].map((entry) => (entry.kind === "found" ? `${entry.drop.copy} ${entry.at === foundAt ? "in the instant" : "older"}` : entry.kind));
+    expect(shown).toEqual(Array.from({ length: 100 }, (_, index) => `${drops - index} ${index < inTheInstant ? "in the instant" : "older"}`));
   });
 });
