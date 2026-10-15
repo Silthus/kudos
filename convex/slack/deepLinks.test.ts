@@ -201,14 +201,14 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
     ]);
   });
 
-  test("a finished weekly quest's DM links to the quests on the web", async () => {
+  test.each([0, 1, 2])("a finished weekly quest's DM in slot %i links its Open to that quest's card and its last line to the quests on the web", async (slot) => {
     const t = await questsLive();
     const alice = await memberInserted(t, "U_ALICE");
 
-    await notified(t, (ctx) => notifyWeeklyQuestFinished(ctx, alice, weeklyQuest, "Give kudos on two days.", 20));
+    await notified(t, (ctx) => notifyWeeklyQuestFinished(ctx, alice, { ...weeklyQuest, slot }, "Give kudos on two days.", 20));
 
     expect(dmsTo("U_ALICE").map(readDm)).toEqual([
-      [`section: ✅ You finished a quest: Give kudos on two days. You earned *20 XP*. [link: Open ${siteUrl}/quests]`, `section: <${siteUrl}/quests|See your quests on the web>`],
+      [`section: ✅ You finished a quest: Give kudos on two days. You earned *20 XP*. [link: Open ${siteUrl}/quests?quest=${slot}]`, `section: <${siteUrl}/quests|See your quests on the web>`],
     ]);
   });
 
