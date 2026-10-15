@@ -7,7 +7,7 @@ import { attemptMessages, questCrateHomeAttributes, useMoments } from "../crates
 import { questCrateOf, type CrateFacts, type QuestCrate } from "../crates/readyCrates";
 import { Claimed } from "../crates/RewardCrate";
 import { rewardChipAttributes } from "../crates/RewardFlight";
-import { aboutOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "../features";
+import { hogOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "../features";
 import { PageTitle } from "../PageTitle";
 import { questTargetAttributes } from "../questTarget";
 import { Coins } from "../quests/QuestReward";
@@ -229,7 +229,7 @@ function BonusCard({ step, page, firstCrate }: BonusQuestProps) {
   return (
     <article className="hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground" {...questTargetAttributes("journey")} {...questCrateHomeAttributes(seen)}>
       <div className="flex items-start gap-3 sm:gap-4">
-        <QuestArt Hog={feature === null ? HedgehogReading : aboutOf(feature).Hog} claimed={false} />
+        <QuestArt Hog={feature === null ? HedgehogReading : hogOf(feature)} claimed={false} />
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="hud-label">Journey</span>

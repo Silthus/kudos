@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { IconCheck } from "@posthog/icons";
 import { Button } from "@posthog/quill";
-import { aboutOf } from "../features";
+import { hogOf } from "../features";
 import { Coins } from "../quests/QuestReward";
 import { CrateArt } from "./CrateArt";
 import { attemptMessages, useMoments } from "./moments";
@@ -18,7 +18,7 @@ export function RewardCrate({ crate, open }: RewardCrateProps) {
   if (attempt !== undefined && !stillSinceOpen) keepStill(true);
   return (
     <div className="flex items-center gap-3">
-      <CrateArt phase="closed" width={56} Hog={aboutOf("quests").Hog} nudge={!stillSinceOpen} />
+      <CrateArt phase="closed" width={56} Hog={hogOf("quests")} nudge={!stillSinceOpen} />
       <div className="flex min-w-0 flex-col items-start gap-1">
         <p className="text-sm font-medium tabular-nums" {...rewardChipAttributes(crate.seen)}>
           {`${rewardLabelOf(crate)} · ${crate.reward.xp} XP`}

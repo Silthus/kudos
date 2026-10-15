@@ -2,6 +2,7 @@ import "@fontsource-variable/inter";
 import "./src/index.css";
 import { createRoot } from "react-dom/client";
 import { App } from "./src/App";
+import { fixtureReadsFor } from "./src/fixtureReads";
 import { shellFixtures, fixtureActions, type MemberProfile, type ShellActions } from "./src/shell";
 import { fixedLeaderboard, leaderboardFixtures } from "./src/leaderboardFixtures";
 import { fixedQuests, questsFixtures } from "./src/questsFixtures";
@@ -29,7 +30,7 @@ const actions: ShellActions = {
   },
 };
 const show = () =>
-  root.render(<App visitor={visitor} actions={actions} useLeaderboard={fixedLeaderboard(leaderboardFixtures.midBoard)} useQuests={fixedQuests(questsFixtures.week)} useBook={fixedBook(bookFixtures.book)} useSkillTree={fixedSkillTree(skillTreeFixtures.withPoints)} />);
+  root.render(<App visitor={visitor} actions={actions} {...fixtureReadsFor(visitor)} useLeaderboard={fixedLeaderboard(leaderboardFixtures.midBoard)} useQuests={fixedQuests(questsFixtures.week)} useBook={fixedBook(bookFixtures.book)} useSkillTree={fixedSkillTree(skillTreeFixtures.withPoints)} />);
 show();
 
 if (params.get("six") === "1") {

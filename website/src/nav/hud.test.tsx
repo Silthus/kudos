@@ -80,6 +80,15 @@ describe("WS301: the nav lists every shipped feature with a page, in schedule or
     expect(window.location.pathname).toBe("/");
   });
 
+  it.each([
+    ["Leaderboard", everyState, "Leaderboard is readyOpen its crate to unlock it"],
+    ["Quests", memberOnTheUnlockPath(card("quests", "Quests", 2, "ready")), "Quests are readyOpen its crate to unlock it"],
+  ])("words the ready tooltip for %s with a verb that agrees with the name", async (name, member, tip) => {
+    const { user } = renderApp(member);
+    await user.hover(within(nav()).getByRole("button", { name: `${name}: unlock ready. Open its crate` }));
+    expect(await tooltip()).toHaveTextContent(tip);
+  });
+
   it("opens a ready feature's crate from its entry, through openFeature and the reveal", async () => {
     const openFeature = vi.fn(async () => ({ kind: "opened" }) as const);
     const { user } = renderApp(everyState, undefined, { openFeature });

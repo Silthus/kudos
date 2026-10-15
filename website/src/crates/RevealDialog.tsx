@@ -2,7 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties
 import { IconArrowRight, IconCheck, IconSparkles } from "@posthog/icons";
 import { Button, buttonVariants } from "@posthog/quill";
 import { AppLink } from "../AppLink";
-import { aboutOf, waitsOf, webPageOf } from "../features";
+import { hogOf, isOrAre, waitsOf, webPageOf } from "../features";
 import type { Feature, FeatureCard } from "../shell";
 import { CoinsGained, rewardWords } from "../quests/QuestReward";
 import { prefersReducedMotion } from "../reducedMotion";
@@ -67,7 +67,7 @@ export function RevealDialog({ crate, seenBefore, fromQuests, chatUrl, questsOpe
           {crate.kind === "feature" ? `Level ${crate.card.level} unlock` : rewardLabelOf(crate)}
         </span>
         <div className="pb-6 pt-36">
-          <CrateArt phase={playing ? "opening" : "open"} width={220} Hog={aboutOf(crate.kind === "feature" ? crate.card.feature : "quests").Hog} />
+          <CrateArt phase={playing ? "opening" : "open"} width={220} Hog={hogOf(crate.kind === "feature" ? crate.card.feature : "quests")} />
         </div>
         {!playing && crate.kind === "feature" && <EndState key={shownAt} card={crate.card} chatUrl={chatUrl} othersReady={othersReady} onClose={onClose} onReplay={replay} />}
         {!playing && crate.kind === "quest" && <RewardEndState key={shownAt} crate={crate} offerQuests={questsOpen && !fromQuests} onClose={onClose} onReplay={replay} />}
@@ -81,7 +81,7 @@ type EndStateProps = { card: FeatureCard; chatUrl: string; othersReady: ReadyCra
 function EndState({ card, chatUrl, othersReady, onClose, onReplay }: EndStateProps) {
   return (
     <EndFrame
-      headline={`${card.name} is open`}
+      headline={`${card.name} ${isOrAre(card.feature)} open`}
       onClose={onClose}
       onReplay={onReplay}
       go={<GoThere card={card} chatUrl={chatUrl} onGo={() => onClose({ returnFocus: false })} />}
