@@ -19,7 +19,7 @@ export function RewardCrate({ crate, open }: RewardCrateProps) {
     <div className="flex items-center gap-3">
       <CrateArt phase="closed" width={56} Hog={hogOf("quests")} nudge={!stillSinceOpen} />
       <div className="flex min-w-0 flex-col items-start gap-1">
-        <p className="text-sm font-medium" {...rewardChipAttributes(crate.seen)}>{`${rewardLabelOf(crate)} · ${crate.xp} XP`}</p>
+        <p className="text-sm font-medium" {...rewardChipAttributes(crate.seen)}>{`${rewardLabelOf(crate)} · ${crate.reward.xp} XP`}</p>
         {attempt !== undefined && !opening && <p className="text-xs font-medium">{attemptMessages[attempt]}</p>}
         <Button
           variant={open}

@@ -1,0 +1,3 @@
+Rerun of each gate failure alone on 3665b397 (both timed out under fleet heavy load; no Convex code changed):
+convex/quests/twoDays.test.ts: 24 passed (run 1 timed out at 5 s)
+convex/quests/newWeek.test.ts: 18 passed (run 2 timed out at 60 s)

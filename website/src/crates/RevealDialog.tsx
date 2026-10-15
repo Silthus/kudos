@@ -170,7 +170,7 @@ function RewardEndState({ crate, offerQuests, onClose, onReplay }: RewardEndStat
       <IconArrowRight aria-hidden="true" className="size-4" />
     </AppLink>
   );
-  return <EndFrame headline={`You earned ${crate.xp} XP`} onClose={onClose} onReplay={onReplay} go={toQuests} />;
+  return <EndFrame headline={`You earned ${crate.reward.xp} XP`} onClose={onClose} onReplay={onReplay} go={toQuests} />;
 }
 
 type EndFrameProps = { headline: string; go: ReactNode; next?: ReactNode; onClose: Close; onReplay: () => void; children?: ReactNode };

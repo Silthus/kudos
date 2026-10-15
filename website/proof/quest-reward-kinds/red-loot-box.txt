@@ -1,0 +1,43 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/quest-reward-kinds
+
+ ❯ |website| src/questRewardKinds.test.tsx (13 tests | 1 failed | 12 skipped) 1322ms
+   ❯ WS348: a quest paying coins shows the coin glyph and value wherever its reward shows (6)
+     × keeps a closed crate's coins hidden: crates are loot boxes until opened 1320ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/questRewardKinds.test.tsx > WS348: a quest paying coins shows the coin glyph and value wherever its reward shows > keeps a closed crate's coins hidden: crates are loot boxes until opened
+AssertionError: expected [ { text: '20 coins', glyph: true } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "glyph": true,
++     "text": "20 coins",
++   },
++ ]
+
+ ❯ src/questRewardKinds.test.tsx:84:96
+     82|     renderApp({ ...shellFixtures.memberWithQuests, journey: [yourEmoji…
+     83|
+     84|     expect(coinsIn(journeyStepOf("Give a kudos that says why with one …
+       |                                                                                                ^
+     85|     expect(journeyStepOf("Give a kudos that says why with one of your …
+     86|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 12 skipped (13)
+   Start at  17:52:48
+   Duration  9.48s (transform 45%, import 23%, environment 15%, tests 14%, setup 2%)
+
+  Transform  |website| transforming modules took 4.14s · 45% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
+

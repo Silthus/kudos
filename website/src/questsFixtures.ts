@@ -85,7 +85,24 @@ const firstThanks: JourneyStep = { step: "first-thanks", goal: "Give a kudos tha
 
 const firstQuestFinished: JourneyStep = { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 }, state: "finished", waiting: false, crate: { kind: "journey", step: "first-quest" }, seen: "b2c9e4", feature: "quests" };
 
-export const bonusSteps = { someoneNew, firstThanks, firstQuestFinished };
+const yourEmoji: JourneyStep = { step: "your-emoji", goal: "Give a kudos that says why with one of your kudos emoji.", hint: null, reward: { xp: 40, coins: 20 }, state: "active", waiting: false, crate: null, seen: null, feature: "coins" };
+
+const yourEmojiFinished: JourneyStep = { ...yourEmoji, state: "finished", crate: { kind: "journey", step: "your-emoji" }, seen: "c0175e" };
+
+const payingCoins = { xp: 20, coins: 10 };
+
+const weekPayingCoins: QuestsAnswer = {
+  ...week,
+  slots: [
+    { ...inProgress, reward: payingCoins },
+    { ...finished, reward: payingCoins },
+    { ...openedAndSwapped, reward: payingCoins },
+  ],
+  waiting: [{ ...lastWeeksCrate, reward: payingCoins }],
+  bonus: yourEmoji,
+};
+
+export const bonusSteps = { someoneNew, firstThanks, firstQuestFinished, yourEmoji, yourEmojiFinished };
 
 export const questsFixtures = {
   week,
@@ -99,6 +116,7 @@ export const questsFixtures = {
   everyKind: { ...week, slots: [inProgress, finished, joiningIn] },
   nextWeek,
   weekWithABonus: { ...week, bonus: someoneNew },
+  weekPayingCoins,
   weekWithAFinishedBonus: { ...week, slots: [inProgress, openedAndSwapped], bonus: firstQuestFinished },
   noDraw: { kind: "quests", slots: [], swap: { used: false, available: false }, waiting: [], bonus: null, chatUrl },
   locked: { kind: "locked", level: 2 },

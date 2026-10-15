@@ -8,6 +8,7 @@ import { Root } from "./Root";
 import { shellFixtures, type CommandAnswer, type LadderCard, type MyBook } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
+import { contrast, type Mode } from "./test/themeContrast";
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -177,6 +178,17 @@ describe("WS92: the Book page", () => {
     expect(["First Thanks", "Generous Soul", "Heart of the Team", "Patron of Praise"].map((name) => medalOf(name).querySelector("[data-sparkle]") !== null)).toEqual([false, false, true, true]);
     expect(medalOf("First Thanks")).toHaveAttribute("data-medal", "earned");
     expect(medalOf("Generous Soul")).toHaveAttribute("data-medal", "outline");
+  });
+});
+
+describe("WS339 V24: an unstarted ladder's hedgehog silhouette meets 3:1 against its card in both modes (#415)", () => {
+  it("paints the silhouette from the muted foreground, the locked page's silhouette", () => {
+    const emblem = openLadder(bookFixtures.book, "Recognition").querySelector("[data-emblem]")!;
+    expect(emblem.querySelector(".hog-silhouette")).toContainElement(emblem.querySelector("[data-rosette] ~ * svg"));
+  });
+
+  it.each<Mode>(["light", "dark"])("keeps the muted foreground at 3:1 against the card in %s mode", (mode) => {
+    expect(contrast(mode, "muted-foreground", "card")).toBeGreaterThanOrEqual(3);
   });
 });
 
