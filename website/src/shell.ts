@@ -8,8 +8,9 @@ import type { QuestsAnswer } from "../../convex/website/quests";
 import type { BookAnswer } from "../../convex/website/book";
 import type { ProfileCardAnswer } from "../../convex/website/profileCard";
 import type { MySkillTree } from "../../convex/website/skillTree";
+import { inventoryFixtures } from "./inventoryFixtures";
 
-export type { Face, FeatureCard, JourneyStep, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
+export type { Face, FeatureCard, InventoryItem, ItemSource, JourneyStep, MemberInventory, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
 export type { QuestsAnswer, QuestSlot, WaitingCrate, WeekSwap } from "../../convex/website/quests";
 export type { BookAnswer, LadderCard, TierCard } from "../../convex/website/book";
 export type { TierId } from "../../convex/achievements/ladders";
@@ -58,6 +59,8 @@ const member: MemberProfile = {
   journey: null,
   progression: null,
   skillPoints: null,
+  coins: null,
+  inventory: null,
   groups: false,
 };
 
@@ -126,6 +129,15 @@ const memberWithCoinsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ..
 
 const memberWithCoinsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }) };
 
+const memberWithTheInventory: MemberProfile = {
+  ...memberWithCoinsOpened,
+  progression: { level: 6, xp: 1010, levelStartsAt: 1000, nextLevelAt: 1500, xpToNextLevel: 490 },
+  coins: 236,
+  inventory: inventoryFixtures.twoEquippedOfThree,
+};
+
+const memberWithCoinsBeforeTheStore: MemberProfile = { ...memberWithCoinsOpened, coins: 40 };
+
 const memberAcrossTheSheet: MemberProfile = {
   ...member,
   ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...locked }),
@@ -146,11 +158,11 @@ const memberWithEveryNavState: MemberProfile = {
   progression: { level: 3, xp: 130, levelStartsAt: 100, nextLevelAt: 220, xpToNextLevel: 90 },
 };
 
-const firstThanks = { step: "first-thanks", goal: "Give a kudos that says why.", hint: "It counts when your message has 5 or more words besides mentions and emoji.", reward: { xp: 10 } } as const;
+const firstThanks = { step: "first-thanks", goal: "Give a kudos that says why.", hint: "It counts when your message has 5 or more words besides mentions and emoji.", reward: { xp: 10 }, feature: null } as const;
 
-const firstQuest = { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 } } as const;
+const firstQuest = { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 }, feature: "quests" } as const;
 
-const someoneNew = { step: "someone-new", goal: "Thank someone you haven't thanked before.", hint: null, reward: { xp: 30 } } as const;
+const someoneNew = { step: "someone-new", goal: "Thank someone you haven't thanked before.", hint: null, reward: { xp: 30 }, feature: "leaderboard" } as const;
 
 const activeStep = { state: "active", crate: null, seen: null } as const;
 
@@ -214,6 +226,8 @@ export const shellFixtures = {
   memberAtLevel7WithOneSkillPoint,
   memberWithCoinsReady,
   memberWithCoinsOpened,
+  memberWithTheInventory,
+  memberWithCoinsBeforeTheStore,
   memberWithNothingShipped,
   memberWithEveryNavState,
   memberAcrossTheSheet,
@@ -265,6 +279,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-quests": shellFixtures.memberWithQuests,
   "member-with-quests-at-level-2": shellFixtures.memberWithQuestsAtLevel2,
   "member-crossing-into-level-6": shellFixtures.memberCrossingIntoLevel6,
+  "member-with-the-inventory": shellFixtures.memberWithTheInventory,
   error: shellFixtures.error,
 };
 

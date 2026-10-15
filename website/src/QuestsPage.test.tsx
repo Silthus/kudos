@@ -2,7 +2,7 @@ import { HedgehogExplorer, HedgehogMegaphone, HedgehogReading } from "@posthog/b
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fixedQuests, questsFixtures } from "./questsFixtures";
+import { bonusSteps, fixedQuests, questsFixtures } from "./questsFixtures";
 import type { QuestsRead } from "./questsRead";
 import { shellFixtures, type MyQuests, type OpenAnswer } from "./shell";
 import { renderApp } from "./test/renderApp";
@@ -187,6 +187,112 @@ describe("WS73: /quests shows this week's quests while Quests is open", () => {
     showVisitor(withQuests);
     expect(within(questCards()).getAllByRole("article")).toHaveLength(1);
     expect(cardOf("Thank 2 people you haven't thanked before.")).toBeInTheDocument();
+  });
+});
+
+describe("WS317: the Journey's next step is the bonus quest", () => {
+  const leaderboardOpen = shellFixtures.memberCrossingIntoLevel6;
+
+  function bonus() {
+    return within(main()).getByRole("region", { name: "Bonus quest" });
+  }
+
+  function bonusCard() {
+    return within(bonus()).getByRole("article");
+  }
+
+  function showBonus(answer: MyQuests, member = leaderboardOpen) {
+    return renderApp(member, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, fixedQuests(answer));
+  }
+
+  it("shows a Bonus quest section after the personal quests, with the step as a card: New, its goal, its reward and the Journey's hedgehog", () => {
+    showBonus(questsFixtures.weekWithABonus);
+    const regions = within(main()).getAllByRole("region").map((region) => region.getAttribute("aria-label") ?? region.querySelector("h2")?.textContent);
+    expect(regions.indexOf("Bonus quest")).toBe(regions.indexOf("Your quests") + 1);
+    const card = bonusCard();
+    expect(within(card).getByRole("heading", { level: 3, name: "Thank someone you haven't thanked before." })).toBeInTheDocument();
+    expect(card).toHaveTextContent("Journey");
+    expect(card).toHaveTextContent("New");
+    expect(within(card).getByText("+30 XP")).toBeInTheDocument();
+    expect(card.querySelector("[data-quest-art] svg")).not.toBeNull();
+    expect(card).toHaveAttribute("data-quest-target", "journey");
+  });
+
+  it.each([
+    { state: "active", step: bonusSteps.firstThanks },
+    { state: "finished", step: { ...bonusSteps.firstThanks, state: "finished", crate: { kind: "journey", step: "first-thanks" }, seen: "a1b2c3" } },
+  ] as const)("shows the step's hint while it is $state", ({ step }) => {
+    showBonus({ ...questsFixtures.week, bonus: step });
+    expect(bonusCard()).toHaveTextContent("It counts when your message has 5 or more words besides mentions and emoji.");
+  });
+
+  it("links Go to {name} to the step's feature page while that page is open for the member", () => {
+    showBonus(questsFixtures.weekWithABonus);
+    const link = within(bonusCard()).getByRole("link", { name: "Go to Leaderboard" });
+    expect(link).toHaveAttribute("href", "/leaderboard");
+  });
+
+  it("keeps Go to {name} beside a finished step's Claim", () => {
+    showBonus({ ...questsFixtures.week, bonus: { ...bonusSteps.someoneNew, state: "finished", crate: { kind: "journey", step: "someone-new" }, seen: "c3d4e5" } });
+    expect(within(bonusCard()).getByRole("link", { name: "Go to Leaderboard" })).toHaveAttribute("href", "/leaderboard");
+    expect(within(bonusCard()).getByRole("button", { name: "Claim" })).toBeInTheDocument();
+  });
+
+  it.each([
+    { case: "the feature isn't open for the member", answer: questsFixtures.weekWithABonus, member: withQuests },
+    { case: "the step belongs to no feature", answer: { ...questsFixtures.week, bonus: bonusSteps.firstThanks }, member: shellFixtures.memberCrossingIntoLevel6 },
+    { case: "the feature's page is this page", answer: { ...questsFixtures.week, bonus: { ...bonusSteps.firstQuestFinished, state: "active", crate: null, seen: null } }, member: shellFixtures.memberCrossingIntoLevel6 },
+  ] as const)("has no Go to link while $case", ({ answer, member }) => {
+    showBonus(answer, member);
+    expect(within(bonusCard()).queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("WS315: shows a finished step's crate with Claim and no New, primary as the page's first crate", () => {
+    showBonus(questsFixtures.weekWithAFinishedBonus);
+    const card = bonusCard();
+    expect(within(card).queryByText("New")).not.toBeInTheDocument();
+    expect(within(card).getByText("+20 XP")).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Claim" })).toHaveClass("quill-button--variant-primary");
+  });
+
+  it("WS315: makes the bonus Claim outline while a personal quest's crate comes first", () => {
+    showBonus({ ...questsFixtures.week, bonus: bonusSteps.firstQuestFinished });
+    expect(within(bonusCard()).getByRole("button", { name: "Claim" })).toHaveClass("quill-button--variant-outline");
+  });
+
+  it("WS74: Claim opens the step's own Journey crate through the reveal", async () => {
+    const openQuestCrate = vi.fn(async (): Promise<OpenAnswer> => ({ kind: "opened" }));
+    window.history.replaceState(null, "", "/quests");
+    const { user } = renderApp(shellFixtures.memberWithQuestsAtLevel2, undefined, { openQuestCrate }, fixedQuests(questsFixtures.weekWithAFinishedBonus));
+    await user.click(within(bonusCard()).getByRole("button", { name: "Claim" }));
+
+    expect(openQuestCrate).toHaveBeenCalledExactlyOnceWith({ kind: "journey", step: "first-quest" });
+    expect(screen.getByRole("dialog")).toHaveTextContent("Journey reward");
+  });
+
+  it("E184: flies the reward from the bonus card's chip once the Claim's reveal closes", async () => {
+    window.history.replaceState(null, "", "/quests");
+    const { user } = renderApp(shellFixtures.memberWithQuestsAtLevel2, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, fixedQuests(questsFixtures.weekWithAFinishedBonus));
+    placeAt(within(bonusCard()).getByText("+20 XP"), { x: 120, y: 700, width: 40, height: 16 });
+    await user.click(within(bonusCard()).getByRole("button", { name: "Claim" }));
+    await user.keyboard("{Escape}");
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+
+    expect(courseOf(flight()!)).toMatchObject({ left: "120px", top: "700px" });
+  });
+
+  it("shows a failed Claim's line once, on the card, not again under the ready pill", async () => {
+    window.history.replaceState(null, "", "/quests");
+    const { user } = renderApp(shellFixtures.memberWithQuestsAtLevel2, undefined, { openQuestCrate: async () => ({ kind: "refused" }) }, fixedQuests(questsFixtures.weekWithAFinishedBonus));
+    await user.click(within(bonusCard()).getByRole("button", { name: "Claim" }));
+
+    expect(within(bonusCard()).getByText(/couldn't/i)).toBeInTheDocument();
+    expect(within(frame().querySelector("header")!).queryByText(/couldn't/i)).not.toBeInTheDocument();
+  });
+
+  it("has no Bonus quest section while the read has no bonus", () => {
+    showBonus(questsFixtures.week);
+    expect(within(main()).queryByRole("region", { name: "Bonus quest" })).not.toBeInTheDocument();
   });
 });
 
@@ -598,6 +704,19 @@ describe("WS316 E194: a quest link scrolls to its card and focuses its heading",
 
     expect(scrolled).toEqual([]);
     expect(document.body).toHaveFocus();
+  });
+
+  it("takes /quests?quest=journey to the bonus card once the answer lands", () => {
+    const scrolled = watchScrolling();
+    window.history.replaceState(null, "", "/quests?quest=journey");
+    const later = answeringLater(questsFixtures.weekWithABonus);
+    const { showVisitor } = renderApp(withQuests, undefined, undefined, later.read);
+    later.land();
+    showVisitor({ ...withQuests });
+
+    const card = within(main()).getByRole("region", { name: "Bonus quest" }).querySelector("article")!;
+    expect(scrolled).toEqual([card]);
+    expect(within(card).getByRole("heading", { name: "Thank someone you haven't thanked before." })).toHaveFocus();
   });
 
   it("ignores journey while /quests shows no Journey card", () => {

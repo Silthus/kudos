@@ -7,7 +7,7 @@ import { ReadyPill, ReadyPillFailure } from "./crates/ReadyPill";
 import { hudAvatarAttributes, skillPointChipAttributes } from "./crates/RewardFlight";
 import { useCountUp } from "./countUp";
 import { useMoments } from "./crates/moments";
-import { featureCrateOf, isShownOn, type ReadyCrate } from "./crates/readyCrates";
+import { featureCrateOf, type ReadyCrate } from "./crates/readyCrates";
 import { LeveledFace } from "./LeveledFace";
 import { levelRingName } from "./LevelRing";
 import { ScreenNav, usePopIn } from "./nav/ScreenNav";
@@ -16,14 +16,14 @@ import { commandsOf, type Shell } from "./palette/commands";
 import { paletteShortcut, usePaletteShortcut } from "./palette/shortcut";
 import type { Screen } from "./route";
 import type { MemberProfile } from "./shell";
-import { SkillPointGlyph } from "./skills/glyphs";
-import { chipName } from "./skills/perkWords";
+import { CoinGlyph, SkillPointGlyph } from "./skills/glyphs";
+import { chipName, coinsToSpend } from "./skills/perkWords";
 import { useTheme } from "./theme";
 import { ThemeControl } from "./ThemeControl";
 
-type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; current?: Screen; busy: boolean; inert?: boolean; notice?: ReactNode; onSignOut?: () => void; children: ReactNode };
+type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; readyElsewhere?: ReadyCrate[]; current?: Screen; busy: boolean; inert?: boolean; notice?: ReactNode; onSignOut?: () => void; children: ReactNode };
 
-export function Frame({ member, ready = [], current, busy, inert, notice, onSignOut, children }: FrameProps) {
+export function Frame({ member, ready = [], readyElsewhere = [], current, busy, inert, notice, onSignOut, children }: FrameProps) {
   const palette = usePalette(member !== undefined && !inert);
   return (
     <>
@@ -35,12 +35,13 @@ export function Frame({ member, ready = [], current, busy, inert, notice, onSign
             <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2 max-sm:gap-1.5">
               {member && <PaletteChip onOpen={palette.toggle} />}
               {member && member.skillPoints !== null && <SkillPointChip points={member.skillPoints} />}
+              {member && member.coins !== null && <CoinsChip coins={member.coins} />}
               {member && <ReadyPill crates={ready} />}
               {member && <Avatar member={member} />}
               <ThemeControl />
               {member && onSignOut && <SignOut onSignOut={onSignOut} />}
             </div>
-            {member && <ReadyPillFailure crates={ready.filter((crate) => !isShownOn(crate, current))} />}
+            {member && <ReadyPillFailure crates={readyElsewhere} />}
           </div>
         </header>
         <main aria-busy={busy || undefined} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8">
@@ -114,6 +115,18 @@ function SkillPointChip({ points }: { points: number }) {
         <SkillPointGlyph />
         {counted}
       </AppLink>
+    </span>
+  );
+}
+
+function CoinsChip({ coins }: { coins: number }) {
+  const { className: popIn = "", onAnimationEnd } = usePopIn("coins", "chip");
+  const counted = useCountUp(coins);
+  const name = coinsToSpend(coins);
+  return (
+    <span role="img" aria-label={name} title={name} onAnimationEnd={onAnimationEnd} className={`inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums ${popIn}`}>
+      <CoinGlyph />
+      {counted}
     </span>
   );
 }

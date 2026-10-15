@@ -2,7 +2,7 @@ import { useCallback, useLayoutEffect, useRef } from "react";
 import { NavigateProvider } from "./AppLink";
 import { LevelUpAnnouncement, MomentAnnouncement } from "./crates/MomentAnnouncement";
 import { MomentsProvider, useCrateMoments, useMembersShown } from "./crates/moments";
-import { readyCratesOf } from "./crates/readyCrates";
+import { isShownOn, readyCratesOf } from "./crates/readyCrates";
 import { RevealDialog } from "./crates/RevealDialog";
 import { CrateRewardFlight } from "./crates/CrateRewardFlight";
 import { ClimbFlight } from "./climb/ClimbFlight";
@@ -101,7 +101,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
         {signingIn ? (
           <SignedOutPage returnTo={hrefOf(route)} onSignIn={signIn} />
         ) : (
-          <Frame member={memberShown} ready={readyCrates} current={screenOf(route)} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined) || (onActivity && activityWatch === undefined)} inert={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
+          <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onSkills && skillTree === undefined) || (onActivity && activityWatch === undefined)} inert={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
             <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
               <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} onSignIn={signIn} onSignOut={actions.signOut} />
             </ErrorBoundary>
@@ -212,7 +212,7 @@ function Page({ state, route, board, quests, book, skillTree, profileCard, useRe
   if (board.kind === "not-found") return <NotFoundPage />;
   if (board.kind === "ready" || board.kind === "locked") return <FeatureWaitsPage feature="leaderboard" waiting={board} member={state} />;
   if (board.kind !== "board") return <AnswerPage answer={board} {...actions} />;
-  return <LeaderboardPage board={board} period={route.period} drawSpotlight={drawSpotlight} onChoosePeriod={onChoosePeriod} onSetBoardVisibility={onSetBoardVisibility} />;
+  return <LeaderboardPage board={board} coinsShown={state.coins !== null} period={route.period} drawSpotlight={drawSpotlight} onChoosePeriod={onChoosePeriod} onSetBoardVisibility={onSetBoardVisibility} />;
 }
 
 type QuestsAnswerPageProps = { member: MemberProfile; quests: QuestsShown | undefined; onSwapQuest: ShellActions["swapQuest"]; onSignIn: () => void; onSignOut: () => void };
@@ -222,7 +222,7 @@ function QuestsAnswerPage({ member, quests, onSwapQuest, ...actions }: QuestsAns
   if (quests.kind === "not-found") return <NotFoundPage />;
   if (quests.kind === "ready" || quests.kind === "locked") return <FeatureWaitsPage feature="quests" waiting={quests} member={member} />;
   if (quests.kind !== "quests") return <AnswerPage answer={quests} {...actions} />;
-  return <QuestsPage quests={quests} swapQuest={onSwapQuest} />;
+  return <QuestsPage quests={quests} member={member} swapQuest={onSwapQuest} />;
 }
 
 function ActivityAnswerPage({ filter, activity, ...actions }: { filter: ActivityFilter; activity: ActivityReads; onSignIn: () => void; onSignOut: () => void }) {

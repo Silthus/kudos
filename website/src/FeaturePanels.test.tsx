@@ -92,15 +92,16 @@ describe("WS97 WS102: one panel per shipped feature, in its slot", () => {
     expect(headings).not.toContain("Still locked");
   });
 
-  it("walks the keyboard from the hero's action through the main column's panels, then the rail's quest rows, standing row and links, in reading order", async () => {
+  it("walks the keyboard from the hero's actions through the main column's panels, then the rail's quest rows, standing row and links, in reading order", async () => {
     const { user } = withTheRailsReads({ ...shellFixtures.memberWithEveryPanelOpen, chatUrl: "https://app.slack.com/client/T1" });
     within(hero()).getByRole("link", { name: /Thank someone in Slack/ }).focus();
     const path = [];
-    for (let step = 0; step < 8; step++) {
+    for (let step = 0; step < 9; step++) {
       await user.tab();
       path.push(document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent);
     }
     expect(path).toEqual([
+      "Spend 2 skill points",
       "Open the Book",
       "Open the Skill tree",
       "Thank someone and say why, 3 times.",

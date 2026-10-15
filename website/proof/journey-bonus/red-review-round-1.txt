@@ -1,0 +1,4 @@
+     × WS315 E076: keeps New on a finished bonus row and reads Claim beside it 516ms
+     × keeps Go to {name} beside a finished step's Claim 630ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 118 skipped (120)
