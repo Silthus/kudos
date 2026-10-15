@@ -61,6 +61,7 @@ const member: MemberProfile = {
   skillPoints: null,
   coins: null,
   inventory: null,
+  groups: false,
 };
 
 const readyAt = Date.parse("2026-10-12T09:00:00Z");
