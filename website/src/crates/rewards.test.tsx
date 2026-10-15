@@ -7,7 +7,7 @@ const intoTheSixthLevel = shellFixtures.memberCrossingIntoLevel6;
 
 const skillTreeCrate = featureCrateOf({ feature: "skillTree", name: "Skill tree", opens: "the tree and your first skill point", level: 5, seen: "9b71d2", state: "open", readyAt: 1, openedAt: 2 });
 
-const journeyCrate: QuestCrate = { kind: "quest", quest: { kind: "journey", step: "first-quest" }, xp: 20, seen: "b2c9e4" };
+const journeyCrate: QuestCrate = { kind: "quest", quest: { kind: "journey", step: "first-quest" }, reward: { xp: 20 }, seen: "b2c9e4" };
 
 const member: MemberProfile = intoTheSixthLevel;
 

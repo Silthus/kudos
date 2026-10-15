@@ -10,9 +10,10 @@ import { rewardChipAttributes } from "../crates/RewardFlight";
 import { hogOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "../features";
 import { PageTitle } from "../PageTitle";
 import { questTargetAttributes } from "../questTarget";
+import { Coins } from "../quests/QuestReward";
 import { QuestTag } from "../quests/QuestTag";
 import { sameQuest, useQuestSwap, type QuestSwap } from "../quests/questSwap";
-import type { JourneyStep, MemberProfile, QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
+import type { JourneyStep, MemberProfile, QuestReward, QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
 import { SlackLink } from "../SlackLink";
 
 type ThisWeek = Extract<QuestsAnswer, { kind: "quests" }>;
@@ -102,7 +103,7 @@ function QuestCard({ slot, firstCrate, swappable, swap }: { slot: QuestSlot } & 
             {goal}
           </h2>
           <QuestProgress {...progress} />
-          <RewardRow xp={reward.xp} seen={seen}>
+          <RewardRow reward={reward} seen={seen}>
             {claimed ? <Claimed /> : state === "in-progress" ? <SwapAction slot={slot} swap={swap} swappable={swappable} /> : <ClaimOf facts={slot} firstCrate={firstCrate} />}
           </RewardRow>
         </div>
@@ -142,10 +143,13 @@ function QuestProgress({ done, target }: QuestSlot["progress"]) {
   );
 }
 
-function RewardRow({ xp, seen, children }: { xp: number; seen: string | null; children: ReactNode }) {
+function RewardRow({ reward, seen, children }: { reward: QuestReward; seen: string | null; children: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
-      <span className="text-xs font-medium tabular-nums text-muted-foreground" {...rewardChipAttributes(seen)}>{`+${xp} XP`}</span>
+      <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tabular-nums text-muted-foreground">
+        <span {...rewardChipAttributes(seen)}>{`+${reward.xp} XP`}</span>
+        {reward.coins !== undefined && <Coins coins={reward.coins} seen={seen} />}
+      </span>
       {children}
     </div>
   );
@@ -235,7 +239,7 @@ function BonusCard({ step, page, firstCrate }: BonusQuestProps) {
             {goal}
           </h3>
           {hint !== null && <p className="text-sm text-muted-foreground">{hint}</p>}
-          <RewardRow xp={reward.xp} seen={seen}>
+          <RewardRow reward={reward} seen={seen}>
             <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
               {page !== undefined && feature !== null && <GoTo page={page} name={plainNameOf(feature)} />}
               <ClaimOf facts={step} firstCrate={firstCrate} />
@@ -275,7 +279,7 @@ function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate
     <article className="hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4" {...questCrateHomeAttributes(entry.seen)}>
       <WeekOf week={entry.week} />
       <h3 className="text-sm font-medium">{entry.goal}</h3>
-      <RewardRow xp={entry.reward.xp} seen={entry.seen}>
+      <RewardRow reward={entry.reward} seen={entry.seen}>
         <ClaimOf facts={entry} firstCrate={firstCrate} />
       </RewardRow>
     </article>

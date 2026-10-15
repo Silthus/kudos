@@ -1,10 +1,11 @@
 import { AppLink } from "../AppLink";
+import { Coins } from "../quests/QuestReward";
 import { QuestTag } from "../quests/QuestTag";
 import { Claimed } from "../crates/RewardCrate";
 import { MaxLine } from "../Max";
 import type { QuestsShown } from "../questsRead";
 import { questsHref } from "../route";
-import type { JourneyStep, QuestSlot } from "../shell";
+import type { JourneyStep, QuestReward, QuestSlot } from "../shell";
 import { SlackLink } from "../SlackLink";
 import { PageLink, Panel } from "./Panel";
 
@@ -35,11 +36,12 @@ function QuestRows({ slots, bonus }: { slots: QuestSlot[]; bonus: JourneyStep | 
   );
 }
 
-function BonusRow({ step: { goal, state } }: { step: JourneyStep }) {
+function BonusRow({ step: { goal, state, reward } }: { step: JourneyStep }) {
   return (
     <li className="relative flex flex-col gap-1.5 rounded-lg px-2 py-2 hover:bg-fill-hover">
       <AppLink href={questsHref("journey")} className="flex items-start justify-between gap-2 text-sm leading-snug after:absolute after:inset-0 after:rounded-lg">
         <span className="min-w-0 flex-1">{goal}</span>
+        <CoinsOf reward={reward} />
         <New />
         {state === "finished" && <Claim />}
       </AppLink>
@@ -56,12 +58,13 @@ function New() {
   );
 }
 
-function QuestRow({ slot: { slot, goal, progress, state } }: { slot: QuestSlot }) {
+function QuestRow({ slot: { slot, goal, progress, state, reward } }: { slot: QuestSlot }) {
   const finished = state === "finished";
   return (
     <li className="relative flex flex-col gap-1.5 rounded-lg px-2 py-2 hover:bg-fill-hover">
       <AppLink href={questsHref(finished ? slot : undefined)} className="flex items-start justify-between gap-2 text-sm leading-snug after:absolute after:inset-0 after:rounded-lg">
-        <span className="min-w-0">{goal}</span>
+        <span className="min-w-0 flex-1">{goal}</span>
+        <CoinsOf reward={reward} />
         {finished && <Claim />}
       </AppLink>
       {state === "in-progress" && <Progress goal={goal} {...progress} />}
@@ -71,6 +74,18 @@ function QuestRow({ slot: { slot, goal, progress, state } }: { slot: QuestSlot }
         </span>
       )}
     </li>
+  );
+}
+
+function CoinsOf({ reward: { coins } }: { reward: QuestReward }) {
+  if (coins === undefined) return null;
+  return (
+    <>
+      {" "}
+      <span className="shrink-0 text-xs font-medium text-muted-foreground">
+        <Coins coins={coins} />
+      </span>
+    </>
   );
 }
 

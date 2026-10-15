@@ -1,0 +1,31 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/book-silhouette/website
+
+ ❯ |website| src/BookPage.test.tsx (65 tests | 1 failed | 62 skipped) 318ms
+   ❯ WS339 V24: an unstarted ladder's hedgehog silhouette meets 3:1 against its card in both modes (#415) (3)
+     × paints the silhouette from the muted foreground, the locked page's silhouette 265ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/BookPage.test.tsx > WS339 V24: an unstarted ladder's hedgehog silhouette meets 3:1 against its card in both modes (#415) > paints the silhouette from the muted foreground, the locked page's silhouette
+Error: expect(received).toContainElement()
+
+received value must be an HTMLElement or an SVGElement.
+Received has type:  Null
+Received has value: null
+ ❯ src/BookPage.test.tsx:187:53
+    185|   it("paints the silhouette from the muted foreground, the locked page…
+    186|     const emblem = openLadder(bookFixtures.book, "Recognition").queryS…
+    187|     expect(emblem.querySelector(".hog-silhouette")).toContainElement(e…
+       |                                                     ^
+    188|   });
+    189|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed | 62 skipped (65)
+   Start at  17:08:48
+   Duration  3.61s (import 41%, transform 31%, environment 15%, tests 9%, setup 3%)
+
