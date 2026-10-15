@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog, FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEmails, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, buttonInHome } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
@@ -14,6 +14,7 @@ import type { MemberId } from "../workspace/directory";
 const now = new Date("2026-10-13T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
 const siteUrl = "https://kudos-site.test";
+const alicesEmail = "alice@example.com";
 const openBookCommand = JSON.stringify({ type: "openUnlock", feature: "book" });
 const openBook = { type: "button", action_id: openBookCommand, value: openBookCommand } as const;
 const catalogue = ladders as unknown as { version: string; ladders: Ladder[] };
@@ -208,6 +209,22 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
     await clickOpenBook(t, "U_ALICE");
 
     expect(tierDmsTo("U_ALICE")).toEqual([`${bothBronzes}\n<${siteUrl}/book/earned|See what you earned on the web>`]);
+  });
+
+  test("for a member previewing the website while it is closed for the workspace, the opening summary's link goes through the sign-in entry", async () => {
+    vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+    vi.stubEnv("SITE_URL", siteUrl);
+    const t = await workspaceBeforeTheBook();
+    await giveKudos(t, "U_ALICE", "U_BOB");
+    await giveKudos(t, "U_BOB", "U_ALICE");
+    await withXp(t, "U_ALICE", 305);
+    await t.run(async (ctx) => ctx.db.patch(await memberIn(ctx, "U_ALICE"), { email: alicesEmail }));
+    await launchTheBook(t, onForEmails("website", alicesEmail));
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+
+    await clickOpenBook(t, "U_ALICE");
+
+    expect(tierDmsTo("U_ALICE")).toEqual([`${bothBronzes}\n<${siteUrl}/sign-in/book/earned|See what you earned on the web>`]);
   });
 });
 
