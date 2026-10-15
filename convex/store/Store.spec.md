@@ -169,3 +169,21 @@ Store: a member's items and the store that sells them for coins, knowing nothing
   checklist: resumption-coverage dismissed: a pick is no batch
   checklist: circuit-breaker-policy dismissed: no failure history diverts or suppresses a call
   checklist: declared-target-coverage dismissed: setCustomKudosEmoji is the one writer of the custom kudos emoji, and the search reads them through the same admin and flag check
+- custom kudos emoji are dark where custom-kudos-emoji isn't on for the member: where `custom-kudos-emoji` is off, not created or unread for want of the flags key, or on with the store not shown to the member, no Slack call to anyone names a custom kudos emoji or the picker, the picker's search answers no options, `inventoryOf` lists no custom item, the member's custom kudos emoji claim nothing, and stale picks, `Buy` and `Put in slot` clicks change no custom kudos emoji, collection, loadout, purchase or wallet; turning it on again shows the same slots and items; with it on for one admin's email only, that admin picks, buys and gives with a custom kudos emoji, while every other member's distinct Slack calls, kudos and `inventoryOf` equal those with it off; the `custom-kudos-emoji` exposure goes once per member and value, and none where the store isn't shown (ST35, O36, F24, F25).
+  over: an admin who picked two custom kudos emoji and a member who bought one and put it in a slot, then the flag off, not created and without the flags key, and the store or coins off for that member, each walking the Admin tab, the picker's search, a stale pick, the Inventory tab, a stale `Buy` and `Put in slot` and a kudos with the custom kudos emoji, read through every Slack call, the search's answer, `inventoryOf`, the kudos given and the stored custom kudos emoji, collection, loadouts, purchases and wallets; an admin previewing alone, compared with the flag off; and the exposures of a previewing admin, a member with it off and one the store isn't shown to, through the flag turned on for that member
+  via: ST35 O36: custom kudos emoji are dark wherever custom-kudos-emoji isn't on for the member, and its exposure goes once per member and value
+  because: ST35 makes custom kudos emoji each member's own preview, needing the store, and decision 18 ships them on for the sandbox and the product owner's email only; a leak would show a custom emoji, sell it or count it as kudos for members the product owner hasn't chosen, and F24 promises that ending the preview takes nothing away
+  crossing: slack-request -> domain
+  entrances: route POST /slack/events, route POST /slack/interactivity
+  kinds: output, state
+  checklist: revalidated-permission dismissed: every path rereads the member decision and the store predicate in the query or mutation that renders, sells, slots or claims
+  checklist: destination-confinement dismissed: App Home and the search's answer go only to the member who opened or typed, through Slack's API at one configured base URL
+  checklist: redaction dismissed: custom emoji names and art are visible to everyone in the workspace in Slack already; hiding them is the member's flag decision, not a scrub
+  checklist: separation-of-duties dismissed: no approval policy; each member sees and acts on only their own items
+  checklist: legal-state-succession dismissed: the flag changes no stored state, so there is no succession to guard
+  checklist: supersession-safety dismissed: each click, render and kudos rereads the flag decision in its own transaction
+  checklist: worker-fencing dismissed: no worker owns a member's items or the picked custom kudos emoji
+  checklist: commit-ordered-effects dismissed: App Home reads the flag in the mutation that renders it; the search answers from a query before anything is sent
+  checklist: resumption-coverage dismissed: no batch shows custom kudos emoji; republishing the admins' App Home renders each one through the same decision
+  checklist: circuit-breaker-policy dismissed: no failure history diverts or suppresses a call
+  checklist: declared-target-coverage dismissed: a render, a click or a kudos has one member as its target, and the admins' republish renders each admin through their own decision
