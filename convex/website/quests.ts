@@ -79,7 +79,7 @@ async function bonusStepOf(ctx: QueryCtx, me: VerifiedMember): Promise<JourneySt
   const steps = await projectedJourneyOf(ctx, me.member);
   if (!steps.some(hasJoined)) return null;
   const next = steps.find(({ openedAt }) => openedAt === null);
-  return next === undefined ? null : journeyStepOf(me, next);
+  return next === undefined ? null : journeyStepOf(ctx, me, next);
 }
 
 function hasJoined({ step, activatedAt }: ProjectedJourneyStep) {
