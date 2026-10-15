@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog, FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEmails, onForEveryone } from "../../testing/flags";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
@@ -15,6 +15,8 @@ import type { MemberId } from "../workspace/directory";
 const now = new Date("2026-10-13T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
 const kudosTs = slackTs(now.getTime());
+const siteUrl = "https://kudos-site.test";
+const bobsEmail = "bob@example.com";
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -326,6 +328,28 @@ describe("P76 P78: where the Book doesn't apply, no tier is announced", () => {
   });
 });
 
+describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after its own checks, while the website is open", () => {
+  test("while the website is open, a tier DM ends with a link to the Book's earned page", async () => {
+    const t = await workspaceWithTheWebsite(onForEveryone("website"));
+    await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
+
+    await giveKudos(t, "U_ALICE", "U_BOB");
+
+    expect(tierDmsTo("U_BOB")).toEqual([`🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received.\n<${siteUrl}/book/earned|See what you earned on the web>`]);
+  });
+
+  test("for a member previewing the website while it is closed for the workspace, the tier DM's link goes through the sign-in entry, and the others' DMs have no link", async () => {
+    const t = await workspaceWithTheWebsite(onForEmails("website", bobsEmail));
+    const [, bob] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
+    await t.run((ctx) => ctx.db.patch(bob!, { email: bobsEmail }));
+
+    await giveKudos(t, "U_ALICE", "U_BOB");
+
+    expect(tierDmsTo("U_BOB")).toEqual([`🏅 You earned Noticed (Recognition, bronze).\nNext: Appreciated at 25 kudos received.\n<${siteUrl}/sign-in/book/earned|See what you earned on the web>`]);
+    expect(tierDmsTo("U_ALICE")).toEqual(["🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given."]);
+  });
+});
+
 describe("P63 P64 P69: Settings and Admin say they cover achievements where the Book applies", () => {
   test("the mute and DM switches name achievements", async () => {
     const t = await workspace();
@@ -374,6 +398,15 @@ async function workspace({ announcementChannel }: { announcementChannel?: string
   const t = await flagsLoaded(testBackend());
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10, ...(announcementChannel && { announcementChannel }) }));
   return bookShippedBeforeAnyoneJoined(t);
+}
+
+async function workspaceWithTheWebsite(website: FlagDefinition) {
+  vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+  vi.stubEnv("SITE_URL", siteUrl);
+  const t = await workspace();
+  await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"), website);
+  await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+  return t;
 }
 
 async function workspaceWithCoins() {

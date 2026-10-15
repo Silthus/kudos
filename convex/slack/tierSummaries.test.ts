@@ -13,6 +13,9 @@ import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
+const siteUrl = "https://kudos-site.test";
+const openBookCommand = JSON.stringify({ type: "openUnlock", feature: "book" });
+const openBook = { type: "button", action_id: openBookCommand, value: openBookCommand } as const;
 const catalogue = ladders as unknown as { version: string; ladders: Ladder[] };
 const shippedLadders = [...catalogue.ladders];
 const bothBronzes = "🏅 You earned First Thanks (Generosity, bronze).\n🏅 You earned Noticed (Recognition, bronze).\n🏅 You earned First Chapter (Seasons, bronze).\nNext: Generous Soul at 25 kudos given.\nNext: Appreciated at 25 kudos received.\nNext: Season of Thanks at 3 calendar months with a kudos given.";
@@ -191,6 +194,23 @@ describe("CO20: a launch batch's summary says each tier's coins while coins are 
   });
 });
 
+describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after its own checks, while the website is open", () => {
+  test("while the website is open, the Book's opening summary ends with one link to the Book's earned page", async () => {
+    vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+    vi.stubEnv("SITE_URL", siteUrl);
+    const t = await workspaceBeforeTheBook();
+    await giveKudos(t, "U_ALICE", "U_BOB");
+    await giveKudos(t, "U_BOB", "U_ALICE");
+    await withXp(t, "U_ALICE", 305);
+    await launchTheBook(t, onForEveryone("website"));
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+
+    await clickOpenBook(t, "U_ALICE");
+
+    expect(tierDmsTo("U_ALICE")).toEqual([`${bothBronzes}\n<${siteUrl}/book/earned|See what you earned on the web>`]);
+  });
+});
+
 describe("P62 P76: a tier is told once, whichever summary tells it", () => {
   test("a replayed opening tells nothing again", async () => {
     const t = await workspaceBeforeTheBook();
@@ -346,6 +366,11 @@ async function openHome(t: Backend, user: string) {
 async function openTheBookInAppHome(t: Backend, user: string) {
   await openHome(t, user);
   await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, buttonInHome(slack, user, "Open")), form));
+  await settle(t);
+}
+
+async function clickOpenBook(t: Backend, user: string) {
+  await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, openBook), form));
   await settle(t);
 }
 

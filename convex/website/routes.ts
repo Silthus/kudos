@@ -15,6 +15,7 @@ const pathOf: Record<Page["page"], string> = {
   quests: "/quests",
   skillTree: "/skills",
   book: "/book",
+  bookEarned: "/book/earned",
 };
 
 const featurePages: Partial<Record<Feature, Page>> = {
