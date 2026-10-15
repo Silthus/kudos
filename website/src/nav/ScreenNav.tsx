@@ -26,7 +26,7 @@ export function ScreenNav({ current, member }: { current?: Screen; member: Membe
       ref={rail}
       aria-label="Screens"
       onFocus={(event) => bringIntoView(event.target)}
-      className="flex flex-nowrap items-center gap-0.5 max-lg:order-last max-lg:-mx-4 max-lg:w-[calc(100%+2rem)] max-lg:gap-1 max-lg:overflow-x-auto max-lg:px-3 max-lg:pt-1.5 max-lg:pb-2 max-lg:scroll-px-3 md:max-lg:-mx-6 md:max-lg:w-[calc(100%+3rem)] md:max-lg:px-5 lg:mx-auto"
+      className="nav-rail flex flex-nowrap items-center gap-0.5 max-lg:order-last max-lg:-mx-4 max-lg:w-[calc(100%+2rem)] max-lg:gap-1 max-lg:overflow-x-auto max-lg:px-3 max-lg:pt-1.5 max-lg:pb-2 max-lg:scroll-px-3 md:max-lg:-mx-6 md:max-lg:w-[calc(100%+3rem)] md:max-lg:px-5 lg:mx-auto"
     >
       {entries.map((entry) => {
         if (entry.state === "open") return <OpenItem key={entry.href} entry={entry} current={current === entry.screen} />;
