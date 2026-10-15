@@ -18,7 +18,7 @@ import {
   type BlockAction,
   type ClickedMessage,
 } from "../../testing/slackInteractions";
-import { settle, type Backend } from "../../testing/slackBackend";
+import { settleInTimeOrder, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section, userGroupEvent } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
@@ -269,23 +269,23 @@ function hoursAfterNow(hours: number) {
 async function workspaceWithGroups(...flags: FlagDefinition[]) {
   const t = await testBackendServing(postHog, ...flags);
   await t.action(internal.slack.userGroups.syncUserGroups, {});
-  await settle(t);
+  await settleInTimeOrder(t);
   return t;
 }
 
 async function giveKudos(t: Backend, giver: string, recipient: string) {
   await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention(recipient), emoji("taco"))], { user: giver })));
-  await settle(t);
+  await settleInTimeOrder(t);
 }
 
 async function userGroupChanged(t: Backend, group: string) {
   await t.fetch("/slack/events", await signedRequest(userGroupEvent("subteam_members_changed", group)));
-  await settle(t);
+  await settleInTimeOrder(t);
 }
 
 async function openSettings(t: Backend, user: string) {
   await t.fetch("/slack/events", await signedRequest(appHomeOpened(user)));
-  await settle(t);
+  await settleInTimeOrder(t);
   if (publishedHome(slack, user).some((line) => line.includes("Settings"))) await interact(t, user, buttonInHome(slack, user, "Settings"));
 }
 
@@ -304,7 +304,7 @@ async function saveInWelcome(t: Backend, user: string, group: string) {
 async function interact(t: Backend, user: string, action: BlockAction, options: Parameters<typeof blockActions>[2] = {}) {
   const response = await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, action, options), form));
   expect(response.status).toBe(200);
-  await settle(t);
+  await settleInTimeOrder(t);
 }
 
 function welcomeTo(user: string): Block[] {
