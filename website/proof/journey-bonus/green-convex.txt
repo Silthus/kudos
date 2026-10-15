@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/journey-bonus
+
+
+ Test Files  1 passed (1)
+      Tests  6 passed | 31 skipped (37)
+   Start at  16:38:41
+   Duration  1.01s (transform 50%, tests 24%, import 21%, environment 4%)
+
