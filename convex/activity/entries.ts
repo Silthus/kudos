@@ -9,7 +9,7 @@ export type Segment =
   | { kind: "group"; handle: string }
   | { kind: "channel" }
   | { kind: "broadcast"; range: "here" | "channel" | "everyone" }
-  | { kind: "emoji"; name: string; unicode?: string }
+  | { kind: "emoji"; name: string; unicode?: string; image?: string }
   | { kind: "link"; url: string; label?: string }
   | { kind: "break" };
 

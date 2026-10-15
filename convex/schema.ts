@@ -107,6 +107,22 @@ export default defineSchema({
     .index("by_group", ["workspace", "group", "user"])
     .index("by_user", ["workspace", "user"]),
 
+  customEmoji: defineTable({
+    workspace: v.string(),
+    name: v.string(),
+    image: v.string(),
+    listing: v.number(),
+  })
+    .index("by_name", ["workspace", "name"])
+    .index("by_listing", ["workspace", "listing"]),
+
+  customEmojiListings: defineTable({
+    workspace: v.string(),
+    begun: v.number(),
+    written: v.optional(v.number()),
+    refreshDueAt: v.optional(v.number()),
+  }).index("by_workspace", ["workspace"]),
+
   kudosMessages: defineTable({
     workspace: v.string(),
     conversation: v.string(),

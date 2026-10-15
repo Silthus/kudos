@@ -6,9 +6,9 @@ const siteUrl = "https://example-deployment.convex.site";
 describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => {
   const manifest = renderManifest(environment, siteUrl);
 
-  test("asks for every spec 1 bot scope up front, users:read.email for the directory's member profiles (F4) and usergroups:read for its user groups", () => {
+  test("asks for every spec 1 bot scope up front, users:read.email for the directory's member profiles (F4), usergroups:read for its user groups and emoji:read for its custom emoji", () => {
     expect(manifest.oauth_config.scopes.bot.toSorted()).toEqual(
-      ["channels:history", "channels:join", "chat:write", "chat:write.public", "commands", "groups:history", "reactions:write", "usergroups:read", "users:read", "users:read.email"],
+      ["channels:history", "channels:join", "chat:write", "chat:write.public", "commands", "emoji:read", "groups:history", "reactions:write", "usergroups:read", "users:read", "users:read.email"],
     );
   });
 
@@ -22,11 +22,12 @@ describe.each(["sandbox", "real"] as const)("the %s manifest", (environment) => 
     ]);
   });
 
-  test("subscribes to every spec 1 bot event and the user group events at the deployment's events route", () => {
+  test("subscribes to every spec 1 bot event, the user group events and emoji_changed at the deployment's events route", () => {
     expect(manifest.settings.event_subscriptions).toEqual({
       request_url: "https://example-deployment.convex.site/slack/events",
       bot_events: [
         "app_home_opened",
+        "emoji_changed",
         "message.channels",
         "message.groups",
         "subteam_created",

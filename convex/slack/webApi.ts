@@ -35,6 +35,7 @@ const knownSlackErrors: ReadonlySet<string> = new Set([
   "user_not_found",
 ]);
 const answerTimeoutMs = 10_000;
+const rateLimitedAttempts = 3;
 
 export async function callSlack<Data = object>(method: string, args: Record<string, unknown>): Promise<SlackAnswer<Data>> {
   const response = await fetch(`${slackApiUrl()}/${method}`, {
@@ -62,6 +63,15 @@ async function answerOf<Answer>(method: string, response: Response): Promise<Ans
   } catch {
     throw new ReportableError(`Slack ${method} answered a body that isn't JSON`);
   }
+}
+
+export function nextRateLimitedAttempt(attempt: number, method: string) {
+  if (attempt >= rateLimitedAttempts) throw new ReportableError(`Slack ${method} stayed rate limited`);
+  return attempt + 1;
+}
+
+export function retryDelayOf({ retryAfterMs }: SlackFailure) {
+  return typeof retryAfterMs === "number" && Number.isFinite(retryAfterMs) ? retryAfterMs : 1_000;
 }
 
 export function slackErrorCodeOf(error: unknown) {
