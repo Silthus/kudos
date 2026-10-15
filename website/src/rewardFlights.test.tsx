@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { burstPlaysForMs, crateChargesForMs } from "./crates/RevealDialog";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures, type MemberProfile } from "./shell";
 import { renderApp } from "./test/renderApp";
@@ -30,7 +31,11 @@ function main() {
 }
 
 function header() {
-  return screen.getByRole("banner");
+  return document.querySelector<HTMLElement>(".hud-root > header")!;
+}
+
+function dialog() {
+  return screen.queryByRole("dialog");
 }
 
 function journeyCrate() {
@@ -61,6 +66,10 @@ function flight() {
   return document.querySelector<HTMLElement>("[data-reward-flight]");
 }
 
+function tokenOf(kind: string) {
+  return dialog()!.querySelector<HTMLElement>(`[data-reward-token="${kind}"]`)!;
+}
+
 function frame() {
   return document.querySelector<HTMLElement>(".hud-root")!;
 }
@@ -77,53 +86,50 @@ function landAll(chip: HTMLElement) {
   for (const particle of chip.querySelectorAll("[data-particle]")) fireEvent.animationEnd(particle);
 }
 
-function openJourneyCrate(member: MemberProfile) {
+function advance(ms: number) {
+  act(() => vi.advanceTimersByTime(ms));
+}
+
+function showJourneyCrate(member: MemberProfile) {
   return renderApp(member, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, fixedQuests(questsFixtures.week));
 }
 
-async function openAndClose(user: ReturnType<typeof renderApp>["user"], region: HTMLElement) {
-  await user.click(within(region).getByRole("button", { name: "Open" }));
-  await user.keyboard("{Escape}");
-  await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+async function openTheCrate(region: HTMLElement, name = "Open") {
+  vi.useFakeTimers();
+  fireEvent.click(within(region).getByRole("button", { name }));
+  await act(async () => {});
 }
 
-describe("#354: a Journey crate's XP flies into the hero's XP bar", () => {
-  it("flies +{xp} XP from the Journey crate to the hero's XP bar while the bar is on screen", async () => {
-    const { user } = openJourneyCrate(atLevel2);
-    placeAt(within(journeyCrate()).getByText("Journey reward · 20 XP"), { x: 100, y: 500, width: 160, height: 20 });
-    placeAt(xpBar(), { x: 300, y: 300, width: 400, height: 12 });
-    await openAndClose(user, journeyCrate());
+async function openUntilTheTokensFly(region: HTMLElement) {
+  await openTheCrate(region);
+  advance(crateChargesForMs);
+  placeAt(avatar(), { x: 1000, y: 10, width: 32, height: 32 });
+  placeAt(tokenOf("xp"), { x: 100, y: 500, width: 160, height: 48 });
+  advance(burstPlaysForMs);
+}
+
+describe("#354 #452: a Journey crate's XP flies out of the reveal into the HUD level ring, and the hero fills behind it", () => {
+  it("flies +{xp} XP from its token to the HUD level ring, which bumps when it lands", async () => {
+    showJourneyCrate(atLevel2);
+    await openUntilTheTokensFly(journeyCrate());
 
     expect(flight()).toHaveTextContent("+20 XP");
-    expect(courseOf(flight()!)).toEqual({ left: "100px", top: "500px", x: "320px", y: "-204px" });
+    expect(courseOf(flight()!)).toEqual({ left: "100px", top: "500px", x: "836px", y: "-498px" });
     landAll(flight()!);
     expect(flight()).toBeNull();
-    expect(xpBar()).toHaveClass("reward-landed");
-  });
-
-  it("lands on the HUD level ring when the hero's XP bar is scrolled out of view", async () => {
-    const { user } = openJourneyCrate(atLevel2);
-    placeAt(within(journeyCrate()).getByText("Journey reward · 20 XP"), { x: 100, y: 500, width: 160, height: 20 });
-    placeAt(xpBar(), { x: 300, y: -200, width: 400, height: 12 });
-    placeAt(avatar(), { x: 1000, y: 10, width: 32, height: 32 });
-    await openAndClose(user, journeyCrate());
-
-    expect(courseOf(flight()!)).toMatchObject({ x: "836px", y: "-484px" });
-    landAll(flight()!);
     expect(avatar()).toHaveClass("reward-landed");
   });
 
   it("holds the hero and the HUD short of the reward from the reveal until it lands, then fills both from the old share", async () => {
-    const { user } = openJourneyCrate(atLevel2);
+    showJourneyCrate(atLevel2);
     expect(xpBar()).toHaveAttribute("aria-valuenow", "50");
-    await user.click(within(journeyCrate()).getByRole("button", { name: "Open" }));
+    await openTheCrate(journeyCrate());
     expect(hudRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
-    await user.keyboard("{Escape}");
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
-
     expect(xpBar()).toHaveAttribute("aria-valuenow", "30");
     expect(heroRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
-    vi.useFakeTimers();
+    advance(crateChargesForMs);
+    advance(burstPlaysForMs);
+
     landAll(flight()!);
     expect(xpBar()).toHaveAttribute("aria-valuenow", "50");
     expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
@@ -131,78 +137,72 @@ describe("#354: a Journey crate's XP flies into the hero's XP bar", () => {
     expect(frame()).toHaveClass("reward-filling");
     expect(frame().style.getPropertyValue("--reward-from")).toBe("25");
     expect(xpBar()).toHaveAccessibleName("30 XP 10 XP to level 3");
-    act(() => vi.advanceTimersByTime(1000));
+    advance(1000);
     expect(xpBar()).toHaveAccessibleName("50 XP 10 XP to level 3");
   });
 
   it("across a level-up, holds the old level, then completes the ring and starts the new level without ever filling backwards", async () => {
-    const { user } = openJourneyCrate(acrossALevel);
-    await user.click(within(journeyCrate()).getByRole("button", { name: "Open" }));
-    await user.keyboard("{Escape}");
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+    showJourneyCrate(acrossALevel);
+    await openTheCrate(journeyCrate());
+    advance(crateChargesForMs);
+    advance(burstPlaysForMs);
 
     expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
     expect(xpBar()).toHaveAttribute("aria-valuenow", "90");
-    vi.useFakeTimers();
     landAll(flight()!);
     expect(frame()).toHaveClass("reward-levelling");
     expect(frame()).not.toHaveClass("reward-filling");
     expect(frame().style.getPropertyValue("--reward-from")).toBe("87.5");
     expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
-    act(() => vi.advanceTimersByTime(599));
+    advance(599);
     expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
-    act(() => vi.advanceTimersByTime(1));
+    advance(1);
     expect(heroRing()).toHaveAccessibleName("Level 3, 190 XP to level 4");
     expect(heroRing()).toHaveClass("reward-landed");
     expect(avatar()).toHaveClass("reward-landed");
   });
 
-  it("then, as the new level starts, flies the skill point it earned out of the hero's level ring onto the HUD skill point chip, which counts up", async () => {
-    const { user } = openJourneyCrate(intoTheSixthLevel);
-    await openAndClose(user, journeyCrate());
-    placeAt(heroRing(), { x: 200, y: 200, width: 120, height: 120 });
+  it("then, as the new level starts, flies the skill point it earned from its token onto the HUD skill point chip, which counts up", async () => {
+    showJourneyCrate(intoTheSixthLevel);
+    await openUntilTheTokensFly(journeyCrate());
+    placeAt(tokenOf("skillPoints"), { x: 300, y: 500, width: 200, height: 48 });
     placeAt(skillPointChip(), { x: 900, y: 12, width: 48, height: 32 });
 
     expect(skillPointChip()).toHaveTextContent("1");
-    vi.useFakeTimers();
     landAll(flight()!);
     expect(flight()).toBeNull();
-    act(() => vi.advanceTimersByTime(600));
+    advance(600);
     expect(flight()).toHaveTextContent("+1 skill point");
-    expect(courseOf(flight()!)).toEqual({ left: "200px", top: "200px", x: "664px", y: "-232px" });
+    expect(courseOf(flight()!)).toEqual({ left: "300px", top: "500px", x: "524px", y: "-496px" });
     expect(skillPointChip()).toHaveTextContent("1");
     landAll(flight()!);
     expect(flight()).toBeNull();
     expect(skillPointChip()).toHaveClass("reward-landed");
     expect(skillPointChip()).toHaveAccessibleName("2 skill points to spend");
     expect(skillPointChip()).toHaveTextContent("1");
-    act(() => vi.advanceTimersByTime(1000));
+    advance(1000);
     expect(skillPointChip()).toHaveTextContent("2");
   });
 
-  it("never flies under reduced motion: the bar shows the read's XP at once with a short fade", async () => {
+  it("never flies under reduced motion: the bar shows the read's XP at once, and the ring fades in", async () => {
     preferReducedMotion();
-    const { user } = openJourneyCrate(atLevel2);
-    placeAt(xpBar(), { x: 300, y: 300, width: 400, height: 12 });
-    await user.click(within(journeyCrate()).getByRole("button", { name: "Open" }));
-    vi.useFakeTimers();
-    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+    showJourneyCrate(atLevel2);
+    await openTheCrate(journeyCrate());
 
     expect(flight()).toBeNull();
     expect(xpBar()).toHaveAttribute("aria-valuenow", "50");
-    expect(xpBar()).toHaveClass("reward-faded");
+    expect(avatar()).toHaveClass("reward-faded");
     expect(frame()).not.toHaveClass("reward-filling");
   });
 });
 
 describe("#354 review: the held values stay true through motion changes and late XP", () => {
   it("lands the skill point at once with a fade when reduced motion is turned on while the level turns over", async () => {
-    const { user } = openJourneyCrate(intoTheSixthLevel);
-    await openAndClose(user, journeyCrate());
-    vi.useFakeTimers();
+    showJourneyCrate(intoTheSixthLevel);
+    await openUntilTheTokensFly(journeyCrate());
     landAll(flight()!);
     preferReducedMotion();
-    act(() => vi.advanceTimersByTime(600));
+    advance(600);
 
     expect(flight()).toBeNull();
     expect(skillPointChip()).toHaveTextContent("2");
@@ -210,11 +210,10 @@ describe("#354 review: the held values stay true through motion changes and late
   });
 
   it("keeps holding the skill point the flight set out with when more XP arrives before it lands", async () => {
-    const { user, showVisitor } = openJourneyCrate(intoTheSixthLevel);
-    await openAndClose(user, journeyCrate());
-    vi.useFakeTimers();
+    const { showVisitor } = showJourneyCrate(intoTheSixthLevel);
+    await openUntilTheTokensFly(journeyCrate());
     landAll(flight()!);
-    act(() => vi.advanceTimersByTime(600));
+    advance(600);
     showVisitor({ ...intoTheSixthLevel, progression: { ...intoTheSixthLevel.progression!, xp: 1030, xpToNextLevel: 470 } });
 
     expect(flight()).toHaveTextContent("+1 skill point");
@@ -227,50 +226,50 @@ describe("#354 review: the held values stay true through motion changes and late
 
 describe("#354 review round 2: fills restart and count-ups stop for reduced motion", () => {
   it("shows the hero's XP at once when reduced motion is turned on while it counts up", async () => {
-    const { user } = openJourneyCrate(atLevel2);
-    await openAndClose(user, journeyCrate());
-    vi.useFakeTimers();
+    showJourneyCrate(atLevel2);
+    await openUntilTheTokensFly(journeyCrate());
     landAll(flight()!);
-    act(() => vi.advanceTimersByTime(120));
+    advance(120);
     preferReducedMotion();
-    act(() => vi.advanceTimersByTime(40));
+    advance(40);
 
     expect(xpBar()).toHaveAccessibleName("50 XP 10 XP to level 3");
   });
 });
 
-describe("#354: the Skill tree crate's skill points fly onto the HUD chip", () => {
-  it("shows the chip at 0 from the reveal, flies +{n} skill point from the crate onto it, and counts up once it lands", async () => {
+describe("#354 #452: the Skill tree crate's skill points fly out of the reveal onto the HUD chip", () => {
+  it("shows the chip at 0 from the reveal, bursts +{n} skill point out of the crate, flies it onto the chip, and counts up once it lands", async () => {
     let shown = skillTreeReady;
-    const { user, showVisitor } = renderApp(shown, undefined, {
+    const { showVisitor } = renderApp(shown, undefined, {
       openFeature: async () => {
         shown = skillTreeOpened;
         return { kind: "opened" };
       },
     });
     const panel = within(main()).getByRole("heading", { name: "Unlocks: Skill tree" }).closest("article")!;
-    await user.click(within(panel).getByRole("button", { name: "Open" }));
+    await openTheCrate(panel);
     showVisitor(shown);
     expect(skillPointChip()).toHaveTextContent("0");
-    await user.keyboard("{Escape}");
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+    advance(crateChargesForMs);
+    expect(tokenOf("skillPoints")).toHaveTextContent("+1 skill point");
+    advance(burstPlaysForMs);
 
     expect(flight()).toHaveTextContent("+1 skill point");
-    vi.useFakeTimers();
     landAll(flight()!);
     expect(flight()).toBeNull();
     expect(skillPointChip()).toHaveTextContent("0");
-    act(() => vi.advanceTimersByTime(1000));
+    advance(1000);
     expect(skillPointChip()).toHaveTextContent("1");
   });
 
-  it("sends nothing flying from a crate that pays no reward", async () => {
-    const { user } = renderApp(shellFixtures.memberWithTheBoardReady, undefined, { openFeature: async () => ({ kind: "opened" }) });
+  it("sends nothing flying from a crate that pays no reward, and ends after the burst", async () => {
+    renderApp(shellFixtures.memberWithTheBoardReady, undefined, { openFeature: async () => ({ kind: "opened" }) });
     const panel = within(main()).getByRole("heading", { name: "Unlocks: Leaderboard" }).closest("article")!;
-    await user.click(within(panel).getByRole("button", { name: "Open" }));
-    await user.keyboard("{Escape}");
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Done" }));
+    await openTheCrate(panel);
+    advance(crateChargesForMs);
+    advance(burstPlaysForMs);
 
     expect(flight()).toBeNull();
+    expect(dialog()).toHaveAttribute("data-phase", "ended");
   });
 });

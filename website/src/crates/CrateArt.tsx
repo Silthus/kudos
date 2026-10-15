@@ -1,16 +1,17 @@
 import type { CSSProperties } from "react";
 import type { Hoggie } from "../features";
-import { rewardChipAttributes } from "./RewardFlight";
 import "./crates.css";
 
 export type CratePhase = "closed" | "opening" | "open";
 
-type CrateArtProps = { phase: CratePhase; width: number; Hog: Hoggie; nudge?: boolean; seen?: string };
+type CrateArtProps = { phase: CratePhase; width: number; Hog: Hoggie; nudge?: boolean };
 
-export function CrateArt({ phase, width, Hog, nudge = false, seen }: CrateArtProps) {
+export function CrateArt({ phase, width, Hog, nudge = false }: CrateArtProps) {
   return (
-    <span aria-hidden="true" className="crate-art" data-phase={phase} data-nudge={nudge || undefined} style={{ width } as CSSProperties} {...rewardChipAttributes(seen ?? null)}>
+    <span aria-hidden="true" className="crate-art" data-phase={phase} data-nudge={nudge || undefined} style={{ width } as CSSProperties}>
       <span className="crate-rays" />
+      <span className="crate-flash" />
+      <span className="crate-ring" />
       <svg viewBox="0 0 240 200" className="crate-layer">
         <ellipse cx="120" cy="190" rx="100" ry="9" className="crate-shadow" />
         <rect x="30" y="88" width="180" height="22" rx="8" className="crate-ink" />
@@ -28,6 +29,7 @@ export function CrateArt({ phase, width, Hog, nudge = false, seen }: CrateArtPro
         <path d="M120 114 132 126 120 140 108 126Z" className="crate-gem" />
         <rect x="22" y="98" width="196" height="88" rx="12" className="crate-outline" />
       </svg>
+      <span className="crate-seam" />
       <svg viewBox="0 0 240 200" className="crate-layer crate-lid">
         <path d="M16 104V74c0-24 18-40 42-40h124c24 0 42 16 42 40v30Z" className="crate-edge" />
         <path d="M16 104V74c0-24 18-40 42-40h124c24 0 42 16 42 40v30Z" className="crate-body" />
