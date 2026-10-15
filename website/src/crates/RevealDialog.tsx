@@ -1,9 +1,10 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
-import { IconArrowRight, IconCheck } from "@posthog/icons";
+import { IconArrowRight, IconCheck, IconSparkles } from "@posthog/icons";
 import { Button, buttonVariants } from "@posthog/quill";
 import { AppLink } from "../AppLink";
 import { hogOf, isOrAre, waitsOf, webPageOf } from "../features";
 import type { Feature, FeatureCard } from "../shell";
+import { CoinsGained, rewardWords } from "../quests/QuestReward";
 import { prefersReducedMotion } from "../reducedMotion";
 import { SlackLink } from "../SlackLink";
 import { CrateArt, CrateGlyph } from "./CrateArt";
@@ -170,17 +171,42 @@ function RewardEndState({ crate, offerQuests, onClose, onReplay }: RewardEndStat
       <IconArrowRight aria-hidden="true" className="size-4" />
     </AppLink>
   );
-  return <EndFrame headline={`You earned ${crate.xp} XP`} onClose={onClose} onReplay={onReplay} go={toQuests} />;
+  return <EndFrame headline={`You earned ${rewardWords(crate.reward)}`} chips={<RewardChips crate={crate} />} onClose={onClose} onReplay={onReplay} go={toQuests} />;
 }
 
-type EndFrameProps = { headline: string; go: ReactNode; next?: ReactNode; onClose: Close; onReplay: () => void; children?: ReactNode };
+function RewardChips({ crate: { reward } }: { crate: QuestCrate }) {
+  return (
+    <ul aria-label="Rewards" className="flex flex-wrap items-center justify-center gap-2">
+      <RewardChip at={0}>
+        <IconSparkles aria-hidden="true" className="size-4 shrink-0" />
+        {`+${reward.xp} XP`}
+      </RewardChip>
+      {reward.coins !== undefined && (
+        <RewardChip at={1}>
+          <CoinsGained coins={reward.coins} />
+        </RewardChip>
+      )}
+    </ul>
+  );
+}
 
-function EndFrame({ headline, go, next, onClose, onReplay, children }: EndFrameProps) {
+function RewardChip({ at, children }: { at: number; children: ReactNode }) {
+  return (
+    <li className="moment-line inline-flex h-9 items-center gap-1.5 rounded-full border bg-card px-3 text-sm font-semibold tabular-nums text-card-foreground shadow-sm" style={{ "--line-delay": `${0.1 + at * 0.12}s` } as CSSProperties}>
+      {children}
+    </li>
+  );
+}
+
+type EndFrameProps = { headline: string; chips?: ReactNode; go: ReactNode; next?: ReactNode; onClose: Close; onReplay: () => void; children?: ReactNode };
+
+function EndFrame({ headline, chips, go, next, onClose, onReplay, children }: EndFrameProps) {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => firstActionIn(end.current)?.focus(), []);
   return (
     <div ref={end} className="moment-end flex w-full flex-col items-center gap-4">
-      <h2 className="hud-display text-[clamp(2rem,8vw,3rem)] font-bold leading-tight">{headline}</h2>
+      <h2 className="hud-display text-[clamp(2rem,8vw,3rem)] font-bold leading-tight text-balance">{headline}</h2>
+      {chips}
       <div className="flex w-full max-w-md flex-col gap-4 rounded-2xl bg-card p-5 text-left text-card-foreground shadow-2xl">
         {children}
         <div className={`flex flex-wrap items-center gap-2 ${children === undefined ? "" : "border-t pt-4"}`}>

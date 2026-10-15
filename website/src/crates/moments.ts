@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { focusPageTitle } from "../pageFocus";
 import type { Feature, ShellActions } from "../shell";
+import { rewardWords } from "../quests/QuestReward";
 import { rewardLabelOf, type ReadyCrate } from "./readyCrates";
 import type { OnTheWay, Reward, RewardKind } from "./rewards";
 import { rewardChipOrigin, type Origin } from "./RewardFlight";
@@ -204,7 +205,8 @@ function flightOf(reveal: Reveal | undefined): Flight | undefined {
 
 function openedAnnouncementOf(crate: ReadyCrate) {
   if (crate.kind === "feature") return `You opened ${crate.card.name}.`;
-  return crate.quest.kind === "journey" ? `You opened your ${rewardLabelOf(crate)}.` : `You opened your ${rewardLabelOf(crate).toLowerCase()}.`;
+  const label = crate.quest.kind === "journey" ? rewardLabelOf(crate) : rewardLabelOf(crate).toLowerCase();
+  return `You opened your ${label}. You earned ${rewardWords(crate.reward)}.`;
 }
 
 function focusCrateHomeOrTitle(crate: ReadyCrate) {
