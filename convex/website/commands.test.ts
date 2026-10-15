@@ -349,7 +349,7 @@ describe("a website command is a D17 command", () => {
   });
 });
 
-describe("opening on the website grants nothing", () => {
+describe("opening on the website applies what Slack's open applies", () => {
   test("P92: opening a ready Leaderboard writes only its openedAt, with the XP and every other record as they were", async () => {
     await launchedThen(...allFlags);
     const { member, asSignedIn } = await aReadyMember();

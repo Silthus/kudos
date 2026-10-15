@@ -3,13 +3,14 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { anIdInHalfOf, journeyShippedBeforeAnyoneJoined, onForEveryone, onForHalf, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonInHome } from "../../testing/slackInteractions";
+import { blockActions, buttonInHome, staleButtonOf } from "../../testing/slackInteractions";
 import { signedRequest } from "../../testing/signedSlack";
 import { appHomeOpened, emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSession, switchWebsite } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
 import type { PerkId } from "../progression/tree";
 import type { QuestId } from "../quests/pool";
+import type { Quest } from "../quests/step";
 import type { Activity, ActivityEntry } from "./activity";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -100,8 +101,8 @@ describe("AT25: what each given kudos earned", () => {
     expect(finishing?.earned).toEqual({
       xp: 20,
       questsDone: [
-        { kind: "weekly", goal: "Thank someone and say why, 2 times.", xp: 20 },
-        { kind: "journey", goal: "Finish a weekly quest.", xp: 20 },
+        { kind: "weekly", goal: "Thank someone and say why, 2 times.", xp: 20, waiting: false },
+        { kind: "journey", goal: "Finish a weekly quest.", xp: 20, waiting: false },
       ],
       bonuses: [],
     });
@@ -115,7 +116,7 @@ describe("AT25: what each given kudos earned", () => {
 
     expect(givenEntries(await activityOf(alice, { filter: "given" })).map(({ earned }) => earned)).toEqual([
       { xp: 10, questsDone: [], bonuses: [] },
-      { xp: 10, questsDone: [{ kind: "journey", goal: "Give a kudos that says why.", xp: 10 }], bonuses: [] },
+      { xp: 10, questsDone: [{ kind: "journey", goal: "Give a kudos that says why.", xp: 10, waiting: false }], bonuses: [] },
     ]);
   });
 
@@ -130,6 +131,26 @@ describe("AT25: what each given kudos earned", () => {
 
     expect(await rewardKeysOf(alice)).toEqual(["journey:first-thanks"]);
     expect(givenEntries(await activityOf(alice, { filter: "given" })).map(({ earned }) => earned)).toEqual([{ xp: 10, questsDone: [], bonuses: [] }]);
+  });
+});
+
+describe("CR12: a quest's reward finished while crate-rewards is on waits in the timeline until its crate opens", () => {
+  test("each quest the kudos finished is waiting, and waiting flips at its own crate's open", async () => {
+    await questsOpenedWithCrateRewards(["say-why-twice", "say-why-three-days", "two-new"]);
+
+    await thank([bob, carol], saysWhy);
+
+    expect(await questsDoneByLatestKudosOf(alice)).toEqual([
+      { kind: "weekly", goal: "Thank someone and say why, 2 times.", xp: 20, waiting: true },
+      { kind: "journey", goal: "Finish a weekly quest.", xp: 20, waiting: true },
+    ]);
+
+    await openQuestCrateFromSlack(alice, { kind: "weekly", week: "2026-10-12", slot: 0 });
+
+    expect(await questsDoneByLatestKudosOf(alice)).toEqual([
+      { kind: "weekly", goal: "Thank someone and say why, 2 times.", xp: 20, waiting: false },
+      { kind: "journey", goal: "Finish a weekly quest.", xp: 20, waiting: true },
+    ]);
   });
 });
 
@@ -372,6 +393,28 @@ async function questsOpened(quests: QuestId[]) {
   await settle(t);
   await drawFor(alice.user, quests);
   await t.fetch("/slack/interactivity", await signedRequest(blockActions(alice.user, buttonInHome(slack, alice.user, "Open")), form));
+  await settle(t);
+}
+
+async function questsOpenedWithCrateRewards(quests: QuestId[]) {
+  await switchWebsite(t, postHog, true, ...progression, "quests", "crate-rewards");
+  await unlocksShippedBeforeAnyoneJoined(t);
+  await thank([bob], saysWhy);
+  await t.fetch("/slack/events", await signedRequest(appHomeOpened(alice.user)));
+  await settle(t);
+  await openQuestCrateFromSlack(alice, { kind: "journey", step: "first-thanks" });
+  await drawFor(alice.user, quests);
+  await t.fetch("/slack/interactivity", await signedRequest(blockActions(alice.user, staleButtonOf({ type: "openUnlock", feature: "quests" })), form));
+  await settle(t);
+}
+
+async function questsDoneByLatestKudosOf(person: { user: string; name: string }) {
+  const [latest] = givenEntries(await activityOf(person, { filter: "given" }));
+  return latest?.earned?.questsDone;
+}
+
+async function openQuestCrateFromSlack({ user }: { user: string }, quest: Quest) {
+  await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, staleButtonOf({ type: "openQuestCrate", quest })), form));
   await settle(t);
 }
 

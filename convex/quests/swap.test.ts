@@ -86,6 +86,7 @@ describe("P81: once a week, a member swaps one unfinished quest for a feasible q
       target: 2,
       finishedAt: null,
       openedAt: null,
+      waiting: false,
     });
   });
 
