@@ -179,6 +179,22 @@ describe("QM16: a message a member turned off is never sent", () => {
     expect(slack.messagesIn("U_ALICE").length - before).toBe(1);
   });
 
+  test("a coins-opened DM already on its way is sent while New features is on, and not once it is off", async () => {
+    const t = await coinsOpenedBy("U_ALICE");
+    await openHome(t, "U_ALICE");
+    await click(t, "U_ALICE", "Settings");
+    const coinsOpened: Notification = { kind: "coins-opened", balance: 8 };
+    const before = slack.messagesIn("U_ALICE").length;
+
+    await deliver(t, "U_ALICE", coinsOpened);
+    const whileOn = slack.messagesIn("U_ALICE").length - before;
+    await turn(t, "U_ALICE", "New features");
+    await deliver(t, "U_ALICE", coinsOpened);
+
+    expect(whileOn).toBe(1);
+    expect(slack.messagesIn("U_ALICE").length - before).toBe(1);
+  });
+
   test.each(queuedDms)("a %s DM written while %s is off is not sent, even once it is on again before Slack would take it", async (_, label, notification) => {
     const t = await everythingShipped();
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
@@ -282,6 +298,20 @@ describe("QM17 QM18: the after-kudos reply and its tips honour their settings", 
 
     expect(withTips).toBe(`${givenToBob} You have 9 kudos left today.\n+10 XP · ${hint}\n${footer}`);
     expect(ephemeralsTo("U_ALICE").at(-1)).toBe(`${givenToBob} You have 8 kudos left today.\n+10 XP\n${footer}`);
+  });
+
+  test("with Coins open and the skill tree off, the Tips row shows, and turning it off drops the hint", async () => {
+    const t = await coinsOpenedBy("U_ALICE");
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    const withTips = ephemeralsTo("U_ALICE").at(-1);
+    await openHome(t, "U_ALICE");
+    await click(t, "U_ALICE", "Settings");
+
+    await turn(t, "U_ALICE", "Tips");
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(withTips).toContain(hint);
+    expect(ephemeralsTo("U_ALICE").at(-1)).not.toContain(hint);
   });
 
   test("a reply held for Quests, released after tips turned off, has no hint", async () => {
@@ -569,6 +599,13 @@ async function sparkOwnedBy(user: string) {
   await sparkBoughtBy(t, user);
   await openHome(t, user);
   await click(t, user, "Settings");
+  return t;
+}
+
+async function coinsOpenedBy(user: string) {
+  const t = await unlocksShippedBeforeAnyoneJoined(await workspaceWith([messageSettings, "xp-levels", "unlocks", "coins"]));
+  await giveKudos(t, user, "U_BOB", 1);
+  await t.run(async (ctx) => ctx.db.insert("unlocks", { member: await memberIn(ctx, user), feature: "coins", readyAt: Date.now(), openedAt: Date.now() }));
   return t;
 }
 

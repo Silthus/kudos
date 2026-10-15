@@ -5,6 +5,7 @@ import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
 import { questsApplyTo } from "../quests/flag";
 import { unlocksAppliedTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
+import { coinsVisibleTo } from "../wallet/visibility";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { directMessageKinds, messageKinds, type MessageKind, type MessageKindEntry } from "./kinds";
 
@@ -16,7 +17,7 @@ type Applies = (ctx: QueryCtx, member: MemberId, workspace: string) => Promise<b
 
 const appliesWhile: Record<MessageKind, Applies> = {
   "kudos-reply": async () => true,
-  tips: (ctx, _, workspace) => skillTreeAppliesIn(ctx, workspace),
+  tips: async (ctx, member, workspace) => (await skillTreeAppliesIn(ctx, workspace)) || (await coinsVisibleTo(ctx, member)),
   "level-ups": (ctx, member) => xpLevelsOnFor(ctx, member),
   "new-features": async (ctx, member) => (await xpLevelsOnFor(ctx, member)) && (await unlocksAppliedTo(ctx, member)),
   quests: (ctx, member) => questsApplyTo(ctx, member),
