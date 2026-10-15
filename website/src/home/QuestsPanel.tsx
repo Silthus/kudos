@@ -1,3 +1,4 @@
+import { IconPeople } from "@posthog/icons";
 import { AppLink } from "../AppLink";
 import { Coins, xpLineOf } from "../quests/QuestReward";
 import { QuestTag } from "../quests/QuestTag";
@@ -5,7 +6,7 @@ import { Claimed } from "../crates/RewardCrate";
 import { MaxLine } from "../Max";
 import type { QuestsShown } from "../questsRead";
 import { questsHref } from "../route";
-import type { JourneyStep, QuestReward, QuestSlot } from "../shell";
+import type { GroupQuestCard, JourneyStep, QuestReward, QuestSlot } from "../shell";
 import { SlackLink } from "../SlackLink";
 import { PageLink, Panel } from "./Panel";
 
@@ -18,20 +19,21 @@ export function QuestsPanel({ quests }: { quests: QuestsShown | undefined }) {
   return (
     <Panel {...label}>
       {quests.slots.length === 0 && <NoQuests chatUrl={quests.chatUrl} />}
-      <QuestRows slots={quests.slots} bonus={quests.bonus} />
+      <QuestRows slots={quests.slots} bonus={quests.bonus} group={quests.group} />
       <PageLink feature="quests" />
     </Panel>
   );
 }
 
-function QuestRows({ slots, bonus }: { slots: QuestSlot[]; bonus: JourneyStep | null }) {
-  if (slots.length === 0 && bonus === null) return null;
+function QuestRows({ slots, bonus, group }: { slots: QuestSlot[]; bonus: JourneyStep | null; group: GroupQuestCard | null }) {
+  if (slots.length === 0 && bonus === null && group === null) return null;
   return (
     <ul className="-mx-2 flex flex-col gap-1">
       {slots.map((slot) => (
         <QuestRow key={slot.slot} slot={slot} />
       ))}
       {bonus !== null && <BonusRow step={bonus} />}
+      {group !== null && <GroupRow quest={group} />}
     </ul>
   );
 }
@@ -46,6 +48,28 @@ function BonusRow({ step: { goal, state, reward, waiting } }: { step: JourneySte
         <New />
         {state === "finished" && <Claim />}
       </AppLink>
+    </li>
+  );
+}
+
+function GroupRow({ quest: { group, goal, progress, state, reward, crate } }: { quest: GroupQuestCard }) {
+  const named = `${group} quest: ${goal}`;
+  return (
+    <li className="relative flex flex-col gap-1.5 rounded-lg px-2 py-2 hover:bg-fill-hover">
+      <AppLink href={questsHref("group")} className="flex items-start justify-between gap-2 text-sm leading-snug after:absolute after:inset-0 after:rounded-lg">
+        <span className="min-w-0 flex-1">
+          <IconPeople aria-hidden="true" className="mr-1 inline size-3.5 align-[-2px] text-muted-foreground" />
+          {named}
+        </span>
+        <CoinsOf reward={reward} />
+        {state === "finished" && crate !== null && <Claim />}
+      </AppLink>
+      {state === "in-progress" && <Progress goal={named} {...progress} />}
+      {state === "opened" && (
+        <span className="self-start">
+          <Claimed />
+        </span>
+      )}
     </li>
   );
 }

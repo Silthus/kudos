@@ -7,7 +7,8 @@ export function xpLineOf({ xp }: QuestReward, waiting: boolean) {
 }
 
 export function rewardWords({ xp, coins }: QuestReward) {
-  return coins === undefined ? `${xp} XP` : `${xp} XP and ${coinsText(coins)}`;
+  if (coins === undefined) return `${xp} XP`;
+  return xp === 0 ? coinsText(coins) : `${xp} XP and ${coinsText(coins)}`;
 }
 
 export function Coins({ coins }: { coins: number }) {
