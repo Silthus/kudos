@@ -7,3 +7,13 @@
    Start at  15:41:36
    Duration  8.94s (transform 54%, tests 28%, import 9%, environment 7%, setup 2%)
 
+## review round 1, green
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/custom-emoji-pictures
+
+
+ Test Files  2 passed (2)
+      Tests  71 passed (71)
+   Start at  16:04:06
+   Duration  8.39s (tests 53%, import 18%, transform 14%, environment 12%, setup 3%)
+

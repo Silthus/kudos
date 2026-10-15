@@ -63,10 +63,9 @@ function StyledText({ segment }: { segment: Extract<Segment, { kind: "text" }> }
 type Emoji = Extract<Segment, { kind: "emoji" }>;
 
 function EmojiOf({ segment }: { segment: Emoji }) {
-  const character = segment.unicode ?? emojiCharacterOf(segment.name);
-  if (character !== undefined) return character;
+  if (segment.unicode !== undefined) return segment.unicode;
   if (segment.image !== undefined) return <EmojiPicture key={segment.image} name={segment.name} image={segment.image} />;
-  return <EmojiName name={segment.name} />;
+  return emojiCharacterOf(segment.name) ?? <EmojiName name={segment.name} />;
 }
 
 function EmojiPicture({ name, image }: { name: string; image: string }) {

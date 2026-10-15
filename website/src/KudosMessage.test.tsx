@@ -73,6 +73,13 @@ describe("WS210: one renderer for a kudos message", () => {
     expect(container).toHaveTextContent(":partyparrot:");
   });
 
+  it("draws a custom emoji's picture even where its name is also a standard shortcode", () => {
+    const container = shown(words({ kind: "emoji", name: "taco", image: "https://emoji.slack-edge.com/T1/taco/abc.png" }));
+
+    expect(screen.getByRole("img", { name: ":taco:" })).toHaveAttribute("src", "https://emoji.slack-edge.com/T1/taco/abc.png");
+    expect(container).not.toHaveTextContent("🌮");
+  });
+
   it("draws an emoji's unicode before its picture", () => {
     const container = shown(words({ kind: "emoji", name: "tada", unicode: "🎉", image: "https://emoji.slack-edge.com/T1/tada/abc.png" }));
 
