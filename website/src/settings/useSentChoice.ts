@@ -7,6 +7,12 @@ type Sent<Value> = { asked: Value; answer: Answer };
 export function useSentChoice<Value>(shown: Value, send: (value: Value) => Promise<Answer>) {
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState<Sent<Value>>();
+  const [readShown, setReadShown] = useState(shown);
+
+  if (readShown !== shown) {
+    setReadShown(shown);
+    if (sent !== undefined && isSuperseded(sent, readShown, shown)) setSent(undefined);
+  }
 
   const choose = async (value: Value) => {
     if (pending) return;
@@ -22,6 +28,10 @@ export function useSentChoice<Value>(shown: Value, send: (value: Value) => Promi
   };
 
   return { pending, settled: sent === undefined ? undefined : settledAnswerOf(sent, shown), choose };
+}
+
+function isSuperseded<Value>({ asked, answer }: Sent<Value>, before: Value, now: Value) {
+  return answer === "landed" ? before === asked : now === asked;
 }
 
 function settledAnswerOf<Value>({ asked, answer }: Sent<Value>, shown: Value): Answer | undefined {

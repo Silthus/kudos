@@ -5,7 +5,7 @@ import { isOnTheBoards } from "../leaderboard/visibility";
 import { messageSettingsOnFor } from "../messageSettings/flag";
 import { messageSettingsOf, type MessageSetting } from "../messageSettings/messageSettings";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
-import { leaderboardStateOf, unlockPathOf } from "./unlockPath";
+import { leaderboardStateOf, unlockPathOf, type FeaturePage } from "./unlockPath";
 
 export type { MessageSetting } from "../messageSettings/messageSettings";
 export type { MessageKind, MessagePlace } from "../messageSettings/kinds";
@@ -20,8 +20,9 @@ export const getSettings = memberQuery(async (ctx, me): Promise<SettingsAnswer> 
   return hasAny(settings) ? settings : { kind: "not-found" };
 });
 
-export async function settingsShownTo(ctx: QueryCtx, me: VerifiedMember): Promise<boolean> {
-  return hasAny(await settingsOf(ctx, me));
+export async function settingsShownTo(ctx: QueryCtx, me: VerifiedMember, leaderboard: FeaturePage): Promise<boolean> {
+  if (leaderboard.kind === "open" || (await messageSettingsOnFor(ctx, me.member))) return true;
+  return (await groupPickOf(ctx, me)) !== null;
 }
 
 async function settingsOf(ctx: QueryCtx, me: VerifiedMember): Promise<MySettings> {

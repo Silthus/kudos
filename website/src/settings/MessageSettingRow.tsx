@@ -18,7 +18,7 @@ export function MessageSettingRow({ setting, setMessageSetting }: MessageSetting
   const { pending, settled, choose } = useSentChoice(place, async (asked: MessagePlace) => answerOf(await setMessageSetting(kind, asked)));
   return (
     <div role="group" aria-labelledby={titleId} className="flex flex-col gap-2 border-t py-3 first:border-t-0 first:pt-0 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-      <div className="flex min-w-0 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <h3 id={titleId} className="text-sm font-semibold">
           {label}
         </h3>
@@ -34,7 +34,7 @@ type ControlProps = { setting: MessageSetting; pending: boolean; onChoose: (plac
 
 function PlaceChoice({ setting: { kind, label, place, places }, pending, onChoose }: ControlProps) {
   return (
-    <RadioGroup aria-label={`Where I send you ${label}`} value={place} disabled={pending} onValueChange={(chosen) => onChoose(chosen as MessagePlace)} className="flex shrink-0 flex-wrap gap-x-4 gap-y-1.5">
+    <RadioGroup aria-label={`Where I send you ${label}`} value={place} disabled={pending} onValueChange={(chosen) => onChoose(chosen as MessagePlace)} className="flex w-auto shrink-0 flex-wrap gap-x-4 gap-y-1.5">
       {places.map((each) => (
         <label key={each} className="flex cursor-pointer items-center gap-1.5 text-sm">
           <RadioGroupItem value={each} />

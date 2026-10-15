@@ -191,6 +191,18 @@ describe("Messages: where each message reaches the member", () => {
     expect(place("Level ups", "As a DM")).toBeChecked();
   });
 
+  it("forgets a refusal once another tab moves the read, so it never comes back", async () => {
+    const { user, showSettingsAnswer } = showSettings(settingsFixtures.everything, { setMessageSetting: async () => ({ kind: "refused" }) });
+
+    await user.click(place("Level ups", "None"));
+    expect(rowStatus("Level ups")).toHaveTextContent("That couldn't be changed.");
+
+    showSettingsAnswer(withPlace(settingsFixtures.everything, "level-ups", "none"));
+    showSettingsAnswer(withPlace(settingsFixtures.everything, "level-ups", "channel"));
+
+    expect(rowStatus("Level ups")).toBeEmptyDOMElement();
+  });
+
   it("leaves Messages out while the read has none", () => {
     showSettings({ ...settingsFixtures.everything, messages: null });
 

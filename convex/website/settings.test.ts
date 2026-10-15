@@ -9,6 +9,7 @@ import { primaryGroupOf } from "../groups/groups";
 import { placeOf } from "../messageSettings/messageSettings";
 import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
 import schema from "../schema";
+import type { Id } from "../_generated/dataModel";
 import type { MemberId } from "../workspace/directory";
 
 vi.mock("../bus/publish", async (importOriginal) => {
@@ -290,6 +291,21 @@ describe("a website command is a D17 command", () => {
 
       expect(await pickPrimaryGroup(asSignedIn, elsewhere)).toEqual({ kind: "refused" });
       expect(await pickPrimaryGroup(asSignedIn, "not-an-id")).toEqual({ kind: "refused" });
+      expect(await everythingWritten()).toEqual(before);
+    });
+
+    test("a group Slack has removed the member from, before reconciling caught up, answers refused and writes nothing", async () => {
+      const { member, asSignedIn } = await signedInWith("groups");
+      const { Gardeners, Zebras } = await inGroups("Zebras", "Gardeners");
+      const primary = await t.run((ctx) => primaryGroupOf(ctx, member));
+      const other = primary?.group === Gardeners ? Zebras! : Gardeners!;
+      const slackGroup = await t.run(async (ctx) => (await ctx.db.get(other as never as Id<"userGroups">))!.group);
+      await t.run(async (ctx) => {
+        for (const row of await ctx.db.query("userGroupMembers").collect()) if (row.group === slackGroup) await ctx.db.delete(row._id);
+      });
+      const before = await everythingWritten();
+
+      expect(await pickPrimaryGroup(asSignedIn, other)).toEqual({ kind: "refused" });
       expect(await everythingWritten()).toEqual(before);
     });
 

@@ -15,6 +15,7 @@ import { swappedSlotIn } from "../quests/weekly";
 import { featureValidator } from "../unlocks/feature";
 import { unlockPathShownTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
+import { userGroupsOf } from "../workspace/userGroups";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { workspaceLaunchDueIn } from "./flag";
 import { memberMutation } from "./memberMutation";
@@ -159,7 +160,13 @@ async function placeOfferedWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMe
 
 async function groupOfferedWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember, group: string) {
   if (!(await groupsShownTo(ctx, me.member))) return false;
-  return (await countingGroupsOf(ctx, me.member)).some((offered) => offered.group === group) && (await noLaunchWaitsFor(ctx, me));
+  return (await isStillAmong(ctx, me, group)) && (await noLaunchWaitsFor(ctx, me));
+}
+
+async function isStillAmong(ctx: QueryCtx, me: VerifiedMember, group: string) {
+  const offered = (await countingGroupsOf(ctx, me.member)).find((each) => each.group === group);
+  const row = offered === undefined ? null : await ctx.db.get(offered.group);
+  return row !== null && (await userGroupsOf(ctx, me.workspace, me.user)).some((membership) => membership.group === row.group);
 }
 
 async function launchesRecordedFor(ctx: QueryCtx, me: VerifiedMember) {
