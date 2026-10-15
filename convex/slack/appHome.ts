@@ -2,15 +2,19 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
-import { ReportableError } from "../analytics/exceptions";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import type { HomeFacts } from "../engine/home";
+import type { Command } from "../commands/commands";
 import { renderHome, type Choice, type HomeLine, type HomeView } from "../feedback/home";
+import type { ShownHome } from "../feedback/homes";
 import { xpLevelsShownTo } from "../progression/xpLevels";
+import { itemRefusalValidator, type ItemRefusal } from "../store/rows";
 import { lookup } from "../workspace/directory";
 import { buttonOf, mrkdwn, plainText, urlButtonOf } from "./blocks";
+import { encodeHomeAction } from "./interactivity";
 import { attemptArgs, failedAttempt, sendOnce, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser, refreshUser } from "./directory";
+import { groupOptionsOf, groupSelectOf, optionListsOf } from "./groupPicker";
 
 export type HomeOpened = { type: "app_home_opened"; user: string; tab: "home" | "messages" };
 
@@ -37,7 +41,7 @@ export const reportLookedUpHomeOpening = internalMutation({
 });
 
 export const publishHome = observedAction({
-  args: { workspace: v.string(), user: v.string(), opened: v.optional(v.boolean()), unreportedOpeningAt: v.optional(v.number()), ...attemptArgs },
+  args: { workspace: v.string(), user: v.string(), opened: v.optional(v.boolean()), refused: v.optional(itemRefusalValidator), unreportedOpeningAt: v.optional(v.number()), ...attemptArgs },
   handler: async (ctx, { attempt = 1, unreportedOpeningAt, ...home }) => {
     let unreported = unreportedOpeningAt;
     await tryAtMostThreeTimes(
@@ -67,15 +71,7 @@ export const publishHome = observedAction({
   },
 });
 
-export function appHomeLink(workspace: string, label: string) {
-  return `<${appHomeUrl(workspace)}|${label}>`;
-}
-
-export function appHomeUrl(workspace: string) {
-  return `slack://app?${new URLSearchParams({ team: workspace, id: appId(), tab: "home" })}`;
-}
-
-type Home = { workspace: string; user: string; opened?: boolean };
+type Home = { workspace: string; user: string; opened?: boolean; refused?: ItemRefusal };
 
 type Unavailable = { kind: "unavailable"; retryAfterMs?: number };
 
@@ -83,12 +79,20 @@ async function desiredHomeOf(ctx: ActionCtx, home: Home): Promise<{ kind: "view"
   const facts = await homeFactsOf(ctx, home);
   if (facts.kind === "unavailable") return facts;
   const frontDoor = await ctx.runQuery(internal.website.link.frontDoorLinksOf, { workspace: home.workspace, user: home.user });
-  const shown = await ctx.runMutation(internal.feedback.homes.shownHomeOf, { workspace: home.workspace, user: home.user, frontDoor: frontDoor !== null });
-  return { kind: "view", view: homeView(renderHome(facts, shown, frontDoor)) };
+  const shown = await ctx.runMutation(internal.feedback.homes.shownHomeOf, { workspace: home.workspace, user: home.user, frontDoor: frontDoor !== null, ...(home.refused !== undefined && { refused: home.refused }) });
+  return { kind: "view", view: homeView(renderHome(facts, await withGroupBoards(ctx, home, shown), frontDoor)) };
 }
 
-async function changedWhileSent(ctx: ActionCtx, { workspace, user }: Home, sent: SlackHomeView) {
-  const desired = await desiredHomeOf(ctx, { workspace, user });
+async function withGroupBoards(ctx: ActionCtx, { workspace, user }: Home, home: ShownHome | null): Promise<ShownHome | null> {
+  if (home?.shown.tab !== "leaderboard") return home;
+  const viewer = { workspace, viewer: user, period: home.shown.period };
+  const groups = await ctx.runQuery(internal.leaderboard.groupBoards.groupsBoardOf, viewer);
+  const myGroup = await ctx.runQuery(internal.leaderboard.myGroupBoard.myGroupBoardViewOf, viewer);
+  return { ...home, shown: { ...home.shown, groups, myGroup } };
+}
+
+async function changedWhileSent(ctx: ActionCtx, { workspace, user, refused }: Home, sent: SlackHomeView) {
+  const desired = await desiredHomeOf(ctx, { workspace, user, ...(refused !== undefined && { refused }) });
   return desired.kind === "view" && JSON.stringify(desired.view) !== JSON.stringify(sent);
 }
 
@@ -112,6 +116,8 @@ function homeView({ tabBar, title, groups }: HomeView) {
 
 const divider = { type: "divider" };
 
+const settingsPick = JSON.stringify({ type: "pickPrimaryGroup", surface: "settings" });
+
 function blockOf(line: HomeLine) {
   if (line.kind === "fields") return { type: "section", fields: line.fields.map(mrkdwn) };
   if (line.kind === "choices") return buttonsOf(line.choices);
@@ -119,6 +125,9 @@ function blockOf(line: HomeLine) {
   if (line.kind === "hint") return { type: "context", elements: [mrkdwn(line.text)] };
   if (line.kind === "action") return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
   if (line.kind === "pick-channel") return { type: "section", text: mrkdwn(line.text), accessory: channelPickerOf(line) };
+  if (line.kind === "pick") return { type: "section", text: mrkdwn(line.text), accessory: pickerOf(line) };
+  if (line.kind === "pick-group") return { type: "section", text: mrkdwn(line.text), accessory: groupSelectOf(settingsPick, line.groups, line.picked) };
+  if (line.kind === "pick-groups") return { type: "section", text: mrkdwn(line.text), accessory: groupPickerOf(line) };
   if (line.kind === "link") return { type: "section", text: mrkdwn(`<${line.url}|${line.label}>`) };
   if (line.kind === "links") return { type: "actions", elements: line.links.map(linkButtonOf) };
   return { type: "section", text: mrkdwn(line.text) };
@@ -132,12 +141,24 @@ function linkButtonOf({ label, url }: { label: string; url: string }, index: num
   return urlButtonOf({ label, url, actionId: `website-link-${index}` });
 }
 
+function pickerOf({ id, placeholder, options }: Extract<HomeLine, { kind: "pick" }>) {
+  const selectOptions = options.map(({ label, command }) => ({ text: plainText(label), value: encodeHomeAction(command) }));
+  const initial = options.findIndex(({ selected }) => selected);
+  return { type: "static_select", action_id: id, placeholder: plainText(placeholder), options: selectOptions, ...(initial >= 0 && { initial_option: selectOptions[initial] }) };
+}
+
 function channelPickerOf({ picks, picked }: Extract<HomeLine, { kind: "pick-channel" }>) {
   return { type: "channels_select", action_id: picks, placeholder: plainText("Pick a channel"), ...(picked !== null && { initial_channel: picked }) };
 }
 
-function appId() {
-  const id = process.env.SLACK_APP_ID;
-  if (!id) throw new ReportableError("SLACK_APP_ID is not set");
-  return id;
+function groupPickerOf({ groups, picked }: Extract<HomeLine, { kind: "pick-groups" }>) {
+  const options = groupOptionsOf(groups);
+  const initial = options.filter(({ value }) => picked.includes(value));
+  return {
+    type: "multi_static_select",
+    action_id: "setGroupMode" satisfies Command["type"],
+    placeholder: plainText("Pick groups"),
+    ...optionListsOf(options),
+    ...(initial.length > 0 && { initial_options: initial }),
+  };
 }

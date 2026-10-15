@@ -86,6 +86,18 @@ describe("R33: the private reply", () => {
     expect(welcomedPeople()).toEqual(["U_ALICE", "U_BOB", "U_CAROL"]);
   });
 
+  test("R36: a Given reply names three recipients as A, B and C", async () => {
+    const t = testBackend();
+    slack.withMember("U_DAN");
+
+    await post(t, [section(mention("U_BOB"), mention("U_CAROL"), mention("U_DAN"), emoji("taco"))]);
+    await settle(t);
+
+    expect(slack.ephemeralsTo("U_ALICE").map((reply) => reply.text)).toEqual([
+      "<@U_BOB>, <@U_CAROL> and <@U_DAN> got 1 kudos from you. That was your last kudos for today, and you'll have 3 more at midnight.",
+    ]);
+  });
+
   test("R37: the giver's last kudos says how many come at midnight", async () => {
     const t = testBackend();
 

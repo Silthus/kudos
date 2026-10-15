@@ -9,7 +9,7 @@ import { appHomeOpened, emoji, mention, messageEvent, section, slashCommandRespo
 import type { QueryCtx } from "../_generated/server";
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { standingOf } from "../progression/progression";
-import { progressSettingsOf } from "../progression/settings";
+import { notificationSwitchesOf } from "../messageSettings/messageSettings";
 import { settingsOf } from "../workspace/settings";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -82,7 +82,7 @@ describe("F16: xp-levels and everyone-board previewed by one member's email", ()
     await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Off"));
 
     expect(leaderboardTab).toEqual(expect.arrayContaining(["actions: Profile | [Leaderboard] | Settings", "actions: This week | [This month] | All time"]));
-    expect(await t.run(async (ctx) => (await progressSettingsOf(ctx, await memberIn(ctx, "U_ALICE"))).dms)).toBe(false);
+    expect(await t.run(async (ctx) => (await notificationSwitchesOf(ctx, await memberIn(ctx, "U_ALICE"))).dms)).toBe(false);
     expect(await t.run(async (ctx) => isOnTheBoards(ctx, await memberIn(ctx, "U_ALICE")))).toBe(false);
   });
 
@@ -115,10 +115,14 @@ describe("F16: xp-levels and everyone-board previewed by one member's email", ()
     expect(await exposuresOf(t, "U_ALICE")).toEqual([
       [xpLevels, true],
       ["unlocks", false],
+      ["message-settings", false],
+      ["groups", false],
       [everyoneBoard, true],
     ]);
     expect(await exposuresOf(t, "U_BOB")).toEqual([
       [xpLevels, false],
+      ["message-settings", false],
+      ["groups", false],
       [everyoneBoard, false],
     ]);
   });

@@ -179,6 +179,22 @@ export function appHomeOpened(user: string, options: { team?: string; tab?: "hom
   });
 }
 
+export type EmojiChange =
+  | { subtype: "add"; name: string; value: string }
+  | { subtype: "remove"; names: string[] }
+  | { subtype: "rename"; old_name: string; new_name: string; value: string };
+
+export function emojiChangedEvent(change: EmojiChange, options: { team?: string; eventId?: string } = {}) {
+  eventCounter += 1;
+  return JSON.stringify({
+    type: "event_callback",
+    team_id: options.team ?? "T1",
+    event_id: options.eventId ?? `Ev${eventCounter}`,
+    event: { type: "emoji_changed", ...change, event_ts: `${Date.now() / 1000}` },
+    event_time: Math.floor(Date.now() / 1000),
+  });
+}
+
 export function memberEvent(type: "team_join" | "user_change", user: Record<string, unknown>, options: { team?: string; eventTs?: string } = {}) {
   eventCounter += 1;
   const team = options.team ?? "T1";

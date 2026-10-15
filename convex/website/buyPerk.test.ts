@@ -450,7 +450,7 @@ describe("a skill point bought on the website is spent once", () => {
 });
 
 describe("CO14 CO24: a coin perk bought from the website", { timeout: 30_000 }, () => {
-  test("with coins shown and Coins not opened yet, a request for flame is refused, stores coins-not-open and spends nothing", async () => {
+  test("WS345 CO14: with coins shown and Coins not opened yet, a request for flame is refused with the reason coins-not-open, storing only the refusal and spending nothing", async () => {
     await treeShipped("coins");
     const { member, asSignedIn } = await aMemberWithTheTreeOpen();
     await withXp(member, levelSeven);
@@ -459,8 +459,23 @@ describe("CO14 CO24: a coin perk bought from the website", { timeout: 30_000 }, 
     vi.mocked(publish).mockClear();
     const before = await everythingWritten();
 
-    expect(await buyPerk(asSignedIn, "flame", secondRequest)).toEqual({ kind: "refused", reason: null });
+    expect(await buyPerk(asSignedIn, "flame", secondRequest)).toEqual({ kind: "refused", reason: "coins-not-open" });
     expectOnlyTheRefusalStored(before, await everythingWritten(), { kind: "refused", perk: "flame", reason: "coins-not-open" });
+  });
+
+  test("WS345 CO24: with Coins open and too few coins, a request for flame is refused with the reason coins, storing only the refusal", async () => {
+    await treeShipped("coins");
+    const { member, asSignedIn } = await aMemberWithTheTreeOpen();
+    await withXp(member, levelSeven);
+    await reachesLevel(t, member, 7);
+    await opens(t, member, "coins");
+    expect(await buyPerk(asSignedIn, "spark")).toEqual({ kind: "bought" });
+    await t.run((ctx) => recordReward(ctx, "T1", { member, key: "test:savings", xp: 0, coins: 149, item: null, catalogueVersion: "2", at: 0 }));
+    vi.mocked(publish).mockClear();
+    const before = await everythingWritten();
+
+    expect(await buyPerk(asSignedIn, "flame", secondRequest)).toEqual({ kind: "refused", reason: "coins" });
+    expectOnlyTheRefusalStored(before, await everythingWritten(), { kind: "refused", perk: "flame", reason: "no-coins" });
   });
 });
 

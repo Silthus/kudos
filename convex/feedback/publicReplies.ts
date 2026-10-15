@@ -5,7 +5,7 @@ import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from
 import { levelReachedEventValidator, type LevelReachedEvent } from "../bus/events";
 import { achievementsApplyIn } from "../achievements/flag";
 import type { MessageRef } from "../engine/messageEvent";
-import { progressSettingsOf } from "../progression/settings";
+import { wantsMessage } from "../messageSettings/messageSettings";
 import { questsApplyIn } from "../quests/flag";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
@@ -149,8 +149,8 @@ async function isCelebratedWhereItIs(ctx: QueryCtx, row: Doc<"publicReplies">) {
   return row.channel !== row.conversation || row.conversation === announcementChannel;
 }
 
-async function isShownPublicly(ctx: QueryCtx, { member }: PublicSection) {
-  return !(await progressSettingsOf(ctx, member)).muteNotices;
+function isShownPublicly(ctx: QueryCtx, { member }: PublicSection) {
+  return wantsMessage(ctx, member, "celebrations");
 }
 
 function levelSection(member: MemberId, user: string, level: number): PublicSection {

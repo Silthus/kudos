@@ -11,11 +11,15 @@ export type PeriodKey = string;
 
 export type Days = { first: DayKey; last: DayKey };
 
-const dayMs = 24 * 60 * 60 * 1000;
+export type SameDay = { key: PeriodKey; day: number };
 
-export function keysOf(day: DayKey): PeriodKey[] {
-  return [keyOf("week", day), keyOf("month", day), keyOf("all", day)];
-}
+export type PeriodOfKey = { period: ComparedPeriod; days: Days };
+
+export type Compared = { now: PeriodKey; before: SameDay | null };
+
+export const periods: Period[] = ["week", "month", "all"];
+
+const dayMs = 24 * 60 * 60 * 1000;
 
 export function keyOf(period: Period, day: DayKey): PeriodKey {
   switch (period) {
@@ -28,12 +32,42 @@ export function keyOf(period: Period, day: DayKey): PeriodKey {
   }
 }
 
-export function lastPeriodUpToTheSameDay(period: ComparedPeriod, day: DayKey): Days {
-  return period === "week" ? lastWeekUpTo(day) : lastMonthUpTo(day);
+export function comparedOn(period: Period, today: DayKey): Compared {
+  return { now: keyOf(period, today), before: period === "all" ? null : sameDayLastPeriod(period, today) };
+}
+
+export function lastPeriodUpToTheSameDay(period: ComparedPeriod, today: DayKey): Days {
+  return period === "week" ? lastWeekUpTo(today) : lastMonthUpTo(today);
+}
+
+export function sameDayLastPeriod(period: ComparedPeriod, today: DayKey): SameDay {
+  const { first, last } = lastPeriodUpToTheSameDay(period, today);
+  return { key: keyOf(period, first), day: dayOfPeriod(period, last) };
+}
+
+export function dayOfPeriod(period: ComparedPeriod, day: DayKey): number {
+  if (period === "month") return Number(day.slice(8, 10)) - 1;
+  return (utcMidnightOf(day) - utcMidnightOf(weekOf(day).monday)) / dayMs;
+}
+
+export function periodOfKey(key: PeriodKey): PeriodOfKey | null {
+  const [period, start] = key.split(":");
+  if (period === "week" && start !== undefined) return { period, days: { first: start, last: dayKeyOf(utcMidnightOf(start) + 6 * dayMs) } };
+  if (period === "month" && start !== undefined) return { period, days: { first: `${start}-01`, last: lastDayOfMonth(start) } };
+  return null;
+}
+
+function lastDayOfMonth(month: string) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  return dayKeyOf(Date.UTC(year!, monthNumber!, 0));
+}
+
+function utcMidnightOf(day: DayKey) {
+  return Date.parse(`${day}T00:00:00Z`);
 }
 
 function lastWeekUpTo(day: DayKey): Days {
-  const sameWeekdayLastWeek = dayKeyOf(Date.parse(`${day}T00:00:00Z`) - 7 * dayMs);
+  const sameWeekdayLastWeek = dayKeyOf(utcMidnightOf(day) - 7 * dayMs);
   return { first: weekOf(sameWeekdayLastWeek).monday, last: sameWeekdayLastWeek };
 }
 

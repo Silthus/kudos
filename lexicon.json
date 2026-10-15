@@ -29,7 +29,7 @@
     },
     {
       "name": "kudos emoji",
-      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, which is the deployment's default unless the workspace changes it (:taco: when the deployment sets none), plus any the giver has unlocked. Each occurrence in a kudos message is one kudos for every recipient."
+      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, which is the deployment's default unless the workspace changes it (:taco: when the deployment sets none), plus the emoji in the giver's loadout while the store is visible to them. Each occurrence in a kudos message is one kudos for every recipient."
     },
     {
       "name": "kudos message",
@@ -101,11 +101,11 @@
     },
     {
       "name": "store",
-      "definition": "Where members spend coins on items they see before buying: cosmetics, XP boosters, the Discovery Lantern and streak freezes. Nothing in it is a random draw."
+      "definition": "Where members spend coins on items they see before buying: kudos emoji now, and hedgehogs once they ship. Nothing in it is a random draw."
     },
     {
       "name": "cosmetic",
-      "definition": "An unlock that changes how a member's kudos look, never what they are worth: a quip, a card, a title or a kudos emoji. Every cosmetic has a rarity."
+      "definition": "A cut kind of unlock that only changed how kudos look, such as quips, cards and titles. What members own now are items. Every cosmetic had a rarity."
     },
     {
       "name": "quip",
@@ -121,11 +121,11 @@
     },
     {
       "name": "loadout",
-      "definition": "The cosmetics a member has chosen to show: a title, a card, quips and kudos emoji."
+      "definition": "A member's three kudos emoji slots, and their hedgehog once hedgehogs ship. The starter 🦔 fills the first slot until the member changes the loadout."
     },
     {
       "name": "collection",
-      "definition": "Every cosmetic a member has unlocked, shown privately in App Home."
+      "definition": "Every item a member owns: the starter, the items they bought and the items they earned."
     },
     {
       "name": "rarity",
@@ -221,7 +221,7 @@
     },
     {
       "name": "primary group",
-      "definition": "The one group a member's kudos count for on the leaderboard, and whose group auras they can receive. A member in one group has it automatically; a member in several picks one in the welcome message or App Home, and until then it is the smallest. The primary group is stored with each award when it is given, so history never moves."
+      "definition": "The one group a member counts for on the group boards: one of the groups they are in, or none while they are in none. A member without one who joins groups gets the smallest of them by members, then name, then Slack ID, and keeps it until they leave it, it stops counting, or they pick another in the welcome message or Settings; losing it falls back to the smallest group left, or none, without a DM. Every change is kept, insert-only, in a history with its instant and cause (default, picked or fallback), so each kudos message counts for the giver's primary group at the moment it was given and switching never moves past kudos."
     },
     {
       "name": "leaderboard",
@@ -297,11 +297,7 @@
     },
     {
       "name": "level-up DM",
-      "definition": "The direct message feedback sends a member, and only them, for each levelReached: the level reached, their saved skill points and the XP to the next level (P63, copy table). It is a notification, delivered by the Slack adapter at most 3 times, and not sent when the member's DM setting is off."
-    },
-    {
-      "name": "DM setting",
-      "definition": "A member's choice whether progression sends them DMs (P63). On unless they turn it off; read with that default until App Home lets them change it. It silences progression DMs only, never the welcome message, and changes no XP or level."
+      "definition": "The direct message feedback sends a member, and only them, for each levelReached: the level reached, their saved skill points and the XP to the next level (P63, copy table). It is a notification, delivered by the Slack adapter at most 3 times, and not sent when the member's message setting for level ups is none."
     },
     {
       "name": "public reply",
@@ -520,6 +516,38 @@
       "definition": "Bonus XP: XP a recognition earns beyond base XP, apart from quest and Journey rewards. While the skill tree applies, each effect perk the giver owns that pays on a qualifying recognition writes one bonus line { source, xp } on the giver's effects record, fixed when the record is written and never recomputed (ADR-0004). A Given reply separately stores, when it is written, each perk's bonus summed over the message's awards, and while the skill tree still applies at delivery the gains line shows each as '{perk} bonus (+{xp} XP)' after base XP and any Quest done parts; that stored amount can differ from effects records written later. Later, reaching a chime-in threshold gives its recipients bonus XP. Not the perk, which pays it, and not the gains line, which shows it; the weekly reserve's bonus kudos and the bonus quest are other things."
     },
     {
+      "name": "places climbed",
+      "definition": "How many positions a ranked row of a board rose against the same board in the previous period up to the same day (G18's comparison): a positive number, or nothing when it didn't rise, wasn't on that board then, or the period is all time; no read ever states a drop, and Slack shows none (GB18). The improvement line's places are the viewer's own."
+    },
+    {
+      "name": "admin",
+      "definition": "A workspace admin or owner in Slack, read from the directory (GB26, P69). Only admins see the Admin tab, and an admin command (setAnnouncementChannel, setGroupMode) from anyone else changes nothing."
+    },
+    {
+      "name": "group mode",
+      "definition": "Which user groups count as groups in a workspace (GB27): every group, the default, or allowlist mode, where only the groups on the allowlist count. An admin sets it with setGroupMode in the Admin tab; it takes effect at that instant and reconciles every member's primary group."
+    },
+    {
+      "name": "allowlist",
+      "definition": "The groups an admin picked in allowlist mode of the group mode (GB1, GB27): only they count. It is kept when the mode goes back to every group, so switching back restores it, and an empty one makes groups unavailable (GB3)."
+    },
+    {
+      "name": "attribution",
+      "definition": "The record that a Given kudos message counts for the giver's primary group at its spend instant, or for no group: made once per message after reconciling the giver, insert-only, with its kudos, allowance day, spend instant, each award's stored gate decision and each recipient's primary group at that instant, and published as awardsAttributed (GB10). Group totals and the group quest follow it, never kudosGiven itself. Not Coherence's attribution of a journal record to its session and agent."
+    },
+    {
+      "name": "group total",
+      "definition": "The kudos one member gave for one group in one period (week, month or all time), with the period's running total by day for a week or month, fed only by awardsAttributed, exactly once per kudos message (GB12, GB30). A cache: it can be rebuilt from the attributions."
+    },
+    {
+      "name": "group board",
+      "definition": "One of the boards above the Everyone board where groups apply to the viewer and groups are available: the Groups board, which ranks every group that is the current primary group of at least 3 members by the kudos attributed to it in the period per current primary member, then participation, total and name, with the viewer's group's line and the most improved group; and the My group board, which ranks the members of the viewer's primary group by the kudos they gave for it (GB13–GB17)."
+    },
+    {
+      "name": "peer line",
+      "definition": "The private line right after the Everyone board's improvement line, for this week and this month, telling a viewer whose gain is above 0 and larger than more than half of the other current primary members of their group (at least 3 of them) that they improved more than a share of it, rounded down to a multiple of 10 (GB16)."
+    },
+    {
       "name": "wallet",
       "definition": "A member's coins: the coins on their effects and reward records minus what they spent, kept as a cached balance that never goes below 0, never expires and can't be moved to anyone else (CO9-CO12, ADR-0003). Only the wallet module writes the balance and the insert-only spend records."
     },
@@ -546,6 +574,39 @@
     {
       "name": "spotlight",
       "definition": "One drawable kudos shown on the leaderboard page with its words, giver, recipients and Slack permalink: a Given kudos from a public channel whose current words said why, by a member, with nobody on it off the leaderboards; drawn at random from the member's own workspace, and Next walks every drawable kudos once before any repeat."
+    },
+    {
+      "name": "item",
+      "definition": "A kudos emoji or hedgehog a member can own, with a stable ID, a name, its art and exactly one source: the starter, the store or an achievement tier."
+    },
+    {
+      "name": "inventory",
+      "definition": "A member's loadout and collection together, opened with Coins."
+    },
+    {
+      "name": "message setting",
+      "definition": "A member's choice, one place per kind of message HedgeHug sends them (the after-kudos reply, tips, level ups, new features, quests and the Journey, Book tiers and public celebrations): in the channel (an ephemeral only they see, beside the kudos message that caused it), as a DM, or none, among the places the kind allows. Every kind arrives where it arrives today until the member changes it; the earlier App Home switches that turned DMs off or muted public notices read as those kinds none. A message of a kind set to none is not written and not sent when Slack takes it; one with no kudos message behind it, or that Slack refuses beside it, arrives as a DM. Errors that need action, the welcome message, the answer to a Buy, App Home and a /hedgehug reply are never turned off."
+    },
+    {
+      "name": "custom emoji",
+      "definition": "An emoji a workspace added to Slack beyond the standard set, kept in the directory by name with its https image (an alias with its original's image), so the website can show it where a kudos's words name it."
+    },
+    {
+      "name": "Buy",
+      "definition": "The button on a perk offer, in App Home's Skill tree tab, in a level-up message and on the website, that buys the perk for the member who clicks it; its answer, what they bought or why not, reaches only that member (QM26)."
+    }
+  ],
+  "retired": [
+    {
+      "name": "DM setting",
+      "definition": "App Home's earlier switch over progression DMs (P63), now read and written through the member's message setting: it shows on while any of the four DM kinds (level ups, new features, quests and the Journey, Book tiers) is on, and sets all four. A stored DM setting off reads as those kinds off. It never silences the welcome message, and changes no XP or level.",
+      "because": "decision 24 (#376): one message setting per kind replaces the DM setting; the product owner's words retire it"
+    }
+  ],
+  "rejected": [
+    {
+      "concept": "dm setting",
+      "because": "decision 24 (#376): one message setting per kind replaces the DM setting; the product owner's words retire it"
     }
   ]
 }

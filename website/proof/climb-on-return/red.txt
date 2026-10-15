@@ -1,0 +1,380 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/climb-on-return
+
+ ❯ |website| src/climbOnReturn.test.tsx (16 tests | 13 failed) 6148ms
+   ❯ #413: the climb on return (10)
+     × starts the header at the last visit's totals and flies each kudos given since then from the Recent kudos card into the XP bar, oldest first 276ms
+     × flies what the kudos since the last visit don't explain as one last chip, and never more than the totals grew 174ms
+     × never flies a quest's XP that waits in an unopened crate 265ms
+     × folds a long absence into a few chips 469ms
+     × climbs from the page title into the HUD on a page without the Recent kudos card 1632ms
+     × plays once per change: a reload after it played stays still 253ms
+     × under reduced motion shows the current totals at once and says what grew since the last visit 418ms
+   ❯ #413: a level-up celebration worth the moment (6)
+     × celebrates once at the end of a climb across a level, naming the new level and what it made ready 154ms
+     × names the skill point a level earns 159ms
+     × celebrates a live level-up while the page is open, then gets out of the way 130ms
+     × under reduced motion announces a live level-up calmly, without the burst 138ms
+     × the climb and the celebration pass axe in light 95ms
+     × the climb and the celebration pass axe in dark 97ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: the climb on return > starts the header at the last visit's totals and flies each kudos given since then from the Recent kudos card into the XP bar, oldest first
+Error: expect(element).toHaveAttribute("aria-valuenow", "110") // element.getAttribute("aria-valuenow") === "110"
+
+Expected the element to have attribute:
+  aria-valuenow="110"
+Received:
+  aria-valuenow="150"
+ ❯ src/climbOnReturn.test.tsx:128:21
+    126|     placeAt(xpBar(), { x: 300, y: 300, width: 400, height: 12 });
+    127|
+    128|     expect(xpBar()).toHaveAttribute("aria-valuenow", "110");
+       |                     ^
+    129|     await readTheActivity();
+    130|     const [first] = flights();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: the climb on return > flies what the kudos since the last visit don't explain as one last chip, and never more than the totals grew
+Error: expect(received).toHaveTextContent()
+
+received value must be a Node.
+Received has type:  Undefined
+Received has value: undefined
+ ❯ src/climbOnReturn.test.tsx:149:26
+    147|
+    148|     await readTheActivity();
+    149|     expect(flights()[0]).toHaveTextContent("+15 XP");
+       |                          ^
+    150|     await climbAll();
+    151|     expect(xpBar()).toHaveAttribute("aria-valuenow", "170");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: the climb on return > never flies a quest's XP that waits in an unopened crate
+AssertionError: expected [] to deeply equal [ '+15 XP' ]
+
+- Expected
++ Received
+
+- [
+-   "+15 XP",
+- ]
++ []
+
+ ❯ src/climbOnReturn.test.tsx:166:59
+    164|
+    165|     await readTheActivity();
+    166|     expect(flights().map((flight) => flight.textContent)).toEqual(["+1…
+       |                                                           ^
+    167|   });
+    168|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: the climb on return > folds a long absence into a few chips
+Error: expect(received).toHaveTextContent()
+
+received value must be a Node.
+Received has type:  Undefined
+Received has value: undefined
+ ❯ src/climbOnReturn.test.tsx:177:26
+    175|     wait(5000);
+    176|     expect(flights().length).toBeLessThanOrEqual(4);
+    177|     expect(flights()[0]).toHaveTextContent("+45 XP");
+       |                          ^
+    178|   });
+    179|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: the climb on return > climbs from the page title into the HUD on a page without the Recent kudos card
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/climbOnReturn.test.tsx:186:23
+    184|
+    185|     await readTheActivity();
+    186|     expect(flights()).toHaveLength(1);
+       |                       ^
+    187|   });
+    188|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: the climb on return > plays once per change: a reload after it played stays still
+AssertionError: expected [] to not deeply equal []
+
+Compared values have no visual difference.
+
+ ❯ src/climbOnReturn.test.tsx:203:27
+    201|     const { unmount } = visit(at(150));
+    202|     await readTheActivity();
+    203|     expect(flights()).not.toEqual([]);
+       |                           ^
+    204|     unmount();
+    205|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: the climb on return > under reduced motion shows the current totals at once and says what grew since the last visit
+TestingLibraryElementError: Unable to find an element with the text: +40 XP and level 3 since your last visit. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<main
+  class="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"
+>
+  <div
+    class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start"
+  >
+    <div
+      class="flex min-w-0 flex-col gap-6"
+    >
+      <nav
+        aria-label="Your page"
+        class="border-b"
+      >
+        <ul
+          class="flex gap-1"
+        >
+          <li>
+            <a
+              aria-current="page"
+              class="relative inline-flex min-h-9 items-center px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-t-md text-foreground after:absolute after:inset-x-2 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary"
+              href="/"
+            >
+              Character
+            </a>
+          </li>
+          <li>
+            <a
+              class="relative inline-flex min-h-9 items-center px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-t-md text-muted-foreground hover:text-foreground"
+              href="/activity"
+            >
+              Activity
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <section
+        aria-labelledby="home-title"
+        class="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:gap-7 sm:py-4 sm:text-left"
+      >
+        <span
+          aria-hidden="true"
+          class="inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-32"
+        >
+          SE
+        </span>
+        <span
+          aria-label="Level 3, 170 XP to level 4"
+          class="relative inline-flex shrink-0 items-center justify-center"
+          data-hero-ring=""
+          role="img"
+          style="width: 120px; height: 120px;"
+        >
+          <svg
+            class="absolute inset-0 -rotate-90"
+            fill="none"
+            height="120"
+            viewBox="0 0 120 120"
+            width="120"
+          >
+            <circle
+              cx="60"
+              cy="60"
+              r="59.5"
+              stroke="var(--muted-foreground)"
+              stroke-width="1"
+            />
+            <circle
+              cx="60"
+              cy="60"
+              r="48.5"
+              stroke="var(--muted-foreground)"
+              stroke-width="1"
+            />
+            <circle
+              cx="60"
+              cy="60"
+              data-arc="true"
+              pathLength="100"
+              r="54"
+              stroke="var(--foreground)"
+              stroke-dasharray="15 100"
+              stroke-width="10"
+            />
+          </svg>
+          <span
+            class="flex flex-col items-center gap-1 leading-none"
+          >
+            <span
+              class="hud-label"
+            >
+              Level
+            </span>
+            <span
+              class="hud-display text-4xl font-bold tabular-nums"
+            >
+              3
+            </span>
+          </span>
+        </span>
+        <div
+          class="flex w-full min-w-0 flex-1 flex-col items-center sm:items-start"
+        >
+          <span
+            class="hud-label"
+          >
+            Character
+          </span>
+          <div
+            class="mt-1 max-w-full"
+          >
+            <h1
+              class="hud-display font-bold outline-none text-4xl leading-none wrap-anywhere"
+              id="home-title"
+              tabindex="-1"
+            >
+              Sam Example
+            </h1>
+          </div>
+          <p
+            class="mt-3 text-sm text-muted-foreground"
+          >
+            Thank someone for work you noticed. Mention them in a Slack message with :
+            taco
+            : and say what they did.
+          </p>
+          <div
+            class="mt-3"
+          >
+            <a
+              class="quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"
+              href="https://app.slack.com/client/T1"
+              rel="noreferrer"
+              target="_blank"
+            >
+              Thank someone in Slack
+               
+              <span
+                class="sr-only"
+              >
+                (opens in a new tab)
+              </span>
+              <svg
+                aria-hidden="true"
+                class="LemonIcon size-4"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                width="100%"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M13 3.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V5.56l-7.97 7.97a.75.75 0 1 1-1.06-1.06l7.97-7.97h-4.69a.75.75 0 0 1-.75-.75ZM5.324 5H9.25a.75.75 0 1 1 0 1.5h-3.9c-.292 0-.467 0-.596.011a....
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/climbOnReturn.test.tsx:231:27
+    229|     expect(flights()).toEqual([]);
+    230|     expect(celebration()).toBeNull();
+    231|     expect(within(main()).getByText("+40 XP and level 3 since your las…
+       |                           ^
+    232|   });
+    233| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: a level-up celebration worth the moment > celebrates once at the end of a climb across a level, naming the new level and what it made ready
+Error: expect(element).toHaveAccessibleName()
+
+Expected element to have accessible name:
+  Level 2, 10 XP to level 3
+Received:
+  Level 3, 170 XP to level 4
+ ❯ src/climbOnReturn.test.tsx:240:24
+    238|     visit(at(130));
+    239|
+    240|     expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3…
+       |                        ^
+    241|     await readTheActivity();
+    242|     land(flights()[0]!);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: a level-up celebration worth the moment > names the skill point a level earns
+Error: expect(received).toHaveTextContent()
+
+received value must be a Node.
+Received has type:  Null
+Received has value: null
+ ❯ src/climbOnReturn.test.tsx:258:27
+    256|
+    257|     await climbAll();
+    258|     expect(celebration()).toHaveTextContent("+1 skill point");
+       |                           ^
+    259|     expect(levelAnnouncement()).toHaveTextContent("You reached level 5…
+    260|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: a level-up celebration worth the moment > celebrates a live level-up while the page is open, then gets out of the way
+Error: expect(received).toHaveTextContent()
+
+received value must be a Node.
+Received has type:  Null
+Received has value: null
+ ❯ src/climbOnReturn.test.tsx:268:27
+    266|
+    267|     showVisitor(at(130));
+    268|     expect(celebration()).toHaveTextContent("Level 3");
+       |                           ^
+    269|     expect(levelAnnouncement()).toHaveTextContent("You reached level 3…
+    270|     expect(flights()).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: a level-up celebration worth the moment > under reduced motion announces a live level-up calmly, without the burst
+Error: expect(received).toHaveAttribute()
+
+received value must be an HTMLElement or an SVGElement.
+Received has type:  Null
+Received has value: null
+ ❯ src/climbOnReturn.test.tsx:281:27
+    279|
+    280|     showVisitor(at(130));
+    281|     expect(celebration()).toHaveAttribute("data-motion", "reduced");
+       |                           ^
+    282|     expect(celebration()!.querySelector("[data-spark]")).toBeNull();
+    283|     expect(levelAnnouncement()).toHaveTextContent("You reached level 3…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: a level-up celebration worth the moment > the climb and the celebration pass axe in light
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: a level-up celebration worth the moment > the climb and the celebration pass axe in dark
+AssertionError: expected null not to be null
+ ❯ src/climbOnReturn.test.tsx:292:33
+    290|       const { showVisitor } = visit(at(90));
+    291|       showVisitor(at(130));
+    292|       expect(celebration()).not.toBeNull();
+       |                                 ^
+    293|       const results = await axe.run(document.body, { runOnly: { type: …
+    294|       expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEq…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/13]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  13 failed | 3 passed (16)
+   Start at  17:05:31
+   Duration  12.01s (tests 53%, import 17%, transform 14%, environment 12%, setup 4%)
+

@@ -1,6 +1,8 @@
 import { v, type Infer } from "convex/values";
 import { ladderValidator, tierValidator } from "../achievements/ladders";
 import { awardIdValidator } from "../engine/awards";
+import { attributedAwardValidator, groupOrNoneValidator } from "../groups/attributedAward";
+import { primaryGroupCauseValidator } from "../groups/cause";
 import { annotationsValidator, messageRefValidator } from "../engine/messageEvent";
 import { perkValidator } from "../progression/tree";
 import { questIdValidator } from "../quests/pool";
@@ -18,6 +20,7 @@ export const kudosGivenEventValidator = v.object({
   awards: v.array(awardValidator),
   via: v.union(v.literal("message"), v.literal("chime-in")),
   kudosEmoji: v.string(),
+  loadoutEmoji: v.optional(v.array(v.string())),
   annotations: annotationsValidator,
   allowance: v.object({ dailyOpening: v.number(), dailyLeft: v.number() }),
   skippedMentions: v.number(),
@@ -137,6 +140,10 @@ export const perkBoughtEventValidator = v.object({ type: v.literal("perkBought")
 
 export type PerkBoughtEvent = Infer<typeof perkBoughtEventValidator>;
 
+export const itemBoughtEventValidator = v.object({ type: v.literal("itemBought"), workspace: v.string(), member: v.id("members"), item: v.string(), price: v.number(), at: v.number() });
+
+export type ItemBoughtEvent = Infer<typeof itemBoughtEventValidator>;
+
 const membershipFields = { workspace: v.string(), member: v.id("members"), at: v.number() };
 
 export const memberLeftEventValidator = v.object({ type: v.literal("memberLeft"), ...membershipFields });
@@ -150,6 +157,33 @@ export type MemberRejoinedEvent = Infer<typeof memberRejoinedEventValidator>;
 export type QuestFinishedEvent = Infer<typeof questFinishedEventValidator>;
 
 export type QuestOpenedEvent = Infer<typeof questOpenedEventValidator>;
+
+export const primaryGroupChangedEventValidator = v.object({
+  type: v.literal("primaryGroupChanged"),
+  workspace: v.string(),
+  member: v.id("members"),
+  from: v.union(v.id("userGroups"), v.null()),
+  to: v.union(v.id("userGroups"), v.null()),
+  cause: primaryGroupCauseValidator,
+  at: v.number(),
+});
+
+export type PrimaryGroupChangedEvent = Infer<typeof primaryGroupChangedEventValidator>;
+
+const attributedFields = {
+  workspace: v.string(),
+  message: messageRefValidator,
+  giver: v.id("members"),
+  group: groupOrNoneValidator,
+  kudos: v.number(),
+  day: v.string(),
+  at: v.number(),
+  awards: v.array(attributedAwardValidator),
+};
+
+export const awardsAttributedEventValidator = v.object({ type: v.literal("awardsAttributed"), ...attributedFields });
+
+export type AwardsAttributedEvent = Infer<typeof awardsAttributedEventValidator>;
 
 export const journeyStepActivatedEventValidator = v.object({
   type: v.literal("journeyStepActivated"),
@@ -177,8 +211,11 @@ export type DomainEvent =
   | JourneyStepActivatedEvent
   | AchievementEarnedEvent
   | PerkBoughtEvent
+  | ItemBoughtEvent
   | MemberLeftEvent
-  | MemberRejoinedEvent;
+  | MemberRejoinedEvent
+  | PrimaryGroupChangedEvent
+  | AwardsAttributedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];

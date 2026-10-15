@@ -16,6 +16,7 @@ const earnedBeforeTheDeploy = now.getTime() - 30 * 86_400_000;
 const hourMs = 3_600_000;
 const coinsOfEveryTier = 7 * (10 + 100);
 const coinRewardsOfEveryTier = 7 * 2;
+const sparklingHeart = { item: "kudos-emoji-sparkling-heart", name: "Sparkling Heart", emoji: "sparkling_heart", art: { kind: "unicode", glyph: "💖" } };
 
 let postHog: FakePostHog;
 
@@ -96,6 +97,7 @@ describe("CO7: bronze pays 10 coins and diamond 100, and the backfill tells nobo
     expect((await tierRewardsOf(t, bob)).map(({ key, coins }) => [key, coins])).toEqual([
       ["tier:recognition-bronze-coins", 10],
       ["tier:recognition-diamond-coins", 100],
+      ["tier:recognition-silver-kudos-emoji", 0],
     ]);
     expect(await balanceIn(t, bob)).toBe(110);
   });
@@ -119,7 +121,7 @@ describe("CO28: achievementsOf answers each coin reward's coins, and on an earne
 
     expect(await tiersOf(t, bob, "recognition")).toEqual([
       { tier: "bronze", name: "Noticed", count: 1, earnedAt: yesterday, catalogueVersion: "1", rewards: [{ kind: "coins", reward: "recognition-bronze-coins", coins: 10, recordedAt: now.getTime() }] },
-      { tier: "silver", name: "Appreciated", count: 25, earnedAt: null, catalogueVersion: null, rewards: [{ kind: "kudosEmoji", reward: "recognition-silver-kudos-emoji" }] },
+      { tier: "silver", name: "Appreciated", count: 25, earnedAt: null, catalogueVersion: null, rewards: [{ kind: "kudosEmoji", reward: "recognition-silver-kudos-emoji", item: sparklingHeart }] },
       { tier: "gold", name: "Highly Valued", count: 100, earnedAt: null, catalogueVersion: null, rewards: [{ kind: "hedgehog", reward: "recognition-gold-hedgehog" }] },
       {
         tier: "diamond",

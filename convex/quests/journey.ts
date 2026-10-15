@@ -21,7 +21,7 @@ import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf } from "./crates";
 import { finishQuest } from "./finish";
-import { journeyStartedFor, journeyStepAppliesIn, questsLiveFor } from "./flag";
+import { journeyStartedFor, journeyStepAppliesTo, questsLiveFor } from "./flag";
 import { featureOpening, journeyStepOpenedBy, journeyStepValidator, type JourneyQuest, type JourneyStep } from "./step";
 
 export const rewardValidator = v.object({ xp: v.number(), coins: v.number(), item: v.null() });
@@ -31,12 +31,13 @@ export type Reward = Infer<typeof rewardValidator>;
 export type JourneyCatalogue = { version: string; steps: ReadonlyArray<{ step: JourneyStep; reward: Reward }> };
 
 export const journey = {
-  version: "1",
+  version: "2",
   steps: [
     { step: "first-thanks", reward: { xp: 10, coins: 0, item: null } },
     { step: "first-quest", reward: { xp: 20, coins: 0, item: null } },
     { step: "someone-new", reward: { xp: 30, coins: 0, item: null } },
     { step: "two-days", reward: { xp: 30, coins: 0, item: null } },
+    { step: "your-emoji", reward: { xp: 40, coins: 20, item: null } },
   ],
 } as const satisfies JourneyCatalogue;
 
@@ -59,10 +60,14 @@ export const activateJourney = internalMutation({
   args: { event: unlockOpenedEventValidator },
   handler: async (ctx, { event: { workspace, member, feature, at } }) => {
     const step = journeyStepOpenedBy(feature);
-    if (step === null || !(await questsLiveFor(ctx, member)) || !(await journeyStepAppliesIn(ctx, workspace, step)) || (await isLeftToTheJoin(ctx, member, at))) return;
-    if (await activateOpened(ctx, workspace, member, step, at)) await republish(ctx, member);
+    if (step === null || !(await questsLiveFor(ctx, member)) || !(await journeyStepAppliesTo(ctx, workspace, member, step)) || (await isLeftToTheJoin(ctx, member, at))) return;
+    if (await activateOpened(ctx, workspace, member, step, activationAtOpening(step, at))) await republish(ctx, member);
   },
 });
+
+function activationAtOpening(step: JourneyStep, openedAt: number): number {
+  return step === "your-emoji" ? Date.now() : openedAt;
+}
 
 export const finishFirstQuest = internalMutation({
   args: { event: questFinishedEventValidator },
@@ -102,13 +107,13 @@ export const recheckSomeoneNewOf = internalMutation({
 });
 
 export async function advanceJourney(ctx: MutationCtx, event: KudosGivenEvent, catalogue: JourneyCatalogue): Promise<JourneyActivation[]> {
-  const finished = [await advanceFirstThanks(ctx, event, catalogue), await advanceSomeoneNew(ctx, event), await advanceTwoDays(ctx, event)];
+  const finished = [await advanceFirstThanks(ctx, event, catalogue), await advanceSomeoneNew(ctx, event), await advanceTwoDays(ctx, event), await advanceYourEmoji(ctx, event)];
   return finished.filter((step) => step !== null);
 }
 
-export async function journeyStepsApplyingIn(ctx: QueryCtx, workspace: string): Promise<JourneyStep[]> {
+export async function journeyStepsApplyingTo(ctx: QueryCtx, workspace: string, member: MemberId): Promise<JourneyStep[]> {
   const steps: JourneyStep[] = [];
-  for (const { step } of journey.steps) if (await journeyStepAppliesIn(ctx, workspace, step)) steps.push(step);
+  for (const { step } of journey.steps) if (await journeyStepAppliesTo(ctx, workspace, member, step)) steps.push(step);
   return steps;
 }
 
@@ -136,7 +141,7 @@ async function finishedOrNull(ctx: MutationCtx, workspace: string, activation: J
 async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent): Promise<JourneyActivation | null> {
   const twoDays = await activationOf(ctx, event.giver, "two-days");
   if (twoDays === null || event.at < twoDays.activatedAt || gateDecisionOf(event.annotations)?.thoughtful !== true) return null;
-  if (!(await journeyStepAppliesIn(ctx, event.workspace, "two-days")) || (await isFinished(ctx, twoDays))) return null;
+  if (!(await journeyStepAppliesTo(ctx, event.workspace, event.giver, "two-days")) || (await isFinished(ctx, twoDays))) return null;
   const counted = twoDays.sayingWhy;
   const days = new Set<DayKey>([event.day, ...(counted === undefined ? [] : [counted.day]), ...(await daysSayingWhyBeforeActivation(ctx, twoDays, event.at))]);
   if (days.size >= daysSayingWhyToFinishTwoDays) {
@@ -145,6 +150,21 @@ async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent): Promise
   }
   if (counted === undefined) await ctx.db.patch(twoDays._id, { sayingWhy: { day: event.day, at: event.at } });
   return null;
+}
+
+async function advanceYourEmoji(ctx: MutationCtx, event: KudosGivenEvent): Promise<JourneyActivation | null> {
+  if (saysWhyWithLoadoutEmoji(event)) {
+    const yourEmoji = await activated(ctx, event.workspace, event.giver, "your-emoji", event.at, journey);
+    return finishedOrNull(ctx, event.workspace, yourEmoji, Math.max(event.at, yourEmoji.activatedAt), event.message);
+  }
+  if ((await activationOf(ctx, event.giver, "your-emoji")) === null && (await journeyStepAppliesTo(ctx, event.workspace, event.giver, "your-emoji"))) {
+    await activated(ctx, event.workspace, event.giver, "your-emoji", Date.now(), journey);
+  }
+  return null;
+}
+
+function saysWhyWithLoadoutEmoji({ annotations, loadoutEmoji = [] }: KudosGivenEvent): boolean {
+  return gateDecisionOf(annotations)?.thoughtful === true && loadoutEmoji.length > 0;
 }
 
 function finishOfTwoDays({ at, message }: KudosGivenEvent, counted: JourneyActivation["sayingWhy"]): { at: number; cause?: MessageRef } {
@@ -173,6 +193,8 @@ export async function finishedOnActivation(ctx: QueryCtx, workspace: string, act
       return (await firstThanksSince(ctx, activation)) ?? ((await hasThankedEveryone(ctx, workspace, activation.member, activation.activatedAt)) ? activation.activatedAt : null);
     case "two-days":
       return secondDaySayingWhyOf(await sayingWhyBetween(ctx, activation, Infinity));
+    case "your-emoji":
+      return null;
   }
 }
 
@@ -226,7 +248,7 @@ export type JourneyStepFacts = Omit<JourneyActivation, "member"> & { finishedAt:
 export async function journeyOf(ctx: QueryCtx, member: MemberId): Promise<JourneyStepFacts[]> {
   const { workspace } = await chatUserOf(ctx, member);
   const facts: JourneyStepFacts[] = [];
-  for (const step of await journeyStepsApplyingIn(ctx, workspace)) {
+  for (const step of await journeyStepsApplyingTo(ctx, workspace, member)) {
     const activation = await activationOf(ctx, member, step);
     if (activation === null) continue;
     const { activatedAt, reward, catalogueVersion } = activation;
@@ -259,13 +281,18 @@ export async function activateJourneyOf(ctx: MutationCtx, member: MemberId): Pro
 
 async function activateOpenedSteps(ctx: MutationCtx, workspace: string, member: MemberId) {
   const startedAt = (await journeyStartedFor(ctx, member))!;
-  for (const step of await journeyStepsApplyingIn(ctx, workspace)) {
+  for (const step of await journeyStepsApplyingTo(ctx, workspace, member)) {
     const feature = featureOpening(step);
     const openedAt = feature === null ? null : await openedAtOf(ctx, member, feature);
-    if (openedAt === null) continue;
-    if (openedAt > startedAt) await activateOpened(ctx, workspace, member, step, openedAt);
-    else if (step === "two-days") await activateOpened(ctx, workspace, member, step, Date.now());
+    const at = openedAt === null ? null : activationAtPublish(step, openedAt, startedAt);
+    if (at !== null) await activateOpened(ctx, workspace, member, step, at);
   }
+}
+
+function activationAtPublish(step: JourneyStep, openedAt: number, startedAt: number): number | null {
+  if (step === "your-emoji") return Date.now();
+  if (openedAt > startedAt) return openedAt;
+  return step === "two-days" ? Date.now() : null;
 }
 
 async function activateOpened(ctx: MutationCtx, workspace: string, member: MemberId, step: JourneyStep, at: number): Promise<boolean> {
@@ -288,7 +315,7 @@ export async function activated(ctx: MutationCtx, workspace: string, member: Mem
 
 async function finish(ctx: MutationCtx, workspace: string, activation: JourneyActivation, at: number, cause?: MessageRef): Promise<boolean> {
   if (!(await finishSilently(ctx, workspace, activation, at, cause))) return false;
-  await notifyQuestFinished(ctx, activation.member, { kind: "journey", step: activation.step }, activation.reward.xp);
+  await notifyQuestFinished(ctx, activation.member, { kind: "journey", step: activation.step }, activation.reward.xp, cause);
   return true;
 }
 

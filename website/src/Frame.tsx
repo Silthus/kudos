@@ -21,9 +21,9 @@ import { chipName } from "./skills/perkWords";
 import { useTheme } from "./theme";
 import { ThemeControl } from "./ThemeControl";
 
-type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; readyElsewhere?: ReadyCrate[]; current?: Screen; busy: boolean; inert?: boolean; onSignOut?: () => void; children: ReactNode };
+type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; readyElsewhere?: ReadyCrate[]; current?: Screen; busy: boolean; inert?: boolean; notice?: ReactNode; onSignOut?: () => void; children: ReactNode };
 
-export function Frame({ member, ready = [], readyElsewhere = [], current, busy, inert, onSignOut, children }: FrameProps) {
+export function Frame({ member, ready = [], readyElsewhere = [], current, busy, inert, notice, onSignOut, children }: FrameProps) {
   const palette = usePalette(member !== undefined && !inert);
   return (
     <>
@@ -43,7 +43,10 @@ export function Frame({ member, ready = [], readyElsewhere = [], current, busy, 
             {member && <ReadyPillFailure crates={readyElsewhere} />}
           </div>
         </header>
-        <main aria-busy={busy || undefined} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8">{children}</main>
+        <main aria-busy={busy || undefined} className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8">
+          {notice}
+          {children}
+        </main>
       </div>
       {palette.open && member && <MemberPalette member={member} onSignOut={onSignOut} onClose={palette.close} />}
     </>

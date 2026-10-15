@@ -52,7 +52,7 @@ describe("P8 P87: a Journey step's reward is recorded once", () => {
     expect(published("levelReached").map(({ member, level }) => ({ member, level }))).toEqual([{ member: alice, level: 2 }]);
     expect(published("questFinished")).toEqual([{ type: "questFinished", workspace: "T1", member: alice, quest: { kind: "journey", step: "first-thanks" }, reward: { xp: 10, coins: 0 }, at: event.at }]);
     expect(await journeyOf(t, alice)).toEqual([
-      { step: "first-thanks", activatedAt: event.at, reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "1", finishedAt: event.at, openedAt: null },
+      { step: "first-thanks", activatedAt: event.at, reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "2", finishedAt: event.at, openedAt: null },
     ]);
   });
 
@@ -75,14 +75,14 @@ describe("P86: the reward is the one promised when the step became active", () =
     const activatedAt = now.getTime();
     await advance(t, await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: doesNotSayWhy })));
     vi.setSystemTime(activatedAt + 60_000);
-    const retuned = { version: "2", steps: [{ step: "first-thanks", reward: { xp: 25, coins: 0, item: null } }] } as const;
+    const retuned = { version: "3", steps: [{ step: "first-thanks", reward: { xp: 25, coins: 0, item: null } }] } as const;
 
     const finished = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: saysWhy, at: Date.now() }));
     await t.run((ctx) => advanceJourney(ctx, finished, retuned));
 
     expect(await t.run((ctx) => standingOf(ctx, alice))).toEqual({ xp: 10, level: 1, skillPoints: 0 });
     expect(await journeyOf(t, alice)).toEqual([
-      { step: "first-thanks", activatedAt, reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "1", finishedAt: finished.at, openedAt: null },
+      { step: "first-thanks", activatedAt, reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "2", finishedAt: finished.at, openedAt: null },
     ]);
   });
 });
@@ -93,7 +93,7 @@ describe("P79: questsOf gives the website each Journey step's facts", () => {
     expect(await questsOf(t, alice)).toEqual({ journey: [], week: null });
 
     await advance(t, await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: doesNotSayWhy })));
-    const active = { step: "first-thanks", activatedAt: now.getTime(), reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "1" };
+    const active = { step: "first-thanks", activatedAt: now.getTime(), reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "2" };
     expect(await questsOf(t, alice)).toEqual({ journey: [{ ...active, finishedAt: null, openedAt: null }], week: null });
 
     vi.setSystemTime(now.getTime() + 60_000);
