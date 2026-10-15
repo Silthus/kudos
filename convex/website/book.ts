@@ -2,13 +2,15 @@ import type { QueryCtx } from "../_generated/server";
 import { achievementFactsOf, type LadderFacts, type RewardFacts, type TierFacts } from "../achievements/achievements";
 import type { LadderId, TierId } from "../achievements/ladders";
 import { dayZoneOf } from "../engine/allowance";
+import type { Art } from "../store/catalogue";
+import { storeVisibleTo } from "../store/visibility";
 import { coinsVisibleTo } from "../wallet/visibility";
 import { lookup, type MemberId } from "../workspace/directory";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
 import { seenKeyOf } from "./seen";
 import { featurePageOf, unlockPathOf, type PageWaits } from "./unlockPath";
 
-export type TierReward = { kind: "coins"; coins: number };
+export type TierReward = { kind: "coins"; coins: number } | { kind: "kudosEmoji"; name: string; art: Art };
 
 export type TierCard = { tier: TierId; name: string; at: number; earnedAt: number | null; seen: string | null; rewards: TierReward[] };
 
@@ -22,11 +24,11 @@ export const getBook = memberQuery(async (ctx, me): Promise<BookAnswer> => {
   if (page.kind !== "open") return page;
   const facts = await achievementFactsOf(ctx, me.member);
   if (facts === null) return { kind: "not-found" };
-  const shown = { member: me.member, coins: await coinsVisibleTo(ctx, me.member) };
+  const shown = { member: me.member, coins: await coinsVisibleTo(ctx, me.member), store: await storeVisibleTo(ctx, me.member) };
   return { kind: "book", ladders: await Promise.all(facts.ladders.map((ladder) => ladderCardOf(ladder, shown))), timeZone: await timeZoneOf(ctx, me) };
 });
 
-type Shown = { member: MemberId; coins: boolean };
+type Shown = { member: MemberId; coins: boolean; store: boolean };
 
 async function ladderCardOf({ ladder, name, counts, count, tiers, next }: LadderFacts, shown: Shown): Promise<LadderCard> {
   const cards = await Promise.all(tiers.map((tier) => tierCardOf(ladder, tier, shown)));
@@ -40,7 +42,9 @@ async function tierCardOf(ladder: LadderId, { tier, name, count: at, earnedAt, r
 }
 
 function rewardShown(reward: RewardFacts, shown: Shown): TierReward[] {
-  return reward.kind === "coins" && shown.coins ? [{ kind: "coins", coins: reward.coins }] : [];
+  if (reward.kind === "coins" && shown.coins) return [{ kind: "coins", coins: reward.coins }];
+  if (reward.kind === "kudosEmoji" && shown.store) return [{ kind: "kudosEmoji", name: reward.item.name, art: reward.item.art }];
+  return [];
 }
 
 async function timeZoneOf(ctx: QueryCtx, { workspace, user }: VerifiedMember): Promise<string> {

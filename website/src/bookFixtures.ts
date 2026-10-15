@@ -1,4 +1,5 @@
 import { ladderOf, ladders, type LadderId } from "../../convex/achievements/ladders";
+import { tierItemOf } from "../../convex/store/catalogue";
 import type { BookRead } from "./bookRead";
 import type { LadderCard, MyBook, ShellState, TierCard, TierId } from "./shell";
 
@@ -19,6 +20,12 @@ const coinsPaidBy: Partial<Record<TierId, number>> = { bronze: 10, diamond: 100 
 
 export function withCoinRewards(ladder: LadderCard): LadderCard {
   return { ...ladder, tiers: ladder.tiers.map((tier) => ({ ...tier, rewards: coinsPaidBy[tier.tier] === undefined ? [] : [{ kind: "coins", coins: coinsPaidBy[tier.tier]! }] })) };
+}
+
+export function withStoreRewards(ladder: LadderCard): LadderCard {
+  const { name, art } = tierItemOf(ladder.ladder);
+  const withCoins = withCoinRewards(ladder);
+  return { ...withCoins, tiers: withCoins.tiers.map((tier) => (tier.tier === "silver" ? { ...tier, rewards: [{ kind: "kudosEmoji", name, art }] } : tier)) };
 }
 
 const generosityAtBronze: LadderCard = {
@@ -73,6 +80,7 @@ export const bookFixtures = {
   everyStage: { kind: "book", ladders: everyStage, timeZone: "Europe/Berlin" },
   everyTierEarned: { kind: "book", ladders: [generosityComplete, recognitionNotYet], timeZone: "Europe/Berlin" },
   withCoins: { kind: "book", ladders: everyShippedLadder.map(withCoinRewards), timeZone: "Europe/Berlin" },
+  withStore: { kind: "book", ladders: everyShippedLadder.map(withStoreRewards), timeZone: "Europe/Berlin" },
   nothingEarned: { kind: "book", ladders: [recognitionNotYet], timeZone: "Europe/Berlin" },
   locked: { kind: "locked", level: 4 },
   ready: { kind: "ready" },

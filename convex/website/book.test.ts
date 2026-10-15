@@ -292,8 +292,8 @@ describe("the Book names nothing unshipped", () => {
     expect(JSON.stringify(book)).not.toMatch(/coins|kudosEmoji|hedgehog|catalogueVersion/i);
   });
 
-  async function coinsOpenFor(member: MemberId) {
-    await flagsOn(...bookFlags, "coins");
+  async function coinsOpenFor(member: MemberId, ...alsoOn: string[]) {
+    await flagsOn(...bookFlags, "coins", ...alsoOn);
     await reachesLevel(t, member, 6);
     await opens(t, member, "coins");
   }
@@ -314,6 +314,34 @@ describe("the Book names nothing unshipped", () => {
       { tier: "gold", earned: false, rewards: [] },
       { tier: "diamond", earned: false, rewards: [{ kind: "coins", coins: 100 }] },
     ]);
+  });
+
+  test("WS347 ST20: with the store shown and Coins open, the silver tier carries its kudos emoji with its name and art, earned or not", async () => {
+    await bookShipped();
+    const { member, asSignedIn } = await signedIn();
+    await bookOpenFor(member);
+    await coinsOpenFor(member, "store");
+
+    const book = await openBook(asSignedIn);
+
+    expect(ladderIn(book, "generosity")?.tiers.map(({ tier, rewards }) => ({ tier, rewards }))).toEqual([
+      { tier: "bronze", rewards: [{ kind: "coins", coins: 10 }] },
+      { tier: "silver", rewards: [{ kind: "kudosEmoji", name: "Ribbon", art: { kind: "unicode", glyph: "🎀" } }] },
+      { tier: "gold", rewards: [] },
+      { tier: "diamond", rewards: [{ kind: "coins", coins: 100 }] },
+    ]);
+    expect(JSON.stringify(book)).not.toMatch(/hedgehog|catalogueVersion|recordedAt|kudos-emoji-/);
+  });
+
+  test("ST20: with Coins open but the store off, no tier carries a kudos emoji", async () => {
+    await bookShipped();
+    const { member, asSignedIn } = await signedIn();
+    await bookOpenFor(member);
+    await coinsOpenFor(member);
+
+    const book = await openBook(asSignedIn);
+
+    expect(book.ladders.flatMap(({ tiers }) => tiers.flatMap(({ rewards }) => rewards.map(({ kind }) => kind)))).not.toContain("kudosEmoji");
   });
 
   test("CO26: with the coins flag on but Coins not open yet, no tier carries a reward", async () => {

@@ -4,7 +4,7 @@ import { screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ladderCategories } from "./book/categories";
-import { bookFixtures, fixedBook, withCoinRewards } from "./bookFixtures";
+import { bookFixtures, fixedBook, withCoinRewards, withStoreRewards } from "./bookFixtures";
 import { shellFixtures, type LadderCard, type MyBook } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
@@ -101,6 +101,45 @@ describe("WS347 WS91: each tier's reward line in the Book", () => {
     expect(within(firstThanks!).getByRole("link")).toHaveAccessibleName(expect.stringMatching(/First Thanks.*, reward 10 coins/));
     expect(constellationMaker).toHaveTextContent("+100 coins");
     expect(oldFriends).not.toHaveTextContent(/coin|reward/i);
+  });
+});
+
+describe("WS347 ST20: a tier's kudos emoji reward", () => {
+  const silverAt = Date.parse("2026-10-14T08:00:00Z");
+  const generosityAtSilver: LadderCard = {
+    ...withStoreRewards(bookFixtures.everyLadder.ladders[0]!),
+    count: 25,
+    tiers: withStoreRewards(bookFixtures.everyLadder.ladders[0]!).tiers.map((tier, i) => (i < 2 ? { ...tier, earnedAt: i === 0 ? firstThanksAt : silverAt, seen: `generosity-${tier.tier}` } : tier)),
+    next: { tier: "gold", at: 100 },
+  };
+
+  it("names the silver tier's emoji with its glyph on the ladder card", () => {
+    showBookAt(`/book?page=${ladderCategories.generosity}`, bookFixtures.withStore);
+    const silver = tierCell("Generosity", "Generous Soul");
+    expect(silver).toHaveTextContent("Reward: 🎀Ribbon emoji");
+    expect(within(silver).getByText("🎀")).toHaveAttribute("aria-hidden", "true");
+    expect(tierCell("Generosity", "First Thanks")).toHaveTextContent("10 coins");
+  });
+
+  it("shows a shelved silver tier's emoji, and says it in the entry's name", () => {
+    preferWideScreen();
+    showBookAt("/book", bookFixtures.withStore);
+    const oldFriends = shelved().find((entry) => entry.textContent?.includes("Old Friends"))!;
+    expect(oldFriends).toHaveTextContent("🧸Teddy Bear emoji");
+    expect(within(oldFriends).getByRole("link")).toHaveAccessibleName(expect.stringMatching(/, reward the Teddy Bear emoji$/));
+  });
+
+  it("celebrates a silver tier with its emoji on the earned page", () => {
+    showBookAt("/book/earned", book(generosityAtSilver));
+    expect(pageTitle()).toHaveTextContent("You earned Generous Soul");
+    expect(earnedTiers()[0]).toHaveTextContent("🎀Ribbon emoji");
+    expect(main()).toHaveTextContent("25 kudos given. The Ribbon emoji is yours.");
+  });
+
+  it("joins every reward of one tier in its sentence", () => {
+    const both = { ...generosityAtSilver, tiers: generosityAtSilver.tiers.map((tier) => (tier.tier === "silver" ? { ...tier, rewards: [{ kind: "coins" as const, coins: 10 }, ...tier.rewards] } : tier)) };
+    showBookAt("/book/earned", book(both));
+    expect(main()).toHaveTextContent("25 kudos given. 10 coins and the Ribbon emoji are yours.");
   });
 });
 

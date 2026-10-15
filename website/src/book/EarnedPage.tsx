@@ -11,7 +11,7 @@ import { bookHref } from "./categories";
 import { tierWords } from "./dates";
 import { Medal } from "./Medal";
 import { newestEarned, type Shelved } from "./progress";
-import { listOf, RewardGains, rewardsSaid } from "./Rewards";
+import { listOf, rewardsAreYours, RewardGains } from "./Rewards";
 import "./earned.css";
 
 export function EarnedPage({ ladders, chatUrl }: { ladders: LadderCard[]; chatUrl: string }) {
@@ -97,7 +97,7 @@ function Actions({ children }: { children?: ReactNode }) {
 
 function sentenceOf({ ladder, tier }: Shelved) {
   const counted = `${tier.at} ${ladder.counts}.`;
-  return tier.rewards.length === 0 ? counted : `${counted} ${rewardsSaid(tier.rewards)} are yours.`;
+  return tier.rewards.length === 0 ? counted : `${counted} ${rewardsAreYours(tier.rewards)}`;
 }
 
 function useFirstShowing(earned: Shelved[]) {
