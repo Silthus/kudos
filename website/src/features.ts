@@ -7,8 +7,6 @@ import type { Feature, MemberProfile } from "./shell";
 
 export type Hoggie = ComponentType<{ size?: number; title?: string; className?: string }>;
 
-export type About = { sentence: string; Hog: Hoggie };
-
 export type WebPage = { screen: Screen; href: string; sentence: string; Icon: ComponentType<{ className?: string }> };
 
 const plainNames: Record<Feature, string> = {
@@ -43,13 +41,26 @@ export function itOrThem(feature: Feature): "it" | "them" {
   return grammaticalNumbers[feature] === "plural" ? "them" : "it";
 }
 
-const about: Record<Feature, About> = {
-  quests: { sentence: "Weekly quests of your own.", Hog: HedgehogOrganized },
-  leaderboard: { sentence: "See where you stand.", Hog: HedgehogStar },
-  book: { sentence: "Achievements you earn as you thank colleagues and they thank you.", Hog: HedgehogReading },
-  skillTree: { sentence: "Perks you choose with skill points.", Hog: HedgehogWizard },
-  coins: { sentence: "Coins you spend on hedgehogs and kudos emoji.", Hog: HedgehogMoney },
-  hedgehogs: { sentence: "Hedgehogs to collect, and one to pick as your avatar.", Hog: HedgehogExplorer },
+const hogs: Record<Feature, Hoggie> = {
+  quests: HedgehogOrganized,
+  leaderboard: HedgehogStar,
+  book: HedgehogReading,
+  skillTree: HedgehogWizard,
+  coins: HedgehogMoney,
+  hedgehogs: HedgehogExplorer,
+};
+
+const sentences: Record<Feature, string> = {
+  quests: "Weekly quests of your own.",
+  leaderboard: "See where you stand.",
+  book: "Achievements you earn as you thank colleagues and they thank you.",
+  skillTree: "Perks you choose with skill points.",
+  coins: "Coins you spend on hedgehogs and kudos emoji.",
+  hedgehogs: "Hedgehogs to collect, and one to pick as your avatar.",
+};
+
+const sentencesNamingGroups: Partial<Record<Feature, string>> = {
+  leaderboard: "See where you and your group stand.",
 };
 
 const webPages = {
@@ -74,8 +85,12 @@ export function waitsOf(feature: Feature): string[] {
   return hasWebPage(feature) ? waits[feature] : [];
 }
 
-export function aboutOf(feature: Feature): About {
-  return about[feature];
+export function hogOf(feature: Feature): Hoggie {
+  return hogs[feature];
+}
+
+export function sentenceOf(feature: Feature, { groups }: Pick<MemberProfile, "groups">): string {
+  return (groups ? sentencesNamingGroups[feature] : undefined) ?? sentences[feature];
 }
 
 export function webPageOf(feature: Feature): WebPage | undefined {

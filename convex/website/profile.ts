@@ -1,5 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import { homeFacts } from "../engine/home";
+import { groupsShownTo } from "../groups/groups";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import { xpLevelsOnFor } from "../progression/xpLevels";
@@ -33,6 +34,7 @@ export type MemberProfile = {
   journey: JourneyStep[] | null;
   progression: Progression | null;
   skillPoints: number | null;
+  groups: boolean;
 };
 
 export type MyProfile = Denial | MemberProfile;
@@ -56,6 +58,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     journey: await journeyStepsOf(ctx, me),
     progression: await progressionOf(ctx, me),
     skillPoints: await skillPointsOf(ctx, me, path),
+    groups: await groupsShownTo(ctx, me.member),
   };
 });
 

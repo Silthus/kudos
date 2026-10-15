@@ -13,7 +13,7 @@ const params = new URLSearchParams(location.search);
 history.replaceState(null, "", (params.get("path") ?? "/") + location.search);
 const state = params.get("state") === "locked" ? "locked" : "ready";
 const { memberWithEveryPanelLocked, memberWithEveryPanelReady } = shellFixtures;
-let visitor: MemberProfile = state === "locked" ? memberWithEveryPanelLocked : memberWithEveryPanelReady;
+let visitor: MemberProfile = { ...(state === "locked" ? memberWithEveryPanelLocked : memberWithEveryPanelReady), groups: params.get("groups") === "1" };
 const board: BoardRead = (period) => period && (state === "locked" ? { kind: "locked", level: 3 } : { kind: "ready" });
 const root = createRoot(document.getElementById("root")!);
 const opened = (feature: Feature) => (visitor.features ?? []).map((card) => (card.feature === feature ? { ...card, state: "open" as const, openedAt: Date.now() } : card));

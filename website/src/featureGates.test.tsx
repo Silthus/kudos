@@ -137,6 +137,15 @@ describe("WS323: a locked feature page shows the feature's own hedgehog, its lev
       expect(within(main()).queryByRole("button", { name: "Open" })).toBeNull();
     });
   });
+
+  it.each([
+    ["locked", shellFixtures.memberWithEveryPanelLocked],
+    ["ready", shellFixtures.memberWithEveryPanelReady],
+  ] as const)("names the member's group on the %s Leaderboard page only while groups are shown to them (#417)", (state, member) => {
+    const leaderboard = featurePages[1]!;
+    visit(leaderboard, { ...member, groups: true }, state);
+    expect(main()).toHaveTextContent("See where you and your group stand.");
+  });
 });
 
 describe("WS324: a ready feature page is E's night band with the crate", () => {

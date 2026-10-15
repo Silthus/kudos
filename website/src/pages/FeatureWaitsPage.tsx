@@ -10,10 +10,10 @@ type FeatureWaitsPageProps = { feature: PagedFeature; waiting: PageWaits; member
 
 export function FeatureWaitsPage({ feature, waiting, member }: FeatureWaitsPageProps) {
   const entry = navEntriesOf(member).find((shown) => shown.state !== "open" && featureOf(shown) === feature);
-  if (entry?.state === "ready") return <ReadyPage card={entry.card} />;
-  if (entry?.state === "locked") return <LockedPage feature={feature} name={entry.name} level={entry.level} />;
+  if (entry?.state === "ready") return <ReadyPage card={entry.card} member={member} />;
+  if (entry?.state === "locked") return <LockedPage feature={feature} name={entry.name} level={entry.level} member={member} />;
   const name = plainNameOf(feature);
-  if (waiting.kind === "locked") return <LockedPage feature={feature} name={name} level={waiting.level} />;
+  if (waiting.kind === "locked") return <LockedPage feature={feature} name={name} level={waiting.level} member={member} />;
   return (
     <MaxSays title={name} tab={name} action={<OpenSlack chatUrl={member.chatUrl} />}>
       {readyInSlack(feature)}

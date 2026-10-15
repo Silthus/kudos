@@ -136,6 +136,11 @@ describe("WS103: a locked panel", () => {
     expect(locked).not.toHaveClass("hud-panel");
   });
 
+  it("names the member's group in the Leaderboard's sentence only while groups are shown to them (#417)", () => {
+    renderApp({ ...shellFixtures.memberWithEveryPanelLocked, groups: true });
+    expect(panel("Leaderboard")).toHaveTextContent("See where you and your group stand.");
+  });
+
   it("shows the feature's hedgehog in silhouette under a padlock, hidden from assistive technology", () => {
     renderApp(shellFixtures.memberWithEveryPanelLocked);
     const art = panel("Book").querySelector("[data-locked-hog]")!;
