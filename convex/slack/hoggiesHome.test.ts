@@ -103,7 +103,7 @@ describe("CL16: App Home names the hoggies found while collection is on and the 
       "section: You have *9* kudos left today. You get *10* more at midnight.",
       "section: Level 4 · 300 XP to level 5",
       "divider",
-      `section: *Leaderboard* is ready. [link: Open ${siteUrl}/leaderboard]`,
+      `section: *Leaderboard* is ready. [link: Open ${siteUrl}/leaderboard?crate=leaderboard]`,
       "divider",
       `${await lastFoundLine(t, 1, "unlock:book")} [link: View ${siteUrl}/book]`,
       "divider",
