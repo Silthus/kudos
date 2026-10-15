@@ -29,13 +29,14 @@ function labelOf(side: Side, inventory: MemberInventory) {
 }
 
 function SideToggle({ side, onTurn }: { side: Side; onTurn: (side: Side) => void }) {
+  const look = (each: Side) => `text-foreground ${each === side ? "border-primary bg-fill-selected" : ""}`;
   return (
     <ToggleGroup variant="outline" size="sm" aria-label="Gear side" value={[side]} onValueChange={(chosen) => chosen[0] && onTurn(chosen[0] as Side)}>
-      <ToggleGroupItem value="character" className="text-foreground">
+      <ToggleGroupItem value="character" className={look("character")}>
         <IconUser aria-hidden="true" />
         Character
       </ToggleGroupItem>
-      <ToggleGroupItem value="inventory" className="text-foreground">
+      <ToggleGroupItem value="inventory" className={look("inventory")}>
         <IconBox aria-hidden="true" />
         Inventory
       </ToggleGroupItem>

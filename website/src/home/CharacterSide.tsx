@@ -149,11 +149,11 @@ function SlotPicker({ slot, inventory, onEquip, onTakeOff, onDone }: SlotPickerP
         </span>
         <span className="flex shrink-0 items-center gap-3 text-xs font-medium">
           {current !== null && (
-            <button type="button" onClick={onTakeOff} className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+            <button type="button" onClick={onTakeOff} className="min-h-6 text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
               Take off
             </button>
           )}
-          <button type="button" onClick={onDone} className="underline-offset-4 hover:underline">
+          <button type="button" onClick={onDone} className="min-h-6 underline-offset-4 hover:underline">
             Done
           </button>
         </span>

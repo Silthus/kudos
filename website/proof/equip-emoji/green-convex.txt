@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/equip-emoji
+
+
+ Test Files  1 passed (1)
+      Tests  16 passed (16)
+   Start at  23:37:26
+   Duration  11.12s (transform 49%, tests 44%, import 5%, environment 2%)
+

@@ -1,0 +1,40 @@
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/16]⎯
+
+ FAIL  |convex| convex/website/equip.test.ts > WS64 WS335: the website's equip and take-off leave what Slack's App Home click leaves > equipping an emoji into a slot
+Error: Expected a Convex function exported from module "website/commands" as `equip`, but there is no such export.
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2490:15
+    2488|     const func = module[exportName];
+    2489|     if (func === undefined) {
+    2490|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2491|     }
+    2492|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2202:34
+ ❯ mutation node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2252:20
+ ❯ fromWebsite convex/website/equip.test.ts:287:5
+ ❯ convex/website/equip.test.ts:293:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/16]⎯
+
+ FAIL  |convex| convex/website/equip.test.ts > WS64 WS335: the website's equip and take-off leave what Slack's App Home click leaves > taking an emoji off
+Error: Expected a Convex function exported from module "website/commands" as `takeOff`, but there is no such export.
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2490:15
+    2488|     const func = module[exportName];
+    2489|     if (func === undefined) {
+    2490|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2491|     }
+    2492|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2202:34
+ ❯ mutation node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2252:20
+ ❯ fromWebsite convex/website/equip.test.ts:287:5
+ ❯ convex/website/equip.test.ts:301:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/16]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  16 failed (16)
+   Start at  23:22:43
+   Duration  3.18s (tests 44%, transform 42%, import 12%, environment 2%)
+
