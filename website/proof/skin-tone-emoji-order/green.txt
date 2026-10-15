@@ -11,3 +11,13 @@
              persist transforms across runs with fsModuleCache: true
              learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
 
+## review round 1, green
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/custom-emoji-pictures
+
+
+ Test Files  2 passed (2)
+      Tests  76 passed (76)
+   Start at  18:10:44
+   Duration  11.75s (tests 46%, environment 20%, transform 18%, import 10%, setup 6%)
+

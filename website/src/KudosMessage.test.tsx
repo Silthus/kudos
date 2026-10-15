@@ -80,23 +80,23 @@ describe("WS210: one renderer for a kudos message", () => {
     expect(container).not.toHaveTextContent("🌮");
   });
 
-  it("draws a skin-toned emoji by the shortcode table's toned character before an untoned unicode", () => {
-    const container = shown(words({ kind: "emoji", name: "wave::skin-tone-3", unicode: "👋" }));
+  it.each([
+    ["a skin-toned name by the table's toned character, before Slack's untoned unicode and a picture", { kind: "emoji", name: "wave::skin-tone-3", unicode: "👋", image: "https://emoji.slack-edge.com/T1/wave/abc.png" }, "👋🏼"],
+    ["a skin-toned name by Slack's toned unicode where the table knows the name but not the tone", { kind: "emoji", name: "wrestlers::skin-tone-3", unicode: "🤼🏼" }, "🤼🏼"],
+    ["a skin-toned name the table doesn't know by Slack's unicode, before a picture", { kind: "emoji", name: "newer_than_the_table::skin-tone-2", unicode: "🫨", image: "https://emoji.slack-edge.com/T1/newer/abc.png" }, "🫨"],
+    ["any other name by Slack's unicode, before the table's character", { kind: "emoji", name: "wave", unicode: "👋🏽" }, "👋🏽"],
+  ] satisfies [string, Segment, string][])("draws %s", (_, segment, drawn) => {
+    const container = shown(words(segment));
 
-    expect(container).toHaveTextContent("👋🏼");
+    expect(container).toHaveTextContent(drawn);
+    expect(container.querySelector("img")).toBeNull();
   });
 
-  it("draws a skin-toned emoji the shortcode table doesn't know by its unicode, then its picture, before its name", () => {
-    const container = shown(
-      words(
-        { kind: "emoji", name: "newer_than_the_table::skin-tone-2", unicode: "🫨" },
-        { kind: "emoji", name: "workspace_wave::skin-tone-2", image: "https://emoji.slack-edge.com/T1/workspace_wave/abc.png" },
-      ),
-    );
+  it("draws a skin-toned name's picture before the table's untoned character", () => {
+    const container = shown(words({ kind: "emoji", name: "wrestlers::skin-tone-3", image: "https://emoji.slack-edge.com/T1/wrestlers/abc.png" }));
 
-    expect(container).toHaveTextContent("🫨");
-    expect(screen.getByRole("img", { name: ":workspace_wave::skin-tone-2:" })).toBeInTheDocument();
-    expect(container).not.toHaveTextContent("skin-tone");
+    expect(screen.getByRole("img", { name: ":wrestlers::skin-tone-3:" })).toBeInTheDocument();
+    expect(container).not.toHaveTextContent("🤼");
   });
 
   it("draws an emoji's unicode before its picture", () => {
