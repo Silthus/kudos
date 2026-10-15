@@ -1,0 +1,294 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/climb-on-return
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ❯ |website| src/climbOnReturn.test.tsx (22 tests | 4 failed) 5759ms
+   ❯ #413: the climb on return (14)
+     × lands a chip that can't fly once, so a live update after it shows the true totals 93ms
+     × leaves no fill animation behind on the frame once the climb and its celebration are over 229ms
+   ❯ #413: a level-up celebration worth the moment (8)
+     × under reduced motion the calm card leaves within three seconds 117ms
+     × never shows one member's celebration after they sign out 122ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: the climb on return > lands a chip that can't fly once, so a live update after it shows the true totals
+Error: expect(element).toHaveAccessibleName()
+
+Expected element to have accessible name:
+  Level 3, 150 XP to level 4
+Received:
+  Level 3, 160 XP to level 4
+ ❯ src/climbOnReturn.test.tsx:232:23
+    230|
+    231|     showVisitor(at(150));
+    232|     expect(hudRing()).toHaveAccessibleName("Level 3, 150 XP to level 4…
+       |                       ^
+    233|   });
+    234|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: the climb on return > leaves no fill animation behind on the frame once the climb and its celebration are over
+Error: expect(element).not.toHaveClass("reward-levelling")
+
+Expected the element not to have class:
+  reward-levelling
+Received:
+  hud-root flex min-h-screen flex-col reward-levelling reward-filling
+ ❯ src/climbOnReturn.test.tsx:241:25
+    239|     wait(3000);
+    240|
+    241|     expect(frame()).not.toHaveClass("reward-levelling");
+       |                         ^
+    242|     expect(frame()).not.toHaveClass("reward-filling");
+    243|     expect(frame()).not.toHaveClass("level-burst");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: a level-up celebration worth the moment > under reduced motion the calm card leaves within three seconds
+AssertionError: expected <div data-level-up="true" …(3)>…(1)</div> to be null
+
+- Expected:
+null
+
++ Received:
+<div
+  aria-hidden="true"
+  class="level-up"
+  data-level-up="true"
+  data-motion="reduced"
+>
+  <div
+    class="level-up-card"
+  >
+    <span
+      class="level-up-kicker"
+    >
+      You reached
+    </span>
+    <span
+      class="level-up-headline"
+    >
+      Level 
+      <span
+        class="level-up-number"
+      >
+        3
+      </span>
+    </span>
+    <ul
+      class="level-up-earned"
+    >
+      <li
+        class="level-up-line"
+        style="--line-delay: 700ms;"
+      >
+        Leaderboard is ready to open
+      </li>
+    </ul>
+  </div>
+</div>
+
+ ❯ src/climbOnReturn.test.tsx:349:27
+    347|     showVisitor(at(130));
+    348|     wait(3000);
+    349|     expect(celebration()).toBeNull();
+       |                           ^
+    350|   });
+    351|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  |website| src/climbOnReturn.test.tsx > #413: a level-up celebration worth the moment > never shows one member's celebration after they sign out
+AssertionError: expected <div data-level-up="true" …(3)>…(2)</div> to be null
+
+- Expected:
+null
+
++ Received:
+<div
+  aria-hidden="true"
+  class="level-up"
+  data-level-up="true"
+  data-motion="full"
+>
+  <span
+    class="level-up-burst"
+    style="left: 0px; top: 0px;"
+  >
+    <span
+      class="level-up-rays"
+    />
+    <span
+      class="level-up-ring"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 0deg; --distance: 150px; --size: 10px; --ink: var(--band-tangerine); --delay: 0ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 21deg; --distance: 110px; --size: 6px; --ink: var(--band-lemon); --delay: 30ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 30deg; --distance: 190px; --size: 6px; --ink: var(--band-blue); --delay: 60ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 51deg; --distance: 150px; --size: 6px; --ink: var(--foreground); --delay: 90ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 60deg; --distance: 110px; --size: 10px; --ink: var(--band-tangerine); --delay: 0ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 81deg; --distance: 190px; --size: 6px; --ink: var(--band-lemon); --delay: 30ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 90deg; --distance: 150px; --size: 6px; --ink: var(--band-blue); --delay: 60ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 111deg; --distance: 110px; --size: 6px; --ink: var(--foreground); --delay: 90ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 120deg; --distance: 190px; --size: 10px; --ink: var(--band-tangerine); --delay: 0ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 141deg; --distance: 150px; --size: 6px; --ink: var(--band-lemon); --delay: 30ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 150deg; --distance: 110px; --size: 6px; --ink: var(--band-blue); --delay: 60ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 171deg; --distance: 190px; --size: 6px; --ink: var(--foreground); --delay: 90ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 180deg; --distance: 150px; --size: 10px; --ink: var(--band-tangerine); --delay: 0ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 201deg; --distance: 110px; --size: 6px; --ink: var(--band-lemon); --delay: 30ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 210deg; --distance: 190px; --size: 6px; --ink: var(--band-blue); --delay: 60ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 231deg; --distance: 150px; --size: 6px; --ink: var(--foreground); --delay: 90ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 240deg; --distance: 110px; --size: 10px; --ink: var(--band-tangerine); --delay: 0ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 261deg; --distance: 190px; --size: 6px; --ink: var(--band-lemon); --delay: 30ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 270deg; --distance: 150px; --size: 6px; --ink: var(--band-blue); --delay: 60ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 291deg; --distance: 110px; --size: 6px; --ink: var(--foreground); --delay: 90ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 300deg; --distance: 190px; --size: 10px; --ink: var(--band-tangerine); --delay: 0ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 321deg; --distance: 150px; --size: 6px; --ink: var(--band-lemon); --delay: 30ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 330deg; --distance: 110px; --size: 6px; --ink: var(--band-blue); --delay: 60ms;"
+    />
+    <span
+      class="level-up-spark"
+      data-spark="true"
+      style="--angle: 351deg; --distance: 190px; --size: 6px; --ink: var(--foreground); --delay: 90ms;"
+    />
+  </span>
+  <div
+    class="level-up-card"
+  >
+    <span
+      class="level-up-kicker"
+    >
+      You reached
+    </span>
+    <span
+      class="level-up-headline"
+    >
+      Level 
+      <span
+        class="level-up-number"
+      >
+        3
+      </span>
+    </span>
+    <ul
+      class="level-up-earned"
+    >
+      <li
+        class="level-up-line"
+        style="--line-delay: 700ms;"
+      >
+        Leaderboard is ready to open
+      </li>
+    </ul>
+  </div>
+</div>
+
+ ❯ src/climbOnReturn.test.tsx:359:27
+    357|
+    358|     showVisitor(shellFixtures.signedOut);
+    359|     expect(celebration()).toBeNull();
+       |                           ^
+    360|     expect(levelAnnouncement()).toHaveTextContent("");
+    361|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 18 passed (22)
+   Start at  17:35:34
+   Duration  8.24s (tests 71%, import 14%, transform 8%, environment 6%, setup 1%)
+
