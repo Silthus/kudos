@@ -1,0 +1,7 @@
+ Test Files  3 passed (3)
+      Tests  94 passed (94)
+ FAIL  |website| src/compactSkillTree.test.tsx [ src/compactSkillTree.test.tsx ]
+ FAIL  |website| src/featureGates.test.tsx [ src/featureGates.test.tsx ]
+Error: Transform failed with 1 error:
+ Test Files  2 failed | 1 passed (3)
+      Tests  2 passed (2)

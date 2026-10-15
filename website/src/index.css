@@ -152,10 +152,17 @@ body {
   color: var(--muted-foreground);
 }
 
+@layer components {
+  .hud-panel {
+    position: relative;
+  }
+}
+
 .hud-panel::before,
 .hud-panel::after {
   content: "";
   position: absolute;
+  z-index: 1;
   width: 10px;
   height: 10px;
   border: 0 solid color-mix(in oklab, var(--foreground) 28%, transparent);
