@@ -11,7 +11,7 @@ import { giverLinesOf, giverXpOf } from "../progression/progression";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
 import { xpLevelsShownTo } from "../progression/xpLevels";
-import { questsExposedTo } from "../quests/flag";
+import { journeyStepNamedTo, questsExposedTo } from "../quests/flag";
 import { journeyGoalOf } from "../quests/journeyCopy";
 import { journeyStepValidator } from "../quests/step";
 import { coinsShownTo, coinsVisibleTo } from "../wallet/visibility";
@@ -138,9 +138,15 @@ async function gainsShownTo(ctx: QueryCtx, workspace: string, member: MemberId |
   return {
     xp: (await xpGainsShownTo(ctx, workspace, member)) ? xp : 0,
     coins: coinsVisible ? coins : 0,
-    questsDone: questsDone.length > 0 && (await questGainsShownTo(ctx, workspace, member)) ? questsDone.map((done) => (coinsVisible ? done : withoutCoins(done))) : [],
+    questsDone: questsDone.length > 0 && (await questGainsShownTo(ctx, workspace, member)) ? (await questsStillShown(ctx, workspace, member, questsDone)).map((done) => (coinsVisible ? done : withoutCoins(done))) : [],
     bonus: bonus.length > 0 && (await bonusGainsShownTo(ctx, workspace, member)) ? bonus : [],
   };
+}
+
+async function questsStillShown(ctx: QueryCtx, workspace: string, member: MemberId | null, questsDone: QuestDone[]): Promise<QuestDone[]> {
+  const shown: QuestDone[] = [];
+  for (const done of questsDone) if (done.kind !== "journey" || member === null || (await journeyStepNamedTo(ctx, workspace, member, done.step))) shown.push(done);
+  return shown;
 }
 
 async function areCoinsVisibleTo(ctx: QueryCtx, member: MemberId | null) {

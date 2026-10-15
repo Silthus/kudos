@@ -29,6 +29,10 @@ export async function journeyStepAppliesTo(ctx: QueryCtx | MutationCtx, workspac
   }
 }
 
+export async function journeyStepNamedTo(ctx: QueryCtx | MutationCtx, workspace: string, member: MemberId, step: JourneyStep): Promise<boolean> {
+  return step !== "your-emoji" || (await journeyStepAppliesTo(ctx, workspace, member, step));
+}
+
 export async function questsShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
   return (await questsExposedTo(ctx, member)) && (await questsLiveFor(ctx, member));
 }

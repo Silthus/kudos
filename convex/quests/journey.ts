@@ -61,9 +61,13 @@ export const activateJourney = internalMutation({
   handler: async (ctx, { event: { workspace, member, feature, at } }) => {
     const step = journeyStepOpenedBy(feature);
     if (step === null || !(await questsLiveFor(ctx, member)) || !(await journeyStepAppliesTo(ctx, workspace, member, step)) || (await isLeftToTheJoin(ctx, member, at))) return;
-    if (await activateOpened(ctx, workspace, member, step, at)) await republish(ctx, member);
+    if (await activateOpened(ctx, workspace, member, step, activationAtOpening(step, at))) await republish(ctx, member);
   },
 });
+
+function activationAtOpening(step: JourneyStep, openedAt: number): number {
+  return step === "your-emoji" ? Date.now() : openedAt;
+}
 
 export const finishFirstQuest = internalMutation({
   args: { event: questFinishedEventValidator },
@@ -153,7 +157,7 @@ async function advanceYourEmoji(ctx: MutationCtx, event: KudosGivenEvent): Promi
     const yourEmoji = await activated(ctx, event.workspace, event.giver, "your-emoji", event.at, journey);
     return finishedOrNull(ctx, event.workspace, yourEmoji, Math.max(event.at, yourEmoji.activatedAt), event.message);
   }
-  if (await journeyStepAppliesTo(ctx, event.workspace, event.giver, "your-emoji")) await activated(ctx, event.workspace, event.giver, "your-emoji", event.at, journey);
+  if (await journeyStepAppliesTo(ctx, event.workspace, event.giver, "your-emoji")) await activated(ctx, event.workspace, event.giver, "your-emoji", Date.now(), journey);
   return null;
 }
 
