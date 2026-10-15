@@ -22,6 +22,11 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: navigation to another Document
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -290,14 +295,11 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
- Test Files  231 passed (231)
-      Tests  4333 passed (4333)
-   Start at  21:31:18
-   Duration  269.81s (tests 90%, import 6%, transform 2%, environment 2%)
+ Test Files  235 passed (235)
+      Tests  4388 passed (4388)
+   Start at  21:59:33
+   Duration  310.85s (tests 86%, import 8%, transform 3%, environment 3%, setup 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -591,6 +593,24 @@ Leaderboard  convex/leaderboard/Leaderboard.spec.md
       refuted 2026-10-14: each group's primary members were read by scanning every member's groups row instead of the group's one index range
       refuted 2026-10-14: each group's givers were found among all its group totals of both periods, members who left the group included
       kinds state: 7 shapes apply, 0 declared, 7 dismissed
+  the Monday post names no member  invariant
+      totality oracle "GB28, GB31: the Monday post names groups, never a person" over the post Slack received on Monday after a week of kudos given by members with a group and by an admin without one, every member's mention and name looked for in it, a week with one giver, and a week nobody gave: verified 2026-10-15
+      refuted 2026-10-15: lastWeeksPostOf listed last week's top givers by real name instead of the Groups board's first three groups
+      kinds output: 5 shapes apply, 1 declared, 4 dismissed
+  the Monday post goes out at most once a week  invariant
+      totality oracle "GB28: the Monday post goes out at most once a week" over two jobs for one claimed week, a job scheduled before a switch-off, a post whose answer was lost with its job run again that week, and a post rate-limited once, held back by an earlier hold, held back by a hold extended again and again, or rate-limited three times, each read as the chat.postMessage calls Slack received: verified 2026-10-15
+      refuted 2026-10-15: claimWeek no longer looked for the workspace's claim of the week before claiming it again
+      kinds message, state: 15 shapes apply, 0 declared, 15 dismissed
+  the Monday post is dark wherever monday-post is off  invariant
+      totality oracle "GB28: the Monday post is dark wherever monday-post is off" over every Slack call of one walk by two admins (the Admin tab asked for, a forged Switch on and time zone, a week of kudos and two weeks of jobs) with `monday-post` off, not created, and on while the flags key is missing, and the same walk with it on for one admin's email only, the other admin's App Home views compared: verified 2026-10-15
+      crossing slack-request -> domain
+      refuted 2026-10-15: setsMondayPost in convex/leaderboard/mondayPost.ts answered true for every admin, whatever their monday-post member decision
+      kinds output, message: 12 shapes apply, 1 declared, 11 dismissed
+  turning monday-post off pauses the Monday post  invariant
+      totality oracle "GB28: the monday-post flag turned off and on, its stale clicks and its exposure" over a job scheduled while the flag was on and run after each of the three ways it turns off, read as the chat.postMessage calls Slack received, the claims and the next job; every stored row before and after three stale clicks; and the exposures of two admins and a member who forges the switch, through the flag turned off and on again: verified 2026-10-15
+      crossing slack-request -> domain
+      refuted 2026-10-15: postableChannelIn in convex/leaderboard/mondayPost.ts no longer read monday-post in the workspace decision before the week is claimed
+      kinds state, message: 15 shapes apply, 1 declared, 15 dismissed
 Message settings  convex/messageSettings/MessageSettings.spec.md
   a message a member turned off is never sent  invariant
       totality oracle "QM16: a message a member turned off is never sent" over the level-up DM and the public celebration of a level reached through a kudos message with `level-ups` or `celebrations` turned off from App Home; a level-up DM Slack held back while the member turned `level-ups` off; a DM of each of the six notification kinds already on its way, delivered while its kind is on and again once it is off; and a DM of each kind written while it is off, turned on again before Slack would take it; and a level up on its way beside a kudos whose place became none after its lines were read: verified 2026-10-15
@@ -1164,8 +1184,8 @@ Website  website/Website.spec.md
       totality oracle "#435: ?crate={feature} lands on the page's ready crate" over useLinkTargetOnceLanded in website/src/linkTarget.ts, run by App over the ready band of each feature page and the home's Journey panel, for a ready crate, a Journey step's crate, an unknown crate and another page's crate: verified 2026-10-15
       refuted 2026-10-15: pressed the crate's Open on arrival instead of focusing it
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
-24 components, 182 bullets: 181 invariants, 1 requirement
-lacking: enforcement 0, refutation 1, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-15T18:57:40.360Z (1072 runs)
+24 components, 186 bullets: 185 invariants, 1 requirement
+lacking: enforcement 0, refutation 1, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-15T20:29:30.992Z (1093 runs)
 defects: 24 recorded, 21 closed (4 guarded, 17 decided, 0 with neither); 0 guard failures
 RECORDED NAME  .coherence/journal/40334844-d155-48a4-b941-3e32437d9232.jsonl:5  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/696ccc8a-ab74-4e24-9b64-c36adb12ef08.jsonl:6  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
@@ -1204,6 +1224,6 @@ RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:28  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/fecc2f56-01b5-4d62-9295-680f82cdb9ca.jsonl:4  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       338 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 112, contract 44, panel 37, receipt 35, zone 22; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (957 files), 37 in records
+ADVISORY       352 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 115, contract 44, panel 37, receipt 35, zone 33; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (969 files), 37 in records
 exit 0
