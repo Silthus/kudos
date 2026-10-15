@@ -85,11 +85,10 @@ function Sparks() {
 }
 
 export function RewardChips({ tokens }: { tokens: Token[] }) {
-  const listed = tokens.filter(({ kind }) => kind !== "skillPoints");
-  if (listed.length === 0) return null;
+  if (tokens.length === 0) return null;
   return (
     <ul aria-label="Rewards" className="flex flex-wrap items-center justify-center gap-2">
-      {listed.map((token, at) => (
+      {tokens.map((token, at) => (
         <li key={token.kind} className="moment-line inline-flex h-9 items-center gap-1.5 rounded-full border bg-card px-3 text-sm font-semibold tabular-nums text-card-foreground shadow-sm" style={{ "--line-delay": `${0.1 + at * 0.12}s` } as CSSProperties} data-reward={token.kind === "coins" ? "coins" : undefined}>
           {token.drop === undefined ? (
             <>

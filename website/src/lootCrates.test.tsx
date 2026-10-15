@@ -218,9 +218,46 @@ describe("#452: each token flies into the HUD home that holds it, which counts u
 
     expect(dialog()).toHaveAttribute("data-phase", "ended");
     expect(within(dialog()!).getByRole("heading", { name: "You earned 20 XP and 10 coins" })).toBeVisible();
-    expect(rewardChips()).toEqual(["+20 XP", "+10 coins"]);
+    expect(rewardChips()).toEqual(["+20 XP", "+1 skill point", "+10 coins"]);
     expect(within(dialog()!).getByRole("button", { name: "Done" })).toHaveFocus();
     expect(screen.getByTestId("moment-announcement")).toHaveTextContent("You opened your quest reward. You earned 20 XP and 10 coins.");
+  });
+
+  it("keeps a flight's course and its count of landings when the member's read changes mid-flight (review round 1)", async () => {
+    const { showVisitor } = await claimUntilTheTokensFly();
+    const particles = [...flight()!.querySelectorAll("[data-particle]")];
+    for (const particle of particles.slice(0, 3)) fireEvent.animationEnd(particle);
+    showVisitor({ ...payingCoins, thisWeek: { given: 3, received: 1 } });
+    expect(flight()).not.toBeNull();
+    for (const particle of flight()!.querySelectorAll("[data-particle]")) if (!particles.slice(0, 3).includes(particle)) fireEvent.animationEnd(particle);
+
+    expect(frame()).toHaveClass("reward-levelling");
+  });
+
+  it("replays the burst and the flights from the finish without touching the HUD, which already holds the values (review round 1)", async () => {
+    await claimUntilTheTokensFly();
+    landAll(flight()!);
+    advance(600);
+    landAll(flight()!);
+    landAll(flight()!);
+    advance(1000);
+    fireEvent.click(within(dialog()!).getByRole("button", { name: "Replay" }));
+
+    expect(dialog()).toHaveAttribute("data-phase", "charging");
+    advance(crateChargesForMs);
+    expect(tokens().map((token) => token.textContent)).toEqual(["+20 XP", "+1 skill point", "+10 coins"]);
+    placeAt(tokenOf("xp"), { x: 200, y: 400, width: 120, height: 48 });
+    advance(burstPlaysForMs);
+    expect(dialog()).toHaveAttribute("data-phase", "flying");
+    expect(flight()).toHaveTextContent("+20 XP");
+    landAll(flight()!);
+    expect(frame()).not.toHaveClass("reward-levelling");
+    expect(hudRing()).toHaveAccessibleName("Level 6, 490 XP to level 7");
+    expect(flight()).toHaveTextContent("+1 skill point");
+    landAll(flight()!);
+    landAll(flight()!);
+    expect(dialog()).toHaveAttribute("data-phase", "ended");
+    expect(coinsChip()).toHaveTextContent("236");
   });
 
   it("flies from a crate the ready pill opened too", async () => {
@@ -249,7 +286,7 @@ describe("#452: skipping and reduced motion land every reward at once", () => {
     advance(1000);
     expect(skillPointChip()).toHaveTextContent("2");
     expect(coinsChip()).toHaveTextContent("236");
-    expect(rewardChips()).toEqual(["+20 XP", "+10 coins"]);
+    expect(rewardChips()).toEqual(["+20 XP", "+1 skill point", "+10 coins"]);
   });
 
   it("lands the rest when a click skips mid-flight", async () => {
@@ -273,7 +310,7 @@ describe("#452: skipping and reduced motion land every reward at once", () => {
     expect(dialog()).toHaveAttribute("data-phase", "ended");
     expect(flight()).toBeNull();
     expect(tokens()).toEqual([]);
-    expect(rewardChips()).toEqual(["+20 XP", "+10 coins"]);
+    expect(rewardChips()).toEqual(["+20 XP", "+1 skill point", "+10 coins"]);
     expect(hudRing()).toHaveAccessibleName("Level 6, 490 XP to level 7");
     expect(skillPointChip()).toHaveTextContent("2");
     expect(coinsChip()).toHaveTextContent("236");
@@ -300,7 +337,7 @@ describe("#452: the reveal's last beat is the hoggie card a drop brings, which n
     expect(tokens().map((token) => token.textContent)).toEqual(["+20 XP", "+1 skill point", "+10 coins", "WizardNew!🟪 Epic"]);
     expect(tokenOf("drop")).toHaveAttribute("data-rarity", "epic");
     fireEvent.keyDown(dialog()!, { key: "Escape" });
-    expect(rewardChips()).toEqual(["+20 XP", "+10 coins", "Wizard · 🟪 Epic · New!"]);
+    expect(rewardChips()).toEqual(["+20 XP", "+1 skill point", "+10 coins", "Wizard · 🟪 Epic · New!"]);
   });
 
   it("marks a duplicate with its copy count instead of New!", async () => {
@@ -310,6 +347,6 @@ describe("#452: the reveal's last beat is the hoggie card a drop brings, which n
     expect(tokenOf("drop")).toHaveTextContent("Angel×3⬜ Common");
     expect(tokenOf("drop")).toHaveAttribute("data-rarity", "common");
     fireEvent.keyDown(dialog()!, { key: "Escape" });
-    expect(rewardChips()).toEqual(["+20 XP", "+10 coins", "Angel · ⬜ Common · ×3"]);
+    expect(rewardChips()).toEqual(["+20 XP", "+1 skill point", "+10 coins", "Angel · ⬜ Common · ×3"]);
   });
 });

@@ -324,7 +324,7 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--token-glow);
+  color: color-mix(in oklab, var(--token-glow) 60%, white);
 }
 
 .drop-card[data-rarity="common"] .drop-card-rarity {
@@ -358,6 +358,9 @@
   .reward-tokens[data-stage="popped"] .reward-token,
   .reward-tokens[data-stage="popped"] .drop-card {
     animation: reward-token-pop 0.75s cubic-bezier(0.2, 0.9, 0.3, 1.35) var(--pop-delay, 0ms) both;
+  }
+  .reward-tokens[data-stage="popped"] .reward-token[data-flown] {
+    animation: reward-token-leave 0.15s ease-out both;
   }
   .reward-tokens[data-stage="popped"] .reward-token::after,
   .reward-tokens[data-stage="popped"] .drop-card::after {
@@ -476,6 +479,17 @@
   100% {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes reward-token-leave {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.6);
   }
 }
 

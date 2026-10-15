@@ -4,15 +4,16 @@ import { prefersReducedMotion } from "../reducedMotion";
 import type { MemberProfile } from "../shell";
 import { coinsText, skillPointsText } from "../skills/perkWords";
 import { crossesALevel, type Reward, type RewardKind } from "./rewards";
-import { coinsChip, heroRing, hudAvatar, RewardFlight, rewardTokenOrigin, settle, skillPointChip, xpDisplay, type Arrival } from "./RewardFlight";
+import { coinsChip, heroRing, hudAvatar, RewardFlight, rewardTokenOrigin, settle, skillPointChip, xpDisplay, type Arrival, type Origin } from "./RewardFlight";
 import { flyingKindsOf } from "./RewardTokens";
 
-type Hop = { kind: RewardKind; amount: string; glow: string; target: () => HTMLElement | null };
+type Hop = { kind: RewardKind; amount: string; glow: string; source: () => Origin | undefined; target: () => HTMLElement | null };
 
 type CrateRewardFlightProps = {
   reward: Reward;
   shown: MemberProfile;
   landAtOnce: boolean;
+  rehearsal?: boolean;
   onRewardTaken: (kind: RewardKind) => void;
   onRewardLanded: (kind: RewardKind) => void;
   onLanded: () => void;
@@ -22,13 +23,13 @@ const levellingMs = 1300;
 
 const levelTurnsOverMs = 600;
 
-const hops: Record<RewardKind, Omit<Hop, "amount" | "kind">> = {
+const hops: Record<RewardKind, Pick<Hop, "glow" | "target">> = {
   xp: { glow: "var(--band-lemon)", target: xpDisplay },
   skillPoints: { glow: "var(--band-blue)", target: skillPointChip },
   coins: { glow: "var(--band-tangerine)", target: coinsChip },
 };
 
-export function CrateRewardFlight({ reward: rewardNow, shown, landAtOnce, onRewardTaken, onRewardLanded, onLanded }: CrateRewardFlightProps) {
+export function CrateRewardFlight({ reward: rewardNow, shown, landAtOnce, rehearsal = false, onRewardTaken, onRewardLanded, onLanded }: CrateRewardFlightProps) {
   const shownNow = useRef(shown);
   shownNow.current = shown;
   const [reward] = useState(rewardNow);
@@ -66,7 +67,7 @@ export function CrateRewardFlight({ reward: rewardNow, shown, landAtOnce, onRewa
         setHop((landed) => landed + 1);
       };
       settle(target, ["reward-landed"]);
-      if (current.kind !== "xp" || !fillFrom(target, shownNow.current, reward.xp)) return land();
+      if (rehearsal || current.kind !== "xp" || !fillFrom(target, shownNow.current, reward.xp)) return land();
       levelUp(true);
       turnover.current = setTimeout(() => {
         levelUp(false);
@@ -74,17 +75,17 @@ export function CrateRewardFlight({ reward: rewardNow, shown, landAtOnce, onRewa
         land();
       }, levelTurnsOverMs);
     },
-    [current, reward, onRewardLanded],
+    [current, reward, rehearsal, onRewardLanded],
   );
 
   const onHopLanded = useCallback((how: Arrival) => how === "cancelled" && finish(), [finish]);
 
   if (current === undefined || still || levellingUp) return null;
-  return <RewardFlight key={hop} source={() => rewardTokenOrigin(current.kind)} target={current.target} amount={current.amount} glow={current.glow} onArrived={onArrived} onLanded={onHopLanded} />;
+  return <RewardFlight key={hop} source={current.source} target={current.target} amount={current.amount} glow={current.glow} onArrived={onArrived} onLanded={onHopLanded} />;
 }
 
 function hopsOf(reward: Reward): Hop[] {
-  return flyingKindsOf(reward).map((kind) => ({ kind, amount: amountOf(kind, reward), ...hops[kind] }));
+  return flyingKindsOf(reward).map((kind) => ({ kind, amount: amountOf(kind, reward), source: () => rewardTokenOrigin(kind), ...hops[kind] }));
 }
 
 function amountOf(kind: RewardKind, { xp, skillPoints, coins }: Reward) {

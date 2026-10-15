@@ -40,7 +40,7 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
   | blue `#106fb2` | `#ffffff` | 5.33:1 |
   | night `#141414` | `#ffffff` | 18.4:1 |
 
-- **V13. Crates show their reward.** A feature the member's level has made ready, and a quest reward, each open as a crate in a full-screen reveal. Buying a perk or a hedgehog is not a crate. The label shows what is inside before it opens ("Quest reward · 40 XP · 10 coins", "Unlocks: Leaderboard"). Opening reveals what the member has already earned and never decides it.
+- **V13. Crates show their reward.** A feature the member's level has made ready, and a quest reward, each open as a crate in a full-screen reveal. Buying a perk or a hedgehog is not a crate. A closed crate names only its kind ("Quest reward", "Journey reward", "Unlocks: Leaderboard") and never what is inside; the opening bursts each reward out and flies it into the HUD home that holds it (#452). Opening reveals what the member has already earned and never decides it.
 - **V14. Kudos received is quiet.** It leads with the giver's face, name and message. XP and the new sticker count follow quietly below, with no crate or chest.
 - **V15. Nothing interrupts a visit.** An event that happens while the member is on the site, such as a level up, joins the HUD's ready pill, and the member opens it when they want.
 

@@ -45,22 +45,24 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
   const [phase, setPhase] = useState<Phase>(seenBefore || reducedMotion ? "ended" : "charging");
   const [shownAt, setShownAt] = useState(0);
   const [flown, setFlown] = useState<TokenKind[]>([]);
+  const [rehearsing, setRehearsing] = useState(false);
   const reward = useRewardOnStage(flying, crate);
   const tokens = tokensOf(reward, drop);
   const flies = flyingKindsOf(reward).length > 0;
+  const onStage = flying ?? (rehearsing ? rehearsalOf(crate, reward) : undefined);
   const playing = phase !== "ended";
   const headroom = useHeadroom();
 
   useEffect(() => {
     if (phase === "charging") dialog.current?.focus();
     if (phase !== "charging" && phase !== "bursting") return;
-    const timer = setTimeout(() => setPhase(phase === "charging" ? "bursting" : flying !== undefined && flies ? "flying" : "ended"), phase === "charging" ? crateChargesForMs : burstPlaysForMs);
+    const timer = setTimeout(() => setPhase(phase === "charging" ? "bursting" : onStage !== undefined && flies ? "flying" : "ended"), phase === "charging" ? crateChargesForMs : burstPlaysForMs);
     return () => clearTimeout(timer);
-  }, [phase, flying, flies]);
+  }, [phase, onStage, flies]);
 
   useEffect(() => {
-    if (phase === "flying" && flying === undefined) setPhase("ended");
-  }, [phase, flying]);
+    if (phase === "flying" && onStage === undefined) setPhase("ended");
+  }, [phase, onStage]);
 
   useEffect(() => {
     if (phase !== "charging") onSetOut(crate);
@@ -75,6 +77,7 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
   const replay = () => {
     if (reducedMotion) return setShownAt((times) => times + 1);
     setFlown([]);
+    setRehearsing(flies);
     setPhase("charging");
   };
 
@@ -90,8 +93,8 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
   };
 
   const onRewardTaken = useCallback((kind: RewardKind) => setFlown((taken) => (taken.includes(kind) ? taken : [...taken, kind])), []);
-  const landed = useCallback((kind: RewardKind) => onRewardLanded(crate, kind), [crate, onRewardLanded]);
-  const land = useCallback(() => onLanded(crate), [crate, onLanded]);
+  const landed = useCallback((kind: RewardKind) => !rehearsing && onRewardLanded(crate, kind), [rehearsing, crate, onRewardLanded]);
+  const land = useCallback(() => (rehearsing ? setRehearsing(false) : onLanded(crate)), [rehearsing, crate, onLanded]);
 
   return (
     <div
@@ -114,8 +117,8 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
           <TokenStage key={shownAt} tokens={tokens} stage={stageOf(phase)} flown={flown} />
           <CrateArt phase={playing ? "opening" : "open"} width={220} Hog={hogOf(crate.kind === "feature" ? crate.card.feature : "quests")} />
         </div>
-        {flying !== undefined && (phase === "flying" || phase === "ended") && (
-          <CrateRewardFlight reward={flying.reward} shown={shown} landAtOnce={phase === "ended"} onRewardTaken={onRewardTaken} onRewardLanded={landed} onLanded={land} />
+        {onStage !== undefined && (phase === "flying" || phase === "ended") && (
+          <CrateRewardFlight key={rehearsing ? "rehearsal" : "flight"} reward={onStage.reward} shown={shown} landAtOnce={phase === "ended"} rehearsal={rehearsing} onRewardTaken={onRewardTaken} onRewardLanded={landed} onLanded={land} />
         )}
         {!playing && crate.kind === "feature" && <EndState key={shownAt} card={crate.card} chips={<RewardChips tokens={tokens} />} chatUrl={chatUrl} othersReady={othersReady} onClose={onClose} onReplay={replay} />}
         {!playing && crate.kind === "quest" && <RewardEndState key={shownAt} crate={crate} chips={<RewardChips tokens={tokens} />} offerQuests={questsOpen && !fromQuests} onClose={onClose} onReplay={replay} />}
@@ -127,6 +130,10 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
 function stageOf(phase: Phase): Stage {
   if (phase === "charging") return "charging";
   return phase === "ended" ? "ended" : "popped";
+}
+
+function rehearsalOf(crate: ReadyCrate, reward: Reward): Flying {
+  return { flight: { crate, landed: [], setOut: true }, reward };
 }
 
 function useRewardOnStage(flying: Flying | undefined, crate: ReadyCrate) {
