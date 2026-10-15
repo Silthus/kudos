@@ -1,0 +1,18 @@
+# pnpm gate on 63a1b0a7 (main merged), under fleet heavy, load average ~40 from parallel lanes
+
+## typecheck and coherence
+`tsc --noEmit && tsc --noEmit -p website`: passed (the test step ran after it).
+`pnpm coherence`, run separately because the gate stops at the test step: exit 0, "0 rejected names, 0 unknown nouns (884 files), 37 in records".
+
+## tests
+     × for 105 members who opened Quests and 5 who didn't, each deciding quests for themselves, each sweep mutation schedules at most 100 draws within Convex's transaction limits, and a second run draws nothing new 60128ms
+     × a kudos to hundreds of members still gives within Convex's limits, and joins the draw 120450ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  2 failed | 207 passed (209)
+      Tests  2 failed | 3926 passed (3928)
+
+The two failures are the long Convex scale tests timing out under load (60 s and 120 s caps), which no file in this change touches.
+
+## rerun of the two files alone
+ Test Files  2 passed (2)
+      Tests  36 passed (36)

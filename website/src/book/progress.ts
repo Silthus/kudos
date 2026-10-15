@@ -43,6 +43,12 @@ export function recentlyEarned(ladders: readonly LadderCard[]): Shelved[] {
     .sort((a, b) => b.tier.earnedAt - a.tier.earnedAt);
 }
 
+export function newestEarned(ladders: readonly LadderCard[]): Shelved[] {
+  const earned = ladders.flatMap((ladder) => ladder.tiers.filter(isEarned).map((tier) => ({ ladder, tier })));
+  const newest = Math.max(...earned.map(({ tier }) => tier.earnedAt));
+  return earned.filter(({ tier }) => tier.earnedAt === newest);
+}
+
 export function isNew({ tier }: Shelved, now: number) {
   return now - tier.earnedAt < week;
 }

@@ -1,0 +1,72 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/polish-276/website
+
+ ❯ |website| src/FeaturePanels.test.tsx (27 tests | 1 failed) 18103ms
+   ❯ WS103: a locked panel (6)
+     × names the member's group in the Leaderboard's sentence only while groups are shown to them (#417) 328ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ❯ |website| src/featureGates.test.tsx (66 tests | 2 failed) 34041ms
+   ❯ WS323: a locked feature page shows the feature's own hedgehog, its level and its sentence (18)
+     × names the member's group on the locked Leaderboard page only while groups are shown to them (#417) 51ms
+     × names the member's group on the ready Leaderboard page only while groups are shown to them (#417) 68ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/FeaturePanels.test.tsx > WS103: a locked panel > names the member's group in the Leaderboard's sentence only while groups are shown to them (#417)
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  See where you and your group stand.
+Received:
+  LeaderboardUnlocks at level 3See where you stand.
+ ❯ src/FeaturePanels.test.tsx:141:34
+    139|   it("names the member's group in the Leaderboard's sentence only whil…
+    140|     renderApp({ ...shellFixtures.memberWithEveryPanelLocked, groups: t…
+    141|     expect(panel("Leaderboard")).toHaveTextContent("See where you and …
+       |                                  ^
+    142|   });
+    143|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  |website| src/featureGates.test.tsx > WS323: a locked feature page shows the feature's own hedgehog, its level and its sentence > names the member's group on the locked Leaderboard page only while groups are shown to them (#417)
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  See where you and your group stand.
+Received:
+  LeaderboardUnlocks at level 3See where you stand.Back to your profile
+ ❯ src/featureGates.test.tsx:147:20
+    145|     const leaderboard = featurePages[1]!;
+    146|     visit(leaderboard, { ...member, groups: true }, state);
+    147|     expect(main()).toHaveTextContent("See where you and your group sta…
+       |                    ^
+    148|   });
+    149| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  |website| src/featureGates.test.tsx > WS323: a locked feature page shows the feature's own hedgehog, its level and its sentence > names the member's group on the ready Leaderboard page only while groups are shown to them (#417)
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  See where you and your group stand.
+Received:
+  Leaderboard is readySee where you stand.Open
+ ❯ src/featureGates.test.tsx:147:20
+    145|     const leaderboard = featurePages[1]!;
+    146|     visit(leaderboard, { ...member, groups: true }, state);
+    147|     expect(main()).toHaveTextContent("See where you and your group sta…
+       |                    ^
+    148|   });
+    149| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 90 passed (93)
+   Start at  15:42:09
+   Duration  42.61s (tests 76%, transform 11%, import 7%, environment 4%, setup 1%)
+

@@ -191,6 +191,13 @@ describe("WS306: suggestions, keys, help and the unknown command", () => {
     expect(book).toHaveTextContent("achievements");
   });
 
+  it("says a ready page's blurb with its verb agreeing with the name", async () => {
+    const { user } = renderApp(onTheUnlockPath(card("quests", "Quests", 2, "ready")));
+    await user.keyboard("{Control>}k{/Control}");
+    await user.type(commandField(), "quests");
+    expect(options()[0]).toHaveTextContent("Quests are ready. Run it to open its crate.");
+  });
+
   it("moves the selection with Up and Down through aria-activedescendant, completes it with Tab and runs it with Enter", async () => {
     const { user } = renderApp(everyPageOpen);
     await user.keyboard("{Control>}k{/Control}");

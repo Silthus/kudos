@@ -5,6 +5,7 @@ import { AppLink } from "../AppLink";
 import { CrateGlyph } from "../crates/CrateArt";
 import { useMoments, type PopIn } from "../crates/moments";
 import { featureCrateOf } from "../crates/readyCrates";
+import { isOrAre } from "../features";
 import type { Screen } from "../route";
 import type { Feature, MemberProfile } from "../shell";
 import { navEntriesOf, type LockedEntry, type OpenEntry, type ReadyEntry } from "./entries";
@@ -68,7 +69,7 @@ function ReadyItem({ entry: { card, name } }: { entry: ReadyEntry }) {
     <WithTip
       tip={
         <>
-          <div className="font-medium">{name} is ready</div>
+          <div className="font-medium">{`${name} ${isOrAre(card.feature)} ready`}</div>
           <div>Open its crate to unlock it</div>
         </>
       }

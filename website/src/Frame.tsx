@@ -4,7 +4,7 @@ import { IconLeave } from "@posthog/icons";
 import { Button } from "@posthog/quill";
 import { AppLink, useNavigate } from "./AppLink";
 import { ReadyPill, ReadyPillFailure } from "./crates/ReadyPill";
-import { hudAvatarAttributes, skillPointChipAttributes } from "./crates/RewardFlight";
+import { coinsChipAttributes, hudAvatarAttributes, skillPointChipAttributes } from "./crates/RewardFlight";
 import { useCountUp } from "./countUp";
 import { useMoments } from "./crates/moments";
 import { featureCrateOf, type ReadyCrate } from "./crates/readyCrates";
@@ -16,8 +16,8 @@ import { commandsOf, type Shell } from "./palette/commands";
 import { paletteShortcut, usePaletteShortcut } from "./palette/shortcut";
 import type { Screen } from "./route";
 import type { MemberProfile } from "./shell";
-import { SkillPointGlyph } from "./skills/glyphs";
-import { chipName } from "./skills/perkWords";
+import { CoinGlyph, SkillPointGlyph } from "./skills/glyphs";
+import { chipName, coinsToSpend } from "./skills/perkWords";
 import { useTheme } from "./theme";
 import { ThemeControl } from "./ThemeControl";
 
@@ -35,6 +35,7 @@ export function Frame({ member, ready = [], readyElsewhere = [], current, busy, 
             <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2 max-sm:gap-1.5">
               {member && <PaletteChip onOpen={palette.toggle} />}
               {member && member.skillPoints !== null && <SkillPointChip points={member.skillPoints} />}
+              {member && member.coins !== null && <CoinsChip coins={member.coins} />}
               {member && <ReadyPill crates={ready} />}
               {member && <Avatar member={member} />}
               <ThemeControl />
@@ -114,6 +115,18 @@ function SkillPointChip({ points }: { points: number }) {
         <SkillPointGlyph />
         {counted}
       </AppLink>
+    </span>
+  );
+}
+
+function CoinsChip({ coins }: { coins: number }) {
+  const { className: popIn = "", onAnimationEnd } = usePopIn("coins", "chip");
+  const counted = useCountUp(coins);
+  const name = coinsToSpend(coins);
+  return (
+    <span role="img" aria-label={name} title={name} onAnimationEnd={onAnimationEnd} className={`inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums ${popIn}`} {...coinsChipAttributes()}>
+      <CoinGlyph />
+      {counted}
     </span>
   );
 }

@@ -85,3 +85,12 @@ export function contrastAtOpacity(mode: Mode, paint: string, surface: string, { 
   const [ink, ground, behind] = [paint, surface, backdrop].map((name) => linearRgbOf(resolve(tokens, name))) as [Rgb, Rgb, Rgb];
   return ratio(luminanceOf(over(ink, opacity, behind)), luminanceOf(over(ground, opacity, behind)));
 }
+
+export function contrastOnTint(mode: Mode, paint: string, tint: string, { backdrop }: { backdrop: string }) {
+  const tokens = declarationsIn(mode);
+  const mix = /^color-mix\(in oklab, (.+) ([\d.]+)%, transparent\)$/.exec(resolve(tokens, tint));
+  if (mix === null) throw new Error(`--${tint} is not a tint over transparent`);
+  const behind = linearRgbOf(resolve(tokens, backdrop));
+  const ground = over(linearRgbOf(mix[1]!), Number(mix[2]) / 100, behind);
+  return ratio(luminanceOf(linearRgbOf(resolve(tokens, paint))), luminanceOf(ground));
+}

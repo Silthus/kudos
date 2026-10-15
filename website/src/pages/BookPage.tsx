@@ -1,4 +1,5 @@
 import { BookIndex, BookPagePicker } from "../book/BookIndex";
+import { EarnedPage } from "../book/EarnedPage";
 import { chaptersOf, type Chapter } from "../book/categories";
 import { Ladder } from "../book/Ladder";
 import { Overview } from "../book/Overview";
@@ -9,7 +10,12 @@ import { useWideScreen } from "../useWideScreen";
 
 type YourBook = Extract<BookAnswer, { kind: "book" }>;
 
-export function BookPage({ book, page }: { book: YourBook; page: BookPageId }) {
+export function BookPage({ book, page, chatUrl }: { book: YourBook; page: BookPageId; chatUrl: string }) {
+  if (page === "earned") return <EarnedPage ladders={book.ladders} chatUrl={chatUrl} />;
+  return <BookPages book={book} page={page} />;
+}
+
+function BookPages({ book, page }: { book: YourBook; page: Exclude<BookPageId, "earned"> }) {
   const wide = useWideScreen();
   const chapters = chaptersOf(book.ladders);
   const chapter = chapters.find(({ category }) => category.id === page);

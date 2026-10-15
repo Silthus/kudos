@@ -1,0 +1,126 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/deep-link-targets
+
+ ❯ |website| src/deepLinkTargets.test.tsx (34 tests | 2 failed | 32 skipped) 402ms
+   ❯ #435: a quest or perk target waits for its page's content (2)
+     × lands /quests?quest= once Quests turn from ready to open 300ms
+     × lands /skills?perk= once the Skill tree turns from ready to open 101ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/deepLinkTargets.test.tsx > #435: a quest or perk target waits for its page's content > lands /quests?quest= once Quests turn from ready to open
+Error: expect(element).toHaveFocus()
+
+Expected element with focus:
+  <h2
+  class="w-fit rounded-sm text-base font-semibold leading-snug outline-offset-4"
+  tabindex="-1"
+>
+  Thank someone you haven't thanked before.
+</h2>
+Received element with focus:
+  <h1
+  class="hud-display font-bold outline-none text-4xl leading-none"
+  tabindex="-1"
+>
+  This week
+</h1>
+ ❯ src/deepLinkTargets.test.tsx:243:65
+    241|
+    242|     const goal = questsFixtures.week.slots[1]!.goal;
+    243|     expect(within(main()).getByRole("heading", { name: goal })).toHave…
+       |                                                                 ^
+    244|   });
+    245|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |website| src/deepLinkTargets.test.tsx > #435: a quest or perk target waits for its page's content > lands /skills?perk= once the Skill tree turns from ready to open
+AssertionError: expected [] to deeply equal [ …(1) ]
+
+- Expected
++ Received
+
+- [
+-   <button
+-     aria-label="Circle. Can buy. Costs 1 skill point."
+-     aria-pressed="false"
+-     class="group relative flex w-full max-w-28 flex-col items-center rounded-lg px-1 pb-1 pt-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+-     data-perk-target="circle"
+-     type="button"
+-   >
+-     <span
+-       class="relative flex size-11 items-center justify-center rounded-lg transition-colors group-hover:brightness-95 border-2 border-foreground bg-card text-foreground  "
+-       data-testid="perk-square"
+-     >
+-       <span
+-         aria-hidden="true"
+-         class="contents"
+-       >
+-         <svg
+-           class="LemonIcon shrink-0 size-5"
+-           fill="currentColor"
+-           viewBox="0 0 24 24"
+-           width="100%"
+-           xmlns="http://www.w3.org/2000/svg"
+-         >
+-           <path
+-             d="M19.928 2.526a1.25 1.25 0 0 1 1.546 1.545l-3.6 12.6a1.75 1.75 0 0 1-1.202 1.203l-12.6 3.6a1.25 1.25 0 0 1-1.546-1.545l3.6-12.601a1.75 1.75 0 0 1 1.202-1.202l12.6-3.6ZM7.74 7.568a.25.25 0 0 0-.172.172L4.092 19.908l12.168-3.477a.25.25 0 0 0 .171-.171l3.477-12.168L7.74 7.568ZM13.25 12a1.25 1.25 0 1 0-2.5 0 1.25 1.25 0 0 0 2.5 0Zm1.5 0a2.75 2.75 0 1 1-5.5 0 2.75 2.75 0 0 1 5.5 0Z"
+-           />
+-         </svg>
+-       </span>
+-     </span>
+-     <span
+-       class="mt-1.5 w-full truncate text-center text-[11px] leading-[14px] tracking-tight font-medium "
+-     >
+-       Circle
+-     </span>
+-     <span
+-       class="mt-0.5 flex h-4 items-center"
+-     >
+-       <span
+-         class="inline-flex h-4 items-center gap-1.5 rounded-full border bg-muted px-1.5 text-[10px] font-semibold tabular-nums text-foreground"
+-         data-testid="perk-cost"
+-       >
+-         <span
+-           class="inline-flex items-center gap-0.5"
+-         >
+-           <svg
+-             aria-hidden="true"
+-             class="shrink-0 text-completed-foreground size-2.5"
+-             viewBox="0 0 16 16"
+-           >
+-             <path
+-               d="M8 1 15 8 8 15 1 8Z"
+-               fill="currentColor"
+-             />
+-             <path
+-               d="M8 4.5 11.5 8 8 11.5 4.5 8Z"
+-               fill="var(--card)"
+-               opacity=".55"
+-             />
+-           </svg>
+-           1
+-         </span>
+-       </span>
+-     </span>
+-   </button>,
+- ]
++ []
+
+ ❯ src/deepLinkTargets.test.tsx:257:22
+    255|     showVisitor(withTheTree);
+    256|
+    257|     expect(scrolled).toEqual([perkNode("Circle")]);
+       |                      ^
+    258|     expect(perkNode("Circle")).toHaveFocus();
+    259|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 32 skipped (34)
+   Start at  18:00:38
+   Duration  4.88s (transform 34%, import 34%, environment 19%, tests 8%, setup 4%)
+

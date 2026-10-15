@@ -1,11 +1,17 @@
-import type { Infer } from "convex/values";
+import { v, type Infer } from "convex/values";
 import type { Quest } from "../quests/step";
-import type { Feature } from "../unlocks/feature";
+import { featureValidator, type Feature } from "../unlocks/feature";
 import type { pageValidator } from "./link";
 
 export type Page = Infer<typeof pageValidator>;
 
-export const routeList: readonly string[] = ["/", "/leaderboard", "/quests", "/skills", "/book", "/activity"];
+export const crateTargetValidator = v.union(...featureValidator.members, v.literal("journey"));
+
+export type CrateTarget = Infer<typeof crateTargetValidator>;
+
+export const crateTargets: readonly CrateTarget[] = crateTargetValidator.members.map(({ value }) => value);
+
+export const routeList: readonly string[] = ["/", "/leaderboard", "/quests", "/skills", "/book", "/book/earned", "/activity", "/settings"];
 
 export const signInEntry = "/sign-in";
 
@@ -34,9 +40,13 @@ export function routeOf(page: Page): string {
 }
 
 function searchOf(page: Page) {
-  if (page.page === "leaderboard" && page.period !== "week") return `?period=${page.period}`;
-  if (page.page === "quests" && page.quest !== undefined) return `?quest=${page.quest}`;
-  return "";
+  const search = new URLSearchParams();
+  if (page.page === "leaderboard" && page.period !== "week") search.set("period", page.period);
+  if (page.page === "quests" && page.quest !== undefined) search.set("quest", String(page.quest));
+  if (page.page === "skillTree" && page.perk !== undefined) search.set("perk", page.perk);
+  if (page.crate !== undefined) search.set("crate", page.crate);
+  const query = search.toString();
+  return query === "" ? "" : `?${query}`;
 }
 
 export function listedPageOf(feature: Feature): Page | null {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { signInEntry } from "../../convex/website/routes";
+import { perkValidator, type PerkId } from "../../convex/progression/tree";
+import { crateTargets, signInEntry, type CrateTarget } from "../../convex/website/routes";
 import { bookHref, categoryAsked, type CategoryId } from "./book/categories";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
@@ -8,19 +9,33 @@ export type QuestTarget = number | "journey";
 
 export type ActivityFilter = "all" | "received" | "given";
 
-export type Route = { page: "home" } | { page: "activity"; filter: ActivityFilter } | { page: "leaderboard"; period: Period } | { page: "quests"; quest?: QuestTarget } | { page: "book"; bookPage: BookPageId } | { page: "skills" } | { page: "not-found" };
+export type { CrateTarget };
 
-export type BookPageId = CategoryId | "overview";
+type Targets = { crate?: CrateTarget };
+
+export type Route =
+  | ({ page: "home" } & Targets)
+  | { page: "activity"; filter: ActivityFilter }
+  | ({ page: "leaderboard"; period: Period } & Targets)
+  | ({ page: "quests"; quest?: QuestTarget } & Targets)
+  | ({ page: "book"; bookPage: BookPageId } & Targets)
+  | ({ page: "skills"; perk?: PerkId } & Targets)
+  | { page: "settings" }
+  | { page: "not-found" };
+
+export type BookPageId = CategoryId | "overview" | "earned";
 
 export type Screen = Exclude<Route["page"], "not-found" | "activity">;
 
 const routeAt = {
-  "/": () => ({ page: "home" }),
+  "/": (search) => ({ page: "home", crate: crateIn(search) }),
   "/activity": (search) => ({ page: "activity", filter: filterIn(search) }),
-  "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search) }),
-  "/quests": (search) => ({ page: "quests", quest: questIn(search) }),
-  "/skills": () => ({ page: "skills" }),
-  "/book": (search) => ({ page: "book", bookPage: categoryAsked(search) }),
+  "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search), crate: crateIn(search) }),
+  "/quests": (search) => ({ page: "quests", quest: questIn(search), crate: crateIn(search) }),
+  "/skills": (search) => ({ page: "skills", perk: perkIn(search), crate: crateIn(search) }),
+  "/book": (search) => ({ page: "book", bookPage: categoryAsked(search), crate: crateIn(search) }),
+  "/book/earned": () => ({ page: "book", bookPage: "earned" }),
+  "/settings": () => ({ page: "settings" }),
 } satisfies Record<string, (search: string) => Route>;
 
 type ServedPath = keyof typeof routeAt;
@@ -38,12 +53,24 @@ export function withoutTheSignInEntry(pathname: string) {
 }
 
 export function hrefOf(route: Route) {
+  return withTargetsOf(route, pageHrefOf(route));
+}
+
+function pageHrefOf(route: Route) {
   if (route.page === "leaderboard") return leaderboardHref(route.period);
   if (route.page === "quests") return questsHref(route.quest);
   if (route.page === "book") return bookHref(route.bookPage);
   if (route.page === "activity") return activityHref(route.filter);
   if (route.page === "home" || route.page === "not-found") return "/";
   return `/${route.page}`;
+}
+
+function withTargetsOf(route: Route, href: string) {
+  const targets = new URLSearchParams();
+  if (route.page === "skills" && route.perk !== undefined) targets.set("perk", route.perk);
+  if ("crate" in route && route.crate !== undefined) targets.set("crate", route.crate);
+  if (targets.size === 0) return href;
+  return `${href}${href.includes("?") ? "&" : "?"}${targets}`;
 }
 
 export function questsHref(quest?: QuestTarget) {
@@ -74,6 +101,18 @@ function questIn(search: string): QuestTarget | undefined {
   const asked = new URLSearchParams(search).get("quest");
   if (asked === "journey") return asked;
   return asked !== null && /^\d+$/.test(asked) ? Number(asked) : undefined;
+}
+
+const perks: readonly PerkId[] = perkValidator.members.map(({ value }) => value);
+
+function perkIn(search: string): PerkId | undefined {
+  const asked = new URLSearchParams(search).get("perk");
+  return perks.find((perk) => perk === asked);
+}
+
+function crateIn(search: string): CrateTarget | undefined {
+  const asked = new URLSearchParams(search).get("crate");
+  return crateTargets.find((target) => target === asked);
 }
 
 function currentRoute() {

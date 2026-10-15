@@ -41,6 +41,7 @@ export function categoryAsked(search: string): CategoryId | "overview" {
   return categories.find(({ id }) => id === asked)?.id ?? "overview";
 }
 
-export function bookHref(page: CategoryId | "overview") {
-  return page === "overview" ? "/book" : `/book?page=${page}`;
+export function bookHref(page: CategoryId | "overview" | "earned") {
+  if (page === "overview") return "/book";
+  return page === "earned" ? "/book/earned" : `/book?page=${page}`;
 }

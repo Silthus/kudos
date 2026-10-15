@@ -2,7 +2,7 @@ export type RichElement =
   | { type: "user"; user_id: string; style?: Style }
   | { type: "usergroup"; usergroup_id: string }
   | { type: "broadcast"; range: "here" | "channel" | "everyone" }
-  | { type: "emoji"; name: string; unicode?: string; style?: Style }
+  | { type: "emoji"; name: string; unicode?: string; skin_tone?: number; style?: Style }
   | { type: "text"; text: string; style?: Style }
   | { type: "link"; url: string; text?: string }
   | { type: "channel"; channel_id: string }
@@ -15,6 +15,7 @@ export const userGroup = (id: string): RichElement => ({ type: "usergroup", user
 export const broadcast = (range: "here" | "channel" | "everyone"): RichElement => ({ type: "broadcast", range });
 export const emoji = (name: string, style?: Style): RichElement => ({ type: "emoji", name, ...(style && { style }) });
 export const unicodeEmoji = (name: string, unicode: string): RichElement => ({ type: "emoji", name, unicode });
+export const tonedEmoji = (name: string, skinTone: number, unicode?: string): RichElement => ({ type: "emoji", name, skin_tone: skinTone, ...(unicode && { unicode }) });
 export const text = (value: string, style?: Style): RichElement => ({ type: "text", text: value, ...(style && { style }) });
 export const link = (url: string, label?: string): RichElement => ({ type: "link", url, ...(label && { text: label }) });
 export const channel = (id: string): RichElement => ({ type: "channel", channel_id: id });
