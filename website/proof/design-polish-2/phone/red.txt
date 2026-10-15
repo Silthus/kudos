@@ -1,0 +1,71 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/design-polish-2/website
+
+ ❯ |website| src/phonePolish.test.tsx (7 tests | 4 failed) 2839ms
+   ❯ #481 1: on a phone the face and the level ring share one row above the name (2)
+     × wraps the face and the ring in a row that dissolves from sm, so wide screens keep the hero as it was 1060ms
+     × keeps the face alone in the row while the member has no level yet 141ms
+   ❯ #481 2: the Everyone card's standing never wraps (2)
+     × keeps the words and the rank on one line when ranked 488ms
+     × keeps the words and the rank on one line when tied 133ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/phonePolish.test.tsx > #481 1: on a phone the face and the level ring share one row above the name > wraps the face and the ring in a row that dissolves from sm, so wide screens keep the hero as it was
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"flex items-center sm:contents"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  flex items-center sm:contents[39m
+Received:
+[31m  flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:gap-7 sm:py-4[39m
+ ❯ src/phonePolish.test.tsx:67:17
+     65|     const row = face.parentElement!;
+     66|     expect(ring.parentElement).toBe(row);
+     67|     expect(row).toHaveClass("flex", "items-center", "sm:contents");
+       |                 ^
+     68|     expect(hero).toHaveClass("flex-col", "sm:flex-row");
+     69|     expect(face).toHaveClass("size-28");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  |website| src/phonePolish.test.tsx > #481 1: on a phone the face and the level ring share one row above the name > keeps the face alone in the row while the member has no level yet
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"sm:contents"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  sm:contents[39m
+Received:
+[31m  flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:gap-7 sm:py-4[39m
+ ❯ src/phonePolish.test.tsx:76:17
+     74|     const hero = within(screen.getByRole("main")).getByRole("region", …
+     75|     const row = within(hero).getByText("SE").parentElement!;
+     76|     expect(row).toHaveClass("sm:contents");
+       |                 ^
+     77|     expect(within(hero).queryByRole("img", { name: /^Level/ })).toBeNu…
+     78|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  |website| src/phonePolish.test.tsx > #481 2: the Everyone card's standing never wraps > keeps the words and the rank on one line when ranked
+ FAIL  |website| src/phonePolish.test.tsx > #481 2: the Everyone card's standing never wraps > keeps the words and the rank on one line when tied
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"whitespace-nowrap shrink-0"[32m[39m[2m)[22m
+
+Expected the element to have class:
+[32m  whitespace-nowrap shrink-0[39m
+Received:
+[31m  ml-auto text-sm font-medium tabular-nums[39m
+ ❯ src/phonePolish.test.tsx:90:22
+     88|     const card = within(screen.getByRole("main")).getByRole("heading",…
+     89|     const standing = card.querySelector("[data-rank]")!.parentElement!;
+     90|     expect(standing).toHaveClass("whitespace-nowrap", "shrink-0");
+       |                      ^
+     91|   });
+     92| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 3 passed (7)
+   Start at  20:56:20
+   Duration  7.74s (tests 38%, import 33%, transform 19%, environment 7%, setup 2%)
+
