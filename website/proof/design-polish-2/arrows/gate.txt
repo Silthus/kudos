@@ -20,6 +20,19 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: navigation to another Document
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -282,24 +295,11 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
- Test Files  240 passed (240)
-      Tests  4451 passed (4451)
-   Start at  22:12:45
-   Duration  243.98s (tests 90%, import 6%, environment 2%, transform 1%)
+ Test Files  241 passed (241)
+      Tests  4459 passed (4459)
+   Start at  22:17:41
+   Duration  205.65s (tests 90%, import 6%, environment 2%, transform 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -1251,5 +1251,5 @@ RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:28  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/fecc2f56-01b5-4d62-9295-680f82cdb9ca.jsonl:4  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 ADVISORY       355 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 116, contract 44, panel 37, receipt 35, zone 33; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (983 files), 37 in records
+0 rejected names, 0 unknown nouns (985 files), 37 in records
 exit 0
