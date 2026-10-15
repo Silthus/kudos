@@ -1,3 +1,4 @@
+import type { FunctionReturnType } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { type FakePostHog, type FlagDefinition, flagsKey, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
@@ -119,6 +120,8 @@ describe("CL18: the collection is dark where collection is off, drops only for t
     await hoggiesAliceSees();
     await flagsFromPostHog(t, postHog, ...everyFlagWith(offForEveryone(collection), ...websiteOpen));
     await openInSlack(alice.user, { type: "openUnlock", feature: "leaderboard" });
+    await openInSlack(bob.user, { type: "openUnlock", feature: "coins" });
+    expect(collectionExposures()).toEqual({ [await analyticsIdOf(alice.user)]: [true, false] });
     await openInSlack(bob.user, { type: "openQuestCrate", quest: firstThanks });
     await flagsFromPostHog(t, postHog, ...everyFlagWith(onForEveryone(collection), ...websiteOpen));
     await openInSlack(bob.user, { type: "openUnlock", feature: "leaderboard" });
@@ -166,6 +169,7 @@ describe("CL11: turning collection off hides every hoggie and takes nothing away
 
 
 let t: Backend;
+let namedIds = new Map<string, string>();
 
 const everyFlagAnd = (collectionFlag: FlagDefinition) => () => flagsFromPostHog(t, postHog, ...everyFlagWith(collectionFlag, ...websiteOpen));
 
@@ -212,6 +216,7 @@ async function aliceAndBobAtLevelFour(collectionFlag: FlagDefinition[], turnOff?
 
 async function walkIn(backend: Backend) {
   t = backend;
+  namedIds = await idsNamedByTheirMember();
   for (const { user } of [alice, bob]) {
     await openHome(user);
     await openInSlack(user, { type: "openUnlock", feature: opensOf[user]!.inSlack });
@@ -234,16 +239,19 @@ async function walkIn(backend: Backend) {
   } satisfies Record<string, unknown>;
 }
 
+type ActivityPage = FunctionReturnType<typeof api.website.activity.getActivity>;
+
 async function onTheWebsite(identity: { user: string; name: string }) {
   const asSignedIn = await signedIn(identity);
   const opens = [await asSignedIn.mutation(api.website.commands.openFeature, { feature: opensOf[identity.user]!.onTheWebsite }), await asSignedIn.mutation(api.website.commands.openQuestCrate, { quest: firstThanks })];
   await settleInTimeOrder(t);
-  const activity = [];
-  for (let cursor: string | null = null, page = 0; page === 0 || (cursor !== null && page < 20); page++) {
-    const answer = await asSignedIn.query(api.website.activity.getActivity, { filter: "all", cursor, limit: 2 });
-    activity.push(answer);
-    cursor = "cursor" in answer ? answer.cursor : null;
-  }
+  const activity: ActivityPage[] = [];
+  let cursor: string | null = null;
+  do {
+    const page: ActivityPage = await asSignedIn.query(api.website.activity.getActivity, { filter: "all" as const, cursor, limit: 2 });
+    activity.push(page);
+    cursor = "cursor" in page ? page.cursor : null;
+  } while (cursor !== null);
   return {
     opens,
     activity: withStableIds(activity),
@@ -274,7 +282,8 @@ function orderFree<T>(rows: T[]): T[] {
 
 const convexTestId = /^\d+[a-zA-Z]+$/;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const positioned = new Set(["key", "cursor", "seen", "eventId", "position"]);
+const positioned = new Set(["cursor", "seen", "eventId", "position"]);
+const activityPosition = /^\d+(\.\d+)?_\d_[\d.]+$/;
 
 function withStableIds<T>(value: T): T {
   const seen = new Map<string, string>();
@@ -283,6 +292,8 @@ function withStableIds<T>(value: T): T {
     if (key === "_id" || key === "_creationTime" || key === "uuid") return undefined;
     if (positioned.has(key) && field !== null) return "<position>";
     if (typeof field !== "string") return field;
+    if (activityPosition.test(field)) return "<position>";
+    if (namedIds.has(field)) return namedIds.get(field);
     if (convexTestId.test(field)) return stable("document", field);
     return uuid.test(field) ? stable("uuid", field) : field;
   });
@@ -298,6 +309,22 @@ async function rowsWritten() {
   });
   const written = withStableIds(withoutCollectionExposure(tables));
   return Object.fromEntries(Object.entries(written).map(([table, rows]) => [table, orderFree(rows)])) as typeof written;
+}
+
+async function idsNamedByTheirMember() {
+  const named = new Map<string, string>();
+  for (const { user } of [alice, bob]) {
+    const member = await memberOf(user);
+    named.set(member, `<member ${user}>`);
+    const analytics = await t.run((ctx) =>
+      ctx.db
+        .query("analyticsIds")
+        .withIndex("by_member", (q) => q.eq("member", member))
+        .unique(),
+    );
+    if (analytics !== null) named.set(analytics.analyticsId, `<analytics ID of ${user}>`);
+  }
+  return named;
 }
 
 function dropRows() {
