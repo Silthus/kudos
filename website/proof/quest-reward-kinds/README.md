@@ -39,3 +39,10 @@ Read in the browser:
 
 - `review-round-1.md`: GPT-6.1 Sol, two findings. One was fixed (vacuous negative tests). One was rejected with its reason (the reveal keeping coins when the flag flips mid-reveal).
 - `fable-spot-check.md`: Fable 5.1.
+
+## Scope change after #446 merged: crates are loot boxes
+
+The product owner's call, relayed by map #57's conductor: "You don't know what you get before you open the crate."
+
+- **A closed crate's label shows no reward** (journal `d-694cb2b4`). The follow-up PR drops the coins #446 added to `RewardCrate`'s label. The label's older "Journey reward · 40 XP" text predates #287 and stays for #452 to remove. `red-loot-box.txt` shows the new test failing against `main`'s `RewardCrate` at `f20c7315`.
+- **The reveal belongs to Fable lane #452** (journal `d-09562e9d`). The follow-up returns `RevealDialog`'s headline and its live-region line to their pre-#446 wording and removes the `Rewards` chips. So `4-reveal-end-dark.png` shows a state that no longer ships. The coins flight onto the header chip after the reveal closes stays, as does every quest card, bonus card, waiting card, home row and the active Journey line.
