@@ -264,6 +264,13 @@ describe("WS213: the three kinds of entry", () => {
     expect(within(entry).queryByRole("link", { name: /Open in Slack/ })).not.toBeInTheDocument();
   });
 
+  it("shows no channel tag for a kudos whose channel isn't known, such as a deleted one", async () => {
+    await openedWith([aReceived("deleted", now - minute, { saidWhy: true, channel: { visibility: "unknown" }, message: { kind: "unavailable", reason: "deleted" } })]);
+    const entry = article("Ada Lindqvist thanked you");
+    expect(within(entry).queryByText("Private channel")).not.toBeInTheDocument();
+    expect(within(entry).getByText("Said why")).toBeInTheDocument();
+  });
+
   it("shows a kudos given with its recipients, the kudos each, and what it earned", async () => {
     await openedWith([
       aGiven("g1", now - minute, {

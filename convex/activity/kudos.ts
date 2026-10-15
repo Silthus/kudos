@@ -13,7 +13,7 @@ import type { Channel, Message, Person, Segment } from "./entries";
 
 export type KudosFacts = { channel: Channel; saidWhy: boolean | null; permalink: string | null; message: Message };
 
-const privateChannel: Channel = { visibility: "private" };
+const unknownChannel: Channel = { visibility: "unknown" };
 const unknownGroupHandle = "group";
 const broadcastRanges = ["here", "channel", "everyone"] as const;
 
@@ -49,9 +49,8 @@ export async function personOf(ctx: QueryCtx, member: MemberId): Promise<Person>
 
 async function wordsAndChannelOf(ctx: QueryCtx, mentions: Mentions, ref: MessageRef): Promise<{ channel: Channel; message: Message }> {
   const text = await wordsOf(ctx, ref);
-  if (text.kind === "unavailable") return { channel: privateChannel, message: { kind: "unavailable", reason: text.reason } };
-  const channel: Channel = { visibility: text.visibility === "public" ? "public" : "private" };
-  return { channel, message: { kind: "text", segments: await readableSegmentsOf(mentions, ref.workspace, text.segments), edited: text.edited } };
+  if (text.kind === "unavailable") return { channel: unknownChannel, message: { kind: "unavailable", reason: text.reason } };
+  return { channel: { visibility: text.visibility }, message: { kind: "text", segments: await readableSegmentsOf(mentions, ref.workspace, text.segments), edited: text.edited } };
 }
 
 export function readableSegmentsOf(mentions: Mentions, workspace: string, segments: WordSegment[]): Promise<Segment[]> {

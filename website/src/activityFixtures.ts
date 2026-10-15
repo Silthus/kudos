@@ -80,8 +80,8 @@ const story: ActivityEntry[] = [
     message: words("For the whole team offsite ", { kind: "broadcast", range: "here" }),
     earned: { xp: 10, questsDone: [{ kind: "journey", goal: "Thank five teammates at once", xp: 50 }], bonuses: [] },
   }),
-  aReceived("old-kudos", fixtureNow - 75 * hour, { giver: teammates.former, message: { kind: "unavailable", reason: "not-captured" } }),
-  aReceived("deleted", fixtureNow - 76 * hour, { giver: teammates.eli, message: { kind: "unavailable", reason: "deleted" } }),
+  aReceived("old-kudos", fixtureNow - 75 * hour, { giver: teammates.former, channel: { visibility: "unknown" }, message: { kind: "unavailable", reason: "not-captured" } }),
+  aReceived("deleted", fixtureNow - 76 * hour, { giver: teammates.eli, channel: { visibility: "unknown" }, message: { kind: "unavailable", reason: "deleted" } }),
   aLevelUp(5, fixtureNow - 80 * hour),
 ];
 
