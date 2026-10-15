@@ -7,6 +7,7 @@ import { rewardOf } from "../progression/rewards";
 import type { MemberId } from "../workspace/directory";
 import { rewardKeyOf } from "./crates";
 import { rewardHeldFor } from "./crateRewardsFlag";
+import { questsApplyTo } from "./flag";
 import type { Reward } from "./journey";
 import { crateFinished } from "./pendingCrates";
 import type { QuestId } from "./pool";
@@ -17,7 +18,7 @@ export type PromisedReward = { reward: Reward; catalogueVersion: string; poolQue
 export async function finishQuest(ctx: MutationCtx, workspace: string, member: MemberId, quest: Quest, { reward, catalogueVersion, poolQuest }: PromisedReward, at: number, cause?: MessageRef): Promise<boolean> {
   const key = rewardKeyOf(quest);
   if ((await rewardOf(ctx, member, key)) !== null) return false;
-  const held = await rewardHeldFor(ctx, member);
+  const held = (await questsApplyTo(ctx, member)) && (await rewardHeldFor(ctx, member));
   await recordReward(ctx, workspace, { member, key, ...reward, catalogueVersion, at, ...(cause && { cause }), ...(held && { held }) });
   await crateFinished(ctx, member, quest);
   const { xp, coins } = reward;

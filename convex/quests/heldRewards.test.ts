@@ -239,6 +239,20 @@ describe("CR15: crate-rewards is read with exposure only where a quest's reward 
   });
 });
 
+describe("CR15: a finish where quests doesn't apply never reads crate-rewards", () => {
+  test("a Journey join queued before quests turned off for the member pays the step at its finish and sends no crate-rewards exposure", async () => {
+    const t = await workspaceDeciding(onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("quests"), onForEveryone(crateRewards));
+    await openHome(t, "U_ALICE");
+    const alice = await t.run((ctx) => memberIn(ctx, "U_ALICE"));
+
+    await t.run((ctx) => finishQuest(ctx, "T1", alice, { kind: "journey", step: "first-thanks" }, { reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "1" }, Date.now()));
+    await settle(t);
+
+    expect(await standingAndBalanceOf(t, "U_ALICE")).toEqual({ xp: 10, level: 1, skillPoints: 0, balance: 0 });
+    expect(await exposuresOf(t)).toEqual([]);
+  });
+});
+
 async function workspaceDeciding(...definitions: FlagDefinition[]) {
   slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB").withMember("U_CAROL");
   sentMessages = 0;
