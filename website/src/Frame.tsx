@@ -21,13 +21,13 @@ import { chipName, coinsToSpend } from "./skills/perkWords";
 import { useTheme } from "./theme";
 import { ThemeControl } from "./ThemeControl";
 
-type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; readyElsewhere?: ReadyCrate[]; current?: Screen; busy: boolean; inert?: boolean; notice?: ReactNode; onSignOut?: () => void; children: ReactNode };
+type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; readyElsewhere?: ReadyCrate[]; current?: Screen; busy: boolean; revealing?: boolean; notice?: ReactNode; onSignOut?: () => void; children: ReactNode };
 
-export function Frame({ member, ready = [], readyElsewhere = [], current, busy, inert, notice, onSignOut, children }: FrameProps) {
-  const palette = usePalette(member !== undefined && !inert);
+export function Frame({ member, ready = [], readyElsewhere = [], current, busy, revealing = false, notice, onSignOut, children }: FrameProps) {
+  const palette = usePalette(member !== undefined && !revealing);
   return (
     <>
-      <div className="hud-root flex min-h-screen flex-col" inert={inert || palette.open}>
+      <div className="hud-root flex min-h-screen flex-col" inert={revealing || palette.open} data-revealing={revealing || undefined}>
         <header className="sticky top-0 z-40 border-b bg-card/85 shadow-[0_1px_0_0_color-mix(in_oklab,var(--foreground)_4%,transparent)] backdrop-blur-md">
           <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-lg:gap-y-1 max-lg:pt-2 max-sm:gap-x-2 md:px-6">
             <Wordmark />

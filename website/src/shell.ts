@@ -4,6 +4,9 @@ import type { PerkId } from "../../convex/progression/tree";
 import type { CommandAnswer, GroupPickAnswer, MessageSettingAnswer, PurchaseAnswer, SwapAnswer, VisibilityAnswer } from "../../convex/website/commands";
 import type { MessageKind, MessagePlace, SettingsAnswer } from "../../convex/website/settings";
 import type { Denial } from "../../convex/website/memberQuery";
+import type { WithADrop } from "./crates/drops";
+
+export type { Drop, Rarity } from "./crates/drops";
 import type { FeatureCard, JourneyStep, MemberProfile, MyProfile } from "../../convex/website/profile";
 import type { QuestsAnswer } from "../../convex/website/quests";
 import type { BookAnswer } from "../../convex/website/book";
@@ -35,7 +38,7 @@ export type Leaderboard = EveryoneBoard & Omit<GroupBoards, "kind">;
 
 export type MyLeaderboard = Exclude<MyEveryoneBoard, EveryoneBoard> | Leaderboard;
 
-export type OpenAnswer = CommandAnswer | Denial;
+export type OpenAnswer = (CommandAnswer | Denial) & WithADrop;
 
 export type Purchase = { perk: PerkId; request: string };
 

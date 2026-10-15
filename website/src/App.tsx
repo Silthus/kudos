@@ -1,16 +1,15 @@
 import { useCallback, useLayoutEffect, useRef } from "react";
 import { NavigateProvider } from "./AppLink";
 import { LevelUpAnnouncement, MomentAnnouncement } from "./crates/MomentAnnouncement";
-import { MomentsProvider, useCrateMoments, useMembersShown } from "./crates/moments";
+import { MomentsProvider, useCrateMoments, useMembersShown, type Flight, type Reveal } from "./crates/moments";
 import { isShownOn, readyCratesOf } from "./crates/readyCrates";
-import { RevealDialog } from "./crates/RevealDialog";
-import { CrateRewardFlight } from "./crates/CrateRewardFlight";
+import { RevealDialog, type Flying } from "./crates/RevealDialog";
 import { ClimbFlight } from "./climb/ClimbFlight";
 import { ClimbSummary } from "./climb/ClimbSummary";
 import { useClimbOnReturn } from "./climb/useClimbOnReturn";
 import { LevelUpCelebration } from "./levelUp/LevelUpCelebration";
 import { useLevelUps } from "./levelUp/useLevelUps";
-import { rewardsOf, withTheRewardsHeld } from "./crates/rewards";
+import { rewardsOf, withTheRewardsHeld, type Reward } from "./crates/rewards";
 import type { ActivityRead, ActivityShown, ActivityWatch } from "./activityRead";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import type { BookRead, BookShown } from "./bookRead";
@@ -80,6 +79,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   const rewards = member === undefined ? [] : rewardsOf(member, moments.onTheWay);
   const { chart } = moments;
   useLayoutEffect(() => chart(rewards), [chart, rewards]);
+  const flying = flyingOf(moments.flight, rewards[0], reveal);
   useTitleFocusAfterChange(onActivity ? activityPageOf(activity) : onTheBoard ? boardPageOf(board) : onQuests ? questsPageOf(quests) : onBook ? bookPageOf(book) : onSkills ? skillTreePageOf(skillTree) : onSettings ? settingsPageOf(settings) : shown.kind, { held: revealing });
   useTitleFocusWhenTheFocusedElementGoes();
   const expectArrival = useTitleFocusOnArrival();
@@ -108,17 +108,27 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
         {signingIn ? (
           <SignedOutPage returnTo={hrefOf(route)} onSignIn={signIn} />
         ) : (
-          <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={busy} inert={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
+          <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={busy} revealing={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
             <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
               <Page state={page} route={route} board={board} quests={quests} book={book} skillTree={skillTree} settings={settings} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} settingsActions={actions} onSignIn={signIn} onSignOut={actions.signOut} />
             </ErrorBoundary>
           </Frame>
         )}
-        {reveal !== undefined && member !== undefined && (
-          <RevealDialog key={reveal.crate.seen} {...reveal} chatUrl={member.chatUrl} questsOpen={questsOpen} othersReady={readyCrates.filter(({ seen }) => seen !== reveal.crate.seen)} onFinish={moments.finish} onClose={moments.close} />
-        )}
-        {moments.flight !== undefined && member !== undefined && memberShown !== undefined && (
-          <CrateRewardFlight key={moments.flight.crate.seen} flight={moments.flight} reward={rewards[0]!} shown={memberShown} onRewardLanded={moments.landed} onLanded={moments.land} />
+        {reveal !== undefined && member !== undefined && memberShown !== undefined && (
+          <RevealDialog
+            key={reveal.crate.seen}
+            {...reveal}
+            chatUrl={member.chatUrl}
+            questsOpen={questsOpen}
+            othersReady={readyCrates.filter(({ seen }) => seen !== reveal.crate.seen)}
+            flying={flying}
+            shown={memberShown}
+            onFinish={moments.finish}
+            onClose={moments.close}
+            onSetOut={moments.setOut}
+            onRewardLanded={moments.landed}
+            onLanded={moments.land}
+          />
         )}
         {climb.chips !== undefined && memberShown !== undefined && <ClimbFlight chips={climb.chips} shown={memberShown} onLanded={climb.landed} onFinished={climb.finish} />}
         {levels.levelUp !== undefined && memberShown !== undefined && <LevelUpCelebration key={levels.levelUp.key} levelUp={levels.levelUp} onDone={levels.done} />}
@@ -127,6 +137,11 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
       </MomentsProvider>
     </NavigateProvider>
   );
+}
+
+function flyingOf(flight: Flight | undefined, reward: Reward | undefined, reveal: Reveal | undefined): Flying | undefined {
+  if (flight === undefined || reward === undefined || reveal === undefined || flight.crate.seen !== reveal.crate.seen) return undefined;
+  return { flight, reward };
 }
 
 function cratesOf(member: MemberProfile | undefined) {
