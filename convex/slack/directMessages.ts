@@ -19,9 +19,10 @@ export const deliverDirectMessage = observedAction({
         const lines = await ctx.runQuery(internal.feedback.notify.linesStillWanted, { member: message.member, notification: message.notification });
         if (lines === null) return null;
         const content = messageOf(lines, message.workspace);
-        const beside = message.kudos === undefined ? null : await ctx.runQuery(internal.feedback.beside.placeBesideTheKudos, { member: message.member, notification: message.notification, kudos: message.kudos });
-        if (beside !== null) return sendBesideOrAsDirectMessage(ctx, message.workspace, message.user, beside, content, attempt);
-        return sendOnce(ctx, message.workspace, "chat.postMessage", { channel: message.user, ...content }, attempt);
+        const destination = message.kudos === undefined ? "dm" : await ctx.runQuery(internal.feedback.beside.placeBesideTheKudos, { member: message.member, notification: message.notification, kudos: message.kudos });
+        if (destination === "none") return null;
+        if (destination === "dm") return sendOnce(ctx, message.workspace, "chat.postMessage", { channel: message.user, ...content }, attempt);
+        return sendBesideOrAsDirectMessage(ctx, message.workspace, message.user, destination, content, attempt);
       },
       (retry) => ctx.scheduler.runAt(retry.at, internal.slack.directMessages.deliverDirectMessage, { ...message, attempt: retry.attempt }),
     );

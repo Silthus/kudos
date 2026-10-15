@@ -14,7 +14,7 @@ import { purchaseOutcomeValidator } from "../progression/purchases";
 import { xpLevelsOnFor, xpLevelsShownTo } from "../progression/xpLevels";
 import { journeyStepAppliesIn, questsApplyTo } from "../quests/flag";
 import type { MessageKind } from "../messageSettings/kinds";
-import { wantsMessage } from "../messageSettings/messageSettings";
+import { placeOf, wantsMessage } from "../messageSettings/messageSettings";
 import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type WeeklyQuest } from "../quests/step";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
@@ -95,9 +95,10 @@ export async function notifyWeeklyQuestFinished(ctx: MutationCtx, member: Member
 }
 
 export async function notify(ctx: MutationCtx, member: MemberId, notification: Notification, kudos?: MessageRef) {
-  if (!(await wantsNotification(ctx, member, notification))) return;
+  const place = await placeOf(ctx, member, messageKindOfNotification(notification));
+  if (place === "none") return;
   const { workspace, user } = await chatUserOf(ctx, member);
-  await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverDirectMessage, { member, workspace, user, notification, ...(kudos && { kudos }) });
+  await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverDirectMessage, { member, workspace, user, notification, ...(kudos && place === "channel" && { kudos }) });
 }
 
 export function messageKindOfNotification(notification: Notification): MessageKind {

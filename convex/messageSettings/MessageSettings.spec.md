@@ -4,13 +4,14 @@ A member's message settings, one place per kind of message HedgeHug sends them (
 
 ## invariants
 - a message a member turned off is never sent: A DM of a kind the member turned off, or has off from their stored progress settings, is never sent: it is not written while the kind is off, and one already on its way is not sent once it is off when Slack takes it; a member's section is left out of every public reply posted or edited while their `celebrations` is off, as muted notices are today. Both hold whatever the `message-settings` flag says.
-  over: the level-up DM and the public celebration of a level reached through a kudos message with `level-ups` or `celebrations` turned off from App Home; a level-up DM Slack held back while the member turned `level-ups` off; a DM of each of the six notification kinds already on its way, delivered while its kind is on and again once it is off; and a DM of each kind written while it is off, turned on again before Slack would take it
+  over: the level-up DM and the public celebration of a level reached through a kudos message with `level-ups` or `celebrations` turned off from App Home; a level-up DM Slack held back while the member turned `level-ups` off; a DM of each of the six notification kinds already on its way, delivered while its kind is on and again once it is off; and a DM of each kind written while it is off, turned on again before Slack would take it; and a level up on its way beside a kudos whose place became none after its lines were read
   via: QM16: a message a member turned off is never sent
   because: members asked for quieter messages (decision 22); a setting a member chose that HedgeHug ignored, or that a queued message slipped past, would break the promise the Settings tab makes the moment they click it (QM16)
   crossing: slack-request -> domain
   entrances: route POST /slack/events, route POST /slack/interactivity
   refuted: wantsNotification in convex/feedback/notify.ts answered true without reading the member's message setting -> 8 of 9 tests failed, the turned-off DMs sent at write and when Slack took them (2026-10-14)
   refuted: notify in convex/feedback/notify.ts wrote every DM whatever the member's message setting, leaving only the delivery re-check -> 6 of 15 tests failed, each DM written while its kind was off sent once it was on again (2026-10-14)
+  refuted: placeBesideTheKudos answered dm for every place but the channel, so a None read at delivery sent the DM -> 1 of 17 failed, the level up beside a kudos whose member has since picked None (2026-10-15)
   kinds: output, state
   checklist: revalidated-permission dismissed: no permission is involved; each delivery attempt rereads the member's current setting before Slack is called
   checklist: destination-confinement dismissed: a place only picks between the member's own DM and an ephemeral only they see beside the kudos message that caused it; nothing is posted where others can see it

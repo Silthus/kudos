@@ -114,8 +114,8 @@ describe("QM23: tips follow their reply", () => {
   });
 });
 
-describe("QM23: the after-kudos reply as a DM", () => {
-  test("arrives as a DM to the giver with its gains line and footer, and no ephemeral", async () => {
+describe("R33: replies reach only the giver", () => {
+  test("QM23: a Given reply its giver chose as a DM arrives in their DM alone, with its gains line and footer, and no ephemeral", async () => {
     const t = await settingsOpen([messageSettings, "xp-levels"]);
     await pick(t, "U_ALICE", "After-kudos reply", "As a DM");
     const ephemeralsBefore = slack.ephemeralsTo("U_ALICE").length;
@@ -178,7 +178,7 @@ describe("QM24: in the channel, beside the kudos message that caused it", () => 
 });
 
 describe("QM25: when in-channel can't be, it arrives as a DM", () => {
-  test.each(noKudosBehind)("%s, with no kudos message behind it, arrives as a DM", async (_, notification) => {
+  test.each(noKudosBehind)("a DM job with no kudos message behind it, as %s schedules, arrives as a DM", async (_, notification) => {
     const t = await everythingOpen();
     for (const kind of ["level-ups", "quests", "achievements"] as const) await place(t, "U_ALICE", kind, "channel");
     const [ephemerals, dms] = [slack.ephemeralsTo("U_ALICE").length, postsTo("U_ALICE").length];
@@ -214,6 +214,41 @@ describe("QM25: when in-channel can't be, it arrives as a DM", () => {
 
     expect(slack.ephemeralsTo("U_ALICE").slice(before).filter(({ text }) => String(text).startsWith(givenToBob))).toHaveLength(tries);
     expect(postsTo("U_ALICE").filter((text) => text.startsWith(givenToBob))).toEqual([]);
+  });
+});
+
+describe("QM16: a message a member turned off is never sent", () => {
+  test("a level up beside a kudos whose member has since picked None is withheld, not sent as a DM", async () => {
+    const t = await settingsOpen([messageSettings, "xp-levels"]);
+    await place(t, "U_ALICE", "level-ups", "none");
+    const member = await t.run((ctx) => memberIn(ctx, "U_ALICE"));
+
+    const destination = await t.query(internal.feedback.beside.placeBesideTheKudos, {
+      member,
+      notification: { kind: "level-reached", level: 2, skillPoints: null, xpToNextLevel: 80, ready: [] },
+      kudos: { workspace: "T1", conversation: "C1", message: "1760436000.000100" },
+    });
+
+    expect(destination).toBe("none");
+  });
+});
+
+describe("QM30: a member who never chose a place leaves main's shapes behind", () => {
+  test("today's DM switch stores no place, and a level up's DM job carries no kudos", async () => {
+    const t = await settingsOpen(["xp-levels"]);
+    await command(t, "U_ALICE", { type: "setProgressSettings", dms: false });
+    await command(t, "U_ALICE", { type: "setProgressSettings", dms: true });
+
+    await giveKudos(t, "U_ALICE", "U_BOB");
+
+    const rows = await t.run((ctx) => ctx.db.query("messageSettings").collect());
+    expect(rows.map(({ kind, on, ...rest }) => ({ kind, on, stored: Object.keys(rest).sort() }))).toEqual(
+      ["level-ups", "new-features", "quests", "achievements"].map((kind) => ({ kind, on: true, stored: ["_creationTime", "_id", "member"] })),
+    );
+    const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+    const levelUpJobs = jobs.filter(({ name, args }) => name.includes("deliverDirectMessage") && (args[0] as { notification: Notification }).notification.kind === "level-reached");
+    expect(levelUpJobs.map(({ args }) => Object.keys(args[0] as object).sort())).toEqual([["member", "notification", "user", "workspace"]]);
+    expect(levelUpsTo("U_ALICE")).toHaveLength(1);
   });
 });
 

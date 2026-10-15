@@ -55,10 +55,15 @@ export async function placesOf(ctx: QueryCtx, member: MemberId, kind: MessageKin
 export async function setMessageSetting(ctx: MutationCtx, member: MemberId, kind: MessageKind, place: MessagePlace): Promise<boolean> {
   if ((await placeOf(ctx, member, kind)) === place) return false;
   const row = await settingRow(ctx, member, kind);
-  const setting = { on: place !== "none", place };
+  const setting = storedSettingOf(kind, place);
   if (row === null) await ctx.db.insert("messageSettings", { member, kind, ...setting });
   else await ctx.db.patch(row._id, setting);
   return true;
+}
+
+function storedSettingOf(kind: MessageKind, place: MessagePlace) {
+  const on = place !== "none";
+  return { on, place: on && place !== defaultPlaceOf(kind) ? place : undefined };
 }
 
 export async function placeWhenOn(ctx: QueryCtx, member: MemberId, kind: MessageKind): Promise<MessagePlace> {
