@@ -27,7 +27,7 @@ import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
 import { journeyActivationValidator, rewardValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
-import { collectedItemValidator, itemPurchaseValidator, loadoutSlotValidator } from "./store/rows";
+import { collectedItemValidator, customKudosEmojiValidator, itemPurchaseValidator, loadoutSlotValidator } from "./store/rows";
 import { featureValidator } from "./unlocks/feature";
 import { welcomedAsValidator } from "./welcome/welcomedAs";
 import { memberProfileFields } from "./workspace/memberProfile";
@@ -160,6 +160,7 @@ export default defineSchema({
     workspace: v.string(),
     name: v.string(),
     image: v.string(),
+    aliasOf: v.optional(v.string()),
     listing: v.number(),
   })
     .index("by_name", ["workspace", "name"])
@@ -170,6 +171,7 @@ export default defineSchema({
     begun: v.number(),
     written: v.optional(v.number()),
     refreshDueAt: v.optional(v.number()),
+    scopeMissing: v.optional(v.boolean()),
   }).index("by_workspace", ["workspace"]),
 
   kudosMessages: defineTable({
@@ -298,6 +300,8 @@ export default defineSchema({
   loadouts: defineTable(loadoutSlotValidator).index("by_member_slot", ["member", "slot"]),
 
   itemPurchases: defineTable(itemPurchaseValidator).index("by_member_key", ["member", "key"]),
+
+  customKudosEmoji: defineTable(customKudosEmojiValidator).index("by_workspace_name", ["workspace", "name"]),
 
   journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
 
