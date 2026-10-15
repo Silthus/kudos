@@ -69,3 +69,35 @@ A member's message settings, one value per kind of message HedgeHug sends them (
   checklist: commit-ordered-effects dismissed: the footer is decided in the delivery query, after the mutation that wrote the message committed
   checklist: circuit-breaker-policy dismissed: no failure history diverts or suppresses a call
   checklist: declared-target-coverage dismissed: each footer goes to the one member its message goes to
+- message settings are dark wherever message-settings is off: A member for whom `message-settings` is off in the member decision, not created, or undecided because the flags key is missing, sees nothing of message settings in any Slack call: no `What I send you` rows in App Home's Settings tab, no footer on a reply or DM, and no setMessageSetting button, so every Slack call for a member with no stored setting is today's (QM22, QM30). With the flag on for one member's email only, that member sees the rows and the footers, and every other member's Slack calls equal those with the flag off.
+  over: every Slack call of one walk down every message path (the success reply, the welcome, Journey and weekly quest DMs, level-up DMs, the Coins DM, Book tier DMs, the public celebrations in the announcement channel and App Home's Settings tab) for two members with `message-settings` off, not created, and on while the flags key is missing, and the same walk with it on for one member's email only
+  via: QM22 QM30: message settings are dark wherever message-settings is off
+  refuted: settingsFooterFor in convex/feedback/settingsFooter.ts answered the footer for every member, whatever their message-settings decision -> 3 of 4 tests failed on their assertions: with the flag not created, with the flags key missing, and for the other member while the flag was on for one email only, replies and DMs ended with the footer (2026-10-15)
+  because: decision 11 ships every new feature dark behind its flag and decision 18 starts `message-settings` for the sandbox and the product owner only; a row or a footer shown where the flag is off would preview settings to members the product owner hasn't chosen, and QM30 promises production byte-for-byte unchanged until the flag turns on
+  crossing: slack-request -> domain
+  entrances: route POST /slack/events, route POST /slack/interactivity
+  kinds: output
+  checklist: destination-confinement dismissed: the replies, DMs and App Home go to Slack's API at one configured base URL, to the member's own conversations, with no destination taken from input
+  checklist: redaction dismissed: the rows and the footer are left out by the member's own flag decision, and nothing designated sensitive is scrubbed from what remains
+  checklist: commit-ordered-effects dismissed: App Home reads the flag in the mutation that renders it, and each delivery query reads it before Slack is called, after the mutation that wrote the message committed
+  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
+  checklist: declared-target-coverage dismissed: a reply, a DM and an App Home each have exactly one target, the member they are about
+- turning message-settings off changes no setting: Turning `message-settings` off and on again rewrites no stored message setting, and each one stays honoured throughout; a setMessageSetting from a Settings tab published while the flag was on, clicked once it is off for the member, writes nothing, records no `message setting changed` and publishes no domain event, and the click shows today's tab; the flag's exposure goes once per member and value (QM15, QM22, QM28).
+  over: a member who turned `level-ups`, `celebrations` and `kudos-reply` off with the flag on, through a level up and App Home with it off and App Home with it on again; a stale `Turn off` and a stale setMessageSetting clicked after the flag turned off, with and without App Home opened in between; and the exposures of a member with the flag on for their email and one without, through the flag turned off and on again
+  via: QM22: the message-settings flag turned off and on, its stale clicks and its exposure
+  refuted: isMessageSettingShownTo in convex/commands/commands.ts accepted setMessageSetting whatever the member's message-settings decision, asking only whether the kind applies -> 2 of 4 tests failed on their assertions: a stale `Turn off` clicked after the flag turned off stored a setting and recorded `message setting changed` (2026-10-15)
+  because: QM22 promises that turning the flag off never re-sends what a member turned off and never shows them settings; Slack keeps a published view's buttons until the next publish, so a stale `Turn off` would otherwise store a setting the member can no longer see or change
+  crossing: slack-request -> domain
+  entrances: route POST /slack/events, route POST /slack/interactivity
+  kinds: state, output
+  checklist: revalidated-permission dismissed: no permission is involved; the click's mutation rereads the member decision before it writes
+  checklist: destination-confinement dismissed: the click changes only the clicking member's own settings, and App Home goes only to them
+  checklist: redaction dismissed: a setting holds a kind and on or off, no member data
+  checklist: separation-of-duties dismissed: a member sets only their own settings; no approval is involved
+  checklist: legal-state-succession dismissed: a setting is a plain on or off value; every value can follow every other
+  checklist: supersession-safety dismissed: setMessageSetting writes the value asked for, and every read takes the latest committed value
+  checklist: worker-fencing dismissed: no worker owns a member's settings
+  checklist: commit-ordered-effects dismissed: `message setting changed` is scheduled from the mutation that changed the setting and runs only after it commits
+  checklist: resumption-coverage dismissed: one click is one write, not a batch
+  checklist: circuit-breaker-policy dismissed: no failure history diverts or suppresses a call
+  checklist: declared-target-coverage dismissed: a click changes one member's settings; nothing fans out
