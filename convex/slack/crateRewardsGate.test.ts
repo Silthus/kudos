@@ -17,6 +17,19 @@ import type { MemberId } from "../workspace/directory";
 
 const flagRead = vi.hoisted(() => ({ never: false }));
 
+const crateRewardsEvaluations = vi.hoisted(() => ({ count: 0 }));
+
+vi.mock("../analytics/flags", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../analytics/flags")>();
+  return {
+    ...actual,
+    memberDecision: (...args: Parameters<typeof actual.memberDecision>) => {
+      if (args[1].key === "crate-rewards") crateRewardsEvaluations.count += 1;
+      return actual.memberDecision(...args);
+    },
+  };
+});
+
 vi.mock("../quests/crateRewardsFlag", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../quests/crateRewardsFlag")>();
   return { ...actual, rewardHeldFor: (...args: Parameters<typeof actual.rewardHeldFor>) => (flagRead.never ? Promise.resolve(false) : actual.rewardHeldFor(...args)) };
@@ -52,6 +65,7 @@ let sentMessages = 0;
 beforeEach(() => {
   vi.useFakeTimers({ now: tuesday });
   flagRead.never = false;
+  crateRewardsEvaluations.count = 0;
 });
 
 afterEach(() => {
@@ -71,6 +85,8 @@ describe("CR15: crate-rewards is dark wherever it is off", { timeout: 120_000 },
     const whereRead = await walkOnAFreshBackend(definitions, { flagsKeySet, flagNeverRead: false });
 
     expect(whereRead.rewards).toEqual(flagsKeySet ? everyCrateFinished.map((key) => ({ key, held: false })) : []);
+    expect(whereRead.standings).toEqual(flagsKeySet ? { atTheFinishes: { xp: 350, balance: 18 }, afterEveryOpen: { xp: 350, balance: 18 } } : { atTheFinishes: { xp: 20, balance: 8 }, afterEveryOpen: { xp: 20, balance: 8 } });
+    expect(whereRead.crateRewardsEvaluations).toBe(flagsKeySet ? everyCrateFinished.length : 0);
     expect(whereRead.everyWaitingRead).toEqual(flagsKeySet ? Array(11).fill(false) : []);
     expect(whereRead.answers).toEqual(flagsKeySet ? [...Array(3).fill({ kind: "opened", applied: null }), { kind: "refused" }] : Array(4).fill({ kind: "closed" }));
     expect(heldOrWaitingIn(whereRead.observed)).toEqual([]);
@@ -106,6 +122,7 @@ describe("CR15: crate-rewards is dark wherever it is off", { timeout: 120_000 },
     expect((await rewardsOf(t, "U_ALICE")).map(({ key }) => key)).toEqual(expect.arrayContaining([`weekly:${thisWeek}:1`, `weekly:${thisWeek}:2`]));
     expect(exposuresSentTo(await analyticsIdOf(t, "U_ALICE"))).toEqual([true, false]);
     expect(exposuresSentTo(await analyticsIdOf(t, "U_BOB"))).toEqual([false]);
+    expect(crateRewardsEvaluations.count).toBe((await rewardsOf(t, "U_ALICE")).length + (await rewardsOf(t, "U_BOB")).length);
   });
 });
 
@@ -113,23 +130,31 @@ describe("CR5: a held reward waits for its open whatever crate-rewards says late
   test.each([
     ["App Home", "slack"],
     ["the website", "website"],
-  ] as const)("a reward held while crate-rewards was on is paid once at its open from %s after the flag turns off, and a repeat open from either surface pays nothing", async (_, surface) => {
+  ] as const)("rewards held while crate-rewards was on are paid once at their first open from %s after the flag turns off, and every repeat open from either surface pays nothing", async (_, surface) => {
     const t = await workspaceDeciding(...previewedByAlice);
     await heldCratesOf(t, "U_ALICE");
     await flagsFromPostHog(t, postHog, ...crateRewardsOff);
     const before = await standingAndBalanceOf(t, "U_ALICE");
     const levelUpsBefore = levelUpDmsTo("U_ALICE").length;
     const site = await websiteOf(t, "U_ALICE");
+    const weeklyOpen = openButtonBeside("U_ALICE", "Thank someone and say why.");
+    const journeyOpen = openButtonBeside("U_ALICE", "*Journey:* ✅ Finish a weekly quest.");
+    const openFirst = (quest: Quest, slackOpen: BlockAction) => (surface === "slack" ? click(t, "U_ALICE", slackOpen) : site.open(quest));
 
-    if (surface === "slack") await click(t, "U_ALICE", openButtonBeside("U_ALICE", "Thank someone and say why."));
-    else await site.open(firstSlot);
-    await openHome(t, "U_ALICE");
-    await clickIfShown(t, "U_ALICE", "Thank someone and say why.");
-    await site.open(firstSlot);
+    await openFirst(firstSlot, weeklyOpen);
+    const afterTheWeeklyOpen = await standingAndBalanceOf(t, "U_ALICE");
+    await openFirst(firstQuest, journeyOpen);
+    const afterBothOpens = await standingAndBalanceOf(t, "U_ALICE");
+    const levelUps = levelUpDmsTo("U_ALICE").slice(levelUpsBefore);
+    for (const repeat of [() => click(t, "U_ALICE", weeklyOpen), () => site.open(firstSlot), () => click(t, "U_ALICE", journeyOpen), () => site.open(firstQuest)]) await repeat();
 
-    expect(await standingAndBalanceOf(t, "U_ALICE")).toEqual({ xp: before.xp + weeklyReward.xp, level: 4, skillPoints: 0, balance: before.balance + weeklyReward.coins });
-    expect(levelUpDmsTo("U_ALICE").slice(levelUpsBefore)).toEqual([expect.stringMatching(/^🎉 You reached level 4!/)]);
+    expect(afterTheWeeklyOpen).toEqual({ xp: before.xp + weeklyReward.xp, level: 4, skillPoints: 0, balance: before.balance + weeklyReward.coins });
+    expect(afterBothOpens).toEqual({ ...afterTheWeeklyOpen, xp: afterTheWeeklyOpen.xp + 20 });
+    expect(levelUps).toEqual([expect.stringMatching(/^🎉 You reached level 4!/)]);
+    expect(await standingAndBalanceOf(t, "U_ALICE")).toEqual(afterBothOpens);
+    expect(levelUpDmsTo("U_ALICE").slice(levelUpsBefore)).toEqual(levelUps);
     expect(await site.open(firstSlot)).toEqual({ kind: "opened", applied: { xp: 300, coins: 0, from: { xp: before.xp, level: before.level, skillPoints: 0, coins: 0 }, to: { xp: before.xp + 300, level: 4, skillPoints: 0, coins: 0 } } });
+    expect(await site.open(firstQuest)).toEqual({ kind: "opened", applied: { xp: 20, coins: 0, from: { xp: before.xp + 300, level: 4, skillPoints: 0, coins: 0 }, to: { xp: before.xp + 320, level: 4, skillPoints: 0, coins: 0 } } });
   });
 
   test("while crate-rewards is off, a reward finished afterwards counts at its finish, beside one still held from while it was on", async () => {
@@ -141,7 +166,7 @@ describe("CR5: a held reward waits for its open whatever crate-rewards says late
     await aWhileLater(() => giveKudos(t, "U_ALICE", "U_DANA"));
 
     expect(await rewardsOf(t, "U_ALICE")).toContainEqual({ key: `weekly:${thisWeek}:1`, held: false });
-    expect(await standingAndBalanceOf(t, "U_ALICE")).toMatchObject({ xp: before.xp + 10 + weeklyReward.xp });
+    expect(await standingAndBalanceOf(t, "U_ALICE")).toMatchObject({ xp: before.xp + 10 + weeklyReward.xp, balance: before.balance + 4 + weeklyReward.coins });
     expect((await (await websiteOf(t, "U_ALICE")).reads()).waiting).toEqual({ slots: [true, false, false], journey: [false, true] });
   });
 
@@ -175,9 +200,11 @@ async function walkOnAFreshBackend(definitions: FlagDefinition[], { flagsKeySet,
   await settle(t);
   return {
     rewards: await rewardsOf(t, "U_ALICE"),
+    standings: { atTheFinishes: walk.standingAtTheFinishes, afterEveryOpen: await xpAndBalanceOf(t, "U_ALICE") },
+    crateRewardsEvaluations: crateRewardsEvaluations.count,
     everyWaitingRead: walk.reads.flatMap(({ waiting }) => [...waiting.slots, ...waiting.journey]),
     answers: walk.answers,
-    observed: { calls: slack.calls, walk, stored: withoutSpotlightPositions(await everythingStoredButExposures(t)), events: eventsSentButExposures() },
+    observed: { calls: slack.calls, walk, stored: withoutSpotlightPositions(await everythingStoredButExposures(t)), scheduled: await jobsScheduledButAnalytics(t), events: eventsSentButExposures() },
   };
 }
 
@@ -186,10 +213,12 @@ async function bothWalksOnAFreshBackend(definitions: FlagDefinition[]) {
   vi.setSystemTime(tuesday);
   const t = await workspaceDeciding(...definitions);
   const alicesWalk = await walkEveryCratePath(t, "U_ALICE");
+  const bobStarts = slack.calls.length;
   const bobsWalk = await walkEveryCratePath(t, "U_BOB", tuesday + 4 * hour);
   await settle(t);
   const bobsRewards = await rewardsOf(t, "U_BOB");
-  const bobsCalls = slack.calls.filter(({ args }) => [args.channel, args.user, args.user_id].includes("U_BOB"));
+  const toBobWhileAliceWalked = slack.calls.slice(0, bobStarts).filter(({ args }) => [args.channel, args.user, args.user_id].includes("U_BOB"));
+  const bobsCalls = [...toBobWhileAliceWalked, ...slack.calls.slice(bobStarts)];
   return {
     alicesRewards: await rewardsOf(t, "U_ALICE"),
     alicesWaitingReads: alicesWalk.reads.flatMap(({ waiting }) => [...waiting.slots, ...waiting.journey]),
@@ -209,6 +238,7 @@ async function walkEveryCratePath(t: Backend, user: string, startingAt = tuesday
   await questsDrawnFor(t, user);
   await steps.next(() => clickIfShown(t, user, "*Quests* is ready"));
   await steps.next(() => giveKudos(t, user, second));
+  const standingAtTheFinishes = await xpAndBalanceOf(t, user);
   await steps.next(() => openHome(t, user));
   reads.push(await site.reads());
   const answers = [await steps.next(() => site.open(firstSlot))];
@@ -216,7 +246,7 @@ async function walkEveryCratePath(t: Backend, user: string, startingAt = tuesday
   await steps.next(() => clickIfShown(t, user, "*Journey:* ✅"));
   for (const quest of [firstQuest, firstSlot, secondSlot]) answers.push(await steps.next(() => site.open(quest)));
   reads.push(await site.reads());
-  return { reads, answers };
+  return { reads, answers, standingAtTheFinishes };
 }
 
 function stepsFrom(start: number) {
@@ -368,17 +398,32 @@ async function analyticsIdOf(t: Backend, user: string) {
 }
 
 async function everythingStoredButExposures(t: Backend) {
-  const stored = await everythingStored(t, { except: ["slackReceipts", "flagExposures"] });
-  return stored.filter((row) => !("event" in row && row.event === "$feature_flag_called"));
+  const stored = await everythingStored(t, { except: ["slackReceipts"] });
+  return stored.filter((row) => !isCrateRewardsExposure(row));
+}
+
+function isCrateRewardsExposure(row: Record<string, unknown>) {
+  if ("flag" in row && "value" in row) return row.flag === crateRewards;
+  return "event" in row && row.event === "$feature_flag_called" && (row.properties as { feature_flag?: string }).feature_flag === crateRewards;
 }
 
 async function everythingStoredButExposuresAndDirectory(t: Backend) {
-  return (await everythingStoredButExposures(t)).filter((row) => !("asOf" in row));
+  return (await everythingStoredButExposures(t)).map((row) => ("asOf" in row ? { ...row, asOf: "refreshed" } : row));
 }
 
 function eventsSentButExposures() {
-  const sent = postHog.events().filter(({ event }) => event !== "$feature_flag_called");
+  const sent = postHog.events().filter(({ event, properties }) => event !== "$feature_flag_called" || properties.$feature_flag !== crateRewards);
   return sent.map(({ uuid: _, ...event }) => event);
+}
+
+async function jobsScheduledButAnalytics(t: Backend) {
+  const jobs = (await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect())).filter(({ name }) => !name.startsWith("analytics/"));
+  return jobs.map(({ name, args, scheduledTime, state }) => ({ name, args, scheduledTime, state: state.kind }));
+}
+
+async function xpAndBalanceOf(t: Backend, user: string) {
+  const { xp, balance } = await standingAndBalanceOf(t, user);
+  return { xp, balance };
 }
 
 function withoutSpotlightPositions(rows: Awaited<ReturnType<typeof everythingStoredButExposures>>) {
@@ -391,9 +436,9 @@ function exposuresSentTo(analyticsId: string | undefined) {
   return once.map(({ properties }) => properties.$feature_flag_response);
 }
 
-function comparable({ calls, events = [], ...observed }: { calls: unknown[]; events?: unknown[] }) {
-  const ranked = withGeneratedIdsRanked({ ...observed, calls, events });
-  return { ...ranked, calls: inAnyOrder(ranked.calls), events: inAnyOrder(ranked.events) };
+function comparable({ calls, events = [], scheduled = [], ...observed }: { calls: unknown[]; events?: unknown[]; scheduled?: unknown[] }) {
+  const ranked = withGeneratedIdsRanked({ ...observed, calls, events, scheduled });
+  return { ...ranked, calls: inAnyOrder(ranked.calls), events: inAnyOrder(ranked.events), scheduled: inAnyOrder(ranked.scheduled) };
 }
 
 function heldOrWaitingIn(observed: unknown) {
@@ -401,7 +446,7 @@ function heldOrWaitingIn(observed: unknown) {
 }
 
 function inAnyOrder(items: unknown[]) {
-  return items.map((item) => JSON.stringify(item)).sort();
+  return items.map((item) => JSON.stringify(item).replace(/\d+\.\d+\.trigger/g, "<trigger>")).sort();
 }
 
 function withGeneratedIdsRanked<Observed>(observed: Observed): Observed {
