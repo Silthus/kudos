@@ -1,0 +1,61 @@
+pnpm gate on e85d5e77 (origin/main merged), run through ~/dev/fleet/fleet heavy
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  the website's feature states are Unlocks' facts  invariant
+      totality oracle "the website's feature states are Unlocks' facts" over getMyProfile with xp-levels and unlocks off, either one on, and both on before the launch, either one switched off after the launch, and both on after it for a member at level 1, a member at level 3, a member who opened the Leaderboard and a member who was there at the launch: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: featureCardsOf read every feature as locked instead of unlocks' state
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  the website shows only shipped features  invariant
+      totality oracle "the website shows only shipped features" over getMyProfile with skill-tree off for a member past level 5, with skill-tree on for a member at level 5, with everyone-board off, and with no feature shipped; getSkillTree and getMyProfile's skillPoints with the tree's ship flag switched off after a member opened the tree and bought spark, and with that flag on before unlocks launched: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: featureCardsOf listed every scheduled feature instead of unlocks' shipped ones
+      refuted 2026-10-14: getSkillTree read progression's memberPerksOf whatever the page state instead of the flag-gated perksOf read
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  a website board row carries only what a board shows  invariant
+      totality oracle "a website board row carries only what a board shows" over getLeaderboard's board with a member who left the boards seen by themselves and by another member, a member who only received, a former member, and a member without a display name: verified 2026-10-13
+      crossing browser -> domain
+      refuted 2026-10-13: getLeaderboard's rows also carried the member's ID
+      kinds read: 2 shapes apply, 2 declared, 0 dismissed
+  a member's activity holds only kudos they gave or received  invariant
+      totality oracle "AT14 AT28: a member's activity holds only kudos they gave or received" over getActivity and getRecentKudos in both directions for a member beside a private-channel kudos between two other members and one kudos to the member: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: awardsReceivedNewestFirst read the whole recipient index instead of the member's own awards
+      kinds read: 2 shapes apply, 2 declared, 0 dismissed
+  the spotlight draws only public, said-why kudos of the member's workspace  invariant
+      totality oracle "AT31 AT34: the spotlight draws only public, said-why kudos of the member's workspace" over getSpotlight from a seed and through Next beside a private-channel kudos, a bare kudos, a kudos that gave nothing, a backfilled kudos with unknown visibility and another workspace's kudos, after an edit drops the reason, after a deletion in Slack, after the author leaves Slack, and while and after a giver or recipient leaves the leaderboards: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: drawableKudosOf no longer required the kudos text's visibility to be public
+      kinds read: 2 shapes apply, 2 declared, 0 dismissed
+Welcome  convex/welcome/Welcome.spec.md
+  welcomed at most once  invariant
+      totality oracle "a member is welcomed at most once, whatever Slack redelivers and whichever awards follow" over the welcome messages sent for a first Given award, a redelivery of the Slack event that gave it, later awards that name the same members as giver or recipient, and one Given award naming more members than one page welcomes (QM10): verified 2026-10-14
+      refuted 2026-10-13: removed the isWelcomed check in welcomeNewMembers
+      kinds message, state: 15 shapes apply, 2 declared, 13 dismissed
+  a welcome never schedules past Convex's limit  invariant
+      totality oracle "a welcome never schedules past Convex's limit: one kudos naming 700 new members welcomes each of them once, and no welcome mutation schedules 1,000 functions or more" over one Given award naming 700 new members besides its giver, under a base allowance a maintainer raised, run with Convex's transaction limits on and each welcome page's scheduled functions counted: verified 2026-10-14
+      refuted 2026-10-14: raised membersPerPage in welcomeNewMembers to 100,000
+      kinds budget: 6 shapes apply, 1 declared, 5 dismissed
+Workspace  convex/workspace/Workspace.spec.md
+  only admins set the announcement channel  invariant
+      totality oracle "P69: only workspace admins and owners set the announcement channel" over setAnnouncementChannel commands from a member who isn't an admin, sent as a channel pick and as a button the member never saw, and from an admin removed by a later user_change: verified 2026-10-13
+      crossing slack-request -> domain
+      refuted 2026-10-13: setAnnouncementChannel no longer checked that the member is an admin
+      kinds identity, state: 10 shapes apply, 1 declared, 9 dismissed
+Website  website/Website.spec.md
+  a kudos message renders as text  invariant
+      totality oracle "a kudos message renders as text" over KudosMessage in website/src/activity/KudosMessage.tsx, the one renderer every surface hands a Message to, for text segments holding a script tag, an img tag with an onerror handler and HTML entities, and links with javascript: and data: URLs, with live links and clamped: verified 2026-10-14
+      crossing domain -> browser
+      refuted 2026-10-14: let isWebAddress accept every scheme
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
+  a link lands on a crate and never opens it  invariant
+      totality oracle "#435: ?crate={feature} lands on the page's ready crate" over useLinkTargetOnceLanded in website/src/linkTarget.ts, run by App over the ready band of each feature page and the home's Journey panel, for a ready crate, a Journey step's crate, an unknown crate and another page's crate: verified 2026-10-15
+      refuted 2026-10-15: pressed the crate's Open on arrival instead of focusing it
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
+24 components, 192 bullets: 191 invariants, 1 requirement
+lacking: enforcement 0, refutation 1, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-15T20:29:30.992Z (1122 runs)
+GUARD FAILURE  df-bcaa003b in class bypassed-door, which convex/website/a member previews the website by their own decision has guarded since rs-ed24d6b7 closed df-79b4ea97: the guard was weaker than claimed; strengthen it and refute it again
+GUARD FAILURE  df-7a3efd91 in class bypassed-door, which convex/website/a member previews the website by their own decision has guarded since rs-ed24d6b7 closed df-79b4ea97: the guard was weaker than claimed; strengthen it and refute it again
+defects: 26 recorded, 23 closed (6 guarded, 17 decided, 0 with neither); 2 guard failures
+ADVISORY       361 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 120, contract 45, panel 37, receipt 35, zone 33; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (994 files), 37 in records
+gate-exit=0
