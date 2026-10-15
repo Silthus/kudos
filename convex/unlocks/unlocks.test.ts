@@ -141,6 +141,22 @@ describe("P92: opening grants nothing", () => {
     expect(after.unlocks).toEqual(before.unlocks.map((row) => ({ ...row, openedAt: now.getTime() })));
     expect(published("unlockOpened")).toHaveLength(1);
   });
+
+  test("with collection on, a member's own open also drops one hoggie before unlockOpened, and nothing else changes", async () => {
+    postHog = flagsOnForEveryone(new FakeSlack().fetch, "xp-levels", "unlocks", "everyone-board", "collection");
+    const { t, alice } = await withMember();
+    await withEarnings(t, alice, 300);
+    await levelReached(t, alice, 3);
+    const before = await everyTable(t);
+    vi.mocked(publish).mockClear();
+
+    await open(t, alice, "leaderboard");
+
+    const after = await everyTable(t);
+    expect(withoutCollectionExposure({ ...after, unlocks: [], drops: [], hoggieTallies: [], dropTallies: [] })).toEqual({ ...before, unlocks: [] });
+    expect(after.drops).toEqual([expect.objectContaining({ member: alice, crate: "unlock:leaderboard", n: 1, copy: 1, at: now.getTime() })]);
+    expect(vi.mocked(publish).mock.calls.map(([, event]) => event.type)).toEqual(["hoggieDropped", "unlockOpened"]);
+  });
 });
 
 describe("P5: a ready or opened feature is kept for good", () => {

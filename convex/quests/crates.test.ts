@@ -77,6 +77,25 @@ describe("CR3 P92: opening a crate applies its held reward once", () => {
     ]);
   });
 
+  test("with collection on, a held crate's first open also drops one hoggie after its own writes and before questOpened, and nothing else changes", async () => {
+    const { t, alice } = await withFinishedFirstThanks("crate-rewards", "collection");
+    const before = await everyTable(t);
+    vi.mocked(publish).mockClear();
+    vi.setSystemTime(openedAt);
+
+    expect(await open(t, alice)).toBe("done");
+
+    const after = await everyTable(t);
+    expect(withoutCollectionExposure({ ...after, crateOpenings: [], memberProgress: [], drops: [], hoggieTallies: [], dropTallies: [] })).toEqual({ ...before, memberProgress: [] });
+    expect(after.drops).toEqual([expect.objectContaining({ member: alice, crate: "journey:first-thanks", n: 1, copy: 1, at: openedAt })]);
+    expect(published().map(({ type }) => type)).toEqual(["xpRecorded", "hoggieDropped", "questOpened"]);
+
+    vi.mocked(publish).mockClear();
+    expect(await open(t, alice)).toBe("done");
+    expect(await everyTable(t)).toEqual(after);
+    expect(published()).toEqual([]);
+  });
+
   test("a held weekly reward's open credits its coins through the wallet", async () => {
     const { t, alice } = await withFinishedFirstThanks("crate-rewards");
     const weekly = { kind: "weekly", week: "2026-10-12", slot: 0 } as const;
