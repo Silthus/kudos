@@ -19,3 +19,10 @@ Chromium through the T3 preview, the `member-with-every-feature-open` fixture bu
 | Home, 1280, dark | [before](before-home-1280-dark.png) | [after](after-home-1280-dark.png) |
 | Leaderboard, 390, light | [before](before-leaderboard-390-light.png) | [after](after-leaderboard-390-light.png) |
 | Leaderboard, 390, dark | [before](before-leaderboard-390-dark.png) | [after](after-leaderboard-390-dark.png) |
+
+## Review
+
+[review-gpt-6.1-sol.md](review-gpt-6.1-sol.md): GPT-6.1 Sol, round 1, no high findings.
+
+1. Card borders measure 1.79:1 light and 1.51:1 dark against their card, under V24's 3:1 for borders. **Rejected as a regression, accepted as a wording fix**: posthog.com's own border is this value, Quill's border before this PR measured about 1.3:1, and WCAG 1.4.11 asks 3:1 only of a boundary that alone identifies a control. V24 now says so: a card's or separator's border is decorative; a control's border, ring or icon keeps 3:1, and the switch, outline and ring tests that measure those still pass.
+2. `medalMetals.test.tsx` read Quill's `oklch` card and muted lightness instead of the website's overrides. **Fixed**: both medal checks resolve through `themeContrast.ts` now, and the gap line in the PR body is closed.
