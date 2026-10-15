@@ -21,7 +21,9 @@ export function SettingsPage({ settings: { messages, board, group }, actions }: 
       {board !== null && (
         <Panel id="leaderboards" label="Leaderboards">
           <p className="text-sm text-muted-foreground">When you're off, nobody sees you on the leaderboards, you included.</p>
-          <VisibilitySwitch onTheBoards={board.onTheBoards} setBoardVisibility={actions.setBoardVisibility} />
+          <div className="text-sm font-semibold">
+            <VisibilitySwitch onTheBoards={board.onTheBoards} setBoardVisibility={actions.setBoardVisibility} />
+          </div>
         </Panel>
       )}
       {group !== null && (

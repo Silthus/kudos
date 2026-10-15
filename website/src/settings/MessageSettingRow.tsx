@@ -16,8 +16,9 @@ export function MessageSettingRow({ setting, setMessageSetting }: MessageSetting
   const { kind, label, description, place, places } = setting;
   const titleId = useId();
   const { pending, settled, choose } = useSentChoice(place, async (asked: MessagePlace) => answerOf(await setMessageSetting(kind, asked)));
+  const choosesAmongThree = places.length > 2;
   return (
-    <div role="group" aria-labelledby={titleId} className="flex flex-col gap-2 border-t py-3 first:border-t-0 first:pt-0 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+    <div role="group" aria-labelledby={titleId} className={`flex gap-2 border-t py-3 first:border-t-0 first:pt-0 ${choosesAmongThree ? "flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-6" : "flex-row items-start justify-between gap-6"}`}>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <h3 id={titleId} className="text-sm font-semibold">
           {label}
@@ -25,7 +26,7 @@ export function MessageSettingRow({ setting, setMessageSetting }: MessageSetting
         <p className="text-sm text-muted-foreground">{description}</p>
         <StatusLine line={lineAfter(settled, `${label}: ${placeWords(kind, place)}.`)} />
       </div>
-      {places.length > 2 ? <PlaceChoice setting={setting} pending={pending} onChoose={choose} /> : <PlaceSwitch setting={setting} pending={pending} onChoose={choose} />}
+      {choosesAmongThree ? <PlaceChoice setting={setting} pending={pending} onChoose={choose} /> : <PlaceSwitch setting={setting} pending={pending} onChoose={choose} />}
     </div>
   );
 }
@@ -37,7 +38,7 @@ function PlaceChoice({ setting: { kind, label, place, places }, pending, onChoos
     <RadioGroup aria-label={`Where I send you ${label}`} value={place} disabled={pending} onValueChange={(chosen) => onChoose(chosen as MessagePlace)} className="flex w-auto shrink-0 flex-wrap gap-x-4 gap-y-1.5">
       {places.map((each) => (
         <label key={each} className="flex cursor-pointer items-center gap-1.5 text-sm">
-          <RadioGroupItem value={each} />
+          <RadioGroupItem value={each} className="border-muted-foreground" />
           {placeLabelOf(kind, each)}
         </label>
       ))}
