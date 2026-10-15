@@ -28,7 +28,7 @@ const membersPerPage = 100;
 const groupsPerPage = 25;
 const participantsPerEvent = 500;
 const workspacesPerSweep = 500;
-const attributionsPerCatchUp = 50;
+const attributionsPerCatchUp = 1;
 const weekMs = 7 * 24 * 60 * 60 * 1000;
 
 const tallyValidator = v.array(v.object({ group: v.id("userGroups"), membersInside: v.number(), participants: v.array(v.id("members")) }));

@@ -1,5 +1,7 @@
 import { makeFunctionReference } from "convex/server";
+import { internal } from "../_generated/api";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakeSlack } from "../../testing/fakeSlack";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
@@ -59,6 +61,19 @@ describe("GB35: the group quest draw stays within Convex's limits per mutation",
     expect(drawn.map(({ participants, target }) => ({ participants: participants.length, target }))).toEqual([{ participants: memberCount, target: 3 }]);
     expect(postHog.productEvents().filter((event) => event.event === "quest drawn" && event.properties.kind === "group")).toHaveLength(memberCount);
   });
+  test("with 1,999 groups that don't count ahead of the one that does, the draw catches up 60 kudos given before it and rewards every contributor", { timeout: 600_000 }, async () => {
+    const t = await flagsLoaded(testBackend({ transactionLimits: true }));
+    await unlocksShippedBeforeAnyoneJoined(t);
+    const members = await countingGroupBehindGroupsThatDoNot(t, 1_999, 60);
+    for (const [index, giver] of members.entries()) await saysWhyBeforeTheDraw(t, giver, members[(index + 1) % members.length]!, index);
+
+    vi.setSystemTime(mondaySweep);
+    await t.mutation(sweepJob(), {});
+    await settle(t);
+
+    expect(await t.run(async (ctx) => (await ctx.db.query("groupQuestContributions").take(61)).length)).toBe(60);
+    expect(await t.run(async (ctx) => (await ctx.db.query("pendingCrates").take(61)).length)).toBe(60);
+  });
 });
 
 async function workspaceOfGroupsWhoOpenedQuests(t: Backend, groupCount: number) {
@@ -84,6 +99,41 @@ async function workspaceOfGroupsWhoOpenedQuests(t: Backend, groupCount: number) 
       }
     });
   }
+}
+
+async function countingGroupBehindGroupsThatDoNot(t: Backend, groupsThatDoNotCount: number, memberTotal: number): Promise<MemberId[]> {
+  for (let start = 0; start < groupsThatDoNotCount; start += 500) {
+    await t.run(async (ctx) => {
+      for (let index = start; index < Math.min(start + 500, groupsThatDoNotCount); index += 1) {
+        const group = `S_${String(index).padStart(4, "0")}`;
+        await ctx.db.insert("userGroups", { workspace: "T1", group, handle: group, name: group, enabled: false, automatic: false, members: 1, asOf: 0, membersAsOf: 0 });
+      }
+    });
+  }
+  return t.run(async (ctx) => {
+    const group = await ctx.db.insert("userGroups", { workspace: "T1", group: "S_9999", handle: "counts", name: "Counts", enabled: true, automatic: false, members: memberTotal, asOf: 0, membersAsOf: 0 });
+    await ctx.db.insert("groupQuestLaunches", { workspace: "T1", at: 0 });
+    const members: MemberId[] = [];
+    for (let index = 0; index < memberTotal; index += 1) {
+      const user = `U_${String(index).padStart(4, "0")}`;
+      const member: MemberId = await ctx.db.insert("members", { workspace: "T1", user, kind: "member", asOf: 0 });
+      await ctx.db.insert("userGroupMembers", { workspace: "T1", group: "S_9999", user });
+      await ctx.db.insert("memberGroups", { workspace: "T1", member, groups: [group], primary: group });
+      await ctx.db.insert("primaryGroupHistory", { workspace: "T1", member, from: null, group, cause: "default", at: 0 });
+      await ctx.db.insert("unlocks", { member, feature: "quests", readyAt: 0, openedAt: 0 });
+      members.push(member);
+    }
+    return members;
+  });
+}
+
+async function saysWhyBeforeTheDraw(t: Backend, giver: MemberId, recipient: MemberId, index: number) {
+  const at = Date.parse("2026-10-19T00:01:00Z") + index * 1_000;
+  vi.setSystemTime(at);
+  const message = { workspace: "T1", conversation: "C1", message: `${Math.floor(at / 1000)}.000100` };
+  const event = await t.run((ctx) => kudosGivenEventWithAward(ctx, giver, recipient, { message, at, day: "2026-10-19", annotations: { gate: { version: 1, thoughtful: true, words: 7 } } }));
+  await t.mutation(internal.groups.attribution.attributeKudosGiven, { event });
+  await settle(t);
 }
 
 function groupKeyOf(index: number) {

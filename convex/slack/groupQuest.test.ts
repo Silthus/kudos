@@ -10,6 +10,8 @@ import { memberChanged, settle, settleInTimeOrder, type Backend } from "../../te
 import { blockActions, buttonIn, publishedHome, publishedHomeBlocks, type Block, type BlockAction } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import crons from "../crons";
+import { finishQuest } from "../quests/finish";
+import { groupQuestPool } from "../quests/groupPool";
 import { keepOpen } from "../unlocks/unlocks";
 
 const lastTuesday = Date.parse("2026-10-13T10:00:00Z");
@@ -115,6 +117,24 @@ describe("GB23 P85: a group crate left unopened waits in App Home after its week
   });
 });
 
+describe("GB23 P85: group crates waiting from earlier weeks share App Home's five earlier crates", { timeout: 120_000 }, () => {
+  test("with 100 group crates waiting from earlier weeks, App Home shows the oldest 5 and how many more within Slack's 100 blocks", async () => {
+    const t = await antsOpenedQuests();
+    await groupCratesWaitingFromEarlierWeeks(t, "U_ANN", 100);
+    vi.setSystemTime(tuesday);
+
+    await openHome(t, "U_ANN");
+
+    const crate = (monday: string) => `section: *Week of ${monday}:* ✅ Ants quest: Thank someone and say why. [button: Open]`;
+    expect(publishedHomeBlocks(slack, "U_ANN").length).toBeLessThanOrEqual(100);
+    expect(waitingIn(publishedHome(slack, "U_ANN"))).toEqual([
+      "section: *Waiting to open*",
+      ...["Nov 18", "Nov 25", "Dec 2", "Dec 9", "Dec 16"].map(crate),
+      "context: 95 more crates from earlier weeks wait to open.",
+    ]);
+  });
+});
+
 async function antsOpenedQuests(): Promise<Backend> {
   const t = await testBackendServing(postHog, ...everyFlag.map(onForEveryone));
   await unlocksShippedBeforeAnyoneJoined(t);
@@ -171,4 +191,23 @@ async function click(t: Backend, user: string, action: BlockAction) {
 async function openHome(t: Backend, user: string) {
   await t.fetch("/slack/events", await signedRequest(appHomeOpened(user)));
   await settle(t);
+}
+
+async function groupCratesWaitingFromEarlierWeeks(t: Backend, user: string, weeks: number) {
+  await t.run(async (ctx) => {
+    const member = await memberOf(ctx, user);
+    const group = (await ctx.db.query("userGroups").first())!._id;
+    for (let week = 1; week <= weeks; week += 1) {
+      const monday = new Date(Date.parse("2026-10-19") - week * 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const quest = { quest: "together-say-why" as const, target: 3, reward: groupQuestPool.reward, catalogueVersion: groupQuestPool.version };
+      await ctx.db.insert("groupQuests", { workspace: "T1", group, week: monday, participants: [member], ...quest, feasibleBecause: { participants: 4, membersOutside: 0 }, drawnAt: Date.parse(monday) });
+      await finishQuest(ctx, "T1", member, { kind: "group", group, week: monday }, { reward: quest.reward, catalogueVersion: quest.catalogueVersion, poolQuest: quest.quest }, Date.parse(monday) + 60_000);
+    }
+  });
+  await settle(t);
+}
+
+function waitingIn(home: string[]) {
+  const start = home.indexOf("section: *Waiting to open*");
+  return start === -1 ? [] : home.slice(start, home.indexOf("divider", start));
 }
