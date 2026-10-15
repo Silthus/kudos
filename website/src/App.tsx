@@ -240,7 +240,7 @@ function BookAnswerPage({ member, book, page, ...actions }: BookAnswerPageProps)
   if (book.kind === "not-found") return <NotFoundPage />;
   if (book.kind === "ready" || book.kind === "locked") return <FeatureWaitsPage feature="book" waiting={book} member={member} />;
   if (book.kind !== "book") return <AnswerPage answer={book} {...actions} />;
-  return <BookPage book={book} page={page} />;
+  return <BookPage book={book} page={page} chatUrl={member.chatUrl} />;
 }
 
 type SkillTreeAnswerPageProps = { member: MemberProfile; skillTree: SkillTreeShown | undefined; onBuyPerk: ShellActions["buyPerk"]; onSignIn: () => void; onSignOut: () => void };
