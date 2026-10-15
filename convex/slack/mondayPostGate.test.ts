@@ -50,7 +50,7 @@ afterEach(() => {
 });
 
 describe("GB28: the Monday post is dark wherever monday-post is off", { timeout: 120_000 }, () => {
-  test("with monday-post off or not created, no Admin tab shows the Monday post, a forged switch schedules nothing, and every Slack call equals those with it off", async () => {
+  test("with monday-post off or not created, no Admin tab shows the Monday post, a forged switch schedules no post, and every Slack call equals those with it off", async () => {
     const whileOff = await adminsWalk(postOff);
     const whileNotCreated = await adminsWalk(postNotCreated);
 
@@ -69,7 +69,7 @@ describe("GB28: the Monday post is dark wherever monday-post is off", { timeout:
     expect(await exposuresOf(walked.t, "U_ALICE")).toEqual([]);
   });
 
-  test("with monday-post on for Alice's email only, Alice sees the switch, Sam's Slack calls equal those with it off, and her switch posts nothing in the workspace", async () => {
+  test("with monday-post on for Alice's email only, Alice sees the switch, Sam's App Home views equal those with it off, and her switch posts nothing in the workspace", async () => {
     const whilePreviewed = await adminsWalk(previewedByAlice);
     const whileOff = await adminsWalk(postOff);
 
@@ -112,7 +112,7 @@ describe("GB28: the monday-post flag turned off and on, its stale clicks and its
     expect(mondayPostTimes()).toEqual([mondayAfter]);
   });
 
-  test("a Switch on from an Admin tab published while monday-post was on, clicked after it turned off, writes nothing and schedules nothing", async () => {
+  test("a Switch on from an Admin tab published while monday-post was on, clicked after it turned off, writes nothing and schedules no post", async () => {
     const t = await workspaceDeciding(...postOn);
     await adminTabOpen(t, "U_ALICE");
     const switchOn = buttonInHome(slack, "U_ALICE", "Switch on");
@@ -141,7 +141,7 @@ describe("GB28: the monday-post flag turned off and on, its stale clicks and its
     expect(await mondayPostRowsOf(t)).toEqual({ settings: [{ on: true, timeZone: "Europe/Berlin" }], claims: [], jobs: [nextMonday] });
   });
 
-  test("the exposure goes once per admin and value through the flag turned off and on again, and none to a member who isn't an admin", async () => {
+  test("the exposure goes once per admin and value through the flag turned off and on again, and none to a member who isn't an admin, even on a forged switch", async () => {
     const t = await workspaceDeciding(...postOn);
     await adminTabOpen(t, "U_ALICE");
     await click(t, "U_ALICE", "Switch on");
@@ -149,6 +149,8 @@ describe("GB28: the monday-post flag turned off and on, its stale clicks and its
     await adminTabOpen(t, "U_SAM");
     await giveKudos(t, "U_ANN", "U_BOB", 1);
     await openHome(t, "U_ANN");
+    await interact(t, "U_ANN", staleButtonOf({ type: "setMondayPost", on: false }));
+    await interact(t, "U_ANN", staleMenuOptionOf({ type: "setMondayPost", on: true, timeZone: "Asia/Kolkata" }));
 
     expect(await exposuresOf(t, "U_ALICE")).toEqual([true]);
     expect(await exposuresOf(t, "U_SAM")).toEqual([true]);
