@@ -1,0 +1,32 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/custom-emoji-pictures
+
+ ❯ |website| src/KudosMessage.test.tsx (20 tests | 1 failed) 360ms
+   ❯ WS210: one renderer for a kudos message (18)
+     × draws a skin-toned emoji by the shortcode table's toned character before an untoned unicode 10ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > draws a skin-toned emoji by the shortcode table's toned character before an untoned unicode
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  👋🏼[39m
+Received:
+[31m  👋[39m
+ ❯ src/KudosMessage.test.tsx:86:23
+     84|     const container = shown(words({ kind: "emoji", name: "wave::skin-t…
+     85|
+     86|     expect(container).toHaveTextContent("👋🏼");
+       |                       ^
+     87|   });
+     88|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 19 passed (20)
+   Start at  17:53:01
+   Duration  4.55s (environment 62%, setup 19%, transform 9%, tests 9%, import 1%)
+

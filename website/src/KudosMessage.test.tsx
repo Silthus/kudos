@@ -80,6 +80,25 @@ describe("WS210: one renderer for a kudos message", () => {
     expect(container).not.toHaveTextContent("🌮");
   });
 
+  it("draws a skin-toned emoji by the shortcode table's toned character before an untoned unicode", () => {
+    const container = shown(words({ kind: "emoji", name: "wave::skin-tone-3", unicode: "👋" }));
+
+    expect(container).toHaveTextContent("👋🏼");
+  });
+
+  it("draws a skin-toned emoji the shortcode table doesn't know by its unicode, then its picture, before its name", () => {
+    const container = shown(
+      words(
+        { kind: "emoji", name: "newer_than_the_table::skin-tone-2", unicode: "🫨" },
+        { kind: "emoji", name: "workspace_wave::skin-tone-2", image: "https://emoji.slack-edge.com/T1/workspace_wave/abc.png" },
+      ),
+    );
+
+    expect(container).toHaveTextContent("🫨");
+    expect(screen.getByRole("img", { name: ":workspace_wave::skin-tone-2:" })).toBeInTheDocument();
+    expect(container).not.toHaveTextContent("skin-tone");
+  });
+
   it("draws an emoji's unicode before its picture", () => {
     const container = shown(words({ kind: "emoji", name: "tada", unicode: "🎉", image: "https://emoji.slack-edge.com/T1/tada/abc.png" }));
 

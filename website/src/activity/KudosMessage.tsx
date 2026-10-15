@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import type { Message, Segment } from "../shell";
-import { emojiCharacterOf } from "./emoji";
+import { emojiCharacterOf, isSkinToned } from "./emoji";
 
 type Words = Extract<Message, { kind: "text" }>;
 
@@ -63,6 +63,8 @@ function StyledText({ segment }: { segment: Extract<Segment, { kind: "text" }> }
 type Emoji = Extract<Segment, { kind: "emoji" }>;
 
 function EmojiOf({ segment }: { segment: Emoji }) {
+  const tonedCharacter = isSkinToned(segment.name) ? emojiCharacterOf(segment.name) : undefined;
+  if (tonedCharacter !== undefined) return tonedCharacter;
   if (segment.unicode !== undefined) return segment.unicode;
   if (segment.image !== undefined) return <EmojiPicture key={segment.image} name={segment.name} image={segment.image} />;
   return emojiCharacterOf(segment.name) ?? <EmojiName name={segment.name} />;
