@@ -212,6 +212,17 @@ describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after 
     ]);
   });
 
+  test("a finished weekly quest's DM delivered after its week turned links its Open to the Quests page, where that crate waits with no slot", async () => {
+    const t = await questsLive();
+    const alice = await memberInserted(t, "U_ALICE");
+
+    await notified(t, (ctx) => notifyWeeklyQuestFinished(ctx, alice, { kind: "weekly", week: "2026-10-05", slot: 1 }, "Give kudos on two days.", 20));
+
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([
+      [`section: ✅ You finished a quest: Give kudos on two days. You earned *20 XP*. [link: Open ${siteUrl}/quests]`, `section: <${siteUrl}/quests|See your quests on the web>`],
+    ]);
+  });
+
   test.each(closed)("$condition, a quest DM has no link", async ({ flags, env = {} }) => {
     stubbed(env);
     const t = await questsLive(flags);

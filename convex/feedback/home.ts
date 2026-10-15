@@ -30,7 +30,7 @@ import { slots as slotNames, type ItemRefusal } from "../store/rows";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
-import { earlierWeekCratePage, questCratePageOf, readyCratePageOf, urlOf, type Page } from "../website/routes";
+import { earlierWeekCratePage, questCratePageOf, readyCratePageOf, urlOf, weeklyCratePageOf, type Page } from "../website/routes";
 import { coinsPartOf, inCoins } from "./coins";
 import type { HomeTab, JourneyStepShown, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { countsFor, pickQuestion } from "./groupCopy";
@@ -586,8 +586,8 @@ export function finishedQuestCrateOf(quest: JourneyQuest, xp: number, waiting: b
   return { text: `✅ You finished a Journey step: ${journeyGoalOf(quest.step)} ${rewardTold(xp, waiting)}`, action: openCrate(quest, website) };
 }
 
-export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp: number, waiting: boolean, website: string | null): { text: string; action: HomeAction } {
-  return { text: `✅ You finished a quest: ${goal} ${rewardTold(xp, waiting)}`, action: openCrate(quest, website) };
+export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp: number, waiting: boolean, website: string | null, thisWeek: WeekKey): { text: string; action: HomeAction } {
+  return { text: `✅ You finished a quest: ${goal} ${rewardTold(xp, waiting)}`, action: openCrate(quest, website, weeklyCratePageOf(quest, thisWeek)) };
 }
 
 function swapQuest(quest: WeeklyQuest, website: string | null): HomeAction {
