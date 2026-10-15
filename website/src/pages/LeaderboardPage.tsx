@@ -35,7 +35,7 @@ export function LeaderboardPage({ board, coinsShown, period, drawSpotlight, onCh
         {tabbed ? <BoardTabs board={board} boards={boards} selected={shown} ids={ids} onSelect={setChosen} /> : <EveryoneCard board={board} />}
       </div>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
-        <div className="flex min-w-0 flex-col gap-5" {...(tabbed && { role: "tabpanel", id: ids.panel, "aria-labelledby": ids.label(shown) })}>
+        <div className="flex min-w-0 flex-col gap-5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background" {...(tabbed && { role: "tabpanel", id: ids.panel, "aria-labelledby": ids.label(shown), tabIndex: 0 })}>
           {shown === "groups" ? <GroupsBoardView groups={board.groups!} period={board.period} chatUrl={board.chatUrl} /> : <PeopleBoardView key={shown} board={peopleBoardOf(board, shown)} title={titleOf(board, shown)} />}
         </div>
         <SidePanels board={board} shown={shown} coinsShown={coinsShown} drawSpotlight={drawSpotlight} onSetBoardVisibility={onSetBoardVisibility} />

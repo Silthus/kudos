@@ -116,6 +116,18 @@ describe("WS344 V24: the tab list works by keyboard", () => {
   });
 });
 
+describe("WS344 V24: Tab leaves the tab list for the selected board", () => {
+  it("moves focus from the selected tab to its board panel, and Shift+Tab back", async () => {
+    const { user } = visitTheBoard(leaderboardFixtures.withGroupBoards);
+    tab("My group").focus();
+
+    await user.tab();
+    expect(document.activeElement).toBe(boardPanel());
+    await user.tab({ shift: true });
+    expect(document.activeElement).toBe(tab("My group"));
+  });
+});
+
 describe("WS344 GB13: the Groups board", () => {
   async function onGroups(board: Leaderboard = leaderboardFixtures.withGroupBoards, path?: string) {
     const view = visitTheBoard(board, path);
