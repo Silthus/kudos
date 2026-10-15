@@ -9,7 +9,7 @@ export function rewardWords({ xp, coins }: QuestReward) {
 
 export function Coins({ coins, seen = null }: { coins: number; seen?: string | null }) {
   return (
-    <span data-reward="coins" className="inline-flex items-center gap-1 tabular-nums" {...rewardCoinsAttributes(seen)}>
+    <span data-reward="coins" className="inline-flex items-center gap-1 align-middle tabular-nums" {...rewardCoinsAttributes(seen)}>
       <CoinGlyph />
       {coins}
       <span className="sr-only">{coins === 1 ? " coin" : " coins"}</span>
