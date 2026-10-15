@@ -80,7 +80,7 @@ describe("ST20 ST21 ST24 ST25: opening Coins opens the inventory, previewed by o
       "section: 4 🪙",
       "divider",
       "section: *Your kudos emoji*",
-      "section: Slot 1 · 🦔 Hedgehog",
+      "section: Slot 1 · 🦔 Hedgehog [button: Take off]",
       "section: Slot 2 · empty",
       "section: Slot 3 · empty",
       "context: Each emoji in a slot counts as a kudos, like :taco:.",
@@ -99,7 +99,7 @@ describe("ST20 ST21 ST24 ST25: opening Coins opens the inventory, previewed by o
     await openHome(t, "U_ALICE");
     await click(t, "U_ALICE", "Inventory");
 
-    expect(publishedHome(slack, "U_ALICE").slice(-17, -14)).toEqual(["divider", "section: *Collection*", "section: 🎀 Ribbon"]);
+    expect(publishedHome(slack, "U_ALICE").slice(-17, -14)).toEqual(["divider", "section: *Collection*", "section: 🎀 Ribbon [static_select: Put in slot]"]);
   });
 
   test("F25: the store exposure carries true for the previewer and false for a member with Coins shown but not the store", async () => {

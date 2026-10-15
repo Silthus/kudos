@@ -95,7 +95,7 @@ describe("ST13 ST25: buying a kudos emoji in App Home", { timeout: 30_000 }, () 
 
     const home = publishedHome(slack, "U_ALICE");
     expect(home).toContain("section: 0 🪙");
-    expect(home).toEqual(expect.arrayContaining(["section: *Collection*", "section: 🚀 Rocket"]));
+    expect(home).toEqual(expect.arrayContaining(["section: *Collection*", "section: 🚀 Rocket [static_select: Put in slot]"]));
     expect(home.slice(-11)).toEqual(storeLines.filter((line) => !line.includes("Rocket")));
     expect(await coinsOf(t, "U_ALICE")).toBe(0);
   });
@@ -126,7 +126,7 @@ describe("ST13 ST25: buying a kudos emoji in App Home", { timeout: 30_000 }, () 
     await send(t, blockActions("U_ALICE", staleBuy));
 
     const home = publishedHome(slack, "U_ALICE");
-    expect(home.slice(home.indexOf("section: *Collection*"))).toEqual(["section: *Collection*", "section: 🌻 Sunflower", "context: You already own it.", "divider", "section: *Store*", ...storeLines.slice(1)]);
+    expect(home.slice(home.indexOf("section: *Collection*"))).toEqual(["section: *Collection*", "section: 🌻 Sunflower [static_select: Put in slot]", "context: You already own it.", "divider", "section: *Store*", ...storeLines.slice(1)]);
     expect(await coinsOf(t, "U_ALICE")).toBe(100);
   });
 

@@ -1,9 +1,9 @@
 # Store
 
-Store: a member's items and the store that sells them for coins, knowing nothing about why an item was earned (ST1–ST30): it keeps the versioned item catalogue, version 1, the starter 🦔, twelve store kudos emoji at 100 🪙 and one silver tier's kudos emoji per shipped ladder, each with a stable ID, a name, its Slack emoji name, its art and one source; the insert-only collection of items granted to a member, each once with its time and source, beside the starter every member owns and nobody stores, arriving when they opened Coins; the loadout of three kudos emoji slots, the starter in the first until a member changes it; the loadout parse hook, which claims the giver's loadout emoji as kudos emoji only where the store is visible to them; `inventoryOf`, which gives the website a member's slots, owned items and catalogue, or null while the store isn't visible to them; `buyItem`, the D17 command that sells a store emoji for its price, checking in order that Coins is open, that the item is sold in the member's workspace (never the starter, a tier's emoji, an unknown ID or the workspace's own emoji), that the member doesn't own it, and that the wallet's one spend step, with `{ item }`, covers it, and on success spends, adds the item to the collection with source `store`, in no slot, and publishes `itemBought`, storing the outcome, bought or refused with its reason, under the idempotency key in the same mutation, so the same key answers the stored outcome and does nothing else, and answering null, writing nothing, where the store isn't shown to the member; and `storeShownTo`, the `store` flag on in the member's decision with coins shown to them, and `storeVisibleTo`, shown with Coins opened; only this module writes the collection, the loadout and item purchases.
+Store: a member's items and the store that sells them for coins, knowing nothing about why an item was earned (ST1–ST30): it keeps the versioned item catalogue, version 1, the starter 🦔, twelve store kudos emoji at 100 🪙 and one silver tier's kudos emoji per shipped ladder, each with a stable ID, a name, its Slack emoji name, its art and one source; the insert-only collection of items granted to a member, each once with its time and source, beside the starter every member owns and nobody stores, arriving when they opened Coins; the loadout of three kudos emoji slots, the starter in the first until a member changes it; the loadout parse hook, which claims the giver's loadout emoji as kudos emoji only where the store is visible to them; `inventoryOf`, which gives the website a member's slots, owned items and catalogue, or null while the store isn't visible to them; `buyItem`, the D17 command that sells a store emoji for its price, checking in order that Coins is open, that the item is sold in the member's workspace (never the starter, a tier's emoji, an unknown ID or the workspace's own emoji), that the member doesn't own it, and that the wallet's one spend step, with `{ item }`, covers it, and on success spends, adds the item to the collection with source `store`, in no slot, and publishes `itemBought`, storing the outcome, bought or refused with its reason, under the idempotency key in the same mutation, so the same key answers the stored outcome and does nothing else, and answering null, writing nothing, where the store isn't shown to the member; `equip` and `takeOff`, the D17 commands that put an owned kudos emoji in a slot, moving it out of any other slot, or empty a slot, free and safe to repeat by state, storing no outcome, refusing with `coins-not-open` or `not-owned` and changing nothing then, and answering null, writing nothing, where the store isn't shown to the member, the first change writing all three of the member's slots so a taken-out starter stays out; and `storeShownTo`, the `store` flag on in the member's decision with coins shown to them, and `storeVisibleTo`, shown with Coins opened; only this module writes the collection, the loadout and item purchases.
 
 ## invariants
-- only the store writes the collection, the loadout and item purchases: No module but the store writes a member's collection, loadout or item purchases, and a collected item or a stored purchase, once written, is never changed or deleted.
+- only the store writes the collection, the loadout and item purchases: No module but the store writes a member's collection, loadout or item purchases, only `equip` and `takeOff` write the loadout, and a collected item or a stored purchase, once written, is never changed or deleted.
   over: every module under convex/, outside its tests and the generated code
   via: ST5 ST6 ST13: only the store writes the collection, the loadout and item purchases, and the collection and purchases are insert-only
   because: one writer keeps an item granted once and owned for good (ST5, P5); a second module inserting into the collection could grant an item twice, and a change or delete would take back an item a member owns
@@ -61,6 +61,38 @@ Store: a member's items and the store that sells them for coins, knowing nothing
   checklist: resumption-coverage dismissed: a purchase is no batch
   checklist: declared-target-coverage dismissed: buyItem is the one path that spends coins for an item, held by the first invariant and the wallet's
   checklist: completion-evidence dismissed: the stored outcome is the evidence; the caller reads it back under the same key
+- every slot holds an owned item: Each of a member's kudos emoji slots is empty or holds an item the member owns, because `equip` puts only an owned item in a slot and nothing takes an owned item back.
+  over: a seeded sequence of grants, equips of owned, unowned and unknown items and take-offs, read after each step through inventoryOf's slots and owned items
+  via: ST7: every slot holds an owned item
+  because: every emoji in a slot counts as a kudos for its owner (ST8); a slot holding an item the member doesn't own would let them thank people with an emoji they never bought or earned (ST3, ST7, ST13)
+  kinds: state
+  checklist: scoped-reads dismissed: equip reads the clicking member's own collection and slots by member
+  checklist: revalidated-permission dismissed: nothing is queued; equip checks the store, Coins and ownership in its own mutation
+  checklist: separation-of-duties dismissed: no approval policy; a member fills their own slots
+  checklist: legal-state-succession declared as every slot holds an owned item
+  checklist: supersession-safety dismissed: Convex serializes the mutations that read and write one member's slots, so a second equip sees the first
+  checklist: worker-fencing dismissed: no worker; every equip is one mutation
+  checklist: commit-ordered-effects dismissed: equip issues no external effect
+  checklist: durable-dispatch-intent dismissed: nothing is dispatched
+  checklist: resumption-coverage dismissed: equip is no batch
+  checklist: declared-target-coverage dismissed: equip is the one path that puts an item in a slot, held by the first invariant
+  checklist: completion-evidence dismissed: nothing waits on an equip; the answer names the slot and item
+- an item fills at most one slot: Putting an item in a slot takes it out of any other slot in the same mutation, so no item fills two of a member's slots.
+  over: a seeded sequence of grants, equips into filled, empty and the same slots, and take-offs, read after each step through inventoryOf's slots
+  via: ST7: an item fills at most one slot
+  because: an item is owned once (ST5), so it counts once and shows once; an emoji in two slots would hold a slot for nothing and give the website two slot entries for one item (ST7, ST26)
+  kinds: state
+  checklist: scoped-reads dismissed: equip reads and writes the clicking member's own slots by member
+  checklist: revalidated-permission dismissed: nothing is queued; equip runs in the clicking member's mutation
+  checklist: separation-of-duties dismissed: no approval policy; a member fills their own slots
+  checklist: legal-state-succession declared as an item fills at most one slot
+  checklist: supersession-safety dismissed: Convex serializes the mutations that read and write one member's slots, so a second equip sees the first
+  checklist: worker-fencing dismissed: no worker; every equip is one mutation
+  checklist: commit-ordered-effects dismissed: equip issues no external effect
+  checklist: durable-dispatch-intent dismissed: nothing is dispatched
+  checklist: resumption-coverage dismissed: equip is no batch
+  checklist: declared-target-coverage dismissed: equip and takeOff are the only writers of slots, held by the first invariant
+  checklist: completion-evidence dismissed: nothing waits on an equip; the answer names the slot and item
 - a loadout emoji counts only for its owner and only where the store is visible: The loadout parse hook claims a giver's own loadout emoji as kudos emoji only while the store is visible to that giver, so the same emoji in anyone else's message, or in theirs while the store is off, coins are off, the flag is missing or Coins is unopened, is an ordinary emoji.
   over: messages with 🦔 from its owner with the store visible, from another member, from a member with Coins open and the store not shown, and from the owner with the store off, not created and coins off, read through the giver's replies and the published kudosGiven events
   via: ST8 ST9 ST22: a loadout emoji counts only for its owner and only where the store is visible

@@ -21,6 +21,8 @@ export const itemPurchaseValidator = v.object({ member: v.id("members"), key: v.
 
 export type Slot = Infer<typeof slotValidator>;
 
+export const slots: readonly Slot[] = ["emoji-1", "emoji-2", "emoji-3"];
+
 export type ItemPurchaseOutcome = Infer<typeof itemPurchaseOutcomeValidator>;
 
 export type ItemRefusal = Infer<typeof itemRefusalValidator>;

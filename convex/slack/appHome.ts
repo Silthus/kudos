@@ -9,7 +9,7 @@ import { renderHome, type Choice, type HomeLine, type HomeView } from "../feedba
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { itemRefusalValidator, type ItemRefusal } from "../store/rows";
 import { lookup } from "../workspace/directory";
-import { buttonOf, mrkdwn, plainText, urlButtonOf } from "./blocks";
+import { buttonOf, menuOf, mrkdwn, plainText, urlButtonOf } from "./blocks";
 import { attemptArgs, failedAttempt, sendOnce, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 import { lookUpUser, refreshUser } from "./directory";
 
@@ -120,6 +120,7 @@ function blockOf(line: HomeLine) {
   if (line.kind === "hint") return { type: "context", elements: [mrkdwn(line.text)] };
   if (line.kind === "action") return { type: "section", text: mrkdwn(line.text), accessory: buttonOf(line.action) };
   if (line.kind === "pick-channel") return { type: "section", text: mrkdwn(line.text), accessory: channelPickerOf(line) };
+  if (line.kind === "menu") return { type: "section", text: mrkdwn(line.text), accessory: menuOf(line) };
   if (line.kind === "link") return { type: "section", text: mrkdwn(`<${line.url}|${line.label}>`) };
   if (line.kind === "links") return { type: "actions", elements: line.links.map(linkButtonOf) };
   return { type: "section", text: mrkdwn(line.text) };

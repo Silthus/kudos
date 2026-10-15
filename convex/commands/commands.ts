@@ -14,7 +14,8 @@ import { openQuestCrate } from "../quests/open";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { rerollQuest } from "../quests/weekly";
 import { buyItem } from "../store/buying";
-import type { ItemPurchaseOutcome } from "../store/rows";
+import { equip, takeOff, type LoadoutOutcome } from "../store/equipping";
+import { slotValidator, type ItemPurchaseOutcome } from "../store/rows";
 import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { featureValidator } from "../unlocks/feature";
 import { openUnlock } from "../unlocks/unlocks";
@@ -32,11 +33,13 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("rerollQuest"), quest: weeklyQuestValidator }),
   v.object({ type: v.literal("buyPerk"), perk: perkValidator }),
   v.object({ type: v.literal("buyItem"), item: v.string() }),
+  v.object({ type: v.literal("equip"), item: v.string(), slot: slotValidator }),
+  v.object({ type: v.literal("takeOff"), slot: slotValidator }),
 );
 
 export type Command = Infer<typeof commandValidator>;
 
-export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | null;
+export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | LoadoutOutcome | null;
 
 export function commandOf(candidate: unknown): Command | null {
   return conforms(commandValidator, candidate) ? (candidate as Command) : null;
@@ -86,6 +89,10 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       if (outcome !== null) await showHomeTab(ctx, workspace, person, "inventory");
       return outcome;
     }
+    case "equip":
+      return equip(ctx, member, command.item, command.slot);
+    case "takeOff":
+      return takeOff(ctx, member, command.slot);
   }
 }
 

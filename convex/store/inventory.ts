@@ -5,7 +5,7 @@ import { openedAtOf, stateOf } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { catalogue, itemOf, starterItem, type CatalogueItem, type ItemId } from "./catalogue";
-import type { CollectedItem, Slot } from "./rows";
+import { slots, type CollectedItem, type Slot } from "./rows";
 import { storeVisibleAndExposedTo, storeVisibleTo } from "./visibility";
 
 export type LoadoutSlot = { slot: Slot; item: ItemId | null };
@@ -21,8 +21,6 @@ export type Inventory = {
 export type InventoryHome = { slots: Array<CatalogueItem | null>; collection: CatalogueItem[]; store: StoreItem[] };
 
 export type StoreItem = CatalogueItem & { source: { kind: "store"; price: number } };
-
-export const slots: readonly Slot[] = ["emoji-1", "emoji-2", "emoji-3"];
 
 export const loadoutHook: ParseHook = {
   name: "loadout",

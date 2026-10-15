@@ -59,7 +59,7 @@ export const receiveHomeClick = internalMutation({
       if (outcome === null) continue;
       if ("perk" in outcome) {
         if (conversation !== undefined) await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, conversation, outcome });
-      } else if (outcome.kind === "refused") refused = outcome;
+      } else if (outcome.kind === "refused" && "item" in outcome) refused = outcome;
     }
     await republish(ctx, person.member, refused);
   },

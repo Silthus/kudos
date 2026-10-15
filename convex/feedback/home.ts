@@ -18,7 +18,7 @@ import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { Feature } from "../unlocks/feature";
 import { itemOf, type CatalogueItem } from "../store/catalogue";
 import type { InventoryHome, StoreItem } from "../store/inventory";
-import type { ItemRefusal } from "../store/rows";
+import { slots as slotNames, type ItemRefusal } from "../store/rows";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
@@ -43,6 +43,8 @@ export type CommandAction = { label: string; command: Command; accessibilityLabe
 
 export type LinkAction = { label: string; url: string; accessibilityLabel: string; id: string };
 
+export type MenuOption = { label: string; command: Command };
+
 export type HomeLine =
   | { kind: "text"; text: string }
   | { kind: "fields"; fields: string[] }
@@ -51,6 +53,7 @@ export type HomeLine =
   | { kind: "lines"; lines: Line[] }
   | { kind: "action"; text: string; action: HomeAction }
   | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] }
+  | { kind: "menu"; text: string; id: string; placeholder: string; options: MenuOption[] }
   | { kind: "link"; label: string; url: string }
   | { kind: "links"; links: Array<{ label: string; url: string }> };
 
@@ -232,12 +235,24 @@ function inventoryGroups({ balance, inventory, kudosEmoji, refused }: Extract<Sh
 }
 
 function slotLinesOf({ slots }: InventoryHome, { after }: RefusalLines): HomeLine[] {
-  return slots.flatMap((item, index): HomeLine[] => [{ kind: "text", text: `Slot ${index + 1} · ${item === null ? "empty" : itemLabelOf(item)}` }, ...after(item)]);
+  return slots.flatMap((item, index): HomeLine[] => [slotLineOf(item, index), ...after(item)]);
+}
+
+function slotLineOf(item: CatalogueItem | null, index: number): HomeLine {
+  const slot = slotNames[index]!;
+  if (item === null) return { kind: "text", text: `Slot ${index + 1} · empty` };
+  const takeOff: HomeAction = { label: "Take off", command: { type: "takeOff", slot }, accessibilityLabel: `Take ${item.name} out of slot ${index + 1}` };
+  return { kind: "action", text: `Slot ${index + 1} · ${itemLabelOf(item)}`, action: takeOff };
 }
 
 function collectionLinesOf({ collection }: InventoryHome, { after }: RefusalLines): HomeLine[][] {
   if (collection.length === 0) return [];
-  return [[{ kind: "text", text: bold("Collection") }, ...collection.flatMap((item): HomeLine[] => [{ kind: "text", text: itemLabelOf(item) }, ...after(item)])]];
+  return [[{ kind: "text", text: bold("Collection") }, ...collection.flatMap((item): HomeLine[] => [putInSlotLineOf(item), ...after(item)])]];
+}
+
+function putInSlotLineOf(item: CatalogueItem): HomeLine {
+  const options = slotNames.map((slot, index): MenuOption => ({ label: `Slot ${index + 1}`, command: { type: "equip", item: item.item, slot } }));
+  return { kind: "menu", text: itemLabelOf(item), id: `put-in-slot:${item.item}`, placeholder: "Put in slot", options };
 }
 
 function storeLinesOf({ store }: InventoryHome, { after, unplaced }: RefusalLines): HomeLine[][] {

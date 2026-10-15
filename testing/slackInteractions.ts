@@ -2,13 +2,15 @@ import { expect } from "vitest";
 import type { FakeSlack } from "./fakeSlack";
 
 export type TextObject = { type: string; text: string };
-type Element = { type: string; text?: TextObject; style?: string; initial_channel?: string; action_id?: string; value?: string; url?: string };
+type Option = { text: TextObject; value: string };
+type Element = { type: string; text?: TextObject; style?: string; initial_channel?: string; action_id?: string; value?: string; url?: string; placeholder?: TextObject; options?: Option[] };
 export type Block = { type: string; block_id?: string; text?: TextObject; fields?: TextObject[]; elements?: Array<TextObject | Element>; accessory?: Element };
 type HomeView = { type: string; blocks: Block[] };
 
 export type BlockAction =
   | { type: "button"; action_id: string; value?: string; block_id?: string }
-  | { type: "channels_select"; action_id: string; selected_channel: string | null; block_id?: string };
+  | { type: "channels_select"; action_id: string; selected_channel: string | null; block_id?: string }
+  | { type: "static_select"; action_id: string; selected_option: Option | null; block_id?: string };
 
 export function publishedHomeBlocks(slack: FakeSlack, user: string): Block[] {
   const view = slack.homeShownTo(user) as HomeView | undefined;
@@ -54,6 +56,27 @@ export function channelPickerInHome(slack: FakeSlack, user: string, channel: str
     .find((element) => element.type === "channels_select");
   expect(picker, `a channel picker in ${user}'s App Home`).toBeDefined();
   return { type: "channels_select", action_id: picker!.action_id!, selected_channel: channel };
+}
+
+export function menuOptionInHome(slack: FakeSlack, user: string, line: string, option: string): BlockAction {
+  const menu = publishedHomeBlocks(slack, user).find((block) => block.text?.text === line && block.accessory?.type === "static_select")?.accessory;
+  expect(menu, `a menu beside ${line} in ${user}'s App Home`).toBeDefined();
+  return selectedOptionOf(menu!, option);
+}
+
+export function menuOptionsInHome(slack: FakeSlack, user: string, line: string) {
+  const menu = publishedHomeBlocks(slack, user).find((block) => block.text?.text === line)?.accessory;
+  return menu?.options?.map((option) => plainText(option.text));
+}
+
+export function staleMenuOptionOf(command: unknown): BlockAction {
+  return { type: "static_select", action_id: "stale-menu", selected_option: { text: { type: "plain_text", text: "stale" }, value: JSON.stringify(command) } };
+}
+
+function selectedOptionOf(menu: Element, label: string): BlockAction {
+  const option = menu.options?.find(({ text }) => text.text === label);
+  expect(option, `a ${label} option`).toBeDefined();
+  return { type: "static_select", action_id: menu.action_id!, selected_option: option! };
 }
 
 let interactions = 0;
@@ -106,6 +129,7 @@ function readButton(button: Element) {
 function readAccessory(element: Element) {
   if (element.type === "button" && element.url !== undefined) return `[link: ${plainText(element.text)} ${element.url}]`;
   if (element.type === "button") return `[button: ${plainText(element.text)}]`;
+  if (element.type === "static_select") return `[static_select: ${plainText(element.placeholder)}]`;
   return `[${element.type}: ${element.initial_channel ?? "none"}]`;
 }
 
