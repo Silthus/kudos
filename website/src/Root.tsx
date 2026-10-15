@@ -8,8 +8,6 @@ import { LiveShell } from "./LiveApp";
 import { ErrorPage } from "./pages/ErrorPage";
 import { builtShell, fixtureActions, type ShellState } from "./shell";
 
-const fixtureSettings = fixedSettings(settingsFixtures.everything);
-
 export function Root({ fixture, convexUrl }: { fixture?: string; convexUrl?: string }) {
   return <ShellBoundary>{fixture || !convexUrl ? <FixtureApp visitor={builtShell(fixture)} /> : <LiveShell client={new ConvexReactClient(convexUrl)} />}</ShellBoundary>;
 }
