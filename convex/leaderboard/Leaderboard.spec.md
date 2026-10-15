@@ -170,6 +170,7 @@ Leaderboard: totals of kudos given per member by day, week, month and all time, 
 - the Monday post names no member: The Monday post names groups only: up to three groups with their kudos per person, the most improved group and how many people gave kudos, and never a member, by mention or by name, whoever gave or received last week's kudos.
   over: the post Slack received on Monday after a week of kudos given by members with a group and by an admin without one, every member's mention and name looked for in it, a week with one giver, and a week nobody gave
   via: GB28, GB31: the Monday post names groups, never a person
+  refuted: lastWeeksPostOf listed last week's top givers by real name instead of the Groups board's first three groups -> 2 of the 4 tests failed, the post containing Ann Example (2026-10-15)
   because: the Monday post is the only public post about standings (GB31, G45); a post that named the top givers would turn a celebration of groups into a public individual ranking the groups spec rules out
   kinds: output
   checklist: destination-confinement dismissed: the post goes only to the announcement channel an admin picked, read again in the claiming mutation; no destination comes from the post's content
@@ -180,6 +181,7 @@ Leaderboard: totals of kudos given per member by day, week, month and all time, 
 - the Monday post goes out at most once a week: Each workspace's Monday post is sent to Slack at most once per week, the Monday in the switching admin's time zone: a second job for a week already claimed, a job from before a switch-off, and the job run again after a post whose answer was lost send nothing more that week, and the next week posts again.
   over: two jobs for one claimed week, a job scheduled before a switch-off, and a post whose answer was lost with its job run again that week, each read as the chat.postMessage calls Slack received
   via: GB28: the Monday post goes out at most once a week
+  refuted: claimWeek no longer looked for the workspace's claim of the week before claiming it again -> 2 of the 3 tests failed, the post sent twice at Monday 9:00 (2026-10-15)
   because: a post sent twice in one week spams the whole company's announcement channel (GB28); a lost answer may have landed, so sending again risks a duplicate the app can't take back
   kinds: message, state
   checklist: revalidated-permission dismissed: the job carries no member's permission; the claiming mutation reads the switch, its generation, `monday-post` in the workspace decision, the channel and groups' availability again before Slack is called
