@@ -1,0 +1,40 @@
+     × sets --background to #eeefe9 92ms
+     × sets --card to #fdfdf8 38ms
+     × sets --muted to #e5e7e0 65ms
+     × sets --chrome to #e5e7e0 68ms
+     × sets --border to #bfc1b7 84ms
+     × sets --background to #1e1f23 138ms
+     × sets --card to #25262b 83ms
+     × sets --muted to #2d2e37 60ms
+     × sets --chrome to #1e1f23 45ms
+     × sets --border to #3e424f 40ms
+     × paints no glow behind the HUD in either mode 13ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/brandSurfaces.test.tsx > #453: the light surfaces are posthog.com's > sets --background to #eeefe9
+AssertionError: expected 'oklch(0.966 0.00474 90)' to be '#eeefe9' // Object.is equality
+Expected: "#eeefe9"
+Received: "oklch(0.966 0.00474 90)"
+ FAIL  |website| src/brandSurfaces.test.tsx > #453: the light surfaces are posthog.com's > sets --card to #fdfdf8
+AssertionError: expected 'oklch(0.995 0.0018 90)' to be '#fdfdf8' // Object.is equality
+Expected: "#fdfdf8"
+Received: "oklch(0.995 0.0018 90)"
+ FAIL  |website| src/brandSurfaces.test.tsx > #453: the light surfaces are posthog.com's > sets --muted to #e5e7e0
+AssertionError: expected 'oklch(0.953 0.00768 90)' to be '#e5e7e0' // Object.is equality
+Expected: "#e5e7e0"
+Received: "oklch(0.953 0.00768 90)"
+ FAIL  |website| src/brandSurfaces.test.tsx > #453: the light surfaces are posthog.com's > sets --chrome to #e5e7e0
+AssertionError: expected 'oklch(0.923 0.01002 90)' to be '#e5e7e0' // Object.is equality
+Expected: "#e5e7e0"
+Received: "oklch(0.923 0.01002 90)"
+ FAIL  |website| src/brandSurfaces.test.tsx > #453: the light surfaces are posthog.com's > sets --border to #bfc1b7
+AssertionError: expected 'oklch(0.88 0.0048000000000000004 90)' to be '#bfc1b7' // Object.is equality
+Expected: "#bfc1b7"
+Received: "oklch(0.88 0.0048000000000000004 90)"
+ FAIL  |website| src/brandSurfaces.test.tsx > #453: the dark surfaces are posthog.com's > sets --background to #1e1f23
+ FAIL  |website| src/brandSurfaces.test.tsx > #453: the dark surfaces are posthog.com's > sets --chrome to #1e1f23
+AssertionError: expected 'oklch(0.187 0.006600000000000001 264)' to be '#1e1f23' // Object.is equality
+Expected: "#1e1f23"
+Received: "oklch(0.187 0.006600000000000001 264)"
+ FAIL  |website| src/brandSurfaces.test.tsx > #453: the dark surfaces are posthog.com's > sets --card to #25262b
+AssertionError: expected 'oklch(0.2 0.0072 264)' to be '#25262b' // Object.is equality
+Expected: "#25262b"
