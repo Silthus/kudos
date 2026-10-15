@@ -8,6 +8,7 @@ Store: a member's items and the store that sells them for coins, knowing nothing
   via: ST5 ST6 ST13: only the store writes the collection, the loadout and item purchases, and the collection and purchases are insert-only
   because: one writer keeps an item granted once and owned for good (ST5, P5); a second module inserting into the collection could grant an item twice, and a change or delete would take back an item a member owns
   refuted: grantItem moved an owned item's arrival time with a patch -> the detector found a patch in convex/store/inventory.ts (2026-10-14)
+  refuted: the website's buyPerk wrapper also stored an item purchase under its request key -> the detector found convex/website/commands.ts writing itemPurchases (2026-10-15)
   kinds: storage
   checklist: scoped-reads dismissed: the invariant is about writes
   checklist: encrypted-storage dismissed: items and slots are game data, not confidential
@@ -43,6 +44,7 @@ Store: a member's items and the store that sells them for coins, knowing nothing
   over: a purchase repeated with its key, the same key naming another item, a refusal for coins repeated after earning them, and a new key buying again, read through buyItem's answers, the collection, the spend records and the balance against its records
   via: a purchase spends coins once per idempotency key
   because: a retried website request or a click delivered twice must never pay twice (ST13, ST14, CO30); a key that bought again, or a refused one that bought later, would spend coins the member never meant to spend
+  refuted: buyItem answered a stored outcome only for a refused key -> the repeated bought key ran the purchase again and answered owned (2026-10-15)
   kinds: state, storage
   checklist: scoped-reads dismissed: a purchase reads the clicking member's own stored outcome by member and key
   checklist: revalidated-permission dismissed: nothing is queued; a purchase checks the store and Coins in its own mutation
