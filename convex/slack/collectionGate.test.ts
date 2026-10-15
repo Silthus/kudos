@@ -33,6 +33,7 @@ const everyOtherFlag = ["xp-levels", "unlocks", "quests", "everyone-board", "ach
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
 const firstThanks: Quest = { kind: "journey", step: "first-thanks" };
+const anUndrawnWeeklyQuest: Quest = { kind: "weekly", week: "2026-10-12", slot: 0 };
 const opensOf = { [alice.user]: { inSlack: "book", onTheWebsite: "leaderboard" }, [bob.user]: { inSlack: "leaderboard", onTheWebsite: "book" } } satisfies Record<string, { inSlack: Feature; onTheWebsite: Feature }>;
 
 let slack: FakeSlack;
@@ -77,13 +78,13 @@ describe("CL18: the collection is dark where collection is off, drops only for t
     expect(walk).toEqual(withoutTheCollection);
     expect(JSON.stringify(walk.answers)).not.toMatch(/"drop"|"found"/);
     expect(walk.answers.U_ALICE!.collection).not.toMatchObject({ kind: "collection" });
-    expect(walk.tables.drops).toEqual(0);
+    expect(walk.tables.drops).toEqual([]);
   });
 
   test("with collection on, the same walk drops a hoggie for every crate opened and shows them", async () => {
     const walk = await walkIn(await aliceAndBobAtLevelFour([onForEveryone(collection)]));
 
-    expect(walk.tables.drops).toEqual(6);
+    expect(walk.tables.drops).toHaveLength(6);
     expect(walk.answers.U_ALICE!.opens).toEqual([expect.objectContaining({ drop: expect.objectContaining({ copy: expect.any(Number) }) }), expect.objectContaining({ drop: expect.objectContaining({ copy: expect.any(Number) }) })]);
     expect(walk.homes.U_ALICE!.join("\n")).toContain("Hoggies: ");
     expect(JSON.stringify(walk.answers.U_ALICE!.activity)).toContain('"kind":"found"');
@@ -101,9 +102,15 @@ describe("CL18: the collection is dark where collection is off, drops only for t
     expect(onForAlice.slackCallsTo.U_BOB).toEqual(off.slackCallsTo.U_BOB);
     expect(onForAlice.homes.U_ALICE).not.toEqual(off.homes.U_ALICE);
   });
-  test("collection's exposure is sent once per member and value, only by a crate's first successful open, never by App Home, the activity or the Book", async () => {
+  test("collection's exposure is sent once per member and value, only by a crate's first successful open, never by a refused open, App Home, the activity or the Book", async () => {
     t = await aliceAndBobAtLevelFour([onForEveryone(collection)], undefined, websiteOpen);
     await hoggiesAliceSees();
+    await openInSlack(alice.user, { type: "openUnlock", feature: "coins" });
+    await openInSlack(alice.user, { type: "openQuestCrate", quest: anUndrawnWeeklyQuest });
+    const asAlice = await signedIn(alice);
+    expect(await asAlice.mutation(api.website.commands.openFeature, { feature: "coins" })).toEqual({ kind: "refused" });
+    expect(await asAlice.mutation(api.website.commands.openQuestCrate, { quest: anUndrawnWeeklyQuest })).toEqual({ kind: "refused" });
+    await settleInTimeOrder(t);
     expect(collectionExposures()).toEqual({});
 
     await openInSlack(alice.user, { type: "openUnlock", feature: "book" });
@@ -221,11 +228,7 @@ async function walkIn(backend: Backend) {
     answers,
     slackCallsTo: Object.fromEntries([alice, bob].map(({ user }) => [user, slackCallsAbout(user)])),
     slackCalls: slack.calls.map((call) => JSON.stringify(call)).sort(),
-    productEvents: postHog
-      .productEvents()
-      .filter(({ properties }) => properties.$feature_flag !== collection)
-      .map(({ event }) => event)
-      .sort(),
+    productEvents: orderFree(withStableIds(postHog.productEvents().filter(({ properties }) => properties.$feature_flag !== collection).map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsWritten(),
     dropsOf: { U_ALICE: await dropCount(alice.user), U_BOB: await dropCount(bob.user) },
   } satisfies Record<string, unknown>;
@@ -235,11 +238,15 @@ async function onTheWebsite(identity: { user: string; name: string }) {
   const asSignedIn = await signedIn(identity);
   const opens = [await asSignedIn.mutation(api.website.commands.openFeature, { feature: opensOf[identity.user]!.onTheWebsite }), await asSignedIn.mutation(api.website.commands.openQuestCrate, { quest: firstThanks })];
   await settleInTimeOrder(t);
-  const activity = await asSignedIn.query(api.website.activity.getActivity, { filter: "all", cursor: null, limit: 2 });
-  const olderActivity = "cursor" in activity && activity.cursor !== null ? await asSignedIn.query(api.website.activity.getActivity, { filter: "all", cursor: activity.cursor, limit: 2 }) : null;
+  const activity = [];
+  for (let cursor: string | null = null, page = 0; page === 0 || (cursor !== null && page < 20); page++) {
+    const answer = await asSignedIn.query(api.website.activity.getActivity, { filter: "all", cursor, limit: 2 });
+    activity.push(answer);
+    cursor = "cursor" in answer ? answer.cursor : null;
+  }
   return {
     opens,
-    activity: [activity, olderActivity].map(withoutPositions),
+    activity: withStableIds(activity),
     collection: await asSignedIn.query(api.website.collection.getCollection, {}),
     book: await asSignedIn.query(api.website.book.getBook, {}),
   };
@@ -261,8 +268,24 @@ async function signedIn(identity: { user: string; name: string }) {
   return session.asSignedIn;
 }
 
-function withoutPositions(page: unknown) {
-  return JSON.parse(JSON.stringify(page), (key, value) => (key === "key" || key === "cursor" || key === "seen" ? "<position>" : value));
+function orderFree<T>(rows: T[]): T[] {
+  return rows.toSorted((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+}
+
+const convexTestId = /^\d+[a-zA-Z]+$/;
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const positioned = new Set(["key", "cursor", "seen", "eventId", "position"]);
+
+function withStableIds<T>(value: T): T {
+  const seen = new Map<string, string>();
+  const stable = (kind: string, id: string) => seen.get(id) ?? seen.set(id, `<${kind} ${seen.size + 1}>`).get(id)!;
+  return JSON.parse(JSON.stringify(value, (_, field) => (typeof field === "bigint" ? `${field}n` : field)), (key, field) => {
+    if (key === "_id" || key === "_creationTime" || key === "uuid") return undefined;
+    if (positioned.has(key) && field !== null) return "<position>";
+    if (typeof field !== "string") return field;
+    if (convexTestId.test(field)) return stable("document", field);
+    return uuid.test(field) ? stable("uuid", field) : field;
+  });
 }
 
 type TableName = keyof typeof schema.tables;
@@ -273,7 +296,8 @@ async function rowsWritten() {
     for (const table of Object.keys(schema.tables) as TableName[]) rows[table] = await ctx.db.query(table).collect();
     return rows;
   });
-  return Object.fromEntries(Object.entries(withoutCollectionExposure(tables)).map(([table, rows]) => [table, rows.length])) as Record<TableName, number>;
+  const written = withStableIds(withoutCollectionExposure(tables));
+  return Object.fromEntries(Object.entries(written).map(([table, rows]) => [table, orderFree(rows)])) as typeof written;
 }
 
 function dropRows() {

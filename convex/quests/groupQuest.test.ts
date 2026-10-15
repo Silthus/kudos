@@ -4,12 +4,13 @@ import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { internal } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import crons from "../crons";
 import type { GroupId } from "../groups/groups";
 import { pickPrimaryGroup } from "../groups/pick";
 import { reconcileMember } from "../groups/reconcile";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
+import { aSignedInSession } from "../../testing/website";
 import { keepOpen } from "../unlocks/unlocks";
 import type { MemberId } from "../workspace/directory";
 import { openQuestCrate } from "./open";
@@ -486,6 +487,26 @@ describe("CL6: a group quest's crate drops no hoggie", { timeout: 60_000 }, () =
 
     expect(await t.run((ctx) => ctx.db.query("drops").collect())).toEqual([]);
     expect(postHog.productEvents().filter(({ event }) => event === "hoggie dropped")).toEqual([]);
+  });
+
+  test("the website's open of a group crate answers drop null while collection is on, no drop field while it is off, and sends no collection exposure", async () => {
+    vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+    const { t, members, groups } = await antsOfFiveDrew();
+    const withWebsite = (collection: string[]) => flagsFromPostHog(t, postHog, ...[...everyFlag, "website", ...collection].map(onForEveryone));
+    await withWebsite(["collection"]);
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+    for (const [giver, recipient] of [["U_A1", "U_A2"], ["U_A2", "U_A3"], ["U_A3", "U_A1"]] as const) await gives(t, members[giver]!, members[recipient]!, tuesday);
+    const { asSignedIn } = await aSignedInSession(t, { user: "U_A1" });
+    const openGroupCrate = () => asSignedIn.mutation(api.website.commands.openQuestCrate, { quest: { kind: "group", group: groups.Ants!, week: thisWeek } });
+
+    expect(await openGroupCrate()).toEqual({ kind: "opened", applied: null, drop: null });
+    expect(await openGroupCrate()).toEqual({ kind: "opened", applied: null, drop: null });
+    await withWebsite([]);
+    expect(await openGroupCrate()).toEqual({ kind: "opened", applied: null });
+    await settle(t);
+
+    expect(await t.run((ctx) => ctx.db.query("drops").collect())).toEqual([]);
+    expect(postHog.events().filter(({ event, properties }) => event === "$feature_flag_called" && properties.$feature_flag === "collection")).toEqual([]);
   });
 });
 
