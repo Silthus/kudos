@@ -18,6 +18,7 @@ const alicesEmail = "alice@example.com";
 const carolsEmail = "carol@example.com";
 const xpBelowLevelSix = 990;
 const store = "store";
+const storeOffers = ["🌻 Sunflower", "🚀 Rocket", "🌟 Glowing Star", "💎 Gem", "🌈 Rainbow", "🍀 Clover", "🍩 Doughnut", "🍪 Cookie", "👑 Crown", "🎈 Balloon", "🌵 Cactus", "🏆 Trophy"].map((item) => `section: ${item} · 100 🪙 [button: Buy]`);
 
 const xpAndUnlocksOn = [onForEveryone("xp-levels"), onForEveryone("unlocks")];
 const coinsForAliceAndCarol = onForEmails("coins", alicesEmail, carolsEmail);
@@ -83,6 +84,9 @@ describe("ST20 ST21 ST24 ST25: opening Coins opens the inventory, previewed by o
       "section: Slot 2 · empty",
       "section: Slot 3 · empty",
       "context: Each emoji in a slot counts as a kudos, like :taco:.",
+      "divider",
+      "section: *Store*",
+      ...storeOffers,
     ]);
   });
 
@@ -95,7 +99,7 @@ describe("ST20 ST21 ST24 ST25: opening Coins opens the inventory, previewed by o
     await openHome(t, "U_ALICE");
     await click(t, "U_ALICE", "Inventory");
 
-    expect(publishedHome(slack, "U_ALICE").slice(-3)).toEqual(["divider", "section: *Collection*", "section: 🎀 Ribbon"]);
+    expect(publishedHome(slack, "U_ALICE").slice(-17, -14)).toEqual(["divider", "section: *Collection*", "section: 🎀 Ribbon"]);
   });
 
   test("F25: the store exposure carries true for the previewer and false for a member with Coins shown but not the store", async () => {
