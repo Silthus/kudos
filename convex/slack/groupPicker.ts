@@ -1,5 +1,5 @@
 import type { GroupId, GroupRef } from "../groups/groups";
-import { plainText } from "./blocks";
+import { plainText, shortened } from "./blocks";
 
 const optionsPerList = 100;
 const optionTextLimit = 75;
@@ -18,8 +18,4 @@ export function optionListsOf<Option>(options: Option[]) {
   if (options.length <= optionsPerList) return { options };
   const lists = Array.from({ length: Math.ceil(options.length / optionsPerList) }, (_, index) => options.slice(index * optionsPerList, (index + 1) * optionsPerList));
   return { option_groups: lists.map((list, index) => ({ label: plainText(`Groups ${index * optionsPerList + 1}–${index * optionsPerList + list.length}`), options: list })) };
-}
-
-function shortened(text: string, limit: number) {
-  return text.length <= limit ? text : `${text.slice(0, limit - 1)}…`;
 }

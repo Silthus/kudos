@@ -9,7 +9,7 @@ import { nextRateLimitedAttempt, readSlack, retryDelayOf, slackErrorCodeOf } fro
 
 type EmojiChanged = { type: "emoji_changed" };
 
-type Listing = { kind: "listed"; emoji: CustomEmoji[] } | { kind: "rate-limited"; retryAfterMs: number };
+type Listing = { kind: "listed"; emoji: CustomEmoji[]; scopeMissing?: true } | { kind: "rate-limited"; retryAfterMs: number };
 
 const aliasPrefix = "alias:";
 const withoutScope = "missing_scope";
@@ -43,8 +43,9 @@ async function listCustomEmoji(ctx: ActionCtx, attempt: number) {
     await ctx.scheduler.runAfter(listed.retryAfterMs, internal.slack.customEmoji.syncCustomEmoji, { attempt: nextRateLimitedAttempt(attempt, "emoji.list") });
     return;
   }
+  const { scopeMissing } = listed;
   for (const emoji of writesOf(listed.emoji)) {
-    if (!(await ctx.runMutation(internal.workspace.customEmoji.keepCustomEmoji, { workspace, emoji, listing }))) return;
+    if (!(await ctx.runMutation(internal.workspace.customEmoji.keepCustomEmoji, { workspace, emoji, listing, ...(scopeMissing && { scopeMissing }) }))) return;
   }
   await ctx.runMutation(internal.workspace.customEmoji.forgetUnlistedCustomEmoji, { workspace, listing });
 }
@@ -52,7 +53,7 @@ async function listCustomEmoji(ctx: ActionCtx, attempt: number) {
 async function customEmojiListed(): Promise<Listing> {
   const answer = await readSlack<{ emoji?: unknown }>("emoji.list", {});
   if (answer.ok) return { kind: "listed", emoji: customEmojiOf(answer.emoji) };
-  if (answer.error === withoutScope) return { kind: "listed", emoji: [] };
+  if (answer.error === withoutScope) return { kind: "listed", emoji: [], scopeMissing: true };
   if (answer.error === "ratelimited") return { kind: "rate-limited", retryAfterMs: retryDelayOf(answer) };
   throw new ReportableError(`Slack emoji.list failed: ${slackErrorCodeOf(answer.error)}`);
 }
@@ -69,15 +70,20 @@ function customEmojiOf(listed: unknown): CustomEmoji[] {
   if (typeof listed !== "object" || listed === null || Array.isArray(listed)) throw new ReportableError("Slack emoji.list answered without an emoji list");
   const values = new Map(Object.entries(listed));
   return [...values].flatMap(([name, value]) => {
-    const image = imageOf(values, value, aliasHopsFollowed);
-    return image === undefined ? [] : [{ name, image }];
+    const original = originalOf(values, name, value, aliasHopsFollowed);
+    if (original === undefined) return [];
+    return [{ name, image: original.image, ...(original.name !== name && { aliasOf: original.name }) }];
   });
 }
 
-function imageOf(values: Map<string, unknown>, value: unknown, hopsLeft: number): string | undefined {
+function originalOf(values: Map<string, unknown>, name: string, value: unknown, hopsLeft: number): { name: string; image: string } | undefined {
   const text = textOf(value);
-  if (!text?.startsWith(aliasPrefix)) return httpsUrlOf(text);
-  return hopsLeft === 0 ? undefined : imageOf(values, values.get(text.slice(aliasPrefix.length)), hopsLeft - 1);
+  if (!text?.startsWith(aliasPrefix)) {
+    const image = httpsUrlOf(text);
+    return image === undefined ? undefined : { name, image };
+  }
+  const aliased = text.slice(aliasPrefix.length);
+  return hopsLeft === 0 ? undefined : originalOf(values, aliased, values.get(aliased), hopsLeft - 1);
 }
 
 function httpsUrlOf(value: unknown) {

@@ -1,6 +1,9 @@
 import type { CommandAction, Confirmation, HomeAction, LinkAction } from "../feedback/home";
 import { encodeHomeAction } from "./interactivity";
 
+const accessibilityLabelLimit = 75;
+const confirmationTitleLimit = 100;
+
 export function buttonOf(action: HomeAction) {
   return "url" in action ? linkButtonOf(action) : commandButtonOf(action);
 }
@@ -12,7 +15,7 @@ function commandButtonOf({ label, command, accessibilityLabel, confirm }: Comman
     text: plainText(label),
     action_id: action,
     value: action,
-    ...(accessibilityLabel !== undefined && { accessibility_label: accessibilityLabel }),
+    ...(accessibilityLabel !== undefined && { accessibility_label: shortened(accessibilityLabel, accessibilityLabelLimit) }),
     ...(confirm !== undefined && { confirm: confirmationOf(confirm) }),
   };
 }
@@ -26,7 +29,11 @@ export function urlButtonOf({ label, url, actionId, accessibilityLabel }: { labe
 }
 
 function confirmationOf({ title, text, confirm, deny }: Confirmation) {
-  return { title: plainText(title), text: plainText(text), confirm: plainText(confirm), deny: plainText(deny) };
+  return { title: plainText(shortened(title, confirmationTitleLimit)), text: plainText(text), confirm: plainText(confirm), deny: plainText(deny) };
+}
+
+export function shortened(text: string, limit: number) {
+  return text.length <= limit ? text : `${text.slice(0, limit - 1)}…`;
 }
 
 export function mrkdwn(text: string) {
