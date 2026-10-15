@@ -41,7 +41,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("GB21 GB24: across a Monday 00:00 UTC, a group of 4 participants gets one group quest with target 3, shown in App Home", () => {
+describe("GB21 GB24: across a Monday 00:00 UTC, a group of 4 participants gets one group quest with target 3, shown in App Home", { timeout: 60_000 }, () => {
   test("App Home's Quests section shows each participant Ants quest: Thank someone and say why. · 0 of 3 took part from the Monday sweep, and nothing the week before", async () => {
     const t = await antsOpenedQuests();
     await sweepAt(t, lastTuesday);

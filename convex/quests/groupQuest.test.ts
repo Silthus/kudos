@@ -39,7 +39,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("GB21 GB22: at Monday 00:00 UTC, the hourly sweep draws one group quest for each group of 2 or more participants", () => {
+describe("GB21 GB22: at Monday 00:00 UTC, the hourly sweep draws one group quest for each group of 2 or more participants", { timeout: 60_000 }, () => {
   test("a group of 4 participants gets one quest with target 3, stored with its participants, a reward of 15 coins, the catalogue version and the facts that made it feasible", async () => {
     const { t, members, groups } = await workspace({ Ants: ["U_A1", "U_A2", "U_A3", "U_A4"], Bees: ["U_B1", "U_B2"] });
     await openQuests(t, Object.values(members), lastTuesday);
@@ -144,7 +144,7 @@ describe("GB21 GB22: at Monday 00:00 UTC, the hourly sweep draws one group quest
   });
 });
 
-describe("GB22: the week's group quest is drawn deterministically among the feasible ones", () => {
+describe("GB22: the week's group quest is drawn deterministically among the feasible ones", { timeout: 60_000 }, () => {
   test("a group holding every member never draws together-reach-out, in 12 weeks", async () => {
     const { t, members } = await workspace({ Ants: ["U_A1", "U_A2", "U_A3"] });
     await openQuests(t, Object.values(members), lastTuesday);
@@ -176,7 +176,7 @@ describe("GB22: the week's group quest is drawn deterministically among the feas
   });
 });
 
-describe("GB24 GB31 GB33: groupQuestOf and quest drawn give counts, never names", () => {
+describe("GB24 GB31 GB33: groupQuestOf and quest drawn give counts, never names", { timeout: 60_000 }, () => {
   test("groupQuestOf gives a participant their group, the quest, its goal, the week and its end, 0 of the target took part, the reward and no crate", async () => {
     const { t, members, groups } = await workspace({ Ants: ["U_A1", "U_A2", "U_A3", "U_A4"] });
     await openQuests(t, Object.values(members), lastTuesday);

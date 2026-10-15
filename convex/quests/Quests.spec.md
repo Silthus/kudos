@@ -505,6 +505,7 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
 - a group week's quest is drawn once from its Monday participants: For each group and group week at most one group quest is stored, and its participants are exactly the members whose primary group the group was at that Monday 00:00 UTC, who had opened Quests by then and to whom `group-quest` applies when the draw runs; a group with fewer than 2 gets none, a second sweep draws nothing more, and no group draws before the first Monday after `group-quest` applied in the workspace decision.
   over: the stored group quests and quest drawn events, for groups of 4, 2 and 1 participants, a member who opened Quests on Tuesday, a member who joined the group on Tuesday with the first sweep on Tuesday, a member in Pacific/Auckland swept before and after the UTC boundary, two sweeps an hour apart, group-quest turned on mid-week, and group-quest off for every member after the launch
   via: GB21 GB22: at Monday 00:00 UTC, the hourly sweep draws one group quest for each group of 2 or more participants
+  refuted: the tally read each member's primary group at the draw instead of at the week's Monday 00:00 UTC -> the test failed: a member who joined the group on Tuesday became a participant (2026-10-15)
   because: the participants and the target are fixed at the week's start so the goal never moves under anyone (GB21, GB36, call 14), and a quest is a goal a member must be able to see (P75, call 5); a second draw would change the quest or the target mid-week
   kinds: state
   checklist: revalidated-permission dismissed: no permission is involved; each member's flags are read by the mutation that tallies them
@@ -517,6 +518,7 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
 - the group quest names no member: groupQuestOf gives a participant their group, the quest, its goal, the week, its end and counts, and quest drawn carries only the quest and `kind: group`; neither names a group member, a Slack user, a group ID or a group name in an event property.
   over: groupQuestOf for a participant of a group of 4 holding every member, together-reach-out's goal, groupQuestOf after the week ended, and every quest drawn of a group of 3
   via: GB24 GB31 GB33: groupQuestOf and quest drawn give counts, never names
+  refuted: quest drawn for the group quest carried the participant's member ID as a property -> the test failed: the event properties named the member (2026-10-15)
   because: members see how many took part, never who did or didn't (GB24, GB31, P82), and no group name or Slack group ID is an event property (GB33)
   kinds: output
   checklist: destination-confinement dismissed: groupQuestOf is an internal read and quest drawn goes only to the analytics outbox
@@ -525,6 +527,7 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
 - the group quest draw stays within Convex's limits: In a workspace of 1,500 members in 60 groups, the Monday sweep draws every group's quest with no mutation over Convex's transaction limits and fewer than 1,000 scheduled functions.
   over: 1,500 members in 60 groups who all opened Quests, swept at Monday 00:10 UTC with Convex's transaction limits enforced
   via: GB35: the group quest draw stays within Convex's limits per mutation
+  refuted: the tally read and tallied every member of the workspace in one mutation, with no page and no reconciliation cap -> the test failed: the draw stored no group quest (2026-10-15)
   because: a draw that exceeded a limit would fail whole and leave every group of the workspace without its quest (GB35)
   kinds: state
   checklist: resumption-coverage dismissed: each page carries its tally to the next, and the week is marked drawn only after the last page
