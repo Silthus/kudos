@@ -3,7 +3,7 @@ import type { FakePostHog } from "../../testing/fakePostHog";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone } from "../../testing/flags";
 import { FakeSlack, landsButTimesOut, slackError } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { memberChanged, settle, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
 import { type BlockAction, blockActions, buttonInHome, menuOptionInHome, publishedHome, staleButtonOf } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
@@ -350,24 +350,6 @@ async function interact(t: Backend, user: string, action: BlockAction) {
 
 function settleAMinute(t: Backend) {
   return settleUpTo(t, Date.now() + minute);
-}
-
-async function settleUpTo(t: Backend, until: number) {
-  for (let fired = 0; fired < 1_000; fired += 1) {
-    await t.finishInProgressScheduledFunctions();
-    const next = await nextJobAt(t);
-    if (next === null || next > until) {
-      vi.advanceTimersByTime(Math.max(0, until - Date.now()));
-      return;
-    }
-    vi.advanceTimersToNextTimer();
-  }
-  throw new Error("settleUpTo: more than 1,000 timers fired");
-}
-
-async function nextJobAt(t: Backend) {
-  const pending = await t.run(async (ctx) => (await ctx.db.system.query("_scheduled_functions").collect()).filter(({ state }) => state.kind === "pending"));
-  return pending.length === 0 ? null : Math.min(...pending.map(({ scheduledTime }) => scheduledTime));
 }
 
 async function mondayPostJobs(t: Backend) {

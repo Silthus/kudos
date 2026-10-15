@@ -197,5 +197,47 @@ Leaderboard: totals of kudos given per member by day, week, month and all time, 
   checklist: worker-fencing dismissed: the claim is the fence; Convex serializes the mutations that read and write one workspace's week
   checklist: acknowledgment-barrier dismissed: no request waits on the post; the admin's click is answered once the switch is stored
   checklist: commit-ordered-effects dismissed: the claim commits before the Slack adapter calls chat.postMessage, so a crash after the call leaves the week claimed
+  checklist: retry-classification dismissed: nothing retries the post; any answer but a delivered post is recorded on the claim and never retried
   checklist: resumption-coverage dismissed: a week whose job crashed after claiming stays claimed and posts nothing more; the next week's job was scheduled before the claim
+- the Monday post is dark wherever monday-post is off: An admin for whom `monday-post` is off in the member decision, not created, or undecided because the flags key is missing sees no Monday post in the Admin tab, and a forged command switches nothing on, so every Slack call equals those with the flag off; no Monday post goes out in a workspace where `monday-post` doesn't apply in the workspace decision. With the flag on for one admin's email only, every other admin's Slack calls equal those with it off.
+  over: every Slack call of one walk by two admins (the Admin tab asked for, a forged Switch on and time zone, a week of kudos and two weeks of jobs) with `monday-post` off, not created, and on while the flags key is missing, and the same walk with it on for one admin's email only
+  via: GB28: the Monday post is dark wherever monday-post is off
+  because: decision 18 ships unfinished work to the product owner first, and `monday-post` starts in the sandbox and for the product owner only (#333); a switch shown, or a post sent to the company's announcement channel, where the flag is off would publish a feature nobody chose to show, in the one public channel a post can't be taken back from
+  crossing: slack-request -> domain
+  entrances: route POST /slack/events, route POST /slack/interactivity
+  kinds: output, message
+  checklist: destination-confinement dismissed: the Admin tab goes to the admin who asked for it and the post to the announcement channel read in the claiming mutation; no destination comes from input
+  checklist: message-authenticity dismissed: the Slack adapter verifies every event and click's signature before the domain sees it, and the job is scheduled only by the backend's own mutations
+  checklist: redaction dismissed: the switch and the post are left out by the flag decision, and nothing designated sensitive is scrubbed from what remains
+  checklist: input-validation dismissed: setMondayPost's arguments are checked by the command validator, and the flag is read again in the mutation that would store the switch
+  checklist: retry-recognition dismissed: nothing is sent where the flag is off, so there is no landed effect to recognize
+  checklist: duplicate-suppression declared as the Monday post goes out at most once a week
+  checklist: keyed-ordering dismissed: no ordered transport is relied on; each Admin tab render and each job reads the flag itself
+  checklist: acknowledgment-barrier dismissed: no request waits on the post; a refused command is answered like any click
+  checklist: commit-ordered-effects dismissed: the claiming mutation reads `monday-post` in the workspace decision before it claims the week, and the Slack adapter posts only a claimed week
+  checklist: retry-classification dismissed: nothing is retried where the flag is off
+  checklist: circuit-breaker-policy dismissed: no breaker is declared for Slack delivery
+  checklist: declared-target-coverage dismissed: the Admin tab has one target, the admin it is rendered for, and the post one, the workspace's announcement channel
+- turning monday-post off pauses the Monday post: A job scheduled while `monday-post` was on and run after it was turned off, deleted, or left undecided without the flags key posts nothing and claims no week, and a Switch on, Switch off or time zone from an Admin tab published while it was on, clicked after it turned off, changes nothing stored and schedules nothing. Turned on again, the Admin tab shows the switch as it was and the next Monday's post goes out. The exposure goes once per admin and value, and never to a member who isn't an admin.
+  over: a job scheduled while the flag was on and run after each of the three ways it turns off, read as the chat.postMessage calls Slack received, the claims and the next job; every stored row before and after three stale clicks; and the exposures of two admins and a member through the flag turned off and on again
+  via: GB28: the monday-post flag turned off and on, its stale clicks and its exposure
+  because: a job outlives the flag decision that scheduled it, so a post scheduled during a preview would go out after the flag turned off unless the claiming mutation reads it again (decision 18); a stale click that still stored a switch would leave the post running where nobody can see its controls
+  crossing: slack-request -> domain
+  entrances: route POST /slack/interactivity
+  kinds: state, message
+  checklist: revalidated-permission dismissed: setMondayPost reads `monday-post` in the clicking admin's member decision and their admin role again when the click arrives, and the claiming mutation reads the workspace decision again when the job runs
+  checklist: destination-confinement dismissed: the post goes only to the announcement channel read in the claiming mutation; no destination comes from the click or the job
+  checklist: message-authenticity dismissed: the Slack adapter verifies every click's signature before the domain sees it, and the job is scheduled only by the backend's own mutations
+  checklist: input-validation dismissed: the click's command is checked by the command validator and its time zone by isTimeZone before anything is stored
+  checklist: separation-of-duties dismissed: no approval policy applies to the weekly post
+  checklist: legal-state-succession dismissed: while the flag is off nothing moves the switch or a claim; turned on again they go on from where they were
+  checklist: supersession-safety dismissed: the generation still fences the jobs; a refused stale click bumps nothing
+  checklist: retry-recognition dismissed: no week is claimed while the flag is off, so the job run again on the flag turned on finds an unclaimed week to post
+  checklist: duplicate-suppression declared as the Monday post goes out at most once a week
+  checklist: keyed-ordering dismissed: no ordered transport is relied on; each job and each click reads the flag itself
+  checklist: worker-fencing dismissed: the week's claim is the fence, and none is written while the flag is off
+  checklist: acknowledgment-barrier dismissed: a refused stale click is answered like any click, and no request waits on the post
+  checklist: commit-ordered-effects dismissed: the claiming mutation reads `monday-post` before it claims the week, and the Slack adapter posts only a claimed week
+  checklist: retry-classification dismissed: nothing is retried while the flag is off; the weekly job reschedules itself whatever the flag says
+  checklist: resumption-coverage dismissed: the job schedules next Monday's before it reads the flag, so the chain goes on through the flag being off and posts again once it is on
   checklist: retry-classification dismissed: every answer but a delivered post is recorded and never sent again that week, a lost one included
