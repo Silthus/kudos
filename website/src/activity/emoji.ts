@@ -7,3 +7,7 @@ const skinToneSuffix = "::skin-tone-";
 export function emojiCharacterOf(name: string): string | undefined {
   return characters.get(name) ?? characters.get(name.split(skinToneSuffix)[0]!);
 }
+
+export function skinTonedCharacterOf(name: string): string | undefined {
+  return name.includes(skinToneSuffix) ? characters.get(name) : undefined;
+}
