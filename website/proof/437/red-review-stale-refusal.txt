@@ -1,0 +1,30 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/web-settings/website
+
+ ❯ |website| src/SettingsPage.test.tsx (23 tests | 1 failed | 22 skipped) 781ms
+   ❯ Messages: where each message reaches the member (10)
+     × forgets a refusal once another tab moves the read, so it never comes back 779ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/SettingsPage.test.tsx > Messages: where each message reaches the member > forgets a refusal once another tab moves the read, so it never comes back
+Error: [2mexpect([22m[31melement[39m[2m).toBeEmptyDOMElement()[22m
+
+Received:
+  [31m"That couldn't be changed."[39m
+ ❯ src/SettingsPage.test.tsx:203:36
+    201|     showSettingsAnswer(withPlace(settingsFixtures.everything, "level-u…
+    202|
+    203|     expect(rowStatus("Level ups")).toBeEmptyDOMElement();
+       |                                    ^
+    204|   });
+    205|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 22 skipped (23)
+   Start at  16:01:50
+   Duration  4.78s (import 35%, transform 29%, tests 17%, environment 15%, setup 4%)
+

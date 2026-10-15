@@ -2,6 +2,7 @@ import { IconTarget } from "@posthog/icons";
 import { Button } from "@posthog/quill";
 import type { LeaderboardRow } from "../shell";
 import { BoardFace, RankWords, YouLabel } from "./BoardFace";
+import { Climbed } from "./Climbed";
 
 export function BoardLine({ row, focusable = false, revealable = false }: { row: LeaderboardRow; focusable?: boolean; revealable?: boolean }) {
   return (
@@ -23,7 +24,10 @@ export function BoardLine({ row, focusable = false, revealable = false }: { row:
         </span>
         {row.you && <YouLabel />}
       </span>
-      <span className="text-right text-lg font-semibold tabular-nums">{row.kudos}</span>
+      <span className="flex items-baseline justify-end gap-2">
+        <Climbed places={row.climbed} />
+        <span className="text-right text-lg font-semibold tabular-nums">{row.kudos}</span>
+      </span>
     </li>
   );
 }

@@ -356,7 +356,7 @@ describe("WS67: /leaderboard's ready state opens in place", () => {
     const openFeature = vi.fn(async (): Promise<CommandAnswer> => ({ kind: "opened" }));
     window.history.replaceState(null, "", "/leaderboard");
     let board: BoardRead = readyBoard;
-    const { user, showVisitor } = renderApp(ready, (period) => board(period), { openFeature });
+    const { user, showVisitor } = renderApp(ready, (period, withGroupBoards) => board(period, withGroupBoards), { openFeature });
     await user.click(within(main()).getByRole("button", { name: "Open" }));
     board = fixedLeaderboard(leaderboardFixtures.midBoard);
     showVisitor(opened);
@@ -421,7 +421,7 @@ describe("WS68: the ready pill", () => {
     const { user } = renderApp(shellFixtures.memberWithQuestsReady, undefined, { openFeature: async () => ({ kind: "refused" }) }, fixedQuests(questsFixtures.ready));
     await user.click(pill()!);
     expect(within(screen.getByRole("banner")).queryByText("That couldn't be opened.")).toBeNull();
-    const readyCrate = within(main()).getByRole("heading", { level: 1, name: "Quests is ready" }).closest("section")!;
+    const readyCrate = within(main()).getByRole("heading", { level: 1, name: "Quests are ready" }).closest("section")!;
     expect(within(readyCrate).getByText("That couldn't be opened.")).toBeVisible();
   });
 

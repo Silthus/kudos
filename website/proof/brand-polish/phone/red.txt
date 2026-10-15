@@ -1,0 +1,12 @@
+     × names the page picker for assistive technology without a second visible eyebrow above the Book's own 639ms
+     × left-aligns the hero like the panels under it, and only centres nothing 652ms
+     × marks the name to truncate, titles it in full, and reads it in full 116ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/phonePolish.test.tsx > #434 1: the Book on a phone shows one eyebrow > names the page picker for assistive technology without a second visible eyebrow above the Book's own
+AssertionError: expected <span …(1)>…(1)</span> to be null
+ FAIL  |website| src/phonePolish.test.tsx > #434 3: the home on a phone keeps one alignment > left-aligns the hero like the panels under it, and only centres nothing
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"items-start text-left"[32m[39m[2m)[22m
+ FAIL  |website| src/phonePolish.test.tsx > #434 4: a long name on the podium truncates with an ellipsis and keeps its full name > marks the name to truncate, titles it in full, and reads it in full
+Error: [2mexpect([22m[31melement[39m[2m).toHaveAccessibleName()[22m
+ Test Files  1 failed (1)
+      Tests  3 failed (3)

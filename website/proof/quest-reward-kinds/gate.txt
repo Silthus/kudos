@@ -1,0 +1,10 @@
+pnpm gate on 3fbc149a (merge of origin/main 902ffadf, #426), via ~/dev/fleet/fleet heavy
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  2 failed | 211 passed (213)
+      Tests  2 failed | 4025 passed (4027)
+[ELIFECYCLE] Command failed with exit code 1.
+exit 1
+Two load timeouts, in convex/website/spotlight.test.ts and convex/slack/userGroups.test.ts (scale tests this change doesn't touch), rerun under fleet heavy:
+ Test Files  2 passed (2)
+      Tests  51 passed (51)
+exit 0

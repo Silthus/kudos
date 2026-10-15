@@ -1,0 +1,6 @@
+== feature-gates
+proof-fixture-feature-gates.tsx(34,16): error TS2741: Property 'drawSpotlight' is missing in type '{ visitor: MemberProfile; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; ... 4 more ...; readActivity: ActivityRead; }' but required in type 'AppProps'.
+== header-phone
+proof-fixture-header-phone.tsx(20,54): error TS2739: Type '{ visitor: MemberProfile; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useSkillTree: SkillTreeRead; }' is missing the following properties from type 'AppProps': useProfileCard, useRecentKudos, useActivityWatch, readActivity, drawSpotlight
+== hud-nav
+proof-fixture-hud-nav.tsx(32,16): error TS2739: Type '{ visitor: MemberProfile; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useSkillTree: SkillTreeRead; }' is missing the following properties from type 'AppProps': useProfileCard, useRecentKudos, useActivityWatch, readActivity, drawSpotlight

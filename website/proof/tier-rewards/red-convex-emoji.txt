@@ -1,0 +1,3 @@
+     × WS347 ST20: with the store shown and Coins open, the silver tier carries its kudos emoji with its name and art, earned or not 47ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 22 passed (23)

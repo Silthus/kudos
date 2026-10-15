@@ -4,6 +4,8 @@ import { useConvex, useConvexAuth, useMutation, useQueries, useQuery, type Conve
 import { useCallback, useMemo, useState } from "react";
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from "convex/server";
 import { api } from "../../convex/_generated/api";
+import type { MyGroupBoards } from "../../convex/website/groupBoards";
+import type { MyLeaderboard as MyEveryoneBoard } from "../../convex/website/leaderboard";
 import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
 import type { ActivityRead, ActivityShown } from "./activityRead";
@@ -15,6 +17,7 @@ import { useSocketUnreachable } from "./connection";
 import type { ProfileCardShown } from "./profileCardRead";
 import type { QuestsShown } from "./questsRead";
 import type { Direction, RecentKudosShown } from "./recentKudosRead";
+import type { SettingsShown } from "./settingsRead";
 import type { SkillTreeShown } from "./skillTreeRead";
 import type { ActivityFilter } from "./route";
 import type { SpotlightDraw } from "./spotlightRead";
@@ -43,10 +46,11 @@ function LiveApp() {
     <App
       visitor={visitorOf({ authLoading: isLoading, redemptionFailed, unreachable, profile })}
       actions={actions}
-      useLeaderboard={(period) => useLiveLeaderboard(period, unreachable)}
+      useLeaderboard={(period, withGroupBoards) => useLiveLeaderboard(period, withGroupBoards, unreachable)}
       useQuests={(asking) => useLiveQuests(asking, unreachable)}
       useBook={(asking) => useLiveBook(asking, unreachable)}
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
+      useSettings={(asking) => useLiveSettings(asking, unreachable)}
       useProfileCard={useLiveProfileCard}
       useRecentKudos={useLiveRecentKudos}
       useActivityWatch={useLiveActivityWatch}
@@ -56,13 +60,22 @@ function LiveApp() {
   );
 }
 
-function useLiveLeaderboard(period: Period | undefined, unreachable: boolean): BoardAnswer | undefined {
-  const request = useMemo((): RequestForQueries => (period === undefined ? {} : { board: { query: api.website.leaderboard.getLeaderboard, args: { period } } }), [period]);
-  const { board } = useQueries(request);
-  if (board instanceof Error) return { kind: "broken" };
+function useLiveLeaderboard(period: Period | undefined, withGroupBoards: boolean, unreachable: boolean): BoardAnswer | undefined {
+  const request = useMemo((): RequestForQueries => {
+    if (period === undefined) return {};
+    const board = { query: api.website.leaderboard.getLeaderboard, args: { period } };
+    return withGroupBoards ? { board, groupBoards: { query: api.website.groupBoards.getGroupBoards, args: { period } } } : { board };
+  }, [period, withGroupBoards]);
+  const { board, groupBoards } = useQueries(request) as { board: MyEveryoneBoard | Error | undefined; groupBoards: MyGroupBoards | Error | undefined };
+  if (board instanceof Error || groupBoards instanceof Error) return { kind: "broken" };
   if (board === undefined && unreachable) return { kind: "connecting" };
-  return board;
+  if (board?.kind !== "board") return board;
+  if (!withGroupBoards) return { ...board, ...noGroupBoards };
+  if (groupBoards === undefined) return unreachable ? { kind: "connecting" } : undefined;
+  return { ...board, ...(groupBoards.kind === "boards" ? { groups: groupBoards.groups, myGroup: groupBoards.myGroup } : noGroupBoards) };
 }
+
+const noGroupBoards = { groups: null, myGroup: null };
 
 function useLiveQuests(asking: boolean, unreachable: boolean): QuestsShown | undefined {
   const request = useMemo((): RequestForQueries => (asking ? { quests: { query: api.website.quests.getQuests, args: {} } } : {}), [asking]);
@@ -86,6 +99,14 @@ function useLiveSkillTree(asking: boolean, unreachable: boolean): SkillTreeShown
   if (skillTree instanceof Error) return { kind: "broken" };
   if (skillTree === undefined && unreachable) return { kind: "connecting" };
   return skillTree;
+}
+
+function useLiveSettings(asking: boolean, unreachable: boolean): SettingsShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { settings: { query: api.website.settings.getSettings, args: {} } } : {}), [asking]);
+  const { settings } = useQueries(request);
+  if (settings instanceof Error) return { kind: "broken" };
+  if (settings === undefined && unreachable) return { kind: "connecting" };
+  return settings;
 }
 
 function useLiveProfileCard(asking: boolean): ProfileCardShown | undefined {
@@ -136,6 +157,8 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const buyPerk = useMutation(api.website.commands.buyPerk);
   const swapQuest = useMutation(api.website.commands.swapQuest);
   const setBoardVisibility = useSentOnce(api.website.commands.setBoardVisibility);
+  const setMessageSetting = useSentOnce(api.website.commands.setMessageSetting);
+  const pickPrimaryGroup = useSentOnce(api.website.commands.pickPrimaryGroup);
   return useMemo(
     () => ({
       openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
@@ -143,6 +166,8 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       buyPerk: ({ perk, request }) => answerWithin(commandAnswerBudgetMs, buyPerk({ perk, request })),
       swapQuest: (quest) => answerWithin(commandAnswerBudgetMs, swapQuest({ quest })),
       setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
+      setMessageSetting: (kind, place) => answerWithin(commandAnswerBudgetMs, setMessageSetting({ kind, place })),
+      pickPrimaryGroup: (group) => answerWithin(commandAnswerBudgetMs, pickPrimaryGroup({ group })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -150,7 +175,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, swapQuest, setBoardVisibility, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, onSignInFailure],
   );
 }
 

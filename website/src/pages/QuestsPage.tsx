@@ -7,12 +7,13 @@ import { attemptMessages, questCrateHomeAttributes, useMoments } from "../crates
 import { questCrateOf, type CrateFacts, type QuestCrate } from "../crates/readyCrates";
 import { Claimed } from "../crates/RewardCrate";
 import { rewardChipAttributes } from "../crates/RewardFlight";
-import { aboutOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "../features";
+import { hogOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "../features";
 import { PageTitle } from "../PageTitle";
-import { questTargetAttributes } from "../questTarget";
+import { questTargetAttributes } from "../linkTarget";
+import { Coins } from "../quests/QuestReward";
 import { QuestTag } from "../quests/QuestTag";
 import { sameQuest, useQuestSwap, type QuestSwap } from "../quests/questSwap";
-import type { JourneyStep, MemberProfile, QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
+import type { JourneyStep, MemberProfile, QuestReward, QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
 import { SlackLink } from "../SlackLink";
 
 type ThisWeek = Extract<QuestsAnswer, { kind: "quests" }>;
@@ -86,7 +87,7 @@ function QuestCard({ slot, firstCrate, swappable, swap }: { slot: QuestSlot } & 
   const claimed = state === "opened";
   return (
     <article
-      className={`hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground ${claimed ? "opacity-90" : ""}`}
+      className={`hud-panel relative scroll-mt-28 rounded-lg border bg-card p-4 text-card-foreground ${claimed ? "opacity-90" : ""}`}
       data-claimed={claimed || undefined}
       {...questTargetAttributes(quest)}
       {...questCrateHomeAttributes(seen)}
@@ -102,7 +103,7 @@ function QuestCard({ slot, firstCrate, swappable, swap }: { slot: QuestSlot } & 
             {goal}
           </h2>
           <QuestProgress {...progress} />
-          <RewardRow xp={reward.xp} seen={seen}>
+          <RewardRow reward={reward} seen={seen}>
             {claimed ? <Claimed /> : state === "in-progress" ? <SwapAction slot={slot} swap={swap} swappable={swappable} /> : <ClaimOf facts={slot} firstCrate={firstCrate} />}
           </RewardRow>
         </div>
@@ -117,7 +118,7 @@ const artOf: Record<QuestSlot["kind"], Hoggie> = { "Say why": HedgehogReading, "
 
 function QuestArt({ Hog, claimed }: { Hog: Hoggie; claimed: boolean }) {
   return (
-    <span data-quest-art aria-hidden="true" className="relative flex shrink-0 items-center justify-center rounded-xl bg-muted/60" style={{ width: 64, height: 64 }}>
+    <span data-quest-art aria-hidden="true" className="relative flex shrink-0 items-center justify-center rounded-lg bg-muted/60" style={{ width: 64, height: 64 }}>
       <Hog size={55} title="" className={claimed ? "grayscale" : undefined} />
       {claimed && (
         <span data-claimed-check className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-success text-success-foreground ring-2 ring-card">
@@ -142,10 +143,13 @@ function QuestProgress({ done, target }: QuestSlot["progress"]) {
   );
 }
 
-function RewardRow({ xp, seen, children }: { xp: number; seen: string | null; children: ReactNode }) {
+function RewardRow({ reward, seen, children }: { reward: QuestReward; seen: string | null; children: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
-      <span className="text-xs font-medium tabular-nums text-muted-foreground" {...rewardChipAttributes(seen)}>{`+${xp} XP`}</span>
+      <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tabular-nums text-muted-foreground">
+        <span {...rewardChipAttributes(seen)}>{`+${reward.xp} XP`}</span>
+        {reward.coins !== undefined && <Coins coins={reward.coins} seen={seen} />}
+      </span>
       {children}
     </div>
   );
@@ -223,9 +227,9 @@ function BonusCard({ step, page, firstCrate }: BonusQuestProps) {
   const { goal, hint, reward, state, seen, feature } = step;
   const active = state === "active";
   return (
-    <article className="hud-panel relative scroll-mt-28 rounded-xl border bg-card p-4 text-card-foreground" {...questTargetAttributes("journey")} {...questCrateHomeAttributes(seen)}>
+    <article className="hud-panel relative scroll-mt-28 rounded-lg border bg-card p-4 text-card-foreground" {...questTargetAttributes("journey")} {...questCrateHomeAttributes(seen)}>
       <div className="flex items-start gap-3 sm:gap-4">
-        <QuestArt Hog={feature === null ? HedgehogReading : aboutOf(feature).Hog} claimed={false} />
+        <QuestArt Hog={feature === null ? HedgehogReading : hogOf(feature)} claimed={false} />
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="hud-label">Journey</span>
@@ -235,7 +239,7 @@ function BonusCard({ step, page, firstCrate }: BonusQuestProps) {
             {goal}
           </h3>
           {hint !== null && <p className="text-sm text-muted-foreground">{hint}</p>}
-          <RewardRow xp={reward.xp} seen={seen}>
+          <RewardRow reward={reward} seen={seen}>
             <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
               {page !== undefined && feature !== null && <GoTo page={page} name={plainNameOf(feature)} />}
               <ClaimOf facts={step} firstCrate={firstCrate} />
@@ -272,10 +276,10 @@ function WaitingToOpen({ waiting, firstCrate }: { waiting: WaitingCrate[] } & Fi
 
 function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate) {
   return (
-    <article className="hud-panel relative flex flex-col gap-2 rounded-xl border bg-card p-4" {...questCrateHomeAttributes(entry.seen)}>
+    <article className="hud-panel relative flex flex-col gap-2 rounded-lg border bg-card p-4" {...questCrateHomeAttributes(entry.seen)}>
       <WeekOf week={entry.week} />
       <h3 className="text-sm font-medium">{entry.goal}</h3>
-      <RewardRow xp={entry.reward.xp} seen={entry.seen}>
+      <RewardRow reward={entry.reward} seen={entry.seen}>
         <ClaimOf facts={entry} firstCrate={firstCrate} />
       </RewardRow>
     </article>
@@ -293,7 +297,7 @@ function WeekOf({ week }: Pick<WaitingCrate, "week">) {
 
 function NoQuests({ chatUrl, firstCrate }: { chatUrl: string } & FirstCrate) {
   return (
-    <section aria-label="Your quests this week" className="flex flex-col items-center gap-4 rounded-xl border bg-card px-4 py-10 text-center">
+    <section aria-label="Your quests this week" className="flex flex-col items-center gap-4 rounded-lg border bg-card px-4 py-10 text-center">
       <HedgehogTownCrier size={96} title="" />
       <p className="text-sm text-muted-foreground">You have no quests this week.</p>
       <SlackLink chatUrl={chatUrl} variant={firstCrate === undefined ? "primary" : "outline"}>

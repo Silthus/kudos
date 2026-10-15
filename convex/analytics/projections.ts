@@ -70,7 +70,7 @@ export type UsageFact =
   | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; at: number }
   | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number };
 
-export type PickSurface = "welcome" | "settings";
+export type PickSurface = "welcome" | "settings" | "website";
 
 export type ViewedBoard = "everyone" | "groups" | "my-group";
 

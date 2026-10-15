@@ -1,4 +1,6 @@
 import { useId } from "react";
+import { buttonVariants } from "@posthog/quill";
+import { AppLink } from "../AppLink";
 import { useCountUp } from "../countUp";
 import { heroRingAttributes, heroXpBarAttributes } from "../crates/RewardFlight";
 import { MemberFace } from "../Face";
@@ -6,16 +8,19 @@ import { LevelRing, levelShare } from "../LevelRing";
 import { MaxLine } from "../Max";
 import { PageTitle } from "../PageTitle";
 import { hasGivenNoKudos } from "./FirstKudosNudge";
+import { pageOf } from "../features";
 import { SlackLink } from "../SlackLink";
 import type { MemberProfile, Progression } from "../shell";
+import { SkillPointGlyph } from "../skills/glyphs";
+import { skillPointsText } from "../skills/perkWords";
 
 export function Hero({ member }: { member: MemberProfile }) {
   const { progression } = member;
   return (
-    <section aria-labelledby="home-title" className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:gap-7 sm:py-4 sm:text-left">
-      <MemberFace face={member.face} className="size-32" />
+    <section aria-labelledby="home-title" className="flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:gap-7 sm:py-4">
+      <MemberFace face={member.face} className="size-28" />
       {progression !== null && <HeroRing progression={progression} />}
-      <div className="flex w-full min-w-0 flex-1 flex-col items-center sm:items-start">
+      <div className="flex w-full min-w-0 flex-1 flex-col items-start">
         <span className="hud-label">Character</span>
         <div className="mt-1 max-w-full">
           <PageTitle tab="Profile" id="home-title" size="hero">
@@ -35,6 +40,7 @@ export function Hero({ member }: { member: MemberProfile }) {
         <p className="mt-2 text-xs text-muted-foreground tabular-nums">
           You've given {member.lifetime.given.toLocaleString()} kudos and received {member.lifetime.received.toLocaleString()}.
         </p>
+        {hasSkillPointsToSpend(member) && <SpendSkillPoints points={member.skillPoints} />}
         <div className="mt-4 w-full border-t pt-4">
           <MaxLine>{weekInWords(member.thisWeek)}</MaxLine>
         </div>
@@ -87,7 +93,7 @@ function XpBar({ progression }: { progression: Progression }) {
 function KudosLeftToday({ allowance: { left, base, refillsAt } }: { allowance: MemberProfile["allowance"] }) {
   const refill = new Date(refillsAt);
   return (
-    <div className="mt-4 flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1.5 border-t pt-4 sm:justify-start">
+    <div className="mt-4 flex w-full flex-wrap items-center justify-start gap-x-3 gap-y-1.5 border-t pt-4">
       <span className="hud-label">Kudos left today</span>
       <span className="hud-display text-2xl font-bold leading-none tabular-nums">
         {left}
@@ -102,6 +108,19 @@ function KudosLeftToday({ allowance: { left, base, refillsAt } }: { allowance: M
         Refills at <time dateTime={refill.toISOString()}>{refill.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</time>
       </span>
     </div>
+  );
+}
+
+function hasSkillPointsToSpend(member: MemberProfile): member is MemberProfile & { skillPoints: number } {
+  return member.skillPoints !== null && member.skillPoints > 0;
+}
+
+function SpendSkillPoints({ points }: { points: number }) {
+  return (
+    <AppLink href={pageOf("skillTree").href} className={`mt-4 ${buttonVariants({ variant: "outline" })} border-muted-foreground`}>
+      <SkillPointGlyph className="size-4" />
+      Spend {skillPointsText(points)}
+    </AppLink>
   );
 }
 

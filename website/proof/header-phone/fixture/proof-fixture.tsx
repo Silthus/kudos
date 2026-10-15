@@ -1,7 +1,7 @@
-import "@fontsource-variable/inter";
 import "./src/index.css";
 import { createRoot } from "react-dom/client";
 import { App } from "./src/App";
+import { fixtureReadsFor } from "./src/fixtureReads";
 import { shellFixtures, fixtureActions, type MemberProfile } from "./src/shell";
 import { fixedLeaderboard, leaderboardFixtures } from "./src/leaderboardFixtures";
 import { fixedQuests, questsFixtures } from "./src/questsFixtures";
@@ -17,7 +17,7 @@ const member: MemberProfile = {
   features: [...(memberWithQuests.features ?? []), ...(memberWithEveryFeatureOpen.features ?? [])],
   skillPoints: 2,
 };
-createRoot(document.getElementById("root")!).render(<App visitor={member} actions={fixtureActions} useLeaderboard={fixedLeaderboard(leaderboardFixtures.midBoard)} useQuests={fixedQuests(questsFixtures.week)} useBook={fixedBook(bookFixtures.book)} useSkillTree={fixedSkillTree(skillTreeFixtures.withPoints)} />);
+createRoot(document.getElementById("root")!).render(<App visitor={member} actions={fixtureActions} {...fixtureReadsFor(member)} useLeaderboard={fixedLeaderboard(leaderboardFixtures.midBoard)} useQuests={fixedQuests(questsFixtures.week)} useBook={fixedBook(bookFixtures.book)} useSkillTree={fixedSkillTree(skillTreeFixtures.withPoints)} />);
 
 if (params.get("six") === "1") {
   const grow = () => {

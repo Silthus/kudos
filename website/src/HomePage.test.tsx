@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
@@ -27,7 +27,7 @@ describe("WS98 WS101: the hero is the character header, leading with the member 
 
   it("shows the member's face as the portrait, and Character over their name as the page title in RoundHog", () => {
     renderApp(shellFixtures.member);
-    expect(within(hero()).getByText("SE")).toHaveClass("size-32");
+    expect(within(hero()).getByText("SE")).toHaveClass("size-28");
     expect(within(hero()).getByText("Character")).toHaveClass("hud-label");
     const title = within(hero()).getByRole("heading", { level: 1 });
     expect(title).toHaveTextContent(/^Sam Example$/);
@@ -141,6 +141,65 @@ describe("WS312 V4: the first-kudos nudge", () => {
     renderApp({ ...shellFixtures.memberBeforeTheirFirstKudos, lifetime: { given: 1, received: 0 } });
     expect(nudge()).not.toBeInTheDocument();
     expect(primaries()).toEqual([within(hero()).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" })]);
+  });
+});
+
+describe("WS313 V4: spending skill points from the hero", () => {
+  function hero() {
+    return within(main()).getByRole("region", { name: "Sam Example" });
+  }
+
+  function spend() {
+    return within(hero()).queryByRole("link", { name: /^Spend/ });
+  }
+
+  function skillTreePanel() {
+    return within(main()).getByRole("region", { name: "Skill tree" });
+  }
+
+  function primaries() {
+    return [...document.querySelectorAll(".quill-button--variant-primary")];
+  }
+
+  it.each([
+    { member: shellFixtures.memberWithEveryFeatureOpen, name: "Spend 2 skill points", count: "2 skill points to spend" },
+    { member: shellFixtures.memberWithOneSkillPoint, name: "Spend 1 skill point", count: "1 skill point to spend" },
+  ])("offers $name as an outline link to /skills after the allowance row, while the Skill tree panel keeps its count", ({ member, name, count }) => {
+    renderApp(member);
+    expect(spend()).toHaveAccessibleName(name);
+    expect(spend()).toHaveAttribute("href", "/skills");
+    expect(spend()).toHaveClass("quill-button--variant-outline");
+    expect(spend()!.querySelector("svg[aria-hidden='true']")).not.toBeNull();
+    expect(comesBefore(within(hero()).getByRole("img", { name: /kudos left today$/ }), spend()!)).toBe(true);
+    expect(within(skillTreePanel()).getByText(count)).toBeInTheDocument();
+  });
+
+  it("offers nothing to spend at 0 points, while the Skill tree panel says so", () => {
+    renderApp(shellFixtures.memberWithNoSkillPointsLeft);
+    expect(spend()).toBeNull();
+    expect(within(skillTreePanel()).getByText("No skill points to spend")).toBeInTheDocument();
+  });
+
+  it("offers nothing while the Skill tree isn't open", () => {
+    renderApp(shellFixtures.memberWithTheBoardOpened);
+    expect(spend()).toBeNull();
+    expect(hero().textContent).not.toMatch(/skill/i);
+  });
+
+  it("keeps the page's one primary action on the hero's Slack link, or on the first-kudos nudge while it shows", () => {
+    renderApp(shellFixtures.memberWithEveryFeatureOpen);
+    expect(primaries()).toEqual([within(hero()).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" })]);
+    cleanup();
+    renderApp({ ...shellFixtures.memberWithEveryFeatureOpen, lifetime: { given: 0, received: 0 } });
+    const nudge = within(main()).getByRole("region", { name: "Give your first kudos in Slack" });
+    expect(primaries()).toEqual([within(nudge).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" })]);
+    expect(spend()).toHaveClass("quill-button--variant-outline");
+  });
+
+  it("leads to the Skill tree page", async () => {
+    const { user } = renderApp(shellFixtures.memberWithEveryFeatureOpen);
+    await user.click(spend()!);
+    expect(window.location.pathname).toBe("/skills");
   });
 });
 

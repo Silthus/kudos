@@ -9,7 +9,7 @@ export function ProfileCardPanel({ member, card }: { member: MemberProfile; card
   const medals = card?.kind === "card" ? card.medals : [];
   return (
     <Panel id="profile-card" label="What teammates see" aside="Public" busy={card === undefined}>
-      <div className="flex flex-col gap-3 rounded-xl border bg-linear-to-br from-card to-muted p-3 shadow-md">
+      <div className="flex flex-col gap-3 rounded-lg border bg-linear-to-br from-card to-muted p-3 shadow-md">
         <div className="flex items-center gap-3">
           <MemberFace face={member.face} className="size-14" />
           <div className="flex min-w-0 flex-1 items-baseline justify-between gap-2">

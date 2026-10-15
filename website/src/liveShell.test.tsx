@@ -73,7 +73,7 @@ const boardWatch = {
         };
       },
       localQueryResult: () => {
-        const answer = boardRead();
+        const answer = boardRead(getFunctionName(query));
         if (answer instanceof Error) throw answer;
         return answer;
       },
@@ -219,6 +219,24 @@ describe("WS20 WS36: the leaderboard read shows where the page stands, inside th
     expect(window.location.pathname).toBe("/");
   });
 
+  it("WS344: reads the group boards beside the board and shows their tabs once both answer", () => {
+    const { groups, myGroup } = leaderboardFixtures.withGroupBoards;
+    boardRead.mockImplementation((query: string) => (query === "website/groupBoards:getGroupBoards" ? { kind: "boards", groups, myGroup } : { ...leaderboardFixtures.withGroupBoards, groups: undefined, myGroup: undefined }));
+    renderLiveSite();
+
+    expect([...subscriptions].filter(({ query }) => query === "website/groupBoards:getGroupBoards").map(({ args }) => args)).toEqual([{ period: "week" }]);
+    expect(screen.getByRole("tab", { name: "My group" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Groups" })).toBeInTheDocument();
+  });
+
+  it("WS344: shows Everyone alone when the group boards read answers a denial", () => {
+    boardRead.mockImplementation((query: string) => (query === "website/groupBoards:getGroupBoards" ? { kind: "signed-out" } : leaderboardFixtures.midBoard));
+    renderLiveSite();
+
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
+  });
+
   it("shows the board once a failed read answers again", async () => {
     boardRead.mockReturnValue(new Error("Too many documents read"));
     renderLiveSite();
@@ -246,6 +264,7 @@ describe("WS111: the home's rail reads through the live shell", () => {
     expect(within(screen.getByRole("main")).getByRole("region", { name: "Where you stand" })).toHaveAttribute("aria-busy", "true");
     expect(subscriptionsTo("website/leaderboard:getLeaderboard")).toEqual([{ period: "week" }]);
     expect(subscriptionsTo("website/quests:getQuests")).toEqual([{}]);
+    expect(subscriptionsTo("website/groupBoards:getGroupBoards")).toEqual([]);
   });
 
   it("WS343: subscribes once to the member's own profile card on the home", () => {
