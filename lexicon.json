@@ -606,6 +606,10 @@
     {
       "name": "contribution",
       "definition": "A participant's part in their group quest: recorded once per participant, group and group week, at their first award attributed to the group and spent in that week that does the quest's action (GB22, GB30)."
+    },
+    {
+      "name": "Monday post",
+      "definition": "The weekly public post in the announcement channel that celebrates last week's top groups (GB28): up to three groups with their kudos per person, the most improved group and how many people gave kudos, never naming a member. An admin switches it on with setMondayPost in the Admin tab; it goes out every Monday at 9:00 in the admin's time zone, at most once per week, and not in a week nobody gave."
     }
   ],
   "retired": [

@@ -6,6 +6,8 @@ import type { HomeFacts, KudosHome } from "../engine/home";
 import type { GroupChoice } from "../groups/pick";
 import type { GroupId, GroupRef } from "../groups/groups";
 import type { GroupModeFacts } from "../groups/groupMode";
+import type { MondayPostSwitch } from "../leaderboard/mondayPost";
+import { timeZonesOffered } from "../leaderboard/timeZones";
 import type { Period } from "../leaderboard/periods";
 import { skillTreeLevel } from "../progression/levels";
 import { ownsEveryPerk, type MemberPerks } from "../progression/perks";
@@ -452,12 +454,30 @@ function changeOf(key: keyof NotificationSwitches, value: boolean): Partial<Noti
   return { [key]: value };
 }
 
-function adminGroups({ announcementChannel, achievements, groupMode, customKudosEmoji }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
+function adminGroups({ announcementChannel, achievements, groupMode, mondayPost, customKudosEmoji }: Extract<ShownTab, { tab: "admin" }>): HomeLine[][] {
   const what = celebrated(achievements);
   const channelLines = announcementChannel === null ? noChannelLines(what) : announcementChannelLines(what, announcementChannel);
   const groupModeLines = groupMode === null ? [] : [groupModeLinesOf(groupMode)];
+  const mondayPostLines = mondayPost === null ? [] : [mondayPostLinesOf(mondayPost)];
   const customKudosEmojiLines = customKudosEmoji === null ? [] : [customKudosEmojiLinesOf(customKudosEmoji)];
-  return [channelLines, ...groupModeLines, ...customKudosEmojiLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+  return [channelLines, ...groupModeLines, ...mondayPostLines, ...customKudosEmojiLines, [{ kind: "hint", text: "Only workspace admins and owners see this tab." }]];
+}
+
+function mondayPostLinesOf({ channel, on, timeZone, cantPost }: MondayPostSwitch): HomeLine[] {
+  const where = `<#${channel}>`;
+  const heading: HomeLine = { kind: "text", text: bold("Monday post") };
+  const cantPostNote: HomeLine[] = cantPost ? [{ kind: "text", text: `I can't post in ${where}. Add me to it or pick another channel.` }] : [];
+  if (!on) {
+    const switchOn: HomeLine = { kind: "action", text: `I can post last week's top groups in ${where} every Monday at 9:00.`, action: { label: "Switch on", command: { type: "setMondayPost", on: true } } };
+    return [heading, switchOn, ...cantPostNote];
+  }
+  const switchOff: HomeLine = { kind: "action", text: `Every Monday I post last week's top groups in ${where}.`, action: { label: "Switch off", command: { type: "setMondayPost", on: false } } };
+  return [heading, switchOff, timeZonePickOf(timeZone), ...cantPostNote];
+}
+
+function timeZonePickOf(picked: string): HomeLine {
+  const options = timeZonesOffered(picked).map((timeZone) => ({ label: timeZone.replaceAll("_", " "), command: { type: "setMondayPost" as const, on: true, timeZone }, selected: timeZone === picked }));
+  return { kind: "pick", id: "setMondayPost", text: "I post it at 9:00 in this time zone.", placeholder: "Pick a time zone", options };
 }
 
 function customKudosEmojiLinesOf(picker: CustomKudosEmojiPicker): HomeLine[] {

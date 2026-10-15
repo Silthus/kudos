@@ -55,3 +55,40 @@ describe("#434 4: a long name on the podium carries the truncation rule and keep
     expect(spot).toHaveTextContent(longName);
   });
 });
+
+describe("#481 1: on a phone the face and the level ring share one row above the name", () => {
+  it("wraps the face and the ring in a row that dissolves from sm, so wide screens keep the hero as it was", () => {
+    renderApp(shellFixtures.memberAtLevel7);
+    const hero = within(screen.getByRole("main")).getByRole("region", { name: "Sam Example" });
+    const face = within(hero).getByText("SE");
+    const ring = within(hero).getByRole("img", { name: /^Level 7/ });
+    const row = face.parentElement!;
+    expect(ring.parentElement).toBe(row);
+    expect(row).toHaveClass("flex", "items-center", "sm:contents");
+    expect(hero).toHaveClass("flex-col", "sm:flex-row");
+    expect(face).toHaveClass("size-28");
+  });
+
+  it("keeps the face alone in the row while the member has no level yet", () => {
+    renderApp(shellFixtures.member);
+    const hero = within(screen.getByRole("main")).getByRole("region", { name: "Sam Example" });
+    const row = within(hero).getByText("SE").parentElement!;
+    expect(row).toHaveClass("sm:contents");
+    expect(within(hero).queryByRole("img", { name: /^Level/ })).toBeNull();
+  });
+});
+
+describe("#481 2: the Everyone card's standing never wraps", () => {
+  it.each([
+    { standing: "ranked", answer: leaderboardFixtures.midBoard },
+    { standing: "tied", answer: leaderboardFixtures.tiedBelowTheLead },
+  ])("keeps the words and the rank on one line when $standing", ({ answer }) => {
+    visit("/leaderboard");
+    renderApp(shellFixtures.memberWithTheBoard, fixedLeaderboard(answer));
+    const card = within(screen.getByRole("main")).getByRole("heading", { level: 2, name: "Everyone" }).closest("section")!;
+    const standing = card.querySelector("[data-rank]")!.parentElement!;
+    expect(standing).toHaveClass("whitespace-nowrap", "shrink-0");
+    const label = within(card).getByRole("heading", { level: 2, name: "Everyone" }).parentElement!;
+    expect(label).toHaveClass("min-w-0", "wrap-anywhere");
+  });
+});
