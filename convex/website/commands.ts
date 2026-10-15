@@ -83,7 +83,7 @@ export const buyPerk = memberMutation({
     if (!isUuid(request)) throw new Error("A purchase's request must be a UUID.");
     if (!(await treeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refusedAtTheGate;
     const outcome = await runCommand(ctx, me.workspace, person, { type: "buyPerk", perk }, `website:${me.member}:${request}`);
-    if (outcome === null) return refusedAtTheGate;
+    if (outcome === null || !("perk" in outcome)) return refusedAtTheGate;
     if (outcome.kind === "refused") return { kind: "refused", reason: purchaseRefusals[outcome.reason] };
     await republish(ctx, me.member);
     return { kind: "bought" };

@@ -1,5 +1,6 @@
 import type { LadderFacts } from "../achievements/achievements";
 import { countsOf, ladderOf, tierOf, type TierId, type TierRef } from "../achievements/ladders";
+import type { TierRewardsTold } from "../achievements/tierRewards";
 import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { GroupChoice } from "../groups/pick";
@@ -12,20 +13,22 @@ import type { PurchaseOutcome, Refusal } from "../progression/purchases";
 import { hasCoinPrice, perkOf, type Perk } from "../progression/tree";
 import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
 import type { MessageSetting, NotificationSwitches } from "../messageSettings/messageSettings";
-import type { JourneyStepFacts } from "../quests/journey";
-import { journeyCopyOf, journeyGoalOf } from "../quests/journeyCopy";
+import { journeyGoalOf } from "../quests/journeyCopy";
 import { rewardKeyOf } from "../quests/crates";
 import { questOf } from "../quests/pool";
 import type { WeekKey } from "../quests/week";
 import type { UnopenedCrate, WeeklyQuests, WeeklySlot } from "../quests/weekly";
 import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
 import type { Feature } from "../unlocks/feature";
+import { itemOf, type CatalogueItem } from "../store/catalogue";
+import type { InventoryHome, StoreItem } from "../store/inventory";
+import { slots as slotNames, type ItemRefusal } from "../store/rows";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
 import { questCratePageOf, readyCratePageOf, urlOf, type Page } from "../website/routes";
 import { coinsPartOf, inCoins } from "./coins";
-import type { HomeTab, ShownHome, ShownTab, ToldProgression } from "./homes";
+import type { HomeTab, JourneyStepShown, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { countsFor, pickQuestion } from "./groupCopy";
 import { renderBoards } from "./leaderboard";
 import { openTheWebsite, productName, skillPointsOf, slashCommand } from "./naming";
@@ -61,7 +64,7 @@ export type HomeLine =
 
 type MemberHome = Extract<HomeFacts, { kind: "member" }>;
 
-const tabLabels: Record<HomeTab, string> = { profile: "Profile", leaderboard: "Leaderboard", book: "Book", skillTree: "Skill tree", settings: "Settings", admin: "Admin" };
+const tabLabels: Record<HomeTab, string> = { profile: "Profile", leaderboard: "Leaderboard", book: "Book", skillTree: "Skill tree", inventory: "Inventory", settings: "Settings", admin: "Admin" };
 
 const periods: Array<{ period: Period; label: string }> = [
   { period: "week", label: "This week" },
@@ -111,7 +114,9 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
     case "book":
       return { title: "Book", groups: bookGroups(shown) };
     case "skillTree":
-      return { title: "Skill tree", groups: skillTreeGroups(shown.perks) };
+      return { title: "Skill tree", groups: skillTreeGroups(shown) };
+    case "inventory":
+      return { title: "Inventory", groups: inventoryGroups(shown) };
     case "settings":
       return { title: "Settings", groups: settingsGroups(shown) };
     case "admin":
@@ -173,7 +178,7 @@ function weeklyCratesOf(quests: WeeklyQuests | null, website: string): HomeLine[
   return unopened.map(({ slot, goal }) => ({ kind: "action", text: `✅ ${goal}`, action: openCrate({ kind: "weekly", week: quests.week, slot }, website) }));
 }
 
-function journeyCratesOf(journey: JourneyStepFacts[] | null, website: string): HomeLine[] {
+function journeyCratesOf(journey: JourneyStepShown[] | null, website: string): HomeLine[] {
   const unopened = (journey ?? []).filter(({ finishedAt, openedAt }) => finishedAt !== null && openedAt === null);
   return unopened.map(({ step }) => ({ kind: "action", text: `✅ ${journeyGoalOf(step)}`, action: openCrate({ kind: "journey", step }, website) }));
 }
@@ -199,14 +204,16 @@ function ladderLines({ ladder, name, count, tiers, next }: LadderFacts, timeZone
   return [{ kind: "text", text: `${bold(name)} · ${bold(count)} ${countsOf(ladder, count)}` }, ...earnedLines, ...nextLine];
 }
 
-export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[], coinsPaidFor: (ref: TierRef) => number): string[] {
-  const earnedLines = told.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).${tierCoinsPartOf(coinsPaidFor(ref))}`);
+export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[], rewardsOf: (ref: TierRef) => TierRewardsTold): string[] {
+  const earnedLines = told.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).${tierRewardsPartOf(rewardsOf(ref))}`);
   const ladders = [...new Set(told.map(({ ladder }) => ladder))];
   return [...earnedLines, ...ladders.flatMap((ladder) => nextTierLine(ladder, [...told, ...everyTierEarned]))];
 }
 
-function tierCoinsPartOf(coins: number) {
-  return coins === 0 ? "" : ` ${coinsPartOf(coins)}`;
+function tierRewardsPartOf({ coins, items }: TierRewardsTold) {
+  const coinsPart = coins === 0 ? [] : [coinsPartOf(coins)];
+  const itemParts = items.flatMap((item) => itemOf(item) ?? []).map(({ emoji, name }) => `+ :${emoji}: ${name} for your kudos emoji slots`);
+  return [...coinsPart, ...itemParts].map((part) => ` ${part}`).join("");
 }
 
 function nextTierLine(ladder: TierRef["ladder"], earned: TierRef[]): string[] {
@@ -218,17 +225,89 @@ function dateOf(at: number, timeZone: string | undefined) {
   return new Intl.DateTimeFormat("en-US", { timeZone: timeZone ?? "UTC", month: "short", day: "numeric", year: "numeric" }).format(at);
 }
 
-function skillTreeGroups(tree: MemberPerks): HomeLine[][] {
+function skillTreeGroups({ perks: tree, coinsName }: Extract<ShownTab, { tab: "skillTree" }>): HomeLine[][] {
   const condition: HomeLine = { kind: "hint", text: "Bonuses count when your message has 5 or more words besides mentions and emoji." };
   const toSpend: HomeLine[][] = ownsEveryPerk(tree) ? [] : [[{ kind: "text", text: `You have ${bold(skillPointsOf(tree.skillPoints))} to spend.` }]];
-  return [...toSpend, [...tree.perks.flatMap(perkLines), condition]];
+  return [...toSpend, [...tree.perks.flatMap((perk) => perkLines(perk, coinsName)), condition]];
 }
 
-function perkLines(perk: TreePerk): HomeLine[] {
+function perkLines(perk: TreePerk, coinsName: string): HomeLine[] {
   const { name, copy, state } = perk;
   if (state === "owned") return [{ kind: "text", text: [`✅ ${bold(name)} · Owned`, copy].filter(Boolean).join("\n") }];
   if (state === "buyable") return [{ kind: "action", ...perkOfferOf(perk, null) }];
-  return [{ kind: "text", text: perkTextOf(perk) }, { kind: "hint", text: whyNotOf({ ...perk, state }) }];
+  return [{ kind: "text", text: perkTextOf(perk) }, { kind: "hint", text: whyNotOf({ ...perk, state }, coinsName) }];
+}
+
+type RefusalLines = { after: (item: CatalogueItem | null) => HomeLine[]; unplaced: HomeLine[] };
+
+function inventoryGroups({ balance, inventory, kudosEmoji, refused }: Extract<ShownTab, { tab: "inventory" }>): HomeLine[][] {
+  const told = refusalLinesOf(inventory, refused, balance);
+  const slots = [{ kind: "text", text: bold("Your kudos emoji") }, ...slotLinesOf(inventory, told), { kind: "hint", text: `Each emoji in a slot counts as a kudos, like :${kudosEmoji}:.` }] satisfies HomeLine[];
+  return [[{ kind: "text", text: inCoins(balance) }], slots, ...collectionLinesOf(inventory, told), ...storeLinesOf(inventory, told), ...notYoursYetLinesOf(inventory)];
+}
+
+function slotLinesOf({ slots }: InventoryHome, { after }: RefusalLines): HomeLine[] {
+  return slots.flatMap((item, index): HomeLine[] => [slotLineOf(item, index), ...after(item)]);
+}
+
+function slotLineOf(item: CatalogueItem | null, index: number): HomeLine {
+  const slot = slotNames[index]!;
+  if (item === null) return { kind: "text", text: `Slot ${index + 1} · empty` };
+  const takeOff: HomeAction = { label: "Take off", command: { type: "takeOff", slot }, accessibilityLabel: `Take ${item.name} out of slot ${index + 1}` };
+  return { kind: "action", text: `Slot ${index + 1} · ${itemLabelOf(item)}`, action: takeOff };
+}
+
+function collectionLinesOf({ collection }: InventoryHome, { after }: RefusalLines): HomeLine[][] {
+  if (collection.length === 0) return [];
+  return [[{ kind: "text", text: bold("Collection") }, ...collection.flatMap((item): HomeLine[] => [putInSlotLineOf(item), ...after(item)])]];
+}
+
+function putInSlotLineOf(item: CatalogueItem): HomeLine {
+  const options = slotNames.map((slot, index): Choice => ({ label: `Slot ${index + 1}`, command: { type: "equip", item: item.item, slot }, selected: false }));
+  return { kind: "pick", id: `put-in-slot:${item.item}`, text: itemLabelOf(item), placeholder: "Put in slot", options };
+}
+
+function storeLinesOf({ store }: InventoryHome, { after, unplaced }: RefusalLines): HomeLine[][] {
+  if (store.length === 0 && unplaced.length === 0) return [];
+  return [[{ kind: "text", text: bold("Store") }, ...store.flatMap((item): HomeLine[] => [{ kind: "action", ...itemOfferOf(item) }, ...after(item)]), ...unplaced]];
+}
+
+function notYoursYetLinesOf({ notYoursYet }: InventoryHome): HomeLine[][] {
+  if (notYoursYet.length === 0) return [];
+  return [[{ kind: "text", text: bold("Not yours yet") }, ...notYoursYet.map((item): HomeLine => ({ kind: "text", text: `${itemLabelOf(item)} · Silver in ${ladderOf(item.source.ladder).name}` }))]];
+}
+
+function itemOfferOf(item: StoreItem): { text: string; action: HomeAction } {
+  const [label, price] = [itemLabelOf(item), coinsOf(item.source.price)];
+  const confirm = { title: `Buy ${label} for ${price}?`, text: "Coins are never refunded.", confirm: "Buy", deny: "Cancel" };
+  return { text: `${label} · ${price}`, action: { label: "Buy", command: { type: "buyItem", item: item.item }, accessibilityLabel: `Buy ${item.name}`, confirm } };
+}
+
+function refusalLinesOf({ slots, collection, store }: InventoryHome, refused: ItemRefusal | null, balance: number): RefusalLines {
+  const lines: HomeLine[] = refused === null ? [] : refusalTextOf(refused, balance).map((text) => ({ kind: "hint", text }));
+  const isRefused = (item: CatalogueItem | null) => item !== null && item.item === refused?.item;
+  const placed = [...slots, ...collection, ...store].some(isRefused);
+  return { after: (item) => (isRefused(item) ? lines : []), unplaced: placed ? [] : lines };
+}
+
+function refusalTextOf({ item, reason }: ItemRefusal, balance: number): string[] {
+  switch (reason) {
+    case "no-coins": {
+      const source = itemOf(item)?.source;
+      const short = (source?.kind === "store" ? source.price : 0) - balance;
+      return short > 0 ? [`You need ${short} more 🪙.`] : [];
+    }
+    case "owned":
+      return ["You already own it."];
+    case "not-for-sale":
+      return ["It isn't for sale."];
+    case "coins-not-open":
+      return [];
+  }
+}
+
+function itemLabelOf({ art, emoji, name }: CatalogueItem) {
+  return `${art.kind === "unicode" ? art.glyph : `:${emoji}:`} ${name}`;
 }
 
 export function perkOfferOf(perk: Perk, website: string | null): { text: string; action: HomeAction } {
@@ -257,14 +336,14 @@ function coinsOf(coins: number) {
   return `${coins} 🪙`;
 }
 
-export function purchaseReplyOf(outcome: PurchaseOutcome) {
+export function purchaseReplyOf(outcome: PurchaseOutcome, coinsName = scheduled("coins").name) {
   const perk = perkOf(outcome.perk);
-  return outcome.kind === "bought" ? `You bought ${perk.name}.` : `I couldn't buy ${perk.name}. ${whyNotOf({ ...perk, state: outcome.reason })}`;
+  return outcome.kind === "bought" ? `You bought ${perk.name}.` : `I couldn't buy ${perk.name}. ${whyNotOf({ ...perk, state: outcome.reason }, coinsName)}`;
 }
 
 type TreePerk = MemberPerks["perks"][number];
 
-export function whyNotOf({ state, row, requires, skillPoints, coins }: Perk & { state: Refusal }) {
+export function whyNotOf({ state, row, requires, skillPoints, coins }: Perk & { state: Refusal }, coinsName = scheduled("coins").name) {
   switch (state) {
     case "tree-locked":
       return unopenedTextOf(scheduled("skillTree"), "locked");
@@ -281,7 +360,7 @@ export function whyNotOf({ state, row, requires, skillPoints, coins }: Perk & { 
     case "no-skill-points":
       return `You need ${skillPointsOf(skillPoints)}.`;
     case "coins-not-open":
-      return `Open ${scheduled("coins").name} first.`;
+      return `Open ${coinsName} first.`;
     case "no-coins":
       return `You need ${coinsOf(coins)}.`;
   }
@@ -434,8 +513,7 @@ function waitingToOpenLines(crates: UnopenedCrate[]): HomeLine[] {
   return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...moreEarlierCrates(crates)];
 }
 
-function journeyStepLines({ step, reward, finishedAt, openedAt }: JourneyStepFacts): HomeLine[] {
-  const { goal, hint } = journeyCopyOf(step);
+function journeyStepLines({ step, goal, hint, reward, finishedAt, openedAt }: JourneyStepShown): HomeLine[] {
   if (finishedAt !== null) {
     const text = `${bold("Journey:")} ✅ ${goal} ${earned(reward.xp)}`;
     return [openedAt === null ? { kind: "action", text, action: openCrate({ kind: "journey", step }, null) } : { kind: "text", text }];

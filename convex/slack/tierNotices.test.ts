@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import type { FakePostHog } from "../../testing/fakePostHog";
+import type { FakePostHog, FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone } from "../../testing/flags";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
@@ -243,6 +243,59 @@ describe("CO20: a tier DM line that paid coins says them while coins are visible
   });
 });
 
+describe("ST16 ST18: a silver tier gives its kudos emoji, and its DM line says it while the store is visible", { timeout: 30_000 }, () => {
+  test("with Coins and the inventory open, Generous Soul's line says its emoji, the bronze line keeps its coins, and no public line names the emoji", async () => {
+    const t = await workspaceDeciding(onForEveryone("store"));
+    const [alice] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
+    await openCoins(t, alice!);
+    await withGiven(t, alice!, 24);
+
+    await giveKudos(t, "U_ALICE", "U_BOB");
+
+    expect(tierDmsTo("U_ALICE")).toEqual([
+      "🏅 You earned Generous Soul (Generosity, silver). + :ribbon: Ribbon for your kudos emoji slots\n🏅 You earned First Chapter (Seasons, bronze). +10 🪙\nNext: Heart of the Team at 100 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given.",
+    ]);
+    expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned Generous Soul and First Chapter.", "🏅 <@U_BOB> earned Noticed."]);
+  });
+
+  test.each([
+    ["the store is off", offForEveryone("store"), true],
+    ["the store was never created", null, true],
+    ["Coins isn't open", onForEveryone("store"), false],
+  ])("while %s, Generous Soul's line is unchanged, and 🎀 is granted all the same, once", async (_, store, coinsOpen) => {
+    const t = await workspaceDeciding(...(store === null ? [] : [store]));
+    const [alice] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
+    if (coinsOpen) await openCoins(t, alice!);
+    await withGiven(t, alice!, 24);
+
+    await giveKudos(t, "U_ALICE", "U_BOB");
+    vi.setSystemTime(now.getTime() + 60_000);
+    await giveKudos(t, "U_ALICE", "U_BOB", { ts: slackTs(Date.now()) });
+
+    expect(tierDmsTo("U_ALICE")[0]?.split("\n")[0]).toBe("🏅 You earned Generous Soul (Generosity, silver).");
+    expect(await silverEmojiOf(t, alice!)).toEqual({
+      rewards: [{ key: "tier:generosity-silver-kudos-emoji", xp: 0, coins: 0, item: "kudos-emoji-ribbon", at: now.getTime() }],
+      collection: [{ item: "kudos-emoji-ribbon", source: "tier", arrivedAt: now.getTime() }],
+    });
+  });
+
+  test("P62: a summary of tiers earned before the Book was opened says each silver tier's emoji", async () => {
+    const t = await workspaceDeciding(onForEveryone("store"));
+    const [alice, bob] = await membersWithTheBookOpen(t);
+    await openCoins(t, bob!);
+    const earnedBeforeOpening = await t.run((ctx) => kudosGivenEventWithAward(ctx, alice!, bob!, { at: Date.now() }));
+    vi.setSystemTime(now.getTime() + 60_000);
+    await openTheBook(t, alice!, bob!);
+
+    await t.mutation(internal.achievements.achievements.countKudosGiven, { event: { ...earnedBeforeOpening, awards: earnedBeforeOpening.awards.map((award) => ({ ...award, kudos: 25 })) } });
+    await settle(t);
+
+    expect(tierDmsTo("U_BOB")).toEqual([
+      "🏅 You earned Noticed (Recognition, bronze). +10 🪙\n🏅 You earned Appreciated (Recognition, silver). + :sparkling_heart: Sparkling Heart for your kudos emoji slots\nNext: Highly Valued at 100 kudos received.",
+    ]);
+  });
+});
+
 describe("P76 P78: where the Book doesn't apply, no tier is announced", () => {
   test("a tier earned while achievements is off sends no DM and no line, and isn't announced when it is on again", async () => {
     const t = await workspace({ announcementChannel: "C_NEWS" });
@@ -326,6 +379,28 @@ async function workspace({ announcementChannel }: { announcementChannel?: string
 async function workspaceWithCoins() {
   const t = await workspace({ announcementChannel: "C_NEWS" });
   return flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"), onForEveryone("coins"));
+}
+
+async function workspaceDeciding(...alsoDecided: FlagDefinition[]) {
+  const t = await workspace({ announcementChannel: "C_NEWS" });
+  return flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"), onForEveryone("coins"), ...alsoDecided);
+}
+
+async function silverEmojiOf(t: Backend, member: MemberId) {
+  return t.run(async (ctx) => {
+    const rewards = await ctx.db
+      .query("rewardRecords")
+      .withIndex("by_member_key", (q) => q.eq("member", member))
+      .collect();
+    const collection = await ctx.db
+      .query("collection")
+      .withIndex("by_member_item", (q) => q.eq("member", member))
+      .collect();
+    return {
+      rewards: rewards.filter(({ key }) => key.endsWith("-kudos-emoji")).map(({ key, xp, coins, item, at }) => ({ key, xp, coins, item, at })),
+      collection: collection.map(({ item, source, arrivedAt }) => ({ item, source, arrivedAt })),
+    };
+  });
 }
 
 async function openCoins(t: Backend, member: MemberId) {

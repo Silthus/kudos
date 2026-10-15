@@ -158,8 +158,8 @@ export async function unopenedCratesOf(ctx: QueryCtx, member: MemberId, at: numb
   const unopened: UnopenedCrate[] = [];
   for (const { key } of await pendingWeeklyCratesBefore(ctx, member, thisWeek)) {
     const crate = weeklyQuestOfRewardKey(key)!;
-    const { xp, coins, item, at: finishedAt } = (await rewardOf(ctx, member, key))!;
-    unopened.push({ crate, week: crate.week, goal: await weeklyGoalOf(ctx, member, crate), reward: { xp, coins, item }, finishedAt });
+    const { xp, coins, at: finishedAt } = (await rewardOf(ctx, member, key))!;
+    unopened.push({ crate, week: crate.week, goal: await weeklyGoalOf(ctx, member, crate), reward: { xp, coins, item: null }, finishedAt });
   }
   return unopened.sort((one, other) => one.finishedAt - other.finishedAt);
 }

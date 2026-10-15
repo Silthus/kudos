@@ -26,6 +26,7 @@ import { perkValidator } from "./progression/tree";
 import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { journeyActivationValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
+import { collectedItemValidator, itemPurchaseValidator, loadoutSlotValidator } from "./store/rows";
 import { featureValidator } from "./unlocks/feature";
 import { welcomedAsValidator } from "./welcome/welcomedAs";
 import { memberProfileFields } from "./workspace/memberProfile";
@@ -288,6 +289,12 @@ export default defineSchema({
   }).index("by_member", ["member"]),
 
   coinSpends: defineTable(coinSpendValidator).index("by_member", ["member"]),
+
+  collection: defineTable(collectedItemValidator).index("by_member_item", ["member", "item"]),
+
+  loadouts: defineTable(loadoutSlotValidator).index("by_member_slot", ["member", "slot"]),
+
+  itemPurchases: defineTable(itemPurchaseValidator).index("by_member_key", ["member", "key"]),
 
   journeySteps: defineTable(journeyActivationValidator).index("by_member_step", ["member", "step"]),
 
