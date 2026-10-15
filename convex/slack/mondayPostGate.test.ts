@@ -261,7 +261,7 @@ async function mondayPostRowsOf(t: Backend) {
 }
 
 function everythingButReceiptsAndExposures(t: Backend) {
-  return everythingStored(t, { except: ["slackReceipts", "flagExposures", "outbox"] });
+  return everythingStored(t, { except: ["slackReceipts", "flagExposures", "analyticsOutbox"] });
 }
 
 async function exposuresOf(t: Backend, user: string) {
