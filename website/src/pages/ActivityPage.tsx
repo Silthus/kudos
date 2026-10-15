@@ -1,3 +1,4 @@
+import { HedgehogTownCrier } from "@posthog/brand/hoggies";
 import { IconCheck } from "@posthog/icons";
 import { Button, ToggleGroup, ToggleGroupItem } from "@posthog/quill";
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
@@ -10,6 +11,7 @@ import { MemberTabs } from "../home/MemberTabs";
 import { focusPageTitle } from "../pageFocus";
 import { PageTitle } from "../PageTitle";
 import type { ActivityFilter } from "../route";
+import { SlackLink } from "../SlackLink";
 
 const filters: { filter: ActivityFilter; label: string; showing: string; empty: string }[] = [
   { filter: "all", label: "All", showing: "Showing all activity.", empty: "Your activity shows here once you thank someone or reach a level." },
@@ -21,9 +23,9 @@ function filterNamed(filter: ActivityFilter) {
   return filters.find((each) => each.filter === filter)!;
 }
 
-type ActivityPageProps = { filter: ActivityFilter; watch: ActivityShown | undefined; readActivity: ActivityRead; onChooseFilter: (filter: ActivityFilter) => void };
+type ActivityPageProps = { filter: ActivityFilter; watch: ActivityShown | undefined; readActivity: ActivityRead; chatUrl: string; onChooseFilter: (filter: ActivityFilter) => void };
 
-export function ActivityPage({ filter, watch, readActivity, onChooseFilter }: ActivityPageProps) {
+export function ActivityPage({ filter, watch, readActivity, chatUrl, onChooseFilter }: ActivityPageProps) {
   const timeline = useTimeline(filter, readActivity, watch);
   const [announcement, announce] = useState("");
   const choose = (chosen: ActivityFilter) => {
@@ -34,7 +36,7 @@ export function ActivityPage({ filter, watch, readActivity, onChooseFilter }: Ac
   return (
     <div className="flex flex-col gap-6">
       <MemberTabs current="activity" />
-      <header className="flex w-full max-w-3xl flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <header className="mx-auto flex w-full max-w-3xl flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="flex max-w-xl flex-col gap-1">
           <span className="hud-label">Activity</span>
           <PageTitle tab="Activity" size="display">
@@ -44,7 +46,7 @@ export function ActivityPage({ filter, watch, readActivity, onChooseFilter }: Ac
         </div>
         <FilterSwitch filter={filter} onChoose={choose} />
       </header>
-      <TimelineView timeline={timeline} announce={announce} />
+      <TimelineView timeline={timeline} chatUrl={chatUrl} announce={announce} />
       <p role="status" data-testid="activity-announcement" className="sr-only">
         {announcement}
       </p>
@@ -70,7 +72,7 @@ function FilterSwitch({ filter, onChoose }: { filter: ActivityFilter; onChoose: 
 
 type Announce = (text: string) => void;
 
-function TimelineView({ timeline, announce }: { timeline: Timeline; announce: Announce }) {
+function TimelineView({ timeline, chatUrl, announce }: { timeline: Timeline; chatUrl: string; announce: Announce }) {
   const { state, newActivity, ask, reset } = timeline;
   const list = useRef<HTMLDivElement>(null);
   const loadMoreButton = useRef<HTMLButtonElement | null>(null);
@@ -85,21 +87,31 @@ function TimelineView({ timeline, announce }: { timeline: Timeline; announce: An
   if (!state.landed) return <FirstPageWaiting state={state} onTryAgain={() => ask("button")} />;
   const timeZone = zoneOf(state.timeZone);
   return (
-    <div ref={list} className="flex w-full max-w-3xl flex-col gap-4">
+    <div ref={list} className="mx-auto flex w-full max-w-3xl flex-col gap-4">
       {newActivity && (
         <Button variant="outline" size="sm" className="self-center" onClick={showNew}>
           Show new activity
         </Button>
       )}
       {state.entries.length === 0 && state.status === "end" ? (
-        <p data-timeline-empty tabIndex={-1} className="text-sm text-muted-foreground outline-none">
-          {filterNamed(state.filter).empty}
-        </p>
+        <EmptyTimeline filter={state.filter} chatUrl={chatUrl} />
       ) : (
         <Entries state={state} timeZone={timeZone} />
       )}
       <TimelineEnd state={state} loadMoreButton={loadMoreButton} onLoadMore={() => ask("button")} onNearTheEnd={() => ask("scroll")} />
     </div>
+  );
+}
+
+function EmptyTimeline({ filter, chatUrl }: { filter: ActivityFilter; chatUrl: string }) {
+  return (
+    <section data-timeline-empty tabIndex={-1} aria-label="Nothing yet" className="flex flex-col items-center gap-4 rounded-lg border bg-card px-4 py-10 text-center outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <HedgehogTownCrier size={96} title="" />
+      <p className="max-w-md text-balance text-sm text-muted-foreground">{filterNamed(filter).empty}</p>
+      <SlackLink chatUrl={chatUrl} variant="outline">
+        Thank someone in Slack
+      </SlackLink>
+    </section>
   );
 }
 
