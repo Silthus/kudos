@@ -309,7 +309,7 @@ describe("WS41: the podium stands the top three on neutral pedestals", () => {
     expect(within(spots[1]!).getByText("AL")).toBeInTheDocument();
   });
 
-  it("prints the podium's kudos and ranks in Inter with tabular figures, not display type", () => {
+  it("prints the podium's kudos and ranks in the body face with tabular figures, not display type", () => {
     showBoard(leaderboardFixtures.midBoard);
     const ada = podiumSpots()[1]!;
     for (const number of [within(ada).getByText("21"), ada.querySelector("[data-pedestal] span")!]) {
@@ -433,7 +433,7 @@ describe("WS42: the list shows the rest of G17's window below the podium", () =>
     ]);
   });
 
-  it("prints ranks in Inter with tabular figures, not display type", () => {
+  it("prints ranks in the body face with tabular figures, not display type", () => {
     showBoard(leaderboardFixtures.midBoard);
     const rank = within(boardList()).getByText("6");
     expect(rank).toHaveClass("tabular-nums");
