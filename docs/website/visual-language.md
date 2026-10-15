@@ -8,7 +8,7 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
 
 - **V1. The HUD frame.** Every signed-in screen has the same top bar: the HedgeHug wordmark, the screen nav, skill points and coins once unlocked, the ready pill, and the member's hedgehog avatar with its level ring.
 - **V2. Corner marks frame game objects only.** These are the home hero, the character and inventory panel, skill tree nodes, quest cards, crates and moments: things the member owns or can act on. Reading surfaces stay plain Quill cards and tables: the leaderboard list, achievement pages, albums, sign-in, errors and empty states. The small uppercase label is used only as a panel's label.
-- **V3. Colour comes from Quill's tokens.** There are three named exceptions:
+- **V3. Colour comes from Quill's tokens, with the surfaces set to posthog.com's.** The canvas, cards, muted fills, chrome and borders take posthog.com's values in each mode (light: canvas `#EEEFE9`, card `#FDFDF8`, muted `#E5E7E0`, border `#BFC1B7`; dark: canvas `#1E1F23`, card `#25262B`, muted `#2D2E37`, border `#3E424F`, secondary text `#AEB3C4`), and the canvas is flat: no gradient or glow behind the HUD. Everything else, including primary, stays Quill's. There are three named exceptions:
   - the moment bands (V12)
   - the medal metals (V16)
   - a company profile's own colour, used only as the background behind that person's face (V19)
@@ -83,7 +83,7 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
 ## Accessibility
 
 - **V24. WCAG 2.2 AA in both modes.**
-  - **Contrast:** 4.5:1 for text, and 3:1 for icons, borders and rings.
+  - **Contrast:** 4.5:1 for text, and 3:1 for icons, rings, and the border of a control that nothing but its border identifies (an input, a switch track, an outline). A card's or separator's border is decorative and takes posthog.com's border value.
   - **Colour is never the only signal:**
     - "you" is a ring plus a label
     - a tier is a metal plus pips plus its word

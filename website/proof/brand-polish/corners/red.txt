@@ -1,0 +1,8 @@
+     × positions every hud-panel itself, so its marks never land on the viewport's corner 4ms
+     × frames the locked page as a hud-panel without its own positioning class 184ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/hudPanelCorners.test.tsx > #453 V2: corner marks stay on the panel they frame > positions every hud-panel itself, so its marks never land on the viewport's corner
+Error: .hud-panel has no rule of its own in index.css
+ FAIL  |website| src/hudPanelCorners.test.tsx > #453 V2: corner marks stay on the panel they frame > frames the locked page as a hud-panel without its own positioning class
+Error: [2mexpect([22m[31melement[39m[2m).toHaveClass([22m[32m[32m"hud-panel"[32m[39m[2m)[22m
+ Test Files  1 failed (1)

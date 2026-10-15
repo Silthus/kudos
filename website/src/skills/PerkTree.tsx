@@ -28,7 +28,7 @@ const connectorReach = bandGap + bandHeadingHeight + bandHeadingGap + squareInse
 export function PerkTree({ rows, ...nodes }: PerkTreeProps) {
   const layout = layoutOf(rows);
   return (
-    <section aria-labelledby="perk-tree-title" className="hud-panel relative flex flex-col gap-4 rounded-xl border bg-card p-4">
+    <section aria-labelledby="perk-tree-title" className="hud-panel relative flex flex-col gap-4 rounded-lg border bg-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h2 id="perk-tree-title" className="hud-label">
           Perk tree

@@ -8,7 +8,7 @@ import { featureCrateOf } from "./readyCrates";
 
 type CrateProps = { card: FeatureCard; heading: "h2" | "h3"; open: "primary" | "outline"; artWidth: number; framed?: boolean };
 
-const frame = "hud-panel relative h-full rounded-xl border bg-card p-4";
+const frame = "hud-panel relative h-full rounded-lg border bg-card p-4";
 
 export function Crate({ card, heading: Heading, open, artWidth, framed = true }: CrateProps) {
   const crate = useFeatureCrate(card);

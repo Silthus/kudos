@@ -356,7 +356,7 @@ describe("WS67: /leaderboard's ready state opens in place", () => {
     const openFeature = vi.fn(async (): Promise<CommandAnswer> => ({ kind: "opened" }));
     window.history.replaceState(null, "", "/leaderboard");
     let board: BoardRead = readyBoard;
-    const { user, showVisitor } = renderApp(ready, (period) => board(period), { openFeature });
+    const { user, showVisitor } = renderApp(ready, (period, withGroupBoards) => board(period, withGroupBoards), { openFeature });
     await user.click(within(main()).getByRole("button", { name: "Open" }));
     board = fixedLeaderboard(leaderboardFixtures.midBoard);
     showVisitor(opened);

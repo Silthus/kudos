@@ -16,6 +16,7 @@ export const deepLinks = {
   featuresShipped: { page: home, label: "See what's ready on the web" },
   journey: { page: home, label: "See your Journey on the web" },
   weeklyQuest: { page: { page: "quests" }, label: "See your quests on the web" },
+  tiersEarned: { page: { page: "bookEarned" }, label: "See what you earned on the web" },
 } satisfies Record<string, Destination>;
 
 export async function deepLinkOf(ctx: QueryCtx, workspace: string, destination: Destination): Promise<DeepLink | null> {

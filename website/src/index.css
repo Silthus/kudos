@@ -62,6 +62,26 @@
   --medal-diamond: #7cc9de;
 }
 
+* {
+  --background: #eeefe9;
+  --card: #fdfdf8;
+  --muted: #e5e7e0;
+  --chrome: #e5e7e0;
+  --border: #bfc1b7;
+}
+
+.dark {
+  --muted-foreground: #aeb3c4;
+}
+
+.dark, .dark * {
+  --background: #1e1f23;
+  --card: #25262b;
+  --muted: #2d2e37;
+  --chrome: #1e1f23;
+  --border: #3e424f;
+}
+
 html,
 body {
   background: var(--background);
@@ -73,16 +93,6 @@ body {
 .hud-display {
   font-family: RoundHog, var(--font-sans);
   letter-spacing: -0.025em;
-}
-
-.hud-root {
-  background-image: radial-gradient(70rem 30rem at 50% -10rem, color-mix(in oklab, var(--primary) 8%, transparent), transparent 70%);
-}
-
-.dark .hud-root {
-  background-image:
-    radial-gradient(70rem 30rem at 50% -10rem, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%),
-    radial-gradient(40rem 40rem at 100% 100%, color-mix(in oklab, var(--completed-foreground) 10%, transparent), transparent 70%);
 }
 
 .night-band {
@@ -142,10 +152,17 @@ body {
   color: var(--muted-foreground);
 }
 
+@layer components {
+  .hud-panel {
+    position: relative;
+  }
+}
+
 .hud-panel::before,
 .hud-panel::after {
   content: "";
   position: absolute;
+  z-index: 1;
   width: 10px;
   height: 10px;
   border: 0 solid color-mix(in oklab, var(--foreground) 28%, transparent);

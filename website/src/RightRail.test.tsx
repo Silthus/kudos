@@ -302,9 +302,9 @@ describe("WS110: Where you stand", () => {
   it("asks the board for this week only while the Leaderboard is open", () => {
     const asked = vi.fn<BoardRead>(() => undefined);
     const { showVisitor } = railOf(shellFixtures.memberWithEveryPanelLocked, { board: asked });
-    expect(asked.mock.calls.flat().filter((period) => period !== undefined)).toEqual([]);
+    expect(asked.mock.calls.map(([period]) => period).filter((period) => period !== undefined)).toEqual([]);
     showVisitor(everyPanelOpen);
-    expect(asked).toHaveBeenLastCalledWith("week");
+    expect(asked).toHaveBeenLastCalledWith("week", false);
   });
 });
 

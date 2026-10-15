@@ -54,7 +54,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useS
   const member = shown.kind === "member" ? shown : undefined;
   const onTheBoard = member !== undefined && route.page === "leaderboard";
   const onHome = member !== undefined && route.page === "home";
-  const answer = useLeaderboard(onTheBoard ? route.period : onHome && member.leaderboard.kind === "open" ? "week" : undefined);
+  const answer = useLeaderboard(onTheBoard ? route.period : onHome && member.leaderboard.kind === "open" ? "week" : undefined, onTheBoard);
   const board = useBoardWhileTheNextLoads(answer, onTheBoard);
   const onQuests = member !== undefined && route.page === "quests";
   const questsOpen = isQuestsOpenFor(member);

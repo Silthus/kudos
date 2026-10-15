@@ -24,7 +24,7 @@ function EarnedMoment({ earned, chatUrl }: { earned: Shelved[]; chatUrl: string 
   const fresh = useFirstShowing(earned);
   const ladderNames = listOf(earned.map(({ ladder }) => ladder.name));
   return (
-    <article data-moment={fresh ? "fresh" : "seen"} className="hud-panel mx-auto w-full max-w-3xl overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
+    <article data-moment={fresh ? "fresh" : "seen"} className="hud-panel mx-auto w-full max-w-3xl overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm">
       <section className="lemon-band px-5 pb-8 pt-6 md:px-10 md:pb-10 md:pt-8">
         <span className="hud-label">{`${earned.length === 1 ? "Achievement" : "Achievements"} · ${ladderNames}`}</span>
         <div className="mt-4 flex items-end gap-4">
@@ -73,7 +73,7 @@ function EarnedTier({ entry: { ladder, tier } }: { entry: Shelved }) {
 
 function NothingEarnedYet() {
   return (
-    <section className="hud-panel mx-auto flex w-full max-w-3xl flex-col items-center gap-4 rounded-xl border bg-card px-5 py-10 text-center shadow-sm">
+    <section className="hud-panel mx-auto flex w-full max-w-3xl flex-col items-center gap-4 rounded-lg border bg-card px-5 py-10 text-center shadow-sm">
       <PageTitle tab="Achievement" size="headline">
         No tiers earned yet
       </PageTitle>

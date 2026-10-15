@@ -87,7 +87,7 @@ function PaletteChip({ onOpen }: { onOpen: () => void }) {
       onClick={onOpen}
       aria-label="Open the command palette"
       title="Command palette"
-      className="hidden h-8 items-center whitespace-nowrap rounded-full border border-dashed border-muted-foreground px-2.5 font-mono text-[11px] text-muted-foreground transition-colors hover:border-primary hover:text-foreground sm:inline-flex"
+      className="hidden h-8 items-center whitespace-nowrap rounded-md border border-dashed border-muted-foreground px-2.5 font-mono text-[11px] text-muted-foreground transition-colors hover:border-primary hover:text-foreground sm:inline-flex"
     >
       {paletteShortcut()}
     </button>
@@ -111,7 +111,7 @@ function SkillPointChip({ points }: { points: number }) {
   const counted = useCountUp(points);
   return (
     <span onAnimationEnd={onAnimationEnd} className={`inline-flex ${popIn}`}>
-      <AppLink href="/skills" aria-label={chipName(points)} className="inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums hover:bg-fill-hover" {...skillPointChipAttributes()}>
+      <AppLink href="/skills" aria-label={chipName(points)} className="inline-flex h-8 items-center gap-1.5 rounded-md border bg-card px-2.5 text-sm font-medium tabular-nums hover:bg-fill-hover" {...skillPointChipAttributes()}>
         <SkillPointGlyph />
         {counted}
       </AppLink>
@@ -124,7 +124,7 @@ function CoinsChip({ coins }: { coins: number }) {
   const counted = useCountUp(coins);
   const name = coinsToSpend(coins);
   return (
-    <span role="img" aria-label={name} title={name} onAnimationEnd={onAnimationEnd} className={`inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums ${popIn}`} {...coinsChipAttributes()}>
+    <span role="img" aria-label={name} title={name} onAnimationEnd={onAnimationEnd} className={`inline-flex h-8 items-center gap-1.5 rounded-md border bg-card px-2.5 text-sm font-medium tabular-nums ${popIn}`} {...coinsChipAttributes()}>
       <CoinGlyph />
       {counted}
     </span>

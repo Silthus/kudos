@@ -74,6 +74,10 @@ function ratio(one: number, two: number) {
   return (Math.max(one, two) + 0.05) / (Math.min(one, two) + 0.05);
 }
 
+export function themeTokenOf(mode: Mode, name: string) {
+  return resolve(declarationsIn(mode), name);
+}
+
 export function contrast(mode: Mode, paint: string, surface: string) {
   const tokens = declarationsIn(mode);
   const [one, two] = [paint, surface].map((name) => luminanceOf(linearRgbOf(resolve(tokens, name)))) as [number, number];

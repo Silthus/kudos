@@ -1,0 +1,106 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/custom-emoji-pictures
+
+ ❯ |website| src/KudosMessage.test.tsx (20 tests | 1 failed) 360ms
+   ❯ WS210: one renderer for a kudos message (18)
+     × draws a skin-toned emoji by the shortcode table's toned character before an untoned unicode 10ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > draws a skin-toned emoji by the shortcode table's toned character before an untoned unicode
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  👋🏼[39m
+Received:
+[31m  👋[39m
+ ❯ src/KudosMessage.test.tsx:86:23
+     84|     const container = shown(words({ kind: "emoji", name: "wave::skin-t…
+     85|
+     86|     expect(container).toHaveTextContent("👋🏼");
+       |                       ^
+     87|   });
+     88|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 19 passed (20)
+   Start at  17:53:01
+   Duration  4.55s (environment 62%, setup 19%, transform 9%, tests 9%, import 1%)
+
+## review round 1, red: competing-source cases on f7681772
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/custom-emoji-pictures
+
+ ❯ |website| src/KudosMessage.test.tsx (23 tests | 2 failed) 1089ms
+   ❯ WS210: one renderer for a kudos message (21)
+     × draws a skin-toned name by Slack's toned unicode where the table knows the name but not the tone 11ms
+     × draws a skin-toned name's picture before the table's untoned character 184ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > draws a skin-toned name by Slack's toned unicode where the table knows the name but not the tone
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  🤼🏼[39m
+Received:
+[31m  🤼[39m
+ ❯ src/KudosMessage.test.tsx:91:23
+     89|     const container = shown(words(segment));
+     90|
+     91|     expect(container).toHaveTextContent(drawn);
+       |                       ^
+     92|     expect(container.querySelector("img")).toBeNull();
+     93|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |website| src/KudosMessage.test.tsx > WS210: one renderer for a kudos message > draws a skin-toned name's picture before the table's untoned character
+TestingLibraryElementError: Unable to find an accessible element with the role "img" and name ":wrestlers::skin-tone-3:"
+
+Here are the accessible roles:
+
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"[overflow-wrap:anywhere] "[39m
+    [33mdata-testid[39m=[32m"kudos-message-words"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<p[39m
+      [33mclass[39m=[32m"[overflow-wrap:anywhere] "[39m
+      [33mdata-testid[39m=[32m"kudos-message-words"[39m
+    [36m>[39m
+      [0m🤼[0m
+    [36m</p>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/KudosMessage.test.tsx:98:19
+     96|     const container = shown(words({ kind: "emoji", name: "wrestlers::s…
+     97|
+     98|     expect(screen.getByRole("img", { name: ":wrestlers::skin-tone-3:" …
+       |                   ^
+     99|     expect(container).not.toHaveTextContent("🤼");
+    100|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 21 passed (23)
+   Start at  18:10:25
+   Duration  5.01s (environment 60%, tests 25%, setup 8%, transform 6%, import 1%)
+
