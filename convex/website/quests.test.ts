@@ -73,8 +73,8 @@ async function questsOpenFor(member: MemberId, ...drawn: QuestId[]) {
   if (drawn.length > 0) await drawnIn(member, thisWeek, drawn);
 }
 
-function drawnIn(member: MemberId, week: string, quests: QuestId[]) {
-  const slots = quests.map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 15 } }));
+function drawnIn(member: MemberId, week: string, quests: QuestId[], coins = 0) {
+  const slots = quests.map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 15 } }));
   return t.run((ctx) => ctx.db.insert("questDraws", { member, week, drawnAt: Date.now(), slots }));
 }
 
@@ -561,6 +561,76 @@ describe("WS317: getQuests' bonus is the Journey's next step", () => {
       { step: "first-thanks", feature: featureOpening("first-thanks") },
       { step: "first-quest", feature: featureOpening("first-quest") },
     ]);
+  });
+});
+
+describe("WS348 CO26 CO29: a quest's coins show only while the member's wallet answers", () => {
+  const coinFlags = [...questsFlags, "coins", "store"];
+  const yourEmoji = { kind: "journey", step: "your-emoji" } as const;
+  const firstThanksPayingCoins = { version: "test", steps: [{ step: "first-thanks", reward: { xp: 10, coins: 5, item: null } }] } as const;
+
+  async function coinsOpenWithQuestsPaying(coins: number) {
+    await flagsOn(...coinFlags);
+    await journeyShippedBeforeAnyoneJoined(t);
+    const team = await aTeam();
+    await questsOpenFor(team.member);
+    await drawnIn(team.member, thisWeek, ["say-why", "say-why-three-times"], coins);
+    await reachesLevel(t, team.member, 6);
+    await opens(t, team.member, "coins");
+    await t.run(async (ctx) => {
+      await activated(ctx, "T1", team.member, "first-thanks", Date.now(), firstThanksPayingCoins);
+      await activateJourneyOf(ctx, team.member);
+      await activated(ctx, "T1", team.member, "your-emoji", Date.now(), journey);
+    });
+    return team;
+  }
+
+  function rewardsOf({ slots, waiting, bonus }: Awaited<ReturnType<typeof openQuests>>, journeySteps: MemberProfile["journey"]) {
+    return { slots: slots.map(({ reward }) => reward), waiting: waiting.map(({ reward }) => reward), bonus: bonus?.reward, journey: journeySteps?.map(({ step, reward }) => ({ step, reward })) };
+  }
+
+  test("with Coins open, every slot, waiting crate, the bonus and the Journey read the coins their reward records", async () => {
+    const { member, asSignedIn, teammate } = await coinsOpenWithQuestsPaying(10);
+    await thanks(member, teammate.member);
+    vi.setSystemTime(nextMonday);
+    await drawnIn(member, "2026-10-19", ["say-why-twice"], 10);
+
+    expect(rewardsOf(await openQuests(asSignedIn), await journeyOf(asSignedIn))).toEqual({
+      slots: [{ xp: 20, coins: 10 }],
+      waiting: [{ xp: 20, coins: 10 }],
+      bonus: { xp: 10, coins: 5 },
+      journey: [
+        { step: "first-thanks", reward: { xp: 10, coins: 5 } },
+        { step: "your-emoji", reward: { xp: 40, coins: 20 } },
+      ],
+    });
+  });
+
+  test("a finished Journey step keeps its coins on the crate it waits in", async () => {
+    const { member, asSignedIn } = await coinsOpenWithQuestsPaying(10);
+    await t.run((ctx) => ctx.db.insert("rewardRecords", { member, key: rewardKeyOf(yourEmoji), xp: 40, coins: 20, item: null, catalogueVersion: journey.version, at: Date.now() }));
+
+    expect((await journeyOf(asSignedIn))?.find(({ step }) => step === "your-emoji")).toMatchObject({ state: "finished", crate: yourEmoji, reward: { xp: 40, coins: 20 } });
+  });
+
+  test("while the coins flag is off, the same slots, waiting crate, bonus and Journey read their XP alone", async () => {
+    const { member, asSignedIn, teammate } = await coinsOpenWithQuestsPaying(10);
+    await thanks(member, teammate.member);
+    vi.setSystemTime(nextMonday);
+    await drawnIn(member, "2026-10-19", ["say-why-twice"], 10);
+    await flagsOn(...questsFlags);
+
+    expect(rewardsOf(await openQuests(asSignedIn), await journeyOf(asSignedIn))).toEqual({ slots: [{ xp: 20 }], waiting: [{ xp: 20 }], bonus: { xp: 10 }, journey: [{ step: "first-thanks", reward: { xp: 10 } }] });
+  });
+
+  test("before Coins is open, a quest paying coins reads its XP alone", async () => {
+    await flagsOn(...coinFlags);
+    await journeyShippedBeforeAnyoneJoined(t);
+    const { member, asSignedIn } = await signedIn();
+    await questsOpenFor(member);
+    await drawnIn(member, thisWeek, ["say-why"], 10);
+
+    expect((await openQuests(asSignedIn)).slots.map(({ reward }) => reward)).toEqual([{ xp: 20 }]);
   });
 });
 

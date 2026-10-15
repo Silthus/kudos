@@ -4,7 +4,7 @@ import { IconLeave } from "@posthog/icons";
 import { Button } from "@posthog/quill";
 import { AppLink, useNavigate } from "./AppLink";
 import { ReadyPill, ReadyPillFailure } from "./crates/ReadyPill";
-import { hudAvatarAttributes, skillPointChipAttributes } from "./crates/RewardFlight";
+import { coinsChipAttributes, hudAvatarAttributes, skillPointChipAttributes } from "./crates/RewardFlight";
 import { useCountUp } from "./countUp";
 import { useMoments } from "./crates/moments";
 import { featureCrateOf, type ReadyCrate } from "./crates/readyCrates";
@@ -124,7 +124,7 @@ function CoinsChip({ coins }: { coins: number }) {
   const counted = useCountUp(coins);
   const name = coinsToSpend(coins);
   return (
-    <span role="img" aria-label={name} title={name} onAnimationEnd={onAnimationEnd} className={`inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums ${popIn}`}>
+    <span role="img" aria-label={name} title={name} onAnimationEnd={onAnimationEnd} className={`inline-flex h-8 items-center gap-1.5 rounded-full border bg-card px-2.5 text-sm font-medium tabular-nums ${popIn}`} {...coinsChipAttributes()}>
       <CoinGlyph />
       {counted}
     </span>

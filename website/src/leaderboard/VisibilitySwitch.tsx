@@ -42,7 +42,7 @@ export function VisibilitySwitch({ onTheBoards, setBoardVisibility }: Visibility
         Show me on the leaderboards
         <Switch size="sm" className={switchLook} checked={onTheBoards} disabled={pending} onCheckedChange={(visible) => void choose(visible)} />
       </label>
-      <p role="status" className={line === "" ? "sr-only" : "text-muted-foreground"}>
+      <p role="status" className={line === "" ? "sr-only" : "font-normal text-muted-foreground"}>
         {line}
       </p>
     </>

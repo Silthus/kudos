@@ -1,22 +1,22 @@
 import { readyFeaturesOf, webPageOf } from "../features";
 import type { QuestsShown } from "../questsRead";
 import type { Screen } from "../route";
-import type { FeatureCard, MemberProfile, Quest } from "../shell";
+import type { FeatureCard, MemberProfile, Quest, QuestReward } from "../shell";
 
 export type FeatureCrate = { kind: "feature"; card: FeatureCard; seen: string };
 
-export type QuestCrate = { kind: "quest"; quest: Quest; xp: number; seen: string };
+export type QuestCrate = { kind: "quest"; quest: Quest; reward: QuestReward; seen: string };
 
 export type ReadyCrate = FeatureCrate | QuestCrate;
 
-export type CrateFacts = { crate: Quest | null; seen: string | null; reward: { xp: number } };
+export type CrateFacts = { crate: Quest | null; seen: string | null; reward: QuestReward };
 
 export function featureCrateOf(card: FeatureCard): FeatureCrate {
   return { kind: "feature", card, seen: card.seen };
 }
 
 export function questCrateOf({ crate, seen, reward }: CrateFacts): QuestCrate | undefined {
-  return crate === null || seen === null ? undefined : { kind: "quest", quest: crate, xp: reward.xp, seen };
+  return crate === null || seen === null ? undefined : { kind: "quest", quest: crate, reward, seen };
 }
 
 export function rewardLabelOf({ quest }: QuestCrate) {
