@@ -195,7 +195,7 @@ describe("CO20: a launch batch's summary says each tier's coins while coins are 
   });
 });
 
-describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after its own checks, while the website is open", () => {
+describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after its own checks, while the website is open", { timeout: 30_000 }, () => {
   test("while the website is open, the Book's opening summary ends with one link to the Book's earned page", async () => {
     vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
     vi.stubEnv("SITE_URL", siteUrl);

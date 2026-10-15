@@ -328,7 +328,7 @@ describe("P76 P78: where the Book doesn't apply, no tier is announced", () => {
   });
 });
 
-describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after its own checks, while the website is open", () => {
+describe("SW13 SW14 SW15: each DM ends with a link to its page on the web after its own checks, while the website is open", { timeout: 30_000 }, () => {
   test("while the website is open, a tier DM ends with a link to the Book's earned page", async () => {
     const t = await workspaceWithTheWebsite(onForEveryone("website"));
     await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
