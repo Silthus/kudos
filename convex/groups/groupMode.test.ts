@@ -83,7 +83,7 @@ describe("GB1, GB8: in allowlist mode only the groups an admin picks count", { t
     expect(groupModeLinesOf(publishedHome(slack, "U_ALICE"))).toEqual([
       "section: *Groups that count*",
       "actions: Every group | [Only these groups]",
-      "actions: [multi_static_select: Gardeners, Owls, Zebras]",
+      "section: Pick the groups that count. [multi_static_select: Gardeners, Owls, Zebras]",
     ]);
     expect(await primaryGroupNamesOf(t)).toEqual({ U_ALICE: "Gardeners", U_ANN: "Owls", U_BOB: "Zebras" });
   });
@@ -96,7 +96,7 @@ describe("GB1, GB8: in allowlist mode only the groups an admin picks count", { t
 
     await interact(t, "U_ALICE", groupPickerInHome(slack, "U_ALICE", "Gardeners", "Zebras"));
 
-    expect(groupModeLinesOf(publishedHome(slack, "U_ALICE"))).toContain("actions: [multi_static_select: Gardeners, Zebras]");
+    expect(groupModeLinesOf(publishedHome(slack, "U_ALICE"))).toContain("section: Pick the groups that count. [multi_static_select: Gardeners, Zebras]");
     expect(await primaryGroupNamesOf(t)).toEqual({ U_ALICE: "Gardeners", U_ANN: "Zebras", U_BOB: "Zebras" });
     expect(await countingGroupNamesOf(t, "U_ANN")).toEqual(["Gardeners", "Zebras"]);
     expect(await historyOf(t, "U_ANN")).toEqual([
@@ -133,7 +133,7 @@ describe("GB1, GB8: in allowlist mode only the groups an admin picks count", { t
 
     await click(t, "U_ALICE", "Only these groups");
 
-    expect(groupModeLinesOf(publishedHome(slack, "U_ALICE"))).toContain("actions: [multi_static_select: Gardeners, Zebras]");
+    expect(groupModeLinesOf(publishedHome(slack, "U_ALICE"))).toContain("section: Pick the groups that count. [multi_static_select: Gardeners, Zebras]");
     expect(await countingGroupNamesOf(t, "U_ANN")).toEqual(["Gardeners", "Zebras"]);
   });
 
@@ -147,7 +147,7 @@ describe("GB1, GB8: in allowlist mode only the groups an admin picks count", { t
 
     await click(t, "U_ALICE", "Only these groups");
 
-    expect(groupModeLinesOf(publishedHome(slack, "U_ALICE"))).toContain("actions: [multi_static_select: none]");
+    expect(groupModeLinesOf(publishedHome(slack, "U_ALICE"))).toContain("section: Pick the groups that count. [multi_static_select: none]");
     expect(await t.run((ctx) => availableIn(ctx, "T1"))).toBe(false);
   });
 
@@ -161,7 +161,7 @@ describe("GB1, GB8: in allowlist mode only the groups an admin picks count", { t
 
     expect(await t.run((ctx) => availableIn(ctx, "T1"))).toBe(false);
     expect(await primaryGroupNamesOf(t)).toEqual({ U_ALICE: null, U_ANN: null, U_BOB: null });
-    expect(groupModeLinesOf(publishedHome(slack, "U_ALICE"))).toContain("actions: [multi_static_select: none]");
+    expect(groupModeLinesOf(publishedHome(slack, "U_ALICE"))).toContain("section: Pick the groups that count. [multi_static_select: none]");
   });
 });
 
@@ -482,7 +482,7 @@ function optionTextOf(name: string) {
 type Picker = { options?: unknown[]; option_groups?: Array<{ label: { text: string }; options: Array<{ text: { text: string }; value: string }> }>; initial_options?: Array<{ text: { text: string } }> };
 
 function pickerIn(blocks: Block[]) {
-  const picker = blocks.flatMap((block) => (block.type === "actions" ? (block.elements ?? []) : [])).find((element) => element.type === "multi_static_select");
+  const picker = blocks.map((block) => block.accessory).find((element) => element?.type === "multi_static_select");
   expect(picker).toBeDefined();
   return picker as unknown as Picker & Parameters<typeof optionsOf>[0];
 }

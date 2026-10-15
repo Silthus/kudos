@@ -126,7 +126,7 @@ function blockOf(line: HomeLine) {
   if (line.kind === "pick-channel") return { type: "section", text: mrkdwn(line.text), accessory: channelPickerOf(line) };
   if (line.kind === "pick") return { type: "section", text: mrkdwn(line.text), accessory: pickerOf(line) };
   if (line.kind === "pick-group") return { type: "section", text: mrkdwn(line.text), accessory: groupSelectOf(settingsPick, line.groups, line.picked) };
-  if (line.kind === "pick-groups") return { type: "actions", elements: [groupPickerOf(line)] };
+  if (line.kind === "pick-groups") return { type: "section", text: mrkdwn(line.text), accessory: groupPickerOf(line) };
   if (line.kind === "link") return { type: "section", text: mrkdwn(`<${line.url}|${line.label}>`) };
   if (line.kind === "links") return { type: "actions", elements: line.links.map(linkButtonOf) };
   return { type: "section", text: mrkdwn(line.text) };

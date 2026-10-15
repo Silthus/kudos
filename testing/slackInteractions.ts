@@ -150,6 +150,7 @@ function readAccessory(element: Element) {
   if (element.type === "button" && element.url !== undefined) return `[link: ${plainText(element.text)} ${element.url}]`;
   if (element.type === "button") return `[button: ${plainText(element.text)}]`;
   if (element.type === "static_select") return `[select: ${plainText(element.initial_option?.text)}]`;
+  if (element.type === "multi_static_select") return readButton(element);
   return `[${element.type}: ${element.initial_channel ?? "none"}]`;
 }
 

@@ -201,6 +201,8 @@ export class FakeSlack {
     }
     if (method === "chat.postEphemeral") return { ok: true, message_ts: "1760349700.000100" };
     if (method === "views.publish") {
+      const refusal = unsupportedElementIn(args.view);
+      if (refusal !== null) return { ok: false, error: "invalid_arguments", response_metadata: { messages: [refusal] } };
       this.homes.set(field("user_id"), args.view);
       return { ok: true };
     }
@@ -272,4 +274,12 @@ function order(ts: string) {
 
 export function isWelcome(args: SlackArgs) {
   return String(args.text).includes("Welcome to HedgeHug");
+}
+
+const multiSelects = new Set(["multi_static_select", "multi_users_select", "multi_conversations_select", "multi_channels_select", "multi_external_select"]);
+
+function unsupportedElementIn(view: unknown): string | null {
+  const blocks = (view as { blocks?: Array<{ type: string; elements?: Array<{ type: string }> }> } | undefined)?.blocks ?? [];
+  const index = blocks.findIndex((block) => block.type === "actions" && (block.elements ?? []).some((element) => multiSelects.has(element.type)));
+  return index < 0 ? null : `[ERROR] unsupported element: multiselect [json-pointer:view/blocks/${index}]`;
 }

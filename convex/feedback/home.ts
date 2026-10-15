@@ -54,7 +54,7 @@ export type HomeLine =
   | { kind: "action"; text: string; action: HomeAction }
   | { kind: "pick-channel"; text: string; picked: string | null; picks: Extract<Command, { channel: unknown }>["type"] }
   | { kind: "pick-group"; text: string; groups: GroupRef[]; picked: GroupId }
-  | { kind: "pick-groups"; groups: GroupModeFacts["groups"]; picked: GroupModeFacts["allowlist"] }
+  | { kind: "pick-groups"; text: string; groups: GroupModeFacts["groups"]; picked: GroupModeFacts["allowlist"] }
   | { kind: "pick"; id: string; text: string; placeholder: string; options: Choice[] }
   | { kind: "link"; label: string; url: string }
   | { kind: "links"; links: Array<{ label: string; url: string }> };
@@ -376,7 +376,7 @@ function groupModeLinesOf({ mode, groups, allowlist }: GroupModeFacts): HomeLine
       { label: "Only these groups", command: { type: "setGroupMode", mode: "allowlist" }, selected: mode === "allowlist" },
     ],
   };
-  const picker: HomeLine[] = mode === "allowlist" ? [{ kind: "pick-groups", groups, picked: allowlist }] : [];
+  const picker: HomeLine[] = mode === "allowlist" ? [{ kind: "pick-groups", text: "Pick the groups that count.", groups, picked: allowlist }] : [];
   return [{ kind: "text", text: bold("Groups that count") }, modes, ...picker];
 }
 
