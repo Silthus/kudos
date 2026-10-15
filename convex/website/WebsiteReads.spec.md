@@ -203,6 +203,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   via: opening on the website applies what Slack's open applies
   because: only a held reward's crate applies anything, and only once (CR3, CR4); if opening on the website did other than Slack's Open, a member could earn by clicking in a browser what Slack never pays, or be paid twice across the two
   refuted: openQuestCrate's answer showed applied coins while the wallet's coinsVisibleTo was false -> the hidden-coins case answered 10 coins (2026-10-15)
+  refuted: openQuestCrate's answer showed skill points whenever the tree's page read open, without the workspace's skill-tree decision getMyProfile's skillPoints also needs -> with skill-tree on only in the member's own decision, the answer showed 2 and 3 skill points (2026-10-15)
   refuted: openQuestCrate's answer read its to standing from the member's live standing and balance instead of the crate opening's stored applied -> the repeated open answered other numbers than the first (2026-10-15)
   refuted: the website's openQuestCrate applied a held crate's reward again after the command had opened it -> the Slack-parity and the after-Slack case failed on memberProgress and the published events (2026-10-15)
   crossing: browser -> domain
