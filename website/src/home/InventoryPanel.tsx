@@ -2,6 +2,7 @@ import { IconCheck, IconEmoji } from "@posthog/icons";
 import type { InventoryItem, ItemSource, MemberInventory, MemberProfile } from "../shell";
 import { CoinGlyph } from "../skills/glyphs";
 import { coinsText } from "../skills/perkWords";
+import { CustomEmoji } from "../CustomEmoji";
 import { Panel } from "./Panel";
 
 type Owned = { entry: InventoryItem; slot: number | null };
@@ -118,8 +119,14 @@ function HowToGet({ source }: { source: ItemSource }) {
   }
 }
 
-function ItemArt({ item: { art }, className }: { item: InventoryItem; className: string }) {
-  if (art.kind === "custom") return <img src={art.url} alt="" className={`object-contain ${className}`} />;
+function ItemArt({ item: { art, name }, className }: { item: InventoryItem; className: string }) {
+  if (art.kind === "custom") {
+    return (
+      <span aria-hidden="true" className="flex max-w-full min-w-0 items-center justify-center">
+        <CustomEmoji key={art.url} label={name} image={art.url} className={`object-contain ${className}`} nameClassName="max-w-full truncate text-xs" />
+      </span>
+    );
+  }
   return (
     <span aria-hidden="true" className={`flex items-center justify-center leading-none ${className}`}>
       {art.glyph}
