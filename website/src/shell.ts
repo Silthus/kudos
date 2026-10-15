@@ -9,8 +9,9 @@ import type { QuestsAnswer } from "../../convex/website/quests";
 import type { BookAnswer } from "../../convex/website/book";
 import type { ProfileCardAnswer } from "../../convex/website/profileCard";
 import type { MySkillTree } from "../../convex/website/skillTree";
+import { inventoryFixtures } from "./inventoryFixtures";
 
-export type { Face, FeatureCard, JourneyStep, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
+export type { Face, FeatureCard, InventoryItem, ItemSource, JourneyStep, MemberInventory, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
 export type { QuestsAnswer, QuestSlot, WaitingCrate, WeekSwap } from "../../convex/website/quests";
 export type { BookAnswer, LadderCard, TierCard } from "../../convex/website/book";
 export type { TierId } from "../../convex/achievements/ladders";
@@ -66,6 +67,8 @@ const member: MemberProfile = {
   journey: null,
   progression: null,
   skillPoints: null,
+  coins: null,
+  inventory: null,
   settings: false,
 };
 
@@ -133,6 +136,15 @@ const memberAtLevel7WithOneSkillPoint: MemberProfile = { ...memberWithOneSkillPo
 const memberWithCoinsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...ready }) };
 
 const memberWithCoinsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }) };
+
+const memberWithTheInventory: MemberProfile = {
+  ...memberWithCoinsOpened,
+  progression: { level: 6, xp: 1010, levelStartsAt: 1000, nextLevelAt: 1500, xpToNextLevel: 490 },
+  coins: 236,
+  inventory: inventoryFixtures.twoEquippedOfThree,
+};
+
+const memberWithCoinsBeforeTheStore: MemberProfile = { ...memberWithCoinsOpened, coins: 40 };
 
 const memberAcrossTheSheet: MemberProfile = {
   ...member,
@@ -223,6 +235,8 @@ export const shellFixtures = {
   memberAtLevel7WithOneSkillPoint,
   memberWithCoinsReady,
   memberWithCoinsOpened,
+  memberWithTheInventory,
+  memberWithCoinsBeforeTheStore,
   memberWithNothingShipped,
   memberWithEveryNavState,
   memberAcrossTheSheet,
@@ -275,6 +289,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-quests": shellFixtures.memberWithQuests,
   "member-with-quests-at-level-2": shellFixtures.memberWithQuestsAtLevel2,
   "member-crossing-into-level-6": shellFixtures.memberCrossingIntoLevel6,
+  "member-with-the-inventory": shellFixtures.memberWithTheInventory,
   error: shellFixtures.error,
 };
 

@@ -221,7 +221,7 @@ function Page({ state, route, board, quests, book, skillTree, settings, profileC
   if (board.kind === "not-found") return <NotFoundPage />;
   if (board.kind === "ready" || board.kind === "locked") return <FeatureWaitsPage feature="leaderboard" waiting={board} member={state} />;
   if (board.kind !== "board") return <AnswerPage answer={board} {...actions} />;
-  return <LeaderboardPage board={board} period={route.period} drawSpotlight={drawSpotlight} onChoosePeriod={onChoosePeriod} onSetBoardVisibility={onSetBoardVisibility} />;
+  return <LeaderboardPage board={board} coinsShown={state.coins !== null} period={route.period} drawSpotlight={drawSpotlight} onChoosePeriod={onChoosePeriod} onSetBoardVisibility={onSetBoardVisibility} />;
 }
 
 type QuestsAnswerPageProps = { member: MemberProfile; quests: QuestsShown | undefined; onSwapQuest: ShellActions["swapQuest"]; onSignIn: () => void; onSignOut: () => void };

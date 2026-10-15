@@ -13,9 +13,9 @@ import type { SpotlightDraw } from "../spotlightRead";
 import { PageTitle } from "../PageTitle";
 import type { Period } from "../shell";
 
-type LeaderboardPageProps = { board: Leaderboard; period: Period; drawSpotlight: SpotlightDraw; onChoosePeriod: (period: Period) => void; onSetBoardVisibility: ShellActions["setBoardVisibility"] };
+type LeaderboardPageProps = { board: Leaderboard; coinsShown: boolean; period: Period; drawSpotlight: SpotlightDraw; onChoosePeriod: (period: Period) => void; onSetBoardVisibility: ShellActions["setBoardVisibility"] };
 
-export function LeaderboardPage({ board, period, drawSpotlight, onChoosePeriod, onSetBoardVisibility }: LeaderboardPageProps) {
+export function LeaderboardPage({ board, coinsShown, period, drawSpotlight, onChoosePeriod, onSetBoardVisibility }: LeaderboardPageProps) {
   const story = storyOf(board);
   return (
     <div className="flex flex-col gap-5">
@@ -38,7 +38,7 @@ export function LeaderboardPage({ board, period, drawSpotlight, onChoosePeriod, 
           </section>
           {story !== undefined && <BoardList key={board.period} board={board} after={viewerLineOf(board)} />}
         </div>
-        <SidePanels board={board} drawSpotlight={drawSpotlight} onSetBoardVisibility={onSetBoardVisibility} />
+        <SidePanels board={board} coinsShown={coinsShown} drawSpotlight={drawSpotlight} onSetBoardVisibility={onSetBoardVisibility} />
       </div>
     </div>
   );
