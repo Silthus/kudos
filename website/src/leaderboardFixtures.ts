@@ -1,5 +1,5 @@
 import type { BoardRead } from "./boardRead";
-import type { Leaderboard, LeaderboardRow } from "./shell";
+import type { GroupId, GroupsBoardRow, GroupsBoardShown, Leaderboard, LeaderboardRow, MyGroupBoardShown } from "./shell";
 
 const you = { kind: "initials", initials: "SE" } as const;
 
@@ -16,7 +16,7 @@ const teammatesPictures: Record<string, string> = {
   "Ivy Quinn": "https://secure.gravatar.com/avatar/ivy.jpg?s=192",
 };
 
-const board = { kind: "board", period: "week", chatUrl: "https://app.slack.com/client/T1", onTheBoards: true } as const;
+const board = { kind: "board", period: "week", chatUrl: "https://app.slack.com/client/T1", onTheBoards: true, groups: null, myGroup: null } as const;
 
 const midBoard: Leaderboard = {
   ...board,
@@ -126,9 +126,76 @@ const longBoardViewerInTheMiddle = longBoardWith({ viewerAt: 15 });
 const longBoardViewerAtTheTop = longBoardWith({ viewerAt: 2 });
 const longBoardViewerAtTheBottom = longBoardWith({ viewerAt: longBoardLength });
 
+function groupRow(position: number, rank: number, name: string, perMember: number, participation: number, kudos: number, { tied = false, mine = false, climbed = null as number | null } = {}): GroupsBoardRow {
+  return { position, rank, tied, group: groupIdOf(name), name, perMember, participation, kudos, members: Math.max(3, Math.round(kudos / Math.max(perMember, 0.1))), mine, climbed };
+}
+
+function groupIdOf(name: string) {
+  return `group-${name.toLowerCase().replaceAll(" ", "-")}` as GroupId;
+}
+
+const groupsThisWeek: GroupsBoardShown = {
+  rows: [
+    groupRow(1, 1, "Thistle", 3.2, 100, 16),
+    groupRow(2, 2, "Team Ants", 2, 66, 6, { mine: true, climbed: 1 }),
+    groupRow(3, 3, "Bees", 0.8, 25, 3),
+    groupRow(4, 4, "Moss", 0.5, 50, 3, { climbed: 1 }),
+    groupRow(5, 5, "Acorn", 0.3, 33, 1),
+  ],
+  window: [1, 2, 3, 4, 5],
+  standing: { kind: "ranked", position: 2, rank: 2 },
+  improvement: { gain: 1.5, places: 1 },
+  mostImproved: { group: groupIdOf("Moss"), name: "Moss", gain: 2.5 },
+};
+
+const teamAnts: MyGroupBoardShown = {
+  group: { group: groupIdOf("Team Ants"), name: "Team Ants" },
+  rows: [{ ...row(1, 1, "Sam Example", 4, { me: true }), climbed: 2 }, row(2, 2, "Ada Lindqvist", 2)],
+  window: [1, 2],
+  standing: { kind: "ranked", position: 1, rank: 1 },
+};
+
+const withGroupBoards: Leaderboard = {
+  ...midBoard,
+  rows: midBoard.rows.map((row) => (row.name === "Hal Sato" ? { ...row, climbed: 3 } : row)),
+  groups: groupsThisWeek,
+  myGroup: teamAnts,
+};
+
+const withGroupsAndNoGroupOfMine: Leaderboard = {
+  ...midBoard,
+  groups: { ...groupsThisWeek, rows: groupsThisWeek.rows.map((row) => ({ ...row, mine: false })), window: [1, 2, 3], standing: { kind: "no-group" }, improvement: null },
+  myGroup: null,
+};
+
+const withMyGroupUnlisted: Leaderboard = {
+  ...withGroupsAndNoGroupOfMine,
+  groups: { ...withGroupsAndNoGroupOfMine.groups!, standing: { kind: "not-listed" } },
+  myGroup: { ...teamAnts, rows: [], window: [], standing: { kind: "not-ranked" } },
+};
+
+const withMyGroupTiedOnGroups: Leaderboard = {
+  ...withGroupBoards,
+  groups: { ...groupsThisWeek, rows: groupsThisWeek.rows.map((row) => (row.position === 2 || row.position === 3 ? { ...row, rank: 2, tied: true, perMember: 2, participation: 66, kudos: 6 } : row)) },
+};
+
+const withGroupsGivingNothingYet: Leaderboard = {
+  ...withGroupBoards,
+  groups: { ...groupsThisWeek, rows: groupsThisWeek.rows.map((row) => ({ ...row, rank: 1, tied: true, perMember: 0, participation: 0, kudos: 0, climbed: null })), improvement: null, mostImproved: null },
+};
+
+const withGroupBoardsAllTime: Leaderboard = {
+  ...withGroupBoards,
+  period: "all",
+  rows: midBoard.rows,
+  improvement: null,
+  groups: { ...groupsThisWeek, rows: groupsThisWeek.rows.map((row) => ({ ...row, climbed: null })), improvement: null, mostImproved: null },
+  myGroup: { ...teamAnts, rows: teamAnts.rows.map((row) => ({ ...row, climbed: null })) },
+};
+
 const empty: Leaderboard = { ...board, period: "all", rows: [], window: [], standing: { kind: "not-ranked" }, improvement: null };
 
-export const leaderboardFixtures = { midBoard, midBoardAfterAClimb, withTeammatesFaces, viewerLeads, sharedLead, tiedBelowTheLead, notRanked, left, leftALongBoard, longBoardViewerInTheMiddle, longBoardViewerAtTheTop, longBoardViewerAtTheBottom, empty } as const satisfies Record<string, Leaderboard>;
+export const leaderboardFixtures = { midBoard, midBoardAfterAClimb, withTeammatesFaces, viewerLeads, sharedLead, tiedBelowTheLead, notRanked, left, leftALongBoard, longBoardViewerInTheMiddle, longBoardViewerAtTheTop, longBoardViewerAtTheBottom, empty, withGroupBoards, withGroupsAndNoGroupOfMine, withMyGroupUnlisted, withMyGroupTiedOnGroups, withGroupsGivingNothingYet, withGroupBoardsAllTime } as const satisfies Record<string, Leaderboard>;
 
 export function fixedLeaderboard(answer: Leaderboard): BoardRead {
   return (period) => (period === undefined ? undefined : { ...answer, period });

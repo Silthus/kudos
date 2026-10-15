@@ -1,0 +1,578 @@
+Fleet heavy: 2 heavy jobs run already; waiting for a free slot.
+$ pnpm typecheck && pnpm test && pnpm coherence
+$ tsc --noEmit && tsc --noEmit -p website
+$ vitest run
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/brand-surfaces
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+stderr | convex/quests/newWeek.test.ts
+views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
+
+ ❯ |convex| convex/quests/newWeek.test.ts (18 tests | 1 failed) 80935ms
+   ❯ P80: the hourly sweep stays within Convex's limits and draws a week once (1)
+     × for 105 members who opened Quests and 5 who didn't, each deciding quests for themselves, each sweep mutation schedules at most 100 draws within Convex's transaction limits, and a second run draws nothing new 60034ms
+ ❯ |convex| convex/quests/swap.test.ts (12 tests | 1 failed) 20882ms
+   ❯ P81: once a week, a member swaps one unfinished quest for a feasible quest not in the draw (9)
+     × the new quest counts kudos from the swap on and finishes under the slot's own key, with its 20 XP and one DM 5023ms
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: navigation to another Document
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/quests/newWeek.test.ts > P80: the hourly sweep stays within Convex's limits and draws a week once > for 105 members who opened Quests and 5 who didn't, each deciding quests for themselves, each sweep mutation schedules at most 100 draws within Convex's transaction limits, and a second run draws nothing new
+Error: Test timed out in 60000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ convex/quests/newWeek.test.ts:363:3
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |convex| convex/quests/swap.test.ts > P81: once a week, a member swaps one unfinished quest for a feasible quest not in the draw > the new quest counts kudos from the swap on and finishes under the slot's own key, with its 20 XP and one DM
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ convex/quests/swap.test.ts:92:3
+     90|   });
+     91|
+     92|   test("the new quest counts kudos from the swap on and finishes under…
+       |   ^
+     93|     const t = await openedQuests(sayingWhyThreeWays);
+     94|     vi.setSystemTime(wednesday);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 216 passed (218)
+      Tests  2 failed | 4145 passed (4147)
+   Start at  18:57:20
+   Duration  328.48s (tests 86%, import 7%, transform 3%, environment 2%)
+
+[ELIFECYCLE] Test failed. See above for more details.
+[ELIFECYCLE] Command failed with exit code 1.
+exit 1
+
+## Flake note (2026-10-15 19:05 UTC)
+The two failed files are Convex quest tests (newWeek P80 sweep at 60 s, swap P81 at 5 s): timeouts under a load average of 64.75, 55.35, 46.93 with five lanes' heavy jobs running. This PR changes a stylesheet, a test helper and docs, nothing under convex/. The same files passed in the gates of #471 (219 files, 4150 tests) and #472 (220 files, 4152 tests), whose trees contain this PR's whole diff, and CI's gate is green on this PR. A direct rerun on this box while loaded:
+     × the new quest counts kudos from the swap on and finishes under the slot's own key, with its 20 XP and one DM 5011ms
+     × the swapped-in quest pays the reward and catalogue version fixed at the swap, while a drawn quest keeps the draw's 3717ms
+     × for 105 members who opened Quests and 5 who didn't, each deciding quests for themselves, each sweep mutation schedules at most 100 draws within Convex's transaction limits, and a second run draws nothing new 60030ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |convex| convex/quests/newWeek.test.ts > P80: the hourly sweep stays within Convex's limits and draws a week once > for 105 members who opened Quests and 5 who didn't, each deciding quests for themselves, each sweep mutation schedules at most 100 draws within Convex's transaction limits, and a second run draws nothing new
+ FAIL  |convex| convex/quests/swap.test.ts > P81: once a week, a member swaps one unfinished quest for a feasible quest not in the draw > the new quest counts kudos from the swap on and finishes under the slot's own key, with its 20 XP and one DM
+ FAIL  |convex| convex/quests/swap.test.ts > P81: once a week, a member swaps one unfinished quest for a feasible quest not in the draw > the swapped-in quest pays the reward and catalogue version fixed at the swap, while a drawn quest keeps the draw's
+ Test Files  2 failed (2)

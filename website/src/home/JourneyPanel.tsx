@@ -8,7 +8,7 @@ import type { JourneyStep } from "../shell";
 export function JourneyPanel({ journey }: { journey: JourneyStep[] | null }) {
   if (journey === null || journey.length === 0) return null;
   return (
-    <section aria-labelledby="journey-title" className="hud-panel relative flex flex-col gap-3 rounded-xl border bg-card p-4">
+    <section aria-labelledby="journey-title" className="hud-panel relative flex flex-col gap-3 rounded-lg border bg-card p-4">
       <h2 id="journey-title" className="hud-label">
         Journey
       </h2>

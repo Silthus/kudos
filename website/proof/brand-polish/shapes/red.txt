@@ -1,0 +1,11 @@
+     × shows the member's face as the portrait, and Character over their name as the page title in RoundHog 625ms
+     × frames every panel and card at Quill's card radius, never rounder 297ms
+     × shapes the HUD's palette and skill point chips as rounded rectangles, keeping the avatar round 638ms
+     × shapes the coins chip the same way 106ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/HomePage.test.tsx > WS98 WS101: the hero is the character header, leading with the member and the invitation > shows the member's face as the portrait, and Character over their name as the page title in RoundHog
+ FAIL  |website| src/brandShapes.test.tsx > #453: cards and chips take posthog.com's corners > frames every panel and card at Quill's card radius, never rounder
+ FAIL  |website| src/brandShapes.test.tsx > #453: cards and chips take posthog.com's corners > shapes the HUD's palette and skill point chips as rounded rectangles, keeping the avatar round
+ FAIL  |website| src/brandShapes.test.tsx > #453: cards and chips take posthog.com's corners > shapes the coins chip the same way
+ Test Files  2 failed (2)
+      Tests  4 failed | 33 skipped (37)

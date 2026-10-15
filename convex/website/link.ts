@@ -18,6 +18,7 @@ export const pageValidator = v.union(
   v.object({ page: v.literal("quests"), quest: v.optional(v.number()), crate }),
   v.object({ page: v.literal("skillTree"), perk: v.optional(perkValidator), crate }),
   v.object({ page: v.literal("book"), crate }),
+  v.object({ page: v.literal("bookEarned"), crate }),
 );
 
 const frontDoorLinksValidator = v.object({ origin: v.string(), pages: v.array(v.object({ label: v.string(), url: v.string() })) });

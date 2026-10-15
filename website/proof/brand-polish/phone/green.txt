@@ -1,0 +1,12 @@
+     × puts the invitation and the action before the XP bar and every counter, and Max last 9251ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/HomePage.test.tsx > WS98 WS101: the hero is the character header, leading with the member and the invitation > puts the invitation and the action before the XP bar and every counter, and Max last
+Error: Test timed out in 5000ms.
+ Test Files  1 failed | 4 passed (5)
+      Tests  1 failed | 469 passed (470)
+
+HomePage.test.tsx rerun alone (one 5 s timeout above while the box ran five gates):
+ Test Files  1 passed (1)
+      Tests  34 passed (34)
+ Test Files  1 passed (1)
+      Tests  3 passed (3)

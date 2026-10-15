@@ -1,7 +1,8 @@
 import { IconChevronDown } from "@posthog/icons";
 import { Button, Card } from "@posthog/quill";
 import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from "react";
-import type { Leaderboard, LeaderboardRow } from "../shell";
+import type { LeaderboardRow } from "../shell";
+import type { PeopleBoard } from "./boards";
 import { useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { BoardLine } from "./BoardLine";
 import { WholeBoard } from "./WholeBoard";
@@ -11,7 +12,7 @@ const firstBelowThePodium = 4;
 
 type Span = { first: number; last: number };
 
-export function BoardList({ board, after }: { board: Leaderboard; after?: ReactNode }) {
+export function BoardList({ board, after }: { board: PeopleBoard; after?: ReactNode }) {
   const [whole, setWhole] = useState(false);
   const [grown, setGrown] = useState({ above: 0, below: 0 });
   const lines = useRef<HTMLOListElement>(null);
@@ -97,7 +98,7 @@ function shownRange(positions: number[], total: number) {
   return `No. ${positions[0]}–${positions.at(-1)} of ${total}`;
 }
 
-function returnWords({ standing }: Leaderboard) {
+function returnWords({ standing }: PeopleBoard) {
   return standing.kind === "ranked" ? "Back to my spot" : "Show fewer";
 }
 
