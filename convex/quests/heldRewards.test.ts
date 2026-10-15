@@ -52,7 +52,7 @@ describe("CR1 CR2: a quest's reward finished while crate-rewards is on waits in 
     expect(await standingAndBalanceOf(t, "U_ALICE")).toEqual({ xp: 10, level: 1, skillPoints: 0, balance: 4 });
     expect(levelUpDmsTo("U_ALICE")).toEqual([]);
     expect(publicNotices()).toEqual([]);
-    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Journey:* ✅ Give a kudos that says why. You earned *10 XP*. [button: Open]"]);
+    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Journey:* ✅ Give a kudos that says why. *10 XP* waits in your crate. [button: Open]"]);
   });
 
   test("a weekly quest and the first-quest step it finishes leave XP, level and balance at the kudos' own and send no level-up DM", async () => {
@@ -67,7 +67,7 @@ describe("CR1 CR2: a quest's reward finished while crate-rewards is on waits in 
     expect(await rewardKeysOf(t, "U_ALICE")).toEqual(["journey:first-quest", "journey:first-thanks", `weekly:${thisWeek}:0`]);
     expect(crateLinesIn(publishedHome(slack, "U_ALICE"))).toEqual([
       expect.stringContaining(`${sayWhyGoal}`),
-      "section: *Journey:* ✅ Finish a weekly quest. You earned *20 XP*. [button: Open]",
+      "section: *Journey:* ✅ Finish a weekly quest. *20 XP* waits in your crate. [button: Open]",
     ]);
   });
 
@@ -80,7 +80,7 @@ describe("CR1 CR2: a quest's reward finished while crate-rewards is on waits in 
     await giveKudos(t, "U_ALICE", "U_BOB");
 
     expect(slack.callsTo("views.publish").length).toBeGreaterThan(homesBefore);
-    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Journey:* ✅ Give a kudos that says why. You earned *10 XP*. [button: Open]"]);
+    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: *Journey:* ✅ Give a kudos that says why. *10 XP* waits in your crate. [button: Open]"]);
   });
 
   test("someone-new finished by the last unthanked teammate leaving republishes App Home with its crate, with DMs off", async () => {
@@ -99,7 +99,7 @@ describe("CR1 CR2: a quest's reward finished while crate-rewards is on waits in 
 
     expect(await rewardKeysOf(t, "U_ALICE")).toContain("journey:someone-new");
     expect(homesPublishedTo("U_ALICE")).toBeGreaterThan(homesBefore);
-    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toContain("section: *Journey:* ✅ Thank someone you haven't thanked before. You earned *30 XP*. [button: Open]");
+    expect(journeyIn(publishedHome(slack, "U_ALICE"))).toContain("section: *Journey:* ✅ Thank someone you haven't thanked before. *30 XP* waits in your crate. [button: Open]");
     expect(await standingAndBalanceOf(t, "U_ALICE")).toEqual({ xp: 10, level: 1, skillPoints: 0, balance: 0 });
   });
 

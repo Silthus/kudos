@@ -17,7 +17,7 @@ export type Message = { kind: "text"; segments: Segment[]; edited: boolean } | {
 
 export type Channel = { visibility: "public" | "private" | "unknown" };
 
-export type QuestDone = { kind: "weekly"; goal: string; xp: number } | { kind: "journey"; goal: string; xp: number };
+export type QuestDone = { kind: "weekly"; goal: string; xp: number; waiting: boolean } | { kind: "journey"; goal: string; xp: number; waiting: boolean };
 
 export type BonusEarned = { perk: { id: PerkId; name: string }; why: string; xp: number };
 

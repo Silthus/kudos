@@ -64,7 +64,7 @@ const story: ActivityEntry[] = [
     message: words("Thank you both for jumping on the incident at midnight ", { kind: "emoji", name: "fire_engine" }, { kind: "text", text: " The write-up is " }, { kind: "link", url: "https://example.com/incident", label: "here" }, { kind: "text", text: " " }, { kind: "emoji", name: "partyparrot" }),
     earned: {
       xp: 30,
-      questsDone: [{ kind: "weekly", goal: "Thank two teammates", xp: 40 }],
+      questsDone: [{ kind: "weekly", goal: "Thank two teammates", xp: 40, waiting: false }],
       bonuses: [{ perk: { id: "spark", name: "Spark" }, why: "Your first kudos today", xp: 5 }],
     },
   }),
@@ -78,7 +78,7 @@ const story: ActivityEntry[] = [
   aGiven("offsite", fixtureNow - 50 * hour, {
     recipients: [teammates.ada, teammates.bo, teammates.cleo, teammates.dev, teammates.eli],
     message: words("For the whole team offsite ", { kind: "broadcast", range: "here" }),
-    earned: { xp: 10, questsDone: [{ kind: "journey", goal: "Thank five teammates at once", xp: 50 }], bonuses: [] },
+    earned: { xp: 10, questsDone: [{ kind: "journey", goal: "Thank five teammates at once", xp: 50, waiting: false }], bonuses: [] },
   }),
   aReceived("old-kudos", fixtureNow - 75 * hour, { giver: teammates.former, channel: { visibility: "unknown" }, message: { kind: "unavailable", reason: "not-captured" } }),
   aReceived("deleted", fixtureNow - 76 * hour, { giver: teammates.eli, channel: { visibility: "unknown" }, message: { kind: "unavailable", reason: "deleted" } }),

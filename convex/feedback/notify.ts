@@ -12,11 +12,12 @@ import { memberPerksOf, ownsEveryPerk, type MemberPerks } from "../progression/p
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { purchaseOutcomeValidator } from "../progression/purchases";
 import { xpLevelsOnFor, xpLevelsShownTo } from "../progression/xpLevels";
+import { rewardKeyOf, rewardWaits } from "../quests/crates";
 import { journeyStepAppliesTo, questsApplyTo } from "../quests/flag";
 import type { MessageKind } from "../messageSettings/kinds";
 import { placeOf, wantsMessage } from "../messageSettings/messageSettings";
 import { messageSettingsOnFor } from "../messageSettings/flag";
-import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type WeeklyQuest } from "../quests/step";
+import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type Quest, type WeeklyQuest } from "../quests/step";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
 import { storeShownTo, storeVisibleTo } from "../store/visibility";
@@ -134,12 +135,13 @@ export const purchaseReplyStillWanted = internalQuery({
   },
 });
 
-type DeliveryFacts = { website: string | null; openTree: MemberPerks | null; everyTierEarned: TierRef[]; tierRewardsShown: TierRewardsRecorded; inventoryWith: string | null };
+type DeliveryFacts = { website: string | null; openTree: MemberPerks | null; everyTierEarned: TierRef[]; tierRewardsShown: TierRewardsRecorded; inventoryWith: string | null; waiting: ReadonlySet<string> };
 
-function renderNotification(notification: Notification, { website, openTree, everyTierEarned, tierRewardsShown, inventoryWith }: DeliveryFacts): NotificationLine[] {
-  if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp, website)];
-  if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp, website));
-  if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp, website)];
+function renderNotification(notification: Notification, { website, openTree, everyTierEarned, tierRewardsShown, inventoryWith, waiting }: DeliveryFacts): NotificationLine[] {
+  const waits = (quest: Quest) => waiting.has(rewardKeyOf(quest));
+  if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp, waits(notification.quest), website)];
+  if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp, waits(quest), website));
+  if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp, waits(notification.quest), website)];
   if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned, (ref) => recordedRewardsOf(ref, tierRewardsShown));
   if (notification.kind === "coins-opened") return [inventoryWith === null ? coinsOpenedLineOf(notification.balance) : inventoryOpenedLineOf(notification.balance, inventoryWith)];
   const crates = notification.ready.map((feature) => readyCrateOf(namedFor(scheduled(feature), inventoryWith !== null), website));
@@ -188,7 +190,19 @@ async function deliveryFactsOf(ctx: QueryCtx, workspace: string, member: MemberI
     everyTierEarned: told.kind === "tiers-earned" ? await everyTierEarnedBy(ctx, member) : [],
     tierRewardsShown: told.kind === "tiers-earned" ? await tierRewardsShownTo(ctx, member) : new Map(),
     inventoryWith: namesCoins(told) && (await storeShownTo(ctx, member)) ? (await settingsOf(ctx, workspace)).kudosEmoji : null,
+    waiting: isAboutQuests(told) ? await waitingRewardKeysOf(ctx, member, cratesToldOf(told)) : new Set(),
   };
+}
+
+function cratesToldOf(told: QuestNotification): Quest[] {
+  if (told.kind === "journey-joined") return told.finished.map(({ quest }) => quest);
+  return [told.quest];
+}
+
+async function waitingRewardKeysOf(ctx: QueryCtx, member: MemberId, crates: Quest[]): Promise<Set<string>> {
+  const waiting = new Set<string>();
+  for (const key of crates.map(rewardKeyOf)) if (await rewardWaits(ctx, member, key)) waiting.add(key);
+  return waiting;
 }
 
 async function tierRewardsShownTo(ctx: QueryCtx, member: MemberId): Promise<TierRewardsRecorded> {

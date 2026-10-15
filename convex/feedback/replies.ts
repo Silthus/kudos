@@ -23,8 +23,8 @@ import type { Line, Segment } from "./segments";
 import { settingsFooterFor } from "./settingsFooter";
 
 export const questDoneValidator = v.union(
-  v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number(), coins: v.optional(v.number()) }),
-  v.object({ kind: v.literal("weekly"), goal: v.string(), xp: v.number(), coins: v.optional(v.number()) }),
+  v.object({ kind: v.literal("journey"), step: journeyStepValidator, xp: v.number(), coins: v.optional(v.number()), waiting: v.optional(v.literal(true)) }),
+  v.object({ kind: v.literal("weekly"), goal: v.string(), xp: v.number(), coins: v.optional(v.number()), waiting: v.optional(v.literal(true)) }),
 );
 
 export type QuestDone = Infer<typeof questDoneValidator>;
@@ -190,8 +190,9 @@ function questsDoneParts(questsDone: QuestDone[]): Line[] {
   return questsDone.map((done) => [{ text: `Quest done: ${withoutFullStop(goalOf(done))} (${questRewardOf(done)})` }]);
 }
 
-function questRewardOf({ xp, coins = 0 }: QuestDone) {
-  return coins > 0 ? `+${xp} XP, ${coinsPartOf(coins)}` : `+${xp} XP`;
+function questRewardOf({ xp, coins = 0, waiting }: QuestDone) {
+  const gains = coins > 0 ? `+${xp} XP, ${coinsPartOf(coins)}` : `+${xp} XP`;
+  return waiting ? `${gains} waiting in your crate` : gains;
 }
 
 function goalOf(done: QuestDone) {

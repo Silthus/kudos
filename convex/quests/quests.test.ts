@@ -52,7 +52,7 @@ describe("P8 P87: a Journey step's reward is recorded once", () => {
     expect(published("levelReached").map(({ member, level }) => ({ member, level }))).toEqual([{ member: alice, level: 2 }]);
     expect(published("questFinished")).toEqual([{ type: "questFinished", workspace: "T1", member: alice, quest: { kind: "journey", step: "first-thanks" }, reward: { xp: 10, coins: 0 }, at: event.at }]);
     expect(await journeyOf(t, alice)).toEqual([
-      { step: "first-thanks", activatedAt: event.at, reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "2", finishedAt: event.at, openedAt: null },
+      { step: "first-thanks", activatedAt: event.at, reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "2", finishedAt: event.at, openedAt: null, waiting: false },
     ]);
   });
 
@@ -82,7 +82,7 @@ describe("P86: the reward is the one promised when the step became active", () =
 
     expect(await t.run((ctx) => standingOf(ctx, alice))).toEqual({ xp: 10, level: 1, skillPoints: 0 });
     expect(await journeyOf(t, alice)).toEqual([
-      { step: "first-thanks", activatedAt, reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "2", finishedAt: finished.at, openedAt: null },
+      { step: "first-thanks", activatedAt, reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "2", finishedAt: finished.at, openedAt: null, waiting: false },
     ]);
   });
 });
@@ -94,11 +94,11 @@ describe("P79: questsOf gives the website each Journey step's facts", () => {
 
     await advance(t, await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: doesNotSayWhy })));
     const active = { step: "first-thanks", activatedAt: now.getTime(), reward: { xp: 10, coins: 0, item: null }, catalogueVersion: "2" };
-    expect(await questsOf(t, alice)).toEqual({ journey: [{ ...active, finishedAt: null, openedAt: null }], week: null });
+    expect(await questsOf(t, alice)).toEqual({ journey: [{ ...active, finishedAt: null, openedAt: null, waiting: false }], week: null });
 
     vi.setSystemTime(now.getTime() + 60_000);
     await advance(t, await t.run((ctx) => kudosGivenEventWithAward(ctx, alice, bob, { annotations: saysWhy, at: Date.now() })));
-    expect(await questsOf(t, alice)).toEqual({ journey: [{ ...active, finishedAt: now.getTime() + 60_000, openedAt: null }], week: null });
+    expect(await questsOf(t, alice)).toEqual({ journey: [{ ...active, finishedAt: now.getTime() + 60_000, openedAt: null, waiting: false }], week: null });
   });
 });
 
