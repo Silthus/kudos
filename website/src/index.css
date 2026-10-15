@@ -152,6 +152,10 @@ body {
   color: var(--muted-foreground);
 }
 
+.hud-panel {
+  position: relative;
+}
+
 .hud-panel::before,
 .hud-panel::after {
   content: "";
