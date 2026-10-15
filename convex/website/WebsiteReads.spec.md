@@ -236,6 +236,16 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   kinds: read
   checklist: scoped-reads declared as website reads pass one guard
   checklist: redaction dismissed: not-found and null carry no quest fact, locked carries only Quests' level, and a crate key is a hash with no member, Slack or workspace ID
+- the bonus quest is a joined member's next Journey step: getQuests' bonus is the first step of the quests module's projected Journey that isn't opened, with the feature Quests' featureOpening maps it to, only while the member's first-thanks activation is stored; a member who hasn't joined reads no bonus, and the read joins nobody; with every step opened it is null.
+  over: getQuests for a joined member with first-thanks active, finished and opened, a website-first member with no stored activation, and every step opened; getMyProfile's journey for the step-to-feature mapping
+  via: WS317: getQuests' bonus is the Journey's next step
+  because: the bonus quest is the Journey's next step (WS317, map #1's progression call 2), and the browser can't tell a projected first-thanks from a stored one (P88), so the server decides whether there is one; showing a Journey step to a member the P91 join hasn't reached would invite them onto a chain no write has started for them, and a website read never joins (WS335)
+  crossing: browser -> domain
+  entrances: query getQuests, query getMyProfile
+  refuted: getQuests' bonus no longer checked the stored first-thanks activation -> the website-first member read first-thanks as their bonus (2026-10-14)
+  kinds: read
+  checklist: scoped-reads declared as website reads pass one guard
+  checklist: redaction dismissed: the bonus carries the same step facts getMyProfile's journey already answers, plus a feature name
 - the Book names nothing unshipped: getBook answers the signed-in member's own ladders exactly as Achievements' achievementsOf gives them, only the catalogue's shipped ladders in its order, each tier with its name, the count it needs and its earned time, and carries no promised reward and no catalogue version.
   over: getBook with only the catalogue's first two ladders shipped, for a member who earned all four tiers on both
   via: the Book names nothing unshipped

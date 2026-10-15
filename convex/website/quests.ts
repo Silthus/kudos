@@ -4,10 +4,11 @@ import { questsApplyTo } from "../quests/flag";
 import { projectedJourneyOf, type ProjectedJourneyStep } from "../quests/journey";
 import { journeyCopyFor } from "../quests/journeyCopy";
 import { questOf, type PoolQuest } from "../quests/pool";
-import type { JourneyQuest, Quest, WeeklyQuest } from "../quests/step";
+import { featureOpening, type JourneyQuest, type Quest, type WeeklyQuest } from "../quests/step";
 import type { WeekKey } from "../quests/week";
 import { drawnWeekOf, unopenedCratesOf, type DrawnWeek, type UnopenedCrate } from "../quests/weekly";
 import { workspaceLink } from "../slack/workspaceLink";
+import type { Feature } from "../unlocks/feature";
 import { scheduled } from "../unlocks/schedule";
 import { followTheClock } from "./clock";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
@@ -33,7 +34,7 @@ export type WaitingCrate = { goal: string; week: WeekKey; reward: { xp: number }
 
 export type WeekSwap = { used: boolean; available: boolean };
 
-export type QuestsAnswer = { kind: "not-found" } | { kind: "locked"; level: number } | { kind: "ready" } | { kind: "quests"; slots: QuestSlot[]; swap: WeekSwap; waiting: WaitingCrate[]; chatUrl: string };
+export type QuestsAnswer = { kind: "not-found" } | { kind: "locked"; level: number } | { kind: "ready" } | { kind: "quests"; slots: QuestSlot[]; swap: WeekSwap; waiting: WaitingCrate[]; bonus: JourneyStep | null; chatUrl: string };
 
 export type JourneyStep = {
   step: JourneyQuest["step"];
@@ -43,6 +44,7 @@ export type JourneyStep = {
   state: "active" | "finished" | "opened";
   crate: JourneyQuest | null;
   seen: string | null;
+  feature: Feature | null;
 };
 
 type CrateFacts = { finishedAt: number | null; openedAt: number | null };
@@ -63,6 +65,7 @@ export const getQuests = memberQuery(async (ctx, me): Promise<QuestsAnswer> => {
     slots: week === null ? [] : await Promise.all(week.slots.map((slot) => questSlotOf(me, week, slot))),
     swap: { used: week?.swap != null, available: week?.swapAvailable ?? false },
     waiting: await Promise.all((await unopenedCratesOf(ctx, me.member, at)).map((crate) => waitingCrateOf(me, crate))),
+    bonus: await bonusStepOf(ctx, me),
     chatUrl: workspaceLink(me.workspace),
   };
 });
@@ -70,6 +73,17 @@ export const getQuests = memberQuery(async (ctx, me): Promise<QuestsAnswer> => {
 export async function journeyStepsOf(ctx: QueryCtx, me: VerifiedMember): Promise<JourneyStep[] | null> {
   if (!(await questsApplyTo(ctx, me.member))) return null;
   return Promise.all((await projectedJourneyOf(ctx, me.member)).map((step) => journeyStepOf(ctx, me, step)));
+}
+
+async function bonusStepOf(ctx: QueryCtx, me: VerifiedMember): Promise<JourneyStep | null> {
+  const steps = await projectedJourneyOf(ctx, me.member);
+  if (!steps.some(hasJoined)) return null;
+  const next = steps.find(({ openedAt }) => openedAt === null);
+  return next === undefined ? null : journeyStepOf(ctx, me, next);
+}
+
+function hasJoined({ step, activatedAt }: ProjectedJourneyStep) {
+  return step === "first-thanks" && activatedAt !== null;
 }
 
 async function questSlotOf(me: VerifiedMember, { swap }: DrawnWeek, facts: DrawnWeek["slots"][number]): Promise<QuestSlot> {
@@ -103,6 +117,7 @@ async function journeyStepOf(ctx: QueryCtx, me: VerifiedMember, facts: Projected
     state,
     crate: state === "finished" ? crate : null,
     seen: state === "active" ? null : await seenKeyOfCrate(me, crate),
+    feature: featureOpening(step),
   };
 }
 

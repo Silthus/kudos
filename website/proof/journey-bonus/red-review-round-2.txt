@@ -1,0 +1,3 @@
+     × shows the step's hint while it is finished 138ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 1 passed | 70 skipped (72)

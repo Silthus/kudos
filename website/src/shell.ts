@@ -154,11 +154,11 @@ const memberWithEveryNavState: MemberProfile = {
   progression: { level: 3, xp: 130, levelStartsAt: 100, nextLevelAt: 220, xpToNextLevel: 90 },
 };
 
-const firstThanks = { step: "first-thanks", goal: "Give a kudos that says why.", hint: "It counts when your message has 5 or more words besides mentions and emoji.", reward: { xp: 10 } } as const;
+const firstThanks = { step: "first-thanks", goal: "Give a kudos that says why.", hint: "It counts when your message has 5 or more words besides mentions and emoji.", reward: { xp: 10 }, feature: null } as const;
 
-const firstQuest = { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 } } as const;
+const firstQuest = { step: "first-quest", goal: "Finish a weekly quest.", hint: null, reward: { xp: 20 }, feature: "quests" } as const;
 
-const someoneNew = { step: "someone-new", goal: "Thank someone you haven't thanked before.", hint: null, reward: { xp: 30 } } as const;
+const someoneNew = { step: "someone-new", goal: "Thank someone you haven't thanked before.", hint: null, reward: { xp: 30 }, feature: "leaderboard" } as const;
 
 const activeStep = { state: "active", crate: null, seen: null } as const;
 
