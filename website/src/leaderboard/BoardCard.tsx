@@ -3,7 +3,7 @@ import type { Leaderboard } from "../shell";
 
 export function BoardCard({ board }: { board: Leaderboard }) {
   return (
-    <section aria-labelledby="everyone-board-title" className="flex items-center gap-3 rounded-xl border bg-card p-4">
+    <section aria-labelledby="everyone-board-title" className="flex items-center gap-3 rounded-lg border bg-card p-4">
       <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
         <IconGlobe className="size-5" />
       </span>

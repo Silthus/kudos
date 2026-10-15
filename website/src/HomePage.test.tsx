@@ -27,7 +27,7 @@ describe("WS98 WS101: the hero is the character header, leading with the member 
 
   it("shows the member's face as the portrait, and Character over their name as the page title in RoundHog", () => {
     renderApp(shellFixtures.member);
-    expect(within(hero()).getByText("SE")).toHaveClass("size-32");
+    expect(within(hero()).getByText("SE")).toHaveClass("size-28");
     expect(within(hero()).getByText("Character")).toHaveClass("hud-label");
     const title = within(hero()).getByRole("heading", { level: 1 });
     expect(title).toHaveTextContent(/^Sam Example$/);
