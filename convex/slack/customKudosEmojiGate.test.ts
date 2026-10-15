@@ -67,7 +67,7 @@ describe("ST35 O36: custom kudos emoji are dark wherever custom-kudos-emoji isn'
     ["off", customOff, true],
     ["not created", storeOn, true],
     ["on but the flags key missing", onForEveryoneDeciding, false],
-  ])("with custom-kudos-emoji %s after Alice slotted :shipit:, no picker, no custom item and no claim reach Slack or inventoryOf, nothing stored changes, and it all returns when it is on again", async (_, definitions, flagsKeySet) => {
+  ])("with custom-kudos-emoji %s after Alice slotted :shipit:, no picker, no custom item and no claim reach Slack or inventoryOf, nothing is picked, bought or slotted, and it all returns when it is on again", async (_, definitions, flagsKeySet) => {
     const t = await workspaceDeciding(...onForEveryoneDeciding);
     await danaPicksAndAliceSlotsShipit(t);
     const shown = await customSideOf(t, "U_ALICE");
@@ -80,7 +80,7 @@ describe("ST35 O36: custom kudos emoji are dark wherever custom-kudos-emoji isn'
     const { claimed, searched } = await walkEveryCustomPath(t);
 
     expect(slack.calls.slice(before).flatMap(readCall).filter(namesCustomEmoji)).toEqual([]);
-    expect(searched).toEqual([]);
+    expect(searched).toEqual({ U_DANA: [], U_ERIN: [] });
     expect(claimed).toEqual([]);
     expect(await customItemsInInventoryOf(t, "U_ALICE")).toEqual(flagsKeySet ? [] : null);
     expect(await customItemsInInventoryOf(t, "U_BOB")).toEqual(flagsKeySet ? [] : null);
@@ -94,31 +94,35 @@ describe("ST35 O36: custom kudos emoji are dark wherever custom-kudos-emoji isn'
   test.each([
     ["store off", storeOffForAliceAndBob],
     ["coins off", coinsOffForAliceAndBob],
-  ])("with custom-kudos-emoji on but %s for Alice and Bob, they see no custom item, her :shipit: claims nothing, their stale clicks write nothing, and no custom-kudos-emoji exposure is sent for her", async (_, definitions) => {
+  ])("with custom-kudos-emoji on but %s for Alice, Bob and the admin Erin, they see no picker and no custom item, her :shipit: claims nothing, their stale clicks pick, buy and slot nothing, and no new custom-kudos-emoji exposure is sent for them", async (_, definitions) => {
     const t = await workspaceDeciding(...onForEveryoneDeciding);
     await danaPicksAndAliceSlotsShipit(t);
-    const exposed = await exposuresOf(t, "U_ALICE");
+    const exposed = { alice: await exposuresOf(t, "U_ALICE"), bob: await exposuresOf(t, "U_BOB") };
     const stored = await storeStateOf(t);
     const before = slack.calls.length;
 
     await flagsFromPostHog(t, postHog, ...definitions);
-    const { claimed } = await walkEveryCustomPath(t);
+    const { claimed, searched } = await walkEveryCustomPath(t);
 
-    expect(slackCallsAbout("U_ALICE", before).flatMap(readCall).filter(namesCustomEmoji)).toEqual([]);
+    expect(["U_ALICE", "U_BOB", "U_ERIN"].flatMap((user) => slackCallsAbout(user, before)).flatMap(readCall).filter(namesCustomEmoji)).toEqual([]);
+    expect(searched.U_ERIN).toEqual([]);
     expect(claimed).toEqual([]);
     expect(await customItemsInInventoryOf(t, "U_ALICE")).toBeNull();
+    expect(await customItemsInInventoryOf(t, "U_BOB")).toBeNull();
     expect(await storeStateOf(t)).toEqual(stored);
-    expect(await exposuresOf(t, "U_ALICE")).toEqual(exposed);
+    expect({ alice: await exposuresOf(t, "U_ALICE"), bob: await exposuresOf(t, "U_BOB"), erin: await exposuresOf(t, "U_ERIN") }).toEqual({ ...exposed, erin: [] });
   });
 
-  test("with custom-kudos-emoji on for Dana's email only, she picks, buys and thanks Frank with :shipit:, and nobody else sees or claims it: Alice's, Bob's and the other admin Erin's distinct Slack calls and kudos equal those with it off", async () => {
+  test("with custom-kudos-emoji on for Dana's email only, she picks, buys and thanks Frank with :shipit:, and nobody else sees or claims it: Alice's, Bob's and the other admin Erin's distinct Slack calls and kudos equal those with it off, and nothing public names where her emoji came from", async () => {
     const whilePreviewed = await othersSideOfDanasWalk(previewedByDana);
     vi.clearAllTimers();
+    vi.setSystemTime(tuesday);
     const whileOff = await othersSideOfDanasWalk(customOff);
 
     expect(whilePreviewed.danaThanked).toMatchObject({ kudosEmoji: "shipit", loadoutEmoji: ["shipit"], awards: [{ kudos: 1 }] });
     expect(whilePreviewed.danaBought).toEqual([{ kind: "bought", item: shipit }]);
     expect(whilePreviewed.told.filter(namesCustomEmoji)).toEqual([]);
+    expect(whilePreviewed.saidInPublic.filter(namesTheSource)).toEqual([]);
     expect(whilePreviewed.calls).toEqual(whileOff.calls);
     expect(whilePreviewed.kudos).toEqual(whileOff.kudos);
     expect(whilePreviewed.aliceInventory).toEqual(whileOff.aliceInventory);
@@ -136,6 +140,7 @@ describe("ST35 O36: custom kudos emoji are dark wherever custom-kudos-emoji isn'
     expect(await exposuresOf(t, "U_DANA")).toEqual([true]);
     expect(await exposuresOf(t, "U_ALICE")).toEqual([false]);
     expect(await exposuresOf(t, "U_BOB")).toEqual([]);
+    expect(await exposuresOf(t, "U_ERIN")).toEqual([]);
 
     await flagsFromPostHog(t, postHog, ...[...storeOnFor(danasEmail, "alice@example.com"), onForEmails(customKudosEmoji, danasEmail, "alice@example.com")]);
     vi.setSystemTime(tuesday + dayMs);
@@ -145,6 +150,7 @@ describe("ST35 O36: custom kudos emoji are dark wherever custom-kudos-emoji isn'
     expect(await exposuresOf(t, "U_DANA")).toEqual([true]);
     expect(await exposuresOf(t, "U_ALICE")).toEqual([false, true]);
     expect(await exposuresOf(t, "U_BOB")).toEqual([]);
+    expect(await exposuresOf(t, "U_ERIN")).toEqual([]);
   });
 });
 
@@ -172,7 +178,7 @@ async function danaPicksBuysAndSlots(t: Backend) {
 async function walkEveryCustomPath(t: Backend) {
   await openAdmin(t, "U_DANA");
   await openAdmin(t, "U_ERIN");
-  const searched = [...(await suggested(t, "U_DANA", "ship")), ...(await suggested(t, "U_ERIN", "ship"))];
+  const searched = { U_DANA: await suggested(t, "U_DANA", "ship"), U_ERIN: await suggested(t, "U_ERIN", "ship") };
   await send(t, blockActions("U_ERIN", stalePicksOf(picker, "shipit")));
   for (const user of ["U_ALICE", "U_BOB"]) {
     await openInventory(t, user);
@@ -197,6 +203,7 @@ async function othersSideOfDanasWalk(definitions: FlagDefinition[]) {
   return {
     calls: [...new Set(calls.map((call) => JSON.stringify(withoutTimestamps(call))))].sort(),
     told: calls.flatMap(readCall),
+    saidInPublic: slack.calls.filter(({ method, args }) => method !== "chat.postEphemeral" && String(args.channel).startsWith("C")).flatMap(readCall),
     kudos: [...(await kudosMessagesOf(t, "U_ALICE")), ...(await kudosMessagesOf(t, "U_BOB"))],
     aliceInventory: await t.query(internal.store.inventory.inventoryOf, { member: await memberOf(t, "U_ALICE") }),
     danaThanked: (await kudosGivenEvents(t)).slice(before).at(0),
@@ -349,6 +356,10 @@ function readCall({ args }: SlackCall): string[] {
 
 function withoutTimestamps(call: SlackCall) {
   return JSON.parse(JSON.stringify(call).replace(/\d{10}\.\d{6}/g, "<ts>"));
+}
+
+function namesTheSource(line: string) {
+  return /store|inventory|slot|bought|custom kudos emoji|🪙/i.test(line);
 }
 
 function namesCustomEmoji(line: string) {
