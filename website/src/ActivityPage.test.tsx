@@ -581,3 +581,69 @@ describe("a kudos message renders as text", () => {
     expect([...theWords.querySelectorAll("a")].map((link) => new URL(link.href).protocol)).toEqual(["https:"]);
   });
 });
+
+describe("#409: a chat-style timeline, received on the left and given on the right", () => {
+  const story = [aReceived("r1", now - minute, { giver: teammates.bo }), aGiven("g1", now - 2 * minute, { recipients: [teammates.cleo] }), aLevelUp(4, now - 3 * minute), aReceived("r2", now - 4 * minute, { giver: teammates.dev })];
+
+  function sideOf(entry: HTMLElement) {
+    return entry.closest("[data-side]")?.getAttribute("data-side");
+  }
+
+  it.each([
+    { filter: "all", entries: story, sides: ["received", "given", "centre", "received"] },
+    { filter: "received", entries: [story[0]!, story[3]!], sides: ["received", "received"] },
+    { filter: "given", entries: [story[1]!], sides: ["given"] },
+  ] as const)("keeps each kind on its side under the $filter filter", async ({ filter, entries, sides }) => {
+    const pages = pagesOnRequest();
+    openActivity({ path: `/activity?filter=${filter}`, read: pages.read, watch: aWatch(aPage([...entries], null)).watch });
+    await pages.answer(0, aPage([...entries], null));
+    expect(articles().map(sideOf)).toEqual(sides);
+  });
+
+  it("reads and focuses entries in time order, never one side first, and names who thanked whom", async () => {
+    const linked = (entry: ActivityEntry) => ({ ...entry, permalink: `https://example.slack.com/archives/C1/p${"key" in entry ? entry.key : "level"}` });
+    await openedWith(story.map((entry) => (entry.kind === "levelUp" ? entry : linked(entry))));
+    expect(articles().map((entry) => within(entry).getByRole("heading", { level: 3 }).textContent)).toEqual(["Bo Okafor thanked you", "You thanked Cleo Marchetti", "You reached level 4", "Dev Rao thanked you"]);
+    expect(within(timelineList()).getAllByRole("link", { name: /^Open in Slack/ }).map((link) => link.getAttribute("href"))).toEqual(["https://example.slack.com/archives/C1/pr1", "https://example.slack.com/archives/C1/pg1", "https://example.slack.com/archives/C1/pr2"]);
+  });
+
+  it("puts a given kudos' recipients and what it earned under its words", async () => {
+    await openedWith([aGiven("g1", now - minute, { recipients: [teammates.cleo, teammates.dev] })]);
+    const entry = article("You thanked Cleo Marchetti and Dev Rao");
+    const theWords = within(entry).getByTestId("kudos-message-words");
+    const after = (element: Element) => (theWords.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+    expect(within(entry).getAllByTestId("person-face").every(after)).toBe(true);
+    expect(after(within(entry).getByRole("list", { name: "Earned" }))).toBe(true);
+  });
+
+  it("gives every stacked recipient its own face, never a blank disc", async () => {
+    await openedWith([aGiven("g1", now - minute, { recipients: [teammates.bo, teammates.cleo, teammates.dev] })]);
+    const faces = within(article("You thanked Bo Okafor, Cleo Marchetti and Dev Rao")).getAllByTestId("person-face");
+    expect(faces.map((face) => face.textContent)).toEqual(["BO", "CM", "DR"]);
+  });
+});
+
+describe("#409: emoji drawn inline in a kudos message", () => {
+  it("draws Slack's unicode, a standard shortcode, an alias and every skin tone as characters, a tone on an emoji that takes none as the emoji, and a custom emoji as its name", async () => {
+    await openedWith([
+      aReceived("emoji", now - minute, {
+        message: words(
+          "Shipped ",
+          { kind: "emoji", name: "tada", unicode: "🎉" },
+          { kind: "emoji", name: "rocket" },
+          { kind: "emoji", name: "thumbsup" },
+          { kind: "emoji", name: "+1::skin-tone-3" },
+          { kind: "emoji", name: "man-raising-hand::skin-tone-6" },
+          { kind: "emoji", name: "handshake::skin-tone-2-6" },
+          { kind: "emoji", name: "people_holding_hands::skin-tone-3" },
+          { kind: "emoji", name: "fire::skin-tone-2" },
+          { kind: "emoji", name: "partyparrot" },
+        ),
+      }),
+    ]);
+    const theWords = within(article("Ada Lindqvist thanked you")).getByTestId("kudos-message-words");
+    expect(theWords).toHaveTextContent("Shipped 🎉🚀👍👍🏼🙋🏿‍♂️🫱🏻‍🫲🏿🧑🏼‍🤝‍🧑🏼🔥:partyparrot:");
+    expect(within(theWords).getByText(":partyparrot:")).toHaveAttribute("data-custom-emoji");
+    expect(theWords.querySelector("img")).toBeNull();
+  });
+});

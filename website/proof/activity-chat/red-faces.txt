@@ -1,0 +1,42 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./emojiCharacters" without a file extension (vitest.config.ts:3:33). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/activity-chat/website
+
+ ❯ |website| src/ActivityPage.test.tsx (52 tests | 1 failed | 51 skipped) 365ms
+   ❯ #409: a chat-style timeline, received on the left and given on the right (6)
+     × gives every stacked recipient its own face, never a blank disc 361ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/ActivityPage.test.tsx > #409: a chat-style timeline, received on the left and given on the right > gives every stacked recipient its own face, never a blank disc
+AssertionError: expected [ 'BO', '', '' ] to deeply equal [ 'BO', 'CM', 'DR' ]
+
+- Expected
++ Received
+
+  [
+    "BO",
+-   "CM",
+-   "DR",
++   "",
++   "",
+  ]
+
+ ❯ src/ActivityPage.test.tsx:615:51
+    613|     await openedWith([aGiven("g1", now - minute, { recipients: [teamma…
+    614|     const faces = within(article("You thanked Bo Okafor, Cleo Marchett…
+    615|     expect(faces.map((face) => face.textContent)).toEqual(["BO", "CM",…
+       |                                                   ^
+    616|   });
+    617| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 51 skipped (52)
+   Start at  17:31:03
+   Duration  4.32s (import 42%, transform 25%, environment 21%, tests 9%, setup 3%)
+
