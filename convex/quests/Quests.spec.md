@@ -107,6 +107,7 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   via: CR3 P92: opening a crate applies its held reward once
   because: a held reward waits in its crate and the open is the moment it counts (CR1–CR3, decision 23 on #411, reversing P92's #97 amendment), while a reward recorded before or with crate-rewards off already counted at its finish (CR4); if a second open applied it again, or an open applied a reward that already counted, a double click, a second device or a replayed Open would pay twice (P2, P9)
   refuted: openQuestCrate also recorded a 10 XP reward record when it opened a crate -> the test failed on its every-table assertion, rewardRecords and memberProgress differing (2026-10-13)
+  refuted: openQuestCrate applied a held reward before checking for an earlier crate opening, so a second open applied it again -> the held second-open case failed on its every-table assertion (2026-10-14)
   kinds: state
   checklist: revalidated-permission dismissed: opening acts only on the clicking member's own crate, and whether it may open is the stored reward record and the slice predicate read in the same mutation; no permission is carried from an earlier check
   checklist: separation-of-duties dismissed: no approval policy applies; a member opens their own crate with one action (P92)

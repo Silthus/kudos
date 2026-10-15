@@ -385,7 +385,7 @@
     },
     {
       "name": "crate",
-      "definition": "How a member takes something the game has ready for them: a feature their level made ready, or a finished quest or Journey step. Opening it is one action that reveals what is already recorded and never grants anything; its content is always known before it is opened, so a crate is a moment, never a random draw."
+      "definition": "How a member takes something the game has ready for them: a feature their level made ready, or a finished quest or Journey step. Its content is always known before it is opened, so a crate is a moment, never a random draw. Opening it is one action: a feature's crate and a quest's crate whose reward counted at its finish only reveal what is already recorded, and a quest's crate holding a held reward applies that reward once, at its first open."
     },
     {
       "name": "medal",
@@ -421,7 +421,7 @@
     },
     {
       "name": "reward record",
-      "definition": "One insert-only record of what finishing a quest or Journey step pays: its XP, coins, item and catalogue version, fixed when the quest was drawn or the step became active. It is keyed by what it pays for (a Journey step: member and step) and, like effects records, counts toward XP and levels; progression writes it and applies its XP once."
+      "definition": "One insert-only record of what finishing a quest or Journey step pays: its XP, coins, item and catalogue version, fixed when the quest was drawn or the step became active. It is keyed by what it pays for (a Journey step: member and step); progression writes it once. One written without held counts toward XP, levels and the wallet at its finish, like effects records; a held reward counts only from its crate's first open (CR1-CR4)."
     },
     {
       "name": "quest pool",
@@ -546,6 +546,10 @@
     {
       "name": "spotlight",
       "definition": "One drawable kudos shown on the leaderboard page with its words, giver, recipients and Slack permalink: a Given kudos from a public channel whose current words said why, by a member, with nobody on it off the leaderboards; drawn at random from the member's own workspace, and Next walks every drawable kudos once before any repeat."
+    },
+    {
+      "name": "held reward",
+      "definition": "A reward record for a weekly quest or Journey step written while crate-rewards was on for its member, marked held at insert. It counts toward nothing (no XP, level, skill point or coin) until its crate's first open applies it, once, from Slack or the website; achievement tier coins are never held, and the record, not the flag, decides."
     }
   ]
 }

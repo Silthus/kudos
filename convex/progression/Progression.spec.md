@@ -37,6 +37,7 @@ Progression: subscribes to kudosGiven, 100 of the kudos message's members to a m
   over: every stored row and scheduled job around recordReward of a held reward, the member's standing and balance after it and after applyHeldReward of it across two levels, the events each publishes, and held rewards of a fraction and of negative coins
   via: CR2 CR3: a held reward counts only from its open
   because: a held reward waits in its crate and only its open counts it (CR1–CR3, decision 23 on #411); if recording it credited or saved progress, the open would pay a second time, and a held record whose coins no open could pay would strand its crate
+  refuted: recordReward applied a held reward's XP and coins at its finish as it does an unheld one -> both the recording and the applying case failed, the standing and events read at the finish and doubled at the open (2026-10-15)
   kinds: state
   checklist: legal-state-succession declared as reward records are insert-only
   checklist: supersession-safety dismissed: the record is read and inserted in one transaction, and applying it happens only in the transaction that stores its crate opening, once per member and key

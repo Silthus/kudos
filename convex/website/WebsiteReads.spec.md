@@ -202,6 +202,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   over: every table of the schema and every published event, before and after openFeature opens a ready Leaderboard for a member with XP and a level, before and after openQuestCrate opens a finished Journey step's crate, a held one beside Slack's Open of the same crate on another backend, and a website open after Slack's Open
   via: opening on the website applies what Slack's open applies
   because: only a held reward's crate applies anything, and only once (CR3, CR4); if opening on the website did other than Slack's Open, a member could earn by clicking in a browser what Slack never pays, or be paid twice across the two
+  refuted: the website's openQuestCrate applied a held crate's reward again after the command had opened it -> the Slack-parity and the after-Slack case failed on memberProgress and the published events (2026-10-15)
   crossing: browser -> domain
   entrances: mutation openFeature, mutation openQuestCrate
   refuted: openQuestCrate also gave the member 10 XP when it opened a crate -> the every-table assertion failed on memberProgress (2026-10-14)
