@@ -105,9 +105,10 @@ function HowToGet({ source }: { source: ItemSource }) {
   switch (source.kind) {
     case "store":
       return (
-        <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium tabular-nums">
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs font-medium tabular-nums">
           <CoinGlyph className="size-3" />
-          {coinsText(source.price)}
+          {source.price}
+          <span className="sr-only"> coins</span>
         </span>
       );
     case "tier":
