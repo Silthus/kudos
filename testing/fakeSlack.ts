@@ -59,6 +59,7 @@ export class FakeSlack {
   private readonly callTimes = new Map<SlackCall, number>();
   private readonly holds: Array<{ method: string; about: string; meanwhile: () => Promise<void> }> = [];
   private readonly channelMessages = new Map<string, ChannelMessage[]>();
+  private readonly customEmoji = new Map<string, string>();
   private workspaceUrl = "https://t1.slack.com/";
 
   withWorkspaceUrl(url: string) {
@@ -78,6 +79,16 @@ export class FakeSlack {
 
   withoutUserGroup(id: string) {
     this.userGroups.delete(id);
+    return this;
+  }
+
+  withCustomEmoji(name: string, value: string) {
+    this.customEmoji.set(name, value);
+    return this;
+  }
+
+  withoutCustomEmoji(name: string) {
+    this.customEmoji.delete(name);
     return this;
   }
 
@@ -170,6 +181,7 @@ export class FakeSlack {
       return user && hasJoined ? { ok: true, user } : { ok: false, error: "user_not_found" };
     }
     if (method === "users.list") return { ok: true, members: [...this.users.values()], response_metadata: { next_cursor: "" } };
+    if (method === "emoji.list") return { ok: true, emoji: Object.fromEntries(this.customEmoji), cache_ts: "1760349600.000000" };
     if (method === "usergroups.list") return { ok: true, usergroups: this.userGroupsListed(args) };
     if (method === "usergroups.users.list") {
       const group = this.userGroups.get(field("usergroup"));
@@ -189,6 +201,8 @@ export class FakeSlack {
     }
     if (method === "chat.postEphemeral") return { ok: true, message_ts: "1760349700.000100" };
     if (method === "views.publish") {
+      const refusal = unsupportedElementIn(args.view);
+      if (refusal !== null) return { ok: false, error: "invalid_arguments", response_metadata: { messages: [refusal] } };
       this.homes.set(field("user_id"), args.view);
       return { ok: true };
     }
@@ -203,7 +217,11 @@ export class FakeSlack {
 
   private userGroupsListed(args: SlackArgs) {
     const groups = [...this.userGroups.values()].filter((group) => args.include_disabled === "true" || group.date_delete === 0);
-    return groups.map(({ users, ...group }) => (args.include_users === "true" ? { ...group, users } : group));
+    return groups.map(({ users, ...group }) => ({
+      ...group,
+      ...(args.include_users === "true" && { users }),
+      ...(args.include_count === "true" && { user_count: users.length }),
+    }));
   }
 
   private postMessage(args: SlackArgs) {
@@ -256,4 +274,12 @@ function order(ts: string) {
 
 export function isWelcome(args: SlackArgs) {
   return String(args.text).includes("Welcome to HedgeHug");
+}
+
+const multiSelects = new Set(["multi_static_select", "multi_users_select", "multi_conversations_select", "multi_channels_select", "multi_external_select"]);
+
+function unsupportedElementIn(view: unknown): string | null {
+  const blocks = (view as { blocks?: Array<{ type: string; elements?: Array<{ type: string }> }> } | undefined)?.blocks ?? [];
+  const index = blocks.findIndex((block) => block.type === "actions" && (block.elements ?? []).some((element) => multiSelects.has(element.type)));
+  return index < 0 ? null : `[ERROR] unsupported element: multiselect [json-pointer:view/blocks/${index}]`;
 }

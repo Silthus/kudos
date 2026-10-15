@@ -2,6 +2,7 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { ladderValidator } from "./achievements/ladders";
+import { messageKindValidator, messagePlaceValidator } from "./messageSettings/kinds";
 import { bookReplayCursorValidator, bookReplayValidator } from "./achievements/replay";
 import { earnedTierValidator } from "./achievements/tiers";
 import { exceptionValidator } from "./analytics/exceptions";
@@ -10,6 +11,9 @@ import { personPropertiesValidator, propertiesValidator } from "./analytics/proj
 import { kudosTextValidator } from "./engine/kudosText";
 import { annotationsValidator, mentionValidator, messageRefValidator } from "./engine/messageEvent";
 import { homeTabValidator } from "./feedback/homes";
+import { attributedAwardValidator, groupOrNoneValidator } from "./groups/attributedAward";
+import { primaryGroupCauseValidator } from "./groups/cause";
+import { groupModeValidator } from "./groups/mode";
 import { publicReplyValidator } from "./feedback/publicReplies";
 import { tierNoticeValidator, tierSummaryValidator } from "./feedback/tierNotices";
 import { gainsValidator } from "./feedback/replies";
@@ -24,6 +28,7 @@ import { journeyActivationValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
 import { collectedItemValidator, itemPurchaseValidator, loadoutSlotValidator } from "./store/rows";
 import { featureValidator } from "./unlocks/feature";
+import { welcomedAsValidator } from "./welcome/welcomedAs";
 import { memberProfileFields } from "./workspace/memberProfile";
 import { coinSpendValidator } from "./wallet/wallet";
 
@@ -96,8 +101,12 @@ export default defineSchema({
     name: v.string(),
     enabled: v.boolean(),
     automatic: v.boolean(),
+    members: v.optional(v.number()),
+    membersCountAsOf: v.optional(v.number()),
     asOf: v.number(),
     membersAsOf: v.optional(v.number()),
+    changedAt: v.optional(v.number()),
+    allowlistChangedAt: v.optional(v.number()),
   }).index("by_group", ["workspace", "group"]),
 
   userGroupMembers: defineTable({
@@ -107,6 +116,58 @@ export default defineSchema({
   })
     .index("by_group", ["workspace", "group", "user"])
     .index("by_user", ["workspace", "user"]),
+
+  memberGroups: defineTable({
+    workspace: v.string(),
+    member: v.id("members"),
+    groups: v.array(v.id("userGroups")),
+    primary: v.union(v.id("userGroups"), v.null()),
+  })
+    .index("by_member", ["member"])
+    .index("by_primary", ["primary"]),
+
+  groupSettings: defineTable({
+    workspace: v.string(),
+    mode: groupModeValidator,
+    allowlist: v.optional(v.array(v.id("userGroups"))),
+  }).index("by_workspace", ["workspace"]),
+
+  primaryGroupHistory: defineTable({
+    workspace: v.string(),
+    member: v.id("members"),
+    from: v.union(v.id("userGroups"), v.null()),
+    group: v.union(v.id("userGroups"), v.null()),
+    cause: primaryGroupCauseValidator,
+    at: v.number(),
+  }).index("by_member_at", ["member", "at"]),
+
+  attributions: defineTable({
+    workspace: v.string(),
+    conversation: v.string(),
+    message: v.string(),
+    giver: v.id("members"),
+    group: groupOrNoneValidator,
+    kudos: v.number(),
+    day: v.string(),
+    at: v.number(),
+    awards: v.array(attributedAwardValidator),
+  }).index("by_message", ["workspace", "conversation", "message"]),
+
+  customEmoji: defineTable({
+    workspace: v.string(),
+    name: v.string(),
+    image: v.string(),
+    listing: v.number(),
+  })
+    .index("by_name", ["workspace", "name"])
+    .index("by_listing", ["workspace", "listing"]),
+
+  customEmojiListings: defineTable({
+    workspace: v.string(),
+    begun: v.number(),
+    written: v.optional(v.number()),
+    refreshDueAt: v.optional(v.number()),
+  }).index("by_workspace", ["workspace"]),
 
   kudosMessages: defineTable({
     workspace: v.string(),
@@ -174,6 +235,7 @@ export default defineSchema({
 
   welcomes: defineTable({
     member: v.id("members"),
+    welcomed: v.optional(welcomedAsValidator),
   }).index("by_member", ["member"]),
 
   indicators: defineTable({
@@ -190,6 +252,7 @@ export default defineSchema({
     message: v.string(),
     threadRoot: v.optional(v.string()),
     to: v.string(),
+    given: v.optional(v.array(segmentValidator)),
     lines: v.array(v.array(segmentValidator)),
     questsDone: v.optional(v.array(segmentValidator)),
     hint: v.optional(v.array(segmentValidator)),
@@ -330,6 +393,13 @@ export default defineSchema({
     muteNotices: v.optional(v.boolean()),
   }).index("by_member", ["member"]),
 
+  messageSettings: defineTable({
+    member: v.id("members"),
+    kind: messageKindValidator,
+    on: v.boolean(),
+    place: v.optional(messagePlaceValidator),
+  }).index("by_member_kind", ["member", "kind"]),
+
   unlocks: defineTable({
     member: v.id("members"),
     feature: featureValidator,
@@ -379,11 +449,37 @@ export default defineSchema({
     .index("by_member_day", ["member", "day"])
     .index("by_workspace_day", ["workspace", "day"]),
 
+  attributedTotals: defineTable({
+    workspace: v.string(),
+    group: v.id("userGroups"),
+    member: v.id("members"),
+    period: v.string(),
+    kudos: v.number(),
+    runningTotal: v.optional(v.array(v.number())),
+  })
+    .index("by_group_period", ["group", "period"])
+    .index("by_member_group_period", ["member", "group", "period"]),
+
+  attributedGroupTotals: defineTable({
+    workspace: v.string(),
+    group: v.id("userGroups"),
+    period: v.string(),
+    kudos: v.number(),
+    runningTotal: v.optional(v.array(v.number())),
+  }).index("by_group_period", ["group", "period"]),
+
+  countedAttributions: defineTable({
+    workspace: v.string(),
+    conversation: v.string(),
+    message: v.string(),
+  }).index("by_message", ["workspace", "conversation", "message"]),
+
   givenTotals: defineTable({
     workspace: v.string(),
     member: v.id("members"),
     period: v.string(),
     kudos: v.number(),
+    runningTotal: v.optional(v.array(v.number())),
   })
     .index("by_period", ["workspace", "period"])
     .index("by_member_period", ["member", "period"]),

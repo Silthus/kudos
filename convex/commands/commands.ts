@@ -1,14 +1,21 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
-import { reportLeaderboardViewed, reportLeaderboardVisibilityChanged } from "../analytics/isolatedUsage";
+import { pickSurfaceValidator, reportLeaderboardViewed, reportLeaderboardVisibilityChanged, reportMessageSettingChanged, reportPrimaryGroupPicked } from "../analytics/isolatedUsage";
+import { groupsShownAndExposedTo } from "../groups/groups";
+import { pickPrimaryGroup } from "../groups/pick";
 import { homeTabValidator, isLeaderboardShownTo, selectLeaderboardPeriod, showHomeTab, type HomeMember } from "../feedback/homes";
+import { setGroupMode } from "../groups/groupMode";
+import { groupModeValidator } from "../groups/mode";
+import { boardsShownTo } from "../leaderboard/boards";
 import { isEveryoneBoardShownTo } from "../leaderboard/flag";
 import { periodValidator, type Period } from "../leaderboard/periods";
+import { messageSettingsShownTo } from "../messageSettings/flag";
+import { messageKindValidator, messagePlaceValidator, type MessageKind, type MessagePlace } from "../messageSettings/kinds";
+import { kindAppliesTo, placesOf, placeWhenOn, setMessageSetting, setNotificationSwitches } from "../messageSettings/messageSettings";
 import { setLeaderboardVisibility } from "../leaderboard/visibility";
 import { buyPerk } from "../progression/perks";
 import type { PurchaseOutcome } from "../progression/purchases";
-import { setProgressSettings } from "../progression/settings";
 import { perkValidator } from "../progression/tree";
 import { openQuestCrate } from "../quests/open";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
@@ -16,7 +23,7 @@ import { rerollQuest } from "../quests/weekly";
 import { buyItem } from "../store/buying";
 import { equip, takeOff, type LoadoutOutcome } from "../store/equipping";
 import { slotValidator, type ItemPurchaseOutcome } from "../store/rows";
-import { xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
+import { xpLevelsShownTo } from "../progression/xpLevels";
 import { featureValidator } from "../unlocks/feature";
 import { openUnlock } from "../unlocks/unlocks";
 import type { MemberId } from "../workspace/directory";
@@ -27,11 +34,15 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("showLeaderboard"), period: periodValidator }),
   v.object({ type: v.literal("setLeaderboardVisibility"), visible: v.boolean() }),
   v.object({ type: v.literal("setProgressSettings"), muteNotices: v.optional(v.boolean()), dms: v.optional(v.boolean()) }),
+  v.object({ type: v.literal("setMessageSetting"), kind: messageKindValidator, place: messagePlaceValidator }),
+  v.object({ type: v.literal("setMessageSetting"), kind: messageKindValidator, on: v.boolean() }),
   v.object({ type: v.literal("setAnnouncementChannel"), channel: v.union(v.string(), v.null()) }),
   v.object({ type: v.literal("openUnlock"), feature: featureValidator }),
   v.object({ type: v.literal("openQuestCrate"), quest: questValidator }),
   v.object({ type: v.literal("rerollQuest"), quest: weeklyQuestValidator }),
   v.object({ type: v.literal("buyPerk"), perk: perkValidator }),
+  v.object({ type: v.literal("pickPrimaryGroup"), group: v.string(), surface: pickSurfaceValidator }),
+  v.object({ type: v.literal("setGroupMode"), mode: groupModeValidator, allowlist: v.optional(v.array(v.string())) }),
   v.object({ type: v.literal("buyItem"), item: v.string() }),
   v.object({ type: v.literal("equip"), item: v.string(), slot: slotValidator }),
   v.object({ type: v.literal("takeOff"), slot: slotValidator }),
@@ -64,11 +75,14 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return null;
     case "setProgressSettings": {
       const { type: _, ...changes } = command;
-      if (await xpLevelsShownTo(ctx, member)) await setProgressSettings(ctx, member, changes);
+      if (await xpLevelsShownTo(ctx, member)) await setNotificationSwitches(ctx, member, changes);
       return null;
     }
+    case "setMessageSetting":
+      if (await isMessageSettingShownTo(ctx, member, command.kind)) await changeMessageSetting(ctx, workspace, member, command.kind, await placeAskedBy(ctx, member, command));
+      return null;
     case "setAnnouncementChannel":
-      if ((await xpLevelsShownIn(ctx, workspace)) && (await setAnnouncementChannel(ctx, workspace, person, command.channel))) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
+      await setAnnouncementChannel(ctx, workspace, person, command.channel);
       return null;
     case "openUnlock":
       await openUnlock(ctx, member, command.feature);
@@ -79,6 +93,11 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     case "rerollQuest":
       await rerollQuest(ctx, member, command.quest);
       return null;
+    case "setGroupMode": {
+      const { type: _, ...change } = command;
+      if (await setGroupMode(ctx, workspace, person, change)) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
+      return null;
+    }
     case "buyPerk": {
       const outcome = await buyPerk(ctx, member, command.perk, idempotencyKey);
       if (outcome !== null) await showHomeTab(ctx, workspace, person, "skillTree");
@@ -93,11 +112,31 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return equip(ctx, member, command.item, command.slot);
     case "takeOff":
       return takeOff(ctx, member, command.slot);
+    case "pickPrimaryGroup": {
+      const group = ctx.db.normalizeId("userGroups", command.group);
+      if (group === null || !(await groupsShownAndExposedTo(ctx, member))) return null;
+      if ((await pickPrimaryGroup(ctx, member, group)) === "picked") await reportPrimaryGroupPicked(ctx, { workspace, member, surface: command.surface, at: Date.now() });
+      return null;
+    }
   }
 }
 
-function leaderboardViewedInAppHome(ctx: MutationCtx, workspace: string, member: MemberId, period: Period) {
-  return reportLeaderboardViewed(ctx, { workspace, member, board: "everyone", period, surface: "app-home", at: Date.now() });
+async function isMessageSettingShownTo(ctx: MutationCtx, member: MemberId, kind: MessageKind) {
+  return (await messageSettingsShownTo(ctx, member)) && (await kindAppliesTo(ctx, member, kind));
+}
+
+async function placeAskedBy(ctx: MutationCtx, member: MemberId, command: Extract<Command, { type: "setMessageSetting" }>): Promise<MessagePlace> {
+  if ("place" in command) return command.place;
+  return command.on ? placeWhenOn(ctx, member, command.kind) : "none";
+}
+
+async function changeMessageSetting(ctx: MutationCtx, workspace: string, member: MemberId, kind: MessageKind, place: MessagePlace) {
+  if (!(await placesOf(ctx, member, kind)).includes(place)) return;
+  if (await setMessageSetting(ctx, member, kind, place)) await reportMessageSettingChanged(ctx, { workspace, member, setting: kind, on: place !== "none", place, at: Date.now() });
+}
+
+async function leaderboardViewedInAppHome(ctx: MutationCtx, workspace: string, member: MemberId, period: Period) {
+  for (const board of await boardsShownTo(ctx, member)) await reportLeaderboardViewed(ctx, { workspace, member, board, period, surface: "app-home", at: Date.now() });
 }
 
 function conforms(validator: GenericValidator, value: unknown): boolean {
@@ -116,6 +155,8 @@ function conforms(validator: GenericValidator, value: unknown): boolean {
       return typeof value === "number";
     case "null":
       return value === null;
+    case "array":
+      return Array.isArray(value) && value.every((element) => conforms(validator.element, element));
     default:
       return false;
   }

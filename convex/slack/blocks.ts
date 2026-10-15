@@ -1,4 +1,4 @@
-import type { CommandAction, Confirmation, HomeAction, LinkAction, MenuOption } from "../feedback/home";
+import type { CommandAction, Confirmation, HomeAction, LinkAction } from "../feedback/home";
 import { encodeHomeAction } from "./interactivity";
 
 export function buttonOf(action: HomeAction) {
@@ -15,10 +15,6 @@ function commandButtonOf({ label, command, accessibilityLabel, confirm }: Comman
     ...(accessibilityLabel !== undefined && { accessibility_label: accessibilityLabel }),
     ...(confirm !== undefined && { confirm: confirmationOf(confirm) }),
   };
-}
-
-export function menuOf({ id, placeholder, options }: { id: string; placeholder: string; options: MenuOption[] }) {
-  return { type: "static_select", action_id: id, placeholder: plainText(placeholder), options: options.map(({ label, command }) => ({ text: plainText(label), value: encodeHomeAction(command) })) };
 }
 
 function linkButtonOf({ label, url, accessibilityLabel, id }: LinkAction) {

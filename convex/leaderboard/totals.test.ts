@@ -159,13 +159,14 @@ describe("rankedBoardOf: the whole Everyone board beside G17's window", () => {
 
     expect(ranked).toEqual({
       rows: [
-        { position: 1, rank: 1, tied: true, member: await memberId(t, "U2"), name: "Al", picture: null, kudos: 2, viewer: false },
-        { position: 2, rank: 1, tied: true, member: await memberId(t, "U1"), name: "Zoe", picture: null, kudos: 2, viewer: false },
-        { position: 3, rank: 3, tied: false, member: await memberId(t, "U3"), name: "Cy", picture: null, kudos: 1, viewer: true },
+        { position: 1, rank: 1, tied: true, member: await memberId(t, "U2"), name: "Al", picture: null, kudos: 2, viewer: false, climbed: null },
+        { position: 2, rank: 1, tied: true, member: await memberId(t, "U1"), name: "Zoe", picture: null, kudos: 2, viewer: false, climbed: null },
+        { position: 3, rank: 3, tied: false, member: await memberId(t, "U3"), name: "Cy", picture: null, kudos: 1, viewer: true, climbed: null },
       ],
       window: [1, 2, 3],
       standing: { kind: "ranked", position: 3, rank: 3 },
       improvement: { gain: 1 },
+      peer: null,
     });
   });
 
@@ -177,7 +178,7 @@ describe("rankedBoardOf: the whole Everyone board beside G17's window", () => {
 
     const { rows } = await rankedBoard(t, "U1");
 
-    expect(rows).toEqual([{ position: 1, rank: 1, tied: false, member: await memberId(t, "U2"), name: undefined, picture: null, kudos: 2, viewer: false }]);
+    expect(rows).toEqual([{ position: 1, rank: 1, tied: false, member: await memberId(t, "U2"), name: undefined, picture: null, kudos: 2, viewer: false, climbed: null }]);
   });
 
   test("each row carries the member's Slack picture for the website, and null when the directory has none", async () => {
@@ -224,6 +225,95 @@ describe("rankedBoardOf: the whole Everyone board beside G17's window", () => {
       expect(ranked.improvement).toEqual({ gain: 2 });
     });
   });
+});
+
+describe("GB18: places climbed", () => {
+  test("a row that rose since last week up to the same day says how many places, and a row that fell, stayed or is new says nothing", async () => {
+    const t = testBackend();
+    await members(t, ["U1", "Ann"], ["U2", "Bob"], ["U3", "Cy"], ["U4", "Dee"], ["U5", "Eve"], ["U6", "Fay"], ["U9", "Viv"]);
+    for (const [index, [user, kudos]] of [["U1", 5], ["U2", 4], ["U3", 3], ["U4", 2], ["U5", 1]].entries()) {
+      await countKudosGiven(t, kudosGiven(user as string, { "U9": kudos as number }, { message: `last-${index}`, day: "2026-10-06" }));
+    }
+    await countKudosGiven(t, kudosGiven("U5", { "U9": 10 }, { message: "after-the-same-day", day: "2026-10-07" }));
+    for (const [index, [user, kudos]] of [["U1", 6], ["U5", 5], ["U2", 4], ["U6", 3], ["U3", 2]].entries()) {
+      await countKudosGiven(t, kudosGiven(user as string, { "U9": kudos as number }, { message: `this-${index}` }));
+    }
+
+    const { rows } = await rankedBoard(t, "U9");
+
+    expect(rows.map(({ position, name, climbed }) => ({ position, name, climbed }))).toEqual([
+      { position: 1, name: "Ann", climbed: null },
+      { position: 2, name: "Eve", climbed: 3 },
+      { position: 3, name: "Bob", climbed: null },
+      { position: 4, name: "Fay", climbed: null },
+      { position: 5, name: "Cy", climbed: null },
+    ]);
+  });
+
+  test("a 31st compares the month's rows with the whole of a 30-day month", async () => {
+    vi.setSystemTime(new Date("2026-10-31T10:00:00Z"));
+    const t = testBackend();
+    await members(t, ["U1", "Ann"], ["U2", "Bob"], ["U9", "Viv"]);
+    await countKudosGiven(t, kudosGiven("U1", { "U9": 2 }, { message: "1", day: "2026-09-01" }));
+    await countKudosGiven(t, kudosGiven("U2", { "U9": 3 }, { message: "2", day: "2026-09-30" }));
+    await countKudosGiven(t, kudosGiven("U1", { "U9": 1 }, { message: "3", day: "2026-10-31" }));
+    await countKudosGiven(t, kudosGiven("U2", { "U9": 2 }, { message: "4", day: "2026-10-31" }));
+    await countKudosGiven(t, kudosGiven("U1", { "U9": 2 }, { message: "5", day: "2026-10-31" }));
+
+    const { rows } = await rankedBoard(t, "U9", "month");
+
+    expect(rows.map(({ name, climbed }) => ({ name, climbed }))).toEqual([
+      { name: "Ann", climbed: 1 },
+      { name: "Bob", climbed: null },
+    ]);
+  });
+
+  test("all time has no places climbed", async () => {
+    const t = testBackend();
+    await members(t, ["U1", "Ann"], ["U2", "Bob"], ["U9", "Viv"]);
+    await countKudosGiven(t, kudosGiven("U1", { "U9": 2 }, { message: "1", day: "2026-10-06" }));
+    await countKudosGiven(t, kudosGiven("U2", { "U9": 3 }, { message: "2" }));
+
+    const { rows } = await rankedBoard(t, "U9", "all");
+
+    expect(rows.map(({ name, climbed }) => ({ name, climbed }))).toEqual([
+      { name: "Bob", climbed: null },
+      { name: "Ann", climbed: null },
+    ]);
+  });
+
+  test("G22: a viewer who left the boards sees the places everyone else sees, compared without them", async () => {
+    const t = testBackend();
+    await members(t, ["U1", "Ann"], ["U2", "Bob"], ["U3", "Cy"]);
+    await countKudosGiven(t, kudosGiven("U1", { "U3": 3 }, { message: "1", day: "2026-10-06" }));
+    await countKudosGiven(t, kudosGiven("U2", { "U3": 2 }, { message: "2", day: "2026-10-06" }));
+    await countKudosGiven(t, kudosGiven("U2", { "U3": 2 }, { message: "3" }));
+    await t.run(async (ctx) => setLeaderboardVisibility(ctx, await memberIdIn(ctx, "U1"), false));
+
+    expect((await rankedBoard(t, "U1")).rows.map(({ name, climbed }) => ({ name, climbed }))).toEqual([{ name: "Bob", climbed: null }]);
+    expect((await rankedBoard(t, "U3")).rows.map(({ name, climbed }) => ({ name, climbed }))).toEqual([{ name: "Bob", climbed: null }]);
+  });
+});
+
+describe("GB35: the Everyone board at scale", () => {
+  test("1,500 members giving every day for two months: the month board and its comparison read within Convex's transaction limits", async () => {
+    vi.setSystemTime(new Date("2026-10-31T10:00:00Z"));
+    const t = testBackend({ transactionLimits: true });
+    const everyone = await aWorkspaceOf(t, 1_500);
+    const september = { month: "2026-09", days: 30, kudos: (index: number) => 1 + (index % 5) };
+    const october = { month: "2026-10", days: 31, kudos: (index: number) => 1 + ((index + 1) % 5) };
+    await eachGaveDaily(t, everyone, september);
+    await eachGaveDaily(t, everyone, october);
+    await theDaysOf(t, everyone, september);
+
+    const ranked = await rankedBoard(t, "U0000", "month");
+
+    expect(ranked.rows).toHaveLength(1_500);
+    expect(ranked.rows[0]).toMatchObject({ name: "Member 0003", kudos: 155, climbed: 300 });
+    expect(ranked.rows.filter(({ climbed }) => climbed === 300)).toHaveLength(1_200);
+    expect(ranked.rows.filter(({ climbed }) => climbed === null)).toHaveLength(300);
+    expect(ranked.improvement).toEqual({ gain: 32, places: 300 });
+  }, 120_000);
 });
 
 type Person = [user: string, name: string, timeZone?: string];
@@ -287,6 +377,36 @@ function everyoneBoard(t: Backend, viewer: string, period?: Period) {
 
 function rankedBoard(t: Backend, viewer: string, period: Period = "week") {
   return t.run((ctx) => rankedBoardOf(ctx, "T1", viewer, period));
+}
+
+async function aWorkspaceOf(t: Backend, count: number) {
+  return t.run(async (ctx) => {
+    const everyone: Array<Id<"members">> = [];
+    for (let index = 0; index < count; index += 1) {
+      const number = String(index).padStart(4, "0");
+      everyone.push(await ctx.db.insert("members", { workspace: "T1", user: `U${number}`, kind: "member", name: `Member ${number}`, asOf: 0 }));
+    }
+    return everyone;
+  });
+}
+
+type DailyGiving = { month: string; days: number; kudos: (index: number) => number };
+
+async function eachGaveDaily(t: Backend, everyone: Array<Id<"members">>, { month, days, kudos }: DailyGiving) {
+  await t.run(async (ctx) => {
+    for (const [index, member] of everyone.entries()) {
+      const runningTotal = Array.from({ length: days }, (_, day) => kudos(index) * (day + 1));
+      await ctx.db.insert("givenTotals", { workspace: "T1", member, period: `month:${month}`, kudos: kudos(index) * days, runningTotal });
+    }
+  });
+}
+
+async function theDaysOf(t: Backend, everyone: Array<Id<"members">>, { month, days, kudos }: DailyGiving) {
+  for (let day = 1; day <= days; day += 1) {
+    await t.run(async (ctx) => {
+      for (const [index, member] of everyone.entries()) await ctx.db.insert("givenByDay", { workspace: "T1", member, day: `${month}-${String(day).padStart(2, "0")}`, kudos: kudos(index) });
+    });
+  }
 }
 
 function shown(view: BoardView) {

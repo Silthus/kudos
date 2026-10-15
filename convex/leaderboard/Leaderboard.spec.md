@@ -1,6 +1,6 @@
 # Leaderboard
 
-Leaderboard: totals of kudos given per member by day, week, month and all time, fed by the kudosGiven subscriber once per message and by a one-off backfill of the awards given before it shipped, and the Everyone board for this week, this month or all time, ranked and windowed by a pure board function, with the viewer's improvement line against the previous period up to the same day, worded once by improvementLine for Slack and the website, and the same board whole for the website through rankedBoardOf (every ranked member with their position, rank and tie and the picture the directory holds for them, the window's positions, and the viewer's standing), and each member's `Show me on the leaderboards` setting, which leaves them off every board and, when it changes, schedules the engine's spotlight recompute of the kudos that member gave or received. The board ships behind the flag `everyone-board`, safe default off: its totals count while the flag is off, and a member sees the board, the App Home tabs or the `/hedgehug leaderboard` reply only while it is on in their member decision (a caller the directory doesn't know: the workspace decision) and, while `xp-levels` and `unlocks` are on, only once they have opened the Leaderboard (G23, G42 under P76), though they appear on the board others see either way, with one exposure per member and value from the mutation that decides what they see.
+Leaderboard: totals of kudos given per member by day, week, month and all time, each week and month total keeping its running total by day of the period, fed by the kudosGiven subscriber once per message, by a one-off backfill of the awards given before it shipped and by a one-off fill of the running totals of the totals counted before they shipped, and the Everyone board for this week, this month or all time, ranked and windowed by a pure board function, with the viewer's improvement line against the previous period up to the same day, read from one totals row per member of that period, worded once by improvementLine for Slack and the website, and the same board whole for the website through rankedBoardOf (every ranked member with their position, rank and tie, their places climbed against that same comparison, and the picture the directory holds for them, the window's positions, and the viewer's standing), and each member's `Show me on the leaderboards` setting, which leaves them off every board and, when it changes, schedules the engine's spotlight recompute of the kudos that member gave or received. The board ships behind the flag `everyone-board`, safe default off: its totals count while the flag is off, and a member sees the board, the App Home tabs or the `/hedgehug leaderboard` reply only while it is on in their member decision (a caller the directory doesn't know: the workspace decision) and, while `xp-levels` and `unlocks` are on, only once they have opened the Leaderboard (G23, G42 under P76), though they appear on the board others see either way, with one exposure per member and value from the mutation that decides what they see. Beside them it keeps the group totals: one row per group, member and period with the period's running total by day for a week or month, fed only by the awardsAttributed subscriber, once per kudos message and never for a message that counts for no group; beside them, each group's kudos attributed in each week, month and all time, with the week's or month's running total, so the board reads a group's kudos, its comparison and its best completed period one row per period. They are recorded whatever any flag says. The Groups board reads them: above the Everyone board in the Leaderboard tab and the `/hedgehug leaderboard` reply, where `groups` applies to the viewer and groups are available, and behind the Everyone board's own flag and unlock, it ranks every counting group that is the current primary group of at least 3 members by the kudos attributed to it in the period per current primary member (one decimal), then by participation (a whole percent rounded down), total and name, groups equal on all three sharing a rank, windowed like the Everyone board around the viewer's primary group, each row with its places climbed against the previous period up to the same day. Under it, for a week or month, the viewer's group gets its gain per person with the places it climbed, or its best completed period per person, and the listed group with the largest gain is named most improved; no line states a loss. One pure function computes it, so Slack and the website (through groupBoardsOf) show the same numbers, and `leaderboard viewed` names the Groups board beside the Everyone board wherever it shows. The My group board reads them too: between the Groups and Everyone boards, under the same conditions and only for a viewer whose current primary group counts, it ranks the members whose current primary group is the viewer's by the kudos they gave attributed to that group in the period, with the Everyone board's rules (members only, `Show me on the leaderboards`, ties, the window and the lines for a viewer who isn't on it or left it), each row with its places climbed, reading the group's totals through its two group-and-period ranges, shared with the Groups board in groupBoardsOf; Slack reads it in a query of its own under the group's name, the website through groupBoardsOf, and `leaderboard viewed` names it wherever it shows. Right after the Everyone board's improvement line, for a week or month, where `groups` applies and the viewer's primary group counts and has at least 3 other current primary members, a viewer whose gain over all kudos given is above 0 and larger than the gain of more than half of those members gets the peer line with the share of them whose gain is smaller, rounded down to a multiple of 10, which rankedBoardOf gives the website too.
 
 ## invariants
 - the leaderboard counts kudos given, never kudos received: A board ranks members by the kudos they gave in the period, and kudos a member received never add to their total or put them on a board.
@@ -75,3 +75,95 @@ Leaderboard: totals of kudos given per member by day, week, month and all time, 
   checklist: keyed-ordering dismissed: the flag is read fresh on every request, so the order of requests does not change what a later one sees
   checklist: acknowledgment-barrier dismissed: the command acknowledges with its reply or `/hedgehug`'s empty 200, and events and clicks are acknowledged before the gate runs in their scheduled functions
   checklist: retry-classification dismissed: reading the flag never throws (O33); a failure to read answers the safe default, so the gate adds no failure to classify
+- a board row never states a drop: Every ranked row of the Everyone board carries its places climbed against the previous period up to the same day, a positive number, and nothing when the member fell, stayed, wasn't on that board then, or the period is all time; a member who left the boards is compared on no board, their own view included.
+  over: this week's, this month's on a 31st and all time's Everyone board through rankedBoardOf, with members who rose, fell, stayed and are new, and a viewer who left the boards
+  via: GB18: places climbed
+  because: the website shows rank-change arrows to encourage (GB18, user story 46); a row that said how far a member dropped would turn the board into the reproach the groups spec rules out (G18)
+  refuted: placesClimbed gave every row that was on last period's board its position before minus its position now, a fall or a stay included -> 3 of the 4 tests failed, the member who fell from 2nd to 3rd reading -1 (2026-10-14)
+  kinds: state
+  checklist: revalidated-permission dismissed: the places are computed for the viewer from totals when they ask; no permission applies
+  checklist: separation-of-duties dismissed: no approval policy applies to showing a board
+  checklist: legal-state-succession dismissed: the places are derived on every read and hold no state of their own
+  checklist: supersession-safety dismissed: the places are derived on every read; nothing is written that a later value could displace
+  checklist: worker-fencing dismissed: one read-only query computes the board; no lease or ownership applies
+  checklist: commit-ordered-effects dismissed: computing the places issues no external effect
+  checklist: resumption-coverage dismissed: no batch resumes from a checkpoint; the board is computed in one query
+- the Everyone board reads within Convex's limits: A board and its comparison with the previous period up to the same day read one totals row per member for each of the two periods and one directory row and one setting per ranked member, so a workspace of 1,500 members who each gave every day for two months reads its month board within Convex's transaction limits.
+  over: the month board on October 31st of a workspace of 1,500 members who each gave kudos every day of September and October, read through rankedBoardOf with Convex's transaction limits enforced
+  via: GB35: the Everyone board at scale
+  refuted: the comparison added up each member's day rows of the previous period instead of reading the running total on their one totals row -> the test failed on Convex's limit, too many index ranges read in a single function execution (2026-10-14)
+  because: the comparison used to add up every member's day rows of the previous period, which at a large workspace near a month's end reads more documents than one Convex query may, and a board that throws shows nobody anything (GB35, call 16)
+  kinds: state
+  checklist: revalidated-permission dismissed: the board is read for the viewer from totals when they ask; no permission applies
+  checklist: separation-of-duties dismissed: no approval policy applies to reading a board
+  checklist: legal-state-succession dismissed: the read writes nothing; a running total only grows by addition
+  checklist: supersession-safety dismissed: the read writes nothing; Convex serializes the mutations that add to one totals row
+  checklist: worker-fencing dismissed: one read-only query reads the board; no lease or ownership applies
+  checklist: commit-ordered-effects dismissed: reading the board issues no external effect
+  checklist: resumption-coverage dismissed: no batch resumes from a checkpoint; the board is read in one query
+- every day counts once in a running total, live or filled: The running total of a week or month total holds each day's kudos once, whether the kudosGiven subscriber added them after it shipped or the fill computed it from the day totals, and a total counted before it shipped, counted again live before the fill, compares the same before and after the fill, which a second run leaves unchanged.
+  over: the running totals and this week's improvement line of a member whose totals were counted before running totals shipped, who gave kudos live before the fill, filled in pages of one, and filled again
+  via: GB35: running totals for the totals counted before they shipped
+  refuted: a live count on a total without a running total started one from that count alone, which the fill then skipped -> the test failed on its running totals, the week holding only the live kudos (2026-10-14)
+  because: the comparison with the previous period reads only the running total (GB35); a day counted twice, or left out because a live count started a running total the fill then skipped, would show a member a gain or places they didn't make
+  kinds: state
+  checklist: revalidated-permission dismissed: the fill is an internal function the ship ticket runs once from the CLI; counting needs no permission
+  checklist: separation-of-duties dismissed: no approval policy applies to counting kudos
+  checklist: legal-state-succession dismissed: a total has a running total or not; the fill writes one only where there is none, in the transaction that reads the day totals it adds up
+  checklist: supersession-safety dismissed: Convex serializes the fill's and the subscriber's mutations on one totals row and its day totals, so neither overwrites the other's addition
+  checklist: worker-fencing dismissed: each page of the fill and each subscriber run is one serialized mutation; no lease or ownership applies
+  checklist: commit-ordered-effects dismissed: filling issues no external effect
+  checklist: resumption-coverage dismissed: the fill keeps no checkpoint; a resumed run starts again from the first total and skips every total that has a running total
+- a group total never exists without its attribution: Every group total is the sum of the attributions for its group, member and period, running total included, and each group's week and month kudos the sum of its attributions in that period, however often kudosGiven or awardsAttributed are delivered and in whichever order the subscribers run.
+  over: every group total after kudos messages attributed twice and counted before, during and after their scheduled awardsAttributed, a giver who changed group in between and a giver without a group
+  via: GB12: group totals follow attribution
+  refuted: countAwardsAttributed added a message's kudos on every delivery of awardsAttributed without checking or leaving its counted mark -> the test failed, the group totals no longer the sum of their attributions (2026-10-14)
+  because: the group boards and the Monday post rank groups by these totals (GB12, GB13, GB28); a total counted twice, or fed from kudosGiven beside the attribution, would credit a group with kudos its attributions never gave it
+  kinds: state
+  checklist: revalidated-permission dismissed: counting needs no permission; the subscriber runs on Groups' own awardsAttributed event
+  checklist: separation-of-duties dismissed: no approval policy applies
+  checklist: legal-state-succession dismissed: a group total only grows by an attribution's kudos
+  checklist: supersession-safety dismissed: the counted mark per message and the totals it adds to commit in one mutation, so a second delivery finds the mark
+  checklist: worker-fencing dismissed: no worker owns a group total; Convex serializes the mutations that add to one row
+  checklist: commit-ordered-effects dismissed: counting has no external effect
+  checklist: resumption-coverage dismissed: a run that fails adds nothing and leaves no mark, so its retry counts the message once
+- a Groups board row never states a drop: Every ranked row of the Groups board carries its places climbed against the same board in the previous period up to the same day, a positive number, and nothing when the group fell or stayed, or the period is all time; a listed group with no kudos attributed then was on that board too.
+  over: this week's and all time's Groups board from the pure board function, with groups that rose, fell and stayed, and one that rose from no kudos attributed last week
+  via: GB18: places climbed on the Groups board
+  refuted: the Groups board's placesClimbed gave every group that had kudos attributed last period its position before minus its position now, a fall or a stay included -> 1 of the 2 tests failed on its assertion, Bees and Cats, which fell, reading negative places (2026-10-14)
+  because: the website shows rank-change arrows to encourage (GB18, user story 46); a group row that said how far its group dropped would turn the board into the reproach the groups spec rules out (G18)
+  kinds: state
+  checklist: revalidated-permission dismissed: the places are computed for the viewer from group totals when they ask; no permission applies
+  checklist: separation-of-duties dismissed: no approval policy applies to showing a board
+  checklist: legal-state-succession dismissed: the places are derived on every read and hold no state of their own
+  checklist: supersession-safety dismissed: the places are derived on every read; nothing is written that a later value could displace
+  checklist: worker-fencing dismissed: one read-only query computes the board; no lease or ownership applies
+  checklist: commit-ordered-effects dismissed: computing the places issues no external effect
+  checklist: resumption-coverage dismissed: no batch resumes from a checkpoint; the board is computed in one query
+- the group's line never states a loss: The line under the Groups board for the viewer's group reports its gain per person, rounded once to one decimal, and the places it climbed, never kudos or places lost; without a gain it names the group's best completed period per person, or nothing, and the most improved group is named only for a gain above 0.
+  over: the line and the most improved group of groups that gave more, the same, fewer, and a gain that rounds to 0.0, with and without a completed period with kudos
+  via: GB14: the group's lines
+  refuted: the group's line reported any gain other than 0.0, a loss per person included -> the test of a group that gave fewer kudos than last period failed, its line a gain of -0.4 instead of its best period (2026-10-14)
+  because: the group's line is there to encourage (G20, user story 28); a line that told a group it gave less per person would turn a private nudge into a reproach
+  kinds: state
+  checklist: revalidated-permission dismissed: the line is computed for the viewer from group totals when they ask; no permission applies
+  checklist: separation-of-duties dismissed: no approval policy applies to showing a group its progress
+  checklist: legal-state-succession dismissed: the line is derived on every read and holds no state of its own
+  checklist: supersession-safety dismissed: the line is derived on every read; nothing is written that a later value could displace
+  checklist: worker-fencing dismissed: one read-only query computes the line; no lease or ownership applies
+  checklist: commit-ordered-effects dismissed: computing the line issues no external effect
+  checklist: resumption-coverage dismissed: no batch resumes from a checkpoint; the line is computed in one query
+- the Groups board reads within Convex's limits: The Groups board and its comparison read the copy's groups of the workspace and its group mode, each counting group's primary members through one index range, each group's own row of the period and of the previous one, one index range per current primary member for their group totals of both periods, never the totals of members who left the group, and the viewer's group's week or month rows, so a workspace of 1,500 members in 60 groups reads its month board after everyone gave every day for two months, and after each member gave for their group and 10 earlier ones in each of two months, within Convex's transaction limits.
+  over: the month board on October 31st of a workspace of 1,500 members in 60 groups who each gave kudos every day of September and October, and of 1,500 members who each gave for their group and 10 earlier ones in each of those months, read through groupBoardsOf with Convex's transaction limits enforced
+  via: GB35: the Groups board at scale
+  refuted: each group's primary members were read by scanning every member's groups row instead of the group's one index range -> the test failed on Convex's limit, too many documents scanned in a single function execution (2026-10-14)
+  refuted: each group's givers were found among all its group totals of both periods, members who left the group included -> the test of members who gave for 10 earlier groups failed on Convex's limit, too many documents scanned in a single function execution (2026-10-14)
+  because: a board that throws shows nobody anything (GB35); a read that grows with groups times members, or with every period a group ever had, would fail at a large workspace long before a small one shows it
+  kinds: state
+  checklist: revalidated-permission dismissed: the board is read for the viewer from group totals when they ask; no permission applies
+  checklist: separation-of-duties dismissed: no approval policy applies to reading a board
+  checklist: legal-state-succession dismissed: the read writes nothing; a group total only grows by addition
+  checklist: supersession-safety dismissed: the read writes nothing; Convex serializes the mutations that add to one group total row
+  checklist: worker-fencing dismissed: one read-only query reads the board; no lease or ownership applies
+  checklist: commit-ordered-effects dismissed: reading the board issues no external effect
+  checklist: resumption-coverage dismissed: no batch resumes from a checkpoint; the board is read in one query

@@ -7,6 +7,7 @@ import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { buyPerk } from "../progression/perks";
+import { xpToReach } from "../progression/levels";
 import { recordReward } from "../progression/progression";
 import type { PerkId } from "../progression/tree";
 import { workspaceLink } from "../slack/workspaceLink";
@@ -20,10 +21,23 @@ const treeFlags = ["xp-levels", "unlocks", "skill-tree"];
 const levelFive = 600;
 const levelSix = 1000;
 const levelSeven = 1500;
+const levelNine = xpToReach(9);
 
-const spark = { perk: "spark", name: "Spark", copy: "+5 XP the first time each day you thank someone and say why.", cost: { skillPoints: 1 }, requires: null } as const;
-const rhythm = { perk: "rhythm", name: "Rhythm", copy: "+2 XP each time you thank someone and say why, once per person a day.", cost: { skillPoints: 1 }, requires: null } as const;
-const circle = { perk: "circle", name: "Circle", copy: "+5 XP the first time each week you thank a person and say why.", cost: { skillPoints: 1 }, requires: null } as const;
+const spark = { perk: "spark", name: "Spark", copy: "+5 XP the first time each day you thank someone and say why.", cost: { skillPoints: 1, coins: 0 }, requires: null, upgrades: null } as const;
+const rhythm = { perk: "rhythm", name: "Rhythm", copy: "+2 XP each time you thank someone and say why, once per person a day.", cost: { skillPoints: 1, coins: 0 }, requires: null, upgrades: null } as const;
+const circle = { perk: "circle", name: "Circle", copy: "+5 XP the first time each week you thank a person and say why.", cost: { skillPoints: 1, coins: 0 }, requires: null, upgrades: null } as const;
+const flame = { perk: "flame", name: "Flame", copy: "Spark gives +8 XP instead of +5.", cost: { skillPoints: 1, coins: 150 }, requires: "Spark", upgrades: "spark" } as const;
+const cadence = { perk: "cadence", name: "Cadence", copy: "Rhythm gives +3 XP instead of +2.", cost: { skillPoints: 1, coins: 200 }, requires: "Rhythm", upgrades: "rhythm" } as const;
+const bridge = {
+  perk: "bridge",
+  name: "Bridge",
+  copy: "Circle gives +8 XP instead of +5 when the person isn't in your primary group. Without a primary group, everyone counts.",
+  cost: { skillPoints: 1, coins: 150 },
+  requires: "Circle",
+  upgrades: "circle",
+} as const;
+const treasurer = { perk: "treasurer", name: "Treasurer", copy: "+2 🪙 each time you thank someone and say why, once per person a day.", cost: { skillPoints: 1, coins: 0 }, requires: null, upgrades: null } as const;
+const banker = { perk: "banker", name: "Banker", copy: "Treasurer gives +4 🪙 instead of +2.", cost: { skillPoints: 2, coins: 250 }, requires: "Treasurer", upgrades: "treasurer" } as const;
 const available = { state: "available", reason: null, ownedAt: null } as const;
 
 let postHog: FakePostHog;
@@ -87,8 +101,8 @@ async function expectProgressionsFacts(member: MemberId, tree: MySkillTree) {
   if (tree.kind !== "tree" || perks === null) throw new Error(`expected a tree beside perksOf, got ${tree.kind}`);
   expect(tree.skillPoints).toBe(perks.skillPoints);
   const nodes = tree.rows.flatMap((row) => row.perks.map((node) => ({ ...node, row: row.level })));
-  expect(nodes.map(({ perk, name, copy, cost, row }) => ({ perk, name, copy, skillPoints: cost.skillPoints, row }))).toEqual(
-    perks.perks.map(({ perk, name, copy, skillPoints, row }) => ({ perk, name, copy, skillPoints, row })),
+  expect(nodes.map(({ perk, name, copy, cost, upgrades, row }) => ({ perk, name, copy, skillPoints: cost.skillPoints, coins: cost.coins, upgrades, row }))).toEqual(
+    perks.perks.map(({ perk, name, copy, skillPoints, coins, upgrades, row }) => ({ perk, name, copy, skillPoints, coins, upgrades, row })),
   );
   expect(nodes.map(({ perk, ownedAt }) => ({ perk, ownedAt }))).toEqual(perks.perks.map(({ perk, boughtAt }) => ({ perk, ownedAt: boughtAt })));
 }
@@ -125,6 +139,7 @@ describe("WS83 WS84: the skill tree read projects progression's perksOf", () => 
     expect(tree).toEqual({
       kind: "tree",
       skillPoints: 2,
+      coins: null,
       rows: [{ level: 5, perks: [{ ...spark, ...available }, { ...rhythm, ...available }, { ...circle, ...available }] }],
       chatUrl: workspaceLink("T1"),
     });
@@ -234,24 +249,63 @@ describe("website reads pass one guard", () => {
   });
 });
 
-describe("CO22 CO25: until the website draws coin prices, its tree shows an upgrade only once it's owned", { timeout: 30_000 }, () => {
-  test("with Coins open at level 7, flame isn't offered without its price, and once owned it shows owned", async () => {
+describe("WS345 CO22 CO25 CO26: the tree draws every row perksOf lists, with coin costs, upgrade links and the wallet", { timeout: 30_000 }, () => {
+  async function coinsOpenAtLevelNine(coins: number, ...owned: PerkId[]) {
     await flagsOn(...treeFlags, "coins");
     await unlocksShippedBeforeAnyoneJoined(t);
     const { member, asSignedIn } = await signedInMember();
-    await treeOpenFor(member, levelSeven);
-    await reachesLevel(t, member, 7);
+    await treeOpenFor(member, levelNine);
+    await reachesLevel(t, member, 9);
     await opens(t, member, "coins");
-    await buys(member, "spark");
-    await t.run((ctx) => recordReward(ctx, "T1", { member, key: "test:savings", xp: 0, coins: 150, item: null, catalogueVersion: "2", at: 0 }));
+    await t.run((ctx) => recordReward(ctx, "T1", { member, key: "test:savings", xp: 0, coins, item: null, catalogueVersion: "2", at: 0 }));
+    for (const perk of owned) await buys(member, perk);
+    return { member, asSignedIn };
+  }
 
-    expect(await perksIn(asSignedIn)).toEqual(["spark", "rhythm", "circle"]);
+  test("with Coins open, a member reads rows 5, 7 and 9, each upgrade with the perk it replaces and its coin price, and their balance", async () => {
+    const { member, asSignedIn } = await coinsOpenAtLevelNine(150, "spark");
 
-    await buys(member, "flame");
+    const tree = await skillTreeOf(asSignedIn);
 
+    const forRequires = { state: "unavailable", reason: "requires", ownedAt: null } as const;
+    expect(tree).toEqual({
+      kind: "tree",
+      skillPoints: 4,
+      coins: 150,
+      rows: [
+        { level: 5, perks: [{ ...spark, state: "owned", reason: null, ownedAt: now.getTime() }, { ...rhythm, ...available }, { ...circle, ...available }] },
+        { level: 7, perks: [{ ...flame, ...available }, { ...cadence, ...forRequires }, { ...bridge, ...forRequires }, { ...treasurer, ...available }] },
+        { level: 9, perks: [{ ...banker, ...forRequires }] },
+      ],
+      chatUrl: workspaceLink("T1"),
+    });
+    await expectProgressionsFacts(member, tree);
+  });
+
+  test("an upgrade the member can't pay for in coins reads unavailable for coins", async () => {
+    const { asSignedIn } = await coinsOpenAtLevelNine(149, "spark");
+
+    expect(await nodeIn(asSignedIn, "flame")).toMatchObject({ state: "unavailable", reason: "coins" });
+  });
+
+  test("while coins aren't visible, the tree reads no wallet and lists an owned upgrade without its price", async () => {
+    const { member, asSignedIn } = await coinsOpenAtLevelNine(150, "spark", "flame");
+    await flagsOn(...treeFlags);
+
+    const tree = await skillTreeOf(asSignedIn);
+
+    expect(tree).toMatchObject({ coins: null });
     expect(await perksIn(asSignedIn)).toEqual(["spark", "rhythm", "circle", "flame"]);
+    expect(await nodeIn(asSignedIn, "flame")).toMatchObject({ cost: { skillPoints: 1, coins: 0 }, upgrades: "spark", state: "owned" });
+    await expectProgressionsFacts(member, tree);
   });
 });
+
+async function nodeIn(asSignedIn: Pick<Backend, "query">, perk: PerkId) {
+  const tree = await skillTreeOf(asSignedIn);
+  if (tree.kind !== "tree") throw new Error(`expected a tree, got ${tree.kind}`);
+  return tree.rows.flatMap((row) => row.perks).find((node) => node.perk === perk);
+}
 
 async function perksIn(asSignedIn: Pick<Backend, "query">) {
   const tree = await skillTreeOf(asSignedIn);

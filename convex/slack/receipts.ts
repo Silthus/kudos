@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { withholdingWords } from "../analytics/exceptions";
 import { commandValidator, runCommand } from "../commands/commands";
+import { welcomePickOf } from "../feedback/welcome";
 import { messageDeletedValidator, messageEventValidator } from "../engine/messageEvent";
 import { republish } from "../feedback/homes";
 import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
@@ -10,6 +11,7 @@ import type { ItemRefusal } from "../store/rows";
 import { directoryEntryValidator, lookup } from "../workspace/directory";
 import { recordPerson } from "./directory";
 import { reportHomeOpened } from "./appHome";
+import { refreshCustomEmojiLater } from "./customEmoji";
 import { processEvent } from "./processEvent";
 
 type Receipt = { workspace: string; eventId: string };
@@ -47,8 +49,16 @@ export const receiveHomeOpened = internalMutation({
 });
 
 export const receiveHomeClick = internalMutation({
-  args: { workspace: v.string(), eventId: v.string(), user: v.string(), commands: v.array(commandValidator), conversation: v.optional(v.string()) },
-  handler: async (ctx, { user, commands, conversation, ...receipt }) => {
+  args: {
+    workspace: v.string(),
+    eventId: v.string(),
+    user: v.string(),
+    commands: v.array(commandValidator),
+    conversation: v.optional(v.string()),
+    message: v.optional(v.string()),
+    ephemeral: v.optional(v.object({ threadRoot: v.optional(v.string()) })),
+  },
+  handler: async (ctx, { user, commands, conversation, message, ephemeral, ...receipt }) => {
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
     const person = await lookup(ctx, receipt.workspace, user);
@@ -56,10 +66,15 @@ export const receiveHomeClick = internalMutation({
     let refused: ItemRefusal | undefined;
     for (const command of commands) {
       const outcome = await runCommand(ctx, receipt.workspace, person, command, `slack:${receipt.eventId}`);
-      if (outcome === null) continue;
-      if ("perk" in outcome) {
-        if (conversation !== undefined) await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, conversation, outcome });
-      } else if (outcome.kind === "refused" && "item" in outcome) refused = outcome;
+      if (outcome !== null && "perk" in outcome && conversation !== undefined) {
+        const answeredIn = ephemeral === undefined ? { conversation } : { conversation: user, beside: { conversation, ...ephemeral } };
+        await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, ...answeredIn, outcome });
+      }
+      if (outcome !== null && "item" in outcome && outcome.kind === "refused") refused = outcome;
+      if (command.type === "pickPrimaryGroup" && command.surface === "welcome" && conversation !== undefined && message !== undefined) {
+        const pick = await welcomePickOf(ctx, person.member, command.group);
+        if (pick !== null) await ctx.scheduler.runAfter(0, internal.slack.welcome.updateWelcome, { workspace: receipt.workspace, user, conversation, message, pick });
+      }
     }
     await republish(ctx, person.member, refused);
   },
@@ -81,6 +96,15 @@ export const receiveUserGroupChanged = internalMutation({
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
     await ctx.scheduler.runAfter(0, internal.slack.userGroups.refreshUserGroup, { workspace: receipt.workspace, group });
+  },
+});
+
+export const receiveEmojiChanged = internalMutation({
+  args: { workspace: v.string(), eventId: v.string() },
+  handler: async (ctx, receipt) => {
+    if (await isRedelivered(ctx, receipt)) return;
+    await ctx.db.insert("slackReceipts", receipt);
+    await refreshCustomEmojiLater(ctx, receipt.workspace);
   },
 });
 

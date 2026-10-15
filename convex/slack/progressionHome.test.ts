@@ -79,7 +79,7 @@ describe("P67: the Settings tab", () => {
     expect(publishedHome(slack, "U_ALICE")).toEqual([
       "actions: Profile | [Settings]",
       "header: Settings",
-      "section: I celebrate your level ups in public. [button: Mute notices]",
+      "section: I'll celebrate your level ups in public once your workspace picks a channel. [button: Mute notices]",
       "section: I send you a DM when you reach a level. [button: Turn off DMs]",
     ]);
   });
@@ -346,6 +346,49 @@ describe("P69: only workspace admins and owners set the announcement channel", (
   });
 });
 
+describe("a maintainer picks the announcement channel for a workspace whose admins can't", () => {
+  test("a picked channel shows picked on the admins' Admin tab and gets the next level-up notice", async () => {
+    const t = await adminTabOpen("U_ALICE");
+
+    expect(await pickAnnouncementChannel(t, "C_NEWS")).toBe(true);
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: I celebrate level ups in this channel. [channels_select: C_NEWS]");
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+  });
+
+  test("a cleared channel celebrates the next level up nowhere in public", async () => {
+    const t = await workspaceWithAllowance(10, { announcementChannel: "C_NEWS" });
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(await pickAnnouncementChannel(t, null)).toBe(true);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    expect(publicPosts()).toEqual([]);
+  });
+
+  test("a pick for a workspace Kudos doesn't know is refused and records no workspace", async () => {
+    const t = await workspaceWithAllowance(10);
+
+    await expect(t.mutation(internal.workspace.settings.pickAnnouncementChannel, { workspace: "T_TYPO", channel: "C_NEWS" })).rejects.toThrow("Kudos knows no workspace T_TYPO");
+
+    expect(await t.run((ctx) => ctx.db.query("workspaces").collect())).toEqual([expect.objectContaining({ workspace: "T1" })]);
+  });
+
+  test("a pick in a workspace where XP and levels are off changes nothing, as an admin's would", async () => {
+    const t = await workspaceWithAllowance(10, { announcementChannel: "C_NEWS" });
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await xpLevelsTurned(t, "off");
+
+    expect(await pickAnnouncementChannel(t, "C_OTHER")).toBe(false);
+
+    await xpLevelsTurned(t, "on");
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    expect(slack.messagesIn("C_NEWS").map(({ text }) => text)).toEqual(["🎉 <@U_ALICE> reached level 2."]);
+    expect(slack.messagesIn("C_OTHER")).toEqual([]);
+  });
+});
+
 describe("P68: App Home follows a member leaving and coming back", () => {
   test("a member deactivated and then reactivated in Slack sees the members-only line, then their App Home again", async () => {
     const t = await workspaceWithAllowance(10);
@@ -429,6 +472,17 @@ async function withXp(t: Backend, user: string, xp: number) {
       .unique();
     await ctx.db.patch(progress!._id, { xp });
   });
+}
+
+async function pickAnnouncementChannel(t: Backend, channel: string | null) {
+  const picked = await t.mutation(internal.workspace.settings.pickAnnouncementChannel, { workspace: "T1", channel });
+  await settle(t);
+  return picked;
+}
+
+async function xpLevelsTurned(t: Backend, state: "on" | "off") {
+  flagsOnForEveryone(slack.fetch, ...(state === "on" ? ["xp-levels"] : []));
+  await flagsLoaded(t);
 }
 
 async function adminTabOpen(user: string) {

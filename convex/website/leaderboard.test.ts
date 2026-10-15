@@ -132,7 +132,7 @@ describe("WS30: the website's board is invisible while everyone-board is off", (
 describe("a website board row carries only what a board shows", () => {
   beforeEach(() => flagsOn("website", "everyone-board"));
 
-  test("a row holds exactly position, rank, tied, name, face, kudos and you", async () => {
+  test("a row holds exactly position, rank, tied, name, face, kudos, you and climbed", async () => {
     await aMember("U_JUNO", "Juno Whitlock");
     await aMember("U_ANN", "Ann Lee");
     await gives("U_ANN", 3);
@@ -140,8 +140,23 @@ describe("a website board row carries only what a board shows", () => {
     const { asSignedIn } = await aSession(t, juno);
 
     expect((await board("week", asSignedIn)).rows).toEqual([
-      { position: 1, rank: 1, tied: false, name: "Ann Lee", face: { kind: "initials", initials: "AL" }, kudos: 3, you: false },
-      { position: 2, rank: 2, tied: false, name: "Juno Whitlock", face: { kind: "slack", image: juno.image, initials: "JW" }, kudos: 1, you: true },
+      { position: 1, rank: 1, tied: false, name: "Ann Lee", face: { kind: "initials", initials: "AL" }, kudos: 3, you: false, climbed: null },
+      { position: 2, rank: 2, tied: false, name: "Juno Whitlock", face: { kind: "slack", image: juno.image, initials: "JW" }, kudos: 1, you: true, climbed: null },
+    ]);
+  });
+
+  test("GB18: a row that rose since last period up to the same day says how many places it climbed", async () => {
+    await aMember("U_JUNO", "Juno Whitlock");
+    await aMember("U_ANN", "Ann Lee");
+    await gives("U_ANN", 3, { day: "2026-10-06" });
+    await gives("U_JUNO", 1, { day: "2026-10-06" });
+    await gives("U_ANN", 1);
+    await gives("U_JUNO", 2);
+    const { asSignedIn } = await aSession(t, juno);
+
+    expect((await board("week", asSignedIn)).rows.map(({ name, climbed }) => ({ name, climbed }))).toEqual([
+      { name: "Juno Whitlock", climbed: 1 },
+      { name: "Ann Lee", climbed: null },
     ]);
   });
 

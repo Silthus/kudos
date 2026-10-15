@@ -1,0 +1,602 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/later-perk-rows
+
+ ❯ |convex| convex/website/skillTree.test.ts (15 tests | 7 failed) 395ms
+   ❯ WS83 WS84: the skill tree read projects progression's perksOf (3)
+     × a member with points and no perks reads every first-row perk available, and the HUD's points equal the tree's 29ms
+     × a member who owns spark reads it owned since they bought it, and the rest still available 25ms
+     × a member with no points left reads the perks they don't own unavailable for points, and the HUD shows 0 26ms
+   ❯ P77 WS83: the launch opens the Skill tree for a member who was there (1)
+     × a member the launch opened the Skill tree for below level 5 reads every perk unavailable for its level 11ms
+   ❯ WS345 CO22 CO25 CO26: the tree draws every row perksOf lists, with coin costs, upgrade links and the wallet (3)
+     × with Coins open, a member reads rows 5, 7 and 9, each upgrade with the perk it replaces and its coin price, and their balance 31ms
+     × an upgrade the member can't pay for in coins reads unavailable for coins 32ms
+     × while coins aren't visible, the tree reads no wallet and lists an owned upgrade without its price 33ms
+ ❯ |convex| convex/website/buyPerk.test.ts (33 tests | 2 failed) 1371ms
+   ❯ CO14 CO24: a coin perk bought from the website (2)
+     × WS345 CO14: with coins shown and Coins not opened yet, a request for flame is refused with the reason coins-not-open, storing only the refusal and spending nothing 54ms
+     × WS345 CO24: with Coins open and too few coins, a request for flame is refused with the reason coins, storing only the refusal 52ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > CO14 CO24: a coin perk bought from the website > WS345 CO14: with coins shown and Coins not opened yet, a request for flame is refused with the reason coins-not-open, storing only the refusal and spending nothing
+AssertionError: expected { kind: 'refused', reason: null } to deeply equal { kind: 'refused', …(1) }
+
+- Expected
++ Received
+
+  {
+    "kind": "refused",
+-   "reason": "coins-not-open",
++   "reason": null,
+  }
+
+ ❯ convex/website/buyPerk.test.ts:462:63
+    460|     const before = await everythingWritten();
+    461|
+    462|     expect(await buyPerk(asSignedIn, "flame", secondRequest)).toEqual(…
+       |                                                               ^
+    463|     expectOnlyTheRefusalStored(before, await everythingWritten(), { ki…
+    464|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  |convex| convex/website/buyPerk.test.ts > CO14 CO24: a coin perk bought from the website > WS345 CO24: with Coins open and too few coins, a request for flame is refused with the reason coins, storing only the refusal
+AssertionError: expected { kind: 'refused', reason: null } to deeply equal { kind: 'refused', reason: 'coins' }
+
+- Expected
++ Received
+
+  {
+    "kind": "refused",
+-   "reason": "coins",
++   "reason": null,
+  }
+
+ ❯ convex/website/buyPerk.test.ts:477:63
+    475|     const before = await everythingWritten();
+    476|
+    477|     expect(await buyPerk(asSignedIn, "flame", secondRequest)).toEqual(…
+       |                                                               ^
+    478|     expectOnlyTheRefusalStored(before, await everythingWritten(), { ki…
+    479|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  |convex| convex/website/skillTree.test.ts > WS83 WS84: the skill tree read projects progression's perksOf > a member with points and no perks reads every first-row perk available, and the HUD's points equal the tree's
+AssertionError: expected { …(4) } to deeply equal { kind: 'tree', skillPoints: 2, …(3) }
+
+- Expected
++ Received
+
+@@ -1,54 +1,47 @@
+  {
+    "chatUrl": "https://app.slack.com/client/T1",
+-   "coins": null,
+    "kind": "tree",
+    "rows": [
+      {
+        "level": 5,
+        "perks": [
+          {
+            "copy": "+5 XP the first time each day you thank someone and say why.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Spark",
+            "ownedAt": null,
+            "perk": "spark",
+            "reason": null,
+            "requires": null,
+            "state": "available",
+-           "upgrades": null,
+          },
+          {
+            "copy": "+2 XP each time you thank someone and say why, once per person a day.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Rhythm",
+            "ownedAt": null,
+            "perk": "rhythm",
+            "reason": null,
+            "requires": null,
+            "state": "available",
+-           "upgrades": null,
+          },
+          {
+            "copy": "+5 XP the first time each week you thank a person and say why.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Circle",
+            "ownedAt": null,
+            "perk": "circle",
+            "reason": null,
+            "requires": null,
+            "state": "available",
+-           "upgrades": null,
+          },
+        ],
+      },
+    ],
+    "skillPoints": 2,
+
+ ❯ convex/website/skillTree.test.ts:139:18
+    137|     const tree = await skillTreeOf(asSignedIn);
+    138|
+    139|     expect(tree).toEqual({
+       |                  ^
+    140|       kind: "tree",
+    141|       skillPoints: 2,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  |convex| convex/website/skillTree.test.ts > WS83 WS84: the skill tree read projects progression's perksOf > a member who owns spark reads it owned since they bought it, and the rest still available
+AssertionError: expected { …(4) } to match object { skillPoints: 1, rows: [ { …(2) } ] }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+@@ -4,48 +4,42 @@
+        "level": 5,
+        "perks": [
+          {
+            "copy": "+5 XP the first time each day you thank someone and say why.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Spark",
+            "ownedAt": 1791972000000,
+            "perk": "spark",
+            "reason": null,
+            "requires": null,
+            "state": "owned",
+-           "upgrades": null,
+          },
+          {
+            "copy": "+2 XP each time you thank someone and say why, once per person a day.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Rhythm",
+            "ownedAt": null,
+            "perk": "rhythm",
+            "reason": null,
+            "requires": null,
+            "state": "available",
+-           "upgrades": null,
+          },
+          {
+            "copy": "+5 XP the first time each week you thank a person and say why.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Circle",
+            "ownedAt": null,
+            "perk": "circle",
+            "reason": null,
+            "requires": null,
+            "state": "available",
+-           "upgrades": null,
+          },
+        ],
+      },
+    ],
+    "skillPoints": 1,
+
+ ❯ convex/website/skillTree.test.ts:157:18
+    155|     const tree = await skillTreeOf(asSignedIn);
+    156|
+    157|     expect(tree).toMatchObject({
+       |                  ^
+    158|       skillPoints: 1,
+    159|       rows: [{ level: 5, perks: [{ ...spark, state: "owned", reason: n…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  |convex| convex/website/skillTree.test.ts > WS83 WS84: the skill tree read projects progression's perksOf > a member with no points left reads the perks they don't own unavailable for points, and the HUD shows 0
+AssertionError: expected { …(4) } to match object { skillPoints: +0, rows: [ { …(2) } ] }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+@@ -4,48 +4,42 @@
+        "level": 5,
+        "perks": [
+          {
+            "copy": "+5 XP the first time each day you thank someone and say why.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Spark",
+            "ownedAt": null,
+            "perk": "spark",
+            "reason": "points",
+            "requires": null,
+            "state": "unavailable",
+-           "upgrades": null,
+          },
+          {
+            "copy": "+2 XP each time you thank someone and say why, once per person a day.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Rhythm",
+            "ownedAt": 1791972000000,
+            "perk": "rhythm",
+            "reason": null,
+            "requires": null,
+            "state": "owned",
+-           "upgrades": null,
+          },
+          {
+            "copy": "+5 XP the first time each week you thank a person and say why.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Circle",
+            "ownedAt": null,
+            "perk": "circle",
+            "reason": "points",
+            "requires": null,
+            "state": "unavailable",
+-           "upgrades": null,
+          },
+        ],
+      },
+    ],
+    "skillPoints": 0,
+
+ ❯ convex/website/skillTree.test.ts:173:18
+    171|
+    172|     const forPoints = { state: "unavailable", reason: "points", ownedA…
+    173|     expect(tree).toMatchObject({
+       |                  ^
+    174|       skillPoints: 0,
+    175|       rows: [{ level: 5, perks: [{ ...spark, ...forPoints }, { ...rhyt…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  |convex| convex/website/skillTree.test.ts > P77 WS83: the launch opens the Skill tree for a member who was there > a member the launch opened the Skill tree for below level 5 reads every perk unavailable for its level
+AssertionError: expected { …(4) } to match object { skillPoints: +0, rows: [ { …(2) } ] }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+@@ -4,48 +4,42 @@
+        "level": 5,
+        "perks": [
+          {
+            "copy": "+5 XP the first time each day you thank someone and say why.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Spark",
+            "ownedAt": null,
+            "perk": "spark",
+            "reason": "level",
+            "requires": null,
+            "state": "unavailable",
+-           "upgrades": null,
+          },
+          {
+            "copy": "+2 XP each time you thank someone and say why, once per person a day.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Rhythm",
+            "ownedAt": null,
+            "perk": "rhythm",
+            "reason": "level",
+            "requires": null,
+            "state": "unavailable",
+-           "upgrades": null,
+          },
+          {
+            "copy": "+5 XP the first time each week you thank a person and say why.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Circle",
+            "ownedAt": null,
+            "perk": "circle",
+            "reason": "level",
+            "requires": null,
+            "state": "unavailable",
+-           "upgrades": null,
+          },
+        ],
+      },
+    ],
+    "skillPoints": 0,
+
+ ❯ convex/website/skillTree.test.ts:191:18
+    189|
+    190|     const forLevel = { state: "unavailable", reason: "level", ownedAt:…
+    191|     expect(tree).toMatchObject({ skillPoints: 0, rows: [{ level: 5, pe…
+       |                  ^
+    192|     await expectProgressionsFacts(member, tree);
+    193|     expect(await skillPointsIn(asSignedIn)).toBe(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  |convex| convex/website/skillTree.test.ts > WS345 CO22 CO25 CO26: the tree draws every row perksOf lists, with coin costs, upgrade links and the wallet > with Coins open, a member reads rows 5, 7 and 9, each upgrade with the perk it replaces and its coin price, and their balance
+AssertionError: expected { …(4) } to deeply equal { kind: 'tree', skillPoints: 4, …(3) }
+
+- Expected
++ Received
+
+@@ -1,134 +1,47 @@
+  {
+    "chatUrl": "https://app.slack.com/client/T1",
+-   "coins": 150,
+    "kind": "tree",
+    "rows": [
+      {
+        "level": 5,
+        "perks": [
+          {
+            "copy": "+5 XP the first time each day you thank someone and say why.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Spark",
+            "ownedAt": 1791972000000,
+            "perk": "spark",
+            "reason": null,
+            "requires": null,
+            "state": "owned",
+-           "upgrades": null,
+          },
+          {
+            "copy": "+2 XP each time you thank someone and say why, once per person a day.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Rhythm",
+            "ownedAt": null,
+            "perk": "rhythm",
+            "reason": null,
+            "requires": null,
+            "state": "available",
+-           "upgrades": null,
+          },
+          {
+            "copy": "+5 XP the first time each week you thank a person and say why.",
+            "cost": {
+-             "coins": 0,
+              "skillPoints": 1,
+            },
+            "name": "Circle",
+            "ownedAt": null,
+            "perk": "circle",
+            "reason": null,
+            "requires": null,
+            "state": "available",
+-           "upgrades": null,
+-         },
+-       ],
+-     },
+-     {
+-       "level": 7,
+-       "perks": [
+-         {
+-           "copy": "Spark gives +8 XP instead of +5.",
+-           "cost": {
+-             "coins": 150,
+-             "skillPoints": 1,
+-           },
+-           "name": "Flame",
+-           "ownedAt": null,
+-           "perk": "flame",
+-           "reason": null,
+-           "requires": "Spark",
+-           "state": "available",
+-           "upgrades": "spark",
+-         },
+-         {
+-           "copy": "Rhythm gives +3 XP instead of +2.",
+-           "cost": {
+-             "coins": 200,
+-             "skillPoints": 1,
+-           },
+-           "name": "Cadence",
+-           "ownedAt": null,
+-           "perk": "cadence",
+-           "reason": "requires",
+-           "requires": "Rhythm",
+-           "state": "unavailable",
+-           "upgrades": "rhythm",
+-         },
+-         {
+-           "copy": "Circle gives +8 XP instead of +5 when the person isn't in your primary group. Without a primary group, everyone counts.",
+-           "cost": {
+-             "coins": 150,
+-             "skillPoints": 1,
+-           },
+-           "name": "Bridge",
+-           "ownedAt": null,
+-           "perk": "bridge",
+-           "reason": "requires",
+-           "requires": "Circle",
+-           "state": "unavailable",
+-           "upgrades": "circle",
+-         },
+-         {
+-           "copy": "+2 🪙 each time you thank someone and say why, once per person a day.",
+-           "cost": {
+-             "coins": 0,
+-             "skillPoints": 1,
+-           },
+-           "name": "Treasurer",
+-           "ownedAt": null,
+-           "perk": "treasurer",
+-           "reason": null,
+-           "requires": null,
+-           "state": "available",
+-           "upgrades": null,
+-         },
+-       ],
+-     },
+-     {
+-       "level": 9,
+-       "perks": [
+-         {
+-           "copy": "Treasurer gives +4 🪙 instead of +2.",
+-           "cost": {
+-             "coins": 250,
+-             "skillPoints": 2,
+-           },
+-           "name": "Banker",
+-           "ownedAt": null,
+-           "perk": "banker",
+-           "reason": "requires",
+-           "requires": "Treasurer",
+-           "state": "unavailable",
+-           "upgrades": "treasurer",
+          },
+        ],
+      },
+    ],
+    "skillPoints": 4,
+
+ ❯ convex/website/skillTree.test.ts:271:18
+    269|
+    270|     const forRequires = { state: "unavailable", reason: "requires", ow…
+    271|     expect(tree).toEqual({
+       |                  ^
+    272|       kind: "tree",
+    273|       skillPoints: 4,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  |convex| convex/website/skillTree.test.ts > WS345 CO22 CO25 CO26: the tree draws every row perksOf lists, with coin costs, upgrade links and the wallet > an upgrade the member can't pay for in coins reads unavailable for coins
+AssertionError: expected undefined to match object { state: 'unavailable', …(1) }
+
+- Expected:
+{
+  "reason": "coins",
+  "state": "unavailable",
+}
+
++ Received:
+undefined
+
+ ❯ convex/website/skillTree.test.ts:288:47
+    286|     const { asSignedIn } = await coinsOpenAtLevelNine(149, "spark");
+    287|
+    288|     expect(await nodeIn(asSignedIn, "flame")).toMatchObject({ state: "…
+       |                                               ^
+    289|   });
+    290|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  |convex| convex/website/skillTree.test.ts > WS345 CO22 CO25 CO26: the tree draws every row perksOf lists, with coin costs, upgrade links and the wallet > while coins aren't visible, the tree reads no wallet and lists an owned upgrade without its price
+AssertionError: expected { …(4) } to match object { coins: null }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "coins": null,
++   "chatUrl": "https://app.slack.com/client/T1",
++   "kind": "tree",
++   "rows": [
++     {
++       "level": 5,
++       "perks": [
++         {
++           "copy": "+5 XP the first time each day you thank someone and say why.",
++           "cost": {
++             "skillPoints": 1,
++           },
++           "name": "Spark",
++           "ownedAt": 1791972000000,
++           "perk": "spark",
++           "reason": null,
++           "requires": null,
++           "state": "owned",
++         },
++         {
++           "copy": "+2 XP each time you thank someone and say why, once per person a day.",
++           "cost": {
++             "skillPoints": 1,
++           },
++           "name": "Rhythm",
++           "ownedAt": null,
++           "perk": "rhythm",
++           "reason": null,
++           "requires": null,
++           "state": "available",
++         },
++         {
++           "copy": "+5 XP the first time each week you thank a person and say why.",
++           "cost": {
++             "skillPoints": 1,
++           },
++           "name": "Circle",
++           "ownedAt": null,
++           "perk": "circle",
++           "reason": null,
++           "requires": null,
++           "state": "available",
++         },
++       ],
++     },
++     {
++       "level": 7,
++       "perks": [
++         {
++           "copy": "Spark gives +8 XP instead of +5.",
++           "cost": {
++             "skillPoints": 1,
++           },
++           "name": "Flame",
++           "ownedAt": 1791972000000,
++           "perk": "flame",
++           "reason": null,
++           "requires": "Spark",
++           "state": "owned",
++         },
++       ],
++     },
++   ],
++   "skillPoints": 3,
+  }
+
+ ❯ convex/website/skillTree.test.ts:297:18
+    295|     const tree = await skillTreeOf(asSignedIn);
+    296|
+    297|     expect(tree).toMatchObject({ coins: null });
+       |                  ^
+    298|     expect(await perksIn(asSignedIn)).toEqual(["spark", "rhythm", "cir…
+    299|     expect(await nodeIn(asSignedIn, "flame")).toMatchObject({ cost: { …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  9 failed | 39 passed (48)
+   Start at  16:55:15
+   Duration  2.36s (tests 50%, transform 35%, import 13%, environment 2%)
+

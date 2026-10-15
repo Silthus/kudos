@@ -1,8 +1,9 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
+import { emojiCharacters } from "./emojiCharacters.ts";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), emojiCharacters()],
   test: {
     name: "website",
     include: ["src/**/*.test.tsx"],
