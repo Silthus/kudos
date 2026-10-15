@@ -6,7 +6,9 @@ import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../..
 import { api, components, internal } from "../_generated/api";
 import { observe } from "../engine/engine";
 import { homeFacts } from "../engine/home";
+import { groupsShownTo } from "../groups/groups";
 import { progressionHomeOf } from "../progression/progression";
+import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const week = 7 * 24 * 60 * 60 * 1000;
@@ -197,6 +199,7 @@ describe("WS13 WS15 WS18: a member's home answer projects their own homeFacts", 
       skillPoints: null,
       coins: null,
       inventory: null,
+      groups: false,
     });
   });
 
@@ -296,6 +299,40 @@ describe("level and XP are invisible while xp-levels is off", () => {
     expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", progression: null });
   });
 });
+
+describe("groups are named only while groupsShownTo answers", () => {
+  test.each([
+    { case: "groups is off", alsoOn: [], aGroupCounts: true, groups: false },
+    { case: "groups is on but no group counts in the workspace", alsoOn: ["groups"], aGroupCounts: false, groups: false },
+    { case: "groups is on and a group counts in the workspace", alsoOn: ["groups"], aGroupCounts: true, groups: true },
+  ])("#417: while $case, getMyProfile says groups is $groups, as groupsShownTo does", async ({ alsoOn, aGroupCounts, groups }) => {
+    await switchWebsite(t, postHog, true, ...alsoOn);
+    const member = await aMember(t, juno.user);
+    if (aGroupCounts) await aCountingGroupWith(member);
+    const { asSignedIn } = await aSession(t, juno);
+
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", groups });
+    expect(await t.run((ctx) => groupsShownTo(ctx, member))).toBe(groups);
+  });
+
+  test("#417: switching groups off hides the groups fact of a session that was reading it", async () => {
+    await switchWebsite(t, postHog, true, "groups");
+    await aCountingGroupWith(await aMember(t, juno.user));
+    const { asSignedIn } = await aSession(t, juno);
+    expect(await myProfile(asSignedIn)).toMatchObject({ groups: true });
+
+    await switchWebsite(t, postHog, true);
+
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", groups: false });
+  });
+});
+
+function aCountingGroupWith(member: MemberId) {
+  return t.run(async (ctx) => {
+    const group = await ctx.db.insert("userGroups", { workspace: "T1", group: "S_ANTS", handle: "ants", name: "Ants", enabled: true, automatic: false, members: 3, asOf: 0, membersAsOf: 0 });
+    await ctx.db.insert("memberGroups", { workspace: "T1", member, groups: [group], primary: group });
+  });
+}
 
 async function aMemberWithXp(xp: number) {
   const member = await aMember(t, juno.user);

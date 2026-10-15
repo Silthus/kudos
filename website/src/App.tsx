@@ -43,6 +43,8 @@ import { hrefOf, useRoute, type ActivityFilter, type BookPageId, type Route, typ
 import type { MemberProfile, Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome, useSignInWhenAsked } from "./signInAttempt";
 
+export type AppReads = Omit<AppProps, "visitor" | "actions">;
+
 type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useSkillTree: SkillTreeRead; useProfileCard: ProfileCardRead; useRecentKudos: RecentKudosRead; useActivityWatch: ActivityWatch; readActivity: ActivityRead; drawSpotlight: SpotlightDraw };
 
 export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useSkillTree, useProfileCard, useRecentKudos, useActivityWatch, readActivity, drawSpotlight }: AppProps) {
@@ -238,7 +240,7 @@ function BookAnswerPage({ member, book, page, ...actions }: BookAnswerPageProps)
   if (book.kind === "not-found") return <NotFoundPage />;
   if (book.kind === "ready" || book.kind === "locked") return <FeatureWaitsPage feature="book" waiting={book} member={member} />;
   if (book.kind !== "book") return <AnswerPage answer={book} {...actions} />;
-  return <BookPage book={book} page={page} />;
+  return <BookPage book={book} page={page} chatUrl={member.chatUrl} />;
 }
 
 type SkillTreeAnswerPageProps = { member: MemberProfile; skillTree: SkillTreeShown | undefined; onBuyPerk: ShellActions["buyPerk"]; onSignIn: () => void; onSignOut: () => void };

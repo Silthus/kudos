@@ -1,0 +1,6 @@
+     × names the silver tier's emoji with its glyph on the ladder card 427ms
+     × shows a shelved silver tier's emoji, and says it in the entry's name 687ms
+     × celebrates a silver tier with its emoji on the earned page 87ms
+     × joins every reward of one tier in its sentence 74ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  4 failed | 28 passed (32)
