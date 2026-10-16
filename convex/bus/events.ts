@@ -20,7 +20,7 @@ export const kudosGivenEventValidator = v.object({
   message: messageRefValidator,
   giver: v.id("members"),
   awards: v.array(awardValidator),
-  via: v.union(v.literal("message"), v.literal("chime-in")),
+  via: v.literal("message"),
   kudosEmoji: v.string(),
   loadoutEmoji: v.optional(v.array(v.string())),
   annotations: annotationsValidator,
