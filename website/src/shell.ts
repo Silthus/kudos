@@ -183,7 +183,7 @@ const memberShortOfCoins: MemberProfile = { ...memberWithTheInventory, coins: 40
 
 const memberWithTheCrateStore: MemberProfile = { ...memberWithTheInventory, ...onTheUnlockPath({ ...bookFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }), coins: 120 };
 
-const memberWithTheBookSpread = { ...memberWithTheCrateStore, avatar: null, bookSpread: true } as MemberProfile;
+const memberWithTheBookSpread: MemberProfile = { ...memberWithTheCrateStore, avatar: null, bookSpread: true };
 
 const memberWithCoinsBeforeTheStore: MemberProfile = { ...memberWithCoinsOpened, coins: 40 };
 

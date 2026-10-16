@@ -20,7 +20,7 @@ const rocket = theCollection.hoggies.find(({ hoggie }) => hoggie === "rocket")!;
 
 const peopleOps = theCollection.crests!.find(({ crest }) => crest === "people-ops")!;
 
-const withTheBookSpread = (member: MemberProfile): MemberProfile => ({ ...member, bookSpread: true }) as MemberProfile;
+const withTheBookSpread = (member: MemberProfile): MemberProfile => ({ ...member, bookSpread: true });
 
 const reader = withTheBookSpread(shellFixtures.memberWithTheBookOpened);
 
