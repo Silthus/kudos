@@ -83,6 +83,20 @@ describe("unlock schedule 2: the Book at level 1, the Leaderboard at level 2, Qu
     expect(dmsTo("U_CAROL")).toEqual([]);
   });
 
+  test("a level-up DM and a ship sweep DM queued under schedule 1 that name the Book go out without it, and a DM left with nothing to name is not sent", async () => {
+    const t = await workspace();
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await openHome(t, "U_ALICE");
+    const member = await memberOf(t, "U_ALICE");
+    const queued = { member, workspace: "T1", user: "U_ALICE" };
+
+    await t.run((ctx) => ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverDirectMessage, { ...queued, notification: { kind: "level-reached", level: 4, skillPoints: null, xpToNextLevel: 300, ready: ["book"] } }));
+    await t.run((ctx) => ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverDirectMessage, { ...queued, notification: { kind: "features-shipped", ready: ["book"] } }));
+    await settle(t);
+
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([["🎉 You reached level 4!", "Level 5 is 300 XP away."]]);
+  });
+
   test("a member at level 1 whom nothing in Slack has shown unlocks signs in to the website first and reads the Book ready, and no DM names it", async () => {
     vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
     const t = await workspace();
