@@ -240,6 +240,22 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(await onTheBoards(t, "U_ALICE")).toBe(false);
   });
 
+  test("while the website's Settings page has no setting for the member, the Settings tab has no link to it", async () => {
+    const t = await workspace("xp-levels", "website");
+    await openHome(t, "U_ALICE");
+
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Settings")));
+
+    expect(publishedHome(slack, "U_ALICE")).toEqual([
+      "actions: Profile | [Settings]",
+      "header: Settings",
+      "section: I'll celebrate your level ups in public once your workspace picks a channel. [button: Mute notices]",
+      "section: I send you a DM when you reach a level. [button: Turn off DMs]",
+      "divider",
+      `section: <${siteUrl}/|Open HedgeHug on the web>`,
+    ]);
+  });
+
   test("for a member previewing the website while it is closed for the workspace, the Settings link goes through the page's sign-in entry", async () => {
     slack.withMember("U_ALICE", { profile: { email: alicesEmail } });
     const t = await workspace("xp-levels", "everyone-board", onForEmails("website", alicesEmail));

@@ -99,13 +99,13 @@ function memberViewOf(facts: MemberHome, home: ShownHome | null): HomeView {
 function frontDoorOf(facts: MemberHome, home: ShownHome | null, links: FrontDoorLinks): HomeView {
   if (home === null) return summaryOf(facts, noProfileFacts, links);
   const { shown } = home;
-  const view = shown.tab === "profile" ? summaryOf(facts, shown, links) : withWebsiteLink(frontDoorTabOf(facts, shown, links.origin), urlOf(links.origin, { page: "home" }));
+  const view = shown.tab === "profile" ? summaryOf(facts, shown, links) : withWebsiteLink(frontDoorTabOf(facts, shown, links), urlOf(links.origin, { page: "home" }));
   return { tabBar: tabBar(home.tabs, shown.tab), ...view };
 }
 
-function frontDoorTabOf(facts: MemberHome, shown: ShownTab, website: string): HomeView {
+function frontDoorTabOf(facts: MemberHome, shown: ShownTab, { origin, settings }: FrontDoorLinks): HomeView {
   const view = tabOf(facts, shown);
-  return shown.tab === "settings" ? { ...view, groups: [[settingsOnTheWeb(website)], ...view.groups] } : view;
+  return shown.tab === "settings" && settings ? { ...view, groups: [[settingsOnTheWeb(origin)], ...view.groups] } : view;
 }
 
 function settingsOnTheWeb(website: string): HomeLine {
