@@ -55,11 +55,11 @@ describe("WS80: /book answers like the leaderboard", () => {
     expect(pageTitle()).toHaveTextContent("Page not found");
   });
 
-  it("shows the locked page, Unlocks at level 4, with Back to your profile while getBook answers locked", () => {
+  it("shows the locked page, Unlocks at level 1, with Back to your profile while getBook answers locked", () => {
     showBook(bookFixtures.locked, shellFixtures.memberWaitingForTheBook);
     expect(pageTitle()).toHaveTextContent("Book");
     expect(document.title).toBe("HedgeHug · Book");
-    expect(pageTitle()).toHaveTextContent("Unlocks at level 4");
+    expect(pageTitle()).toHaveTextContent("Unlocks at level 1");
     expect(within(main()).getByRole("link", { name: "Back to your profile" })).toHaveAttribute("href", "/");
   });
 
@@ -218,7 +218,7 @@ describe("WS80 WS81: the fixture build's /book agrees with its member", () => {
 
   it("shows the locked page for a member waiting for the Book, and the crate for one whose Book is ready", () => {
     const waiting = render(<Root fixture="member-waiting-for-the-book" />);
-    expect(main()).toHaveTextContent("Unlocks at level 4");
+    expect(main()).toHaveTextContent("Unlocks at level 1");
     waiting.unmount();
     render(<Root fixture="member-with-the-book-ready" />);
     expect(within(main()).getByRole("heading", { level: 1, name: "Book is ready" })).toBeInTheDocument();

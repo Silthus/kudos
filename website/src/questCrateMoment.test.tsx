@@ -217,7 +217,7 @@ describe("WS68 WS74: the ready pill counts quest and Journey crates", () => {
   it("takes a ready feature before any quest crate", async () => {
     const openFeature = vi.fn(async () => ({ kind: "refused" }) as const);
     const openQuestCrate = vi.fn(async () => ({ kind: "refused" }) as const);
-    const withTheBoardReady: MemberProfile = { ...withQuests, features: [...withQuests.features!, { feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 3, seen: "5e3a0c", state: "ready", readyAt: 0, openedAt: null }] };
+    const withTheBoardReady: MemberProfile = { ...withQuests, features: [{ feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 2, seen: "5e3a0c", state: "ready", readyAt: 0, openedAt: null }, ...withQuests.features!] };
     const { user } = onTheHome(withTheBoardReady, { openFeature, openQuestCrate });
 
     expect(pill()).toHaveAccessibleName("3 ready");

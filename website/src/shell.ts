@@ -107,13 +107,13 @@ const readyAt = Date.parse("2026-10-12T09:00:00Z");
 
 const openedAt = Date.parse("2026-10-13T09:00:00Z");
 
-const leaderboardFeature = { feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 3, seen: "5e3a0c" } as const;
+const bookFeature = { feature: "book", name: "Book", opens: "your achievements", level: 1, seen: "c4f8a1" } as const;
 
-const bookFeature = { feature: "book", name: "Book", opens: "your achievements", level: 4, seen: "c4f8a1" } as const;
+const leaderboardFeature = { feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 2, seen: "5e3a0c" } as const;
+
+const questsFeature = { feature: "quests", name: "Quests", opens: "your weekly quests", level: 3, seen: "4c8e1f" } as const;
 
 const skillTreeFeature = { feature: "skillTree", name: "Skill tree", opens: "the tree and your first skill point", level: 5, seen: "9b71d2" } as const;
-
-const questsFeature = { feature: "quests", name: "Quests", opens: "your weekly quests", level: 2, seen: "4c8e1f" } as const;
 
 const coinsFeature = { feature: "coins", name: "Coins and inventory", opens: "the wallet, the store's kudos emoji and your emoji slots", level: 6, seen: "e5a6b7" } as const;
 
@@ -142,21 +142,21 @@ const memberWithTheBoardReady: MemberProfile = { ...member, ...onTheUnlockPath({
 
 const memberWithTheBoardOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
 
-const memberWithTheQuestsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...ready }, { ...leaderboardFeature, ...locked }) };
+const memberWithTheQuestsReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...questsFeature, ...ready }) };
 
-const memberWithTheQuestsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...opened }) };
+const memberWithTheQuestsOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...questsFeature, ...opened }) };
 
 const memberWithTheSkillTreeReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...ready }) };
 
-const memberWaitingForTheBook: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...locked }, { ...skillTreeFeature, ...locked }) };
+const memberWaitingForTheBook: MemberProfile = { ...member, ...onTheUnlockPath({ ...bookFeature, ...locked }, { ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
 
-const memberWithTheBookReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...ready }, { ...skillTreeFeature, ...locked }) };
+const memberWithTheBookReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...bookFeature, ...ready }, { ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
 
-const memberWithTheBookOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
+const memberWithTheBookOpened: MemberProfile = { ...member, ...onTheUnlockPath({ ...bookFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...locked }) };
 
 const memberWithEveryFeatureReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...ready }, { ...skillTreeFeature, ...ready }) };
 
-const memberWithEveryFeatureOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...opened }), skillPoints: 2 };
+const memberWithEveryFeatureOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...bookFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...opened }), skillPoints: 2 };
 
 const memberWithOneSkillPoint: MemberProfile = { ...memberWithEveryFeatureOpen, skillPoints: 1 };
 
@@ -179,28 +179,40 @@ const memberWithCustomEmoji: MemberProfile = { ...memberWithTheInventory, invent
 
 const memberShortOfCoins: MemberProfile = { ...memberWithTheInventory, coins: 40 };
 
-const memberWithTheCrateStore: MemberProfile = { ...memberWithTheInventory, ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...coinsFeature, ...opened }), coins: 120 };
+const memberWithTheCrateStore: MemberProfile = { ...memberWithTheInventory, ...onTheUnlockPath({ ...bookFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }), coins: 120 };
 
 const memberWithCoinsBeforeTheStore: MemberProfile = { ...memberWithCoinsOpened, coins: 40 };
 
 const memberAcrossTheSheet: MemberProfile = {
   ...member,
-  ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...locked }),
+  ...onTheUnlockPath({ ...bookFeature, ...opened }, { ...leaderboardFeature, ...ready }, { ...questsFeature, ...opened }, { ...skillTreeFeature, ...locked }),
   skillPoints: 0,
 };
 
-const memberWithEveryPanelLocked: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...locked }, { ...leaderboardFeature, ...locked }, { ...bookFeature, ...locked }, { ...skillTreeFeature, ...locked }) };
+const memberWithEveryPanelLocked: MemberProfile = { ...member, ...onTheUnlockPath({ ...bookFeature, ...locked }, { ...leaderboardFeature, ...locked }, { ...questsFeature, ...locked }, { ...skillTreeFeature, ...locked }) };
 
-const memberWithEveryPanelReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...ready }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...ready }, { ...skillTreeFeature, ...ready }) };
+const memberWithEveryPanelReady: MemberProfile = { ...member, ...onTheUnlockPath({ ...bookFeature, ...ready }, { ...leaderboardFeature, ...ready }, { ...questsFeature, ...ready }, { ...skillTreeFeature, ...ready }) };
 
-const memberWithEveryPanelOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...bookFeature, ...opened }, { ...skillTreeFeature, ...opened }), skillPoints: 2 };
+const memberWithEveryPanelOpen: MemberProfile = { ...member, ...onTheUnlockPath({ ...bookFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...questsFeature, ...opened }, { ...skillTreeFeature, ...opened }), skillPoints: 2 };
 
 const memberWithNothingShipped: MemberProfile = { ...member, ...onTheUnlockPath() };
 
 const memberWithEveryNavState: MemberProfile = {
   ...member,
-  ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...ready }, { ...bookFeature, ...locked }, { ...skillTreeFeature, ...locked }),
-  progression: { level: 3, xp: 130, levelStartsAt: 100, nextLevelAt: 220, xpToNextLevel: 90 },
+  ...onTheUnlockPath({ ...bookFeature, ...opened }, { ...leaderboardFeature, ...ready }, { ...questsFeature, ...locked }, { ...skillTreeFeature, ...locked }),
+  progression: { level: 2, xp: 50, levelStartsAt: 20, nextLevelAt: 100, xpToNextLevel: 50 },
+};
+
+const memberAtLevel1WithTheBookReady: MemberProfile = {
+  ...member,
+  ...onTheUnlockPath({ ...bookFeature, ...ready }, { ...leaderboardFeature, ...locked }, { ...questsFeature, ...locked }, { ...skillTreeFeature, ...locked }),
+  progression: { level: 1, xp: 10, levelStartsAt: 0, nextLevelAt: 20, xpToNextLevel: 10 },
+};
+
+const memberAtLevel3WithTheQuestsReady: MemberProfile = {
+  ...member,
+  ...onTheUnlockPath({ ...bookFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...questsFeature, ...ready }, { ...skillTreeFeature, ...locked }),
+  progression: { level: 3, xp: 130, levelStartsAt: 100, nextLevelAt: 300, xpToNextLevel: 170 },
 };
 
 const firstThanks = { step: "first-thanks", goal: "Give a kudos that says why.", hint: "It counts when your message has 5 or more words besides mentions and emoji.", reward: { xp: 10 }, feature: null } as const;
@@ -225,11 +237,11 @@ const memberWithQuestsReady: MemberProfile = { ...member, ...onTheUnlockPath({ .
 
 const memberWithQuests: MemberProfile = { ...member, ...onTheUnlockPath({ ...questsFeature, ...opened }), journey: journeyUnderway };
 
-const memberWithQuestsAtLevel2: MemberProfile = { ...memberWithQuests, progression: { level: 2, xp: 50, levelStartsAt: 20, nextLevelAt: 60, xpToNextLevel: 10 } };
+const memberWithQuestsAtLevel3: MemberProfile = { ...memberWithQuests, progression: { level: 3, xp: 130, levelStartsAt: 100, nextLevelAt: 140, xpToNextLevel: 10 } };
 
 const memberCrossingIntoLevel6: MemberProfile = {
   ...member,
-  ...onTheUnlockPath({ ...questsFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...skillTreeFeature, ...opened }),
+  ...onTheUnlockPath({ ...leaderboardFeature, ...opened }, { ...questsFeature, ...opened }, { ...skillTreeFeature, ...opened }),
   journey: journeyUnderway,
   skillPoints: 2,
   progression: { level: 6, xp: 1010, levelStartsAt: 1000, nextLevelAt: 1500, xpToNextLevel: 490 },
@@ -278,7 +290,9 @@ export const shellFixtures = {
   memberWithTheCrateStore,
   memberWithCoinsBeforeTheStore,
   memberWithNothingShipped,
+  memberAtLevel1WithTheBookReady,
   memberWithEveryNavState,
+  memberAtLevel3WithTheQuestsReady,
   memberAcrossTheSheet,
   memberWithEveryPanelLocked,
   memberWithEveryPanelReady,
@@ -289,7 +303,7 @@ export const shellFixtures = {
   memberStartingTheJourney,
   memberWithQuestsReady,
   memberWithQuests,
-  memberWithQuestsAtLevel2,
+  memberWithQuestsAtLevel3,
   memberCrossingIntoLevel6,
   error: { kind: "broken" },
 } as const satisfies Record<string, ShellState>;
@@ -320,14 +334,16 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-no-skill-points-left": shellFixtures.memberWithNoSkillPointsLeft,
   "member-level-7-with-one-skill-point": shellFixtures.memberAtLevel7WithOneSkillPoint,
   "member-with-nothing-shipped": shellFixtures.memberWithNothingShipped,
+  "member-at-level-1-with-the-book-ready": shellFixtures.memberAtLevel1WithTheBookReady,
   "member-with-every-nav-state": shellFixtures.memberWithEveryNavState,
+  "member-at-level-3-with-the-quests-ready": shellFixtures.memberAtLevel3WithTheQuestsReady,
   "member-level-1": shellFixtures.memberAtLevel1,
   "member-before-their-first-kudos": shellFixtures.memberBeforeTheirFirstKudos,
   "member-level-7": shellFixtures.memberAtLevel7,
   "member-starting-the-journey": shellFixtures.memberStartingTheJourney,
   "member-with-quests-ready": shellFixtures.memberWithQuestsReady,
   "member-with-quests": shellFixtures.memberWithQuests,
-  "member-with-quests-at-level-2": shellFixtures.memberWithQuestsAtLevel2,
+  "member-with-quests-at-level-3": shellFixtures.memberWithQuestsAtLevel3,
   "member-crossing-into-level-6": shellFixtures.memberCrossingIntoLevel6,
   "member-with-the-inventory": shellFixtures.memberWithTheInventory,
   "member-with-custom-emoji": shellFixtures.memberWithCustomEmoji,

@@ -568,7 +568,7 @@ describe("WS66: an open the server never answers ends the wait", () => {
     await act(async () => undefined);
 
     expect(openFeatureCall).toHaveBeenNthCalledWith(2, { feature: "leaderboard" });
-    expect(screen.getByRole("dialog")).toHaveAccessibleName("Level 3 unlock");
+    expect(screen.getByRole("dialog")).toHaveAccessibleName("Level 2 unlock");
   });
 });
 

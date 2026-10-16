@@ -6,9 +6,9 @@ import { shellFixtures, type MemberProfile } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
 
-const atLevel2 = shellFixtures.memberWithQuestsAtLevel2;
+const atLevel3 = shellFixtures.memberWithQuestsAtLevel3;
 
-const acrossALevel: MemberProfile = { ...atLevel2, progression: { level: 3, xp: 110, levelStartsAt: 100, nextLevelAt: 300, xpToNextLevel: 190 } };
+const acrossALevel: MemberProfile = { ...atLevel3, progression: { level: 4, xp: 310, levelStartsAt: 300, nextLevelAt: 500, xpToNextLevel: 190 } };
 
 const intoTheSixthLevel = shellFixtures.memberCrossingIntoLevel6;
 
@@ -110,7 +110,7 @@ async function openUntilTheTokensFly(region: HTMLElement) {
 
 describe("#354 #452: a Journey crate's XP flies out of the reveal into the HUD level ring, and the hero fills behind it", () => {
   it("flies +{xp} XP from its token to the HUD level ring, which bumps when it lands", async () => {
-    showJourneyCrate(atLevel2);
+    showJourneyCrate(atLevel3);
     await openUntilTheTokensFly(journeyCrate());
 
     expect(flight()).toHaveTextContent("+20 XP");
@@ -121,24 +121,24 @@ describe("#354 #452: a Journey crate's XP flies out of the reveal into the HUD l
   });
 
   it("holds the hero and the HUD short of the reward from the reveal until it lands, then fills both from the old share", async () => {
-    showJourneyCrate(atLevel2);
-    expect(xpBar()).toHaveAttribute("aria-valuenow", "50");
+    showJourneyCrate(atLevel3);
+    expect(xpBar()).toHaveAttribute("aria-valuenow", "130");
     await openTheCrate(journeyCrate());
-    expect(hudRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
-    expect(xpBar()).toHaveAttribute("aria-valuenow", "30");
-    expect(heroRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
+    expect(hudRing()).toHaveAccessibleName("Level 3, 30 XP to level 4");
+    expect(xpBar()).toHaveAttribute("aria-valuenow", "110");
+    expect(heroRing()).toHaveAccessibleName("Level 3, 30 XP to level 4");
     advance(crateChargesForMs);
     advance(burstPlaysForMs);
 
     landAll(flight()!);
-    expect(xpBar()).toHaveAttribute("aria-valuenow", "50");
-    expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
-    expect(hudRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    expect(xpBar()).toHaveAttribute("aria-valuenow", "130");
+    expect(heroRing()).toHaveAccessibleName("Level 3, 10 XP to level 4");
+    expect(hudRing()).toHaveAccessibleName("Level 3, 10 XP to level 4");
     expect(frame()).toHaveClass("reward-filling");
     expect(frame().style.getPropertyValue("--reward-from")).toBe("25");
-    expect(xpBar()).toHaveAccessibleName("30 XP 10 XP to level 3");
+    expect(xpBar()).toHaveAccessibleName("110 XP 10 XP to level 4");
     advance(1000);
-    expect(xpBar()).toHaveAccessibleName("50 XP 10 XP to level 3");
+    expect(xpBar()).toHaveAccessibleName("130 XP 10 XP to level 4");
   });
 
   it("across a level-up, holds the old level, then completes the ring and starts the new level without ever filling backwards", async () => {
@@ -147,17 +147,17 @@ describe("#354 #452: a Journey crate's XP flies out of the reveal into the HUD l
     advance(crateChargesForMs);
     advance(burstPlaysForMs);
 
-    expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
-    expect(xpBar()).toHaveAttribute("aria-valuenow", "90");
+    expect(heroRing()).toHaveAccessibleName("Level 3, 10 XP to level 4");
+    expect(xpBar()).toHaveAttribute("aria-valuenow", "290");
     landAll(flight()!);
     expect(frame()).toHaveClass("reward-levelling");
     expect(frame()).not.toHaveClass("reward-filling");
-    expect(frame().style.getPropertyValue("--reward-from")).toBe("87.5");
-    expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    expect(frame().style.getPropertyValue("--reward-from")).toBe("95");
+    expect(heroRing()).toHaveAccessibleName("Level 3, 10 XP to level 4");
     advance(599);
-    expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    expect(heroRing()).toHaveAccessibleName("Level 3, 10 XP to level 4");
     advance(1);
-    expect(heroRing()).toHaveAccessibleName("Level 3, 190 XP to level 4");
+    expect(heroRing()).toHaveAccessibleName("Level 4, 190 XP to level 5");
     expect(heroRing()).toHaveClass("reward-landed");
     expect(avatar()).toHaveClass("reward-landed");
   });
@@ -186,11 +186,11 @@ describe("#354 #452: a Journey crate's XP flies out of the reveal into the HUD l
 
   it("never flies under reduced motion: the bar shows the read's XP at once, and the ring fades in", async () => {
     preferReducedMotion();
-    showJourneyCrate(atLevel2);
+    showJourneyCrate(atLevel3);
     await openTheCrate(journeyCrate());
 
     expect(flight()).toBeNull();
-    expect(xpBar()).toHaveAttribute("aria-valuenow", "50");
+    expect(xpBar()).toHaveAttribute("aria-valuenow", "130");
     expect(avatar()).toHaveClass("reward-faded");
     expect(frame()).not.toHaveClass("reward-filling");
   });
@@ -226,14 +226,14 @@ describe("#354 review: the held values stay true through motion changes and late
 
 describe("#354 review round 2: fills restart and count-ups stop for reduced motion", () => {
   it("shows the hero's XP at once when reduced motion is turned on while it counts up", async () => {
-    showJourneyCrate(atLevel2);
+    showJourneyCrate(atLevel3);
     await openUntilTheTokensFly(journeyCrate());
     landAll(flight()!);
     advance(120);
     preferReducedMotion();
     advance(40);
 
-    expect(xpBar()).toHaveAccessibleName("50 XP 10 XP to level 3");
+    expect(xpBar()).toHaveAccessibleName("130 XP 10 XP to level 4");
   });
 });
 

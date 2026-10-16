@@ -82,7 +82,7 @@ export const bookFixtures = {
   withCoins: { kind: "book", ladders: everyShippedLadder.map(withCoinRewards), timeZone: "Europe/Berlin" },
   withStore: { kind: "book", ladders: everyShippedLadder.map(withStoreRewards), timeZone: "Europe/Berlin" },
   nothingEarned: { kind: "book", ladders: [recognitionNotYet], timeZone: "Europe/Berlin" },
-  locked: { kind: "locked", level: 4 },
+  locked: { kind: "locked", level: 1 },
   ready: { kind: "ready" },
   notFound: { kind: "not-found" },
 } as const satisfies Record<string, MyBook>;

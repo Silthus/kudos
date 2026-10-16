@@ -84,7 +84,7 @@ export const collectionFixtures = {
   withTheStoreWhileCoinsAreHidden: { ...collectionWith(found), bought: ["bought:1"], crateStore: null },
   nothingFound: collectionWith({}),
   complete: collectionWith(everyHoggieFound),
-  locked: { kind: "locked", level: 4 },
+  locked: { kind: "locked", level: 1 },
   ready: { kind: "ready" },
   notFound: { kind: "not-found" },
 } as const satisfies Record<string, MyCollection>;

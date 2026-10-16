@@ -292,12 +292,12 @@ describe("WS339 V24: the visibility switch shows its position at 3:1 in both mod
 });
 
 function navMarks() {
-  window.history.replaceState(null, "", "/quests");
+  window.history.replaceState(null, "", "/book");
   renderApp(shellFixtures.memberWithEveryNavState);
   const nav = screen.getByRole("navigation", { name: "Screens" });
   const tokenOf = (element: Element, prefix: string) => [...element.classList].flatMap((name) => new RegExp(`^${prefix}-((?:muted-|primary-)?foreground|primary)$`).exec(name)?.[1] ?? []);
-  const pill = within(nav).getByRole("link", { name: "Quests" });
-  const next = within(nav).getByRole("link", { name: "Book, locked. Unlocks at level 4" });
+  const pill = within(nav).getByRole("link", { name: "Book" });
+  const next = within(nav).getByRole("link", { name: "Quests, locked. Unlocks at level 3" });
   const later = within(nav).getByRole("link", { name: "Skill tree, locked. Unlocks at level 5" });
   const ready = within(nav).getByRole("button", { name: "Leaderboard: unlock ready. Open its crate" });
   return [
