@@ -1,7 +1,9 @@
+import { hedgehogTownCrierPng } from "@posthog/brand/hoggies/png";
 import { screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type FeatureCard, type MemberProfile } from "../shell";
+import { drawnPicturesIn } from "../test/pictures";
 import { renderApp } from "../test/renderApp";
 import { contrast } from "../test/themeContrast";
 import { fakeSystemTheme } from "../test/systemTheme";
@@ -238,7 +240,7 @@ describe("WS306: suggestions, keys, help and the unknown command", () => {
     const { user } = renderApp(everyPageOpen);
     await run(user, "coins --all");
     expect(printed()).toHaveTextContent('No command "coins --all". Type help to see them all.');
-    expect(printed().querySelector("svg")).toBeInTheDocument();
+    expect(drawnPicturesIn(printed())).toEqual([hedgehogTownCrierPng]);
     expect(commandField()).toHaveFocus();
   });
 });

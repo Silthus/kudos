@@ -1,11 +1,11 @@
-import { HedgehogExplorer, HedgehogMegaphone, HedgehogReading } from "@posthog/brand/hoggies";
+import { hedgehogExplorerPng, hedgehogMegaphonePng, hedgehogReadingPng } from "@posthog/brand/hoggies/png";
 import { act, fireEvent, screen, within } from "@testing-library/react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { bonusSteps, fixedQuests, questsFixtures } from "./questsFixtures";
 import type { QuestsRead } from "./questsRead";
 import { burstPlaysForMs, crateChargesForMs } from "./crates/RevealDialog";
 import { shellFixtures, type MemberProfile, type MyQuests, type OpenAnswer } from "./shell";
+import { drawnPicturesIn } from "./test/pictures";
 import { renderApp } from "./test/renderApp";
 import { navEntryNames } from "./test/screensNav";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
@@ -215,7 +215,7 @@ describe("WS317: the Journey's next step is the bonus quest", () => {
     expect(card).toHaveTextContent("Journey");
     expect(card).toHaveTextContent("New");
     expect(within(card).getByText("+30 XP")).toBeInTheDocument();
-    expect(card.querySelector("[data-quest-art] svg")).not.toBeNull();
+    expect(drawnPicturesIn(card.querySelector("[data-quest-art]")!)).toHaveLength(1);
     expect(card).toHaveAttribute("data-quest-target", "journey");
   });
 
@@ -352,22 +352,16 @@ function artOf(card: HTMLElement) {
   return card.querySelector<HTMLElement>("[data-quest-art]")!;
 }
 
-function markupOf(Hog: typeof HedgehogReading) {
-  const host = document.createElement("div");
-  host.innerHTML = renderToStaticMarkup(<Hog size={55} title="" />);
-  return host.querySelector("svg")!.innerHTML;
-}
-
 describe("WS314: each quest card carries its kind's hedgehog", () => {
   it.each([
-    ["Say why", "Thank someone and say why, 3 times.", HedgehogReading],
-    ["Reach out", "Thank someone you haven't thanked before.", HedgehogExplorer],
-    ["Join in", "Chime in on a kudos someone else gave.", HedgehogMegaphone],
-  ])("shows E's %s hedgehog at 64 px", (_, goal, Hog) => {
+    ["Say why", "Thank someone and say why, 3 times.", hedgehogReadingPng],
+    ["Reach out", "Thank someone you haven't thanked before.", hedgehogExplorerPng],
+    ["Join in", "Chime in on a kudos someone else gave.", hedgehogMegaphonePng],
+  ])("shows E's %s hedgehog at 64 px", (_, goal, picture) => {
     showQuests(questsFixtures.everyKind);
     const art = artOf(cardOf(goal));
     expect(art).toHaveStyle({ width: "64px", height: "64px" });
-    expect(art.querySelector("svg")!.innerHTML).toBe(markupOf(Hog));
+    expect(drawnPicturesIn(art)).toEqual([picture]);
   });
 
   it("keeps the hedgehog decorative, with nothing for a screen reader to read", () => {
@@ -381,12 +375,12 @@ describe("WS314: each quest card carries its kind's hedgehog", () => {
   it("turns an opened quest's hedgehog greyscale with a check mark, and mutes only that card", () => {
     showQuests(questsFixtures.week);
     const opened = cardOf("Thank someone you haven't thanked in the last 30 days.");
-    expect(artOf(opened).querySelector("svg")).toHaveClass("grayscale");
+    expect(artOf(opened).querySelector("img")).toHaveClass("grayscale");
     expect(artOf(opened).querySelector("[data-claimed-check]")).not.toBeNull();
     expect(opened).toHaveAttribute("data-claimed");
     for (const goal of ["Thank someone and say why, 3 times.", "Thank someone you haven't thanked before."]) {
       const card = cardOf(goal);
-      expect(artOf(card).querySelector("svg")).not.toHaveClass("grayscale");
+      expect(artOf(card).querySelector("img")).not.toHaveClass("grayscale");
       expect(artOf(card).querySelector("[data-claimed-check]")).toBeNull();
       expect(card).not.toHaveAttribute("data-claimed");
     }

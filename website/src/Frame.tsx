@@ -1,5 +1,5 @@
 import { useCallback, useId, useState, type ReactNode } from "react";
-import { HedgehogHeart } from "@posthog/brand/hoggies";
+import { HedgehogHeart } from "./hoggies";
 import { IconLeave } from "@posthog/icons";
 import { Button } from "@posthog/quill";
 import { AppLink, useNavigate } from "./AppLink";
@@ -97,7 +97,7 @@ function PaletteChip({ onOpen }: { onOpen: () => void }) {
 function Wordmark() {
   return (
     <AppLink href="/" aria-label="HedgeHug, home" className="flex items-center gap-2.5 rounded-md">
-      <HedgehogHeart size={34} title="" className="shrink-0" />
+      <HedgehogHeart size={34} className="shrink-0" />
       <span className="flex flex-col leading-none max-sm:hidden">
         <span className="hud-display text-lg font-bold">HedgeHug</span>
         <span className="text-[10px] text-muted-foreground">Thanks a Hog</span>

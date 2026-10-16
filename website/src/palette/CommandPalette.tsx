@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { HedgehogTownCrier } from "@posthog/brand/hoggies";
+import { HedgehogTownCrier } from "../hoggies";
 import { IconChevronRight, IconLock, IconSparkles, IconWarning } from "@posthog/icons";
 import { run, suggestionsFor, traps, wordsOf, type Command, type Printed, type Shell } from "./commands";
 import "./palette.css";
@@ -190,7 +190,12 @@ function PrintedLine({ shown }: { shown: Shown }) {
 }
 
 function ToneMark({ tone }: { tone: Printed["tone"] }) {
-  if (tone === "unknown") return <HedgehogTownCrier data-tone={tone} size={40} title="" className="shrink-0" />;
+  if (tone === "unknown")
+    return (
+      <span data-tone={tone} className="shrink-0">
+        <HedgehogTownCrier size={40} />
+      </span>
+    );
   const { Icon, look } = toneMarks[tone];
   return (
     <span data-tone={tone} aria-hidden="true" className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md ${look}`}>
@@ -208,7 +213,7 @@ const toneMarks = {
 function NothingMatches({ line }: { line: string }) {
   return (
     <p className="flex items-center gap-3 px-3 py-4 text-sm text-muted-foreground">
-      <HedgehogTownCrier size={40} title="" className="shrink-0" />
+      <HedgehogTownCrier size={40} className="shrink-0" />
       <span>
         Nothing starts with <span className="font-mono text-foreground">{wordsOf(line)[0]}</span>. Press Enter anyway, or try help.
       </span>

@@ -233,7 +233,7 @@ describe("WS21 V19: the member's face", () => {
 
     for (const image of document.querySelectorAll(`img[src="${face.image}"]`)) fireEvent.error(image);
 
-    expect(document.querySelectorAll("img[src]")).toHaveLength(0);
+    expect(document.querySelectorAll(`img[src="${face.image}"]`)).toHaveLength(0);
     expect(screen.getAllByText("SE")).toHaveLength(3);
   });
 });

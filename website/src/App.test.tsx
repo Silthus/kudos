@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures } from "./shell";
+import { picturesIn } from "./test/pictures";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme } from "./test/systemTheme";
 
@@ -148,5 +149,5 @@ describe("WS6 WS8 WS20: the sign-in pages carry one hedgehog, one sentence from 
 });
 
 function hedgehogsOnPage() {
-  return screen.getByRole("main").querySelectorAll("svg").length;
+  return picturesIn(screen.getByRole("main")).length;
 }

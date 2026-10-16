@@ -1,7 +1,6 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import axe from "axe-core";
-import type { ComponentType } from "react";
-import { HedgehogOrganized, HedgehogReading, HedgehogStar, HedgehogTownCrier, HedgehogWizard } from "@posthog/brand/hoggies";
+import { hedgehogOrganizedPng, hedgehogReadingPng, hedgehogStarPng, hedgehogTownCrierPng, hedgehogWizard1Png } from "@posthog/brand/hoggies/png";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { perkOf } from "../../convex/progression/tree";
 import type { BoardRead } from "./boardRead";
@@ -9,6 +8,7 @@ import { bookFixtures, fixedBook } from "./bookFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures, type CommandAnswer, type MemberProfile, type OpenAnswer } from "./shell";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
+import { picturesIn, silhouettePicturesIn } from "./test/pictures";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
 import { contrast, websiteDirectory, type Mode } from "./test/themeContrast";
@@ -26,7 +26,7 @@ beforeEach(() => {
   fakeSystemTheme(false);
 });
 
-type FeaturePage = { name: string; ready: string; opened: string; path: string; level: number; sentence: string; Hog: ComponentType<{ title?: string }>; show: (member: MemberProfile, state: "locked" | "ready") => ReturnType<typeof renderApp> };
+type FeaturePage = { name: string; ready: string; opened: string; path: string; level: number; sentence: string; picture: string; show: (member: MemberProfile, state: "locked" | "ready") => ReturnType<typeof renderApp> };
 
 const lockedBoard: BoardRead = (period) => period && { kind: "locked", level: 3 };
 
@@ -40,7 +40,7 @@ const featurePages: FeaturePage[] = [
     path: "/quests",
     level: 2,
     sentence: "Weekly quests of your own.",
-    Hog: HedgehogOrganized,
+    picture: hedgehogOrganizedPng,
     show: (member, state) => renderApp(member, undefined, opening(), fixedQuests(questsFixtures[state])),
   },
   {
@@ -50,7 +50,7 @@ const featurePages: FeaturePage[] = [
     path: "/leaderboard",
     level: 3,
     sentence: "See where you stand.",
-    Hog: HedgehogStar,
+    picture: hedgehogStarPng,
     show: (member, state) => renderApp(member, state === "locked" ? lockedBoard : readyBoard, opening()),
   },
   {
@@ -60,7 +60,7 @@ const featurePages: FeaturePage[] = [
     path: "/book",
     level: 4,
     sentence: "Achievements you earn as you thank colleagues and they thank you.",
-    Hog: HedgehogReading,
+    picture: hedgehogReadingPng,
     show: (member, state) => renderApp(member, undefined, opening(), undefined, fixedBook(bookFixtures[state])),
   },
   {
@@ -70,7 +70,7 @@ const featurePages: FeaturePage[] = [
     path: "/skills",
     level: 5,
     sentence: "Perks you choose with skill points.",
-    Hog: HedgehogWizard,
+    picture: hedgehogWizard1Png,
     show: (member, state) => renderApp(member, undefined, opening(), undefined, undefined, fixedSkillTree(skillTreeFixtures[state])),
   },
 ];
@@ -96,18 +96,6 @@ function dialog() {
   return screen.getByRole("dialog");
 }
 
-function artOf(Hog: ComponentType<{ title?: string }>) {
-  const { container, unmount } = render(<Hog title="" />);
-  const markup = container.querySelector("svg")!.innerHTML;
-  unmount();
-  return markup;
-}
-
-function showsArt(Hog: ComponentType<{ title?: string }>) {
-  const art = artOf(Hog);
-  return [...main().querySelectorAll("svg")].some((svg) => svg.innerHTML === art);
-}
-
 describe("WS323: a locked feature page shows the feature's own hedgehog, its level and its sentence", () => {
   describe.each(featurePages)("$name", (page) => {
     beforeEach(() => visit(page, shellFixtures.memberWithEveryPanelLocked, "locked"));
@@ -124,10 +112,9 @@ describe("WS323: a locked feature page shows the feature's own hedgehog, its lev
     });
 
     it("shows the feature's hedgehog in silhouette with a padlock, never generic Max", () => {
-      expect(showsArt(page.Hog)).toBe(true);
-      expect(main().querySelector("[data-silhouette]")).toContainElement(main().querySelector("svg"));
+      expect(silhouettePicturesIn(main().querySelector("[data-silhouette]")!)).toEqual([page.picture]);
       expect(main().querySelector("[data-padlock]")).not.toBeNull();
-      expect(showsArt(HedgehogTownCrier)).toBe(false);
+      expect(picturesIn(main())).not.toContain(hedgehogTownCrierPng);
     });
 
     it("shows no progress, no bar and no levels to go (D3)", () => {

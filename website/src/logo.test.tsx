@@ -1,10 +1,9 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { HedgehogHeart } from "@posthog/brand/hoggies";
+import { hedgehogHeartPng } from "@posthog/brand/hoggies/png";
 import { svg as heartSvg } from "@posthog/brand/hoggies/svg/heart";
 import { screen, within } from "@testing-library/react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it } from "vitest";
 import indexHtml from "../index.html?raw";
 import { shellFixtures } from "./shell";
@@ -14,16 +13,6 @@ import { fakeSystemTheme } from "./test/systemTheme";
 beforeEach(() => {
   fakeSystemTheme(false);
 });
-
-function heartDrawing() {
-  const holder = document.createElement("div");
-  holder.innerHTML = renderToStaticMarkup(<HedgehogHeart />);
-  return holder.querySelector("svg")?.innerHTML;
-}
-
-function isTheHeart(svg: Element | null) {
-  return svg !== null && svg.innerHTML === heartDrawing();
-}
 
 function homeLogo() {
   return screen.getByRole("link", { name: "HedgeHug, home" });
@@ -47,8 +36,8 @@ describe("#258: the header carries the HedgeHug logo beside the wordmark", () =>
     renderApp(shellFixtures.member);
     const logo = homeLogo();
     expect(logo).toHaveAttribute("href", "/");
-    const heart = logo.querySelector("svg");
-    expect(isTheHeart(heart)).toBe(true);
+    const heart = logo.querySelector("img");
+    expect(heart).toHaveAttribute("src", hedgehogHeartPng);
     expect(heart).toHaveAttribute("width", "34");
     expect(within(logo).getByText("HedgeHug")).toBeInTheDocument();
     expect(within(logo).getByText("Thanks a Hog")).toBeInTheDocument();
@@ -59,10 +48,9 @@ describe("#258: the closed page shows the logo above HedgeHug", () => {
   it("leads with the HedgehogHeart, then HedgeHug and Thanks a Hog, as its one hedgehog", () => {
     renderApp(shellFixtures.closed);
     const main = screen.getByRole("main");
-    const hedgehogs = main.querySelectorAll("svg:not(button svg)");
-    expect(hedgehogs).toHaveLength(1);
+    const hedgehogs = main.querySelectorAll("img");
+    expect([...hedgehogs].map((hedgehog) => hedgehog.getAttribute("src"))).toEqual([hedgehogHeartPng]);
     const logo = hedgehogs.item(0);
-    expect(isTheHeart(logo)).toBe(true);
     expect(logo.compareDocumentPosition(within(main).getByText("HedgeHug"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(within(main).getByText("Thanks a Hog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Not open yet");

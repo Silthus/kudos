@@ -13,7 +13,7 @@ export function LockedPage({ feature, name, level, member }: LockedPageProps) {
     <section className="hud-panel mx-auto flex w-full max-w-3xl flex-col items-center gap-4 rounded-lg border bg-card px-4 py-10 text-center text-card-foreground md:py-14">
       <span className="relative inline-flex">
         <span data-silhouette className="hog-silhouette">
-          <Hog size={128} title="" className="h-auto w-28 md:w-32" />
+          <Hog size={128} silhouette className="h-auto w-28 md:w-32" />
         </span>
         <span data-padlock className="absolute -bottom-1 -right-2 flex size-9 items-center justify-center rounded-full bg-foreground text-background ring-4 ring-card">
           <IconLock aria-hidden="true" className="size-4" />

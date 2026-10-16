@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { Hoggie } from "../features";
+import type { Hoggie } from "../hoggies";
 import "./crates.css";
 
 export type CratePhase = "closed" | "opening" | "open";
@@ -17,7 +17,7 @@ export function CrateArt({ phase, width, Hog, nudge = false }: CrateArtProps) {
         <rect x="30" y="88" width="180" height="22" rx="8" className="crate-ink" />
       </svg>
       <span className="crate-hog">
-        <Hog size={Math.round(width * 0.78)} title="" className="h-auto w-full" />
+        <Hog size={Math.round(width * 0.78)} className="h-auto w-full" />
       </span>
       <svg viewBox="0 0 240 200" className="crate-layer">
         <rect x="22" y="98" width="196" height="88" rx="12" className="crate-edge" />
