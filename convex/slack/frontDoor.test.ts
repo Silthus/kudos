@@ -335,9 +335,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       accessibility_label: "Open your inventory on HedgeHug's home page",
     });
 
-    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Take off")));
-
-    expect(publishedHome(slack, "U_ALICE").slice(2, 8)).toEqual([inventoryOnTheWeb, "divider", "section: 4 🪙", "divider", "section: *Your kudos emoji*", "section: Slot 1 · empty"]);
+    expect(publishedHome(slack, "U_ALICE").slice(2, 8)).toEqual([inventoryOnTheWeb, "divider", "section: 4 🪙", "divider", "section: *Your kudos emoji*", "section: 🦔 Hedgehog"]);
   });
 
   test("clicking the Inventory link takes nothing off and publishes App Home no more", async () => {
@@ -351,7 +349,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
 
     expect(response.status).toBe(200);
     expect(publishedViews(slack, "U_ALICE")).toHaveLength(published);
-    expect(publishedHome(slack, "U_ALICE")).toContain("section: Slot 1 · 🦔 Hedgehog [button: Take off]");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: 🦔 Hedgehog");
   });
 
   test("opening the ready features swaps their Open for page buttons, and a stale Open from before the links still opens its crate", async () => {
@@ -468,13 +466,11 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     "section: 4 🪙",
     "divider",
     "section: *Your kudos emoji*",
-    "section: Slot 1 · 🦔 Hedgehog [button: Take off]",
-    "section: Slot 2 · empty",
-    "section: Slot 3 · empty",
-    "context: Each emoji in a slot counts as a kudos, like :taco:.",
+    "section: 🦔 Hedgehog",
+    "context: Each of your kudos emoji counts as a kudos, like :taco:.",
     "divider",
     "section: *Store*",
-    ...["🌻 Sunflower", "🚀 Rocket", "🌟 Glowing Star", "💎 Gem", "🌈 Rainbow", "🍀 Clover", "🍩 Doughnut", "🍪 Cookie", "👑 Crown", "🎈 Balloon", "🌵 Cactus", "🏆 Trophy"].map((item) => `section: ${item} · 100 🪙 [button: Buy]`),
+    "context: Nothing for sale right now.",
   ];
 
   const closed: Array<{ condition: string; website: string[]; env?: Record<string, string> }> = [

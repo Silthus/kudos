@@ -63,7 +63,7 @@ describe("ST32 ST36: inventoryOf sells no standard emoji, and an owned one stays
     const inventory = (await profileOf(asSignedIn)).inventory;
 
     expect(inventory).toEqual(await t.query(internal.store.inventory.inventoryOf, { member }));
-    expect(Object.keys(inventory ?? {})).toEqual(["owned", "catalogue"]);
+    expect(Object.keys(inventory ?? {}).sort()).toEqual(["catalogue", "owned"]);
     expect(inventory?.owned.map(({ item }) => item)).toEqual(["kudos-emoji-hedgehog", "kudos-emoji-rocket"]);
     expect(inventory?.catalogue.map(({ item, onSale }) => [item, onSale])).toEqual([
       ["kudos-emoji-hedgehog", false],

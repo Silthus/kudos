@@ -21,7 +21,7 @@ import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type Qu
 import { weekKeyOf, type WeekKey } from "../quests/week";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
-import { slotsRetiredFor, storeShownTo, storeVisibleTo } from "../store/visibility";
+import { storeShownTo, storeVisibleTo } from "../store/visibility";
 import { namedFor, readyFromTheStart, scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
 import { websiteOriginFor } from "../website/link";
@@ -132,21 +132,20 @@ export const purchaseReplyStillWanted = internalQuery({
     const { workspace } = await chatUserOf(ctx, member);
     if (!(await skillTreeAppliesIn(ctx, workspace))) return null;
     if (isCoinPerk(perkOf(outcome.perk)) && !(await coinsApplyTo(ctx, member))) return null;
-    const storeShown = await storeShownTo(ctx, member);
-    return purchaseReplyOf(outcome, namedFor(scheduled("coins"), { storeShown, slotsRetired: storeShown && (await slotsRetiredFor(ctx, member)) }).name);
+    return purchaseReplyOf(outcome, namedFor(scheduled("coins"), { storeShown: await storeShownTo(ctx, member) }).name);
   },
 });
 
-type DeliveryFacts = { website: string | null; openTree: MemberPerks | null; everyTierEarned: TierRef[]; tierRewardsShown: TierRewardsRecorded; inventoryWith: string | null; slotsRetired: boolean; waiting: ReadonlySet<string>; thisWeek: WeekKey };
+type DeliveryFacts = { website: string | null; openTree: MemberPerks | null; everyTierEarned: TierRef[]; tierRewardsShown: TierRewardsRecorded; inventoryWith: string | null; waiting: ReadonlySet<string>; thisWeek: WeekKey };
 
-function renderNotification(notification: Notification, { website, openTree, everyTierEarned, tierRewardsShown, inventoryWith, slotsRetired, waiting, thisWeek }: DeliveryFacts): NotificationLine[] {
+function renderNotification(notification: Notification, { website, openTree, everyTierEarned, tierRewardsShown, inventoryWith, waiting, thisWeek }: DeliveryFacts): NotificationLine[] {
   const waits = (quest: Quest) => waiting.has(rewardKeyOf(quest));
   if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp, waits(notification.quest), website)];
   if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp, waits(quest), website));
   if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp, waits(notification.quest), website, thisWeek)];
-  if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned, (ref) => recordedRewardsOf(ref, tierRewardsShown), slotsRetired);
-  if (notification.kind === "coins-opened") return [inventoryWith === null ? coinsOpenedLineOf(notification.balance) : inventoryOpenedLineOf(notification.balance, inventoryWith, slotsRetired)];
-  const crates = notification.ready.map((feature) => readyCrateOf(namedFor(scheduled(feature), { storeShown: inventoryWith !== null, slotsRetired }), website));
+  if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned, (ref) => recordedRewardsOf(ref, tierRewardsShown));
+  if (notification.kind === "coins-opened") return [inventoryWith === null ? coinsOpenedLineOf(notification.balance) : inventoryOpenedLineOf(notification.balance, inventoryWith)];
+  const crates = notification.ready.map((feature) => readyCrateOf(namedFor(scheduled(feature), { storeShown: inventoryWith !== null }), website));
   if (notification.kind !== "level-reached") return crates;
   return [...levelReachedLines(notification, openTree), ...crates, ...perkOffersOf(openTree, website)];
 }
@@ -192,7 +191,6 @@ async function deliveryFactsOf(ctx: QueryCtx, workspace: string, member: MemberI
     everyTierEarned: told.kind === "tiers-earned" ? await everyTierEarnedBy(ctx, member) : [],
     tierRewardsShown: told.kind === "tiers-earned" ? await tierRewardsShownTo(ctx, member) : new Map(),
     inventoryWith: namesCoins(told) && (await storeShownTo(ctx, member)) ? (await settingsOf(ctx, workspace)).kudosEmoji : null,
-    slotsRetired: (namesCoins(told) || told.kind === "tiers-earned") && (await slotsRetiredFor(ctx, member)),
     waiting: isAboutQuests(told) ? await waitingRewardKeysOf(ctx, member, cratesToldOf(told)) : new Set(),
     thisWeek: weekKeyOf(Date.now(), (await timeZoneOf(ctx, member)) ?? undefined),
   };

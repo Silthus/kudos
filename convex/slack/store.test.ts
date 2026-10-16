@@ -16,24 +16,13 @@ const form = { contentType: "application/x-www-form-urlencoded" };
 const alicesEmail = "alice@example.com";
 const xpBelowLevelSix = 990;
 const rocket = "kudos-emoji-rocket";
-const storeLines = [
-  "section: 🌻 Sunflower · 100 🪙 [button: Buy]",
-  "section: 🚀 Rocket · 100 🪙 [button: Buy]",
-  "section: 🌟 Glowing Star · 100 🪙 [button: Buy]",
-  "section: 💎 Gem · 100 🪙 [button: Buy]",
-  "section: 🌈 Rainbow · 100 🪙 [button: Buy]",
-  "section: 🍀 Clover · 100 🪙 [button: Buy]",
-  "section: 🍩 Doughnut · 100 🪙 [button: Buy]",
-  "section: 🍪 Cookie · 100 🪙 [button: Buy]",
-  "section: 👑 Crown · 100 🪙 [button: Buy]",
-  "section: 🎈 Balloon · 100 🪙 [button: Buy]",
-  "section: 🌵 Cactus · 100 🪙 [button: Buy]",
-  "section: 🏆 Trophy · 100 🪙 [button: Buy]",
-];
+const shipit = "custom:shipit";
+const pickedForTheStore = ["partyparrot", "shipit"];
+const storeLines = pickedForTheStore.map((name) => `section: :${name}: · 100 🪙 [button: Buy]`);
 
 const xpAndUnlocksOn = [onForEveryone("xp-levels"), onForEveryone("unlocks")];
 const coinsForAlice = onForEmails("coins", alicesEmail);
-const previewedByAlice = [...xpAndUnlocksOn, coinsForAlice, onForEmails("store", alicesEmail)];
+const previewedByAlice = [...xpAndUnlocksOn, coinsForAlice, onForEmails("store", alicesEmail), onForEmails("custom-kudos-emoji", alicesEmail)];
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -52,13 +41,13 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("ST12 ST25: the Inventory tab's Store sells kudos emoji for 100 🪙", { timeout: 30_000 }, () => {
-  test("each store emoji is listed with its price and Buy, whether or not the member can afford it", async () => {
+describe("ST12 ST25 ST32: the Inventory tab's Store sells the picked custom kudos emoji for 100 🪙", { timeout: 30_000 }, () => {
+  test("each picked emoji is listed with its price and Buy, whether or not the member can afford it, and no standard emoji is", async () => {
     const t = await aliceWithCoins(40);
 
     await openInventory(t, "U_ALICE");
 
-    expect(publishedHome(slack, "U_ALICE").slice(-14)).toEqual(["divider", "section: *Store*", ...storeLines]);
+    expect(publishedHome(slack, "U_ALICE").slice(-4)).toEqual(["divider", "section: *Store*", ...storeLines]);
   });
 
   test("Buy asks before it runs, and names the emoji for screen readers", async () => {
@@ -66,10 +55,10 @@ describe("ST12 ST25: the Inventory tab's Store sells kudos emoji for 100 🪙", 
 
     await openInventory(t, "U_ALICE");
 
-    expect(buyButtonOf("🚀 Rocket")).toMatchObject({
-      accessibility_label: "Buy Rocket",
+    expect(buyButtonOf(":shipit:")).toMatchObject({
+      accessibility_label: "Buy :shipit:",
       confirm: {
-        title: { type: "plain_text", text: "Buy 🚀 Rocket for 100 🪙?" },
+        title: { type: "plain_text", text: "Buy :shipit: for 100 🪙?" },
         text: { type: "plain_text", text: "Coins are never refunded." },
         confirm: { type: "plain_text", text: "Buy" },
         deny: { type: "plain_text", text: "Cancel" },
@@ -78,25 +67,25 @@ describe("ST12 ST25: the Inventory tab's Store sells kudos emoji for 100 🪙", 
   });
 
   test("the workspace's own emoji isn't listed", async () => {
-    const t = await aliceWithCoins(100, { kudosEmoji: "rocket" });
+    const t = await aliceWithCoins(100, { kudosEmoji: "shipit" });
 
     await openInventory(t, "U_ALICE");
 
-    expect(publishedHome(slack, "U_ALICE").join("\n")).not.toContain("Rocket");
+    expect(publishedHome(slack, "U_ALICE").slice(-3)).toEqual(["divider", "section: *Store*", storeLines[0]]);
   });
 });
 
 describe("ST13 ST25: buying a kudos emoji in App Home", { timeout: 30_000 }, () => {
-  test("Buy with 100 🪙 spends them and lists the emoji in the Collection, out of the Store", async () => {
+  test("Buy with 100 🪙 spends them and lists the emoji among your kudos emoji, out of the Store", async () => {
     const t = await aliceWithCoins(100);
     await openInventory(t, "U_ALICE");
 
-    await buy(t, "U_ALICE", "🚀 Rocket");
+    await buy(t, "U_ALICE", ":shipit:");
 
     const home = publishedHome(slack, "U_ALICE");
     expect(home).toContain("section: 0 🪙");
-    expect(home).toEqual(expect.arrayContaining(["section: *Collection*", "section: 🚀 Rocket [static_select: Put in slot]"]));
-    expect(home.slice(-11)).toEqual(storeLines.filter((line) => !line.includes("Rocket")));
+    expect(home.slice(home.indexOf("section: *Your kudos emoji*"), home.indexOf("divider", home.indexOf("section: *Your kudos emoji*")))).toEqual(["section: *Your kudos emoji*", "section: 🦔 Hedgehog", "section: :shipit:", "context: Each of your kudos emoji counts as a kudos, like :taco:."]);
+    expect(home.slice(-1)).toEqual(storeLines.filter((line) => !line.includes("shipit")));
     expect(await coinsOf(t, "U_ALICE")).toBe(0);
   });
 
@@ -105,15 +94,11 @@ describe("ST13 ST25: buying a kudos emoji in App Home", { timeout: 30_000 }, () 
     await openInventory(t, "U_ALICE");
     const before = await storedRowsOf(t);
 
-    await buy(t, "U_ALICE", "🚀 Rocket");
+    await buy(t, "U_ALICE", ":shipit:");
 
-    const home = publishedHome(slack, "U_ALICE");
-    expect(home.slice(home.indexOf("section: 🚀 Rocket · 100 🪙 [button: Buy]"), home.indexOf("section: 🌟 Glowing Star · 100 🪙 [button: Buy]"))).toEqual([
-      "section: 🚀 Rocket · 100 🪙 [button: Buy]",
-      "context: You need 40 more 🪙.",
-    ]);
+    expect(publishedHome(slack, "U_ALICE").slice(-2)).toEqual([storeLines[1], "context: You need 40 more 🪙."]);
     const { itemPurchases, ...after } = await storedRowsOf(t);
-    expect(itemPurchases.map(({ outcome }) => outcome)).toEqual([{ kind: "refused", item: rocket, reason: "no-coins" }]);
+    expect(itemPurchases.map(({ outcome }) => outcome)).toEqual([{ kind: "refused", item: shipit, reason: "no-coins" }]);
     expect(after).toEqual(withoutPurchases(before));
   });
 
@@ -126,27 +111,27 @@ describe("ST13 ST25: buying a kudos emoji in App Home", { timeout: 30_000 }, () 
     await send(t, blockActions("U_ALICE", staleBuy));
 
     const home = publishedHome(slack, "U_ALICE");
-    expect(home.slice(home.indexOf("section: *Collection*"))).toEqual(["section: *Collection*", "section: 🌻 Sunflower [static_select: Put in slot]", "context: You already own it.", "divider", "section: *Store*", ...storeLines.slice(1)]);
+    expect(home.slice(home.indexOf("section: *Your kudos emoji*"))).toEqual(["section: *Your kudos emoji*", "section: 🦔 Hedgehog", "section: :partyparrot:", "context: You already own it.", "context: Each of your kudos emoji counts as a kudos, like :taco:.", "divider", "section: *Store*", ...storeLines.slice(1)]);
     expect(await coinsOf(t, "U_ALICE")).toBe(100);
   });
 
-  test("a stale Buy of the workspace's own emoji says It isn't for sale.", async () => {
-    const t = await aliceWithCoins(100, { kudosEmoji: "rocket" });
+  test("a stale Buy of the workspace's own emoji says it isn't for sale, by its name", async () => {
+    const t = await aliceWithCoins(100, { kudosEmoji: "shipit" });
     await openInventory(t, "U_ALICE");
 
-    await send(t, blockActions("U_ALICE", staleButtonOf({ type: "buyItem", item: rocket })));
+    await send(t, blockActions("U_ALICE", staleButtonOf({ type: "buyItem", item: shipit })));
 
-    expect(publishedHome(slack, "U_ALICE").slice(-2)).toEqual([storeLines.at(-1), "context: It isn't for sale."]);
+    expect(publishedHome(slack, "U_ALICE").slice(-2)).toEqual([storeLines[0], "context: :shipit: isn't for sale."]);
     expect(await coinsOf(t, "U_ALICE")).toBe(100);
   });
 
   test("the same click delivered twice buys once", async () => {
     const t = await aliceWithCoins(200);
     await openInventory(t, "U_ALICE");
-    const buyRocket = blockActions("U_ALICE", buyButtonActionOf("🚀 Rocket"));
+    const buyShipit = blockActions("U_ALICE", buyButtonActionOf(":shipit:"));
 
-    await send(t, buyRocket);
-    await send(t, buyRocket);
+    await send(t, buyShipit);
+    await send(t, buyShipit);
 
     expect(await coinsOf(t, "U_ALICE")).toBe(100);
   });
@@ -182,6 +167,9 @@ describe("ST22: a stale Buy where the store is dark", { timeout: 30_000 }, () =>
 
 async function aliceWithCoins(coins: number, { kudosEmoji = "taco" } = {}) {
   const t = await workspaceDeciding(...previewedByAlice, { kudosEmoji });
+  await t.run(async (ctx) => {
+    for (const name of pickedForTheStore) await ctx.db.insert("customKudosEmoji", { workspace: "T1", name, url: `https://emoji.slack-edge.com/T1/${name}/0a1b2c.png`, pickedAt: tuesday });
+  });
   await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, [kudosEmoji]);
   await xpOf(t, "U_ALICE", xpBelowLevelSix);
   await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, [kudosEmoji]);

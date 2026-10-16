@@ -172,8 +172,6 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const setBoardVisibility = useSentOnce(api.website.commands.setBoardVisibility);
   const setMessageSetting = useSentOnce(api.website.commands.setMessageSetting);
   const pickPrimaryGroup = useSentOnce(api.website.commands.pickPrimaryGroup);
-  const equip = useSentOnce(api.website.commands.equip);
-  const takeOff = useSentOnce(api.website.commands.takeOff);
   return useMemo(
     () => ({
       openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
@@ -186,8 +184,6 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
       setMessageSetting: (kind, place) => answerWithin(commandAnswerBudgetMs, setMessageSetting({ kind, place })),
       pickPrimaryGroup: (group) => answerWithin(commandAnswerBudgetMs, pickPrimaryGroup({ group })),
-      equip: (item, slot) => answerWithin(commandAnswerBudgetMs, equip({ item, slot })),
-      takeOff: (slot) => answerWithin(commandAnswerBudgetMs, takeOff({ slot })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
           forgetSignInStarted();
@@ -195,7 +191,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, equip, takeOff, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, onSignInFailure],
   );
 }
 

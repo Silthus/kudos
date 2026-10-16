@@ -10,12 +10,10 @@ import {
   buttonInHome,
   externalPickerInHome,
   externalPicksInHome,
-  menuOptionInHome,
   publishedHome,
   publishedHomeBlocks,
   stalePicksOf,
   staleButtonOf,
-  staleMenuOptionOf,
 } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
@@ -56,7 +54,7 @@ afterEach(() => {
 });
 
 describe("ST31 ST32: an admin picks custom kudos emoji that join the store", { timeout: 60_000 }, () => {
-  test("an admin picks :shipit:, and a member sees it in the store at 100 🪙, buys it, puts it in a slot and thanks Bob with it", async () => {
+  test("an admin picks :shipit:, and a member sees it in the store at 100 🪙, buys it and thanks Bob with it", async () => {
     const t = await workspaceDeciding(...everyoneDeciding);
     await aliceOpensCoinsWith(t, 100);
 
@@ -70,12 +68,11 @@ describe("ST31 ST32: an admin picks custom kudos emoji that join the store", { t
     expect(publishedHome(slack, "U_ALICE").at(-1)).toBe("section: :shipit: · 100 🪙 [button: Buy]");
     await send(t, blockActions("U_ALICE", buyButtonBeside(":shipit: · 100 🪙")));
     expect(await coinsOf(t, "U_ALICE")).toBe(0);
-    await send(t, blockActions("U_ALICE", menuOptionInHome(slack, "U_ALICE", ":shipit:", "Slot 2")));
-    expect(publishedHome(slack, "U_ALICE")).toContain("section: Slot 2 · :shipit: [button: Take off]");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: :shipit:");
 
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["shipit"]);
 
-    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ kudosEmoji: "shipit", loadoutEmoji: ["shipit"], awards: [{ kudos: 1 }] });
+    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ kudosEmoji: "shipit", ownedEmoji: ["shipit"], awards: [{ kudos: 1 }] });
     expect((await kudosGivenEvents(t)).at(-1)?.awards.map(({ recipient }) => recipient)).toEqual([await memberOf(t, "U_BOB")]);
   });
 
@@ -152,13 +149,10 @@ describe("ST31 ST32: an admin picks custom kudos emoji that join the store", { t
     await openInventory(t, "U_ALICE");
     const buy = accessoryBeside("U_ALICE", `:${long}: · 100 🪙`);
     await send(t, blockActions("U_ALICE", { type: "button", action_id: String(buy.action_id), value: String(buy.value) }));
-    await send(t, blockActions("U_ALICE", menuOptionInHome(slack, "U_ALICE", `:${long}:`, "Slot 2")));
-    const takeOff = accessoryBeside("U_ALICE", `Slot 2 · :${long}:`);
 
     expect(option).toEqual({ text: { type: "plain_text", text: `:${long.slice(0, 73)}…` }, value: long });
     expect(String(buy.accessibility_label).length).toBeLessThanOrEqual(75);
     expect((buy.confirm as { title: { text: string } }).title.text.length).toBeLessThanOrEqual(100);
-    expect(String(takeOff.accessibility_label).length).toBeLessThanOrEqual(75);
     expect(await coinsOf(t, "U_ALICE")).toBe(0);
   });
 
@@ -202,27 +196,26 @@ describe("ST31: only an admin who sees the picker picks custom kudos emoji", { t
 });
 
 describe("ST33: unpicking takes a custom emoji off sale and nothing from its owners", { timeout: 60_000 }, () => {
-  test("after unpicking :shipit:, it leaves the store, and Alice keeps it in her slot, where it still counts", async () => {
+  test("after unpicking :shipit:, it leaves the store, and Alice keeps it among her kudos emoji, where it still counts", async () => {
     const t = await workspaceDeciding(...everyoneDeciding);
     await aliceOpensCoinsWith(t, 100);
     await openAdmin(t, "U_DANA");
     await send(t, blockActions("U_DANA", externalPicksInHome(slack, "U_DANA", "shipit", "partyparrot")));
     await openInventory(t, "U_ALICE");
     await send(t, blockActions("U_ALICE", buyButtonBeside(":shipit: · 100 🪙")));
-    await send(t, blockActions("U_ALICE", menuOptionInHome(slack, "U_ALICE", ":shipit:", "Slot 2")));
 
     await send(t, blockActions("U_DANA", externalPicksInHome(slack, "U_DANA", "partyparrot")));
     await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Inventory")));
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["shipit"]);
 
     const home = publishedHome(slack, "U_ALICE");
-    expect(home).toContain("section: Slot 2 · :shipit: [button: Take off]");
+    expect(home).toContain("section: :shipit:");
     expect(home.at(-1)).toBe("section: :partyparrot: · 100 🪙 [button: Buy]");
     expect(home.filter((line) => line.includes("· 100 🪙")).join("\n")).not.toContain(":shipit:");
-    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ kudosEmoji: "shipit", loadoutEmoji: ["shipit"], awards: [{ kudos: 1 }] });
+    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ kudosEmoji: "shipit", ownedEmoji: ["shipit"], awards: [{ kudos: 1 }] });
   });
 
-  test("a stale Buy of an unpicked emoji says It isn't for sale. and spends nothing", async () => {
+  test("a stale Buy of an unpicked emoji says it isn't for sale, by its name, and spends nothing", async () => {
     const t = await workspaceDeciding(...everyoneDeciding);
     await aliceOpensCoinsWith(t, 100);
     await openAdmin(t, "U_DANA");
@@ -232,7 +225,7 @@ describe("ST33: unpicking takes a custom emoji off sale and nothing from its own
 
     await send(t, blockActions("U_ALICE", staleButtonOf({ type: "buyItem", item: shipit })));
 
-    expect(publishedHome(slack, "U_ALICE").at(-1)).toBe("context: It isn't for sale.");
+    expect(publishedHome(slack, "U_ALICE").at(-1)).toBe("context: :shipit: isn't for sale.");
     expect(await coinsOf(t, "U_ALICE")).toBe(100);
   });
 });
@@ -290,55 +283,26 @@ describe("ST34: without emoji:read the picker asks for a reinstall", { timeout: 
 });
 
 describe("ST35: custom-kudos-emoji is the member's own decision", { timeout: 60_000 }, () => {
-  test("where it is off for Alice, her :shipit: is hidden and claims nothing, its slot reads empty, and it comes back when it is on again", async () => {
+  test("where it is off for Alice, her :shipit: is hidden and claims nothing, and it comes back when it is on again", async () => {
     const t = await workspaceDeciding(...storeOn, onForEmails("custom-kudos-emoji", "dana@example.com", "alice@example.com"));
     await aliceOpensCoinsWith(t, 100);
     await openAdmin(t, "U_DANA");
     await send(t, blockActions("U_DANA", externalPicksInHome(slack, "U_DANA", "shipit")));
     await openInventory(t, "U_ALICE");
     await send(t, blockActions("U_ALICE", buyButtonBeside(":shipit: · 100 🪙")));
-    await send(t, blockActions("U_ALICE", menuOptionInHome(slack, "U_ALICE", ":shipit:", "Slot 2")));
 
     await flagsFromPostHog(t, postHog, ...storeOn, onForEmails("custom-kudos-emoji", "dana@example.com"));
     await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Inventory")));
     const before = (await kudosGivenEvents(t)).length;
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["shipit"]);
 
-    expect(publishedHome(slack, "U_ALICE")).toContain("section: Slot 2 · empty");
     expect(publishedHome(slack, "U_ALICE").join("\n")).not.toContain("shipit");
     expect(await kudosGivenEvents(t)).toHaveLength(before);
     expect((await t.query(internal.store.inventory.inventoryOf, { member: await memberOf(t, "U_ALICE") }))?.catalogue.map(({ item }) => item)).not.toContain(shipit);
 
     await flagsFromPostHog(t, postHog, ...storeOn, onForEmails("custom-kudos-emoji", "dana@example.com", "alice@example.com"));
     await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Inventory")));
-    expect(publishedHome(slack, "U_ALICE")).toContain("section: Slot 2 · :shipit: [button: Take off]");
-  });
-
-  test("where it is off for Alice, equipping into the slot holding her hidden :shipit: replaces it, the other slots keep theirs, and a stale Put in slot of :shipit: is refused", async () => {
-    const t = await workspaceDeciding(...storeOn, onForEmails("custom-kudos-emoji", "dana@example.com", "alice@example.com"));
-    await aliceOpensCoinsWith(t, 100);
-    await openAdmin(t, "U_DANA");
-    await send(t, blockActions("U_DANA", externalPicksInHome(slack, "U_DANA", "shipit")));
-    await openInventory(t, "U_ALICE");
-    await send(t, blockActions("U_ALICE", buyButtonBeside(":shipit: · 100 🪙")));
-    await send(t, blockActions("U_ALICE", menuOptionInHome(slack, "U_ALICE", ":shipit:", "Slot 2")));
-    await flagsFromPostHog(t, postHog, ...storeOn, onForEmails("custom-kudos-emoji", "dana@example.com"));
-
-    await send(t, blockActions("U_ALICE", staleMenuOptionOf({ type: "equip", item: "kudos-emoji-hedgehog", slot: "emoji-3" })));
-    expect(await loadoutRowsOf(t, "U_ALICE")).toEqual([
-      { slot: "emoji-1", item: null },
-      { slot: "emoji-2", item: shipit },
-      { slot: "emoji-3", item: "kudos-emoji-hedgehog" },
-    ]);
-    await send(t, blockActions("U_ALICE", staleMenuOptionOf({ type: "equip", item: shipit, slot: "emoji-1" })));
-    expect((await loadoutRowsOf(t, "U_ALICE"))[0]).toEqual({ slot: "emoji-1", item: null });
-    await send(t, blockActions("U_ALICE", staleMenuOptionOf({ type: "equip", item: "kudos-emoji-hedgehog", slot: "emoji-2" })));
-
-    expect(await loadoutRowsOf(t, "U_ALICE")).toEqual([
-      { slot: "emoji-1", item: null },
-      { slot: "emoji-2", item: "kudos-emoji-hedgehog" },
-      { slot: "emoji-3", item: null },
-    ]);
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: :shipit:");
   });
 
   test("an admin previewing alone can pick and buy, and nobody else sees a custom item", async () => {
@@ -351,7 +315,7 @@ describe("ST35: custom-kudos-emoji is the member's own decision", { timeout: 60_
     await send(t, blockActions("U_ALICE", staleButtonOf({ type: "buyItem", item: shipit })));
 
     expect(publishedHome(slack, "U_ALICE").join("\n")).not.toContain(":shipit: ·");
-    expect(publishedHome(slack, "U_ALICE").at(-1)).toBe("context: It isn't for sale.");
+    expect(publishedHome(slack, "U_ALICE").at(-1)).toBe("context: :shipit: isn't for sale.");
     expect(await coinsOf(t, "U_ALICE")).toBe(100);
     expect(externalPickerInHome(slack, "U_DANA")).toBeDefined();
   });
@@ -474,17 +438,6 @@ async function pickedRowsOf(t: Backend) {
     .filter(({ unpickedAt }) => unpickedAt === undefined)
     .map(({ name, url, pickedAt }) => ({ name, url, pickedAt }))
     .toSorted((first, second) => first.name.localeCompare(second.name));
-}
-
-async function loadoutRowsOf(t: Backend, user: string) {
-  const member = await memberOf(t, user);
-  const rows = await t.run((ctx) =>
-    ctx.db
-      .query("loadouts")
-      .withIndex("by_member_slot", (q) => q.eq("member", member))
-      .collect(),
-  );
-  return rows.map(({ slot, item }) => ({ slot, item }));
 }
 
 async function kudosGivenEvents(t: Backend): Promise<KudosGivenEvent[]> {

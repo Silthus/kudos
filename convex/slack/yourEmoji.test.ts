@@ -22,8 +22,6 @@ const xpBelowLevelSix = 990;
 const store = "store";
 const yourEmojiKey = "journey:your-emoji";
 const yourEmojiActive = "section: *Journey:* Give a kudos that says why with one of your kudos emoji. It pays *40 XP*.";
-const hedgehogHint = "context: :hedgehog: is in your slots: use it in a kudos like :taco:. It counts when your message has 5 or more words besides mentions and emoji.";
-const emptySlotsHint = "context: Put one of your kudos emoji in a slot in the Inventory tab first.";
 const yourEmojiDone = "section: *Journey:* ✅ Give a kudos that says why with one of your kudos emoji. You earned *40 XP*. [button: Open]";
 const yourEmojiGoal = "Give a kudos that says why with one of your kudos emoji.";
 const questDone = "Quest done: Give a kudos that says why with one of your kudos emoji (+40 XP, +20 🪙)";
@@ -31,7 +29,6 @@ const questDone = "Quest done: Give a kudos that says why with one of your kudos
 const questsOn = [onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("quests")];
 const coinsForAliceAndCarol = onForEmails("coins", alicesEmail, carolsEmail);
 const previewedByAlice = [...questsOn, coinsForAliceAndCarol, onForEmails(store, alicesEmail)];
-const slotsRetiredForAlice = [...previewedByAlice, onForEmails("slots-retired", alicesEmail)];
 const ownedHint = "context: :hedgehog: is one of your kudos emoji: use it in a kudos like :taco:. It counts when your message has 5 or more words besides mentions and emoji.";
 const previewedByAliceAndCarol = [...questsOn, coinsForAliceAndCarol, onForEmails(store, alicesEmail, carolsEmail)];
 const storeOff = [...questsOn, coinsForAliceAndCarol, offForEveryone(store)];
@@ -59,7 +56,7 @@ describe("ST19: your-emoji, the Journey's last step", { timeout: 60_000 }, () =>
     await coinsOpenedBy(t, "U_ALICE");
 
     await openHome(t, "U_ALICE");
-    expect(journeyStepOf(publishedHome(slack, "U_ALICE"), yourEmojiActive)).toEqual([yourEmojiActive, hedgehogHint]);
+    expect(journeyStepOf(publishedHome(slack, "U_ALICE"), yourEmojiActive)).toEqual([yourEmojiActive, ownedHint]);
 
     vi.setSystemTime(tuesday + dayMs);
     const before = await balanceOfUser(t, "U_ALICE");
@@ -89,16 +86,6 @@ describe("ST19: your-emoji, the Journey's last step", { timeout: 60_000 }, () =>
     expect(slack.ephemeralsTo("U_ALICE").map(({ text }) => String(text)).join("\n")).not.toContain("with one of your kudos emoji");
   });
 
-  test("with every slot empty, the hint asks to put an emoji in a slot first", async () => {
-    const t = await workspaceDeciding(...previewedByAlice);
-    await coinsOpenedBy(t, "U_ALICE");
-    await send(t, blockActions("U_ALICE", staleButtonOf({ type: "takeOff", slot: "emoji-1" })));
-
-    await openHome(t, "U_ALICE");
-
-    expect(journeyStepOf(publishedHome(slack, "U_ALICE"), yourEmojiActive)).toEqual([yourEmojiActive, emptySlotsHint]);
-  });
-
   test("a kudos with 🦔 processed before the Coins opening's activation still finishes the step, activated at that kudos", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await coinsOpenedBy(t, "U_ALICE");
@@ -121,7 +108,7 @@ describe("ST19: your-emoji, the Journey's last step", { timeout: 60_000 }, () =>
     expect(await yourEmojiFactsOf(t, "U_ALICE")).toMatchObject({ activatedAt: at, finishedAt: at });
   });
 
-  test("a kudos without a loadout emoji from before the Coins opening, followed late, activates the step when it is followed, never at the kudos", async () => {
+  test("a kudos without an owned emoji from before the Coins opening, followed late, activates the step when it is followed, never at the kudos", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await coinsOpenedBy(t, "U_ALICE");
     const beforeTheOpening = await lastKudosGiven(t);
@@ -144,7 +131,7 @@ describe("ST19: your-emoji, the Journey's last step", { timeout: 60_000 }, () =>
     vi.setSystemTime(tuesday + dayMs);
     await openHome(t, "U_CAROL");
 
-    expect(journeyStepOf(publishedHome(slack, "U_CAROL"), yourEmojiActive)).toEqual([yourEmojiActive, hedgehogHint]);
+    expect(journeyStepOf(publishedHome(slack, "U_CAROL"), yourEmojiActive)).toEqual([yourEmojiActive, ownedHint]);
     const facts = await yourEmojiFactsOf(t, "U_CAROL");
     expect(facts?.activatedAt).toBeGreaterThanOrEqual(tuesday + dayMs);
     expect(facts?.finishedAt).toBeNull();
@@ -197,22 +184,6 @@ describe("ST19: your-emoji, the Journey's last step", { timeout: 60_000 }, () =>
     expect(await goalsInActivityOf(t, "U_ALICE")).not.toContain(yourEmojiGoal);
     expect(await crateOpeningsOf(t, "U_ALICE")).toEqual([]);
     expect(await rewardRecordsOf(t, "U_ALICE")).toEqual([{ xp: 40, coins: 20, item: null, catalogueVersion: "2", at }]);
-  });
-});
-
-describe("RS6: with slots retired, your-emoji's hint names an owned emoji", { timeout: 60_000 }, () => {
-  test("the hint says :hedgehog: is one of Alice's kudos emoji, though she took it out of her slots, and a kudos that says why with it finishes the step", async () => {
-    const t = await workspaceDeciding(...previewedByAlice);
-    await coinsOpenedBy(t, "U_ALICE");
-    await send(t, blockActions("U_ALICE", staleButtonOf({ type: "takeOff", slot: "emoji-1" })));
-    await flagsFromPostHog(t, postHog, ...slotsRetiredForAlice);
-
-    await openHome(t, "U_ALICE");
-    expect(journeyStepOf(publishedHome(slack, "U_ALICE"), yourEmojiActive)).toEqual([yourEmojiActive, ownedHint]);
-
-    vi.setSystemTime(tuesday + dayMs);
-    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["hedgehog"]);
-    expect(await rewardRecordsOf(t, "U_ALICE")).toMatchObject([{ xp: 40, coins: 20, item: null }]);
   });
 });
 
