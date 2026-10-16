@@ -49,6 +49,11 @@ export const startRecap = internalMutation({
   handler: async (ctx, { week, attempt }): Promise<Recap | null> => {
     const row = await awaitingTry(ctx, week, attempt - 1);
     if (row === null) return null;
+    const dueAt = await recapDueAtOf(ctx, row);
+    if (dueAt > Date.now()) {
+      await scheduleTry(ctx, row, dueAt, attempt);
+      return null;
+    }
     if (!(await recapWantedBy(ctx, row.member))) {
       await ctx.db.patch(week, { recap: "skipped" });
       return null;
@@ -79,9 +84,16 @@ export const recapEnded = internalMutation({
 });
 
 async function scheduleRecap(ctx: MutationCtx, week: StarWeek) {
-  const dueAt = wallClockAt(mondayAfter(week.week), recapHour, (await timeZoneOf(ctx, week.member)) ?? undefined);
+  await scheduleTry(ctx, week, await recapDueAtOf(ctx, week), 1);
+}
+
+async function scheduleTry(ctx: MutationCtx, week: StarWeek, dueAt: number, attempt: number) {
   await ctx.db.patch(week._id, { recap: "scheduled", dueAt });
-  await ctx.scheduler.runAt(dueAt, internal.slack.starsRecap.sendStarsRecap, { week: week._id, attempt: 1 });
+  await ctx.scheduler.runAt(dueAt, internal.slack.starsRecap.sendStarsRecap, { week: week._id, attempt });
+}
+
+async function recapDueAtOf(ctx: QueryCtx, week: StarWeek) {
+  return wallClockAt(mondayAfter(week.week), recapHour, (await timeZoneOf(ctx, week.member)) ?? undefined);
 }
 
 async function tryAgainAfterConvexStopped(ctx: MutationCtx, week: StarWeek) {

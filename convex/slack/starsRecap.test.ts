@@ -5,7 +5,7 @@ import { FakeSlack, httpStatus } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, onForEmails, onForEveryone } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { blockActions, optionPickedInHome, publishedHome, publishedHomeBlocks, type BlockAction } from "../../testing/slackInteractions";
-import { convexStops, pendingJobs, react, settleUpTo, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
+import { convexStops, memberChanged, pendingJobs, react, settleUpTo, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import crons from "../crons";
@@ -16,6 +16,7 @@ const hourMs = 60 * minuteMs;
 const dayMs = 24 * hourMs;
 const mondayNineInUtc = Date.parse("2026-10-19T09:00:00Z");
 const mondayNineInKolkata = Date.parse("2026-10-19T03:30:00Z");
+const mondayNineInNewYork = Date.parse("2026-10-19T13:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
 const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.";
 const nudge = "Stars are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
@@ -110,6 +111,17 @@ describe("SR12: at Monday 09:00 in their time zone, a member who gave or receive
     await recapsSentOnMonday(t);
 
     expect(recapTimesTo("U_ALICE")).toEqual([mondayNineInKolkata]);
+    expect(recapTimesTo("U_BOB")).toEqual([mondayNineInUtc]);
+  });
+  test("a member whose time zone moves west after the sweep gets the recap at 09:00 in their new zone", async () => {
+    const t = await workspace();
+    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await sweepAt(t, tuesday + hourMs);
+
+    await memberChanged(t, "user_change", { id: "U_ALICE", tz: "America/New_York", profile: { email: emailOf("U_ALICE") } });
+    await settleUpTo(t, mondayNineInNewYork + hourMs);
+
+    expect(recapTimesTo("U_ALICE")).toEqual([mondayNineInNewYork]);
     expect(recapTimesTo("U_BOB")).toEqual([mondayNineInUtc]);
   });
 });
@@ -228,6 +240,7 @@ describe("SR12 SR14: one recap per member and week", () => {
     await star(t, "U_BOB", "U_ALICE", messageOf(1));
     await sweepAt(t, tuesday + hourMs);
     await settleUpTo(t, mondayNineInUtc - 1);
+    vi.setSystemTime(mondayNineInUtc);
 
     await convexStopsEachTryOnceStarted(t);
     for (const hour of [1, 2]) {
