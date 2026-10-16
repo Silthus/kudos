@@ -16,12 +16,7 @@ const glowingStar = kudosEmoji("glowing-star", "Glowing Star", "🌟", sold, tru
 const gem = kudosEmoji("gem", "Gem", "💎", sold, true);
 const ribbon = kudosEmoji("ribbon", "Ribbon", "🎀", { kind: "tier", ladder: "generosity", tier: "silver", ladderName: "Generosity" });
 
-const twoEquippedOfThree: MemberInventory = {
-  slots: [
-    { slot: "emoji-1", item: hedgehog.item },
-    { slot: "emoji-2", item: rocket.item },
-    { slot: "emoji-3", item: null },
-  ],
+const threeOwned: MemberInventory = {
   owned: [
     { item: hedgehog.item, arrivedAt: arrived },
     { item: rocket.item, arrivedAt: arrived + hour },
@@ -31,11 +26,6 @@ const twoEquippedOfThree: MemberInventory = {
 };
 
 const starterOnly: MemberInventory = {
-  slots: [
-    { slot: "emoji-1", item: hedgehog.item },
-    { slot: "emoji-2", item: null },
-    { slot: "emoji-3", item: null },
-  ],
   owned: [{ item: hedgehog.item, arrivedAt: arrived }],
   catalogue: [hedgehog, { ...rocket, onSale: true }, { ...sunflower, onSale: true }],
 };
@@ -48,11 +38,6 @@ const partyParrot = customEmoji("partyparrot", false);
 const shipIt = customEmoji("shipit", true);
 
 const withCustomEmoji: MemberInventory = {
-  slots: [
-    { slot: "emoji-1", item: hedgehog.item },
-    { slot: "emoji-2", item: partyParrot.item },
-    { slot: "emoji-3", item: null },
-  ],
   owned: [
     { item: hedgehog.item, arrivedAt: arrived },
     { item: partyParrot.item, arrivedAt: arrived + hour },
@@ -60,8 +45,7 @@ const withCustomEmoji: MemberInventory = {
   catalogue: [hedgehog, partyParrot, shipIt],
 };
 
-const slotsRetiredWithNothingForSale: MemberInventory = {
-  slots: [],
+const nothingForSale: MemberInventory = {
   owned: [
     { item: hedgehog.item, arrivedAt: arrived },
     { item: rocket.item, arrivedAt: arrived + hour },
@@ -69,6 +53,6 @@ const slotsRetiredWithNothingForSale: MemberInventory = {
   catalogue: [hedgehog, rocket, ribbon],
 };
 
-const slotsRetiredWithOneForSale: MemberInventory = { ...slotsRetiredWithNothingForSale, catalogue: [...slotsRetiredWithNothingForSale.catalogue, shipIt] };
+const oneForSale: MemberInventory = { ...nothingForSale, catalogue: [...nothingForSale.catalogue, shipIt] };
 
-export const inventoryFixtures = { twoEquippedOfThree, starterOnly, withCustomEmoji, slotsRetiredWithNothingForSale, slotsRetiredWithOneForSale } as const;
+export const inventoryFixtures = { threeOwned, starterOnly, withCustomEmoji, nothingForSale, oneForSale } as const;

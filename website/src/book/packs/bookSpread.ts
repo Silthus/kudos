@@ -1,7 +1,7 @@
 import type { MemberProfile } from "../../shell";
 
-export type BookSpreadMember = MemberProfile & { bookSpread?: true };
+export type BookSpreadMember = MemberProfile;
 
 export function hasTheBookSpread(member: MemberProfile): boolean {
-  return (member as BookSpreadMember).bookSpread === true;
+  return member.bookSpread === true;
 }

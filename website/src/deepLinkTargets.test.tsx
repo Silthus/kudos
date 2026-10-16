@@ -481,10 +481,10 @@ describe("#531: ?panel=inventory and ?section={section} land on their heading, n
   }
 
   function expectNothingSent(actions: ReturnType<typeof renderApp>["actions"]) {
-    for (const command of [actions.buyItem, actions.equip, actions.takeOff, actions.setBoardVisibility, actions.setMessageSetting, actions.pickPrimaryGroup, actions.openFeature, actions.openQuestCrate]) expect(command).not.toHaveBeenCalled();
+    for (const command of [actions.buyItem, actions.setBoardVisibility, actions.setMessageSetting, actions.pickPrimaryGroup, actions.openFeature, actions.openQuestCrate]) expect(command).not.toHaveBeenCalled();
   }
 
-  it("/?panel=inventory turns the gear to its Inventory side, scrolls it into view and focuses its heading", () => {
+  it("/?panel=inventory scrolls the Inventory into view and focuses its heading", () => {
     const scrolled = watchScrolling();
     visit("/?panel=inventory");
     const { actions } = renderApp(shellFixtures.memberWithTheInventory);
@@ -496,10 +496,9 @@ describe("#531: ?panel=inventory and ?section={section} land on their heading, n
     expect(window.location.search).toBe("?panel=inventory");
   });
 
-  it("lands on the Inventory again when history returns to the link after the member turned to Character", async () => {
+  it("lands on the Inventory again when history returns to the link", () => {
     visit("/?panel=inventory");
-    const { user } = renderApp(shellFixtures.memberWithTheInventory);
-    await user.click(within(main()).getByRole("button", { name: "Character" }));
+    renderApp(shellFixtures.memberWithTheInventory);
     act(() => {
       window.history.pushState(null, "", "/");
       window.dispatchEvent(new PopStateEvent("popstate"));
