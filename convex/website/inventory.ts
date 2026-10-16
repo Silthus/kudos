@@ -10,13 +10,15 @@ export type ItemSource = Exclude<Source, TierSource> | (TierSource & { ladderNam
 
 export type InventoryItem = Omit<CatalogueItem, "source"> & { source: ItemSource; onSale: boolean };
 
-export type MemberInventory = Omit<Inventory, "catalogue"> & { catalogue: InventoryItem[] };
+export type MemberInventory = Omit<Inventory, "catalogue"> & { catalogue: InventoryItem[]; slots?: [] };
 
 export async function inventoryShownTo(ctx: QueryCtx, member: MemberId): Promise<MemberInventory | null> {
   const inventory = await visibleInventoryOf(ctx, member);
   if (inventory === null) return null;
-  return { ...inventory, catalogue: inventory.catalogue.map((entry) => ({ ...entry, source: withLadderName(entry.source) })) };
+  return { ...inventory, catalogue: inventory.catalogue.map((entry) => ({ ...entry, source: withLadderName(entry.source) })), slots: noSlotsForAnOlderBundle };
 }
+
+const noSlotsForAnOlderBundle: [] = [];
 
 function withLadderName(source: Source): ItemSource {
   return source.kind === "tier" ? { ...source, ladderName: ladderOf(source.ladder).name } : source;

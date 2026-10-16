@@ -8,6 +8,7 @@ import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlock
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { isOnTheBoards } from "../leaderboard/visibility";
+import { recordReward } from "../progression/progression";
 import type { QuestId } from "../quests/pool";
 
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
@@ -312,7 +313,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
   });
 
   test("the Inventory tab opens with a link to the home's inventory panel above Slack's inventory, which still works, and names it to screen readers", async () => {
-    const t = await workspace("xp-levels", "unlocks", "coins", "store", "website");
+    const t = await workspace("xp-levels", "unlocks", "coins", "store", "custom-kudos-emoji", "website");
     await coinsOpenedBy(t, "U_ALICE");
     await openHome(t, "U_ALICE");
 
@@ -335,10 +336,21 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       accessibility_label: "Open your inventory on HedgeHug's home page",
     });
 
-    expect(publishedHome(slack, "U_ALICE").slice(2, 8)).toEqual([inventoryOnTheWeb, "divider", "section: 4 🪙", "divider", "section: *Your kudos emoji*", "section: 🦔 Hedgehog"]);
+    const alice = await memberOf(t, "U_ALICE");
+    await t.run(async (ctx) => {
+      await ctx.db.insert("customKudosEmoji", { workspace: "T1", name: "shipit", url: "https://emoji.slack-edge.com/T1/shipit/0a1b2c.png", pickedAt: Date.now() });
+      await recordReward(ctx, "T1", { member: alice, key: "test:savings", xp: 0, coins: 96, item: null, catalogueVersion: "2", at: 0 });
+    });
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Inventory")));
+    const published = publishedViews(slack, "U_ALICE").length;
+
+    await send(t, buttonBeside(":shipit: · 100 🪙", "Buy"));
+
+    expect(publishedViews(slack, "U_ALICE")).toHaveLength(published + 1);
+    expect(publishedHome(slack, "U_ALICE").slice(2, 9)).toEqual([inventoryOnTheWeb, "divider", "section: 0 🪙", "divider", "section: *Your kudos emoji*", "section: 🦔 Hedgehog", "section: :shipit:"]);
   });
 
-  test("clicking the Inventory link takes nothing off and publishes App Home no more", async () => {
+  test("clicking the Inventory link changes nothing and publishes App Home no more", async () => {
     const t = await workspace("xp-levels", "unlocks", "coins", "store", "website");
     await coinsOpenedBy(t, "U_ALICE");
     await openHome(t, "U_ALICE");
