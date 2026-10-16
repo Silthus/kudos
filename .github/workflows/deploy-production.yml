@@ -1,4 +1,4 @@
-# Every push to main deploys it to the production Convex deployment.
+# Every push to main deploys main's tip to the production Convex deployment.
 # The deploy key is scoped to that one deployment and reaches only the steps that deploy, upload the website, prepare its flag, read the faces and backfill the pending-crate index.
 name: Deploy production
 
@@ -25,7 +25,9 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        # The branch's tip as it stands when this run starts, not the commit that queued it: runs take turns, so each deploys the newest code, a burst of merges never leaves the deployment behind, and a rerun never rolls it back.
         with:
+          ref: ${{ github.ref }}
           persist-credentials: false
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -38,43 +40,32 @@ jobs:
 
       - run: pnpm gate
 
-      # A rerun of an older push must not roll production back past the branch's tip.
-      - name: Check this push is still the branch's tip
-        id: tip
-        run: |
-          tip=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
-          if [ "$tip" = "$GITHUB_SHA" ]; then echo "current=true"; else echo "current=false"; fi >> "$GITHUB_OUTPUT"
-
       - name: Deploy to the production deployment
         id: deploy
-        if: steps.tip.outputs.current == 'true'
         run: pnpm exec convex deploy
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}
 
       # The website is built against this deployment's own URL, then served by its static hosting.
       - name: Build the website and upload it to the production deployment
-        if: steps.tip.outputs.current == 'true'
         run: pnpm exec static-hosting upload --build --build-command "pnpm website:build" --dist website/dist
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}
 
       # The website flag's query path finds only an existing workspace key, so every deploy makes sure it exists.
       - name: Prepare the website flag's workspace key
-        if: steps.tip.outputs.current == 'true'
         run: pnpm exec convex run website/flag:prepareWebsiteFlag
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}
 
       # The faces come from the company profiles, which the daily cron reads only at 04:00 UTC, so every deploy reads them once.
       - name: Read the company profiles once
-        if: steps.tip.outputs.current == 'true'
         run: pnpm exec convex run companyProfiles/sync:syncCompanyProfiles
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}
 
       - name: Backfill the pending-crate index once
-        if: ${{ !cancelled() && steps.deploy.outcome == 'success' && steps.tip.outputs.current == 'true' }}
+        if: ${{ !cancelled() && steps.deploy.outcome == 'success' }}
         run: pnpm exec convex run quests/pendingCrates:backfillPendingCrates
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY_PRODUCTION }}
