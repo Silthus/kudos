@@ -58,6 +58,11 @@ vi.mock("../quests/rank", async (importOriginal) => {
   return { ...actual, drawRank: vi.fn((key: string) => actual.drawRank(key.replace(/^[^:]+/, (member) => namedIds.get(member) ?? member))) };
 });
 
+vi.mock("../website/seen", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../website/seen")>();
+  return { ...actual, seenKeyOf: vi.fn((member: Parameters<typeof actual.seenKeyOf>[0], crate: string) => actual.seenKeyOf((namedIds.get(member) ?? member) as typeof member, crate)) };
+});
+
 vi.mock("../hoggies/draw", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../hoggies/draw")>();
   return { ...actual, drawOf: vi.fn((input: Parameters<typeof actual.drawOf>[0]) => actual.drawOf({ ...input, member: namedIds.get(input.member) ?? input.member })) };
@@ -225,9 +230,9 @@ async function aliceBobAndCarolInAnts(flag: FlagDefinition[], turnOff?: () => vo
     await settleInTimeOrder(t);
     const member = await memberOf(person.user);
     namedIds.set(member, `<member ${person.user}>`);
-    await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp: xpToReach(4), pointsSpent: 0 }));
-    await reachesLevel(t, member, 4);
-    for (const feature of ["book", "leaderboard", "quests"] as const) await t.run((ctx) => openUnlock(ctx, member, feature));
+    await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp: xpToReach(5), pointsSpent: 0 }));
+    for (const level of [4, 5]) await reachesLevel(t, member, level);
+    for (const feature of ["book", "leaderboard", "quests", "skillTree"] as const) await t.run((ctx) => openUnlock(ctx, member, feature));
   }
   await t.fetch("/slack/events", await signedRequest(userGroupEvent("subteam_created", ants)));
   await settleInTimeOrder(t);
@@ -274,6 +279,7 @@ const everySurfaceOpen = {
   groupBoards: { kind: "boards" },
   activity: { kind: "activity", entries: expect.any(Array) },
   spotlight: { kind: "kudos" },
+  skillTree: { kind: "tree" },
 };
 
 async function decidedWithoutTheWebsite(person: Person) {
@@ -349,7 +355,7 @@ function orderFree<T>(rows: T[]): T[] {
 const convexTestId = /^\d+[a-zA-Z_]+$/;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const createdInTheSameMillisecond = /(\d{13})\.\d+$/;
-const opaque = new Set(["cursor", "after", "seen", "eventId"]);
+const opaque = new Set(["cursor", "eventId"]);
 
 function withStableIds<T>(value: T): T {
   const seen = new Map<string, string>();
