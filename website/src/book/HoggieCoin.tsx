@@ -8,7 +8,7 @@ type HoggieCoinProps = { art: Drop["art"]; rarity: Rarity; size: number; found?:
 export function HoggieCoin({ art, rarity, size, found = true }: HoggieCoinProps) {
   return (
     <span aria-hidden="true" data-coin={found ? "found" : "missing"} className={`hoggie-coin ${found ? "" : "hog-silhouette"}`} style={{ width: size, height: size, "--rarity": `var(--rarity-${rarity})` } as CSSProperties}>
-      <DropArtwork art={art} size={Math.round(size * 0.76)} />
+      <DropArtwork art={art} size={Math.round(size * 0.76)} silhouette={!found} />
     </span>
   );
 }

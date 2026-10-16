@@ -373,6 +373,7 @@ describe("#468: a drop that completes a team's crest lands the crest after the h
     advance(crateChargesForMs);
 
     expect(tokens().map((token) => token.textContent)).toEqual(["+20 XP", "+1 skill point", "+10 coins", "CroissantNew!⬜ Common", "Team complete!Customer Success EUCrest earned"]);
+    expect(tokenOf("drop").querySelector("img")).toHaveAttribute("src", expect.stringMatching(/croissant\.png$/));
     expect(tokenOf("crest").querySelector("[data-crest-art='collected'] img")).toHaveAttribute("src", expect.stringMatching(/customer-success-eu\.png$/));
     expect(delayOf(tokenOf("crest"))).toBeGreaterThanOrEqual(delayOf(tokenOf("drop")) + crestBeatDelayMs);
     advance(burstPlaysForMs);

@@ -13,7 +13,8 @@
   background: var(--muted);
 }
 
-.hoggie-coin svg {
+.hoggie-coin img,
+.hoggie-coin .drop-art-silhouette {
   max-width: none;
   translate: 0 6%;
 }
