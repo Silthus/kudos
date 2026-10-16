@@ -378,9 +378,11 @@ function putInSlotLineOf(item: CatalogueItem): HomeLine {
   return { kind: "pick", id: `put-in-slot:${item.item}`, text: itemLabelOf(item), placeholder: "Put in slot", options };
 }
 
-function storeLinesOf({ store }: InventoryHome, { after, unplaced }: RefusalLines): HomeLine[][] {
-  if (store.length === 0 && unplaced.length === 0) return [];
-  return [[{ kind: "text", text: bold("Store") }, ...store.flatMap((item): HomeLine[] => [{ kind: "action", ...itemOfferOf(item) }, ...after(item)]), ...unplaced]];
+function storeLinesOf({ kind, store }: InventoryHome, { after, unplaced }: RefusalLines): HomeLine[][] {
+  const heading: HomeLine = { kind: "text", text: bold("Store") };
+  const lines = [...store.flatMap((item): HomeLine[] => [{ kind: "action", ...itemOfferOf(item) }, ...after(item)]), ...unplaced];
+  if (lines.length > 0) return [[heading, ...lines]];
+  return kind === "owned" ? [[heading, { kind: "hint", text: "Nothing for sale right now." }]] : [];
 }
 
 function notYoursYetLinesOf({ notYoursYet }: InventoryHome): HomeLine[][] {
@@ -399,7 +401,13 @@ function refusalLinesOf(inventory: InventoryHome, refused: ItemRefusal | null, b
   const isRefused = (item: CatalogueItem | null) => item !== null && item.item === refused?.item;
   const owned = inventory.kind === "slots" ? [...inventory.slots, ...inventory.collection] : inventory.owned;
   const placed = [...owned, ...inventory.store].some(isRefused);
-  return { after: (item) => (isRefused(item) ? lines : []), unplaced: placed ? [] : lines };
+  const unplaced = inventory.kind === "owned" ? lines.map((line) => namingTheItem(line, refused)) : lines;
+  return { after: (item) => (isRefused(item) ? lines : []), unplaced: placed ? [] : unplaced };
+}
+
+function namingTheItem(line: HomeLine, refused: ItemRefusal | null): HomeLine {
+  const item = refused === null ? undefined : itemOf(refused.item);
+  return item === undefined || line.kind !== "hint" ? line : { ...line, text: line.text.replace(/^It /, `${itemLabelOf(item)} `) };
 }
 
 function refusalTextOf({ item, reason }: ItemRefusal, balance: number): string[] {

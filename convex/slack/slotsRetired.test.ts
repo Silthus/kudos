@@ -135,11 +135,19 @@ describe("RS3 RS4: with slots retired, the store stops selling standard emoji an
 
     await send(t, blockActions("U_ALICE", staleButtonOf({ type: "buyItem", item: "kudos-emoji-sunflower" })));
     expect(await coinsOf(t, "U_ALICE")).toBe(204);
-    expect(publishedHome(slack, "U_ALICE")).toContain("context: It isn't for sale.");
+    expect(publishedHome(slack, "U_ALICE").slice(-3)).toEqual(["section: *Store*", "section: :shipit: · 100 🪙 [button: Buy]", "context: 🌻 Sunflower isn't for sale."]);
 
     await send(t, blockActions("U_ALICE", buyButtonBeside(":shipit: · 100 🪙")));
     expect(await coinsOf(t, "U_ALICE")).toBe(104);
     expect(await collectionOf(t, "U_ALICE")).toEqual([shipit]);
+  });
+
+  test("with nothing picked for the store, the Store says there is nothing for sale", async () => {
+    const t = await aliceAndCarolWhoOpenedCoins(retiredForAlice, { owning: [rocket] });
+
+    await openInventory(t, "U_ALICE");
+
+    expect(publishedHome(slack, "U_ALICE").slice(-3)).toEqual(["divider", "section: *Store*", "context: Nothing for sale right now."]);
   });
 
   test("with slots off for Carol, her store still sells the standard emoji", async () => {
