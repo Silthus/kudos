@@ -1,0 +1,81 @@
+ RUN  v5.0.3 <worktree>
+ ✓ |website| src/routeList.test.tsx > SW10: the route list is the paths the router serves > Slack links to exactly the paths the website's router serves 11ms
+ ✓ |website| src/routeList.test.tsx > SW10: the route list is the paths the router serves > WS203: both lists hold /activity 1ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > /quests?quest=2 1ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > /skills?perk=spark 1ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > /skills?crate=skillTree 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > /quests?crate=quests 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > /leaderboard?crate=leaderboard 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > /leaderboard?period=month&crate=leaderb… 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > /book?crate=book 1ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > /?crate=journey 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > /quests?crate=weekly%3A2026-10-05%3A2 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > drops a broken weekly crate: ?crate=weekly:2026-10-05 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > drops a broken weekly crate: ?crate=weekly:2026-10-05: 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > drops a broken weekly crate: ?crate=weekly:2026-10-05:x 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > drops a broken weekly crate: ?crate=weekly:last-week:1 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > drops a broken weekly crate: ?crate=weekly:2026-10-05:1:2 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > drops a broken weekly crate: ?crate=daily:2026-10-05:1 0ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > a listed page links to SITE_URL plus its route: https://kudos-site.test/ 86ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > a listed page links to SITE_URL plus its route: https://kudos-site.test/leaderboard 7ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > a listed page links to SITE_URL plus its route: https://kudos-site.test/leaderboard?per… 5ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > a listed page links to SITE_URL plus its route: https://kudos-site.test/leaderboard?per… 6ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > a listed page links to SITE_URL plus its route: https://kudos-site.test/quests 5ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > a listed page links to SITE_URL plus its route: https://kudos-site.test/skills 10ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > a listed page links to SITE_URL plus its route: https://kudos-site.test/book 3ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > a listed page links to SITE_URL plus its route: https://kudos-site.test/book/earned 3ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/skills?perk=spa… 27ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/skills?crate=sk… 4ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/quests?crate=qu… 3ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/leaderboard?cra… 3ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/leaderboard?per… 3ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/book?crate=book 4ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/?crate=journey 3ms
+ ✓ |convex| convex/website/link.test.ts > SW11: one function builds every website link > #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/quests?crate=we… 2ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: /skills?perk={perkId} lands on that perk > scrolls the perk's node into view, focuses it and shows its details once the tree lands 318ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: /skills?perk={perkId} lands on that perk > opens the perk's drawer on a narrow screen, and closing it returns to the node 229ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: /skills?perk={perkId} lands on that perk > lands on a perk the member owns 98ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: /skills?perk={perkId} lands on that perk > falls back to the plain page for a locked perk 44ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: /skills?perk={perkId} lands on that perk > falls back to the plain page for a perk the tree doesn't hold 35ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: /skills?perk={perkId} lands on that perk > falls back to the plain page for an unknown perk 28ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: /skills?perk={perkId} lands on that perk > falls back to the plain page for an empty perk 34ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: /skills?perk={perkId} lands on that perk > selects the page's own first choice for a locked perk 52ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: ?crate={feature} lands on the page's ready crate > /quests?crate=quests scrolls to the ready crate and focuses its Open, never opening it 70ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: ?crate={feature} lands on the page's ready crate > /leaderboard?crate=leaderboard scrolls to the ready crate and focuses its Open, never opening it 38ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: ?crate={feature} lands on the page's ready crate > /book?crate=book scrolls to the ready crate and focuses its Open, never opening it 64ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: ?crate={feature} lands on the page's ready crate > /skills?crate=skillTree scrolls to the ready crate and focuses its Open, never opening it 49ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: ?crate={feature} lands on the page's ready crate > ignores an unknown crate 29ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: ?crate={feature} lands on the page's ready crate > ignores another page's crate 40ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: ?crate={feature} lands on the page's ready crate > /?crate=journey scrolls to the Journey step's crate and focuses its Open, never opening it 107ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: ?crate={feature} lands on the page's ready crate > ignores ?crate=journey while no Journey step waits to be opened 65ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #500: ?crate=weekly:{week}:{slot} lands on an earlier week's waiting crate > scrolls to that week's crate and focuses its Claim, never opening it 86ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #500: ?crate=weekly:{week}:{slot} lands on an earlier week's waiting crate > tells two weeks' crates apart 244ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #500: ?crate=weekly:{week}:{slot} lands on an earlier week's waiting crate > lands on the plain page for a crate already opened 64ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #500: ?crate=weekly:{week}:{slot} lands on an earlier week's waiting crate > lands on the plain page for another slot of that week 43ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #500: ?crate=weekly:{week}:{slot} lands on an earlier week's waiting crate > lands on the plain page for a broken target 61ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #500: ?crate=weekly:{week}:{slot} lands on an earlier week's waiting crate > lands once the quests answer after connecting 127ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: a target waits out a connecting read > lands /skills?perk= once the tree answers after connecting 117ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: a target waits out a connecting read > lands /quests?quest= once the quests answer after connecting 120ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: a target waits out a connecting read > lands /?crate=journey once the home's reads answer after connecting 119ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: a quest or perk target waits for its page's content > lands /quests?quest= once Quests turn from ready to open 114ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: a quest or perk target waits for its page's content > lands /skills?perk= once the Skill tree turns from ready to open 183ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: a target survives sign-in > signs in back to /skills?perk=spark 132ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: a target survives sign-in > signs in back to /quests?crate=quests 68ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: a target survives sign-in > signs in back to /?crate=journey 58ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: a target survives sign-in > signs in back to /book?crate=book 36ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: a target survives sign-in > signs in back to /leaderboard?period=month&crate=leaderboard 39ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: a target survives sign-in > signs in back to /quests?crate=weekly%3A2026-10-05%3A0 52ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: axe finds no violations on a landing > a perk on a wide screen in light mode 337ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: axe finds no violations on a landing > a perk on a wide screen in dark mode 240ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: axe finds no violations on a landing > a perk's drawer in light mode 250ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: axe finds no violations on a landing > a perk's drawer in dark mode 237ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: axe finds no violations on a landing > a ready crate in light mode 202ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: axe finds no violations on a landing > a ready crate in dark mode 190ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: axe finds no violations on a landing > a Journey crate in light mode 392ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: axe finds no violations on a landing > a Journey crate in dark mode 405ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: axe finds no violations on a landing > an earlier week's crate in light mode 475ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: axe finds no violations on a landing > an earlier week's crate in dark mode 429ms
+ Test Files  3 passed (3)
+      Tests  76 passed (76)
+   Start at  01:05:48
+   Duration  10.31s (tests 47%, transform 20%, import 19%, environment 12%, setup 2%)
