@@ -21,3 +21,7 @@ E's helper faces and names are left out on purpose: P82 keeps the group quest to
 - **Focus visibility:** `?quest=group` puts a visible ring on the card's goal (the 390 px shots). `?crate=group` focuses Claim (test `#435: ?crate={feature} lands on the page's ready crate`).
 - **Reduced motion:** the reveal shows its end state at once. Covered by the `WS344 WS348` tests, which run under `prefers-reduced-motion: reduce`, because the preview browser can't emulate it.
 - **Screen reader wording:** the progressbar is named "{n} of {target} took part", the region "Group quest · {group}", and the live region says "You opened your group quest reward. You earned 15 coins." (read from the reveal shot's accessibility tree). axe passes in light and dark (`WS339`).
+
+## Design spot check (Fable 5.1)
+
+Five findings, nothing blocking. Fixed in `fc8b3ba0`: one pill row on the claimed home row (1), no reward shown to a member who missed the group quest (2), an even separator on an earlier group crate (3), and "took part" on the home row's count (5). Left for a follow-up: a kind label on the group card (4), because `groupQuestOf` carries no quest kind. The three affected shots above are retaken from `fc8b3ba0`.
