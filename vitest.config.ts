@@ -1,8 +1,12 @@
+import { availableParallelism } from "node:os";
 import { defineConfig } from "vitest/config";
+
+const everyCoreOnCi = process.env.CI ? availableParallelism() : undefined;
 
 export default defineConfig({
   test: {
     passWithNoTests: true,
+    maxWorkers: everyCoreOnCi,
     projects: [
       {
         test: {
