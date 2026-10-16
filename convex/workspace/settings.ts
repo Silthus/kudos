@@ -7,6 +7,7 @@ export type WorkspaceSettings = { baseAllowance: number; kudosEmoji: string; ann
 
 const defaultBaseAllowance = 3;
 const fallbackKudosEmoji = "taco";
+const defaultStarBudget = 10;
 
 export async function settingsOf(ctx: QueryCtx, workspace: string): Promise<WorkspaceSettings> {
   const row = await workspaceRow(ctx, workspace);
@@ -16,6 +17,20 @@ export async function settingsOf(ctx: QueryCtx, workspace: string): Promise<Work
     announcementChannel: row?.announcementChannel ?? null,
   };
 }
+
+export async function starBudgetOf(ctx: QueryCtx, workspace: string): Promise<number> {
+  return (await workspaceRow(ctx, workspace))?.starBudget ?? defaultStarBudget;
+}
+
+export const setStarBudget = internalMutation({
+  args: { workspace: v.string(), starBudget: v.number() },
+  handler: async (ctx, { workspace, starBudget }) => {
+    if (!Number.isInteger(starBudget) || starBudget < 0) throw new Error("A star budget is a whole number of stars, 0 or more");
+    const row = await workspaceRow(ctx, workspace);
+    if (row === null) await ctx.db.insert("workspaces", { workspace, starBudget });
+    else await ctx.db.patch(row._id, { starBudget });
+  },
+});
 
 export const pickAnnouncementChannel = internalMutation({
   args: { workspace: v.string(), channel: v.union(v.string(), v.null()) },

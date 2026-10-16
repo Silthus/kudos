@@ -15,6 +15,10 @@ Workspace: the settings with their defaults and the directory of the workspace's
   handler: pickAnnouncementChannel in convex/workspace/settings.ts
   trust: operator
   control: none — it takes only IDs, refuses a workspace Kudos doesn't know, saves the channel exactly as an admin's pick would, and only where XP and levels are shown in the workspace; it skips only the admin check, which a maintainer has no Slack member to pass
+- set a workspace's star budget: a maintainer runs setStarBudget with a workspace ID and a whole number, so each member there gives at most that many stars on their day instead of 10 (SR6); there is no admin control for it yet
+  handler: setStarBudget in convex/workspace/settings.ts
+  trust: operator
+  control: none — it takes only an ID and a whole number of 0 or more, refusing any other, and writes only the workspace row's starBudget
 
 ## invariants
 - only admins set the announcement channel: Only a member the directory knows as a workspace admin or owner can set or clear the announcement channel from Slack; a command from anyone else, or from an admin Slack has since removed, changes nothing.

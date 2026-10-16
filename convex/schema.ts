@@ -79,6 +79,7 @@ export default defineSchema({
     baseAllowance: v.optional(v.number()),
     kudosEmoji: v.optional(v.string()),
     announcementChannel: v.optional(v.string()),
+    starBudget: v.optional(v.number()),
     url: v.optional(v.string()),
     urlRequestedAt: v.optional(v.number()),
   }).index("by_workspace", ["workspace"]),
@@ -242,7 +243,23 @@ export default defineSchema({
     .index("by_recipient_at", ["recipient", "at"])
     .index("by_giver_at", ["giver", "at"])
     .index("by_message", ["workspace", "conversation", "message"])
+    .index("by_message_recipient", ["workspace", "conversation", "message", "recipient"])
     .index("by_workspace", ["workspace"]),
+
+  stars: defineTable({
+    workspace: v.string(),
+    conversation: v.string(),
+    message: v.string(),
+    giver: v.id("members"),
+    onKudos: v.boolean(),
+    author: v.optional(v.id("members")),
+    at: v.number(),
+    day: v.string(),
+  })
+    .index("by_message_giver", ["workspace", "conversation", "message", "giver"])
+    .index("by_giver_day", ["giver", "day"]),
+
+  starPeople: defineTable({ star: v.id("stars"), member: v.id("members"), at: v.number() }).index("by_star_member", ["star", "member"]),
 
   kudosTotals: defineTable({
     member: v.id("members"),

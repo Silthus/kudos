@@ -3,6 +3,7 @@ import type {
   AchievementEarnedEvent,
   AttemptFailedEvent,
   HoggieDroppedEvent,
+  StarGivenEvent,
   GroupQuestDrawnEvent,
   JourneyStepActivatedEvent,
   KudosGivenEvent,
@@ -49,6 +50,7 @@ export type ProductEvent = {
     | "journey step activated"
     | "perk bought"
     | "hoggie dropped"
+    | "star given"
     | "achievement earned"
     | "app home opened"
     | "command used"
@@ -217,6 +219,10 @@ export function projectJourneyStepActivated(event: JourneyStepActivatedEvent): P
 
 export function projectHoggieDropped(event: HoggieDroppedEvent): ProductEvent {
   return { event: "hoggie dropped", subject: { member: event.member }, at: event.at, properties: { rarity: event.rarity, is_new: event.copy === 1, crate_kind: crateKindOf(event.crate) } };
+}
+
+export function projectStarGiven(event: StarGivenEvent): ProductEvent {
+  return { event: "star given", subject: { member: event.giver }, at: event.at, properties: { on_kudos: event.onKudos } };
 }
 
 export function projectPerkBought(event: PerkBoughtEvent): ProductEvent {
