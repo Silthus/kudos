@@ -223,6 +223,10 @@ export const hoggieDroppedEventValidator = v.object({
 
 export type HoggieDroppedEvent = Infer<typeof hoggieDroppedEventValidator>;
 
+export const crateBoughtEventValidator = v.object({ type: v.literal("crateBought"), workspace: v.string(), member: v.id("members"), crate: v.string(), price: v.number(), at: v.number() });
+
+export type CrateBoughtEvent = Infer<typeof crateBoughtEventValidator>;
+
 export type DomainEvent =
   | KudosGivenEvent
   | AttemptFailedEvent
@@ -245,7 +249,8 @@ export type DomainEvent =
   | MemberRejoinedEvent
   | PrimaryGroupChangedEvent
   | AwardsAttributedEvent
-  | HoggieDroppedEvent;
+  | HoggieDroppedEvent
+  | CrateBoughtEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];

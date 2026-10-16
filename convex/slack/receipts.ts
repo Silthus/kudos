@@ -7,7 +7,7 @@ import { welcomePickOf } from "../feedback/welcome";
 import { messageDeletedValidator, messageEventValidator } from "../engine/messageEvent";
 import { republish } from "../feedback/homes";
 import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
-import type { ItemRefusal } from "../store/rows";
+import type { HomeRefusal } from "../feedback/homeRefusal";
 import { directoryEntryValidator, lookup } from "../workspace/directory";
 import { recordPerson } from "./directory";
 import { reportHomeOpened } from "./appHome";
@@ -63,14 +63,14 @@ export const receiveHomeClick = internalMutation({
     await ctx.db.insert("slackReceipts", receipt);
     const person = await lookup(ctx, receipt.workspace, user);
     if (person?.kind !== "member") return;
-    let refused: ItemRefusal | undefined;
+    let refused: HomeRefusal | undefined;
     for (const command of commands) {
       const outcome = await runCommand(ctx, receipt.workspace, person, command, `slack:${receipt.eventId}`);
       if (outcome !== null && "perk" in outcome && conversation !== undefined) {
         const answeredIn = ephemeral === undefined ? { conversation } : { conversation: user, beside: { conversation, ...ephemeral } };
         await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, ...answeredIn, outcome });
       }
-      if (outcome !== null && "item" in outcome && outcome.kind === "refused") refused = outcome;
+      if (outcome !== null && ("item" in outcome || "crate" in outcome) && outcome.kind === "refused") refused = outcome;
       if (command.type === "pickPrimaryGroup" && command.surface === "welcome" && conversation !== undefined && message !== undefined) {
         const pick = await welcomePickOf(ctx, person.member, command.group);
         if (pick !== null) await ctx.scheduler.runAfter(0, internal.slack.welcome.updateWelcome, { workspace: receipt.workspace, user, conversation, message, pick });

@@ -6,6 +6,7 @@ import { messageSettingsOnFor } from "../messageSettings/flag";
 import { messageKindValidator, messagePlaceValidator, type MessageKind, type MessagePlace } from "../messageSettings/kinds";
 import { kindAppliesTo, placeOf, placesOf } from "../messageSettings/messageSettings";
 import { isOnTheBoards } from "../leaderboard/visibility";
+import { crateStoreOf, openedCrateDropOf } from "../hoggies/boughtCrates";
 import { dropsAHoggie } from "../hoggies/crateKey";
 import { dropOf, type Drop } from "../hoggies/drops";
 import { hoggiesShownTo } from "../hoggies/flag";
@@ -18,6 +19,7 @@ import { perkValidator } from "../progression/tree";
 import { journeyStartedFor, questsApplyTo } from "../quests/flag";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { swappedSlotIn } from "../quests/weekly";
+import type { CrateRefusal } from "../hoggies/records";
 import type { ItemRefusal } from "../store/rows";
 import { storeVisibleTo } from "../store/visibility";
 import { featureValidator } from "../unlocks/feature";
@@ -45,6 +47,10 @@ export type PurchaseAnswer = { kind: "bought" } | { kind: "refused"; reason: Pur
 export type ItemPurchaseRefusal = ItemRefusal["reason"];
 
 export type ItemPurchaseAnswer = { kind: "bought"; item: string } | { kind: "refused"; reason: ItemPurchaseRefusal | null };
+
+export type CratePurchaseAnswer = { kind: "bought"; crate: string } | { kind: "refused"; reason: CrateRefusal["reason"] } | null;
+
+export type CrateOpenAnswer = { kind: "opened"; drop: Drop } | { kind: "refused" };
 
 export type VisibilityAnswer = { kind: "set"; visible: boolean } | { kind: "refused" };
 
@@ -132,6 +138,31 @@ export const buyItem = memberMutation({
     if (outcome.kind === "refused") return { kind: "refused", reason: outcome.reason };
     await republish(ctx, me.member);
     return { kind: "bought", item: outcome.item };
+  },
+});
+
+export const buyCrate = memberMutation({
+  args: { next: v.number() },
+  handler: async (ctx, me, person, { next }): Promise<CratePurchaseAnswer> => {
+    if (!(await noLaunchWaitsFor(ctx, me))) return null;
+    const before = await crateStoreOf(ctx, me.member);
+    const outcome = await runCommand(ctx, me.workspace, person, { type: "buyCrate", next }, `website:buyCrate:${me.member}:${next}`);
+    if (outcome === null || !("crate" in outcome)) return null;
+    if (outcome.kind === "refused") return { kind: "refused", reason: outcome.reason };
+    if ((await crateStoreOf(ctx, me.member))?.next !== before?.next) await republish(ctx, me.member);
+    return { kind: "bought", crate: outcome.crate };
+  },
+});
+
+export const openCrate = memberMutation({
+  args: { crate: v.string() },
+  handler: async (ctx, me, person, { crate }): Promise<CrateOpenAnswer> => {
+    if (!(await noLaunchWaitsFor(ctx, me))) return refused;
+    await runCommand(ctx, me.workspace, person, { type: "openCrate", crate }, `website:openCrate:${me.member}:${crate}`);
+    const drop = await openedCrateDropOf(ctx, me.member, crate);
+    if (drop === null) return refused;
+    await republish(ctx, me.member);
+    return { kind: "opened", drop };
   },
 });
 
