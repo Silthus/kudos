@@ -1,0 +1,194 @@
+/* The Collection as a book: album paper, a spine on wide screens, die-cut stickers, printed empty slots, the completion stamp and the chapter tabs. */
+
+.bk-paper {
+  position: relative;
+  background-color: color-mix(in oklab, var(--card) 92%, var(--band-lemon) 8%);
+  background-image: radial-gradient(circle at 1px 1px, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1.3px);
+  background-size: 7px 7px;
+}
+
+.dark .bk-paper {
+  background-color: color-mix(in oklab, var(--card) 95%, var(--band-lemon) 5%);
+}
+
+.bk-book {
+  border-radius: 14px;
+  outline: 1px solid var(--border);
+  box-shadow:
+    0 1px 0 var(--border),
+    0 3px 0 -1px color-mix(in oklab, var(--card) 96%, var(--foreground) 4%),
+    0 4px 0 -1px var(--border),
+    0 6px 0 -2px color-mix(in oklab, var(--card) 94%, var(--foreground) 6%),
+    0 7px 0 -2px var(--border),
+    0 22px 40px -24px color-mix(in oklab, var(--foreground) 40%, transparent);
+}
+
+.dark .bk-book {
+  box-shadow:
+    0 1px 0 var(--border),
+    0 4px 0 -1px var(--border),
+    0 7px 0 -2px var(--border),
+    0 22px 40px -24px color-mix(in oklab, black 80%, transparent);
+}
+
+@media (min-width: 1024px) {
+  .bk-page-left {
+    box-shadow: inset -28px 0 28px -26px color-mix(in oklab, var(--foreground) 30%, transparent);
+  }
+  .bk-page-right {
+    box-shadow: inset 28px 0 28px -26px color-mix(in oklab, var(--foreground) 30%, transparent);
+  }
+  .bk-page-right::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 1px;
+    background: color-mix(in oklab, var(--foreground) 14%, transparent);
+  }
+  .dark .bk-page-left {
+    box-shadow: inset -28px 0 28px -24px color-mix(in oklab, black 70%, transparent);
+  }
+  .dark .bk-page-right {
+    box-shadow: inset 28px 0 28px -24px color-mix(in oklab, black 70%, transparent);
+  }
+}
+
+.bk-sticker {
+  background: white;
+  border-radius: 10px;
+  padding: 5px;
+  box-shadow:
+    0 1px 1.5px color-mix(in oklab, var(--foreground) 28%, transparent),
+    0 8px 16px -10px color-mix(in oklab, var(--foreground) 50%, transparent);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.bk-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(125deg, transparent 28%, color-mix(in oklab, white 42%, transparent) 42%, transparent 54%, transparent 70%, color-mix(in oklab, white 18%, transparent) 78%, transparent 86%);
+  background-size: 220% 220%;
+  background-position: 70% 0;
+  transition: background-position 0.6s ease;
+}
+
+@media (hover: hover) {
+  .bk-sticker:hover {
+    transform: translateY(-2px) rotate(0deg) !important;
+  }
+  .bk-sticker:hover .bk-sheen::after {
+    background-position: 10% 0;
+  }
+}
+
+.bk-slot {
+  border: 1.5px dashed color-mix(in oklab, var(--foreground) 26%, transparent);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--foreground) 3%, transparent);
+}
+
+.bk-name-strip {
+  background: #23251f;
+  color: #f5f4ef;
+}
+
+.bk-stamp {
+  color: var(--success-foreground);
+  border: 3px double currentColor;
+  border-radius: 8px;
+  transform: rotate(-11deg);
+  opacity: 0.88;
+  mix-blend-mode: multiply;
+}
+
+.dark .bk-stamp {
+  mix-blend-mode: screen;
+}
+
+.bk-crest-frame {
+  clip-path: polygon(50% 0, 100% 13%, 100% 58%, 50% 100%, 0 58%, 0 13%);
+}
+
+.bk-shelf {
+  position: relative;
+  border-radius: 10px;
+  background: linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 16%, var(--card)), color-mix(in oklab, var(--foreground) 9%, var(--card)));
+  box-shadow:
+    0 1px 0 color-mix(in oklab, var(--foreground) 22%, transparent),
+    0 10px 14px -10px color-mix(in oklab, var(--foreground) 55%, transparent);
+}
+
+.bk-tab {
+  position: relative;
+  border-radius: 9999px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.bk-tab[aria-current="page"],
+.bk-tab[aria-selected="true"] {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.bk-rarity-pip {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--pip);
+}
+
+.bk-ring {
+  --share: 0%;
+  background: conic-gradient(var(--ring-fill, var(--foreground)) var(--share), color-mix(in oklab, var(--foreground) 12%, transparent) 0);
+  mask: radial-gradient(circle closest-side, transparent 68%, black 70%);
+}
+
+.bk-album-cover {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .bk-album-cover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -16px color-mix(in oklab, var(--foreground) 55%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bk-rise {
+    animation: bk-rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .bk-stamp-in {
+    animation: bk-stamp 0.42s cubic-bezier(0.2, 0.8, 0.2, 1.1) 0.25s both;
+  }
+}
+
+@keyframes bk-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes bk-stamp {
+  from {
+    opacity: 0;
+    transform: rotate(-11deg) scale(1.7);
+  }
+  to {
+    opacity: 0.88;
+    transform: rotate(-11deg) scale(1);
+  }
+}

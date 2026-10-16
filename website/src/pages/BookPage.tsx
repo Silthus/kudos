@@ -1,7 +1,8 @@
 import { BookIndex, BookPagePicker } from "../book/BookIndex";
 import { EarnedPage } from "../book/EarnedPage";
 import { chaptersOf, type Chapter } from "../book/categories";
-import { HoggieCollection } from "../book/HoggieCollection";
+import { useChapter } from "../book/v2/chapters";
+import { CollectionBook, collectionChaptersOf } from "../book/v2/CollectionBook";
 import type { CollectionShown } from "../collectionRead";
 import { Ladder } from "../book/Ladder";
 import { Overview } from "../book/Overview";
@@ -25,16 +26,19 @@ export function BookPage({ book, collection, page, chatUrl, ...shopping }: BookP
 
 function BookPages({ book, collection, page, chatUrl, coins, onBuyCrate }: { book: YourBook; collection: YourCollection | undefined; page: Exclude<BookPageId, "earned">; chatUrl: string } & Shopping) {
   const wide = useWideScreen();
+  const collectionChapter = useChapter();
   const chapters = chaptersOf(book.ladders);
   const chapter = chapters.find(({ category }) => category.id === page);
   const onTheCollection = page === "collection" && collection !== undefined;
   const current: BookPageId = onTheCollection ? "collection" : (chapter?.category.id ?? "overview");
-  const index = { chapters, current, collection: collection !== undefined };
+  const index = { chapters, current, collection: collection !== undefined, collectionChapters: onTheCollection ? collectionChaptersOf(collectionChapter, collection) : [] };
+  void onBuyCrate;
+  void chatUrl;
   return (
     <div className="grid gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:gap-6">
       {wide ? <BookIndex {...index} /> : <BookPagePicker {...index} />}
       <div className="flex min-w-0 flex-col gap-6">
-        {onTheCollection ? <HoggieCollection collection={collection} timeZone={book.timeZone} coins={coins} buyCrate={onBuyCrate} chatUrl={chatUrl} /> : chapter === undefined ? <OverviewPage book={book} collection={collection} /> : <ChapterPage chapter={chapter} timeZone={book.timeZone} />}
+        {onTheCollection ? <CollectionBook collection={collection} timeZone={book.timeZone} coins={coins} /> : chapter === undefined ? <OverviewPage book={book} collection={collection} /> : <ChapterPage chapter={chapter} timeZone={book.timeZone} />}
       </div>
     </div>
   );

@@ -4,9 +4,11 @@ import { AppLink, useNavigate } from "../AppLink";
 import type { BookPageId } from "../route";
 import { bookHref, type Chapter } from "./categories";
 
-type IndexProps = { chapters: Chapter[]; current: BookPageId; collection: boolean };
+export type CollectionChapterEntry = { id: string; label: string; href: string; count: string | null; current: boolean };
 
-export function BookIndex({ chapters, current, collection }: IndexProps) {
+type IndexProps = { chapters: Chapter[]; current: BookPageId; collection: boolean; collectionChapters?: CollectionChapterEntry[] };
+
+export function BookIndex({ chapters, current, collection, collectionChapters = [] }: IndexProps) {
   return (
     <nav aria-label="Book pages" className="sticky top-24">
       <div className="relative flex flex-col gap-1 rounded-lg border bg-card p-2">
@@ -21,6 +23,18 @@ export function BookIndex({ chapters, current, collection }: IndexProps) {
           <IndexEntry page="collection" current={current}>
             Collection
           </IndexEntry>
+        )}
+        {collectionChapters.length > 0 && (
+          <ul className="mb-1 ml-4 flex flex-col gap-0.5 border-l pl-2">
+            {collectionChapters.map((entry) => (
+              <li key={entry.id}>
+                <a href={entry.href} aria-current={entry.current ? "page" : undefined} className={`flex min-h-8 items-center justify-between gap-2 rounded-md px-2 py-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${entry.current ? "bg-fill-selected font-medium text-foreground" : "text-muted-foreground hover:bg-fill-hover hover:text-foreground"}`}>
+                  {entry.label}
+                  {entry.count !== null && <span className="text-xs tabular-nums text-muted-foreground">{entry.count}</span>}
+                </a>
+              </li>
+            ))}
+          </ul>
         )}
         <div className="mt-2 flex flex-col gap-0.5">
           <span className="hud-label px-2 pb-1">Achievements</span>
