@@ -47,6 +47,7 @@ export const subscribers: Registry = {
   memberRejoined: [internal.quests.journey.recheckRejoined],
   primaryGroupChanged: [],
   awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed, internal.quests.groupQuest.followAwardsAttributed],
+  hoggieDropped: [internal.analytics.subscribers.recordHoggieDropped],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {

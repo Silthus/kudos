@@ -2,6 +2,7 @@ import { v, type Infer } from "convex/values";
 import type {
   AchievementEarnedEvent,
   AttemptFailedEvent,
+  HoggieDroppedEvent,
   GroupQuestDrawnEvent,
   JourneyStepActivatedEvent,
   KudosGivenEvent,
@@ -22,6 +23,7 @@ import type { Period } from "../leaderboard/periods";
 import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
 import type { Feature } from "../unlocks/feature";
 import { gateDecisionOf } from "../progression/gate";
+import { crateKindOf } from "../hoggies/crateKey";
 import { defaultKudosEmoji } from "../workspace/settings";
 import type { MemberId } from "../workspace/directory";
 
@@ -46,6 +48,7 @@ export type ProductEvent = {
     | "crate opened"
     | "journey step activated"
     | "perk bought"
+    | "hoggie dropped"
     | "achievement earned"
     | "app home opened"
     | "command used"
@@ -210,6 +213,10 @@ function questNamed({ quest, poolQuest }: QuestFinishedEvent | QuestOpenedEvent)
 
 export function projectJourneyStepActivated(event: JourneyStepActivatedEvent): ProductEvent {
   return { event: "journey step activated", subject: { member: event.member }, at: event.at, properties: { step: event.step } };
+}
+
+export function projectHoggieDropped(event: HoggieDroppedEvent): ProductEvent {
+  return { event: "hoggie dropped", subject: { member: event.member }, at: event.at, properties: { rarity: event.rarity, is_new: event.copy === 1, crate_kind: crateKindOf(event.crate) } };
 }
 
 export function projectPerkBought(event: PerkBoughtEvent): ProductEvent {

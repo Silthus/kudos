@@ -133,7 +133,7 @@ async function spotlightSegmentsOf(person: { user: string; name: string }) {
 }
 
 function segmentsOf(entry: ActivityEntry | undefined) {
-  if (entry === undefined || entry.kind === "levelUp" || entry.message.kind !== "text") throw new Error("expected a kudos with readable words");
+  if ((entry?.kind !== "kudosGiven" && entry?.kind !== "kudosReceived") || entry.message.kind !== "text") throw new Error("expected a kudos with readable words");
   return entry.message.segments;
 }
 

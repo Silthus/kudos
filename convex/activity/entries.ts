@@ -1,3 +1,4 @@
+import type { Drop } from "../hoggies/drops";
 import type { PerkId } from "../progression/tree";
 import type { Face } from "../website/faces";
 
@@ -47,7 +48,9 @@ export type KudosGiven = {
 
 export type LevelUp = { kind: "levelUp"; at: number; level: number };
 
-export type ActivityEntry = KudosReceived | KudosGiven | LevelUp;
+export type Found = { kind: "found"; at: number; key: string; drop: Drop };
+
+export type ActivityEntry = KudosReceived | KudosGiven | LevelUp | Found;
 
 export type Activity = { kind: "activity"; entries: ActivityEntry[]; cursor: string | null; timeZone: string | null };
 

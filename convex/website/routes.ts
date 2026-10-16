@@ -1,5 +1,6 @@
 import { v, type Infer } from "convex/values";
-import type { Quest } from "../quests/step";
+import type { Quest, WeeklyQuest } from "../quests/step";
+import type { WeekKey } from "../quests/week";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import type { pageValidator } from "./link";
 
@@ -61,7 +62,15 @@ export function readyCratePageOf(feature: Feature): Page {
 }
 
 export function questCratePageOf(quest: Quest): Page {
-  return quest.kind === "journey" ? { page: "home", crate: "journey" } : { page: "quests" };
+  if (quest.kind === "journey") return { page: "home", crate: "journey" };
+  if (quest.kind === "weekly") return { page: "quests", quest: quest.slot };
+  return { page: "quests" };
+}
+
+export const earlierWeekCratePage: Page = { page: "quests" };
+
+export function weeklyCratePageOf(quest: WeeklyQuest, thisWeek: WeekKey): Page {
+  return quest.week === thisWeek ? questCratePageOf(quest) : earlierWeekCratePage;
 }
 
 export function urlOf(origin: string, page: Page) {

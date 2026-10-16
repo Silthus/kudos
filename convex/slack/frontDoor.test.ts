@@ -66,7 +66,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       "section: You have *8* kudos left today. You get *10* more at midnight.",
       "section: Level 3 · 120 XP to level 4",
       "divider",
-      `section: ✅ ${sayWhy} ${openOnTheWeb("/quests")}`,
+      `section: ✅ ${sayWhy} ${openOnTheWeb("/quests?quest=0")}`,
       `section: ✅ Give a kudos that says why. ${openOnTheWeb("/?crate=journey")}`,
       `section: ✅ Finish a weekly quest. ${openOnTheWeb("/?crate=journey")}`,
       `section: ✅ Thank someone you haven't thanked before. ${openOnTheWeb("/?crate=journey")}`,
@@ -354,7 +354,7 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     expect(accessoryBeside("*Skill tree* is ready.")).toMatchObject({ url: `${siteUrl}/skills?crate=skillTree`, action_id: "website-link:skillTree", accessibility_label: "Open on HedgeHug's Skill tree page" });
   });
 
-  test("a Journey step's crate links to the Journey's crate on the home, and a weekly quest's crate, this week's or an earlier week's, to the Quests page", async () => {
+  test("a Journey step's crate links to the Journey's crate on the home, this week's quest crate to its quest's card on the Quests page, and an earlier week's to the Quests page", async () => {
     const t = await workspace(...everyFlag, "website");
     await levelThreeWithQuestsDrawn(t);
     await openReadyFeatures(t);
@@ -363,8 +363,22 @@ describe("each crate's Open in Slack links to the page where it opens while the 
 
     expect(accessoryBeside("*Week of Oct 5:*")).toMatchObject({ url: `${siteUrl}/quests`, action_id: "website-link:weekly:2026-10-05:0", accessibility_label: "Open on HedgeHug's Quests page" });
 
-    expect(accessoryBeside(`✅ ${sayWhy}`)).toMatchObject({ url: `${siteUrl}/quests`, action_id: "website-link:weekly:2026-10-12:0", accessibility_label: "Open on HedgeHug's Quests page" });
+    expect(accessoryBeside(`✅ ${sayWhy}`)).toMatchObject({ url: `${siteUrl}/quests?quest=0`, action_id: "website-link:weekly:2026-10-12:0", accessibility_label: "Open on HedgeHug's Quests page" });
     expect(accessoryBeside("✅ Give a kudos that says why.")).toMatchObject({ url: `${siteUrl}/?crate=journey`, action_id: "website-link:journey:first-thanks", accessibility_label: "Open on HedgeHug's home page" });
+  });
+
+  test("each of this week's quest crates links to its own quest's card on the Quests page, by its slot", async () => {
+    const t = await workspace(...everyFlag, "website");
+    await levelThreeWithQuestsDrawn(t);
+    await openReadyFeatures(t);
+    for (const day of [1, 2, 3]) {
+      vi.setSystemTime(tuesday + day * dayMs);
+      await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    }
+
+    expect([sayWhy, twice, threeTimes].map((goal) => accessoryBeside(`✅ ${goal}`))).toMatchObject(
+      [0, 1, 2].map((slot) => ({ url: `${siteUrl}/quests?quest=${slot}`, action_id: `website-link:weekly:2026-10-12:${slot}`, accessibility_label: "Open on HedgeHug's Quests page" })),
+    );
   });
 
   test("a ready Book links to its crate on /book, and ready Coins, which has no crate on the home, links to the home", async () => {

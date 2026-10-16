@@ -193,6 +193,10 @@ const railStates: { name: string; board: BoardAnswer | undefined; quests: Quests
   { name: "ready by the reads before getMyProfile catches up", board: { kind: "ready" }, quests: { kind: "ready" } },
   { name: "at level 7", board: leaderboardFixtures.viewerLeads, quests: questsFixtures.week, visitor: { ...shellFixtures.memberWithEveryPanelOpen, progression: shellFixtures.memberAtLevel7.progression } },
   { name: "with the best four medals on the public card", board: leaderboardFixtures.midBoard, quests: questsFixtures.week, card: profileCardFixtures.bestFour },
+  { name: "with My group, Groups, the peer line and the card's group", board: leaderboardFixtures.withAPeerLine, quests: questsFixtures.week, card: profileCardFixtures.inAGroup },
+  { name: "with the viewer's group tied on Groups", board: leaderboardFixtures.withMyGroupTiedOnGroups, quests: questsFixtures.week },
+  { name: "with no group of the viewer's listed", board: leaderboardFixtures.withMyGroupUnlisted, quests: questsFixtures.week },
+  { name: "hidden from the boards while the group still ranks", board: leaderboardFixtures.leftWhileMyGroupRanks, quests: questsFixtures.week },
   { name: "before the Book opens, saying medals join the card after it opens", board: undefined, quests: undefined, visitor: shellFixtures.memberWaitingForTheBook, card: profileCardFixtures.noMedals },
 ];
 

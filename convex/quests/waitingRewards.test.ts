@@ -181,7 +181,7 @@ describe("CR9 CR10 CR11: a reward waiting in its crate is told as waiting, and a
     await giveKudos(t, "U_ALICE", "U_CAROL");
 
     const home = publishedHome(slack, "U_ALICE");
-    expect(home).toContain(`section: ✅ ${sayWhyGoal} · 300 XP waits in your crate ${openOnTheWeb("/quests")}`);
+    expect(home).toContain(`section: ✅ ${sayWhyGoal} · 300 XP waits in your crate ${openOnTheWeb("/quests?quest=0")}`);
     expect(home).toContain(`section: ✅ ${firstQuestGoal} · 20 XP waits in your crate ${openOnTheWeb("/?crate=journey")}`);
     expect(home).toContain(`section: ✅ ${sayWhyGoal} *300 XP* waits in your crate.`);
     expect(home.filter((line) => line.includes("You earned"))).toEqual([]);
@@ -198,7 +198,7 @@ describe("CR9 CR10 CR11: a reward waiting in its crate is told as waiting, and a
     await giveKudos(t, "U_ALICE", "U_CAROL");
 
     const home = publishedHome(slack, "U_ALICE");
-    expect(home).toContain(`section: ✅ ${sayWhyGoal} ${openOnTheWeb("/quests")}`);
+    expect(home).toContain(`section: ✅ ${sayWhyGoal} ${openOnTheWeb("/quests?quest=0")}`);
     expect(home).toContain(`section: ✅ ${sayWhyGoal} You earned *300 XP*.`);
     expect(home.filter((line) => line.includes("waits in your crate"))).toEqual([]);
   });

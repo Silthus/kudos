@@ -5,6 +5,8 @@ import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { GroupChoice } from "../groups/pick";
 import type { GroupId, GroupRef } from "../groups/groups";
+import { rarityLabel } from "../hoggies/catalogue";
+import type { HoggiesHome } from "../hoggies/collection";
 import type { GroupModeFacts } from "../groups/groupMode";
 import type { MondayPostSwitch } from "../leaderboard/mondayPost";
 import { timeZonesOffered } from "../leaderboard/timeZones";
@@ -30,7 +32,7 @@ import { slots as slotNames, type ItemRefusal } from "../store/rows";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
-import { questCratePageOf, readyCratePageOf, urlOf, type Page } from "../website/routes";
+import { earlierWeekCratePage, questCratePageOf, readyCratePageOf, urlOf, weeklyCratePageOf, type Page } from "../website/routes";
 import { coinsPartOf, inCoins } from "./coins";
 import type { HomeTab, JourneyStepShown, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { countsFor, pickQuestion } from "./groupCopy";
@@ -81,7 +83,7 @@ const earlierCratesShown = 5;
 
 const pageNames: Record<Page["page"], string> = { home: "home", leaderboard: "Leaderboard", quests: "Quests", skillTree: "Skill tree", book: "Book", bookEarned: "Book" };
 
-const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, groupQuest: null, earlierCrates: null, earlierGroupCrates: null, journey: null };
+const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, groupQuest: null, earlierCrates: null, earlierGroupCrates: null, journey: null, hoggies: null };
 
 export function renderHome(facts: HomeFacts, home: ShownHome | null, frontDoor: FrontDoorLinks | null): HomeView {
   if (facts.kind === "not-a-member") {
@@ -136,22 +138,22 @@ function leaderboardGroups({ period, board, groups, myGroup }: Extract<ShownTab,
 
 type ProfileFacts = Omit<Extract<ShownTab, { tab: "profile" }>, "tab">;
 
-function profileOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, earlierGroupCrates, journey }: ProfileFacts): HomeView {
+function profileOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, earlierGroupCrates, journey, hoggies }: ProfileFacts): HomeView {
   const progress = progression === null ? [] : [[...progressOf(progression), ...(unlocks === null ? [] : unlockLinesOf(unlocks))]];
   const weekly = questsThisWeek(quests, groupQuest, { cratesShownApart: false, website: null });
   const waitingToOpen = waitingToOpenLines(earlierCrates ?? [], earlierGroupCrates ?? []);
   const earlier = waitingToOpen.length === 0 ? [] : [waitingToOpen];
   const steps = journey === null || journey.length === 0 ? [] : [journey.flatMap(journeyStepLines)];
-  return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...earlier, ...steps, [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
+  return { title: "Your kudos", groups: [[allowanceOf(kudos)], ...progress, ...weekly, ...earlier, ...steps, ...hoggiesLinesOf(hoggies, null), [totalsOf(kudos)], howToGive(kudos.kudosEmoji)] };
 }
 
-function summaryOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, earlierGroupCrates, journey }: ProfileFacts, links: FrontDoorLinks): HomeView {
+function summaryOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest, earlierCrates, earlierGroupCrates, journey, hoggies }: ProfileFacts, links: FrontDoorLinks): HomeView {
   const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)])];
   const { origin } = links;
   const earlier = cappedEarlierCrates(earlierCratesOf(earlierCrates, origin), earlierGroupCrates);
   const waiting = [...readyCratesOf(unlocks, origin), ...earlier.shown, ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...earlier.more];
   const weekly = questsThisWeek(quests, groupQuest, { cratesShownApart: true, website: origin });
-  return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
+  return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...hoggiesLinesOf(hoggies, origin), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
 }
 
 function levelLineOf({ level, xpToNextLevel, skillPoints, coins }: ToldProgression): HomeLine {
@@ -165,7 +167,7 @@ function readyCratesOf(unlocks: UnlocksHome | null, website: string): HomeLine[]
 }
 
 function earlierCratesOf(crates: UnopenedCrate[] | null, website: string): HomeLine[] {
-  return (crates ?? []).map(({ crate, week, goal, reward, waiting }) => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal}${waitingPartOf(reward.xp, waiting)}`, action: openCrate(crate, website) }));
+  return (crates ?? []).map(({ crate, week, goal, reward, waiting }) => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal}${waitingPartOf(reward.xp, waiting)}`, action: openCrate(crate, website, earlierWeekCratePage) }));
 }
 
 function cappedEarlierCrates(weekly: HomeLine[], groupCrates: WaitingGroupCrate[] | null): { shown: HomeLine[]; more: HomeLine[] } {
@@ -196,6 +198,17 @@ function journeyCratesOf(journey: JourneyStepShown[] | null, website: string): H
 
 function waitingPartOf(xp: number, waiting: boolean) {
   return waiting ? ` · ${xp} XP waits in your crate` : "";
+}
+
+function hoggiesLinesOf(hoggies: HoggiesHome | null, website: string | null): HomeLine[][] {
+  if (hoggies === null) return [];
+  const text = `Hoggies: ${hoggies.owned} of ${hoggies.total} · ${lastFoundPartOf(hoggies)}`;
+  if (website === null) return [[{ kind: "text", text }]];
+  return [[{ kind: "action", text, action: linkOnTheWeb({ label: "View", spoken: "View your hoggies", id: "hoggies" }, { page: "book" }, website) }]];
+}
+
+function lastFoundPartOf({ lastFound }: HoggiesHome) {
+  return lastFound === null ? "every crate you open drops one." : `last found: ${lastFound.name} (${rarityLabel(lastFound.rarity)})`;
 }
 
 function websiteButtonsOf({ origin, pages }: FrontDoorLinks): HomeLine {
@@ -586,8 +599,8 @@ export function finishedQuestCrateOf(quest: JourneyQuest, xp: number, waiting: b
   return { text: `✅ You finished a Journey step: ${journeyGoalOf(quest.step)} ${rewardTold(xp, waiting)}`, action: openCrate(quest, website) };
 }
 
-export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp: number, waiting: boolean, website: string | null): { text: string; action: HomeAction } {
-  return { text: `✅ You finished a quest: ${goal} ${rewardTold(xp, waiting)}`, action: openCrate(quest, website) };
+export function finishedWeeklyQuestCrateOf(quest: WeeklyQuest, goal: string, xp: number, waiting: boolean, website: string | null, thisWeek: WeekKey): { text: string; action: HomeAction } {
+  return { text: `✅ You finished a quest: ${goal} ${rewardTold(xp, waiting)}`, action: openCrate(quest, website, weeklyCratePageOf(quest, thisWeek)) };
 }
 
 function swapQuest(quest: WeeklyQuest, website: string | null): HomeAction {
@@ -595,9 +608,9 @@ function swapQuest(quest: WeeklyQuest, website: string | null): HomeAction {
   return linkOnTheWeb({ label: "Swap", spoken: "Swap", id: `swap:${rewardKeyOf(quest)}` }, { page: "quests", quest: quest.slot }, website);
 }
 
-function openCrate(quest: Quest, website: string | null): HomeAction {
+function openCrate(quest: Quest, website: string | null, page = questCratePageOf(quest)): HomeAction {
   if (website === null) return { label: "Open", command: { type: "openQuestCrate", quest } };
-  return openOnTheWeb(rewardKeyOf(quest), questCratePageOf(quest), website);
+  return openOnTheWeb(rewardKeyOf(quest), page, website);
 }
 
 function rewardTold(xp: number, waiting: boolean) {

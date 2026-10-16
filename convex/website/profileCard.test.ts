@@ -19,7 +19,7 @@ const ann = { user: "U_ANN", name: "Ann Quill", email: "ann@example.com" };
 const bea = { user: "U_BEA", name: "Bea Marsh", email: "bea@example.com" };
 const medalEmoji: Record<TierId, string> = { bronze: "🥉", silver: "🥈", gold: "🥇", diamond: "💎" };
 
-type Card = { kind: "card"; name: string; level: number | null; medals: { ladder: LadderId; tier: TierId; name: string }[] };
+type Card = { kind: "card"; name: string; level: number | null; group: string | null; medals: { ladder: LadderId; tier: TierId; name: string }[] };
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -93,6 +93,7 @@ describe("PC15: the website reads the member's own profile card", { timeout: 30_
         { ladder: "dependability", tier: "gold", name: "Pillar" },
         { ladder: "connections", tier: "silver", name: "Connector" },
       ],
+      group: null,
     });
     expect(await ownSlackCard(t, ann)).toBe(asSlackShows(ann, websiteCard as Card));
   });
@@ -104,7 +105,7 @@ describe("PC15: the website reads the member's own profile card", { timeout: 30_
 
     const websiteCard = await asAnn.query(api.website.profileCard.getProfileCard, {});
 
-    expect(websiteCard).toStrictEqual({ kind: "card", name: "Ann Quill", level: 1, medals: [] });
+    expect(websiteCard).toStrictEqual({ kind: "card", name: "Ann Quill", level: 1, medals: [], group: null });
     expect(await ownSlackCard(t, ann)).toBe(asSlackShows(ann, websiteCard as Card));
   });
 
@@ -112,7 +113,7 @@ describe("PC15: the website reads the member's own profile card", { timeout: 30_
     const t = await workspace({ flags: ["website", cardFlag].map(onForEveryone), book: false });
     const asAnn = await signedIn(t, ann);
 
-    expect(await asAnn.query(api.website.profileCard.getProfileCard, {})).toStrictEqual({ kind: "card", name: "Ann Quill", level: null, medals: [] });
+    expect(await asAnn.query(api.website.profileCard.getProfileCard, {})).toStrictEqual({ kind: "card", name: "Ann Quill", level: null, medals: [], group: null });
   });
 
   test("a member the directory has no display name for reads as a teammate", async () => {
@@ -120,7 +121,7 @@ describe("PC15: the website reads the member's own profile card", { timeout: 30_
     await aMember(t, "U_NAMELESS");
     const { asSignedIn } = await aSession(t, { user: "U_NAMELESS" });
 
-    expect(await asSignedIn.query(api.website.profileCard.getProfileCard, {})).toStrictEqual({ kind: "card", name: "A teammate", level: 1, medals: [] });
+    expect(await asSignedIn.query(api.website.profileCard.getProfileCard, {})).toStrictEqual({ kind: "card", name: "A teammate", level: 1, medals: [], group: null });
   });
 });
 
@@ -143,6 +144,42 @@ describe("PC15 PC17: getProfileCard follows the member's own profile-card decisi
     expect(await asBea.query(api.website.profileCard.getProfileCard, {})).toEqual({ kind: "not-found" });
   });
 });
+
+describe("WS344 GB32: the card names the member's primary group while groups applies", { timeout: 30_000 }, () => {
+  test("a member whose primary group is Ants reads Ants on their card", async () => {
+    const t = await workspace({ flags: [...shippedFlags, cardFlag, "groups"].map(onForEveryone) });
+    await primaryGroupOf(t, "Ants", ann, bea);
+    const asAnn = await signedIn(t, ann);
+
+    expect(await asAnn.query(api.website.profileCard.getProfileCard, {})).toMatchObject({ kind: "card", name: "Ann Quill", group: "Ants" });
+  });
+
+  test("a member with no primary group reads no group", async () => {
+    const t = await workspace({ flags: [...shippedFlags, cardFlag, "groups"].map(onForEveryone) });
+    await primaryGroupOf(t, "Ants", bea);
+    const asAnn = await signedIn(t, ann);
+
+    expect(await asAnn.query(api.website.profileCard.getProfileCard, {})).toMatchObject({ kind: "card", group: null });
+  });
+
+  test("with groups off for the member, the card has no group", async () => {
+    const t = await workspace({ flags: [...shippedFlags.map(onForEveryone), onForEveryone(cardFlag), onForEmails("groups", bea.email)] });
+    await primaryGroupOf(t, "Ants", ann, bea);
+    const asAnn = await signedIn(t, ann);
+    const asBea = await signedIn(t, bea);
+
+    expect(await asAnn.query(api.website.profileCard.getProfileCard, {})).toMatchObject({ kind: "card", group: null });
+    expect(await asBea.query(api.website.profileCard.getProfileCard, {})).toMatchObject({ kind: "card", group: "Ants" });
+  });
+});
+
+async function primaryGroupOf(t: Backend, name: string, ...people: { user: string }[]) {
+  const members = await Promise.all(people.map((person) => memberOf(t, person)));
+  await t.run(async (ctx) => {
+    const group = await ctx.db.insert("userGroups", { workspace: "T1", group: `S_${name}`, handle: name.toLowerCase(), name, enabled: true, automatic: false, members: members.length, asOf: 0, membersAsOf: 0 });
+    for (const member of members) await ctx.db.insert("memberGroups", { workspace: "T1", member, groups: [group], primary: group });
+  });
+}
 
 type WorkspaceSetup = { flags?: FlagDefinition[]; book?: boolean };
 

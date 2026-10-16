@@ -129,11 +129,11 @@
     },
     {
       "name": "rarity",
-      "definition": "How rare a cosmetic is: common, uncommon, rare, epic or legendary, each with its World of Warcraft colour. Rarity says nothing about the recognition behind it."
+      "definition": "How rare a hoggie is: common, uncommon, rare, epic or legendary, each shown as a coloured square and its word (⬜ Common, 🟩 Uncommon, 🟦 Rare, 🟪 Epic, 🟧 Legendary) so it never reads by colour alone. Each rarity's weight is its chance per drop, versioned catalogue data, and a drop keeps the rarity it was drawn with. Rarity says nothing about the recognition behind it."
     },
     {
       "name": "drop",
-      "definition": "A cosmetic a member finds by chance through a thoughtful kudos they gave. The chance rises after every miss and starts over after a find, and the same cosmetic never drops twice."
+      "definition": "One hoggie a crate held, drawn by rarity at the crate's first successful open by its member and stored once, never changed: a pure function of the deployment's secret, the member, the crate and the catalogue version, so a repeated or retried open answers the same and nothing knows it before the open. Every crate a member opens themselves while collection is on drops one; duplicates count up."
     },
     {
       "name": "unlock",
@@ -381,7 +381,7 @@
     },
     {
       "name": "crate",
-      "definition": "How a member takes something the game has ready for them: a feature their level made ready, or a finished quest or Journey step. Its content is always known before it is opened, so a crate is a moment, never a random draw. Opening it is one action: a feature's crate and a quest's crate whose reward counted at its finish only reveal what is already recorded, and a quest's crate holding a held reward applies that reward once, at its first open."
+      "definition": "How a member takes something the game has ready for them: a feature their level made ready, or a finished quest or Journey step. Opening it is one action: a feature's crate and a quest's crate whose reward counted at its finish only reveal what is already recorded, a quest's crate holding a held reward applies that reward once, at its first open, and a crate a member opens themselves can drop a hoggie nobody knows before the open. What it records is known before it opens; its hoggie is not."
     },
     {
       "name": "medal",
@@ -598,6 +598,14 @@
     {
       "name": "Buy",
       "definition": "The button on a perk offer, in App Home's Skill tree tab, in a level-up message and on the website, that buys the perk for the member who clicks it; its answer, what they bought or why not, reaches only that member (QM26)."
+    },
+    {
+      "name": "hoggie",
+      "definition": "An official PostHog hedgehog illustration from @posthog/brand, named by its slug, that a member collects in the Book: every crate a member opens drops one, drawn by its rarity at the open, and duplicates count up. A hoggie is not an item: it fills no slot, is never sold and is never a kudos emoji."
+    },
+    {
+      "name": "crest",
+      "definition": "A team's crest from @posthog/brand, named by its slug, that a member collects in the Book once they hold at least one of every hoggie on its roster of two to four hoggies; it is collected once, at the drop that completed the roster, and never taken back. It is the art of a team, not a group."
     },
     {
       "name": "group quest",
