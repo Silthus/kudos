@@ -1,0 +1,46 @@
+## step 1
+website/a link lands on a bought crate and never opens it
+  totality oracle: pass (30.7 s, one invocation for every test the bullets name); refutation missing
+    7 tests under "#469: ?crate=bought:{n} lands on that bought crate's Open and ?crate=store on Buy a crate, never opening or buying" passed in one invocation of pnpm exec vitest run -t <2 names> --reporter=json --outputFile=<report>
+website/the Collection sells and opens crates only through the website's commands
+  totality oracle: pass (30.7 s, one invocation for every test the bullets name); refutation missing
+    21 tests under "#469: the Collection sells crates and opens the ones bought only through the website's commands" passed in one invocation of pnpm exec vitest run -t <2 names> --reporter=json --outputFile=<report>
+run recorded in .coherence/runs/9f91fd5a-1233-4e4a-a1d9-5edc6800663b.jsonl: 2 enforcements, 2 pass, 0 fail, 0 not run; instrument typescript (none); 30.9 s
+each alone, in its own invocation:
+  website/a link lands on a bought crate and never opens it: pass (26.5 s)
+  website/the Collection sells and opens crates only through the website's commands: pass (32.9 s)
+per-test run recorded in .coherence/runs/9f91fd5a-1233-4e4a-a1d9-5edc6800663b.jsonl: 2 alone, 2 pass; 59.4 s
+every totality oracle that passed batched passes alone
+run exit 0
+## break A
+-  if (crate !== undefined) return { kind: "crate", selector: `[data-crate-target="${crate}"]`, arrive: (target) => target.querySelector<HTMLElement>("button")?.focus() };
++  if (crate !== undefined) return { kind: "crate", selector: `[data-crate-target="${crate}"]`, arrive: (target) => target.querySelector<HTMLElement>("button")?.click() };
+refuted website/a link lands on a bought crate and never opens it (totality oracle): the landing pressed the crate's Open and the offer's Buy on arrival instead of focusing them
+  the detector went red: 4 of 7 tests under "#469: ?crate=bought:{n} lands on that bought crate's Open and ?crate=store on Buy a crate, never opening or buying" failed: #469: ?crate=bought:{n} lands on that bought crate's Open and ?crate=store on Buy a crate, never opening or buying scrolls the crate into view and focuses its Open once the collection lands; #469: ?crate=bought:{n} lands on that bought crate's Open and ?crate=store on Buy a crate, never opening or buying ?crate=store scrolls to the offer and focuses Buy a crate, never buying; #469: ?crate=bought:{n} lands on that bought crate's Open and ?crate=store on Buy a crate, never opening or buying ?crate=store focuses a Buy held short of coins too, still never buying
+  recorded in .coherence/runs/9f91fd5a-1233-4e4a-a1d9-5edc6800663b.jsonl at 2026-10-16T07:06:55.505Z
+now restore the code and run: run — the refutation counts as witnessed once a later run finds the same totality oracle passing
+refute A exit 0
+## restored A byte for byte
+## break B
+-      if (!buying && next !== undefined) void buy(next);
++      if (!buying && next !== undefined) void buy(1);
+refuted website/the Collection sells and opens crates only through the website's commands (totality oracle): the page sent buyCrate with crate 1 instead of the offer's next
+  the detector went red: 1 of 21 tests under "#469: the Collection sells crates and opens the ones bought only through the website's commands" failed: #469: the Collection sells crates and opens the ones bought only through the website's commands offers again with the read's fresh next after stale, saying the offer changed
+  recorded in .coherence/runs/9f91fd5a-1233-4e4a-a1d9-5edc6800663b.jsonl at 2026-10-16T07:07:22.855Z
+now restore the code and run: run — the refutation counts as witnessed once a later run finds the same totality oracle passing
+refute B exit 0
+## restored B byte for byte
+## step 5
+website/a link lands on a bought crate and never opens it
+  totality oracle: pass (26.2 s, one invocation for every test the bullets name); refutation witnessed
+    7 tests under "#469: ?crate=bought:{n} lands on that bought crate's Open and ?crate=store on Buy a crate, never opening or buying" passed in one invocation of pnpm exec vitest run -t <2 names> --reporter=json --outputFile=<report>
+website/the Collection sells and opens crates only through the website's commands
+  totality oracle: pass (26.2 s, one invocation for every test the bullets name); refutation witnessed
+    21 tests under "#469: the Collection sells crates and opens the ones bought only through the website's commands" passed in one invocation of pnpm exec vitest run -t <2 names> --reporter=json --outputFile=<report>
+run recorded in .coherence/runs/9f91fd5a-1233-4e4a-a1d9-5edc6800663b.jsonl: 2 enforcements, 2 pass, 0 fail, 0 not run; instrument typescript (none); 26.4 s
+each alone, in its own invocation:
+  website/a link lands on a bought crate and never opens it: pass (24.9 s)
+  website/the Collection sells and opens crates only through the website's commands: pass (25.9 s)
+per-test run recorded in .coherence/runs/9f91fd5a-1233-4e4a-a1d9-5edc6800663b.jsonl: 2 alone, 2 pass; 50.8 s
+every totality oracle that passed batched passes alone
+run exit 0

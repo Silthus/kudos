@@ -115,7 +115,7 @@ function storeAnswering(answers: MyCollection[]): { read: CollectionRead; next: 
   return { read: (asking) => (asking ? answers[at] : undefined), next: () => (at += 1) };
 }
 
-describe("#469: the Collection offers a crate for coins", () => {
+describe("#469: the Collection sells crates and opens the ones bought only through the website's commands", () => {
   it("offers Buy a crate · 50 coins under a Crates heading with its one line, while the store is open and nothing waits", () => {
     showTheStore(nothingWaiting);
 
@@ -245,7 +245,7 @@ describe("#469: the Collection offers a crate for coins", () => {
   });
 });
 
-describe("#469: a bought crate waits on the Collection page until its member opens it", () => {
+describe("#469: the Collection sells crates and opens the ones bought only through the website's commands", () => {
   it("lists each waiting crate by its number with Open, the first primary and the rest outline, and Buy outline while any waits", () => {
     showTheStore();
 
