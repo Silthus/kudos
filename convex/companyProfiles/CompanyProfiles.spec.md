@@ -10,6 +10,7 @@ The website's copy of posthog.com's public team pages, and the matcher for one m
   crossing: posthog-com -> domain
   entrances: none
   refuted: syncCompanyProfiles replaced the table with no profiles after a failed read instead of keeping the previous rows -> all 8 read-failure tests failed on the kept face (2026-10-13)
+  refuted: syncCompanyProfiles cleared the company teams after a failed read instead of keeping them -> all 14 read-failure tests failed on the kept teams (2026-10-16)
   kinds: storage
   checklist: scoped-reads dismissed: the company profiles are the workspace's shared copy of public team pages; a member's read takes only the one profile their own name selects, under the website guard
   checklist: encrypted-storage dismissed: the rows copy public pages from posthog.com and hold no credential or secret
