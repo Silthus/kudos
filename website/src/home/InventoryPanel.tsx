@@ -8,7 +8,7 @@ import { CustomEmoji } from "../CustomEmoji";
 import { useItemPurchase, shortfallText, type ItemNotice, type ItemPurchasing } from "./itemPurchase";
 import { Panel } from "./Panel";
 
-type Owned = { entry: InventoryItem; slot: number | null; justBought: boolean };
+type Owned = { entry: InventoryItem; slot: number | null; justBought: boolean; onPopped: () => void };
 
 type InventoryPanelProps = { member: MemberProfile; buyItem: ShellActions["buyItem"] };
 
@@ -35,7 +35,7 @@ type KudosEmojiSectionProps = { inventory: MemberInventory; kudosEmoji: string; 
 function KudosEmojiSection({ inventory, kudosEmoji, coins, buyItem }: KudosEmojiSectionProps) {
   const heading = useRef<HTMLHeadingElement>(null);
   const purchasing = useItemPurchase(buyItem, () => heading.current?.focus());
-  const yours = ownedIn(inventory, purchasing.justBought);
+  const yours = ownedIn(inventory, purchasing);
   const notYet = inventory.catalogue.filter(({ item }) => !yours.some(({ entry }) => entry.item === item));
   const equipped = inventory.slots.filter(({ item }) => item !== null).length;
   return (
@@ -70,19 +70,19 @@ function PurchaseNotice({ notice }: { notice: ItemNotice | undefined }) {
   );
 }
 
-function ownedIn({ slots, owned, catalogue }: MemberInventory, justBought: string | undefined): Owned[] {
+function ownedIn({ slots, owned, catalogue }: MemberInventory, { justBought, popped }: ItemPurchasing): Owned[] {
   const slotted = slots.flatMap(({ item }) => (item === null ? [] : [item]));
   const ids = [...new Set([...owned.map(({ item }) => item), ...slotted])];
   return ids.flatMap((id) => {
     const entry = catalogue.find(({ item }) => item === id);
     const slot = slots.findIndex(({ item }) => item === id);
-    return entry === undefined ? [] : [{ entry, slot: slot === -1 ? null : slot + 1, justBought: id === justBought }];
+    return entry === undefined ? [] : [{ entry, slot: slot === -1 ? null : slot + 1, justBought: id === justBought, onPopped: popped }];
   });
 }
 
-function OwnedTile({ entry, slot, justBought }: Owned) {
+function OwnedTile({ entry, slot, justBought, onPopped }: Owned) {
   return (
-    <li className={`relative flex h-28 flex-col items-center justify-between gap-2 rounded-md border p-2.5 text-center ${slot === null ? "bg-card" : "bg-fill-selected"} ${justBought ? "perk-pop" : ""}`}>
+    <li onAnimationEnd={justBought ? onPopped : undefined} className={`relative flex h-28 flex-col items-center justify-between gap-2 rounded-md border p-2.5 text-center ${slot === null ? "bg-card" : "bg-fill-selected"} ${justBought ? "perk-pop" : ""}`}>
       <span className="flex flex-1 items-center justify-center">
         <ItemArt item={entry} className="size-12 text-[2rem]" />
       </span>

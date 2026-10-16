@@ -111,12 +111,15 @@ export const buyPerk = memberMutation({
   },
 });
 
+const longestItemId = 128;
+
 const itemRefusedAtTheGate: ItemPurchaseAnswer = { kind: "refused", reason: null };
 
 export const buyItem = memberMutation({
   args: { item: v.string(), request: v.string() },
   handler: async (ctx, me, person, { item, request }): Promise<ItemPurchaseAnswer> => {
     if (!isUuid(request)) throw new Error("A purchase's request must be a UUID.");
+    if (item.length > longestItemId) throw new Error("A purchase's item is longer than any item ID.");
     if (!(await storeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return itemRefusedAtTheGate;
     const outcome = await runCommand(ctx, me.workspace, person, { type: "buyItem", item }, `website:${me.member}:${request}`);
     if (outcome === null || !("item" in outcome)) return itemRefusedAtTheGate;

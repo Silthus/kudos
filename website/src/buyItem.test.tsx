@@ -1,4 +1,4 @@
-import { act, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { inventoryFixtures } from "./inventoryFixtures";
@@ -159,6 +159,8 @@ describe("WS341 V13: a bought item turns owned in place, never as a crate", () =
     const tile = within(yours()).getByText("Gem").closest("li")!;
     expect(tile).toHaveClass("perk-pop");
     expect(within(yours()).getByText("Rocket").closest("li")).not.toHaveClass("perk-pop");
+    fireEvent.animationEnd(tile);
+    expect(tile).not.toHaveClass("perk-pop");
   });
 
   it("names the item the purchase was for even when the read already moved it", async () => {

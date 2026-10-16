@@ -195,6 +195,15 @@ describe("website commands pass one guard", () => {
     expect(await everythingWritten()).toEqual(before);
   });
 
+  test("WS61 WS335: an item ID longer than any catalogue or custom emoji ID is rejected before the store and writes nothing", async () => {
+    await storeShipped();
+    const { asSignedIn } = await aMemberWithTheStoreOpen(100);
+    const before = await everythingWritten();
+
+    await expect(buyItem(asSignedIn, `custom:${"x".repeat(200)}`)).rejects.toThrow(/item/);
+    expect(await everythingWritten()).toEqual(before);
+  });
+
   test.each(["", "not-a-uuid", "website:someone:else", `${firstRequest}x`])("WS335: an item purchase's request that isn't a UUID (%j) is rejected and writes nothing", async (request) => {
     await storeShipped();
     const { asSignedIn } = await aMemberWithTheStoreOpen(100);

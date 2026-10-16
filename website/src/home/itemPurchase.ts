@@ -4,7 +4,7 @@ import type { InventoryItem, ItemBuyAnswer, ItemPurchase, ItemPurchaseRefusal, S
 
 export type ItemNotice = { kind: "bought" | "refused" | "unreachable"; text: string };
 
-export type ItemPurchasing = { buying: string | undefined; justBought: string | undefined; notice: ItemNotice | undefined; buy(item: InventoryItem): void };
+export type ItemPurchasing = { buying: string | undefined; justBought: string | undefined; notice: ItemNotice | undefined; buy(item: InventoryItem): void; popped(): void };
 
 const refusedText = "That couldn't be bought.";
 
@@ -48,6 +48,7 @@ export function useItemPurchase(buyItem: ShellActions["buyItem"], onBought: () =
     buy: (item) => {
       if (buying === undefined) void buy(item);
     },
+    popped: () => setJustBought(undefined),
   };
 }
 
