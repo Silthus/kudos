@@ -10,7 +10,9 @@ const namedCrateValidator = v.union(...featureValidator.members, v.literal("jour
 
 type NamedCrate = Infer<typeof namedCrateValidator>;
 
-export const crateTargetValidator = v.union(...namedCrateValidator.members, weeklyQuestValidator);
+const earlierGroupCrateValidator = v.object({ kind: v.literal("group"), week: v.string() });
+
+export const crateTargetValidator = v.union(...namedCrateValidator.members, weeklyQuestValidator, earlierGroupCrateValidator);
 
 export type CrateTarget = Infer<typeof crateTargetValidator>;
 
@@ -18,15 +20,26 @@ const namedCrates: readonly NamedCrate[] = namedCrateValidator.members.map(({ va
 
 const weeklyCrateParam = /^weekly:(\d{4}-\d{2}-\d{2}):(\d+)$/;
 
+const earlierGroupCrateParam = /^group:(\d{4}-\d{2}-\d{2})$/;
+
 export function crateParamOf(crate: CrateTarget): string {
-  return typeof crate === "string" ? crate : `${crate.kind}:${crate.week}:${crate.slot}`;
+  if (typeof crate === "string") return crate;
+  return crate.kind === "weekly" ? `weekly:${crate.week}:${crate.slot}` : `group:${crate.week}`;
 }
 
 export function crateTargetIn(param: string | null): CrateTarget | undefined {
-  const named = namedCrates.find((crate) => crate === param);
-  if (named !== undefined) return named;
-  const weekly = param === null ? null : weeklyCrateParam.exec(param);
+  if (param === null) return undefined;
+  return namedCrates.find((crate) => crate === param) ?? weeklyCrateIn(param) ?? earlierGroupCrateIn(param);
+}
+
+function weeklyCrateIn(param: string): CrateTarget | undefined {
+  const weekly = weeklyCrateParam.exec(param);
   return weekly === null ? undefined : { kind: "weekly", week: weekly[1]!, slot: Number(weekly[2]) };
+}
+
+function earlierGroupCrateIn(param: string): CrateTarget | undefined {
+  const group = earlierGroupCrateParam.exec(param);
+  return group === null ? undefined : { kind: "group", week: group[1]! };
 }
 
 export const routeList: readonly string[] = ["/", "/leaderboard", "/quests", "/skills", "/book", "/book/earned", "/book/collection", "/activity", "/settings"];
