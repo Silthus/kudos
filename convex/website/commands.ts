@@ -6,6 +6,9 @@ import { messageSettingsOnFor } from "../messageSettings/flag";
 import { messageKindValidator, messagePlaceValidator, type MessageKind, type MessagePlace } from "../messageSettings/kinds";
 import { kindAppliesTo, placeOf, placesOf } from "../messageSettings/messageSettings";
 import { isOnTheBoards } from "../leaderboard/visibility";
+import { dropsAHoggie } from "../hoggies/crateKey";
+import { dropOf, type Drop } from "../hoggies/drops";
+import { hoggiesShownTo } from "../hoggies/flag";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
 import type { Refusal } from "../progression/purchases";
 import type { AppliedReward, StandingWithCoins } from "../progression/rewards";
@@ -27,9 +30,9 @@ import { skillPointsOf } from "./skillTree";
 import type { VerifiedMember } from "./memberQuery";
 import { featurePageOf, leaderboardStateOf, unlockPathOf } from "./unlockPath";
 
-export type CommandAnswer = { kind: "opened" } | { kind: "refused" };
+export type CommandAnswer = { kind: "opened"; drop?: Drop | null } | { kind: "refused" };
 
-export type CrateAnswer = { kind: "opened"; applied: AppliedReward | null } | { kind: "refused" };
+export type CrateAnswer = { kind: "opened"; applied: AppliedReward | null; drop?: Drop | null } | { kind: "refused" };
 
 export type SwapAnswer = { kind: "swapped" } | { kind: "refused" };
 
@@ -47,7 +50,6 @@ export type MessageSettingAnswer = { kind: "set"; place: MessagePlace } | { kind
 
 export type GroupPickAnswer = { kind: "picked"; group: string } | { kind: "refused" };
 
-const opened: CommandAnswer = { kind: "opened" };
 const refused = { kind: "refused" } as const;
 
 export const openFeature = memberMutation({
@@ -57,7 +59,7 @@ export const openFeature = memberMutation({
     await runCommand(ctx, me.workspace, person, { type: "openUnlock", feature }, `website:openFeature:${me.member}:${feature}`);
     if ((await stateOf(ctx, me.member, feature)) !== "open") return refused;
     await republish(ctx, me.member);
-    return opened;
+    return { kind: "opened", ...(await dropShownTo(queryOnly(ctx), me, `unlock:${feature}`)) };
   },
 });
 
@@ -69,7 +71,7 @@ export const openQuestCrate = memberMutation({
     const opening = await crateOpeningOf(ctx, me.member, rewardKeyOf(quest));
     if (opening === null) return refused;
     await republish(ctx, me.member);
-    return { kind: "opened", applied: await appliedShownTo(queryOnly(ctx), me, opening.applied) };
+    return { kind: "opened", applied: await appliedShownTo(queryOnly(ctx), me, opening.applied), ...(await dropShownTo(queryOnly(ctx), me, rewardKeyOf(quest))) };
   },
 });
 
@@ -140,6 +142,11 @@ export const setBoardVisibility = memberMutation({
     return { kind: "set", visible: stored };
   },
 });
+
+async function dropShownTo(ctx: QueryCtx, me: VerifiedMember, crate: string): Promise<{ drop?: Drop | null }> {
+  if (!(await hoggiesShownTo(ctx, me.member))) return {};
+  return { drop: dropsAHoggie(crate) ? await dropOf(ctx, me.member, crate) : null };
+}
 
 async function appliedShownTo(ctx: QueryCtx, me: VerifiedMember, applied: AppliedReward | undefined): Promise<AppliedReward | null> {
   if (applied === undefined) return null;

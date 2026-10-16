@@ -24,6 +24,7 @@ import { purchaseOutcomeValidator } from "./progression/purchases";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
+import { dropTallyValidator, dropValidator, hoggieTallyValidator } from "./hoggies/records";
 import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
 import { journeyActivationValidator, rewardValidator } from "./quests/journey";
@@ -390,6 +391,12 @@ export default defineSchema({
   crateOpenings: defineTable(crateOpeningValidator).index("by_member_key", ["member", "key"]),
 
   pendingCrates: defineTable(pendingCrateValidator).index("by_member_key", ["member", "key"]),
+
+  drops: defineTable(dropValidator).index("by_member_crate", ["member", "crate"]).index("by_member_at", ["member", "at", "n"]),
+
+  hoggieTallies: defineTable(hoggieTallyValidator).index("by_member_hoggie", ["member", "hoggie"]),
+
+  dropTallies: defineTable(dropTallyValidator).index("by_member", ["member"]),
 
   pendingCratesBackfill: defineTable({
     cursor: v.union(v.string(), v.null()),
