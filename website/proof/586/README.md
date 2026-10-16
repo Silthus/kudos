@@ -16,5 +16,7 @@ Fixture build (`VITE_SHELL_FIXTURE=member-with-the-book-spread`), served with `v
 | 10-stack-light-390 | The stack at 390 px |
 | 11-stack-fanned-light-390 | The fan fits the width at 390 px |
 | 12-scene-light-390 | The scene wraps into a column at 390 px |
+| 13-spread-with-stack-light-1280 | After merging #585: the stack sits below the Book spread's cover |
+| 14-spread-after-landing-light-1280 | Esc with Wizard open: the spread flipped to Legendary, Wizard landed, three packs left and the stack focused |
 
 Reduced motion, the refused and unreachable answers, the once-only send, Tab trapping and axe are proven in `website/src/bookPacks.test.tsx`; the preview can't emulate `prefers-reduced-motion`.
