@@ -29,3 +29,11 @@ Shots 3–5 were taken before the Fable polish (the layout differs, the behaviou
 
 - `review-round-1.md`: GPT-6.1 Sol. Finding 2 was taken: a test now pins the picture before the name map. Finding 1 was rejected with a reason, and stays a follow-up for map #1. See the PR.
 - Fable 5.1 design spot check: all five findings were taken. Received rows now share one text column at a fixed face-column width. The counts don't split when the headline wraps. Headlines are regular weight. "Open in Slack" sits on the headline line. The faces align to the first line.
+
+## After #576 merged (`main` at `fd448f7b`)
+
+I ran the rig again on `092a17fa`, the branch merged with `main`, which has the versioned cursors ([`rig-transcript-main.txt`](rig-transcript-main.txt)).
+
+- `9-main-show-new-activity-dark.png`: a live hug raises "Show new activity".
+- `10-main-moved-row-once-dark.png`: after the click, the row reads "Gus and 5 others · 6 hugs" once, at the top.
+- `7-settings-hugs-recap-light.png`, `8-settings-hugs-recap-dark.png`: the real `/settings` read's `hugs-recap` description draws `:hedgehug:` as the quiet chip, because the read carries no picture. A standard shortcode becomes its character (`SettingsPage.test.tsx`).
