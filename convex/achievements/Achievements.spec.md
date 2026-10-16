@@ -76,6 +76,7 @@ Achievements: owns each member's ladders and the tiers they earn, and the Book t
 - kudos counting stays within Convex's limits: No mutation of the kudosGiven subscriber reads 4,096 index ranges or schedules 1,000 functions or more, however many members one kudos message names, since each counts at most 25 of its awards, and each member hears of the tiers the message earned them once (#378).
   over: one kudos message naming 700 new members besides its giver, under a base allowance a maintainer raised, with every feature on and the Book open for the giver, run with Convex's transaction limits on and each kudosGiven subscriber mutation run alone with its scheduled functions counted
   via: kudosGiven subscribers stay within Convex's limits: one kudos naming 700 new members counts each of them once, and no subscriber mutation is refused or schedules 1,000 functions or more
+  refuted: raised awardsAPage in countKudosGiven to 100,000 -> the test failed on its subscriber assertion: countKudosGiven was refused with Convex's "Too many index ranges read in a single function execution (limit: 4096)" (2026-10-16)
   because: Convex refuses a mutation that reads more than 4,096 index ranges, and each award costs about 43 across the seven ladders, so one loop over every award of a kudos to about 95 members or more rolled the counting back and counted nobody
   kinds: budget
   checklist: bounded-admission dismissed: nothing admits concurrent work; each mutation of the subscriber is one serialized mutation scheduling the next
