@@ -6,7 +6,7 @@ import { flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onF
 import { blockActions } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { testBackend, type Backend } from "../../testing/slackBackend";
-import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, messageEvent, reactionEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { publish, subscribers } from "../bus/publish";
 import type { Command } from "../commands/commands";
@@ -232,7 +232,7 @@ async function walkOverMembersThereBeforeTheLaunch() {
 
 async function walkThroughTheSkillTreeAndTheBook() {
   start("on", "flags key set");
-  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "skill-tree", "achievements"].map(onForEveryone));
+  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "skill-tree", "achievements", "stars"].map(onForEveryone));
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
   await journeyShippedBeforeAnyoneJoined(t);
 
@@ -240,8 +240,10 @@ async function walkThroughTheSkillTreeAndTheBook() {
   await giveKudos(t, "U_ALICE", 1);
   await skillTreeOpenAtLevelFive(t, "U_ALICE");
   await act(t, "U_ALICE", { type: "buyPerk", perk: "spark" });
+  await star(t, "U_BOB", "U_ALICE");
 
   expect(eventsNamed("perk bought")).toHaveLength(1);
+  expect(eventsNamed("star given")).toHaveLength(1);
   expect(eventsNamed("achievement earned")).not.toHaveLength(0);
   return { t };
 }
@@ -385,6 +387,13 @@ async function giveKudos(t: Backend, giver: string, kudos: number) {
   sentMessages += 1;
   const blocks = [section(mention("U_BOB"), text(` ${saysWhy} `), ...Array.from({ length: kudos }, () => emoji("taco")))];
   const response = await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${now.getTime() / 1000 + sentMessages}.000100` })));
+  await settled(t);
+  return response;
+}
+
+async function star(t: Backend, giver: string, author: string) {
+  nextStep();
+  const response = await t.fetch("/slack/events", await signedRequest(reactionEvent({ user: giver, itemUser: author, ts: `${Math.floor(Date.now() / 1000) - 60}.000100` })));
   await settled(t);
   return response;
 }
