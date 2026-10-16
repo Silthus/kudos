@@ -107,20 +107,18 @@ type Exposure = { member: string; value: boolean };
 
 const aDrop = expect.objectContaining({ hoggie: expect.any(String), copy: expect.any(Number) });
 const heldRewardsOf = [{ xp: 10, coins: 0 }, { xp: 20, coins: 0 }, { xp: 0, coins: 15 }];
-const reopenedWithoutBonuses = [...heldRewardsOf.map((held) => ({ kind: "opened", applied: { ...held, from: expect.any(Object), to: expect.any(Object) }, drop: aDrop })), ...Array.from({ length: 4 }, () => ({ kind: "opened", drop: aDrop }))];
-const reopenedWhileTheWebsiteIsClosed = Array.from({ length: 7 }, () => ({ kind: "closed" }));
 
-const packsOff: Array<{ condition: string; packsFlag: FlagDefinition[]; turnOff?: () => void; exposed: Exposure[]; drops: number; reopenedOnTheWebsite: object[] }> = [
-  { condition: "with packs off", packsFlag: [offForEveryone(packs)], exposed: firstOpensExposing(false), drops: 14, reopenedOnTheWebsite: reopenedWithoutBonuses },
-  { condition: "while PostHog has no packs flag", packsFlag: [], exposed: firstOpensExposing(false), drops: 14, reopenedOnTheWebsite: reopenedWithoutBonuses },
-  { condition: "without the flags key, even when PostHog turned packs on", packsFlag: [onForEveryone(packs)], turnOff: () => vi.stubEnv("POSTHOG_PERSONAL_API_KEY", ""), exposed: [], drops: 0, reopenedOnTheWebsite: reopenedWhileTheWebsiteIsClosed },
+const packsOff: Array<{ condition: string; packsFlag: FlagDefinition[]; turnOff?: () => void; exposed: Exposure[]; drops: number; reopenedOnTheWebsite: "with the held rewards alone" | "closed" }> = [
+  { condition: "with packs off", packsFlag: [offForEveryone(packs)], exposed: firstOpensExposing(false), drops: 14, reopenedOnTheWebsite: "with the held rewards alone" },
+  { condition: "while PostHog has no packs flag", packsFlag: [], exposed: firstOpensExposing(false), drops: 14, reopenedOnTheWebsite: "with the held rewards alone" },
+  { condition: "without the flags key, even when PostHog turned packs on", packsFlag: [onForEveryone(packs)], turnOff: () => vi.stubEnv("POSTHOG_PERSONAL_API_KEY", ""), exposed: [], drops: 0, reopenedOnTheWebsite: "closed" },
   {
     condition: "in production, while packs is on in the sandbox and for the product owner's email only",
     packsFlag: [asTheShipCreatesIt()],
     turnOff: () => vi.stubEnv("KUDOS_ENVIRONMENT", "production"),
     exposed: firstOpensExposing(false),
     drops: 14,
-    reopenedOnTheWebsite: reopenedWithoutBonuses,
+    reopenedOnTheWebsite: "with the held rewards alone",
   },
 ];
 
@@ -199,7 +197,10 @@ describe("CV13: packs are dark where packs is off, pay only the members it is on
 
     expect(await whatWasPaid()).toEqual(paid);
     expect(JSON.stringify(afterwards)).not.toMatch(/"packs?"|morePacks/);
-    for (const { user } of openers) expect(afterwards[user]!.opens, `${user}'s website opens of every crate again`).toEqual(reopenedOnTheWebsite);
+    for (const { user } of openers) {
+      const expected = reopenedOnTheWebsite === "closed" ? Array.from({ length: 7 }, () => ({ kind: "closed" })) : reopenedWithTheHeldRewardsAlone(walk, user);
+      expect(afterwards[user]!.opens, `${user}'s website opens of every crate again`).toEqual(expected);
+    }
   });
 
   test("packs' exposure is sent once per member and value, only by a crate's first successful open while collection is on, never by App Home, the Book's collection, a refused open or a repeat", async () => {
@@ -360,6 +361,7 @@ async function walkIn(backend: Backend) {
     postHogEvents: orderFree(withStableIds(postHog.events().map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsInContentOrder(),
     jobs: await jobsInContentOrder({ apartFrom: [outboxDelivery] }),
+    deliveryJobKinds: await kindsOfJobs(outboxDelivery),
   };
   return { seen, xp: await xpOfTheOpeners(), exposures: exposuresAsPostHogKeepsThem() };
 }
@@ -420,8 +422,21 @@ async function whatWasPaid() {
   return withStableIds(paid);
 }
 
+type Standing = { xp: number; level: number; coins: number; skillPoints: number };
+type PackPaid = { xp: number; coins: number; from: Standing; to: Standing };
+
 function bonusesOf(walk: Walk, user: string) {
-  return (walk.seen.tables.drops as Row[]).filter(({ member, pack }) => member === `<member ${user}>` && pack !== undefined).map(({ crate, pack }) => ({ crate: String(crate), ...(pack as { xp: number; coins: number }) }));
+  return (walk.seen.tables.drops as Row[]).filter(({ member, pack }) => member === `<member ${user}>` && pack !== undefined).map(({ crate, pack }) => ({ crate: String(crate), ...(pack as PackPaid) }));
+}
+
+function reopenedWithTheHeldRewardsAlone(walk: Walk, user: string) {
+  const beforeTheBonus = new Map(bonusesOf(walk, user).map(({ crate, from }) => [crate, from]));
+  const questCrates = ["journey:first-thanks", `weekly:${thisWeek}:0`, `group:<group Ants>:${thisWeek}`];
+  const quests = heldRewardsOf.map((held, index) => {
+    const to = beforeTheBonus.get(questCrates[index]!)!;
+    return { kind: "opened", applied: { ...held, from: { ...to, xp: to.xp - held.xp, coins: to.coins - held.coins }, to }, drop: aDrop };
+  });
+  return [...quests, ...Array.from({ length: 4 }, () => ({ kind: "opened", drop: aDrop }))];
 }
 
 function apartFromTheExposure(seen: Seen) {
@@ -515,6 +530,11 @@ async function rowsInContentOrder() {
 
 function contentOf(row: Row) {
   return JSON.stringify(withStableIds(row), (key, field) => (opaque.has(key) || convexTestId.test(String(field)) ? undefined : field));
+}
+
+async function kindsOfJobs(prefix: string) {
+  const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return [...new Set(scheduled.filter(({ name }) => name.startsWith(prefix)).map(({ name, state }) => `${name} ${state.kind}`))].sort();
 }
 
 async function jobsInContentOrder({ apartFrom }: { apartFrom: string[] }) {
