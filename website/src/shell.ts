@@ -32,7 +32,7 @@ export type { CommandAnswer, ItemPurchaseAnswer, ItemPurchaseRefusal, PurchaseAn
 export type { GroupChoice, MessageKind, MessagePlace, MessageSetting, MySettings } from "../../convex/website/settings";
 export type { Feature } from "../../convex/unlocks/feature";
 export type { GroupQuestCrate, Quest, WeeklyQuest } from "../../convex/quests/step";
-export type { Activity, ActivityEntry, Found, KudosGiven, KudosReceived, LevelUp, Message, MyActivity, MyRecentKudos, MySpotlight, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
+export type { Activity, ActivityEntry, Found, HugGiven, HugReceived, KudosGiven, KudosReceived, LevelUp, Message, MyActivity, MyRecentKudos, MySpotlight, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
 
 export type GroupsBoardRow = GroupsBoardShown["rows"][number];
 
