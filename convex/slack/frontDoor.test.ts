@@ -462,6 +462,21 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     "section: I send you a DM when you reach a level. [button: Turn off DMs]",
   ];
 
+  const todaysInventory = [
+    "actions: Profile | [Inventory] | Settings",
+    "header: Inventory",
+    "section: 4 🪙",
+    "divider",
+    "section: *Your kudos emoji*",
+    "section: Slot 1 · 🦔 Hedgehog [button: Take off]",
+    "section: Slot 2 · empty",
+    "section: Slot 3 · empty",
+    "context: Each emoji in a slot counts as a kudos, like :taco:.",
+    "divider",
+    "section: *Store*",
+    ...["🌻 Sunflower", "🚀 Rocket", "🌟 Glowing Star", "💎 Gem", "🌈 Rainbow", "🍀 Clover", "🍩 Doughnut", "🍪 Cookie", "👑 Crown", "🎈 Balloon", "🌵 Cactus", "🏆 Trophy"].map((item) => `section: ${item} · 100 🪙 [button: Buy]`),
+  ];
+
   const closed: Array<{ condition: string; website: string[]; env?: Record<string, string> }> = [
     { condition: "while the website flag is off", website: [] },
     { condition: "while SITE_URL is unset", website: ["website"], env: { SITE_URL: "" } },
@@ -487,6 +502,17 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Settings")));
 
     expect(publishedHome(slack, "U_ALICE")).toEqual(todaysSettings);
+  });
+
+  test.each(closed)("$condition, a member who opened Coins and inventory sees today's Inventory tab", async ({ website, env = {} }) => {
+    for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
+    const t = await workspace("xp-levels", "unlocks", "coins", "store", ...website);
+    await coinsOpenedBy(t, "U_ALICE");
+    await openHome(t, "U_ALICE");
+
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Inventory")));
+
+    expect(publishedHome(slack, "U_ALICE")).toEqual(todaysInventory);
   });
 });
 
