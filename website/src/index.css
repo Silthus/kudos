@@ -67,7 +67,7 @@
   --medal-diamond: #7cc9de;
 }
 
-:is(.dark, .moment-scrim) {
+:is(.dark, .moment-scrim, .pk-scrim) {
   --rarity-common: #aeb3c4;
   --rarity-uncommon: #4ade80;
   --rarity-rare: #60a5fa;

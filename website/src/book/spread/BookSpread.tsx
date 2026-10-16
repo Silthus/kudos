@@ -19,9 +19,9 @@ import "./spread.css";
 
 type YourBook = Extract<BookAnswer, { kind: "book" }>;
 
-type BookSpreadProps = { book: YourBook; collection: Collection; spread: Spread; chatUrl: string; coins: number | null; onBuyCrate: ShellActions["buyCrate"]; avatar: Avatar | null | undefined; onSetAvatar: ShellActions["setAvatar"] };
+type BookSpreadProps = { book: YourBook; collection: Collection; spread: Spread; chatUrl: string; coins: number | null; onBuyCrate: ShellActions["buyCrate"]; onOpenPack: ShellActions["openCrate"] | undefined; avatar: Avatar | null | undefined; onSetAvatar: ShellActions["setAvatar"] };
 
-export function BookSpread({ book, collection, spread, chatUrl, coins, onBuyCrate, avatar, onSetAvatar }: BookSpreadProps) {
+export function BookSpread({ book, collection, spread, chatUrl, coins, onBuyCrate, onOpenPack, avatar, onSetAvatar }: BookSpreadProps) {
   const avatarChoice = useAvatarChoice(avatar, onSetAvatar);
   const teams = teamPagesOf(collection);
   const fresh = useFreshKeys([...collection.hoggies, ...(collection.crests ?? []), ...(collection.stickers ?? [])].flatMap(({ seen }) => seen ?? []));
@@ -48,7 +48,7 @@ export function BookSpread({ book, collection, spread, chatUrl, coins, onBuyCrat
           {shown.kind === "achievements" && <AchievementsSpread ladders={book.ladders} category={shown.category} timeZone={book.timeZone} chapter={teams === null ? 2 : 3} firstPage={numbering.achievements} />}
         </article>
       </div>
-      <CrateStore collection={collection} coins={coins} buyCrate={onBuyCrate} />
+      <CrateStore collection={collection} coins={coins} buyCrate={onBuyCrate} openPack={onOpenPack} />
     </div>
   );
 }

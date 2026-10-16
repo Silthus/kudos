@@ -330,7 +330,7 @@ describe("#585: with book-spread on, /book and /book/collection render one open 
     expect(within(main()).getByRole("navigation", { name: "Book pages" })).toHaveTextContent("Overview");
   });
 
-  it("lands /book?crate=bought:2 on its Open once a late collection answers under the spread", async () => {
+  it("lands /book?crate=bought:2 on its pack once a late collection answers under the spread", async () => {
     visit("/book?crate=bought%3A2");
     let landed = false;
     const shopper = withTheBookSpread(shellFixtures.memberWithTheCrateStore);
@@ -339,17 +339,17 @@ describe("#585: with book-spread on, /book and /book/collection render one open 
     landed = true;
     showVisitor({ ...shopper });
     const crates = within(main()).getByRole("region", { name: "Crates" });
-    await waitFor(() => expect(within(crates).getAllByRole("button", { name: "Open" })[1]).toHaveFocus());
+    await waitFor(() => expect(crates.querySelector('[data-crate-target="bought:2"] button')).toHaveFocus());
   });
 
-  it("keeps Buy a crate and the waiting crates under the book, and ?crate=bought:2 still lands on its Open", async () => {
+  it("keeps Buy a crate and the pack stack under the book, and ?crate=bought:2 still lands on its pack", async () => {
     visit("/book/collection?crate=bought%3A2");
     const twoWaiting: Collection = collectionFixtures.withTheStore;
     showBook(withTheBookSpread(shellFixtures.memberWithTheCrateStore), twoWaiting);
     const crates = within(main()).getByRole("region", { name: "Crates" });
     expect(book().compareDocumentPosition(crates) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(crates).getByRole("button", { name: /Buy a crate/ })).toBeInTheDocument();
-    await waitFor(() => expect(within(crates).getAllByRole("button", { name: "Open" })[1]).toHaveFocus());
+    await waitFor(() => expect(crates.querySelector('[data-crate-target="bought:2"] button')).toHaveFocus());
   });
 
   it("exposes landOnHoggieTile for the pack stack: it flips to the rarity's spread, answers the tile and its coin, and marks it landed", async () => {

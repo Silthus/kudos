@@ -229,7 +229,7 @@ function questOpenedWordsOf(crate: QuestCrate) {
   return words === undefined ? `You opened your ${label}.` : `You opened your ${label}. You earned ${words}.`;
 }
 
-function foundWordsOf(drop: Drop) {
+export function foundWordsOf(drop: Drop) {
   const article = /^[aeiou]/.test(drop.rarity) ? "an" : "a";
   const found = `You found ${article} ${drop.rarity} ${drop.name}.`;
   return drop.crest ? `${found} It completed the ${drop.crest.name} crest.` : found;
