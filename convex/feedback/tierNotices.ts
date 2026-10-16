@@ -4,6 +4,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { achievementsApplyIn } from "../achievements/flag";
 import { isToldPublicly, ladders, tierNameOf, tierRefValidator, type TierRef } from "../achievements/ladders";
 import type { BatchId } from "../achievements/replay";
+import { laddersShownTo } from "../achievements/shown";
 import { everyTierEarnedBy } from "../achievements/tiers";
 import { unlockOpenedEventValidator } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
@@ -90,7 +91,8 @@ async function tellUntoldTiers(ctx: MutationCtx, member: MemberId, { batch, anno
 async function untoldTiersOf(ctx: QueryCtx, member: MemberId, batch: BatchId | undefined): Promise<TierRef[]> {
   const told = await toldTiersOf(ctx, member);
   const earned = await tellableTiersOf(ctx, member, batch);
-  return ladders.ladders.flatMap(({ ladder, tiers }) =>
+  const shown = await laddersShownTo(ctx, member);
+  return ladders.ladders.filter(({ ladder }) => shown.includes(ladder)).flatMap(({ ladder, tiers }) =>
     tiers.map(({ tier }) => ({ ladder, tier })).filter((ref) => earned.some((row) => isSameTier(row, ref)) && !told.some((each) => isSameTier(each, ref))),
   );
 }

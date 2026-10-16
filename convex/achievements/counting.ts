@@ -15,6 +15,8 @@ export type CompletionCounting = { workspace: string; member: MemberId; ladder: 
 
 export type Completion = { award: AwardId; at: number; told: boolean };
 
+export type CompletionTier = { tier: TierRef; reaching: Completion };
+
 export type DatedAward = GivenAward & { at: number };
 
 type Units = (ctx: MutationCtx, counting: AwardCounting, award: DatedAward) => Promise<number>;
@@ -61,15 +63,15 @@ export async function countAward(ctx: MutationCtx, workspace: string, counting: 
   return earned;
 }
 
-export async function countCompletions(ctx: MutationCtx, { workspace, member, ladder }: CompletionCounting, completions: Completion[], { hidden }: Pick<Earning, "hidden">): Promise<TierRef[]> {
+export async function countCompletions(ctx: MutationCtx, { workspace, member, ladder }: CompletionCounting, completions: Completion[], { hidden }: Pick<Earning, "hidden">): Promise<CompletionTier[]> {
   await setCount(ctx, { member, ladder }, completions.length);
-  const told: TierRef[] = [];
+  const told: CompletionTier[] = [];
   for (const tier of ladderOf(ladder).tiers) {
     const reaching = completions[tier.count - 1];
     if (reaching === undefined) continue;
     const silent = hidden ?? (reaching.told ? undefined : true);
     const earned = await earnTier(ctx, { workspace, member, ladder, award: reaching.award, at: reaching.at, hidden: silent }, tier);
-    if (earned && silent === undefined) told.push({ ladder, tier: tier.tier });
+    if (earned && silent === undefined) told.push({ tier: { ladder, tier: tier.tier }, reaching });
   }
   return told;
 }

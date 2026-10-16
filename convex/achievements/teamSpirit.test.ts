@@ -1,3 +1,4 @@
+import { makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
@@ -12,7 +13,7 @@ import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../
 import { api } from "../_generated/api";
 import { awardsOfMessage } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
-import { ladders, type Ladder, type LadderId } from "./ladders";
+import { ladders, type Ladder, type LadderId, type TierId } from "./ladders";
 
 const now = new Date("2026-10-16T10:00:00Z");
 const minuteMs = 60_000;
@@ -88,6 +89,18 @@ async function thanks(giver: Person, ...recipients: Person[]) {
   return at;
 }
 
+async function redelivered(giver: Person, at: number) {
+  await post(t, [section(mention(alice.user), emoji("taco"))], { user: giver.user, ts: tsOfMessageAt.get(at)! });
+  await settle(t);
+}
+
+async function checkedAgain(person: Person, at: number) {
+  const message = { workspace: "T1", conversation: "C1", message: tsOfMessageAt.get(at)! };
+  const check = { workspace: "T1", member: await memberOf(person), message, award: await awardOf(at), at };
+  await t.mutation(makeFunctionReference<"mutation">("stickers/completions:checkAlbums"), { check });
+  await settle(t);
+}
+
 async function memberOf(person: Person): Promise<MemberId> {
   const row = await t.run((ctx) =>
     ctx.db
@@ -137,6 +150,12 @@ async function teamSpiritTiersStored(person: Person) {
   return tiers.map(({ tier, award, earnedAt, hidden }) => ({ tier, award, earnedAt, hidden: hidden ?? false }));
 }
 
+async function messagesToldTeamSpirit(person: Person, tier: TierId) {
+  const member = await memberOf(person);
+  const notices = await t.run(async (ctx) => (await ctx.db.query("tierNotices").collect()).filter((row) => row.member === member));
+  return notices.filter(({ tiers }) => tiers.some((each) => each.ladder === "team-spirit" && each.tier === tier)).map(({ message }) => message);
+}
+
 async function teamSpiritRewardsPaid(person: Person) {
   const member = await memberOf(person);
   return t.run(async (ctx) => {
@@ -150,8 +169,8 @@ function teamSpiritDmsTo(person: Person) {
   return slack
     .callsTo("chat.postMessage")
     .filter(({ channel }) => channel === person.user)
-    .flatMap(({ text }) => String(text).split("\n"))
-    .filter((line) => namesTeamSpirit(line));
+    .map(({ text }) => String(text))
+    .filter(namesTeamSpirit);
 }
 
 function namesTeamSpirit(text: string) {
@@ -199,6 +218,8 @@ describe("SB21: Team Spirit counts completed group albums", { timeout: 120_000 }
 
     const completedAt: number[] = [];
     for (const teammate of teammates.slice(0, 8)) completedAt.push(await thanks(teammate, alice));
+    await redelivered(teammates[7]!, completedAt[7]!);
+    await checkedAgain(alice, completedAt[7]!);
 
     expect(await earnedOn(reader)).toEqual({
       count: 8,
@@ -267,6 +288,7 @@ describe("SB21: Team Spirit counts completed group albums", { timeout: 120_000 }
 
     expect((await teamSpiritTiersStored(alice)).find(({ tier }) => tier === "diamond")).toEqual({ tier: "diamond", award: await awardOf(completedAt[7]!), earnedAt: completedAt[7], hidden: false });
     expect(await earnedOn(reader)).toMatchObject({ count: 9 });
+    expect(await messagesToldTeamSpirit(alice, "diamond"), "the added tier is told under the message of the completion that reached it").toEqual([tsOfMessageAt.get(completedAt[7]!)]);
   });
 });
 
@@ -306,11 +328,41 @@ describe("SB22: a tier from thanking the last missing person is told privately u
     await thanks(teammates[1]!, alice);
 
     expect(teamSpiritDmsTo(alice)).toEqual([
-      "🏅 You earned Team Spirit (Team Spirit, bronze). +10 🪙",
-      "Next: All Hands at 2 group albums completed.",
-      "🏅 You earned All Hands (Team Spirit, silver). + :handshake: Handshake for your kudos emoji slots",
-      "Next: Tight-Knit at 4 group albums completed.",
+      "🏅 You earned Team Spirit (Team Spirit, bronze). +10 🪙\nNext: All Hands at 2 group albums completed.",
+      "🏅 You earned All Hands (Team Spirit, silver). + :handshake: Handshake for your kudos emoji slots\nNext: Tight-Knit at 4 group albums completed.",
     ]);
+    expect(publicLinesNamingTeamSpirit()).toEqual([]);
+  });
+
+  test("a member who turned DMs off is told nothing, and no public line names Team Spirit", async () => {
+    await teamSpiritShipped(true);
+    await joined(alice, dan, ...teammates.slice(0, 1));
+    await eachInAGroupOfTheirOwn(teammates.slice(0, 1));
+    await withTheBookOpen(alice);
+    await afterTheFirstCheck(alice);
+    const member = await memberOf(alice);
+    await t.run((ctx) => ctx.db.insert("progressSettings", { member, dms: false }));
+
+    await thanks(alice, teammates[0]!);
+
+    expect((await teamSpiritTiersStored(alice)).map(({ tier, hidden }) => ({ tier, hidden }))).toEqual([{ tier: "bronze", hidden: false }]);
+    expect(teamSpiritDmsTo(alice)).toEqual([]);
+    expect(publicLinesNamingTeamSpirit()).toEqual([]);
+  });
+
+  test("a told tier earned before the Book was opened is not named by the opening summary while team-spirit is off", async () => {
+    await teamSpiritShipped(true);
+    await joined(alice, dan, ...teammates.slice(0, 1));
+    await eachInAGroupOfTheirOwn(teammates.slice(0, 1));
+    await afterTheFirstCheck(alice);
+    await thanks(teammates[0]!, alice);
+    expect((await teamSpiritTiersStored(alice)).map(({ tier, hidden }) => ({ tier, hidden }))).toEqual([{ tier: "bronze", hidden: false }]);
+
+    await teamSpirit(false);
+    await withTheBookOpen(alice);
+    await settle(t);
+
+    expect(teamSpiritDmsTo(alice)).toEqual([]);
     expect(publicLinesNamingTeamSpirit()).toEqual([]);
   });
 });

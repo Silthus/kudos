@@ -205,6 +205,11 @@ export async function awardAt(ctx: QueryCtx, award: AwardId): Promise<number | n
   return (await ctx.db.get(award))?.at ?? null;
 }
 
+export async function messageOfAward(ctx: QueryCtx, award: AwardId): Promise<MessageRef | null> {
+  const row = await ctx.db.get(award);
+  return row === null ? null : { workspace: row.workspace, conversation: row.conversation, message: row.message };
+}
+
 export async function firstThanksOf(ctx: QueryCtx, giver: MemberId): Promise<number[]> {
   const awards = await ctx.db
     .query("awards")

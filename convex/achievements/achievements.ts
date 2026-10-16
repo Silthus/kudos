@@ -5,11 +5,10 @@ import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { republish } from "../feedback/homes";
 import { tellTiersEarned } from "../feedback/tierNotices";
 import { isOpened } from "../feedback/unlockFilter";
-import type { AwardWithId } from "../engine/awards";
-import type { MessageRef } from "../engine/messageEvent";
+import { messageOfAward, type AwardId, type AwardWithId } from "../engine/awards";
 import { tierItemOf, type CatalogueItem } from "../store/catalogue";
 import { chatUserOf, type MemberId } from "../workspace/directory";
-import { countAward, countCompletions, countingOf, countOf, type Completion } from "./counting";
+import { countAward, countCompletions, countingOf, countOf, type Completion, type CompletionTier } from "./counting";
 import { achievementsApplyIn, achievementsLiveIn, bookAppliesIn, bookLaunchedAt } from "./flag";
 import { coinsPaidBy, ladders, ladderOf, tierRefValidator, type AwardLadderId, type LadderId, type Tier, type TierId, type TierRef } from "./ladders";
 import { laddersCountedLiveIn, replayWhatIsNew } from "./replay";
@@ -38,7 +37,7 @@ type Untold = Infer<typeof untoldValidator>;
 
 type Counted = Map<MemberId, TierRef[]>;
 
-export type CompletionsRecorded = { workspace: string; member: MemberId; message: MessageRef; at: number };
+export type CompletionsRecorded = { workspace: string; member: MemberId };
 
 export const countKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator, from: v.optional(v.number()), untold: v.optional(untoldValidator) },
@@ -61,12 +60,21 @@ export const countKudosGiven = internalMutation({
   },
 });
 
-export async function countAlbumsCompleted(ctx: MutationCtx, { workspace, member, message, at }: CompletionsRecorded, completions: Completion[]): Promise<void> {
+export async function countAlbumsCompleted(ctx: MutationCtx, { workspace, member }: CompletionsRecorded, completions: Completion[]): Promise<void> {
   const shown = await achievementsApplyIn(ctx, workspace);
-  const earned = await countCompletions(ctx, { workspace, member, ladder: "team-spirit" }, completions, shown ? {} : { hidden: true });
+  const told = await countCompletions(ctx, { workspace, member, ladder: "team-spirit" }, completions, shown ? {} : { hidden: true });
   if (!shown) return;
   if (await isOpened(ctx, member, "book")) await republish(ctx, member);
-  await tellTiersEarned(ctx, { member, message, at, earned });
+  for (const [award, earned] of byReachingAward(told)) {
+    const message = await messageOfAward(ctx, award);
+    if (message !== null) await tellTiersEarned(ctx, { member, message, at: earned[0]!.reaching.at, earned: earned.map(({ tier }) => tier) });
+  }
+}
+
+function byReachingAward(told: CompletionTier[]): Map<AwardId, CompletionTier[]> {
+  const byAward = new Map<AwardId, CompletionTier[]>();
+  for (const each of told) byAward.set(each.reaching.award, [...(byAward.get(each.reaching.award) ?? []), each]);
+  return byAward;
 }
 
 type Page = { awards: AwardWithId[]; shown: boolean; untold: Untold };

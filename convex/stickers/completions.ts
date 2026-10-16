@@ -84,7 +84,7 @@ async function recordCompletions(ctx: MutationCtx, { workspace, member, message,
   for (const { group, total } of albums) await ctx.db.insert("albumCompletions", { member, group, award, at, people: total, told });
   const groups = albums.map(({ group, total }) => ({ group, people: total }));
   await publish(ctx, { type: "albumsCompleted", workspace, member, message, award, groups, at, told });
-  await countAlbumsCompleted(ctx, { workspace, member, message, at }, await completionRecordsInOrder(ctx, member));
+  await countAlbumsCompleted(ctx, { workspace, member }, await completionRecordsInOrder(ctx, member));
 }
 
 async function completionRecordsInOrder(ctx: QueryCtx, member: MemberId) {
