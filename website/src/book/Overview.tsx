@@ -2,11 +2,13 @@ import { HedgehogReadingIsMagic } from "@posthog/brand/hoggies";
 import { Arrow } from "../Arrow";
 import { Card, CardContent } from "@posthog/quill";
 import { useId, type ReactNode } from "react";
+import type { Collection } from "../collectionRead";
 import { AppLink } from "../AppLink";
 import type { LadderCard } from "../shell";
 import { useWideScreen } from "../useWideScreen";
 import { Bar, QuietBar } from "./Bar";
 import { bookHref, chaptersOf, type Chapter } from "./categories";
+import { CollectionTile } from "./CollectionTile";
 import { dateWords, tierWords } from "./dates";
 import { LadderEmblem } from "./LadderEmblem";
 import { Medal } from "./Medal";
@@ -14,9 +16,9 @@ import { bestOf, closestNextOf, isNew, recentlyEarned, tiersEarned, type Closest
 import { RewardGains, rewardsSaid } from "./Rewards";
 import { Tag } from "./Tag";
 
-type OverviewProps = { ladders: LadderCard[]; timeZone: string };
+type OverviewProps = { ladders: LadderCard[]; timeZone: string; collection?: Collection };
 
-export function Overview({ ladders, timeZone }: OverviewProps) {
+export function Overview({ ladders, timeZone, collection }: OverviewProps) {
   const chapters = chaptersOf(ladders);
   const closest = closestNextOf(ladders);
   return (
@@ -24,7 +26,7 @@ export function Overview({ ladders, timeZone }: OverviewProps) {
       <TiersEarned ladders={ladders} />
       {closest !== null && <ClosestNextTier closest={closest} chapters={chapters} />}
       <RecentlyEarned ladders={ladders} chapters={chapters} timeZone={timeZone} />
-      <CategoryTiles chapters={chapters} />
+      <CategoryTiles chapters={chapters} collection={collection} />
     </div>
   );
 }
@@ -154,12 +156,17 @@ function EarnedLine({ tier, timeZone, wide }: { tier: Shelved["tier"]; timeZone:
   );
 }
 
-function CategoryTiles({ chapters }: { chapters: Chapter[] }) {
+function CategoryTiles({ chapters, collection }: { chapters: Chapter[]; collection: Collection | undefined }) {
   const headingId = useId();
   return (
     <section className="flex flex-col gap-3">
       <SectionHeading id={headingId}>Pages</SectionHeading>
       <ul aria-labelledby={headingId} className="grid gap-3 sm:grid-cols-2">
+        {collection !== undefined && (
+          <li>
+            <CollectionTile collection={collection} />
+          </li>
+        )}
         {chapters.map((chapter) => (
           <li key={chapter.category.id}>
             <CategoryTile chapter={chapter} />

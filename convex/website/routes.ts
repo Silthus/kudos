@@ -29,7 +29,7 @@ export function crateTargetIn(param: string | null): CrateTarget | undefined {
   return weekly === null ? undefined : { kind: "weekly", week: weekly[1]!, slot: Number(weekly[2]) };
 }
 
-export const routeList: readonly string[] = ["/", "/leaderboard", "/quests", "/skills", "/book", "/book/earned", "/activity", "/settings"];
+export const routeList: readonly string[] = ["/", "/leaderboard", "/quests", "/skills", "/book", "/book/earned", "/book/collection", "/activity", "/settings"];
 
 export const signInEntry = "/sign-in";
 

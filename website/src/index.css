@@ -53,6 +53,11 @@
   --medal-silver: #737780;
   --medal-gold: #94700a;
   --medal-diamond: #2a7f9e;
+  --rarity-common: #6b7068;
+  --rarity-uncommon: #1f8a3b;
+  --rarity-rare: #0a66c2;
+  --rarity-epic: #7c3aed;
+  --rarity-legendary: #c2410c;
 }
 
 .dark {
@@ -60,6 +65,14 @@
   --medal-silver: #bfc2c8;
   --medal-gold: #e2b53a;
   --medal-diamond: #7cc9de;
+}
+
+:is(.dark, .moment-scrim) {
+  --rarity-common: #aeb3c4;
+  --rarity-uncommon: #4ade80;
+  --rarity-rare: #60a5fa;
+  --rarity-epic: #c084fc;
+  --rarity-legendary: #fb923c;
 }
 
 * {

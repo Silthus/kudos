@@ -30,8 +30,16 @@ const goTo: Record<PagedFeature, string> = {
 
 export function PageLink({ feature }: { feature: PagedFeature }) {
   return (
-    <AppLink href={pageOf(feature).href} className="group inline-flex items-center gap-1 self-start text-sm font-medium underline-offset-4 hover:underline" {...featureCardAttributes(feature)}>
+    <PanelLink href={pageOf(feature).href} {...featureCardAttributes(feature)}>
       {goTo[feature]}
+    </PanelLink>
+  );
+}
+
+export function PanelLink({ href, children, ...attributes }: { href: string; children: ReactNode } & Record<`data-${string}`, string>) {
+  return (
+    <AppLink href={href} className="group inline-flex items-center gap-1 self-start text-sm font-medium underline-offset-4 hover:underline" {...attributes}>
+      {children}
       <Arrow />
     </AppLink>
   );

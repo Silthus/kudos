@@ -1,0 +1,42 @@
+# #467 running-app proof: one fresh local Convex backend (http://127.0.0.1:11411) running 0d93e9c5, signed Slack requests in, Slack and PostHog answered by the repo's FakeSlack and FakePostHog on 11412. HOGGIE_DRAW_SECRET is unset.
+
+## 1. Alice reaches level 5 and opens the Leaderboard, the Book and the Skill tree from App Home: three crates, three drops
+  flags on for everyone: xp-levels, unlocks, everyone-board, achievements, skill-tree, quests, activity, website, collection; every other flag off
+> Alice Archer opens App Home
+  HTTP 200 
+  hoggies line in Alice Archer's App Home: (none)
+> Bob Brandt opens App Home
+  HTTP 200 
+  hoggies line in Bob Brandt's App Home: (none)
+> Alice Archer thanks Bob Brandt in #general with :taco:
+  HTTP 200 
+  levels 2 to 5 reached for Alice Archer (unlocks/unlocks:makeReady)
+> Alice Archer opens App Home
+  HTTP 200 
+  hoggies line in Alice Archer's App Home: (none)
+> Alice clicks Open on the Leaderboard in App Home: {"type":"openUnlock","feature":"leaderboard"} (signed /slack/interactivity)
+  HTTP 200 
+> Alice clicks Open on the Book in App Home: {"type":"openUnlock","feature":"book"} (signed /slack/interactivity)
+  HTTP 200 
+> Alice clicks Open on the Skill tree in App Home: {"type":"openUnlock","feature":"skillTree"} (signed /slack/interactivity)
+  HTTP 200 
+> Alice clicks Open on Quests in App Home: {"type":"openUnlock","feature":"quests"} (signed /slack/interactivity)
+  HTTP 200 
+  drops after the four opens: 4
+    crate unlock:quests -> star (common), n 4, copy 1, at 2026-10-16T00:37:24.424Z
+    crate unlock:skillTree -> dj (rare), n 3, copy 1, at 2026-10-16T00:37:19.386Z
+    crate unlock:book -> croissant (common), n 2, copy 1, at 2026-10-16T00:37:14.351Z
+    crate unlock:leaderboard -> ape (rare), n 1, copy 1, at 2026-10-16T00:37:09.322Z
+> Alice Archer opens App Home
+  HTTP 200 
+  hoggies line in Alice Archer's App Home: section: Hoggies: 4 of 151 · last found: Star (⬜ Common) [link: View https://kudos-site.test/book]
+
+## 2. The website's reads for Alice: getCollection, getActivity (all), getBook
+  Alice Archer signed in: users, authSessions and authRefreshTokens rows appended (browser token in browser-U_ALICE.json)
+  Bob Brandt signed in: users, authSessions and authRefreshTokens rows appended (browser token in browser-U_BOB.json)
+  getCollection: kind collection, owned 4 of 151, rarities [{"chance":50,"owned":2,"rarity":"common","total":60},{"chance":28,"owned":0,"rarity":"uncommon","total":40},{"chance":14,"owned":2,"rarity":"rare","total":30},{"chance":6,"owned":0,"rarity":"epic","total":15},{"chance":2,"owned":0,"rarity":"legendary","total":6}]
+  held: [{"art":{"kind":"hoggie","slug":"croissant"},"count":1,"firstAt":1792111034351,"hoggie":"croissant","name":"Croissant","rarity":"common","seen":"c17cd0284f6f370a8594a4a2002fd04c"},{"art":{"kind":"hoggie","slug":"star"},"count":1,"firstAt":1792111044424,"hoggie":"star","name":"Star","rarity":"common","seen":"f7dcca685b7919b12bbb8f967baa64e7"},{"art":{"kind":"hoggie","slug":"ape"},"count":1,"firstAt":1792111029322,"hoggie":"ape","name":"Ape","rarity":"rare","seen":"fd9939faa3328374ea601e43ac107003"},{"art":{"kind":"hoggie","slug":"dj"},"count":1,"firstAt":1792111039386,"hoggie":"dj","name":"Dj","rarity":"rare","seen":"eae03612bea7752972ba9bf72a6d441d"}]
+  getActivity (all): found Star (common), found Dj (rare), found Croissant (common), found Ape (rare), levelUp, levelUp, levelUp, levelUp, kudosGiven
+  getCollection for Bob (Book locked): {"kind":"locked","level":4}
+
+## 3. The backend and the fakes stay up for the browser proof until /tmp/i467/rig/rig-a/stop exists
