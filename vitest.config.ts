@@ -15,6 +15,13 @@ export default defineConfig({
         },
       },
       "website",
+      {
+        test: {
+          name: "website-build",
+          include: ["website/src/**/*.test.ts"],
+          environment: "node",
+        },
+      },
     ],
   },
 });

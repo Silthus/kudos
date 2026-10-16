@@ -28,7 +28,7 @@ describe("#467: the home's Book panel carries the collection's progress", () => 
     expect(panel).toHaveTextContent("Latest find");
     expect(panel).toHaveTextContent("Rocket");
     expect(panel).toHaveTextContent("🟧 Legendary");
-    expect(panel.querySelector("[data-latest-find='rocket'] svg")).not.toBeNull();
+    expect(panel.querySelector("[data-latest-find='rocket'] img")).toHaveAttribute("src", expect.stringMatching(/rocket\.png$/));
     expect(within(panel).getByRole("link", { name: "See your collection" })).toHaveAttribute("href", "/book/collection");
     expect(within(panel).getByRole("link", { name: "Open the Book" })).toHaveAttribute("href", "/book");
     expect(panel).not.toHaveTextContent("See the tiers you've earned.");

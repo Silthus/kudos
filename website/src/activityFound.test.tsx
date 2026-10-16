@@ -44,7 +44,7 @@ describe("#467 CL21: a hoggie found shows in the timeline", () => {
     const found = within(main()).getByRole("article", { name: "You found a 🟧 Legendary Rocket" });
     expect(found).toHaveAttribute("data-side", "centre");
     expect(found).toHaveAttribute("data-rarity", "legendary");
-    expect(found.querySelector("svg")).not.toBeNull();
+    expect(found.querySelector("img")).toHaveAttribute("src", expect.stringMatching(/rocket\.png$/));
     expect(within(found).getByText("19:40")).toBeInTheDocument();
     expect(articles().indexOf(found)).toBe(1);
   });
