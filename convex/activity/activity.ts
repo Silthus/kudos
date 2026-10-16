@@ -155,7 +155,7 @@ async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, cursor: C
 
 async function hugsSnapshotOf(ctx: QueryCtx, member: MemberId, filter: Filter, hugsShown: () => Promise<boolean>, cursor: Cursor | null): Promise<number | undefined> {
   if (filter !== "all" || !(await hugsShown())) return undefined;
-  return cursor === null ? hugsReceivedSnapshot(ctx, member) : cursor.hugsAsOf;
+  return cursor?.hugsAsOf ?? hugsReceivedSnapshot(ctx, member);
 }
 
 function cutPositionOf(reads: Read[]): Position | undefined {

@@ -227,6 +227,30 @@ describe("SR11: a hug on the activity timeline", () => {
     expect(off.cursor).toMatch(mainsCursor);
   });
 
+  test("a cursor from a page read while hugs was hidden gains a snapshot once hugs shows, so a later move skips nothing", async () => {
+    await hugsOn();
+    await kudos(bob, [alice], "1791970600.000100");
+    vi.advanceTimersByTime(minute);
+    const messages = ["1791970700.000100", "1791970800.000100"];
+    for (const ts of messages) {
+      await hug(bob, alice, { ts });
+      vi.advanceTimersByTime(minute);
+    }
+    await kudos(carol, [alice], `${Math.floor(Date.now() / 1000)}.000300`);
+    vi.advanceTimersByTime(minute);
+    const asAlice = await signedIn(alice);
+
+    await hugsOn(false);
+    const hidden = await activityOf(asAlice, { filter: "all", limit: 1 });
+    await hugsOn();
+    const shown = await activityOf(asAlice, { filter: "all", limit: 1, cursor: hidden.cursor });
+    await hug(carol, alice, { ts: messages[0] });
+    const rest = await activityOf(asAlice, { filter: "all", limit: 10, cursor: shown.cursor });
+
+    expect([hidden, shown, rest].map(({ entries }) => entries.map(({ kind }) => kind))).toEqual([["kudosReceived"], ["hugReceived"], ["hugReceived", "kudosReceived"]]);
+    expect([...shown.entries, ...rest.entries].flatMap((entry) => (entry.kind === "hugReceived" ? [entry.on] : []))).toEqual([`C1/${messages[1]}`, `C1/${messages[0]}`]);
+  });
+
   test("a hugReceived row names only teammates whose hug paid its member", async () => {
     await hugsOn();
     await kudos(alice, [bob, carol]);
