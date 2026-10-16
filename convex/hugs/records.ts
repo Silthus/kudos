@@ -72,7 +72,7 @@ type HugsReceivedRow = Doc<"hugsReceived">;
 const giversShown = 5;
 
 
-export async function* hugsGivenNewestFirst(ctx: QueryCtx, giver: MemberId, below: DecidedBelow): AsyncGenerator<GivenHug> {
+export async function* hugsGivenByDecision(ctx: QueryCtx, giver: MemberId, below: DecidedBelow): AsyncGenerator<GivenHug> {
   const rows = ctx.db
     .query("hugs")
     .withIndex("by_giver_decided", (q) => decidedBelow(q.eq("giver", giver), below))
@@ -89,7 +89,7 @@ export async function hugsReceivedSnapshot(ctx: QueryCtx, member: MemberId): Pro
   return newest?._creationTime ?? 0;
 }
 
-export async function* hugsReceivedNewestFirst(ctx: QueryCtx, member: MemberId, below: DecidedBelow, snapshot: number | undefined): AsyncGenerator<ReceivedHugs> {
+export async function* hugsReceivedByDecision(ctx: QueryCtx, member: MemberId, below: DecidedBelow, snapshot: number | undefined): AsyncGenerator<ReceivedHugs> {
   const versions = ctx.db
     .query("hugsReceived")
     .withIndex("by_member", (q) => decidedBelow(q.eq("member", member), below))

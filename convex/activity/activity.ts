@@ -1,6 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import { awardsReceivedByDecision, messagesGivenByDecision, type DecidedBelow, type GivenMessageAwards, type MessageAward, type ReceivedAward } from "../engine/awards";
-import { dropsNewestFirst } from "../hoggies/drops";
+import { dropsByDecision } from "../hoggies/drops";
 import { crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
 import { bonusRecordedWith } from "../progression/effects";
 import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
@@ -10,9 +10,9 @@ import { perkOf } from "../progression/tree";
 import { questsFinishedByMessage } from "../quests/finishedBy";
 import { hugsShownTo } from "../hugs/flag";
 import { withoutSkinTone } from "../slack/reactions";
-import { hugsGivenNewestFirst, hugsReceivedNewestFirst, hugsReceivedSnapshot, type GivenHug, type ReceivedHugs, type TimelineHug } from "../hugs/records";
+import { hugsGivenByDecision, hugsReceivedByDecision, hugsReceivedSnapshot, type GivenHug, type ReceivedHugs, type TimelineHug } from "../hugs/records";
 import { hugXp } from "../hugs/xp";
-import { levelUpsNewestFirst } from "../unlocks/unlocks";
+import { levelUpsByDecision } from "../unlocks/unlocks";
 import { chatUserOf, timeZoneOf, type MemberId } from "../workspace/directory";
 import type { MessageRef } from "../engine/messageEvent";
 import type { Activity, ActivityEntry, BonusEarned, Found, KudosGiven, KudosReceived, LevelUp, Message, RecentKudos, HugGiven, HugReceived } from "./entries";
@@ -45,7 +45,7 @@ const levelUps: Source = {
   read: async (ctx, { member, gainsShown }, below, take) => {
     if (!(await gainsShown()).xp) return { pending: [], cut: false };
     return whole(
-      (await firstOf(levelUpsNewestFirst(ctx, member, below), take)).map(({ level, at, created }) => ({
+      (await firstOf(levelUpsByDecision(ctx, member, below), take)).map(({ level, at, created }) => ({
         position: { decided: created, rank: ranks.levelUp },
         entry: async (): Promise<LevelUp> => ({ kind: "levelUp", at, level }),
       })),
@@ -85,7 +85,7 @@ const found: Source = {
     if (!(await hoggiesShownTo(ctx, member))) return whole([]);
     const shown = { crests: await crestsShownTo(ctx, member) };
     return whole(
-      (await firstOf(dropsNewestFirst(ctx, member, below, shown), take)).map(({ at, n, decided, drop }) => ({
+      (await firstOf(dropsByDecision(ctx, member, below, shown), take)).map(({ at, n, decided, drop }) => ({
         position: { decided, rank: ranks.found },
         entry: async (): Promise<Found> => ({ kind: "found", at, key: keyOf({ at, rank: ranks.found, created: n }), drop }),
       })),
@@ -97,7 +97,7 @@ const hugsGiven: Source = {
   rank: ranks.hugGiven,
   read: async (ctx, viewer, below, take) => {
     if (!(await viewer.hugsShown())) return whole([]);
-    const { taken, cut } = await firstWithinRecipients(hugsGivenNewestFirst(ctx, viewer.member, below), take, ({ people }) => people.length);
+    const { taken, cut } = await firstWithinRecipients(hugsGivenByDecision(ctx, viewer.member, below), take, ({ people }) => people.length);
     return {
       pending: taken.map((given) => ({
         position: { decided: given.created, rank: ranks.hugGiven },
@@ -114,7 +114,7 @@ const hugsReceived: Source = {
   read: async (ctx, viewer, below, take) => {
     if (!(await viewer.hugsShown())) return whole([]);
     return whole(
-      (await firstOf(hugsReceivedNewestFirst(ctx, viewer.member, below, viewer.hugsAsOf), take)).map((received) => ({
+      (await firstOf(hugsReceivedByDecision(ctx, viewer.member, below, viewer.hugsAsOf), take)).map((received) => ({
         position: { decided: received.created, rank: ranks.hugReceived },
         entry: (mentions) => hugReceivedEntryOf(ctx, viewer, mentions, received),
       })),

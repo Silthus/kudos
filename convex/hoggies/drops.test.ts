@@ -16,7 +16,7 @@ import schema from "../schema";
 import type { MemberId } from "../workspace/directory";
 import { catalogue, hoggieNamed } from "./catalogue";
 import { drawOf } from "./draw";
-import { dropsNewestFirst } from "./drops";
+import { dropsByDecision } from "./drops";
 
 vi.mock("../bus/publish", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../bus/publish")>();
@@ -131,7 +131,7 @@ async function dropDrawnFor(member: MemberId, crate: string, copy = 1) {
 function dropsOf(member: MemberId, backend: Backend = t) {
   return backend.run(async (ctx) => {
     const drops = [];
-    for await (const drop of dropsNewestFirst(ctx, member, fromTheNewestDecided, { crests: false })) drops.push(drop);
+    for await (const drop of dropsByDecision(ctx, member, fromTheNewestDecided, { crests: false })) drops.push(drop);
     return drops;
   });
 }

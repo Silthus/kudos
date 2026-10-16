@@ -127,7 +127,7 @@ function stateFrom(row: UnlockRow | null): MemberUnlock["state"] {
 
 export type RecordedLevelUp = { level: number; at: number; created: number };
 
-export async function* levelUpsNewestFirst(ctx: QueryCtx, member: MemberId, below: DecidedBelow): AsyncGenerator<RecordedLevelUp> {
+export async function* levelUpsByDecision(ctx: QueryCtx, member: MemberId, below: DecidedBelow): AsyncGenerator<RecordedLevelUp> {
   const rows = ctx.db
     .query("levelUps")
     .withIndex("by_member", (q) => decidedBelow(q.eq("member", member), below))

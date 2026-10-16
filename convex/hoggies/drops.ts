@@ -40,7 +40,7 @@ export async function dropOf(ctx: MutationCtx, member: MemberId, crate: CrateKey
   return shownDrop(record, { crests });
 }
 
-export async function* dropsNewestFirst(ctx: QueryCtx, member: MemberId, below: DecidedBelow, shown: CrestsShown): AsyncGenerator<DroppedAt> {
+export async function* dropsByDecision(ctx: QueryCtx, member: MemberId, below: DecidedBelow, shown: CrestsShown): AsyncGenerator<DroppedAt> {
   const rows = ctx.db
     .query("drops")
     .withIndex("by_member", (q) => decidedBelow(q.eq("member", member), below))
