@@ -45,7 +45,11 @@ describe("#435: the router reads every target a Slack link carries", () => {
     expect(routeOf(new URL(`${origin}/quests?crate=${crate}`))).toEqual({ page: "quests" });
   });
 
-  test.each(["bought", "bought:", "bought:x", "bought:-1", "bought:1.5", "bought:1:2", "sold:1"])("#469: drops a broken bought crate: ?crate=%s", (crate) => {
+  test.each(["bought", "bought:", "bought:x", "bought:-1", "bought:0", "bought:1.5", "bought:1:2", "sold:1"])("#469: drops a broken bought crate: ?crate=%s", (crate) => {
     expect(routeOf(new URL(`${origin}/book/collection?crate=${crate}`))).toEqual({ page: "book", bookPage: "collection" });
+  });
+
+  test.each([1.5, 0, -1])("#469: the link function writes no target for a bought crate numbered %s, so both sides agree", (n) => {
+    expect(urlOf(origin, { page: "bookCollection", crate: { kind: "bought", n } })).toBe(`${origin}/book/collection`);
   });
 });

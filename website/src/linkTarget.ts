@@ -22,7 +22,8 @@ type Landing = { kind: keyof Landed; selector: string; arrive: (target: HTMLElem
 function landingOf(route: Route): Landing | undefined {
   if (route.page === "quests" && route.quest !== undefined) return { kind: "quest", selector: `[data-quest-target="${route.quest}"]`, arrive: (card) => card.querySelector<HTMLElement>("h2, h3")?.focus() };
   if (route.page === "skills" && route.perk !== undefined) return { kind: "perk", selector: `[data-perk-target="${route.perk}"]`, arrive: pressThePerk };
-  if ("crate" in route && route.crate !== undefined) return { kind: "crate", selector: `[data-crate-target="${crateParamOf(route.crate)}"]`, arrive: (crate) => crate.querySelector<HTMLElement>("button")?.focus() };
+  const crate = "crate" in route && route.crate !== undefined ? crateParamOf(route.crate) : undefined;
+  if (crate !== undefined) return { kind: "crate", selector: `[data-crate-target="${crate}"]`, arrive: (target) => target.querySelector<HTMLElement>("button")?.focus() };
   return undefined;
 }
 

@@ -24,9 +24,10 @@ const weeklyCrateParam = /^weekly:(\d{4}-\d{2}-\d{2}):(\d+)$/;
 
 const boughtCrateParam = /^bought:(\d+)$/;
 
-export function crateParamOf(crate: CrateTarget): string {
+export function crateParamOf(crate: CrateTarget): string | undefined {
   if (typeof crate === "string") return crate;
-  return crate.kind === "weekly" ? `${crate.kind}:${crate.week}:${crate.slot}` : `${crate.kind}:${crate.n}`;
+  if (crate.kind === "weekly") return `${crate.kind}:${crate.week}:${crate.slot}`;
+  return Number.isInteger(crate.n) && crate.n > 0 ? `${crate.kind}:${crate.n}` : undefined;
 }
 
 export function crateTargetIn(param: string | null): CrateTarget | undefined {
@@ -36,7 +37,8 @@ export function crateTargetIn(param: string | null): CrateTarget | undefined {
   const weekly = weeklyCrateParam.exec(param);
   if (weekly !== null) return { kind: "weekly", week: weekly[1]!, slot: Number(weekly[2]) };
   const bought = boughtCrateParam.exec(param);
-  return bought === null ? undefined : { kind: "bought", n: Number(bought[1]) };
+  const n = bought === null ? 0 : Number(bought[1]);
+  return n > 0 ? { kind: "bought", n } : undefined;
 }
 
 export function boughtCrateTargetOf(crate: string): BoughtCrateTarget | undefined {
@@ -79,7 +81,8 @@ function searchOf(page: Page) {
   if (page.page === "leaderboard" && page.period !== "week") search.set("period", page.period);
   if (page.page === "quests" && page.quest !== undefined) search.set("quest", String(page.quest));
   if (page.page === "skillTree" && page.perk !== undefined) search.set("perk", page.perk);
-  if (page.crate !== undefined) search.set("crate", crateParamOf(page.crate));
+  const crate = page.crate === undefined ? undefined : crateParamOf(page.crate);
+  if (crate !== undefined) search.set("crate", crate);
   const query = search.toString();
   return query === "" ? "" : `?${query}`;
 }

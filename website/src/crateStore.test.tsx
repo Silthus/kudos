@@ -1,10 +1,12 @@
 import { act, fireEvent, screen, within } from "@testing-library/react";
+import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { collectionFixtures, fixedCollection } from "./collectionFixtures";
 import type { Collection, CollectionRead, MyCollection } from "./collectionRead";
 import { burstPlaysForMs, crateChargesForMs } from "./crates/RevealDialog";
 import { crestBeatPlaysForMs } from "./crates/RewardTokens";
+import { markSeen } from "./crates/seen";
 import { shellFixtures, type CrateOpenReply, type CratePurchaseReply, type Drop, type MemberProfile } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
@@ -201,6 +203,20 @@ describe("#469: the Collection offers a crate for coins", () => {
     expect(buyButton()).not.toHaveAttribute("aria-disabled");
   });
 
+  it("keeps the answer's notice when the read drops the offer while the purchase is out", async () => {
+    const pending = answerLater();
+    const store = storeAnswering([nothingWaiting, light(collectionFixtures.collection)]);
+    const { user, showVisitor } = showTheStore(nothingWaiting, { read: store.read, buyCrate: () => pending.answer });
+
+    await user.click(buyButton());
+    store.next();
+    showVisitor({ ...shopper });
+    await pending.settle(null);
+
+    expect(within(crates()).queryByRole("button", { name: /^Buy/ })).toBeNull();
+    expect(notice()).toHaveTextContent("That couldn't be bought right now.");
+  });
+
   it("says HedgeHug couldn't be reached when the send fails", async () => {
     const pending = answerLater();
     const { user } = showTheStore(nothingWaiting, { buyCrate: () => pending.answer });
@@ -326,5 +342,45 @@ describe("#469: a bought crate waits on the Collection page until its member ope
   it("keeps the bought crates out of the ready pill", () => {
     showTheStore();
     expect(within(document.querySelector<HTMLElement>(".hud-root > header")!).queryByRole("button", { name: /ready$/ })).toBeNull();
+  });
+});
+
+describe("#469: the store and the bought crate's reveal are accessible", () => {
+  const wcag22AA = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+
+  async function violations() {
+    const results = await axe.run(document.body, { runOnly: { type: "tag", values: wcag22AA }, rules: { "color-contrast": { enabled: false } } });
+    return results.violations.map((violation) => `${violation.id}: ${violation.help}`);
+  }
+
+  it("plays the reveal in full even when another member revealed a bought:1 in this browser", async () => {
+    markSeen("bought:1");
+    await openTheFirstCrate(scientist);
+
+    expect(dialog()).toHaveAttribute("data-phase", "charging");
+    advance(crateChargesForMs);
+    advance(burstPlaysForMs);
+    expect(dialog()).toHaveAttribute("data-phase", "ended");
+  });
+
+  it.each([false, true])("opens from the keyboard, skips with Space, closes with Escape back to the crate's row, and passes axe at each step (dark: %s)", async (dark) => {
+    fakeSystemTheme(dark);
+    const { user } = showTheStore(theStore, { openCrate: async () => ({ kind: "opened", drop: croissant }) });
+    expect(await violations()).toEqual([]);
+    act(() => openButtons()[0]!.focus());
+
+    await user.keyboard("{Enter}");
+    expect(dialog()).toHaveAccessibleName("A crate you bought");
+    expect(dialog()).toHaveFocus();
+    expect(await violations()).toEqual([]);
+    await user.keyboard(" ");
+    expect(dialog()).toHaveAttribute("data-phase", "ended");
+    expect(within(dialog()!).getByRole("button", { name: "Done" })).toHaveFocus();
+    expect(screen.getByTestId("moment-announcement")).toHaveTextContent("You opened a crate you bought. You found a common Croissant. It completed the Customer Success EU crest.");
+    expect(await violations()).toEqual([]);
+    await user.keyboard("{Escape}");
+
+    expect(dialog()).toBeNull();
+    expect(main().querySelector('[data-crate-target="bought:1"]')).toHaveFocus();
   });
 });

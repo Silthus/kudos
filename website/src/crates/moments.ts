@@ -86,7 +86,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   onQuestsNow.current = onQuests;
 
   const queue = useCallback((crate: ReadyCrate, fromQuests: boolean, drop: Drop | null, climb: Climb | undefined) => {
-    const seenBefore = hasSeen(crate.seen);
+    const seenBefore = crate.kind !== "bought" && hasSeen(crate.seen);
     setReveals((queued) => (queued.some((shown) => shown.crate.seen === crate.seen) ? queued : [...queued, { crate, seenBefore, fromQuests, drop }]));
     if (!seenBefore) setFlights((queued) => (queued.some((flying) => flying.crate.seen === crate.seen) ? queued : [...queued, flightOf(crate, climb)]));
   }, []);
@@ -133,7 +133,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   const land = useCallback((crate: ReadyCrate) => setFlights((queued) => (queued[0]?.crate.seen === crate.seen ? queued.slice(1) : queued)), []);
 
   const finish = useCallback((crate: ReadyCrate, drop: Drop | null) => {
-    markSeen(crate.seen);
+    if (crate.kind !== "bought") markSeen(crate.seen);
     setAnnouncement(openedAnnouncementOf(crate, drop));
   }, []);
 

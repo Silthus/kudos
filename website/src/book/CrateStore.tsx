@@ -20,7 +20,7 @@ export function CrateStore({ collection, coins, buyCrate }: CrateStoreProps) {
   const offer = collection.crateStore ?? null;
   const purchase = useCratePurchase(buyCrate, offer?.next);
   const list = useFocusOnTheBoughtCrate(purchase);
-  if (offer === null && waiting.length === 0) return null;
+  if (offer === null && waiting.length === 0 && purchase.notice === undefined) return null;
   return (
     <section aria-labelledby={headingId} data-crate-store className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -33,6 +33,9 @@ export function CrateStore({ collection, coins, buyCrate }: CrateStoreProps) {
         <CardContent className="flex flex-col gap-4">
           {waiting.length > 0 && <WaitingCrates crates={waiting} listRef={list} />}
           {offer !== null && <Offer price={offer.price} coins={coins} purchase={purchase} primary={waiting.length === 0} />}
+          <p role="status" className={`text-xs font-medium ${purchase.notice === undefined ? "sr-only" : ""}`}>
+            {purchase.notice?.text}
+          </p>
         </CardContent>
       </Card>
     </section>
@@ -96,35 +99,30 @@ function Offer({ price, coins, purchase, primary }: OfferProps) {
   const short = Math.max(0, price - (coins ?? 0));
   const held = short > 0 || purchase.buying;
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <CrateArt phase="closed" width={56} Hog={hogOf("book")} />
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <p className="text-sm font-medium">Your next crate</p>
-          <p className="text-xs text-muted-foreground">{`It costs ${coinsText(price)}. Coins are never refunded.`}</p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <Button
-            variant={primary ? "primary" : "outline"}
-            size="sm"
-            aria-disabled={held || undefined}
-            aria-describedby={short > 0 ? hintId : undefined}
-            onClick={() => {
-              if (!held) purchase.buy();
-            }}
-          >
-            {purchase.buying ? "Buying…" : <BuyWords price={price} />}
-          </Button>
-          {short > 0 && (
-            <p id={hintId} className="text-xs text-muted-foreground">
-              {shortfallText(short)}
-            </p>
-          )}
-        </div>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <CrateArt phase="closed" width={56} Hog={hogOf("book")} />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p className="text-sm font-medium">Your next crate</p>
+        <p className="text-xs text-muted-foreground">{`It costs ${coinsText(price)}. Coins are never refunded.`}</p>
       </div>
-      <p role="status" className={`text-xs font-medium ${purchase.notice === undefined ? "sr-only" : ""}`}>
-        {purchase.notice?.text}
-      </p>
+      <div className="flex flex-col items-end gap-1">
+        <Button
+          variant={primary ? "primary" : "outline"}
+          size="sm"
+          aria-disabled={held || undefined}
+          aria-describedby={short > 0 ? hintId : undefined}
+          onClick={() => {
+            if (!held) purchase.buy();
+          }}
+        >
+          {purchase.buying ? "Buying…" : <BuyWords price={price} />}
+        </Button>
+        {short > 0 && (
+          <p id={hintId} className="text-xs text-muted-foreground">
+            {shortfallText(short)}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

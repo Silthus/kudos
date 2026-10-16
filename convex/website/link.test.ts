@@ -53,4 +53,8 @@ describe("SW11: one function builds every website link", () => {
   ])("#435: a link to a perk or a ready crate carries its target: $link", async ({ page, link }) => {
     expect(await linkTo(page)).toBe(link);
   });
+
+  test.each([1.5, 0, -1, Number.NaN])("#469: a bought crate whose number is %s, which the router would drop, links to the Collection with no target", async (n) => {
+    expect(await linkTo({ page: "bookCollection", crate: { kind: "bought", n } })).toBe(`${siteUrl}/book/collection`);
+  });
 });
