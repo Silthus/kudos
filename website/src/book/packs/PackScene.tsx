@@ -1,4 +1,5 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { IconArrowRight } from "@posthog/icons";
 import { FoilPack } from "./FoilPack";
 import { findWordsOf, nameOf, type OpenedPack, type ScenePack } from "./packs";
@@ -18,9 +19,9 @@ export function PackScene({ packs, latest, revealed, onOpen, onRevealed, onFinis
     event.preventDefault();
     onFinish();
   };
-  return (
+  return createPortal(
     <div ref={dialog} role="dialog" aria-modal="true" aria-label="Opening your packs" tabIndex={-1} data-rarity={rarity} onKeyDown={onKeyDown} className="pk-scrim fixed inset-0 z-50 overflow-y-auto outline-none" style={{ "--glow": `var(--rarity-${rarity})`, "--pk-w": `${packWidth}px` } as CSSProperties}>
-      <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-6 px-5 pb-16 pt-10 text-center">
+      <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-6 px-5 pb-16 pt-24 text-center">
         <span className="hud-label pk-dim">{`Packs · ${revealed} of ${packs.length} opened`}</span>
         <ul aria-label="Your packs" className="pk-row w-full">
           {packs.map((pack) => (
@@ -33,7 +34,8 @@ export function PackScene({ packs, latest, revealed, onOpen, onRevealed, onFinis
         {latest !== undefined && <Latest key={latest.crate} latest={latest} />}
         {allRevealed ? <PutThemInTheBook onFinish={onFinish} /> : <span className="pk-dim text-xs">{revealed === 0 ? "Esc leaves the rest for later" : "Open the next one, or Esc to put these in the book"}</span>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

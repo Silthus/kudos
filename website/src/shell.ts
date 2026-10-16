@@ -17,6 +17,8 @@ import type { MySkillTree } from "../../convex/website/skillTree";
 import type { GroupBoards, GroupsBoardShown } from "../../convex/website/groupBoards";
 import type { Leaderboard as EveryoneBoard, MyLeaderboard as MyEveryoneBoard } from "../../convex/website/leaderboard";
 import { inventoryFixtures } from "./inventoryFixtures";
+import type { BookSpreadMember } from "./book/packs/bookSpread";
+import { fixturePackDropOf } from "./collectionFixtures";
 
 export type { Avatar, Face, FeatureCard, InventoryItem, ItemSource, JourneyStep, MemberInventory, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
 export type { GroupQuestCard, QuestReward, QuestsAnswer, QuestSlot, WaitingCrate, WeekSwap } from "../../convex/website/quests";
@@ -187,6 +189,8 @@ const memberShortOfCoins: MemberProfile = { ...memberWithTheInventory, coins: 40
 
 const memberWithTheCrateStore: MemberProfile = { ...memberWithTheInventory, ...onTheUnlockPath({ ...bookFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }), coins: 120 };
 
+const memberWithThePacks: BookSpreadMember = { ...memberWithTheCrateStore, bookSpread: true };
+
 const memberWithCoinsBeforeTheStore: MemberProfile = { ...memberWithCoinsOpened, coins: 40 };
 
 const memberAcrossTheSheet: MemberProfile = {
@@ -292,6 +296,7 @@ export const shellFixtures = {
   memberWithCoinsOpened,
   memberWithTheInventory,
   memberWithCustomEmoji,
+  memberWithThePacks,
   memberWithNothingForSale,
   memberWithOneEmojiForSale,
   memberShortOfCoins,
@@ -359,6 +364,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-one-emoji-for-sale": shellFixtures.memberWithOneEmojiForSale,
   "member-short-of-coins": shellFixtures.memberShortOfCoins,
   "member-with-the-crate-store": shellFixtures.memberWithTheCrateStore,
+  "member-with-the-packs": shellFixtures.memberWithThePacks,
   error: shellFixtures.error,
 };
 
@@ -366,6 +372,4 @@ export function builtShell(name: string | undefined): ShellState {
   return fixturesByName[name ?? ""] ?? shellFixtures.closed;
 }
 
-const fixtureDrop: Drop = { hoggie: "scientist", name: "Scientist", rarity: "uncommon", art: { kind: "hoggie", slug: "scientist" }, copy: 1, isNew: true, crest: null };
-
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }), buyPerk: async () => ({ kind: "bought" }), buyItem: async ({ item }) => ({ kind: "bought", item }), buyCrate: async (next) => ({ kind: "bought", crate: `bought:${next}` }), openCrate: async () => ({ kind: "opened", drop: fixtureDrop }), setBoardVisibility: async (visible) => ({ kind: "set", visible }), setMessageSetting: async (_kind, place) => ({ kind: "set", place }), pickPrimaryGroup: async (group) => ({ kind: "picked", group }), setAvatar: async () => ({ kind: "refused" }), swapQuest: async () => ({ kind: "swapped" }), equip: async (item, slot) => ({ kind: "equipped", item, slot }), takeOff: async (slot) => ({ kind: "takenOff", slot }) };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }), buyPerk: async () => ({ kind: "bought" }), buyItem: async ({ item }) => ({ kind: "bought", item }), buyCrate: async (next) => ({ kind: "bought", crate: `bought:${next}` }), openCrate: async (crate) => ({ kind: "opened", drop: fixturePackDropOf(crate) }), setBoardVisibility: async (visible) => ({ kind: "set", visible }), setMessageSetting: async (_kind, place) => ({ kind: "set", place }), pickPrimaryGroup: async (group) => ({ kind: "picked", group }), setAvatar: async () => ({ kind: "refused" }), swapQuest: async () => ({ kind: "swapped" }), equip: async (item, slot) => ({ kind: "equipped", item, slot }), takeOff: async (slot) => ({ kind: "takenOff", slot }) };

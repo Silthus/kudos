@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import type { Drop } from "../../crates/drops";
 import { prefersReducedMotion } from "../../reducedMotion";
 import { HoggieCoin } from "../HoggieCoin";
@@ -42,12 +43,13 @@ export function PackLanding({ opened, onDone }: PackLandingProps) {
     };
   }, [opened]);
   if (current === undefined) return null;
-  return (
+  return createPortal(
     <div className="pointer-events-none fixed inset-0 z-[55] grid place-items-center" aria-hidden="true">
       <span ref={ghost} className="inline-flex drop-shadow-2xl">
         <HoggieCoin art={current.art} rarity={current.rarity} size={128} />
       </span>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
