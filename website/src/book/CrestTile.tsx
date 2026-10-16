@@ -13,7 +13,7 @@ export function CrestTile({ crest, hoggies, fresh, timeZone }: CrestTileProps) {
   return (
     <li data-crest={crest.crest} data-held={collected ? "collected" : "progress"} className="crest-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center">
       <TeamCrest art={crest.art} size={80} collected={collected} />
-      <span className={`w-full truncate text-xs font-medium ${collected ? "" : "text-muted-foreground"}`}>{crest.name}</span>
+      <span className={`line-clamp-2 w-full text-xs font-medium leading-tight ${collected ? "" : "text-muted-foreground"}`}>{crest.name}</span>
       <ul aria-hidden="true" className="flex items-center gap-1">
         {roster.map((hoggie) => (
           <li key={hoggie.hoggie}>
