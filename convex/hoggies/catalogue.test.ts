@@ -4,6 +4,63 @@ import { drawOf } from "./draw";
 
 const member = "k57abc0000000000000000000000000";
 
+const appendixRosters: Record<string, string[]> = {
+  "ai-gateway": ["transformer", "traffic-controller", "cursor"],
+  "ai-observability": ["robot", "noir", "magnifying-glass"],
+  "ai-research": ["research", "scientist", "einstein", "reading-is-magic"],
+  "analytics-platform": ["einstein-group", "hourglass", "coffee-cup"],
+  "apm": ["roller-coaster", "dynamite"],
+  "batch-exports": ["coffee-run", "waiter"],
+  "billing": ["money", "burning-money", "gatsby"],
+  "blitzscale": ["rocket", "level-up", "pit-viper"],
+  "builder-relations": ["hand-clasp", "puzzle", "honey"],
+  "clickhouse": ["x-ray", "doll-house", "gravedigger"],
+  "client-libraries": ["dj", "code-bubble", "coding-group"],
+  "cloud-foundations": ["construction", "climber"],
+  "cloud-platform": ["float", "remote-work", "katy-perry"],
+  "conversations": ["mailbox", "phone-call", "speaker"],
+  "customer-analytics": ["oprah", "commuter", "selfie"],
+  "customer-success-eu": ["gladiator", "croissant", "hooligan"],
+  "customer-success-na": ["mountie", "burger", "football-player"],
+  "data-modeling": ["organized", "mr-potato-head", "office-worker"],
+  "data-tools": ["dr-manhattan", "doc-brown", "data-thief"],
+  "demand-gen": ["cowboy-lasso", "town-crier", "lemonade"],
+  "dev-experience": ["996", "cereal", "hipster"],
+  "editorial": ["reporter", "greek", "soapbox"],
+  "error-tracking": ["error", "panic", "stop", "reaper"],
+  "experiments": ["experiment", "beaker", "doctor"],
+  "feature-flags": ["drake-nah", "drake-yah", "card"],
+  "forward-deployed-engineering": ["explorer", "safari", "campfire-cowboy"],
+  "graphics": ["jack-dawson", "art-thief", "caribana"],
+  "growth": ["final-evolution", "ape", "caveman", "success"],
+  "gtm-engineering": ["trenchcoat", "ipad"],
+  "ingestion": ["chef", "toilet"],
+  "managed-warehouse": ["swimmer", "the-bride"],
+  "marketing": ["megaphone", "party", "cake"],
+  "mcp-analytics": ["pope", "banana"],
+  "new-business-sales": ["steve-jobs", "business-evolution", "haha-bizzniss"],
+  "onboarding": ["tourist", "sitting"],
+  "people-ops": ["heart", "namaste", "coconut"],
+  "platform-features": ["superhero", "pearl-necklace"],
+  "platform-ux": ["rose", "ball"],
+  "posthog-desktop": ["evel", "asleep", "two-player"],
+  "product-analytics": ["chart", "back-to-the-future", "sailor"],
+  "product-lead-sales-east": ["dadd-ai", "will-smith"],
+  "product-led-sales-west": ["lemon-wrangler", "scorpion"],
+  "replay": ["director", "hot-popcorn", "sleepy"],
+  "security": ["traffic-police", "stamp-denied", "judge"],
+  "self-driving": ["self-driving", "driving-hogzilla", "cool-car", "im-the-driver"],
+  "support": ["lifeguard", "angel"],
+  "surveys": ["survey", "stamp-approved", "star"],
+  "talent": ["basketball-coach", "football-coach", "soccer-coach"],
+  "warehouse-sources": ["pinata", "hoot"],
+  "web-analytics": ["surfer", "sunburn"],
+  "website": ["hogpatch", "gardener"],
+  "wizard-docs": ["wizard", "desk-wizard", "reading"],
+  "workflows": ["workflows", "loops", "terminator"],
+  "youtube": ["scott-pilgrim", "boombox", "70s-dance", "shocked"],
+};
+
 describe("CL2 CL3 CL4: catalogue version 1", () => {
   test("CL3: the five rarities run common to legendary, each shown by a coloured square and its word", () => {
     expect(rarities.map(({ rarity }) => rarityLabel(rarity))).toEqual(["⬜ Common", "🟩 Uncommon", "🟦 Rare", "🟪 Epic", "🟧 Legendary"]);
@@ -25,8 +82,6 @@ describe("CL2 CL3 CL4: catalogue version 1", () => {
 });
 
 describe("CL22: catalogue version 2's crests", () => {
-  const roster = (crest: string) => catalogue.crests.find((entry) => entry.crest === crest)?.roster;
-
   test("version 2 adds 54 crests, the pinned package's apart from its placeholder, keeping the hoggies, rarities and weights", () => {
     expect(catalogue.version).toBe(2);
     expect(new Set(catalogue.crests.map(({ crest }) => crest)).size).toBe(54);
@@ -42,10 +97,10 @@ describe("CL22: catalogue version 2's crests", () => {
     for (const entry of catalogue.crests) expect(entry.roster.length, entry.crest).toBeLessThanOrEqual(4);
   });
 
-  test("the rosters are the appendix's, in its order", () => {
-    expect(catalogue.crests.at(0)).toEqual({ crest: "ai-gateway", name: "AI Gateway", roster: ["transformer", "traffic-controller", "cursor"] });
-    expect(roster("error-tracking")).toEqual(["error", "panic", "stop", "reaper"]);
-    expect(catalogue.crests.at(-1)).toEqual({ crest: "youtube", name: "Youtube", roster: ["scott-pilgrim", "boombox", "70s-dance", "shocked"] });
+  test("the rosters are the appendix's, frozen, in its order", () => {
+    expect(Object.fromEntries(catalogue.crests.map(({ crest, roster }) => [crest, roster]))).toEqual(appendixRosters);
+    expect(catalogue.crests.map(({ crest }) => crest)).toEqual(Object.keys(appendixRosters));
+    expect(catalogue.crests.find(({ crest }) => crest === "people-ops")).toEqual({ crest: "people-ops", name: "People & Ops", roster: ["heart", "namaste", "coconut"] });
   });
 
   test("each roster mixes rarities: at most one legendary, and at least one common or uncommon", () => {
