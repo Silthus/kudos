@@ -1,8 +1,7 @@
 import type { Feature } from "../../convex/unlocks/feature";
 import type { Quest, WeeklyQuest } from "../../convex/quests/step";
 import type { PerkId } from "../../convex/progression/tree";
-import type { AvatarAnswer, CommandAnswer, CrateAnswer, CrateOpenAnswer, CratePurchaseAnswer, GroupPickAnswer, ItemPurchaseAnswer, LoadoutAnswer, MessageSettingAnswer, PurchaseAnswer, SwapAnswer, VisibilityAnswer } from "../../convex/website/commands";
-import type { Slot } from "../../convex/store/rows";
+import type { AvatarAnswer, CommandAnswer, CrateAnswer, CrateOpenAnswer, CratePurchaseAnswer, GroupPickAnswer, ItemPurchaseAnswer, MessageSettingAnswer, PurchaseAnswer, SwapAnswer, VisibilityAnswer } from "../../convex/website/commands";
 import type { MessageKind, MessagePlace, SettingsAnswer } from "../../convex/website/settings";
 import type { Denial } from "../../convex/website/memberQuery";
 
@@ -32,9 +31,8 @@ export type { Peer } from "../../convex/leaderboard/peer";
 export type { CommandAnswer, ItemPurchaseAnswer, ItemPurchaseRefusal, PurchaseAnswer, PurchaseRefusal, SwapAnswer } from "../../convex/website/commands";
 export type { GroupChoice, MessageKind, MessagePlace, MessageSetting, MySettings } from "../../convex/website/settings";
 export type { Feature } from "../../convex/unlocks/feature";
-export type { Slot } from "../../convex/store/rows";
 export type { GroupQuestCrate, Quest, WeeklyQuest } from "../../convex/quests/step";
-export type { Activity, ActivityEntry, Found, KudosGiven, KudosReceived, LevelUp, Message, MyActivity, MyRecentKudos, MySpotlight, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
+export type { Activity, ActivityEntry, Found, HugGiven, HugReceived, KudosGiven, KudosReceived, LevelUp, Message, MyActivity, MyRecentKudos, MySpotlight, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
 
 export type GroupsBoardRow = GroupsBoardShown["rows"][number];
 
@@ -69,8 +67,6 @@ export type GroupPickReply = GroupPickAnswer | Denial;
 
 export type AvatarReply = AvatarAnswer | Denial;
 
-export type LoadoutReply = LoadoutAnswer | Denial;
-
 export type MySettingsAnswer = SettingsAnswer | Denial;
 
 export type MyQuests = QuestsAnswer | Denial;
@@ -83,7 +79,7 @@ export type Visitor = MyProfile | { kind: "loading" } | { kind: "connecting" } |
 
 export type ShellState = Visitor | { kind: "broken" };
 
-export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer>; buyPerk(purchase: Purchase): Promise<BuyAnswer>; buyItem(purchase: ItemPurchase): Promise<ItemBuyAnswer>; buyCrate(next: number): Promise<CratePurchaseReply>; openCrate(crate: string): Promise<CrateOpenReply>; setBoardVisibility(visible: boolean): Promise<VisibilityReply>; setMessageSetting(kind: MessageKind, place: MessagePlace): Promise<MessageSettingReply>; pickPrimaryGroup(group: string): Promise<GroupPickReply>; setAvatar(hoggie: string | null): Promise<AvatarReply>; swapQuest(quest: WeeklyQuest): Promise<SwapReply>; equip(item: string, slot: Slot): Promise<LoadoutReply>; takeOff(slot: Slot): Promise<LoadoutReply> };
+export type ShellActions = { signIn(returnTo: string): void; signOut(): void; openFeature(feature: Feature): Promise<OpenAnswer>; openQuestCrate(quest: Quest): Promise<OpenAnswer>; buyPerk(purchase: Purchase): Promise<BuyAnswer>; buyItem(purchase: ItemPurchase): Promise<ItemBuyAnswer>; buyCrate(next: number): Promise<CratePurchaseReply>; openCrate(crate: string): Promise<CrateOpenReply>; setBoardVisibility(visible: boolean): Promise<VisibilityReply>; setMessageSetting(kind: MessageKind, place: MessagePlace): Promise<MessageSettingReply>; pickPrimaryGroup(group: string): Promise<GroupPickReply>; setAvatar(hoggie: string | null): Promise<AvatarReply>; swapQuest(quest: WeeklyQuest): Promise<SwapReply> };
 
 const member: MemberProfile = {
   kind: "member",
@@ -117,7 +113,7 @@ const questsFeature = { feature: "quests", name: "Quests", opens: "your weekly q
 
 const skillTreeFeature = { feature: "skillTree", name: "Skill tree", opens: "the tree and your first skill point", level: 5, seen: "9b71d2" } as const;
 
-const coinsFeature = { feature: "coins", name: "Coins and inventory", opens: "your wallet, the store's kudos emoji and your emoji slots", level: 6, seen: "e5a6b7" } as const;
+const coinsFeature = { feature: "coins", name: "Coins and inventory", opens: "your wallet, the store and your kudos emoji", level: 6, seen: "e5a6b7" } as const;
 
 const locked = { state: "locked", readyAt: null, openedAt: null } as const;
 
@@ -174,14 +170,14 @@ const memberWithTheInventory: MemberProfile = {
   ...memberWithCoinsOpened,
   progression: { level: 6, xp: 1010, levelStartsAt: 1000, nextLevelAt: 1500, xpToNextLevel: 490 },
   coins: 236,
-  inventory: inventoryFixtures.twoEquippedOfThree,
+  inventory: inventoryFixtures.threeOwned,
 };
 
 const memberWithCustomEmoji: MemberProfile = { ...memberWithTheInventory, inventory: inventoryFixtures.withCustomEmoji };
 
-const memberWithNothingForSale: MemberProfile = { ...memberWithTheInventory, inventory: inventoryFixtures.slotsRetiredWithNothingForSale };
+const memberWithNothingForSale: MemberProfile = { ...memberWithTheInventory, inventory: inventoryFixtures.nothingForSale };
 
-const memberWithOneEmojiForSale: MemberProfile = { ...memberWithTheInventory, inventory: inventoryFixtures.slotsRetiredWithOneForSale };
+const memberWithOneEmojiForSale: MemberProfile = { ...memberWithTheInventory, inventory: inventoryFixtures.oneForSale };
 
 const memberShortOfCoins: MemberProfile = { ...memberWithTheInventory, coins: 40 };
 
@@ -372,4 +368,4 @@ export function builtShell(name: string | undefined): ShellState {
 
 const fixtureDrop: Drop = { hoggie: "scientist", name: "Scientist", rarity: "uncommon", art: { kind: "hoggie", slug: "scientist" }, copy: 1, isNew: true, crest: null };
 
-export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }), buyPerk: async () => ({ kind: "bought" }), buyItem: async ({ item }) => ({ kind: "bought", item }), buyCrate: async (next) => ({ kind: "bought", crate: `bought:${next}` }), openCrate: async () => ({ kind: "opened", drop: fixtureDrop }), setBoardVisibility: async (visible) => ({ kind: "set", visible }), setMessageSetting: async (_kind, place) => ({ kind: "set", place }), pickPrimaryGroup: async (group) => ({ kind: "picked", group }), setAvatar: async () => ({ kind: "refused" }), swapQuest: async () => ({ kind: "swapped" }), equip: async (item, slot) => ({ kind: "equipped", item, slot }), takeOff: async (slot) => ({ kind: "takenOff", slot }) };
+export const fixtureActions: ShellActions = { signIn() {}, signOut() {}, openFeature: async () => ({ kind: "opened" }), openQuestCrate: async () => ({ kind: "opened" }), buyPerk: async () => ({ kind: "bought" }), buyItem: async ({ item }) => ({ kind: "bought", item }), buyCrate: async (next) => ({ kind: "bought", crate: `bought:${next}` }), openCrate: async () => ({ kind: "opened", drop: fixtureDrop }), setBoardVisibility: async (visible) => ({ kind: "set", visible }), setMessageSetting: async (_kind, place) => ({ kind: "set", place }), pickPrimaryGroup: async (group) => ({ kind: "picked", group }), setAvatar: async () => ({ kind: "refused" }), swapQuest: async () => ({ kind: "swapped" }) };

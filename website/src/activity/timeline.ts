@@ -82,7 +82,7 @@ export function entryIdOf(entry: ActivityEntry): EntryId {
   return entry.kind === "levelUp" ? `levelUp:${entry.at}:${entry.level}` : `${entry.kind}:${entry.key}`;
 }
 
-const knownKinds = new Set<string>(["kudosReceived", "kudosGiven", "levelUp", "found"] satisfies ActivityEntry["kind"][]);
+const knownKinds = new Set<string>(["kudosReceived", "kudosGiven", "levelUp", "found", "hugReceived", "hugGiven"] satisfies ActivityEntry["kind"][]);
 
 function knownOf(entries: ActivityEntry[]) {
   return entries.filter((entry) => knownKinds.has(entry.kind));

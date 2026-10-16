@@ -1,7 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import { everyoneBoardOnFor } from "../leaderboard/flag";
 import { unlockPathShownTo } from "../unlocks/launch";
-import { slotsRetiredFor, storeShownTo } from "../store/visibility";
+import { storeShownTo } from "../store/visibility";
 import { namedFor, scheduled, type ScheduledFeature, type StoreNaming } from "../unlocks/schedule";
 import type { Feature } from "../unlocks/feature";
 import { unlocksOf, type MemberUnlock } from "../unlocks/unlocks";
@@ -46,7 +46,7 @@ export async function featureCardsOf(ctx: QueryCtx, me: VerifiedMember, path: Un
 }
 
 async function storeNamingOf(ctx: QueryCtx, me: VerifiedMember): Promise<StoreNaming> {
-  return { storeShown: await storeShownTo(ctx, me.member), slotsRetired: await slotsRetiredFor(ctx, me.member) };
+  return { storeShown: await storeShownTo(ctx, me.member) };
 }
 
 async function featureCardOf(me: VerifiedMember, unlock: MemberUnlock, naming: StoreNaming): Promise<FeatureCard> {

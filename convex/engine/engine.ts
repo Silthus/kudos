@@ -319,7 +319,7 @@ async function decide(ctx: MutationCtx, row: KudosMessageRow, giver: Member, kud
     awards: await insertAwards(ctx, refOf(row), awards, day, row.spendsAt),
     via: "message",
     kudosEmoji,
-    ...(kudos.loadoutEmoji.length === 0 ? {} : { loadoutEmoji: kudos.loadoutEmoji }),
+    ...(kudos.ownedEmoji.length === 0 ? {} : { ownedEmoji: kudos.ownedEmoji }),
     annotations: row.annotations,
     allowance: { dailyOpening: allowance.opening, dailyLeft: left },
   });

@@ -22,9 +22,8 @@ export function coinsOpenedLineOf(balance: number) {
   return balance === 0 ? "Coins are open. You earn 🪙 when you thank someone and say why." : `Coins are open. You already have ${balance} 🪙.`;
 }
 
-export function inventoryOpenedLineOf(balance: number, kudosEmoji: string, slotsRetired: boolean) {
-  const starterIs = slotsRetired ? "is one of your kudos emoji" : "is in your first kudos emoji slot";
-  const starter = `🦔 ${starterIs}: use it in a kudos like :${kudosEmoji}:.`;
+export function inventoryOpenedLineOf(balance: number, kudosEmoji: string) {
+  const starter = `🦔 is one of your kudos emoji: use it in a kudos like :${kudosEmoji}:.`;
   return balance === 0 ? `Coins and inventory are open. ${starter}` : `Coins and inventory are open. You already have ${balance} 🪙, and ${starter}`;
 }
 

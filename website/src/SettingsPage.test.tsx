@@ -2,7 +2,7 @@ import { act, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { commandsOf } from "./palette/commands";
-import { fixedSettings, settingsFixtures } from "./settingsFixtures";
+import { fixedSettings, hugsRecap, settingsFixtures } from "./settingsFixtures";
 import type { SettingsShown } from "./settingsRead";
 import { shellFixtures, type GroupPickReply, type MessagePlace, type MessageSettingReply, type MySettings, type ShellActions, type ShellState, type VisibilityReply } from "./shell";
 import { renderApp } from "./test/renderApp";
@@ -122,6 +122,16 @@ describe("Messages: where each message reaches the member", () => {
     expect(within(messages).getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual(["After-kudos reply", "Level ups", "New features", "Public celebrations"]);
     expect(within(messages).getByText("When you reach a level, with what it opens for you.")).toBeInTheDocument();
     expect(within(messages).getByText(/In the channel means a message only you see, beside the kudos that caused it/)).toBeInTheDocument();
+  });
+
+  it("#580: draws a shortcode in a description as its emoji, and a custom one as a quiet chip", () => {
+    const recapWithBoth = { ...hugsRecap, description: hugsRecap.description.replace(":hedgehug:", ":hugging_face: and :hedgehug:").replace("Monday morning", "Monday at 09:30:00") };
+    showSettings({ ...settingsFixtures.everything, messages: [recapWithBoth] } as MySettings);
+
+    const recap = within(section("Messages")).getByRole("group", { name: "Weekly hugs recap" });
+    expect(recap).toHaveTextContent("Last week's hugs, the 🤗 and :hedgehug: you and your teammates reacted, with their XP, on Monday at 09:30:00.");
+    expect(within(recap).getByText(":hedgehug:")).toHaveAttribute("data-custom-emoji");
+    expect(recap.querySelectorAll("[data-custom-emoji]")).toHaveLength(1);
   });
 
   it("offers a kind with three places as one choice, checked from the read", () => {
