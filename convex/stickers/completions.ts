@@ -22,15 +22,11 @@ export const albumCompletionValidator = v.object({
   told: v.boolean(),
 });
 
-export const albumCheckValidator = v.object({ member: v.id("members"), at: v.number() });
+export const albumCheckValidator = v.object({ member: v.id("members"), at: v.number(), finished: v.boolean() });
 
 const checkValidator = v.object({ workspace: v.string(), member: v.id("members"), message: messageRefValidator, award: awardIdValidator, at: v.number() });
 
-const continuationValidator = v.object({ after: v.object({ name: v.string(), group: v.id("userGroups") }), told: v.boolean() });
-
 type Check = Infer<typeof checkValidator>;
-
-type Continuation = Infer<typeof continuationValidator>;
 
 export type NewSticker = { member: MemberId; award: AwardId };
 
@@ -43,16 +39,15 @@ export async function checkAlbumsAfter(ctx: MutationCtx, { workspace, message, a
 }
 
 export const checkAlbums = internalMutation({
-  args: { check: checkValidator, continuing: v.optional(continuationValidator) },
-  handler: async (ctx, { check, continuing }) => {
+  args: { check: checkValidator },
+  handler: async (ctx, { check }) => {
     if (!(await teamSpiritAppliesTo(ctx, check.member))) return;
-    const told = continuing?.told ?? (await checkedBefore(ctx, check));
-    const due = await filledUnrecordedAlbums(ctx, check, continuing);
+    const due = await filledUnrecordedAlbums(ctx, check);
     const recorded = due.slice(0, completionsPerMutation);
-    if (recorded.length === 0) return;
-    await recordCompletions(ctx, check, recorded, told);
-    const last = recorded.at(-1)!;
-    if (due.length > recorded.length) await ctx.scheduler.runAfter(0, internal.stickers.completions.checkAlbums, { check, continuing: { after: { name: last.name, group: last.group }, told } });
+    const finished = recorded.length === due.length;
+    const told = await toldAfterTheFirstCheck(ctx, check, finished);
+    if (recorded.length > 0) await recordCompletions(ctx, check, recorded, told);
+    if (!finished) await ctx.scheduler.runAfter(0, internal.stickers.completions.checkAlbums, { check });
   },
 });
 
@@ -64,26 +59,23 @@ export async function completionsOf(ctx: QueryCtx, member: MemberId): Promise<Ma
   return new Map(completions.map(({ group, at }) => [group, { completedAt: at }]));
 }
 
-async function checkedBefore(ctx: MutationCtx, { member, at }: Check): Promise<boolean> {
-  const earlier = await ctx.db
+async function toldAfterTheFirstCheck(ctx: MutationCtx, { member, at }: Check, finished: boolean): Promise<boolean> {
+  const first = await ctx.db
     .query("albumChecks")
     .withIndex("by_member", (q) => q.eq("member", member))
     .unique();
-  if (earlier === null) await ctx.db.insert("albumChecks", { member, at });
-  return earlier !== null;
+  if (first === null) await ctx.db.insert("albumChecks", { member, at, finished });
+  else if (!first.finished && finished) await ctx.db.patch(first._id, { finished });
+  return first?.finished === true;
 }
 
-async function filledUnrecordedAlbums(ctx: QueryCtx, { workspace, member }: Check, continuing: Continuation | undefined): Promise<Album[]> {
+async function filledUnrecordedAlbums(ctx: QueryCtx, { workspace, member }: Check): Promise<Album[]> {
   const albums = await albumsOf(ctx, { member, workspace }, await peopleIn(ctx, workspace), await stickersNewestFirst(ctx, member));
   const recorded = await completionsOf(ctx, member);
-  const after = continuing?.after;
-  return albums
-    .filter((album) => isFilled(album) && !recorded.has(album.group))
-    .toSorted(byNameThenGroup)
-    .filter((album) => after === undefined || byNameThenGroup(album, after) > 0);
+  return albums.filter((album) => isFilled(album) && !recorded.has(album.group)).toSorted(byNameThenGroup);
 }
 
-function byNameThenGroup(first: { name: string; group: GroupId }, second: { name: string; group: GroupId }) {
+function byNameThenGroup(first: Album, second: Album) {
   return first.name.localeCompare(second.name) || first.group.localeCompare(second.group);
 }
 

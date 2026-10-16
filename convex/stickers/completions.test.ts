@@ -67,6 +67,7 @@ async function joined(...people: Person[]) {
   for (const person of people) {
     await memberChanged(t, "team_join", { id: person.user, real_name: person.name });
     await settle(t);
+    await memberOf(person);
   }
 }
 
@@ -99,6 +100,8 @@ async function thanks(giver: Person, ...recipients: Person[]) {
   return at;
 }
 
+const memberIds = new Map<string, MemberId>();
+
 async function memberOf(person: Person): Promise<MemberId> {
   const row = await t.run((ctx) =>
     ctx.db
@@ -107,6 +110,7 @@ async function memberOf(person: Person): Promise<MemberId> {
       .unique(),
   );
   if (row === null) throw new Error(`${person.user} is not in the directory`);
+  memberIds.set(person.user, row._id);
   return row._id;
 }
 
@@ -193,6 +197,10 @@ async function cancelPending(names: string[]): Promise<HeldJob[]> {
   });
 }
 
+function isCheckOf(args: Record<string, unknown>, person: Person) {
+  return (args.check as { member: string }).member === memberIds.get(person.user);
+}
+
 async function runs(job: HeldJob) {
   await t.mutation(makeFunctionReference<"mutation">(job.name), job.args);
 }
@@ -223,6 +231,48 @@ describe("SB22 SB23: a member's first check records every album already complete
       albumCompleted(2, false),
       albumCompleted(2, true),
     ]);
+  });
+});
+
+describe("SB19 SB22: a first check that pages records every album already complete, silently", { timeout: 60_000 }, () => {
+  test("a later check running between the first check's pages records the rest untold too", async () => {
+    await teamSpiritShipped(false);
+    await joined(alice, bob, carol, dan);
+    await thanks(alice, bob);
+    await seededGroups(t, [bob], { groups: 30, size: 1 });
+    await teamSpirit(true);
+
+    await given(alice, carol);
+    const [firstCheck] = await heldBack(checkJob).then((jobs) => jobs.filter(({ args }) => isCheckOf(args, alice)));
+    await given(dan, alice);
+    const [laterCheck] = await heldBack(checkJob).then((jobs) => jobs.filter(({ args }) => isCheckOf(args, alice)));
+    await runs(firstCheck!);
+    const [nextPage] = await heldBack(checkJob);
+    await runs(laterCheck!);
+    await runs(nextPage!);
+    await settle(t);
+
+    expect(await albumsCompletedBy(alice)).toEqual(Array.from({ length: 30 }, () => albumCompleted(1, false)));
+  });
+
+  test("a group renamed between the first check's pages is still recorded, untold", async () => {
+    await teamSpiritShipped(false);
+    await joined(alice, bob, carol);
+    await thanks(alice, bob);
+    await seededGroups(t, [bob], { groups: 26, size: 1 });
+    await teamSpirit(true);
+
+    await given(alice, carol);
+    const [firstCheck] = await heldBack(checkJob).then((jobs) => jobs.filter(({ args }) => isCheckOf(args, alice)));
+    await runs(firstCheck!);
+    const [nextPage] = await heldBack(checkJob);
+    await groupChanged("S_GROUP25", "Aardvarks", [bob]);
+    await runs(nextPage!);
+    await settle(t);
+
+    const reader = await withTheBookOpen(alice);
+    expect((await albumsOf(reader)).filter(({ completedAt }) => completedAt === null).map(({ name }) => name)).toEqual([]);
+    expect(await albumsCompletedBy(alice)).toEqual(Array.from({ length: 26 }, () => albumCompleted(1, false)));
   });
 });
 
