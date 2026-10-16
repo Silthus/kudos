@@ -1,7 +1,8 @@
 import type { QueryCtx } from "../_generated/server";
 import { everyoneBoardOnFor } from "../leaderboard/flag";
 import { unlockPathShownTo } from "../unlocks/launch";
-import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
+import { slotsRetiredFor, storeShownTo } from "../store/visibility";
+import { namedFor, scheduled, type ScheduledFeature, type StoreNaming } from "../unlocks/schedule";
 import type { Feature } from "../unlocks/feature";
 import { unlocksOf, type MemberUnlock } from "../unlocks/unlocks";
 import type { VerifiedMember } from "./memberQuery";
@@ -38,12 +39,17 @@ export async function openFeaturesOf(ctx: QueryCtx, me: VerifiedMember): Promise
   return (await leaderboardStateOf(ctx, me, path)).kind === "open" ? ["leaderboard"] : [];
 }
 
-export async function featureCardsOf(me: VerifiedMember, path: UnlockPath): Promise<FeatureCard[] | null> {
+export async function featureCardsOf(ctx: QueryCtx, me: VerifiedMember, path: UnlockPath): Promise<FeatureCard[] | null> {
   if (path === null) return null;
-  return Promise.all(path.map((unlock) => featureCardOf(me, unlock)));
+  const naming = await storeNamingOf(ctx, me);
+  return Promise.all(path.map((unlock) => featureCardOf(me, unlock, naming)));
 }
 
-async function featureCardOf(me: VerifiedMember, unlock: MemberUnlock): Promise<FeatureCard> {
-  const { name, opens, level } = scheduled(unlock.feature);
+async function storeNamingOf(ctx: QueryCtx, me: VerifiedMember): Promise<StoreNaming> {
+  return { storeShown: await storeShownTo(ctx, me.member), slotsRetired: await slotsRetiredFor(ctx, me.member) };
+}
+
+async function featureCardOf(me: VerifiedMember, unlock: MemberUnlock, naming: StoreNaming): Promise<FeatureCard> {
+  const { name, opens, level } = namedFor(scheduled(unlock.feature), naming);
   return { ...unlock, name, opens, level, seen: await seenKeyOf(me.member, `feature:${unlock.feature}`) };
 }
