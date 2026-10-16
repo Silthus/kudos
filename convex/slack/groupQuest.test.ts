@@ -25,6 +25,8 @@ const groupQuestLine = "section: Ants quest: Thank someone and say why. · 0 of 
 const groupQuestDoneLine = "section: Ants quest: Thank someone and say why. · 3 of 3 took part · ✅";
 const saysWhy = "thanks for untangling the release notes today";
 const earlierGroupCrateLine = "section: *Week of Oct 19:* ✅ Ants quest: Thank someone and say why.";
+const siteUrl = "https://kudos-site.test";
+const websiteOpen = ["website"];
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -34,6 +36,8 @@ beforeEach(() => {
   vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
+  vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+  vi.stubEnv("SITE_URL", siteUrl);
   slack = new FakeSlack();
   postHog = postHogDeciding();
   vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
@@ -135,8 +139,38 @@ describe("GB23 P85: group crates waiting from earlier weeks share App Home's fiv
   });
 });
 
-async function antsOpenedQuests(): Promise<Backend> {
-  const t = await testBackendServing(postHog, ...everyFlag.map(onForEveryone));
+describe("each crate's Open in Slack links to the page where it opens while the website is open", { timeout: 60_000 }, () => {
+  test("this week's group crate links to the group crate's card on the Quests page and names that page to screen readers", async () => {
+    const t = await antsOpenedQuests(...websiteOpen);
+    await sweepAt(t, lastTuesday);
+    await sweepAt(t, mondaySweep);
+    vi.setSystemTime(tuesday);
+    for (const [giver, recipient] of [["U_ANN", "U_AL"], ["U_AL", "U_AMY"], ["U_AMY", "U_ANN"]] as const) await giveKudos(t, giver, recipient, saysWhy);
+
+    await openHome(t, "U_ANN");
+
+    expect(publishedHome(slack, "U_ANN")).toContain(`${groupQuestDoneLine} [link: Open ${siteUrl}/quests?crate=group]`);
+    expect(accessoryBeside("U_ANN", "Ants quest:")).toMatchObject({ url: `${siteUrl}/quests?crate=group`, action_id: expect.stringMatching(/^website-link:group:.+:2026-10-19$/), accessibility_label: "Open on HedgeHug's Quests page" });
+  });
+
+  test("an earlier week's group crate waiting to open links to the Quests page", async () => {
+    const t = await antsOpenedQuests(...websiteOpen);
+    await sweepAt(t, lastTuesday);
+    await sweepAt(t, mondaySweep);
+    vi.setSystemTime(tuesday);
+    for (const [giver, recipient] of [["U_ANN", "U_AL"], ["U_AL", "U_AMY"], ["U_AMY", "U_ANN"]] as const) await giveKudos(t, giver, recipient, saysWhy);
+
+    vi.setSystemTime(tuesday + 7 * 24 * 60 * 60 * 1000);
+    await openHome(t, "U_ANN");
+
+    expect(publishedHome(slack, "U_ANN")).toContain(`${earlierGroupCrateLine} [link: Open ${siteUrl}/quests]`);
+    expect(accessoryBeside("U_ANN", "*Week of Oct 19:* ✅ Ants quest:")).toMatchObject({ url: `${siteUrl}/quests`, action_id: expect.stringMatching(/^website-link:group:.+:2026-10-19$/), accessibility_label: "Open on HedgeHug's Quests page" });
+  });
+});
+
+async function antsOpenedQuests(...alsoOn: string[]): Promise<Backend> {
+  const t = await testBackendServing(postHog, ...[...everyFlag, ...alsoOn].map(onForEveryone));
+  if (alsoOn.includes("website")) await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await unlocksShippedBeforeAnyoneJoined(t);
   for (const user of ants) slack.withMember(user, { profile: { display_name: user.slice(2) } });
   slack.withUserGroup("S_ANTS", { name: "Ants", users: ants });
@@ -177,6 +211,10 @@ async function giveKudos(t: Backend, giver: string, recipient: string, words: st
   const blocks = [section(mention(recipient), text(` ${words} `), emoji("taco"))];
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${Math.floor(Date.now() / 1000) + sentMessages}.000100` })));
   await settleInTimeOrder(t);
+}
+
+function accessoryBeside(user: string, text: string) {
+  return publishedHomeBlocks(slack, user).find((block) => block.text?.text.startsWith(text))?.accessory;
 }
 
 function groupQuestCrateIn(blocks: Block[]) {

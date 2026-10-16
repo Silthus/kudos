@@ -1,5 +1,5 @@
 import { v, type Infer } from "convex/values";
-import { weeklyQuestValidator, type Quest, type WeeklyQuest } from "../quests/step";
+import { weeklyQuestValidator, type GroupQuestCrate, type Quest, type WeeklyQuest } from "../quests/step";
 import type { WeekKey } from "../quests/week";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import type { pageValidator } from "./link";
@@ -40,6 +40,7 @@ const pathOf: Record<Page["page"], string> = {
   skillTree: "/skills",
   book: "/book",
   bookEarned: "/book/earned",
+  bookCollection: "/book/collection",
 };
 
 const featurePages: Partial<Record<Feature, Page>> = {
@@ -81,11 +82,12 @@ export function readyCratePageOf(feature: Feature): Page {
 export function questCratePageOf(quest: Quest): Page {
   if (quest.kind === "journey") return { page: "home", crate: "journey" };
   if (quest.kind === "weekly") return { page: "quests", quest: quest.slot };
-  return { page: "quests" };
+  return { page: "quests", crate: "group" };
 }
 
-export function earlierWeekCratePageOf({ week, slot }: WeeklyQuest): Page {
-  return { page: "quests", crate: { kind: "weekly", week, slot } };
+export function earlierWeekCratePageOf(quest: WeeklyQuest | GroupQuestCrate): Page {
+  if (quest.kind === "group") return { page: "quests" };
+  return { page: "quests", crate: { kind: "weekly", week: quest.week, slot: quest.slot } };
 }
 
 export function weeklyCratePageOf(quest: WeeklyQuest, thisWeek: WeekKey): Page {
