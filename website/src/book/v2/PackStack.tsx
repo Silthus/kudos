@@ -25,7 +25,7 @@ export function PackStack({ packs, onPick }: PackStackProps) {
           const style = spread ? { "--dx": `${offset * (width + 24)}px`, "--dy": "0px", "--r": "0deg", zIndex: at } : { "--dx": `${offset * 10}px`, "--dy": `${-at * 7}px`, "--r": `${offset * 3}deg`, zIndex: at };
           return (
             <div key={pack.n} className="pk-stack-item" style={style as CSSProperties}>
-              <FoilPack pack={pack} width={width} still={!spread} label={spread ? `Open pack ${pack.n}` : undefined} onTap={() => onPick(at)} />
+              <FoilPack pack={pack} width={width} still={!spread} label={spread ? `Open pack ${pack.n}` : `Fan out the ${packs.length} packs`} onTap={() => (spread ? onPick(at) : setSpread(true))} />
             </div>
           );
         })}

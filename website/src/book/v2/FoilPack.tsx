@@ -25,6 +25,9 @@ export function FoilPack({ pack, width, autoOpen = false, still = false, onOpene
   useEffect(() => {
     if (phase === "reveal") onOpened?.();
   }, [phase, onOpened]);
+  useEffect(() => {
+    if (autoOpen) setPhase((at) => (at === "sealed" ? (reduced ? "reveal" : "tearing") : at));
+  }, [autoOpen, reduced]);
   const open = () => {
     if (phase !== "sealed") return;
     if (onTap !== undefined) return onTap();
@@ -34,7 +37,7 @@ export function FoilPack({ pack, width, autoOpen = false, still = false, onOpene
   return (
     <div className="pk-scene" data-phase={phase} data-rarity={pack.drop.rarity} data-still={still || undefined} style={style}>
       <span className="pk-rays" aria-hidden="true" />
-      <button type="button" aria-label={label ?? `Tear pack ${pack.n} open`} disabled={phase !== "sealed" || still} onClick={open} className="rounded-2xl outline-none focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[var(--band-lemon)] disabled:cursor-default">
+      <button type="button" aria-label={label ?? `Tear pack ${pack.n} open`} disabled={phase !== "sealed"} onClick={open} className="rounded-2xl outline-none focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-[var(--band-lemon)] disabled:cursor-default">
         <div className="pk-pack">
           <span className="pk-edge pk-top" aria-hidden="true" />
           <div className="pk-card" aria-hidden={phase !== "reveal"}>
