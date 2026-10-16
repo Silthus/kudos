@@ -123,6 +123,7 @@ let teamPagesFlagged: FlagDefinition[] = [];
 let namedIds = new Map<string, string>();
 let steps = 0;
 let linkAnswers: unknown[] = [];
+let keyOf: (person: Person) => string = () => "an unknown teammate";
 
 beforeEach(() => {
   teamPagesRemoved.removed = false;
@@ -164,6 +165,8 @@ describe("CV28: team pages are dark where team-pages is off, show only to the me
     const walk = await walkIn(await everyoneInTheWorkspace(flag, { turnOff }));
 
     expect(walk.seen).toEqual(withoutTeamPages.seen);
+    expect(leftAfterRemoving(withoutTeamPages.deliveryJobs, walk.deliveryJobs)).toEqual([]);
+    expect(leftAfterRemoving(walk.deliveryJobs, withoutTeamPages.deliveryJobs).every(({ name }) => name.startsWith("analytics/drain:"))).toBe(true);
     expect(JSON.stringify(walk.seen.answers)).not.toMatch(/"teams"|"companyProfile"|"admin"|Robert|Pat Quill/);
     expect(walk.links).toEqual([
       { by: "admin", member: "<member U_CAROL>", profile: null },
@@ -182,23 +185,24 @@ describe("CV28: team pages are dark where team-pages is off, show only to the me
     expect(answers.U_ALICE!.collection).not.toHaveProperty("albums");
     expect(answers.U_ALICE!.collection).not.toHaveProperty("crests");
     expect(teamsOn(answers.U_ALICE!.collection)).toEqual([
-      { team: "hedgerow", mine: true, people: [bob.name] },
+      { team: "hedgerow", mine: true, people: [carol.name] },
       { team: "lantern", mine: false, people: [dana.name] },
     ]);
     expect(teamsOn(answers.U_DANA!.collection)).toEqual([
       { team: "lantern", mine: true, people: [] },
-      { team: "hedgerow", mine: false, people: [alice.name, bob.name] },
+      { team: "hedgerow", mine: false, people: [alice.name, carol.name] },
     ]);
-    expect(answers.U_BOB!.profile).toMatchObject({ face: { kind: "company-profile", image: expect.stringContaining("robert") } });
-    expect(answers.U_CAROL!.profile).toMatchObject({ face: { kind: "initials" } });
+    expect(answers.U_BOB!.profile).toMatchObject({ face: { kind: "initials" } });
+    expect(answers.U_CAROL!.profile).toMatchObject({ face: { kind: "company-profile", image: expect.stringContaining("carol") } });
     expect(answers.U_DANA!.profile).toMatchObject({ face: { kind: "company-profile", image: expect.stringContaining("pat") } });
-    expect(answers.U_BOB!.settings).toMatchObject({ companyProfile: { by: "self" } });
+    expect(answers.U_BOB!.settings).toMatchObject({ companyProfile: { mine: null } });
+    expect(walk.links).toEqual([{ by: "admin", member: "<member U_DANA>", profile: patProfile.id }]);
     expect(answers.U_ALICE!.settings).toHaveProperty("admin");
     expect(answers.U_BOB!.settings).not.toHaveProperty("admin");
-    expect(walk.linkAnswers).toEqual([...Array(4).fill({ kind: "linked" }), { kind: "refused", reason: "unknown" }]);
+    expect(walk.linkAnswers).toEqual(Array(5).fill({ kind: "linked" }));
   });
 
-  test("with team-pages on for one member's email only, only that member's answers change, and only that member's links are written", async () => {
+  test("with team-pages on for one member's email only, only that member's answers change, and only that member's links are written and cleared", async () => {
     const off = await walkIn(await everyoneInTheWorkspace([offForEveryone(teamPages)], { linksWhile: [offForEveryone(teamPages)] }));
     freshFakes();
 
@@ -207,11 +211,8 @@ describe("CV28: team pages are dark where team-pages is off, show only to the me
     expect(onForAlice.seen.answers.U_ALICE).not.toEqual(off.seen.answers.U_ALICE);
     expect(teamsOn(onForAlice.seen.answers.U_ALICE!.collection).map(({ team }) => team)).toEqual(["hedgerow", "lantern"]);
     expect(withoutTheAnswersOf(alice, onForAlice.seen)).toEqual(withoutTheAnswersOf(alice, off.seen));
-    expect(onForAlice.linkAnswers).toEqual([{ kind: "refused", reason: null }, { kind: "linked" }, { kind: "linked" }, { kind: "refused", reason: null }, { kind: "refused", reason: "unknown" }]);
-    expect(onForAlice.links).toEqual([
-      { by: "admin", member: "<member U_CAROL>", profile: null },
-      { by: "admin", member: "<member U_DANA>", profile: patProfile.id },
-    ]);
+    expect(onForAlice.linkAnswers).toEqual([{ kind: "refused", reason: null }, { kind: "linked" }, { kind: "linked" }, { kind: "refused", reason: null }, { kind: "linked" }]);
+    expect(onForAlice.links).toEqual([{ by: "admin", member: "<member U_DANA>", profile: patProfile.id }]);
   });
 
   test("team-pages's exposure goes only from the two link commands, never from App Home, a kudos, a Slack click naming a link command or a website read", async () => {
@@ -253,6 +254,7 @@ async function everyoneInTheWorkspace(flag: FlagDefinition[], { linksWhile = [on
   spotlightPositionsFromTheStart();
   steps = 0;
   linkAnswers = [];
+  keyOf = () => "an unknown teammate";
   namedIds = new Map();
   teamPagesFlagged = flag;
   t = await flagsFromPostHog(testBackend(), postHog, ...everyOtherFlag.map(onForEveryone), onForEveryone("website"), ...(linksWhile ?? flag));
@@ -283,19 +285,19 @@ async function linksWritten() {
   nextStep();
   const asBob = await signedIn(bob);
   const asAlice = await signedIn(alice);
-  const keyOf = await teammateKeysFor(asAlice);
+  keyOf = await teammateKeysFor(asAlice);
   await linking(() => asBob.mutation(api.website.commands.linkMyCompanyProfile, { profile: robertProfile.id }));
   await linking(() => asAlice.mutation(api.website.commands.linkCompanyProfile, { member: keyOf(carol), profile: "none" }));
   await linking(() => asAlice.mutation(api.website.commands.linkCompanyProfile, { member: keyOf(dana), profile: patProfile.id }));
   await settleInTimeOrder(t);
 }
 
-async function linksAgainInTheWalk() {
+async function linksClearedInTheWalk() {
   nextStep();
   const asBob = await signedIn(bob);
   const asAlice = await signedIn(alice);
-  await linking(() => asBob.mutation(api.website.commands.linkMyCompanyProfile, { profile: robertProfile.id }));
-  await linking(() => asAlice.mutation(api.website.commands.linkCompanyProfile, { member: "a key from an earlier read", profile: null }));
+  await linking(() => asBob.mutation(api.website.commands.linkMyCompanyProfile, { profile: null }));
+  await linking(() => asAlice.mutation(api.website.commands.linkCompanyProfile, { member: keyOf(carol), profile: null }));
   await settleInTimeOrder(t);
 }
 
@@ -321,7 +323,7 @@ async function walkIn(backend: Backend) {
   for (const { user } of members) await openHome(user);
   await kudosOfTheWalk();
   await clickInSlack(bob.user, { type: "linkMyCompanyProfile", profile: null });
-  await linksAgainInTheWalk();
+  await linksClearedInTheWalk();
   for (const { user } of members) await openHome(user);
   const answers: Record<string, Awaited<ReturnType<typeof onTheWebsite>>> = {};
   for (const member of members) answers[member.user] = await onTheWebsite(member);
@@ -330,11 +332,12 @@ async function walkIn(backend: Backend) {
     answers,
     slackCallsTo: Object.fromEntries(members.map(({ user }) => [user, slackCallsAbout(user)])),
     slackCalls: slack.calls.map((call) => JSON.stringify(call)).sort(),
-    productEvents: orderFree(withStableIds(postHog.productEvents().filter(({ properties }) => properties.$feature_flag !== teamPages).map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
+    postHogEvents: orderFree(withStableIds(postHog.events().filter(({ properties }) => properties.$feature_flag !== teamPages).map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsWrittenApartFromTheCompanyRows(),
-    jobs: await jobsInContentOrder(),
+    jobs: await jobsInContentOrder({ delivering: false }),
   };
-  return { seen, links: await storedLinks(), linkAnswers };
+  const deliveryJobs = (await jobsInContentOrder({ delivering: true })).map(({ name, state }) => ({ name, state }));
+  return { seen, deliveryJobs, links: await storedLinks(), linkAnswers };
 }
 
 async function kudosOfTheWalk() {
@@ -385,8 +388,12 @@ function withoutTheAnswersOf(person: Person, seen: Seen) {
   const { [person.user]: _answers, ...answers } = seen.answers;
   const { [person.user]: _home, ...homes } = seen.homes;
   const { [person.user]: _calls, ...slackCallsTo } = seen.slackCallsTo;
-  const { slackCalls: _slackCalls, ...rest } = seen;
-  return { ...rest, answers, homes, slackCallsTo };
+  const slackCalls = seen.slackCalls.filter((call) => !addresses(person, JSON.parse(call) as { args?: Record<string, unknown> }));
+  return { ...seen, answers, homes, slackCallsTo, slackCalls };
+}
+
+function addresses(person: Person, { args = {} }: { args?: Record<string, unknown> }) {
+  return [args.user_id, args.user, args.channel].includes(person.user);
 }
 
 async function signedIn(person: Person) {
@@ -444,10 +451,19 @@ async function rowsWrittenApartFromTheCompanyRows() {
   return withStableIds(inContentOrder);
 }
 
-async function jobsInContentOrder() {
+async function jobsInContentOrder({ delivering }: { delivering: boolean }) {
   const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
-  const jobs = scheduled.filter(({ name }) => !exposureDelivery.some((left) => name.startsWith(left))).map(({ name, args, scheduledTime, state }) => ({ name, args, scheduledTime, state: state.kind }));
+  const jobs = scheduled.filter(({ name }) => delivering === exposureDelivery.some((left) => name.startsWith(left))).map(({ name, args, scheduledTime, state }) => ({ name, args, scheduledTime, state: state.kind }));
   return withStableIds(jobs.toSorted((a, b) => contentOf(a).localeCompare(contentOf(b))));
+}
+
+function leftAfterRemoving<T>(rows: T[], removed: T[]): T[] {
+  const left = rows.map((row) => JSON.stringify(row));
+  for (const row of removed.map((each) => JSON.stringify(each))) {
+    const at = left.indexOf(row);
+    if (at !== -1) left.splice(at, 1);
+  }
+  return left.map((row) => JSON.parse(row) as T);
 }
 
 function contentOf(row: Record<string, unknown>) {
