@@ -162,6 +162,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  convex-test@0.0.61: 18da066abba87228701a8a8363f9017f697f57dab9766663f891d5c588081fae
+
 importers:
 
   .:
@@ -193,7 +196,7 @@ importers:
         version: 26.6.5
       convex-test:
         specifier: ^0.0.61
-        version: 0.0.61(convex@1.46.0(react@19.3.0))
+        version: 0.0.61(patch_hash=18da066abba87228701a8a8363f9017f697f57dab9766663f891d5c588081fae)(convex@1.46.0(react@19.3.0))
       jose:
         specifier: ^6.2.12
         version: 6.2.12
@@ -2320,7 +2323,7 @@ snapshots:
 
   clsx@2.1.1: {}
 
-  convex-test@0.0.61(convex@1.46.0(react@19.3.0)):
+  convex-test@0.0.61(patch_hash=18da066abba87228701a8a8363f9017f697f57dab9766663f891d5c588081fae)(convex@1.46.0(react@19.3.0)):
     dependencies:
       convex: 1.46.0(react@19.3.0)
 
