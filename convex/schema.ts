@@ -24,7 +24,7 @@ import { purchaseOutcomeValidator } from "./progression/purchases";
 import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
-import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieTallyValidator } from "./hoggies/records";
+import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator } from "./hoggies/records";
 import { stickerBackfillValidator, stickerValidator } from "./stickers/records";
 import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
@@ -414,6 +414,8 @@ export default defineSchema({
   hoggieTallies: defineTable(hoggieTallyValidator).index("by_member_hoggie", ["member", "hoggie"]),
 
   dropTallies: defineTable(dropTallyValidator).index("by_member", ["member"]),
+
+  hoggieAvatars: defineTable(hoggieAvatarValidator).index("by_member", ["member"]),
 
   stickers: defineTable(stickerValidator).index("by_member_person", ["member", "person"]).index("by_member_firstAt", ["member", "firstAt"]),
 

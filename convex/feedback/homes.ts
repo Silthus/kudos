@@ -4,6 +4,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { bookFactsOf, type AchievementFacts } from "../achievements/achievements";
 import { achievementsApplyIn, achievementsShownTo } from "../achievements/flag";
 import { groupModeShownTo, type GroupModeFacts } from "../groups/groupMode";
+import { avatarChoiceOf, type AvatarChoice } from "../hoggies/avatar";
 import { crateStoreOf, waitingCratesOf, type CrateStore } from "../hoggies/boughtCrates";
 import { hoggiesOf, type HoggiesHome } from "../hoggies/collection";
 import { crateStoreShownTo, crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
@@ -70,7 +71,7 @@ export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
 
 export type CrateStoreShown = CrateStore & { short: number | null };
 
-export type HoggiesShown = HoggiesHome & { crateStore: CrateStoreShown | null };
+export type HoggiesShown = HoggiesHome & { crateStore: CrateStoreShown | null; avatar: AvatarChoice | null };
 
 export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoints: number | null; skillTreeTab: boolean; coins: number | null };
 
@@ -250,7 +251,7 @@ function namedForStore({ ready, next }: UnlocksHome, storeShown: boolean): Unloc
 async function hoggiesInTheBookOf(ctx: QueryCtx, member: MemberId, { book, coins }: Slices, refused: HomeRefusal | null): Promise<HoggiesShown | null> {
   if (!book || !(await hoggiesShownTo(ctx, member))) return null;
   const hoggies = await hoggiesOf(ctx, member, { crests: await crestsShownTo(ctx, member) });
-  return { ...hoggies, crateStore: coins && (await crateStoreShownTo(ctx, member)) ? await crateStoreToldTo(ctx, member, refused) : null };
+  return { ...hoggies, crateStore: coins && (await crateStoreShownTo(ctx, member)) ? await crateStoreToldTo(ctx, member, refused) : null, avatar: await avatarChoiceOf(ctx, member) };
 }
 
 async function crateStoreToldTo(ctx: QueryCtx, member: MemberId, refused: HomeRefusal | null): Promise<CrateStoreShown | null> {
