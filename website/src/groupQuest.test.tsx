@@ -171,6 +171,7 @@ describe("WS344: the home's Quests this week has a row for the group quest", () 
     showHome(questsFixtures.weekWithTheGroupQuestClaimed);
     const row = within(questsPanel()).getByRole("link", { name: /Ants quest:/ }).closest("li")!;
     expect(within(row).getByText("Claimed")).toBeInTheDocument();
+    expect(within(row).getByText("You took part")).toBeInTheDocument();
   });
 });
 

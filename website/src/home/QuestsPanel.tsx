@@ -73,7 +73,7 @@ function GroupRow({ quest }: { quest: GroupQuestCard }) {
           <Claimed />
         </span>
       )}
-      {you && state !== "opened" && (
+      {you && (
         <span className="self-start">
           <QuestTag>You took part</QuestTag>
         </span>
