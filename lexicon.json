@@ -193,7 +193,7 @@
     },
     {
       "name": "sticker book",
-      "definition": "A member's private album of the people they have thanked and the people who have thanked them, one sticker each, with an album for every group to complete: an album is complete once the member has thanked or been thanked by every other current member of the group, and it stays complete."
+      "definition": "The part of the Book's collection that holds a member's stickers, one of each person they thanked or who thanked them, private to them, with an album for every group: an album completes at the owner's next new sticker once they hold every other current member of the group, and it stays complete."
     },
     {
       "name": "sticker",
@@ -431,8 +431,8 @@
       "definition": "A member's once-a-week replacement of one unfinished weekly quest with a feasible quest not in that week's draw, stored for good with the replaced quest, the new quest and the facts that made it feasible (P81, the spec's reroll)."
     },
     {
-      "name": "Book",
-      "definition": "The feature that opens at level 4, where a member sees their achievement ladders and the tiers they earned, each with its date; it opens achievements, and the sticker book with its albums once that ships."
+      "name": "book",
+      "definition": "The feature that opens at level 4, where a member sees their achievement ladders and the tiers they earned, each with its date, and their collection: the hoggies and team crests they found in crates and the stickers of the people they thanked or who thanked them."
     },
     {
       "name": "qualifying recognition",
@@ -636,6 +636,10 @@
     {
       "name": "Slack open",
       "definition": "App Home's Open for a crate: the Slack command that opens it, whose rows and events are the measure a website open is held to (D17)."
+    },
+    {
+      "name": "group album",
+      "definition": "One counting group's people in a member's sticker book: the group's current members other than the owner, each held once the owner has their sticker, counted as held of total. It is collected by thanking people and is never a team crest, which is collected by finding hoggies in crates."
     },
     {
       "name": "avatar",
