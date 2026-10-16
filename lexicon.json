@@ -638,6 +638,10 @@
     {
       "name": "star kind",
       "definition": "A further emoji that counts as a star for a member: a workspace custom emoji the admin maps to a hoggie. It counts for a member from the moment they hold that hoggie in their collection, forever, with no choosing; every star kind is worth the same as the kudos emoji."
+    },
+    {
+      "name": "crowd",
+      "definition": "The Book's category of ladders about many people joining in: Applause and, with stars, Crowd Favourite, Standing Ovation and Amplifier. The website keys each of these ladders to it."
     }
   ],
   "retired": [
