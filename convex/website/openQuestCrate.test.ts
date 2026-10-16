@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { withoutCollectionExposure } from "../../testing/hoggies";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
@@ -343,7 +344,7 @@ describe("opening on the website applies what Slack's open applies", () => {
     expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "opened", applied: null });
 
     const after = await everyTable();
-    expect({ ...after, crateOpenings: [] }).toEqual({ ...before, crateOpenings: [] });
+    expect(withoutCollectionExposure({ ...after, crateOpenings: [] })).toEqual({ ...before, crateOpenings: [] });
     expect(after.crateOpenings).toMatchObject([{ member, key: "journey:first-thanks", at: now.getTime() }]);
     expect(before.crateOpenings).toEqual([]);
     expect(publishedEvents()).toEqual([{ type: "questOpened", workspace: "T1", member, quest: firstThanks, at: now.getTime() }]);
