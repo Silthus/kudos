@@ -31,6 +31,8 @@ const questDone = "Quest done: Give a kudos that says why with one of your kudos
 const questsOn = [onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("quests")];
 const coinsForAliceAndCarol = onForEmails("coins", alicesEmail, carolsEmail);
 const previewedByAlice = [...questsOn, coinsForAliceAndCarol, onForEmails(store, alicesEmail)];
+const slotsRetiredForAlice = [...previewedByAlice, onForEmails("slots-retired", alicesEmail)];
+const ownedHint = "context: :hedgehog: is one of your kudos emoji: use it in a kudos like :taco:. It counts when your message has 5 or more words besides mentions and emoji.";
 const previewedByAliceAndCarol = [...questsOn, coinsForAliceAndCarol, onForEmails(store, alicesEmail, carolsEmail)];
 const storeOff = [...questsOn, coinsForAliceAndCarol, offForEveryone(store)];
 
@@ -195,6 +197,22 @@ describe("ST19: your-emoji, the Journey's last step", { timeout: 60_000 }, () =>
     expect(await goalsInActivityOf(t, "U_ALICE")).not.toContain(yourEmojiGoal);
     expect(await crateOpeningsOf(t, "U_ALICE")).toEqual([]);
     expect(await rewardRecordsOf(t, "U_ALICE")).toEqual([{ xp: 40, coins: 20, item: null, catalogueVersion: "2", at }]);
+  });
+});
+
+describe("RS6: with slots retired, your-emoji's hint names an owned emoji", { timeout: 60_000 }, () => {
+  test("the hint says :hedgehog: is one of Alice's kudos emoji, though she took it out of her slots, and a kudos that says why with it finishes the step", async () => {
+    const t = await workspaceDeciding(...previewedByAlice);
+    await coinsOpenedBy(t, "U_ALICE");
+    await send(t, blockActions("U_ALICE", staleButtonOf({ type: "takeOff", slot: "emoji-1" })));
+    await flagsFromPostHog(t, postHog, ...slotsRetiredForAlice);
+
+    await openHome(t, "U_ALICE");
+    expect(journeyStepOf(publishedHome(slack, "U_ALICE"), yourEmojiActive)).toEqual([yourEmojiActive, ownedHint]);
+
+    vi.setSystemTime(tuesday + dayMs);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["hedgehog"]);
+    expect(await rewardRecordsOf(t, "U_ALICE")).toMatchObject([{ xp: 40, coins: 20, item: null }]);
   });
 });
 

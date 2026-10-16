@@ -53,6 +53,26 @@ async function profileOf(asSignedIn: Pick<Backend, "query">): Promise<MemberProf
   return profile;
 }
 
+describe("RS3 RS4 RS5: with slots retired, inventoryOf has no slots and sells no standard emoji", { timeout: 30_000 }, () => {
+  test("slots is empty, an owned standard emoji stays owned and listed but not on sale, an unowned one isn't listed, and a picked custom emoji is on sale", async () => {
+    const { member, asSignedIn } = await signedInAtLevelSix(...storeFlags, "slots-retired", "custom-kudos-emoji");
+    await opens(t, member, "coins");
+    await t.run((ctx) => grantItem(ctx, { member, item: "kudos-emoji-rocket", source: "store", arrivedAt: now.getTime() + 1 }));
+    await t.run((ctx) => ctx.db.insert("customKudosEmoji", { workspace: "T1", name: "shipit", url: "https://emoji.slack-edge.com/T1/shipit/0a1b2c.png", pickedAt: now.getTime() }));
+
+    const inventory = (await profileOf(asSignedIn)).inventory;
+
+    expect(inventory).toEqual(await t.query(internal.store.inventory.inventoryOf, { member }));
+    expect(inventory?.slots).toEqual([]);
+    expect(inventory?.owned.map(({ item }) => item)).toEqual(["kudos-emoji-hedgehog", "kudos-emoji-rocket"]);
+    expect(inventory?.catalogue.map(({ item, onSale }) => [item, onSale])).toEqual([
+      ["kudos-emoji-hedgehog", false],
+      ["kudos-emoji-rocket", false],
+      ["custom:shipit", true],
+    ]);
+  });
+});
+
 describe("WS341 CO26 ST26: getMyProfile carries the wallet and the inventory exactly while map #1's reads answer them", { timeout: 30_000 }, () => {
   test("with Coins open, the profile carries walletOf's balance and inventoryOf's slots, owned items and catalogue", async () => {
     const { member, asSignedIn } = await signedInAtLevelSix(...storeFlags);

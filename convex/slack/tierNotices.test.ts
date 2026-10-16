@@ -246,6 +246,17 @@ describe("CO20: a tier DM line that paid coins says them while coins are visible
 });
 
 describe("ST16 ST18: a silver tier gives its kudos emoji, and its DM line says it while the store is visible", { timeout: 30_000 }, () => {
+  test("RS6: with slots retired, Generous Soul's line gives its emoji for your kudos emoji", async () => {
+    const t = await workspaceDeciding(onForEveryone("store"), onForEveryone("slots-retired"));
+    const [alice] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
+    await openCoins(t, alice!);
+    await withGiven(t, alice!, 24);
+
+    await giveKudos(t, "U_ALICE", "U_BOB");
+
+    expect(tierDmsTo("U_ALICE")[0]).toMatch(/^🏅 You earned Generous Soul \(Generosity, silver\)\. \+ :ribbon: Ribbon for your kudos emoji\n/);
+  });
+
   test("with Coins and the inventory open, Generous Soul's line says its emoji, the bronze line keeps its coins, and no public line names the emoji", async () => {
     const t = await workspaceDeciding(onForEveryone("store"));
     const [alice] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");

@@ -65,7 +65,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     lifetime: { given: facts.given, received: facts.received },
     chatUrl: workspaceLink(me.workspace),
     leaderboard,
-    features: await featureCardsOf(me, path),
+    features: await featureCardsOf(ctx, me, path),
     journey: await journeyStepsOf(ctx, me),
     progression: await progressionOf(ctx, me),
     skillPoints: await skillPointsOf(ctx, me, path),

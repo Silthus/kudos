@@ -131,6 +131,26 @@ describe("the website's feature states are Unlocks' facts", () => {
     expect(leaderboardEntryOf(profile)).toMatchObject({ state: "open", readyAt: now.getTime(), openedAt: now.getTime() });
     expect(profile.leaderboard).toEqual({ kind: "open" });
   });
+
+  describe("RS6: the Coins card is named as Slack names it for the member's store", () => {
+    type StoreCase = { store: string; flags: string[]; name: string; opens: string };
+
+    const storeCases: StoreCase[] = [
+      { store: "with the store off", flags: ["coins"], name: "Coins", opens: "your wallet and the coin perks" },
+      { store: "with the store on and slots kept", flags: ["coins", "store"], name: "Coins and inventory", opens: "your wallet, the store's kudos emoji and your emoji slots" },
+      { store: "with the store on and slots retired", flags: ["coins", "store", "slots-retired"], name: "Coins and inventory", opens: "your wallet, the store and your kudos emoji" },
+    ];
+
+    test.each(storeCases)("$store, a member at level 6 reads Coins ready as $name, opening $opens", async ({ flags, name, opens }) => {
+      await launchedThen(...allFlags, ...flags);
+      const { member, asSignedIn } = await signedInMember();
+      await reachesLevel(t, member, 6);
+
+      const coins = (await myProfile(asSignedIn)).features?.find((card) => card.feature === "coins");
+
+      expect(coins).toMatchObject({ state: "ready", name, opens, level: 6 });
+    });
+  });
 });
 
 describe("the website shows only shipped features", () => {

@@ -3,8 +3,8 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksLiveIn, unlocksShownTo } from "../unlocks/launch";
-import { storeShownAndExposedTo } from "../store/visibility";
-import { namedFor, scheduled, shippedIn, type ScheduledFeature } from "../unlocks/schedule";
+import { slotsRetiredFor, storeShownAndExposedTo } from "../store/visibility";
+import { namedFor, scheduled, shippedIn, withoutTheStore, type ScheduledFeature, type StoreNaming } from "../unlocks/schedule";
 import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { lookup, type MemberId } from "../workspace/directory";
 import type { Line } from "./segments";
@@ -26,7 +26,7 @@ export const unopenedReplyOf = internalMutation({
     if (person?.kind === "member") return { lines: await memberReplyOf(ctx, person.member, feature), shownToUnknownViewer: null };
     if (person !== undefined || !(await xpLevelsShownIn(ctx, workspace))) return { lines: null, shownToUnknownViewer: null };
     const shown = await unlocksLiveIn(ctx, workspace);
-    const lines = shown ? replyOf(feature, await strangerStateOf(ctx, workspace, feature)) : null;
+    const lines = shown ? replyOf(feature, await strangerStateOf(ctx, workspace, feature), withoutTheStore) : null;
     return { lines, shownToUnknownViewer: shown };
   },
 });
@@ -42,11 +42,11 @@ export function unopenedTextOf({ name, level }: ScheduledFeature, state: "ready"
 async function memberReplyOf(ctx: MutationCtx, member: MemberId, feature: Feature) {
   if (!(await unlocksShownTo(ctx, member))) return null;
   const storeShown = feature === "coins" && (await storeShownAndExposedTo(ctx, member));
-  return replyOf(feature, await stateOf(ctx, member, feature), storeShown);
+  return replyOf(feature, await stateOf(ctx, member, feature), { storeShown, slotsRetired: storeShown && (await slotsRetiredFor(ctx, member)) });
 }
 
-function replyOf(feature: Feature, state: UnlockState, storeShown = false): Line[] | null {
-  return state === "ready" || state === "locked" ? renderUnopenedReply(namedFor(scheduled(feature), storeShown), state) : null;
+function replyOf(feature: Feature, state: UnlockState, naming: StoreNaming): Line[] | null {
+  return state === "ready" || state === "locked" ? renderUnopenedReply(namedFor(scheduled(feature), naming), state) : null;
 }
 
 async function strangerStateOf(ctx: QueryCtx, workspace: string, feature: Feature): Promise<UnlockState> {

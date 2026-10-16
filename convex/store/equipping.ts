@@ -4,14 +4,14 @@ import type { MemberId } from "../workspace/directory";
 import type { ItemId } from "./catalogue";
 import { loadoutOf, ownedBy, type LoadoutSlot } from "./inventory";
 import type { Slot } from "./rows";
-import { storeShownTo } from "./visibility";
+import { slotsRetiredFor, storeShownTo } from "./visibility";
 
 export type LoadoutRefusal = { kind: "refused"; reason: "coins-not-open" | "not-owned" };
 
 export type LoadoutOutcome = { kind: "equipped"; slot: Slot; item: ItemId } | { kind: "takenOff"; slot: Slot } | LoadoutRefusal;
 
 export async function equip(ctx: MutationCtx, member: MemberId, item: ItemId, slot: Slot): Promise<LoadoutOutcome | null> {
-  if (!(await storeShownTo(ctx, member))) return null;
+  if (!(await slotsShownTo(ctx, member))) return null;
   if (!(await coinsOpenFor(ctx, member))) return refused("coins-not-open");
   if (!(await ownedBy(ctx, member)).some((owned) => owned.item === item)) return refused("not-owned");
   await changeLoadout(ctx, member, ({ slot: each, item: held }) => (each === slot ? item : held === item ? null : held));
@@ -19,10 +19,14 @@ export async function equip(ctx: MutationCtx, member: MemberId, item: ItemId, sl
 }
 
 export async function takeOff(ctx: MutationCtx, member: MemberId, slot: Slot): Promise<LoadoutOutcome | null> {
-  if (!(await storeShownTo(ctx, member))) return null;
+  if (!(await slotsShownTo(ctx, member))) return null;
   if (!(await coinsOpenFor(ctx, member))) return refused("coins-not-open");
   await changeLoadout(ctx, member, ({ slot: each, item: held }) => (each === slot ? null : held));
   return { kind: "takenOff", slot };
+}
+
+async function slotsShownTo(ctx: MutationCtx, member: MemberId) {
+  return (await storeShownTo(ctx, member)) && !(await slotsRetiredFor(ctx, member));
 }
 
 async function coinsOpenFor(ctx: MutationCtx, member: MemberId) {

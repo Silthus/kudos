@@ -136,7 +136,7 @@ describe("WS348 WS66: the reveal's end state shows one chip per reward kind afte
 });
 
 describe("WS348 #354 #452: a quest's coins fly out of the reveal into the header's coins chip", () => {
-  const withForty: MemberProfile = { ...shellFixtures.memberWithQuests, progression: { level: 2, xp: 40, levelStartsAt: 20, nextLevelAt: 100, xpToNextLevel: 60 }, coins: 40 };
+  const withForty: MemberProfile = { ...shellFixtures.memberWithQuests, progression: { level: 3, xp: 120, levelStartsAt: 100, nextLevelAt: 300, xpToNextLevel: 180 }, coins: 40 };
   const finishedGoal = "Thank someone you haven't thanked before.";
 
   function coinsChip() {

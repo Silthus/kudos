@@ -10,7 +10,7 @@ afterEach(() => {
 
 const { memberWithQuests, memberWithEveryFeatureOpen } = shellFixtures;
 
-const memberWithThreePages: MemberProfile = { ...memberWithQuests, leaderboard: { kind: "open" }, features: [...(memberWithQuests.features ?? []), ...(memberWithEveryFeatureOpen.features ?? [])] };
+const memberWithThreePages: MemberProfile = { ...memberWithQuests, leaderboard: { kind: "open" }, features: [...(memberWithEveryFeatureOpen.features ?? []), ...(memberWithQuests.features ?? [])].sort((one, other) => one.level - other.level) };
 
 const screensNav = () => within(screen.getByRole("banner")).getByRole("navigation", { name: "Screens" });
 

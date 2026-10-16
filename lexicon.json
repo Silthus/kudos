@@ -29,7 +29,7 @@
     },
     {
       "name": "kudos emoji",
-      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, which is the deployment's default unless the workspace changes it (:taco: when the deployment sets none), plus the emoji in the giver's loadout while the store is visible to them. Each occurrence in a kudos message is one kudos for every recipient."
+      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, which is the deployment's default unless the workspace changes it (:taco: when the deployment sets none), plus the emoji in the giver's loadout while the store is visible to them, or, where slots-retired is on for the giver, every kudos emoji item they own in place of the loadout. Each occurrence in a kudos message is one kudos for every recipient."
     },
     {
       "name": "kudos message",

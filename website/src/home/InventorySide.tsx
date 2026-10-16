@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject 
 import type { InventoryItem, ItemSource, MemberInventory, MemberProfile, Slot } from "../shell";
 import { CoinGlyph } from "../skills/glyphs";
 import { coinsText } from "../skills/perkWords";
-import { cameOff, itemIn, ItemArt, ownedIn, slotName, wentInto, type LoadoutActions, type Owned, type SendLoadout } from "./gear";
+import { cameOff, itemIn, ItemArt, ownedIn, slotName, slotsRetiredIn, wentInto, type LoadoutActions, type Owned, type SendLoadout } from "./gear";
 import { shortfallText, type ItemPurchasing } from "./itemPurchase";
 
 export type Said = { text: string; done: boolean };
@@ -17,7 +17,7 @@ export function InventorySide({ member, inventory, loadout, send, purchasing, he
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p role="status" className="min-h-5 text-sm text-muted-foreground">
           {said === undefined ? (
-            "Pick something you own to wear it. Pick a worn emoji to take it off."
+            idleLineOf(inventory)
           ) : (
             <span className="flex items-center gap-1.5">
               {said.done && <IconCheck aria-hidden="true" className="size-3.5 shrink-0 text-foreground" />}
@@ -30,6 +30,10 @@ export function InventorySide({ member, inventory, loadout, send, purchasing, he
       <KudosEmojiSection inventory={inventory} kudosEmoji={member.kudosEmoji} coins={member.coins ?? 0} loadout={loadout} send={send} purchasing={purchasing} heading={heading} onSaid={onSaid} />
     </div>
   );
+}
+
+function idleLineOf(inventory: MemberInventory) {
+  return slotsRetiredIn(inventory) ? "" : "Pick something you own to wear it. Pick a worn emoji to take it off.";
 }
 
 function Balance({ coins }: { coins: number }) {
@@ -50,6 +54,7 @@ function KudosEmojiSection({ inventory, kudosEmoji, coins, loadout, send, purcha
   const yours = ownedIn(inventory);
   const notYet = inventory.catalogue.filter(({ item }) => !purchasing.bought.includes(item) && !yours.some(({ entry }) => entry.item === item));
   const equipped = inventory.slots.filter(({ item }) => item !== null).length;
+  const slotsRetired = slotsRetiredIn(inventory);
 
   const stopChoosing = (item: InventoryItem) => {
     choice.current += 1;
@@ -84,27 +89,43 @@ function KudosEmojiSection({ inventory, kudosEmoji, coins, loadout, send, purcha
             <IconEmoji aria-hidden="true" className="size-4 self-center text-muted-foreground" />
             Kudos emoji
           </h3>
-          <span className="text-xs text-muted-foreground tabular-nums">{`Equipped ${equipped}/${inventory.slots.length}`}</span>
+          {!slotsRetired && <span className="text-xs text-muted-foreground tabular-nums">{`Equipped ${equipped}/${inventory.slots.length}`}</span>}
         </div>
-        <p className="text-xs text-muted-foreground">{`Each emoji in a slot counts as a kudos, like :${kudosEmoji}:.`}</p>
+        <p className="text-xs text-muted-foreground">{slotsRetired ? `Each of your kudos emoji counts as a kudos, like :${kudosEmoji}:.` : `Each emoji in a slot counts as a kudos, like :${kudosEmoji}:.`}</p>
       </div>
       <ul aria-label="Yours" className="grid grid-cols-3 gap-2 sm:grid-cols-5">
         {yours.map((owned) => (
           <li key={owned.entry.item} onAnimationEnd={owned.entry.item === purchasing.justBought ? purchasing.popped : undefined} className={`flex ${owned.entry.item === purchasing.justBought ? "perk-pop" : ""}`}>
-            <OwnedTile
-              ref={(button) => {
-                if (button === null) tiles.current.delete(owned.entry.item);
-                else tiles.current.set(owned.entry.item, button);
-              }}
-              owned={owned}
-              onPress={() => press(owned)}
-            />
+            {slotsRetired ? (
+              <OwnedEmoji item={owned.entry} />
+            ) : (
+              <OwnedTile
+                ref={(button) => {
+                  if (button === null) tiles.current.delete(owned.entry.item);
+                  else tiles.current.set(owned.entry.item, button);
+                }}
+                owned={owned}
+                onPress={() => press(owned)}
+              />
+            )}
           </li>
         ))}
       </ul>
       {choosingFor !== null && <SlotChoice key={choosingFor.item} item={choosingFor} inventory={inventory} onChoose={(slot) => void putIn(choosingFor, slot)} onCancel={() => stopChoosing(choosingFor)} />}
       {notYet.length > 0 && <NotYoursYet items={notYet} coins={coins} purchasing={purchasing} />}
+      {slotsRetired && !notYet.some(onSaleInTheStore) && <p className="text-xs text-muted-foreground">Nothing for sale right now.</p>}
     </section>
+  );
+}
+
+function OwnedEmoji({ item }: { item: InventoryItem }) {
+  return (
+    <span className="flex h-28 w-full flex-col items-center justify-between gap-2 rounded-md border bg-card p-2.5 text-center">
+      <span className="flex flex-1 items-center justify-center">
+        <ItemArt item={item} className="size-12 text-[2rem]" />
+      </span>
+      <span className="w-full truncate text-xs font-medium">{item.name}</span>
+    </span>
   );
 }
 
@@ -196,6 +217,10 @@ function NotYoursYet({ items, coins, purchasing }: { items: InventoryItem[]; coi
       </ul>
     </div>
   );
+}
+
+function onSaleInTheStore(item: InventoryItem): boolean {
+  return item.onSale && item.source.kind === "store";
 }
 
 function BuyAction({ item, price, coins, purchasing }: { item: InventoryItem; price: number; coins: number; purchasing: ItemPurchasing }) {
