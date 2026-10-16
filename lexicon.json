@@ -632,6 +632,10 @@
         "family bypassed-door": "In this project a bypassed door is a family: each surface reaches its decision through its own chokepoint (the website's preview, groupQuestAppliesTo, a flag's member decision), so no one guard can stand for every door, and each bypassed-door defect closes with the guard of the door it went past, or a decision."
       },
       "definition": "A recorded behavioral deviation with the evidence that made it a defect: a user report about a UI bug, a field observation, or any deviation fuzzier than an invariant can record. Distinct from a structural defect, which is a state the tool derives for an invariant. Not every part of the car is structural steel."
+    },
+    {
+      "name": "Slack open",
+      "definition": "App Home's Open for a crate: the Slack command that opens it, whose rows and events are the measure a website open is held to (D17)."
     }
   ],
   "retired": [
