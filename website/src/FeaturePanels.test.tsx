@@ -146,7 +146,7 @@ describe("WS103: a locked panel", () => {
     renderApp(shellFixtures.memberWithEveryPanelLocked);
     const art = panel("Book").querySelector("[data-locked-hog]")!;
     expect(art).toHaveAttribute("aria-hidden", "true");
-    expect(art.querySelector("svg")).toHaveClass("brightness-0");
+    expect(art.querySelector("img")).toHaveClass("brightness-0");
     expect(art.querySelector("[data-padlock]")).not.toBeNull();
   });
 });

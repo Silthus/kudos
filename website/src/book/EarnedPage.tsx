@@ -1,4 +1,4 @@
-import { HedgehogStampApproved } from "@posthog/brand/hoggies";
+import { HedgehogStampApproved } from "../hoggies";
 import { Arrow } from "../Arrow";
 import { buttonVariants } from "@posthog/quill";
 import type { ReactNode } from "react";
@@ -32,7 +32,7 @@ function EarnedMoment({ earned, chatUrl }: { earned: Shelved[]; chatUrl: string 
             <PageTitle tab="Achievement" size="headline">{`You earned ${listOf(earned.map(({ tier }) => tier.name))}`}</PageTitle>
           </div>
           <span aria-hidden="true" className="earned-hog shrink-0">
-            <HedgehogStampApproved size={200} title="" className="h-auto w-20 sm:w-28 md:w-36" />
+            <HedgehogStampApproved size={200} className="h-auto w-20 sm:w-28 md:w-36" />
           </span>
         </div>
         <ul aria-label="Tiers earned" className="mt-8 flex flex-wrap items-start justify-center gap-x-10 gap-y-6">

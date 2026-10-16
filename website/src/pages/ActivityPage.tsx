@@ -1,4 +1,4 @@
-import { HedgehogTownCrier } from "@posthog/brand/hoggies";
+import { HedgehogTownCrier } from "../hoggies";
 import { IconCheck } from "@posthog/icons";
 import { Button, ToggleGroup, ToggleGroupItem } from "@posthog/quill";
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
@@ -106,7 +106,7 @@ function TimelineView({ timeline, chatUrl, announce }: { timeline: Timeline; cha
 function EmptyTimeline({ filter, chatUrl }: { filter: ActivityFilter; chatUrl: string }) {
   return (
     <section data-timeline-empty tabIndex={-1} aria-label="Nothing yet" className="flex flex-col items-center gap-4 rounded-lg border bg-card px-4 py-10 text-center outline-none focus-visible:ring-2 focus-visible:ring-ring">
-      <HedgehogTownCrier size={96} title="" />
+      <HedgehogTownCrier size={96} />
       <p className="max-w-md text-balance text-sm text-muted-foreground">{filterNamed(filter).empty}</p>
       <SlackLink chatUrl={chatUrl} variant="outline">
         Thank someone in Slack

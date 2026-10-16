@@ -1,4 +1,5 @@
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { hedgehogStarPng } from "@posthog/brand/hoggies/png";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ladders, type LadderId } from "../../convex/achievements/ladders";
 import { ladderCategories } from "./book/categories";
@@ -6,6 +7,7 @@ import { bookFixtures, fixedBook } from "./bookFixtures";
 import type { BookRead } from "./bookRead";
 import { Root } from "./Root";
 import { shellFixtures, type CommandAnswer, type LadderCard, type MyBook } from "./shell";
+import { drawnPicturesIn, silhouettePicturesIn } from "./test/pictures";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 import { contrast, type Mode } from "./test/themeContrast";
@@ -182,9 +184,12 @@ describe("WS92: the Book page", () => {
 });
 
 describe("WS339 V24: an unstarted ladder's hedgehog silhouette meets 3:1 against its card in both modes (#415)", () => {
-  it("paints the silhouette from the muted foreground, the locked page's silhouette", () => {
+  it("paints the ladder's own hedgehog as a silhouette in the muted foreground, the locked page's silhouette", () => {
     const emblem = openLadder(bookFixtures.book, "Recognition").querySelector("[data-emblem]")!;
-    expect(emblem.querySelector(".hog-silhouette")).toContainElement(emblem.querySelector("[data-rosette] ~ * svg"));
+    const silhouette = emblem.querySelector(".hog-silhouette")!;
+    expect(silhouettePicturesIn(silhouette)).toEqual([hedgehogStarPng]);
+    expect(drawnPicturesIn(emblem)).toEqual([]);
+    expect(silhouette.querySelector("[data-silhouette-art] [fill]")).toHaveAttribute("fill", "currentColor");
   });
 
   it.each<Mode>(["light", "dark"])("keeps the muted foreground at 3:1 against the card in %s mode", (mode) => {

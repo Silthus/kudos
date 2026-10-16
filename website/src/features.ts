@@ -1,11 +1,9 @@
 import type { ComponentType } from "react";
-import { HedgehogExplorer, HedgehogMoney, HedgehogOrganized, HedgehogReading, HedgehogStar, HedgehogWizard } from "@posthog/brand/hoggies";
+import { HedgehogExplorer, HedgehogMoney, HedgehogOrganized, HedgehogReading, HedgehogStar, HedgehogWizard, type Hoggie } from "./hoggies";
 import { IconBook, IconListTree, IconStar, IconTarget } from "@posthog/icons";
 import { perkOf } from "../../convex/progression/tree";
 import type { Screen } from "./route";
 import type { Feature, MemberProfile } from "./shell";
-
-export type Hoggie = ComponentType<{ size?: number; title?: string; className?: string }>;
 
 export type WebPage = { screen: Screen; href: string; sentence: string; Icon: ComponentType<{ className?: string }> };
 

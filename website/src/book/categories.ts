@@ -1,5 +1,4 @@
-import { HedgehogCodingGroup, HedgehogKatyPerry, HedgehogMailbox, HedgehogParty } from "@posthog/brand/hoggies";
-import type { Hoggie } from "../features";
+import { HedgehogCodingGroup, HedgehogKatyPerry, HedgehogMailbox, HedgehogParty, type Hoggie } from "../hoggies";
 import type { LadderCard } from "../shell";
 
 export type CategoryId = "giving" | "thanked" | "connections" | "crowd";

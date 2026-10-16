@@ -1,5 +1,4 @@
-import { HedgehogExplorer, HedgehogHandClasp, HedgehogHeart, HedgehogHourglass, HedgehogOrganized, HedgehogStar, HedgehogSuccess } from "@posthog/brand/hoggies";
-import type { Hoggie } from "../features";
+import { HedgehogExplorer, HedgehogHandClasp, HedgehogHeart, HedgehogHourglass, HedgehogOrganized, HedgehogStar, HedgehogSuccess, type Hoggie } from "../hoggies";
 import type { LadderCard, TierId } from "../shell";
 import { Rosette } from "./Rosette";
 
@@ -19,7 +18,7 @@ export function LadderEmblem({ ladder, best, size = 72 }: { ladder: LadderCard["
     <span data-emblem={best === null ? "silhouette" : "earned"} aria-hidden="true" className="relative grid shrink-0 place-items-center" style={{ width: size, height: size }}>
       <Rosette tier={best} />
       <span className={`absolute inset-[15%] grid place-items-center overflow-hidden rounded-full ${best === null ? "hog-silhouette" : ""}`}>
-        <Hog size={Math.round(size * 0.8)} title="" className="max-w-none translate-y-[8%]" />
+        <Hog size={Math.round(size * 0.8)} silhouette={best === null} className="max-w-none translate-y-[8%]" />
       </span>
     </span>
   );

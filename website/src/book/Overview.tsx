@@ -1,4 +1,4 @@
-import { HedgehogReadingIsMagic } from "@posthog/brand/hoggies";
+import { HedgehogReadingIsMagic } from "../hoggies";
 import { Arrow } from "../Arrow";
 import { Card, CardContent } from "@posthog/quill";
 import { useId, type ReactNode } from "react";
@@ -39,7 +39,7 @@ function TiersEarned({ ladders }: { ladders: LadderCard[] }) {
       <Card>
         <CardContent className="flex flex-col items-center gap-5 sm:flex-row">
           <span data-hog="reading" aria-hidden="true" className="shrink-0">
-            <HedgehogReadingIsMagic size={128} title="" />
+            <HedgehogReadingIsMagic size={128} />
           </span>
           <div className="flex w-full min-w-0 flex-1 flex-col gap-3">
             <div className="flex flex-col gap-0.5">
@@ -186,7 +186,7 @@ function CategoryTile({ chapter: { category, ladders } }: { chapter: Chapter }) 
       className="flex h-full items-center gap-3 rounded-lg border bg-card p-3 hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       <span data-hog={category.id} aria-hidden="true" className="shrink-0">
-        <category.Emblem size={68} title="" />
+        <category.Emblem size={68} />
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-baseline justify-between gap-2">

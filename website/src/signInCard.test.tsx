@@ -1,6 +1,5 @@
-import { HedgehogHandClasp } from "@posthog/brand/hoggies";
+import { hedgehogHandClaspPng } from "@posthog/brand/hoggies/png";
 import { screen, within } from "@testing-library/react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it } from "vitest";
 import { shellFixtures } from "./shell";
 import { renderApp } from "./test/renderApp";
@@ -22,12 +21,6 @@ function landingHint() {
   return screen.queryByText(/You'll land on/);
 }
 
-function handClaspDrawing() {
-  const holder = document.createElement("div");
-  holder.innerHTML = renderToStaticMarkup(<HedgehogHandClasp />);
-  return holder.querySelector("svg")?.innerHTML;
-}
-
 describe("WS309: the sign-in page stands alone as variant E's card", () => {
   it("drops the HUD bar and keeps only the theme control above the card", () => {
     renderApp(shellFixtures.signedOut);
@@ -39,8 +32,8 @@ describe("WS309: the sign-in page stands alone as variant E's card", () => {
 
   it("leads with the hand-clasp hedgehog at 112 px, then HedgeHug as the title and Thanks a Hog", () => {
     renderApp(shellFixtures.signedOut);
-    const hedgehog = screen.getByRole("main").querySelector("svg:not(button svg)");
-    expect(hedgehog?.innerHTML).toBe(handClaspDrawing());
+    const hedgehog = screen.getByRole("main").querySelector("img");
+    expect(hedgehog).toHaveAttribute("src", hedgehogHandClaspPng);
     expect(hedgehog).toHaveAttribute("width", "112");
     const title = screen.getByRole("heading", { level: 1 });
     expect(title).toHaveTextContent(/^HedgeHug$/);

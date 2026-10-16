@@ -27,7 +27,7 @@ export function BookIndex({ chapters, current, collection }: IndexProps) {
           {chapters.map(({ category }) => (
             <IndexEntry key={category.id} page={category.id} current={current}>
               <span data-emblem="" aria-hidden="true" className="-my-1 shrink-0">
-                <category.Emblem size={26} title="" className={`book-index-hog ${category.id === current ? "" : "opacity-80"}`} />
+                <category.Emblem size={26} className={`book-index-hog ${category.id === current ? "" : "opacity-80"}`} />
               </span>
               {category.name}
             </IndexEntry>

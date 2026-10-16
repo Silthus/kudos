@@ -146,14 +146,8 @@ body {
   color: var(--muted-foreground);
 }
 
-.hog-silhouette svg [fill]:not([fill="none"]) {
-  fill: currentColor;
-  fill-opacity: 1;
-}
-
-.hog-silhouette svg [stroke]:not([stroke="none"]) {
-  stroke: currentColor;
-  stroke-opacity: 1;
+.hog-silhouette-art {
+  mask: var(--art) center / contain no-repeat;
 }
 
 .hud-label {
