@@ -202,9 +202,13 @@ function waitingPartOf(xp: number, waiting: boolean) {
 
 function hoggiesLinesOf(hoggies: HoggiesHome | null, website: string | null): HomeLine[][] {
   if (hoggies === null) return [];
-  const text = `Hoggies: ${hoggies.owned} of ${hoggies.total} · ${lastFoundPartOf(hoggies)}`;
+  const text = `Hoggies: ${hoggies.owned} of ${hoggies.total}${crestsPartOf(hoggies)} · ${lastFoundPartOf(hoggies)}`;
   if (website === null) return [[{ kind: "text", text }]];
   return [[{ kind: "action", text, action: linkOnTheWeb({ label: "View", spoken: "View your hoggies", id: "hoggies" }, { page: "book" }, website) }]];
+}
+
+function crestsPartOf({ crests }: HoggiesHome) {
+  return crests === null ? "" : ` · ${crests} ${crests === 1 ? "crest" : "crests"}`;
 }
 
 function lastFoundPartOf({ lastFound }: HoggiesHome) {

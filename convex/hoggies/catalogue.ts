@@ -6,6 +6,8 @@ export type Rarity = Infer<typeof rarityValidator>;
 
 export type CatalogueHoggie = { hoggie: string; name: string; rarity: Rarity };
 
+export type CatalogueCrest = { crest: string; name: string; roster: readonly string[] };
+
 export const rarities: ReadonlyArray<{ rarity: Rarity; weight: number }> = [
   { rarity: "common", weight: 50 },
   { rarity: "uncommon", weight: 28 },
@@ -180,10 +182,70 @@ const versionOne: Record<Rarity, ReadonlyArray<readonly [hoggie: string, name: s
   ],
 };
 
+const versionTwoCrests: ReadonlyArray<readonly [crest: string, name: string, roster: readonly string[]]> = [
+  ["ai-gateway", "AI Gateway", ["transformer", "traffic-controller", "cursor"]],
+  ["ai-observability", "AI Observability", ["robot", "noir", "magnifying-glass"]],
+  ["ai-research", "AI Research", ["research", "scientist", "einstein", "reading-is-magic"]],
+  ["analytics-platform", "Analytics Platform", ["einstein-group", "hourglass", "coffee-cup"]],
+  ["apm", "APM", ["roller-coaster", "dynamite"]],
+  ["batch-exports", "Batch Exports", ["coffee-run", "waiter"]],
+  ["billing", "Billing", ["money", "burning-money", "gatsby"]],
+  ["blitzscale", "Blitzscale", ["rocket", "level-up", "pit-viper"]],
+  ["builder-relations", "Builder Relations", ["hand-clasp", "puzzle", "honey"]],
+  ["clickhouse", "Clickhouse", ["x-ray", "doll-house", "gravedigger"]],
+  ["client-libraries", "Client Libraries", ["dj", "code-bubble", "coding-group"]],
+  ["cloud-foundations", "Cloud Foundations", ["construction", "climber"]],
+  ["cloud-platform", "Cloud Platform", ["float", "remote-work", "katy-perry"]],
+  ["conversations", "Conversations", ["mailbox", "phone-call", "speaker"]],
+  ["customer-analytics", "Customer Analytics", ["oprah", "commuter", "selfie"]],
+  ["customer-success-eu", "Customer Success EU", ["gladiator", "croissant", "hooligan"]],
+  ["customer-success-na", "Customer Success NA", ["mountie", "burger", "football-player"]],
+  ["data-modeling", "Data Modeling", ["organized", "mr-potato-head", "office-worker"]],
+  ["data-tools", "Data Tools", ["dr-manhattan", "doc-brown", "data-thief"]],
+  ["demand-gen", "Demand Gen", ["cowboy-lasso", "town-crier", "lemonade"]],
+  ["dev-experience", "Dev Experience", ["996", "cereal", "hipster"]],
+  ["editorial", "Editorial", ["reporter", "greek", "soapbox"]],
+  ["error-tracking", "Error Tracking", ["error", "panic", "stop", "reaper"]],
+  ["experiments", "Experiments", ["experiment", "beaker", "doctor"]],
+  ["feature-flags", "Feature Flags", ["drake-nah", "drake-yah", "card"]],
+  ["forward-deployed-engineering", "Forward Deployed Engineering", ["explorer", "safari", "campfire-cowboy"]],
+  ["graphics", "Graphics", ["jack-dawson", "art-thief", "caribana"]],
+  ["growth", "Growth", ["final-evolution", "ape", "caveman", "success"]],
+  ["gtm-engineering", "GTM Engineering", ["trenchcoat", "ipad"]],
+  ["ingestion", "Ingestion", ["chef", "toilet"]],
+  ["managed-warehouse", "Managed Warehouse", ["swimmer", "the-bride"]],
+  ["marketing", "Marketing", ["megaphone", "party", "cake"]],
+  ["mcp-analytics", "MCP Analytics", ["pope", "banana"]],
+  ["new-business-sales", "New Business Sales", ["steve-jobs", "business-evolution", "haha-bizzniss"]],
+  ["onboarding", "Onboarding", ["tourist", "sitting"]],
+  ["people-ops", "People & Ops", ["heart", "namaste", "coconut"]],
+  ["platform-features", "Platform Features", ["superhero", "pearl-necklace"]],
+  ["platform-ux", "Platform UX", ["rose", "ball"]],
+  ["posthog-desktop", "Posthog Desktop", ["evel", "asleep", "two-player"]],
+  ["product-analytics", "Product Analytics", ["chart", "back-to-the-future", "sailor"]],
+  ["product-lead-sales-east", "Product Lead Sales East", ["dadd-ai", "will-smith"]],
+  ["product-led-sales-west", "Product Led Sales West", ["lemon-wrangler", "scorpion"]],
+  ["replay", "Replay", ["director", "hot-popcorn", "sleepy"]],
+  ["security", "Security", ["traffic-police", "stamp-denied", "judge"]],
+  ["self-driving", "Self-driving", ["self-driving", "driving-hogzilla", "cool-car", "im-the-driver"]],
+  ["support", "Support", ["lifeguard", "angel"]],
+  ["surveys", "Surveys", ["survey", "stamp-approved", "star"]],
+  ["talent", "Talent", ["basketball-coach", "football-coach", "soccer-coach"]],
+  ["warehouse-sources", "Warehouse Sources", ["pinata", "hoot"]],
+  ["web-analytics", "Web Analytics", ["surfer", "sunburn"]],
+  ["website", "Website", ["hogpatch", "gardener"]],
+  ["wizard-docs", "Wizard & Docs", ["wizard", "desk-wizard", "reading"]],
+  ["workflows", "Workflows", ["workflows", "loops", "terminator"]],
+  ["youtube", "Youtube", ["scott-pilgrim", "boombox", "70s-dance", "shocked"]],
+];
+
 export const catalogue = {
-  version: 1,
+  version: 2,
   hoggies: rarities.flatMap(({ rarity }) => versionOne[rarity].map(([hoggie, name]): CatalogueHoggie => ({ hoggie, name, rarity }))),
+  crests: versionTwoCrests.map(([crest, name, roster]): CatalogueCrest => ({ crest, name, roster })),
 } as const;
+
+export const firstVersionWithCrests = 2;
 
 export function rarityLabel(rarity: Rarity): string {
   return labels[rarity];
@@ -195,4 +257,12 @@ export function hoggiesOfRarity(rarity: Rarity): CatalogueHoggie[] {
 
 export function hoggieNamed(hoggie: string): CatalogueHoggie | undefined {
   return catalogue.hoggies.find((entry) => entry.hoggie === hoggie);
+}
+
+export function crestWith(hoggie: string): CatalogueCrest | undefined {
+  return catalogue.crests.find(({ roster }) => roster.includes(hoggie));
+}
+
+export function crestNamed(crest: string): CatalogueCrest | undefined {
+  return catalogue.crests.find((entry) => entry.crest === crest);
 }
