@@ -244,12 +244,12 @@ describe("#468: the Collection's team crests, each a set of hoggies", () => {
     return [...tile.querySelectorAll<HTMLElement>("[data-coin]")].map((coin) => coin.dataset.coin);
   }
 
-  it("lists all 54 crests in the answer's order in a Team crests section before the rarities, counting the collected ones", () => {
+  it("lists all 54 crests in the answer's order in a Team crests section after the hoggies, counting the collected ones", () => {
     showCollection(theCollection);
     const section = crestsSection();
     expect(section).toHaveTextContent("2 of 54 collected");
     expect([...section.querySelectorAll("[data-crest]")].map((tile) => tile.getAttribute("data-crest"))).toEqual(theCollection.crests!.map(({ crest }) => crest));
-    expect(section.compareDocumentPosition(raritySection("🟧 Legendary")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(raritySection("🟧 Legendary").compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(main()).getByRole("region", { name: "Your collection" })).toHaveTextContent("2 of 54 team crests collected");
   });
 

@@ -4,6 +4,7 @@ import { IconLeave } from "@posthog/icons";
 import { Button } from "@posthog/quill";
 import { AppLink, useNavigate } from "./AppLink";
 import { ReadyPill, ReadyPillFailure } from "./crates/ReadyPill";
+import { useMeasuredHudHeight } from "./hudHeight";
 import { coinsChipAttributes, hudAvatarAttributes, skillPointChipAttributes } from "./crates/RewardFlight";
 import { useCountUp } from "./countUp";
 import { useMoments } from "./crates/moments";
@@ -25,10 +26,11 @@ type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; readyElsewhere
 
 export function Frame({ member, ready = [], readyElsewhere = [], current, busy, revealing = false, notice, onSignOut, children }: FrameProps) {
   const palette = usePalette(member !== undefined && !revealing);
+  const hud = useMeasuredHudHeight();
   return (
     <>
       <div className="hud-root flex min-h-screen flex-col" inert={revealing || palette.open} data-revealing={revealing || undefined}>
-        <header className="sticky top-0 z-40 border-b bg-card/85 shadow-[0_1px_0_0_color-mix(in_oklab,var(--foreground)_4%,transparent)] backdrop-blur-md">
+        <header ref={hud} className="sticky top-0 z-40 border-b bg-card/85 shadow-[0_1px_0_0_color-mix(in_oklab,var(--foreground)_4%,transparent)] backdrop-blur-md">
           <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-3 px-4 max-lg:gap-y-1 max-lg:pt-2 max-sm:gap-x-2 md:px-6">
             <Wordmark />
             {member && <ScreenNav current={current} member={member} />}

@@ -650,6 +650,10 @@
     {
       "name": "avatar",
       "definition": "The hoggie a member picked from the hoggies they hold to stand for them where their face shows: App Home's profile, their profile card and the website's reads of their profile. A member has one or none, can change it or go back to none for free, and without one keeps their picture."
+    },
+    {
+      "name": "teammate",
+      "definition": "Another member of the same workspace, seen from one member: someone they can thank or be thanked by. The website shows a teammate by name and face while the directory has them, and as A teammate with the nameless face once it no longer names them. A teammate is a person, never a hoggie."
     }
   ],
   "retired": [
