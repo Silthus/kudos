@@ -5,6 +5,7 @@ import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { republish } from "../feedback/homes";
 import { tellTiersEarned } from "../feedback/tierNotices";
 import { isOpened } from "../feedback/unlockFilter";
+import type { AwardWithId } from "../engine/awards";
 import { tierItemOf, type CatalogueItem } from "../store/catalogue";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { countAward, countingOf, countOf } from "./counting";
@@ -56,7 +57,7 @@ export const countKudosGiven = internalMutation({
   },
 });
 
-type Page = { awards: KudosGivenEvent["awards"]; shown: boolean; untold: Untold };
+type Page = { awards: AwardWithId[]; shown: boolean; untold: Untold };
 
 async function countPage(ctx: MutationCtx, event: KudosGivenEvent, live: LadderId[], { awards, shown, untold }: Page): Promise<Counted> {
   const counted: Counted = new Map(untold.map(({ member, earned }) => [member, earned]));
@@ -70,7 +71,7 @@ async function countPage(ctx: MutationCtx, event: KudosGivenEvent, live: LadderI
   return counted;
 }
 
-function membersCountedIn(live: LadderId[], awards: KudosGivenEvent["awards"]): Set<MemberId> {
+function membersCountedIn(live: LadderId[], awards: AwardWithId[]): Set<MemberId> {
   return new Set(live.flatMap((ladder) => awards.map((award) => countingOf(ladder, award).member)));
 }
 
