@@ -3,7 +3,7 @@ import type {
   AchievementEarnedEvent,
   AttemptFailedEvent,
   HoggieDroppedEvent,
-  StarGivenEvent,
+  HugGivenEvent,
   GroupQuestDrawnEvent,
   JourneyStepActivatedEvent,
   KudosGivenEvent,
@@ -50,8 +50,8 @@ export type ProductEvent = {
     | "journey step activated"
     | "perk bought"
     | "hoggie dropped"
-    | "star given"
-    | "stars recap sent"
+    | "hug given"
+    | "hugs recap sent"
     | "achievement earned"
     | "app home opened"
     | "command used"
@@ -75,7 +75,7 @@ export type UsageFact =
   | { kind: "primaryGroupPicked"; workspace: string; member: MemberId; surface: PickSurface; at: number }
   | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; at: number }
   | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number }
-  | { kind: "starsRecapSent"; workspace: string; member: MemberId; given: number; received: number; xp: number; at: number };
+  | { kind: "hugsRecapSent"; workspace: string; member: MemberId; given: number; received: number; xp: number; at: number };
 
 export type PickSurface = "welcome" | "settings" | "website";
 
@@ -222,8 +222,8 @@ export function projectHoggieDropped(event: HoggieDroppedEvent): ProductEvent {
   return { event: "hoggie dropped", subject: { member: event.member }, at: event.at, properties: { rarity: event.rarity, is_new: event.copy === 1, crate_kind: crateKindOf(event.crate) } };
 }
 
-export function projectStarGiven(event: StarGivenEvent): ProductEvent {
-  return { event: "star given", subject: { member: event.giver }, at: event.at, properties: { on_kudos: event.onKudos } };
+export function projectHugGiven(event: HugGivenEvent): ProductEvent {
+  return { event: "hug given", subject: { member: event.giver }, at: event.at, properties: { on_kudos: event.onKudos } };
 }
 
 export function projectPerkBought(event: PerkBoughtEvent): ProductEvent {
@@ -251,7 +251,7 @@ export function projectUsage(fact: UsageFact): ProductEvent {
       return { event: "message setting changed", subject, at: fact.at, properties: { kind: fact.setting, on: fact.on, ...(fact.place !== undefined && { place: fact.place }) } };
     case "profileCardViewed":
       return { event: "profile card viewed", subject, at: fact.at, properties: { own: fact.own, surface: fact.surface } };
-    case "starsRecapSent":
-      return { event: "stars recap sent", subject, at: fact.at, properties: { stars_given: fact.given, stars_received: fact.received, xp: fact.xp } };
+    case "hugsRecapSent":
+      return { event: "hugs recap sent", subject, at: fact.at, properties: { hugs_given: fact.given, hugs_received: fact.received, xp: fact.xp } };
   }
 }

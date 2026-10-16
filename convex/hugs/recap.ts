@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { reportStarsRecapSent } from "../analytics/isolatedUsage";
+import { reportHugsRecapSent } from "../analytics/isolatedUsage";
 import { wallClockAt, type DayKey } from "../engine/allowance";
 import { threadRootOf } from "../engine/engine";
 import { settingsFooterFor, type SettingsFooter } from "../feedback/settingsFooter";
@@ -13,8 +13,8 @@ import { convexActionTimeLimitMs } from "../slack/strandedJobs";
 import { chatUserOf, isMember, timeZoneOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { workspaceUrlOf } from "../workspace/url";
-import { starsOnAndExposedFor } from "./flag";
-import type { MostStarred, StarWeek } from "./weeks";
+import { hugsOnAndExposedFor } from "./flag";
+import type { MostHugged, HugWeek } from "./weeks";
 
 export type RecapLine = string | { text: string; link: { url: string; label: string } };
 
@@ -24,26 +24,26 @@ const recapsPerSweep = 100;
 const recapHour = 9;
 const triesAtMost = 3;
 const dayMs = 24 * 60 * 60 * 1000;
-const nudge = "Stars are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
+const nudge = "Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
 
 export const sweep = internalMutation({
   args: {},
   handler: async (ctx): Promise<void> => {
     const waiting = await ctx.db
-      .query("starWeeks")
+      .query("hugWeeks")
       .withIndex("by_recap_due", (q) => q.eq("recap", "waiting"))
       .take(recapsPerSweep);
     for (const week of waiting) await scheduleRecap(ctx, week);
     const stranded = await ctx.db
-      .query("starWeeks")
+      .query("hugWeeks")
       .withIndex("by_recap_due", (q) => q.eq("recap", "scheduled").gte("dueAt", 0).lt("dueAt", Date.now() - convexActionTimeLimitMs))
       .take(recapsPerSweep);
     for (const week of stranded) await tryAgainAfterConvexStopped(ctx, week);
-    if (waiting.length === recapsPerSweep || stranded.length === recapsPerSweep) await ctx.scheduler.runAfter(0, internal.stars.recap.sweep, {});
+    if (waiting.length === recapsPerSweep || stranded.length === recapsPerSweep) await ctx.scheduler.runAfter(0, internal.hugs.recap.sweep, {});
   },
 });
 
-const tryArgs = { week: v.id("starWeeks"), attempt: v.number() };
+const tryArgs = { week: v.id("hugWeeks"), attempt: v.number() };
 
 export const startRecap = internalMutation({
   args: tryArgs,
@@ -70,7 +70,7 @@ export const recapLater = internalMutation({
   handler: async (ctx, { week, attempt, retry }) => {
     if ((await awaitingTry(ctx, week, attempt)) === null) return;
     await ctx.db.patch(week, { tries: retry.attempt - 1, dueAt: retry.at });
-    await ctx.scheduler.runAt(retry.at, internal.slack.starsRecap.sendStarsRecap, { week, attempt: retry.attempt });
+    await ctx.scheduler.runAt(retry.at, internal.slack.hugsRecap.sendHugsRecap, { week, attempt: retry.attempt });
   },
 });
 
@@ -80,59 +80,64 @@ export const recapEnded = internalMutation({
     const row = await awaitingTry(ctx, week, attempt);
     if (row === null) return;
     await ctx.db.patch(week, { recap: sent ? "sent" : "failed" });
-    if (sent) await reportStarsRecapSent(ctx, { workspace: row.workspace, member: row.member, given: row.given, received: row.received, xp: row.givenXp + row.receivedXp, at: Date.now() });
+    if (sent) await reportHugsRecapSent(ctx, { workspace: row.workspace, member: row.member, given: row.given, received: row.received, xp: row.givenXp + row.receivedXp, at: Date.now() });
   },
 });
 
-async function scheduleRecap(ctx: MutationCtx, week: StarWeek) {
+async function scheduleRecap(ctx: MutationCtx, week: HugWeek) {
   await scheduleTry(ctx, week, Math.max(await recapDueAtOf(ctx, week), Date.now()), 1);
 }
 
-async function scheduleTry(ctx: MutationCtx, week: StarWeek, dueAt: number, attempt: number) {
+async function scheduleTry(ctx: MutationCtx, week: HugWeek, dueAt: number, attempt: number) {
   await ctx.db.patch(week._id, { recap: "scheduled", dueAt });
-  await ctx.scheduler.runAt(dueAt, internal.slack.starsRecap.sendStarsRecap, { week: week._id, attempt });
+  await ctx.scheduler.runAt(dueAt, internal.slack.hugsRecap.sendHugsRecap, { week: week._id, attempt });
 }
 
-async function recapDueAtOf(ctx: QueryCtx, week: StarWeek) {
+async function recapDueAtOf(ctx: QueryCtx, week: HugWeek) {
   return wallClockAt(mondayAfter(week.week), recapHour, (await timeZoneOf(ctx, week.member)) ?? undefined);
 }
 
-async function tryAgainAfterConvexStopped(ctx: MutationCtx, week: StarWeek) {
+async function tryAgainAfterConvexStopped(ctx: MutationCtx, week: HugWeek) {
   if (week.tries >= triesAtMost) return ctx.db.patch(week._id, { recap: "failed" });
   await ctx.db.patch(week._id, { dueAt: Date.now() });
-  await ctx.scheduler.runAfter(0, internal.slack.starsRecap.sendStarsRecap, { week: week._id, attempt: week.tries + 1 });
+  await ctx.scheduler.runAfter(0, internal.slack.hugsRecap.sendHugsRecap, { week: week._id, attempt: week.tries + 1 });
 }
 
-async function awaitingTry(ctx: QueryCtx, week: Id<"starWeeks">, tries: number): Promise<StarWeek | null> {
+async function awaitingTry(ctx: QueryCtx, week: Id<"hugWeeks">, tries: number): Promise<HugWeek | null> {
   const row = await ctx.db.get(week);
   return row?.recap === "scheduled" && row.tries === tries ? row : null;
 }
 
 async function recapWantedBy(ctx: MutationCtx, member: MemberId) {
   if (!(await isMember(ctx, member)) || !(await xpLevelsOnFor(ctx, member))) return false;
-  return (await placeOf(ctx, member, "stars-recap")) === "dm" && (await starsOnAndExposedFor(ctx, member));
+  return (await placeOf(ctx, member, "hugs-recap")) === "dm" && (await hugsOnAndExposedFor(ctx, member));
 }
 
-async function recapLinesOf(ctx: QueryCtx, week: StarWeek): Promise<RecapLine[]> {
+async function recapLinesOf(ctx: QueryCtx, week: HugWeek): Promise<RecapLine[]> {
   const { kudosEmoji } = await settingsOf(ctx, week.workspace);
+  const reacted = `reacted :${kudosEmoji}:`;
   const url = await workspaceUrlOf(ctx, week.workspace);
-  const mostStarred = week.mostStarred === undefined || url === null ? [] : [await mostStarredLineOf(ctx, url, week.workspace, week.mostStarred)];
-  return [`:${kudosEmoji}: Your week in stars`, countsLineOf(week), ...mostStarred, nudge];
+  const mostHugged = week.mostHugged === undefined || url === null ? [] : [await mostHuggedLineOf(ctx, url, reacted, week.workspace, week.mostHugged)];
+  return [`:${kudosEmoji}: Your week in hugs`, ...countLinesOf(week, reacted), ...mostHugged, nudge];
 }
 
-function countsLineOf({ given, givenXp, received, receivedXp }: StarWeek) {
-  if (received === 0) return `You gave ${starsOf(given)} (+${givenXp} XP).`;
-  if (given === 0) return `You got ${starsOf(received)} (+${receivedXp} XP).`;
-  return `You gave ${starsOf(given)} (+${givenXp} XP) and got ${received} (+${receivedXp} XP).`;
+function countLinesOf({ given, givenXp, received, receivedXp }: HugWeek, reacted: string): string[] {
+  const givenLine = given === 0 ? [] : [`You ${reacted} and gave ${hugsOf(given)} (+${givenXp} XP).`];
+  const receivedLine = received === 0 ? [] : [`Teammates ${reacted} on your messages and gave you ${hugsOf(received)} (+${receivedXp} XP).`];
+  return [...givenLine, ...receivedLine];
 }
 
-async function mostStarredLineOf(ctx: QueryCtx, url: string, workspace: string, { conversation, message, stars }: MostStarred): Promise<RecapLine> {
+async function mostHuggedLineOf(ctx: QueryCtx, url: string, reacted: string, workspace: string, { conversation, message, hugs }: MostHugged): Promise<RecapLine> {
   const ref = { workspace, conversation, message };
-  return { text: `Your most-starred message got ${starsOf(stars)}: `, link: { url: permalinkOf(url, ref, await threadRootOf(ctx, ref)), label: "open it in Slack" } };
+  return { text: `${teammatesOf(hugs)} ${reacted} on your most-hugged message: `, link: { url: permalinkOf(url, ref, await threadRootOf(ctx, ref)), label: "open it in Slack" } };
 }
 
-function starsOf(count: number) {
-  return count === 1 ? "1 star" : `${count} stars`;
+function teammatesOf(count: number) {
+  return count === 1 ? "1 teammate" : `${count} teammates`;
+}
+
+function hugsOf(count: number) {
+  return count === 1 ? "1 hug" : `${count} hugs`;
 }
 
 function mondayAfter(week: DayKey): DayKey {

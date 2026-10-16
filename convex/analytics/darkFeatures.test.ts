@@ -232,7 +232,7 @@ async function walkOverMembersThereBeforeTheLaunch() {
 
 async function walkThroughTheSkillTreeAndTheBook() {
   start("on", "flags key set");
-  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "skill-tree", "achievements", "stars"].map(onForEveryone));
+  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "skill-tree", "achievements", "hugs"].map(onForEveryone));
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
   await journeyShippedBeforeAnyoneJoined(t);
 
@@ -240,10 +240,10 @@ async function walkThroughTheSkillTreeAndTheBook() {
   await giveKudos(t, "U_ALICE", 1);
   await skillTreeOpenAtLevelFive(t, "U_ALICE");
   await act(t, "U_ALICE", { type: "buyPerk", perk: "spark" });
-  await star(t, "U_BOB", "U_ALICE");
+  await hug(t, "U_BOB", "U_ALICE");
 
   expect(eventsNamed("perk bought")).toHaveLength(1);
-  expect(eventsNamed("star given")).toHaveLength(1);
+  expect(eventsNamed("hug given")).toHaveLength(1);
   expect(eventsNamed("achievement earned")).not.toHaveLength(0);
   return { t };
 }
@@ -391,7 +391,7 @@ async function giveKudos(t: Backend, giver: string, kudos: number) {
   return response;
 }
 
-async function star(t: Backend, giver: string, author: string) {
+async function hug(t: Backend, giver: string, author: string) {
   nextStep();
   const response = await t.fetch("/slack/events", await signedRequest(reactionEvent({ user: giver, itemUser: author, ts: `${Math.floor(Date.now() / 1000) - 60}.000100` })));
   await settled(t);

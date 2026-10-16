@@ -19,9 +19,9 @@ const mondayNineInKolkata = Date.parse("2026-10-19T03:30:00Z");
 const mondayNineInNewYork = Date.parse("2026-10-19T13:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
 const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.";
-const nudge = "Stars are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
-const recapRow = "section: *Weekly stars recap* — What your stars gave and got last week, on Monday morning. [select: As a DM]";
-const sendStarsRecap = "slack/starsRecap:sendStarsRecap";
+const nudge = "Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
+const recapRow = "section: *Weekly hugs recap* — The hugs your emoji reactions gave and got last week, with their XP, on Monday morning. [select: As a DM]";
+const sendHugsRecap = "slack/hugsRecap:sendHugsRecap";
 
 const everyone = ["U_ALICE", "U_BOB", "U_CAROL", "U_DANA", "U_ERIN"];
 
@@ -35,7 +35,7 @@ beforeEach(() => {
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
   slack = new FakeSlack();
   for (const user of everyone) slack.withMember(user, { profile: { email: emailOf(user) } });
-  postHog = flagsOnForEveryone(slack.fetch, "stars", "xp-levels", "message-settings");
+  postHog = flagsOnForEveryone(slack.fetch, "hugs", "xp-levels", "message-settings");
 });
 
 afterEach(() => {
@@ -44,16 +44,16 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("SR12: at Monday 09:00 in their time zone, a member who gave or received stars last week gets one recap DM", () => {
-  test("each member with stars gets exactly their week in stars at 09:00, and nobody else gets a recap", async () => {
+describe("SR12: at Monday 09:00 in their time zone, a member who gave or received hugs last week gets one recap DM", () => {
+  test("each member with hugs gets exactly their week in hugs at 09:00, and nobody else gets a recap", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
-    await star(t, "U_CAROL", "U_ALICE", messageOf(1));
-    await star(t, "U_DANA", "U_ALICE", messageOf(2));
-    await star(t, "U_ALICE", "U_BOB", messageOf(3));
-    await star(t, "U_BOB", "U_ERIN", messageOf(4));
-    await star(t, "U_CAROL", "U_ERIN", messageOf(4));
-    await star(t, "U_DANA", "U_ERIN", messageOf(5));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_CAROL", "U_ALICE", messageOf(1));
+    await hug(t, "U_DANA", "U_ALICE", messageOf(2));
+    await hug(t, "U_ALICE", "U_BOB", messageOf(3));
+    await hug(t, "U_BOB", "U_ERIN", messageOf(4));
+    await hug(t, "U_CAROL", "U_ERIN", messageOf(4));
+    await hug(t, "U_DANA", "U_ERIN", messageOf(5));
 
     await sweepAt(t, tuesday + hourMs);
     await settleUpTo(t, mondayNineInUtc - 1);
@@ -63,19 +63,19 @@ describe("SR12: at Monday 09:00 in their time zone, a member who gave or receive
     expect(recaps()).toEqual([
       {
         channel: "U_ALICE",
-        text: [":taco: Your week in stars", "You gave 1 star (+1 XP) and got 3 (+3 XP).", `Your most-starred message got 2 stars: <${permalinkOf(messageOf(1))}|open it in Slack>`, nudge, footer].join("\n"),
+        text: [":taco: Your week in hugs", "You reacted :taco: and gave 1 hug (+1 XP).", "Teammates reacted :taco: on your messages and gave you 3 hugs (+3 XP).", `2 teammates reacted :taco: on your most-hugged message: <${permalinkOf(messageOf(1))}|open it in Slack>`, nudge, footer].join("\n"),
       },
-      { channel: "U_BOB", text: [":taco: Your week in stars", "You gave 2 stars (+2 XP) and got 1 (+1 XP).", `Your most-starred message got 1 star: <${permalinkOf(messageOf(3))}|open it in Slack>`, nudge, footer].join("\n") },
-      { channel: "U_CAROL", text: [":taco: Your week in stars", "You gave 2 stars (+2 XP).", nudge, footer].join("\n") },
-      { channel: "U_DANA", text: [":taco: Your week in stars", "You gave 2 stars (+2 XP).", nudge, footer].join("\n") },
-      { channel: "U_ERIN", text: [":taco: Your week in stars", "You got 3 stars (+3 XP).", `Your most-starred message got 2 stars: <${permalinkOf(messageOf(4))}|open it in Slack>`, nudge, footer].join("\n") },
+      { channel: "U_BOB", text: [":taco: Your week in hugs", "You reacted :taco: and gave 2 hugs (+2 XP).", "Teammates reacted :taco: on your messages and gave you 1 hug (+1 XP).", `1 teammate reacted :taco: on your most-hugged message: <${permalinkOf(messageOf(3))}|open it in Slack>`, nudge, footer].join("\n") },
+      { channel: "U_CAROL", text: [":taco: Your week in hugs", "You reacted :taco: and gave 2 hugs (+2 XP).", nudge, footer].join("\n") },
+      { channel: "U_DANA", text: [":taco: Your week in hugs", "You reacted :taco: and gave 2 hugs (+2 XP).", nudge, footer].join("\n") },
+      { channel: "U_ERIN", text: [":taco: Your week in hugs", "Teammates reacted :taco: on your messages and gave you 3 hugs (+3 XP).", `2 teammates reacted :taco: on your most-hugged message: <${permalinkOf(messageOf(4))}|open it in Slack>`, nudge, footer].join("\n") },
     ]);
     expect(new Set(recapTimes())).toEqual(new Set([mondayNineInUtc]));
   });
 
-  test("a member who gave and got no star last week gets no recap, and a week without stars sends nothing the next Monday", async () => {
+  test("a member who gave and got no hug last week gets no recap, and a week without hugs sends nothing the next Monday", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
 
     await sweepAt(t, tuesday + hourMs);
     await sweepAt(t, mondayNineInUtc + hourMs);
@@ -84,29 +84,29 @@ describe("SR12: at Monday 09:00 in their time zone, a member who gave or receive
     expect(recaps().map(({ channel }) => channel)).toEqual(["U_ALICE", "U_BOB"]);
   });
 
-  test("the most-starred line is left out while the workspace URL isn't known", async () => {
+  test("the most-hugged line is left out while the workspace URL isn't known", async () => {
     const t = await workspace({ urlKnown: false });
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
 
     await recapsSentOnMonday(t);
 
-    expect(recapTo("U_ALICE")).toEqual([":taco: Your week in stars", "You got 1 star (+1 XP).", nudge, footer].join("\n"));
+    expect(recapTo("U_ALICE")).toEqual([":taco: Your week in hugs", "Teammates reacted :taco: on your messages and gave you 1 hug (+1 XP).", nudge, footer].join("\n"));
   });
 
   test("without message-settings the recap carries no settings footer", async () => {
     const t = await workspace();
-    await flagsFromPostHog(t, postHog, onForEveryone("stars"), onForEveryone("xp-levels"));
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await flagsFromPostHog(t, postHog, onForEveryone("hugs"), onForEveryone("xp-levels"));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
 
     await recapsSentOnMonday(t);
 
-    expect(recapTo("U_ALICE")).toEqual([":taco: Your week in stars", "You got 1 star (+1 XP).", `Your most-starred message got 1 star: <${permalinkOf(messageOf(1))}|open it in Slack>`, nudge].join("\n"));
+    expect(recapTo("U_ALICE")).toEqual([":taco: Your week in hugs", "Teammates reacted :taco: on your messages and gave you 1 hug (+1 XP).", `1 teammate reacted :taco: on your most-hugged message: <${permalinkOf(messageOf(1))}|open it in Slack>`, nudge].join("\n"));
   });
 
   test("in a half-hour time zone the recap arrives at Monday 09:00 there", async () => {
     slack.withMember("U_ALICE", { tz: "Asia/Kolkata", profile: { email: emailOf("U_ALICE") } });
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
 
     await recapsSentOnMonday(t);
 
@@ -115,7 +115,7 @@ describe("SR12: at Monday 09:00 in their time zone, a member who gave or receive
   });
   test("a member whose time zone moves west after the sweep gets the recap at 09:00 in their new zone", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
     await sweepAt(t, tuesday + hourMs);
 
     await memberChanged(t, "user_change", { id: "U_ALICE", tz: "America/New_York", profile: { email: emailOf("U_ALICE") } });
@@ -126,8 +126,8 @@ describe("SR12: at Monday 09:00 in their time zone, a member who gave or receive
   });
 });
 
-describe("SR12 SR14: the most-starred message is the one that got the member the most stars in their week", () => {
-  test("a message starred 9 times on Sunday and once on Monday loses Monday's week to one starred twice on Monday", async () => {
+describe("SR12 SR14: the most-hugged message is the one that got the member the most hugs in their week", () => {
+  test("a message hugged 9 times on Sunday and once on Monday loses Monday's week to one hugged twice on Monday", async () => {
     const sunday = Date.parse("2026-10-11T20:00:00Z");
     const monday = Date.parse("2026-10-12T10:00:00Z");
     const givers = Array.from({ length: 10 }, (_, index) => `U_GIVER${index}`);
@@ -135,57 +135,57 @@ describe("SR12 SR14: the most-starred message is the one that got the member the
     vi.setSystemTime(sunday);
     const t = await workspace();
     const sundaysMessage = slackTs(sunday - hourMs);
-    for (const giver of givers.slice(0, 9)) await star(t, giver, "U_ALICE", sundaysMessage);
+    for (const giver of givers.slice(0, 9)) await hug(t, giver, "U_ALICE", sundaysMessage);
 
     await settleUpTo(t, monday);
     const mondaysMessage = slackTs(monday - hourMs);
-    await star(t, givers[9]!, "U_ALICE", sundaysMessage);
-    await star(t, "U_BOB", "U_ALICE", mondaysMessage);
-    await star(t, "U_CAROL", "U_ALICE", mondaysMessage);
+    await hug(t, givers[9]!, "U_ALICE", sundaysMessage);
+    await hug(t, "U_BOB", "U_ALICE", mondaysMessage);
+    await hug(t, "U_CAROL", "U_ALICE", mondaysMessage);
     await sweepAt(t, monday + hourMs);
     await settleUpTo(t, mondayNineInUtc);
 
     expect(recapsTo("U_ALICE").map(({ text }) => text.split("\n").slice(1, 3))).toEqual([
-      ["You got 9 stars (+9 XP).", `Your most-starred message got 9 stars: <${permalinkOf(sundaysMessage)}|open it in Slack>`],
-      ["You got 3 stars (+3 XP).", `Your most-starred message got 2 stars: <${permalinkOf(mondaysMessage)}|open it in Slack>`],
+      ["Teammates reacted :taco: on your messages and gave you 9 hugs (+9 XP).", `9 teammates reacted :taco: on your most-hugged message: <${permalinkOf(sundaysMessage)}|open it in Slack>`],
+      ["Teammates reacted :taco: on your messages and gave you 3 hugs (+3 XP).", `2 teammates reacted :taco: on your most-hugged message: <${permalinkOf(mondaysMessage)}|open it in Slack>`],
     ]);
   });
 
-  test("on a tie, the message whose last star came latest", async () => {
+  test("on a tie, the message whose last hug came latest", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
-    await star(t, "U_BOB", "U_ALICE", messageOf(2));
-    await star(t, "U_CAROL", "U_ALICE", messageOf(2));
-    await star(t, "U_CAROL", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(2));
+    await hug(t, "U_CAROL", "U_ALICE", messageOf(2));
+    await hug(t, "U_CAROL", "U_ALICE", messageOf(1));
 
     await recapsSentOnMonday(t);
 
-    expect(recapTo("U_ALICE")).toContain(`Your most-starred message got 2 stars: <${permalinkOf(messageOf(1))}|open it in Slack>`);
+    expect(recapTo("U_ALICE")).toContain(`2 teammates reacted :taco: on your most-hugged message: <${permalinkOf(messageOf(1))}|open it in Slack>`);
   });
 
-  test("a most-starred kudos posted as a thread reply links to the reply inside its thread, as the timeline does", async () => {
+  test("a most-hugged kudos posted as a thread reply links to the reply inside its thread, as the timeline does", async () => {
     const t = await workspace();
     const threadRoot = messageOf(1);
     const reply = messageOf(2);
     await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention("U_ALICE"), emoji("taco"))], { user: "U_BOB", ts: reply, threadTs: threadRoot })));
     await settleUpTo(t, Date.now() + minuteMs);
-    await star(t, "U_CAROL", "U_BOB", reply);
+    await hug(t, "U_CAROL", "U_BOB", reply);
 
     await recapsSentOnMonday(t);
 
-    expect(recapTo("U_ALICE")).toContain(`Your most-starred message got 1 star: <${permalinkOf(reply)}?thread_ts=${threadRoot}&cid=C1|open it in Slack>`);
+    expect(recapTo("U_ALICE")).toContain(`1 teammate reacted :taco: on your most-hugged message: <${permalinkOf(reply)}?thread_ts=${threadRoot}&cid=C1|open it in Slack>`);
   });
 });
 
 describe("SR12 SR14: one recap per member and week", () => {
   test("a week the sweep first sees after its Monday 09:00 schedules one recap job, and sends one recap", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
     await settleUpTo(t, mondayNineInUtc + hourMs);
 
     await t.mutation(recapSweep(), {});
 
-    expect(await pendingJobs(t, sendStarsRecap)).toBe(2);
+    expect(await pendingJobs(t, sendHugsRecap)).toBe(2);
     await settleUpTo(t, Date.now() + minuteMs);
     expect(recapsTo("U_ALICE")).toHaveLength(1);
     expect(recapsTo("U_BOB")).toHaveLength(1);
@@ -193,7 +193,7 @@ describe("SR12 SR14: one recap per member and week", () => {
 
   test("a redelivered sweep and two sweeps in the same hour schedule one recap", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
 
     await sweepAt(t, tuesday + hourMs);
     await sweepAt(t, tuesday + hourMs);
@@ -208,7 +208,7 @@ describe("SR12 SR14: one recap per member and week", () => {
 
   test("a recap Slack refused once is sent again, once", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
     await sweepAt(t, tuesday + hourMs);
     slack.answering("chat.postMessage", httpStatus(500));
 
@@ -221,7 +221,7 @@ describe("SR12 SR14: one recap per member and week", () => {
 
   test("a recap is tried at most 3 times", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
     await sweepAt(t, tuesday + hourMs);
     slack.answering("chat.postMessage", ...Array.from({ length: 6 }, () => httpStatus(500)));
 
@@ -235,9 +235,9 @@ describe("SR12 SR14: one recap per member and week", () => {
 
   test("a recap whose job Convex stopped is sent by the next sweep, once", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
     await sweepAt(t, tuesday + hourMs);
-    await convexStops(t, sendStarsRecap);
+    await convexStops(t, sendHugsRecap);
 
     await settleUpTo(t, mondayNineInUtc + hourMs);
     expect(recaps()).toEqual([]);
@@ -245,12 +245,12 @@ describe("SR12 SR14: one recap per member and week", () => {
     await sweepAt(t, mondayNineInUtc + 2 * hourMs);
 
     expect(recaps().map(({ channel }) => channel)).toEqual(["U_ALICE", "U_BOB"]);
-    expect(await pendingJobs(t, sendStarsRecap)).toBe(0);
+    expect(await pendingJobs(t, sendHugsRecap)).toBe(0);
   });
 
   test("a recap job Convex runs late, after the sweep started it again, sends nothing more", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
     await sweepAt(t, tuesday + hourMs);
     await settleUpTo(t, mondayNineInUtc - 1);
 
@@ -263,7 +263,7 @@ describe("SR12 SR14: one recap per member and week", () => {
 
   test("a recap whose try Convex stopped after it started is tried at most 3 times in all", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
     await sweepAt(t, tuesday + hourMs);
     await settleUpTo(t, mondayNineInUtc - 1);
     vi.setSystemTime(mondayNineInUtc);
@@ -278,35 +278,35 @@ describe("SR12 SR14: one recap per member and week", () => {
     await sweepAt(t, mondayNineInUtc + 4 * hourMs);
 
     expect(recaps()).toEqual([]);
-    expect(await pendingJobs(t, sendStarsRecap)).toBe(0);
+    expect(await pendingJobs(t, sendHugsRecap)).toBe(0);
   });
 
   test("the sweep schedules more recaps than one mutation may schedule, within Convex's limits", { timeout: 120_000 }, async () => {
     const t = await workspace({ transactionLimits: true });
-    await starWeeksSeeded(t, 1_100);
+    await hugWeeksSeeded(t, 1_100);
 
     await sweepAt(t, tuesday + hourMs);
 
-    expect(await pendingJobs(t, sendStarsRecap)).toBe(1_100);
+    expect(await pendingJobs(t, sendHugsRecap)).toBe(1_100);
   });
 });
 
 describe("SR12 SR13 SR21: the recap goes only while the member wants it", () => {
-  test("a member whose stars-recap place is none gets no recap, and the giver still gets theirs", async () => {
+  test("a member whose hugs-recap place is none gets no recap, and the giver still gets theirs", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
     await openSettings(t, "U_ALICE");
 
-    await pick(t, "U_ALICE", "Weekly stars recap", "None");
+    await pick(t, "U_ALICE", "Weekly hugs recap", "None");
     await recapsSentOnMonday(t);
 
     expect(recaps().map(({ channel }) => channel)).toEqual(["U_BOB"]);
   });
 
-  test("a member paid by a flag-on giver while their own stars is off gets no recap", async () => {
+  test("a member paid by a flag-on giver while their own hugs is off gets no recap", async () => {
     const t = await workspace();
-    await flagsFromPostHog(t, postHog, onForEmails("stars", emailOf("U_BOB")), onForEveryone("xp-levels"), onForEveryone("message-settings"));
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await flagsFromPostHog(t, postHog, onForEmails("hugs", emailOf("U_BOB")), onForEveryone("xp-levels"), onForEveryone("message-settings"));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
 
     await recapsSentOnMonday(t);
 
@@ -316,31 +316,31 @@ describe("SR12 SR13 SR21: the recap goes only while the member wants it", () => 
 
   test("while xp-levels is off for the member nobody gets a recap", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
-    await flagsFromPostHog(t, postHog, onForEveryone("stars"), onForEveryone("message-settings"));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
+    await flagsFromPostHog(t, postHog, onForEveryone("hugs"), onForEveryone("message-settings"));
 
     await recapsSentOnMonday(t);
 
     expect(recaps()).toEqual([]);
   });
 
-  test("SR13: the Weekly stars recap row shows in the Settings tab only while stars is on for the member, as a DM or none", async () => {
+  test("SR13: the Weekly hugs recap row shows in the Settings tab only while hugs is on for the member, as a DM or none", async () => {
     const t = await workspace();
-    await flagsFromPostHog(t, postHog, onForEmails("stars", emailOf("U_BOB")), onForEveryone("xp-levels"), onForEveryone("message-settings"));
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await flagsFromPostHog(t, postHog, onForEmails("hugs", emailOf("U_BOB")), onForEveryone("xp-levels"), onForEveryone("message-settings"));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
 
     await openSettings(t, "U_ALICE");
     await openSettings(t, "U_BOB");
 
     expect(publishedHome(slack, "U_ALICE")).not.toContain(recapRow);
     expect(publishedHome(slack, "U_BOB")).toContain(recapRow);
-    expect(placesOfferedTo("U_BOB", "Weekly stars recap")).toEqual(["As a DM", "None"]);
+    expect(placesOfferedTo("U_BOB", "Weekly hugs recap")).toEqual(["As a DM", "None"]);
   });
 
-  test("SR13: the notification switches never write the stars recap's place", async () => {
+  test("SR13: the notification switches never write the hugs recap's place", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
-    await flagsFromPostHog(t, postHog, onForEveryone("stars"), onForEveryone("xp-levels"));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
+    await flagsFromPostHog(t, postHog, onForEveryone("hugs"), onForEveryone("xp-levels"));
     await openSettings(t, "U_ALICE");
 
     await click(t, "U_ALICE", "Turn off DMs");
@@ -350,20 +350,20 @@ describe("SR12 SR13 SR21: the recap goes only while the member wants it", () => 
   });
 });
 
-describe("SR16: stars recap sent reaches PostHog", () => {
-  test("with the stars given and received and their XP, and nothing else", async () => {
+describe("SR16: hugs recap sent reaches PostHog", () => {
+  test("with the hugs given and received and their XP, and nothing else", async () => {
     const t = await workspace();
-    await star(t, "U_BOB", "U_ALICE", messageOf(1));
-    await star(t, "U_CAROL", "U_ALICE", messageOf(1));
-    await star(t, "U_ALICE", "U_BOB", messageOf(2));
+    await hug(t, "U_BOB", "U_ALICE", messageOf(1));
+    await hug(t, "U_CAROL", "U_ALICE", messageOf(1));
+    await hug(t, "U_ALICE", "U_BOB", messageOf(2));
 
     await recapsSentOnMonday(t);
 
     const shared = { environment: "sandbox", workspace_key: expect.any(String), taxonomy_version: expect.any(Number) };
     expect(recapsSent().map(({ properties }) => properties)).toEqual([
-      { ...shared, stars_given: 1, stars_received: 2, xp: 3 },
-      { ...shared, stars_given: 1, stars_received: 1, xp: 2 },
-      { ...shared, stars_given: 1, stars_received: 0, xp: 1 },
+      { ...shared, hugs_given: 1, hugs_received: 2, xp: 3 },
+      { ...shared, hugs_given: 1, hugs_received: 1, xp: 2 },
+      { ...shared, hugs_given: 1, hugs_received: 0, xp: 1 },
     ]);
     expect(JSON.stringify(recapsSent())).not.toMatch(new RegExp(`U_ALICE|U_BOB|U_CAROL|C1|${messageOf(1).split(".")[0]}`));
   });
@@ -376,16 +376,16 @@ async function workspace({ transactionLimits = false, urlKnown = true } = {}) {
   return flagsLoaded(t);
 }
 
-async function star(t: Backend, giver: string, author: string, message: string) {
+async function hug(t: Backend, giver: string, author: string, message: string) {
   await react(t, { user: giver, itemUser: author, ts: message });
   await settleUpTo(t, Date.now() + minuteMs);
 }
 
-async function starWeeksSeeded(t: Backend, members: number) {
+async function hugWeeksSeeded(t: Backend, members: number) {
   await t.run(async (ctx) => {
     for (let index = 0; index < members; index += 1) {
       const member = await ctx.db.insert("members", { workspace: "T1", user: `U_SEEDED${index}`, kind: "member" });
-      await ctx.db.insert("starWeeks", { workspace: "T1", member, week: "2026-10-12", given: 1, givenXp: 1, received: 0, receivedXp: 0, recap: "waiting", tries: 0 });
+      await ctx.db.insert("hugWeeks", { workspace: "T1", member, week: "2026-10-12", given: 1, givenXp: 1, received: 0, receivedXp: 0, recap: "waiting", tries: 0 });
     }
   });
 }
@@ -393,16 +393,16 @@ async function starWeeksSeeded(t: Backend, members: number) {
 async function convexStopsEachTryOnceStarted(t: Backend) {
   await t.run(async (ctx) => {
     for (const job of await ctx.db.system.query("_scheduled_functions").collect()) {
-      if (job.name !== sendStarsRecap || job.state.kind !== "pending") continue;
+      if (job.name !== sendHugsRecap || job.state.kind !== "pending") continue;
       await ctx.scheduler.cancel(job._id);
-      await ctx.runMutation(internal.stars.recap.startRecap, job.args[0]);
+      await ctx.runMutation(internal.hugs.recap.startRecap, job.args[0]);
     }
   });
 }
 
 function recapSweep() {
-  const job = crons.crons["schedule each member's weekly stars recap"];
-  if (job === undefined) throw new Error("no cron job schedules each member's weekly stars recap");
+  const job = crons.crons["schedule each member's weekly hugs recap"];
+  if (job === undefined) throw new Error("no cron job schedules each member's weekly hugs recap");
   expect(job.schedule).toEqual({ type: "interval", hours: 1 });
   return makeFunctionReference<"mutation">(job.name);
 }
@@ -451,7 +451,7 @@ function placesOfferedTo(user: string, row: string) {
 }
 
 function isRecap({ text }: { text?: unknown }) {
-  return String(text).startsWith(":taco: Your week in stars");
+  return String(text).startsWith(":taco: Your week in hugs");
 }
 
 function recaps() {
@@ -482,7 +482,7 @@ function recapTimesTo(user: string) {
 function recapsSent() {
   return postHog
     .productEvents()
-    .filter(({ event }) => event === "stars recap sent")
+    .filter(({ event }) => event === "hugs recap sent")
     .toSorted((first, second) => Number(second.properties.xp) - Number(first.properties.xp));
 }
 

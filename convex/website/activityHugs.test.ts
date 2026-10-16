@@ -45,8 +45,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function starsOn(on = true, ...flags: string[]) {
-  return switchWebsite(t, postHog, true, ...(flags.length > 0 ? flags : timeline), ...(on ? ["stars"] : []));
+function hugsOn(on = true, ...flags: string[]) {
+  return switchWebsite(t, postHog, true, ...(flags.length > 0 ? flags : timeline), ...(on ? ["hugs"] : []));
 }
 
 function personOf({ name }: Someone): Person {
@@ -89,100 +89,132 @@ async function kudos(giver: Someone, recipients: Someone[], ts = postedTs, chann
   await settle(t);
 }
 
-async function star(giver: Someone, author: Someone, options: ReactionOptions = {}) {
+async function hug(giver: Someone, author: Someone, options: ReactionOptions = {}) {
   const eventTs = `${Math.floor(Date.now() / 1000)}.000200`;
   await react(t, { user: giver.user, itemUser: author.user, ts: postedTs, eventTs, ...options });
   await settle(t);
   return Number(eventTs) * 1000;
 }
 
-describe("SR11: a star on the activity timeline", () => {
-  test("a star on a teammate's message answers starReceived to its author and starGiven to its giver, with no words", async () => {
-    await starsOn();
+describe("SR11: a hug on the activity timeline", () => {
+  test("a hug on a teammate's message answers hugReceived to its author and hugGiven to its giver, with no words", async () => {
+    await hugsOn();
     await kudos(carol, [dana], "1791971000.000200", "C2");
     vi.advanceTimersByTime(minute);
 
-    const at = await star(bob, alice);
+    const at = await hug(bob, alice);
 
     const received = await activityOf(await signedIn(alice), { filter: "all" });
     const given = await activityOf(await signedIn(bob), { filter: "all" });
-    expect(received.entries).toEqual([{ kind: "starReceived", key: expect.any(String), at, giver: personOf(bob), xp: 1, on: expect.any(String), permalink, kudos: null }]);
-    expect(given.entries).toEqual([{ kind: "starGiven", key: expect.any(String), at, people: [personOf(alice)], xp: 1, on: expect.any(String), permalink, kudos: null }]);
+    expect(received.entries).toEqual([{ kind: "hugReceived", key: expect.any(String), at, givers: [personOf(bob)], emoji: "taco", hugs: 1, xp: 1, on: expect.any(String), permalink, kudos: null }]);
+    expect(given.entries).toEqual([{ kind: "hugGiven", key: expect.any(String), at, people: [personOf(alice)], emoji: "taco", xp: 1, on: expect.any(String), permalink, kudos: null }]);
     expect(onOf(received.entries[0])).toBe(onOf(given.entries[0]));
   });
 
-  test("a star on a Given kudos message answers each recipient and the giver with the kudos' words, one on key for all", async () => {
-    await starsOn();
+  test("a hug on a Given kudos message answers each recipient and the giver with the kudos' words, one on key for all", async () => {
+    await hugsOn();
     await kudos(alice, [bob, carol]);
     vi.advanceTimersByTime(minute);
 
-    const at = await star(dana, alice);
+    const at = await hug(dana, alice);
 
     const [asAlice, asBob, asCarol, asDana] = await Promise.all([signedIn(alice), signedIn(bob), signedIn(carol), signedIn(dana)]);
     const words = (await activityOf(asAlice, { filter: "given" })).entries.map((entry) => (entry.kind === "kudosGiven" ? entry.message : null))[0];
-    const starOf = async (caller: Caller) => (await activityOf(caller, { filter: "all" })).entries.filter(({ kind }) => kind === "starReceived" || kind === "starGiven");
-    const [forBob, forCarol, byDana] = await Promise.all([starOf(asBob), starOf(asCarol), starOf(asDana)]);
-    const received = { kind: "starReceived", key: expect.any(String), at, giver: personOf(dana), xp: 1, on: expect.any(String), permalink, kudos: words };
+    const hugOf = async (caller: Caller) => (await activityOf(caller, { filter: "all" })).entries.filter(({ kind }) => kind === "hugReceived" || kind === "hugGiven");
+    const [forBob, forCarol, byDana] = await Promise.all([hugOf(asBob), hugOf(asCarol), hugOf(asDana)]);
+    const received = { kind: "hugReceived", key: expect.any(String), at, givers: [personOf(dana)], emoji: "taco", hugs: 1, xp: 1, on: expect.any(String), permalink, kudos: words };
     expect(words).toMatchObject({ kind: "text", segments: expect.arrayContaining([{ kind: "text", text: `thanks ${reason} ` }]) });
     expect(forBob).toEqual([received]);
     expect(forCarol).toEqual([received]);
-    expect(byDana).toEqual([{ kind: "starGiven", key: expect.any(String), at, people: [personOf(bob), personOf(carol)], xp: 1, on: expect.any(String), permalink, kudos: words }]);
+    expect(byDana).toEqual([{ kind: "hugGiven", key: expect.any(String), at, people: [personOf(bob), personOf(carol)], emoji: "taco", xp: 1, on: expect.any(String), permalink, kudos: words }]);
     expect(new Set([...forBob, ...forCarol, ...byDana].map(onOf)).size).toBe(1);
-    expect((await activityOf(asAlice, { filter: "all" })).entries.map(({ kind }) => kind)).not.toContain("starReceived");
+    expect((await activityOf(asAlice, { filter: "all" })).entries.map(({ kind }) => kind)).not.toContain("hugReceived");
   });
 
-  test("stars on two messages carry different on keys, and every star its own entry and key", async () => {
-    await starsOn();
-    await star(bob, alice);
+  test("hugs received on one message fold into one row: who reacted newest first, the newest emoji, its hugs and their XP, at its newest hug", async () => {
+    await hugsOn();
+    await kudos(carol, [dana], "1791971000.000200", "C2");
     vi.advanceTimersByTime(minute);
-    await star(carol, alice);
+    await hug(bob, alice);
     vi.advanceTimersByTime(minute);
-    await star(bob, alice, { ts: "1791971060.000100" });
+    const newest = await hug(carol, alice, { reaction: "taco::skin-tone-3" });
+    vi.advanceTimersByTime(minute);
+    const other = await hug(bob, alice, { ts: "1791971060.000100" });
 
     const { entries } = await activityOf(await signedIn(alice), { filter: "all" });
+    const given = (await activityOf(await signedIn(bob), { filter: "all" })).entries;
 
-    expect(entries.map((entry) => (entry.kind === "starReceived" ? entry.giver.name : entry.kind))).toEqual([bob.name, carol.name, bob.name]);
-    expect(new Set(entries.map(onOf)).size).toBe(2);
-    expect(onOf(entries[1])).toBe(onOf(entries[2]));
-    expect(new Set(entries.map(keyOf)).size).toBe(3);
+    expect(entries).toEqual([
+      { kind: "hugReceived", key: expect.any(String), at: other, givers: [personOf(bob)], emoji: "taco", hugs: 1, xp: 1, on: "C1/1791971060.000100", permalink: "https://kudos-test.slack.com/archives/C1/p1791971060000100", kudos: null },
+      { kind: "hugReceived", key: expect.any(String), at: newest, givers: [personOf(carol), personOf(bob)], emoji: "taco::skin-tone-3", hugs: 2, xp: 2, on: `C1/${postedTs}`, permalink, kudos: null },
+    ]);
+    expect(new Set(entries.map(keyOf)).size).toBe(2);
+    expect(given.map(({ kind }) => kind)).toEqual(["hugGiven", "hugGiven"]);
+  });
+
+  test("a new hug moves its message's row to the top under the same key, and paging from a cursor never repeats a row nor skips one below it", async () => {
+    await hugsOn();
+    const messages = ["1791970700.000100", "1791970800.000100", "1791970900.000100", "1791971000.000100"];
+    for (const ts of messages) {
+      await hug(bob, alice, { ts });
+      vi.advanceTimersByTime(minute);
+    }
+    const asAlice = await signedIn(alice);
+    const onsOf = (entries: ActivityEntry[]) => entries.map(onOf);
+    const [m1, m2, m3, m4] = messages.map((ts) => `C1/${ts}`);
+
+    const first = await activityOf(asAlice, { filter: "all", limit: 1 });
+    await hug(carol, alice, { ts: messages[0] });
+    vi.advanceTimersByTime(minute);
+    const second = await activityOf(asAlice, { filter: "all", limit: 1, cursor: first.cursor });
+    await hug(dana, alice, { ts: messages[2] });
+    vi.advanceTimersByTime(minute);
+    const rest = await activityOf(asAlice, { filter: "all", limit: 10, cursor: second.cursor });
+    const fresh = await activityOf(asAlice, { filter: "all", limit: 10 });
+
+    expect([first, second, rest].map(({ entries }) => onsOf(entries))).toEqual([[m4], [m3], [m2]]);
+    expect(rest.cursor).toBeNull();
+    expect(onsOf(fresh.entries)).toEqual([m3, m1, m4, m2]);
+    expect(fresh.entries.map((entry) => (entry.kind === "hugReceived" ? entry.hugs : 0))).toEqual([2, 2, 1, 1]);
+    expect(keyOf(fresh.entries[0]!)).toBe(keyOf(second.entries[0]!));
   });
 
   test("xp is null while XP doesn't show to the viewer", async () => {
-    await starsOn(true, "activity");
+    await hugsOn(true, "activity");
 
-    await star(bob, alice);
+    await hug(bob, alice);
 
     const [received] = (await activityOf(await signedIn(alice), { filter: "all" })).entries;
     const [given] = (await activityOf(await signedIn(bob), { filter: "all" })).entries;
     expect([received, given]).toMatchObject([
-      { kind: "starReceived", xp: null },
-      { kind: "starGiven", xp: null },
+      { kind: "hugReceived", xp: null },
+      { kind: "hugGiven", xp: null },
     ]);
   });
 });
 
-describe("SR11: stars stay out of the views that aren't the full timeline", () => {
-  test("with stars off for the viewer, every page equals the timeline without stars, even when they received and gave stars", async () => {
-    await starsOn(false);
+describe("SR11: hugs stay out of the views that aren't the full timeline", () => {
+  test("with hugs off for the viewer, every page equals the timeline without hugs, even when they received and gave hugs", async () => {
+    await hugsOn(false);
     await kudos(alice, [bob]);
     vi.advanceTimersByTime(minute);
     await kudos(carol, [alice], "1791971180.000100");
     const [asAlice, asBob] = await Promise.all([signedIn(alice), signedIn(bob)]);
     const pagesOf = () => Promise.all([asAlice, asBob].flatMap((caller) => [1, 2, 20].flatMap((limit) => (["all", "received", "given"] as const).map((filter) => everyAnswer(caller, filter, limit)))));
-    const withoutStars = await pagesOf();
+    const withoutHugs = await pagesOf();
 
-    await starsOn();
-    await star(bob, alice);
-    await star(alice, carol, { ts: "1791971060.000100" });
-    await star(dana, alice, { ts: "1791971120.000100" });
-    await starsOn(false);
+    await hugsOn();
+    await hug(bob, alice);
+    await hug(alice, carol, { ts: "1791971060.000100" });
+    await hug(dana, alice, { ts: "1791971120.000100" });
+    await hugsOn(false);
 
-    expect(await pagesOf()).toEqual(withoutStars);
-    expect(withoutStars[0]!.flatMap(({ entries }) => entries).map(({ kind }) => kind)).toEqual(["kudosReceived", "kudosGiven"]);
+    expect(await pagesOf()).toEqual(withoutHugs);
+    expect(withoutHugs[0]!.flatMap(({ entries }) => entries).map(({ kind }) => kind)).toEqual(["kudosReceived", "kudosGiven"]);
   });
 
-  test("the received and given filters and the recent kudos answer the same with and without stars", async () => {
-    await starsOn();
+  test("the received and given filters and the recent kudos answer the same with and without hugs", async () => {
+    await hugsOn();
     await kudos(alice, [bob]);
     vi.advanceTimersByTime(minute);
     const asBob = await signedIn(bob);
@@ -191,18 +223,18 @@ describe("SR11: stars stay out of the views that aren't the full timeline", () =
       Promise.all([asAlice, asBob].flatMap((caller) => [...(["received", "given"] as const).map((filter) => everyAnswer(caller, filter, 1)), ...(["received", "given"] as const).map((direction) => caller.query(api.website.activity.getRecentKudos, { direction }))]));
     const before = await viewsOf();
 
-    await star(carol, alice);
-    await star(alice, bob, { ts: "1791971060.000100" });
-    await star(bob, alice, { ts: "1791971120.000100" });
+    await hug(carol, alice);
+    await hug(alice, bob, { ts: "1791971060.000100" });
+    await hug(bob, alice, { ts: "1791971120.000100" });
 
     expect(await viewsOf()).toEqual(before);
-    expect((await everyPage(asBob, "all", 20)).map(({ kind }) => kind).sort()).toEqual(["kudosReceived", "starGiven", "starReceived", "starReceived"]);
+    expect((await everyPage(asBob, "all", 20)).map(({ kind }) => kind).sort()).toEqual(["hugGiven", "hugReceived", "hugReceived", "kudosReceived"]);
   });
 });
 
-describe("SR11: the page's recipients bound leaves a page without star people as it was", () => {
-  test.each([false, true])("with stars %s, a received kudos newer than a message given to 800 people, and one older, share one page", { timeout: 120_000 }, async (on) => {
-    await starsOn(on, "activity");
+describe("SR11: the page's recipients bound leaves a page without hug people as it was", () => {
+  test.each([false, true])("with hugs %s, a received kudos newer than a message given to 800 people, and one older, share one page", { timeout: 120_000 }, async (on) => {
+    await hugsOn(on, "activity");
     const at = now.getTime();
     const [me, teammate] = await Promise.all([aMemberNamed(alice), aMemberNamed(bob)]);
     await t.run(async (ctx) => {
@@ -221,43 +253,43 @@ describe("SR11: the page's recipients bound leaves a page without star people as
   });
 });
 
-describe("SR11: star entries in order and pages", () => {
+describe("SR11: hug entries in order and pages", () => {
   const morning = Date.parse("2026-10-14T08:00:00Z");
   const noon = Date.parse("2026-10-14T12:00:00Z");
   const evening = Date.parse("2026-10-14T18:00:00Z");
 
   async function aDayOfEverything() {
     const [me, teammate, other] = await Promise.all([aMemberNamed(alice), aMemberNamed(bob), aMemberNamed(carol)]);
-    await aStarGiven(me, teammate, "2.1", evening);
+    await aHugGiven(me, teammate, "2.1", evening);
     await aKudos(teammate, me, "1.1", evening);
-    await aStarReceived(teammate, me, "2.2", noon);
+    await aHugReceived(teammate, me, "2.2", noon);
     await aLevelUp(me, 2, noon);
-    await aStarGiven(me, other, "2.3", noon);
+    await aHugGiven(me, other, "2.3", noon);
     await aKudos(me, teammate, "1.2", noon);
     await aDrop(me, noon, 1);
-    await aStarReceived(other, me, "2.4", noon);
+    await aHugReceived(other, me, "2.4", noon);
     await aKudos(teammate, me, "1.3", noon);
-    await aStarReceived(other, me, "2.5", morning);
+    await aHugReceived(other, me, "2.5", morning);
     await aKudos(me, teammate, "1.4", morning);
     return signedIn(alice);
   }
 
   const newestFirst = [
     `kudosReceived at ${evening}`,
-    `starGiven at ${evening}`,
+    `hugGiven at ${evening}`,
     `levelUp at ${noon}`,
     `kudosGiven at ${noon}`,
     `kudosReceived at ${noon}`,
     `found at ${noon}`,
-    `starGiven at ${noon}`,
-    `starReceived at ${noon}`,
-    `starReceived at ${noon}`,
+    `hugGiven at ${noon}`,
+    `hugReceived at ${noon}`,
+    `hugReceived at ${noon}`,
     `kudosGiven at ${morning}`,
-    `starReceived at ${morning}`,
+    `hugReceived at ${morning}`,
   ];
 
   test("sit in time order, below the kudos, level-up and found entries of their instant", async () => {
-    await starsOn();
+    await hugsOn();
     const asAlice = await aDayOfEverything();
 
     const { entries, cursor } = await activityOf(asAlice, { filter: "all" });
@@ -267,7 +299,7 @@ describe("SR11: star entries in order and pages", () => {
   });
 
   test("page across every cursor, repeating and skipping none, each with its own key", async () => {
-    await starsOn();
+    await hugsOn();
     const asAlice = await aDayOfEverything();
 
     for (const limit of [1, 2, 3, 4]) {
@@ -277,32 +309,32 @@ describe("SR11: star entries in order and pages", () => {
     }
   });
 
-  test("a cursor from a page without stars still reads once stars are on", async () => {
-    await starsOn(false);
+  test("a cursor from a page without hugs still reads once hugs are on", async () => {
+    await hugsOn(false);
     const asAlice = await aDayOfEverything();
     const { cursor } = await activityOf(asAlice, { filter: "all", limit: 2 });
 
-    await starsOn();
+    await hugsOn();
     const { entries } = await activityOf(asAlice, { filter: "all", cursor, limit: 20 });
 
     expect(entries.map(seen)).toEqual(newestFirst.slice(newestFirst.indexOf(`levelUp at ${noon}`) + 1));
   });
 
-  test("a cursor in the form main wrote before stars reads the same position once stars are on", async () => {
-    await starsOn();
+  test("a cursor in the form main wrote before hugs reads the same position once hugs are on", async () => {
+    await hugsOn();
     const asAlice = await aDayOfEverything();
-    const writtenByMainBeforeStars = "1791979200000_1_9999999999999";
+    const writtenByMainBeforeHugs = "1791979200000_1_9999999999999";
 
-    const { entries } = await activityOf(asAlice, { filter: "all", cursor: writtenByMainBeforeStars, limit: 20 });
+    const { entries } = await activityOf(asAlice, { filter: "all", cursor: writtenByMainBeforeHugs, limit: 20 });
 
     expect(entries.map(seen)).toEqual(newestFirst.slice(newestFirst.indexOf(`kudosGiven at ${noon}`)));
   });
 });
 
-describe("SR11 SR24: a page of stars stays within Convex's limits", () => {
-  test("25 kudos given and 25 stars given on kudos messages, each to 28 people with words that mention 40, share a page's recipients and stay within Convex's limits, skipping and repeating none", { timeout: 180_000 }, async () => {
+describe("SR11 SR24: a page of hugs stays within Convex's limits", () => {
+  test("25 kudos given and 25 hugs given on kudos messages, each to 28 people with words that mention 40, share a page's recipients and stay within Convex's limits, skipping and repeating none", { timeout: 180_000 }, async () => {
     t = testBackend({ transactionLimits: true });
-    await starsOn(true, "activity", "xp-levels", "unlocks", "skill-tree");
+    await hugsOn(true, "activity", "xp-levels", "unlocks", "skill-tree");
     await unlocksShippedBeforeAnyoneJoined(t);
     const at = now.getTime();
     const [me, author] = await Promise.all([aMemberNamed(alice), aMemberNamed(bob)]);
@@ -321,7 +353,7 @@ describe("SR11 SR24: a page of stars stays within Convex's limits", () => {
             const award = await ctx.db.insert("awards", { workspace: "T1", conversation, message, giver, recipient, kudos: 1, day: "2026-10-14", at: when });
             await ctx.db.insert("effectsRecords", { award, member: giver, side: "giver", day: "2026-10-14", baseXp: 10, gate: { version: 1, thoughtful: true }, catalogueVersion: "1", bonus: [{ source: "spark", xp: 5 }] });
           }
-          if (conversation === "C2") await ctx.db.insert("stars", { workspace: "T1", conversation, message, giver: me, onKudos: true, at: when, day: "2026-10-14" });
+          if (conversation === "C2") await ctx.db.insert("hugs", { workspace: "T1", conversation, message, giver: me, onKudos: true, emoji: "taco", at: when, day: "2026-10-14" });
         }
       }
     });
@@ -330,13 +362,13 @@ describe("SR11 SR24: a page of stars stays within Convex's limits", () => {
     const entries = answers.flatMap((answer) => answer.entries);
 
     expect(answers.map((answer) => answer.entries.length)).toEqual([25, 25]);
-    expect(entries.map(({ kind, at }) => `${kind} ${at - now.getTime()}`)).toEqual(Array.from({ length: 50 }, (_, index) => `${index % 2 === 0 ? "kudosGiven" : "starGiven"} ${49 - index}`));
-    expect(entries.map((entry) => (entry.kind === "kudosGiven" ? entry.recipients.length : entry.kind === "starGiven" ? entry.people.length : 0))).toEqual(Array(50).fill(28));
+    expect(entries.map(({ kind, at }) => `${kind} ${at - now.getTime()}`)).toEqual(Array.from({ length: 50 }, (_, index) => `${index % 2 === 0 ? "kudosGiven" : "hugGiven"} ${49 - index}`));
+    expect(entries.map((entry) => (entry.kind === "kudosGiven" ? entry.recipients.length : entry.kind === "hugGiven" ? entry.people.length : 0))).toEqual(Array(50).fill(28));
   });
 
-  test("a page of fifty stars received, and fifty given, each on a kudos message whose words mention forty people, stays within Convex's limits", { timeout: 120_000 }, async () => {
+  test("a page of fifty hugs received, and fifty given, each on a kudos message whose words mention forty people, stays within Convex's limits", { timeout: 120_000 }, async () => {
     t = testBackend({ transactionLimits: true });
-    await starsOn(true, "activity", "xp-levels");
+    await hugsOn(true, "activity", "xp-levels");
     const at = now.getTime();
     const [me, teammate] = await Promise.all([aMemberNamed(alice), aMemberNamed(bob)]);
     await t.run(async (ctx) => {
@@ -345,17 +377,18 @@ describe("SR11 SR24: a page of stars stays within Convex's limits", () => {
         const segments = Array.from({ length: 40 }, (_, mentioned) => ({ kind: "person" as const, user: `U_MENTIONED_${index}_${mentioned}` }));
         await ctx.db.insert("kudosTexts", { workspace: "T1", conversation: "C1", message, kind: "words", revision: 1n, author: bob.user, edited: false, segments, visibility: "public", gate: null });
         await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message, giver: teammate, recipient: me, kudos: 1, day: "2026-10-14", at: at - 1 });
-        const received = await ctx.db.insert("stars", { workspace: "T1", conversation: "C1", message, giver: teammate, onKudos: true, at: at + index, day: "2026-10-14" });
-        await ctx.db.insert("starPeople", { star: received, member: me, at: at + index });
+        const received = await ctx.db.insert("hugs", { workspace: "T1", conversation: "C1", message, giver: teammate, onKudos: true, emoji: "taco", at: at + index, day: "2026-10-14" });
+        await ctx.db.insert("hugPeople", { hug: received, member: me, at: at + index });
+        await ctx.db.insert("hugsReceived", { member: me, workspace: "T1", conversation: "C1", message, onKudos: true, hugs: 1, emoji: "taco", at: at + index });
         await ctx.db.insert("awards", { workspace: "T1", conversation: "C2", message, giver: teammate, recipient: teammate, kudos: 1, day: "2026-10-14", at: at - 1 });
-        await ctx.db.insert("stars", { workspace: "T1", conversation: "C2", message, giver: me, onKudos: true, at: at + index, day: "2026-10-14" });
+        await ctx.db.insert("hugs", { workspace: "T1", conversation: "C2", message, giver: me, onKudos: true, emoji: "taco", at: at + index, day: "2026-10-14" });
       }
     });
 
     const first = await activityOf(await signedIn(alice), { filter: "all", limit: 50 });
     const next = await activityOf(await signedIn(alice), { filter: "all", limit: 50, cursor: first.cursor });
 
-    expect(first.entries.map(({ kind }) => kind)).toEqual(Array.from({ length: 25 }, () => ["starGiven", "starReceived"]).flat());
+    expect(first.entries.map(({ kind }) => kind)).toEqual(Array.from({ length: 25 }, () => ["hugGiven", "hugReceived"]).flat());
     expect(next.entries).toHaveLength(50);
   });
 });
@@ -368,14 +401,15 @@ async function aKudos(giver: MemberId, recipient: MemberId, message: string, at:
   await t.run((ctx) => ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message, giver, recipient, kudos: 1, day: "2026-10-14", at }));
 }
 
-async function aStarGiven(giver: MemberId, author: MemberId, message: string, at: number) {
-  await t.run((ctx) => ctx.db.insert("stars", { workspace: "T1", conversation: "C1", message, giver, onKudos: false, author, at, day: "2026-10-14" }));
+async function aHugGiven(giver: MemberId, author: MemberId, message: string, at: number) {
+  await t.run((ctx) => ctx.db.insert("hugs", { workspace: "T1", conversation: "C1", message, giver, onKudos: false, author, emoji: "taco", at, day: "2026-10-14" }));
 }
 
-async function aStarReceived(giver: MemberId, author: MemberId, message: string, at: number) {
+async function aHugReceived(giver: MemberId, author: MemberId, message: string, at: number) {
   await t.run(async (ctx) => {
-    const star = await ctx.db.insert("stars", { workspace: "T1", conversation: "C1", message, giver, onKudos: false, author, at, day: "2026-10-14" });
-    await ctx.db.insert("starPeople", { star, member: author, at });
+    const hug = await ctx.db.insert("hugs", { workspace: "T1", conversation: "C1", message, giver, onKudos: false, author, emoji: "taco", at, day: "2026-10-14" });
+    await ctx.db.insert("hugPeople", { hug, member: author, at });
+    await ctx.db.insert("hugsReceived", { member: author, workspace: "T1", conversation: "C1", message, onKudos: false, hugs: 1, emoji: "taco", at });
   });
 }
 
@@ -397,6 +431,6 @@ function keyOf(entry: ActivityEntry) {
 }
 
 function onOf(entry: ActivityEntry | undefined) {
-  if (entry?.kind !== "starReceived" && entry?.kind !== "starGiven") throw new Error(`expected a star entry, got ${entry?.kind}`);
+  if (entry?.kind !== "hugReceived" && entry?.kind !== "hugGiven") throw new Error(`expected a hug entry, got ${entry?.kind}`);
   return entry.on;
 }

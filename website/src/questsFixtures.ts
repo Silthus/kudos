@@ -51,7 +51,7 @@ const joiningIn: QuestSlot = {
   slot: 2,
   quest: { kind: "weekly", week: thisWeek, slot: 2 },
   kind: "Join in",
-  goal: "Give 5 stars to teammates' messages.",
+  goal: "Give 5 hugs to teammates' messages.",
   progress: { done: 0, target: 1 },
   reward: { xp: 20 },
   state: "in-progress",

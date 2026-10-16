@@ -13,8 +13,8 @@ import { recordPerson } from "./directory";
 import { reportHomeOpened } from "./appHome";
 import { refreshCustomEmojiLater } from "./customEmoji";
 import { processEvent } from "./processEvent";
-import { starReactionValidator } from "../stars/reaction";
-import { giveStar } from "../stars/stars";
+import { hugReactionValidator } from "../hugs/reaction";
+import { giveHug } from "../hugs/hugs";
 
 type Receipt = { workspace: string; eventId: string };
 
@@ -35,13 +35,13 @@ export const receive = internalMutation({
 });
 
 export const receiveReaction = internalMutation({
-  args: { eventId: v.string(), reaction: starReactionValidator },
+  args: { eventId: v.string(), reaction: hugReactionValidator },
   handler: async (ctx, { eventId, reaction }) => {
     const receipt = { workspace: reaction.workspace, eventId };
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
-    const decision = await giveStar(ctx, reaction);
-    if (decision.kind === "unknown-people") await ctx.scheduler.runAfter(0, internal.slack.starLookups.lookUpStarPeople, { reaction, users: decision.users });
+    const decision = await giveHug(ctx, reaction);
+    if (decision.kind === "unknown-people") await ctx.scheduler.runAfter(0, internal.slack.hugLookups.lookUpHugPeople, { reaction, users: decision.users });
   },
 });
 

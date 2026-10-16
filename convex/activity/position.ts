@@ -2,7 +2,7 @@ import type { Before } from "../engine/awards";
 
 export type Rank = 0 | 1 | 2 | 3 | 4 | 5;
 
-export const ranks = { levelUp: 0, kudosGiven: 1, kudosReceived: 2, found: 3, starGiven: 4, starReceived: 5 } as const satisfies Record<string, Rank>;
+export const ranks = { levelUp: 0, kudosGiven: 1, kudosReceived: 2, found: 3, hugGiven: 4, hugReceived: 5 } as const satisfies Record<string, Rank>;
 
 export type Position = { at: number; rank: Rank; created: number };
 
