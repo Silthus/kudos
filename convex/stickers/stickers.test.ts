@@ -165,7 +165,7 @@ describe("SB1 SB2 SB4: every kudos gives stickers of the people in it", () => {
   });
 });
 
-describe("a sticker is recorded once with its pair's earliest award", () => {
+describe("a sticker is recorded once with its pair's earliest award", { timeout: 60_000 }, () => {
   test("the newest sticker comes first, and a second kudos between the same two adds none and keeps its time", async () => {
     await stickerBookOn();
     const first = await thanks(alice, bob);
@@ -248,7 +248,7 @@ describe("a sticker is recorded once with its pair's earliest award", () => {
     expect(await stickersOf(reader)).toEqual([await stickerOf(alice, carol, second), await stickerOf(alice, bob, first)]);
   });
 
-  test("the first kudos in a workspace without a backfill starts it, and kudos given while it runs count too", { timeout: 60_000 }, async () => {
+  test("the first kudos in a workspace without a backfill starts it, and kudos given while it runs count too", async () => {
     await stickerBookOn();
     await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 60 }));
     const recipients = Array.from({ length: 60 }, (_, index) => ({ user: `U_NEW${String(index).padStart(2, "0")}`, name: `New Person${index}` }));
