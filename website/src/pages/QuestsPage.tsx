@@ -296,7 +296,7 @@ function WaitingToOpen({ waiting, firstCrate }: { waiting: WaitingCrate[] } & Fi
 
 function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate) {
   return (
-    <article className="hud-panel relative flex flex-col gap-2 rounded-lg border bg-card p-4" {...questCrateHomeAttributes(entry.seen)}>
+    <article className="hud-panel relative flex scroll-mt-28 flex-col gap-2 rounded-lg border bg-card p-4" {...(entry.crate.kind === "weekly" && crateTargetAttributes(entry.crate))} {...questCrateHomeAttributes(entry.seen)}>
       <div className="flex flex-wrap items-center gap-x-2">
         <WeekOf week={entry.week} />
         {entry.group !== null && (

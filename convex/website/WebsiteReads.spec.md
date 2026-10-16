@@ -96,18 +96,18 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is sent
   checklist: declared-target-coverage declared as the route list is the paths the router serves
 - the router reads every target a link carries: Every target the backend's link function writes into a link, a quest's slot, a perk and a crate, is read back by the website's router as the same target, so a Slack link that names a perk or a ready crate lands on it.
-  over: urlOf in convex/website/routes.ts read back through routeOf in website/src/route.ts, for `quest`, `perk` on `/skills`, `crate` on `/quests`, `/leaderboard`, `/book` and `/skills`, and `crate=journey` on the root
+  over: urlOf in convex/website/routes.ts read back through routeOf in website/src/route.ts, for `quest`, `perk` on `/skills`, `crate` on `/quests`, `/leaderboard`, `/book` and `/skills`, `crate=journey` on the root, and an earlier week's `crate=weekly:{week}:{slot}` on `/quests`, which the router drops unless its week is a date and its slot a number
   via: #435: the router reads every target a Slack link carries
   refuted: let perkIn in website/src/route.ts answer no perk -> the contract test failed reading /skills?perk=spark (2026-10-15)
   because: map #1 links the level-up DM's `Buy` to a perk and each crate's `Open` to its crate (#435), and a parameter the router dropped would land the member on the plain page with nothing to say why (SW10, SW11)
   kinds: output
-  checklist: destination-confinement dismissed: the target is a perk ID or a crate name from a fixed list; the router drops any other value
+  checklist: destination-confinement dismissed: the target is a perk ID, a crate name from a fixed list, or a weekly crate of a date and a number; the router drops any other value
   checklist: redaction dismissed: a target names a perk or a feature, never a member
   checklist: commit-ordered-effects dismissed: parsing a link issues no effect
   checklist: circuit-breaker-policy dismissed: nothing is sent
   checklist: declared-target-coverage dismissed: the link has one target, the website
 - one function builds every website link: websiteLinkOf answers SITE_URL plus the asked page's route, the Leaderboard keeping its period, and a page not on the route list resolves to the root, so a link never names a path the website doesn't serve.
-  over: websiteLinkOf while the website is open, for the root, the Leaderboard's three periods, the Quests page, and the `/skills` and `/book` pages, and for the documented targets: `perk` on `/skills`, `crate` with a feature on its page and `crate=journey` on the root
+  over: websiteLinkOf while the website is open, for the root, the Leaderboard's three periods, the Quests page, and the `/skills` and `/book` pages, and for the documented targets: `perk` on `/skills`, `crate` with a feature on its page, `crate=journey` on the root and an earlier week's weekly crate on `/quests`
   via: SW11: one function builds every website link
   refuted: routeOf answered an unlisted page's own path instead of the root -> the three unlisted pages linked to /quests, /skills and /book (2026-10-14)
   because: a link to a page the website doesn't serve yet would land a member on the not-found page, so every message builds its link from the route list through one function, and a page shipped later switches its links on with its route (SW11, SW13)
@@ -386,7 +386,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   checklist: identity-continuity declared as accounts link only by the Slack pair
   checklist: separation-of-duties dismissed: no approval policy applies to signing in
 - a member previews the website by their own decision: While the website flag is off in the workspace decision, a member it names in their own decision signs in, sends their website exposure once with that decision's value, runs their due preview moments of unlocks and the Journey, none while a workspace launch the flags made due (unlocks', the Journey's or the Book's) isn't recorded yet, and reads and acts on the website by their own decisions of every flag, while every other member and every person the directory doesn't know is refused or reads closed and writes nothing; a session from before the preview sends the exposure and runs the preview moments at its first command; App Home's front door links the previewer to their pages through Sign in with Slack and shows another member no link; a website call never records the unlocks launch or the Journey launch.
-  over: the sign-in callback, getMyProfile, getLeaderboard, getQuests, openFeature and App Home's front door links for a member an email condition names and a member it doesn't, a person the directory doesn't know, a session from before the preview, the website on for everyone with the other flags on for one email, the website on for the workspace but off in one member's own decision, and unlocks or quests switched on for the workspace after a preview, before its launch is recorded; getSkillTree and buyPerk for a member whose own unlocks decision is off while the workspace's is on; a previewer's sign-in while the Book's launch is due
+  over: the sign-in callback, getMyProfile, getLeaderboard, getQuests, openFeature and App Home's front door links for a member an email condition names and a member it doesn't, a person the directory doesn't know, a session from before the preview, the website on for everyone with the other flags on for one email, the website on for the workspace but off in one member's own decision, and unlocks or quests switched on for the workspace after a preview, before its launch is recorded; getSkillTree and buyPerk for a member whose own unlocks decision is off while the workspace's is on; a previewer's sign-in while the Book's launch is due; openQuestCrate on a finished group quest's crate after groups turned off, which groupQuestAppliesTo in convex/quests/groupQuest.ts refuses
   via: F26 F27 F28 F29: a member previews the website by their own decision
   because: Michael opens unfinished work to single members by email in PostHog, so the website must follow the member decision, and a preview must never open the site, move a launch or change what other members get (F15, F16, F21, F22, F25, F26, F27, F28, F29)
   crossing: browser -> session
@@ -394,6 +394,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   refuted: memberQuery's guard read the website flag's workspace decision instead of the member's own -> the previewer read closed, their first command answered closed, and a member off in their own decision read their profile (2026-10-14)
   refuted: unlockPathOf read the workspace's unlock path instead of the member's own -> a member whose own unlocks decision is off read the tree through getSkillTree (2026-10-14)
   refuted: workspaceLaunchDueIn left out the Book's launch -> a previewer's sign-in ran their Journey preview moment while the Book's launch was due (2026-10-14)
+  refuted: openQuestCrate's group branch read only group-quest and quests, not groupQuestAppliesTo's groups check -> opening a finished group quest's crate from a stale page after groups turned off answered opened (2026-10-16)
   kinds: identity, state
   checklist: capability-authorization dismissed: the session token authorizes only acting as the signed-in member, and the guard rechecks the live session, the directory and the member's own decision on every call
   checklist: revalidated-permission declared as website reads pass one guard

@@ -1,0 +1,22 @@
+
+ RUN  v5.0.3 <main tree>
+
+ ❯ |website| src/routeList.test.tsx (17 tests | 1 failed) 20ms
+   ❯ #435: the router reads every target a Slack link carries (9)
+     × /quests?crate=weekly%3A2026-10-05%3A2 5ms
+ ❯ |convex| convex/website/link.test.ts (16 tests | 1 failed) 99ms
+   ❯ SW11: one function builds every website link (16)
+     × #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/quests?crate=we… 17ms
+ ❯ |website| src/deepLinkTargets.test.tsx (43 tests | 4 failed) 4632ms
+   ❯ #500: ?crate=weekly:{week}:{slot} lands on an earlier week's waiting crate (6)
+     × scrolls to that week's crate and focuses its Claim, never opening it 70ms
+     × tells two weeks' crates apart 59ms
+     × lands once the quests answer after connecting 125ms
+   ❯ #435: a target survives sign-in (6)
+     × signs in back to /quests?crate=weekly%3A2026-10-05%3A0 38ms
+
+ Test Files  3 failed (3)
+      Tests  6 failed | 70 passed (76)
+   Start at  00:53:42
+   Duration  7.07s (tests 53%, import 19%, transform 15%, environment 10%, setup 2%)
+
