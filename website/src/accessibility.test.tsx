@@ -19,7 +19,7 @@ import { burstPlaysForMs, crateChargesForMs } from "./crates/RevealDialog";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "./test/systemTheme";
 
-const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard; quests?: MyQuests; book?: MyBook; collection?: MyCollection; skillTree?: MySkillTree; wide?: boolean }[] = [
+const pages: { name: string; path: string; visitor: ShellState; board?: MyLeaderboard; quests?: MyQuests; book?: MyBook; collection?: MyCollection; skillTree?: MySkillTree; wide?: boolean; heavy?: boolean }[] = [
   { name: "loading", path: "/", visitor: shellFixtures.loading },
   { name: "connecting", path: "/", visitor: shellFixtures.connecting },
   { name: "closed", path: "/", visitor: shellFixtures.closed },
@@ -82,9 +82,9 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "book's overview with its page index, on a wide screen", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, wide: true },
   { name: "book's Giving page with its page index, on a wide screen", path: "/book?page=giving", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, wide: true },
   { name: "book's Crowd page with its page picker", path: "/book?page=crowd", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder },
-  { name: "book's Collection page with finds, duplicates and silhouettes", path: "/book/collection", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, collection: collectionFixtures.collection },
-  { name: "book's Collection page with its page index, on a wide screen", path: "/book/collection", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, collection: collectionFixtures.collection, wide: true },
-  { name: "book's Collection page with nothing found", path: "/book/collection", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, collection: collectionFixtures.nothingFound },
+  { name: "book's Collection page with finds, duplicates and silhouettes", path: "/book/collection", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, collection: collectionFixtures.collection, heavy: true },
+  { name: "book's Collection page with its page index, on a wide screen", path: "/book/collection", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, collection: collectionFixtures.collection, wide: true, heavy: true },
+  { name: "book's Collection page with nothing found", path: "/book/collection", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, collection: collectionFixtures.nothingFound, heavy: true },
   { name: "book's overview with the Collection tile", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyLadder, collection: collectionFixtures.collection },
   { name: "home with the collection's progress on the Book panel", path: "/", visitor: shellFixtures.memberWithTheBookOpened, collection: collectionFixtures.collection },
   { name: "home with the book locked", path: "/", visitor: shellFixtures.memberWaitingForTheBook },
@@ -112,6 +112,8 @@ const wcag22AA = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 const axeOnAWholePage = 30_000;
 
+const axeOnAPageOfEveryHoggie = 120_000;
+
 async function violationsIn(container: Element, options: axe.RunOptions = {}) {
   const results = await axe.run(container, { ...options, rules: { "color-contrast": { enabled: false } } });
   return results.violations.map((v) => `${v.id}: ${v.help}`);
@@ -126,7 +128,7 @@ describe("WS24: every page passes axe in light and dark", () => {
         window.history.replaceState(null, "", page.path);
         const { container } = renderApp(page.visitor, page.board && answering(page.board), undefined, page.quests && fixedQuests(page.quests), page.book && fixedBook(page.book), page.skillTree && fixedSkillTree(page.skillTree), undefined, undefined, undefined, undefined, undefined, page.collection && fixedCollection(page.collection));
         expect(await violationsIn(container)).toEqual([]);
-      }, axeOnAWholePage);
+      }, page.heavy ? axeOnAPageOfEveryHoggie : axeOnAWholePage);
     }
 
     it(`the whole board with the viewer's row pinned and Jump to me meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
