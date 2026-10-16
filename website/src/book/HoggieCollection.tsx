@@ -3,7 +3,8 @@ import { useId } from "react";
 import type { Collection, CollectionCrest, CollectionHoggie, RarityShare } from "../collectionRead";
 import { rarityWordsOf } from "../crates/drops";
 import { PageTitle } from "../PageTitle";
-import type { ShellActions } from "../shell";
+import type { Avatar, ShellActions } from "../shell";
+import { useAvatarChoice, type AvatarChoice } from "./avatarChoice";
 import { Bar } from "./Bar";
 import { collectedCrestsOf, crestWordsOf } from "./crests";
 import { CrateStore } from "./CrateStore";
@@ -13,12 +14,14 @@ import { HoggieCoin, nothingFoundYet } from "./HoggieCoin";
 import { HoggieTile } from "./HoggieTile";
 import { foundWordsOf, latestFindOf, type LatestFind } from "./latestFind";
 import { useFreshKeys } from "./useFreshKeys";
+import { YourAvatar } from "./YourAvatar";
 
 type CollectionProps = { collection: Collection; timeZone: string };
 
-type HoggieCollectionProps = CollectionProps & { coins: number | null; buyCrate: ShellActions["buyCrate"] };
+type HoggieCollectionProps = CollectionProps & { coins: number | null; buyCrate: ShellActions["buyCrate"]; avatar: Avatar | null | undefined; setAvatar: ShellActions["setAvatar"] };
 
-export function HoggieCollection({ collection, timeZone, coins, buyCrate }: HoggieCollectionProps) {
+export function HoggieCollection({ collection, timeZone, coins, buyCrate, avatar, setAvatar }: HoggieCollectionProps) {
+  const avatarChoice = useAvatarChoice(avatar, setAvatar);
   const fresh = useFreshKeys([...collection.hoggies, ...(collection.crests ?? [])].flatMap(({ seen }) => seen ?? []));
   const rarestFirst = [...collection.rarities].reverse();
   return (
@@ -31,11 +34,12 @@ export function HoggieCollection({ collection, timeZone, coins, buyCrate }: Hogg
         <p className="text-sm text-muted-foreground">{`Every crate you open drops one hoggie. Find all ${collection.total}.`}</p>
       </header>
       <FoundSoFar collection={collection} timeZone={timeZone} />
+      {avatarChoice !== null && <YourAvatar choice={avatarChoice} />}
       <CrateStore collection={collection} coins={coins} buyCrate={buyCrate} />
       <div className="flex flex-col gap-8">
         {collection.crests !== undefined && <CrestSection crests={collection.crests} hoggies={collection.hoggies} fresh={fresh} timeZone={timeZone} />}
         {rarestFirst.map((share) => (
-          <RaritySection key={share.rarity} share={share} hoggies={collection.hoggies.filter(({ rarity }) => rarity === share.rarity)} fresh={fresh} timeZone={timeZone} />
+          <RaritySection key={share.rarity} share={share} hoggies={collection.hoggies.filter(({ rarity }) => rarity === share.rarity)} fresh={fresh} timeZone={timeZone} avatar={avatarChoice} />
         ))}
       </div>
     </>
@@ -78,9 +82,9 @@ export function LatestCoin({ latest, size }: { latest: LatestFind | null; size: 
   );
 }
 
-type RaritySectionProps = { share: RarityShare; hoggies: CollectionHoggie[]; fresh: ReadonlySet<string>; timeZone: string };
+type RaritySectionProps = { share: RarityShare; hoggies: CollectionHoggie[]; fresh: ReadonlySet<string>; timeZone: string; avatar: AvatarChoice | null };
 
-function RaritySection({ share: { rarity, chance, owned, total }, hoggies, fresh, timeZone }: RaritySectionProps) {
+function RaritySection({ share: { rarity, chance, owned, total }, hoggies, fresh, timeZone, avatar }: RaritySectionProps) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} data-rarity={rarity} className="flex flex-col gap-3">
@@ -92,7 +96,7 @@ function RaritySection({ share: { rarity, chance, owned, total }, hoggies, fresh
       </div>
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6">
         {hoggies.map((hoggie) => (
-          <HoggieTile key={hoggie.hoggie} hoggie={hoggie} fresh={hoggie.seen !== null && fresh.has(hoggie.seen)} timeZone={timeZone} />
+          <HoggieTile key={hoggie.hoggie} hoggie={hoggie} fresh={hoggie.seen !== null && fresh.has(hoggie.seen)} timeZone={timeZone} avatar={avatar} />
         ))}
       </ul>
     </section>
