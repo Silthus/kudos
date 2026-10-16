@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import type { MemberInventory, MemberProfile, ShellActions } from "../shell";
 import { CharacterSide } from "./CharacterSide";
 import { useLoadoutCommand, type LoadoutActions } from "./gear";
-import { InventorySide } from "./InventorySide";
+import { InventorySide, type Said } from "./InventorySide";
 import { useItemPurchase, type PendingItemPurchase } from "./itemPurchase";
 import { Panel } from "./Panel";
 
@@ -18,13 +18,14 @@ export function GearPanel({ member, loadout, buyItem, pendingPurchase }: GearPan
   const [{ side, turns }, setTurn] = useState<Turn>({ side: "character", turns: 0 });
   const send = useLoadoutCommand();
   const kudosEmojiHeading = useRef<HTMLHeadingElement>(null);
-  const purchasing = useItemPurchase(buyItem, pendingPurchase, () => kudosEmojiHeading.current?.focus());
+  const [said, setSaid] = useState<Said>();
+  const purchasing = useItemPurchase(buyItem, pendingPurchase, () => kudosEmojiHeading.current?.focus(), (notice) => setSaid(notice && { text: notice.text, done: notice.kind === "bought" }));
   if (member.inventory === null) return null;
   const turnTo = (next: Side) => next !== side && setTurn({ side: next, turns: turns + 1 });
   return (
     <Panel id="gear" label={labelOf(side, member.inventory)} aside={<SideToggle side={side} onTurn={turnTo} />} gameObject>
       <div key={turns} className={turns > 0 ? "gear-turn" : undefined}>
-        {side === "character" ? <CharacterSide member={member} inventory={member.inventory} loadout={loadout} send={send} /> : <InventorySide member={member} inventory={member.inventory} loadout={loadout} send={send} purchasing={purchasing} heading={kudosEmojiHeading} />}
+        {side === "character" ? <CharacterSide member={member} inventory={member.inventory} loadout={loadout} send={send} /> : <InventorySide member={member} inventory={member.inventory} loadout={loadout} send={send} purchasing={purchasing} heading={kudosEmojiHeading} said={said} onSaid={setSaid} />}
       </div>
     </Panel>
   );

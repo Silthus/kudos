@@ -7,12 +7,11 @@ import { coinsText } from "../skills/perkWords";
 import { cameOff, itemIn, ItemArt, ownedIn, slotName, wentInto, type LoadoutActions, type Owned, type SendLoadout } from "./gear";
 import { shortfallText, type ItemPurchasing } from "./itemPurchase";
 
-type Said = { text: string; done: boolean };
+export type Said = { text: string; done: boolean };
 
-type InventorySideProps = { member: MemberProfile; inventory: MemberInventory; loadout: LoadoutActions; send: SendLoadout; purchasing: ItemPurchasing; heading: RefObject<HTMLHeadingElement | null> };
+type InventorySideProps = { member: MemberProfile; inventory: MemberInventory; loadout: LoadoutActions; send: SendLoadout; purchasing: ItemPurchasing; heading: RefObject<HTMLHeadingElement | null>; said: Said | undefined; onSaid: (said: Said | undefined) => void };
 
-export function InventorySide({ member, inventory, loadout, send, purchasing, heading }: InventorySideProps) {
-  const [said, setSaid] = useState<Said>();
+export function InventorySide({ member, inventory, loadout, send, purchasing, heading, said, onSaid }: InventorySideProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -28,7 +27,7 @@ export function InventorySide({ member, inventory, loadout, send, purchasing, he
         </p>
         {member.coins !== null && <Balance coins={member.coins} />}
       </div>
-      <KudosEmojiSection inventory={inventory} kudosEmoji={member.kudosEmoji} coins={member.coins ?? 0} loadout={loadout} send={send} purchasing={purchasing} heading={heading} onSaid={setSaid} />
+      <KudosEmojiSection inventory={inventory} kudosEmoji={member.kudosEmoji} coins={member.coins ?? 0} loadout={loadout} send={send} purchasing={purchasing} heading={heading} onSaid={onSaid} />
     </div>
   );
 }
@@ -50,11 +49,6 @@ function KudosEmojiSection({ inventory, kudosEmoji, coins, loadout, send, purcha
   const choice = useRef(0);
   const yours = ownedIn(inventory);
   const notYet = inventory.catalogue.filter(({ item }) => !purchasing.bought.includes(item) && !yours.some(({ entry }) => entry.item === item));
-
-  useEffect(() => {
-    if (purchasing.notice !== undefined) onSaid({ text: purchasing.notice.text, done: purchasing.notice.kind === "bought" });
-    else if (purchasing.buying !== undefined) onSaid(undefined);
-  }, [purchasing.notice, purchasing.buying, onSaid]);
   const equipped = inventory.slots.filter(({ item }) => item !== null).length;
 
   const stopChoosing = (item: InventoryItem) => {

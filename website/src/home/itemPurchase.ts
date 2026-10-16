@@ -10,11 +10,16 @@ export type PendingItemPurchase = { current: ItemPurchase | undefined };
 
 const refusedText = "That couldn't be bought.";
 
-export function useItemPurchase(buyItem: ShellActions["buyItem"], pending: PendingItemPurchase, onBought: () => void): ItemPurchasing {
+export function useItemPurchase(buyItem: ShellActions["buyItem"], pending: PendingItemPurchase, onBought: () => void, onNotice: (notice: ItemNotice | undefined) => void = () => {}): ItemPurchasing {
   const [buying, setBuying] = useState<string>();
   const [bought, setBought] = useState<string[]>([]);
   const [justBought, setJustBought] = useState<string>();
-  const [notice, setNotice] = useState<ItemNotice>();
+  const [notice, setNoticeShown] = useState<ItemNotice>();
+
+  const setNotice = (next: ItemNotice | undefined) => {
+    setNoticeShown(next);
+    onNotice(next);
+  };
 
   const purchaseFor = (item: string) => {
     if (pending.current?.item !== item) pending.current = { item, request: crypto.randomUUID() };
