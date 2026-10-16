@@ -164,9 +164,10 @@ function withinRecipients(pending: Pending[]): Pending[] {
   const kept: Pending[] = [];
   let recipients = 0;
   for (const one of pending) {
-    recipients += one.recipients ?? 0;
-    if (kept.length > 0 && recipients > recipientsPerPage) break;
+    const more = one.recipients ?? 0;
+    if (more > 0 && recipients > 0 && recipients + more > recipientsPerPage) break;
     kept.push(one);
+    recipients += more;
   }
   return kept;
 }

@@ -200,6 +200,27 @@ describe("SR11: stars stay out of the views that aren't the full timeline", () =
   });
 });
 
+describe("SR11: the page's recipients bound leaves a page without star people as it was", () => {
+  test.each([false, true])("with stars %s, a received kudos newer than a message given to 800 people, and one older, share one page", { timeout: 120_000 }, async (on) => {
+    await starsOn(on, "activity");
+    const at = now.getTime();
+    const [me, teammate] = await Promise.all([aMemberNamed(alice), aMemberNamed(bob)]);
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 800; index++) {
+        const recipient = await ctx.db.insert("members", { workspace: "T1", user: `U_${index}`, kind: "member", asOf: 0 });
+        await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: "1.2", giver: me, recipient, kudos: 1, day: "2026-10-14", at: at - 2 * minute });
+      }
+    });
+    await aKudos(teammate, me, "1.3", at - minute);
+    await aKudos(teammate, me, "1.1", at - 3 * minute);
+
+    const { entries, cursor } = await activityOf(await signedIn(alice), { filter: "all" });
+
+    expect(entries.map(({ kind }) => kind)).toEqual(["kudosReceived", "kudosGiven", "kudosReceived"]);
+    expect(cursor).toBeNull();
+  });
+});
+
 describe("SR11: star entries in order and pages", () => {
   const morning = Date.parse("2026-10-14T08:00:00Z");
   const noon = Date.parse("2026-10-14T12:00:00Z");
