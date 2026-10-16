@@ -122,6 +122,9 @@ Feedback: the indicator on each kudos message as desired state and the private r
   refuted: tabsBesideProfile showed the tabs of the Book and the skill tree whenever they were open, ignoring the front door -> 3 of 16 tests failed: the summary and both remembered tabs kept those two tabs (2026-10-14)
   refuted: frontDoorTabOf returned the Settings tab without its Settings link line -> 4 of 22 tests failed: the Settings tab, the link's accessibility label and click, the switch beside it and the previewing member's link (2026-10-16)
   refuted: frontDoorTabOf added the Settings link whether or not the website's Settings page had a setting for the member -> 1 of 23 tests failed: the Settings tab of a member with only level ups and DMs to set (2026-10-16)
+  refuted: sectionOnTheWeb linked each section's button to the plain Settings page, dropping its section -> 6 of 31 tests failed: the Settings tab, the section link's accessibility label and click, the switch beside it, the messages and group sections and the previewing member's link (2026-10-16)
+  refuted: sectionLinksOf linked every section whether or not the website's Settings page showed it -> 1 of 31 tests failed: the Settings tab of a member in one group who hasn't opened the Leaderboard (2026-10-16)
+  refuted: frontDoorTabOf returned the Inventory tab without its Inventory link line -> 2 of 31 tests failed: the Inventory tab with its link's accessibility label, and the link's click (2026-10-16)
   because: the front door removes the tabs of the Leaderboard, the Book and the skill tree and the totals for buttons to the website (#335: every Slack action that has a page funnels to it), so it may only show when that button works, and a member the website can't admit must keep every tab they have today (SW19, SW20, SW21, SW22, SW25)
   crossing: slack-request -> domain
   entrances: route POST /slack/events, route POST /slack/interactivity
