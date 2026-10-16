@@ -1,5 +1,5 @@
 import { IconArrowLeft, IconCheck, IconLock } from "@posthog/icons";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 import { TeamCrest } from "../../crates/TeamCrest";
 import { MemberFace } from "../../Face";
 import type { Face } from "../../shell";
@@ -8,14 +8,14 @@ import { dateWords } from "../dates";
 import { PersonSilhouette } from "../PersonSilhouette";
 import { Tag } from "../Tag";
 import { chapterHref } from "./chapters";
-import { teamAlbums, type TeamAlbum, type TeamPerson } from "./teamFixtures";
+import type { TeamAlbum, TeamPerson } from "./teamFixtures";
 
-type TeamsProps = { fresh: ReadonlySet<string>; timeZone: string };
+type TeamsProps = { albums: TeamAlbum[]; fresh: ReadonlySet<string>; timeZone: string };
 
-export function TeamsChapter({ fresh, timeZone }: TeamsProps) {
-  const mine = teamAlbums.filter((album) => album.mine);
-  const started = teamAlbums.filter((album) => !album.mine && album.held > 0);
-  const untouched = teamAlbums.filter((album) => !album.mine && album.held === 0);
+export function TeamsChapter({ albums, fresh, timeZone }: TeamsProps) {
+  const mine = albums.filter((album) => album.mine);
+  const started = albums.filter((album) => !album.mine && album.held > 0);
+  const untouched = albums.filter((album) => !album.mine && album.held === 0);
   return (
     <div className="bk-rise flex flex-col gap-8">
       <AlbumGroup title="Your teams" aside="The teams posthog.com lists you on" albums={mine} fresh={fresh} timeZone={timeZone} />
@@ -30,7 +30,7 @@ export function TeamsChapter({ fresh, timeZone }: TeamsProps) {
         <ul className="grid gap-1 sm:grid-cols-2 xl:grid-cols-3">
           {untouched.map((album) => (
             <li key={album.team}>
-              <a href={chapterHref({ kind: "team", team: album.team })} className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+              <a href={chapterHref({ kind: "team", team: album.team })} className="bk-row flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
                 <TeamCrest art={album.art} size={32} collected={false} />
                 <span className="min-w-0 flex-1 truncate text-sm">{album.name}</span>
                 <span className="text-xs tabular-nums text-muted-foreground">{`0 of ${album.total}`}</span>
@@ -43,7 +43,7 @@ export function TeamsChapter({ fresh, timeZone }: TeamsProps) {
   );
 }
 
-function AlbumGroup({ title, aside, albums, fresh, timeZone }: { title: string; aside: string; albums: TeamAlbum[] } & TeamsProps) {
+function AlbumGroup({ title, aside, albums, fresh, timeZone }: { title: string; aside: string } & TeamsProps) {
   if (albums.length === 0) return null;
   return (
     <section aria-labelledby={`group-${title}`} className="flex flex-col gap-3">
@@ -62,13 +62,13 @@ function AlbumGroup({ title, aside, albums, fresh, timeZone }: { title: string; 
   );
 }
 
-function AlbumCover({ album, fresh, timeZone }: { album: TeamAlbum; fresh: boolean; timeZone: string }) {
+export function AlbumCover({ album, fresh, timeZone }: { album: TeamAlbum; fresh: boolean; timeZone: string }) {
   const complete = album.collectedAt !== null;
   return (
     <li>
-      <a href={chapterHref({ kind: "team", team: album.team })} className="bk-album-cover bk-paper relative flex h-full flex-col gap-3 rounded-xl border p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+      <a href={chapterHref({ kind: "team", team: album.team })} data-team={album.team} className="bk-album-cover bk-paper relative flex h-full flex-col gap-3 rounded-xl border p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
         <div className="flex items-center gap-3">
-          <span className="bk-crest-frame grid size-14 shrink-0 place-items-center bg-foreground/10">
+          <span className="bk-crest-frame bk-crest-hover grid size-14 shrink-0 place-items-center bg-foreground/10">
             <TeamCrest art={album.art} size={44} collected={album.held > 0} />
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
@@ -80,7 +80,7 @@ function AlbumCover({ album, fresh, timeZone }: { album: TeamAlbum; fresh: boole
         <QuietBar value={album.held} max={album.total} />
         <ul aria-hidden="true" className="flex flex-wrap gap-1.5">
           {album.people.map((person) => (
-            <li key={person.key} title={person.name}>
+            <li key={person.key} title={person.name} className="bk-face">
               {person.held ? <MemberFace face={person.face} className="size-8" /> : <PersonSilhouette className="size-8" />}
             </li>
           ))}
@@ -101,19 +101,23 @@ function rosterWordsOf(people: TeamPerson[]) {
   return held.length === 0 ? `Still missing: ${names(missing)}.` : `Collected: ${names(held)}. Still missing: ${names(missing)}.`;
 }
 
-export function TeamSpread({ team, timeZone }: { team: string; timeZone: string }) {
-  const album = teamAlbums.find((entry) => entry.team === team);
+type SpreadProps = { albums: TeamAlbum[]; team: string; timeZone: string; framed?: boolean };
+
+export function TeamSpread({ albums, team, timeZone, framed = true }: SpreadProps) {
+  const album = albums.find((entry) => entry.team === team);
   if (album === undefined) return <p className="text-sm text-muted-foreground">No such team page.</p>;
-  const spread = teamAlbums.indexOf(album) * 2 + 2;
-  const firstNumber = 1 + teamAlbums.slice(0, teamAlbums.indexOf(album)).reduce((sum, entry) => sum + entry.total, 0);
+  const spread = albums.indexOf(album) * 2 + 2;
+  const firstNumber = 1 + albums.slice(0, albums.indexOf(album)).reduce((sum, entry) => sum + entry.total, 0);
   const complete = album.collectedAt !== null;
   return (
     <div className="bk-rise flex flex-col gap-4">
-      <a href={chapterHref({ kind: "teams" })} className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-        <IconArrowLeft aria-hidden="true" className="size-4" />
-        All teams
-      </a>
-      <article className="bk-book grid overflow-hidden lg:grid-cols-2" aria-label={`${album.name} album`}>
+      {framed && (
+        <a href={chapterHref({ kind: "teams" })} className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+          <IconArrowLeft aria-hidden="true" className="size-4" />
+          All teams
+        </a>
+      )}
+      <article className={`grid overflow-hidden lg:grid-cols-2 ${framed ? "bk-book" : ""}`} aria-label={`${album.name} album`}>
         <section className="bk-paper bk-page-left flex flex-col gap-5 p-5 sm:p-7">
           <header className="flex items-center gap-4">
             <span className="bk-crest-frame relative grid size-20 shrink-0 place-items-center bg-foreground/10 sm:size-24">
@@ -137,7 +141,9 @@ export function TeamSpread({ team, timeZone }: { team: string; timeZone: string 
           </div>
           <ol className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-3">
             {album.people.map((person, at) => (
-              <li key={person.key}>{person.held ? <StickerCard person={person} number={firstNumber + at} tilt={tiltOf(person.key)} timeZone={timeZone} /> : <EmptySlot person={person} number={firstNumber + at} />}</li>
+              <li key={person.key} data-slot={person.key}>
+                {person.held ? <StickerCard person={person} number={firstNumber + at} tilt={tiltOf(person.key)} timeZone={timeZone} /> : <EmptySlot person={person} number={firstNumber + at} />}
+              </li>
             ))}
           </ol>
           {album.unmatched > 0 && (
@@ -157,15 +163,11 @@ export function TeamSpread({ team, timeZone }: { team: string; timeZone: string 
 
 function CrestPlate({ album, complete }: { album: TeamAlbum; complete: boolean }) {
   return (
-    <figure className={`flex flex-col items-center gap-3 rounded-lg p-6 ${complete ? "bg-card/70" : "bk-slot"}`}>
-      <TeamCrest art={album.art} size={140} collected={complete} />
-      <figcaption className="text-center text-sm">
-        {complete ? (
-          <span className="font-medium">{`The ${album.name} crest is yours.`}</span>
-        ) : (
-          <span className="text-muted-foreground">{`Collect everyone on ${album.name} to earn its crest.`}</span>
-        )}
-      </figcaption>
+    <figure data-crest-plate className={`bk-crest-plate flex flex-col items-center gap-3 rounded-lg p-6 ${complete ? "bg-card/70" : "bk-slot"}`}>
+      <span className="bk-crest-hover inline-flex">
+        <TeamCrest art={album.art} size={140} collected={complete} />
+      </span>
+      <figcaption className="text-center text-sm">{complete ? <span className="font-medium">{`The ${album.name} crest is yours.`}</span> : <span className="text-muted-foreground">{`Collect everyone on ${album.name} to earn its crest.`}</span>}</figcaption>
     </figure>
   );
 }
@@ -181,7 +183,7 @@ function Notes({ album, className, timeZone }: { album: TeamAlbum; className: st
           <span className="tabular-nums text-muted-foreground">{`${album.held}/${album.total}`}</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-muted ring-1 ring-inset ring-border" role="img" aria-label={`${share}% collected`}>
-          <div className={`h-full rounded-full ${album.collectedAt !== null ? "bg-foreground" : "bg-foreground/60"}`} style={{ width: `${share}%` }} />
+          <div className={`bk-fill h-full rounded-full ${album.collectedAt !== null ? "bg-foreground" : "bg-foreground/60"}`} style={{ width: `${share}%` }} />
         </div>
         {missing.length > 0 && <p className="text-xs text-muted-foreground">{`Still to swap thanks with ${missing.map((person) => person.name).join(", ")}.`}</p>}
         {album.collectedAt !== null && <p className="text-xs text-muted-foreground">{`Completed ${dateWords(album.collectedAt, timeZone)}.`}</p>}
@@ -201,10 +203,10 @@ function tiltOf(key: string) {
   return ((Math.abs(hash) % 100) / 100 - 0.5) * 3;
 }
 
-function StickerCard({ person, number, tilt, timeZone }: { person: TeamPerson; number: number; tilt: number; timeZone: string }) {
+export function StickerCard({ person, number, tilt, timeZone }: { person: TeamPerson; number: number; tilt: number; timeZone: string }) {
   const facts = person.heldAt === null ? "Collected" : `Since ${dateWords(person.heldAt, timeZone)}`;
   return (
-    <figure className="bk-sticker flex aspect-[3/4] flex-col" style={{ transform: `rotate(${tilt}deg)` }} title={`${person.name}. ${facts}`}>
+    <figure className="bk-sticker flex aspect-[3/4] flex-col" style={{ transform: `rotate(${tilt}deg)`, "--tilt": `${tilt}deg` } as CSSProperties} title={`${person.name}. ${facts}`}>
       <div className="bk-sheen relative flex-1 overflow-hidden rounded-[6px] bg-muted">
         <Portrait face={person.face} />
         <span className="hud-display absolute left-1 top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-[11px] font-bold tabular-nums text-foreground shadow-sm">{number}</span>
@@ -246,8 +248,4 @@ function CompleteStamp({ at, timeZone }: { at: number; timeZone: string }) {
 
 function PageNumber({ n, side }: { n: number; side: "left" | "right" }) {
   return <span className={`hud-display mt-auto hidden pt-2 text-xs tabular-nums text-muted-foreground lg:block ${side === "left" ? "self-start" : "self-end"}`}>{n}</span>;
-}
-
-export function TeamsAside({ children }: { children: ReactNode }) {
-  return <span className="text-xs tabular-nums text-muted-foreground">{children}</span>;
 }

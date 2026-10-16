@@ -12,7 +12,7 @@ const roles = ["Product Engineer", "Product Engineer", "Product Engineer", "Prod
 const everyone = new Map<string, { key: string; name: string; face: Face; former: boolean }>();
 for (const person of [...stickers, ...albums.flatMap((album) => album.people)]) if (!person.former) everyone.set(person.key, person);
 
-const held = new Map(stickers.map((sticker) => [sticker.key, sticker.firstAt]));
+const stickersHeld = new Map(stickers.map((sticker) => [sticker.key, sticker.firstAt]));
 
 const givenNames = ["Aisha", "Bruno", "Chiara", "Dmitri", "Esme", "Farid", "Greta", "Hugo", "Ines", "Jamal", "Kenji", "Lotte", "Mateo", "Nadia", "Oskar", "Pilar", "Quinn", "Rosa", "Sven", "Talia", "Umar", "Vera", "Wren", "Ximena", "Yusuf", "Zoe"];
 
@@ -31,10 +31,8 @@ const strangers = Array.from({ length: 70 }, (_, at) => {
 
 for (const stranger of strangers) everyone.set(stranger.key, stranger);
 
-const people = [...everyone.values()];
-
 const myTeams: Record<string, string[]> = {
-  workflows: ["k:noor", "k:felix", "k:priya", "k:hana"],
+  workflows: ["k:noor", "k:felix", "k:priya", "k:hana", "k:omar"],
   website: ["k:tomas", "k:elin"],
 };
 
@@ -68,15 +66,17 @@ function rosterOf(team: string, size: number): string[] {
   return pool.slice(0, size).map(({ key }) => key);
 }
 
-function personOf(key: string, at: number, lead: boolean): TeamPerson {
+type Held = ReadonlyMap<string, number>;
+
+function personOf(key: string, at: number, lead: boolean, held: Held): TeamPerson {
   const person = everyone.get(key)!;
   const heldAt = held.get(key) ?? null;
   return { key, name: person.name, role: roles[at % roles.length]!, face: person.face, lead, held: heldAt !== null, heldAt };
 }
 
-function albumOf({ crest, name, roster }: { crest: string; name: string; roster: readonly string[] }, at: number): TeamAlbum {
-  const keys = rosterOf(crest, Math.min(people.length, roster.length + (at % 3)));
-  const members = keys.map((key, index) => personOf(key, index + at, index === 0));
+function albumOf({ crest, name, roster }: { crest: string; name: string; roster: readonly string[] }, at: number, held: Held): TeamAlbum {
+  const keys = rosterOf(crest, Math.min(strangers.length, roster.length + (at % 3)));
+  const members = keys.map((key, index) => personOf(key, index + at, index === 0, held));
   const heldCount = members.filter((person) => person.held).length;
   const collectedAt = heldCount === members.length && members.length > 0 ? Math.max(...members.map((person) => person.heldAt ?? 0)) : null;
   return {
@@ -94,8 +94,23 @@ function albumOf({ crest, name, roster }: { crest: string; name: string; roster:
   };
 }
 
-export const teamAlbums: TeamAlbum[] = catalogue.crests.map(albumOf).toSorted((first, second) => Number(second.mine) - Number(first.mine) || Number(second.collectedAt !== null) - Number(first.collectedAt !== null) || first.name.localeCompare(second.name));
+const mineFirstThenCompleteThenByName = (first: TeamAlbum, second: TeamAlbum) => Number(second.mine) - Number(first.mine) || Number(second.collectedAt !== null) - Number(first.collectedAt !== null) || first.name.localeCompare(second.name);
 
-export const peopleCollected = new Set(teamAlbums.flatMap((album) => album.people.filter((person) => person.held).map((person) => person.key))).size;
+export function albumsWith(alsoHeld: ReadonlyMap<string, number>): TeamAlbum[] {
+  const held = new Map([...stickersHeld, ...alsoHeld]);
+  return catalogue.crests.map((entry, at) => albumOf(entry, at, held)).toSorted(mineFirstThenCompleteThenByName);
+}
 
-export const peopleOnTeams = new Set(teamAlbums.flatMap((album) => album.people.map((person) => person.key))).size;
+export const teamAlbums: TeamAlbum[] = albumsWith(new Map());
+
+export function peopleCountsOf(shown: TeamAlbum[]) {
+  const people = shown.flatMap((album) => album.people);
+  const collected = new Set(people.filter((person) => person.held).map((person) => person.key)).size;
+  const total = new Set(people.map((person) => person.key)).size;
+  const crests = shown.filter((album) => album.collectedAt !== null).length;
+  return { collected, total, crests };
+}
+
+export function personNamed(shown: TeamAlbum[], key: string) {
+  return shown.flatMap((album) => album.people).find((person) => person.key === key);
+}

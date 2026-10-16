@@ -1,4 +1,4 @@
-/* The Collection as a book: album paper, a spine on wide screens, die-cut stickers, printed empty slots, the completion stamp and the chapter tabs. */
+/* The Collection as a book: album paper, a spine on wide screens, die-cut stickers, printed empty slots, the completion stamp, chapter tabs, hover polish, and the moments where a sticker or hoggie lands in the book. */
 
 .bk-paper {
   position: relative;
@@ -53,6 +53,41 @@
   }
 }
 
+.bk-perspective {
+  perspective: 1600px;
+}
+
+.bk-page-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px 10px;
+  margin-bottom: -4px;
+  border-radius: 10px 10px 0 0;
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  background: color-mix(in oklab, var(--card) 80%, var(--muted));
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.bk-page-tab:hover {
+  transform: translateY(-3px);
+  color: var(--foreground);
+}
+
+.bk-page-tab[aria-current="page"] {
+  background: color-mix(in oklab, var(--card) 92%, var(--band-lemon) 8%);
+  color: var(--foreground);
+  padding-top: 10px;
+  transform: translateY(-2px);
+  z-index: 1;
+}
+
 .bk-sticker {
   background: white;
   border-radius: 10px;
@@ -78,7 +113,10 @@
 
 @media (hover: hover) {
   .bk-sticker:hover {
-    transform: translateY(-2px) rotate(0deg) !important;
+    transform: translateY(-3px) rotate(0deg) scale(1.03) !important;
+    box-shadow:
+      0 2px 3px color-mix(in oklab, var(--foreground) 28%, transparent),
+      0 14px 24px -12px color-mix(in oklab, var(--foreground) 55%, transparent);
   }
   .bk-sticker:hover .bk-sheen::after {
     background-position: 10% 0;
@@ -122,12 +160,22 @@
     0 10px 14px -10px color-mix(in oklab, var(--foreground) 55%, transparent);
 }
 
+.bk-shelf-row {
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
 .bk-tab {
   position: relative;
   border-radius: 9999px;
   transition:
     background-color 0.15s ease,
-    color 0.15s ease;
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.bk-tab:hover {
+  transform: translateY(-1px);
 }
 
 .bk-tab[aria-current="page"],
@@ -147,24 +195,222 @@
   --share: 0%;
   background: conic-gradient(var(--ring-fill, var(--foreground)) var(--share), color-mix(in oklab, var(--foreground) 12%, transparent) 0);
   mask: radial-gradient(circle closest-side, transparent 68%, black 70%);
+  transition: filter 0.2s ease;
 }
 
-.bk-album-cover {
+.bk-fill {
+  transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+[data-bar] > div {
+  transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Hover polish: everything collectable lifts, tilts and catches the light. */
+
+.hoggie-tile,
+.crest-tile,
+.bk-album-cover,
+.bk-chapter-card,
+.bk-stand,
+.bk-row,
+.bk-crate-button,
+.bk-face {
   transition:
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
+    transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.15s ease;
+}
+
+.hoggie-coin,
+.team-crest,
+.team-crest img {
+  transition:
+    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1.3),
+    filter 0.4s ease,
+    opacity 0.4s ease;
+}
+
+.hoggie-coin {
+  position: relative;
+}
+
+.hoggie-coin::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(120deg, transparent 35%, rgb(255 255 255 / 0.55) 50%, transparent 65%);
+  transform: translateX(-120%);
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .hoggie-tile:hover,
+  .crest-tile:hover,
+  .bk-stand:hover {
+    transform: translateY(-4px);
+  }
+  .hoggie-tile[data-held="found"]:hover {
+    border-color: var(--rarity);
+    box-shadow: 0 12px 22px -14px color-mix(in oklab, var(--rarity) 70%, transparent);
+  }
+  .hoggie-tile:hover .hoggie-coin,
+  .bk-stand:hover .hoggie-coin {
+    transform: rotate(-7deg) scale(1.1);
+  }
+  .hoggie-tile[data-held="found"]:hover .hoggie-coin::after,
+  .bk-stand[data-held="found"]:hover .hoggie-coin::after {
+    transform: translateX(120%);
+    transition: transform 0.6s ease;
+  }
+  .crest-tile:hover .team-crest img,
+  .bk-crest-hover:hover img,
+  .bk-album-cover:hover .team-crest img,
+  .bk-row:hover .team-crest img,
+  .bk-stand:hover .team-crest img {
+    transform: rotate(-7deg) scale(1.1);
+  }
   .bk-album-cover:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 24px -16px color-mix(in oklab, var(--foreground) 55%, transparent);
+    transform: translateY(-3px);
+    box-shadow: 0 14px 28px -18px color-mix(in oklab, var(--foreground) 60%, transparent);
+  }
+  .bk-chapter-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 30px -20px color-mix(in oklab, var(--foreground) 55%, transparent);
+    background: var(--fill-hover, var(--card));
+  }
+  .bk-chapter-card:hover .bk-ring {
+    filter: brightness(1.25);
+  }
+  .bk-chapter-card:hover .hoggie-coin,
+  .bk-chapter-card:hover .team-crest img {
+    transform: rotate(-6deg) scale(1.08);
+  }
+  .bk-face:hover {
+    transform: translateY(-3px) scale(1.15);
+    z-index: 1;
+  }
+  .bk-crate-button:hover .loot {
+    animation: none;
+    transform: translateY(-6px) rotate(-3deg) scale(1.04);
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1.3);
+  }
+  .bk-crate-button:hover .loot-seam {
+    opacity: 0.7;
+  }
+  a:hover > .bk-ring-wrap .bk-ring {
+    filter: brightness(1.25);
   }
 }
 
+/* A hoggie landing in its tile after a crate. */
+
+.hoggie-tile[data-landed],
+.bk-stand[data-landed] {
+  animation: bk-land 0.9s cubic-bezier(0.2, 0.8, 0.2, 1.4) both;
+  border-color: var(--rarity);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--rarity) 45%, transparent), 0 0 40px color-mix(in oklab, var(--rarity) 60%, transparent);
+}
+
+.hoggie-tile[data-landed] .hoggie-coin::after,
+.bk-stand[data-landed] .hoggie-coin::after {
+  animation: bk-shine 0.9s ease 0.3s both;
+}
+
+/* A sticker sticking into its slot. */
+
+[data-slot][data-stuck] .bk-sticker {
+  animation: bk-stick 0.7s cubic-bezier(0.3, 1.2, 0.4, 1) both;
+}
+
+[data-slot][data-stuck] .bk-sheen::after {
+  animation: bk-sheen-sweep 0.9s ease 0.5s both;
+}
+
+[data-team][data-earned] {
+  animation: bk-earn-card 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+[data-crest-plate][data-earned] .team-crest-missing,
+[data-team][data-earned] .team-crest-missing {
+  filter: none;
+  opacity: 1;
+}
+
+[data-crest-plate][data-earned] .team-crest img,
+[data-team][data-earned] .team-crest img {
+  animation: bk-earn 0.9s cubic-bezier(0.2, 0.8, 0.2, 1.25) 0.2s both;
+}
+
+[data-crest-plate][data-earned] {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--band-lemon) 60%, transparent), 0 0 60px color-mix(in oklab, var(--band-lemon) 55%, transparent);
+  transition: box-shadow 0.4s ease 0.3s;
+}
+
+/* The sticker moment overlay. */
+
+.sm-ribbon {
+  display: inline-flex;
+  border-radius: 9999px;
+  background: var(--band-lemon);
+  color: #141414;
+  padding: 0.25rem 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  box-shadow: 0 10px 24px -12px rgb(0 0 0 / 0.6);
+}
+
+.sm-line {
+  max-width: 24rem;
+  border-radius: 0.75rem;
+  background: var(--card);
+  color: var(--card-foreground);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.875rem;
+  box-shadow: 0 10px 24px -12px rgb(0 0 0 / 0.6);
+}
+
+.sm-card {
+  width: 10rem;
+  filter: drop-shadow(0 24px 30px rgb(0 0 0 / 0.45));
+  animation: bk-peel 1.3s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  transform-origin: 50% 100%;
+}
+
+.sm-card .bk-sheen::after {
+  animation: bk-sheen-sweep 1s ease 0.5s both;
+}
+
+.sm-crest-banner {
+  background: #141414;
+  color: #fff;
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--band-lemon) 50%, transparent),
+    0 0 60px color-mix(in oklab, var(--band-lemon) 60%, transparent);
+}
+
+.sm-crest-pop {
+  display: inline-flex;
+  animation: bk-earn 0.9s cubic-bezier(0.2, 0.8, 0.2, 1.25) 0.15s both;
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  .sm-in {
+    animation: bk-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) both;
+  }
+  .sm-out {
+    animation: bk-sink 0.3s ease both;
+  }
   .bk-rise {
     animation: bk-rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .bk-flip-in {
+    animation: bk-flip 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    transform-origin: 50% 50%;
   }
   .bk-stamp-in {
     animation: bk-stamp 0.42s cubic-bezier(0.2, 0.8, 0.2, 1.1) 0.25s both;
@@ -182,6 +428,27 @@
   }
 }
 
+@keyframes bk-sink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes bk-flip {
+  from {
+    opacity: 0;
+    transform: rotateY(-14deg) translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes bk-stamp {
   from {
     opacity: 0;
@@ -190,5 +457,87 @@
   to {
     opacity: 0.88;
     transform: rotate(-11deg) scale(1);
+  }
+}
+
+@keyframes bk-land {
+  0% {
+    transform: scale(0.85);
+  }
+  55% {
+    transform: scale(1.1) rotate(-2deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes bk-shine {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes bk-sheen-sweep {
+  from {
+    background-position: 90% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
+
+@keyframes bk-stick {
+  0% {
+    transform: scale(1.6) rotate(-22deg);
+    opacity: 0.6;
+  }
+  60% {
+    transform: scale(0.94) rotate(2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--tilt, 0deg));
+  }
+}
+
+@keyframes bk-peel {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-30deg) translateY(60px);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.08) rotate(6deg);
+  }
+  100% {
+    transform: scale(1) rotate(-6deg);
+  }
+}
+
+@keyframes bk-earn {
+  0% {
+    transform: scale(0.6) rotate(-14deg);
+  }
+  60% {
+    transform: scale(1.15) rotate(4deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes bk-earn-card {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--band-lemon) 80%, transparent);
+  }
+  40% {
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--band-lemon) 60%, transparent), 0 0 50px color-mix(in oklab, var(--band-lemon) 60%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
   }
 }

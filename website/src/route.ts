@@ -135,11 +135,14 @@ function currentAddress() {
   return window.location.pathname + window.location.search;
 }
 
+const keptParams = ["code", "variant", "crate", "moment"];
+
 function keepingSignInCode(href: string) {
-  const code = new URLSearchParams(window.location.search).get("code");
-  if (code === null) return href;
+  const current = new URLSearchParams(window.location.search);
+  const kept = keptParams.filter((name) => current.has(name));
+  if (kept.length === 0) return href;
   const address = new URL(href, window.location.origin);
-  address.searchParams.set("code", code);
+  for (const name of kept) address.searchParams.set(name, current.get(name)!);
   return address.pathname + address.search;
 }
 
