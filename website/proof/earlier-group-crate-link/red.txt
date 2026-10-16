@@ -1,0 +1,26 @@
+     × /quests?crate=group%3A2026-10-05 7ms
+     × #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/quests?crate=gr… 22ms
+     × scrolls to 2026-10-05's group crate and focuses its Claim, never opening it 393ms
+     × scrolls to 2026-09-28's group crate and focuses its Claim, never opening it 676ms
+     × signs in back to /quests?crate=group%3A2026-10-05 39ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/deepLinkTargets.test.tsx > #517: ?crate=group:{week} lands on an earlier week's waiting group crate > scrolls to 2026-10-05's group crate and focuses its Claim, never opening it
+AssertionError: expected [] to deeply equal [ <article …(3)>…(3)</article> ]
+- Expected
++ Received
+ FAIL  |website| src/deepLinkTargets.test.tsx > #517: ?crate=group:{week} lands on an earlier week's waiting group crate > scrolls to 2026-09-28's group crate and focuses its Claim, never opening it
+AssertionError: expected [] to deeply equal [ <article …(3)>…(3)</article> ]
+- Expected
++ Received
+ FAIL  |website| src/deepLinkTargets.test.tsx > #435: a target survives sign-in > signs in back to /quests?crate=group%3A2026-10-05
+AssertionError: expected "vi.fn()" to be called with arguments: [ '/quests?crate=group%3A2026-10-05' ]
+Received:
+ FAIL  |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > /quests?crate=group%3A2026-10-05
+AssertionError: expected 'https://kudos-site.test/quests?crate=…' to be 'https://kudos-site.test/quests?crate=…' // Object.is equality
+Expected: "https://kudos-site.test/quests?crate=group%3A2026-10-05"
+Received: "https://kudos-site.test/quests?crate=group%3A2026-10-05%3Aundefined"
+ FAIL  |convex| convex/website/link.test.ts > SW11: one function builds every website link > #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/quests?crate=gr…
+Error: Validator error: Expected one of object, object, object, object, object, object, object, got `{"crate":{"kind":"group","week":"2026-10-05"},"page":"quests"}`
+    906|                 throw new Error(`Validator error: Expected one of ${va…
+ Test Files  3 failed (3)
+      Tests  5 failed | 88 passed (93)

@@ -1,0 +1,17 @@
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/earlier-group-crate-link
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > /quests?crate=group%3A2026-10-05 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > drops a broken group crate: ?crate=group: 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > drops a broken group crate: ?crate=group:last-week 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > drops a broken group crate: ?crate=group:2026-10-05:1 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > drops a broken group crate: ?crate=group:2026-10-5 0ms
+ ✓ |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > drops a broken group crate: ?crate=groups:2026-10-05 1ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #517: ?crate=group:{week} lands on an earlier week's waiting group crate > scrolls to 2026-10-05's group crate and focuses its Claim, never opening it 215ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #517: ?crate=group:{week} lands on an earlier week's waiting group crate > scrolls to 2026-09-28's group crate and focuses its Claim, never opening it 126ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #517: ?crate=group:{week} lands on an earlier week's waiting group crate > lands on the plain page for a group crate already opened 92ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #517: ?crate=group:{week} lands on an earlier week's waiting group crate > lands on the plain page for a broken target 80ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #517: ?crate=group:{week} lands on an earlier week's waiting group crate > lands on the plain page for a target with no week 118ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: a target survives sign-in > signs in back to /quests?crate=group%3A2026-10-05 41ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: axe finds no violations on a landing > an earlier week's group crate in light mode 1007ms
+ ✓ |website| src/deepLinkTargets.test.tsx > #435: axe finds no violations on a landing > an earlier week's group crate in dark mode 891ms
+ Test Files  3 passed (3)
+      Tests  93 passed (93)

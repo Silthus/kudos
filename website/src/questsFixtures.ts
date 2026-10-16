@@ -79,6 +79,8 @@ const groupClaimed: GroupQuestCard = { ...groupFinished, state: "opened", crate:
 
 const lastWeeksGroupCrate: WaitingCrate = { goal: "Thank someone outside Ants.", group: "Ants", week: "2026-10-05", reward: { xp: 0, coins: 15 }, crate: { kind: "group", group: ants, week: "2026-10-05" }, seen: "5d6e7f", waiting: false };
 
+const twoWeeksAgosGroupCrate: WaitingCrate = { ...lastWeeksGroupCrate, goal: "Thank someone and say why.", week: "2026-09-28", crate: { kind: "group", group: ants, week: "2026-09-28" }, seen: "8c9d0e" };
+
 export const groupQuests = { groupInProgress, groupFinished, groupFinishedWithoutYou, groupClaimed, lastWeeksGroupCrate };
 
 const sayingWhyTwice: QuestSlot = { ...joiningIn, kind: "Say why", goal: "Thank someone and say why, 2 times.", progress: { done: 0, target: 2 } };
@@ -137,6 +139,7 @@ export const questsFixtures = {
   weekWithTheGroupQuestFinishedWithoutYou: { ...week, group: groupFinishedWithoutYou },
   weekWithTheGroupQuestClaimed: { ...week, group: groupClaimed },
   weekWithLastWeeksGroupCrate: { ...week, group: groupInProgress, waiting: [lastWeeksGroupCrate] },
+  weekWithTwoWeeksOfGroupCrates: { ...week, group: groupFinished, waiting: [twoWeeksAgosGroupCrate, lastWeeksCrate, lastWeeksGroupCrate] },
   noDraw: { kind: "quests", slots: [], swap: { used: false, available: false }, group: null, waiting: [], bonus: null, chatUrl },
   locked: { kind: "locked", level: 2 },
   ready: { kind: "ready" },
