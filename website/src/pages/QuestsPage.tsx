@@ -11,6 +11,7 @@ import { hogOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "..
 import { PageTitle } from "../PageTitle";
 import { crateTargetAttributes, questTargetAttributes } from "../linkTarget";
 import { Coins, xpLineOf } from "../quests/QuestReward";
+import { sharedRewardSentenceOf } from "../quests/groupQuestCopy";
 import { QuestTag } from "../quests/QuestTag";
 import { sameQuest, useQuestSwap, type QuestSwap } from "../quests/questSwap";
 import type { GroupQuestCard, JourneyStep, MemberProfile, QuestReward, QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
@@ -150,11 +151,27 @@ function RewardRow({ reward, waiting, children }: { reward: QuestReward; waiting
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
       <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tabular-nums text-muted-foreground">
-        <span>{xpLineOf(reward, waiting)}</span>
-        {reward.coins !== undefined && <Coins coins={reward.coins} />}
+        <RewardLine reward={reward} waiting={waiting} />
       </span>
       {children}
     </div>
+  );
+}
+
+function RewardLine({ reward, waiting }: { reward: QuestReward; waiting: boolean }) {
+  if (reward.xp > 0)
+    return (
+      <>
+        <span>{xpLineOf(reward, waiting)}</span>
+        {reward.coins !== undefined && <Coins coins={reward.coins} />}
+      </>
+    );
+  if (reward.coins === undefined) return null;
+  return (
+    <span>
+      <Coins coins={reward.coins} />
+      {waiting && " waiting"}
+    </span>
   );
 }
 
@@ -319,7 +336,9 @@ function GroupQuest({ quest, firstCrate }: { quest: GroupQuestCard } & FirstCrat
               {goal}
             </h3>
             <QuestProgress {...progress} tookPart />
-            <GroupRewardRow quest={quest}>{claimed ? <Claimed /> : <ClaimOf facts={quest} firstCrate={firstCrate} />}</GroupRewardRow>
+            <RewardRow reward={quest.reward} waiting={quest.waiting}>
+              {claimed ? <Claimed /> : <ClaimOf facts={quest} firstCrate={firstCrate} />}
+            </RewardRow>
             <SharedReward quest={quest} />
           </div>
         </div>
@@ -328,21 +347,8 @@ function GroupQuest({ quest, firstCrate }: { quest: GroupQuestCard } & FirstCrat
   );
 }
 
-function GroupRewardRow({ quest: { reward, waiting }, children }: { quest: GroupQuestCard; children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
-      <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tabular-nums text-muted-foreground">
-        {(reward.xp > 0 || reward.coins === undefined) && <span>{xpLineOf(reward, waiting)}</span>}
-        {reward.coins !== undefined && <Coins coins={reward.coins} />}
-        {waiting && reward.xp === 0 && <span>waiting</span>}
-      </span>
-      {children}
-    </div>
-  );
-}
-
-function SharedReward({ quest: { group, progress, you, state } }: { quest: GroupQuestCard }) {
-  const sentence = state === "in-progress" ? `Everyone in ${group} who takes part gets the reward once ${progress.target} have.` : state === "finished" && !you ? `${group} finished it. Take part this week to get the reward too.` : undefined;
+function SharedReward({ quest }: { quest: GroupQuestCard }) {
+  const sentence = sharedRewardSentenceOf(quest);
   if (sentence === undefined) return null;
   return <p className="text-sm text-muted-foreground">{sentence}</p>;
 }

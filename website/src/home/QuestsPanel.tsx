@@ -1,6 +1,7 @@
 import { IconPeople } from "@posthog/icons";
 import { AppLink } from "../AppLink";
 import { Coins, xpLineOf } from "../quests/QuestReward";
+import { sharedRewardSentenceOf } from "../quests/groupQuestCopy";
 import { QuestTag } from "../quests/QuestTag";
 import { Claimed } from "../crates/RewardCrate";
 import { MaxLine } from "../Max";
@@ -52,8 +53,10 @@ function BonusRow({ step: { goal, state, reward, waiting } }: { step: JourneySte
   );
 }
 
-function GroupRow({ quest: { group, goal, progress, state, reward, crate } }: { quest: GroupQuestCard }) {
+function GroupRow({ quest }: { quest: GroupQuestCard }) {
+  const { group, goal, progress, state, reward, crate, you } = quest;
   const named = `${group} quest: ${goal}`;
+  const sentence = sharedRewardSentenceOf(quest);
   return (
     <li className="relative flex flex-col gap-1.5 rounded-lg px-2 py-2 hover:bg-fill-hover">
       <AppLink href={questsHref("group")} className="flex items-start justify-between gap-2 text-sm leading-snug after:absolute after:inset-0 after:rounded-lg">
@@ -70,6 +73,12 @@ function GroupRow({ quest: { group, goal, progress, state, reward, crate } }: { 
           <Claimed />
         </span>
       )}
+      {you && state !== "opened" && (
+        <span className="self-start">
+          <QuestTag>You took part</QuestTag>
+        </span>
+      )}
+      {sentence !== undefined && <p className="text-xs text-muted-foreground">{sentence}</p>}
     </li>
   );
 }

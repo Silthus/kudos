@@ -1,10 +1,10 @@
-import { screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import axe from "axe-core";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fixedQuests, groupQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures, type MyQuests, type OpenAnswer } from "./shell";
 import { renderApp } from "./test/renderApp";
-import { fakeSystemTheme } from "./test/systemTheme";
+import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
 
 const withQuests = shellFixtures.memberWithQuests;
 const goal = "Thank someone and say why.";
@@ -16,6 +16,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   Reflect.deleteProperty(Element.prototype, "scrollIntoView");
 });
 
@@ -101,7 +102,60 @@ describe("WS344 P82: /quests shows the member's group quest beside the personal 
   });
 });
 
+describe("WS344 WS348: a group reward of 0 XP shows only what it pays", () => {
+  it("shows no XP line on the group card or an earlier group crate, only the coins", () => {
+    showQuests(questsFixtures.weekWithLastWeeksGroupCrate);
+    expect(groupQuest()).not.toHaveTextContent("XP");
+    const waiting = within(main()).getByRole("region", { name: "Waiting to open" });
+    expect(within(waiting).getByRole("heading", { name: "Thank someone outside Ants." }).closest("article")).not.toHaveTextContent("XP");
+  });
+
+  it("says the coins wait in the crate while they do", () => {
+    showQuests({ ...questsFixtures.weekWithTheGroupQuestFinished, group: { ...groupQuests.groupFinished, waiting: true } });
+    expect(groupQuest()).toHaveTextContent("15 coins waiting");
+  });
+
+  it("shows no reward line while the coins are hidden from the member, even while the crate holds them", () => {
+    showQuests({ ...questsFixtures.weekWithTheGroupQuestFinished, group: { ...groupQuests.groupFinished, reward: { xp: 0 }, waiting: true } });
+    expect(groupQuest()).not.toHaveTextContent(/XP|waiting/);
+  });
+
+  it("the reveal says You earned 15 coins, never 0 XP", async () => {
+    preferReducedMotion();
+    showQuests(questsFixtures.weekWithTheGroupQuestFinished);
+    vi.useFakeTimers();
+    fireEvent.click(within(groupQuest()).getByRole("button", { name: "Claim" }));
+    await act(async () => {});
+    expect(screen.getByRole("dialog")).toHaveTextContent("You earned 15 coins");
+    expect(screen.getByRole("dialog")).toHaveTextContent("Group quest reward");
+  });
+
+  it("the reveal of a reward the member can't see names no amount", async () => {
+    preferReducedMotion();
+    showQuests({ ...questsFixtures.weekWithTheGroupQuestFinished, group: { ...groupQuests.groupFinished, reward: { xp: 0 } } });
+    vi.useFakeTimers();
+    fireEvent.click(within(groupQuest()).getByRole("button", { name: "Claim" }));
+    await act(async () => {});
+    expect(screen.getByRole("dialog")).not.toHaveTextContent(/0 XP|You earned/);
+  });
+});
+
 describe("WS344: the home's Quests this week has a row for the group quest", () => {
+  it("says You took part and the shared-reward sentence while in progress", () => {
+    showHome(questsFixtures.weekWithTheGroupQuest);
+    const row = within(questsPanel()).getByRole("link", { name: /Ants quest:/ }).closest("li")!;
+    expect(row).toHaveTextContent("You took part");
+    expect(row).toHaveTextContent("Everyone in Ants who takes part gets the reward once 3 have.");
+  });
+
+  it("finished without the viewer: no Claim, and it says how to get the reward too", () => {
+    showHome(questsFixtures.weekWithTheGroupQuestFinishedWithoutYou);
+    const row = within(questsPanel()).getByRole("link", { name: /Ants quest:/ }).closest("li")!;
+    expect(row).not.toHaveTextContent("Claim");
+    expect(row).not.toHaveTextContent("You took part");
+    expect(row).toHaveTextContent("Ants finished it. Take part this week to get the reward too.");
+  });
+
   it("shows the group quest after the personal quests with its counts, linking to it on /quests", () => {
     showHome(questsFixtures.weekWithTheGroupQuest);
     const row = within(questsPanel()).getByRole("link", { name: /Ants quest: Thank someone and say why\./ });
