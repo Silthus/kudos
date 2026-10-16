@@ -14,6 +14,8 @@ import crons from "../crons";
 import { xpToReach } from "../progression/levels";
 import schema from "../schema";
 import { openUnlock } from "../unlocks/unlocks";
+import type { ActivityAnswer } from "../website/activity";
+import type { Denial } from "../website/memberQuery";
 
 const theStars = vi.hoisted(() => ({ removed: false }));
 
@@ -25,11 +27,6 @@ vi.mock("./reactions", async (importOriginal) => {
 vi.mock("../stars/flag", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../stars/flag")>();
   return { ...actual, starsShownTo: vi.fn((...args: Parameters<typeof actual.starsShownTo>) => (theStars.removed ? Promise.resolve(false) : actual.starsShownTo(...args))) };
-});
-
-vi.mock("../stars/stars", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../stars/stars")>();
-  return { ...actual, giveStar: vi.fn((...args: Parameters<typeof actual.giveStar>) => (theStars.removed ? Promise.resolve({ kind: "nothing" as const }) : actual.giveStar(...args))) };
 });
 
 vi.mock("../quests/rank", async (importOriginal) => {
@@ -56,6 +53,9 @@ const stars = "stars";
 const everyOtherFlag = ["xp-levels", "unlocks", "achievements", "collection", "crests", "crate-store", "crate-rewards", "coins", "store", "quests", "group-quest", "groups", "activity", "everyone-board", "profile-card", "hoggie-avatar", "message-settings", "custom-kudos-emoji", "monday-post", "skill-tree", "slots-retired"];
 const starTables = ["stars", "starPeople", "starWeeks", "starWeekMessages", "starCounts"] as const;
 const reactionEventIds = /^EvStar/;
+const starLookUp = "slack/starLookups:lookUpStarPeople";
+const outboxDelivery = "analytics/drain:";
+const identifyDelivery = "analytics/person:identifyNewPeople";
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
 const carol = { user: "U_CAROL", name: "Carol Diaz", email: "carol@example.com" };
@@ -117,7 +117,7 @@ describe("SR21: stars are dark where the flag is off, at the Slack and website b
     expect(apartFromSR21sList(walk.seen)).toEqual(apartFromSR21sList(withoutStars.seen));
     expect(walk.stars).toEqual({ stars: [], starPeople: [], starWeeks: [], starWeekMessages: [], starCounts: [] });
     expect(lookUpsOf(walk.seen)).toEqual([erin.user]);
-    expect(lookUpsOf(withoutStars.seen)).toEqual([erin.user]);
+    expect(lookUpsOf(withoutStars.seen)).toEqual([]);
     expect(starExposures(walk)).toEqual(exposed);
   });
 
@@ -153,6 +153,10 @@ describe("SR21: stars are dark where the flag is off, at the Slack and website b
       expect(walk.seen.settingsTabs[person.user]).toEqual(withoutStars.seen.settingsTabs[person.user]);
       expect(slack.messagesIn(person.user).filter(isRecap)).toEqual([]);
     }
+    for (const person of [bob, carol]) {
+      expect(messagesTo(walk.seen, person)).toEqual(messagesTo(withoutStars.seen, person));
+      expect(postHogEventsOf(walk.seen, person)).toEqual(postHogEventsOf(withoutStars.seen, person));
+    }
     expect(walk.seen.answers[alice.user]).toEqual(withoutStars.seen.answers[alice.user]);
     expect(walk.seen.homes[alice.user]).toEqual(withoutStars.seen.homes[alice.user]);
     expect(timelineKinds(walk, dana)).toContain("starGiven");
@@ -163,6 +167,25 @@ describe("SR21: stars are dark where the flag is off, at the Slack and website b
       { member: carol.user, value: false },
       { member: dana.user, value: true },
       { member: erin.user, value: false },
+    ]);
+  });
+
+  test("the flag is exposed only for a reaction that passes every other part of SR1: once a member's flag turns off, a reaction on a message they starred or past their star budget exposes nothing", async () => {
+    t = await aliceBobCarolAndDanaInAnts([onForEveryone(stars)]);
+    await t.mutation(internal.workspace.settings.setStarBudget, { workspace: "T1", starBudget: 1 });
+    const carolsMessage = earlierMessage(2 * hourMs);
+    const danasMessage = earlierMessage(3 * hourMs);
+    await reaction({ user: bob.user, itemUser: carol.user, ts: carolsMessage });
+
+    await flagsFromPostHog(t, postHog, ...everyOtherFlag.map(onForEveryone), onForEveryone("website"), offForEveryone(stars));
+    await reaction({ user: bob.user, itemUser: carol.user, ts: carolsMessage, reaction: "taco::skin-tone-2" });
+    await reaction({ user: bob.user, itemUser: dana.user, ts: danasMessage });
+    await reaction({ user: carol.user, itemUser: dana.user, ts: danasMessage });
+
+    namedIds = await idsNamedByTheirMember();
+    expect(starExposures({ postHogEvents: postHog.events() })).toEqual([
+      { member: bob.user, value: true },
+      { member: carol.user, value: false },
     ]);
   });
 });
@@ -245,8 +268,9 @@ async function walkIn(backend: Backend) {
     settingsTabs,
     answers,
     slackCalls: slack.calls.map((call) => JSON.stringify(call)).sort(),
-    productEvents: orderFree(withStableIds(postHog.productEvents().map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
+    postHogEvents: orderFree(withStableIds(postHog.events().map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsInContentOrder(),
+    jobsApartFromTheLookUpAndAnalyticsDelivery: await jobsInContentOrder({ apartFrom: [starLookUp, outboxDelivery, identifyDelivery] }),
   };
   return { seen, stars: await storedStars(), xp: await xpOfEveryone(), postHogEvents: postHog.events() };
 }
@@ -258,15 +282,20 @@ function apartFromSR21sList(seen: Seen) {
   const { slackReceipts, analyticsIds, flagExposures, analyticsOutbox, ...tables } = seen.tables as Record<string, Array<Record<string, unknown>>>;
   return {
     ...seen,
-    productEvents: seen.productEvents.filter((event) => !isStarsExposure(event)),
+    slackCalls: seen.slackCalls.filter((call) => !isLookUpOf(erin, call)),
+    postHogEvents: seen.postHogEvents.filter((event) => !isStarsExposure(event) && !isIdentifyOfTheLookedUp(event)),
     tables: {
       ...tables,
       slackReceipts: slackReceipts!.filter(({ eventId }) => !reactionEventIds.test(String(eventId))),
       analyticsIds: analyticsIds!.filter(({ member }) => member !== `<member ${erin.user}>`),
       flagExposures: flagExposures!.filter(({ flag }) => flag !== stars),
-      analyticsOutbox: analyticsOutbox!.filter((row) => row.event !== "$identify" && !isStarsExposure(row)),
+      analyticsOutbox: analyticsOutbox!.filter((row) => !isStarsExposure(row) && !isIdentifyOfTheLookedUp({ ...row, distinct_id: row.distinctId })),
     },
   };
+}
+
+function isIdentifyOfTheLookedUp({ event, distinct_id }: { event?: unknown; distinct_id?: unknown }) {
+  return event === "$identify" && distinct_id === `<analytics ID of ${erin.user}>`;
 }
 
 function isStarsExposure({ event, properties }: { event?: unknown; properties?: unknown }) {
@@ -288,6 +317,17 @@ function starExposures({ postHogEvents }: Pick<Walk, "postHogEvents">): Exposure
     .filter(isStarsExposure)
     .map(({ distinct_id, properties }) => ({ member: userOf.get(distinct_id) ?? distinct_id, value: properties.$feature_flag_response as boolean }))
     .toSorted((a, b) => a.member.localeCompare(b.member));
+}
+
+function messagesTo(seen: Seen, person: Person) {
+  return seen.slackCalls.filter((call) => {
+    const { method, args } = JSON.parse(call) as { method: string; args: { channel?: string; user?: string } };
+    return method.startsWith("chat.") && (args.channel === person.user || args.user === person.user);
+  });
+}
+
+function postHogEventsOf(seen: Seen, person: Person) {
+  return seen.postHogEvents.filter((event) => event.distinct_id === `<analytics ID of ${person.user}>` && !isStarsExposure(event));
 }
 
 function timelineKinds(walk: Walk, person: Person) {
@@ -318,13 +358,29 @@ async function onTheWebsite(person: Person) {
     settings: await read(asSignedIn.query(api.website.settings.getSettings, {})),
     skillTree: await read(asSignedIn.query(api.website.skillTree.getSkillTree, {})),
     activity: await read(asSignedIn.query(api.website.activity.getActivity, { filter: "all", cursor: null })),
-    activityReceived: await read(asSignedIn.query(api.website.activity.getActivity, { filter: "received", cursor: null })),
-    activityGiven: await read(asSignedIn.query(api.website.activity.getActivity, { filter: "given", cursor: null })),
-    recentKudos: await read(asSignedIn.query(api.website.activity.getRecentKudos, { direction: "received" })),
+    activityPageByPage: await read(everyPageOf(asSignedIn)),
+    recentKudosReceived: await read(asSignedIn.query(api.website.activity.getRecentKudos, { direction: "received" })),
+    recentKudosGiven: await read(asSignedIn.query(api.website.activity.getRecentKudos, { direction: "given" })),
     spotlight: await read(asSignedIn.query(api.website.activity.getSpotlight, { seed: 0 })),
-    leaderboard: await read(asSignedIn.query(api.website.leaderboard.getLeaderboard, { period: "week" })),
-    groupBoards: await read(asSignedIn.query(api.website.groupBoards.getGroupBoards, { period: "week" })),
+    leaderboards: await read(Promise.all(periods.map((period) => asSignedIn.query(api.website.leaderboard.getLeaderboard, { period })))),
+    groupBoards: await read(Promise.all(periods.map((period) => asSignedIn.query(api.website.groupBoards.getGroupBoards, { period })))),
   };
+}
+
+const periods = ["week", "month", "all"] as const;
+
+async function everyPageOf(asSignedIn: Awaited<ReturnType<typeof signedIn>>) {
+  const pages: Record<string, unknown[]> = {};
+  for (const filter of ["all", "received", "given"] as const) {
+    pages[filter] = [];
+    let cursor: string | null = null;
+    do {
+      const page: ActivityAnswer | Denial = await asSignedIn.query(api.website.activity.getActivity, { filter, cursor, limit: 1 });
+      pages[filter].push(page);
+      cursor = "cursor" in page ? page.cursor : null;
+    } while (cursor !== null && pages[filter].length < 50);
+  }
+  return pages;
 }
 
 async function signedIn(person: Person) {
@@ -371,10 +427,19 @@ function withStableIds<T>(value: T): T {
     if (opaque.has(key) && typeof field === "string") return stable(key, field);
     if (typeof field !== "string") return field;
     if (namedIds.has(field)) return namedIds.get(field);
+    if (containsANamedId(field)) return withNamedIds(field);
     if (createdInTheSameMillisecond.test(field)) return field.replace(createdInTheSameMillisecond, "$1.<tie>");
     if (convexTestId.test(field)) return stable("document", field);
     return uuid.test(field) ? stable("uuid", field) : field;
   });
+}
+
+function containsANamedId(field: string) {
+  return [...namedIds.keys()].some((id) => field.includes(id));
+}
+
+function withNamedIds(field: string) {
+  return [...namedIds].reduce((named, [id, name]) => named.replaceAll(id, name), field);
 }
 
 async function rowsInContentOrder() {
@@ -389,6 +454,12 @@ async function rowsInContentOrder() {
 
 function contentOf(row: Record<string, unknown>) {
   return JSON.stringify(withStableIds(row), (key, field) => (opaque.has(key) || convexTestId.test(String(field)) ? undefined : field));
+}
+
+async function jobsInContentOrder({ apartFrom }: { apartFrom: string[] }) {
+  const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  const jobs = scheduled.filter(({ name }) => !apartFrom.some((left) => name.startsWith(left))).map(({ name, args, scheduledTime, state }) => ({ name, args, scheduledTime, state: state.kind }));
+  return withStableIds(jobs.toSorted((a, b) => contentOf(a).localeCompare(contentOf(b))));
 }
 
 async function storedStars() {
@@ -466,12 +537,11 @@ async function reaction(options: ReactionOptions) {
   await settled();
 }
 
-async function reactionOfSomeoneTheDirectoryDoesNotKnow(options: ReactionOptions & { user: string; itemUser: string; ts: string }) {
+async function reactionOfSomeoneTheDirectoryDoesNotKnow(options: ReactionOptions & { user: string }) {
   if (!theStars.removed) return reaction(options);
   nextStep();
   reactions += 1;
-  const lookUp = { workspace: "T1", giver: options.user, author: options.itemUser, conversation: "C1", message: options.ts, at: Date.now() };
-  await t.action(internal.slack.starLookups.lookUpStarPeople, { reaction: lookUp, users: [options.user] });
+  await t.mutation(internal.workspace.directory.fillEntry, { workspace: "T1", user: erin.user, entry: { kind: "member", name: erin.name, email: erin.email, displayName: erin.name }, asOf: Date.now() });
   await settled();
 }
 
