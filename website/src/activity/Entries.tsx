@@ -1,6 +1,8 @@
 import { IconExternal, IconLock } from "@posthog/icons";
 import { useId, type ReactNode } from "react";
-import type { ActivityEntry, KudosGiven, KudosReceived, LevelUp, QuestDone } from "../shell";
+import { HoggieCoin } from "../book/HoggieCoin";
+import { rarityWordsOf } from "../crates/drops";
+import type { ActivityEntry, Found, KudosGiven, KudosReceived, LevelUp, QuestDone } from "../shell";
 import { timeOf } from "./days";
 import { KudosMessage } from "./KudosMessage";
 import { Faces, namesOf } from "./People";
@@ -17,6 +19,8 @@ export function Entry({ entry, ...shown }: { entry: ActivityEntry } & EntryProps
       return <Given entry={entry} {...shown} />;
     case "levelUp":
       return <LevelMark entry={entry} {...shown} />;
+    case "found":
+      return <FoundMark entry={entry} {...shown} />;
   }
 }
 
@@ -87,6 +91,24 @@ function LevelMark({ entry, index, timeZone }: { entry: LevelUp } & EntryProps) 
       <div className="flex shrink-0 flex-col text-sm">
         <h3 id={headlineId} className="font-medium">{`You reached level ${entry.level}`}</h3>
         <When at={entry.at} timeZone={timeZone} />
+      </div>
+      <span aria-hidden="true" className="h-px flex-1 bg-border" />
+    </article>
+  );
+}
+
+function FoundMark({ entry: { at, drop }, index, timeZone }: { entry: Found } & EntryProps) {
+  const headlineId = useId();
+  return (
+    <article aria-labelledby={headlineId} tabIndex={-1} data-entry-index={index} data-side="centre" data-rarity={drop.rarity} className="flex items-center gap-3 rounded-lg py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <span aria-hidden="true" className="h-px flex-1 bg-border" />
+      <HoggieCoin art={drop.art} rarity={drop.rarity} size={44} />
+      <div className="flex shrink-0 flex-col text-sm">
+        <h3 id={headlineId} className="font-medium">{`You found a ${rarityWordsOf(drop.rarity)} ${drop.name}`}</h3>
+        <span className="flex items-center gap-2">
+          <When at={at} timeZone={timeZone} />
+          {drop.copy > 1 && <span className="text-xs text-muted-foreground tabular-nums">{`×${drop.copy}`}</span>}
+        </span>
       </div>
       <span aria-hidden="true" className="h-px flex-1 bg-border" />
     </article>

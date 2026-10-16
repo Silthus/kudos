@@ -8,12 +8,13 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
 
 - **V1. The HUD frame.** Every signed-in screen has the same top bar: the HedgeHug wordmark, the screen nav, skill points and coins once unlocked, the ready pill, and the member's hedgehog avatar with its level ring.
 - **V2. Corner marks frame game objects only.** These are the home hero, the character and inventory panel, skill tree nodes, quest cards, crates and moments: things the member owns or can act on. Reading surfaces stay plain Quill cards and tables: the leaderboard list, achievement pages, albums, sign-in, errors and empty states. The small uppercase label is used only as a panel's label.
-- **V3. Colour comes from Quill's tokens, with the surfaces set to posthog.com's.** The canvas, cards, muted fills, chrome and borders take posthog.com's values in each mode (light: canvas `#EEEFE9`, card `#FDFDF8`, muted `#E5E7E0`, border `#BFC1B7`; dark: canvas `#1E1F23`, card `#25262B`, muted `#2D2E37`, border `#3E424F`, secondary text `#AEB3C4`), and the canvas is flat: no gradient or glow behind the HUD. Everything else, including primary, stays Quill's. There are three named exceptions:
+- **V3. Colour comes from Quill's tokens, with the surfaces set to posthog.com's.** The canvas, cards, muted fills, chrome and borders take posthog.com's values in each mode (light: canvas `#EEEFE9`, card `#FDFDF8`, muted `#E5E7E0`, border `#BFC1B7`; dark: canvas `#1E1F23`, card `#25262B`, muted `#2D2E37`, border `#3E424F`, secondary text `#AEB3C4`), and the canvas is flat: no gradient or glow behind the HUD. Everything else, including primary, stays Quill's. There are four named exceptions:
   - the moment bands (V12)
   - the medal metals (V16)
   - a company profile's own colour, used only as the background behind that person's face (V19)
+  - the rarity colours (`spec/collection.md` CL3): one per rarity, on a hoggie's tile in the collection, its card in the reveal and its entry in the activity, always beside the rarity's coloured square and word
 
-  The bands and the metals are each defined once as tokens with light and dark values. There are no rarity colours.
+  The bands, the metals and the rarities are each defined once as tokens with light and dark values.
 - **V4. Primary marks one thing:** the next action, the selection, or "you". Progress bars, owned items and counters are neutral.
 - **V5. RoundHog sets every word**, the way posthog.com does, at the brand's four weights: Regular 400 for body text, Medium 500 for emphasis such as the current nav entry, SemiBold 700 for headings and the one big stat on a hero or moment, and Bold 800 for page titles and moment headlines. Display type (the wordmark, page titles, the level number, moment headlines, the big stat) is tracked at −0.025em; everything else at its natural spacing. Panel labels are 11 px, 700, uppercase, tracked at 0.08em. Numbers in tables use tabular figures. The only other face is the monospace stack, for code, paths and keyboard hints.
 
@@ -40,7 +41,7 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
   | blue `#106fb2` | `#ffffff` | 5.33:1 |
   | night `#141414` | `#ffffff` | 18.4:1 |
 
-- **V13. Crates show their reward.** A feature the member's level has made ready, and a quest reward, each open as a crate in a full-screen reveal. Buying a perk or a hedgehog is not a crate. A closed crate names only its kind ("Quest reward", "Journey reward", "Unlocks: Leaderboard") and never what is inside; the opening bursts each reward out and flies it into the HUD home that holds it (#452). Opening reveals what the member has already earned and never decides it.
+- **V13. Crates reveal their reward and their drop.** A feature the member's level has made ready, and a quest reward, each open as a crate in a full-screen reveal. Buying a perk or a kudos emoji is not a crate. A closed crate names only its kind ("Quest reward", "Journey reward", "Unlocks: Leaderboard") and never what is inside; the opening bursts each reward out and flies it into the HUD home that holds it (#452), and the one hoggie the open drew by rarity bursts out last as its card (`spec/collection.md` CL7, CL8). Opening reveals the reward the member has already earned, which the open applies but never chooses; the hoggie is the one thing nobody knows before the open.
 - **V14. Kudos received is quiet.** It leads with the giver's face, name and message. XP and the new sticker count follow quietly below, with no crate or chest.
 - **V15. Nothing interrupts a visit.** An event that happens while the member is on the site, such as a level up, joins the HUD's ready pill, and the member opens it when they want.
 
@@ -52,7 +53,7 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
 
 - **V17. A hedgehog always carries meaning.** It appears in exactly these places:
   - the member's equipped hedgehog, as their avatar
-  - a collectable on the shelf
+  - a hoggie in the collection, in full art once found and as a silhouette until then, and the latest find on the home's Book panel and in the activity
   - an emblem that identifies something: an achievement ladder, a Book category, or the crest of a group that maps to no team
   - one illustration per empty state, locked teaser, error page or moment
   - the HedgeHug logo, the `HedgehogHeart`: beside the wordmark in the header, above the name on the closed page, and as the favicon

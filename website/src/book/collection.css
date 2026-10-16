@@ -1,0 +1,31 @@
+.hoggie-coin {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 9999px;
+  border: 2px solid var(--rarity);
+  background: color-mix(in oklab, var(--rarity) 14%, var(--card));
+}
+
+.hoggie-coin.hog-silhouette {
+  border: 2px dashed var(--border);
+  background: var(--muted);
+}
+
+.hoggie-coin svg {
+  max-width: none;
+  translate: 0 6%;
+}
+
+.hoggie-tile[data-held="found"] {
+  border-color: color-mix(in oklab, var(--rarity) 55%, var(--border));
+}
+
+.hoggie-tile[data-held="found"][data-rarity="legendary"] {
+  background: linear-gradient(170deg, color-mix(in oklab, var(--rarity) 14%, var(--card)), var(--card) 70%);
+}
+
+.hoggie-tile[data-held="found"][data-rarity="epic"] {
+  background: linear-gradient(170deg, color-mix(in oklab, var(--rarity) 9%, var(--card)), var(--card) 70%);
+}

@@ -4,7 +4,6 @@ import type { PerkId } from "../../convex/progression/tree";
 import type { CommandAnswer, CrateAnswer, GroupPickAnswer, ItemPurchaseAnswer, MessageSettingAnswer, PurchaseAnswer, SwapAnswer, VisibilityAnswer } from "../../convex/website/commands";
 import type { MessageKind, MessagePlace, SettingsAnswer } from "../../convex/website/settings";
 import type { Denial } from "../../convex/website/memberQuery";
-import type { WithADrop } from "./crates/drops";
 
 export type { Drop, Rarity } from "./crates/drops";
 import type { FeatureCard, JourneyStep, MemberProfile, MyProfile } from "../../convex/website/profile";
@@ -31,7 +30,7 @@ export type { CommandAnswer, ItemPurchaseAnswer, ItemPurchaseRefusal, PurchaseAn
 export type { GroupChoice, MessageKind, MessagePlace, MessageSetting, MySettings } from "../../convex/website/settings";
 export type { Feature } from "../../convex/unlocks/feature";
 export type { GroupQuestCrate, Quest, WeeklyQuest } from "../../convex/quests/step";
-export type { Activity, ActivityEntry, KudosGiven, KudosReceived, LevelUp, Message, MyActivity, MyRecentKudos, MySpotlight, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
+export type { Activity, ActivityEntry, Found, KudosGiven, KudosReceived, LevelUp, Message, MyActivity, MyRecentKudos, MySpotlight, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
 
 export type GroupsBoardRow = GroupsBoardShown["rows"][number];
 
@@ -39,7 +38,7 @@ export type Leaderboard = EveryoneBoard & Omit<GroupBoards, "kind">;
 
 export type MyLeaderboard = Exclude<MyEveryoneBoard, EveryoneBoard> | Leaderboard;
 
-export type OpenAnswer = (CommandAnswer | CrateAnswer | Denial) & WithADrop;
+export type OpenAnswer = CommandAnswer | CrateAnswer | Denial;
 
 export type { AppliedReward } from "../../convex/progression/rewards";
 export type { CrateAnswer } from "../../convex/website/commands";

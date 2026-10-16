@@ -4,9 +4,9 @@ import { AppLink, useNavigate } from "../AppLink";
 import type { BookPageId } from "../route";
 import { bookHref, type Chapter } from "./categories";
 
-type IndexProps = { chapters: Chapter[]; current: BookPageId };
+type IndexProps = { chapters: Chapter[]; current: BookPageId; collection: boolean };
 
-export function BookIndex({ chapters, current }: IndexProps) {
+export function BookIndex({ chapters, current, collection }: IndexProps) {
   return (
     <nav aria-label="Book pages" className="sticky top-24">
       <div className="relative flex flex-col gap-1 rounded-lg border bg-card p-2">
@@ -17,6 +17,11 @@ export function BookIndex({ chapters, current }: IndexProps) {
         <IndexEntry page="overview" current={current}>
           Overview
         </IndexEntry>
+        {collection && (
+          <IndexEntry page="collection" current={current}>
+            Collection
+          </IndexEntry>
+        )}
         <div className="mt-2 flex flex-col gap-0.5">
           <span className="hud-label px-2 pb-1">Achievements</span>
           {chapters.map(({ category }) => (
@@ -46,12 +51,13 @@ function IndexEntry({ page, current, children }: { page: BookPageId; current: Bo
   );
 }
 
-export function BookPagePicker({ chapters, current }: IndexProps) {
+export function BookPagePicker({ chapters, current, collection }: IndexProps) {
   const navigate = useNavigate();
   return (
     <div className="relative mb-2 flex flex-col gap-1">
       <select aria-label="Book page" value={bookHref(current)} onChange={(event) => navigate(event.target.value)} className="h-11 w-full appearance-none rounded-lg border border-muted-foreground bg-card pl-3 pr-9 text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
         <option value={bookHref("overview")}>Overview</option>
+        {collection && <option value={bookHref("collection")}>Collection</option>}
         <optgroup label="Achievements">
           {chapters.map(({ category }) => (
             <option key={category.id} value={bookHref(category.id)}>
