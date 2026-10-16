@@ -2,7 +2,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
 import { dropsAHoggie } from "../hoggies/crateKey";
 import { dropFor } from "../hoggies/drops";
-import { applyHeldReward } from "../progression/progression";
+import { applyGain } from "../progression/progression";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf } from "./crates";
@@ -30,7 +30,7 @@ export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: 
 }
 
 function appliedAtOpen(ctx: MutationCtx, workspace: string, reward: RewardRecord, at: number) {
-  return reward.held === true ? applyHeldReward(ctx, workspace, reward, at) : null;
+  return reward.held === true ? applyGain(ctx, workspace, reward, at) : null;
 }
 
 async function poolQuestNamed(ctx: QueryCtx, member: MemberId, quest: Quest) {

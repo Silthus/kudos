@@ -1,4 +1,5 @@
 import { v, type Infer } from "convex/values";
+import { appliedRewardValidator } from "../progression/rewards";
 import { rarityValidator } from "./catalogue";
 
 export const dropValidator = v.object({
@@ -11,6 +12,7 @@ export const dropValidator = v.object({
   catalogueVersion: v.number(),
   at: v.number(),
   crest: v.optional(v.union(v.string(), v.null())),
+  pack: v.optional(appliedRewardValidator),
 });
 
 export const hoggieTallyValidator = v.object({ member: v.id("members"), hoggie: v.string(), count: v.number(), firstAt: v.number(), firstN: v.number() });

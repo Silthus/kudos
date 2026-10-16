@@ -51,6 +51,20 @@ export async function waitingCratesOf(ctx: QueryCtx, member: MemberId): Promise<
   return waiting.map(({ crate }) => crate);
 }
 
+export type BoughtCrateWaiting = { crate: string; at: number };
+
+export async function boughtCratesWaitingFor(ctx: QueryCtx, member: MemberId, limit: number): Promise<BoughtCrateWaiting[]> {
+  const waiting = await ctx.db
+    .query("boughtCrates")
+    .withIndex("by_member_opened", (q) => q.eq("member", member).eq("openedAt", undefined))
+    .take(limit);
+  return waiting.map(({ crate, boughtAt }) => ({ crate, at: boughtAt }));
+}
+
+export async function boughtCrateOpened(ctx: QueryCtx, member: MemberId, crate: string): Promise<boolean> {
+  return (await boughtCrateOf(ctx, member, crate))?.openedAt !== undefined;
+}
+
 function boughtCrateKeyOf(next: number): CrateKey {
   return `bought:${next}`;
 }

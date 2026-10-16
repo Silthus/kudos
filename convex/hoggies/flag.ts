@@ -8,6 +8,8 @@ export const crestsFlag = { key: "crests", safeDefault: false, values: [false, t
 
 export const crateStoreFlag = { key: "crate-store", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
+export const packsFlag = { key: "packs", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
 export const hoggieAvatarFlag = { key: "hoggie-avatar", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
 export function hoggiesShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
@@ -18,6 +20,16 @@ export async function hoggiesDropFor(ctx: MutationCtx, member: MemberId): Promis
   const drops = await memberDecision(ctx, collectionFlag, member);
   await exposed(ctx, collectionFlag, member, drops);
   return drops;
+}
+
+export async function packsShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return (await hoggiesShownTo(ctx, member)) && (await memberDecision(ctx, packsFlag, member));
+}
+
+export async function packsPayFor(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  const pays = await memberDecision(ctx, packsFlag, member);
+  await exposed(ctx, packsFlag, member, pays);
+  return pays;
 }
 
 export function crateStoreShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {

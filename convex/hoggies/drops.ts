@@ -3,9 +3,11 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
 import { decidedBelow, type DecidedBelow } from "../engine/awards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
+import { applyGain } from "../progression/progression";
+import type { AppliedReward } from "../progression/rewards";
 import { catalogue, crestNamed, crestWith, firstVersionWithCrests, hoggieNamed, type Rarity } from "./catalogue";
-import { drawOf } from "./draw";
-import { crestsShownFor, crestsShownTo, hoggiesDropFor } from "./flag";
+import { drawOf, packBonusOf } from "./draw";
+import { crestsShownFor, crestsShownTo, hoggiesDropFor, packsPayFor } from "./flag";
 import type { CrateKey } from "./crateKey";
 import type { DropRecord } from "./records";
 
@@ -27,10 +29,20 @@ export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKe
   const n = await countDrop(ctx, member);
   const copy = await countCopy(ctx, member, hoggie, at, n);
   const crest = await crestRecordedFor(ctx, member, hoggie, copy);
-  await ctx.db.insert("drops", { member, crate, hoggie, rarity, n, copy, catalogueVersion: catalogue.version, at, ...crest });
-  if (crest.crest) await crestsShownFor(ctx, member);
   const { workspace } = await chatUserOf(ctx, member);
-  await publish(ctx, { type: "hoggieDropped", workspace, member, crate, hoggie, rarity, copy, at });
+  const pack = await packPaidFor(ctx, workspace, member, crate, at);
+  await ctx.db.insert("drops", { member, crate, hoggie, rarity, n, copy, catalogueVersion: catalogue.version, at, ...crest, ...(pack && { pack }) });
+  if (crest.crest) await crestsShownFor(ctx, member);
+  await publish(ctx, { type: "hoggieDropped", workspace, member, crate, hoggie, rarity, copy, at, ...(pack && { pack: { xp: pack.xp, coins: pack.coins } }) });
+}
+
+async function packPaidFor(ctx: MutationCtx, workspace: string, member: MemberId, crate: CrateKey, at: number): Promise<AppliedReward | null> {
+  if (!(await packsPayFor(ctx, member))) return null;
+  return applyGain(ctx, workspace, { member, ...(await packBonusOf({ secret: drawSecret(), member, crate })) }, at);
+}
+
+export async function packOf(ctx: QueryCtx, member: MemberId, crate: string): Promise<AppliedReward | null> {
+  return (await dropRecordOf(ctx, member, crate))?.pack ?? null;
 }
 
 export async function dropOf(ctx: MutationCtx, member: MemberId, crate: CrateKey): Promise<Drop | null> {

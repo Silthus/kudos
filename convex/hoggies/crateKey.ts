@@ -11,3 +11,7 @@ export function crateKindOf(crate: string): string {
 export function dropsAHoggie(crate: string): crate is CrateKey {
   return (droppingKinds as readonly string[]).includes(crateKindOf(crate));
 }
+
+export function kindOf(crate: CrateKey): CrateKind {
+  return crateKindOf(crate) as CrateKind;
+}
