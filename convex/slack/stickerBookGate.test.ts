@@ -2,19 +2,21 @@ import { getFunctionName } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { type FakePostHog, type FlagDefinition, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, post, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { publishedHome } from "../../testing/slackInteractions";
-import { appHomeOpened, emoji, mention, section, userGroupEvent } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, section, text, userGroupEvent } from "../../testing/slackMessages";
 import { reachesLevel } from "../../testing/unlocks";
 import { aSession, aSignedInSession } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { xpToReach } from "../progression/levels";
 import schema from "../schema";
+import { stickerBookFlag, stickersShownTo } from "../stickers/flag";
 import { openUnlock } from "../unlocks/unlocks";
 
-const theStickerBook = vi.hoisted(() => ({ removed: false }));
+const theStickerBook = vi.hoisted(() => ({ removed: false, shipped: true }));
+const stickerBookDecisions = vi.hoisted(() => [] as Array<{ by: string; inAQuery: boolean }>);
 
 vi.mock("../stickers/flag", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../stickers/flag")>();
@@ -27,9 +29,33 @@ vi.mock("../stickers/flag", async (importOriginal) => {
 vi.mock("../bus/publish", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../bus/publish")>();
   actual.subscribers.kudosGiven = actual.subscribers.kudosGiven.map((subscription) =>
-    "subscriber" in subscription || getFunctionName(subscription) !== "stickers/stickers:recordStickers" ? subscription : { subscriber: subscription, only: () => !theStickerBook.removed },
+    "subscriber" in subscription || getFunctionName(subscription) !== "stickers/stickers:recordStickers" ? subscription : { subscriber: subscription, only: () => theStickerBook.shipped && !theStickerBook.removed },
   );
   return actual;
+});
+
+vi.mock("../analytics/flags", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../analytics/flags")>();
+  const recorded = <F extends (...args: never[]) => unknown>(by: string, decide: F) =>
+    ((...args: Parameters<F>) => {
+      const [ctx, read] = args as unknown as [object, { key: string }];
+      if (read.key === "sticker-book") stickerBookDecisions.push({ by, inAQuery: !("scheduler" in ctx) });
+      return decide(...args);
+    }) as F;
+  return {
+    ...actual,
+    memberDecision: recorded("memberDecision", actual.memberDecision),
+    memberDecisionWithoutWriting: recorded("memberDecisionWithoutWriting", actual.memberDecisionWithoutWriting),
+    memberDecisionBeforeWriting: recorded("memberDecisionBeforeWriting", actual.memberDecisionBeforeWriting),
+    workspaceDecision: recorded("workspaceDecision", actual.workspaceDecision),
+    workspaceDecisionWithoutWriting: recorded("workspaceDecisionWithoutWriting", actual.workspaceDecisionWithoutWriting),
+    exposed: recorded("exposed", actual.exposed),
+  };
+});
+
+vi.mock("../quests/rank", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../quests/rank")>();
+  return { ...actual, drawRank: vi.fn((key: string) => actual.drawRank(key.replace(/^[^:]+/, (member) => namedIds.get(member) ?? member))) };
 });
 
 vi.mock("../hoggies/draw", async (importOriginal) => {
@@ -47,7 +73,8 @@ const backfillJob = "stickers/backfill:backfillStickers";
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
 const carol = { user: "U_CAROL", name: "Carol Diaz", email: "carol@example.com" };
-const members = [alice, bob, carol];
+const dana = { user: "U_DANA", name: "Dana Lindqvist", email: "dana@example.com" };
+const members = [alice, bob, carol, dana];
 const ants = "S_ANTS";
 
 type Person = typeof alice;
@@ -62,6 +89,8 @@ let steps = 0;
 
 beforeEach(() => {
   theStickerBook.removed = false;
+  theStickerBook.shipped = true;
+  stickerBookDecisions.length = 0;
   vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
@@ -97,7 +126,11 @@ describe("SB15: the sticker book is dark where sticker-book is off, shows only t
     expect(walk.seen).toEqual(withoutTheStickerBook.seen);
     expect(JSON.stringify(walk.seen.answers)).not.toMatch(/"stickers"|"albums"/);
     expect(withoutTheStickerBook.stickers).toEqual([]);
-    expect(walk.stickers).toHaveLength(6);
+    expect(walk.stickers).toHaveLength(8);
+    expect(walk.stickers).toEqual(expect.arrayContaining([expect.objectContaining({ member: "<member U_CAROL>", person: "<member U_DANA>" }), expect.objectContaining({ member: "<member U_DANA>", person: "<member U_CAROL>" })]));
+    expect(walk.backfills).toEqual([{ workspace: "T1", cursor: expect.any(String), isDone: true }]);
+    expect(stickerBookDecisions.every(({ inAQuery }) => inAQuery)).toBe(true);
+    expect(await decidedWithoutTheWebsite(dana)).toBe(false);
   });
 
   test("with sticker-book on, the same walk shows each member the stickers and group albums of the people they thanked or were thanked by, and exposes nothing", async () => {
@@ -106,7 +139,11 @@ describe("SB15: the sticker book is dark where sticker-book is off, shows only t
     expect(namesOn(walk.seen.answers.U_ALICE!.collection)).toEqual([bob.name, carol.name]);
     expect(walk.seen.answers.U_ALICE!.collection).toMatchObject({ kind: "collection", albums: [{ name: "Ants", mine: true, held: 1, total: 1 }] });
     expect(walk.seen.answers.U_BOB!.collection).toMatchObject({ stickers: [{ name: carol.name }, { name: alice.name }], albums: [{ name: "Ants", mine: false, held: 2, total: 2 }] });
+    expect(namesOn(walk.seen.answers.U_CAROL!.collection)).toEqual([alice.name, bob.name, dana.name]);
+    expect(walk.seen.answers.U_ALICE).toMatchObject({ ...everySurfaceOpen, groupBoards: { kind: "boards", myGroup: { group: { name: "Ants" } } } });
     expect(stickerBookExposures(walk)).toEqual([]);
+    expect(stickerBookDecisions.length).toBeGreaterThan(0);
+    expect(stickerBookDecisions.every(({ inAQuery }) => inAQuery)).toBe(true);
   });
 
   test("with sticker-book on for one member's email only, only that member's getCollection changes, and nothing exposes it", async () => {
@@ -118,28 +155,44 @@ describe("SB15: the sticker book is dark where sticker-book is off, shows only t
     const { stickers: _stickers, albums, ...aliceCollectionOtherwise } = onForAlice.seen.answers.U_ALICE!.collection as Record<string, unknown>;
     expect(namesOn(onForAlice.seen.answers.U_ALICE!.collection)).toEqual([bob.name, carol.name]);
     expect(albums).toMatchObject([{ name: "Ants", held: 1, total: 1 }]);
-    expect(aliceCollectionOtherwise).toEqual(off.seen.answers.U_ALICE!.collection);
+    expect(renumbered(aliceCollectionOtherwise)).toEqual(renumbered(off.seen.answers.U_ALICE!.collection));
     expect(withoutTheCollectionOf(alice, onForAlice.seen)).toEqual(withoutTheCollectionOf(alice, off.seen));
     expect(onForAlice.stickers).toEqual(off.stickers);
+    expect(onForAlice.seen.answers.U_BOB).toMatchObject(everySurfaceOpen);
     expect(stickerBookExposures(onForAlice)).toEqual([]);
+    expect(stickerBookDecisions.every(({ inAQuery }) => inAQuery)).toBe(true);
   });
 
-  test("sticker-book off and then on again shows the same stickers, and no backfill runs", async () => {
+  test("sticker-book off and then on again shows the same stickers and those recorded meanwhile, and no backfill runs", async () => {
     t = await aliceBobAndCarolInAnts([onForEveryone(stickerBook)]);
+    namedIds = await idsNamedByTheirMember();
     await kudosOfTheWalk();
     const asAlice = await signedIn(alice);
     const stickersOnce = await stickersAnswered(asAlice);
     const storedOnce = await storedStickerRecords();
-    const backfillsOnce = await backfillJobsScheduled();
+    const backfillOnce = await t.run((ctx) => ctx.db.query("stickerBackfills").collect());
+    const backfillPagesOnce = await backfillJobsScheduled();
 
     await stickerBookIs(offForEveryone(stickerBook));
     expect(await asAlice.query(api.website.collection.getCollection, {})).not.toHaveProperty("stickers");
+    await thanks(alice, "Thanks for pairing on the flaky deploy", dana);
+    expect(await asAlice.query(api.website.collection.getCollection, {})).not.toHaveProperty("stickers");
     await stickerBookIs(onForEveryone(stickerBook));
+    await thanks(bob, "Thanks for the onboarding notes", dana);
 
-    expect(stickersOnce).toHaveLength(2);
-    expect(await stickersAnswered(asAlice)).toEqual(stickersOnce);
-    expect(await storedStickerRecords()).toEqual(storedOnce);
-    expect(await backfillJobsScheduled()).toEqual(backfillsOnce);
+    expect(stickersOnce.map(({ name }) => name).sort()).toEqual([bob.name, carol.name]);
+    expect(backfillPagesOnce).toBeGreaterThan(0);
+    const stickersAgain = await stickersAnswered(asAlice);
+    expect(stickersAgain).toEqual([expect.objectContaining({ name: dana.name }), ...stickersOnce]);
+    expect(await storedStickerRecords()).toEqual([
+      ...storedOnce,
+      expect.objectContaining({ member: "<member U_ALICE>", person: "<member U_DANA>" }),
+      expect.objectContaining({ member: "<member U_DANA>", person: "<member U_ALICE>" }),
+      expect.objectContaining({ member: "<member U_BOB>", person: "<member U_DANA>" }),
+      expect.objectContaining({ member: "<member U_DANA>", person: "<member U_BOB>" }),
+    ]);
+    expect(await t.run((ctx) => ctx.db.query("stickerBackfills").collect())).toEqual(backfillOnce);
+    expect(await backfillJobsScheduled()).toEqual(backfillPagesOnce);
   });
 });
 
@@ -157,6 +210,7 @@ function asTheShipCreatesIt(): FlagDefinition {
 
 async function aliceBobAndCarolInAnts(flag: FlagDefinition[], turnOff?: () => void): Promise<Backend> {
   vi.useFakeTimers({ now: tuesday });
+  spotlightPositionsFromTheStart();
   steps = 0;
   namedIds = new Map();
   stickerFlag = flag;
@@ -164,6 +218,7 @@ async function aliceBobAndCarolInAnts(flag: FlagDefinition[], turnOff?: () => vo
   turnOff?.();
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
+  await journeyShippedBeforeAnyoneJoined(t);
   await bookShippedBeforeAnyoneJoined(t);
   for (const person of members) {
     await memberChanged(t, "team_join", { id: person.user, profile: { display_name: person.name, email: person.email } });
@@ -172,10 +227,13 @@ async function aliceBobAndCarolInAnts(flag: FlagDefinition[], turnOff?: () => vo
     namedIds.set(member, `<member ${person.user}>`);
     await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp: xpToReach(4), pointsSpent: 0 }));
     await reachesLevel(t, member, 4);
-    await t.run((ctx) => openUnlock(ctx, member, "book"));
+    for (const feature of ["book", "leaderboard", "quests"] as const) await t.run((ctx) => openUnlock(ctx, member, feature));
   }
   await t.fetch("/slack/events", await signedRequest(userGroupEvent("subteam_created", ants)));
   await settleInTimeOrder(t);
+  theStickerBook.shipped = false;
+  await thanks(dana, "Thanks for covering my on-call shift", carol);
+  theStickerBook.shipped = true;
   return t;
 }
 
@@ -199,13 +257,32 @@ async function walkIn(backend: Backend) {
     productEvents: orderFree(withStableIds(postHog.productEvents().map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsWrittenApartFromStickers(),
   };
-  return { seen, stickers: await storedStickerRecords(), postHogEvents: postHog.events() };
+  return { seen, stickers: await storedStickerRecords(), backfills: await backfillRecords(), postHogEvents: postHog.events() };
 }
 
 async function kudosOfTheWalk() {
-  await thanks(alice, bob, carol);
-  await thanks(bob, alice);
-  await thanks(carol, bob);
+  await thanks(alice, "Thanks for the calm rollback of the billing service", bob, carol);
+  await thanks(bob, "Thanks for reviewing the incident write-up so quickly", alice);
+  await thanks(carol, "ty", bob);
+}
+
+const everySurfaceOpen = {
+  collection: { kind: "collection" },
+  book: { kind: "book" },
+  quests: { kind: "quests", slots: expect.any(Array) },
+  leaderboard: { kind: "board" },
+  groupBoards: { kind: "boards" },
+  activity: { kind: "activity", entries: expect.any(Array) },
+  spotlight: { kind: "kudos" },
+};
+
+async function decidedWithoutTheWebsite(person: Person) {
+  const member = await memberOf(person.user);
+  return t.run(async (ctx) => {
+    const decided = await stickersShownTo(ctx, member);
+    expect(stickerBookFlag.safeDefault).toBe(decided);
+    return decided;
+  });
 }
 
 async function onTheWebsite(person: Person) {
@@ -241,7 +318,7 @@ function withoutTheCollectionOf(person: Person, seen: Seen) {
 
 async function stickersAnswered(reader: Awaited<ReturnType<typeof signedIn>>) {
   const answer = await reader.query(api.website.collection.getCollection, {});
-  if (!("stickers" in answer)) throw new Error(`expected stickers, got ${JSON.stringify(answer)}`);
+  if (!("stickers" in answer) || answer.stickers === undefined) throw new Error(`expected stickers, got ${JSON.stringify(answer)}`);
   return answer.stickers;
 }
 
@@ -255,22 +332,34 @@ function stickerBookExposures({ postHogEvents }: { postHogEvents: ReturnType<Fak
   return postHogEvents.filter(({ event, properties }) => event === "$feature_flag_called" && properties.$feature_flag === stickerBook);
 }
 
+function renumbered<T>(value: T): T {
+  const numbers = new Map<string, string>();
+  const counts = new Map<string, number>();
+  const placeholderOf = (placeholder: string, kind: string) => {
+    if (!numbers.has(placeholder)) numbers.set(placeholder, `<${kind} ${counts.set(kind, (counts.get(kind) ?? 0) + 1).get(kind)}>`);
+    return numbers.get(placeholder)!;
+  };
+  return JSON.parse(JSON.stringify(value).replace(/<(\w+) \d+>/g, placeholderOf));
+}
+
 function orderFree<T>(rows: T[]): T[] {
   return rows.toSorted((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
 }
 
 const convexTestId = /^\d+[a-zA-Z_]+$/;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const positioned = new Set(["cursor", "seen", "eventId", "position"]);
+const createdInTheSameMillisecond = /(\d{13})\.\d+$/;
+const opaque = new Set(["cursor", "after", "seen", "eventId"]);
 
 function withStableIds<T>(value: T): T {
   const seen = new Map<string, string>();
   const stable = (kind: string, id: string) => seen.get(id) ?? seen.set(id, `<${kind} ${seen.size + 1}>`).get(id)!;
   return JSON.parse(JSON.stringify(value, (_, field) => (typeof field === "bigint" ? `${field}n` : field)), (key, field) => {
     if (key === "_id" || key === "_creationTime" || key === "uuid") return undefined;
-    if (positioned.has(key) && field !== null) return "<position>";
+    if (opaque.has(key) && typeof field === "string") return stable(key, field);
     if (typeof field !== "string") return field;
     if (namedIds.has(field)) return namedIds.get(field);
+    if (createdInTheSameMillisecond.test(field)) return field.replace(createdInTheSameMillisecond, "$1.<tie>");
     if (convexTestId.test(field)) return stable("document", field);
     return uuid.test(field) ? stable("uuid", field) : field;
   });
@@ -282,12 +371,21 @@ async function rowsWrittenApartFromStickers() {
     for (const table of Object.keys(schema.tables) as TableName[]) if (!(stickerTables as readonly string[]).includes(table)) rows[table] = await ctx.db.query(table).collect();
     return rows;
   });
-  const written = withStableIds(tables);
-  return Object.fromEntries(Object.entries(written).map(([table, rows]) => [table, orderFree(rows)]));
+  const inContentOrder = Object.fromEntries(Object.entries(tables).map(([table, rows]) => [table, rows.toSorted((a, b) => contentOf(a).localeCompare(contentOf(b)))]));
+  return withStableIds(inContentOrder);
 }
 
-function storedStickerRecords() {
-  return t.run(async (ctx) => (await ctx.db.query("stickers").collect()).map(({ member, person, firstAward, firstAt }) => ({ member, person, firstAward, firstAt })));
+function contentOf(row: Record<string, unknown>) {
+  return JSON.stringify(withStableIds(row), (key, field) => (opaque.has(key) || convexTestId.test(String(field)) ? undefined : field));
+}
+
+async function storedStickerRecords() {
+  const stickers = await t.run(async (ctx) => (await ctx.db.query("stickers").collect()).map(({ member, person, firstAward, firstAt }) => ({ member, person, firstAward, firstAt })));
+  return stickers.map((sticker) => ({ ...sticker, member: namedIds.get(sticker.member) ?? sticker.member, person: namedIds.get(sticker.person) ?? sticker.person }));
+}
+
+function backfillRecords() {
+  return t.run(async (ctx) => (await ctx.db.query("stickerBackfills").collect()).map(({ workspace, cursor, isDone }) => ({ workspace, cursor, isDone })));
 }
 
 function backfillJobsScheduled() {
@@ -317,14 +415,19 @@ function slackCallsAbout(user: string) {
     .sort();
 }
 
+function spotlightPositionsFromTheStart() {
+  let drawn = 0;
+  vi.spyOn(Math, "random").mockImplementation(() => ((drawn += 1) * 0.618_033_988_7) % 1);
+}
+
 function nextStep() {
   steps += 1;
   vi.setSystemTime(tuesday + steps * minuteMs);
 }
 
-async function thanks(giver: Person, ...recipients: Person[]) {
+async function thanks(giver: Person, why: string, ...recipients: Person[]) {
   nextStep();
-  await post(t, [section(...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts: `${Date.now() / 1000}.${String(steps).padStart(6, "0")}` });
+  await post(t, [section(text(`${why} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts: `${Date.now() / 1000}.${String(steps).padStart(6, "0")}` });
   await settleInTimeOrder(t);
 }
 
