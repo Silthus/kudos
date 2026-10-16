@@ -10,7 +10,9 @@ import type { GroupId } from "../groups/groups";
 import { pickPrimaryGroup } from "../groups/pick";
 import { reconcileMember } from "../groups/reconcile";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
+import { opens } from "../../testing/unlocks";
 import { aSignedInSession } from "../../testing/website";
+import { achievementsLiveIn } from "../achievements/flag";
 import { keepOpen } from "../unlocks/unlocks";
 import type { MemberId } from "../workspace/directory";
 import { standingOf } from "../progression/progression";
@@ -545,6 +547,37 @@ describe("CV13: a pack pays its bonus once", { timeout: 60_000 }, () => {
     expect([5, 10, 15, 20, 25], "the group crate's bonus XP inside band v1").toContain(after.xp - before.xp);
     expect(await asSignedIn.mutation(api.website.commands.openQuestCrate, { quest: crate }), "the repeated open").toEqual(answer);
     expect(await t.run((ctx) => standingOf(ctx, members.U_A1!)), "the standing after the repeated open").toEqual(after);
+  });
+});
+
+describe("CV7 CV8: a group crate in the pack stack", { timeout: 60_000 }, () => {
+  test("waits in getCollection's packs only while the group quest applies, and openCrate opens it as openQuestCrate does", async () => {
+    vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+    const { t, members, groups } = await antsOfFiveDrew();
+    const flags = [...everyFlag, "website", "achievements", "collection", "packs"];
+    await flagsFromPostHog(t, postHog, ...flags.map(onForEveryone));
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+    await t.run((ctx) => achievementsLiveIn(ctx, "T1"));
+    await opens(t, members.U_A1!, "book");
+    for (const [giver, recipient] of [["U_A1", "U_A2"], ["U_A2", "U_A3"], ["U_A3", "U_A1"]] as const) await gives(t, members[giver]!, members[recipient]!, tuesday);
+    const quest = { kind: "group" as const, group: groups.Ants!, week: thisWeek };
+    const crate = `group:${groups.Ants}:${thisWeek}`;
+    const { asSignedIn } = await aSignedInSession(t, { user: "U_A1" });
+    const packsOf = async () => {
+      const answer = await asSignedIn.query(api.website.collection.getCollection, {});
+      return answer.kind === "collection" ? answer.packs : answer;
+    };
+
+    expect(await packsOf(), "while the group quest applies").toContainEqual({ crate, kind: "group", n: expect.any(Number) });
+    await flagsFromPostHog(t, postHog, ...flags.filter((flag) => flag !== "group-quest").map(onForEveryone));
+    expect(await packsOf(), "with group-quest off").not.toContainEqual(expect.objectContaining({ crate }));
+    expect(await asSignedIn.mutation(api.website.commands.openCrate, { crate }), "openCrate with group-quest off").toEqual({ kind: "refused" });
+    await flagsFromPostHog(t, postHog, ...flags.map(onForEveryone));
+
+    const answer = await asSignedIn.mutation(api.website.commands.openCrate, { crate });
+    expect(answer).toEqual({ kind: "opened", applied: expect.objectContaining({ xp: expect.any(Number) }), drop: expect.objectContaining({ copy: 1 }) });
+    expect(await asSignedIn.mutation(api.website.commands.openQuestCrate, { quest }), "openQuestCrate's answer").toEqual(answer);
+    expect(await packsOf(), "once opened").not.toContainEqual(expect.objectContaining({ crate }));
   });
 });
 

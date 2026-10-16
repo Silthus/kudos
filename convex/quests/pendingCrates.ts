@@ -28,6 +28,13 @@ export function pendingWeeklyCratesBefore(ctx: QueryCtx, member: MemberId, week:
     .collect();
 }
 
+export function pendingCratesOldestFirst(ctx: QueryCtx, member: MemberId, limit: number) {
+  return ctx.db
+    .query("pendingCrates")
+    .withIndex("by_member", (q) => q.eq("member", member))
+    .take(limit);
+}
+
 export const backfillPendingCrates = observedAction({
   args: { restart: v.optional(v.boolean()) },
   handler: async (ctx, { restart }): Promise<null> => {

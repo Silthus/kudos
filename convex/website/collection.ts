@@ -1,6 +1,7 @@
 import { crateStoreOf, waitingCratesOf, type CrateStore } from "../hoggies/boughtCrates";
 import { collectionOf, type HeldCrest, type HeldHoggie, type RarityShare } from "../hoggies/collection";
-import { crateStoreShownTo, crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
+import { crateStoreShownTo, crestsShownTo, hoggiesShownTo, packsShownTo } from "../hoggies/flag";
+import { waitingPacksOf, type WaitingPacks } from "../hoggies/waitingPacks";
 import { groupsShownTo } from "../groups/groups";
 import type { QueryCtx } from "../_generated/server";
 import { albumsOf, type Album } from "../stickers/albums";
@@ -29,7 +30,9 @@ export type StickerBook = { stickers?: Sticker[]; albums?: GroupAlbum[] };
 
 export type BoughtCrates = { bought?: string[]; crateStore?: CrateStore | null };
 
-export type CollectionAnswer = { kind: "not-found" } | PageWaits | ({ kind: "collection"; rarities: RarityShare[]; hoggies: CollectionHoggie[]; owned: number; total: number; crests?: CollectionCrest[] } & BoughtCrates & StickerBook);
+export type PackStack = Partial<WaitingPacks>;
+
+export type CollectionAnswer = { kind: "not-found" } | PageWaits | ({ kind: "collection"; rarities: RarityShare[]; hoggies: CollectionHoggie[]; owned: number; total: number; crests?: CollectionCrest[] } & BoughtCrates & PackStack & StickerBook);
 
 export const getCollection = memberQuery(async (ctx, me): Promise<CollectionAnswer> => {
   if (!(await hoggiesShownTo(ctx, me.member))) return { kind: "not-found" };
@@ -38,7 +41,7 @@ export const getCollection = memberQuery(async (ctx, me): Promise<CollectionAnsw
   const { rarities, hoggies, owned, total, crests } = await collectionOf(ctx, me.member, { crests: await crestsShownTo(ctx, me.member) });
   const collection = { kind: "collection" as const, rarities, hoggies: await Promise.all(hoggies.map((hoggie) => seenBy(me.member, hoggie))), owned, total };
   const withCrests = crests === undefined ? collection : { ...collection, crests: await Promise.all(crests.map((crest) => crestSeenBy(me.member, crest))) };
-  return { ...withCrests, ...(await boughtCratesOf(ctx, me.member)), ...(await stickerBookOf(ctx, me)) };
+  return { ...withCrests, ...(await boughtCratesOf(ctx, me.member)), ...(await packStackOf(ctx, me.member)), ...(await stickerBookOf(ctx, me)) };
 });
 
 async function stickerBookOf(ctx: QueryCtx, me: VerifiedMember): Promise<StickerBook> {
@@ -75,6 +78,10 @@ async function groupAlbumOf(people: People, keyOf: StickerKeys, { people: albumP
 function teammateIn(people: People, person: MemberId): Teammate {
   const { name, picture, former } = people.get(person) ?? { name: undefined, picture: null, former: true };
   return { ...teammateOf(name, picture), former };
+}
+
+async function packStackOf(ctx: QueryCtx, member: MemberId): Promise<PackStack> {
+  return (await packsShownTo(ctx, member)) ? waitingPacksOf(ctx, member) : {};
 }
 
 async function boughtCratesOf(ctx: QueryCtx, member: MemberId): Promise<BoughtCrates> {

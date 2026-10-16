@@ -9,8 +9,8 @@ import { dropFor } from "../hoggies/drops";
 import { notifyLevelReached } from "../feedback/notify";
 import { xpLevelsOnFor } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
-import type { Feature } from "./feature";
-import { unlocksLiveFor, unlocksShownTo } from "./launch";
+import { featureCrateKeyOf, type Feature } from "./feature";
+import { unlockPathShownTo, unlocksLiveFor, unlocksShownTo } from "./launch";
 import { readyFromTheStart, schedule, scheduled, shippedTo, type ScheduledFeature } from "./schedule";
 
 export type UnlockState = "unshipped" | "locked" | "ready" | "open";
@@ -40,7 +40,7 @@ export async function openUnlock(ctx: MutationCtx, member: MemberId, feature: Fe
   if ((await stateOf(ctx, member, feature)) !== "ready") return "refused";
   const opening = { workspace, member, at: Date.now() };
   if (!(await storeOpening(ctx, opening, feature))) return "done";
-  await dropFor(ctx, member, `unlock:${feature}`, opening.at);
+  await dropFor(ctx, member, featureCrateKeyOf(feature), opening.at);
   await publishOpened(ctx, opening, feature);
   return "done";
 }
@@ -86,6 +86,19 @@ export async function unlocksOf(ctx: QueryCtx, member: MemberId): Promise<Member
     unlocks.push({ feature, state: stateFrom(row), readyAt: row?.readyAt ?? null, openedAt: row?.openedAt ?? null });
   }
   return unlocks;
+}
+
+export type ReadyFeature = { feature: Feature; readyAt: number };
+
+export async function readyFeaturesOf(ctx: QueryCtx, member: MemberId, limit: number): Promise<ReadyFeature[]> {
+  if (!(await unlockPathShownTo(ctx, member))) return [];
+  const rows = await ctx.db
+    .query("unlocks")
+    .withIndex("by_member_feature", (q) => q.eq("member", member))
+    .take(limit);
+  const ready = rows.filter((row) => stateFrom(row) === "ready");
+  const shipped = new Set((await shippedTo(ctx, member, ready.map(({ feature }) => scheduled(feature)))).map(({ feature }) => feature));
+  return ready.filter(({ feature }) => shipped.has(feature)).map(({ feature, readyAt }) => ({ feature, readyAt }));
 }
 
 export async function unlocksHomeOf(ctx: QueryCtx, member: MemberId): Promise<UnlocksHome> {

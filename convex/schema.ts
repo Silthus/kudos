@@ -467,7 +467,7 @@ export default defineSchema({
 
   crateOpenings: defineTable(crateOpeningValidator).index("by_member_key", ["member", "key"]),
 
-  pendingCrates: defineTable(pendingCrateValidator).index("by_member_key", ["member", "key"]),
+  pendingCrates: defineTable(pendingCrateValidator).index("by_member_key", ["member", "key"]).index("by_member", ["member"]),
 
   drops: defineTable(dropValidator).index("by_member_crate", ["member", "crate"]).index("by_member_at", ["member", "at", "n"]),
 
