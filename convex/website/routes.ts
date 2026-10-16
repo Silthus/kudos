@@ -26,7 +26,7 @@ export const homePanelValidator = v.literal("inventory");
 
 export type HomePanel = Infer<typeof homePanelValidator>;
 
-export const settingsSectionValidator = v.union(v.literal("visibility"), v.literal("messages"), v.literal("group"));
+export const settingsSectionValidator = v.union(v.literal("visibility"), v.literal("messages"), v.literal("group"), v.literal("admin"));
 
 export type SettingsSection = Infer<typeof settingsSectionValidator>;
 

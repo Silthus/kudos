@@ -5,6 +5,7 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
+import { seenKeyOf } from "../website/seen";
 import type { MemberId } from "../workspace/directory";
 import { companyProfilesIn } from "./matcher";
 
@@ -64,13 +65,16 @@ function teamPagesOff() {
   return switchWebsite(t, postHog, true);
 }
 
-async function aTeammate(user: string, name: string) {
-  const member = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user, kind: "member", asOf: 0, name, realName: name }));
+async function aTeammate(user: string, name: string, { admin = false } = {}) {
+  const member = await t.run((ctx) => ctx.db.insert("members", { workspace: "T1", user, kind: "member", asOf: 0, name, realName: name, admin }));
   const { asSignedIn } = await aSignedInSession(t, { user, name });
   const caller = asSignedIn;
   return {
     member,
+    user,
     settings: () => caller.query(api.website.settings.getSettings, {}),
+    sections: async () => (await t.query(internal.website.link.frontDoorLinksOf, { workspace: "T1", user }))?.sections,
+    linkTeammate: (key: string, profile: number | "none" | null) => caller.mutation(api.website.commands.linkCompanyProfile, { member: key, profile }),
     face: async () => {
       const profile = await caller.query(api.website.profile.getMyProfile, {});
       return profile.kind === "member" ? profile.face : profile;
@@ -463,5 +467,201 @@ describe("CV21: faces follow the matcher", () => {
 
     expect(await sam.face()).toEqual(slackless);
     expect(await wren.face()).toEqual({ kind: "company-profile", image: cutoutOf("wren"), colour: "#8567FF", initials: "WH" });
+  });
+});
+
+describe("CV20: the admin override", () => {
+  type Teammate = Awaited<ReturnType<typeof aTeammate>>;
+
+  const keyOf = (admin: Teammate, member: { member: MemberId }) => seenKeyOf(admin.member, `member:${member.member}`);
+
+  function anAdmin() {
+    return aTeammate("U_ADMIN", "Ada Admin", { admin: true });
+  }
+
+  async function adminPartOf(admin: Teammate) {
+    const settings = (await admin.settings()) as { admin?: unknown };
+    return settings.admin;
+  }
+
+  test("an admin's Settings list every current member and every profile, by name, with who holds it and how it matched", async () => {
+    await teamPagesOn();
+    const admin = await anAdmin();
+    const wren = await aTeammate("U_WREN", "Wren Halloway");
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+    await sam.link(3);
+    const oriel = await aTeammate("U_ORIEL", "Oriel Pemberton");
+    expect(await admin.linkTeammate(await keyOf(admin, oriel), "none")).toEqual({ kind: "linked" });
+    const tamsin = await aTeammate("U_TAMSIN", "Tamsin Vale");
+    await tamsin.leave();
+
+    expect(await adminPartOf(admin)).toEqual({
+      members: [
+        { key: await keyOf(admin, admin), name: "Ada Admin", profile: null, by: null },
+        { key: await keyOf(admin, oriel), name: "Oriel Pemberton", profile: null, by: "admin" },
+        { key: await keyOf(admin, sam), name: "Sam Okafor", profile: 3, by: "self" },
+        { key: await keyOf(admin, wren), name: "Wren Halloway", profile: 1, by: "name" },
+      ],
+      profiles: [
+        { ...orielChoice, heldBy: null, by: null },
+        { ...samanthaChoice, heldBy: await keyOf(admin, sam), by: "self" },
+        { ...tamsinChoice, heldBy: null, by: null },
+        { ...wrenChoice, heldBy: await keyOf(admin, wren), by: "name" },
+      ],
+    });
+  });
+
+  test("Settings' sections list the admin part for an admin while team-pages is on, and never for anyone else", async () => {
+    vi.stubEnv("SITE_URL", "https://kudos-site.test");
+    await teamPagesOn();
+    const admin = await anAdmin();
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+
+    expect(await admin.sections()).toContain("admin");
+    expect(await sam.sections()).not.toContain("admin");
+    expect(await sam.settings()).not.toHaveProperty("admin");
+
+    await teamPagesOff();
+
+    expect(await admin.sections()).not.toContain("admin");
+  });
+
+  test("while team-pages is off, an admin's Settings equal main's and the command refuses, writing no link", async () => {
+    await teamPagesOff();
+    const admin = await anAdmin();
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+
+    expect(await admin.settings()).toEqual({ kind: "not-found" });
+    expect(await admin.linkTeammate(await keyOf(admin, sam), 3)).toEqual({ kind: "refused", reason: null });
+    expect(await links()).toEqual([]);
+  });
+
+  test("an admin link beats a self link and a name match", async () => {
+    await teamPagesOn();
+    const admin = await anAdmin();
+    const wren = await aTeammate("U_WREN", "Wren Halloway");
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+    await sam.link(3);
+
+    expect(await admin.linkTeammate(await keyOf(admin, sam), 1)).toEqual({ kind: "linked" });
+
+    expect(await companyProfileOf(sam)).toEqual({ profile: 1, by: "admin" });
+    expect(await companyProfileOf(wren)).toEqual({ profile: null, by: null });
+  });
+
+  test("an admin's none unmatches a name match", async () => {
+    await teamPagesOn();
+    const admin = await anAdmin();
+    const wren = await aTeammate("U_WREN", "Wren Halloway");
+
+    expect(await admin.linkTeammate(await keyOf(admin, wren), "none")).toEqual({ kind: "linked" });
+
+    expect(await companyProfileOf(wren)).toEqual({ profile: null, by: "admin" });
+    expect(await links()).toMatchObject([{ member: wren.member, profile: null, by: "admin", setBy: admin.member }]);
+  });
+
+  test("clearing the admin link returns a member to their self link or their name match", async () => {
+    await teamPagesOn();
+    const admin = await anAdmin();
+    const wren = await aTeammate("U_WREN", "Wren Halloway");
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+    await sam.link(3);
+    await admin.linkTeammate(await keyOf(admin, wren), "none");
+    await admin.linkTeammate(await keyOf(admin, sam), 4);
+
+    expect(await admin.linkTeammate(await keyOf(admin, wren), null)).toEqual({ kind: "linked" });
+    expect(await admin.linkTeammate(await keyOf(admin, sam), null)).toEqual({ kind: "linked" });
+
+    expect(await companyProfileOf(wren)).toEqual({ profile: 1, by: "name" });
+    expect(await companyProfileOf(sam)).toEqual({ profile: 3, by: "self" });
+    expect((await links()).map(({ by }) => by)).toEqual(["self"]);
+  });
+
+  test("moving a profile from one member to another leaves it held once, and deletes the other admin link to it", async () => {
+    await teamPagesOn();
+    const admin = await anAdmin();
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+    const sammy = await aTeammate("U_SAMMY", "Sammy Okafor");
+    await admin.linkTeammate(await keyOf(admin, sam), 3);
+    later();
+
+    expect(await admin.linkTeammate(await keyOf(admin, sammy), 3)).toEqual({ kind: "linked" });
+
+    expect(await companyProfileOf(sammy)).toEqual({ profile: 3, by: "admin" });
+    expect(await companyProfileOf(sam)).toEqual({ profile: null, by: null });
+    expect(await links()).toMatchObject([{ member: sammy.member, profile: 3, by: "admin", setBy: admin.member }]);
+  });
+
+  test("moving a profile a name match or a self link holds leaves it held once", async () => {
+    await teamPagesOn();
+    const admin = await anAdmin();
+    const wren = await aTeammate("U_WREN", "Wren Halloway");
+    const oriel = await aTeammate("U_ORIEL", "Oriel Pemberton");
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+    await sam.link(3);
+
+    await admin.linkTeammate(await keyOf(admin, oriel), 1);
+    await admin.linkTeammate(await keyOf(admin, wren), 3);
+
+    expect(await matches()).toEqual(
+      expect.arrayContaining([
+        { member: oriel.member, profile: 1, by: "admin" },
+        { member: wren.member, profile: 3, by: "admin" },
+      ]),
+    );
+    expect(await matches()).toHaveLength(2);
+  });
+
+  test("a repeat writes nothing", async () => {
+    await teamPagesOn();
+    const admin = await anAdmin();
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+    await admin.linkTeammate(await keyOf(admin, sam), 3);
+    const linked = await links();
+    later();
+
+    expect(await admin.linkTeammate(await keyOf(admin, sam), 3)).toEqual({ kind: "linked" });
+
+    expect(await links()).toEqual(linked);
+  });
+
+  test("a non-admin's call, a key from another workspace, a former member's key and an unknown profile refuse and write nothing", async () => {
+    await teamPagesOn();
+    const admin = await anAdmin();
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+    const wren = await aTeammate("U_WREN", "Wren Halloway");
+    const tamsin = await aTeammate("U_TAMSIN", "Tamsin Vale");
+    await tamsin.leave();
+    const elsewhere = await t.run((ctx) => ctx.db.insert("members", { workspace: "T2", user: "U_ELSEWHERE", kind: "member", asOf: 0, name: "Ellis Where" }));
+
+    expect(await sam.linkTeammate(await keyOf(sam, wren), 3)).toEqual({ kind: "refused", reason: "not-admin" });
+    expect(await admin.linkTeammate(await keyOf(admin, { member: elsewhere }), 3)).toEqual({ kind: "refused", reason: "unknown" });
+    expect(await admin.linkTeammate(await keyOf(admin, tamsin), 4)).toEqual({ kind: "refused", reason: "unknown" });
+    expect(await admin.linkTeammate("not-a-key", 3)).toEqual({ kind: "refused", reason: "unknown" });
+    expect(await admin.linkTeammate(await keyOf(admin, sam), 99)).toEqual({ kind: "refused", reason: "unknown" });
+
+    expect(await links()).toEqual([]);
+  });
+
+  test("a key is the admin's own: another member's key for the same teammate names nobody", async () => {
+    await teamPagesOn();
+    const admin = await anAdmin();
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+
+    expect(await admin.linkTeammate(await keyOf(sam, sam), 3)).toEqual({ kind: "refused", reason: "unknown" });
+    expect(await links()).toEqual([]);
+  });
+
+  test("the command decides team-pages with exposure, and the admin part without", async () => {
+    await teamPagesOn();
+    const admin = await anAdmin();
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+    await admin.settings();
+    await admin.sections();
+    expect(await teamPagesExposures()).toEqual([]);
+
+    await admin.linkTeammate(await keyOf(admin, sam), 3);
+
+    expect(await teamPagesExposures()).toEqual([{ member: admin.member, value: true }]);
   });
 });

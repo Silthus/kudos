@@ -84,13 +84,15 @@ const earlierCratesShown = 5;
 
 const pageNames: Record<Page["page"], string> = { home: "home", leaderboard: "Leaderboard", quests: "Quests", skillTree: "Skill tree", book: "Book", bookEarned: "Book", bookCollection: "Collection", settings: "Settings" };
 
-const sectionLinks: Record<SettingsSection, { label: string; spoken: string }> = {
+type HomeSection = Exclude<SettingsSection, "admin">;
+
+const sectionLinks: Record<HomeSection, { label: string; spoken: string }> = {
   visibility: { label: "Leaderboards", spoken: "Change whether you show on the leaderboards" },
   messages: { label: "Messages", spoken: "Change what I send you" },
   group: { label: "Your group", spoken: "Change the group you count for" },
 };
 
-type SectionLinks = (section: SettingsSection) => HomeLine[];
+type SectionLinks = (section: HomeSection) => HomeLine[];
 
 const noSectionLinks: SectionLinks = () => [];
 
@@ -124,7 +126,7 @@ function sectionLinksOf({ origin, sections }: FrontDoorLinks): SectionLinks {
   return (section) => (sections.includes(section) ? [sectionOnTheWeb(section, origin)] : []);
 }
 
-function sectionOnTheWeb(section: SettingsSection, website: string): HomeLine {
+function sectionOnTheWeb(section: HomeSection, website: string): HomeLine {
   const action = linkOnTheWeb({ ...sectionLinks[section], id: `settings:${section}` }, { page: "settings", section }, website);
   return { kind: "action", text: "You can change this on the web, too.", action };
 }

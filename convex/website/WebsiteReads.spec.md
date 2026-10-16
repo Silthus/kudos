@@ -107,6 +107,10 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: linkMyCompanyProfile in convex/website/commands.ts
   trust: browser
 
+- mutation linkCompanyProfile: a browser asks, for a workspace admin or owner, to link one teammate to a posthog.com profile or to none, or to clear their admin link, with the teammate's opaque key from the admin's Settings read and the profile's posthog.com ID, none or null as its arguments
+  handler: linkCompanyProfile in convex/website/commands.ts
+  trust: browser
+
 ## invariants
 - the route list is the paths the router serves: The backend's route list holds exactly the paths the website's router serves, so a website link Slack shows never opens the not-found page, and a page that ships adds its path to both in one change.
   over: routeList in convex/website/routes.ts and servedPaths in website/src/route.ts, the list routeOf matches a path against

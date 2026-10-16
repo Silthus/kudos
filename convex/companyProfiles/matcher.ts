@@ -69,7 +69,7 @@ function groupedBy<Item>(items: Item[], keyOf: (item: Item) => string): Map<stri
   return groups;
 }
 
-async function currentProfiles(ctx: QueryCtx): Promise<CompanyProfile[]> {
+export async function currentProfiles(ctx: QueryCtx): Promise<CompanyProfile[]> {
   const rows = await ctx.db.query("companyProfiles").collect();
   return rows.flatMap(({ profile, firstName, lastName, image, colour, teams, role }) =>
     profile === undefined ? [] : [{ profile, firstName, lastName, colour, teams: teams ?? [], ...(image !== undefined && { image }), ...(role !== undefined && { role }) }],
