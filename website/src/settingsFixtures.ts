@@ -9,6 +9,8 @@ const newFeatures: MessageSetting = { kind: "new-features", label: "New features
 
 const celebrations: MessageSetting = { kind: "celebrations", label: "Public celebrations", description: "Your level ups and tiers in the announcement channel.", applies: true, on: true, place: "channel", places: ["channel", "none"] };
 
+export const hugsRecap: MessageSetting = { kind: "hugs-recap", label: "Weekly hugs recap", description: "Last week's hugs, the :hedgehug: you and your teammates reacted, with their XP, on Monday morning.", applies: true, on: true, place: "dm", places: ["dm", "none"] };
+
 const gardeners = { group: "g_gardeners", name: "Gardeners" };
 
 const zebras = { group: "g_zebras", name: "Zebras" };

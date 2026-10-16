@@ -22,10 +22,10 @@ vi.mock("../bus/publish", async (importOriginal) => {
 
 const now = new Date("2026-10-14T10:00:00Z");
 const juno = { user: "U_JUNO", name: "Juno Whitlock" };
-const storeFlags = ["xp-levels", "unlocks", "coins", "store"];
+const storeFlags = ["xp-levels", "unlocks", "coins", "store", "custom-kudos-emoji"];
 const levelSix = 1000;
-const rocket = "kudos-emoji-rocket";
-const gem = "kudos-emoji-gem";
+const shipit = "custom:shipit";
+const partyparrot = "custom:partyparrot";
 const firstRequest = "0d6f2c1e-8a4b-4c3d-9e2f-1a2b3c4d5e6f";
 const secondRequest = "7b9e4f3a-2c1d-4e5f-8a9b-0c1d2e3f4a5b";
 
@@ -75,6 +75,9 @@ async function aMemberWithTheStoreOpen(coins: number, backend: Backend = t) {
   const signedIn = await aMemberAtLevelSix(backend);
   await opens(backend, signedIn.member, "coins");
   if (coins > 0) await earns(signedIn.member, coins, backend);
+  await backend.run(async (ctx) => {
+    for (const name of ["shipit", "partyparrot"]) await ctx.db.insert("customKudosEmoji", { workspace: "T1", name, url: `https://emoji.slack-edge.com/T1/${name}/0a1b2c.png`, pickedAt: now.getTime() });
+  });
   return signedIn;
 }
 
@@ -82,7 +85,7 @@ async function earns(member: MemberId, coins: number, backend: Backend = t) {
   await backend.run((ctx) => recordReward(ctx, "T1", { member, key: `test:earned:${coins}`, xp: 0, coins, item: null, catalogueVersion: "2", at: 0 }));
 }
 
-function buyItem(caller: Caller, item = rocket, request = firstRequest) {
+function buyItem(caller: Caller, item = shipit, request = firstRequest) {
   return caller.mutation(api.website.commands.buyItem, { item, request });
 }
 
@@ -191,7 +194,7 @@ describe("website commands pass one guard", () => {
     const { member, asSignedIn } = await aMemberWithTheStoreOpen(100);
     const before = await everythingWritten();
 
-    await expect(asSignedIn.mutation(api.website.commands.buyItem, { item: rocket, request: firstRequest, member } as never)).rejects.toThrow(/member/);
+    await expect(asSignedIn.mutation(api.website.commands.buyItem, { item: shipit, request: firstRequest, member } as never)).rejects.toThrow(/member/);
     expect(await everythingWritten()).toEqual(before);
   });
 
@@ -209,7 +212,7 @@ describe("website commands pass one guard", () => {
     const { asSignedIn } = await aMemberWithTheStoreOpen(100);
     const before = await everythingWritten();
 
-    await expect(buyItem(asSignedIn, rocket, request)).rejects.toThrow(/request/);
+    await expect(buyItem(asSignedIn, shipit, request)).rejects.toThrow(/request/);
     expect(await everythingWritten()).toEqual(before);
   });
 });
@@ -260,19 +263,17 @@ describe("a website command never launches unlocks", () => {
 });
 
 describe("a website command is a D17 command", { timeout: 30_000 }, () => {
-  test("WS341 ST13: an item on sale is bought for its coins, lands in no slot, and App Home's republish is scheduled", async () => {
+  test("WS341 ST13: an item on sale is bought for its coins, and App Home's republish is scheduled", async () => {
     await storeShipped();
     const { member, asSignedIn } = await aMemberWithTheStoreOpen(130);
     const republishedBefore = await homeRepublishesFor(juno.user);
     vi.mocked(publish).mockClear();
 
-    expect(await buyItem(asSignedIn)).toEqual({ kind: "bought", item: rocket });
+    expect(await buyItem(asSignedIn)).toEqual({ kind: "bought", item: shipit });
 
-    expect(await collectionOf(member)).toEqual([{ item: rocket, source: "store" }]);
+    expect(await collectionOf(member)).toEqual([{ item: shipit, source: "store" }]);
     expect(await coinsOf(member)).toBe(30);
-    const inventory = await t.query(internal.store.inventory.inventoryOf, { member });
-    expect(inventory?.slots.map(({ item }) => item)).toEqual(["kudos-emoji-hedgehog", null, null]);
-    expect(publishedEvents()).toEqual([{ type: "itemBought", workspace: "T1", member, item: rocket, price: 100, at: now.getTime() }]);
+    expect(publishedEvents()).toEqual([{ type: "itemBought", workspace: "T1", member, item: shipit, price: 100, at: now.getTime() }]);
     expect(await homeRepublishesFor(juno.user)).toHaveLength(republishedBefore.length + 1);
   });
 
@@ -283,7 +284,7 @@ describe("a website command is a D17 command", { timeout: 30_000 }, () => {
     await buyItem(asSignedIn);
 
     const stored = await t.run((ctx) => ctx.db.query("itemPurchases").collect());
-    expect(stored).toMatchObject([{ member, key: `website:${member}:${firstRequest}`, outcome: { kind: "bought", item: rocket } }]);
+    expect(stored).toMatchObject([{ member, key: `website:${member}:${firstRequest}`, outcome: { kind: "bought", item: shipit } }]);
   });
 
   test("WS335: App Home's republished Inventory tab no longer offers the bought item", async () => {
@@ -291,14 +292,14 @@ describe("a website command is a D17 command", { timeout: 30_000 }, () => {
     const { asSignedIn } = await aMemberWithTheStoreOpen(100);
     await t.mutation(internal.slack.receipts.receiveHomeClick, { workspace: "T1", eventId: "Ev_TAB", user: juno.user, commands: [{ type: "showHomeTab", tab: "inventory" }] });
     await settle(t);
-    expect(buyButtonsInHome()).toContain(rocket);
+    expect(buyButtonsInHome()).toContain(shipit);
     const publishedBefore = slack.callsTo("views.publish").length;
 
     await buyItem(asSignedIn);
     await settle(t);
 
     expect(slack.callsTo("views.publish").length).toBeGreaterThan(publishedBefore);
-    expect(buyButtonsInHome()).not.toContain(rocket);
+    expect(buyButtonsInHome()).not.toContain(shipit);
   });
 
   test("WS341 ST13: with too few coins, an item is refused with the reason no-coins, storing only the refusal", async () => {
@@ -309,19 +310,19 @@ describe("a website command is a D17 command", { timeout: 30_000 }, () => {
 
     expect(await buyItem(asSignedIn)).toEqual({ kind: "refused", reason: "no-coins" });
 
-    expectOnlyTheRefusalStored(before, await everythingWritten(), { kind: "refused", item: rocket, reason: "no-coins" });
+    expectOnlyTheRefusalStored(before, await everythingWritten(), { kind: "refused", item: shipit, reason: "no-coins" });
   });
 
   test("WS341 ST13: an owned item is refused with the reason owned, storing only the refusal", async () => {
     await storeShipped();
     const { asSignedIn } = await aMemberWithTheStoreOpen(250);
-    await buyItem(asSignedIn, rocket, secondRequest);
+    await buyItem(asSignedIn, shipit, secondRequest);
     const before = await everythingWritten();
     vi.mocked(publish).mockClear();
 
     expect(await buyItem(asSignedIn)).toEqual({ kind: "refused", reason: "owned" });
 
-    expectOnlyTheRefusalStored(before, await everythingWritten(), { kind: "refused", item: rocket, reason: "owned" });
+    expectOnlyTheRefusalStored(before, await everythingWritten(), { kind: "refused", item: shipit, reason: "owned" });
   });
 
   test.each([
@@ -367,8 +368,8 @@ describe("a website command is a D17 command", { timeout: 30_000 }, () => {
 
     await flagsOn(...storeFlags);
 
-    expect(await buyItem(asSignedIn)).toEqual({ kind: "bought", item: rocket });
-    expect(await collectionOf(member)).toEqual([{ item: rocket, source: "store" }]);
+    expect(await buyItem(asSignedIn)).toEqual({ kind: "bought", item: shipit });
+    expect(await collectionOf(member)).toEqual([{ item: shipit, source: "store" }]);
   });
 
   test("WS335 ST14: a stored no-coins refusal replays after more coins arrive, and a fresh request buys", async () => {
@@ -379,17 +380,17 @@ describe("a website command is a D17 command", { timeout: 30_000 }, () => {
     await earns(member, 100);
 
     expect(await buyItem(asSignedIn)).toEqual({ kind: "refused", reason: "no-coins" });
-    expect(await buyItem(asSignedIn, rocket, secondRequest)).toEqual({ kind: "bought", item: rocket });
+    expect(await buyItem(asSignedIn, shipit, secondRequest)).toEqual({ kind: "bought", item: shipit });
   });
 
   test("WS335 WS64: buying an item on the website leaves the domain tables and events App Home's Buy leaves, besides Slack's receipt", async () => {
     const slackSide = await anOpenStoreIn(testBackend());
-    await slackSide.backend.mutation(internal.slack.receipts.receiveHomeClick, { workspace: "T1", eventId: "Ev_BUY", user: juno.user, commands: [{ type: "buyItem", item: rocket }] });
+    await slackSide.backend.mutation(internal.slack.receipts.receiveHomeClick, { workspace: "T1", eventId: "Ev_BUY", user: juno.user, commands: [{ type: "buyItem", item: shipit }] });
     const fromSlack = { tables: await everyTable(slackSide.backend), events: publishedEvents() };
     vi.mocked(publish).mockClear();
 
     const websiteSide = await anOpenStoreIn(t);
-    expect(await buyItem(websiteSide.asSignedIn)).toEqual({ kind: "bought", item: rocket });
+    expect(await buyItem(websiteSide.asSignedIn)).toEqual({ kind: "bought", item: shipit });
     const fromWebsite = { tables: await everyTable(t), events: publishedEvents() };
 
     expect(comparable(fromWebsite, websiteSide.member)).toEqual(comparable(fromSlack, slackSide.member));
@@ -403,11 +404,11 @@ describe("a coin spent on the website for an item is spent once", { timeout: 30_
     await storeShipped();
     const { member, asSignedIn } = await aMemberWithTheStoreOpen(250);
 
-    expect(await buyItem(asSignedIn)).toEqual({ kind: "bought", item: rocket });
+    expect(await buyItem(asSignedIn)).toEqual({ kind: "bought", item: shipit });
     vi.setSystemTime(now.getTime() + 60_000);
-    expect(await buyItem(asSignedIn)).toEqual({ kind: "bought", item: rocket });
+    expect(await buyItem(asSignedIn)).toEqual({ kind: "bought", item: shipit });
 
-    expect(await collectionOf(member)).toEqual([{ item: rocket, source: "store" }]);
+    expect(await collectionOf(member)).toEqual([{ item: shipit, source: "store" }]);
     expect(await coinsOf(member)).toBe(150);
     expect(publishedEvents().filter(({ type }) => type === "itemBought")).toHaveLength(1);
   });
@@ -416,23 +417,23 @@ describe("a coin spent on the website for an item is spent once", { timeout: 30_
     await storeShipped();
     const { member, asSignedIn } = await aMemberWithTheStoreOpen(150);
 
-    const answers = [await buyItem(asSignedIn, rocket, firstRequest), await buyItem(asSignedIn, gem, secondRequest)];
+    const answers = [await buyItem(asSignedIn, shipit, firstRequest), await buyItem(asSignedIn, partyparrot, secondRequest)];
 
     expect(answers).toEqual([
-      { kind: "bought", item: rocket },
+      { kind: "bought", item: shipit },
       { kind: "refused", reason: "no-coins" },
     ]);
-    expect(await collectionOf(member)).toEqual([{ item: rocket, source: "store" }]);
+    expect(await collectionOf(member)).toEqual([{ item: shipit, source: "store" }]);
     expect(await coinsOf(member)).toBe(50);
   });
 
   test("WS335: a website request never replays a Slack Buy whose event carries the same string", async () => {
     await storeShipped();
     const { member, asSignedIn } = await aMemberWithTheStoreOpen(250);
-    await t.mutation(internal.slack.receipts.receiveHomeClick, { workspace: "T1", eventId: firstRequest, user: juno.user, commands: [{ type: "buyItem", item: gem }] });
+    await t.mutation(internal.slack.receipts.receiveHomeClick, { workspace: "T1", eventId: firstRequest, user: juno.user, commands: [{ type: "buyItem", item: partyparrot }] });
 
-    expect(await buyItem(asSignedIn)).toEqual({ kind: "bought", item: rocket });
-    expect((await collectionOf(member)).map(({ item }) => item).sort()).toEqual([gem, rocket]);
+    expect(await buyItem(asSignedIn)).toEqual({ kind: "bought", item: shipit });
+    expect((await collectionOf(member)).map(({ item }) => item).sort()).toEqual([partyparrot, shipit]);
   });
 });
 

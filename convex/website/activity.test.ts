@@ -194,14 +194,14 @@ describe("AT16 AT17 AT18: order, filters and pages", () => {
     await activityOn();
     const me = await aNamedMember("Bob Brandt", bob.user);
     const [ada, cy, dee, eve] = await Promise.all([aNamedMember("Ada", "U_ADA"), aNamedMember("Cy", "U_CY"), aNamedMember("Dee", "U_DEE"), aNamedMember("Eve", "U_EVE")]);
-    await thanks(ada, [me], "1.1", instant);
-    await thanks(me, [ada, cy], "1.2", instant);
-    await thanks(cy, [me], "1.3", instant);
-    await thanks(eve, [cy], "1.4", instant);
-    await thanks(me, [dee], "1.5", instant);
-    await thanks(dee, [me], "1.6", instant);
     await thanks(eve, [me], "0.1", earlier);
     await thanks(me, [eve], "0.2", earlier);
+    await thanks(ada, [me], "1.1", instant);
+    await thanks(cy, [me], "1.3", instant);
+    await thanks(dee, [me], "1.6", instant);
+    await thanks(me, [ada, cy], "1.2", instant);
+    await thanks(eve, [cy], "1.4", instant);
+    await thanks(me, [dee], "1.5", instant);
     return signedIn(bob);
   }
 
@@ -226,7 +226,7 @@ describe("AT16 AT17 AT18: order, filters and pages", () => {
     return pages;
   }
 
-  test("answers every entry newest first, given above received within one instant, and newer documents first", async () => {
+  test("answers every entry newest decided first, many inside one instant", async () => {
     const asBob = await aBusyInstant();
 
     const { entries, cursor } = await activityOf(asBob, { filter: "all" });
@@ -261,6 +261,48 @@ describe("AT16 AT17 AT18: order, filters and pages", () => {
     expect((await activityOf(asBob, { filter: "all", limit: 3 })).entries).toHaveLength(3);
     expect((await activityOf(asBob, { filter: "all", limit: 0 })).entries).toHaveLength(1);
     expect((await activityOf(asBob, { filter: "all", limit: 500 })).entries).toHaveLength(newestFirst.length);
+  });
+});
+
+describe("AT16: a kudos decided after newer entries", () => {
+  const minute = 60_000;
+  const slackTsOf = (at: number) => `${at / 1000}.000100`;
+
+  async function thanksBob(giver: { user: string }, at: number) {
+    await post(t, [section(text(`thanks ${reason} `), mention(bob.user), text(" "), emoji("taco"))], { user: giver.user, ts: slackTsOf(at) });
+    await settle(t);
+    vi.advanceTimersByTime(minute);
+  }
+
+  function seen(entry: ActivityEntry) {
+    return entry.kind === "kudosReceived" ? `${entry.giver.name} at ${entry.at}` : entry.kind;
+  }
+
+  test("answers first on the newest page, at its Slack time", async () => {
+    await activityOn();
+    await thanksBob(alice, postedAt);
+
+    await thanksBob(carol, postedAt - 10 * minute);
+
+    const newest = await activityOf(await signedIn(bob), { filter: "all", limit: 1 });
+    expect(newest.entries.map(seen)).toEqual([`Carol Chen at ${postedAt - 10 * minute}`]);
+  });
+
+  test("pages read before it continue without repeating or skipping a row, and the newest page shows it", async () => {
+    await activityOn();
+    await thanksBob(alice, postedAt - 2 * minute);
+    await thanksBob(carol, postedAt - minute);
+    await thanksBob(alice, postedAt);
+    const asBob = await signedIn(bob);
+    const first = await activityOf(asBob, { filter: "received", limit: 1 });
+
+    await thanksBob(carol, postedAt - 30 * minute);
+    const rest = await activityOf(asBob, { filter: "received", cursor: first.cursor, limit: 10 });
+    const newest = await activityOf(asBob, { filter: "received", limit: 10 });
+
+    expect([...first.entries, ...rest.entries].map(seen)).toEqual([`Alice Archer at ${postedAt}`, `Carol Chen at ${postedAt - minute}`, `Alice Archer at ${postedAt - 2 * minute}`]);
+    expect(rest.cursor).toBeNull();
+    expect(newest.entries.map(seen)).toEqual([`Carol Chen at ${postedAt - 30 * minute}`, ...[...first.entries, ...rest.entries].map(seen)]);
   });
 });
 
@@ -558,8 +600,8 @@ describe("AT18: a page's reads are bounded", () => {
     });
     for (let index = 0; index < messages; index++) {
       await t.run(async (ctx) => {
-        for (const recipient of thanked) await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `given-${index}`, giver: me, recipient, kudos: 1, day: "2026-10-14", at: postedAt + index });
         await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `received-${index}`, giver: thanked[0]!, recipient: me, kudos: 1, day: "2026-10-14", at: postedAt + index });
+        for (const recipient of thanked) await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `given-${index}`, giver: me, recipient, kudos: 1, day: "2026-10-14", at: postedAt + index });
       });
     }
     const asBob = await signedIn(bob);

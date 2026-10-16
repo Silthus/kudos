@@ -134,14 +134,14 @@ describe("CL21: found entries in order, filters and pages", () => {
 
   async function aMorningOfKudosAndDrops() {
     const team = await aTeam();
-    await aKudos(team.teammate, team.member, "1.1", evening);
-    await aDrop(team.member, rare, noon, 3);
-    await aLevelUp(team.member, 2, noon);
-    await aKudos(team.member, team.teammate, "1.2", noon);
-    await aDrop(team.member, otherCommon!, noon, 2);
-    await aKudos(team.teammate, team.member, "1.3", noon);
     await aDrop(team.member, common!, morning, 1);
     await aKudos(team.member, team.teammate, "1.4", morning);
+    await aDrop(team.member, otherCommon!, noon, 2);
+    await aDrop(team.member, rare, noon, 3);
+    await aKudos(team.teammate, team.member, "1.3", noon);
+    await aKudos(team.member, team.teammate, "1.2", noon);
+    await aLevelUp(team.member, 2, noon);
+    await aKudos(team.teammate, team.member, "1.1", evening);
     return team;
   }
 
@@ -156,7 +156,7 @@ describe("CL21: found entries in order, filters and pages", () => {
     `found ${common!.hoggie} at ${morning}`,
   ];
 
-  test("sit in time order between the kudos, below the level-up and kudos of their instant and the later drop first", async () => {
+  test("sit in decision order among the kudos and the level-up, the later drop first", async () => {
     await collection(true);
     const { asSignedIn } = await aMorningOfKudosAndDrops();
 
@@ -203,9 +203,9 @@ describe("CL21: found entries in order, filters and pages", () => {
   test("with collection off, every page equals the timeline without any drop, cursors and time zone included", async () => {
     await collection(false);
     const { member, teammate, asSignedIn } = await aTeam();
-    await aKudos(teammate, member, "1.1", evening);
-    await aKudos(member, teammate, "1.2", noon);
     await aKudos(teammate, member, "1.3", morning);
+    await aKudos(member, teammate, "1.2", noon);
+    await aKudos(teammate, member, "1.1", evening);
     const pagesOf = () => Promise.all([1, 2, 20].flatMap((limit) => (["all", "received", "given"] as const).map((filter) => everyAnswer(asSignedIn, filter, limit))));
     const withoutDrops = await pagesOf();
 

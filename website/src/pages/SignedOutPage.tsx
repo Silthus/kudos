@@ -46,7 +46,7 @@ export function SignInCard({ returnTo, onSignIn }: SignInProps) {
 }
 
 function isDeepLink(href: string) {
-  const [path = ""] = href.split("?");
+  const [path = ""] = href.split(/[?#]/);
   return path !== "/" && routeList.includes(path);
 }
 

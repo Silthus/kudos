@@ -14,8 +14,6 @@ import { dropsAHoggie } from "../hoggies/crateKey";
 import { dropOf, type Drop } from "../hoggies/drops";
 import { avatarShownTo, hoggiesShownTo } from "../hoggies/flag";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
-import { loadoutOf } from "../store/inventory";
-import { slotValidator, type Slot } from "../store/rows";
 import type { Refusal } from "../progression/purchases";
 import type { AppliedReward, StandingWithCoins } from "../progression/rewards";
 import { perkValidator } from "../progression/tree";
@@ -24,7 +22,7 @@ import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { swappedSlotIn } from "../quests/weekly";
 import type { CrateRefusal } from "../hoggies/records";
 import type { ItemRefusal } from "../store/rows";
-import { slotsRetiredFor, storeVisibleTo } from "../store/visibility";
+import { storeVisibleTo } from "../store/visibility";
 import { featureValidator } from "../unlocks/feature";
 import { unlockPathShownTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
@@ -67,8 +65,6 @@ export type CompanyProfileLinkAnswer = { kind: "linked" } | { kind: "refused"; r
 export type AdminProfileLinkAnswer = { kind: "linked" } | { kind: "refused"; reason: AdminLinkRefusal | null };
 
 export type AvatarAnswer = { kind: "set"; avatar: Avatar | null } | { kind: "refused" };
-
-export type LoadoutAnswer = { kind: "equipped"; slot: Slot; item: string } | { kind: "takenOff"; slot: Slot } | { kind: "refused" };
 
 const refused = { kind: "refused" } as const;
 
@@ -188,30 +184,6 @@ export const setBoardVisibility = memberMutation({
   },
 });
 
-export const equip = memberMutation({
-  args: { item: v.string(), slot: slotValidator },
-  handler: async (ctx, me, person, { item, slot }): Promise<LoadoutAnswer> => {
-    if (!(await slotsOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
-    const held = await itemIn(ctx, me, slot);
-    await runCommand(ctx, me.workspace, person, { type: "equip", item, slot }, `website:equip:${me.member}:${slot}`);
-    if ((await itemIn(ctx, me, slot)) !== item) return refused;
-    if (held !== item) await republish(ctx, me.member);
-    return { kind: "equipped", slot, item };
-  },
-});
-
-export const takeOff = memberMutation({
-  args: { slot: slotValidator },
-  handler: async (ctx, me, person, { slot }): Promise<LoadoutAnswer> => {
-    if (!(await slotsOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
-    const held = await itemIn(ctx, me, slot);
-    await runCommand(ctx, me.workspace, person, { type: "takeOff", slot }, `website:takeOff:${me.member}:${slot}`);
-    if ((await itemIn(ctx, me, slot)) !== null) return refused;
-    if (held !== null) await republish(ctx, me.member);
-    return { kind: "takenOff", slot };
-  },
-});
-
 export const setAvatar = memberMutation({
   args: { hoggie: v.union(v.string(), v.null()) },
   handler: async (ctx, me, person, { hoggie }): Promise<AvatarAnswer> => {
@@ -224,10 +196,6 @@ export const setAvatar = memberMutation({
     return (after?.hoggie ?? null) === hoggie ? { kind: "set", avatar: after } : refused;
   },
 });
-
-async function itemIn(ctx: QueryCtx, me: VerifiedMember, slot: Slot) {
-  return (await loadoutOf(ctx, me.member)).find((each) => each.slot === slot)?.item ?? null;
-}
 
 async function dropShownTo(ctx: MutationCtx, me: VerifiedMember, crate: string): Promise<{ drop?: Drop | null }> {
   if (!(await hoggiesShownTo(ctx, me.member))) return {};
@@ -302,10 +270,6 @@ async function treeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember
 
 async function storeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
   return (await storeVisibleTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
-}
-
-async function slotsOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
-  return (await storeOpenWithEveryLaunchRecorded(ctx, me)) && !(await slotsRetiredFor(ctx, me.member));
 }
 
 async function boardOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {

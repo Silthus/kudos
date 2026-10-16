@@ -30,8 +30,7 @@ import { buyCrate, openCrate } from "../hoggies/boughtCrates";
 import type { CratePurchaseOutcome } from "../hoggies/records";
 import { buyItem } from "../store/buying";
 import { setCustomKudosEmoji } from "../store/customKudosEmoji";
-import { equip, takeOff, type LoadoutOutcome } from "../store/equipping";
-import { slotValidator, type ItemPurchaseOutcome } from "../store/rows";
+import type { ItemPurchaseOutcome } from "../store/rows";
 import { xpLevelsShownTo } from "../progression/xpLevels";
 import { featureValidator } from "../unlocks/feature";
 import { openUnlock } from "../unlocks/unlocks";
@@ -54,8 +53,6 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("setGroupMode"), mode: groupModeValidator, allowlist: v.optional(v.array(v.string())) }),
   v.object({ type: v.literal("setMondayPost"), on: v.boolean(), timeZone: v.optional(v.string()) }),
   v.object({ type: v.literal("buyItem"), item: v.string() }),
-  v.object({ type: v.literal("equip"), item: v.string(), slot: slotValidator }),
-  v.object({ type: v.literal("takeOff"), slot: slotValidator }),
   v.object({ type: v.literal("setCustomKudosEmoji"), emoji: v.array(v.string()) }),
   v.object({ type: v.literal("buyCrate"), next: v.number() }),
   v.object({ type: v.literal("openCrate"), crate: v.string() }),
@@ -66,7 +63,7 @@ export const commandValidator = v.union(
 
 export type Command = Infer<typeof commandValidator>;
 
-export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | LoadoutOutcome | CratePurchaseOutcome | SelfLinkOutcome | AdminLinkOutcome | null;
+export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | CratePurchaseOutcome | SelfLinkOutcome | AdminLinkOutcome | null;
 
 const websiteOnly: ReadonlySet<Command["type"]> = new Set(["linkMyCompanyProfile", "linkCompanyProfile"]);
 
@@ -153,10 +150,6 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return (await teamPagesApplyTo(ctx, member)) ? linkMyCompanyProfile(ctx, member, command.profile) : null;
     case "linkCompanyProfile":
       return (await teamPagesApplyTo(ctx, member)) ? linkCompanyProfile(ctx, workspace, person, command.member, command.profile) : null;
-    case "equip":
-      return equip(ctx, member, command.item, command.slot);
-    case "takeOff":
-      return takeOff(ctx, member, command.slot);
     case "setCustomKudosEmoji":
       if (await setCustomKudosEmoji(ctx, workspace, person, command.emoji)) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
       return null;

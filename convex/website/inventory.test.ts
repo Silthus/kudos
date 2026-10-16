@@ -53,17 +53,18 @@ async function profileOf(asSignedIn: Pick<Backend, "query">): Promise<MemberProf
   return profile;
 }
 
-describe("RS3 RS4 RS5: with slots retired, inventoryOf has no slots and sells no standard emoji", { timeout: 30_000 }, () => {
-  test("slots is empty, an owned standard emoji stays owned and listed but not on sale, an unowned one isn't listed, and a picked custom emoji is on sale", async () => {
-    const { member, asSignedIn } = await signedInAtLevelSix(...storeFlags, "slots-retired", "custom-kudos-emoji");
+describe("ST32 ST36: inventoryOf sells no standard emoji, and an owned one stays owned", { timeout: 30_000 }, () => {
+  test("inventoryOf answers owned items and the catalogue only, an owned standard emoji stays owned and listed but not on sale, an unowned one isn't listed, and a picked custom emoji is on sale", async () => {
+    const { member, asSignedIn } = await signedInAtLevelSix(...storeFlags, "custom-kudos-emoji");
     await opens(t, member, "coins");
     await t.run((ctx) => grantItem(ctx, { member, item: "kudos-emoji-rocket", source: "store", arrivedAt: now.getTime() + 1 }));
     await t.run((ctx) => ctx.db.insert("customKudosEmoji", { workspace: "T1", name: "shipit", url: "https://emoji.slack-edge.com/T1/shipit/0a1b2c.png", pickedAt: now.getTime() }));
 
     const inventory = (await profileOf(asSignedIn)).inventory;
 
-    expect(inventory).toEqual(await t.query(internal.store.inventory.inventoryOf, { member }));
-    expect(inventory?.slots).toEqual([]);
+    const read = await t.query(internal.store.inventory.inventoryOf, { member });
+    expect(Object.keys(read ?? {}).sort()).toEqual(["catalogue", "owned"]);
+    expect(inventory).toEqual({ ...read, slots: [] });
     expect(inventory?.owned.map(({ item }) => item)).toEqual(["kudos-emoji-hedgehog", "kudos-emoji-rocket"]);
     expect(inventory?.catalogue.map(({ item, onSale }) => [item, onSale])).toEqual([
       ["kudos-emoji-hedgehog", false],
@@ -73,8 +74,17 @@ describe("RS3 RS4 RS5: with slots retired, inventoryOf has no slots and sells no
   });
 });
 
+describe("a website tab opened before #579's deploy keeps working", { timeout: 30_000 }, () => {
+  test("getMyProfile's inventory keeps an empty slots field, which an older bundle reads as no slots and so draws only the owned kudos emoji", async () => {
+    const { member, asSignedIn } = await signedInAtLevelSix(...storeFlags);
+    await opens(t, member, "coins");
+
+    expect((await profileOf(asSignedIn)).inventory).toMatchObject({ slots: [] });
+  });
+});
+
 describe("WS341 CO26 ST26: getMyProfile carries the wallet and the inventory exactly while map #1's reads answer them", { timeout: 30_000 }, () => {
-  test("with Coins open, the profile carries walletOf's balance and inventoryOf's slots, owned items and catalogue", async () => {
+  test("with Coins open, the profile carries walletOf's balance and inventoryOf's owned items and catalogue", async () => {
     const { member, asSignedIn } = await signedInAtLevelSix(...storeFlags);
     await opens(t, member, "coins");
     await earnsCoins(member, 140);
@@ -84,7 +94,7 @@ describe("WS341 CO26 ST26: getMyProfile carries the wallet and the inventory exa
 
     expect(profile.coins).toBe((await t.query(internal.wallet.wallet.walletOf, { member }))?.balance);
     expect(profile.coins).toBe(140);
-    expect(profile.inventory).toEqual(await t.query(internal.store.inventory.inventoryOf, { member }));
+    expect(profile.inventory).toEqual({ ...(await t.query(internal.store.inventory.inventoryOf, { member })), slots: [] });
     expect(profile.inventory?.owned.map(({ item }) => item)).toEqual(["kudos-emoji-hedgehog", "kudos-emoji-rocket"]);
   });
 

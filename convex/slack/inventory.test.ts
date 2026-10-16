@@ -19,12 +19,10 @@ const carolsEmail = "carol@example.com";
 const xpBelowLevelSix = 990;
 const store = "store";
 const storeEmoji = ["sunflower", "rocket", "glowing-star", "gem", "rainbow", "clover", "doughnut", "cookie", "crown", "balloon", "cactus", "trophy"].map((name) => `kudos-emoji-${name}`);
-const storeOffers = ["🌻 Sunflower", "🚀 Rocket", "🌟 Glowing Star", "💎 Gem", "🌈 Rainbow", "🍀 Clover", "🍩 Doughnut", "🍪 Cookie", "👑 Crown", "🎈 Balloon", "🌵 Cactus", "🏆 Trophy"].map((item) => `section: ${item} · 100 🪙 [button: Buy]`);
 
 const xpAndUnlocksOn = [onForEveryone("xp-levels"), onForEveryone("unlocks")];
 const coinsForAliceAndCarol = onForEmails("coins", alicesEmail, carolsEmail);
 const previewedByAlice = [...xpAndUnlocksOn, coinsForAliceAndCarol, onForEmails(store, alicesEmail)];
-const slotsRetiredForAlice = [...previewedByAlice, onForEmails("slots-retired", alicesEmail)];
 const storeOff = [...xpAndUnlocksOn, coinsForAliceAndCarol, offForEveryone(store)];
 const storeNotCreated = [...xpAndUnlocksOn, coinsForAliceAndCarol];
 const coinsOff = [...xpAndUnlocksOn, offForEveryone("coins"), onForEveryone(store)];
@@ -47,7 +45,7 @@ afterEach(() => {
 });
 
 describe("ST20 ST21 ST24 ST25: opening Coins opens the inventory, previewed by one member's email", { timeout: 30_000 }, () => {
-  test("Coins is ready as Coins and inventory, and opening it says 🦔 is in the first slot", async () => {
+  test("Coins is ready as Coins and inventory, opening your wallet, the store and your kudos emoji, and opening it says 🦔 is one of your kudos emoji", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
     await openHome(t, "U_ALICE");
@@ -55,10 +53,21 @@ describe("ST20 ST21 ST24 ST25: opening Coins opens the inventory, previewed by o
     await xpOf(t, "U_ALICE", xpBelowLevelSix);
 
     await giveKudos(t, "U_ALICE", ["U_CAROL"], saysWhy);
-    expect(readDm(levelUpDmTo("U_ALICE", 6))).toContain("section: *Coins and inventory* is ready. It opens your wallet, the store's kudos emoji and your emoji slots. [button: Open]");
+    expect(readDm(levelUpDmTo("U_ALICE", 6))).toContain("section: *Coins and inventory* is ready. It opens your wallet, the store and your kudos emoji. [button: Open]");
     await send(t, blockActions("U_ALICE", buttonIn(blocksOf(levelUpDmTo("U_ALICE", 6)), "Open"), { inMessage: { channel: "U_ALICE", ts: "1760349700.000100" } }));
 
-    expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins and inventory are open. You already have 8 🪙, and 🦔 is in your first kudos emoji slot: use it in a kudos like :taco:.");
+    expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins and inventory are open. You already have 8 🪙, and 🦔 is one of your kudos emoji: use it in a kudos like :taco:.");
+  });
+
+  test("App Home's ready Coins and inventory opens your wallet, the store and your kudos emoji", async () => {
+    const t = await workspaceDeciding(...previewedByAlice);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
+    await xpOf(t, "U_ALICE", xpBelowLevelSix);
+    await giveKudos(t, "U_ALICE", ["U_CAROL"], saysWhy);
+
+    await openHome(t, "U_ALICE");
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: *Coins and inventory* is ready. It opens your wallet, the store and your kudos emoji. [button: Open]");
   });
 
   test("with nothing earned yet, the opening DM leaves the balance out", async () => {
@@ -66,10 +75,10 @@ describe("ST20 ST21 ST24 ST25: opening Coins opens the inventory, previewed by o
 
     await coinsOpenedBy(t, "U_ALICE", "thanks");
 
-    expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins and inventory are open. 🦔 is in your first kudos emoji slot: use it in a kudos like :taco:.");
+    expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins and inventory are open. 🦔 is one of your kudos emoji: use it in a kudos like :taco:.");
   });
 
-  test("App Home's Inventory tab, after Skill tree, shows the balance and the starter in slot 1", async () => {
+  test("App Home's Inventory tab, after Skill tree, shows the balance, the starter among your kudos emoji, and nothing for sale", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await coinsOpenedBy(t, "U_ALICE");
 
@@ -82,17 +91,15 @@ describe("ST20 ST21 ST24 ST25: opening Coins opens the inventory, previewed by o
       "section: 4 🪙",
       "divider",
       "section: *Your kudos emoji*",
-      "section: Slot 1 · 🦔 Hedgehog [button: Take off]",
-      "section: Slot 2 · empty",
-      "section: Slot 3 · empty",
-      "context: Each emoji in a slot counts as a kudos, like :taco:.",
+      "section: 🦔 Hedgehog",
+      "context: Each of your kudos emoji counts as a kudos, like :taco:.",
       "divider",
       "section: *Store*",
-      ...storeOffers,
+      "context: Nothing for sale right now.",
     ]);
   });
 
-  test("an owned emoji outside the slots waits in the Collection", async () => {
+  test("an owned emoji is listed after the starter among your kudos emoji", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await coinsOpenedBy(t, "U_ALICE");
     const member = await memberOf(t, "U_ALICE");
@@ -101,7 +108,7 @@ describe("ST20 ST21 ST24 ST25: opening Coins opens the inventory, previewed by o
     await openHome(t, "U_ALICE");
     await click(t, "U_ALICE", "Inventory");
 
-    expect(publishedHome(slack, "U_ALICE").slice(-17, -14)).toEqual(["divider", "section: *Collection*", "section: 🎀 Ribbon [static_select: Put in slot]"]);
+    expect(publishedHome(slack, "U_ALICE").slice(4, 8)).toEqual(["section: *Your kudos emoji*", "section: 🦔 Hedgehog", "section: 🎀 Ribbon", "context: Each of your kudos emoji counts as a kudos, like :taco:."]);
   });
 
   test("F25: the store exposure carries true for the previewer and false for a member with Coins shown but not the store", async () => {
@@ -129,41 +136,8 @@ describe("ST20 ST21 ST24 ST25: opening Coins opens the inventory, previewed by o
   });
 });
 
-describe("RS6: with slots retired, Coins and inventory's copy names no slot", { timeout: 30_000 }, () => {
-  test("Coins and inventory opens your wallet, the store and your kudos emoji, and opening it says 🦔 is one of your kudos emoji", async () => {
-    const t = await workspaceDeciding(...slotsRetiredForAlice);
-    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
-    await xpOf(t, "U_ALICE", xpBelowLevelSix);
-
-    await giveKudos(t, "U_ALICE", ["U_CAROL"], saysWhy);
-    expect(readDm(levelUpDmTo("U_ALICE", 6))).toContain("section: *Coins and inventory* is ready. It opens your wallet, the store and your kudos emoji. [button: Open]");
-    await send(t, blockActions("U_ALICE", buttonIn(blocksOf(levelUpDmTo("U_ALICE", 6)), "Open"), { inMessage: { channel: "U_ALICE", ts: "1760349700.000100" } }));
-
-    expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins and inventory are open. You already have 8 🪙, and 🦔 is one of your kudos emoji: use it in a kudos like :taco:.");
-  });
-
-  test("App Home's ready Coins and inventory opens your wallet, the store and your kudos emoji", async () => {
-    const t = await workspaceDeciding(...slotsRetiredForAlice);
-    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
-    await xpOf(t, "U_ALICE", xpBelowLevelSix);
-    await giveKudos(t, "U_ALICE", ["U_CAROL"], saysWhy);
-
-    await openHome(t, "U_ALICE");
-
-    expect(publishedHome(slack, "U_ALICE")).toContain("section: *Coins and inventory* is ready. It opens your wallet, the store and your kudos emoji. [button: Open]");
-  });
-
-  test("with nothing earned yet, the opening DM leaves the balance out", async () => {
-    const t = await workspaceDeciding(...slotsRetiredForAlice);
-
-    await coinsOpenedBy(t, "U_ALICE", "thanks");
-
-    expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins and inventory are open. 🦔 is one of your kudos emoji: use it in a kudos like :taco:.");
-  });
-});
-
-describe("ST8 ST11: 🦔 in the giver's loadout counts as a kudos", { timeout: 30_000 }, () => {
-  test("after opening Coins, a message with 🦔 is a kudos for its recipient and costs one, and kudosGiven names the loadout emoji", async () => {
+describe("ST8 ST11: 🦔, the giver's starter, counts as a kudos", { timeout: 30_000 }, () => {
+  test("after opening Coins, a message with 🦔 is a kudos for its recipient and costs one, and kudosGiven names the owned emoji", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await coinsOpenedBy(t, "U_ALICE");
     vi.setSystemTime(tuesday + dayMs);
@@ -171,10 +145,10 @@ describe("ST8 ST11: 🦔 in the giver's loadout counts as a kudos", { timeout: 3
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["hedgehog"]);
 
     expect(successRepliesTo("U_ALICE").at(-1)?.[0]).toBe("<@U_BOB> got 1 kudos from you. You have 9 kudos left today.");
-    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ kudosEmoji: "hedgehog", loadoutEmoji: ["hedgehog"], awards: [{ kudos: 1 }] });
+    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ kudosEmoji: "hedgehog", ownedEmoji: ["hedgehog"], awards: [{ kudos: 1 }] });
   });
 
-  test("the workspace emoji and 🦔 cost two per recipient, and a message with only the workspace emoji names no loadout emoji", async () => {
+  test("the workspace emoji and 🦔 cost two per recipient, and a message with only the workspace emoji names no owned emoji", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await coinsOpenedBy(t, "U_ALICE");
     vi.setSystemTime(tuesday + dayMs);
@@ -187,34 +161,15 @@ describe("ST8 ST11: 🦔 in the giver's loadout counts as a kudos", { timeout: 3
       "<@U_BOB> got 1 kudos from you. You have 5 kudos left today.",
     ]);
     const [both, workspaceOnly] = (await kudosGivenEvents(t)).slice(-2);
-    expect(both).toMatchObject({ loadoutEmoji: ["hedgehog"], awards: [{ kudos: 2 }, { kudos: 2 }] });
-    expect(workspaceOnly!.loadoutEmoji ?? []).toEqual([]);
+    expect(both).toMatchObject({ ownedEmoji: ["hedgehog"], awards: [{ kudos: 2 }, { kudos: 2 }] });
+    expect(workspaceOnly!.ownedEmoji ?? []).toEqual([]);
   });
 });
 
-describe("ST8 limits: the loadout hook reads a fixed handful per message", () => {
-  test("a kudos with the workspace emoji and a loadout emoji to 700 recipients, from a full loadout, stays inside the giving mutation's budget", { timeout: 300_000 }, async () => {
-    const recipients = Array.from({ length: 700 }, (_, index) => `U_R${String(index).padStart(3, "0")}`);
-    const t = await workspaceDeciding(...previewedByAlice, { transactionLimits: true, baseAllowance: 1400 });
-    await coinsOpenedBy(t, "U_ALICE");
-    await membersExist(t, recipients);
-    await fullLoadoutOf(t, "U_ALICE", ["kudos-emoji-hedgehog", "kudos-emoji-sunflower", "kudos-emoji-rocket"]);
-    vi.setSystemTime(tuesday + dayMs);
-    const before = (await kudosGivenEvents(t)).length;
-
-    await postKudos(t, "U_ALICE", recipients, saysWhy, ["taco", "rocket"]);
-    const given = await kudosGivenAfter(t, before);
-
-    expect(given.loadoutEmoji).toEqual(["rocket"]);
-    expect(given.awards).toHaveLength(700);
-    expect(new Set(given.awards.map(({ kudos }) => kudos))).toEqual(new Set([2]));
-  });
-});
-
-describe("RS2 limits: with slots retired, the hook still reads a fixed handful per message", () => {
+describe("ST8 limits: the owned kudos emoji hook reads a fixed handful per message", () => {
   test("a kudos with the workspace emoji and an owned emoji to 700 recipients, from a member owning every store emoji, stays inside the giving mutation's budget", { timeout: 300_000 }, async () => {
     const recipients = Array.from({ length: 700 }, (_, index) => `U_R${String(index).padStart(3, "0")}`);
-    const t = await workspaceDeciding(...slotsRetiredForAlice, { transactionLimits: true, baseAllowance: 1400 });
+    const t = await workspaceDeciding(...previewedByAlice, { transactionLimits: true, baseAllowance: 1400 });
     await coinsOpenedBy(t, "U_ALICE");
     await membersExist(t, recipients);
     const member = await memberOf(t, "U_ALICE");
@@ -227,13 +182,13 @@ describe("RS2 limits: with slots retired, the hook still reads a fixed handful p
     await postKudos(t, "U_ALICE", recipients, saysWhy, ["taco", "rocket"]);
     const given = await kudosGivenAfter(t, before);
 
-    expect(given.loadoutEmoji).toEqual(["rocket"]);
+    expect(given.ownedEmoji).toEqual(["rocket"]);
     expect(given.awards).toHaveLength(700);
     expect(new Set(given.awards.map(({ kudos }) => kudos))).toEqual(new Set([2]));
   });
 });
 
-describe("ST8 ST9 ST22: a loadout emoji counts only for its owner and only where the store is visible", { timeout: 30_000 }, () => {
+describe("ST8 ST9 ST22: an owned kudos emoji counts only for its owner and only where the store is visible", { timeout: 30_000 }, () => {
   test("🦔 in someone else's message counts for nobody", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await coinsOpenedBy(t, "U_ALICE");
@@ -246,7 +201,7 @@ describe("ST8 ST9 ST22: a loadout emoji counts only for its owner and only where
     expect(successRepliesTo("U_BOB").at(-1)?.[0]).toBe("<@U_ALICE> got 1 kudos from you. You have 9 kudos left today.");
     const given = (await kudosGivenEvents(t)).slice(kudosBefore);
     expect(given).toHaveLength(1);
-    expect(given[0]!.loadoutEmoji ?? []).toEqual([]);
+    expect(given[0]!.ownedEmoji ?? []).toEqual([]);
   });
 
   test("the same message from a member who opened Coins but isn't shown the store is no kudos", async () => {
@@ -291,7 +246,7 @@ describe("ST22 ST23: a preview changes nothing for anyone else", { timeout: 30_0
 });
 
 describe("ST25: Not yours yet lists each tier emoji the member doesn't own, while the Book is open", { timeout: 30_000 }, () => {
-  test("with the Book open, the tab ends with each silver emoji not earned yet and its tier, and the earned one waits in the Collection", async () => {
+  test("with the Book open, the tab ends with each silver emoji not earned yet and its tier, and the earned one is among your kudos emoji", async () => {
     const t = await workspaceDeciding(...previewedByAlice, onForEveryone("achievements"));
     await coinsOpenedBy(t, "U_ALICE");
     await bookOpenFor(t, "U_ALICE");
@@ -302,7 +257,7 @@ describe("ST25: Not yours yet lists each tier emoji the member doesn't own, whil
     await click(t, "U_ALICE", "Inventory");
 
     const tab = publishedHome(slack, "U_ALICE");
-    expect(tab).toContain("section: 🎀 Ribbon [static_select: Put in slot]");
+    expect(tab).toContain("section: 🎀 Ribbon");
     expect(tab.slice(tab.indexOf("section: *Not yours yet*") - 1)).toEqual([
       "divider",
       "section: *Not yours yet*",
@@ -440,14 +395,6 @@ async function xpOf(t: Backend, user: string, xp: number) {
   });
 }
 
-async function fullLoadoutOf(t: Backend, user: string, items: string[]) {
-  const member = await memberOf(t, user);
-  await t.run(async (ctx) => {
-    for (const item of items.slice(1)) await grantItem(ctx, { member, item, source: "store", arrivedAt: Date.now() });
-    for (const [index, item] of items.entries()) await ctx.db.insert("loadouts", { member, slot: `emoji-${index + 1}` as "emoji-1", item });
-  });
-}
-
 async function kudosGivenEvents(t: Backend): Promise<KudosGivenEvent[]> {
   const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
   return jobs.filter(({ name }) => name.endsWith(":recordKudosGiven")).map(({ args }) => (args[0] as { event: KudosGivenEvent }).event);
@@ -505,5 +452,5 @@ function withoutTimestamps(call: SlackCall) {
 }
 
 function namesTheInventory(line: string) {
-  return /inventory|kudos emoji|slot|🦔|hedgehog/i.test(line);
+  return /inventory|kudos emoji|🦔|hedgehog/i.test(line);
 }

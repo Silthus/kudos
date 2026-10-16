@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId } from "react";
 import { Button, Card, CardContent } from "@posthog/quill";
 import type { Collection } from "../collectionRead";
 import { CrateArt } from "../crates/CrateArt";
@@ -11,15 +11,16 @@ import type { ShellActions } from "../shell";
 import { CoinGlyph } from "../skills/glyphs";
 import { coinsText } from "../skills/perkWords";
 import { useCratePurchase, type CratePurchasing } from "./cratePurchase";
+import { PackShelf } from "./packs/PackShelf";
 
-type CrateStoreProps = { collection: Collection; coins: number | null; buyCrate: ShellActions["buyCrate"] };
+type CrateStoreProps = { collection: Collection; coins: number | null; buyCrate: ShellActions["buyCrate"]; openPack: ShellActions["openCrate"] | undefined };
 
-export function CrateStore({ collection, coins, buyCrate }: CrateStoreProps) {
+export function CrateStore({ collection, coins, buyCrate, openPack }: CrateStoreProps) {
   const headingId = useId();
   const waiting = (collection.bought ?? []).flatMap((crate) => boughtCrateOf(crate) ?? []);
   const offer = collection.crateStore ?? null;
   const purchase = useCratePurchase(buyCrate, offer?.next);
-  const list = useFocusOnTheBoughtCrate(purchase);
+  useFocusOnTheBoughtCrate(purchase);
   if (offer === null && waiting.length === 0 && purchase.notice === undefined && !purchase.buying) return null;
   return (
     <section aria-labelledby={headingId} data-crate-store className="flex flex-col gap-3">
@@ -31,7 +32,7 @@ export function CrateStore({ collection, coins, buyCrate }: CrateStoreProps) {
       </div>
       <Card>
         <CardContent className="flex flex-col gap-4">
-          {waiting.length > 0 && <WaitingCrates crates={waiting} listRef={list} />}
+          {openPack !== undefined ? <PackShelf crates={waiting} openCrate={openPack} /> : waiting.length > 0 && <WaitingCrates crates={waiting} />}
           {offer !== null && <Offer price={offer.price} coins={coins} purchase={purchase} primary={waiting.length === 0} />}
           <p role="status" className={`text-xs font-medium ${purchase.notice === undefined ? "sr-only" : ""}`}>
             {purchase.notice?.text}
@@ -43,22 +44,18 @@ export function CrateStore({ collection, coins, buyCrate }: CrateStoreProps) {
 }
 
 function useFocusOnTheBoughtCrate(purchase: CratePurchasing) {
-  const list = useRef<HTMLUListElement>(null);
   useEffect(() => {
     if (purchase.justBought === undefined) return;
-    const open = list.current?.querySelector<HTMLElement>(`[data-crate-target="${purchase.justBought}"] button`);
+    const open = document.querySelector<HTMLElement>(`[data-crate-store] [data-crate-target="${purchase.justBought}"] button`);
     if (!open) return;
     open.focus();
     purchase.focusedTheBoughtCrate();
   });
-  return list;
 }
 
-type WaitingCratesProps = { crates: BoughtCrate[]; listRef: React.RefObject<HTMLUListElement | null> };
-
-function WaitingCrates({ crates, listRef }: WaitingCratesProps) {
+function WaitingCrates({ crates }: { crates: BoughtCrate[] }) {
   return (
-    <ul ref={listRef} aria-label="Waiting to open" className="flex flex-col gap-3">
+    <ul aria-label="Waiting to open" className="flex flex-col gap-3">
       {crates.map((crate, at) => (
         <WaitingCrate key={crate.crate} crate={crate} open={at === 0 ? "primary" : "outline"} />
       ))}

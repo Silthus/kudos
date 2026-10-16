@@ -1,7 +1,8 @@
 import { assets } from "@posthog/brand/hoggies/metadata";
 import { catalogue, rarities, type CatalogueCrest, type Rarity } from "../../convex/hoggies/catalogue";
 import type { Collection, CollectionCrest, CollectionHoggie, CollectionRead, MyCollection, RarityShare } from "./collectionRead";
-import type { ShellState } from "./shell";
+import { showsTheBookSpread } from "./book/spread/bookSpread";
+import type { Drop, ShellState } from "./shell";
 import { albums, stickers } from "./stickerBookFixtures";
 
 const at = (iso: string) => Date.parse(iso);
@@ -88,6 +89,7 @@ export const collectionFixtures = {
   withNoStickersYet: { ...collectionWith(found), stickers: [], albums: albums.map((album) => ({ ...album, held: 0, people: album.people.map((person) => ({ ...person, held: false })) })) },
   withNoStickersAndNoAlbums: { ...collectionWith(found), stickers: [] },
   withTheStoreAndTheStickerBook: { ...collectionWith(found), bought: ["bought:1", "bought:2"], crateStore: storeOffering(3), stickers, albums },
+  withFourPacks: { ...collectionWith(found), bought: ["bought:1", "bought:2", "bought:3", "bought:4"], crateStore: storeOffering(5), stickers, albums },
   nothingFound: collectionWith({}),
   complete: collectionWith(everyHoggieFound),
   locked: { kind: "locked", level: 1 },
@@ -109,5 +111,15 @@ function collectionAnswerFor(visitor: ShellState): MyCollection {
   if (card === undefined) return collectionFixtures.notFound;
   if (card.state === "locked") return { kind: "locked", level: card.level };
   if (card.state === "ready") return collectionFixtures.ready;
+  if (showsTheBookSpread(visitor)) return collectionFixtures.withFourPacks;
   return visitor.coins === null ? collectionFixtures.withTheStickerBook : collectionFixtures.withTheStoreAndTheStickerBook;
+}
+
+const packDrops = ["doctor", "wizard", "banana", "surfer"];
+
+export function fixturePackDropOf(crate: string): Drop {
+  const n = Number(crate.split(":")[1] ?? 1);
+  const slug = packDrops[(n - 1) % packDrops.length]!;
+  const hoggie = collectionFixtures.withFourPacks.hoggies.find((entry) => entry.hoggie === slug)!;
+  return { hoggie: slug, name: hoggie.name, rarity: hoggie.rarity, art: hoggie.art, copy: hoggie.count + 1, isNew: hoggie.count === 0, crest: null };
 }
