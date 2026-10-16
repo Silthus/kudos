@@ -618,10 +618,6 @@
     {
       "name": "Monday post",
       "definition": "The weekly public post in the announcement channel that celebrates last week's top groups (GB28): up to three groups with their kudos per person, the most improved group and how many people gave kudos, never naming a member. An admin switches it on with setMondayPost in the Admin tab; it goes out every Monday at 9:00 in the admin's time zone, at most once per week, and not in a week nobody gave."
-    },
-    {
-      "name": "hoggie",
-      "definition": "An official PostHog hedgehog illustration from @posthog/brand, named by its slug, that a member collects in the Book: every crate a member opens drops one, drawn by its rarity at the open, and duplicates count up. A hoggie is not an item: it fills no slot, is never sold and is never a kudos emoji."
     }
   ],
   "retired": [

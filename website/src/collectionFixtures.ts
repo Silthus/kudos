@@ -1,17 +1,9 @@
 import { assets } from "@posthog/brand/hoggies/metadata";
+import { catalogue, rarities, type Rarity } from "../../convex/hoggies/catalogue";
 import type { Collection, CollectionHoggie, CollectionRead, MyCollection, RarityShare } from "./collectionRead";
-import type { Rarity } from "./crates/drops";
 import type { ShellState } from "./shell";
 
 const at = (iso: string) => Date.parse(iso);
-
-const catalogueByRarity: ReadonlyArray<{ rarity: Rarity; chance: number; slugs: string[] }> = [
-  { rarity: "common", chance: 50, slugs: ["asleep", "ball", "banana", "beaker", "burger", "card", "cereal", "chart", "coconut", "code-bubble", "coffee-cup", "coffee-run", "commuter", "construction", "croissant", "cursor", "doll-house", "error", "experiment", "gardener", "heart", "honey", "hooligan", "hoot", "hot-popcorn", "hourglass", "ipad", "lemonade", "magnifying-glass", "mailbox", "megaphone", "money", "office-worker", "organized", "panic", "party", "pearl-necklace", "phone-call", "reading", "remote-work", "research", "self-driving", "selfie", "shocked", "sitting", "sleepy", "soccer-coach", "speaker", "stamp-approved", "stamp-denied", "star", "stop", "success", "sunburn", "survey", "toilet", "traffic-police", "trenchcoat", "waiter", "workflows"] },
-  { rarity: "uncommon", chance: 28, slugs: ["basketball-coach", "burning-money", "cake", "caribana", "chef", "climber", "coding-group", "cowboy-lasso", "dadd-ai", "data-thief", "doctor", "drake-nah", "drake-yah", "dynamite", "einstein", "explorer", "float", "football-coach", "football-player", "gravedigger", "greek", "haha-bizzniss", "hand-clasp", "hipster", "judge", "lemon-wrangler", "lifeguard", "loops", "namaste", "pit-viper", "reporter", "safari", "scientist", "scorpion", "soapbox", "surfer", "swimmer", "tourist", "town-crier", "traffic-controller"] },
-  { rarity: "rare", chance: 14, slugs: ["70s-dance", "996", "ape", "art-thief", "boombox", "business-evolution", "campfire-cowboy", "caveman", "cool-car", "desk-wizard", "director", "dj", "doc-brown", "einstein-group", "gatsby", "hogpatch", "im-the-driver", "mountie", "mr-potato-head", "noir", "pinata", "puzzle", "reading-is-magic", "robot", "roller-coaster", "rose", "sailor", "two-player", "will-smith", "x-ray"] },
-  { rarity: "epic", chance: 6, slugs: ["angel", "back-to-the-future", "driving-hogzilla", "evel", "gladiator", "jack-dawson", "katy-perry", "level-up", "oprah", "pope", "reaper", "scott-pilgrim", "steve-jobs", "terminator", "the-bride"] },
-  { rarity: "legendary", chance: 2, slugs: ["dr-manhattan", "final-evolution", "rocket", "superhero", "transformer", "wizard"] },
-];
 
 const names = new Map(assets.map(({ slug, name }) => [slug, name]));
 
@@ -67,13 +59,13 @@ function hoggieOf(hoggie: string, rarity: Rarity, find: Find | undefined): Colle
 }
 
 function collectionWith(finds: Record<string, Find>): Collection {
-  const hoggies = catalogueByRarity.flatMap(({ rarity, slugs }) => slugs.map((slug) => hoggieOf(slug, rarity, finds[slug])));
+  const hoggies = catalogue.hoggies.map(({ hoggie, rarity }) => hoggieOf(hoggie, rarity, finds[hoggie]));
   const held = hoggies.filter(({ count }) => count > 0);
-  const rarities = catalogueByRarity.map(({ rarity, chance, slugs }): RarityShare => ({ rarity, chance, owned: held.filter((hoggie) => hoggie.rarity === rarity).length, total: slugs.length }));
-  return { kind: "collection", rarities, hoggies, owned: held.length, total: hoggies.length };
+  const shares = rarities.map(({ rarity, weight }): RarityShare => ({ rarity, chance: weight, owned: held.filter((hoggie) => hoggie.rarity === rarity).length, total: hoggies.filter((hoggie) => hoggie.rarity === rarity).length }));
+  return { kind: "collection", rarities: shares, hoggies, owned: held.length, total: hoggies.length };
 }
 
-const everyHoggieFound = Object.fromEntries(catalogueByRarity.flatMap(({ slugs }) => slugs.map((slug, index) => [slug, { count: 1 + (index % 3), firstAt: `2026-0${1 + (index % 9)}-1${index % 10}T09:00:00Z` }])));
+const everyHoggieFound = Object.fromEntries(catalogue.hoggies.map(({ hoggie }, index) => [hoggie, { count: 1 + (index % 3), firstAt: `2026-0${1 + (index % 9)}-1${index % 10}T09:00:00Z` }]));
 
 export const collectionFixtures = {
   collection: collectionWith(found),

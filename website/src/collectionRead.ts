@@ -1,14 +1,11 @@
 import type { Denial } from "../../convex/website/memberQuery";
-import type { PageWaits } from "../../convex/website/unlockPath";
-import type { Drop, Rarity } from "./crates/drops";
+import type { CollectionAnswer, CollectionHoggie } from "../../convex/website/collection";
 
-export type CollectionHoggie = { hoggie: string; name: string; rarity: Rarity; art: Drop["art"]; count: number; firstAt: number | null; seen: string | null };
+export type { CollectionAnswer, CollectionHoggie };
 
-export type RarityShare = { rarity: Rarity; chance: number; owned: number; total: number };
+export type { RarityShare } from "../../convex/hoggies/collection";
 
-export type Collection = { kind: "collection"; rarities: RarityShare[]; hoggies: CollectionHoggie[]; owned: number; total: number };
-
-export type CollectionAnswer = { kind: "not-found" } | PageWaits | Collection;
+export type Collection = Extract<CollectionAnswer, { kind: "collection" }>;
 
 export type MyCollection = CollectionAnswer | Denial;
 

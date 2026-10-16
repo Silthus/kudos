@@ -4,7 +4,6 @@ import type { PerkId } from "../../convex/progression/tree";
 import type { CommandAnswer, CrateAnswer, GroupPickAnswer, MessageSettingAnswer, PurchaseAnswer, SwapAnswer, VisibilityAnswer } from "../../convex/website/commands";
 import type { MessageKind, MessagePlace, SettingsAnswer } from "../../convex/website/settings";
 import type { Denial } from "../../convex/website/memberQuery";
-import type { WithADrop } from "./crates/drops";
 
 export type { Drop, Rarity } from "./crates/drops";
 import type { FeatureCard, JourneyStep, MemberProfile, MyProfile } from "../../convex/website/profile";
@@ -31,17 +30,7 @@ export type { CommandAnswer, PurchaseAnswer, PurchaseRefusal, SwapAnswer } from 
 export type { GroupChoice, MessageKind, MessagePlace, MessageSetting, MySettings } from "../../convex/website/settings";
 export type { Feature } from "../../convex/unlocks/feature";
 export type { Quest, WeeklyQuest } from "../../convex/quests/step";
-export type { KudosGiven, KudosReceived, LevelUp, Message, MyRecentKudos, MySpotlight, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
-import type { Activity as ServedActivity, ActivityEntry as ServedActivityEntry, MyActivity as ServedMyActivity } from "../../convex/website/activity";
-import type { Found } from "./activity/found";
-
-export type { Found };
-
-export type ActivityEntry = ServedActivityEntry | Found;
-
-export type Activity = Omit<ServedActivity, "entries"> & { entries: ActivityEntry[] };
-
-export type MyActivity = Exclude<ServedMyActivity, ServedActivity> | Activity;
+export type { Activity, ActivityEntry, Found, KudosGiven, KudosReceived, LevelUp, Message, MyActivity, MyRecentKudos, MySpotlight, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
 
 export type GroupsBoardRow = GroupsBoardShown["rows"][number];
 
@@ -49,7 +38,7 @@ export type Leaderboard = EveryoneBoard & Omit<GroupBoards, "kind">;
 
 export type MyLeaderboard = Exclude<MyEveryoneBoard, EveryoneBoard> | Leaderboard;
 
-export type OpenAnswer = (CommandAnswer | CrateAnswer | Denial) & WithADrop;
+export type OpenAnswer = CommandAnswer | CrateAnswer | Denial;
 
 export type { AppliedReward } from "../../convex/progression/rewards";
 export type { CrateAnswer } from "../../convex/website/commands";
