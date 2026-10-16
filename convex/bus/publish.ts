@@ -16,6 +16,7 @@ export const subscribers: Registry = {
     internal.achievements.achievements.countKudosGiven,
     internal.leaderboard.totals.countKudosGiven,
     internal.groups.attribution.attributeKudosGiven,
+    internal.stickers.stickers.recordStickers,
     internal.analytics.subscribers.recordKudosGiven,
   ],
   attemptFailed: [internal.analytics.subscribers.recordAttemptFailed],

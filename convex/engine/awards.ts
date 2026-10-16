@@ -116,6 +116,16 @@ export async function dayThankedBefore(ctx: QueryCtx, award: AwardId): Promise<D
   return previous?.day ?? null;
 }
 
+export type EarliestAward = { award: AwardId; at: number; created: number };
+
+export async function earliestAwardFrom(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<EarliestAward | null> {
+  const earliest = await ctx.db
+    .query("awards")
+    .withIndex("by_giver_recipient", (q) => q.eq("giver", giver).eq("recipient", recipient))
+    .first();
+  return earliest === null ? null : { award: earliest._id, at: earliest.at, created: earliest._creationTime };
+}
+
 export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<Map<MemberId, number>> {
   const awards = await ctx.db
     .query("awards")
