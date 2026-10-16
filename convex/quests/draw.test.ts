@@ -132,6 +132,22 @@ describe("P80: opening Quests draws up to 3 different quests the member can fini
     expect(await peopleLeftAt(t, alice, tuesday)).toEqual({ anyone: 1, "someone-new": 0, "someone-not-thanked-in-30-days": 1 });
     expect(await peopleLeftAt(t, alice, tuesday - dayMs)).toEqual({ anyone: 1, "someone-new": 0, "someone-not-thanked-in-30-days": 0 });
   });
+
+  test("whom a member thanked counts as of the facts' time: a later thanks counts nobody as thanked, a recent one outweighs an old one, and an old one alone still counts the teammate as thanked", async () => {
+    const { t, alice, bob } = await workspace();
+    const [carol, dave] = await t.run(async (ctx) => [
+      await ctx.db.insert("members", { workspace: "T1", user: "U_CAROL", kind: "member" }),
+      await ctx.db.insert("members", { workspace: "T1", user: "U_DAVE", kind: "member" }),
+    ]);
+    await thanks(t, alice, bob, tuesday - 40 * dayMs);
+    await thanks(t, alice, bob, tuesday - 5 * dayMs);
+    await thanks(t, alice, carol!, tuesday - 40 * dayMs);
+    await thanks(t, alice, dave!, tuesday + dayMs);
+
+    expect(await peopleLeftAt(t, alice, tuesday)).toEqual({ anyone: 3, "someone-new": 1, "someone-not-thanked-in-30-days": 2 });
+    expect(await peopleLeftAt(t, alice, tuesday - 10 * dayMs)).toEqual({ anyone: 3, "someone-new": 1, "someone-not-thanked-in-30-days": 3 });
+    expect(await peopleLeftAt(t, alice, tuesday - 50 * dayMs)).toEqual({ anyone: 3, "someone-new": 3, "someone-not-thanked-in-30-days": 3 });
+  });
 });
 
 describe("P80: the draw is deterministic per member and week, and stored once", () => {

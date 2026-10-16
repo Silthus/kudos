@@ -328,6 +328,17 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   checklist: worker-fencing dismissed: no worker owns a member's swap; Convex serializes mutations on one member's rows
   checklist: commit-ordered-effects dismissed: the swap issues no external effect; the App Home republish is scheduled by the click's own mutation and runs after it commits
   checklist: resumption-coverage dismissed: no batch operation resumes
+- the week's swap reads within Convex's limits: Whether a swap is available and which quest a swap takes are read from whom the member thanked with one index range per person they ever thanked and one range of their kudos of the last 30 days, never every kudos they gave, and answer as the whole history would.
+  over: getQuests and rerollQuest, run with Convex's transaction limits, for a member who gave 33,000 kudos to their one teammate, with a quest anyone can finish left outside the draw, and on a Sunday with only the quest for someone not thanked in 30 days left
+  via: P81: the week's swap reads within Convex's limits, however many kudos the member gave
+  because: App Home and the website read the swap on every render, and a read of every kudos a member gave fails past Convex's 32,000 scanned documents (#416), so the read is bounded by the people a member thanked and the kudos of the 30 days the quest pool looks back, and the draw facts it shares stay those of the whole history (P80, P81)
+  kinds: budget
+  checklist: bounded-admission dismissed: nothing admits concurrent work; each read and each swap is one Convex function
+  checklist: fair-admission dismissed: no contenders wait for capacity
+  checklist: rate-budget dismissed: no time-window budget applies; the reads call no external system
+  checklist: memory-budget dismissed: no evaluator allocates against a memory budget
+  checklist: execution-budget declared as the week's swap reads within Convex's limits
+  checklist: circuit-breaker-policy dismissed: no dependency failures open or close anything here
 - progress counts only awards after the draw and within its week: An award made before the week's draw, in another week, by a member with no draw for that week, or where the slice doesn't apply counts toward no quest and records no progress and no reward.
   over: a kudos that says why an hour before the draw, in the week before and in the week after, from a member with no draw, and with quests off, read through questsOf, the counted awards and the reward records
   via: P84: progress counts only awards after the draw and within its week
