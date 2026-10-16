@@ -61,3 +61,5 @@ A fixture build (`VITE_SHELL_FIXTURE=member-with-the-book-opened`) served with `
 | `/activity` with the four `found` entries between the level marks and the kudos | `9-live-activity-found-1280-light.png` |
 | The home's Book panel with 4 of 151 and the latest find | `10-live-home-book-panel-1280-light.png` |
 | A real drop: `Open` on the Journey reward runs `openQuestCrate`, the backend draws Doll House, and the reveal bursts it out as the card; the Book panel behind reads 5 of 151 | `11-live-reveal-real-drop-light.mp4`, `11-live-reveal-real-drop-finish-light.png` |
+
+`review-final.md`: a second GPT-6.1 Sol read of the commits since round 1 (the merge of `main` with #462 and the switch to the real read), with the round-1 findings as its checklist: no findings, ship.
