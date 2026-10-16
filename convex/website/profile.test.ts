@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { FakePostHog, routedFetch, type FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
+import { offForEveryone, onForEveryone } from "../../testing/flags";
 import { memberChanged, testBackend, type Backend } from "../../testing/slackBackend";
-import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../../testing/website";
+import { aDeploymentForWorkspace, aMember, aSession, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
 import { observe } from "../engine/engine";
 import { homeFacts } from "../engine/home";
@@ -13,6 +14,7 @@ import type { MemberId } from "../workspace/directory";
 const now = new Date("2026-10-13T10:00:00Z");
 const week = 7 * 24 * 60 * 60 * 1000;
 const juno = { user: "U_JUNO", name: "Juno Whitlock", image: "https://avatars.slack-edge.com/juno.png" };
+const bookSpread = "book-spread";
 
 let postHog: FakePostHog;
 let t: Backend;
@@ -327,6 +329,81 @@ describe("groups are named only while groupsShownTo answers", () => {
     expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", groups: false });
   });
 });
+
+describe("getMyProfile says bookSpread only while book-spread is on", () => {
+  const productOwner = "product-owner@example.com";
+
+  test.each([
+    { case: "book-spread is off", bookSpread: [offForEveryone(bookSpread)] },
+    { case: "PostHog has no book-spread flag", bookSpread: [] },
+    { case: "the ship's condition reads another member's email in production", bookSpread: [asTheShipCreatesIt(productOwner)], email: "juno@example.com", environment: "production" },
+  ])("#587: while $case, getMyProfile carries no bookSpread and otherwise equals the answer with it on", async ({ bookSpread: definitions, email, environment }) => {
+    const { asSignedIn } = await aMemberServed(email, onForEveryone(bookSpread));
+    const on = await myProfile(asSignedIn);
+
+    await serving(...definitions);
+    if (environment !== undefined) vi.stubEnv("KUDOS_ENVIRONMENT", environment);
+    const off = await myProfile(asSignedIn);
+
+    expect(on).toMatchObject({ kind: "member", bookSpread: true });
+    expect(off).not.toHaveProperty("bookSpread");
+    expect(off).toEqual(withoutBookSpread(on));
+  });
+
+  test.each([
+    { case: "on for everyone", definition: onForEveryone(bookSpread) },
+    { case: "the ship's condition, in the sandbox", definition: asTheShipCreatesIt(productOwner) },
+    { case: "the ship's condition, for the product owner's email in production", definition: asTheShipCreatesIt(productOwner), email: productOwner, environment: "production" },
+  ])("#587: while book-spread is $case, getMyProfile carries bookSpread true and no exposure is sent", async ({ definition, email, environment }) => {
+    const { asSignedIn } = await aMemberServed(email, definition);
+    if (environment !== undefined) vi.stubEnv("KUDOS_ENVIRONMENT", environment);
+
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", bookSpread: true });
+    expect(await bookSpreadExposures()).toEqual([]);
+  });
+
+  test("#587: without the flags key the website reads closed, with no bookSpread, even while PostHog turned book-spread on", async () => {
+    const { asSignedIn } = await aMemberServed(undefined, onForEveryone(bookSpread));
+    vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "");
+
+    expect(await myProfile(asSignedIn)).toEqual({ kind: "closed" });
+  });
+
+  async function aMemberServed(email: string | undefined, ...definitions: FlagDefinition[]) {
+    await serving(...definitions);
+    const member = await aMember(t, juno.user);
+    if (email !== undefined) await t.run((ctx) => ctx.db.patch(member, { email }));
+    return aSignedInSession(t, juno);
+  }
+
+  async function serving(...definitions: FlagDefinition[]) {
+    postHog.withFlags(onForEveryone("website"), ...definitions);
+    await t.action(components.posthog.lib.refreshFlagDefinitions, {});
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+  }
+
+  function bookSpreadExposures() {
+    return t.run(async (ctx) => (await ctx.db.query("flagExposures").collect()).filter(({ flag }) => flag === bookSpread));
+  }
+});
+
+function withoutBookSpread(profile: Awaited<ReturnType<typeof myProfile>>) {
+  if (profile.kind !== "member") return profile;
+  const { bookSpread: _, ...rest } = profile;
+  return rest;
+}
+
+function asTheShipCreatesIt(productOwner: string): FlagDefinition {
+  return {
+    key: bookSpread,
+    filters: {
+      groups: [
+        { properties: [{ key: "environment", type: "person", value: ["sandbox"], operator: "exact" }], rollout_percentage: 100 },
+        { properties: [{ key: "email", type: "person", value: [productOwner], operator: "exact" }], rollout_percentage: 100 },
+      ],
+    },
+  };
+}
 
 function aCountingGroupWith(member: MemberId) {
   return t.run(async (ctx) => {
