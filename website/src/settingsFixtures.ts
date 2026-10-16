@@ -9,7 +9,7 @@ const newFeatures: MessageSetting = { kind: "new-features", label: "New features
 
 const celebrations: MessageSetting = { kind: "celebrations", label: "Public celebrations", description: "Your level ups and tiers in the announcement channel.", applies: true, on: true, place: "channel", places: ["channel", "none"] };
 
-const hugsRecap: MessageSetting = { kind: "hugs-recap", label: "Weekly hugs recap", description: "Last week's hugs, the :hedgehug: you and your teammates reacted, with their XP, on Monday morning.", applies: true, on: true, place: "dm", places: ["dm", "none"] };
+export const hugsRecap: MessageSetting = { kind: "hugs-recap", label: "Weekly hugs recap", description: "Last week's hugs, the :hedgehug: you and your teammates reacted, with their XP, on Monday morning.", applies: true, on: true, place: "dm", places: ["dm", "none"] };
 
 const gardeners = { group: "g_gardeners", name: "Gardeners" };
 
@@ -22,9 +22,7 @@ const everything: MySettings = {
   group: { primary: zebras, groups: [gardeners, zebras] },
 } as MySettings;
 
-const withHugsRecap: MySettings = { ...everything, messages: [...everything.messages, hugsRecap] } as MySettings;
-
-export const settingsFixtures = { everything, withHugsRecap } as const;
+export const settingsFixtures = { everything } as const;
 
 export function fixedSettings(settings: SettingsShown): SettingsRead {
   return (asking) => (asking ? settings : undefined);

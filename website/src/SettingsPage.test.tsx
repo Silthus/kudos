@@ -2,7 +2,7 @@ import { act, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { commandsOf } from "./palette/commands";
-import { fixedSettings, settingsFixtures } from "./settingsFixtures";
+import { fixedSettings, hugsRecap, settingsFixtures } from "./settingsFixtures";
 import type { SettingsShown } from "./settingsRead";
 import { shellFixtures, type GroupPickReply, type MessagePlace, type MessageSettingReply, type MySettings, type ShellActions, type ShellState, type VisibilityReply } from "./shell";
 import { renderApp } from "./test/renderApp";
@@ -125,8 +125,8 @@ describe("Messages: where each message reaches the member", () => {
   });
 
   it("#580: draws a shortcode in a description as its emoji, and a custom one as a quiet chip", () => {
-    const recapWithBoth = settingsFixtures.withHugsRecap.messages.map((setting) => ({ ...setting, description: setting.description.replace(":hedgehug:", ":hugging_face: and :hedgehug:") }));
-    showSettings({ ...settingsFixtures.withHugsRecap, messages: recapWithBoth });
+    const recapWithBoth = { ...hugsRecap, description: hugsRecap.description.replace(":hedgehug:", ":hugging_face: and :hedgehug:") };
+    showSettings({ ...settingsFixtures.everything, messages: [recapWithBoth] } as MySettings);
 
     const recap = within(section("Messages")).getByRole("group", { name: "Weekly hugs recap" });
     expect(recap).toHaveTextContent("Last week's hugs, the 🤗 and :hedgehug: you and your teammates reacted, with their XP, on Monday morning.");
