@@ -1,13 +1,17 @@
 import type { Medal, ProfileCard } from "../profileCard/profileCard";
+import { asWritten } from "./groupCopy";
 import { medals } from "./medals";
 import { slashCommand } from "./naming";
 import type { Line } from "./segments";
 
-export function renderProfileCard(user: string, { level, medals: shown }: ProfileCard): Line[] {
+export type ShownCard = ProfileCard & { group: string | null };
+
+export function renderProfileCard(user: string, { group, level, medals: shown }: ShownCard): Line[] {
   const name: Line = [{ text: "*" }, { mention: { kind: "person", user } }, { text: "*" }];
+  const groupLine: Line[] = group === null ? [] : [[{ text: asWritten({ name: group }) }]];
   const levelLine: Line[] = level === null ? [] : [[{ text: `Level ${level}` }]];
   const medalLine: Line[] = shown.length === 0 ? [] : [[{ text: shown.map(medalText).join(" · ") }]];
-  return [name, ...levelLine, ...medalLine];
+  return [name, ...groupLine, ...levelLine, ...medalLine];
 }
 
 export function renderNotAMember(user: string): Line[] {

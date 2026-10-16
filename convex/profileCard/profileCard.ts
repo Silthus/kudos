@@ -2,6 +2,7 @@ import type { QueryCtx } from "../_generated/server";
 import { bookAppliesIn } from "../achievements/flag";
 import { ladderOf, ladders, type LadderId, type TierId } from "../achievements/ladders";
 import { everyTierEarnedBy, type EarnedTier } from "../achievements/tiers";
+import { groupsShownTo, primaryGroupOf } from "../groups/groups";
 import { standingOf } from "../progression/progression";
 import { xpLevelsShownIn } from "../progression/xpLevels";
 import { openedAtOf } from "../unlocks/unlocks";
@@ -25,6 +26,11 @@ export async function profileCardOf(ctx: QueryCtx, member: MemberId, { own }: Vi
     level: (await xpLevelsShownIn(ctx, workspace)) ? (await standingOf(ctx, member)).level : null,
     medals: (await medalsShownIn(ctx, workspace, member, { own })) ? bestMedalsOf(await everyTierEarnedBy(ctx, member)) : [],
   };
+}
+
+export async function groupNameOnCard(ctx: QueryCtx, viewer: MemberId, member: MemberId): Promise<string | null> {
+  if (!(await groupsShownTo(ctx, viewer))) return null;
+  return (await primaryGroupOf(ctx, member))?.name ?? null;
 }
 
 async function medalsShownIn(ctx: QueryCtx, workspace: string, member: MemberId, { own }: Viewing) {

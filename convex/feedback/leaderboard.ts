@@ -13,6 +13,8 @@ import type { Line } from "./segments";
 
 const medals = ["🥇", "🥈", "🥉"];
 
+const aheadOfEveryone = 100;
+
 const joinTheBoard: Record<Period, string> = {
   week: "Give kudos this week to join the board.",
   month: "Give kudos this month to join the board.",
@@ -45,7 +47,11 @@ function renderMyGroupBoard({ group, board }: MyGroupBoardView, period: Period):
 }
 
 function peerLine(peer: Peer | null): Line[] {
-  return peer === null ? [] : [[{ text: `You improved more than ${peer.percent}% of ${asWritten(peer.group)}.` }]];
+  return peer === null ? [] : [[{ text: peerText(peer.percent, asWritten(peer.group)) }]];
+}
+
+function peerText(percent: number, group: string) {
+  return percent >= aheadOfEveryone ? `You improved more than everyone else in ${group}.` : `You improved more than ${percent}% of ${group}.`;
 }
 
 function renderGroupsBoard(board: GroupsBoard<GroupId>, period: Period): Line[] {
