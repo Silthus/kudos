@@ -1,0 +1,72 @@
+# #580 proof run (main): a fresh local Convex backend, site http://127.0.0.1:12711, driven by signed Slack requests.
+# FakeSlack and FakePostHog serve on 12712. KUDOS_ENVIRONMENT=production. Flags on for everyone, deployment-scoped to this local backend: xp-levels, unlocks, website, activity, message-settings, hugs. Kudos emoji: hedgehug. Now: 2026-10-16T18:04:50.338Z.
+
+## Setup: flags, the hedgehug custom emoji's picture, seven members
+> team_join Ann Archer
+  HTTP 200 
+> team_join Bob Brandt
+  HTTP 200 
+> team_join Cy Carter
+  HTTP 200 
+> team_join Dee Dunn
+  HTTP 200 
+> team_join Eve Ellis
+  HTTP 200 
+> team_join Fay Fischer
+  HTTP 200 
+> team_join Gus Grant
+  HTTP 200 
+> Ann Archer opens App Home (signed app_home_opened)
+  HTTP 200 
+> Bob Brandt opens App Home (signed app_home_opened)
+  HTTP 200 
+> Cy Carter opens App Home (signed app_home_opened)
+  HTTP 200 
+> Dee Dunn opens App Home (signed app_home_opened)
+  HTTP 200 
+> Eve Ellis opens App Home (signed app_home_opened)
+  HTTP 200 
+> Fay Fischer opens App Home (signed app_home_opened)
+  HTTP 200 
+> Gus Grant opens App Home (signed app_home_opened)
+  HTTP 200 
+
+## 1. Kudos and plain messages
+> Bob Brandt posts "<@Ann Archer> :hedgehug: thanks for pairing on the release checklist" (signed message event)
+  HTTP 200 
+> Cy Carter posts "<@Dee Dunn> :hedgehug: thank you for the incident write-up" (signed message event)
+  HTTP 200 
+
+## 2. Hugs Ann receives
+> Cy hugs the kudos Ann received from Bob (signed reaction_added)
+  HTTP 200 
+> Bob hugs Ann's docs post (signed reaction_added)
+  HTTP 200 
+> Cy hugs Ann's docs post with a skin tone (signed reaction_added)
+  HTTP 200 
+> Bob Brandt hugs Ann's launch post (signed reaction_added)
+  HTTP 200 
+> Cy Carter hugs Ann's launch post (signed reaction_added)
+  HTTP 200 
+> Dee Dunn hugs Ann's launch post (signed reaction_added)
+  HTTP 200 
+> Eve Ellis hugs Ann's launch post (signed reaction_added)
+  HTTP 200 
+> Fay Fischer hugs Ann's launch post (signed reaction_added)
+  HTTP 200 
+
+## 3. Hugs Ann gives
+> Ann hugs Bob's post (signed reaction_added)
+  HTTP 200 
+> Ann hugs Cy's kudos to Dee (signed reaction_added)
+  HTTP 200 
+
+## 4. Ann's browser session
+  Ann's activity: ["hugGiven","hugGiven","hugReceived×5","hugReceived×2","hugReceived×1","kudosReceived"]
+  ready: sign the browser in, then touch go-live
+
+## 5. Live: Gus hugs Ann's launch post while her page is open
+> Gus hugs Ann's launch post (signed reaction_added)
+  HTTP 200 
+  Ann's activity: ["hugReceived×6","hugGiven","hugGiven","hugReceived×2","hugReceived×1","kudosReceived"]
+  done: touch stop

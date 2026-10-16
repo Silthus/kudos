@@ -1,16 +1,17 @@
-import { IconExternal, IconLock } from "@posthog/icons";
+import { IconLock } from "@posthog/icons";
 import { useId, type ReactNode } from "react";
 import { HoggieCoin } from "../book/HoggieCoin";
 import { rarityWordsOf } from "../crates/drops";
 import { TeamCrest } from "../crates/TeamCrest";
 import type { ActivityEntry, Found, KudosGiven, KudosReceived, LevelUp, QuestDone } from "../shell";
-import { timeOf } from "./days";
+import { OpenInSlack, When } from "./EntryParts";
+import { HugGivenRow, HugReceivedRow } from "./Hugs";
 import { KudosMessage } from "./KudosMessage";
 import { Faces, namesOf } from "./People";
 
 type Bonus = NonNullable<KudosGiven["earned"]>["bonuses"][number];
 
-type EntryProps = { index: number; timeZone: string | undefined };
+export type EntryProps = { index: number; timeZone: string | undefined };
 
 export function Entry({ entry, ...shown }: { entry: ActivityEntry } & EntryProps) {
   switch (entry.kind) {
@@ -22,9 +23,10 @@ export function Entry({ entry, ...shown }: { entry: ActivityEntry } & EntryProps
       return <LevelMark entry={entry} {...shown} />;
     case "found":
       return <FoundMark entry={entry} {...shown} />;
-    case "hugGiven":
     case "hugReceived":
-      return null;
+      return <HugReceivedRow entry={entry} {...shown} />;
+    case "hugGiven":
+      return <HugGivenRow entry={entry} {...shown} />;
   }
 }
 
@@ -123,14 +125,6 @@ function FoundMark({ entry: { at, drop }, index, timeZone }: { entry: Found } & 
   );
 }
 
-function When({ at, timeZone, className = "" }: { at: number; timeZone: string | undefined; className?: string }) {
-  return (
-    <time dateTime={new Date(at).toISOString()} className={`shrink-0 text-xs text-muted-foreground tabular-nums ${className}`}>
-      {timeOf(at, timeZone)}
-    </time>
-  );
-}
-
 const tagLook = "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-muted-foreground";
 
 function Footnotes({ side, entry, slackName }: { side: Side; entry: KudosReceived | KudosGiven; slackName: string }) {
@@ -189,15 +183,5 @@ function QuestLine({ quest }: { quest: QuestDone }) {
       {`Finished ${goal} · `}
       <span className="tabular-nums">{`+${quest.xp} XP`}</span>
     </>
-  );
-}
-
-function OpenInSlack({ permalink, name }: { permalink: string; name: string }) {
-  return (
-    <a href={permalink} target="_blank" rel="noreferrer" className="inline-flex min-h-6 items-center gap-1 text-sm font-medium underline-offset-4 hover:underline">
-      Open in Slack
-      <span className="sr-only">{`: ${name} (opens in a new tab)`}</span>
-      <IconExternal aria-hidden="true" className="size-3.5" />
-    </a>
   );
 }

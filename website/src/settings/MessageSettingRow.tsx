@@ -1,6 +1,7 @@
 import { RadioGroup, RadioGroupItem, Switch } from "@posthog/quill";
 import { useId } from "react";
 import type { MessageKind, MessagePlace, MessageSetting, MessageSettingReply, ShellActions } from "../shell";
+import { TextWithEmoji } from "../Emoji";
 import { StatusLine } from "./StatusLine";
 import { lineAfter, useSentChoice, type Answer } from "./useSentChoice";
 
@@ -23,7 +24,9 @@ export function MessageSettingRow({ setting, setMessageSetting }: MessageSetting
         <h3 id={titleId} className="text-sm font-semibold">
           {label}
         </h3>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <p className="text-sm text-muted-foreground">
+          <TextWithEmoji text={description} />
+        </p>
         <StatusLine line={lineAfter(settled, `${label}: ${placeWords(kind, place)}.`)} />
       </div>
       {choosesAmongThree ? <PlaceChoice setting={setting} pending={pending} onChoose={choose} /> : <PlaceSwitch setting={setting} pending={pending} onChoose={choose} />}
