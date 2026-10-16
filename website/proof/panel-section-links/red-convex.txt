@@ -1,0 +1,104 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/panel-section-links
+
+ ❯ |convex| convex/website/link.test.ts (30 tests | 5 failed | 25 skipped) 119ms
+   ❯ SW11: one function builds every website link (30)
+     × #531: a link to the inventory panel or a settings section carries its target: https://kudos-site.test/?panel=inventory 75ms
+     × #531: a link to the inventory panel or a settings section carries its target: https://kudos-site.test/settings 12ms
+     × #531: a link to the inventory panel or a settings section carries its target: https://kudos-site.test/settings?sectio… 15ms
+     × #531: a link to the inventory panel or a settings section carries its target: https://kudos-site.test/settings?sectio… 8ms
+     × #531: a link to the inventory panel or a settings section carries its target: https://kudos-site.test/settings?sectio… 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/link.test.ts > SW11: one function builds every website link > #531: a link to the inventory panel or a settings section carries its target: https://kudos-site.test/?panel=inventory
+Error: Validator error: Expected one of object, object, object, object, object, object, object, got `{"page":"home","panel":"inventory"}`
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:906:23
+    904|             }
+    905|             if (!isValid) {
+    906|                 throw new Error(`Validator error: Expected one of ${va…
+       |                       ^
+    907|             }
+    908|             return;
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:924:21
+ ❯ validateFunctionArgs node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2426:5
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2157:17
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:20
+ ❯ convex/website/link.test.ts:66:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  |convex| convex/website/link.test.ts > SW11: one function builds every website link > #531: a link to the inventory panel or a settings section carries its target: https://kudos-site.test/settings
+Error: Validator error: Expected one of object, object, object, object, object, object, object, got `{"page":"settings"}`
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:906:23
+    904|             }
+    905|             if (!isValid) {
+    906|                 throw new Error(`Validator error: Expected one of ${va…
+       |                       ^
+    907|             }
+    908|             return;
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:924:21
+ ❯ validateFunctionArgs node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2426:5
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2157:17
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:20
+ ❯ convex/website/link.test.ts:66:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  |convex| convex/website/link.test.ts > SW11: one function builds every website link > #531: a link to the inventory panel or a settings section carries its target: https://kudos-site.test/settings?sectio…
+Error: Validator error: Expected one of object, object, object, object, object, object, object, got `{"page":"settings","section":"visibility"}`
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:906:23
+    904|             }
+    905|             if (!isValid) {
+    906|                 throw new Error(`Validator error: Expected one of ${va…
+       |                       ^
+    907|             }
+    908|             return;
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:924:21
+ ❯ validateFunctionArgs node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2426:5
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2157:17
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:20
+ ❯ convex/website/link.test.ts:66:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  |convex| convex/website/link.test.ts > SW11: one function builds every website link > #531: a link to the inventory panel or a settings section carries its target: https://kudos-site.test/settings?sectio…
+Error: Validator error: Expected one of object, object, object, object, object, object, object, got `{"page":"settings","section":"messages"}`
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:906:23
+    904|             }
+    905|             if (!isValid) {
+    906|                 throw new Error(`Validator error: Expected one of ${va…
+       |                       ^
+    907|             }
+    908|             return;
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:924:21
+ ❯ validateFunctionArgs node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2426:5
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2157:17
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:20
+ ❯ convex/website/link.test.ts:66:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  |convex| convex/website/link.test.ts > SW11: one function builds every website link > #531: a link to the inventory panel or a settings section carries its target: https://kudos-site.test/settings?sectio…
+Error: Validator error: Expected one of object, object, object, object, object, object, object, got `{"page":"settings","section":"group"}`
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:906:23
+    904|             }
+    905|             if (!isValid) {
+    906|                 throw new Error(`Validator error: Expected one of ${va…
+       |                       ^
+    907|             }
+    908|             return;
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:924:21
+ ❯ validateFunctionArgs node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2426:5
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2157:17
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:20
+ ❯ convex/website/link.test.ts:66:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 25 skipped (30)
+   Start at  09:51:41
+   Duration  1.68s (transform 66%, import 23%, tests 8%, environment 3%)
+

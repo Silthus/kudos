@@ -1,0 +1,1316 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/panel-section-links/website
+
+ ❯ |website| src/deepLinkTargets.test.tsx (68 tests | 5 failed | 59 skipped) 839ms
+   ❯ #531: ?panel=inventory and ?section={section} land on their heading, never acting (9)
+     × /?panel=inventory turns the gear to its Inventory side, scrolls it into view and focuses its heading 441ms
+     × /settings?section=visibility scrolls the Leaderboards section into view and focuses its heading 78ms
+     × /settings?section=messages scrolls the Messages section into view and focuses its heading 69ms
+     × /settings?section=group scrolls the Your group section into view and focuses its heading 50ms
+     × lands once the settings answer after loading 58ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/deepLinkTargets.test.tsx > #531: ?panel=inventory and ?section={section} land on their heading, never acting > /?panel=inventory turns the gear to its Inventory side, scrolls it into view and focuses its heading
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Inventory"
+
+Here are the accessible roles:
+
+  region:
+
+  Name "Sam Example":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"home-title"[39m
+    [33mclass[39m=[32m"flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:gap-7 sm:py-4"[39m
+  [36m/>[39m
+
+  Name "Character · 3 slots":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"gear-panel-title"[39m
+    [33mclass[39m=[32m"relative flex flex-col gap-3 rounded-lg border bg-card p-4 hud-panel"[39m
+  [36m/>[39m
+
+  Name "What teammates see":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"profile-card-panel-title"[39m
+    [33mclass[39m=[32m"relative flex flex-col gap-3 rounded-lg border bg-card p-4 "[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  img:
+
+  Name "Level 6, 490 XP to level 7":
+  [36m<span[39m
+    [33maria-label[39m=[32m"Level 6, 490 XP to level 7"[39m
+    [33mclass[39m=[32m"relative inline-flex shrink-0 items-center justify-center"[39m
+    [33mdata-hero-ring[39m=[32m""[39m
+    [33mrole[39m=[32m"img"[39m
+    [33mstyle[39m=[32m"width: 120px; height: 120px;"[39m
+  [36m/>[39m
+
+  Name "1 of 3 kudos left today":
+  [36m<span[39m
+    [33maria-label[39m=[32m"1 of 3 kudos left today"[39m
+    [33mclass[39m=[32m"inline-flex items-center gap-1"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  Name "Your kudos emoji: Hedgehog, Rocket":
+  [36m<span[39m
+    [33maria-label[39m=[32m"Your kudos emoji: Hedgehog, Rocket"[39m
+    [33mclass[39m=[32m"flex justify-center gap-1.5"[39m
+    [33mrole[39m=[32m"img"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Sam Example":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display font-extrabold outline-none text-4xl leading-none wrap-anywhere"[39m
+    [33mid[39m=[32m"home-title"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Character · 3 slots":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"gear-panel-title"[39m
+  [36m/>[39m
+
+  Name "What teammates see":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-label"[39m
+    [33mid[39m=[32m"profile-card-panel-title"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"mt-3 text-sm text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"mt-2 text-xs text-muted-foreground tabular-nums"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"flex items-center gap-3 text-sm"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Thank someone in Slack (opens in a new tab)":
+  [36m<a[39m
+    [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"[39m
+    [33mhref[39m=[32m"https://app.slack.com/client/T1"[39m
+    [33mrel[39m=[32m"noreferrer"[39m
+    [33mtarget[39m=[32m"_blank"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "1,010 XP 490 XP to level 7":
+  [36m<div[39m
+    [33maria-labelledby[39m=[32m"_r_5_ _r_6_"[39m
+    [33maria-valuemax[39m=[32m"1500"[39m
+    [33maria-valuemin[39m=[32m"1000"[39m
+    [33maria-valuenow[39m=[32m"1010"[39m
+    [33mclass[39m=[32m"h-3 w-full overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mdata-xp-bar[39m=[32m""[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  [36m<time[39m
+    [33mdatetime[39m=[32m"2026-10-14T00:00:00.000Z"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  presentation:
+
+  Name "":
+  [36m<img[39m
+    [33malt[39m=[32m""[39m
+    [33mclass[39m=[32m"h-auto shrink-0"[39m
+    [33mdraggable[39m=[32m"false"[39m
+    [33mheight[39m=[32m"40"[39m
+    [33msrc[39m=[32m"file:///home/coder/dev/kudos-wt/panel-section-links/node_modules/.pnpm/@posthog+brand@0.13.0_react@19.3.0/node_modules/@posthog/brand/dist/generated/hoggies/png/town-crier.png"[39m
+    [33mwidth[39m=[32m"40"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  group:
+
+  Name "Gear side":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Gear side"[39m
+    [33mclass[39m=[32m"quill-toggle-group group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch"[39m
+    [33mdata-orientation[39m=[32m"horizontal"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"toggle-group"[39m
+    [33mdata-spacing[39m=[32m"0"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mrole[39m=[32m"group"[39m
+    [33mstyle[39m=[32m"--gap: 0;"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Character":
+  [36m<button[39m
+    [33maria-disabled[39m=[32m"false"[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm text-foreground bg-fill-selected"[39m
+    [33mdata-pressed[39m=[32m""[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"toggle-group-item"[39m
+    [33mdata-spacing[39m=[32m"0"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mtabindex[39m=[32m"0"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Inventory":
+  [36m<button[39m
+    [33maria-disabled[39m=[32m"false"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm text-foreground"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"toggle-group-item"[39m
+    [33mdata-spacing[39m=[32m"0"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Emoji 1: Hedgehog. Change it":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Emoji 1: Hedgehog. Change it"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"flex min-h-24 w-full min-w-0 flex-col gap-1.5 rounded-lg border bg-background p-2.5 text-left hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground dark:bg-muted/40  "[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Emoji 2: Rocket. Change it":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Emoji 2: Rocket. Change it"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"flex min-h-24 w-full min-w-0 flex-col gap-1.5 rounded-lg border bg-background p-2.5 text-left hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground dark:bg-muted/40  "[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Emoji 3: empty. Change it":
+  [36m<button[39m
+    [33maria-label[39m=[32m"Emoji 3: empty. Change it"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"flex min-h-24 w-full min-w-0 flex-col gap-1.5 rounded-lg border bg-background p-2.5 text-left hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground dark:bg-muted/40 border-dashed border-muted-foreground "[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-xs text-muted-foreground"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex min-w-0 flex-col gap-6"[39m
+    [36m>[39m
+      [36m<section[39m
+        [33maria-labelledby[39m=[32m"home-title"[39m
+        [33mclass[39m=[32m"flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:gap-7 sm:py-4"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center gap-5 sm:contents"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-28"[39m
+          [36m>[39m
+            [0mSE[0m
+          [36m</span>[39m
+          [36m<span[39m
+            [33maria-label[39m=[32m"Level 6, 490 XP to level 7"[39m
+            [33mclass[39m=[32m"relative inline-flex shrink-0 items-center justify-center"[39m
+            [33mdata-hero-ring[39m=[32m""[39m
+            [33mrole[39m=[32m"img"[39m
+            [33mstyle[39m=[32m"width: 120px; height: 120px;"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33mclass[39m=[32m"absolute inset-0 -rotate-90"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"120"[39m
+              [33mviewBox[39m=[32m"0 0 120 120"[39m
+              [33mwidth[39m=[32m"120"[39m
+            [36m>[39m
+              [36m<circle[39m
+                [33mcx[39m=[32m"60"[39m
+                [33mcy[39m=[32m"60"[39m
+                [33mr[39m=[32m"59.5"[39m
+                [33mstroke[39m=[32m"var(--muted-foreground)"[39m
+                [33mstroke-width[39m=[32m"1"[39m
+              [36m/>[39m
+              [36m<circle[39m
+                [33mcx[39m=[32m"60"[39m
+                [33mcy[39m=[32m"60"[39m
+                [33mr[39m=[32m"48.5"[39m
+                [33mstroke[39m=[32m"var(--muted-foreground)"[39m
+                [33mstroke-width[39m=[32m"1"[39m
+              [36m/>[39m
+              [36m<circle[39m
+                [33mcx[39m=[32m"60"[39m
+                [33mcy[39m=[32m"60"[39m
+                [33mdata-arc[39m=[32m"true"[39m
+                [33mpathLength[39m=[32m"100"[39m
+                [33mr[39m=[32m"54"[39m
+                [33mstroke[39m=[32m"var(--foreground)"[39m
+                [33mstroke-dasharray[39m=[32m"2 100"[39m
+                [33mstroke-width[39m=[32m"10"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"flex flex-col items-center gap-1 leading-none"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"hud-label"[39m
+              [36m>[39m
+                [0mLevel[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"hud-display text-4xl font-bold tabular-nums"[39m
+              [36m>[39m
+                [0m6[0m
+              [36m</span>[39m
+            [36m</span>[39m
+          [36m</span>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex w-full min-w-0 flex-1 flex-col items-start"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"hud-label"[39m
+          [36m>[39m
+            [0mCharacter[0m
+          [36m</span>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"mt-1 max-w-full"[39m
+          [36m>[39m
+            [36m<h1[39m
+              [33mclass[39m=[32m"hud-display font-extrabold outline-none text-4xl leading-none wrap-anywhere"[39m
+              [33mid[39m=[32m"home-title"[39m
+              [33mtabindex[39m=[32m"-1"[39m
+            [36m>[39m
+              [0mSam Example[0m
+            [36m</h1>[39m
+          [36m</div>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"mt-3 text-sm text-muted-foreground"[39m
+          [36m>[39m
+            [0mThank someone for work you noticed. Mention them in a Slack message with :[0m
+            [0mtaco[0m
+            [0m: and say what they did.[0m
+          [36m</p>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"mt-3"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"quill-button group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap quill-button--variant-primary quill-button--size-lg"[39m
+              [33mhref[39m=[32m"https://app.slack.com/client/T1"[39m
+              [33mrel[39m=[32m"noreferrer"[39m
+              [33mtarget[39m=[32m"_blank"[39m
+            [36m>[39m
+              [0mThank someone in Slack[0m
+              [0m [0m
+              [36m<span[39m
+                [33mclass[39m=[32m"sr-only"[39m
+              [36m>[39m
+                [0m(opens in a new tab)[0m
+              [36m</span>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"LemonIcon size-4"[39m
+                [33mfill[39m=[32m"currentColor"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"100%"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33mclip-rule[39m=[32m"evenodd"[39m
+                  [33md[39m=[32m"M13 3.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V5.56l-7.97 7.97a.75.75 0 1 1-1.06-1.06l7.97-7.97h-4.69a.75.75 0 0 1-.75-.75ZM5.324 5H9.25a.75.75 0 1 1 0 1.5h-3.9c-.292 0-.467 0-.596.011a.628.628 0 0 0-.12.018.25.25 0 0 0-.105.104.626.626 0 0 0-.018.121c-.01.13-.011.304-.011.596v11.3c0 .292 0 .467.011.596a.625.625 0 0 0 .018.12.25.25 0 0 0 .104.105.638.638 0 0 0 .121.018c.13.01.304.011.596.011h11.3c.292 0 .467 0 .596-.011a.636.636 0 0 0 .12-.018.25.25 0 0 0 .105-.105.636.636 0 0 0 .018-.12c.01-.13.011-.304.011-.596V14a.75.75 0 0 1 1.5 0v4.676c0 .258 0 .494-.016.692a1.775 1.775 0 0 1-.175.677 1.75 1.75 0 0 1-.765.764c-.23.118-.463.157-.676.175-.198.016-.434.016-.692.016H5.324c-.258 0-.494 0-.692-.016a1.775 1.775 0 0 1-.676-.175 1.75 1.75 0 0 1-.765-.765 1.774 1.774 0 0 1-.175-.676A9.053 9.053 0 0 1 3 18.676V7.324c0-.258 0-.494.016-.692.018-.213.057-.446.175-.676a1.75 1.75 0 0 1 .765-.765c.23-.118.463-.157.676-.175C4.83 5 5.066 5 5.324 5ZM17.47 19.37v-.002Zm-.1.1h-.003Zm-12.74 0h.002Zm-.1-.102a.02.02 0 0 1 0 .001Zm0-12.737v.001Zm.102-.102h-.001Z"[39m
+                  [33mfill-rule[39m=[32m"evenodd"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</a>[3...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ regionOf src/deepLinkTargets.test.tsx:475:27
+    473|
+    474|   function regionOf(name: string) {
+    475|     return within(main()).getByRole("region", { name });
+       |                           ^
+    476|   }
+    477|
+ ❯ src/deepLinkTargets.test.tsx:492:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  |website| src/deepLinkTargets.test.tsx > #531: ?panel=inventory and ?section={section} land on their heading, never acting > /settings?section=visibility scrolls the Leaderboards section into view and focuses its heading
+AssertionError: expected [] to deeply equal [ <section …(2)>…(3)</section> ]
+
+- Expected
++ Received
+
+- [
+-   <section
+-     aria-labelledby="leaderboards-panel-title"
+-     class="relative flex flex-col gap-3 rounded-lg border bg-card p-4 "
+-   >
+-     <div
+-       class="flex items-baseline justify-between gap-3"
+-     >
+-       <h2
+-         class="hud-label"
+-         id="leaderboards-panel-title"
+-       >
+-         Leaderboards
+-       </h2>
+-     </div>
+-     <p
+-       class="text-sm text-muted-foreground"
+-     >
+-       When you're off, nobody sees you on the leaderboards, you included.
+-     </p>
+-     <div
+-       class="text-sm font-semibold"
+-     >
+-       <label
+-         class="flex cursor-pointer items-center justify-between gap-3"
+-         id="base-ui-_r_1t_-label"
+-       >
+-         Show me on the leaderboards
+-         <span
+-           aria-checked="true"
+-           aria-labelledby="base-ui-_r_1t_-label"
+-           class="quill-switch peer group/switch inline-flex shrink-0 items-center data-[unchecked]:border-muted-foreground data-[unchecked]:[&_[data-slot=switch-thumb]]:bg-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground motion-reduce:transition-none motion-reduce:[&_*]:transition-none"
+-           data-checked=""
+-           data-quill="true"
+-           data-size="sm"
+-           data-slot="switch"
+-           id="base-ui-_r_1s_"
+-           role="switch"
+-           tabindex="0"
+-         >
+-           <span
+-             class="quill-switch__thumb"
+-             data-checked=""
+-             data-slot="switch-thumb"
+-           />
+-         </span>
+-         <input
+-           aria-hidden="true"
+-           checked=""
+-           id="base-ui-_r_1t_"
+-           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-           tabindex="-1"
+-           type="checkbox"
+-         />
+-       </label>
+-       <p
+-         class="sr-only"
+-         role="status"
+-       />
+-     </div>
+-   </section>,
+- ]
++ []
+
+ ❯ src/deepLinkTargets.test.tsx:519:22
+    517|     const { actions } = showSettingsAt(`/settings?section=${section}`);
+    518|
+    519|     expect(scrolled).toEqual([regionOf(name)]);
+       |                      ^
+    520|     expect(heading(name)).toHaveFocus();
+    521|     expectNothingSent(actions);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  |website| src/deepLinkTargets.test.tsx > #531: ?panel=inventory and ?section={section} land on their heading, never acting > /settings?section=messages scrolls the Messages section into view and focuses its heading
+AssertionError: expected [] to deeply equal [ <section …(2)>…(3)</section> ]
+
+- Expected
++ Received
+
+- [
+-   <section
+-     aria-labelledby="messages-panel-title"
+-     class="relative flex flex-col gap-3 rounded-lg border bg-card p-4 "
+-   >
+-     <div
+-       class="flex items-baseline justify-between gap-3"
+-     >
+-       <h2
+-         class="hud-label"
+-         id="messages-panel-title"
+-       >
+-         Messages
+-       </h2>
+-     </div>
+-     <p
+-       class="text-sm text-muted-foreground"
+-     >
+-       In the channel means a message only you see, beside the kudos that caused it. If I can't post it there, it comes as a DM.
+-     </p>
+-     <div
+-       class="flex flex-col"
+-     >
+-       <div
+-         aria-labelledby="_r_26_"
+-         class="flex gap-2 border-t py-3 first:border-t-0 first:pt-0 flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-6"
+-         role="group"
+-       >
+-         <div
+-           class="flex min-w-0 flex-1 flex-col gap-0.5"
+-         >
+-           <h3
+-             class="text-sm font-semibold"
+-             id="_r_26_"
+-           >
+-             After-kudos reply
+-           </h3>
+-           <p
+-             class="text-sm text-muted-foreground"
+-           >
+-             What a kudos you gave earned you, right after you send it.
+-           </p>
+-           <p
+-             class="sr-only"
+-             role="status"
+-           />
+-         </div>
+-         <div
+-           aria-label="Where I send you After-kudos reply"
+-           class="gap-3 flex w-auto shrink-0 flex-wrap gap-x-4 gap-y-1.5"
+-           data-quill="true"
+-           data-slot="radio-group"
+-           role="radiogroup"
+-         >
+-           <label
+-             class="flex cursor-pointer items-center gap-1.5 text-sm"
+-             id="base-ui-_r_29_-label"
+-           >
+-             <span
+-               aria-checked="true"
+-               aria-labelledby="base-ui-_r_29_-label"
+-               class="quill-radio group/radio-group-item peer quill-radio--size-default border-muted-foreground"
+-               data-checked=""
+-               data-composite-item-active=""
+-               data-slot="radio-group-item"
+-               id="base-ui-_r_28_"
+-               role="radio"
+-               tabindex="0"
+-             >
+-               <span
+-                 class="quill-radio__indicator quill-radio__indicator--size-default"
+-                 data-checked=""
+-                 data-slot="radio-group-indicator"
+-               >
+-                 <span
+-                   class="quill-radio-dot quill-radio-dot--size-default"
+-                 />
+-               </span>
+-             </span>
+-             <input
+-               aria-hidden="true"
+-               checked=""
+-               id="base-ui-_r_29_"
+-               style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-               tabindex="-1"
+-               type="radio"
+-               value="channel"
+-             />
+-             In the channel
+-           </label>
+-           <label
+-             class="flex cursor-pointer items-center gap-1.5 text-sm"
+-             id="base-ui-_r_2c_-label"
+-           >
+-             <span
+-               aria-checked="false"
+-               aria-labelledby="base-ui-_r_2c_-label"
+-               class="quill-radio group/radio-group-item peer quill-radio--size-default border-muted-foreground"
+-               data-slot="radio-group-item"
+-               data-unchecked=""
+-               id="base-ui-_r_2b_"
+-               role="radio"
+-               tabindex="-1"
+-             />
+-             <input
+-               aria-hidden="true"
+-               id="base-ui-_r_2c_"
+-               style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-               tabindex="-1"
+-               type="radio"
+-               value="dm"
+-             />
+-             As a DM
+-           </label>
+-           <label
+-             class="flex cursor-pointer items-center gap-1.5 text-sm"
+-             id="base-ui-_r_2f_-label"
+-           >
+-             <span
+-               aria-checked="false"
+-               aria-labelledby="base-ui-_r_2f_-label"
+-               class="quill-radio group/radio-group-item peer quill-radio--size-default border-muted-foreground"
+-               data-slot="radio-group-item"
+-               data-unchecked=""
+-               id="base-ui-_r_2e_"
+-               role="radio"
+-               tabindex="-1"
+-             />
+-             <input
+-               aria-hidden="true"
+-               id="base-ui-_r_2f_"
+-               style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-               tabindex="-1"
+-               type="radio"
+-               value="none"
+-             />
+-             None
+-           </label>
+-         </div>
+-       </div>
+-       <div
+-         aria-labelledby="_r_2h_"
+-         class="flex gap-2 border-t py-3 first:border-t-0 first:pt-0 flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-6"
+-         role="group"
+-       >
+-         <div
+-           class="flex min-w-0 flex-1 flex-col gap-0.5"
+-         >
+-           <h3
+-             class="text-sm font-semibold"
+-             id="_r_2h_"
+-           >
+-             Level ups
+-           </h3>
+-           <p
+-             class="text-sm text-muted-foreground"
+-           >
+-             When you reach a level, with what it opens for you.
+-           </p>
+-           <p
+-             class="sr-only"
+-             role="status"
+-           />
+-         </div>
+-         <div
+-           aria-label="Where I send you Level ups"
+-           class="gap-3 flex w-auto shrink-0 flex-wrap gap-x-4 gap-y-1.5"
+-           data-quill="true"
+-           data-slot="radio-group"
+-           role="radiogroup"
+-         >
+-           <label
+-             class="flex cursor-pointer items-center gap-1.5 text-sm"
+-             id="base-ui-_r_2k_-label"
+-           >
+-             <span
+-               aria-checked="true"
+-               aria-labelledby="base-ui-_r_2k_-label"
+-               class="quill-radio group/radio-group-item peer quill-radio--size-default border-muted-foreground"
+-               data-checked=""
+-               data-composite-item-active=""
+-               data-slot="radio-group-item"
+-               id="base-ui-_r_2j_"
+-               role="radio"
+-               tabindex="0"
+-             >
+-               <span
+-                 class="quill-radio__indicator quill-radio__indicator--size-default"
+-                 data-checked=""
+-                 data-slot="radio-group-indicator"
+-               >
+-                 <span
+-                   class="quill-radio-dot quill-radio-dot--size-default"
+-                 />
+-               </span>
+-             </span>
+-             <input
+-               aria-hidden="true"
+-               checked=""
+-               id="base-ui-_r_2k_"
+-               style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-               tabindex="-1"
+-               type="radio"
+-               value="dm"
+-             />
+-             As a DM
+-           </label>
+-           <label
+-             class="flex cursor-pointer items-center gap-1.5 text-sm"
+-             id="base-ui-_r_2n_-label"
+-           >
+-             <span
+-               aria-checked="false"
+-               aria-labelledby="base-ui-_r_2n_-label"
+-               class="quill-radio group/radio-group-item peer quill-radio--size-default border-muted-foreground"
+-               data-slot="radio-group-item"
+-               data-unchecked=""
+-               id="base-ui-_r_2m_"
+-               role="radio"
+-               tabindex="-1"
+-             />
+-             <input
+-               aria-hidden="true"
+-               id="base-ui-_r_2n_"
+-               style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-               tabindex="-1"
+-               type="radio"
+-               value="channel"
+-             />
+-             In the channel
+-           </label>
+-           <label
+-             class="flex cursor-pointer items-center gap-1.5 text-sm"
+-             id="base-ui-_r_2q_-label"
+-           >
+-             <span
+-               aria-checked="false"
+-               aria-labelledby="base-ui-_r_2q_-label"
+-               class="quill-radio group/radio-group-item peer quill-radio--size-default border-muted-foreground"
+-               data-slot="radio-group-item"
+-               data-unchecked=""
+-               id="base-ui-_r_2p_"
+-               role="radio"
+-               tabindex="-1"
+-             />
+-             <input
+-               aria-hidden="true"
+-               id="base-ui-_r_2q_"
+-               style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-               tabindex="-1"
+-               type="radio"
+-               value="none"
+-             />
+-             None
+-           </label>
+-         </div>
+-       </div>
+-       <div
+-         aria-labelledby="_r_2s_"
+-         class="flex gap-2 border-t py-3 first:border-t-0 first:pt-0 flex-row items-start justify-between gap-6"
+-         role="group"
+-       >
+-         <div
+-           class="flex min-w-0 flex-1 flex-col gap-0.5"
+-         >
+-           <h3
+-             class="text-sm font-semibold"
+-             id="_r_2s_"
+-           >
+-             New features
+-           </h3>
+-           <p
+-             class="text-sm text-muted-foreground"
+-           >
+-             When a new feature is ready for you to open.
+-           </p>
+-           <p
+-             class="sr-only"
+-             role="status"
+-           />
+-         </div>
+-         <span
+-           aria-checked="true"
+-           aria-label="New features"
+-           class="quill-switch peer group/switch inline-flex items-center data-[unchecked]:border-muted-foreground data-[unchecked]:[&_[data-slot=switch-thumb]]:bg-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground motion-reduce:transition-none motion-reduce:[&_*]:transition-none shrink-0"
+-           data-checked=""
+-           data-quill="true"
+-           data-size="sm"
+-           data-slot="switch"
+-           id="base-ui-_r_2t_"
+-           role="switch"
+-           tabindex="0"
+-         >
+-           <span
+-             class="quill-switch__thumb"
+-             data-checked=""
+-             data-slot="switch-thumb"
+-           />
+-         </span>
+-         <input
+-           aria-hidden="true"
+-           checked=""
+-           id="base-ui-_r_2u_"
+-           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-           tabindex="-1"
+-           type="checkbox"
+-         />
+-       </div>
+-       <div
+-         aria-labelledby="_r_30_"
+-         class="flex gap-2 border-t py-3 first:border-t-0 first:pt-0 flex-row items-start justify-between gap-6"
+-         role="group"
+-       >
+-         <div
+-           class="flex min-w-0 flex-1 flex-col gap-0.5"
+-         >
+-           <h3
+-             class="text-sm font-semibold"
+-             id="_r_30_"
+-           >
+-             Public celebrations
+-           </h3>
+-           <p
+-             class="text-sm text-muted-foreground"
+-           >
+-             Your level ups and tiers in the announcement channel.
+-           </p>
+-           <p
+-             class="sr-only"
+-             role="status"
+-           />
+-         </div>
+-         <span
+-           aria-checked="true"
+-           aria-label="Public celebrations"
+-           class="quill-switch peer group/switch inline-flex items-center data-[unchecked]:border-muted-foreground data-[unchecked]:[&_[data-slot=switch-thumb]]:bg-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground motion-reduce:transition-none motion-reduce:[&_*]:transition-none shrink-0"
+-           data-checked=""
+-           data-quill="true"
+-           data-size="sm"
+-           data-slot="switch"
+-           id="base-ui-_r_31_"
+-           role="switch"
+-           tabindex="0"
+-         >
+-           <span
+-             class="quill-switch__thumb"
+-             data-checked=""
+-             data-slot="switch-thumb"
+-           />
+-         </span>
+-         <input
+-           aria-hidden="true"
+-           checked=""
+-           id="base-ui-_r_32_"
+-           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-           tabindex="-1"
+-           type="checkbox"
+-         />
+-       </div>
+-     </div>
+-   </section>,
+- ]
++ []
+
+ ❯ src/deepLinkTargets.test.tsx:519:22
+    517|     const { actions } = showSettingsAt(`/settings?section=${section}`);
+    518|
+    519|     expect(scrolled).toEqual([regionOf(name)]);
+       |                      ^
+    520|     expect(heading(name)).toHaveFocus();
+    521|     expectNothingSent(actions);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  |website| src/deepLinkTargets.test.tsx > #531: ?panel=inventory and ?section={section} land on their heading, never acting > /settings?section=group scrolls the Your group section into view and focuses its heading
+AssertionError: expected [] to deeply equal [ <section …(2)>…(4)</section> ]
+
+- Expected
++ Received
+
+- [
+-   <section
+-     aria-labelledby="your-group-panel-title"
+-     class="relative flex flex-col gap-3 rounded-lg border bg-card p-4 "
+-   >
+-     <div
+-       class="flex items-baseline justify-between gap-3"
+-     >
+-       <h2
+-         class="hud-label"
+-         id="your-group-panel-title"
+-       >
+-         Your group
+-       </h2>
+-     </div>
+-     <p
+-       class="text-sm text-muted-foreground"
+-     >
+-       Your kudos count for one group on the leaderboard.
+-     </p>
+-     <label
+-       class="relative flex flex-col gap-1 sm:max-w-xs"
+-     >
+-       <span
+-         class="text-sm font-medium"
+-       >
+-         The group you count for
+-       </span>
+-       <select
+-         class="h-10 w-full appearance-none rounded-lg border border-muted-foreground bg-card pl-3 pr-9 text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-60"
+-       >
+-         <option
+-           value="g_gardeners"
+-         >
+-           Gardeners
+-         </option>
+-         <option
+-           value="g_zebras"
+-         >
+-           Zebras
+-         </option>
+-       </select>
+-       <svg
+-         aria-hidden="true"
+-         class="LemonIcon pointer-events-none absolute bottom-3 right-3 size-4 text-muted-foreground"
+-         fill="currentColor"
+-         viewBox="0 0 24 24"
+-         width="100%"
+-         xmlns="http://www.w3.org/2000/svg"
+-       >
+-         <path
+-           clip-rule="evenodd"
+-           d="M7.47 9.47a.75.75 0 0 1 1.06 0L12 12.94l3.47-3.47a.75.75 0 1 1 1.06 1.06l-3.646 3.647a1.25 1.25 0 0 1-1.768 0L7.47 10.53a.75.75 0 0 1 0-1.06Z"
+-           fill-rule="evenodd"
+-         />
+-       </svg>
+-     </label>
+-     <p
+-       class="sr-only"
+-       role="status"
+-     />
+-   </section>,
+- ]
++ []
+
+ ❯ src/deepLinkTargets.test.tsx:519:22
+    517|     const { actions } = showSettingsAt(`/settings?section=${section}`);
+    518|
+    519|     expect(scrolled).toEqual([regionOf(name)]);
+       |                      ^
+    520|     expect(heading(name)).toHaveFocus();
+    521|     expectNothingSent(actions);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  |website| src/deepLinkTargets.test.tsx > #531: ?panel=inventory and ?section={section} land on their heading, never acting > lands once the settings answer after loading
+AssertionError: expected [] to deeply equal [ <section …(2)>…(3)</section> ]
+
+- Expected
++ Received
+
+- [
+-   <section
+-     aria-labelledby="messages-panel-title"
+-     class="relative flex flex-col gap-3 rounded-lg border bg-card p-4 "
+-   >
+-     <div
+-       class="flex items-baseline justify-between gap-3"
+-     >
+-       <h2
+-         class="hud-label"
+-         id="messages-panel-title"
+-       >
+-         Messages
+-       </h2>
+-     </div>
+-     <p
+-       class="text-sm text-muted-foreground"
+-     >
+-       In the channel means a message only you see, beside the kudos that caused it. If I can't post it there, it comes as a DM.
+-     </p>
+-     <div
+-       class="flex flex-col"
+-     >
+-       <div
+-         aria-labelledby="_r_76_"
+-         class="flex gap-2 border-t py-3 first:border-t-0 first:pt-0 flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-6"
+-         role="group"
+-       >
+-         <div
+-           class="flex min-w-0 flex-1 flex-col gap-0.5"
+-         >
+-           <h3
+-             class="text-sm font-semibold"
+-             id="_r_76_"
+-           >
+-             After-kudos reply
+-           </h3>
+-           <p
+-             class="text-sm text-muted-foreground"
+-           >
+-             What a kudos you gave earned you, right after you send it.
+-           </p>
+-           <p
+-             class="sr-only"
+-             role="status"
+-           />
+-         </div>
+-         <div
+-           aria-label="Where I send you After-kudos reply"
+-           class="gap-3 flex w-auto shrink-0 flex-wrap gap-x-4 gap-y-1.5"
+-           data-quill="true"
+-           data-slot="radio-group"
+-           role="radiogroup"
+-         >
+-           <label
+-             class="flex cursor-pointer items-center gap-1.5 text-sm"
+-             id="base-ui-_r_79_-label"
+-           >
+-             <span
+-               aria-checked="true"
+-               aria-labelledby="base-ui-_r_79_-label"
+-               class="quill-radio group/radio-group-item peer quill-radio--size-default border-muted-foreground"
+-               data-checked=""
+-               data-composite-item-active=""
+-               data-slot="radio-group-item"
+-               id="base-ui-_r_78_"
+-               role="radio"
+-               tabindex="0"
+-             >
+-               <span
+-                 class="quill-radio__indicator quill-radio__indicator--size-default"
+-                 data-checked=""
+-                 data-slot="radio-group-indicator"
+-               >
+-                 <span
+-                   class="quill-radio-dot quill-radio-dot--size-default"
+-                 />
+-               </span>
+-             </span>
+-             <input
+-               aria-hidden="true"
+-               checked=""
+-               id="base-ui-_r_79_"
+-               style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-               tabindex="-1"
+-               type="radio"
+-               value="channel"
+-             />
+-             In the channel
+-           </label>
+-           <label
+-             class="flex cursor-pointer items-center gap-1.5 text-sm"
+-             id="base-ui-_r_7c_-label"
+-           >
+-             <span
+-               aria-checked="false"
+-               aria-labelledby="base-ui-_r_7c_-label"
+-               class="quill-radio group/radio-group-item peer quill-radio--size-default border-muted-foreground"
+-               data-slot="radio-group-item"
+-               data-unchecked=""
+-               id="base-ui-_r_7b_"
+-               role="radio"
+-               tabindex="-1"
+-             />
+-             <input
+-               aria-hidden="true"
+-               id="base-ui-_r_7c_"
+-               style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-               tabindex="-1"
+-               type="radio"
+-               value="dm"
+-             />
+-             As a DM
+-           </label>
+-           <label
+-             class="flex cursor-pointer items-center gap-1.5 text-sm"
+-             id="base-ui-_r_7f_-label"
+-           >
+-             <span
+-               aria-checked="false"
+-               aria-labelledby="base-ui-_r_7f_-label"
+-               class="quill-radio group/radio-group-item peer quill-radio--size-default border-muted-foreground"
+-               data-slot="radio-group-item"
+-               data-unchecked=""
+-               id="base-ui-_r_7e_"
+-               role="radio"
+-               tabindex="-1"
+-             />
+-             <input
+-               aria-hidden="true"
+-               id="base-ui-_r_7f_"
+-               style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-               tabindex="-1"
+-               type="radio"
+-               value="none"
+-             />
+-             None
+-           </label>
+-         </div>
+-       </div>
+-       <div
+-         aria-labelledby="_r_7h_"
+-         class="flex gap-2 border-t py-3 first:border-t-0 first:pt-0 flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-6"
+-         role="group"
+-       >
+-         <div
+-           class="flex min-w-0 flex-1 flex-col gap-0.5"
+-         >
+-           <h3
+-             class="text-sm font-semibold"
+-             id="_r_7h_"
+-           >
+-             Level ups
+-           </h3>
+-           <p
+-             class="text-sm text-muted-foreground"
+-           >
+-             When you reach a level, with what it opens for you.
+-           </p>
+-           <p
+-             class="sr-only"
+-             role="status"
+-           />
+-         </div>
+-         <div
+-           aria-label="Where I send you Level ups"
+-           class="gap-3 flex w-auto shrink-0 flex-wrap gap-x-4 gap-y-1.5"
+-           data-quill="true"
+-           data-slot="radio-group"
+-           role="radiogroup"
+-         >
+-           <label
+-             class="flex cursor-pointer items-center gap-1.5 text-sm"
+-             id="base-ui-_r_7k_-label"
+-           >
+-             <span
+-               aria-checked="true"
+-               aria-labelledby="base-ui-_r_7k_-label"
+-               class="quill-radio group/radio-group-item peer quill-radio--size-default border-muted-foreground"
+-               data-checked=""
+-               data-composite-item-active=""
+-               data-slot="radio-group-item"
+-               id="base-ui-_r_7j_"
+-               role="radio"
+-               tabindex="0"
+-             >
+-               <span
+-                 class="quill-radio__indicator quill-radio__indicator--size-default"
+-                 data-checked=""
+-                 data-slot="radio-group-indicator"
+-               >
+-                 <span
+-                   class="quill-radio-dot quill-radio-dot--size-default"
+-                 />
+-               </span>
+-             </span>
+-             <input
+-               aria-hidden="true"
+-               checked=""
+-               id="base-ui-_r_7k_"
+-               style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-               tabindex="-1"
+-               type="radio"
+-               value="dm"
+-             />
+-             As a DM
+-           </label>
+-           <label
+-             class="flex cursor-pointer items-center gap-1.5 text-sm"
+-             id="base-ui-_r_7n_-label"
+-           >
+-             <span
+-               aria-checked="false"
+-               aria-labelledby="base-ui-_r_7n_-label"
+-               class="quill-radio group/radio-group-item peer quill-radio--size-default border-muted-foreground"
+-               data-slot="radio-group-item"
+-               data-unchecked=""
+-               id="base-ui-_r_7m_"
+-               role="radio"
+-               tabindex="-1"
+-             />
+-             <input
+-               aria-hidden="true"
+-               id="base-ui-_r_7n_"
+-               style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-               tabindex="-1"
+-               type="radio"
+-               value="channel"
+-             />
+-             In the channel
+-           </label>
+-           <label
+-             class="flex cursor-pointer items-center gap-1.5 text-sm"
+-             id="base-ui-_r_7q_-label"
+-           >
+-             <span
+-               aria-checked="false"
+-               aria-labelledby="base-ui-_r_7q_-label"
+-               class="quill-radio group/radio-group-item peer quill-radio--size-default border-muted-foreground"
+-               data-slot="radio-group-item"
+-               data-unchecked=""
+-               id="base-ui-_r_7p_"
+-               role="radio"
+-               tabindex="-1"
+-             />
+-             <input
+-               aria-hidden="true"
+-               id="base-ui-_r_7q_"
+-               style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-               tabindex="-1"
+-               type="radio"
+-               value="none"
+-             />
+-             None
+-           </label>
+-         </div>
+-       </div>
+-       <div
+-         aria-labelledby="_r_7s_"
+-         class="flex gap-2 border-t py-3 first:border-t-0 first:pt-0 flex-row items-start justify-between gap-6"
+-         role="group"
+-       >
+-         <div
+-           class="flex min-w-0 flex-1 flex-col gap-0.5"
+-         >
+-           <h3
+-             class="text-sm font-semibold"
+-             id="_r_7s_"
+-           >
+-             New features
+-           </h3>
+-           <p
+-             class="text-sm text-muted-foreground"
+-           >
+-             When a new feature is ready for you to open.
+-           </p>
+-           <p
+-             class="sr-only"
+-             role="status"
+-           />
+-         </div>
+-         <span
+-           aria-checked="true"
+-           aria-label="New features"
+-           class="quill-switch peer group/switch inline-flex items-center data-[unchecked]:border-muted-foreground data-[unchecked]:[&_[data-slot=switch-thumb]]:bg-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground motion-reduce:transition-none motion-reduce:[&_*]:transition-none shrink-0"
+-           data-checked=""
+-           data-quill="true"
+-           data-size="sm"
+-           data-slot="switch"
+-           id="base-ui-_r_7t_"
+-           role="switch"
+-           tabindex="0"
+-         >
+-           <span
+-             class="quill-switch__thumb"
+-             data-checked=""
+-             data-slot="switch-thumb"
+-           />
+-         </span>
+-         <input
+-           aria-hidden="true"
+-           checked=""
+-           id="base-ui-_r_7u_"
+-           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-           tabindex="-1"
+-           type="checkbox"
+-         />
+-       </div>
+-       <div
+-         aria-labelledby="_r_80_"
+-         class="flex gap-2 border-t py-3 first:border-t-0 first:pt-0 flex-row items-start justify-between gap-6"
+-         role="group"
+-       >
+-         <div
+-           class="flex min-w-0 flex-1 flex-col gap-0.5"
+-         >
+-           <h3
+-             class="text-sm font-semibold"
+-             id="_r_80_"
+-           >
+-             Public celebrations
+-           </h3>
+-           <p
+-             class="text-sm text-muted-foreground"
+-           >
+-             Your level ups and tiers in the announcement channel.
+-           </p>
+-           <p
+-             class="sr-only"
+-             role="status"
+-           />
+-         </div>
+-         <span
+-           aria-checked="true"
+-           aria-label="Public celebrations"
+-           class="quill-switch peer group/switch inline-flex items-center data-[unchecked]:border-muted-foreground data-[unchecked]:[&_[data-slot=switch-thumb]]:bg-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground motion-reduce:transition-none motion-reduce:[&_*]:transition-none shrink-0"
+-           data-checked=""
+-           data-quill="true"
+-           data-size="sm"
+-           data-slot="switch"
+-           id="base-ui-_r_81_"
+-           role="switch"
+-           tabindex="0"
+-         >
+-           <span
+-             class="quill-switch__thumb"
+-             data-checked=""
+-             data-slot="switch-thumb"
+-           />
+-         </span>
+-         <input
+-           aria-hidden="true"
+-           checked=""
+-           id="base-ui-_r_82_"
+-           style="clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0px; padding: 0px; width: 1px; height: 1px; margin: 0px; position: fixed; top: 0px; left: 0px;"
+-           tabindex="-1"
+-           type="checkbox"
+-         />
+-       </div>
+-     </div>
+-   </section>,
+- ]
++ []
+
+ ❯ src/deepLinkTargets.test.tsx:545:22
+    543|     showVisitor({ ...withSettings });
+    544|
+    545|     expect(scrolled).toEqual([regionOf("Messages")]);
+       |                      ^
+    546|     expect(heading("Messages")).toHaveFocus();
+    547|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 4 passed | 59 skipped (68)
+   Start at  09:51:35
+   Duration  4.60s (transform 39%, import 26%, tests 19%, environment 13%, setup 3%)
+
