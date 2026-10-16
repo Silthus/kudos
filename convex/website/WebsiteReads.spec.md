@@ -394,7 +394,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   refuted: memberQuery's guard read the website flag's workspace decision instead of the member's own -> the previewer read closed, their first command answered closed, and a member off in their own decision read their profile (2026-10-14)
   refuted: unlockPathOf read the workspace's unlock path instead of the member's own -> a member whose own unlocks decision is off read the tree through getSkillTree (2026-10-14)
   refuted: workspaceLaunchDueIn left out the Book's launch -> a previewer's sign-in ran their Journey preview moment while the Book's launch was due (2026-10-14)
-  refuted: openQuestCrate's group branch read only group-quest and quests, not groupQuestAppliesTo's groups check -> a stale Claim on a finished group quest's crate after groups turned off answered opened (2026-10-16)
+  refuted: openQuestCrate's group branch read only group-quest and quests, not groupQuestAppliesTo's groups check -> opening a finished group quest's crate from a stale page after groups turned off answered opened (2026-10-16)
   kinds: identity, state
   checklist: capability-authorization dismissed: the session token authorizes only acting as the signed-in member, and the guard rechecks the live session, the directory and the member's own decision on every call
   checklist: revalidated-permission declared as website reads pass one guard
