@@ -29,6 +29,10 @@ async function settingsOf(ctx: QueryCtx, me: VerifiedMember): Promise<MySettings
   return { kind: "settings", board: await boardSettingOf(ctx, me), messages: await messagesOf(ctx, me), group: await groupPickOf(ctx, me) };
 }
 
+export async function settingsPageOpenTo(ctx: QueryCtx, me: VerifiedMember): Promise<boolean> {
+  return hasAny(await settingsOf(ctx, me));
+}
+
 function hasAny({ board, messages, group }: MySettings) {
   return board !== null || messages !== null || group !== null;
 }

@@ -80,7 +80,7 @@ const periods: Array<{ period: Period; label: string }> = [
 
 const earlierCratesShown = 5;
 
-const pageNames: Record<Page["page"], string> = { home: "home", leaderboard: "Leaderboard", quests: "Quests", skillTree: "Skill tree", book: "Book", bookEarned: "Book", bookCollection: "Collection" };
+const pageNames: Record<Page["page"], string> = { home: "home", leaderboard: "Leaderboard", quests: "Quests", skillTree: "Skill tree", book: "Book", bookEarned: "Book", bookCollection: "Collection", settings: "Settings" };
 
 const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, groupQuest: null, earlierCrates: null, earlierGroupCrates: null, journey: null, hoggies: null, boughtCrates: null };
 
@@ -99,8 +99,18 @@ function memberViewOf(facts: MemberHome, home: ShownHome | null): HomeView {
 function frontDoorOf(facts: MemberHome, home: ShownHome | null, links: FrontDoorLinks): HomeView {
   if (home === null) return summaryOf(facts, noProfileFacts, links);
   const { shown } = home;
-  const view = shown.tab === "profile" ? summaryOf(facts, shown, links) : withWebsiteLink(tabOf(facts, shown), urlOf(links.origin, { page: "home" }));
+  const view = shown.tab === "profile" ? summaryOf(facts, shown, links) : withWebsiteLink(frontDoorTabOf(facts, shown, links), urlOf(links.origin, { page: "home" }));
   return { tabBar: tabBar(home.tabs, shown.tab), ...view };
+}
+
+function frontDoorTabOf(facts: MemberHome, shown: ShownTab, { origin, settings }: FrontDoorLinks): HomeView {
+  const view = tabOf(facts, shown);
+  return shown.tab === "settings" && settings ? { ...view, groups: [[settingsOnTheWeb(origin)], ...view.groups] } : view;
+}
+
+function settingsOnTheWeb(website: string): HomeLine {
+  const action = linkOnTheWeb({ label: "Settings", spoken: "Change your settings", id: "settings" }, { page: "settings" }, website);
+  return { kind: "action", text: "You can change these settings on the web, too.", action };
 }
 
 function withWebsiteLink(view: HomeView, website: string): HomeView {
