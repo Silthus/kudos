@@ -264,6 +264,48 @@ describe("AT16 AT17 AT18: order, filters and pages", () => {
   });
 });
 
+describe("AT16: a kudos decided after newer entries", () => {
+  const minute = 60_000;
+  const slackTsOf = (at: number) => `${at / 1000}.000100`;
+
+  async function thanksBob(giver: { user: string }, at: number) {
+    await post(t, [section(text(`thanks ${reason} `), mention(bob.user), text(" "), emoji("taco"))], { user: giver.user, ts: slackTsOf(at) });
+    await settle(t);
+    vi.advanceTimersByTime(minute);
+  }
+
+  function seen(entry: ActivityEntry) {
+    return entry.kind === "kudosReceived" ? `${entry.giver.name} at ${entry.at}` : entry.kind;
+  }
+
+  test("answers first on the newest page, at its Slack time", async () => {
+    await activityOn();
+    await thanksBob(alice, postedAt);
+
+    await thanksBob(carol, postedAt - 10 * minute);
+
+    const newest = await activityOf(await signedIn(bob), { filter: "all", limit: 1 });
+    expect(newest.entries.map(seen)).toEqual([`Carol Chen at ${postedAt - 10 * minute}`]);
+  });
+
+  test("pages read before it continue without repeating or skipping a row, and the newest page shows it", async () => {
+    await activityOn();
+    await thanksBob(alice, postedAt - 2 * minute);
+    await thanksBob(carol, postedAt - minute);
+    await thanksBob(alice, postedAt);
+    const asBob = await signedIn(bob);
+    const first = await activityOf(asBob, { filter: "received", limit: 1 });
+
+    await thanksBob(carol, postedAt - 30 * minute);
+    const rest = await activityOf(asBob, { filter: "received", cursor: first.cursor, limit: 10 });
+    const newest = await activityOf(asBob, { filter: "received", limit: 10 });
+
+    expect([...first.entries, ...rest.entries].map(seen)).toEqual([`Alice Archer at ${postedAt}`, `Carol Chen at ${postedAt - minute}`, `Alice Archer at ${postedAt - 2 * minute}`]);
+    expect(rest.cursor).toBeNull();
+    expect(newest.entries.map(seen)).toEqual([`Carol Chen at ${postedAt - 30 * minute}`, ...[...first.entries, ...rest.entries].map(seen)]);
+  });
+});
+
 describe("AT23 AT24 AT27: what a kudos entry says", () => {
   const thanksBob = [section(text(`thanks ${reason} `), mention(bob.user), text(" "), emoji("taco"))];
 

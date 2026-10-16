@@ -187,6 +187,21 @@ describe("SR11: a hug on the activity timeline", () => {
     expect(keyOf(fresh.entries[0]!)).toBe(keyOf(second.entries[0]!));
   });
 
+  test("a hug decided after newer entries answers first on the newest page of its giver and its author, at its reaction's time", async () => {
+    await hugsOn();
+    const reactedTs = `${Math.floor(Date.now() / 1000)}.000200`;
+    vi.advanceTimersByTime(10 * minute);
+    await kudos(carol, [alice, bob], `${Math.floor(Date.now() / 1000)}.000300`);
+    vi.advanceTimersByTime(minute);
+
+    await react(t, { user: bob.user, itemUser: alice.user, ts: postedTs, eventTs: reactedTs });
+    await settle(t);
+
+    const reactedAt = Number(reactedTs) * 1000;
+    expect((await activityOf(await signedIn(alice), { filter: "all", limit: 1 })).entries.map(seen)).toEqual([`hugReceived at ${reactedAt}`]);
+    expect((await activityOf(await signedIn(bob), { filter: "all", limit: 1 })).entries.map(seen)).toEqual([`hugGiven at ${reactedAt}`]);
+  });
+
   test("a hug reacted before the first page but paid after the cursor passed its new place leaves its message's row where the first page found it, so a later page returns it once", async () => {
     await hugsOn();
     const messages = ["1791970700.000100", "1791970800.000100", "1791970900.000100"];
