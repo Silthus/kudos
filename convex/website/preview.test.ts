@@ -334,7 +334,7 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
           { label: "Quests", url: `${siteUrl}/sign-in/quests` },
           { label: "Leaderboard", url: `${siteUrl}/sign-in/leaderboard` },
         ],
-        settings: true,
+        sections: ["visibility"],
       });
       expect(bobsLinks).toBeNull();
     });
@@ -343,7 +343,7 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       await aMemberWithEmail(bob);
       await flagsServed(onForEveryone("website"));
 
-      expect(await t.query(internal.website.link.frontDoorLinksOf, { workspace: allowedWorkspace, user: bob.user })).toEqual({ origin: siteUrl, pages: [], settings: false });
+      expect(await t.query(internal.website.link.frontDoorLinksOf, { workspace: allowedWorkspace, user: bob.user })).toEqual({ origin: siteUrl, pages: [], sections: [] });
     });
   });
 });
