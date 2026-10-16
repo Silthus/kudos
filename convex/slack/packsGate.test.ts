@@ -62,7 +62,6 @@ const siteUrl = "https://kudos-site.test";
 const packs = "packs";
 const everyOtherFlag = ["xp-levels", "unlocks", "achievements", "collection", "crests", "crate-store", "crate-rewards", "coins", "quests", "groups", "group-quest", "everyone-board", "skill-tree", "activity"];
 const outboxDelivery = "analytics/drain:";
-const identifyDelivery = "analytics/person:identifyNewPeople";
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
 const carol = { user: "U_CAROL", name: "Carol Diaz", email: "carol@example.com" };
@@ -106,19 +105,22 @@ afterEach(() => {
 
 type Exposure = { member: string; value: boolean };
 
-const anOpenedDrop = { kind: "opened", drop: expect.objectContaining({ copy: expect.any(Number) }) };
+const aDrop = expect.objectContaining({ hoggie: expect.any(String), copy: expect.any(Number) });
+const heldRewardsOf = [{ xp: 10, coins: 0 }, { xp: 20, coins: 0 }, { xp: 0, coins: 15 }];
+const reopenedWithoutBonuses = [...heldRewardsOf.map((held) => ({ kind: "opened", applied: { ...held, from: expect.any(Object), to: expect.any(Object) }, drop: aDrop })), ...Array.from({ length: 4 }, () => ({ kind: "opened", drop: aDrop }))];
+const reopenedWhileTheWebsiteIsClosed = Array.from({ length: 7 }, () => ({ kind: "closed" }));
 
-const packsOff: Array<{ condition: string; packsFlag: FlagDefinition[]; turnOff?: () => void; exposed: Exposure[]; drops: number; reopenedOnTheWebsite: object }> = [
-  { condition: "with packs off", packsFlag: [offForEveryone(packs)], exposed: firstOpensExposing(false), drops: 14, reopenedOnTheWebsite: expect.objectContaining(anOpenedDrop) },
-  { condition: "while PostHog has no packs flag", packsFlag: [], exposed: firstOpensExposing(false), drops: 14, reopenedOnTheWebsite: expect.objectContaining(anOpenedDrop) },
-  { condition: "without the flags key, even when PostHog turned packs on", packsFlag: [onForEveryone(packs)], turnOff: () => vi.stubEnv("POSTHOG_PERSONAL_API_KEY", ""), exposed: [], drops: 0, reopenedOnTheWebsite: { kind: "closed" } },
+const packsOff: Array<{ condition: string; packsFlag: FlagDefinition[]; turnOff?: () => void; exposed: Exposure[]; drops: number; reopenedOnTheWebsite: object[] }> = [
+  { condition: "with packs off", packsFlag: [offForEveryone(packs)], exposed: firstOpensExposing(false), drops: 14, reopenedOnTheWebsite: reopenedWithoutBonuses },
+  { condition: "while PostHog has no packs flag", packsFlag: [], exposed: firstOpensExposing(false), drops: 14, reopenedOnTheWebsite: reopenedWithoutBonuses },
+  { condition: "without the flags key, even when PostHog turned packs on", packsFlag: [onForEveryone(packs)], turnOff: () => vi.stubEnv("POSTHOG_PERSONAL_API_KEY", ""), exposed: [], drops: 0, reopenedOnTheWebsite: reopenedWhileTheWebsiteIsClosed },
   {
     condition: "in production, while packs is on in the sandbox and for the product owner's email only",
     packsFlag: [asTheShipCreatesIt()],
     turnOff: () => vi.stubEnv("KUDOS_ENVIRONMENT", "production"),
     exposed: firstOpensExposing(false),
     drops: 14,
-    reopenedOnTheWebsite: expect.objectContaining(anOpenedDrop),
+    reopenedOnTheWebsite: reopenedWithoutBonuses,
   },
 ];
 
@@ -167,7 +169,10 @@ describe("CV13: packs are dark where packs is off, pay only the members it is on
 
     expect(bonusesOf(onForAlice, alice.user)).toHaveLength(everyKindOpened.length);
     expect(bonusesOf(onForAlice, bob.user)).toEqual([]);
-    expect(onForAlice.seen.answers.U_ALICE!.opens).toEqual(expect.arrayContaining([expect.objectContaining({ applied: expect.objectContaining({ xp: expect.any(Number) }) })]));
+    const alicesBonus = Object.fromEntries(bonusesOf(onForAlice, alice.user).map(({ crate, ...bonus }) => [crate, bonus]));
+    const [skillTree, , boughtTwo] = onForAlice.seen.answers.U_ALICE!.opens;
+    expect(skillTree, "Alice's first open of the Skill tree on the website").toEqual({ kind: "opened", applied: alicesBonus["unlock:skillTree"], drop: aDrop });
+    expect(boughtTwo, "Alice's first open of bought:2 on the website").toEqual({ kind: "opened", applied: alicesBonus["bought:2"], drop: aDrop });
     expect(onForAlice.seen.answers.U_ALICE!.before.collection).toMatchObject({ packs: expect.any(Array), morePacks: false });
     for (const user of [bob.user, carol.user, dana.user]) {
       expect(onForAlice.seen.homes[user], `${user}'s App Home`).toEqual(off.seen.homes[user]);
@@ -183,7 +188,7 @@ describe("CV13: packs are dark where packs is off, pay only the members it is on
     ]);
   });
 
-  test.each(packsOff)("$condition after bonuses were paid, nothing paid is taken back: every XP, coin and drop record stays, and the website answers no bonus", async ({ packsFlag, turnOff, reopenedOnTheWebsite }) => {
+  test.each(packsOff)("$condition after bonuses were paid, nothing paid is taken back: every XP, wallet and drop record stays, and the website answers the held rewards alone", async ({ packsFlag, turnOff, reopenedOnTheWebsite }) => {
     const walk = await walkIn(await antsWithEveryKindWaiting([onForEveryone(packs)]));
     const paid = await whatWasPaid();
     expect(bonusesOf(walk, alice.user)).toHaveLength(everyKindOpened.length);
@@ -194,7 +199,7 @@ describe("CV13: packs are dark where packs is off, pay only the members it is on
 
     expect(await whatWasPaid()).toEqual(paid);
     expect(JSON.stringify(afterwards)).not.toMatch(/"packs?"|morePacks/);
-    for (const { user } of openers) expect(afterwards[user]!.opens).toEqual(afterwards[user]!.opens.map(() => reopenedOnTheWebsite));
+    for (const { user } of openers) expect(afterwards[user]!.opens, `${user}'s website opens of every crate again`).toEqual(reopenedOnTheWebsite);
   });
 
   test("packs' exposure is sent once per member and value, only by a crate's first successful open while collection is on, never by App Home, the Book's collection, a refused open or a repeat", async () => {
@@ -221,6 +226,9 @@ describe("CV13: packs are dark where packs is off, pay only the members it is on
     expect(await exposuresSoFar(), "after Alice's first opens and a repeat").toEqual([{ member: alice.user, value: true }]);
 
     await packsAre(offForEveryone(packs));
+    await clickInSlack(alice.user, { type: "openQuestCrate", quest: firstSlot });
+    expect(await (await signedIn(alice)).mutation(api.website.commands.openFeature, { feature: "leaderboard" }), "Alice's repeat on the website").toMatchObject({ kind: "opened" });
+    expect(await exposuresSoFar(), "after Alice's repeats with packs turned off").toEqual([{ member: alice.user, value: true }]);
     await clickInSlack(alice.user, { type: "openUnlock", feature: "skillTree" });
     await (await signedIn(bob)).mutation(api.website.commands.openFeature, { feature: "leaderboard" });
     await packsAre(onForEveryone(packs));
@@ -351,9 +359,9 @@ async function walkIn(backend: Backend) {
     slackCalls: withStableIds(slack.calls.map((call) => JSON.stringify(call))).sort(),
     postHogEvents: orderFree(withStableIds(postHog.events().map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsInContentOrder(),
-    jobs: await jobsInContentOrder({ apartFrom: [outboxDelivery, identifyDelivery] }),
+    jobs: await jobsInContentOrder({ apartFrom: [outboxDelivery] }),
   };
-  return { seen, xp: await xpOfTheOpeners() };
+  return { seen, xp: await xpOfTheOpeners(), exposures: exposuresAsPostHogKeepsThem() };
 }
 
 type Walk = Awaited<ReturnType<typeof walkIn>>;
@@ -407,6 +415,7 @@ async function whatWasPaid() {
     drops: await ctx.db.query("drops").collect(),
     rewardRecords: await ctx.db.query("rewardRecords").collect(),
     coinSpends: await ctx.db.query("coinSpends").collect(),
+    wallets: await ctx.db.query("wallets").collect(),
   }));
   return withStableIds(paid);
 }
@@ -433,17 +442,18 @@ function isPacksExposure({ event, properties }: { event?: unknown; properties?: 
 }
 
 function packsExposures(walk: Walk): Exposure[] {
-  return exposuresIn(walk.seen.postHogEvents);
+  return walk.exposures;
 }
 
 async function exposuresSoFar() {
   namedIds = await idsNamedByTheirMember();
-  return exposuresIn(withStableIds(postHog.events().map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties }))));
+  return exposuresAsPostHogKeepsThem();
 }
 
-function exposuresIn(events: Array<{ event: unknown; distinct_id: unknown; properties: unknown }>): Exposure[] {
-  const exposures = events.filter(isPacksExposure).map(({ distinct_id, properties }) => ({ member: String(distinct_id).replace(/^<analytics ID of (\w+)>$/, "$1"), value: (properties as Row).$feature_flag_response as boolean }));
-  return [...new Map(exposures.map((exposure) => [JSON.stringify(exposure), exposure])).values()].toSorted((a, b) => a.member.localeCompare(b.member) || Number(a.value) - Number(b.value));
+function exposuresAsPostHogKeepsThem(): Exposure[] {
+  const keptByUuid = new Map(postHog.events().filter(isPacksExposure).map((exposure) => [exposure.uuid, exposure]));
+  const exposures = [...keptByUuid.values()].map(({ distinct_id, properties }) => ({ member: withNamedIds(String(distinct_id)).replace(/^<analytics ID of (\w+)>$/, "$1"), value: properties.$feature_flag_response as boolean }));
+  return exposures.toSorted((a, b) => a.member.localeCompare(b.member) || Number(a.value) - Number(b.value));
 }
 
 function slackCallsTo(walk: Walk, user: string) {
