@@ -12,13 +12,14 @@ import { hoggiesShownTo } from "../hoggies/flag";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
 import { loadoutOf } from "../store/inventory";
 import { slotValidator, type Slot } from "../store/rows";
-import { storeVisibleTo } from "../store/visibility";
 import type { Refusal } from "../progression/purchases";
 import type { AppliedReward, StandingWithCoins } from "../progression/rewards";
 import { perkValidator } from "../progression/tree";
 import { journeyStartedFor, questsApplyTo } from "../quests/flag";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { swappedSlotIn } from "../quests/weekly";
+import type { ItemRefusal } from "../store/rows";
+import { storeVisibleTo } from "../store/visibility";
 import { featureValidator } from "../unlocks/feature";
 import { unlockPathShownTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
@@ -40,6 +41,10 @@ export type SwapAnswer = { kind: "swapped" } | { kind: "refused" };
 export type PurchaseRefusal = "owned" | "level" | "requires" | "points" | "coins" | "coins-not-open" | "not-open";
 
 export type PurchaseAnswer = { kind: "bought" } | { kind: "refused"; reason: PurchaseRefusal | null };
+
+export type ItemPurchaseRefusal = ItemRefusal["reason"];
+
+export type ItemPurchaseAnswer = { kind: "bought"; item: string } | { kind: "refused"; reason: ItemPurchaseRefusal | null };
 
 export type VisibilityAnswer = { kind: "set"; visible: boolean } | { kind: "refused" };
 
@@ -112,6 +117,24 @@ export const buyPerk = memberMutation({
   },
 });
 
+const longestItemId = 128;
+
+const itemRefusedAtTheGate: ItemPurchaseAnswer = { kind: "refused", reason: null };
+
+export const buyItem = memberMutation({
+  args: { item: v.string(), request: v.string() },
+  handler: async (ctx, me, person, { item, request }): Promise<ItemPurchaseAnswer> => {
+    if (!isUuid(request)) throw new Error("A purchase's request must be a UUID.");
+    if (item.length > longestItemId) throw new Error("A purchase's item is longer than any item ID.");
+    if (!(await storeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return itemRefusedAtTheGate;
+    const outcome = await runCommand(ctx, me.workspace, person, { type: "buyItem", item }, `website:${me.member}:${request}`);
+    if (outcome === null || !("item" in outcome)) return itemRefusedAtTheGate;
+    if (outcome.kind === "refused") return { kind: "refused", reason: outcome.reason };
+    await republish(ctx, me.member);
+    return { kind: "bought", item: outcome.item };
+  },
+});
+
 export const setBoardVisibility = memberMutation({
   args: { visible: v.boolean() },
   handler: async (ctx, me, person, { visible }): Promise<VisibilityAnswer> => {
@@ -127,7 +150,7 @@ export const setBoardVisibility = memberMutation({
 export const equip = memberMutation({
   args: { item: v.string(), slot: slotValidator },
   handler: async (ctx, me, person, { item, slot }): Promise<LoadoutAnswer> => {
-    if (!(await inventoryOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
+    if (!(await storeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
     const held = await itemIn(ctx, me, slot);
     await runCommand(ctx, me.workspace, person, { type: "equip", item, slot }, `website:equip:${me.member}:${slot}`);
     if ((await itemIn(ctx, me, slot)) !== item) return refused;
@@ -139,7 +162,7 @@ export const equip = memberMutation({
 export const takeOff = memberMutation({
   args: { slot: slotValidator },
   handler: async (ctx, me, person, { slot }): Promise<LoadoutAnswer> => {
-    if (!(await inventoryOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
+    if (!(await storeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
     const held = await itemIn(ctx, me, slot);
     await runCommand(ctx, me.workspace, person, { type: "takeOff", slot }, `website:takeOff:${me.member}:${slot}`);
     if ((await itemIn(ctx, me, slot)) !== null) return refused;
@@ -204,7 +227,7 @@ async function treeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember
   return featurePageOf(await unlockPathOf(ctx, me), "skillTree").kind === "open" && (await noLaunchWaitsFor(ctx, me));
 }
 
-async function inventoryOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
+async function storeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
   return (await storeVisibleTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
 }
 

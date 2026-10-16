@@ -1,30 +1,34 @@
 import { IconCheck, IconEmoji } from "@posthog/icons";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import type { InventoryItem, ItemSource, MemberInventory, MemberProfile, Slot } from "../shell";
+import { Button } from "@posthog/quill";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import type { InventoryItem, ItemSource, MemberInventory, MemberProfile, ShellActions, Slot } from "../shell";
 import { CoinGlyph } from "../skills/glyphs";
 import { coinsText } from "../skills/perkWords";
 import { cameOff, itemIn, ItemArt, ownedIn, slotName, wentInto, type LoadoutActions, type Owned, type SendLoadout } from "./gear";
+import { shortfallText, useItemPurchase, type ItemPurchasing, type PendingItemPurchase } from "./itemPurchase";
 
-type InventorySideProps = { member: MemberProfile; inventory: MemberInventory; loadout: LoadoutActions; send: SendLoadout };
+type Said = { text: string; done: boolean };
 
-export function InventorySide({ member, inventory, loadout, send }: InventorySideProps) {
-  const [line, setLine] = useState<string>();
+type InventorySideProps = { member: MemberProfile; inventory: MemberInventory; loadout: LoadoutActions; send: SendLoadout; buyItem: ShellActions["buyItem"]; pendingPurchase: PendingItemPurchase };
+
+export function InventorySide({ member, inventory, loadout, send, buyItem, pendingPurchase }: InventorySideProps) {
+  const [said, setSaid] = useState<Said>();
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p role="status" className="min-h-5 text-sm text-muted-foreground">
-          {line === undefined ? (
+          {said === undefined ? (
             "Pick something you own to wear it. Pick a worn emoji to take it off."
           ) : (
             <span className="flex items-center gap-1.5">
-              <IconCheck aria-hidden="true" className="size-3.5 shrink-0 text-foreground" />
-              {line}
+              {said.done && <IconCheck aria-hidden="true" className="size-3.5 shrink-0 text-foreground" />}
+              {said.text}
             </span>
           )}
         </p>
         {member.coins !== null && <Balance coins={member.coins} />}
       </div>
-      <KudosEmojiSection inventory={inventory} kudosEmoji={member.kudosEmoji} loadout={loadout} send={send} onSaid={setLine} />
+      <KudosEmojiSection inventory={inventory} kudosEmoji={member.kudosEmoji} coins={member.coins ?? 0} loadout={loadout} send={send} buyItem={buyItem} pendingPurchase={pendingPurchase} onSaid={setSaid} />
     </div>
   );
 }
@@ -38,14 +42,20 @@ function Balance({ coins }: { coins: number }) {
   );
 }
 
-type KudosEmojiSectionProps = { inventory: MemberInventory; kudosEmoji: string; loadout: LoadoutActions; send: SendLoadout; onSaid: (line: string) => void };
+type KudosEmojiSectionProps = { inventory: MemberInventory; kudosEmoji: string; coins: number; loadout: LoadoutActions; send: SendLoadout; buyItem: ShellActions["buyItem"]; pendingPurchase: PendingItemPurchase; onSaid: (said: Said) => void };
 
-function KudosEmojiSection({ inventory, kudosEmoji, loadout, send, onSaid }: KudosEmojiSectionProps) {
+function KudosEmojiSection({ inventory, kudosEmoji, coins, loadout, send, buyItem, pendingPurchase, onSaid }: KudosEmojiSectionProps) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  const purchasing = useItemPurchase(buyItem, pendingPurchase, () => heading.current?.focus());
   const [choosingFor, setChoosingFor] = useState<InventoryItem | null>(null);
   const tiles = useRef(new Map<string, HTMLButtonElement>());
   const choice = useRef(0);
   const yours = ownedIn(inventory);
-  const notYet = inventory.catalogue.filter(({ item }) => !yours.some(({ entry }) => entry.item === item));
+  const notYet = inventory.catalogue.filter(({ item }) => !purchasing.bought.includes(item) && !yours.some(({ entry }) => entry.item === item));
+
+  useEffect(() => {
+    if (purchasing.notice !== undefined) onSaid({ text: purchasing.notice.text, done: purchasing.notice.kind === "bought" });
+  }, [purchasing.notice, onSaid]);
   const equipped = inventory.slots.filter(({ item }) => item !== null).length;
 
   const stopChoosing = (item: InventoryItem) => {
@@ -56,7 +66,7 @@ function KudosEmojiSection({ inventory, kudosEmoji, loadout, send, onSaid }: Kud
 
   const change = async (command: () => ReturnType<LoadoutActions["equip"]>, changedLine: string) => {
     const sent = await send(command);
-    if (sent !== null) onSaid(sent.kind === "changed" ? changedLine : sent.line);
+    if (sent !== null) onSaid(sent.kind === "changed" ? { text: changedLine, done: true } : { text: sent.line, done: false });
     return sent?.kind === "changed";
   };
 
@@ -77,7 +87,7 @@ function KudosEmojiSection({ inventory, kudosEmoji, loadout, send, onSaid }: Kud
     <section aria-labelledby="inventory-kudos-emoji" className="flex flex-col gap-3">
       <div className="flex flex-col gap-0.5">
         <div className="flex items-baseline justify-between gap-3">
-          <h3 id="inventory-kudos-emoji" className="hud-display flex items-center gap-1.5 text-lg leading-none font-bold">
+          <h3 ref={heading} tabIndex={-1} id="inventory-kudos-emoji" className="hud-display flex items-center gap-1.5 text-lg leading-none font-bold">
             <IconEmoji aria-hidden="true" className="size-4 self-center text-muted-foreground" />
             Kudos emoji
           </h3>
@@ -87,7 +97,7 @@ function KudosEmojiSection({ inventory, kudosEmoji, loadout, send, onSaid }: Kud
       </div>
       <ul aria-label="Yours" className="grid grid-cols-3 gap-2 sm:grid-cols-5">
         {yours.map((owned) => (
-          <li key={owned.entry.item} className="flex">
+          <li key={owned.entry.item} onAnimationEnd={owned.entry.item === purchasing.justBought ? purchasing.popped : undefined} className={`flex ${owned.entry.item === purchasing.justBought ? "perk-pop" : ""}`}>
             <OwnedTile
               ref={(button) => {
                 if (button === null) tiles.current.delete(owned.entry.item);
@@ -100,7 +110,7 @@ function KudosEmojiSection({ inventory, kudosEmoji, loadout, send, onSaid }: Kud
         ))}
       </ul>
       {choosingFor !== null && <SlotChoice key={choosingFor.item} item={choosingFor} inventory={inventory} onChoose={(slot) => void putIn(choosingFor, slot)} onCancel={() => stopChoosing(choosingFor)} />}
-      {notYet.length > 0 && <NotYoursYet items={notYet} />}
+      {notYet.length > 0 && <NotYoursYet items={notYet} coins={coins} purchasing={purchasing} />}
     </section>
   );
 }
@@ -174,7 +184,7 @@ function SlotChoice({ item, inventory, onChoose, onCancel }: SlotChoiceProps) {
   );
 }
 
-function NotYoursYet({ items }: { items: InventoryItem[] }) {
+function NotYoursYet({ items, coins, purchasing }: { items: InventoryItem[]; coins: number; purchasing: ItemPurchasing }) {
   return (
     <div className="flex flex-col gap-1.5">
       <span id="inventory-not-yet" className="hud-label">
@@ -187,11 +197,39 @@ function NotYoursYet({ items }: { items: InventoryItem[] }) {
               <ItemArt item={item} className="size-7 text-lg opacity-60" />
             </span>
             <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.name}</span>
-            <HowToGet source={item.source} />
+            {item.onSale && item.source.kind === "store" ? <BuyAction item={item} price={item.source.price} coins={coins} purchasing={purchasing} /> : <HowToGet source={item.source} />}
           </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+function BuyAction({ item, price, coins, purchasing }: { item: InventoryItem; price: number; coins: number; purchasing: ItemPurchasing }) {
+  const hint = useId();
+  const short = price - coins;
+  const busy = purchasing.buying !== undefined;
+  const sending = purchasing.buying === item.item;
+  return (
+    <span className="flex shrink-0 flex-col items-end gap-0.5">
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={short > 0}
+        aria-disabled={busy || short > 0 || undefined}
+        aria-describedby={short > 0 ? hint : undefined}
+        onClick={() => purchasing.buy(item)}
+        className="tabular-nums"
+      >
+        {sending ? "Buying…" : `Buy for ${coinsText(price)}`}
+        <span className="sr-only">{`, ${item.name}`}</span>
+      </Button>
+      {short > 0 && (
+        <span id={hint} className="text-[11px] text-muted-foreground tabular-nums">
+          {shortfallText(short)}
+        </span>
+      )}
+    </span>
   );
 }
 

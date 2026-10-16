@@ -75,13 +75,12 @@ describe("WS341 ST26: the inventory side of the home's main slot, read only", ()
     expect(glyphsIn(yours)).toEqual(["🦔", "🚀", "🌻"]);
   });
 
-  it("lists what isn't yours yet with its price in coins or the silver tier that gives it, and offers no Buy yet", () => {
+  it("lists what isn't yours yet with Buy for its price in coins or the silver tier that gives it", () => {
     showInventory(memberWithTheInventory);
 
     const notYet = within(kudosEmoji()).getByRole("list", { name: "Not yours yet" });
-    expect(readAloudIn(notYet)).toEqual(["Glowing Star100 coins", "Gem100 coins", "RibbonSilver in Generosity"]);
+    expect(readAloudIn(notYet)).toEqual(["Glowing StarBuy for 100 coins, Glowing Star", "GemBuy for 100 coins, Gem", "RibbonSilver in Generosity"]);
     expect(glyphsIn(notYet)).toEqual(["🌟", "💎", "🎀"]);
-    expect(within(inventory()).queryByRole("button", { name: /Buy/ })).not.toBeInTheDocument();
   });
 
   it("has no hedgehog section until hedgehogs ship", () => {
