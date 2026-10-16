@@ -16,7 +16,6 @@ import type { MySkillTree } from "../../convex/website/skillTree";
 import type { GroupBoards, GroupsBoardShown } from "../../convex/website/groupBoards";
 import type { Leaderboard as EveryoneBoard, MyLeaderboard as MyEveryoneBoard } from "../../convex/website/leaderboard";
 import { inventoryFixtures } from "./inventoryFixtures";
-import type { BookSpreadMember } from "./book/packs/bookSpread";
 import { fixturePackDropOf } from "./collectionFixtures";
 
 export type { Avatar, Face, FeatureCard, InventoryItem, ItemSource, JourneyStep, MemberInventory, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
@@ -185,7 +184,7 @@ const memberShortOfCoins: MemberProfile = { ...memberWithTheInventory, coins: 40
 
 const memberWithTheCrateStore: MemberProfile = { ...memberWithTheInventory, ...onTheUnlockPath({ ...bookFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }), coins: 120 };
 
-const memberWithThePacks: BookSpreadMember = { ...memberWithTheCrateStore, bookSpread: true };
+const memberWithTheBookSpread: MemberProfile = { ...memberWithTheCrateStore, avatar: null, bookSpread: true };
 
 const memberWithCoinsBeforeTheStore: MemberProfile = { ...memberWithCoinsOpened, coins: 40 };
 
@@ -292,11 +291,11 @@ export const shellFixtures = {
   memberWithCoinsOpened,
   memberWithTheInventory,
   memberWithCustomEmoji,
-  memberWithThePacks,
   memberWithNothingForSale,
   memberWithOneEmojiForSale,
   memberShortOfCoins,
   memberWithTheCrateStore,
+  memberWithTheBookSpread,
   memberWithCoinsBeforeTheStore,
   memberWithNothingShipped,
   memberAtLevel1WithTheBookReady,
@@ -360,7 +359,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-one-emoji-for-sale": shellFixtures.memberWithOneEmojiForSale,
   "member-short-of-coins": shellFixtures.memberShortOfCoins,
   "member-with-the-crate-store": shellFixtures.memberWithTheCrateStore,
-  "member-with-the-packs": shellFixtures.memberWithThePacks,
+  "member-with-the-book-spread": shellFixtures.memberWithTheBookSpread,
   error: shellFixtures.error,
 };
 

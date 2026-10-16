@@ -1,6 +1,6 @@
 # #586: the Book's bought crates as a foil-pack stack and one opening scene
 
-Fixture build (`VITE_SHELL_FIXTURE=member-with-the-packs`), served with `vite preview`, driven through the T3 preview browser. Made-up members and fixture hoggies only.
+Fixture build (`VITE_SHELL_FIXTURE=member-with-the-book-spread`), served with `vite preview`, driven through the T3 preview browser. Made-up members and fixture hoggies only.
 
 | Shot | What it shows |
 | --- | --- |

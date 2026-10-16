@@ -1,7 +1,7 @@
 import { assets } from "@posthog/brand/hoggies/metadata";
 import { catalogue, rarities, type CatalogueCrest, type Rarity } from "../../convex/hoggies/catalogue";
 import type { Collection, CollectionCrest, CollectionHoggie, CollectionRead, MyCollection, RarityShare } from "./collectionRead";
-import { hasTheBookSpread } from "./book/packs/bookSpread";
+import { showsTheBookSpread } from "./book/spread/bookSpread";
 import type { Drop, ShellState } from "./shell";
 import { albums, stickers } from "./stickerBookFixtures";
 
@@ -111,7 +111,7 @@ function collectionAnswerFor(visitor: ShellState): MyCollection {
   if (card === undefined) return collectionFixtures.notFound;
   if (card.state === "locked") return { kind: "locked", level: card.level };
   if (card.state === "ready") return collectionFixtures.ready;
-  if (hasTheBookSpread(visitor)) return collectionFixtures.withFourPacks;
+  if (showsTheBookSpread(visitor)) return collectionFixtures.withFourPacks;
   return visitor.coins === null ? collectionFixtures.withTheStickerBook : collectionFixtures.withTheStoreAndTheStickerBook;
 }
 

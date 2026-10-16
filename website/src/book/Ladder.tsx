@@ -9,7 +9,7 @@ import { bestOf, isEarned, type EarnedTier } from "./progress";
 import { RewardLine } from "./Rewards";
 import { Tag } from "./Tag";
 
-export function Ladder({ ladder, timeZone }: { ladder: LadderCard; timeZone: string }) {
+export function Ladder({ ladder, timeZone, compact = false }: { ladder: LadderCard; timeZone: string; compact?: boolean }) {
   const { name, counts, tiers, next } = ladder;
   const titleId = `ladder-${ladder.ladder}`;
   const best = bestOf(ladder);
@@ -32,7 +32,7 @@ export function Ladder({ ladder, timeZone }: { ladder: LadderCard; timeZone: str
               {next === null ? <Complete count={ladder.count} counts={counts} /> : <WayToNext ladder={ladder} next={next} />}
             </div>
           </div>
-          <ol aria-label={`${name} tiers`} className="grid grid-cols-2 gap-x-2 gap-y-3 sm:grid-cols-4">
+          <ol aria-label={`${name} tiers`} className={`grid grid-cols-2 gap-x-2 gap-y-3 ${compact ? "" : "sm:grid-cols-4"}`}>
             {tiers.map((tier) => (
               <Tier key={tier.tier} tier={tier} isNext={tier.tier === next?.tier} timeZone={timeZone} />
             ))}

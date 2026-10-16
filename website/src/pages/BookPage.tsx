@@ -2,6 +2,8 @@ import { BookIndex, BookPagePicker } from "../book/BookIndex";
 import { EarnedPage } from "../book/EarnedPage";
 import { chaptersOf, type Chapter } from "../book/categories";
 import { HoggieCollection } from "../book/HoggieCollection";
+import { BookSpread } from "../book/spread/BookSpread";
+import { spreadAsked, type Spread } from "../book/spread/spreads";
 import type { CollectionShown } from "../collectionRead";
 import { Ladder } from "../book/Ladder";
 import { Overview } from "../book/Overview";
@@ -16,11 +18,13 @@ type YourCollection = Extract<CollectionShown, { kind: "collection" }>;
 
 type Shopping = { coins: number | null; onBuyCrate: ShellActions["buyCrate"]; onOpenPack: ShellActions["openCrate"] | undefined; avatar: Avatar | null | undefined; onSetAvatar: ShellActions["setAvatar"] };
 
-type BookPageProps = { book: YourBook; collection: CollectionShown | undefined; page: BookPageId; chatUrl: string } & Shopping;
+type BookPageProps = { book: YourBook; collection: CollectionShown | undefined; page: BookPageId; spread: Spread | undefined; asASpread: boolean; chatUrl: string } & Shopping;
 
-export function BookPage({ book, collection, page, chatUrl, ...shopping }: BookPageProps) {
+export function BookPage({ book, collection, page, spread, asASpread, chatUrl, ...shopping }: BookPageProps) {
   if (page === "earned") return <EarnedPage ladders={book.ladders} chatUrl={chatUrl} />;
-  return <BookPages book={book} collection={collection?.kind === "collection" ? collection : undefined} page={page} chatUrl={chatUrl} {...shopping} />;
+  const yours = collection?.kind === "collection" ? collection : undefined;
+  if (asASpread && yours !== undefined) return <BookSpread book={book} collection={yours} spread={spreadAsked(spread, page)} chatUrl={chatUrl} {...shopping} />;
+  return <BookPages book={book} collection={yours} page={page} chatUrl={chatUrl} {...shopping} />;
 }
 
 function BookPages({ book, collection, page, chatUrl, coins, onBuyCrate, onOpenPack, avatar, onSetAvatar }: { book: YourBook; collection: YourCollection | undefined; page: Exclude<BookPageId, "earned">; chatUrl: string } & Shopping) {

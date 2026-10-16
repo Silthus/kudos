@@ -4,14 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { collectionFixtures, fixedCollection } from "./collectionFixtures";
 import type { Collection, CollectionRead, MyCollection } from "./collectionRead";
-import type { BookSpreadMember } from "./book/packs/bookSpread";
 import { packFlipsForMs, packSlidesForMs } from "./book/packs/FoilPack";
 import { bookFlipsForMs, landingPauseMs, tileSettlesForMs } from "./book/packs/PackLanding";
-import { shellFixtures, type CrateOpenReply, type Drop } from "./shell";
+import { shellFixtures, type CrateOpenReply, type Drop, type MemberProfile } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
 
-const shopper: BookSpreadMember = { ...shellFixtures.memberWithTheInventory, coins: 120, bookSpread: true };
+const shopper: MemberProfile = { ...shellFixtures.memberWithTheInventory, coins: 120, bookSpread: true };
 
 const shown = ["doctor", "wizard", "banana", "surfer"];
 
@@ -87,7 +86,7 @@ async function settle(ms: number) {
   await act(async () => {});
 }
 
-type Shown = { member?: BookSpreadMember; read?: CollectionRead; openCrate?: (crate: string) => Promise<CrateOpenReply> };
+type Shown = { member?: MemberProfile; read?: CollectionRead; openCrate?: (crate: string) => Promise<CrateOpenReply> };
 
 function showThePacks(answer: MyCollection = twoPacks, { member = shopper, read = fixedCollection(answer), openCrate = async () => ({ kind: "refused" }) }: Shown = {}) {
   const opening = vi.fn(openCrate);
@@ -293,7 +292,7 @@ describe("#586: Put them in the book lands each hoggie on its tile", () => {
     await settle(bookFlipsForMs);
     await settle(tileSettlesForMs);
     expect(tile("doctor")).toHaveAttribute("data-landed");
-    expect(tile("wizard")).not.toHaveAttribute("data-landed");
+    expect(main().querySelector('[data-spread="hoggies"] [data-hoggie="wizard"]')).toBeNull();
     await settle(landingPauseMs);
     expect(window.location.hash).toBe(`#hoggies/${wizard.rarity}`);
     await settle(bookFlipsForMs);
