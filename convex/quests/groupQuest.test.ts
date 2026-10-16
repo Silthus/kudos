@@ -540,7 +540,7 @@ async function workspace(groupsByName: Groups, { timeZones = {}, groupless = [] 
 async function joins(t: Backend, user: string, group: string, at: number) {
   vi.setSystemTime(at);
   await t.run((ctx) => ctx.db.insert("userGroupMembers", { workspace: "T1", group, user }));
-  await t.mutation(internal.groups.reconcile.reconcileUsers, { workspace: "T1", users: [user], cause: { at, groups: [group] } });
+  await t.mutation(internal.groups.reconcile.reconcileUsers, { workspace: "T1", users: [user] });
   await settle(t);
 }
 

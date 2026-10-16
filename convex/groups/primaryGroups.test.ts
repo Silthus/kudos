@@ -347,6 +347,32 @@ describe("GB9: primaryGroupAt answers the history entry in force at an instant",
   });
 });
 
+describe("GB9, call 13: reconciling a member replays the transition log", () => {
+  test("a removal and re-add the copy records before the member's page runs leaves the fallback at the removal in the history", async () => {
+    const t = testBackend();
+    slack.withUserGroup("S_OWL", { name: "Owls", users: ["U_ANN"] }).withUserGroup("S_ZEBRA", { name: "Zebras", users: ["U_ANN", "U_BOB"] });
+    await sync(t);
+    await joined(t, "U_ANN");
+    vi.advanceTimersByTime(60_000);
+
+    slack.withUserGroup("S_OWL", { name: "Owls", users: [] });
+    await copyRecordsWithoutReconciling(t, "S_OWL");
+    const annLeft = Date.now();
+    vi.setSystemTime(annLeft + 2_000);
+    slack.withUserGroup("S_OWL", { name: "Owls", users: ["U_ANN"] });
+    await copyRecordsWithoutReconciling(t, "S_OWL");
+    await settleInTimeOrder(t);
+
+    expect(await historyOf(t, "U_ANN")).toEqual([
+      { from: null, group: "Owls", cause: "default" },
+      { from: "Owls", group: "Zebras", cause: "fallback" },
+    ]);
+    expect(await primaryGroupNameAt(t, "U_ANN", annLeft - 1)).toBe("Owls");
+    expect(await primaryGroupNameAt(t, "U_ANN", annLeft)).toBe("Zebras");
+    expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Zebras");
+  });
+});
+
 describe("GB1, GB3: groups are available only where an enabled custom group counts", () => {
   test("a workspace whose only user groups are disabled or Slack's automatic admin and owner groups has no groups, and nobody a primary group", async () => {
     const t = testBackend();

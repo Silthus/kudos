@@ -14,7 +14,7 @@ export async function primaryGroupAt(ctx: QueryCtx, member: MemberId, at: number
   return entry?.group ?? null;
 }
 
-function latestEntryOf(ctx: QueryCtx, member: MemberId) {
+export function latestEntryOf(ctx: QueryCtx, member: MemberId) {
   return ctx.db
     .query("primaryGroupHistory")
     .withIndex("by_member_at", (q) => q.eq("member", member))

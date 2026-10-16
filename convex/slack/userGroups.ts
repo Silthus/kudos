@@ -22,7 +22,7 @@ const withoutUserGroups = "plan_upgrade_required";
 const goneUserGroup = "no_such_subteam";
 const membersListSpacingMs = 3_000;
 const membersListsPerRun = 100;
-const maxMembersKept = 7_500;
+const maxMembersKept = 5_000;
 const attemptArgs = { attempt: v.optional(v.number()) };
 
 export function isUserGroupChanged(event: { type: string }): event is UserGroupChanged {
