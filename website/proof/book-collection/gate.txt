@@ -35,12 +35,6 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
-Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: navigation to another Document
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
@@ -305,11 +299,25 @@ Not implemented: HTMLCanvasElement's getContext() method: without installing the
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
 
- Test Files  245 passed (245)
-      Tests  4503 passed (4503)
-   Start at  00:18:42
-   Duration  359.18s (tests 90%, import 6%, environment 2%, transform 2%)
+ Test Files  252 passed (252)
+      Tests  4619 passed (4619)
+   Start at  00:42:26
+   Duration  320.34s (tests 90%, import 6%, environment 2%, transform 1%)
 
 $ coherence spec --check && coherence lexicon --check
 Kudos  Kudos.spec.md
@@ -384,7 +392,7 @@ Analytics  convex/analytics/Analytics.spec.md
       refuted 2026-10-13: exceptionOf sent every Error's message, not only a ReportableError's
       kinds message: 8 shapes apply, 1 declared, 7 dismissed
   analytics only observes  invariant
-      totality oracle "E11: recording a product event writes only analytics' own rows and schedules only the drain and the identify job" over every recording job four whole walks schedule with xp-levels, unlocks, quests and everyone-board on, one of new members, one over members there before unlocks launch, one through the skill tree and the Book with skill-tree and achievements on too, and one through a group quest with groups and group-quest on too (perk bought, achievement earned, kudos given, member welcomed, attempt failed, level reached, unlock made ready, unlock opened by member and by launch, journey step activated, quest drawn, quest drawn for a group quest, quest swapped, quest finished, crate opened, leaderboard viewed from App Home, leaderboard left and joined), and the command's leaderboard viewed, each re-run against its walk's end state with no analytics ID or workspace key yet, checked against every table, the scheduled functions, the Slack calls and pass-through spies on reading a flag, sending an exposure and publishing a domain event; the re-run covers every analytics subscriber the bus registers: verified 2026-10-14
+      totality oracle "E11: recording a product event writes only analytics' own rows and schedules only the drain and the identify job" over every recording job four whole walks schedule with xp-levels, unlocks, quests, everyone-board and collection on, one of new members, one over members there before unlocks launch, one through the skill tree and the Book with skill-tree and achievements on too, and one through a group quest with groups and group-quest on too (perk bought, hoggie dropped, achievement earned, kudos given, member welcomed, attempt failed, level reached, unlock made ready, unlock opened by member and by launch, journey step activated, quest drawn, quest drawn for a group quest, quest swapped, quest finished, crate opened, leaderboard viewed from App Home, leaderboard left and joined), and the command's leaderboard viewed, each re-run against its walk's end state with no analytics ID or workspace key yet, checked against every table, the scheduled functions, the Slack calls and pass-through spies on reading a flag, sending an exposure and publishing a domain event; the re-run covers every analytics subscriber the bus registers: verified 2026-10-14
       refuted 2026-10-14: recordUnlockReady also republished the member's App Home after recording unlock made ready
       kinds state, message: 15 shapes apply, 0 declared, 15 dismissed
   a flag answers its safe default whenever it can't be evaluated  invariant
@@ -554,6 +562,23 @@ Groups  convex/groups/Groups.spec.md
       totality oracle "O36: the groups exposure" over a member meeting groups in the welcome, every App Home tab and the replies while on, again while on, then twice while off, and a flag on for one member's email beside a member it doesn't name: verified 2026-10-14
       refuted 2026-10-14: groupsApplyTo decided the groups flag without sending its exposure
       kinds state: 7 shapes apply, 0 declared, 7 dismissed
+Hoggies  convex/hoggies/Hoggies.spec.md
+  a crate drops at most one hoggie  invariant
+      totality oracle "CL20: a crate drops at most one hoggie" over a finished Journey step's, a finished weekly quest's and a ready feature's crate opened on the website, from App Home and from both, opened again on the website, from App Home under a new event and as a replayed click in App Home, the same crate opened in two fresh backends, a refused quest crate and feature, a feature opened by the unlocks launch, a crate opened while collection was off and opened again once it was on, a held crate's open with what it applied, and the drops each leaves, read through the website's answers, dropsNewestFirst and the events published: verified 2026-10-15
+      refuted 2026-10-15: dropFor no longer looked up the crate's stored drop, and openQuestCrate called it again on a repeated open
+      kinds storage, state: 15 shapes apply, 1 declared, 14 dismissed
+  a drop never changes  invariant
+      totality oracle "CL20: a drop never changes" over a stored drop answered again by the website after the catalogue moved its hoggie to another rarity, after a second drop of the same hoggie, and after collection went off and on again, read through the website's answers and dropsNewestFirst: verified 2026-10-15
+      refuted 2026-10-15: a drop's answer read its rarity from the catalogue as it is now instead of from the drop record
+      kinds storage: 9 shapes apply, 1 declared, 8 dismissed
+  the collection is dark where collection is off  invariant
+      totality oracle "CL18: the collection is dark where collection is off, drops only for the members it is on for, and only a first open exposes it" over two members at level 4 who each gave a kudos, each opening a feature and their Journey crate from App Home twice with the website closed, then a feature and the Journey crate again on the website, every activity page, getCollection and getBook, and App Home after, in each of the four off states beside the same walk with the hoggies module deciding nothing, and with collection on for everyone as the positive control and for one member's email; and a locked feature and an undrawn weekly crate opened in Slack and on the website before any successful open, then opens, App Home, the activity and getCollection read through collection on, off and on again for two members: verified 2026-10-15
+      refuted 2026-10-15: dropShownTo no longer asked whether collection is shown to the member
+      kinds state, output: 11 shapes apply, 0 declared, 11 dismissed
+  turning collection off takes nothing away  invariant
+      totality oracle "CL11: turning collection off hides every hoggie and takes nothing away; on again shows the same" over a member who dropped twice from App Home, in each of the three off states and on again, read through App Home, getCollection, getActivity and the drop records and tallies, and a feature opened in Slack while off and opened again in Slack and on the website once on: verified 2026-10-15
+      refuted 2026-10-15: App Home's hoggies line no longer asked whether collection is shown to the member
+      kinds state, output: 11 shapes apply, 1 declared, 11 dismissed
 Leaderboard  convex/leaderboard/Leaderboard.spec.md
   the leaderboard counts kudos given, never kudos received  invariant
       totality oracle "G13: the board counts kudos given, never kudos received" over the totals and this week's Everyone board after one member gives kudos to two others in one message and one of them gives kudos back, seen by the member who only received: verified 2026-10-13
@@ -763,8 +788,9 @@ Quests  convex/quests/Quests.spec.md
       refuted 2026-10-13: recordReward no longer skipped a reward key already recorded
       kinds message, state: 15 shapes apply, 1 declared, 14 dismissed
   opening a crate applies its held reward once  invariant
-      totality oracle "CR3 P92: opening a crate applies its held reward once" over every table of the schema, read before and after openQuestCrate opens a finished first-thanks crate held and not held, a held weekly crate with coins, and again across a second open a week later of each, and every event published by the opens: verified 2026-10-15
+      totality oracle "CR3 P92: opening a crate applies its held reward once" over every table of the schema, read before and after openQuestCrate opens a finished first-thanks crate held and not held, a held weekly crate with coins, a held first-thanks crate with collection on, and again across a second open of each, and every event published by the opens: verified 2026-10-15
       refuted 2026-10-13: openQuestCrate also recorded a 10 XP reward record when it opened a crate
+      refuted 2026-10-15: openQuestCrate dropped the crate's hoggie after publishing questOpened instead of before
       refuted 2026-10-14: openQuestCrate applied a held reward before checking for an earlier crate opening, so a second open applied it again
       kinds state: 7 shapes apply, 0 declared, 7 dismissed
   crate-rewards is dark wherever it is off  invariant
@@ -991,8 +1017,9 @@ Store  convex/store/Store.spec.md
       kinds output, state: 11 shapes apply, 0 declared, 11 dismissed
 Unlocks  convex/unlocks/Unlocks.spec.md
   opening grants nothing  invariant
-      totality oracle "P92: opening grants nothing" over every table of the schema, read before and after openUnlock opens a ready Leaderboard for a member with an effects record, XP and a level, and every event published by the open: verified 2026-10-13
+      totality oracle "P92: opening grants nothing" over every table of the schema, read before and after openUnlock opens a ready Leaderboard for a member with an effects record, XP and a level, with collection off and on, and every event published by the open: verified 2026-10-15
       refuted 2026-10-13: openUnlock also added 10 XP to the member's progress when it opened a feature
+      refuted 2026-10-15: openUnlock dropped the feature's hoggie after publishing unlockOpened instead of before
       kinds state: 7 shapes apply, 1 declared, 6 dismissed
   a ready or opened feature is kept for good  invariant
       totality oracle "P5: a ready or opened feature is kept for good" over every table of the schema and every published event, across a week passing, later levelReached events, a replayed levelReached, a second open and everyone-board turned off and on again, for a ready Leaderboard and for an opened one: verified 2026-10-13
@@ -1055,7 +1082,7 @@ Website reads  convex/website/WebsiteReads.spec.md
       refuted 2026-10-13: made prepareWebsiteFlag a public mutation instead of an internal one
       kinds read, identity: 5 shapes apply, 1 declared, 4 dismissed
   website reads pass one guard  invariant
-      totality oracle "website reads pass one guard" over getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getGroupBoards for no session and the flag off; getQuests with the flag off, no session, a former member, and an argument that names another member; getBook with the website flag off, no session, a former member, and an argument that names another member; getSkillTree with the flag off, no session, a former member, and an argument that names another member; getProfileCard with the website flag off, no session, a former member, and an argument that names another member; getActivity, getRecentKudos and getSpotlight with the website flag off and the activity flag on, no session, and a member user_change deactivates; getSettings with the website flag off and no session: verified 2026-10-14
+      totality oracle "website reads pass one guard" over getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getGroupBoards for no session and the flag off; getQuests with the flag off, no session, a former member, and an argument that names another member; getBook with the website flag off, no session, a former member, and an argument that names another member; getCollection with the website flag off, no session, a former member, and an argument that names another member; getSkillTree with the flag off, no session, a former member, and an argument that names another member; getProfileCard with the website flag off, no session, a former member, and an argument that names another member; getActivity, getRecentKudos and getSpotlight with the website flag off and the activity flag on, no session, and a member user_change deactivates; getSettings with the website flag off and no session: verified 2026-10-15
       crossing browser -> domain
       refuted 2026-10-13: memberQuery dropped the check that the session's workspace is the current SLACK_WORKSPACE_ID
       kinds read, identity: 5 shapes apply, 1 declared, 4 dismissed
@@ -1125,6 +1152,16 @@ Website reads  convex/website/WebsiteReads.spec.md
       totality oracle "PC15 PC17: getProfileCard follows the member's own profile-card decision" over getProfileCard with profile-card off for everyone, for a member with a tier who opened the Book; and with profile-card on for one email, read by that member and by another: verified 2026-10-14
       crossing browser -> domain
       refuted 2026-10-14: getProfileCard answered the card without reading the profile-card flag
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  the website card names the primary group while groups show  invariant
+      totality oracle "WS344 GB32: the card names the member's primary group while groups applies" over getProfileCard for a member whose primary group is Ants, for a member with no primary group, and with groups on for one email, read by that member and by another in the same group: verified 2026-10-15
+      crossing browser -> domain
+      refuted 2026-10-15: getProfileCard read primaryGroupOf without checking groupsShownTo
+      kinds read: 2 shapes apply, 1 declared, 1 dismissed
+  the website's peer line is the board's  invariant
+      totality oracle "WS344 GB16: getLeaderboard carries the Everyone board's peer line" over getLeaderboard for a member ahead of most of their group this week with groups on, and the same member with groups off: verified 2026-10-15
+      crossing browser -> domain
+      refuted 2026-10-15: getLeaderboard answered peer null instead of rankedBoardOf's peer
       kinds read: 2 shapes apply, 1 declared, 1 dismissed
   a member's home shows only their own facts  invariant
       totality oracle "WS13 WS15 WS18: a member's home answer projects their own homeFacts" over getMyProfile for a member beside members who gave and received kudos, before and after a kudos lands, and across the member's midnight and the week's turn on a clock tick: verified 2026-10-13
@@ -1218,8 +1255,8 @@ Website  website/Website.spec.md
       totality oracle "#435: ?crate={feature} lands on the page's ready crate" over useLinkTargetOnceLanded in website/src/linkTarget.ts, run by App over the ready band of each feature page and the home's Journey panel, for a ready crate, a Journey step's crate, an unknown crate and another page's crate: verified 2026-10-15
       refuted 2026-10-15: pressed the crate's Open on arrival instead of focusing it
       kinds output: 5 shapes apply, 0 declared, 5 dismissed
-24 components, 192 bullets: 191 invariants, 1 requirement
-lacking: enforcement 0, refutation 1, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-15T20:29:30.992Z (1122 runs)
+25 components, 198 bullets: 197 invariants, 1 requirement
+lacking: enforcement 0, refutation 1, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-15T23:38:57.890Z (1151 runs)
 GUARD FAILURE  df-bcaa003b in class bypassed-door, which convex/website/a member previews the website by their own decision has guarded since rs-ed24d6b7 closed df-79b4ea97: the guard was weaker than claimed; strengthen it and refute it again
 GUARD FAILURE  df-7a3efd91 in class bypassed-door, which convex/website/a member previews the website by their own decision has guarded since rs-ed24d6b7 closed df-79b4ea97: the guard was weaker than claimed; strengthen it and refute it again
 defects: 26 recorded, 23 closed (6 guarded, 17 decided, 0 with neither); 2 guard failures
@@ -1260,6 +1297,6 @@ RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:17 
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:19  "team auras"  rejected for group aura; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/d2a3770a-9a16-42bc-bd2d-cdbf6996f8cc.jsonl:28  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
 RECORDED NAME  .coherence/journal/fecc2f56-01b5-4d62-9295-680f82cdb9ca.jsonl:4  "DM setting"  rejected for kudos; the store is append-only, so the repair is a later record, never an edit
-ADVISORY       360 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 119, contract 44, panel 39, receipt 35, zone 33; reported, never failing, since inside the project its sense wins (--json lists each)
-0 rejected names, 0 unknown nouns (1003 files), 37 in records
+ADVISORY       370 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 124, contract 45, panel 39, receipt 35, zone 33; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (1027 files), 37 in records
 exit=0
