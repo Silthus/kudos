@@ -1,7 +1,7 @@
 import type { ActivityRead, ActivityWatch } from "./activityRead";
 import type { ActivityFilter } from "./route";
 import type { Drop } from "./crates/drops";
-import type { Activity, ActivityEntry, Found, KudosGiven, KudosReceived, LevelUp, Message, Person } from "./shell";
+import type { Activity, ActivityEntry, Found, HugGiven, HugReceived, KudosGiven, KudosReceived, LevelUp, Message, Person } from "./shell";
 
 type Words = Extract<Message, { kind: "text" }>;
 
@@ -32,6 +32,14 @@ export function aReceived(key: string, at: number, changes: Partial<KudosReceive
 
 export function aGiven(key: string, at: number, changes: Partial<KudosGiven> = {}): KudosGiven {
   return { kind: "kudosGiven", key, at, recipients: [teammates.bo], kudos: 1, channel: { visibility: "public" }, saidWhy: false, permalink: null, message: words(`Thanks for ${key}`), earned: { xp: 10, questsDone: [], bonuses: [] }, ...changes };
+}
+
+export function aHugReceived(on: string, at: number, changes: Partial<HugReceived> = {}): HugReceived {
+  return { kind: "hugReceived", key: on, at, givers: [teammates.ada], emoji: "hugging_face", hugs: 1, xp: 1, on, permalink: null, kudos: null, ...changes };
+}
+
+export function aHugGiven(key: string, at: number, changes: Partial<HugGiven> = {}): HugGiven {
+  return { kind: "hugGiven", key, at, people: [teammates.bo], emoji: "hugging_face", xp: 1, on: `C1/${key}`, permalink: null, kudos: null, ...changes };
 }
 
 export function aLevelUp(level: number, at: number): LevelUp {

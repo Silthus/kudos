@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aGiven, aLevelUp, aReceived, aPage, anUnknownKind } from "../activityFixtures";
+import { aGiven, aHugGiven, aHugReceived, aLevelUp, aReceived, aPage, anUnknownKind, teammates } from "../activityFixtures";
 import { entryIdOf, firstPage, hasNewActivity, timeline, type TimelineEvent, type TimelineState } from "./timeline";
 
 function after(...events: TimelineEvent[]): TimelineState {
@@ -147,5 +147,36 @@ describe("WS214: an empty timeline takes the watch directly", () => {
   it("ignores a watch that only holds kinds it doesn't know", () => {
     const empty = after({ kind: "read", answer: aPage([], null) });
     expect(timeline(empty, { kind: "watched", answer: aPage([anUnknownKind()], null) })).toBe(empty);
+  });
+});
+
+describe("#580: hugs on the timeline", () => {
+  const hugged = aHugReceived("C1/7", Date.parse("2026-10-14T08:00:00Z"));
+  const huggedAgain = aHugReceived("C1/7", Date.parse("2026-10-14T13:00:00Z"), { givers: [teammates.bo, teammates.ada], hugs: 2 });
+
+  it("keeps both hug kinds, in the read's order", () => {
+    const given = aHugGiven("h1", Date.parse("2026-10-14T10:00:00Z"));
+    expect(after({ kind: "read", answer: aPage([newest, given, hugged], null) }).entries).toEqual([newest, given, hugged]);
+  });
+
+  it("names a received hug row by the message it is on, whenever its newest hug landed", () => {
+    expect(entryIdOf(hugged)).toBe("hugReceived:C1/7");
+    expect(entryIdOf(huggedAgain)).toBe(entryIdOf(hugged));
+    expect(entryIdOf(aHugGiven("h1", 1))).toBe("hugGiven:h1");
+  });
+
+  it("raises a shown row that moved up because a hug landed on its message", () => {
+    const shown = after({ kind: "read", answer: aPage([newest, middle, hugged], "c1") });
+    expect(hasNewActivity(shown, aPage([huggedAgain, newest, middle], "c1"))).toBe(true);
+  });
+
+  it("raises a row that moved up from a page not read yet", () => {
+    const shown = after({ kind: "read", answer: aPage([newest, middle], "c1") });
+    expect(hasNewActivity(shown, aPage([huggedAgain, newest, middle], "c1"))).toBe(true);
+  });
+
+  it("raises nothing while the moved row is already shown as it is", () => {
+    const shown = after({ kind: "read", answer: aPage([huggedAgain, newest, middle], "c1") });
+    expect(hasNewActivity(shown, aPage([huggedAgain, newest, middle], "c1"))).toBe(false);
   });
 });
