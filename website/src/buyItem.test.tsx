@@ -174,6 +174,17 @@ describe("WS341 V13: a bought item turns owned in place, never as a crate", () =
     expect(buyButtons()).toHaveLength(1);
   });
 
+  it("keeps a bought item out of Not yours yet while another purchase is sent before the read moves either", async () => {
+    let calls = 0;
+    const { user } = buyWith(async ({ item }) => (++calls === 1 ? { kind: "bought", item } : { kind: "refused", reason: "no-coins" }));
+
+    await user.click(buyButtonFor("Gem"));
+    await user.click(buyButtonFor("Glowing Star"));
+
+    expect(announcement()).toHaveTextContent("Not enough coins yet.");
+    expect(within(notYoursYet()).queryByText("Gem")).not.toBeInTheDocument();
+  });
+
   it("names the item the purchase was for even when the read already moved it", async () => {
     const pending = answerLater();
     const { user, showVisitor } = buyWith(() => pending.answer);
@@ -252,6 +263,27 @@ describe("WS87 WS341: a refusal, an error and a retry", () => {
 
     expect(announcement()).toHaveTextContent(/^$/);
     expect(buyButtonFor("Gem")).toHaveTextContent("Buy for 100 coins");
+  });
+
+  it("resends the same request after the home page gave way to Connecting and came back", async () => {
+    const pending = answerLater();
+    let calls = 0;
+    let questsConnecting = false;
+    const readQuests = (asking: boolean) => (questsConnecting ? ({ kind: "connecting" } as never) : asking ? { kind: "not-found" as const } : undefined);
+    const spy = vi.fn((_: ItemPurchase) => (++calls === 1 ? pending.answer : Promise.resolve<ItemBuyAnswer>({ kind: "refused", reason: null })));
+    const { user, showVisitor } = renderApp(memberWithTheInventory, undefined, { buyItem: spy }, readQuests);
+    await user.click(buyButtonFor("Gem"));
+    await pending.fail();
+
+    questsConnecting = true;
+    showVisitor({ ...memberWithTheInventory });
+    expect(screen.queryByRole("region", { name: "Inventory" })).not.toBeInTheDocument();
+    questsConnecting = false;
+    showVisitor({ ...memberWithTheInventory });
+    await user.click(buyButtonFor("Gem"));
+
+    const [first, second] = spy.mock.calls.map(([{ request }]) => request);
+    expect(second).toBe(first);
   });
 
   it("forgets the pending request when the signed-in member changes", async () => {

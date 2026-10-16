@@ -5,18 +5,18 @@ import type { InventoryItem, ItemSource, MemberInventory, MemberProfile, ShellAc
 import { CoinGlyph } from "../skills/glyphs";
 import { coinsText } from "../skills/perkWords";
 import { CustomEmoji } from "../CustomEmoji";
-import { useItemPurchase, shortfallText, type ItemNotice, type ItemPurchasing } from "./itemPurchase";
+import { useItemPurchase, shortfallText, type ItemNotice, type ItemPurchasing, type PendingItemPurchase } from "./itemPurchase";
 import { Panel } from "./Panel";
 
 type Owned = { entry: InventoryItem; slot: number | null; justBought: boolean; onPopped: () => void };
 
-type InventoryPanelProps = { member: MemberProfile; buyItem: ShellActions["buyItem"] };
+type InventoryPanelProps = { member: MemberProfile; buyItem: ShellActions["buyItem"]; pendingPurchase: PendingItemPurchase };
 
-export function InventoryPanel({ member, buyItem }: InventoryPanelProps) {
+export function InventoryPanel({ member, buyItem, pendingPurchase }: InventoryPanelProps) {
   if (member.inventory === null) return null;
   return (
     <Panel id="inventory" label="Inventory" aside={member.coins !== null && <Balance coins={member.coins} />}>
-      <KudosEmojiSection inventory={member.inventory} kudosEmoji={member.kudosEmoji} coins={member.coins ?? 0} buyItem={buyItem} />
+      <KudosEmojiSection inventory={member.inventory} kudosEmoji={member.kudosEmoji} coins={member.coins ?? 0} buyItem={buyItem} pendingPurchase={pendingPurchase} />
     </Panel>
   );
 }
@@ -30,13 +30,13 @@ function Balance({ coins }: { coins: number }) {
   );
 }
 
-type KudosEmojiSectionProps = { inventory: MemberInventory; kudosEmoji: string; coins: number; buyItem: ShellActions["buyItem"] };
+type KudosEmojiSectionProps = { inventory: MemberInventory; kudosEmoji: string; coins: number; buyItem: ShellActions["buyItem"]; pendingPurchase: PendingItemPurchase };
 
-function KudosEmojiSection({ inventory, kudosEmoji, coins, buyItem }: KudosEmojiSectionProps) {
+function KudosEmojiSection({ inventory, kudosEmoji, coins, buyItem, pendingPurchase }: KudosEmojiSectionProps) {
   const heading = useRef<HTMLHeadingElement>(null);
-  const purchasing = useItemPurchase(buyItem, () => heading.current?.focus());
+  const purchasing = useItemPurchase(buyItem, pendingPurchase, () => heading.current?.focus());
   const yours = ownedIn(inventory, purchasing);
-  const notYet = inventory.catalogue.filter(({ item }) => item !== purchasing.justBought && !yours.some(({ entry }) => entry.item === item));
+  const notYet = inventory.catalogue.filter(({ item }) => !purchasing.bought.includes(item) && !yours.some(({ entry }) => entry.item === item));
   const equipped = inventory.slots.filter(({ item }) => item !== null).length;
   return (
     <section aria-labelledby="inventory-kudos-emoji" className="flex flex-col gap-3">

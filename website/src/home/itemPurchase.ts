@@ -1,16 +1,18 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { attemptMessages } from "../crates/moments";
 import type { InventoryItem, ItemBuyAnswer, ItemPurchase, ItemPurchaseRefusal, ShellActions } from "../shell";
 
 export type ItemNotice = { kind: "bought" | "refused" | "unreachable"; text: string };
 
-export type ItemPurchasing = { buying: string | undefined; justBought: string | undefined; notice: ItemNotice | undefined; buy(item: InventoryItem): void; popped(): void };
+export type ItemPurchasing = { buying: string | undefined; bought: string[]; justBought: string | undefined; notice: ItemNotice | undefined; buy(item: InventoryItem): void; popped(): void };
+
+export type PendingItemPurchase = { current: ItemPurchase | undefined };
 
 const refusedText = "That couldn't be bought.";
 
-export function useItemPurchase(buyItem: ShellActions["buyItem"], onBought: () => void): ItemPurchasing {
-  const pending = useRef<ItemPurchase | undefined>(undefined);
+export function useItemPurchase(buyItem: ShellActions["buyItem"], pending: PendingItemPurchase, onBought: () => void): ItemPurchasing {
   const [buying, setBuying] = useState<string>();
+  const [bought, setBought] = useState<string[]>([]);
   const [justBought, setJustBought] = useState<string>();
   const [notice, setNotice] = useState<ItemNotice>();
 
@@ -23,6 +25,7 @@ export function useItemPurchase(buyItem: ShellActions["buyItem"], onBought: () =
     pending.current = undefined;
     setNotice(noticeOf(item, answer));
     if (answer.kind !== "bought") return;
+    setBought((earlier) => [...earlier, answer.item]);
     setJustBought(answer.item);
     onBought();
   };
@@ -43,6 +46,7 @@ export function useItemPurchase(buyItem: ShellActions["buyItem"], onBought: () =
 
   return {
     buying,
+    bought,
     justBought,
     notice,
     buy: (item) => {
