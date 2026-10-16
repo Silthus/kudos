@@ -31,7 +31,7 @@ import { slots as slotNames, type ItemRefusal } from "../store/rows";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
-import { earlierWeekCratePageOf, questCratePageOf, readyCratePageOf, urlOf, weeklyCratePageOf, type Page } from "../website/routes";
+import { boughtCratePageOf, crateOfferPageOf, earlierWeekCratePageOf, questCratePageOf, readyCratePageOf, urlOf, weeklyCratePageOf, type Page } from "../website/routes";
 import { coinsPartOf, inCoins } from "./coins";
 import type { CrateStoreShown, HoggiesShown, HomeTab, JourneyStepShown, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { countsFor, pickQuestion } from "./groupCopy";
@@ -150,7 +150,8 @@ function summaryOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest,
   const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)])];
   const { origin } = links;
   const earlier = cappedEarlierCrates(earlierCratesOf(earlierCrates, origin), earlierGroupCrates, origin);
-  const waiting = [...readyCratesOf(unlocks, origin), ...earlier.shown, ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...earlier.more, ...boughtCratesLines(boughtCrates ?? [])];
+  const collectionPage = hoggies === null ? null : origin;
+  const waiting = [...readyCratesOf(unlocks, origin), ...earlier.shown, ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...earlier.more, ...boughtCratesLines(boughtCrates ?? [], collectionPage)];
   const weekly = questsThisWeek(quests, groupQuest, { cratesShownApart: true, website: origin });
   return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...hoggiesLinesOf(hoggies, origin), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
 }
@@ -203,22 +204,34 @@ function hoggiesLinesOf(hoggies: HoggiesShown | null, website: string | null): H
   if (hoggies === null) return [];
   const text = `Hoggies: ${hoggies.owned} of ${hoggies.total}${crestsPartOf(hoggies)} · ${lastFoundPartOf(hoggies)}`;
   const line: HomeLine = website === null ? { kind: "text", text } : { kind: "action", text, action: linkOnTheWeb({ label: "View", spoken: "View your hoggies", id: "hoggies" }, { page: "bookCollection" }, website) };
-  return [[line, ...crateOfferLines(hoggies.crateStore)]];
+  return [[line, ...crateOfferLines(hoggies.crateStore, website)]];
 }
 
-function crateOfferLines(store: CrateStoreShown | null): HomeLine[] {
+function crateOfferLines(store: CrateStoreShown | null, website: string | null): HomeLine[] {
   if (store === null) return [];
-  const price = coinsOf(store.price);
-  const confirm = { title: `Buy a crate for ${price}?`, text: "Coins are never refunded.", confirm: "Buy", deny: "Cancel" };
-  const action: HomeAction = { label: `Buy a crate · ${price}`, command: { type: "buyCrate", next: store.next }, accessibilityLabel: `Buy a crate for ${store.price} coins`, confirm };
+  const action = buyACrate(store, website);
   const short: HomeLine[] = store.short !== null && store.short > 0 ? [{ kind: "hint", text: `You need ${store.short} more 🪙.` }] : [];
   return [{ kind: "action", text: "A crate drops one hoggie when you open it.", action }, ...short];
 }
 
-function boughtCratesLines([oldest, ...others]: string[]): HomeLine[] {
+function buyACrate({ price, next }: CrateStoreShown, website: string | null): HomeAction {
+  const label = `Buy a crate · ${coinsOf(price)}`;
+  const spoken = `Buy a crate for ${price} coins`;
+  if (website !== null) return linkOnTheWeb({ label, spoken, id: "crate-store" }, crateOfferPageOf(), website);
+  const confirm = { title: `Buy a crate for ${coinsOf(price)}?`, text: "Coins are never refunded.", confirm: "Buy", deny: "Cancel" };
+  return { label, command: { type: "buyCrate", next }, accessibilityLabel: spoken, confirm };
+}
+
+function boughtCratesLines([oldest, ...others]: string[], website: string | null): HomeLine[] {
   if (oldest === undefined) return [];
   const text = others.length === 0 ? "A crate you bought" : `${others.length + 1} crates you bought`;
-  return [{ kind: "action", text, action: { label: "Open", command: { type: "openCrate", crate: oldest }, accessibilityLabel: "Open a crate you bought" } }];
+  return [{ kind: "action", text, action: openBoughtCrate(oldest, website) }];
+}
+
+function openBoughtCrate(crate: string, website: string | null): HomeAction {
+  const spoken = "Open a crate you bought";
+  if (website === null) return { label: "Open", command: { type: "openCrate", crate }, accessibilityLabel: spoken };
+  return linkOnTheWeb({ label: "Open", spoken, id: crate }, boughtCratePageOf(crate), website);
 }
 
 function crestsPartOf({ crests }: HoggiesShown) {
@@ -597,7 +610,7 @@ function waitingToOpenLines(crates: UnopenedCrate[], groupCrates: WaitingGroupCr
   if (crates.length + groupCrates.length + bought.length === 0) return [];
   const weekly = crates.map(({ crate, week, goal, reward, waiting }): HomeLine => ({ kind: "action", text: `${weekLabelOf(week)} ✅ ${goal} ${rewardTold(reward.xp, waiting)}`, action: openCrate(crate, null) }));
   const { shown, more } = cappedEarlierCrates(weekly, groupCrates, null);
-  return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...more, ...boughtCratesLines(bought)];
+  return [{ kind: "text", text: bold("Waiting to open") }, ...shown, ...more, ...boughtCratesLines(bought, null)];
 }
 
 function earlierGroupCrateLine({ crate, group, goal }: WaitingGroupCrate, website: string | null): HomeLine {
