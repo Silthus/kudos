@@ -74,12 +74,13 @@ export async function personFactsOf(ctx: QueryCtx, member: MemberId): Promise<Pe
   return { workspace: row.workspace, user: row.user, admin: row.admin ?? false, ...profileOf(row) };
 }
 
-export async function adminsIn(ctx: QueryCtx, workspace: string): Promise<ChatUserId[]> {
-  const members = await ctx.db
+export async function adminsPageIn(ctx: QueryCtx, workspace: string, cursor: string | null, numItems: number) {
+  const { page, isDone, continueCursor } = await ctx.db
     .query("members")
     .withIndex("by_admin", (q) => q.eq("workspace", workspace).eq("admin", true))
-    .collect();
-  return members.filter(({ kind }) => kind === "member").map(({ user }) => user);
+    .paginate({ cursor, numItems });
+  const admins = page.filter(({ kind }) => kind === "member").map(({ user }) => user);
+  return { admins, continueCursor: isDone ? null : continueCursor };
 }
 
 export const directoryRecordArgs = { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.number() };

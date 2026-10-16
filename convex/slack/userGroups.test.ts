@@ -166,15 +166,15 @@ describe("an answer the directory can't trust changes nothing", () => {
 
   test("a members list as long as a user group keeps replaces every member within Convex's write limit", async () => {
     const t = testBackend({ transactionLimits: true });
-    slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: Array.from({ length: 7_500 }, (_, index) => `U_OLD_${index}`) });
+    slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: Array.from({ length: 5_000 }, (_, index) => `U_OLD_${index}`) });
     await sync(t);
-    slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: Array.from({ length: 7_500 }, (_, index) => `U_NEW_${index}`) });
+    slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: Array.from({ length: 5_000 }, (_, index) => `U_NEW_${index}`) });
     captureOn();
 
     await t.action(internal.slack.userGroups.refreshMembers, { workspace: "T1", group: "S_GARDEN" });
 
     expect(await groupsOf(t, "U_OLD_0")).toEqual([]);
-    expect(await groupsOf(t, "U_NEW_7499")).toEqual([gardeners]);
+    expect(await groupsOf(t, "U_NEW_4999")).toEqual([gardeners]);
     expect((await pendingJobs(t)).length).toBeLessThan(1_000);
   });
 
@@ -182,7 +182,7 @@ describe("an answer the directory can't trust changes nothing", () => {
     const t = testBackend();
     slack.withUserGroup("S_GARDEN", { handle: "gardeners", name: "Gardeners", users: ["U_ANN"] });
     await sync(t);
-    slack.answering("usergroups.users.list", () => Response.json({ ok: true, users: Array.from({ length: 7_501 }, (_, index) => `U_${index}`) }));
+    slack.answering("usergroups.users.list", () => Response.json({ ok: true, users: Array.from({ length: 5_001 }, (_, index) => `U_${index}`) }));
 
     await expect(t.action(internal.slack.userGroups.refreshMembers, { workspace: "T1", group: "S_GARDEN" })).rejects.toThrow("Slack usergroups.users.list answered more members than a user group keeps");
 
@@ -232,7 +232,7 @@ describe("a workspace without user groups", () => {
 
   test("losing user groups with thousands of memberships stays within Convex's transaction limits", async () => {
     const t = testBackend({ transactionLimits: true });
-    const everyone = Array.from({ length: 6_000 }, (_, index) => `U_${index}`);
+    const everyone = Array.from({ length: 5_000 }, (_, index) => `U_${index}`);
     for (const group of ["S_ONE", "S_TWO", "S_THREE"]) slack.withUserGroup(group, { users: everyone });
     await sync(t);
     const before = await groupsOf(t, "U_0");
@@ -367,6 +367,15 @@ describe("Convex's limit of 1,000 scheduled functions per call", () => {
 
     expect(scheduled.length).toBeLessThan(1_000);
     expect(scheduled.filter(({ name }) => name.endsWith(":refreshMembers")).length + groupsAhead.length).toBe(1_001);
+  });
+
+  test("a first listing of 2,000 enabled user groups keeps every one within Convex's limits", { timeout: 120_000 }, async () => {
+    const t = testBackend({ transactionLimits: true });
+    const listed = Array.from({ length: 2_000 }, (_, index) => ({ workspace: "T1", group: `S_${index}`, handle: `g${index}`, name: `Group ${index}`, enabled: true, automatic: false }));
+
+    await t.mutation(internal.workspace.userGroups.keepUserGroups, { listed, scope: { kind: "every-group" }, asOf: Date.now() });
+
+    expect(await t.run(async (ctx) => (await ctx.db.query("userGroups").collect()).length)).toBe(2_000);
   });
 
   test("a listing that disables 1,001 user groups schedules fewer than 1,000 functions", async () => {

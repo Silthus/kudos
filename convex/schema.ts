@@ -120,11 +120,27 @@ export default defineSchema({
     .index("by_group", ["workspace", "group", "user"])
     .index("by_user", ["workspace", "user"]),
 
+  userGroupDepartures: defineTable({
+    workspace: v.string(),
+    user: v.string(),
+    group: v.id("userGroups"),
+    joinedAt: v.number(),
+    at: v.number(),
+  }).index("by_user_at", ["workspace", "user", "at"]),
+
+  groupCountingChanges: defineTable({
+    workspace: v.string(),
+    group: v.id("userGroups"),
+    counts: v.boolean(),
+    at: v.number(),
+  }).index("by_group_at", ["group", "at"]),
+
   memberGroups: defineTable({
     workspace: v.string(),
     member: v.id("members"),
     groups: v.array(v.id("userGroups")),
     primary: v.union(v.id("userGroups"), v.null()),
+    directoryChangedAt: v.optional(v.number()),
   })
     .index("by_member", ["member"])
     .index("by_primary", ["primary"]),
