@@ -7,6 +7,7 @@ import { post, testBackend, type Backend } from "../../testing/slackBackend";
 import { signingSecret } from "../../testing/signedSlack";
 import { emoji, mention, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
+import type { MutationCtx } from "../_generated/server";
 import type { LadderId, TierRef } from "../achievements/ladders";
 import { subscribers } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
@@ -92,7 +93,7 @@ type SubscriberRun = { name: string; scheduled: number; refused?: string };
 async function settleRunningSubscribersOneByOne(t: Backend) {
   for (let fired = 0; fired < 100; fired += 1) {
     await t.finishInProgressScheduledFunctions();
-    if ((await pendingJobs(t)).some(isKudosGivenSubscriber)) return runSubscribersAlone(t);
+    if ((await pendingSubscriberJobs(t)).length > 0) return runSubscribersAlone(t);
     vi.advanceTimersToNextTimer();
   }
   throw new Error("the kudos was never given");
@@ -100,38 +101,53 @@ async function settleRunningSubscribersOneByOne(t: Backend) {
 
 async function runSubscribersAlone(t: Backend) {
   const runs: SubscriberRun[] = [];
-  for (let pending = await pendingJobs(t); pending.some(isKudosGivenSubscriber); pending = await pendingJobs(t)) {
-    for (const job of pending.filter(isKudosGivenSubscriber)) runs.push(await runCounting(t, job));
+  for (let pending = await pendingSubscriberJobs(t); pending.length > 0; pending = await pendingSubscriberJobs(t)) {
+    for (const job of pending) runs.push(await runCounting(t, job));
   }
   await t.run(async (ctx) => {
-    for (const job of await ctx.db.system.query("_scheduled_functions").collect()) if (job.state.kind === "pending") await ctx.scheduler.cancel(job._id);
+    for (const job of await pendingJobsOf(ctx).collect()) await ctx.scheduler.cancel(job._id);
   });
   return runs;
 }
 
-async function pendingJobs(t: Backend) {
-  return (await scheduledJobs(t)).filter(({ state }) => state.kind === "pending");
+function pendingSubscriberJobs(t: Backend) {
+  return t.run((ctx) =>
+    pendingJobsOf(ctx)
+      .filter((q) => q.or(...[...kudosGivenSubscribers].map((name) => q.eq(q.field("name"), name))))
+      .collect(),
+  );
 }
 
-function isKudosGivenSubscriber({ name }: ScheduledJob) {
-  return kudosGivenSubscribers.has(name);
+function pendingJobsOf(ctx: MutationCtx) {
+  return ctx.db.system.query("_scheduled_functions").filter((q) => q.eq(q.field("state.kind"), "pending"));
 }
+
+type ScheduledJob = Awaited<ReturnType<typeof pendingSubscriberJobs>>[number];
 
 async function runCounting(t: Backend, { _id, name, args }: ScheduledJob): Promise<SubscriberRun> {
   await t.run((ctx) => ctx.scheduler.cancel(_id));
-  const before = (await scheduledJobs(t)).length;
+  const lastScheduledBefore = await lastScheduledAt(t);
   try {
     await t.mutation(makeFunctionReference<"mutation">(name), args[0] as Record<string, unknown>);
   } catch (error) {
     return { name, scheduled: 0, refused: (error as Error).message };
   }
-  return { name, scheduled: (await scheduledJobs(t)).length - before };
+  return { name, scheduled: await countScheduledAfter(t, lastScheduledBefore) };
 }
 
-type ScheduledJob = Awaited<ReturnType<typeof scheduledJobs>>[number];
+async function lastScheduledAt(t: Backend) {
+  const last = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").order("desc").first());
+  return last?._creationTime ?? 0;
+}
 
-function scheduledJobs(t: Backend) {
-  return t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+async function countScheduledAfter(t: Backend, creationTime: number) {
+  const scheduled = await t.run((ctx) =>
+    ctx.db.system
+      .query("_scheduled_functions")
+      .withIndex("by_creation_time", (q) => q.gt("_creationTime", creationTime))
+      .collect(),
+  );
+  return scheduled.length;
 }
 
 async function countedOf(t: Backend, users: string[]) {
@@ -173,8 +189,13 @@ async function ladderCountOf(t: Backend, member: MemberId, ladder: LadderId) {
 type TierNotification = { member: MemberId; notification: { kind: string; tiers?: TierRef[] } };
 
 async function tiersToldTo(t: Backend, member: MemberId) {
-  return (await scheduledJobs(t))
-    .filter(({ name }) => name === "slack/directMessages:deliverDirectMessage")
+  const deliveries = await t.run((ctx) =>
+    ctx.db.system
+      .query("_scheduled_functions")
+      .filter((q) => q.eq(q.field("name"), "slack/directMessages:deliverDirectMessage"))
+      .collect(),
+  );
+  return deliveries
     .map(({ args }) => args[0] as TierNotification)
     .filter((delivery) => delivery.member === member && delivery.notification.kind === "tiers-earned")
     .map(({ notification }) => notification.tiers);

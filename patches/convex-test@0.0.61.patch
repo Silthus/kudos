@@ -1,0 +1,42 @@
+diff --git a/dist/index.js b/dist/index.js
+index 5c26f80a5c32c532059a3af80643822b2daa3154..1d7c97fecfc70194d0190dd0cf38534d0dda8b60 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -30,6 +30,7 @@ const convexGlobalStorage = new AsyncLocalStorage();
+ class DatabaseFake {
+     _componentPath;
+     _documents = {};
++    _tableIds = new Map();
+     _storage = {};
+     _nextQueryId = 1;
+     _nextDocId = 10000;
+@@ -203,8 +204,10 @@ class DatabaseFake {
+             if (this._writes.length === 0) {
+                 if (write === null) {
+                     delete this._documents[_id];
++                    this._tableIds.get(tableNameFromId(_id))?.delete(_id);
+                 }
+                 else {
++                    this._idsOfTable(tableNameFromId(_id)).add(_id);
+                     this._documents[_id] =
+                         commitTs === null ? write : resolveCommittedValues(write, commitTs);
+                 }
+@@ -392,9 +395,17 @@ class DatabaseFake {
+             pageStatus,
+         };
+     }
++    _idsOfTable(tableName) {
++        let ids = this._tableIds.get(tableName);
++        if (ids === undefined) {
++            ids = new Set();
++            this._tableIds.set(tableName, ids);
++        }
++        return ids;
++    }
+     _iterateDocs(tableName, callback) {
+         const isInTable = (id) => tableNameFromId(id) === tableName;
+-        const ids = new Set(Object.keys(this._documents).filter(isInTable));
++        const ids = new Set(this._tableIds.get(tableName));
+         for (let i = 0; i < this._writes.length; i++) {
+             for (const id of Object.keys(this._writes[i]).filter(isInTable)) {
+                 ids.add(id);
