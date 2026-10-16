@@ -57,10 +57,10 @@ function flagsOn(backend: Backend, ...keys: string[]) {
   return switchWebsite(backend, postHog, true, ...keys);
 }
 
-async function aShopperIn(backend: Backend, { level, coins }: { level: number; coins: number }) {
+async function aShopperIn(backend: Backend, { level, coins, flags = shopping }: { level: number; coins: number; flags?: string[] }) {
   vi.clearAllTimers();
   vi.setSystemTime(now);
-  await flagsOn(backend, ...shopping);
+  await flagsOn(backend, ...flags);
   await journeyShippedBeforeAnyoneJoined(backend);
   await bookShippedBeforeAnyoneJoined(backend);
   const member = await aMember(backend, juno.user);
@@ -81,11 +81,12 @@ async function aShopperWithEveryFeatureOpenIn(backend: Backend, coins: number) {
   return shopper;
 }
 
-async function aCollectorWithEveryKindWaiting(backend: Backend = t, ...alsoOn: string[]) {
+async function aCollectorWithEveryKindWaiting(backend: Backend = t, { olderGroupCrates = 0 } = {}) {
   const shopper = await aShopperIn(backend, { level: 6, coins: 120 });
   await opens(backend, shopper.member, "quests");
   await aWeeklyDrawFor(backend, shopper.member);
-  await flagsOn(backend, ...shopping, ...packsFlags, ...alsoOn);
+  await groupCratesPendingFor(backend, shopper.member, olderGroupCrates);
+  await flagsOn(backend, ...shopping, ...packsFlags);
   later(1);
   await thanks(backend, shopper.member, shopper.teammate, {});
   later(2);
@@ -94,6 +95,10 @@ async function aCollectorWithEveryKindWaiting(backend: Backend = t, ...alsoOn: s
   expect(await shopper.asSignedIn.mutation(api.website.commands.buyCrate, { next: 1 })).toEqual({ kind: "bought", crate: "bought:1" });
   later(4);
   return shopper;
+}
+
+async function groupCratesPendingFor(backend: Backend, member: MemberId, count: number) {
+  for (let week = 0; week < count; week++) await backend.run((ctx) => ctx.db.insert("pendingCrates", { member, key: `group:a-group:2025-W${week}` }));
 }
 
 function later(minutes: number) {
@@ -201,12 +206,32 @@ describe("CV7: every waiting pack in getCollection", { timeout: 60_000 }, () => 
     expect(await packsOf(limited.asSignedIn), "the read with transaction limits").toEqual({ packs: fifty, morePacks: true });
   });
 
-  test("with packs off, getCollection answers no packs and no morePacks", async () => {
+  test("lists every weekly crate while the group quest is off for the member, however many group crates wait before them", async () => {
+    const { asSignedIn } = await aCollectorWithEveryKindWaiting(t, { olderGroupCrates: 51 });
+
+    expect(await packsOf(asSignedIn)).toEqual({ packs: everyKindWaiting, morePacks: false });
+  });
+
+  test("lists no pack while a workspace launch the flags made due isn't recorded, as openCrate refuses then", async () => {
+    const { asSignedIn } = await aShopperIn(t, { level: 6, coins: 120, flags: shopping.filter((flag) => flag !== "quests") });
+    await flagsOn(t, ...shopping.filter((flag) => flag !== "quests"), ...packsFlags);
+    expect(await asSignedIn.mutation(api.website.commands.buyCrate, { next: 1 })).toEqual({ kind: "bought", crate: "bought:1" });
+    await flagsOn(t, ...shopping, ...packsFlags);
+
+    expect(await packsOf(asSignedIn), "while the Journey's launch is due").toEqual({ packs: [], morePacks: false });
+    expect(await openCrate(asSignedIn, "bought:1"), "openCrate while the Journey's launch is due").toEqual({ kind: "refused" });
+    await journeyShippedBeforeAnyoneJoined(t);
+    expect((await packsOf(asSignedIn)).packs, "once the launch is recorded").toContainEqual({ crate: "bought:1", kind: "bought", n: expect.any(Number) });
+  });
+
+  test("with packs off, getCollection answers the collection with no packs and no morePacks", async () => {
     const { asSignedIn } = await aCollectorWithEveryKindWaiting();
     await flagsOn(t, ...shopping, "collection");
+    const answer = await asSignedIn.query(api.website.collection.getCollection, {});
 
-    expect(await asSignedIn.query(api.website.collection.getCollection, {})).not.toHaveProperty("packs");
-    expect(await asSignedIn.query(api.website.collection.getCollection, {})).not.toHaveProperty("morePacks");
+    expect(answer).toMatchObject({ kind: "collection", bought: ["bought:1"] });
+    expect(answer).not.toHaveProperty("packs");
+    expect(answer).not.toHaveProperty("morePacks");
   });
 });
 

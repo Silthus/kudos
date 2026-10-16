@@ -17,7 +17,7 @@ import { slotValidator, type Slot } from "../store/rows";
 import type { Refusal } from "../progression/purchases";
 import { rewardOf, type AppliedReward, type StandingWithCoins } from "../progression/rewards";
 import { perkValidator } from "../progression/tree";
-import { journeyStartedFor, questsApplyTo } from "../quests/flag";
+import { questsApplyTo } from "../quests/flag";
 import { questValidator, weeklyQuestValidator, type Quest } from "../quests/step";
 import { swappedSlotIn } from "../quests/weekly";
 import type { CrateRefusal } from "../hoggies/records";
@@ -29,7 +29,7 @@ import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { coinsVisibleTo } from "../wallet/visibility";
 import { userGroupsOf } from "../workspace/userGroups";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { workspaceLaunchDueIn } from "./flag";
+import { noLaunchWaitsFor } from "./flag";
 import { memberMutation } from "./memberMutation";
 import { skillPointsOf } from "./skillTree";
 import type { VerifiedMember } from "./memberQuery";
@@ -380,11 +380,6 @@ async function isStillAmong(ctx: QueryCtx, me: VerifiedMember, group: string) {
 
 async function launchesRecordedFor(ctx: QueryCtx, me: VerifiedMember) {
   return (await unlockPathShownTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
-}
-
-async function noLaunchWaitsFor(ctx: QueryCtx, me: VerifiedMember) {
-  if (await workspaceLaunchDueIn(ctx, me.workspace)) return false;
-  return !(await questsApplyTo(ctx, me.member)) || (await journeyStartedFor(ctx, me.member)) !== null;
 }
 
 async function questsOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {

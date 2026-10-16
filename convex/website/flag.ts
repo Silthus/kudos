@@ -3,7 +3,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { exposed, memberDecision, memberDecisionBeforeWriting, memberDecisionWithoutWriting, workspaceDecision, workspaceDecisionWithoutWriting, type Flag } from "../analytics/flags";
 import { bookLaunchDueIn } from "../achievements/flag";
 import { workspaceKeyOf } from "../analytics/outbox";
-import { journeyLaunchDueIn, journeyPreviewedBy } from "../quests/flag";
+import { journeyLaunchDueIn, journeyPreviewedBy, journeyStartedFor, questsApplyTo } from "../quests/flag";
 import { signInWorkspace } from "../slack/signIn";
 import { readyFromTheStartOnTheWebsite, unlocksLaunchDueIn, unlocksPreviewedBy } from "../unlocks/launch";
 import { chatUserOf, type MemberId } from "../workspace/directory";
@@ -38,6 +38,11 @@ export async function websiteAdmits(ctx: MutationCtx, member: MemberId): Promise
 
 export async function workspaceLaunchDueIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
   return (await unlocksLaunchDueIn(ctx, workspace)) || (await journeyLaunchDueIn(ctx, workspace)) || (await bookLaunchDueIn(ctx, workspace));
+}
+
+export async function noLaunchWaitsFor(ctx: QueryCtx, { workspace, member }: { workspace: string; member: MemberId }): Promise<boolean> {
+  if (await workspaceLaunchDueIn(ctx, workspace)) return false;
+  return !(await questsApplyTo(ctx, member)) || (await journeyStartedFor(ctx, member)) !== null;
 }
 
 async function runDueMoments(ctx: MutationCtx, member: MemberId) {

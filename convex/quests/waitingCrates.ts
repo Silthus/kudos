@@ -4,7 +4,7 @@ import { chatUserOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, journeyQuestOfRewardKey, rewardKeyPrefixOf } from "./crates";
 import { journeyStepAppliesTo, questsApplyTo } from "./flag";
 import { groupQuestAppliesTo } from "./groupQuest";
-import { pendingCratesOldestFirst } from "./pendingCrates";
+import { pendingCratesOldestFirst, pendingWeeklyCratesInWeekOrder } from "./pendingCrates";
 
 export type WaitingQuestCrate = { crate: string; at: number };
 
@@ -14,10 +14,8 @@ export async function waitingQuestCratesOf(ctx: QueryCtx, member: MemberId, limi
 }
 
 async function pendingCratesOpenableBy(ctx: QueryCtx, member: MemberId, limit: number): Promise<WaitingQuestCrate[]> {
-  const pending = await pendingCratesOldestFirst(ctx, member, limit);
-  const groupCratesOpen = await groupQuestAppliesTo(ctx, member);
-  const isGroupCrate = (key: string) => key.startsWith(rewardKeyPrefixOf("group"));
-  return pending.filter(({ key }) => groupCratesOpen || !isGroupCrate(key)).map(({ key, _creationTime }) => ({ crate: key, at: _creationTime }));
+  const pending = (await groupQuestAppliesTo(ctx, member)) ? await pendingCratesOldestFirst(ctx, member, limit) : await pendingWeeklyCratesInWeekOrder(ctx, member, limit);
+  return pending.map(({ key, _creationTime }) => ({ crate: key, at: _creationTime }));
 }
 
 async function journeyCratesOpenableBy(ctx: QueryCtx, member: MemberId): Promise<WaitingQuestCrate[]> {

@@ -35,6 +35,14 @@ export function pendingCratesOldestFirst(ctx: QueryCtx, member: MemberId, limit:
     .take(limit);
 }
 
+export function pendingWeeklyCratesInWeekOrder(ctx: QueryCtx, member: MemberId, limit: number) {
+  const weekly = rewardKeyPrefixOf("weekly");
+  return ctx.db
+    .query("pendingCrates")
+    .withIndex("by_member_key", (q) => q.eq("member", member).gte("key", weekly).lt("key", `${weekly}\uffff`))
+    .take(limit);
+}
+
 export const backfillPendingCrates = observedAction({
   args: { restart: v.optional(v.boolean()) },
   handler: async (ctx, { restart }): Promise<null> => {

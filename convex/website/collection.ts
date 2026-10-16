@@ -9,6 +9,7 @@ import { stickersShownTo } from "../stickers/flag";
 import { stickersNewestFirst, type HeldSticker } from "../stickers/records";
 import { peopleIn, type MemberId, type People } from "../workspace/directory";
 import { bookPageOf } from "./book";
+import { noLaunchWaitsFor } from "./flag";
 import { teammateOf, type Face } from "./faces";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
 import { seenKeyOf } from "./seen";
@@ -41,7 +42,7 @@ export const getCollection = memberQuery(async (ctx, me): Promise<CollectionAnsw
   const { rarities, hoggies, owned, total, crests } = await collectionOf(ctx, me.member, { crests: await crestsShownTo(ctx, me.member) });
   const collection = { kind: "collection" as const, rarities, hoggies: await Promise.all(hoggies.map((hoggie) => seenBy(me.member, hoggie))), owned, total };
   const withCrests = crests === undefined ? collection : { ...collection, crests: await Promise.all(crests.map((crest) => crestSeenBy(me.member, crest))) };
-  return { ...withCrests, ...(await boughtCratesOf(ctx, me.member)), ...(await packStackOf(ctx, me.member)), ...(await stickerBookOf(ctx, me)) };
+  return { ...withCrests, ...(await boughtCratesOf(ctx, me.member)), ...(await packStackOf(ctx, me)), ...(await stickerBookOf(ctx, me)) };
 });
 
 async function stickerBookOf(ctx: QueryCtx, me: VerifiedMember): Promise<StickerBook> {
@@ -80,8 +81,9 @@ function teammateIn(people: People, person: MemberId): Teammate {
   return { ...teammateOf(name, picture), former };
 }
 
-async function packStackOf(ctx: QueryCtx, member: MemberId): Promise<PackStack> {
-  return (await packsShownTo(ctx, member)) ? waitingPacksOf(ctx, member) : {};
+async function packStackOf(ctx: QueryCtx, me: VerifiedMember): Promise<PackStack> {
+  if (!(await packsShownTo(ctx, me.member))) return {};
+  return (await noLaunchWaitsFor(ctx, me)) ? waitingPacksOf(ctx, me.member) : { packs: [], morePacks: false };
 }
 
 async function boughtCratesOf(ctx: QueryCtx, member: MemberId): Promise<BoughtCrates> {
