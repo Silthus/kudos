@@ -287,6 +287,16 @@ describe("SR11: star entries in order and pages", () => {
 
     expect(entries.map(seen)).toEqual(newestFirst.slice(newestFirst.indexOf(`levelUp at ${noon}`) + 1));
   });
+
+  test("a cursor in the form main wrote before stars reads the same position once stars are on", async () => {
+    await starsOn();
+    const asAlice = await aDayOfEverything();
+    const writtenByMainBeforeStars = "1791979200000_1_9999999999999";
+
+    const { entries } = await activityOf(asAlice, { filter: "all", cursor: writtenByMainBeforeStars, limit: 20 });
+
+    expect(entries.map(seen)).toEqual(newestFirst.slice(newestFirst.indexOf(`kudosGiven at ${noon}`)));
+  });
 });
 
 describe("SR11 SR24: a page of stars stays within Convex's limits", () => {
