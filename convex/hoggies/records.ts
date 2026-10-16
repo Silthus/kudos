@@ -17,4 +17,14 @@ export const hoggieTallyValidator = v.object({ member: v.id("members"), hoggie: 
 
 export const dropTallyValidator = v.object({ member: v.id("members"), drops: v.number() });
 
+export const boughtCrateValidator = v.object({ member: v.id("members"), crate: v.string(), n: v.number(), boughtAt: v.number(), openedAt: v.optional(v.number()) });
+
+const crateRefusalReasonValidator = v.union(v.literal("stale"), v.literal("coins-not-open"), v.literal("no-coins"));
+
+export const crateRefusalValidator = v.object({ kind: v.literal("refused"), crate: v.string(), reason: crateRefusalReasonValidator });
+
 export type DropRecord = Infer<typeof dropValidator>;
+
+export type CrateRefusal = Infer<typeof crateRefusalValidator>;
+
+export type CratePurchaseOutcome = { kind: "bought"; crate: string } | CrateRefusal;

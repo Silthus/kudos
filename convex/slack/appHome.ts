@@ -8,7 +8,7 @@ import type { Command } from "../commands/commands";
 import { renderHome, type Choice, type HomeLine, type HomeView } from "../feedback/home";
 import type { ShownHome } from "../feedback/homes";
 import { xpLevelsShownTo } from "../progression/xpLevels";
-import { itemRefusalValidator, type ItemRefusal } from "../store/rows";
+import { homeRefusalValidator, type HomeRefusal } from "../feedback/homeRefusal";
 import { lookup } from "../workspace/directory";
 import { buttonOf, mrkdwn, plainText, urlButtonOf } from "./blocks";
 import { encodeHomeAction } from "./interactivity";
@@ -42,7 +42,7 @@ export const reportLookedUpHomeOpening = internalMutation({
 });
 
 export const publishHome = observedAction({
-  args: { workspace: v.string(), user: v.string(), opened: v.optional(v.boolean()), refused: v.optional(itemRefusalValidator), unreportedOpeningAt: v.optional(v.number()), ...attemptArgs },
+  args: { workspace: v.string(), user: v.string(), opened: v.optional(v.boolean()), refused: v.optional(homeRefusalValidator), unreportedOpeningAt: v.optional(v.number()), ...attemptArgs },
   handler: async (ctx, { attempt = 1, unreportedOpeningAt, ...home }) => {
     let unreported = unreportedOpeningAt;
     await tryAtMostThreeTimes(
@@ -72,7 +72,7 @@ export const publishHome = observedAction({
   },
 });
 
-type Home = { workspace: string; user: string; opened?: boolean; refused?: ItemRefusal };
+type Home = { workspace: string; user: string; opened?: boolean; refused?: HomeRefusal };
 
 type Unavailable = { kind: "unavailable"; retryAfterMs?: number };
 

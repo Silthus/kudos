@@ -4,8 +4,10 @@ import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } fro
 import { signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
+import { aDeploymentForWorkspace } from "../../testing/website";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
+import { buyCrate } from "../hoggies/boughtCrates";
 import { recordReward } from "../progression/progression";
 import type { RewardRecord } from "../progression/rewards";
 import { openQuestCrate } from "../quests/open";
@@ -68,6 +70,27 @@ describe("CO9 CO10: a member's balance equals their coin lines and reward coins 
       ["the held reward's crate opened", () => openCrateOf(t, alice, 1), 8],
       ["the held reward's crate opened again", () => openCrateOf(t, alice, 1), 8],
       ["a spend of the whole balance", () => spendOf(t, alice, 8), 0],
+    ];
+
+    for (const [step, take, balance] of steps) {
+      await take();
+
+      expect({ step, balance: await balanceOf(t, alice) }).toEqual({ step, balance });
+      expect({ step, balance: await recordedCoinsOf(t, alice) }).toEqual({ step, balance });
+    }
+  }, 30_000);
+
+  test("a crate bought for 50 coins counts as a spend once for its number, and a crate the balance can't cover writes nothing", async () => {
+    const t = await withTheCrateStore(await withDirectory());
+    const alice = await memberOf(t, "U_ALICE");
+    const steps: Array<[string, () => Promise<unknown>, number]> = [
+      ["a quest reward of 120 coins", () => t.run((ctx) => rewardOf(ctx, alice, "weekly:2026-10-12:0", 120)), 120],
+      ["crate 1 bought", () => buyCrateOf(t, alice, 1), 70],
+      ["crate 1 bought again", () => buyCrateOf(t, alice, 1), 70],
+      ["crate 2 bought", () => buyCrateOf(t, alice, 2), 20],
+      ["crate 3, which 20 coins can't cover", () => buyCrateOf(t, alice, 3), 20],
+      ["a quest reward of 30 coins", () => t.run((ctx) => rewardOf(ctx, alice, "weekly:2026-10-12:1", 30)), 50],
+      ["crate 3 bought with the whole balance", () => buyCrateOf(t, alice, 3), 0],
     ];
 
     for (const [step, take, balance] of steps) {
@@ -159,6 +182,12 @@ async function withQuests(t: Backend) {
   return unlocksShippedBeforeAnyoneJoined(await flagsLoaded(t));
 }
 
+async function withTheCrateStore(t: Backend) {
+  aDeploymentForWorkspace();
+  flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "coins", "collection", "crate-store");
+  return unlocksShippedBeforeAnyoneJoined(await flagsLoaded(t));
+}
+
 async function thank(t: Backend, recipient: string, at: string, words = saysWhy) {
   sentMessages += 1;
   vi.setSystemTime(new Date(at));
@@ -177,6 +206,10 @@ function openCrateOf(t: Backend, member: MemberId, slot: number) {
 
 function spendOf(t: Backend, member: MemberId, coins: number) {
   return t.run((ctx) => spend(ctx, { member, coins, for: { perk: "spark" }, at: Date.now() }));
+}
+
+function buyCrateOf(t: Backend, member: MemberId, next: number) {
+  return t.run((ctx) => buyCrate(ctx, member, next, Date.now()));
 }
 
 function balanceOf(t: Backend, member: MemberId) {
