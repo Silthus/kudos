@@ -198,6 +198,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   because: unlocks' launch grandfathers every member at once and belongs to Slack until the product owner switches unlocks on (P77, WS62); a website call that reached openUnlock before the launch would run it through unlocksLiveIn
   crossing: browser -> domain
   entrances: mutation openFeature, mutation openQuestCrate, mutation buyPerk, mutation buyItem, mutation buyCrate, mutation openCrate, mutation setBoardVisibility, mutation swapQuest, mutation setMessageSetting, mutation pickPrimaryGroup, mutation equip, mutation takeOff
+  refuted: the website's buyCrate and openCrate no longer checked noLaunchWaitsFor before running the command -> with no unlocks launch recorded, and with quests on and no Journey launch, buying a crate answered bought instead of null and opening one answered opened instead of refused (2026-10-16)
   refuted: buyItem checked only the store's visibility, not the Journey's and the Book's recorded launches -> with quests on and no Journey launch, and with achievements on and no Book launch, the purchase answered bought (2026-10-15)
   refuted: buyPerk checked only the tree feature's entry on the unlock path, not the Journey's and the Book's recorded launches -> with quests on and no Journey launch the purchase answered bought, and with achievements on and no Book launch the purchase answered bought (2026-10-14)
   refuted: openFeature and openQuestCrate didn't check the Book's recorded launch -> with achievements on and no Book launch, opening a ready Leaderboard and a finished Journey step answered opened, and App Home's republish would record the Book's launch (2026-10-14)
@@ -225,6 +226,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   because: Unlocks alone decides what may open (D17, P73, WS62, WS64); a website path that wrote its own state could open what Slack still holds, and the reveal must follow only what Unlocks recorded
   crossing: browser -> domain
   entrances: mutation openFeature, mutation openQuestCrate, mutation buyPerk, mutation buyItem, mutation buyCrate, mutation openCrate, mutation setBoardVisibility, mutation swapQuest, mutation setMessageSetting, mutation pickPrimaryGroup, mutation equip, mutation takeOff
+  refuted: the website's openCrate no longer scheduled App Home's republish after an open -> the crate bought and opened on the website left the rows Slack's leave but one republish fewer than the two the claim names (2026-10-16)
   refuted: buyItem ran Commands' buyItem with only the recorded launches as its gate -> a purchase before Coins opened answered refused with coins-not-open instead of no reason kind (2026-10-15)
   refuted: buyPerk answered progression's below-row refusal as points -> the perk above the member's level answered points instead of level (2026-10-14)
   refuted: openQuestCrate answered opened without reading the quests module's crate opening -> the active step, the unfinished and the never-drawn weekly quest answered opened (2026-10-14)
