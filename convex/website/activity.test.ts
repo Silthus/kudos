@@ -187,7 +187,7 @@ describe("AT16 AT17 AT18: order, filters and pages", () => {
   function seen(entry: ActivityEntry) {
     if (entry.kind === "kudosGiven") return `gave ${entry.recipients.map(({ name }) => name).join(" and ")} at ${entry.at}`;
     if (entry.kind === "kudosReceived") return `got from ${entry.giver.name} at ${entry.at}`;
-    return `level ${entry.level}`;
+    return entry.kind === "levelUp" ? `level ${entry.level}` : entry.kind;
   }
 
   async function aBusyInstant() {
@@ -269,7 +269,7 @@ describe("AT23 AT24 AT27: what a kudos entry says", () => {
 
   async function messageSeenBy(person: { user: string; name: string }) {
     const [entry] = (await activityOf(await signedIn(person), { filter: "all" })).entries;
-    if (entry === undefined || entry.kind === "levelUp") throw new Error("expected a kudos entry");
+    if (entry?.kind !== "kudosGiven" && entry?.kind !== "kudosReceived") throw new Error("expected a kudos entry");
     return { message: entry.message, channel: entry.channel, saidWhy: entry.saidWhy };
   }
 

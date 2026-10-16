@@ -1,0 +1,13 @@
+const droppingKinds = ["weekly", "journey", "unlock"] as const;
+
+export type CrateKind = (typeof droppingKinds)[number];
+
+export type CrateKey = `${CrateKind}:${string}`;
+
+export function crateKindOf(crate: string): string {
+  return crate.slice(0, crate.indexOf(":"));
+}
+
+export function dropsAHoggie(crate: string): crate is CrateKey {
+  return (droppingKinds as readonly string[]).includes(crateKindOf(crate));
+}

@@ -1,5 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import { awardsReceivedNewestFirst, messagesGivenNewestFirst, type Before, type GivenMessageAwards, type MessageAward, type ReceivedAward } from "../engine/awards";
+import { dropsNewestFirst } from "../hoggies/drops";
+import { hoggiesShownTo } from "../hoggies/flag";
 import { bonusRecordedWith } from "../progression/effects";
 import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
 import { catalogue } from "../progression/catalogue";
@@ -8,7 +10,7 @@ import { perkOf } from "../progression/tree";
 import { questsFinishedByMessage } from "../quests/finishedBy";
 import { levelUpsNewestFirst } from "../unlocks/unlocks";
 import { chatUserOf, timeZoneOf, type MemberId } from "../workspace/directory";
-import type { Activity, ActivityEntry, BonusEarned, KudosGiven, KudosReceived, LevelUp, RecentKudos } from "./entries";
+import type { Activity, ActivityEntry, BonusEarned, Found, KudosGiven, KudosReceived, LevelUp, RecentKudos } from "./entries";
 import { kudosFactsOf, mentionsOfOnePage, personOf, type Mentions } from "./kudos";
 import { beforeFor, decodePosition, encodePosition, newestFirst, ranks, type Position, type Rank } from "./position";
 
@@ -71,8 +73,21 @@ const kudosGiven: Source = {
   },
 };
 
+const found: Source = {
+  rank: ranks.found,
+  read: async (ctx, { member }, { at, created }, take) => {
+    if (!(await hoggiesShownTo(ctx, member))) return whole([]);
+    return whole(
+      (await firstOf(dropsNewestFirst(ctx, member, { at, n: created }), take)).map(({ at, n, drop }) => {
+        const position: Position = { at, rank: ranks.found, created: n };
+        return { position, entry: async (): Promise<Found> => ({ kind: "found", at, key: encodePosition(position), drop }) };
+      }),
+    );
+  },
+};
+
 const sourcesOf: Record<Filter, Source[]> = {
-  all: [levelUps, kudosGiven, kudosReceived],
+  all: [levelUps, kudosGiven, kudosReceived, found],
   received: [kudosReceived],
   given: [kudosGiven],
 };
