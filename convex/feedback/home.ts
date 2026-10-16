@@ -292,15 +292,16 @@ function ladderLines({ ladder, name, count, tiers, next }: LadderFacts, timeZone
   return [{ kind: "text", text: `${bold(name)} · ${bold(count)} ${countsOf(ladder, count)}` }, ...earnedLines, ...nextLine];
 }
 
-export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[], rewardsOf: (ref: TierRef) => TierRewardsTold): string[] {
-  const earnedLines = told.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).${tierRewardsPartOf(rewardsOf(ref))}`);
+export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[], rewardsOf: (ref: TierRef) => TierRewardsTold, slotsRetired = false): string[] {
+  const itemsGoTo = slotsRetired ? "your kudos emoji" : "your kudos emoji slots";
+  const earnedLines = told.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).${tierRewardsPartOf(rewardsOf(ref), itemsGoTo)}`);
   const ladders = [...new Set(told.map(({ ladder }) => ladder))];
   return [...earnedLines, ...ladders.flatMap((ladder) => nextTierLine(ladder, [...told, ...everyTierEarned]))];
 }
 
-function tierRewardsPartOf({ coins, items }: TierRewardsTold) {
+function tierRewardsPartOf({ coins, items }: TierRewardsTold, itemsGoTo: string) {
   const coinsPart = coins === 0 ? [] : [coinsPartOf(coins)];
-  const itemParts = items.flatMap((item) => itemOf(item) ?? []).map(({ emoji, name }) => `+ :${emoji}: ${name} for your kudos emoji slots`);
+  const itemParts = items.flatMap((item) => itemOf(item) ?? []).map(({ emoji, name }) => `+ :${emoji}: ${name} for ${itemsGoTo}`);
   return [...coinsPart, ...itemParts].map((part) => ` ${part}`).join("");
 }
 
@@ -330,11 +331,22 @@ type RefusalLines = { after: (item: CatalogueItem | null) => HomeLine[]; unplace
 
 function inventoryGroups({ balance, inventory, kudosEmoji, refused }: Extract<ShownTab, { tab: "inventory" }>): HomeLine[][] {
   const told = refusalLinesOf(inventory, refused, balance);
-  const slots = [{ kind: "text", text: bold("Your kudos emoji") }, ...slotLinesOf(inventory, told), { kind: "hint", text: `Each emoji in a slot counts as a kudos, like :${kudosEmoji}:.` }] satisfies HomeLine[];
-  return [[{ kind: "text", text: inCoins(balance) }], slots, ...collectionLinesOf(inventory, told), ...storeLinesOf(inventory, told), ...notYoursYetLinesOf(inventory)];
+  return [[{ kind: "text", text: inCoins(balance) }], ...yourKudosEmojiGroupsOf(inventory, told, kudosEmoji), ...storeLinesOf(inventory, told), ...notYoursYetLinesOf(inventory)];
 }
 
-function slotLinesOf({ slots }: InventoryHome, { after }: RefusalLines): HomeLine[] {
+function yourKudosEmojiGroupsOf(inventory: InventoryHome, told: RefusalLines, kudosEmoji: string): HomeLine[][] {
+  const heading: HomeLine = { kind: "text", text: bold("Your kudos emoji") };
+  if (inventory.kind === "owned") {
+    const owned = inventory.owned.flatMap((item): HomeLine[] => [{ kind: "text", text: itemLabelOf(item) }, ...told.after(item)]);
+    return [[heading, ...owned, { kind: "hint", text: `Each of your kudos emoji counts as a kudos, like :${kudosEmoji}:.` }]];
+  }
+  const slots: HomeLine[] = [heading, ...slotLinesOf(inventory, told), { kind: "hint", text: `Each emoji in a slot counts as a kudos, like :${kudosEmoji}:.` }];
+  return [slots, ...collectionLinesOf(inventory, told)];
+}
+
+type SlotsHome = Extract<InventoryHome, { kind: "slots" }>;
+
+function slotLinesOf({ slots }: SlotsHome, { after }: RefusalLines): HomeLine[] {
   return slots.flatMap((item, index): HomeLine[] => [slotLineOf(item, index), ...after(item)]);
 }
 
@@ -345,7 +357,7 @@ function slotLineOf(item: CatalogueItem | null, index: number): HomeLine {
   return { kind: "action", text: `Slot ${index + 1} · ${itemLabelOf(item)}`, action: takeOff };
 }
 
-function collectionLinesOf({ collection }: InventoryHome, { after }: RefusalLines): HomeLine[][] {
+function collectionLinesOf({ collection }: SlotsHome, { after }: RefusalLines): HomeLine[][] {
   if (collection.length === 0) return [];
   return [[{ kind: "text", text: bold("Collection") }, ...collection.flatMap((item): HomeLine[] => [putInSlotLineOf(item), ...after(item)])]];
 }
@@ -371,10 +383,11 @@ function itemOfferOf(item: StoreItem): { text: string; action: HomeAction } {
   return { text: `${label} · ${price}`, action: { label: "Buy", command: { type: "buyItem", item: item.item }, accessibilityLabel: `Buy ${item.name}`, confirm } };
 }
 
-function refusalLinesOf({ slots, collection, store }: InventoryHome, refused: ItemRefusal | null, balance: number): RefusalLines {
+function refusalLinesOf(inventory: InventoryHome, refused: ItemRefusal | null, balance: number): RefusalLines {
   const lines: HomeLine[] = refused === null ? [] : refusalTextOf(refused, balance).map((text) => ({ kind: "hint", text }));
   const isRefused = (item: CatalogueItem | null) => item !== null && item.item === refused?.item;
-  const placed = [...slots, ...collection, ...store].some(isRefused);
+  const owned = inventory.kind === "slots" ? [...inventory.slots, ...inventory.collection] : inventory.owned;
+  const placed = [...owned, ...inventory.store].some(isRefused);
   return { after: (item) => (isRefused(item) ? lines : []), unplaced: placed ? [] : lines };
 }
 

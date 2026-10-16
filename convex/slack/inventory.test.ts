@@ -18,11 +18,13 @@ const alicesEmail = "alice@example.com";
 const carolsEmail = "carol@example.com";
 const xpBelowLevelSix = 990;
 const store = "store";
+const storeEmoji = ["sunflower", "rocket", "glowing-star", "gem", "rainbow", "clover", "doughnut", "cookie", "crown", "balloon", "cactus", "trophy"].map((name) => `kudos-emoji-${name}`);
 const storeOffers = ["🌻 Sunflower", "🚀 Rocket", "🌟 Glowing Star", "💎 Gem", "🌈 Rainbow", "🍀 Clover", "🍩 Doughnut", "🍪 Cookie", "👑 Crown", "🎈 Balloon", "🌵 Cactus", "🏆 Trophy"].map((item) => `section: ${item} · 100 🪙 [button: Buy]`);
 
 const xpAndUnlocksOn = [onForEveryone("xp-levels"), onForEveryone("unlocks")];
 const coinsForAliceAndCarol = onForEmails("coins", alicesEmail, carolsEmail);
 const previewedByAlice = [...xpAndUnlocksOn, coinsForAliceAndCarol, onForEmails(store, alicesEmail)];
+const slotsRetiredForAlice = [...previewedByAlice, onForEmails("slots-retired", alicesEmail)];
 const storeOff = [...xpAndUnlocksOn, coinsForAliceAndCarol, offForEveryone(store)];
 const storeNotCreated = [...xpAndUnlocksOn, coinsForAliceAndCarol];
 const coinsOff = [...xpAndUnlocksOn, offForEveryone("coins"), onForEveryone(store)];
@@ -127,6 +129,28 @@ describe("ST20 ST21 ST24 ST25: opening Coins opens the inventory, previewed by o
   });
 });
 
+describe("RS6: with slots retired, Coins and inventory's copy names no slot", { timeout: 30_000 }, () => {
+  test("Coins and inventory opens your wallet, the store and your kudos emoji, and opening it says 🦔 is one of your kudos emoji", async () => {
+    const t = await workspaceDeciding(...slotsRetiredForAlice);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
+    await xpOf(t, "U_ALICE", xpBelowLevelSix);
+
+    await giveKudos(t, "U_ALICE", ["U_CAROL"], saysWhy);
+    expect(readDm(levelUpDmTo("U_ALICE", 6))).toContain("section: *Coins and inventory* is ready. It opens your wallet, the store and your kudos emoji. [button: Open]");
+    await send(t, blockActions("U_ALICE", buttonIn(blocksOf(levelUpDmTo("U_ALICE", 6)), "Open"), { inMessage: { channel: "U_ALICE", ts: "1760349700.000100" } }));
+
+    expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins and inventory are open. You already have 8 🪙, and 🦔 is one of your kudos emoji: use it in a kudos like :taco:.");
+  });
+
+  test("with nothing earned yet, the opening DM leaves the balance out", async () => {
+    const t = await workspaceDeciding(...slotsRetiredForAlice);
+
+    await coinsOpenedBy(t, "U_ALICE", "thanks");
+
+    expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins and inventory are open. 🦔 is one of your kudos emoji: use it in a kudos like :taco:.");
+  });
+});
+
 describe("ST8 ST11: 🦔 in the giver's loadout counts as a kudos", { timeout: 30_000 }, () => {
   test("after opening Coins, a message with 🦔 is a kudos for its recipient and costs one, and kudosGiven names the loadout emoji", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
@@ -164,6 +188,28 @@ describe("ST8 limits: the loadout hook reads a fixed handful per message", () =>
     await coinsOpenedBy(t, "U_ALICE");
     await membersExist(t, recipients);
     await fullLoadoutOf(t, "U_ALICE", ["kudos-emoji-hedgehog", "kudos-emoji-sunflower", "kudos-emoji-rocket"]);
+    vi.setSystemTime(tuesday + dayMs);
+    const before = (await kudosGivenEvents(t)).length;
+
+    await postKudos(t, "U_ALICE", recipients, saysWhy, ["taco", "rocket"]);
+    const given = await kudosGivenAfter(t, before);
+
+    expect(given.loadoutEmoji).toEqual(["rocket"]);
+    expect(given.awards).toHaveLength(700);
+    expect(new Set(given.awards.map(({ kudos }) => kudos))).toEqual(new Set([2]));
+  });
+});
+
+describe("RS2 limits: with slots retired, the hook still reads a fixed handful per message", () => {
+  test("a kudos with the workspace emoji and an owned emoji to 700 recipients, from a member owning every store emoji, stays inside the giving mutation's budget", { timeout: 300_000 }, async () => {
+    const recipients = Array.from({ length: 700 }, (_, index) => `U_R${String(index).padStart(3, "0")}`);
+    const t = await workspaceDeciding(...slotsRetiredForAlice, { transactionLimits: true, baseAllowance: 1400 });
+    await coinsOpenedBy(t, "U_ALICE");
+    await membersExist(t, recipients);
+    const member = await memberOf(t, "U_ALICE");
+    await t.run(async (ctx) => {
+      for (const item of storeEmoji) await grantItem(ctx, { member, item, source: "store", arrivedAt: Date.now() });
+    });
     vi.setSystemTime(tuesday + dayMs);
     const before = (await kudosGivenEvents(t)).length;
 

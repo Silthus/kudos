@@ -21,7 +21,7 @@ import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { swappedSlotIn } from "../quests/weekly";
 import type { CrateRefusal } from "../hoggies/records";
 import type { ItemRefusal } from "../store/rows";
-import { storeVisibleTo } from "../store/visibility";
+import { slotsRetiredFor, storeVisibleTo } from "../store/visibility";
 import { featureValidator } from "../unlocks/feature";
 import { unlockPathShownTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
@@ -181,7 +181,7 @@ export const setBoardVisibility = memberMutation({
 export const equip = memberMutation({
   args: { item: v.string(), slot: slotValidator },
   handler: async (ctx, me, person, { item, slot }): Promise<LoadoutAnswer> => {
-    if (!(await storeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
+    if (!(await slotsOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
     const held = await itemIn(ctx, me, slot);
     await runCommand(ctx, me.workspace, person, { type: "equip", item, slot }, `website:equip:${me.member}:${slot}`);
     if ((await itemIn(ctx, me, slot)) !== item) return refused;
@@ -193,7 +193,7 @@ export const equip = memberMutation({
 export const takeOff = memberMutation({
   args: { slot: slotValidator },
   handler: async (ctx, me, person, { slot }): Promise<LoadoutAnswer> => {
-    if (!(await storeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
+    if (!(await slotsOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
     const held = await itemIn(ctx, me, slot);
     await runCommand(ctx, me.workspace, person, { type: "takeOff", slot }, `website:takeOff:${me.member}:${slot}`);
     if ((await itemIn(ctx, me, slot)) !== null) return refused;
@@ -260,6 +260,10 @@ async function treeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember
 
 async function storeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
   return (await storeVisibleTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
+}
+
+async function slotsOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
+  return (await storeOpenWithEveryLaunchRecorded(ctx, me)) && !(await slotsRetiredFor(ctx, me.member));
 }
 
 async function boardOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
