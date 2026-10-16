@@ -6,6 +6,7 @@ Stars: a light thank-you by reaction (SR1–SR10, SR15, SR20, SR21, SR24), never
 - a member stars a message at most once: A giver's reactions on one message make one star, which pays its author or recipients and the giver 1 XP once in all and reaches PostHog as one star given, whether the event is redelivered, the reaction is removed and added again or given again with another skin tone.
   over: a redelivered event, a removed and re-added reaction and a second skin tone on an ordinary message, and a redelivered star on a Given kudos message with two recipients
   via: SR5 SR23: a member stars a message at most once
+  refuted: giveStar no longer looked for the giver's star on the message -> a re-added reaction and a second skin tone each made a second star and a second star given (2026-10-16)
   because: a star is a one-click thank-you worth 1 XP each way; paying it again for every redelivery, re-add or skin tone would let a member farm XP for themselves and a teammate from one message (SR5)
   kinds: state
   checklist: revalidated-permission dismissed: no permission is involved; the star's mutation reads the giver's membership and the message's awards when it decides
@@ -18,6 +19,7 @@ Stars: a light thank-you by reaction (SR1–SR10, SR15, SR20, SR21, SR24), never
 - a star never passes the star budget: A giver's stars on their day never pay past their star budget, 10 unless the workspace sets another, even when two reactions arrive at once for the last star left.
   over: eleven stars on one day, the twelfth the next day, a workspace budget of 2, and two reactions at once after nine stars
   via: SR6 SR23: a star never passes the star budget
+  refuted: giveStar refused a star only when the stars left went below 0 instead of at 0 -> 3 of 3 tests failed: the giver got 11 XP from 11 stars, both concurrent reactions paid past the 10th, and a budget of 2 paid 3 (2026-10-16)
   because: the budget keeps stars light (SR6); a check and a write in separate transactions would let two reactions at once both take the tenth star
   kinds: state
   checklist: revalidated-permission dismissed: no permission is involved; the budget is counted in the mutation that records the star
@@ -30,6 +32,7 @@ Stars: a light thank-you by reaction (SR1–SR10, SR15, SR20, SR21, SR24), never
 - a star is never an award: A star changes no award, board, kudos total, allowance, coin, quest, Journey step, sticker or gate decision; it writes only its own records, reward records and XP, and its flag's exposure.
   over: three stars, on a Given kudos message and on ordinary messages, by members who each gave and got kudos, with every feature on, compared table by table with the state before them
   via: SR2 SR23: a star is never an award
+  refuted: recordStar paid the giver's star reward 1 coin instead of none -> three givers' wallets each read 1 coin above the state before the stars (2026-10-16)
   because: stars sit below kudos on purpose (SR2): a star that reached awards would count on boards and kudos totals, spend or refill no allowance yet earn coins, finish quests and Journey steps, or reach the meaningful-thank-you classifier
   kinds: state
   checklist: revalidated-permission dismissed: no permission is involved; a star reads awards only to find its people
