@@ -38,6 +38,10 @@ describe("#435: the router reads every target a Slack link carries", () => {
     { link: "/book/collection?crate=bought%3A2", page: { page: "bookCollection", crate: secondBoughtCrate }, route: { page: "book", bookPage: "collection", crate: secondBoughtCrate } },
     { link: "/book/collection?crate=store", page: { page: "bookCollection", crate: "store" }, route: { page: "book", bookPage: "collection", crate: "store" } },
     { link: "/quests?crate=group%3A2026-10-05", page: { page: "quests", crate: lastWeeksGroupCrate }, route: { page: "quests", crate: lastWeeksGroupCrate } },
+    { link: "/?panel=inventory", page: { page: "home", panel: "inventory" }, route: { page: "home", panel: "inventory" } },
+    { link: "/settings?section=visibility", page: { page: "settings", section: "visibility" }, route: { page: "settings", section: "visibility" } },
+    { link: "/settings?section=messages", page: { page: "settings", section: "messages" }, route: { page: "settings", section: "messages" } },
+    { link: "/settings?section=group", page: { page: "settings", section: "group" }, route: { page: "settings", section: "group" } },
   ])("$link", ({ link, page, route }) => {
     const url = urlOf(origin, page);
     expect(url).toBe(`${origin}${link}`);

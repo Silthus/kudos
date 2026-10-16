@@ -9,13 +9,14 @@ import { MemberTabs } from "../home/MemberTabs";
 import { RecentKudosCard } from "../home/RecentKudosCard";
 import type { RecentKudosRead } from "../recentKudosRead";
 import type { PendingItemPurchase } from "../home/itemPurchase";
+import type { HomePanel } from "../route";
 import type { MemberProfile, ShellActions } from "../shell";
 
 export type { LoadoutActions };
 
-type HomePageProps = { member: MemberProfile; reads: HomeReads; useRecentKudos: RecentKudosRead; onBuyItem: ShellActions["buyItem"]; pendingPurchase: PendingItemPurchase; loadout: LoadoutActions };
+type HomePageProps = { member: MemberProfile; panel?: HomePanel; reads: HomeReads; useRecentKudos: RecentKudosRead; onBuyItem: ShellActions["buyItem"]; pendingPurchase: PendingItemPurchase; loadout: LoadoutActions };
 
-export function HomePage({ member, reads, useRecentKudos, onBuyItem, pendingPurchase, loadout }: HomePageProps) {
+export function HomePage({ member, panel, reads, useRecentKudos, onBuyItem, pendingPurchase, loadout }: HomePageProps) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
@@ -23,7 +24,7 @@ export function HomePage({ member, reads, useRecentKudos, onBuyItem, pendingPurc
         <Hero member={member} />
         {hasGivenNoKudos(member) && <FirstKudosNudge member={member} />}
         <JourneyPanel journey={member.journey} />
-        <GearPanel member={member} loadout={loadout} buyItem={onBuyItem} pendingPurchase={pendingPurchase} />
+        <GearPanel member={member} opensOn={panel === "inventory" ? "inventory" : "character"} loadout={loadout} buyItem={onBuyItem} pendingPurchase={pendingPurchase} />
         <MainColumnPanels member={member} collection={reads.collection} />
       </div>
       <div className="flex min-w-0 flex-col gap-6">

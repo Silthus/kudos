@@ -22,6 +22,16 @@ export const crateTargetValidator = v.union(...namedCrateValidator.members, week
 
 export type CrateTarget = Infer<typeof crateTargetValidator>;
 
+export const homePanelValidator = v.literal("inventory");
+
+export type HomePanel = Infer<typeof homePanelValidator>;
+
+export const settingsSectionValidator = v.union(v.literal("visibility"), v.literal("messages"), v.literal("group"));
+
+export type SettingsSection = Infer<typeof settingsSectionValidator>;
+
+export const settingsSections: readonly SettingsSection[] = settingsSectionValidator.members.map(({ value }) => value);
+
 const namedCrates: readonly NamedCrate[] = namedCrateValidator.members.map(({ value }) => value);
 
 const weeklyCrateParam = /^weekly:(\d{4}-\d{2}-\d{2}):(\d+)$/;
@@ -103,6 +113,8 @@ function searchOf(page: Page) {
   if (page.page === "leaderboard" && page.period !== "week") search.set("period", page.period);
   if (page.page === "quests" && page.quest !== undefined) search.set("quest", String(page.quest));
   if (page.page === "skillTree" && page.perk !== undefined) search.set("perk", page.perk);
+  if (page.page === "home" && page.panel !== undefined) search.set("panel", page.panel);
+  if (page.page === "settings" && page.section !== undefined) search.set("section", page.section);
   const crate = "crate" in page && page.crate !== undefined ? crateParamOf(page.crate) : undefined;
   if (crate !== undefined) search.set("crate", crate);
   const query = search.toString();

@@ -1,13 +1,14 @@
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { collectionFixtures, fixedCollection } from "./collectionFixtures";
 import type { Collection } from "./collectionRead";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
+import { fixedSettings, settingsFixtures } from "./settingsFixtures";
 import type { BoardRead } from "./boardRead";
 import type { QuestsRead, QuestsShown } from "./questsRead";
-import { shellFixtures, type MemberProfile, type MyQuests, type MySkillTree, type ShellState } from "./shell";
+import { shellFixtures, type ItemBuyAnswer, type MemberProfile, type MyQuests, type MySettings, type MySkillTree, type ShellState } from "./shell";
 import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { renderApp } from "./test/renderApp";
@@ -357,7 +358,7 @@ describe("#435: a quest or perk target waits for its page's content", () => {
 });
 
 describe("#435: a target survives sign-in", () => {
-  it.each(["/skills?perk=spark", "/quests?crate=quests", "/?crate=journey", "/book?crate=book", "/leaderboard?period=month&crate=leaderboard", "/quests?crate=weekly%3A2026-10-05%3A0", "/quests?crate=group%3A2026-10-05"])("signs in back to %s", async (path) => {
+  it.each(["/skills?perk=spark", "/quests?crate=quests", "/?crate=journey", "/book?crate=book", "/leaderboard?period=month&crate=leaderboard", "/quests?crate=weekly%3A2026-10-05%3A0", "/quests?crate=group%3A2026-10-05", "/?panel=inventory", "/settings?section=group"])("signs in back to %s", async (path) => {
     visit(path);
     const { actions, user } = renderApp(shellFixtures.signedOut);
     await user.click(screen.getByRole("button", { name: "Sign in with Slack" }));
@@ -460,5 +461,121 @@ describe("#469: ?crate=bought:{n} lands on that bought crate's Open and ?crate=s
     showVisitor({ ...shopper });
 
     expect(within(crateRow("bought:1")).getByRole("button", { name: "Open" })).toHaveFocus();
+  });
+});
+
+describe("#531: ?panel=inventory and ?section={section} land on their heading, never acting", () => {
+  const withSettings = shellFixtures.memberWithSettings;
+
+  function heading(name: string) {
+    return within(main()).getByRole("heading", { level: 2, name });
+  }
+
+  function regionOf(name: string) {
+    return within(main()).getByRole("region", { name });
+  }
+
+  function showSettingsAt(path: string, settings: MySettings = settingsFixtures.everything) {
+    visit(path);
+    return renderApp(withSettings, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, fixedSettings(settings));
+  }
+
+  function expectNothingSent(actions: ReturnType<typeof renderApp>["actions"]) {
+    for (const command of [actions.buyItem, actions.equip, actions.takeOff, actions.setBoardVisibility, actions.setMessageSetting, actions.pickPrimaryGroup, actions.openFeature, actions.openQuestCrate]) expect(command).not.toHaveBeenCalled();
+  }
+
+  it("/?panel=inventory turns the gear to its Inventory side, scrolls it into view and focuses its heading", () => {
+    const scrolled = watchScrolling();
+    visit("/?panel=inventory");
+    const { actions } = renderApp(shellFixtures.memberWithTheInventory);
+
+    expect(scrolled).toEqual([regionOf("Inventory")]);
+    expect(heading("Inventory")).toHaveFocus();
+    expect(within(regionOf("Inventory")).getByRole("region", { name: "Kudos emoji" })).toBeInTheDocument();
+    expectNothingSent(actions);
+    expect(window.location.search).toBe("?panel=inventory");
+  });
+
+  it("lands on the Inventory again when history returns to the link after the member turned to Character", async () => {
+    visit("/?panel=inventory");
+    const { user } = renderApp(shellFixtures.memberWithTheInventory);
+    await user.click(within(main()).getByRole("button", { name: "Character" }));
+    act(() => {
+      window.history.pushState(null, "", "/");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    const scrolled = watchScrolling();
+    act(() => {
+      window.history.pushState(null, "", "/?panel=inventory");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+
+    expect(scrolled).toEqual([regionOf("Inventory")]);
+    expect(heading("Inventory")).toHaveFocus();
+  });
+
+  it("keeps a purchase in flight when the address leaves the link", async () => {
+    let answer: (reply: ItemBuyAnswer) => void = () => undefined;
+    visit("/?panel=inventory");
+    const { user } = renderApp(shellFixtures.memberWithTheInventory, undefined, { buyItem: () => new Promise((settle) => (answer = settle)) });
+    await user.click(within(regionOf("Inventory")).getByRole("button", { name: "Buy for 100 coins, Gem" }));
+    act(() => {
+      window.history.pushState(null, "", "/");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+
+    expect(within(regionOf("Inventory")).getByRole("button", { name: "Buying…, Gem" })).toBeInTheDocument();
+    await act(async () => answer({ kind: "bought", item: "gem" }));
+    expect(within(regionOf("Inventory")).queryByRole("button", { name: "Buying…, Gem" })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["a member without an inventory", "/?panel=inventory", shellFixtures.memberWithTheBoard],
+    ["an unknown panel", "/?panel=nope", shellFixtures.memberWithTheInventory],
+  ])("leaves the plain home for %s", (_, path, member) => {
+    const scrolled = watchScrolling();
+    visit(path);
+    renderApp(member);
+
+    expect(scrolled).toEqual([]);
+    expect(document.body).toHaveFocus();
+  });
+
+  it.each([
+    ["visibility", "Leaderboards"],
+    ["messages", "Messages"],
+    ["group", "Your group"],
+  ])("/settings?section=%s scrolls the %s section into view and focuses its heading", (section, name) => {
+    const scrolled = watchScrolling();
+    const { actions } = showSettingsAt(`/settings?section=${section}`);
+
+    expect(scrolled).toEqual([regionOf(name)]);
+    expect(heading(name)).toHaveFocus();
+    expectNothingSent(actions);
+    expect(window.location.search).toBe(`?section=${section}`);
+  });
+
+  it.each([
+    ["a hidden section", "/settings?section=group", { ...settingsFixtures.everything, group: null }],
+    ["an unknown section", "/settings?section=nope", settingsFixtures.everything],
+  ])("leaves the plain settings page for %s", (_, path, settings) => {
+    const scrolled = watchScrolling();
+    showSettingsAt(path, settings);
+
+    expect(scrolled).toEqual([]);
+    expect(document.body).toHaveFocus();
+  });
+
+  it("lands once the settings answer after loading", () => {
+    const scrolled = watchScrolling();
+    visit("/settings?section=messages");
+    let landed = false;
+    const { showVisitor } = renderApp(withSettings, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, (asking) => (asking && landed ? settingsFixtures.everything : undefined));
+    expect(scrolled).toEqual([]);
+    landed = true;
+    showVisitor({ ...withSettings });
+
+    expect(scrolled).toEqual([regionOf("Messages")]);
+    expect(heading("Messages")).toHaveFocus();
   });
 });

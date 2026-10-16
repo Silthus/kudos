@@ -56,6 +56,16 @@ describe("SW11: one function builds every website link", () => {
     expect(await linkTo(page)).toBe(link);
   });
 
+  test.each<{ page: Page; link: string }>([
+    { page: { page: "home", panel: "inventory" }, link: `${siteUrl}/?panel=inventory` },
+    { page: { page: "settings" }, link: `${siteUrl}/settings` },
+    { page: { page: "settings", section: "visibility" }, link: `${siteUrl}/settings?section=visibility` },
+    { page: { page: "settings", section: "messages" }, link: `${siteUrl}/settings?section=messages` },
+    { page: { page: "settings", section: "group" }, link: `${siteUrl}/settings?section=group` },
+  ])("#531: a link to the inventory panel or a settings section carries its target: $link", async ({ page, link }) => {
+    expect(await linkTo(page)).toBe(link);
+  });
+
   test.each([1.5, 0, -1, Number.NaN, 1e21])("#469: a bought crate whose number is %s, which the router would drop, links to the Collection with no target", async (n) => {
     expect(await linkTo({ page: "bookCollection", crate: { kind: "bought", n } })).toBe(`${siteUrl}/book/collection`);
   });
