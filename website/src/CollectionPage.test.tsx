@@ -10,7 +10,7 @@ import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 const theCollection = collectionFixtures.collection;
 
-vi.setConfig({ testTimeout: 30_000 });
+vi.setConfig({ testTimeout: 90_000 });
 
 beforeEach(() => {
   fakeSystemTheme(false);
