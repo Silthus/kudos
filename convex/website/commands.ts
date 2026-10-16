@@ -53,7 +53,7 @@ export const openFeature = memberMutation({
     await runCommand(ctx, me.workspace, person, { type: "openUnlock", feature }, `website:openFeature:${me.member}:${feature}`);
     if ((await stateOf(ctx, me.member, feature)) !== "open") return refused;
     await republish(ctx, me.member);
-    return { kind: "opened", ...(await dropShownTo(queryOnly(ctx), me, `unlock:${feature}`)) };
+    return { kind: "opened", ...(await dropShownTo(ctx, me, `unlock:${feature}`)) };
   },
 });
 
@@ -65,7 +65,7 @@ export const openQuestCrate = memberMutation({
     const opening = await crateOpeningOf(ctx, me.member, rewardKeyOf(quest));
     if (opening === null) return refused;
     await republish(ctx, me.member);
-    return { kind: "opened", applied: await appliedShownTo(queryOnly(ctx), me, opening.applied), ...(await dropShownTo(queryOnly(ctx), me, rewardKeyOf(quest))) };
+    return { kind: "opened", applied: await appliedShownTo(queryOnly(ctx), me, opening.applied), ...(await dropShownTo(ctx, me, rewardKeyOf(quest))) };
   },
 });
 
@@ -119,7 +119,7 @@ export const setBoardVisibility = memberMutation({
   },
 });
 
-async function dropShownTo(ctx: QueryCtx, me: VerifiedMember, crate: string): Promise<{ drop?: Drop | null }> {
+async function dropShownTo(ctx: MutationCtx, me: VerifiedMember, crate: string): Promise<{ drop?: Drop | null }> {
   if (!(await hoggiesShownTo(ctx, me.member))) return {};
   return { drop: dropsAHoggie(crate) ? await dropOf(ctx, me.member, crate) : null };
 }

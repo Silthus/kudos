@@ -130,7 +130,7 @@ async function dropDrawnFor(member: MemberId, crate: string, copy = 1) {
 function dropsOf(member: MemberId, backend: Backend = t) {
   return backend.run(async (ctx) => {
     const drops = [];
-    for await (const drop of dropsNewestFirst(ctx, member, fromTheNewestDrop)) drops.push(drop);
+    for await (const drop of dropsNewestFirst(ctx, member, fromTheNewestDrop, { crests: false })) drops.push(drop);
     return drops;
   });
 }

@@ -14,7 +14,6 @@ describe("CL2 CL3 CL4: catalogue version 1", () => {
   });
 
   test("CL2 CL4: version 1 holds 151 distinct hoggies, the appendix's count of each rarity, so every weight can be drawn", () => {
-    expect(catalogue.version).toBe(1);
     expect(new Set(catalogue.hoggies.map(({ hoggie }) => hoggie)).size).toBe(151);
     expect(Object.fromEntries(rarities.map(({ rarity }) => [rarity, hoggiesOfRarity(rarity).length]))).toEqual({ common: 60, uncommon: 40, rare: 30, epic: 15, legendary: 6 });
   });
@@ -22,6 +21,39 @@ describe("CL2 CL3 CL4: catalogue version 1", () => {
   test("CL2: catalogue order within a rarity is the appendix's", () => {
     expect(hoggiesOfRarity("legendary").map(({ hoggie }) => hoggie)).toEqual(["dr-manhattan", "final-evolution", "rocket", "superhero", "transformer", "wizard"]);
     expect(hoggiesOfRarity("common").at(-1)?.hoggie).toBe("workflows");
+  });
+});
+
+describe("CL22: catalogue version 2's crests", () => {
+  const roster = (crest: string) => catalogue.crests.find((entry) => entry.crest === crest)?.roster;
+
+  test("version 2 adds 54 crests, the pinned package's apart from its placeholder, keeping the hoggies, rarities and weights", () => {
+    expect(catalogue.version).toBe(2);
+    expect(new Set(catalogue.crests.map(({ crest }) => crest)).size).toBe(54);
+    expect(catalogue.crests.map(({ crest }) => crest)).not.toContain("a-default-crest");
+    expect(catalogue.hoggies).toHaveLength(151);
+  });
+
+  test("the rosters partition the version 1 hoggies, two to four on each", () => {
+    const onRosters = catalogue.crests.flatMap((entry) => entry.roster);
+
+    expect(onRosters.toSorted()).toEqual(catalogue.hoggies.map(({ hoggie }) => hoggie).toSorted());
+    for (const entry of catalogue.crests) expect(entry.roster.length, entry.crest).toBeGreaterThanOrEqual(2);
+    for (const entry of catalogue.crests) expect(entry.roster.length, entry.crest).toBeLessThanOrEqual(4);
+  });
+
+  test("the rosters are the appendix's, in its order", () => {
+    expect(catalogue.crests.at(0)).toEqual({ crest: "ai-gateway", name: "AI Gateway", roster: ["transformer", "traffic-controller", "cursor"] });
+    expect(roster("error-tracking")).toEqual(["error", "panic", "stop", "reaper"]);
+    expect(catalogue.crests.at(-1)).toEqual({ crest: "youtube", name: "Youtube", roster: ["scott-pilgrim", "boombox", "70s-dance", "shocked"] });
+  });
+
+  test("each roster mixes rarities: at most one legendary, and at least one common or uncommon", () => {
+    const rarityOf = (hoggie: string) => catalogue.hoggies.find((entry) => entry.hoggie === hoggie)!.rarity;
+    for (const { crest, roster: hoggies } of catalogue.crests) {
+      expect(hoggies.filter((hoggie) => rarityOf(hoggie) === "legendary").length, crest).toBeLessThanOrEqual(1);
+      expect(hoggies.some((hoggie) => ["common", "uncommon"].includes(rarityOf(hoggie))), crest).toBe(true);
+    }
   });
 });
 

@@ -1,7 +1,7 @@
 import type { QueryCtx } from "../_generated/server";
 import { awardsReceivedNewestFirst, messagesGivenNewestFirst, type Before, type GivenMessageAwards, type MessageAward, type ReceivedAward } from "../engine/awards";
 import { dropsNewestFirst } from "../hoggies/drops";
-import { hoggiesShownTo } from "../hoggies/flag";
+import { crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
 import { bonusRecordedWith } from "../progression/effects";
 import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
 import { catalogue } from "../progression/catalogue";
@@ -77,8 +77,9 @@ const found: Source = {
   rank: ranks.found,
   read: async (ctx, { member }, { at, created }, take) => {
     if (!(await hoggiesShownTo(ctx, member))) return whole([]);
+    const shown = { crests: await crestsShownTo(ctx, member) };
     return whole(
-      (await firstOf(dropsNewestFirst(ctx, member, { at, n: created }), take)).map(({ at, n, drop }) => {
+      (await firstOf(dropsNewestFirst(ctx, member, { at, n: created }, shown), take)).map(({ at, n, drop }) => {
         const position: Position = { at, rank: ranks.found, created: n };
         return { position, entry: async (): Promise<Found> => ({ kind: "found", at, key: encodePosition(position), drop }) };
       }),

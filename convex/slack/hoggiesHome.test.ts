@@ -11,6 +11,20 @@ import { catalogue, hoggieNamed, type Rarity } from "../hoggies/catalogue";
 import { drawOf } from "../hoggies/draw";
 import type { Feature } from "../unlocks/feature";
 
+const planned = vi.hoisted(() => new Map<string, string>());
+
+vi.mock("../hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../hoggies/draw")>();
+  const { hoggieNamed } = await import("../hoggies/catalogue");
+  return {
+    ...actual,
+    drawOf: vi.fn(async (input: Parameters<typeof actual.drawOf>[0]) => {
+      const hoggie = planned.get(input.crate);
+      return hoggie === undefined ? actual.drawOf(input) : { hoggie, rarity: hoggieNamed(hoggie)!.rarity };
+    }),
+  };
+});
+
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
 const minuteMs = 60_000;
 const siteUrl = "https://kudos-site.test";
@@ -28,6 +42,7 @@ let postHog: FakePostHog;
 
 beforeEach(() => {
   vi.useFakeTimers({ now: tuesday });
+  planned.clear();
   vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
@@ -153,6 +168,57 @@ describe("CL16: App Home names the hoggies found while collection is on and the 
       "divider",
       ...hints,
     ]);
+  });
+});
+
+describe("CL25: App Home's hoggies line counts the crests collected while crests is on", { timeout: 30_000 }, () => {
+  test("the profile's line counts no crest until a roster's last hoggie drops, then one", async () => {
+    const t = await workspace(...bookFlags, "collection", "crests");
+    planned.set("unlock:book", "roller-coaster").set("unlock:leaderboard", "dynamite");
+    await levelFour(t);
+
+    await openFromAppHome(t, "book");
+    const beforeTheTeam = hoggiesLineIn(publishedHome(slack, "U_ALICE"));
+    await openFromAppHome(t, "leaderboard");
+
+    expect([...beforeTheTeam, ...hoggiesLineIn(publishedHome(slack, "U_ALICE"))]).toEqual([
+      "section: Hoggies: 1 of 151 · 0 crests · last found: Roller Coaster (🟦 Rare)",
+      "section: Hoggies: 2 of 151 · 1 crest · last found: Dynamite (🟩 Uncommon)",
+    ]);
+  });
+
+  test("the front door's summary carries the count too, linking to the Book on the website", async () => {
+    const t = await workspace(...bookFlags, "collection", "crests", "website");
+    planned.set("unlock:book", "roller-coaster");
+    await levelFour(t);
+
+    await openFromAppHome(t, "book");
+
+    expect(hoggiesLineIn(publishedHome(slack, "U_ALICE"))).toEqual([`section: Hoggies: 1 of 151 · 0 crests · last found: Roller Coaster (🟦 Rare) [link: View ${siteUrl}/book]`]);
+  });
+
+  test("a member with no drop yet sees no crest beside every crate dropping one", async () => {
+    const t = await workspace(...bookFlags);
+    await levelFour(t);
+    await openFromAppHome(t, "book");
+    await flagsOn(t, ...bookFlags, "collection", "crests");
+
+    await openHome(t, "U_ALICE");
+
+    expect(hoggiesLineIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: Hoggies: 0 of 151 · 0 crests · every crate you open drops one."]);
+  });
+
+  test("CL26: with crests off the line is the one before crests, the collected crest included", async () => {
+    const t = await workspace(...bookFlags, "collection", "crests");
+    planned.set("unlock:book", "roller-coaster").set("unlock:leaderboard", "dynamite");
+    await levelFour(t);
+    await openFromAppHome(t, "book");
+    await openFromAppHome(t, "leaderboard");
+    await flagsOn(t, ...bookFlags, "collection");
+
+    await openHome(t, "U_ALICE");
+
+    expect(hoggiesLineIn(publishedHome(slack, "U_ALICE"))).toEqual(["section: Hoggies: 2 of 151 · last found: Dynamite (🟩 Uncommon)"]);
   });
 });
 

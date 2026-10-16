@@ -5,7 +5,7 @@ import { bookFactsOf, type AchievementFacts } from "../achievements/achievements
 import { achievementsApplyIn, achievementsShownTo } from "../achievements/flag";
 import { groupModeShownTo, type GroupModeFacts } from "../groups/groupMode";
 import { hoggiesOf, type HoggiesHome } from "../hoggies/collection";
-import { hoggiesShownTo } from "../hoggies/flag";
+import { crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
 import { xpRecordedEventValidator } from "../bus/events";
 import { groupsShownAndExposedTo, type GroupId } from "../groups/groups";
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";
@@ -237,7 +237,7 @@ function namedForStore({ ready, next }: UnlocksHome, storeShown: boolean): Unloc
 }
 
 async function hoggiesInTheBookOf(ctx: QueryCtx, member: MemberId, { book }: Slices) {
-  return book && (await hoggiesShownTo(ctx, member)) ? hoggiesOf(ctx, member) : null;
+  return book && (await hoggiesShownTo(ctx, member)) ? hoggiesOf(ctx, member, { crests: await crestsShownTo(ctx, member) }) : null;
 }
 
 async function applyingMessageSettingsOf(ctx: QueryCtx, member: MemberId) {
