@@ -8,7 +8,7 @@ import { lookup, type MemberFacts, type MemberId } from "../workspace/directory"
 import { starBudgetOf } from "../workspace/settings";
 import { starsOnAndExposedFor } from "./flag";
 import type { StarReaction } from "./reaction";
-import { insertStar, starOf, starsGivenOn, type StarFor } from "./records";
+import { insertStar, starOf, starsGivenOn, type NewStar, type StarFor } from "./records";
 import { countStarGiven } from "./weeks";
 import { starXp, starsCatalogueVersion } from "./xp";
 
@@ -52,8 +52,6 @@ async function starsLeftOf(ctx: MutationCtx, giver: MemberId, workspace: string,
   const budget = await starBudgetOf(ctx, workspace);
   return budget - (await starsGivenOn(ctx, giver, day, budget));
 }
-
-type NewStar = MessageRef & StarFor & { giver: MemberId; at: number; day: string };
 
 async function recordStar(ctx: MutationCtx, star: NewStar) {
   const { workspace, conversation, message, giver, onKudos, at, day } = star;

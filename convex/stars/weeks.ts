@@ -10,9 +10,9 @@ export type StarWeek = Doc<"starWeeks">;
 
 export type MostStarred = NonNullable<StarWeek["mostStarred"]>;
 
-type GivenStar = MessageRef & { giver: MemberId; day: DayKey };
+type CountedStar = MessageRef & { giver: MemberId; day: DayKey };
 
-export async function countStarGiven(ctx: MutationCtx, star: GivenStar) {
+export async function countStarGiven(ctx: MutationCtx, star: CountedStar) {
   const week = await weekRowOf(ctx, star.workspace, star.giver, weekOf(star.day).monday);
   await ctx.db.patch(week._id, { given: week.given + 1, givenXp: week.givenXp + starXp });
   await countStarOnTheMessage(ctx, star);

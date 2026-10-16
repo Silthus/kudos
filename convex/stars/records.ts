@@ -24,7 +24,9 @@ export async function starsGivenOn(ctx: QueryCtx, giver: MemberId, day: DayKey, 
   return given.length;
 }
 
-export async function insertStar(ctx: MutationCtx, star: MessageRef & StarFor & { giver: MemberId; at: number; day: DayKey }) {
+export type NewStar = MessageRef & StarFor & { giver: MemberId; at: number; day: DayKey };
+
+export async function insertStar(ctx: MutationCtx, star: NewStar) {
   await ctx.db.insert("stars", star);
 }
 
