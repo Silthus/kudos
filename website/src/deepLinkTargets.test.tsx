@@ -5,9 +5,10 @@ import { bookFixtures, fixedBook } from "./bookFixtures";
 import { collectionFixtures, fixedCollection } from "./collectionFixtures";
 import type { Collection } from "./collectionRead";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
+import { fixedSettings, settingsFixtures } from "./settingsFixtures";
 import type { BoardRead } from "./boardRead";
 import type { QuestsRead, QuestsShown } from "./questsRead";
-import { shellFixtures, type MemberProfile, type MyQuests, type MySkillTree, type ShellState } from "./shell";
+import { shellFixtures, type MemberProfile, type MyQuests, type MySettings, type MySkillTree, type ShellState } from "./shell";
 import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { renderApp } from "./test/renderApp";
@@ -460,5 +461,88 @@ describe("#469: ?crate=bought:{n} lands on that bought crate's Open and ?crate=s
     showVisitor({ ...shopper });
 
     expect(within(crateRow("bought:1")).getByRole("button", { name: "Open" })).toHaveFocus();
+  });
+});
+
+describe("#531: ?panel=inventory and ?section={section} land on their heading, never acting", () => {
+  const withSettings = shellFixtures.memberWithSettings;
+
+  function heading(name: string) {
+    return within(main()).getByRole("heading", { level: 2, name });
+  }
+
+  function regionOf(name: string) {
+    return within(main()).getByRole("region", { name });
+  }
+
+  function showSettingsAt(path: string, settings: MySettings = settingsFixtures.everything) {
+    visit(path);
+    return renderApp(withSettings, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, fixedSettings(settings));
+  }
+
+  function expectNothingSent(actions: ReturnType<typeof renderApp>["actions"]) {
+    for (const command of [actions.buyItem, actions.equip, actions.takeOff, actions.setBoardVisibility, actions.setMessageSetting, actions.pickPrimaryGroup, actions.openFeature, actions.openQuestCrate]) expect(command).not.toHaveBeenCalled();
+  }
+
+  it("/?panel=inventory turns the gear to its Inventory side, scrolls it into view and focuses its heading", () => {
+    const scrolled = watchScrolling();
+    visit("/?panel=inventory");
+    const { actions } = renderApp(shellFixtures.memberWithTheInventory);
+
+    expect(scrolled).toEqual([regionOf("Inventory")]);
+    expect(heading("Inventory")).toHaveFocus();
+    expect(within(regionOf("Inventory")).getByRole("region", { name: "Kudos emoji" })).toBeInTheDocument();
+    expectNothingSent(actions);
+    expect(window.location.search).toBe("?panel=inventory");
+  });
+
+  it.each([
+    ["a member without an inventory", "/?panel=inventory", shellFixtures.memberWithTheBoard],
+    ["an unknown panel", "/?panel=nope", shellFixtures.memberWithTheInventory],
+  ])("leaves the plain home for %s", (_, path, member) => {
+    const scrolled = watchScrolling();
+    visit(path);
+    renderApp(member);
+
+    expect(scrolled).toEqual([]);
+    expect(document.body).toHaveFocus();
+  });
+
+  it.each([
+    ["visibility", "Leaderboards"],
+    ["messages", "Messages"],
+    ["group", "Your group"],
+  ])("/settings?section=%s scrolls the %s section into view and focuses its heading", (section, name) => {
+    const scrolled = watchScrolling();
+    const { actions } = showSettingsAt(`/settings?section=${section}`);
+
+    expect(scrolled).toEqual([regionOf(name)]);
+    expect(heading(name)).toHaveFocus();
+    expectNothingSent(actions);
+    expect(window.location.search).toBe(`?section=${section}`);
+  });
+
+  it.each([
+    ["a hidden section", "/settings?section=group", { ...settingsFixtures.everything, group: null }],
+    ["an unknown section", "/settings?section=nope", settingsFixtures.everything],
+  ])("leaves the plain settings page for %s", (_, path, settings) => {
+    const scrolled = watchScrolling();
+    showSettingsAt(path, settings);
+
+    expect(scrolled).toEqual([]);
+    expect(document.body).toHaveFocus();
+  });
+
+  it("lands once the settings answer after loading", () => {
+    const scrolled = watchScrolling();
+    visit("/settings?section=messages");
+    let landed = false;
+    const { showVisitor } = renderApp(withSettings, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, (asking) => (asking && landed ? settingsFixtures.everything : undefined));
+    expect(scrolled).toEqual([]);
+    landed = true;
+    showVisitor({ ...withSettings });
+
+    expect(scrolled).toEqual([regionOf("Messages")]);
+    expect(heading("Messages")).toHaveFocus();
   });
 });
