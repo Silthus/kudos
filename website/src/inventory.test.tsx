@@ -62,6 +62,21 @@ function coinsChip() {
   return within(screen.getByRole("banner")).queryByTitle(/coins/);
 }
 
+describe("RS5: with slots retired, the gear panel shows the owned kudos emoji and no slot", () => {
+  const withSlotsRetired: MemberProfile = { ...memberWithTheInventory, inventory: { ...memberWithTheInventory.inventory!, slots: [] } };
+
+  it("opens on the inventory with no Character side, no slot count and no Wear or Take off, and says every owned emoji counts", () => {
+    renderApp(withSlotsRetired);
+
+    expect(within(screen.getByRole("main")).queryByRole("button", { name: "Character" })).not.toBeInTheDocument();
+    expect(kudosEmoji()).not.toHaveTextContent("Equipped");
+    expect(kudosEmoji()).toHaveTextContent("Each of your kudos emoji counts as a kudos, like :taco:.");
+    const yours = within(kudosEmoji()).getByRole("list", { name: "Yours" });
+    expect(within(yours).queryAllByRole("button")).toEqual([]);
+    expect(readAloudIn(yours)).toEqual(["Hedgehog", "Rocket", "Sunflower"]);
+  });
+});
+
 describe("WS341 ST26: the inventory side of the home's main slot, read only", () => {
   it("holds the kudos emoji section with the slots in use, the owned items with their slots, and the balance", () => {
     showInventory(memberWithTheInventory);
