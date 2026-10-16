@@ -8,6 +8,7 @@ The profile card: one member's name, level and best four medals, computed live b
   via: PC1 PC5 PC7 PC8: /hedgehug @member answers that member's profile card
   because: any member can look up any teammate (PC1), so the card is public; only what is public by design may show (G28, P65, P66), and a card that let XP, coins or kudos counts through would publish what each member was promised stays theirs
   refuted: bestMedalsOf kept the best five medals instead of four -> the five-ladder test failed on its reply, a fifth medal on the card (2026-10-14)
+  refuted: bestMedalsOf kept the best five medals instead of four, with the group line in place -> the five-ladder test failed on its reply, a fifth medal on the card (2026-10-16)
   kinds: read, output
   checklist: scoped-reads dismissed: the mentioned person is looked up in the command's own workspace only, so another workspace's person is never found and gets the not-a-member line; every field the card shows is public by design to that workspace
   checklist: redaction declared as a profile card shows only name, group, level and medals
@@ -36,8 +37,9 @@ The profile card: one member's name, level and best four medals, computed live b
   checklist: circuit-breaker-policy dismissed: no failure history diverts or suppresses a call
   checklist: declared-target-coverage dismissed: the reply goes to one viewer; nothing fans out
 - a card names the primary group only while groups show to the viewer: Slack's profile card has, right under the member's name, a line with the name of the member's primary group, as Slack's mrkdwn reads it written, while groupsShownTo answers true for the person typing `/hedgehug @member`, read without an exposure; with no primary group, or for a viewer whom groups don't show to, the card is the card without groups, and with `groups` off the reply, the Slack calls and the events sent are those of the card without groups.
-  over: a teammate's and an own card in Ants, a group named with &, < and >, a teammate with no primary group, groups on for one member's email viewing the other's card both ways, and `groups` off with a primary group stored
+  over: a teammate's and an own card in one primary group, a group named with &, < and >, a teammate with no primary group, groups on for one member's email viewing the other's card both ways, and `groups` off with a primary group stored
   via: WS344 GB32: the card names the member's primary group while groups show to the viewer
+  refuted: groupNameOnCard named the primary group without asking groupsShownTo for the viewer -> 2 of 5 tests failed, the group's name on the card for a viewer groups are off for and with groups off (2026-10-16)
   because: GB32 puts the member's primary group on their profile card and the website's card names it under the name (#294); Slack's card says it the same way (#501), and whether groups show is the viewer's decision, as on every other surface that shows groups to a member
   kinds: read, output
   checklist: scoped-reads dismissed: the group is the mentioned member's own primary group in the command's workspace, decided by the viewer's own groups decision in that workspace
