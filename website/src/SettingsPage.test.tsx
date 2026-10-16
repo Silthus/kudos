@@ -125,12 +125,13 @@ describe("Messages: where each message reaches the member", () => {
   });
 
   it("#580: draws a shortcode in a description as its emoji, and a custom one as a quiet chip", () => {
-    const recapWithBoth = { ...hugsRecap, description: hugsRecap.description.replace(":hedgehug:", ":hugging_face: and :hedgehug:") };
+    const recapWithBoth = { ...hugsRecap, description: hugsRecap.description.replace(":hedgehug:", ":hugging_face: and :hedgehug:").replace("Monday morning", "Monday at 09:30:00") };
     showSettings({ ...settingsFixtures.everything, messages: [recapWithBoth] } as MySettings);
 
     const recap = within(section("Messages")).getByRole("group", { name: "Weekly hugs recap" });
-    expect(recap).toHaveTextContent("Last week's hugs, the 🤗 and :hedgehug: you and your teammates reacted, with their XP, on Monday morning.");
+    expect(recap).toHaveTextContent("Last week's hugs, the 🤗 and :hedgehug: you and your teammates reacted, with their XP, on Monday at 09:30:00.");
     expect(within(recap).getByText(":hedgehug:")).toHaveAttribute("data-custom-emoji");
+    expect(recap.querySelectorAll("[data-custom-emoji]")).toHaveLength(1);
   });
 
   it("offers a kind with three places as one choice, checked from the read", () => {

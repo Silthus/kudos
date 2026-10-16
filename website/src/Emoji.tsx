@@ -1,7 +1,7 @@
 import { emojiCharacterOf, withoutSkinTone } from "./activity/emoji";
 import { CustomEmoji, EmojiName } from "./CustomEmoji";
 
-const shortcode = /:([a-z0-9_+'-]+(?:::skin-tone-[2-6](?:-[2-6])?)?):/g;
+const shortcode = /(?<!\d):([a-z0-9_+'-]+(?:::skin-tone-[2-6](?:-[2-6])?)?):(?!\d)/g;
 
 export function NamedEmoji({ name, image }: { name: string; image?: string }) {
   const label = `:${withoutSkinTone(name)}:`;
