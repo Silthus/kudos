@@ -20,6 +20,10 @@ function albumOf(owner: MemberId, { group, name, people }: CountingGroup, held: 
   return { group, name, mine: others.length < people.length, held: others.filter((person) => person.held).length, total: others.length, people: others };
 }
 
+export function isFilled({ held, total }: Album): boolean {
+  return total > 0 && held === total;
+}
+
 function ownFirstThenByName(first: Album, second: Album) {
   return Number(second.mine) - Number(first.mine) || first.name.localeCompare(second.name);
 }

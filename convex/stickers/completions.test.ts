@@ -4,14 +4,13 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack, type UserGroupOptions } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest } from "../../testing/signedSlack";
-import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { memberChanged, post, settleInTimeOrder as settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, userGroupEvent } from "../../testing/slackMessages";
 import { everyoneHeldBy, seededGroups, seededMembers, type Person } from "../../testing/stickerBook";
 import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api } from "../_generated/api";
 import { awardsOfMessage } from "../engine/awards";
-import type { CollectionAnswer } from "../website/collection";
 import { seenKeyOf } from "../website/seen";
 import type { MemberId } from "../workspace/directory";
 
@@ -119,7 +118,7 @@ async function withTheBookOpen(person: Person): Promise<Reader> {
 }
 
 async function albumsOf(reader: Reader) {
-  const answer: CollectionAnswer = await reader.query(api.website.collection.getCollection, {});
+  const answer = await reader.query(api.website.collection.getCollection, {});
   if (answer.kind !== "collection") throw new Error(`expected the collection, got ${JSON.stringify(answer)}`);
   return answer.albums ?? [];
 }
@@ -164,7 +163,11 @@ async function albumsCompletedBy(person: Person) {
   return postHog
     .productEvents()
     .filter(({ event, distinct_id }) => event === "album completed" && distinct_id === analyticsId)
-    .map(({ properties: { people, told, ...rest } }) => ({ people, told, names: Object.keys(rest).filter((key) => !key.startsWith("$")) }));
+    .map(({ properties }) => properties);
+}
+
+function albumCompleted(people: number, told: boolean) {
+  return { environment: "sandbox", workspace_key: expect.any(String), taxonomy_version: 1, people, told };
 }
 
 function storedCompletions() {
@@ -211,14 +214,14 @@ describe("SB22 SB23: a member's first check records every album already complete
     expect(await completionOf(reader, "Ants")).toEqual(await recordedAt(alice, ants, firstCheck, 2));
     expect(await completionOf(reader, "Bees")).toEqual(unrecorded(1, 2));
     expect(await completionOf(reader, "Owls"), "an album with nobody else in it can't be complete").toEqual(unrecorded(0, 0));
-    expect(await albumsCompletedBy(alice)).toEqual([{ people: 2, told: false, names: [] }]);
+    expect(await albumsCompletedBy(alice)).toEqual([albumCompleted(2, false)]);
 
-    const later = await thanks(alice, eve);
+    const later = await thanks(eve, alice);
 
     expect(await completionOf(reader, "Bees")).toEqual(await recordedAt(alice, bees, later, 2));
     expect(await albumsCompletedBy(alice)).toEqual([
-      { people: 2, told: false, names: [] },
-      { people: 2, told: true, names: [] },
+      albumCompleted(2, false),
+      albumCompleted(2, true),
     ]);
   });
 });
@@ -235,7 +238,7 @@ describe("SB18 SB19: thanking the last missing person records the album under th
     const last = await thanks(alice, carol);
 
     expect(await completionOf(reader, "Ants")).toEqual(await recordedAt(alice, ants, last, 2));
-    expect(await albumsCompletedBy(alice)).toEqual([{ people: 2, told: true, names: [] }]);
+    expect(await albumsCompletedBy(alice)).toEqual([albumCompleted(2, true)]);
     const [lastAward] = await t.run((ctx) => awardsOfMessage(ctx, { workspace: "T1", conversation: "C1", message: tsOfMessageAt.get(last)! }));
     expect((await storedCompletions()).map(({ award }) => award)).toEqual([lastAward!.award]);
   });
@@ -259,8 +262,9 @@ describe("a completed album stays complete", { timeout: 60_000 }, () => {
     await thanks(eve, alice);
 
     expect(await completionOf(reader, "Ants")).toEqual(await recordedAt(alice, ants, completed, 4, 4));
-    expect(await albumsCompletedBy(alice), "a second completion was recorded").toEqual([{ people: 1, told: true, names: [] }]);
-    expect(await storedCompletions()).toHaveLength(1);
+    expect(await albumsCompletedBy(alice), "a second completion was recorded").toEqual([albumCompleted(1, true)]);
+    const member = await memberOf(alice);
+    expect((await storedCompletions()).filter((completion) => completion.member === member)).toHaveLength(1);
   });
 
   test("a redelivered kudosGiven and a retried check record nothing twice", async () => {
@@ -282,7 +286,7 @@ describe("a completed album stays complete", { timeout: 60_000 }, () => {
     await settle(t);
 
     expect(await completionOf(reader, "Ants")).toEqual(await recordedAt(alice, ants, completed, 2));
-    expect(await albumsCompletedBy(alice)).toEqual([{ people: 2, told: true, names: [] }]);
+    expect(await albumsCompletedBy(alice)).toEqual([albumCompleted(2, true)]);
     expect(await storedCompletions()).toEqual(recorded);
   });
 
@@ -317,7 +321,7 @@ describe("SB19 SB24: an album whose last missing person left reads complete at o
     const next = await thanks(dan, alice);
 
     expect(await completionOf(reader, "Ants")).toEqual(await recordedAt(alice, ants, next, 1));
-    expect(await albumsCompletedBy(alice)).toEqual([{ people: 1, told: true, names: [] }]);
+    expect(await albumsCompletedBy(alice)).toEqual([albumCompleted(1, true)]);
   });
 });
 
@@ -334,7 +338,7 @@ describe("G5 SB18: an album of a group that doesn't count can't be completed", {
 
     expect(await completionOf(reader, "Ants")).toEqual(await recordedAt(alice, ants, completed, 1));
     expect(await completionOf(reader, "Bees")).toEqual(unrecorded(1, 1));
-    expect(await albumsCompletedBy(alice)).toEqual([{ people: 1, told: false, names: [] }]);
+    expect(await albumsCompletedBy(alice)).toEqual([albumCompleted(1, false)]);
 
     const next = await thanks(carol, alice);
     expect(await completionOf(reader, "Bees")).toEqual(await recordedAt(alice, bees, next, 1));

@@ -1,6 +1,7 @@
 import { v, type Infer } from "convex/values";
 import type {
   AchievementEarnedEvent,
+  AlbumsCompletedEvent,
   AttemptFailedEvent,
   HoggieDroppedEvent,
   GroupQuestDrawnEvent,
@@ -49,6 +50,7 @@ export type ProductEvent = {
     | "journey step activated"
     | "perk bought"
     | "hoggie dropped"
+    | "album completed"
     | "achievement earned"
     | "app home opened"
     | "command used"
@@ -216,6 +218,10 @@ export function projectJourneyStepActivated(event: JourneyStepActivatedEvent): P
 
 export function projectHoggieDropped(event: HoggieDroppedEvent): ProductEvent {
   return { event: "hoggie dropped", subject: { member: event.member }, at: event.at, properties: { rarity: event.rarity, is_new: event.copy === 1, crate_kind: crateKindOf(event.crate) } };
+}
+
+export function projectAlbumsCompleted({ member, groups, at, told }: AlbumsCompletedEvent): ProductEvent[] {
+  return groups.map(({ people }) => ({ event: "album completed", subject: { member }, at, properties: { people, told } }));
 }
 
 export function projectPerkBought(event: PerkBoughtEvent): ProductEvent {

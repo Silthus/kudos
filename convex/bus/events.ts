@@ -223,6 +223,19 @@ export const hoggieDroppedEventValidator = v.object({
 
 export type HoggieDroppedEvent = Infer<typeof hoggieDroppedEventValidator>;
 
+export const albumsCompletedEventValidator = v.object({
+  type: v.literal("albumsCompleted"),
+  workspace: v.string(),
+  member: v.id("members"),
+  message: messageRefValidator,
+  award: awardIdValidator,
+  groups: v.array(v.object({ group: v.id("userGroups"), people: v.number() })),
+  at: v.number(),
+  told: v.boolean(),
+});
+
+export type AlbumsCompletedEvent = Infer<typeof albumsCompletedEventValidator>;
+
 export const crateBoughtEventValidator = v.object({ type: v.literal("crateBought"), workspace: v.string(), member: v.id("members"), crate: v.string(), price: v.number(), at: v.number() });
 
 export type CrateBoughtEvent = Infer<typeof crateBoughtEventValidator>;
@@ -250,7 +263,8 @@ export type DomainEvent =
   | PrimaryGroupChangedEvent
   | AwardsAttributedEvent
   | HoggieDroppedEvent
-  | CrateBoughtEvent;
+  | CrateBoughtEvent
+  | AlbumsCompletedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];

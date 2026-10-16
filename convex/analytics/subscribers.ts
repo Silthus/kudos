@@ -1,6 +1,7 @@
 import { internalMutation } from "../_generated/server";
 import {
   achievementEarnedEventValidator,
+  albumsCompletedEventValidator,
   attemptFailedEventValidator,
   hoggieDroppedEventValidator,
   journeyStepActivatedEventValidator,
@@ -21,6 +22,7 @@ import { failuresLogged } from "./failures";
 import { record } from "./outbox";
 import {
   projectAchievementEarned,
+  projectAlbumsCompleted,
   projectAttemptFailed,
   projectHoggieDropped,
   projectJourneyStepActivated,
@@ -133,6 +135,13 @@ export const recordHoggieDropped = internalMutation({
   args: { event: hoggieDroppedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectHoggieDropped(event)]));
+  },
+});
+
+export const recordAlbumsCompleted = internalMutation({
+  args: { event: albumsCompletedEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, projectAlbumsCompleted(event)));
   },
 });
 
