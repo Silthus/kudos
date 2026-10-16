@@ -28,11 +28,11 @@ A fixture build (`VITE_SHELL_FIXTURE=member-with-the-book-opened`) served with `
 |---|---|
 | The Collection page, light, 1280 px: 41 of 151 found, the rarity sections, New tags on a first visit | `1-collection-1280-light.png` |
 | The same in dark | `2-collection-1280-dark.png` |
-| The same at 390 px, with the page picker; the New tags are gone because the browser has shown the page once | `3-collection-390-light.png` |
-| The Book overview with the Collection tile and its rarity counts | `4-book-overview-collection-tile-1280-light.png` |
+| The same at 390 px, with the page picker | `3-collection-390-light.png` |
+| The Book overview with the Collection tile, its rarity counts in squares and words | `4-book-overview-collection-tile-1280-light.png` |
 | The home's Book panel with the collection's progress and the latest find | `5-home-book-panel-1280-light.png` |
 | The activity with a found entry between two kudos | `6-activity-found-entry-1280-light.png` |
-| A legendary drop landing in the reveal: the burst, the card, the finish | `7-reveal-legendary-drop-light.mp4`, `7-reveal-legendary-drop-finish-light.png` |
+| A legendary drop landing in the reveal: the burst, the card, the finish (the recording is from before review round 1; the finish shot after it, with the card on the shared rarity tokens) | `7-reveal-legendary-drop-light.mp4`, `7-reveal-legendary-drop-finish-light.png` |
 
 ## Calls
 
@@ -40,3 +40,13 @@ A fixture build (`VITE_SHELL_FIXTURE=member-with-the-book-opened`) served with `
 - The home's latest find is the newest first find (`getCollection` carries no drop history); App Home's line names the last drop.
 - Rarity colours become V3's fourth exception, one token per rarity with light and dark values, always beside the rarity's square and word; V13 and V17 follow the drop.
 - `hoggie` joins the lexicon with `spec/collection`'s definition, so the branches merge clean.
+
+## Review
+
+`review-round-1.md`: GPT-6.1 Sol (high, `codex exec --sandbox read-only`) over the diff against `main`, with `spec/collection.md`, the ticket, the visual language and the website spec as the oracle. Five findings, all taken:
+
+1. `/book/collection` showed the Book's waiting page (with its crate) while `getCollection` said not-found: the collection's answers now come first.
+2. A hoggie arriving while the page was open never got its `New`: `useFreshKeys` now adds unseen arrivals before marking them.
+3. The overview tile's rarity counts were squares alone, hidden from assistive tech: squares plus words, and a spoken description on the link.
+4. The reveal kept #452's own hex values beside the new tokens: the scrim now takes the tokens' dark values.
+5. First-found dates were screen-reader only: each found tile shows its date.
