@@ -21,9 +21,9 @@ export async function giveStar(ctx: MutationCtx, reaction: StarReaction): Promis
   const giver = await lookup(ctx, reaction.workspace, reaction.giver);
   const author = await lookup(ctx, reaction.workspace, reaction.author);
   if (giver === undefined || author === undefined) return { kind: "unknown-people", users: unknownOf(reaction, { giver, author }) };
-  if (giver.kind !== "member") return nothing;
+  if (giver.kind !== "member" || author.kind !== "member") return nothing;
   const ref = { workspace: reaction.workspace, conversation: reaction.conversation, message: reaction.message };
-  const starFor = await starForOf(ctx, ref, giver.member, author);
+  const starFor = await starForOf(ctx, ref, giver.member, author.member);
   if (starFor === null || (await starOf(ctx, ref, giver.member)) !== null) return nothing;
   const day = allowanceDay(reaction.at, giver.timeZone);
   if ((await starsLeftOf(ctx, giver.member, reaction.workspace, day)) === 0) return nothing;
@@ -41,11 +41,10 @@ function unknownOf(reaction: StarReaction, known: { giver: MemberFacts | undefin
   return [...new Set([...(known.giver === undefined ? [reaction.giver] : []), ...(known.author === undefined ? [reaction.author] : [])])];
 }
 
-async function starForOf(ctx: MutationCtx, ref: MessageRef, giver: MemberId, author: MemberFacts): Promise<StarFor | null> {
-  const kudosAuthor = await authorOfGiven(ctx, ref);
-  if (kudosAuthor !== null) return kudosAuthor === giver || (await receivedOn(ctx, ref, giver)) ? null : { onKudos: true };
-  if (author.kind !== "member" || author.member === giver) return null;
-  return { onKudos: false, author: author.member };
+async function starForOf(ctx: MutationCtx, ref: MessageRef, giver: MemberId, author: MemberId): Promise<StarFor | null> {
+  if (author === giver) return null;
+  if ((await authorOfGiven(ctx, ref)) === null) return { onKudos: false, author };
+  return (await receivedOn(ctx, ref, giver)) ? null : { onKudos: true };
 }
 
 async function starsLeftOf(ctx: MutationCtx, giver: MemberId, workspace: string, day: string) {

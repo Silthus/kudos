@@ -3,7 +3,7 @@ import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, onInTheSandboxOnly } from "../../testing/flags";
 import { signingSecret } from "../../testing/signedSlack";
-import { everythingStored, post, react, settle, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
+import { everythingStored, memberChanged, post, react, settle, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, kudosAppBotUser, mention, section, type ReactionOptions } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import schema from "../schema";
@@ -116,6 +116,18 @@ describe("SR1 SR18: every other reaction does nothing", () => {
     expect(starsGiven()).toEqual([]);
   });
 
+  test("SR4: a star on a Given kudos message whose author has left gives no XP", async () => {
+    const t = await workspace();
+    await kudos(t, "U_ALICE", ["U_CAROL", "U_DANA"]);
+    await memberChanged(t, "user_change", { id: "U_ALICE", deleted: true });
+    const before = await xpOfEveryone(t);
+
+    await star(t, { user: "U_BOB", itemUser: "U_ALICE" });
+
+    expect(await xpOfEveryone(t)).toEqual(before);
+    expect(starsGiven()).toEqual([]);
+  });
+
   test.each([
     ["its author", "U_ALICE"],
     ["one of its recipients", "U_CAROL"],
@@ -184,7 +196,13 @@ describe("SR6 SR23: a star never passes the star budget", { timeout: 60_000 }, (
     const t = await workspace();
     for (let index = 0; index < 9; index += 1) await star(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - (index + 1) * 60_000) });
 
-    await Promise.all([react(t, { user: "U_BOB", itemUser: "U_CAROL", ts: messageTs }), react(t, { user: "U_BOB", itemUser: "U_DANA", ts: messageTs })]);
+    for (const user of ["U_CAROL", "U_DANA"]) await memberChanged(t, "team_join", { id: user });
+    await settle(t);
+
+    await Promise.all([
+      react(t, { user: "U_BOB", itemUser: "U_CAROL", ts: slackTs(now.getTime() - 20 * 60_000) }),
+      react(t, { user: "U_BOB", itemUser: "U_DANA", ts: slackTs(now.getTime() - 21 * 60_000) }),
+    ]);
     await settle(t);
 
     expect(await xpOf(t, "U_BOB")).toBe(10);
@@ -264,11 +282,11 @@ describe("SR2 SR23: a star is never an award", { timeout: 120_000 }, () => {
 
 describe("SR21: stars are dark where the flag is off", { timeout: 120_000 }, () => {
   test.each<[string, () => Promise<void>]>([
-    ["turned off in PostHog", async () => void (await flagsFromPostHog(darkBackend, postHog, offForEveryone("stars")))],
-    ["not created in PostHog", async () => void (await flagsFromPostHog(darkBackend, postHog))],
+    ["turned off in PostHog", async () => void (await flagsFromPostHog(darkBackend, postHog, ...everyOtherFeatureOn, offForEveryone("stars")))],
+    ["not created in PostHog", async () => void (await flagsFromPostHog(darkBackend, postHog, ...everyOtherFeatureOn))],
     ["on in the sandbox only, read in production", async () => {
       vi.stubEnv("KUDOS_ENVIRONMENT", "production");
-      await flagsFromPostHog(darkBackend, postHog, onInTheSandboxOnly("stars"));
+      await flagsFromPostHog(darkBackend, postHog, ...everyOtherFeatureOn, onInTheSandboxOnly("stars"));
     }],
     ["unreadable because the flags key is missing", async () => {
       vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "");
@@ -281,6 +299,7 @@ describe("SR21: stars are dark where the flag is off", { timeout: 120_000 }, () 
     vi.setSystemTime(now);
     await turnOff();
     const before = await everythingStored(t, { except: writtenByTheReceiptLookupOrFlag });
+    const journeyBefore = await journeyStepsOfEveryoneBut(t, "U_DANA");
     const callsBefore = slack.calls.length;
 
     await star(t, { user: "U_BOB", itemUser: "U_ALICE" });
@@ -288,6 +307,7 @@ describe("SR21: stars are dark where the flag is off", { timeout: 120_000 }, () 
     await star(t, { user: "U_DANA", itemUser: "U_ALICE", ts: slackTs(now.getTime() - 2 * hourMs) });
 
     expect(await everythingStored(t, { except: writtenByTheReceiptLookupOrFlag })).toEqual(before);
+    expect(await journeyStepsOfEveryoneBut(t, "U_DANA")).toEqual(journeyBefore);
     expect(slack.calls.slice(callsBefore).map(({ method, args }) => [method, args.user])).toEqual([["users.info", "U_DANA"]]);
     expect(starsGiven()).toEqual([]);
   });
@@ -332,6 +352,13 @@ const everyFeature = ["stars", "xp-levels", "unlocks", "quests", "skill-tree", "
 const writtenByAStar: Array<keyof typeof schema.tables> = ["stars", "starPeople", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
 
 const writtenByTheReceiptLookupOrFlag: Array<keyof typeof schema.tables> = ["slackReceipts", "members", "analyticsIds", "workspaceKeys", "flagExposures", "analyticsOutbox", "journeySteps"];
+
+const everyOtherFeatureOn = everyFeature.filter((key) => key !== "stars").map(onForEveryone);
+
+async function journeyStepsOfEveryoneBut(t: Backend, lookedUp: string) {
+  const member = await memberOf(t, lookedUp);
+  return t.run(async (ctx) => (await ctx.db.query("journeySteps").collect()).filter((step) => step.member !== member));
+}
 
 let darkBackend: Backend;
 
