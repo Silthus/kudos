@@ -33,14 +33,16 @@ export async function companyProfilesIn(ctx: QueryCtx, workspace: string): Promi
   const adminLinks = links.filter(({ by }) => by === "admin");
   const decidedByAdmin = new Set(adminLinks.map(({ member }) => member));
   for (const { member, profile } of adminLinks) {
-    if (profile === null) matches.set(member, { profile: null, by: "admin" });
-    else give(member, byId.get(profile), "admin");
+    if (profile !== null) give(member, byId.get(profile), "admin");
+    if (!matches.has(member)) matches.set(member, { profile: null, by: "admin" });
   }
-  for (const { member, profile } of links.filter(({ by }) => by === "self")) {
-    if (!decidedByAdmin.has(member) && profile !== null) give(member, byId.get(profile), "self");
+  const selfLinks = links.filter(({ by, member }) => by === "self" && !decidedByAdmin.has(member));
+  for (const { member, profile } of selfLinks) {
+    if (profile !== null) give(member, byId.get(profile), "self");
   }
+  const linked = new Set(selfLinks.map(({ member }) => member));
   for (const [member, profile] of nameMatches(names, profiles)) {
-    if (!decidedByAdmin.has(member) && !matches.has(member)) give(member, profile, "name");
+    if (!decidedByAdmin.has(member) && !linked.has(member)) give(member, profile, "name");
   }
   return { profiles, matches, holders };
 }
@@ -58,7 +60,12 @@ function nameMatches(names: Map<MemberId, string>, profiles: CompanyProfile[]): 
 
 function groupedBy<Item>(items: Item[], keyOf: (item: Item) => string): Map<string, Item[]> {
   const groups = new Map<string, Item[]>();
-  for (const item of items) groups.set(keyOf(item), [...(groups.get(keyOf(item)) ?? []), item]);
+  for (const item of items) {
+    const key = keyOf(item);
+    const group = groups.get(key);
+    if (group === undefined) groups.set(key, [item]);
+    else group.push(item);
+  }
   return groups;
 }
 

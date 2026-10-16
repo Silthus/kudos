@@ -97,6 +97,10 @@ function anAdminLink(member: MemberId, profile: number | null, setBy: MemberId) 
   return t.run((ctx) => ctx.db.insert("companyProfileLinks", { workspace: "T1", member, profile, by: "admin", setBy, at: Date.now() }));
 }
 
+function anOwnLink(member: MemberId, profile: number) {
+  return t.run((ctx) => ctx.db.insert("companyProfileLinks", { workspace: "T1", member, profile, by: "self", setBy: member, at: Date.now() }));
+}
+
 function links() {
   return t.run((ctx) => ctx.db.query("companyProfileLinks").collect());
 }
@@ -238,6 +242,50 @@ describe("CV17: a profile is matched to at most one member, links first", { time
 
     expect(await companyProfileOf(sam)).toEqual({ profile: 3, by: "self" });
   });
+  test("a later own link that an earlier one holds leaves its member unmatched, even where their name would match", async () => {
+    await teamPagesOn();
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+    await sam.link(3);
+    const wren = await aTeammate("U_WREN", "Wren Halloway");
+    later();
+    await anOwnLink(wren.member, 3);
+
+    expect(await companyProfileOf(wren)).toEqual({ profile: null, by: null });
+    expect(await matches()).toEqual([{ member: sam.member, profile: 3, by: "self" }]);
+  });
+
+  test("an own link to a profile gone from posthog.com leaves its member unmatched, even where their name would match", async () => {
+    await teamPagesOn();
+    const wren = await aTeammate("U_WREN", "Wren Halloway");
+    await anOwnLink(wren.member, 3);
+    await onPostHogCom(wrenProfile, orielProfile, tamsinProfile);
+
+    expect(await companyProfileOf(wren)).toEqual({ profile: null, by: null });
+  });
+
+  test("a member's admin link beats their own link, to another profile or to none", async () => {
+    await teamPagesOn();
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+    await sam.link(3);
+    await anAdminLink(sam.member, 4, sam.member);
+
+    expect(await matches()).toEqual([{ member: sam.member, profile: 4, by: "admin" }]);
+
+    await t.run(async (ctx) => {
+      for (const link of await ctx.db.query("companyProfileLinks").collect()) if (link.by === "admin") await ctx.db.patch(link._id, { profile: null });
+    });
+
+    expect(await matches()).toEqual([{ member: sam.member, profile: null, by: "admin" }]);
+  });
+
+  test("an admin link to a profile gone from posthog.com leaves its member unmatched by the admin's decision", async () => {
+    await teamPagesOn();
+    const wren = await aTeammate("U_WREN", "Wren Halloway");
+    await anAdminLink(wren.member, 3, wren.member);
+    await onPostHogCom(wrenProfile, orielProfile, tamsinProfile);
+
+    expect(await companyProfileOf(wren)).toEqual({ profile: null, by: "admin" });
+  });
 });
 
 describe("CV19: This is me on posthog.com", () => {
@@ -281,7 +329,7 @@ describe("CV19: This is me on posthog.com", () => {
   test("clearing a self link returns a member to their own name match", async () => {
     await teamPagesOn();
     const sam = await aTeammate("U_SAM", "Samantha Okafor");
-    await t.run((ctx) => ctx.db.insert("companyProfileLinks", { workspace: "T1", member: sam.member, profile: 4, by: "self", setBy: sam.member, at: Date.now() }));
+    await anOwnLink(sam.member, 4);
     expect(await companyProfileOf(sam)).toEqual({ profile: 4, by: "self" });
 
     expect(await sam.link(null)).toEqual({ kind: "linked" });
@@ -356,6 +404,29 @@ describe("CV19: This is me on posthog.com", () => {
     expect(await sam.link(3)).toEqual({ kind: "refused", reason: null });
     expect(await links()).toEqual([]);
     expect(await teamPagesExposures()).toEqual([{ member: sam.member, value: false }]);
+  });
+  test("a member can always clear their own link, even where an admin link decides them", async () => {
+    await teamPagesOn();
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+    await sam.link(3);
+    await anAdminLink(sam.member, null, sam.member);
+
+    expect(await sam.link(null)).toEqual({ kind: "linked" });
+
+    expect((await links()).map(({ by }) => by)).toEqual(["admin"]);
+  });
+
+  test("a member whose own link holds nothing can clear it, and their name match comes back", async () => {
+    await teamPagesOn();
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+    await sam.link(3);
+    const wren = await aTeammate("U_WREN", "Wren Halloway");
+    later();
+    await anOwnLink(wren.member, 3);
+
+    expect(await wren.link(null)).toEqual({ kind: "linked" });
+
+    expect(await companyProfileOf(wren)).toEqual({ profile: 1, by: "name" });
   });
 });
 

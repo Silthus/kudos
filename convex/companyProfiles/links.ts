@@ -23,12 +23,13 @@ export async function companyProfileSettingOf(ctx: QueryCtx, member: MemberId): 
 
 export async function linkMyCompanyProfile(ctx: MutationCtx, member: MemberId, profile: number | null): Promise<SelfLinkOutcome> {
   const { workspace } = await chatUserOf(ctx, member);
-  const refusal = refusalOf(await companyProfilesIn(ctx, workspace), member, profile);
-  if (refusal !== null) return { kind: "refused", reason: refusal, profile };
   const link = await ctx.db
     .query("companyProfileLinks")
     .withIndex("by_member", (q) => q.eq("workspace", workspace).eq("member", member).eq("by", "self"))
     .unique();
+  const clearsOwnLink = profile === null && link !== null;
+  const refusal = clearsOwnLink ? null : refusalOf(await companyProfilesIn(ctx, workspace), member, profile);
+  if (refusal !== null) return { kind: "refused", reason: refusal, profile };
   if (profile === null && link !== null) await ctx.db.delete(link._id);
   else if (profile !== null && link === null) await ctx.db.insert("companyProfileLinks", { workspace, member, profile, by: "self", setBy: member, at: Date.now() });
   else if (profile !== null && link !== null && link.profile !== profile) await ctx.db.patch(link._id, { profile, at: Date.now() });
