@@ -150,7 +150,8 @@ function summaryOf(kudos: KudosHome, { progression, unlocks, quests, groupQuest,
   const status = [allowanceOf(kudos), ...(progression === null ? [] : [levelLineOf(progression)])];
   const { origin } = links;
   const earlier = cappedEarlierCrates(earlierCratesOf(earlierCrates, origin), earlierGroupCrates, origin);
-  const waiting = [...readyCratesOf(unlocks, origin), ...earlier.shown, ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...earlier.more, ...boughtCratesLines(boughtCrates ?? [], origin)];
+  const collectionPage = hoggies === null ? null : origin;
+  const waiting = [...readyCratesOf(unlocks, origin), ...earlier.shown, ...weeklyCratesOf(quests, origin), ...journeyCratesOf(journey, origin), ...earlier.more, ...boughtCratesLines(boughtCrates ?? [], collectionPage)];
   const weekly = questsThisWeek(quests, groupQuest, { cratesShownApart: true, website: origin });
   return { title: "Your kudos", groups: [status, ...(waiting.length === 0 ? [] : [waiting]), ...hoggiesLinesOf(hoggies, origin), ...weekly, [websiteButtonsOf(links)], howToGive(kudos.kudosEmoji)] };
 }

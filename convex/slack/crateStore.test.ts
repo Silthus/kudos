@@ -199,8 +199,22 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     const response = await click(buttonInHome(slack, juno, "Open"));
     expect(response.status).toBe(200);
     expect(publishedViews(slack, juno)).toHaveLength(published);
-    expect(publishedHome(slack, juno)).toContain(crates);
+    await openHome();
+    expect(publishedHome(slack, juno)).toEqual(expect.arrayContaining([crates, `${hoggiesLine} [link: View ${siteUrl}/book/collection]`]));
     expect(await coinsOf(member)).toBe(0);
+  });
+
+  test("where the Collection page isn't open to the member, the crates they bought keep the Open that opens the oldest in Slack", async () => {
+    const member = await junoWith(50);
+    await click();
+    vi.stubEnv("SITE_URL", siteUrl);
+    await switchWebsite(t, postHog, true, ...crateStoreFlags.filter((flag) => flag !== "achievements"));
+    await openHome();
+
+    expect(publishedHome(slack, juno)).toContain("section: A crate you bought [button: Open]");
+    await click(buttonInHome(slack, juno, "Open"));
+    expect(publishedHome(slack, juno)).not.toContain("section: A crate you bought [button: Open]");
+    expect(await t.run((ctx) => ctx.db.query("drops").collect())).toMatchObject([{ member, crate: "bought:1" }]);
   });
 });
 
@@ -224,6 +238,8 @@ describe("the crate store's Buy in Slack links to the Collection page while the 
     const response = await click();
     expect(response.status).toBe(200);
     expect(publishedViews(slack, juno)).toHaveLength(published);
+    await openHome();
+    expect(publishedHome(slack, juno).join("\n")).not.toContain("you bought");
     expect(await coinsOf(member)).toBe(100);
   });
 });
