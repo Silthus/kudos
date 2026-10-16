@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { crateParamOf } from "../../convex/website/routes";
 import type { CrateTarget, QuestTarget, Route } from "./route";
 import type { PerkNode } from "./shell";
 
@@ -7,7 +8,7 @@ export function questTargetAttributes(quest: QuestTarget) {
 }
 
 export function crateTargetAttributes(crate: CrateTarget) {
-  return { "data-crate-target": crate };
+  return { "data-crate-target": crateParamOf(crate) };
 }
 
 export function perkTargetAttributes(perk: PerkNode["perk"]) {
@@ -21,7 +22,7 @@ type Landing = { kind: keyof Landed; selector: string; arrive: (target: HTMLElem
 function landingOf(route: Route): Landing | undefined {
   if (route.page === "quests" && route.quest !== undefined) return { kind: "quest", selector: `[data-quest-target="${route.quest}"]`, arrive: (card) => card.querySelector<HTMLElement>("h2, h3")?.focus() };
   if (route.page === "skills" && route.perk !== undefined) return { kind: "perk", selector: `[data-perk-target="${route.perk}"]`, arrive: pressThePerk };
-  if ("crate" in route && route.crate !== undefined) return { kind: "crate", selector: `[data-crate-target="${route.crate}"]`, arrive: (crate) => crate.querySelector<HTMLElement>("button")?.focus() };
+  if ("crate" in route && route.crate !== undefined) return { kind: "crate", selector: `[data-crate-target="${crateParamOf(route.crate)}"]`, arrive: (crate) => crate.querySelector<HTMLElement>("button")?.focus() };
   return undefined;
 }
 

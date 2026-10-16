@@ -1,16 +1,33 @@
 import { v, type Infer } from "convex/values";
-import type { Quest, WeeklyQuest } from "../quests/step";
+import { weeklyQuestValidator, type Quest, type WeeklyQuest } from "../quests/step";
 import type { WeekKey } from "../quests/week";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import type { pageValidator } from "./link";
 
 export type Page = Infer<typeof pageValidator>;
 
-export const crateTargetValidator = v.union(...featureValidator.members, v.literal("journey"));
+const namedCrateValidator = v.union(...featureValidator.members, v.literal("journey"));
+
+type NamedCrate = Infer<typeof namedCrateValidator>;
+
+export const crateTargetValidator = v.union(...namedCrateValidator.members, weeklyQuestValidator);
 
 export type CrateTarget = Infer<typeof crateTargetValidator>;
 
-export const crateTargets: readonly CrateTarget[] = crateTargetValidator.members.map(({ value }) => value);
+const namedCrates: readonly NamedCrate[] = namedCrateValidator.members.map(({ value }) => value);
+
+const weeklyCrateParam = /^weekly:(\d{4}-\d{2}-\d{2}):(\d+)$/;
+
+export function crateParamOf(crate: CrateTarget): string {
+  return typeof crate === "string" ? crate : `${crate.kind}:${crate.week}:${crate.slot}`;
+}
+
+export function crateTargetIn(param: string | null): CrateTarget | undefined {
+  const named = namedCrates.find((crate) => crate === param);
+  if (named !== undefined) return named;
+  const weekly = param === null ? null : weeklyCrateParam.exec(param);
+  return weekly === null ? undefined : { kind: "weekly", week: weekly[1]!, slot: Number(weekly[2]) };
+}
 
 export const routeList: readonly string[] = ["/", "/leaderboard", "/quests", "/skills", "/book", "/book/earned", "/activity", "/settings"];
 
@@ -46,7 +63,7 @@ function searchOf(page: Page) {
   if (page.page === "leaderboard" && page.period !== "week") search.set("period", page.period);
   if (page.page === "quests" && page.quest !== undefined) search.set("quest", String(page.quest));
   if (page.page === "skillTree" && page.perk !== undefined) search.set("perk", page.perk);
-  if (page.crate !== undefined) search.set("crate", page.crate);
+  if (page.crate !== undefined) search.set("crate", crateParamOf(page.crate));
   const query = search.toString();
   return query === "" ? "" : `?${query}`;
 }

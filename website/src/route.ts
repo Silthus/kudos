@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { perkValidator, type PerkId } from "../../convex/progression/tree";
-import { crateTargets, signInEntry, type CrateTarget } from "../../convex/website/routes";
+import { crateParamOf, crateTargetIn, signInEntry, type CrateTarget } from "../../convex/website/routes";
 import { bookHref, categoryAsked, type CategoryId } from "./book/categories";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
@@ -68,7 +68,7 @@ function pageHrefOf(route: Route) {
 function withTargetsOf(route: Route, href: string) {
   const targets = new URLSearchParams();
   if (route.page === "skills" && route.perk !== undefined) targets.set("perk", route.perk);
-  if ("crate" in route && route.crate !== undefined) targets.set("crate", route.crate);
+  if ("crate" in route && route.crate !== undefined) targets.set("crate", crateParamOf(route.crate));
   if (targets.size === 0) return href;
   return `${href}${href.includes("?") ? "&" : "?"}${targets}`;
 }
@@ -111,8 +111,7 @@ function perkIn(search: string): PerkId | undefined {
 }
 
 function crateIn(search: string): CrateTarget | undefined {
-  const asked = new URLSearchParams(search).get("crate");
-  return crateTargets.find((target) => target === asked);
+  return crateTargetIn(new URLSearchParams(search).get("crate"));
 }
 
 function currentRoute() {

@@ -9,7 +9,7 @@ import { questCrateOf, type CrateFacts, type QuestCrate } from "../crates/readyC
 import { Claimed } from "../crates/RewardCrate";
 import { hogOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "../features";
 import { PageTitle } from "../PageTitle";
-import { questTargetAttributes } from "../linkTarget";
+import { crateTargetAttributes, questTargetAttributes } from "../linkTarget";
 import { Coins, xpLineOf } from "../quests/QuestReward";
 import { QuestTag } from "../quests/QuestTag";
 import { sameQuest, useQuestSwap, type QuestSwap } from "../quests/questSwap";
@@ -276,7 +276,7 @@ function WaitingToOpen({ waiting, firstCrate }: { waiting: WaitingCrate[] } & Fi
 
 function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate) {
   return (
-    <article className="hud-panel relative flex flex-col gap-2 rounded-lg border bg-card p-4" {...questCrateHomeAttributes(entry.seen)}>
+    <article className="hud-panel relative flex scroll-mt-28 flex-col gap-2 rounded-lg border bg-card p-4" {...crateTargetAttributes(entry.crate)} {...questCrateHomeAttributes(entry.seen)}>
       <WeekOf week={entry.week} />
       <h3 className="text-sm font-medium">{entry.goal}</h3>
       <RewardRow reward={entry.reward} waiting={entry.waiting}>
