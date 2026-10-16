@@ -185,6 +185,12 @@ function waitingCard(week: string) {
     .find((card) => card.querySelector(`time[datetime="${week}"]`) !== null)!;
 }
 
+const twoWeeksOfTheSameSlot = sameSlotIn(questsFixtures.weekWithTheSameQuestWaitingFromTwoWeeks);
+
+function sameSlotIn(answer: Extract<MyQuests, { kind: "quests" }>): MyQuests {
+  return { ...answer, waiting: answer.waiting.map((entry) => (entry.crate.kind === "weekly" ? { ...entry, crate: { ...entry.crate, slot: 0 } } : entry)) };
+}
+
 function showQuestsAt(path: string, answer: MyQuests) {
   visit(path);
   return renderApp(shellFixtures.memberWithQuests, undefined, undefined, fixedQuests(answer));
@@ -202,11 +208,11 @@ describe("#500: ?crate=weekly:{week}:{slot} lands on an earlier week's waiting c
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("tells two weeks' crates apart", () => {
+  it.each(["2026-10-05", "2026-09-28"])("tells two weeks' crates of the same slot apart, landing on %s's", (week) => {
     const scrolled = watchScrolling();
-    showQuestsAt("/quests?crate=weekly:2026-09-28:2", questsFixtures.weekWithTheSameQuestWaitingFromTwoWeeks);
+    showQuestsAt(`/quests?crate=weekly:${week}:0`, twoWeeksOfTheSameSlot);
 
-    const card = waitingCard("2026-09-28");
+    const card = waitingCard(week);
     expect(scrolled).toEqual([card]);
     expect(within(card).getByRole("button", { name: "Claim" })).toHaveFocus();
   });
