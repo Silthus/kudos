@@ -50,7 +50,11 @@ export type LevelUp = { kind: "levelUp"; at: number; level: number };
 
 export type Found = { kind: "found"; at: number; key: string; drop: Drop };
 
-export type ActivityEntry = KudosReceived | KudosGiven | LevelUp | Found;
+export type StarReceived = { kind: "starReceived"; key: string; at: number; giver: Person; xp: number | null; on: string; permalink: string | null; kudos: Message | null };
+
+export type StarGiven = { kind: "starGiven"; key: string; at: number; people: Person[]; xp: number | null; on: string; permalink: string | null; kudos: Message | null };
+
+export type ActivityEntry = KudosReceived | KudosGiven | LevelUp | Found | StarGiven | StarReceived;
 
 export type Activity = { kind: "activity"; entries: ActivityEntry[]; cursor: string | null; timeZone: string | null };
 

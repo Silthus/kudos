@@ -1,12 +1,12 @@
 import type { Before } from "../engine/awards";
 
-export type Rank = 0 | 1 | 2 | 3;
+export type Rank = 0 | 1 | 2 | 3 | 4 | 5;
 
-export const ranks = { levelUp: 0, kudosGiven: 1, kudosReceived: 2, found: 3 } as const satisfies Record<string, Rank>;
+export const ranks = { levelUp: 0, kudosGiven: 1, kudosReceived: 2, found: 3, starGiven: 4, starReceived: 5 } as const satisfies Record<string, Rank>;
 
 export type Position = { at: number; rank: Rank; created: number };
 
-const encoded = /^(-?\d+(?:\.\d+)?)_([0-3])_(\d+(?:\.\d+)?)$/;
+const encoded = /^(-?\d+(?:\.\d+)?)_([0-5])_(\d+(?:\.\d+)?)$/;
 
 export function encodePosition({ at, rank, created }: Position): string {
   return `${at}_${rank}_${created}`;
