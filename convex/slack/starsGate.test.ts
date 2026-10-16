@@ -1,0 +1,504 @@
+import { makeFunctionReference } from "convex/server";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { type FakePostHog, type FlagDefinition, routedFetch } from "../../testing/fakePostHog";
+import { FakeSlack } from "../../testing/fakeSlack";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
+import { signedRequest, signingSecret } from "../../testing/signedSlack";
+import { memberChanged, post, react, settleUpTo, testBackend, type Backend } from "../../testing/slackBackend";
+import { blockActions, publishedHome, publishedHomeBlocks, type BlockAction } from "../../testing/slackInteractions";
+import { appHomeOpened, emoji, mention, section, text, userGroupEvent, type ReactionOptions } from "../../testing/slackMessages";
+import { reachesLevel } from "../../testing/unlocks";
+import { aSession, aSignedInSession } from "../../testing/website";
+import { api, internal } from "../_generated/api";
+import crons from "../crons";
+import { xpToReach } from "../progression/levels";
+import schema from "../schema";
+import { openUnlock } from "../unlocks/unlocks";
+
+const theStars = vi.hoisted(() => ({ removed: false }));
+
+vi.mock("./reactions", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./reactions")>();
+  return { ...actual, isReactionAdded: vi.fn((...args: Parameters<typeof actual.isReactionAdded>) => !theStars.removed && actual.isReactionAdded(...args)) };
+});
+
+vi.mock("../stars/flag", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../stars/flag")>();
+  return { ...actual, starsShownTo: vi.fn((...args: Parameters<typeof actual.starsShownTo>) => (theStars.removed ? Promise.resolve(false) : actual.starsShownTo(...args))) };
+});
+
+vi.mock("../stars/stars", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../stars/stars")>();
+  return { ...actual, giveStar: vi.fn((...args: Parameters<typeof actual.giveStar>) => (theStars.removed ? Promise.resolve({ kind: "nothing" as const }) : actual.giveStar(...args))) };
+});
+
+vi.mock("../quests/rank", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../quests/rank")>();
+  return { ...actual, drawRank: vi.fn((key: string) => actual.drawRank(key.replace(/^[^:]+/, (member) => namedIds.get(member) ?? member))) };
+});
+
+vi.mock("../website/seen", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../website/seen")>();
+  return { ...actual, seenKeyOf: vi.fn((member: Parameters<typeof actual.seenKeyOf>[0], crate: string) => actual.seenKeyOf((namedIds.get(member) ?? member) as typeof member, crate)) };
+});
+
+vi.mock("../hoggies/draw", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../hoggies/draw")>();
+  return { ...actual, drawOf: vi.fn((input: Parameters<typeof actual.drawOf>[0]) => actual.drawOf({ ...input, member: namedIds.get(input.member) ?? input.member })) };
+});
+
+const tuesday = Date.parse("2026-10-13T10:00:00Z");
+const mondayAfter = Date.parse("2026-10-19T10:00:00Z");
+const minuteMs = 60_000;
+const hourMs = 60 * minuteMs;
+const siteUrl = "https://kudos-site.test";
+const stars = "stars";
+const everyOtherFlag = ["xp-levels", "unlocks", "achievements", "collection", "crests", "crate-store", "crate-rewards", "coins", "store", "quests", "group-quest", "groups", "activity", "everyone-board", "profile-card", "hoggie-avatar", "message-settings", "custom-kudos-emoji", "monday-post", "skill-tree", "slots-retired"];
+const starTables = ["stars", "starPeople", "starWeeks", "starWeekMessages", "starCounts"] as const;
+const reactionEventIds = /^EvStar/;
+const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
+const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
+const carol = { user: "U_CAROL", name: "Carol Diaz", email: "carol@example.com" };
+const dana = { user: "U_DANA", name: "Dana Lindqvist", email: "dana@example.com" };
+const erin = { user: "U_ERIN", name: "Erin Walsh", email: "erin@example.com" };
+const members = [alice, bob, carol, dana];
+const ants = "S_ANTS";
+
+type Person = typeof alice;
+type TableName = keyof typeof schema.tables;
+
+let slack: FakeSlack;
+let postHog: FakePostHog;
+let t: Backend;
+let namedIds = new Map<string, string>();
+let phase = tuesday;
+let steps = 0;
+let reactions = 0;
+
+beforeEach(() => {
+  theStars.removed = false;
+  vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
+  vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
+  vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
+  vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+  vi.stubEnv("SITE_URL", siteUrl);
+  freshFakes();
+  for (const level of ["log", "info", "warn", "error", "debug"] as const) vi.spyOn(console, level).mockImplementation(() => {});
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+const starsOff: Array<{ condition: string; flag: FlagDefinition[]; turnOff?: () => void; exposed: Exposure[] }> = [
+  { condition: "with stars off", flag: [offForEveryone(stars)], exposed: exposuresOfTheWalksStarReactionsAt(false) },
+  { condition: "while PostHog has no stars flag", flag: [], exposed: exposuresOfTheWalksStarReactionsAt(false) },
+  { condition: "without the flags key, even when PostHog turned stars on", flag: [onForEveryone(stars)], turnOff: () => vi.stubEnv("POSTHOG_PERSONAL_API_KEY", ""), exposed: [] },
+  {
+    condition: "in production, while stars is on in the sandbox and for the product owner's email only",
+    flag: [asTheShipCreatesIt()],
+    turnOff: () => vi.stubEnv("KUDOS_ENVIRONMENT", "production"),
+    exposed: exposuresOfTheWalksStarReactionsAt(false),
+  },
+];
+
+describe("SR21: stars are dark where the flag is off, at the Slack and website boundaries, and only the members it is on for give stars", { timeout: 240_000 }, () => {
+  test.each(starsOff)("$condition, a walk of kudos, kudos emoji reactions, App Home, the Monday recap and every website read leaves what the same walk leaves without stars, apart from SR21's list", async ({ flag, turnOff, exposed }) => {
+    theStars.removed = true;
+    const withoutStars = await walkIn(await aliceBobCarolAndDanaInAnts(flag, turnOff));
+    freshFakes();
+    theStars.removed = false;
+
+    const walk = await walkIn(await aliceBobCarolAndDanaInAnts(flag, turnOff));
+
+    expect(apartFromSR21sList(walk.seen)).toEqual(apartFromSR21sList(withoutStars.seen));
+    expect(walk.stars).toEqual({ stars: [], starPeople: [], starWeeks: [], starWeekMessages: [], starCounts: [] });
+    expect(lookUpsOf(walk.seen)).toEqual([erin.user]);
+    expect(lookUpsOf(withoutStars.seen)).toEqual([erin.user]);
+    expect(starExposures(walk)).toEqual(exposed);
+  });
+
+  test("with stars on, the same walk gives stars, pays XP, shows them on the timeline and sends the Monday recap, so the comparison above can tell", async () => {
+    theStars.removed = true;
+    const withoutStars = await walkIn(await aliceBobCarolAndDanaInAnts([offForEveryone(stars)]));
+    freshFakes();
+    theStars.removed = false;
+
+    const walk = await walkIn(await aliceBobCarolAndDanaInAnts([onForEveryone(stars)]));
+
+    expect(apartFromSR21sList(walk.seen)).not.toEqual(apartFromSR21sList(withoutStars.seen));
+    expect(walk.stars.stars.map(({ giver }) => giver).sort()).toEqual(["<member U_BOB>", "<member U_CAROL>", "<member U_DANA>", "<member U_ERIN>"]);
+    expect(recapsTo(bob)).toHaveLength(1);
+    expect(timelineKinds(walk, carol)).toContain("starReceived");
+    expect(starExposures(walk)).toEqual([{ member: alice.user, value: true }, ...exposuresOfTheWalksStarReactionsAt(true)]);
+  });
+
+  test("with stars on for one member's email only, only that member's reactions are stars, they pay people whose flag is off, and those people's timelines, settings and recaps stay unchanged", async () => {
+    theStars.removed = true;
+    const withoutStars = await walkIn(await aliceBobCarolAndDanaInAnts([onForEmails(stars, dana.email)]));
+    freshFakes();
+    theStars.removed = false;
+
+    const walk = await walkIn(await aliceBobCarolAndDanaInAnts([onForEmails(stars, dana.email)]));
+
+    expect(walk.stars.stars).toEqual([expect.objectContaining({ giver: "<member U_DANA>", onKudos: true })]);
+    expect(walk.stars.starPeople.map(({ member }) => member).sort()).toEqual(["<member U_BOB>", "<member U_CAROL>"]);
+    expect(walk.xp).toEqual({ ...withoutStars.xp, U_BOB: withoutStars.xp.U_BOB! + 1, U_CAROL: withoutStars.xp.U_CAROL! + 1, U_DANA: withoutStars.xp.U_DANA! + 1 });
+    for (const person of [alice, bob, carol]) {
+      expect(walk.seen.answers[person.user]!.activity).toEqual(withoutStars.seen.answers[person.user]!.activity);
+      expect(walk.seen.answers[person.user]!.settings).toEqual(withoutStars.seen.answers[person.user]!.settings);
+      expect(walk.seen.settingsTabs[person.user]).toEqual(withoutStars.seen.settingsTabs[person.user]);
+      expect(slack.messagesIn(person.user).filter(isRecap)).toEqual([]);
+    }
+    expect(walk.seen.answers[alice.user]).toEqual(withoutStars.seen.answers[alice.user]);
+    expect(walk.seen.homes[alice.user]).toEqual(withoutStars.seen.homes[alice.user]);
+    expect(timelineKinds(walk, dana)).toContain("starGiven");
+    expect(walk.seen.settingsTabs[dana.user]).not.toEqual(withoutStars.seen.settingsTabs[dana.user]);
+    expect(recapsTo(dana)).toEqual([expect.stringContaining("You gave 1 star (+1 XP).")]);
+    expect(starExposures(walk)).toEqual([
+      { member: bob.user, value: false },
+      { member: carol.user, value: false },
+      { member: dana.user, value: true },
+      { member: erin.user, value: false },
+    ]);
+  });
+});
+
+function asTheShipCreatesIt(): FlagDefinition {
+  return {
+    key: stars,
+    filters: {
+      groups: [
+        { properties: [{ key: "environment", type: "person", value: ["sandbox"], operator: "exact" }], rollout_percentage: 100 },
+        { properties: [{ key: "email", type: "person", value: ["product-owner@example.com"], operator: "exact" }], rollout_percentage: 100 },
+      ],
+    },
+  };
+}
+
+type Exposure = { member: string; value: boolean };
+
+function exposuresOfTheWalksStarReactionsAt(value: boolean): Exposure[] {
+  return [bob, carol, dana, erin].map(({ user }) => ({ member: user, value }));
+}
+
+async function aliceBobCarolAndDanaInAnts(flag: FlagDefinition[], turnOff?: () => void): Promise<Backend> {
+  vi.useFakeTimers({ now: tuesday });
+  spotlightPositionsFromTheStart();
+  phase = tuesday;
+  steps = 0;
+  reactions = 0;
+  namedIds = new Map();
+  t = await flagsFromPostHog(testBackend(), postHog, ...everyOtherFlag.map(onForEveryone), onForEveryone("website"), ...flag);
+  turnOff?.();
+  await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+  await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10, url: "https://t1.slack.com/" }));
+  await journeyShippedBeforeAnyoneJoined(t);
+  await bookShippedBeforeAnyoneJoined(t);
+  for (const person of members) {
+    await memberChanged(t, "team_join", { id: person.user, profile: { display_name: person.name, email: person.email } });
+    await settled();
+    const member = await memberOf(person.user);
+    namedIds.set(member!, `<member ${person.user}>`);
+    await t.run((ctx) => ctx.db.insert("memberProgress", { member: member!, xp: xpToReach(5), pointsSpent: 0 }));
+    for (const level of [4, 5]) await reachesLevel(t, member!, level);
+    for (const feature of ["book", "leaderboard", "quests", "skillTree"] as const) await t.run((ctx) => openUnlock(ctx, member!, feature));
+  }
+  await t.fetch("/slack/events", await signedRequest(userGroupEvent("subteam_created", ants)));
+  await settled();
+  return t;
+}
+
+async function walkIn(backend: Backend) {
+  t = backend;
+  namedIds = await idsNamedByTheirMember();
+  for (const { user } of members) await openHome(user);
+  const thanksToBobAndCarol = await thanks(alice, "Thanks for the calm rollback of the billing service", bob, carol);
+  const thanksToAlice = await thanks(bob, "Thanks for reviewing the incident write-up so quickly", alice);
+  const carolsMessage = earlierMessage(2 * hourMs);
+  const danasMessage = earlierMessage(3 * hourMs);
+  const danasOldMessage = earlierMessage(25 * hourMs);
+  await reaction({ user: bob.user, itemUser: carol.user, ts: carolsMessage });
+  await reaction({ user: bob.user, itemUser: carol.user, ts: carolsMessage, reaction: "taco::skin-tone-3" });
+  await reaction({ user: dana.user, itemUser: alice.user, ts: thanksToBobAndCarol });
+  await reaction({ user: carol.user, itemUser: bob.user, ts: thanksToAlice });
+  await reactionOfSomeoneTheDirectoryDoesNotKnow({ user: erin.user, itemUser: alice.user, ts: thanksToBobAndCarol });
+  await reaction({ user: alice.user, itemUser: bob.user, ts: thanksToAlice });
+  await reaction({ user: alice.user, itemUser: dana.user, ts: danasOldMessage });
+  await reaction({ user: dana.user, itemUser: dana.user, ts: danasMessage });
+  await reaction({ user: carol.user, itemUser: dana.user, ts: danasMessage, reaction: "tada" });
+  for (const { user } of members) await openHome(user);
+  await theRecapSweepRuns();
+  await settleUpTo(t, mondayAfter);
+  phase = mondayAfter;
+  steps = 0;
+  namedIds = await idsNamedByTheirMember();
+  const settingsTabs: Record<string, unknown> = {};
+  for (const { user } of members) settingsTabs[user] = await settingsTabOf(user);
+  const answers: Record<string, Awaited<ReturnType<typeof onTheWebsite>>> = {};
+  for (const member of members) answers[member.user] = await onTheWebsite(member);
+  const seen = {
+    homes: Object.fromEntries(members.map(({ user }) => [user, publishedHome(slack, user)])),
+    settingsTabs,
+    answers,
+    slackCalls: slack.calls.map((call) => JSON.stringify(call)).sort(),
+    productEvents: orderFree(withStableIds(postHog.productEvents().map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
+    tables: await rowsInContentOrder(),
+  };
+  return { seen, stars: await storedStars(), xp: await xpOfEveryone(), postHogEvents: postHog.events() };
+}
+
+type Walk = Awaited<ReturnType<typeof walkIn>>;
+type Seen = Walk["seen"];
+
+function apartFromSR21sList(seen: Seen) {
+  const { slackReceipts, analyticsIds, flagExposures, analyticsOutbox, ...tables } = seen.tables as Record<string, Array<Record<string, unknown>>>;
+  return {
+    ...seen,
+    productEvents: seen.productEvents.filter((event) => !isStarsExposure(event)),
+    tables: {
+      ...tables,
+      slackReceipts: slackReceipts!.filter(({ eventId }) => !reactionEventIds.test(String(eventId))),
+      analyticsIds: analyticsIds!.filter(({ member }) => member !== `<member ${erin.user}>`),
+      flagExposures: flagExposures!.filter(({ flag }) => flag !== stars),
+      analyticsOutbox: analyticsOutbox!.filter((row) => row.event !== "$identify" && !isStarsExposure(row)),
+    },
+  };
+}
+
+function isStarsExposure({ event, properties }: { event?: unknown; properties?: unknown }) {
+  return event === "$feature_flag_called" && (properties as Record<string, unknown>).$feature_flag === stars;
+}
+
+function isLookUpOf(person: Person, call: string) {
+  const { method, args } = JSON.parse(call) as { method: string; args: { user?: string } };
+  return method === "users.info" && args.user === person.user;
+}
+
+function lookUpsOf(seen: Seen) {
+  return seen.slackCalls.filter((call) => isLookUpOf(erin, call)).map(() => erin.user);
+}
+
+function starExposures({ postHogEvents }: Pick<Walk, "postHogEvents">): Exposure[] {
+  const userOf = new Map([...namedIds].map(([id, name]) => [id, name.replace(/^<analytics ID of (\w+)>$/, "$1")]));
+  return postHogEvents
+    .filter(isStarsExposure)
+    .map(({ distinct_id, properties }) => ({ member: userOf.get(distinct_id) ?? distinct_id, value: properties.$feature_flag_response as boolean }))
+    .toSorted((a, b) => a.member.localeCompare(b.member));
+}
+
+function timelineKinds(walk: Walk, person: Person) {
+  return ((walk.seen.answers[person.user]!.activity as { entries?: Array<{ kind: string }> }).entries ?? []).map(({ kind }) => kind);
+}
+
+function isRecap({ text }: { text?: unknown }) {
+  return String(text).startsWith(":taco: Your week in stars");
+}
+
+function recapsTo(person: Person) {
+  return slack
+    .messagesIn(person.user)
+    .filter(isRecap)
+    .map(({ text }) => String(text));
+}
+
+async function onTheWebsite(person: Person) {
+  nextStep();
+  const asSignedIn = await signedIn(person);
+  const read = async <T>(answer: Promise<T>) => withStableIds(await answer);
+  return {
+    collection: await read(asSignedIn.query(api.website.collection.getCollection, {})),
+    book: await read(asSignedIn.query(api.website.book.getBook, {})),
+    profile: await read(asSignedIn.query(api.website.profile.getMyProfile, {})),
+    card: await read(asSignedIn.query(api.website.profileCard.getProfileCard, {})),
+    quests: await read(asSignedIn.query(api.website.quests.getQuests, {})),
+    settings: await read(asSignedIn.query(api.website.settings.getSettings, {})),
+    skillTree: await read(asSignedIn.query(api.website.skillTree.getSkillTree, {})),
+    activity: await read(asSignedIn.query(api.website.activity.getActivity, { filter: "all", cursor: null })),
+    activityReceived: await read(asSignedIn.query(api.website.activity.getActivity, { filter: "received", cursor: null })),
+    activityGiven: await read(asSignedIn.query(api.website.activity.getActivity, { filter: "given", cursor: null })),
+    recentKudos: await read(asSignedIn.query(api.website.activity.getRecentKudos, { direction: "received" })),
+    spotlight: await read(asSignedIn.query(api.website.activity.getSpotlight, { seed: 0 })),
+    leaderboard: await read(asSignedIn.query(api.website.leaderboard.getLeaderboard, { period: "week" })),
+    groupBoards: await read(asSignedIn.query(api.website.groupBoards.getGroupBoards, { period: "week" })),
+  };
+}
+
+async function signedIn(person: Person) {
+  const identity = { user: person.user, name: person.name };
+  const { asSignedIn } = await aSignedInSession(t, identity).catch(() => aSession(t, identity));
+  return asSignedIn;
+}
+
+async function settingsTabOf(user: string) {
+  await openHome(user);
+  const settings = publishedHomeBlocks(slack, user)
+    .flatMap((block) => [...(block.type === "actions" ? (block.elements as BlockAction[]) : []), ...(block.accessory ? [block.accessory as BlockAction] : [])])
+    .find((element) => "text" in element && (element.text as { text: string }).text === "Settings");
+  if (settings === undefined) return "no Settings tab";
+  nextStep();
+  await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, settings!), { contentType: "application/x-www-form-urlencoded" }));
+  await settled();
+  return withStableIds(publishedHome(slack, user));
+}
+
+async function theRecapSweepRuns() {
+  const job = crons.crons["schedule each member's weekly stars recap"];
+  if (job === undefined) throw new Error("no cron job schedules each member's weekly stars recap");
+  nextStep();
+  await t.mutation(makeFunctionReference<"mutation">(job.name), {});
+  await settled();
+}
+
+function orderFree<T>(rows: T[]): T[] {
+  return rows.toSorted((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+}
+
+const convexTestId = /^\d+[a-zA-Z_]+$/;
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const createdInTheSameMillisecond = /(\d{13})\.\d+$/;
+const opaque = new Set(["cursor", "eventId"]);
+
+function withStableIds<T>(value: T): T {
+  const seen = new Map<string, string>();
+  const stable = (kind: string, id: string) => seen.get(id) ?? seen.set(id, `<${kind} ${seen.size + 1}>`).get(id)!;
+  return JSON.parse(JSON.stringify(value, (_, field) => (typeof field === "bigint" ? `${field}n` : field)), (key, field) => {
+    if (key === "_id" || key === "_creationTime" || key === "uuid") return undefined;
+    if (key === "eventId" && typeof field === "string" && reactionEventIds.test(field)) return field;
+    if (opaque.has(key) && typeof field === "string") return stable(key, field);
+    if (typeof field !== "string") return field;
+    if (namedIds.has(field)) return namedIds.get(field);
+    if (createdInTheSameMillisecond.test(field)) return field.replace(createdInTheSameMillisecond, "$1.<tie>");
+    if (convexTestId.test(field)) return stable("document", field);
+    return uuid.test(field) ? stable("uuid", field) : field;
+  });
+}
+
+async function rowsInContentOrder() {
+  const tables = await t.run(async (ctx) => {
+    const rows = {} as Record<TableName, Record<string, unknown>[]>;
+    for (const table of Object.keys(schema.tables) as TableName[]) rows[table] = await ctx.db.query(table).collect();
+    return rows;
+  });
+  const inContentOrder = Object.fromEntries(Object.entries(tables).map(([table, rows]) => [table, rows.toSorted((a, b) => contentOf(a).localeCompare(contentOf(b)))]));
+  return withStableIds(inContentOrder);
+}
+
+function contentOf(row: Record<string, unknown>) {
+  return JSON.stringify(withStableIds(row), (key, field) => (opaque.has(key) || convexTestId.test(String(field)) ? undefined : field));
+}
+
+async function storedStars() {
+  const rows = await t.run(async (ctx) => {
+    const stored = {} as Record<(typeof starTables)[number], Array<Record<string, unknown>>>;
+    for (const table of starTables) stored[table] = await ctx.db.query(table).collect();
+    return stored;
+  });
+  return withStableIds(rows);
+}
+
+async function xpOfEveryone() {
+  const xp: Record<string, number> = {};
+  for (const { user } of [...members, erin]) {
+    const member = await memberOf(user);
+    if (member === undefined) continue;
+    const progress = await t.run((ctx) =>
+      ctx.db
+        .query("memberProgress")
+        .withIndex("by_member", (q) => q.eq("member", member))
+        .unique(),
+    );
+    xp[user] = progress?.xp ?? 0;
+  }
+  return xp;
+}
+
+async function idsNamedByTheirMember() {
+  const named = new Map<string, string>();
+  for (const { user } of [...members, erin]) {
+    const member = await memberOf(user);
+    if (member === undefined) continue;
+    named.set(member, `<member ${user}>`);
+    const analytics = await t.run((ctx) =>
+      ctx.db
+        .query("analyticsIds")
+        .withIndex("by_member", (q) => q.eq("member", member))
+        .unique(),
+    );
+    if (analytics !== null) named.set(analytics.analyticsId, `<analytics ID of ${user}>`);
+  }
+  return named;
+}
+
+function spotlightPositionsFromTheStart() {
+  let drawn = 0;
+  vi.spyOn(Math, "random").mockImplementation(() => ((drawn += 1) * 0.618_033_988_7) % 1);
+}
+
+function nextStep() {
+  steps += 1;
+  vi.setSystemTime(phase + steps * minuteMs);
+}
+
+async function settled() {
+  await settleUpTo(t, Date.now());
+}
+
+function earlierMessage(beforeMs: number) {
+  return slackTs(tuesday - beforeMs);
+}
+
+async function thanks(giver: Person, why: string, ...recipients: Person[]) {
+  nextStep();
+  const ts = `${Date.now() / 1000}.${String(steps).padStart(6, "0")}`;
+  await post(t, [section(text(`${why} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts });
+  await settled();
+  return ts;
+}
+
+async function reaction(options: ReactionOptions) {
+  nextStep();
+  reactions += 1;
+  await react(t, { eventId: `EvStar${reactions}`, ...options });
+  await settled();
+}
+
+async function reactionOfSomeoneTheDirectoryDoesNotKnow(options: ReactionOptions & { user: string; itemUser: string; ts: string }) {
+  if (!theStars.removed) return reaction(options);
+  nextStep();
+  reactions += 1;
+  const lookUp = { workspace: "T1", giver: options.user, author: options.itemUser, conversation: "C1", message: options.ts, at: Date.now() };
+  await t.action(internal.slack.starLookups.lookUpStarPeople, { reaction: lookUp, users: [options.user] });
+  await settled();
+}
+
+async function openHome(user: string) {
+  nextStep();
+  await t.fetch("/slack/events", await signedRequest(appHomeOpened(user)));
+  await settled();
+}
+
+async function memberOf(user: string) {
+  const row = await t.run((ctx) =>
+    ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+      .unique(),
+  );
+  return row?._id;
+}
+
+function slackTs(at: number) {
+  return `${Math.floor(at / 1000)}.000100`;
+}
+
+function freshFakes() {
+  slack = new FakeSlack();
+  for (const person of [...members, erin]) slack.withMember(person.user, { profile: { display_name: person.name, email: person.email } });
+  slack.withUserGroup(ants, { name: "Ants", users: [alice.user, carol.user] });
+  postHog = postHogDeciding();
+  vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
+}

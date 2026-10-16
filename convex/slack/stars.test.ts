@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus } from "../../testing/fakeSlack";
-import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, onInTheSandboxOnly } from "../../testing/flags";
+import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsLoaded, flagsOnForEveryone, journeyShippedBeforeAnyoneJoined, onForEmails, onForEveryone } from "../../testing/flags";
 import { signingSecret } from "../../testing/signedSlack";
 import { everythingStored, memberChanged, post, react, settle, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, kudosAppBotUser, mention, section, type ReactionOptions } from "../../testing/slackMessages";
@@ -280,54 +280,6 @@ describe("SR2 SR23: a star is never an award", { timeout: 120_000 }, () => {
   });
 });
 
-describe("SR21: stars are dark where the flag is off", { timeout: 120_000 }, () => {
-  test.each<[string, () => Promise<void>]>([
-    ["turned off in PostHog", async () => void (await flagsFromPostHog(darkBackend, postHog, ...everyOtherFeatureOn, offForEveryone("stars")))],
-    ["not created in PostHog", async () => void (await flagsFromPostHog(darkBackend, postHog, ...everyOtherFeatureOn))],
-    ["on in the sandbox only, read in production", async () => {
-      vi.stubEnv("KUDOS_ENVIRONMENT", "production");
-      await flagsFromPostHog(darkBackend, postHog, ...everyOtherFeatureOn, onInTheSandboxOnly("stars"));
-    }],
-    ["unreadable because the flags key is missing", async () => {
-      vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "");
-    }],
-  ])("%s: a star, a star on a kudos message and a star by someone the directory doesn't know change nothing but the receipts, the lookup and the flag's exposure, and call Slack for nothing else", async (_, turnOff) => {
-    darkBackend = await everyFeatureOn();
-    const t = darkBackend;
-    await kudos(t, "U_ALICE", ["U_CAROL"]);
-    await kudos(t, "U_BOB", ["U_ALICE"], slackTs(now.getTime() - hourMs + 1_000));
-    vi.setSystemTime(now);
-    await turnOff();
-    const before = await everythingStored(t, { except: writtenByTheReceiptLookupOrFlag });
-    const journeyBefore = await journeyStepsOfEveryoneBut(t, "U_DANA");
-    const callsBefore = slack.calls.length;
-
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE" });
-    await star(t, { user: "U_CAROL", itemUser: "U_BOB", ts: slackTs(now.getTime() - hourMs + 1_000) });
-    await star(t, { user: "U_DANA", itemUser: "U_ALICE", ts: slackTs(now.getTime() - 2 * hourMs) });
-
-    expect(await everythingStored(t, { except: writtenByTheReceiptLookupOrFlag })).toEqual(before);
-    expect(await journeyStepsOfEveryoneBut(t, "U_DANA")).toEqual(journeyBefore);
-    expect(slack.calls.slice(callsBefore).map(({ method, args }) => [method, args.user])).toEqual([["users.info", "U_DANA"]]);
-    expect(starsGiven()).toEqual([]);
-  });
-
-  test("with stars on, the same three reactions are stars, so the comparison above can tell", async () => {
-    const t = await everyFeatureOn();
-    await kudos(t, "U_ALICE", ["U_CAROL"]);
-    await kudos(t, "U_BOB", ["U_ALICE"], slackTs(now.getTime() - hourMs + 1_000));
-    vi.setSystemTime(now);
-    const before = await everythingStored(t, { except: writtenByTheReceiptLookupOrFlag });
-
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE" });
-    await star(t, { user: "U_CAROL", itemUser: "U_BOB", ts: slackTs(now.getTime() - hourMs + 1_000) });
-    await star(t, { user: "U_DANA", itemUser: "U_ALICE", ts: slackTs(now.getTime() - 2 * hourMs) });
-
-    expect(await everythingStored(t, { except: writtenByTheReceiptLookupOrFlag })).not.toEqual(before);
-    expect(starsGiven()).toHaveLength(3);
-  });
-});
-
 describe("SR9: a star's people are paid in pages", () => {
   test("a star on a kudos message with 250 recipients pays every recipient once and the giver once, within Convex's limits", { timeout: 120_000 }, async () => {
     const t = await workspace({ transactionLimits: true });
@@ -350,17 +302,6 @@ async function workspace({ transactionLimits = false } = {}) {
 const everyFeature = ["stars", "xp-levels", "unlocks", "quests", "skill-tree", "achievements", "coins", "crate-rewards", "website", "groups", "everyone-board", "activity"];
 
 const writtenByAStar: Array<keyof typeof schema.tables> = ["stars", "starPeople", "starWeeks", "starWeekMessages", "starCounts", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
-
-const writtenByTheReceiptLookupOrFlag: Array<keyof typeof schema.tables> = ["slackReceipts", "members", "analyticsIds", "workspaceKeys", "flagExposures", "analyticsOutbox", "journeySteps"];
-
-const everyOtherFeatureOn = everyFeature.filter((key) => key !== "stars").map(onForEveryone);
-
-async function journeyStepsOfEveryoneBut(t: Backend, lookedUp: string) {
-  const member = await memberOf(t, lookedUp);
-  return t.run(async (ctx) => (await ctx.db.query("journeySteps").collect()).filter((step) => step.member !== member));
-}
-
-let darkBackend: Backend;
 
 async function everyFeatureOn() {
   const t = await workspace();
