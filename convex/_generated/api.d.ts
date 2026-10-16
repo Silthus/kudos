@@ -87,6 +87,7 @@ import type * as groups_history from "../groups/history.js";
 import type * as groups_mode from "../groups/mode.js";
 import type * as groups_pick from "../groups/pick.js";
 import type * as groups_reconcile from "../groups/reconcile.js";
+import type * as groups_transitions from "../groups/transitions.js";
 import type * as hoggies_boughtCrates from "../hoggies/boughtCrates.js";
 import type * as hoggies_catalogue from "../hoggies/catalogue.js";
 import type * as hoggies_collection from "../hoggies/collection.js";
@@ -330,6 +331,7 @@ declare const fullApi: ApiFromModules<{
   "groups/mode": typeof groups_mode;
   "groups/pick": typeof groups_pick;
   "groups/reconcile": typeof groups_reconcile;
+  "groups/transitions": typeof groups_transitions;
   "hoggies/boughtCrates": typeof hoggies_boughtCrates;
   "hoggies/catalogue": typeof hoggies_catalogue;
   "hoggies/collection": typeof hoggies_collection;

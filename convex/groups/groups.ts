@@ -19,7 +19,7 @@ export function countsAsGroup(row: Doc<"userGroups">, mode: GroupMode): boolean 
   return keepsMembers(row) && isAllowed(row, mode);
 }
 
-export function isAllowed(row: Doc<"userGroups">, { mode, allowlist = [] }: GroupMode): boolean {
+export function isAllowed(row: Pick<Doc<"userGroups">, "_id">, { mode, allowlist = [] }: GroupMode): boolean {
   return mode === "all" || allowlist.includes(row._id);
 }
 

@@ -136,6 +136,48 @@ describe("GB2, call 13: attribution reconciles the giver first", { timeout: 30_0
   });
 });
 
+describe("GB9, call 13: reconciling a member replays the transition log", { timeout: 30_000 }, () => {
+  test("a giver who left her group keeps that instant though someone else joins it before her page runs", async () => {
+    const t = await annInZebrasBobInGardeners();
+    await annAlsoInGardeners(t);
+    const annLeft = await zebrasListed(t, []);
+    vi.setSystemTime(annLeft + 2_000);
+    await zebrasListed(t, ["U_CAROL"]);
+    vi.setSystemTime(annLeft + 3_000);
+
+    await attribute(t, await kudosGiven(t, "U_ANN", "U_BOB", { at: annLeft + 1_000 }));
+
+    expect((await attributedNamed(t)).map(({ group }) => group)).toEqual(["Gardeners"]);
+  });
+
+  test("a giver removed from her group and added back before her page runs counts for the group she fell back to in between, and keeps it", async () => {
+    const t = await annInZebrasBobInGardeners();
+    await annAlsoInGardeners(t);
+    const annLeft = await zebrasListed(t, []);
+    vi.setSystemTime(annLeft + 2_000);
+    await zebrasListed(t, ["U_ANN"]);
+    vi.setSystemTime(annLeft + 3_000);
+
+    await attribute(t, await kudosGiven(t, "U_ANN", "U_BOB", { at: annLeft + 1_000 }));
+
+    expect((await attributedNamed(t)).map(({ group }) => group)).toEqual(["Gardeners"]);
+    expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Gardeners");
+  });
+
+  test("a giver whose group Slack disabled and enabled again before her page runs counts for the group she fell back to in between", async () => {
+    const t = await annInZebrasBobInGardeners();
+    await annAlsoInGardeners(t);
+    const disabledAt = await zebrasKept(t, { enabled: false });
+    vi.setSystemTime(disabledAt + 2_000);
+    await zebrasKept(t, { enabled: true });
+    vi.setSystemTime(disabledAt + 3_000);
+
+    await attribute(t, await kudosGiven(t, "U_ANN", "U_BOB", { at: disabledAt + 1_000 }));
+
+    expect((await attributedNamed(t)).map(({ group }) => group)).toEqual(["Gardeners"]);
+  });
+});
+
 describe("GB30: attributions and group totals are written once per kudos message", { timeout: 30_000 }, () => {
   test("a redelivered kudosGiven and a redelivered awardsAttributed count once", async () => {
     const t = await annInZebrasBobInGardeners();
@@ -194,6 +236,29 @@ async function annAlsoInGardeners(t: Backend) {
   slack.withUserGroup("S_GARDEN", { name: "Gardeners", users: ["U_ANN", "U_BOB"] });
   await t.action(internal.slack.userGroups.refreshMembers, { workspace: "T1", group: "S_GARDEN" });
   await settle(t);
+}
+
+async function zebrasListed(t: Backend, users: string[]) {
+  slack.withUserGroup("S_ZEBRA", { name: "Zebras", users });
+  await t.action(internal.slack.userGroups.refreshMembers, { workspace: "T1", group: "S_ZEBRA" });
+  return Date.now();
+}
+
+async function zebrasKept(t: Backend, { enabled }: { enabled: boolean }) {
+  const zebras = { workspace: "T1", group: "S_ZEBRA", handle: "zebras", name: "Zebras", enabled, automatic: false, members: 1 };
+  await t.mutation(internal.workspace.userGroups.keepUserGroups, { listed: [zebras], scope: { kind: "one-group", workspace: "T1", group: "S_ZEBRA" }, asOf: Date.now() });
+  return Date.now();
+}
+
+async function primaryGroupNameOf(t: Backend, user: string) {
+  const member = await memberOf(t, user);
+  return t.run(async (ctx) => {
+    const row = await ctx.db
+      .query("memberGroups")
+      .withIndex("by_member", (q) => q.eq("member", member))
+      .unique();
+    return row?.primary == null ? null : ((await ctx.db.get(row.primary))?.name ?? null);
+  });
 }
 
 async function picked(t: Backend, user: string, group: string, at: number) {

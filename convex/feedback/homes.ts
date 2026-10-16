@@ -38,7 +38,7 @@ import { namedFor, scheduled } from "../unlocks/schedule";
 import { unlocksHomeOf, type UnlocksHome } from "../unlocks/unlocks";
 import { coinsVisibleAndExposedTo } from "../wallet/visibility";
 import { balanceOf } from "../wallet/wallet";
-import { adminsIn, chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
+import { adminsPageIn, chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { isOpened, whenOpened } from "./unlockFilter";
 
@@ -94,6 +94,7 @@ type Slices = {
 
 type HomeSelection = { tab: HomeTab; period: Period };
 
+const adminsRepublishedPerPage = 100;
 const opensOn: HomeSelection = { tab: "profile", period: "week" };
 
 export type JourneyStepShown = JourneyStepFacts & JourneyStepCopy;
@@ -147,9 +148,11 @@ export const refreshHomeOnXp = internalMutation({
 });
 
 export const republishAdminsIn = internalMutation({
-  args: { workspace: v.string() },
-  handler: async (ctx, { workspace }): Promise<void> => {
-    for (const user of await adminsIn(ctx, workspace)) await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace, user });
+  args: { workspace: v.string(), cursor: v.optional(v.string()) },
+  handler: async (ctx, { workspace, cursor }): Promise<void> => {
+    const { admins, continueCursor } = await adminsPageIn(ctx, workspace, cursor ?? null, adminsRepublishedPerPage);
+    for (const user of admins) await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { workspace, user });
+    if (continueCursor !== null) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace, cursor: continueCursor });
   },
 });
 

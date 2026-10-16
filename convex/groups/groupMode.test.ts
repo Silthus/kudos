@@ -230,6 +230,25 @@ describe("GB2, call 13: a write reconciles its member before their page does", {
   });
 });
 
+describe("GB9, call 13: reconciling a member replays the transition log", { timeout: slackBoundaryTimeoutMs }, () => {
+  test("kudos Ann spends while her group is off the allowlist count for the group she fell back to, though it came back before her page runs", async () => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
+    const t = await workspaceWithGroups();
+    await adminTabOpen(t, "U_ALICE");
+    const [ann, bob] = [await memberOf(t, "U_ANN"), await memberOf(t, "U_BOB")];
+    const switchedAt = Date.now();
+    await setGroupModeWithoutPages(t, "allowlist", await groupIdsOf(t, "Gardeners", "Zebras"));
+    vi.setSystemTime(switchedAt + 30_000);
+    await setGroupModeWithoutPages(t, "all");
+    vi.setSystemTime(switchedAt + 60_000);
+
+    const spent = await t.run((ctx) => kudosGivenEventWithAward(ctx, ann, bob, { day: "2026-10-14", at: switchedAt + 1_000 }));
+    await t.mutation(internal.groups.attribution.attributeKudosGiven, { event: spent });
+
+    expect(await attributedGroupNamesOf(t, ann)).toEqual(["Zebras"]);
+  });
+});
+
 describe("GB9, call 13: a fallback is stamped with when its group left the allowlist", { timeout: slackBoundaryTimeoutMs }, () => {
   test("a members list Slack sends for the excluded group before Ann's page runs doesn't move her fallback's instant", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "groups");
