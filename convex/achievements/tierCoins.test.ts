@@ -14,8 +14,9 @@ import { ladders, type LadderId, type TierId } from "./ladders";
 const now = new Date("2026-10-13T10:00:00Z");
 const earnedBeforeTheDeploy = now.getTime() - 30 * 86_400_000;
 const hourMs = 3_600_000;
-const coinsOfEveryTier = 7 * (10 + 100);
-const coinRewardsOfEveryTier = 7 * 2;
+const coinsOfEveryTier = ladders.ladders.length * (10 + 100);
+const everyTier = ladders.ladders.length * 4;
+const coinRewardsOfEveryTier = ladders.ladders.length * 2;
 const sparklingHeart = { item: "kudos-emoji-sparkling-heart", name: "Sparkling Heart", emoji: "sparkling_heart", art: { kind: "unicode", glyph: "💖" } };
 
 let postHog: FakePostHog;
@@ -50,7 +51,7 @@ describe("CO1 CO7: a tier's coins are paid once, whether it is earned live or by
     expect(await balanceIn(t, bob)).toBe(10);
   });
 
-  test("members holding all 28 tiers are paid every coin reward once, at the time the backfill ran; a second run writes nothing", async () => {
+  test("members holding every tier are paid every coin reward once, at the time the backfill ran; a second run writes nothing", async () => {
     const t = testBackend({ transactionLimits: true });
     const members = await membersHoldingEveryTier(t, 60);
     const ranAt = now.getTime() + hourMs;
@@ -59,8 +60,8 @@ describe("CO1 CO7: a tier's coins are paid once, whether it is earned live or by
     const first = await t.action(internal.achievements.tierCoins.backfillTierCoins, {});
     const second = await t.action(internal.achievements.tierCoins.backfillTierCoins, {});
 
-    expect(first).toEqual({ tiers: 60 * 28, paid: 60 * coinRewardsOfEveryTier });
-    expect(second).toEqual({ tiers: 60 * 28, paid: 0 });
+    expect(first).toEqual({ tiers: 60 * everyTier, paid: 60 * coinRewardsOfEveryTier });
+    expect(second).toEqual({ tiers: 60 * everyTier, paid: 0 });
     for (const member of [members[0]!, members.at(-1)!]) {
       const rewards = await tierRewardsOf(t, member);
       expect(rewards).toHaveLength(coinRewardsOfEveryTier);
