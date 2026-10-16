@@ -178,6 +178,19 @@ describe("SR12 SR14: the most-starred message is the one that got the member the
 });
 
 describe("SR12 SR14: one recap per member and week", () => {
+  test("a week the sweep first sees after its Monday 09:00 schedules one recap job, and sends one recap", async () => {
+    const t = await workspace();
+    await star(t, "U_BOB", "U_ALICE", messageOf(1));
+    await settleUpTo(t, mondayNineInUtc + hourMs);
+
+    await t.mutation(recapSweep(), {});
+
+    expect(await pendingJobs(t, sendStarsRecap)).toBe(2);
+    await settleUpTo(t, Date.now() + minuteMs);
+    expect(recapsTo("U_ALICE")).toHaveLength(1);
+    expect(recapsTo("U_BOB")).toHaveLength(1);
+  });
+
   test("a redelivered sweep and two sweeps in the same hour schedule one recap", async () => {
     const t = await workspace();
     await star(t, "U_BOB", "U_ALICE", messageOf(1));

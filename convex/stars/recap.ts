@@ -85,7 +85,7 @@ export const recapEnded = internalMutation({
 });
 
 async function scheduleRecap(ctx: MutationCtx, week: StarWeek) {
-  await scheduleTry(ctx, week, await recapDueAtOf(ctx, week), 1);
+  await scheduleTry(ctx, week, Math.max(await recapDueAtOf(ctx, week), Date.now()), 1);
 }
 
 async function scheduleTry(ctx: MutationCtx, week: StarWeek, dueAt: number, attempt: number) {
