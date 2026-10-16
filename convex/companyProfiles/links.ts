@@ -44,7 +44,7 @@ function refusalOf({ profiles, matches, holders }: CompanyProfiles, member: Memb
   return (holders.get(profile) ?? member) === member ? null : "taken";
 }
 
-async function choicesFrom(ctx: QueryCtx): Promise<(profile: CompanyProfile) => ProfileChoice> {
+export async function choicesFrom(ctx: QueryCtx): Promise<(profile: CompanyProfile) => ProfileChoice> {
   const teamNames = new Map((await companyTeamsOf(ctx)).map(({ team, name }) => [team, name]));
   return (companyProfile) => ({
     profile: companyProfile.profile,
@@ -55,6 +55,6 @@ async function choicesFrom(ctx: QueryCtx): Promise<(profile: CompanyProfile) => 
   });
 }
 
-function byName(one: ProfileChoice, other: ProfileChoice) {
+export function byName(one: ProfileChoice, other: ProfileChoice) {
   return one.name.localeCompare(other.name) || one.profile - other.profile;
 }
