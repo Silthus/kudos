@@ -6,7 +6,7 @@ import type { pageValidator } from "./link";
 
 export type Page = Infer<typeof pageValidator>;
 
-export const crateTargetValidator = v.union(...featureValidator.members, v.literal("journey"));
+export const crateTargetValidator = v.union(...featureValidator.members, v.literal("journey"), v.literal("group"));
 
 export type CrateTarget = Infer<typeof crateTargetValidator>;
 

@@ -18,7 +18,7 @@ import type { Leaderboard as EveryoneBoard, MyLeaderboard as MyEveryoneBoard } f
 import { inventoryFixtures } from "./inventoryFixtures";
 
 export type { Face, FeatureCard, InventoryItem, ItemSource, JourneyStep, MemberInventory, MemberProfile, PageWaits, Progression } from "../../convex/website/profile";
-export type { QuestReward, QuestsAnswer, QuestSlot, WaitingCrate, WeekSwap } from "../../convex/website/quests";
+export type { GroupQuestCard, QuestReward, QuestsAnswer, QuestSlot, WaitingCrate, WeekSwap } from "../../convex/website/quests";
 export type { BookAnswer, LadderCard, TierCard, TierReward } from "../../convex/website/book";
 export type { TierId } from "../../convex/achievements/ladders";
 export type { Medal } from "../../convex/profileCard/profileCard";
@@ -32,7 +32,7 @@ export type { CommandAnswer, PurchaseAnswer, PurchaseRefusal, SwapAnswer } from 
 export type { GroupChoice, MessageKind, MessagePlace, MessageSetting, MySettings } from "../../convex/website/settings";
 export type { Feature } from "../../convex/unlocks/feature";
 export type { Slot } from "../../convex/store/rows";
-export type { Quest, WeeklyQuest } from "../../convex/quests/step";
+export type { GroupQuestCrate, Quest, WeeklyQuest } from "../../convex/quests/step";
 export type { Activity, ActivityEntry, KudosGiven, KudosReceived, LevelUp, Message, MyActivity, MyRecentKudos, MySpotlight, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../../convex/website/activity";
 
 export type GroupsBoardRow = GroupsBoardShown["rows"][number];
