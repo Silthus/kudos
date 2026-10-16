@@ -6,7 +6,6 @@ export const featureValidator = v.union(
   v.literal("book"),
   v.literal("skillTree"),
   v.literal("coins"),
-  v.literal("hedgehogs"),
 );
 
 export type Feature = Infer<typeof featureValidator>;

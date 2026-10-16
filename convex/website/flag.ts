@@ -5,7 +5,7 @@ import { bookLaunchDueIn } from "../achievements/flag";
 import { workspaceKeyOf } from "../analytics/outbox";
 import { journeyLaunchDueIn, journeyPreviewedBy } from "../quests/flag";
 import { signInWorkspace } from "../slack/signIn";
-import { unlocksLaunchDueIn, unlocksPreviewedBy } from "../unlocks/launch";
+import { readyFromTheStartOnTheWebsite, unlocksLaunchDueIn, unlocksPreviewedBy } from "../unlocks/launch";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 
 export const websiteFlag = { key: "website", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
@@ -25,7 +25,7 @@ export function websiteOpenTo(ctx: QueryCtx | MutationCtx, member: MemberId): Pr
 export async function websiteShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
   const shown = await memberDecision(ctx, websiteFlag, member);
   await exposed(ctx, websiteFlag, member, shown);
-  if (shown) await runDuePreviewMoments(ctx, member);
+  if (shown) await runDueMoments(ctx, member);
   return shown;
 }
 
@@ -40,10 +40,19 @@ export async function workspaceLaunchDueIn(ctx: QueryCtx, workspace: string): Pr
   return (await unlocksLaunchDueIn(ctx, workspace)) || (await journeyLaunchDueIn(ctx, workspace)) || (await bookLaunchDueIn(ctx, workspace));
 }
 
-async function runDuePreviewMoments(ctx: MutationCtx, member: MemberId) {
-  if (await workspaceLaunchDueIn(ctx, (await chatUserOf(ctx, member)).workspace)) return;
+async function runDueMoments(ctx: MutationCtx, member: MemberId) {
+  if (await launchDueFor(ctx, member)) return;
   await unlocksPreviewedBy(ctx, member);
   await journeyPreviewedBy(ctx, member);
+  await readyFromTheStartOnTheWebsite(ctx, member);
+}
+
+export async function readyFromTheStartOnceVerified(ctx: MutationCtx, member: MemberId) {
+  if (!(await launchDueFor(ctx, member))) await readyFromTheStartOnTheWebsite(ctx, member);
+}
+
+async function launchDueFor(ctx: MutationCtx, member: MemberId) {
+  return workspaceLaunchDueIn(ctx, (await chatUserOf(ctx, member)).workspace);
 }
 
 async function websiteFlagThrough(ctx: QueryCtx | MutationCtx, read: typeof workspaceDecision): Promise<boolean> {

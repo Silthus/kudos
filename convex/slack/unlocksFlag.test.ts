@@ -102,7 +102,7 @@ describe("the unlocks slice is dark while unlocks is off", () => {
 
   test("a stale Open from the level-up DM, clicked while unlocks is off, opens nothing, and the readiness already stored survives", async () => {
     const t = await workspaceShippedBeforeAnyoneJoined();
-    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
     const openInDm = blockActions("U_ALICE", openButtonIn(dmsTo("U_ALICE").at(-1)!), { inMessage: { channel: "U_ALICE", ts: "1760349700.000100" } });
     const stored = await unlockRows(t);
     await unlocksTurned(t, "off");
@@ -118,8 +118,8 @@ describe("the unlocks slice is dark while unlocks is off", () => {
 
   test("O35: turning unlocks off hides what is ready and opened and rewrites nothing, and turning it on again shows it all unchanged", async () => {
     const t = await workspaceShippedBeforeAnyoneJoined();
-    await giveKudos(t, "U_ALICE", "U_BOB", 10);
-    await giveKudos(t, "U_BOB", "U_ALICE", 10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_BOB", "U_ALICE", 2);
     await openHome(t, "U_ALICE");
     await send(t, blockActions("U_ALICE", openButtonIn(homeBlocksOf("U_ALICE"))));
     await openHome(t, "U_BOB");
@@ -149,7 +149,7 @@ describe("the unlocks slice is dark while unlocks is off", () => {
 describe("P77: unlocks launch once per workspace, opening what had shipped for every member who existed then", () => {
   test("the first mutation that sees unlocks on opens the Leaderboard, at that moment, for every member at any level, and DMs nobody about it", async () => {
     const t = await workspaceDeciding("sandbox", ...beside(offForEveryone(unlocks)));
-    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
     const dmsBefore = sentDms();
     const firstOn = now.getTime() + 60_000;
     vi.setSystemTime(firstOn);
@@ -168,21 +168,21 @@ describe("P77: unlocks launch once per workspace, opening what had shipped for e
     expect(sentDms()).toEqual(dmsBefore);
     expect(publishedHome(slack, "U_BOB")[0]).toBe(everyoneBoardTabs);
     expect(publishedHome(slack, "U_ALICE").filter(namesAnUnlock)).toEqual([]);
-    expect(rowsOf(aliceReply.text)).toEqual(["🥇 <@U_ALICE> · 10 kudos"]);
+    expect(rowsOf(aliceReply.text)).toEqual(["🥇 <@U_ALICE> · 2 kudos"]);
   });
 
-  test("a member who joins afterwards follows the schedule: told the Leaderboard opens at level 3, then sent it ready with Open", async () => {
+  test("a member who joins afterwards follows the schedule: told the Leaderboard opens at level 2, then sent it ready with Open", async () => {
     const t = await workspaceDeciding("sandbox", ...beside(offForEveryone(unlocks)));
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await unlocksTurned(t, "on");
     await openHome(t, "U_ALICE");
 
-    await giveKudos(t, "U_CAROL", "U_ALICE", 2);
-    const atLevelTwo = await leaderboardCommand(t, "U_CAROL");
-    await giveKudos(t, "U_CAROL", "U_ALICE", 8);
+    await giveKudos(t, "U_CAROL", "U_ALICE", 1);
+    const atLevelOne = await leaderboardCommand(t, "U_CAROL");
+    await giveKudos(t, "U_CAROL", "U_ALICE", 1);
 
-    expect(atLevelTwo).toEqual({ response_type: "ephemeral", text: "Leaderboard opens at level 3." });
-    expect(dmsTo("U_CAROL").map(readDm).at(-1)).toEqual(["section: 🎉 You reached level 3!", "section: Level 4 is 200 XP away.", leaderboardReady]);
+    expect(atLevelOne).toEqual({ response_type: "ephemeral", text: "Leaderboard opens at level 2." });
+    expect(dmsTo("U_CAROL").map(readDm).at(-1)).toEqual(["section: 🎉 You reached level 2!", "section: Level 3 is 80 XP away.", leaderboardReady]);
   });
 
   test("turning unlocks off and on again moves neither the moment nor the snapshot: a member who joined in between follows the schedule", async () => {
@@ -193,15 +193,15 @@ describe("P77: unlocks launch once per workspace, opening what had shipped for e
     const launched = await unlockRows(t);
     await unlocksTurned(t, "off");
     vi.setSystemTime(now.getTime() + 60_000);
-    await giveKudos(t, "U_CAROL", "U_ALICE", 2);
+    await giveKudos(t, "U_CAROL", "U_ALICE", 1);
 
     await unlocksTurned(t, "on");
     await openHome(t, "U_CAROL");
     const carolReply = await leaderboardCommand(t, "U_CAROL");
 
     expect(await unlockRows(t)).toEqual(launched);
-    expect(carolReply).toEqual({ response_type: "ephemeral", text: "Leaderboard opens at level 3." });
-    expect(publishedHome(slack, "U_CAROL")).toContain("section: Next: Leaderboard at level 3.");
+    expect(carolReply).toEqual({ response_type: "ephemeral", text: "Leaderboard opens at level 2." });
+    expect(publishedHome(slack, "U_CAROL")).toContain("section: Next: Leaderboard at level 2.");
   });
 
   test("P78: a feature that ships after the moment becomes ready with one DM, also for a member who existed before it", async () => {
@@ -240,12 +240,12 @@ describe("P77: unlocks launch once per workspace, opening what had shipped for e
 
   test("the launch and a level up can't race: a level up that runs first after unlocks turns on names no feature the launch opened", async () => {
     const t = await workspaceDeciding("sandbox", ...beside(offForEveryone(unlocks)));
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await unlocksTurned(t, "on");
 
-    await giveKudos(t, "U_ALICE", "U_BOB", 8);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(dmsTo("U_ALICE").map(readDm)).toEqual([levelTwoDm, levelThreeDm]);
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([levelTwoDm]);
     const moment = await launchMoment(t);
     expect((await unlockRows(t)).filter(({ user }) => user === "U_ALICE")).toEqual([{ user: "U_ALICE", feature: "leaderboard", readyAt: moment, openedAt: moment }]);
   });
@@ -272,7 +272,7 @@ describe("O36: unlocks exposure", () => {
 
     const reply = await leaderboardCommand(t, "U_CAROL");
 
-    expect(reply).toEqual({ response_type: "ephemeral", text: "Leaderboard opens at level 3." });
+    expect(reply).toEqual({ response_type: "ephemeral", text: "Leaderboard opens at level 2." });
     expect(exposures()).toEqual([[unlocks, true]]);
   });
 });

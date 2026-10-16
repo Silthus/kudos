@@ -22,7 +22,7 @@ import { weekKeyOf, type WeekKey } from "../quests/week";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
 import { storeShownTo, storeVisibleTo } from "../store/visibility";
-import { namedFor, scheduled, type ScheduledFeature } from "../unlocks/schedule";
+import { namedFor, readyFromTheStart, scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
 import { websiteOriginFor } from "../website/link";
 import { coinsApplyTo, coinsVisibleTo } from "../wallet/visibility";
@@ -233,7 +233,7 @@ async function isBookOpenIn(ctx: QueryCtx, workspace: string, member: MemberId) 
 
 async function stillReady(ctx: QueryCtx, member: MemberId, features: Feature[]) {
   const ready: Feature[] = [];
-  for (const feature of features) if ((await stateOf(ctx, member, feature)) === "ready") ready.push(feature);
+  for (const feature of features) if (!readyFromTheStart(scheduled(feature)) && (await stateOf(ctx, member, feature)) === "ready") ready.push(feature);
   return ready;
 }
 

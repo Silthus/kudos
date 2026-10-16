@@ -118,10 +118,9 @@ describe("CL15: getCollection answers the Book's hoggies", () => {
 
   test("CL13: hoggies found before the Book opened wait there and show once it opens", async () => {
     const { member, asSignedIn } = await aMemberOfAShippedBook("collection");
-    await reachesLevel(t, member, 3);
+    await reachesLevel(t, member, 2);
     const beforeTheBook = await opensOnTheWebsite(asSignedIn, "leaderboard");
-    expect(await collectionOf(asSignedIn)).toEqual({ kind: "locked", level: 4 });
-    await reachesLevel(t, member, 4);
+    expect(await collectionOf(asSignedIn)).toEqual({ kind: "ready" });
 
     const theBook = await opensOnTheWebsite(asSignedIn, "book");
 
@@ -129,13 +128,17 @@ describe("CL15: getCollection answers the Book's hoggies", () => {
   });
 
   test("while the Book isn't open it answers exactly getBook's locked and ready", async () => {
-    const { member, asSignedIn } = await aMemberOfAShippedBook("collection");
-    const locked = await collectionOf(asSignedIn);
-    await reachesLevel(t, member, 4);
+    await switchWebsite(t, postHog, true, ...bookFlags, "collection");
+    await bookShippedBeforeAnyoneJoined(t);
+    await aMember(t, juno.user);
+    const { asSignedIn: notYetSignedIn } = await aSession(t, juno);
+    const locked = await collectionOf(notYetSignedIn);
+    const bookWhileLocked = await bookOf(notYetSignedIn);
+    const { asSignedIn } = await aSignedInSession(t, juno);
     const ready = await collectionOf(asSignedIn);
 
-    expect([locked, ready]).toEqual([{ kind: "locked", level: 4 }, { kind: "ready" }]);
-    expect(ready).toEqual(await bookOf(asSignedIn));
+    expect([locked, ready]).toEqual([{ kind: "locked", level: 1 }, { kind: "ready" }]);
+    expect([locked, ready]).toEqual([bookWhileLocked, await bookOf(asSignedIn)]);
   });
 
   test("CL18: it answers not-found while collection is off for the member, with the Book open and hoggies held", async () => {

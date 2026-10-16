@@ -4,7 +4,7 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, offForEveryone, onForEveryone, onInTheSandboxOnly, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlocks, readBlocks, staleButtonOf, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { achievementsLiveIn } from "../achievements/flag";
@@ -78,12 +78,12 @@ describe("the Book applies only where achievements, xp-levels and unlocks all ap
 });
 
 describe("a stale crate button from when the Book applied writes nothing and publishes nothing", () => {
-  test.each(bookTurnedOff)("$reason: Open on the Book's crate in the level-up DM and in App Home opens nothing", async ({ flags }) => {
+  test.each(bookTurnedOff)("$reason: Open on the Book's crate in a schedule 1 level-up DM and in App Home opens nothing", async ({ flags }) => {
     const t = await bookLaunchedDeciding(...allOn());
     await membersWithHistory(t);
     await giveKudos(t, "U_CAROL", "U_BOB", saysWhy);
     await openHome(t, "U_CAROL");
-    const openInDm = buttonBeside(blocksOf(levelUpDmsTo("U_CAROL").at(-1)!), "*Book* is ready", "Open");
+    const openInDm = staleButtonOf({ type: "openUnlock", feature: "book" });
     const openInHome = buttonBeside(publishedHomeBlocks(slack, "U_CAROL"), "*Book* is ready", "Open");
     const opened = await bookOpenedBy(t);
     const dms = dmsTo("U_CAROL").length;
@@ -273,10 +273,6 @@ function dmsTo(user: string) {
   return slack.callsTo("chat.postMessage").filter(({ channel }) => channel === user || channel === inDm.channel);
 }
 
-function levelUpDmsTo(user: string) {
-  return dmsTo(user).filter(({ text }) => String(text).startsWith("🎉"));
-}
-
 function tierDmsTo(user: string) {
   return dmsTo(user)
     .map(({ text }) => String(text))
@@ -288,11 +284,6 @@ function tierLinesIn(channel: string) {
     .messagesIn(channel)
     .flatMap(({ text }) => String(text).split("\n"))
     .filter((line) => line.startsWith("🏅"));
-}
-
-function blocksOf(dm: Record<string, unknown>) {
-  expect(dm.blocks, "the DM's blocks").toBeDefined();
-  return dm.blocks as Block[];
 }
 
 function buttonBeside(blocks: Block[], beside: string, label: string) {

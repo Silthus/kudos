@@ -3,8 +3,9 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, buttonInHome, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, openUnlockInHome, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { reachesLevel } from "../../testing/unlocks";
 import { replyPrivately } from "../feedback/replies";
 import type { QuestId } from "./pool";
 
@@ -40,24 +41,24 @@ afterEach(() => {
 });
 
 describe("P80 P76: a member who opens Quests gets 3 quests for this week on App Home", () => {
-  test("below level 2, App Home names Quests only as next, with no weekly quest anywhere", async () => {
+  test("below level 3, App Home names Quests only as next, with no weekly quest anywhere", async () => {
     const t = await workspace();
 
     await openHome(t, "U_ALICE");
 
     const home = publishedHome(slack, "U_ALICE");
-    expect(home).toContain("section: Next: Quests at level 2.");
+    expect(home).toContain("section: Next: Quests at level 3.");
     expect(questsIn(home)).toEqual([]);
   });
 
-  test("at level 2, Quests is ready with Open and no weekly quest shows; opening it shows 3 different quests this week, each at 0 with its 20 XP", async () => {
+  test("at level 3, Quests is ready with Open and no weekly quest shows; opening it shows 3 different quests this week, each at 0 with its 20 XP", async () => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy, Date.now(), 9);
     await openHome(t, "U_ALICE");
     expect(publishedHome(slack, "U_ALICE")).toContain(questsReady);
     expect(questsIn(publishedHome(slack, "U_ALICE"))).toEqual([]);
 
-    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    await send(t, blockActions("U_ALICE", openUnlockInHome(slack, "U_ALICE", "quests")));
 
     const [title, ...rest] = questsIn(publishedHome(slack, "U_ALICE"));
     const goals = rest.slice(0, -1);
@@ -69,10 +70,10 @@ describe("P80 P76: a member who opens Quests gets 3 quests for this week on App 
     expect(publishedHome(slack, "U_ALICE")).not.toContain(questsReady);
   });
 
-  test("while quests is off, a level 2 member sees no Quests crate, next line or weekly quest", async () => {
+  test("while quests is off, a level 3 member sees no Quests crate, next line or weekly quest", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks");
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy, Date.now(), 9);
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
     await openHome(t, "U_ALICE");
@@ -210,11 +211,17 @@ describe("P71 R36: a success reply held for Quests is never lost", () => {
 async function openedQuests(quests: QuestId[]) {
   const t = await workspace();
   await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+  await reachesLevel(t, await memberOf(t, "U_ALICE"), 3);
   await openHome(t, "U_ALICE");
   await drawFor(t, "U_ALICE", quests);
-  await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+  await send(t, blockActions("U_ALICE", openUnlockInHome(slack, "U_ALICE", "quests")));
   return t;
 }
+
+async function memberOf(t: Backend, user: string) {
+  return t.run(async (ctx) => (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id);
+}
+
 
 async function drawFor(t: Backend, user: string, quests: QuestId[]) {
   const slots = quests.map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
@@ -238,14 +245,14 @@ async function workspace() {
   return t;
 }
 
-async function giveKudos(t: Backend, giver: string, recipient: string | string[], words: string, at = Date.now()) {
-  await sendKudos(t, giver, recipient, words, at);
+async function giveKudos(t: Backend, giver: string, recipient: string | string[], words: string, at = Date.now(), kudos = 1) {
+  await sendKudos(t, giver, recipient, words, at, kudos);
   await settleInTimeOrder(t);
 }
 
-async function sendKudos(t: Backend, giver: string, recipient: string | string[], words: string, at = Date.now()) {
+async function sendKudos(t: Backend, giver: string, recipient: string | string[], words: string, at = Date.now(), kudos = 1) {
   sentMessages += 1;
-  const blocks = [section(...[recipient].flat().map((user) => mention(user)), text(` ${words} `), emoji("taco"))];
+  const blocks = [section(...[recipient].flat().map((user) => mention(user)), text(` ${words} `), ...Array.from({ length: kudos }, () => emoji("taco")))];
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${Math.floor(at / 1000) + sentMessages}.000100` })));
 }
 

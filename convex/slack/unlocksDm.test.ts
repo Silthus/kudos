@@ -8,6 +8,7 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { LevelReachedEvent } from "../bus/events";
+import { xpToReach } from "../progression/levels";
 import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -16,7 +17,9 @@ const form = { contentType: "application/x-www-form-urlencoded" };
 const leaderboardReady = "section: *Leaderboard* is ready. It opens the boards. [button: Open]";
 const openLeaderboardCommand = JSON.stringify({ type: "openUnlock", feature: "leaderboard" });
 const openLeaderboard = { type: "button", action_id: openLeaderboardCommand, value: openLeaderboardCommand } as const;
-const levelThreeDm = ["section: 🎉 You reached level 3!", "section: Level 4 is 200 XP away.", leaderboardReady];
+const levelTwoDm = ["section: 🎉 You reached level 2!", "section: Level 3 is 80 XP away.", leaderboardReady];
+const plainLevelTwoDm = ["🎉 You reached level 2!", "Level 3 is 80 XP away."];
+const plainLevelThreeDm = ["🎉 You reached level 3!", "Level 4 is 200 XP away."];
 
 type LevelReachedSubscriber = typeof internal.feedback.publicReplies.celebrateLevel | typeof internal.unlocks.unlocks.makeReady;
 
@@ -41,19 +44,19 @@ afterEach(() => {
 });
 
 describe("P74 P73: the level-up DM names what the level made ready, each with Open", () => {
-  test("reaching level 3 sends one DM that names the Leaderboard with Open, and its text says the same", async () => {
+  test("reaching level 2 sends one DM that names the Leaderboard with Open, and its text says the same", async () => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    await giveKudos(t, "U_ALICE", "U_BOB", 8);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(dmsTo("U_ALICE").map(readDm)).toEqual([["🎉 You reached level 2!", "Level 3 is 80 XP away."], levelThreeDm]);
-    expect(dmsTo("U_ALICE")[1]?.text).toBe("🎉 You reached level 3!\nLevel 4 is 200 XP away.\n*Leaderboard* is ready. It opens the boards.");
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([levelTwoDm]);
+    expect(dmsTo("U_ALICE")[0]?.text).toBe("🎉 You reached level 2!\nLevel 3 is 80 XP away.\n*Leaderboard* is ready. It opens the boards.");
   });
 
   test("clicking Open in the DM opens the Leaderboard for good and republishes App Home without its line; clicking it again changes nothing", async () => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
     const openButton = buttonIn(blocksOf(dmsTo("U_ALICE")[0]!), "Open");
     const inDm = { channel: "U_ALICE", ts: "1760349700.000100" };
 
@@ -76,7 +79,9 @@ describe("P74 P73: the level-up DM names what the level made ready, each with Op
 
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
 
-    expect(dmsTo("U_ALICE")).toEqual([{ channel: "U_ALICE", text: "🎉 You reached level 2!\nLevel 3 is 80 XP away." }]);
+    await giveKudos(t, "U_ALICE", "U_BOB", 8);
+
+    expect(dmsTo("U_ALICE").slice(1)).toEqual([{ channel: "U_ALICE", text: "🎉 You reached level 3!\nLevel 4 is 200 XP away." }]);
   });
 
   test("with everyone-board off, reaching level 3 sends the level-up DM without naming any feature", async () => {
@@ -92,35 +97,35 @@ describe("P74 P73: the level-up DM names what the level made ready, each with Op
 describe("R34: a level-up DM rechecks what it names before each try", () => {
   test("a level-up DM Slack held back leaves out the Leaderboard once everyone-board went off, and still tells the level", async () => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
     slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
       await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("everyone-board"));
       slack.answering("chat.postMessage", rateLimitedFor(30));
     });
 
-    await giveKudos(t, "U_ALICE", "U_BOB", 8);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([levelThreeDm, ["🎉 You reached level 3!", "Level 4 is 200 XP away."]]);
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([levelTwoDm, plainLevelTwoDm]);
   });
 
   test("a level-up DM Slack held back leaves out the Leaderboard once the member opened it from App Home, and still tells the level", async () => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
     slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
       await click(t, blockActions("U_ALICE", openLeaderboard));
       slack.answering("chat.postMessage", rateLimitedFor(30));
     });
 
-    await giveKudos(t, "U_ALICE", "U_BOB", 8);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: expect.any(Number), openedAt: expect.any(Number) }]);
-    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([levelThreeDm, ["🎉 You reached level 3!", "Level 4 is 200 XP away."]]);
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([levelTwoDm, plainLevelTwoDm]);
   });
 
   test("a ship sweep DM Slack held back is not sent once the member opened the feature it names from App Home", async () => {
     const t = await workspace();
     await boardTurned(t, "off");
-    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
     await boardTurned(t, "on");
     slack.holdingBack("chat.postMessage", "U_ALICE", async () => {
       await click(t, blockActions("U_ALICE", openLeaderboard));
@@ -140,7 +145,7 @@ describe("P6: several levels at once", () => {
 
     await giveKudos(t, "U_ALICE", "U_BOB", 10);
 
-    expect(dmsTo("U_ALICE").map(readDm)).toEqual([levelThreeDm]);
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([["section: 🎉 You reached level 3!", "section: Level 4 is 200 XP away.", leaderboardReady]]);
   });
 });
 
@@ -150,29 +155,29 @@ describe("P74: one owner for readiness and the level-up DM", () => {
     ["readiness last", [internal.feedback.publicReplies.celebrateLevel, internal.unlocks.unlocks.makeReady]],
   ])("the DM names exactly what was made ready, with %s", async (_, subscribers) => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
-    const reached = await levelThreeReachedBy(t, "U_ALICE");
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    const reached = await levelReachedBy(t, "U_ALICE", 2);
 
     for (const subscriber of subscribers) {
       await t.mutation(subscriber, { event: reached });
       await settle(t);
     }
 
-    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([levelThreeDm]);
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([levelTwoDm]);
     expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: reached.at }]);
   });
 
   test("a replayed levelReached sends no second DM and makes nothing ready again", async () => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
-    const reached = await levelThreeReachedBy(t, "U_ALICE");
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    const reached = await levelReachedBy(t, "U_ALICE", 2);
     await t.mutation(internal.unlocks.unlocks.makeReady, { event: reached });
     await settle(t);
 
     await t.mutation(internal.unlocks.unlocks.makeReady, { event: { ...reached, at: reached.at + 1000 } });
     await settle(t);
 
-    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([levelThreeDm]);
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([levelTwoDm]);
     expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: reached.at }]);
   });
 
@@ -180,7 +185,7 @@ describe("P74: one owner for readiness and the level-up DM", () => {
     const t = await workspace();
     await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("everyone-board"));
     await giveKudos(t, "U_ALICE", "U_BOB", 2);
-    const reached = await levelThreeReachedBy(t, "U_ALICE");
+    const reached = await levelReachedBy(t, "U_ALICE", 3);
     await t.mutation(internal.unlocks.unlocks.makeReady, { event: reached });
     await settle(t);
     await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("everyone-board"));
@@ -188,20 +193,20 @@ describe("P74: one owner for readiness and the level-up DM", () => {
     await t.mutation(internal.unlocks.unlocks.makeReady, { event: reached });
     await settle(t);
 
-    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([["🎉 You reached level 3!", "Level 4 is 200 XP away."]]);
+    expect(dmsTo("U_ALICE").map(readDm).slice(1)).toEqual([plainLevelThreeDm]);
     expect(await unlockRows(t)).toEqual([]);
   });
 
   test("a feature something else made ready first is not named again by the level-up DM, and App Home still lists it", async () => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
     const member = await memberOf(t, "U_ALICE");
     const readyEarlier = now.getTime() + 500;
     await t.run((ctx) => ctx.db.insert("unlocks", { member, feature: "leaderboard", readyAt: readyEarlier }));
 
-    await giveKudos(t, "U_ALICE", "U_BOB", 8);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(dmsTo("U_ALICE").map(readDm)[1]).toEqual(["🎉 You reached level 3!", "Level 4 is 200 XP away."]);
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([plainLevelTwoDm]);
     expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: readyEarlier }]);
     await publishHome(t, "U_ALICE");
     expect(publishedHome(slack, "U_ALICE")).toContain(leaderboardReady);
@@ -209,31 +214,31 @@ describe("P74: one owner for readiness and the level-up DM", () => {
 });
 
 describe("P63 P74: with DMs off", () => {
-  test("a member who turned DMs off gets no DM at level 3, and App Home still lists the Leaderboard ready", async () => {
+  test("a member who turned DMs off gets no DM at level 2, and App Home still lists the Leaderboard ready", async () => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
     const member = await memberOf(t, "U_ALICE");
     await t.run((ctx) => ctx.db.insert("progressSettings", { member, dms: false }));
 
-    await giveKudos(t, "U_ALICE", "U_BOB", 8);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(dmsTo("U_ALICE")).toHaveLength(1);
+    expect(dmsTo("U_ALICE")).toHaveLength(0);
     expect(publishedHome(slack, "U_ALICE")).toContain(leaderboardReady);
   });
 });
 
 describe("P78: a feature that ships later becomes ready for members past its level", () => {
-  test("a level 4 member who reached level 3 while everyone-board was off gets one DM naming the Leaderboard with Open at the next sweep, and App Home lists it", async () => {
+  test("a level 4 member who reached level 2 while everyone-board was off gets one DM naming the Leaderboard with Open at the next sweep, and App Home lists it", async () => {
     const t = await workspace();
     await boardTurned(t, "off");
-    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
     await xpOf(t, "U_ALICE", 300);
     await boardTurned(t, "on");
     const sweptAt = Date.now();
 
     await sweep(t);
 
-    expect(dmsTo("U_ALICE").map(readDm)).toEqual([["🎉 You reached level 3!", "Level 4 is 200 XP away."], [leaderboardReady]]);
+    expect(dmsTo("U_ALICE").map(readDm)).toEqual([plainLevelTwoDm, [leaderboardReady]]);
     expect(dmsTo("U_ALICE")[1]?.text).toBe("*Leaderboard* is ready. It opens the boards.");
     expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: sweptAt }]);
     expect(publishedHome(slack, "U_ALICE")).toContain(leaderboardReady);
@@ -261,15 +266,15 @@ describe("P78: a feature that ships later becomes ready for members past its lev
   test("a member below the Leaderboard's level gets nothing from the sweep, and App Home names it in their Next line", async () => {
     const t = await workspace();
     await boardTurned(t, "off");
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await boardTurned(t, "on");
 
     await sweep(t);
 
-    expect(dmsTo("U_ALICE")).toHaveLength(1);
+    expect(dmsTo("U_ALICE")).toHaveLength(0);
     expect(await unlockRows(t)).toEqual([]);
     await publishHome(t, "U_ALICE");
-    expect(publishedHome(slack, "U_ALICE")).toContain("section: Next: Leaderboard at level 3.");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: Next: Leaderboard at level 2.");
   });
 
   test("a member who turned DMs off gets no DM from the sweep, and App Home lists the Leaderboard ready", async () => {
@@ -291,8 +296,8 @@ describe("P78: a feature that ships later becomes ready for members past its lev
     ["the level up first", ["level up", "sweep"]],
   ] as const)("a level up and the sweep racing for the Leaderboard, with %s, name it in exactly one DM", async (_, order) => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
-    const reached = await levelThreeReachedBy(t, "U_ALICE");
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    const reached = await levelReachedBy(t, "U_ALICE", 2);
 
     for (const step of order) {
       if (step === "sweep") await sweep(t);
@@ -302,7 +307,7 @@ describe("P78: a feature that ships later becomes ready for members past its lev
 
     const dms = dmsTo("U_ALICE").map(readDm);
     expect(dms.filter((lines) => lines.includes(leaderboardReady))).toHaveLength(1);
-    expect(dms.filter((lines) => lines.includes("section: 🎉 You reached level 3!") || lines.includes("🎉 You reached level 3!"))).toHaveLength(1);
+    expect(dms.filter((lines) => lines.includes("section: 🎉 You reached level 2!") || lines.includes("🎉 You reached level 2!"))).toHaveLength(1);
     expect(await unlockRows(t)).toEqual([{ feature: "leaderboard", readyAt: expect.any(Number) }]);
   });
 });
@@ -356,17 +361,17 @@ async function memberOf(t: Backend, user: string): Promise<MemberId> {
   });
 }
 
-async function levelThreeReachedBy(t: Backend, user: string): Promise<LevelReachedEvent> {
+async function levelReachedBy(t: Backend, user: string, level: number): Promise<LevelReachedEvent> {
   const member = await memberOf(t, user);
   await t.run(async (ctx) => {
     const progress = await ctx.db
       .query("memberProgress")
       .withIndex("by_member", (q) => q.eq("member", member))
       .unique();
-    await ctx.db.patch(progress!._id, { xp: 100 });
+    await ctx.db.patch(progress!._id, { xp: xpToReach(level) });
   });
   const message = { workspace: "T1", conversation: "C1", message: "1760349600.000100" };
-  return { type: "levelReached", workspace: "T1", member, level: 3, skillPointsGained: 0, skillPoints: 0, xpToNextLevel: 200, message, at: Date.now() };
+  return { type: "levelReached", workspace: "T1", member, level, skillPointsGained: 0, skillPoints: 0, xpToNextLevel: xpToReach(level + 1) - xpToReach(level), message, at: Date.now() };
 }
 
 async function publishHome(t: Backend, user: string) {

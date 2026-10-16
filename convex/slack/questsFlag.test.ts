@@ -7,6 +7,7 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, publishedHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { reachesLevel } from "../../testing/unlocks";
 import { internal } from "../_generated/api";
 import { publish } from "../bus/publish";
 import { replyPrivately } from "../feedback/replies";
@@ -111,6 +112,7 @@ describe("a stale button from when the slice applied writes nothing and publishe
   test.each(sliceTurnedOff)("$reason: Open on a finished Journey step's DM, Swap on App Home and Open on the Quests crate change nothing", async ({ flags }) => {
     const t = await launchedWorkspaceDeciding("sandbox", ...allOn());
     await giveKudos(t, "U_BOB", "U_ALICE", saysWhy);
+    await reachesLevel(t, await memberOf(t, "U_BOB"), 3);
     await openHome(t, "U_BOB");
     const openQuests = buttonBeside(publishedHomeBlocks(slack, "U_BOB"), "*Quests* is ready", "Open");
     const openFirstThanks = buttonIn(questDmsTo("U_BOB")[0]!.blocks as Block[], "Open");
@@ -293,6 +295,7 @@ async function flagsKeyMissing(workspace: Promise<Backend>) {
 
 async function openedQuests(t: Backend, user: string, drawn: QuestId[]) {
   await giveKudos(t, user, "U_BOB", saysWhy);
+  await reachesLevel(t, await memberOf(t, user), 3);
   await openHome(t, user);
   await t.run(async (ctx) => {
     const member = (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id;
@@ -301,6 +304,10 @@ async function openedQuests(t: Backend, user: string, drawn: QuestId[]) {
   });
   await send(t, blockActions(user, buttonBeside(publishedHomeBlocks(slack, user), "*Quests* is ready", "Open")));
   return buttonIn(publishedHomeBlocks(slack, user), "Swap");
+}
+
+async function memberOf(t: Backend, user: string) {
+  return t.run(async (ctx) => (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id);
 }
 
 async function sweeps(t: Backend) {

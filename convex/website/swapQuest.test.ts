@@ -75,7 +75,7 @@ async function questsLaunchedWithATeamIn(backend: Backend = t) {
 
 async function aSwappableWeekIn(backend: Backend = t) {
   const team = await questsLaunchedWithATeamIn(backend);
-  await reachesLevel(backend, team.member, 2);
+  await reachesLevel(backend, team.member, 3);
   await opens(backend, team.member, "quests");
   await drawnIn(backend, team.member, sayingWhyThreeWays);
   return team;
@@ -170,7 +170,7 @@ describe("a website command never launches unlocks", () => {
       condition: "Quests ready and not yet opened",
       arrange: async () => {
         const team = await questsLaunchedWithATeamIn();
-        await reachesLevel(t, team.member, 2);
+        await reachesLevel(t, team.member, 3);
         await drawnIn(t, team.member, sayingWhyThreeWays);
         return team;
       },
