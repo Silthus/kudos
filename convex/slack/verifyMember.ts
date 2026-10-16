@@ -79,7 +79,9 @@ export const retryStranded = internalMutation({
   },
 });
 
-async function tryAgainCountingTheStrandedTry(ctx: MutationCtx, { _id, workspace, user, attempts }: Doc<"memberVerifications">) {
+async function tryAgainCountingTheStrandedTry(ctx: MutationCtx, verification: Doc<"memberVerifications">) {
+  const { _id, workspace, user, attempts } = verification;
+  if ((await lookup(ctx, workspace, user))?.kind === "member") return verified(ctx, verification);
   const attemptsWithStrandedTry = attempts + 1;
   if (attemptsWithStrandedTry >= verificationTries) return ctx.db.patch(_id, { attempts: attemptsWithStrandedTry, state: "failed" });
   await ctx.db.patch(_id, { attempts: attemptsWithStrandedTry, nextTryAt: Date.now() });

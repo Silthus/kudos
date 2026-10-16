@@ -4,11 +4,12 @@ import { FakeSlack, isWelcome } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsLoaded, flagsOnForEveryone, journeyShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { convexStops, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, memberEvent, mention, messageEvent, section } from "../../testing/slackMessages";
 import { aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { journeyOf } from "../quests/journey";
+import { verificationTries } from "./verifyMember";
 import type { MemberId } from "../workspace/directory";
 import type { Feature } from "../unlocks/feature";
 
@@ -116,6 +117,26 @@ describe("unlock schedule 2: the Book at level 1, the Leaderboard at level 2, Qu
     await switchWebsite(t, postHog, true, ...everyFlag);
 
     const { asSignedIn } = await aSignedInSession(t, { user: "U_CAROL", name: "Carol" });
+    await settle(t);
+
+    expect(await asSignedIn.query(api.website.book.getBook, {})).toEqual({ kind: "ready" });
+    expect(dmsTo("U_CAROL")).toEqual([]);
+  });
+
+  test("a verification whose last try recorded the person but stopped before it finished still leaves them the Book ready once the stranded sweep finds it", async () => {
+    vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+    const t = await journeyShippedBeforeAnyoneJoined(await workspace());
+    await switchWebsite(t, postHog, true, ...everyFlag);
+    const { asSignedIn } = await aSignedInSession(t, { user: "U_CAROL", name: "Carol" });
+    await convexStops(t, "slack/verifyMember:verifyMember");
+    await t.run(async (ctx) => {
+      const verification = await ctx.db.query("memberVerifications").first();
+      await ctx.db.patch(verification!._id, { attempts: verificationTries - 1 });
+      await ctx.db.insert("members", { workspace: "T1", user: "U_CAROL", kind: "member", asOf: Date.now() });
+    });
+
+    vi.setSystemTime(now.getTime() + 11 * 60_000);
+    await t.mutation(internal.slack.verifyMember.retryStranded, {});
     await settle(t);
 
     expect(await asSignedIn.query(api.website.book.getBook, {})).toEqual({ kind: "ready" });

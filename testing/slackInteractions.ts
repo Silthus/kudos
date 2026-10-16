@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import type { Feature } from "../convex/unlocks/feature";
 import type { FakeSlack } from "./fakeSlack";
 
 export type TextObject = { type: string; text: string };
@@ -67,7 +68,7 @@ export function buttonInHome(slack: FakeSlack, user: string, label: string): Blo
   return buttonIn(publishedHomeBlocks(slack, user), label);
 }
 
-export function openUnlockInHome(slack: FakeSlack, user: string, feature: string): BlockAction {
+export function openUnlockInHome(slack: FakeSlack, user: string, feature: Feature): BlockAction {
   const command = JSON.stringify({ type: "openUnlock", feature });
   return buttonIn(publishedHomeBlocks(slack, user).filter(({ accessory }) => accessory?.value === command), "Open");
 }
