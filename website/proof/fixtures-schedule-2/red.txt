@@ -1,0 +1,503 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/fixtures-schedule-2
+
+ ❯ |website| src/fixtureSchedule.test.tsx (90 tests | 48 failed) 45ms
+   ❯ the fixture build follows the unlock schedule (90)
+     × memberWaitingForTheBoard lists each feature at its scheduled level 6ms
+     × memberWithTheBoardReady lists each feature at its scheduled level 1ms
+     × memberWithTheBoardOpened lists each feature at its scheduled level 1ms
+     × memberWithTheQuestsReady lists each feature at its scheduled level 1ms
+     × memberWithTheQuestsOpened lists each feature at its scheduled level 1ms
+     × memberWithTheSkillTreeReady lists each feature at its scheduled level 1ms
+     × memberWaitingForTheBook lists each feature at its scheduled level 1ms
+     × memberWithTheBookReady lists each feature at its scheduled level 1ms
+     × memberWithTheBookOpened lists each feature at its scheduled level 1ms
+     × memberWithEveryFeatureReady lists each feature at its scheduled level 1ms
+     × memberWithEveryFeatureOpen lists each feature at its scheduled level 1ms
+     × memberWithOneSkillPoint lists each feature at its scheduled level 1ms
+     × memberWithNoSkillPointsLeft lists each feature at its scheduled level 0ms
+     × memberAtLevel7WithOneSkillPoint lists each feature at its scheduled level 0ms
+     × memberWithCoinsReady lists each feature at its scheduled level 0ms
+     × memberWithCoinsOpened lists each feature at its scheduled level 0ms
+     × memberWithTheInventory lists each feature at its scheduled level 0ms
+     × memberWithCustomEmoji lists each feature at its scheduled level 0ms
+     × memberShortOfCoins lists each feature at its scheduled level 0ms
+     × memberWithTheCrateStore lists each feature at its scheduled level 0ms
+     × memberWithCoinsBeforeTheStore lists each feature at its scheduled level 0ms
+     × memberWithEveryNavState lists each feature at its scheduled level 1ms
+     × memberAcrossTheSheet lists each feature at its scheduled level 1ms
+     × memberWithEveryPanelLocked lists each feature at its scheduled level 0ms
+     × memberWithEveryPanelReady lists each feature at its scheduled level 0ms
+     × memberWithEveryPanelOpen lists each feature at its scheduled level 1ms
+     × memberStartingTheJourney lists each feature at its scheduled level 0ms
+     × memberWithQuestsReady lists each feature at its scheduled level 0ms
+     × memberWithQuests lists each feature at its scheduled level 0ms
+     × memberWithQuestsAtLevel2 lists each feature at its scheduled level 0ms
+     × memberCrossingIntoLevel6 lists each feature at its scheduled level 0ms
+     × memberWithTheQuestsReady lists its features in the schedule's order 0ms
+     × memberWithTheQuestsOpened lists its features in the schedule's order 0ms
+     × memberWaitingForTheBook lists its features in the schedule's order 0ms
+     × memberWithTheBookReady lists its features in the schedule's order 0ms
+     × memberWithTheBookOpened lists its features in the schedule's order 0ms
+     × memberWithEveryFeatureOpen lists its features in the schedule's order 0ms
+     × memberWithOneSkillPoint lists its features in the schedule's order 0ms
+     × memberWithNoSkillPointsLeft lists its features in the schedule's order 0ms
+     × memberAtLevel7WithOneSkillPoint lists its features in the schedule's order 0ms
+     × memberWithTheCrateStore lists its features in the schedule's order 0ms
+     × memberWithEveryNavState lists its features in the schedule's order 0ms
+     × memberAcrossTheSheet lists its features in the schedule's order 0ms
+     × memberWithEveryPanelLocked lists its features in the schedule's order 0ms
+     × memberWithEveryPanelReady lists its features in the schedule's order 0ms
+     × memberWithEveryPanelOpen lists its features in the schedule's order 0ms
+     × memberCrossingIntoLevel6 lists its features in the schedule's order 0ms
+     × names each feature's scheduled level on its locked page 1ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 48 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWaitingForTheBoard lists each feature at its scheduled level
+AssertionError: expected [ Array(1) ] to deeply equal [ Array(1) ]
+
+- Expected
++ Received
+
+  [
+    {
+      "feature": "leaderboard",
+-     "level": 2,
++     "level": 3,
+    },
+  ]
+
+ ❯ src/fixtureSchedule.test.tsx:19:69
+     17|     const cards = member.features ?? [];
+     18|
+     19|     expect(cards.map(({ feature, level }) => ({ feature, level }))).to…
+       |                                                                     ^
+     20|   });
+     21|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheBoardReady lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheBoardOpened lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheSkillTreeReady lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithEveryFeatureReady lists each feature at its scheduled level
+AssertionError: expected [ …(2) ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+@@ -1,9 +1,9 @@
+  [
+    {
+      "feature": "leaderboard",
+-     "level": 2,
++     "level": 3,
+    },
+    {
+      "feature": "skillTree",
+      "level": 5,
+    },
+
+ ❯ src/fixtureSchedule.test.tsx:19:69
+     17|     const cards = member.features ?? [];
+     18|
+     19|     expect(cards.map(({ feature, level }) => ({ feature, level }))).to…
+       |                                                                     ^
+     20|   });
+     21|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheQuestsReady lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheQuestsOpened lists each feature at its scheduled level
+AssertionError: expected [ …(2) ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+  [
+    {
+      "feature": "quests",
+-     "level": 3,
++     "level": 2,
+    },
+    {
+      "feature": "leaderboard",
+-     "level": 2,
++     "level": 3,
+    },
+  ]
+
+ ❯ src/fixtureSchedule.test.tsx:19:69
+     17|     const cards = member.features ?? [];
+     18|
+     19|     expect(cards.map(({ feature, level }) => ({ feature, level }))).to…
+       |                                                                     ^
+     20|   });
+     21|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWaitingForTheBook lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheBookReady lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheBookOpened lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithEveryFeatureOpen lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithOneSkillPoint lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithNoSkillPointsLeft lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberAtLevel7WithOneSkillPoint lists each feature at its scheduled level
+AssertionError: expected [ …(3) ] to deeply equal [ …(3) ]
+
+- Expected
++ Received
+
+@@ -1,13 +1,13 @@
+  [
+    {
+      "feature": "leaderboard",
+-     "level": 2,
++     "level": 3,
+    },
+    {
+      "feature": "book",
+-     "level": 1,
++     "level": 4,
+    },
+    {
+      "feature": "skillTree",
+      "level": 5,
+    },
+
+ ❯ src/fixtureSchedule.test.tsx:19:69
+     17|     const cards = member.features ?? [];
+     18|
+     19|     expect(cards.map(({ feature, level }) => ({ feature, level }))).to…
+       |                                                                     ^
+     20|   });
+     21|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithCoinsReady lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithCoinsOpened lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheInventory lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithCustomEmoji lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberShortOfCoins lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithCoinsBeforeTheStore lists each feature at its scheduled level
+AssertionError: expected [ …(2) ] to deeply equal [ …(2) ]
+
+- Expected
++ Received
+
+@@ -1,9 +1,9 @@
+  [
+    {
+      "feature": "leaderboard",
+-     "level": 2,
++     "level": 3,
+    },
+    {
+      "feature": "coins",
+      "level": 6,
+    },
+
+ ❯ src/fixtureSchedule.test.tsx:19:69
+     17|     const cards = member.features ?? [];
+     18|
+     19|     expect(cards.map(({ feature, level }) => ({ feature, level }))).to…
+       |                                                                     ^
+     20|   });
+     21|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheCrateStore lists each feature at its scheduled level
+AssertionError: expected [ …(3) ] to deeply equal [ …(3) ]
+
+- Expected
++ Received
+
+@@ -1,13 +1,13 @@
+  [
+    {
+      "feature": "leaderboard",
+-     "level": 2,
++     "level": 3,
+    },
+    {
+      "feature": "book",
+-     "level": 1,
++     "level": 4,
+    },
+    {
+      "feature": "coins",
+      "level": 6,
+    },
+
+ ❯ src/fixtureSchedule.test.tsx:19:69
+     17|     const cards = member.features ?? [];
+     18|
+     19|     expect(cards.map(({ feature, level }) => ({ feature, level }))).to…
+       |                                                                     ^
+     20|   });
+     21|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithEveryNavState lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberAcrossTheSheet lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithEveryPanelLocked lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithEveryPanelReady lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithEveryPanelOpen lists each feature at its scheduled level
+AssertionError: expected [ …(4) ] to deeply equal [ …(4) ]
+
+- Expected
++ Received
+
+@@ -1,17 +1,17 @@
+  [
+    {
+      "feature": "quests",
+-     "level": 3,
++     "level": 2,
+    },
+    {
+      "feature": "leaderboard",
+-     "level": 2,
++     "level": 3,
+    },
+    {
+      "feature": "book",
+-     "level": 1,
++     "level": 4,
+    },
+    {
+      "feature": "skillTree",
+      "level": 5,
+    },
+
+ ❯ src/fixtureSchedule.test.tsx:19:69
+     17|     const cards = member.features ?? [];
+     18|
+     19|     expect(cards.map(({ feature, level }) => ({ feature, level }))).to…
+       |                                                                     ^
+     20|   });
+     21|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberStartingTheJourney lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithQuestsReady lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithQuests lists each feature at its scheduled level
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithQuestsAtLevel2 lists each feature at its scheduled level
+AssertionError: expected [ { feature: 'quests', level: 2 } ] to deeply equal [ { feature: 'quests', level: 3 } ]
+
+- Expected
++ Received
+
+  [
+    {
+      "feature": "quests",
+-     "level": 3,
++     "level": 2,
+    },
+  ]
+
+ ❯ src/fixtureSchedule.test.tsx:19:69
+     17|     const cards = member.features ?? [];
+     18|
+     19|     expect(cards.map(({ feature, level }) => ({ feature, level }))).to…
+       |                                                                     ^
+     20|   });
+     21|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberCrossingIntoLevel6 lists each feature at its scheduled level
+AssertionError: expected [ …(3) ] to deeply equal [ …(3) ]
+
+- Expected
++ Received
+
+@@ -1,13 +1,13 @@
+  [
+    {
+      "feature": "quests",
+-     "level": 3,
++     "level": 2,
+    },
+    {
+      "feature": "leaderboard",
+-     "level": 2,
++     "level": 3,
+    },
+    {
+      "feature": "skillTree",
+      "level": 5,
+    },
+
+ ❯ src/fixtureSchedule.test.tsx:19:69
+     17|     const cards = member.features ?? [];
+     18|
+     19|     expect(cards.map(({ feature, level }) => ({ feature, level }))).to…
+       |                                                                     ^
+     20|   });
+     21|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheQuestsReady lists its features in the schedule's order
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheQuestsOpened lists its features in the schedule's order
+AssertionError: expected [ 'quests', 'leaderboard' ] to deeply equal [ 'leaderboard', 'quests' ]
+
+- Expected
++ Received
+
+  [
+-   "leaderboard",
+    "quests",
++   "leaderboard",
+  ]
+
+ ❯ src/fixtureSchedule.test.tsx:25:20
+     23|     const listed = (member.features ?? []).map(({ feature }) => featur…
+     24|
+     25|     expect(listed).toEqual(scheduleOrder.filter((feature) => listed.in…
+       |                    ^
+     26|   });
+     27|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWaitingForTheBook lists its features in the schedule's order
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheBookReady lists its features in the schedule's order
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheBookOpened lists its features in the schedule's order
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithEveryFeatureOpen lists its features in the schedule's order
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithOneSkillPoint lists its features in the schedule's order
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithNoSkillPointsLeft lists its features in the schedule's order
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberAtLevel7WithOneSkillPoint lists its features in the schedule's order
+AssertionError: expected [ 'leaderboard', 'book', 'skillTree' ] to deeply equal [ 'book', 'leaderboard', 'skillTree' ]
+
+- Expected
++ Received
+
+  [
+-   "book",
+    "leaderboard",
++   "book",
+    "skillTree",
+  ]
+
+ ❯ src/fixtureSchedule.test.tsx:25:20
+     23|     const listed = (member.features ?? []).map(({ feature }) => featur…
+     24|
+     25|     expect(listed).toEqual(scheduleOrder.filter((feature) => listed.in…
+       |                    ^
+     26|   });
+     27|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithTheCrateStore lists its features in the schedule's order
+AssertionError: expected [ 'leaderboard', 'book', 'coins' ] to deeply equal [ 'book', 'leaderboard', 'coins' ]
+
+- Expected
++ Received
+
+  [
+-   "book",
+    "leaderboard",
++   "book",
+    "coins",
+  ]
+
+ ❯ src/fixtureSchedule.test.tsx:25:20
+     23|     const listed = (member.features ?? []).map(({ feature }) => featur…
+     24|
+     25|     expect(listed).toEqual(scheduleOrder.filter((feature) => listed.in…
+       |                    ^
+     26|   });
+     27|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithEveryNavState lists its features in the schedule's order
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberAcrossTheSheet lists its features in the schedule's order
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithEveryPanelLocked lists its features in the schedule's order
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithEveryPanelReady lists its features in the schedule's order
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberWithEveryPanelOpen lists its features in the schedule's order
+AssertionError: expected [ 'quests', 'leaderboard', …(2) ] to deeply equal [ 'book', 'leaderboard', …(2) ]
+
+- Expected
++ Received
+
+  [
+-   "book",
+-   "leaderboard",
+    "quests",
++   "leaderboard",
++   "book",
+    "skillTree",
+  ]
+
+ ❯ src/fixtureSchedule.test.tsx:25:20
+     23|     const listed = (member.features ?? []).map(({ feature }) => featur…
+     24|
+     25|     expect(listed).toEqual(scheduleOrder.filter((feature) => listed.in…
+       |                    ^
+     26|   });
+     27|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > memberCrossingIntoLevel6 lists its features in the schedule's order
+AssertionError: expected [ Array(3) ] to deeply equal [ Array(3) ]
+
+- Expected
++ Received
+
+  [
+-   "leaderboard",
+    "quests",
++   "leaderboard",
+    "skillTree",
+  ]
+
+ ❯ src/fixtureSchedule.test.tsx:25:20
+     23|     const listed = (member.features ?? []).map(({ feature }) => featur…
+     24|
+     25|     expect(listed).toEqual(scheduleOrder.filter((feature) => listed.in…
+       |                    ^
+     26|   });
+     27|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/48]⎯
+
+ FAIL  |website| src/fixtureSchedule.test.tsx > the fixture build follows the unlock schedule > names each feature's scheduled level on its locked page
+AssertionError: expected { kind: 'locked', level: 2 } to deeply equal { kind: 'locked', level: 3 }
+
+- Expected
++ Received
+
+  {
+    "kind": "locked",
+-   "level": 3,
++   "level": 2,
+  }
+
+ ❯ src/fixtureSchedule.test.tsx:37:35
+     35|
+     36|   it("names each feature's scheduled level on its locked page", () => {
+     37|     expect(questsFixtures.locked).toEqual({ kind: "locked", level: sch…
+       |                                   ^
+     38|     expect(bookFixtures.locked).toEqual({ kind: "locked", level: sched…
+     39|     expect(collectionFixtures.locked).toEqual({ kind: "locked", level:…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/48]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  48 failed | 42 passed (90)
+   Start at  13:03:05
+   Duration  1.24s (environment 53%, transform 20%, setup 12%, import 10%, tests 5%)
+
