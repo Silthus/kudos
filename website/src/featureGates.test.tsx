@@ -28,7 +28,7 @@ beforeEach(() => {
 
 type FeaturePage = { name: string; ready: string; opened: string; path: string; level: number; sentence: string; picture: string; show: (member: MemberProfile, state: "locked" | "ready") => ReturnType<typeof renderApp> };
 
-const lockedBoard: BoardRead = (period) => period && { kind: "locked", level: 3 };
+const lockedBoard: BoardRead = (period) => period && { kind: "locked", level: 2 };
 
 const readyBoard: BoardRead = (period) => period && { kind: "ready" };
 
@@ -38,7 +38,7 @@ const featurePages: FeaturePage[] = [
     ready: "Quests are ready",
     opened: "Quests are open",
     path: "/quests",
-    level: 2,
+    level: 3,
     sentence: "Weekly quests of your own.",
     picture: hedgehogOrganizedPng,
     show: (member, state) => renderApp(member, undefined, opening(), fixedQuests(questsFixtures[state])),
@@ -48,7 +48,7 @@ const featurePages: FeaturePage[] = [
     ready: "Leaderboard is ready",
     opened: "Leaderboard is open",
     path: "/leaderboard",
-    level: 3,
+    level: 2,
     sentence: "See where you stand.",
     picture: hedgehogStarPng,
     show: (member, state) => renderApp(member, state === "locked" ? lockedBoard : readyBoard, opening()),
@@ -58,7 +58,7 @@ const featurePages: FeaturePage[] = [
     ready: "Book is ready",
     opened: "Book is open",
     path: "/book",
-    level: 4,
+    level: 1,
     sentence: "Achievements you earn as you thank colleagues and they thank you.",
     picture: hedgehogReadingPng,
     show: (member, state) => renderApp(member, undefined, opening(), undefined, fixedBook(bookFixtures[state])),
@@ -154,7 +154,7 @@ describe("WS324: a ready feature page is E's night band with the crate", () => {
     const { user, actions } = visit(page, shellFixtures.memberWithEveryPanelReady, "ready");
     await user.click(within(main()).getByRole("button", { name: "Open" }));
     expect(actions.openFeature).toHaveBeenCalledExactlyOnceWith("book");
-    expect(dialog()).toHaveTextContent("Level 4 unlock");
+    expect(dialog()).toHaveTextContent("Level 1 unlock");
   });
 
   it("opens the crate when the member taps the crate itself", async () => {
@@ -317,7 +317,7 @@ describe("WS325: the reveal opens the next ready crate", () => {
     const { user } = await revealFrom(shellFixtures.memberWithEveryPanelReady, "Book", openFeature);
     expect(nextCrateButton()).toHaveAccessibleName("Open the next one, 3 more ready");
     await user.click(nextCrateButton()!);
-    expect(openFeature).toHaveBeenLastCalledWith("quests");
+    expect(openFeature).toHaveBeenLastCalledWith("leaderboard");
   });
 
   it("keeps focus on the button while the next crate opens, then reveals it and focuses its end state", async () => {

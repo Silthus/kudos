@@ -264,7 +264,7 @@ describe("WS317: the Journey's next step is the bonus quest", () => {
   it("WS74: Claim opens the step's own Journey crate through the reveal", async () => {
     const openQuestCrate = vi.fn(async (): Promise<OpenAnswer> => ({ kind: "opened" }));
     window.history.replaceState(null, "", "/quests");
-    const { user } = renderApp(shellFixtures.memberWithQuestsAtLevel2, undefined, { openQuestCrate }, fixedQuests(questsFixtures.weekWithAFinishedBonus));
+    const { user } = renderApp(shellFixtures.memberWithQuestsAtLevel3, undefined, { openQuestCrate }, fixedQuests(questsFixtures.weekWithAFinishedBonus));
     await user.click(within(bonusCard()).getByRole("button", { name: "Claim" }));
 
     expect(openQuestCrate).toHaveBeenCalledExactlyOnceWith({ kind: "journey", step: "first-quest" });
@@ -273,7 +273,7 @@ describe("WS317: the Journey's next step is the bonus quest", () => {
 
   it("E184 #452: flies the bonus crate's reward out of its reveal", async () => {
     window.history.replaceState(null, "", "/quests");
-    renderApp(shellFixtures.memberWithQuestsAtLevel2, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, fixedQuests(questsFixtures.weekWithAFinishedBonus));
+    renderApp(shellFixtures.memberWithQuestsAtLevel3, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, fixedQuests(questsFixtures.weekWithAFinishedBonus));
     await claimUntilTheTokensFly(bonusCard());
 
     expect(courseOf(flight()!)).toMatchObject({ left: "120px", top: "700px" });
@@ -281,7 +281,7 @@ describe("WS317: the Journey's next step is the bonus quest", () => {
 
   it("shows a failed Claim's line once, on the card, not again under the ready pill", async () => {
     window.history.replaceState(null, "", "/quests");
-    const { user } = renderApp(shellFixtures.memberWithQuestsAtLevel2, undefined, { openQuestCrate: async () => ({ kind: "refused" }) }, fixedQuests(questsFixtures.weekWithAFinishedBonus));
+    const { user } = renderApp(shellFixtures.memberWithQuestsAtLevel3, undefined, { openQuestCrate: async () => ({ kind: "refused" }) }, fixedQuests(questsFixtures.weekWithAFinishedBonus));
     await user.click(within(bonusCard()).getByRole("button", { name: "Claim" }));
 
     expect(within(bonusCard()).getByText(/couldn't/i)).toBeInTheDocument();
@@ -304,7 +304,7 @@ describe("WS73 WS67 WS69: /quests while Quests isn't open", () => {
     renderApp(shellFixtures.memberStartingTheJourney, undefined, undefined, fixedQuests(questsFixtures.locked));
     expect(pageTitle()).toHaveTextContent("Quests");
     expect(document.title).toBe("HedgeHug · Quests");
-    expect(pageTitle()).toHaveTextContent("Unlocks at level 2");
+    expect(pageTitle()).toHaveTextContent("Unlocks at level 3");
   });
 
   it("says Quests are ready in Slack while quests answer ready and unlocks don't apply", () => {
@@ -329,7 +329,7 @@ describe("WS73 WS301: the nav shows Quests in its state", () => {
   });
 
   it.each([
-    ["locked", shellFixtures.memberStartingTheJourney, "Quests, locked. Unlocks at level 2"],
+    ["locked", shellFixtures.memberStartingTheJourney, "Quests, locked. Unlocks at level 3"],
     ["ready", shellFixtures.memberWithQuestsReady, "Quests: unlock ready. Open its crate"],
   ])("has no Quests link while Quests is %s, only its entry in that state", (_, member, entry) => {
     window.history.replaceState(null, "", "/");
@@ -441,9 +441,9 @@ function claimOn(answer: MyQuests = questsFixtures.week) {
   return renderApp(claimer, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, fixedQuests(answer));
 }
 
-const claimer = shellFixtures.memberWithQuestsAtLevel2;
+const claimer = shellFixtures.memberWithQuestsAtLevel3;
 
-const nearLevel3 = { ...claimer, progression: { level: 2, xp: 90, levelStartsAt: 20, nextLevelAt: 100, xpToNextLevel: 10 } };
+const nearLevel4 = { ...claimer, progression: { level: 3, xp: 290, levelStartsAt: 220, nextLevelAt: 300, xpToNextLevel: 10 } };
 
 function levelRing() {
   return within(avatar()).getByRole("img", { name: /^Level / });
@@ -457,7 +457,7 @@ function landAll(chip: HTMLElement) {
   for (const particle of particles(chip)) fireEvent.animationEnd(particle);
 }
 
-async function claimBothTogether(visitor: MemberProfile = nearLevel3) {
+async function claimBothTogether(visitor: MemberProfile = nearLevel4) {
   const answers: (() => void)[] = [];
   const openQuestCrate = () => new Promise<OpenAnswer>((resolve) => answers.push(() => resolve({ kind: "opened" })));
   const view = renderApp(visitor, undefined, { openQuestCrate }, fixedQuests(questsFixtures.weekWithAFinishedQuestEach));
@@ -491,14 +491,14 @@ describe("WS315 E184 #452: the reward flies out of the reveal into the HUD level
 
   it("holds the HUD ring short of the reward from the reveal until the reward lands, then fills it to the read's XP", async () => {
     claimOn();
-    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 10 XP to level 4");
     await claim(cardOf("Thank someone you haven't thanked before."));
-    expect(levelRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 30 XP to level 4");
     burstUntilTheTokensFly();
 
-    expect(levelRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 30 XP to level 4");
     landAll(flight()!);
-    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 10 XP to level 4");
     expect(frame()).toHaveClass("reward-filling");
     expect(frame().style.getPropertyValue("--reward-from")).toBe("25");
   });
@@ -506,27 +506,27 @@ describe("WS315 E184 #452: the reward flies out of the reveal into the HUD level
   it("keeps the held ring in step with XP that arrives while the reveal plays, never rewinding it", async () => {
     const { showVisitor } = claimOn();
     await claim(cardOf("Thank someone you haven't thanked before."));
-    showVisitor({ ...claimer, progression: { ...claimer.progression!, xp: 55, xpToNextLevel: 5 } });
-    expect(levelRing()).toHaveAccessibleName("Level 2, 25 XP to level 3");
+    showVisitor({ ...claimer, progression: { ...claimer.progression!, xp: 135, xpToNextLevel: 5 } });
+    expect(levelRing()).toHaveAccessibleName("Level 3, 25 XP to level 4");
     burstUntilTheTokensFly();
 
-    expect(levelRing()).toHaveAccessibleName("Level 2, 25 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 25 XP to level 4");
     landAll(flight()!);
-    expect(levelRing()).toHaveAccessibleName("Level 2, 5 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 5 XP to level 4");
   });
 
   it("holds the old level when the reward crossed one, then completes the ring and starts the new level", async () => {
-    const levelledUp = { ...claimer, progression: { level: 3, xp: 110, levelStartsAt: 100, nextLevelAt: 300, xpToNextLevel: 190 } };
+    const levelledUp = { ...claimer, progression: { level: 4, xp: 310, levelStartsAt: 300, nextLevelAt: 500, xpToNextLevel: 190 } };
     renderApp(levelledUp, undefined, { openQuestCrate: async () => ({ kind: "opened" }) }, fixedQuests(questsFixtures.week));
     await claimUntilTheTokensFly();
 
-    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 10 XP to level 4");
     landAll(flight()!);
     expect(avatar()).toHaveClass("reward-landed");
     expect(frame()).toHaveClass("reward-levelling");
-    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 10 XP to level 4");
     advance(600);
-    expect(levelRing()).toHaveAccessibleName("Level 3, 190 XP to level 4");
+    expect(levelRing()).toHaveAccessibleName("Level 4, 190 XP to level 5");
   });
 
   it("still flies from an earlier week's crate that left the read while its reveal played", async () => {
@@ -557,17 +557,17 @@ describe("WS315 E184 #452: the reward flies out of the reveal into the HUD level
 
   it("holds both rewards of two Claims pressed together and releases them in turn, never rewinding the ring", async () => {
     await claimBothTogether();
-    expect(levelRing()).toHaveAccessibleName("Level 2, 50 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 50 XP to level 4");
     burstUntilTheTokensFly();
 
-    expect(levelRing()).toHaveAccessibleName("Level 2, 50 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 50 XP to level 4");
     landAll(flight()!);
-    expect(levelRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 30 XP to level 4");
     finishTheReveal();
-    expect(levelRing()).toHaveAccessibleName("Level 2, 30 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 30 XP to level 4");
     burstUntilTheTokensFly();
     landAll(flight()!);
-    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 10 XP to level 4");
   });
 
   it("restarts the fill for a second reward that lands while the first one's fill still plays", async () => {
@@ -591,7 +591,7 @@ describe("WS315 E184 #452: the reward flies out of the reveal into the HUD level
 
     expect(flight()).toBeNull();
     expect(dialog()).toHaveAttribute("data-phase", "ended");
-    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 10 XP to level 4");
     expect(avatar()).not.toHaveClass("reward-landed");
     expect(frame()).not.toHaveClass("reward-filling");
   });
@@ -603,7 +603,7 @@ describe("WS315 E184 #452: the reward flies out of the reveal into the HUD level
 
     expect(dialog()).toHaveAttribute("data-phase", "ended");
     expect(flight()).toBeNull();
-    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 10 XP to level 4");
     expect(avatar()).toHaveClass("reward-faded");
     expect(frame()).not.toHaveClass("reward-filling");
   });
@@ -618,7 +618,7 @@ describe("WS315 E184 #452: the reward flies out of the reveal into the HUD level
     advance(burstPlaysForMs);
 
     expect(flight()).toBeNull();
-    expect(levelRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    expect(levelRing()).toHaveAccessibleName("Level 3, 10 XP to level 4");
   });
 
   it("never flies on a reload, for a quest claimed before", () => {

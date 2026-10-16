@@ -145,7 +145,7 @@ describe("WS38 WS110: the home's Leaderboard panel", () => {
 
 describe("WS52: the leaderboard page waits for its unlock", () => {
   it.each([
-    { state: "locked", visitor: shellFixtures.memberWaitingForTheBoard, answer: { kind: "locked", level: 3 } as const, says: "Unlocks at level 3", entry: "Leaderboard, locked. Unlocks at level 3" },
+    { state: "locked", visitor: shellFixtures.memberWaitingForTheBoard, answer: { kind: "locked", level: 2 } as const, says: "Unlocks at level 2", entry: "Leaderboard, locked. Unlocks at level 2" },
     { state: "ready", visitor: shellFixtures.memberWithTheBoardReady, answer: { kind: "ready" } as const, says: "Leaderboard is ready", entry: "Leaderboard: unlock ready. Open its crate" },
   ])("says what the $state leaderboard waits for in place of the board, with its nav entry in that state and no link", ({ visitor, answer, says, entry }) => {
     visit("/leaderboard");
@@ -161,7 +161,7 @@ describe("WS52: the leaderboard page waits for its unlock", () => {
 
   it("sends a locked member back to their profile", () => {
     visit("/leaderboard");
-    renderApp(shellFixtures.memberWaitingForTheBoard, (period) => (period && { kind: "locked", level: 3 }));
+    renderApp(shellFixtures.memberWaitingForTheBoard, (period) => (period && { kind: "locked", level: 2 }));
     expect(within(main()).getByRole("link", { name: "Back to your profile" })).toHaveAttribute("href", "/");
   });
 
