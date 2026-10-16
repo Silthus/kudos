@@ -4,7 +4,7 @@ import type { DomainEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { balanceOf } from "../wallet/wallet";
 import type { MemberId } from "../workspace/directory";
-import { applyHeldReward, recordReward, standingOf } from "./progression";
+import { applyGain, recordReward, standingOf } from "./progression";
 import type { RewardRecord } from "./rewards";
 
 vi.mock("../bus/publish", async (importOriginal) => {
@@ -42,7 +42,7 @@ describe("CR2 CR3: a held reward counts only from its open", () => {
     const { t, alice } = await withAlice();
     await t.run((ctx) => recordReward(ctx, "T1", heldReward(alice)));
 
-    const applied = await t.run((ctx) => applyHeldReward(ctx, "T1", heldReward(alice), openedAt));
+    const applied = await t.run((ctx) => applyGain(ctx, "T1", heldReward(alice), openedAt));
 
     expect(applied).toEqual({ xp: 300, coins: 10, from: { xp: 0, level: 1, coins: 0, skillPoints: 0 }, to: { xp: 300, level: 4, coins: 10, skillPoints: 0 } });
     expect(await standingAndBalanceOf(t, alice)).toEqual({ xp: 300, level: 4, skillPoints: 0, balance: 10 });

@@ -219,7 +219,7 @@ export function projectJourneyStepActivated(event: JourneyStepActivatedEvent): P
 }
 
 export function projectHoggieDropped(event: HoggieDroppedEvent): ProductEvent {
-  return { event: "hoggie dropped", subject: { member: event.member }, at: event.at, properties: { rarity: event.rarity, is_new: event.copy === 1, crate_kind: crateKindOf(event.crate) } };
+  return { event: "hoggie dropped", subject: { member: event.member }, at: event.at, properties: { rarity: event.rarity, is_new: event.copy === 1, crate_kind: crateKindOf(event.crate), ...(event.pack && { pack_xp: event.pack.xp, pack_coins: event.pack.coins }) } };
 }
 
 export function projectHugGiven(event: HugGivenEvent): ProductEvent {

@@ -9,8 +9,8 @@ import { isOnTheBoards } from "../leaderboard/visibility";
 import { avatarOf, type Avatar } from "../hoggies/avatar";
 import { crateStoreOf, openedCrateDropOf } from "../hoggies/boughtCrates";
 import { dropsAHoggie } from "../hoggies/crateKey";
-import { dropOf, type Drop } from "../hoggies/drops";
-import { avatarShownTo, hoggiesShownTo } from "../hoggies/flag";
+import { dropOf, packOf, type Drop } from "../hoggies/drops";
+import { avatarShownTo, hoggiesShownTo, packsShownTo } from "../hoggies/flag";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
 import { loadoutOf } from "../store/inventory";
 import { slotValidator, type Slot } from "../store/rows";
@@ -35,7 +35,7 @@ import { skillPointsOf } from "./skillTree";
 import type { VerifiedMember } from "./memberQuery";
 import { featurePageOf, leaderboardStateOf, unlockPathOf } from "./unlockPath";
 
-export type CommandAnswer = { kind: "opened"; drop?: Drop | null } | { kind: "refused" };
+export type CommandAnswer = { kind: "opened"; applied?: AppliedReward | null; drop?: Drop | null } | { kind: "refused" };
 
 export type CrateAnswer = { kind: "opened"; applied: AppliedReward | null; drop?: Drop | null } | { kind: "refused" };
 
@@ -51,7 +51,7 @@ export type ItemPurchaseAnswer = { kind: "bought"; item: string } | { kind: "ref
 
 export type CratePurchaseAnswer = { kind: "bought"; crate: string } | { kind: "refused"; reason: CrateRefusal["reason"] } | null;
 
-export type CrateOpenAnswer = { kind: "opened"; drop: Drop } | { kind: "refused" };
+export type CrateOpenAnswer = { kind: "opened"; applied?: AppliedReward | null; drop: Drop } | { kind: "refused" };
 
 export type VisibilityAnswer = { kind: "set"; visible: boolean } | { kind: "refused" };
 
@@ -72,7 +72,7 @@ export const openFeature = memberMutation({
     await runCommand(ctx, me.workspace, person, { type: "openUnlock", feature }, `website:openFeature:${me.member}:${feature}`);
     if ((await stateOf(ctx, me.member, feature)) !== "open") return refused;
     await republish(ctx, me.member);
-    return { kind: "opened", ...(await dropShownTo(ctx, me, `unlock:${feature}`)) };
+    return { kind: "opened", ...(await packAppliedShownTo(ctx, me, `unlock:${feature}`)), ...(await dropShownTo(ctx, me, `unlock:${feature}`)) };
   },
 });
 
@@ -84,7 +84,8 @@ export const openQuestCrate = memberMutation({
     const opening = await crateOpeningOf(ctx, me.member, rewardKeyOf(quest));
     if (opening === null) return refused;
     await republish(ctx, me.member);
-    return { kind: "opened", applied: await appliedShownTo(queryOnly(ctx), me, opening.applied), ...(await dropShownTo(ctx, me, rewardKeyOf(quest))) };
+    const crate = rewardKeyOf(quest);
+    return { kind: "opened", applied: await appliedShownTo(queryOnly(ctx), me, await wholeOpenOf(ctx, me, crate, opening.applied)), ...(await dropShownTo(ctx, me, crate)) };
   },
 });
 
@@ -165,7 +166,7 @@ export const openCrate = memberMutation({
     const drop = await openedCrateDropOf(ctx, me.member, crate);
     if (drop === null) return refused;
     await republish(ctx, me.member);
-    return { kind: "opened", drop };
+    return { kind: "opened", ...(await packAppliedShownTo(ctx, me, crate)), drop };
   },
 });
 
@@ -227,8 +228,19 @@ async function dropShownTo(ctx: MutationCtx, me: VerifiedMember, crate: string):
   return { drop: dropsAHoggie(crate) ? await dropOf(ctx, me.member, crate) : null };
 }
 
-async function appliedShownTo(ctx: QueryCtx, me: VerifiedMember, applied: AppliedReward | undefined): Promise<AppliedReward | null> {
-  if (applied === undefined) return null;
+async function packAppliedShownTo(ctx: MutationCtx, me: VerifiedMember, crate: string): Promise<{ applied?: AppliedReward | null }> {
+  if (!(await packsShownTo(ctx, me.member))) return {};
+  return { applied: await appliedShownTo(queryOnly(ctx), me, await packOf(ctx, me.member, crate)) };
+}
+
+async function wholeOpenOf(ctx: MutationCtx, me: VerifiedMember, crate: string, held: AppliedReward | undefined): Promise<AppliedReward | undefined> {
+  const pack = (await packsShownTo(ctx, me.member)) ? await packOf(ctx, me.member, crate) : null;
+  if (pack === null) return held;
+  return held === undefined ? pack : { xp: held.xp + pack.xp, coins: held.coins + pack.coins, from: held.from, to: pack.to };
+}
+
+async function appliedShownTo(ctx: QueryCtx, me: VerifiedMember, applied: AppliedReward | null | undefined): Promise<AppliedReward | null> {
+  if (applied === null || applied === undefined) return null;
   const coinsShown = await coinsVisibleTo(ctx, me.member);
   const skillPointsShown = (await skillPointsOf(ctx, me, await unlockPathOf(ctx, me))) !== null;
   const shown = (value: number, isShown: boolean) => (isShown ? value : 0);

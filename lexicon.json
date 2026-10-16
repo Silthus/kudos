@@ -672,6 +672,14 @@
     {
       "name": "teammate",
       "definition": "Another member of the same workspace, seen from one member: someone they can thank or be thanked by. The website shows a teammate by name and face while the directory has them, and as A teammate with the nameless face once it no longer names them. A teammate is a person, never a hoggie."
+    },
+    {
+      "name": "pack bonus",
+      "definition": "The XP and coins a pack pays on top of what its crate held, drawn per crate from its kind's band and paid once, at the crate's first open, while packs is on (CV2-CV5)."
+    },
+    {
+      "name": "pack",
+      "definition": "A crate as the Book shows it: opening it drops a hoggie and pays a pack bonus (CV2)."
     }
   ],
   "retired": [
