@@ -1,7 +1,7 @@
 import type { Rarity } from "../../../convex/hoggies/catalogue";
-import type { Drop, HoggieArt } from "../../../convex/hoggies/drops";
+import type { CompletedCrest, CrestArt, Drop, HoggieArt } from "../../../convex/hoggies/drops";
 
-export type { Drop, HoggieArt, Rarity };
+export type { CompletedCrest, CrestArt, Drop, HoggieArt, Rarity };
 
 const rarityMarks: Record<Rarity, string> = { common: "⬜", uncommon: "🟩", rare: "🟦", epic: "🟪", legendary: "🟧" };
 

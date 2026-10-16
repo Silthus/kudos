@@ -1,0 +1,2211 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/book-crests/website
+
+ ❯ |website| src/crestCatalogue.test.tsx (0 test)
+ ❯ |website| src/activityFound.test.tsx (5 tests | 1 failed) 1680ms
+   ❯ #468: a find that completed a team's crest says so (2)
+     × adds the crest's name to the headline and its art beside the hoggie 218ms
+ ❯ |website| src/bookPanel.test.tsx (5 tests | 1 failed) 2095ms
+   ❯ #468: the home's Book panel counts the team crests beside the hoggies (2)
+     × says how many crests are collected of the total 117ms
+ ❯ |website| src/lootCrates.test.tsx (18 tests | 3 failed) 8307ms
+   ❯ #468: a drop that completes a team's crest lands the crest after the hoggie card (3)
+     × lands the crest as its own card after the hoggie, naming the team, holds the burst for the beat, and lists it in the finish 273ms
+     × shows the crest at once in the finish under reduced motion 310ms
+     × lands no crest for a drop that completed none, and keeps the burst's length 187ms
+ ❯ |website| src/CollectionPage.test.tsx (27 tests | 3 failed) 50187ms
+   ❯ #468: the Collection's team crests, each a set of hoggies (4)
+     × lists all 54 crests in the answer's order in a Team crests section before the rarities, counting the collected ones 13129ms
+     × draws a collected crest in full art with its whole roster found, the date it was collected, and New until this browser has shown it 1769ms
+     × shows an uncollected crest dimmed with its roster's progress: held hoggies in full, missing ones as silhouettes, and which are still missing 1871ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/crestCatalogue.test.tsx [ src/crestCatalogue.test.tsx ]
+Error: Failed to resolve import "./crates/TeamCrest" from "src/crestCatalogue.test.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /home/coder/dev/kudos-wt/book-crests/website/src/crestCatalogue.test.tsx:19:44
+  13 |  describe("#468: every catalogue crest has a picture the website can show", () => {
+  14 |  	test("the picture is the package's full PNG for the crest's slug", async () => {
+  15 |  		const { crestPictureOf } = await import("./crates/TeamCrest");
+     |                                            ^
+  16 |  		for (const { crest } of catalogue.crests) expect(crestPictureOf({
+  17 |  			kind: "crest",
+ ❯ TransformPluginContext._formatLog ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8766:39
+ ❯ TransformPluginContext.error ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8763:14
+ ❯ normalizeUrl ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26632:18
+ ❯ ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26702:30
+ ❯ TransformPluginContext.transform ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:26668:4
+ ❯ EnvironmentPluginContainer.transform ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:8545:14
+ ❯ loadAndTransform ../node_modules/.pnpm/vite@8.3.4_@types+node@26.6.5_esbuild@0.27.0_jiti@2.7.0_yaml@2.9.1/node_modules/vite/dist/node/chunks/node.js:20184:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/CollectionPage.test.tsx > #468: the Collection's team crests, each a set of hoggies > lists all 54 crests in the answer's order in a Team crests section before the rarities, counting the collected ones
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Team crests"
+
+Here are the accessible roles:
+
+  combobox:
+
+  Name "Book page":
+  [36m<select[39m
+    [33maria-label[39m=[32m"Book page"[39m
+    [33mclass[39m=[32m"h-11 w-full appearance-none rounded-lg border border-muted-foreground bg-card pl-3 pr-9 text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  option:
+
+  Name "Overview":
+  [36m<option[39m
+    [33mvalue[39m=[32m"/book"[39m
+  [36m/>[39m
+
+  Name "Collection":
+  [36m<option[39m
+    [33mvalue[39m=[32m"/book/collection"[39m
+  [36m/>[39m
+
+  Name "Giving":
+  [36m<option[39m
+    [33mvalue[39m=[32m"/book?page=giving"[39m
+  [36m/>[39m
+
+  Name "Being thanked":
+  [36m<option[39m
+    [33mvalue[39m=[32m"/book?page=thanked"[39m
+  [36m/>[39m
+
+  Name "Connections":
+  [36m<option[39m
+    [33mvalue[39m=[32m"/book?page=connections"[39m
+  [36m/>[39m
+
+  Name "Crowd":
+  [36m<option[39m
+    [33mvalue[39m=[32m"/book?page=crowd"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  group:
+
+  Name "Achievements":
+  [36m<optgroup[39m
+    [33mlabel[39m=[32m"Achievements"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  banner:
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"flex flex-col gap-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Collection":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display font-extrabold outline-none text-4xl leading-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "41 of 151 hoggies found":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-display text-2xl font-bold leading-tight sm:text-3xl"[39m
+  [36m/>[39m
+
+  Name "🟧 Legendary":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-display text-lg font-bold leading-tight"[39m
+    [33mid[39m=[32m"_r_bh_"[39m
+  [36m/>[39m
+
+  Name "🟪 Epic":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-display text-lg font-bold leading-tight"[39m
+    [33mid[39m=[32m"_r_bi_"[39m
+  [36m/>[39m
+
+  Name "🟦 Rare":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-display text-lg font-bold leading-tight"[39m
+    [33mid[39m=[32m"_r_bj_"[39m
+  [36m/>[39m
+
+  Name "🟩 Uncommon":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-display text-lg font-bold leading-tight"[39m
+    [33mid[39m=[32m"_r_bk_"[39m
+  [36m/>[39m
+
+  Name "⬜ Common":
+  [36m<h2[39m
+    [33mclass[39m=[32m"hud-display text-lg font-bold leading-tight"[39m
+    [33mid[39m=[32m"_r_bl_"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Your collection":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Your collection"[39m
+  [36m/>[39m
+
+  Name "🟧 Legendary":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"_r_bh_"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+    [33mdata-rarity[39m=[32m"legendary"[39m
+  [36m/>[39m
+
+  Name "🟪 Epic":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"_r_bi_"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+  [36m/>[39m
+
+  Name "🟦 Rare":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"_r_bj_"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+  [36m/>[39m
+
+  Name "🟩 Uncommon":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"_r_bk_"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+  [36m/>[39m
+
+  Name "⬜ Common":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"_r_bl_"[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  progressbar:
+
+  Name "41 of 151 hoggies found":
+  [36m<div[39m
+    [33maria-label[39m=[32m"41 of 151 hoggies found"[39m
+    [33maria-valuemax[39m=[32m"151"[39m
+    [33maria-valuemin[39m=[32m"0"[39m
+    [33maria-valuenow[39m=[32m"41"[39m
+    [33mclass[39m=[32m"h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px"[39m
+    [33mrole[39m=[32m"progressbar"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  list:
+
+  Name "":
+  [36m<ul[39m
+    [33mclass[39m=[32m"grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<ul[39m
+    [33mclass[39m=[32m"grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<ul[39m
+    [33mclass[39m=[32m"grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<ul[39m
+    [33mclass[39m=[32m"grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<ul[39m
+    [33mclass[39m=[32m"grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"dr-manhattan"[39m
+    [33mdata-rarity[39m=[32m"legendary"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-legendary);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"final-evolution"[39m
+    [33mdata-rarity[39m=[32m"legendary"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-legendary);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"rocket"[39m
+    [33mdata-rarity[39m=[32m"legendary"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-legendary);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"superhero"[39m
+    [33mdata-rarity[39m=[32m"legendary"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-legendary);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"transformer"[39m
+    [33mdata-rarity[39m=[32m"legendary"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-legendary);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"wizard"[39m
+    [33mdata-rarity[39m=[32m"legendary"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-legendary);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"angel"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"back-to-the-future"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"driving-hogzilla"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"evel"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"gladiator"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"jack-dawson"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"katy-perry"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"level-up"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"oprah"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"pope"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"reaper"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"scott-pilgrim"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"steve-jobs"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"terminator"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"the-bride"[39m
+    [33mdata-rarity[39m=[32m"epic"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-epic);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"70s-dance"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"996"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"ape"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"art-thief"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"boombox"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"business-evolution"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"campfire-cowboy"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"caveman"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"cool-car"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"desk-wizard"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"director"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"dj"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"doc-brown"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"einstein-group"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"gatsby"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"hogpatch"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"im-the-driver"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"mountie"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"mr-potato-head"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"noir"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"pinata"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"puzzle"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"reading-is-magic"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"robot"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"roller-coaster"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"rose"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"sailor"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"two-player"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"will-smith"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"x-ray"[39m
+    [33mdata-rarity[39m=[32m"rare"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-rare);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"basketball-coach"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"burning-money"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"cake"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"caribana"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"chef"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"climber"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"coding-group"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"cowboy-lasso"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"dadd-ai"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"data-thief"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"doctor"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"drake-nah"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"drake-yah"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"dynamite"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"einstein"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"explorer"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"float"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"football-coach"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"football-player"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"gravedigger"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"greek"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"haha-bizzniss"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"hand-clasp"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"hipster"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"judge"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"lemon-wrangler"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"lifeguard"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"loops"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"namaste"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"pit-viper"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"reporter"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"safari"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"scientist"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"scorpion"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"soapbox"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"surfer"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"swimmer"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"tourist"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"town-crier"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"traffic-controller"[39m
+    [33mdata-rarity[39m=[32m"uncommon"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-uncommon);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"asleep"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"ball"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"banana"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"beaker"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"burger"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"card"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"cereal"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"chart"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"coconut"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"code-bubble"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"coffee-cup"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"coffee-run"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"commuter"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"construction"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"croissant"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"cursor"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"doll-house"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"error"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"experiment"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"gardener"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"heart"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"honey"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"hooligan"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"hoot"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"hot-popcorn"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"hourglass"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"ipad"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"lemonade"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"magnifying-glass"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"mailbox"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"megaphone"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"money"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"office-worker"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"organized"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"panic"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"party"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"pearl-necklace"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"phone-call"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"reading"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"remote-work"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"research"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"self-driving"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"selfie"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"shocked"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"sitting"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"sleepy"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"soccer-coach"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"speaker"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"stamp-approved"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"stamp-denied"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"star"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"stop"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"found"[39m
+    [33mdata-hoggie[39m=[32m"success"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"sunburn"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"survey"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"toilet"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"traffic-police"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"trenchcoat"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"waiter"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"hoggie-tile relative flex flex-col items-center gap-1.5 rounded-lg border bg-card px-1.5 pb-2 pt-3 text-center"[39m
+    [33mdata-held[39m=[32m"missing"[39m
+    [33mdata-hoggie[39m=[32m"workflows"[39m
+    [33mdata-rarity[39m=[32m"common"[39m
+    [33mstyle[39m=[32m"--rarity: var(--rarity-common);"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"grid gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:gap-6"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"relative mb-2 flex flex-col gap-1"[39m
+    [36m>[39m
+      [36m<select[39m
+        [33maria-label[39m=[32m"Book page"[39m
+        [33mclass[39m=[32m"h-11 w-full appearance-none rounded-lg border border-muted-foreground bg-card pl-3 pr-9 text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"[39m
+      [36m>[39m
+        [36m<option[39m
+          [33mvalue[39m=[32m"/book"[39m
+        [36m>[39m
+          [0mOverview[0m
+        [36m</option>[39m
+        [36m<option[39m
+          [33mvalue[39m=[32m"/book/collection"[39m
+        [36m>[39m
+          [0mCollection[0m
+        [36m</option>[39m
+        [36m<optgroup[39m
+          [33mlabel[39m=[32m"Achievements"[39m
+        [36m>[39m
+          [36m<option[39m
+            [33mvalue[39m=[32m"/book?page=giving"[39m
+          [36m>[39m
+            [0mGiving[0m
+          [36m</option>[39m
+          [36m<option[39m
+            [33mvalue[39m=[32m"/book?page=thanked"[39m
+          [36m>[39m
+            [0mBeing thanked[0m
+          [36m</option>[39m
+          [36m<option[39m
+            [33mvalue[39m=[32m"/book?page=connections"[39m
+          [36m>[39m
+            [0mConnections[0m
+        
+ Test Files  5 failed (5)
+      Tests  8 failed | 47 passed (55)
+   Start at  04:19:53
+   Duration  61.01s (tests 59%, transform 22%, import 15%, environment 3%, setup 1%)
+
+  [36m</option>[39m
+          [36m<option[39m
+            [33mvalue[39m=[32m"/book?page=crowd"[39m
+          [36m>[39m
+            [0mCrowd[0m
+          [36m</option>[39m
+        [36m</optgroup>[39m
+      [36m</select>[39m
+      [36m<svg[39m
+        [33maria-hidden[39m=[32m"true"[39m
+        [33mclass[39m=[32m"LemonIcon pointer-events-none absolute bottom-3.5 right-3 size-4 text-muted-foreground"[39m
+        [33mfill[39m=[32m"currentColor"[39m
+        [33mviewBox[39m=[32m"0 0 24 24"[39m
+        [33mwidth[39m=[32m"100%"[39m
+        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+      [36m>[39m
+        [36m<path[39m
+          [33mclip-rule[39m=[32m"evenodd"[39m
+          [33md[39m=[32m"M7.47 9.47a.75.75 0 0 1 1.06 0L12 12.94l3.47-3.47a.75.75 0 1 1 1.06 1.06l-3.646 3.647a1.25 1.25 0 0 1-1.768 0L7.47 10.53a.75.75 0 0 1 0-1.06Z"[39m
+          [33mfill-rule[39m=[32m"evenodd"[39m
+        [36m/>[39m
+      [36m</svg>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex min-w-0 flex-col gap-6"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"flex flex-col gap-1"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"hud-label"[39m
+        [36m>[39m
+          [0mBook[0m
+        [36m</span>[39m
+        [36m<h1[39m
+          [33mclass[39m=[32m"hud-display font-extrabold outline-none text-4xl leading-none"[39m
+          [33mtabindex[39m=[32m"-1"[39m
+        [36m>[39m
+          [0mCollection[0m
+        [36m</h1>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"text-sm text-muted-foreground"[39m
+        [36m>[39m
+          [0mEvery crate you open drops one hoggie. Find all 151.[0m
+        [36m</p>[39m
+      [36m</header>[39m
+      [36m<section[39m
+        [33maria-label[39m=[32m"Your collection"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"quill-card group/card flex flex-col"[39m
+          [33mdata-quill[39m=[32m"true"[39m
+          [33mdata-size[39m=[32m"default"[39m
+          [33mdata-slot[39m=[32m"card"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"quill-card__content flex flex-col items-center gap-5 sm:flex-row"[39m
+            [33mdata-slot[39m=[32m"card-content"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"inline-flex shrink-0"[39m
+              [33mdata-latest-find[39m=[32m"rocket"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"hoggie-coin "[39m
+                [33mdata-coin[39m=[32m"found"[39m
+                [33mstyle[39m=[32m"width: 112px; height: 112px; --rarity: var(--rarity-legendary);"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"h-auto"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mviewBox[39m=[32m"0 0 1000 1000"[39m
+                  [33mwidth[39m=[32m"85"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m248.1 177.88.09-.32-.1.37q0-.03.02-.05M217.4 371.65q-1.98-4.79-3.7-9.7a192 192 0 0 1-8.87-90.52q.03.44.14.87.18.6.4 1.18c.27.69.87 1.22 1.56 1.51q-.41 3.73-.73 7.45a3 3 0 0 0 1.22 2.73l.26.17.11 2.43c.15 3.12.42 6.27 1.08 9.33.14.68.29 1.38.58 2q.45 4.5.97 8.97.26 2.27.6 4.52l.42 2.6.29 1.55v.03a184 184 0 0 0 9.06 41.56q0 .6.2 1.17c.3.87.67 1.73.97 2.58q.4 1.13.78 2.28.66 2.07 1.3 4.18.34 1.16.74 2.32l.11.43a4 4 0 0 1-1.87 2.21c-1.88 1.07-4.55.8-5.62-1.86m332.47-180.06c-.79-.73-1.62-1.43-2.4-2.16q-2.14-1.93-4.13-4l-1.37-1.56-.27-.3a2.4 2.4 0 0 0-.87-.6l-.22-.24c-.42-.5-.82-1.06-1.3-1.5q-.5-.45-1.12-.65a176 176 0 0 0-18.13-19.07c.45-.98.4-2.2-.27-3.05a51 51 0 0 0-5.18-5.5 3 3 0 0 0-.92-2.05 37 37 0 0 0-2.62-2.33l.07.05-.12-.09H511l-.08-.07.07.05-.06-.04-.18-.16-.09-.07.06.05.02.02-.02-.02c-2.1-1.74-4.3-3.38-6.44-5.08a239 239 0 0 0-13.35-9.93 692 692 0 0 0-9-6.14q-1.78-1.17-3.6-2.3-1.42-.92-2.87-1.83a191.6 191.6 0 0 1 72.1 56.83c2.21 3.15 7.57 7.54 3.48 11.16l-.41.28q-.37.2-.78.33zm-120.2 491.51c-37.5 9.82-78.06-1.7-106.42-26.97a3.7 3.7 0 0 0 1.53-3.14v-.2q.5-.28.87-.75c.46-.6.93-1.2 1.19-1.91l.35-.3q.17-.17.33-.36c32.1 29.28 81.62 38.5 121.7 18.25l-.17.08q6.62-3.22 12.8-7.24a4.2 4.2 0 0 1 3.1-.87c3.32.33 4.62 5.15 1.82 7.04a125 125 0 0 1-7.32 4.48 118 118 0 0 1-29.8 11.89zM681.15 543c-4.4 2.47-8.38-4.36-3.89-6.86a112 112 0 0 0 21.07-14.4c32.82-27.76 44.78-74.99 32.28-115.22q1.2.32 2.43.5l.9.38c1.15.47 2.42.38 3.45-.27l1.52-.17c13.86 49.57-5.92 106.84-53.48 133.75a98 98 0 0 1-4.28 2.3z"[39m
+                    [33mfill[39m=[32m"#320601"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"m271.22 529.5-.09-.05a3.6 3.6 0 0 0-2.22-.53c-.87.08-1.71.5-2.33 1.15l-1.66-5.26-14.95-47.46q-7.57-23.97-15.12-47.95l-19.91-63.18c-1.33-4.2-2.69-8.37-3.97-12.58a4.2 4.2 0 0 1 .1-2.98 4 4 0 0 1 2.21-2.08c1.91-.72 4.45.25 5.07 2.32q1.19 3.91 2.44 7.81.06.4.18.8.23.7.51 1.39l2.14 6.71 6.97 22.1 14.81 47 15.08 47.79 11.36 36.07a3.5 3.5 0 0 0-1 2.77l.35 3.26.29 3-.27-.08zm...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ crestsSection src/CollectionPage.test.tsx:233:27
+    231| describe("#468: the Collection's team crests, each a set of hoggies", …
+    232|   function crestsSection() {
+    233|     return within(main()).getByRole("region", { name: "Team crests" });
+       |                           ^
+    234|   }
+    235|
+ ❯ src/CollectionPage.test.tsx:248:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  |website| src/CollectionPage.test.tsx > #468: the Collection's team crests, each a set of hoggies > draws a collected crest in full art with its whole roster found, the date it was collected, and New until this browser has shown it
+Error: No tile for people-ops
+ ❯ crestTile src/CollectionPage.test.tsx:238:31
+    236|   function crestTile(crest: string) {
+    237|     const found = main().querySelector<HTMLElement>(`[data-crest="${cr…
+    238|     if (found === null) throw new Error(`No tile for ${crest}`);
+       |                               ^
+    239|     return found;
+    240|   }
+ ❯ src/CollectionPage.test.tsx:258:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  |website| src/CollectionPage.test.tsx > #468: the Collection's team crests, each a set of hoggies > shows an uncollected crest dimmed with its roster's progress: held hoggies in full, missing ones as silhouettes, and which are still missing
+Error: No tile for customer-success-eu
+ ❯ crestTile src/CollectionPage.test.tsx:238:31
+    236|   function crestTile(crest: string) {
+    237|     const found = main().querySelector<HTMLElement>(`[data-crest="${cr…
+    238|     if (found === null) throw new Error(`No tile for ${crest}`);
+       |                               ^
+    239|     return found;
+    240|   }
+ ❯ src/CollectionPage.test.tsx:273:29
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  |website| src/activityFound.test.tsx > #468: a find that completed a team's crest says so > adds the crest's name to the headline and its art beside the hoggie
+TestingLibraryElementError: Unable to find an accessible element with the role "article" and name "You found a 🟧 Legendary Rocket and completed Blitzscale"
+
+Here are the accessible roles:
+
+  navigation:
+
+  Name "Your page":
+  [36m<nav[39m
+    [33maria-label[39m=[32m"Your page"[39m
+    [33mclass[39m=[32m"border-b"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  list:
+
+  Name "":
+  [36m<ul[39m
+    [33mclass[39m=[32m"flex gap-1"[39m
+  [36m/>[39m
+
+  Name "Your activity":
+  [36m<ol[39m
+    [33maria-label[39m=[32m"Your activity"[39m
+    [33mclass[39m=[32m"flex flex-col gap-4"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  [36m<li />[39m
+
+  Name "":
+  [36m<li />[39m
+
+  Name "":
+  [36m<li[39m
+    [33mclass[39m=[32m"flex flex-col gap-3"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Character":
+  [36m<a[39m
+    [33mclass[39m=[32m"relative inline-flex min-h-9 items-center px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-t-md text-muted-foreground hover:text-foreground"[39m
+    [33mhref[39m=[32m"/"[39m
+  [36m/>[39m
+
+  Name "Activity":
+  [36m<a[39m
+    [33maria-current[39m=[32m"page"[39m
+    [33mclass[39m=[32m"relative inline-flex min-h-9 items-center px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-t-md text-foreground after:absolute after:inset-x-2 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary"[39m
+    [33mhref[39m=[32m"/activity"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  banner:
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"mx-auto flex w-full max-w-3xl flex-wrap items-end justify-between gap-x-6 gap-y-3"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Your kudos story":
+  [36m<h1[39m
+    [33mclass[39m=[32m"hud-display font-extrabold outline-none text-4xl leading-none"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  Name "Today":
+  [36m<h2[39m
+    [33mclass[39m=[32m"self-center rounded-full bg-muted px-3 py-0.5 text-xs font-semibold text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "You found a 🟧 Legendary Rocket":
+  [36m<h3[39m
+    [33mclass[39m=[32m"font-medium"[39m
+    [33mid[39m=[32m"_r_1u_"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"mt-1 text-sm text-muted-foreground"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"self-center text-sm text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"[39m
+    [33mdata-timeline-start[39m=[32m"true"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  group:
+
+  Name "Show":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Show"[39m
+    [33mclass[39m=[32m"quill-toggle-group group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch"[39m
+    [33mdata-orientation[39m=[32m"horizontal"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"toggle-group"[39m
+    [33mdata-spacing[39m=[32m"0"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mrole[39m=[32m"group"[39m
+    [33mstyle[39m=[32m"--gap: 0;"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "All":
+  [36m<button[39m
+    [33maria-disabled[39m=[32m"false"[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm min-h-6 border-primary bg-fill-selected"[39m
+    [33mdata-pressed[39m=[32m""[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"toggle-group-item"[39m
+    [33mdata-spacing[39m=[32m"0"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mtabindex[39m=[32m"0"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Received":
+  [36m<button[39m
+    [33maria-disabled[39m=[32m"false"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm min-h-6"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"toggle-group-item"[39m
+    [33mdata-spacing[39m=[32m"0"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "Given":
+  [36m<button[39m
+    [33maria-disabled[39m=[32m"false"[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm min-h-6"[39m
+    [33mdata-quill[39m=[32m"true"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"toggle-group-item"[39m
+    [33mdata-spacing[39m=[32m"0"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  article:
+
+  Name "You found a 🟧 Legendary Rocket":
+  [36m<article[39m
+    [33maria-labelledby[39m=[32m"_r_1u_"[39m
+    [33mclass[39m=[32m"flex items-center gap-3 rounded-lg py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"[39m
+    [33mdata-entry-index[39m=[32m"0"[39m
+    [33mdata-rarity[39m=[32m"legendary"[39m
+    [33mdata-side[39m=[32m"centre"[39m
+    [33mtabindex[39m=[32m"-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  time:
+
+  Name "":
+  [36m<time[39m
+    [33mclass[39m=[32m"shrink-0 text-xs text-muted-foreground tabular-nums "[39m
+    [33mdatetime[39m=[32m"2026-10-14T17:40:00.000Z"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"sr-only"[39m
+    [33mdata-testid[39m=[32m"activity-announcement"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"flex flex-col gap-6"[39m
+  [36m>[39m
+    [36m<nav[39m
+      [33maria-label[39m=[32m"Your page"[39m
+      [33mclass[39m=[32m"border-b"[39m
+    [36m>[39m
+      [36m<ul[39m
+        [33mclass[39m=[32m"flex gap-1"[39m
+      [36m>[39m
+        [36m<li>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"relative inline-flex min-h-9 items-center px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-t-md text-muted-foreground hover:text-foreground"[39m
+            [33mhref[39m=[32m"/"[39m
+          [36m>[39m
+            [0mCharacter[0m
+          [36m</a>[39m
+        [36m</li>[39m
+        [36m<li>[39m
+          [36m<a[39m
+            [33maria-current[39m=[32m"page"[39m
+            [33mclass[39m=[32m"relative inline-flex min-h-9 items-center px-3 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-t-md text-foreground after:absolute after:inset-x-2 after:-bottom-px after:h-0.5 after:rounded-full after:bg-primary"[39m
+            [33mhref[39m=[32m"/activity"[39m
+          [36m>[39m
+            [0mActivity[0m
+          [36m</a>[39m
+        [36m</li>[39m
+      [36m</ul>[39m
+    [36m</nav>[39m
+    [36m<header[39m
+      [33mclass[39m=[32m"mx-auto flex w-full max-w-3xl flex-wrap items-end justify-between gap-x-6 gap-y-3"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex max-w-xl flex-col gap-1"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"hud-label"[39m
+        [36m>[39m
+          [0mActivity[0m
+        [36m</span>[39m
+        [36m<h1[39m
+          [33mclass[39m=[32m"hud-display font-extrabold outline-none text-4xl leading-none"[39m
+          [33mtabindex[39m=[32m"-1"[39m
+        [36m>[39m
+          [0mYour kudos story[0m
+        [36m</h1>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"mt-1 text-sm text-muted-foreground"[39m
+        [36m>[39m
+          [0mKudos you received and gave, and the levels you reached. Only you see this page.[0m
+        [36m</p>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33maria-label[39m=[32m"Show"[39m
+        [33mclass[39m=[32m"quill-toggle-group group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch"[39m
+        [33mdata-orientation[39m=[32m"horizontal"[39m
+        [33mdata-quill[39m=[32m"true"[39m
+        [33mdata-size[39m=[32m"sm"[39m
+        [33mdata-slot[39m=[32m"toggle-group"[39m
+        [33mdata-spacing[39m=[32m"0"[39m
+        [33mdata-variant[39m=[32m"outline"[39m
+        [33mrole[39m=[32m"group"[39m
+        [33mstyle[39m=[32m"--gap: 0;"[39m
+      [36m>[39m
+        [36m<button[39m
+          [33maria-disabled[39m=[32m"false"[39m
+          [33maria-pressed[39m=[32m"true"[39m
+          [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm min-h-6 border-primary bg-fill-selected"[39m
+          [33mdata-pressed[39m=[32m""[39m
+          [33mdata-quill[39m=[32m"true"[39m
+          [33mdata-size[39m=[32m"sm"[39m
+          [33mdata-slot[39m=[32m"toggle-group-item"[39m
+          [33mdata-spacing[39m=[32m"0"[39m
+          [33mdata-variant[39m=[32m"outline"[39m
+          [33mtabindex[39m=[32m"0"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"LemonIcon size-3.5"[39m
+            [33mdata-selected-mark[39m=[32m"true"[39m
+            [33mfill[39m=[32m"currentColor"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"100%"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<g[39m
+              [33mclip-path[39m=[32m"url(#icon/check__a)"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33mclip-rule[39m=[32m"evenodd"[39m
+                [33md[39m=[32m"M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"[39m
+                [33mfill-rule[39m=[32m"evenodd"[39m
+              [36m/>[39m
+            [36m</g>[39m
+            [36m<defs>[39m
+              [36m<clippath[39m
+                [33mid[39m=[32m"icon/check__a"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M0 0h20v18H0z"[39m
+                  [33mtransform[39m=[32m"translate(2 3)"[39m
+                [36m/>[39m
+              [36m</clippath>[39m
+            [36m</defs>[39m
+          [36m</svg>[39m
+          [0mAll[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-disabled[39m=[32m"false"[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm min-h-6"[39m
+          [33mdata-quill[39m=[32m"true"[39m
+          [33mdata-size[39m=[32m"sm"[39m
+          [33mdata-slot[39m=[32m"toggle-group-item"[39m
+          [33mdata-spacing[39m=[32m"0"[39m
+          [33mdata-variant[39m=[32m"outline"[39m
+          [33mtabindex[39m=[32m"-1"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0mReceived[0m
+        [36m</button>[39m
+        [36m<button[39m
+          [33maria-disabled[39m=[32m"false"[39m
+          [33maria-pressed[39m=[32m"false"[39m
+          [33mclass[39m=[32m"quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm min-h-6"[39m
+          [33mdata-quill[39m=[32m"true"[39m
+          [33mdata-size[39m=[32m"sm"[39m
+          [33mdata-slot[39m=[32m"toggle-group-item"[39m
+          [33mdata-spacing[39m=[32m"0"[39m
+          [33mdata-variant[39m=[32m"outline"[39m
+          [33mtabindex[39m=[32m"-1"[39m
+          [33mtype[39m=[32m"button"[39m
+        [36m>[39m
+          [0mGiven[0m
+        [36m</button>[39m
+      [36m</div>[39m
+    ...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/activityFound.test.tsx:68:34
+     66|   it("adds the crest's name to the headline and its art beside the hog…
+     67|     await opened([aFound("rocket", now - 20 * minute, drops.rocketComp…
+     68|     const found = within(main()).getByRole("article", { name: "You fou…
+       |                                  ^
+     69|     expect(found.querySelector("[data-crest-art='collected'] img")).to…
+     70|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  |website| src/bookPanel.test.tsx > #468: the home's Book panel counts the team crests beside the hoggies > says how many crests are collected of the total
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  41 of 151 hoggies found · 2 of 54 crests[39m
+Received:
+[31m  Book41 of 151 hoggies foundLatest find: Rocket · 🟧 LegendarySee your collectionOpen the Book[39m
+ ❯ src/bookPanel.test.tsx:59:25
+     57|   it("says how many crests are collected of the total", () => {
+     58|     showHome(collectionFixtures.collection);
+     59|     expect(bookPanel()).toHaveTextContent("41 of 151 hoggies found · 2…
+       |                         ^
+     60|   });
+     61|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #468: a drop that completes a team's crest lands the crest after the hoggie card > lands the crest as its own card after the hoggie, naming the team, holds the burst for the beat, and lists it in the finish
+AssertionError: expected [ '+20 XP', '+1 skill point', …(2) ] to deeply equal [ '+20 XP', '+1 skill point', …(3) ]
+
+- Expected
++ Received
+
+  [
+    "+20 XP",
+    "+1 skill point",
+    "+10 coins",
+    "CroissantNew!⬜ Common",
+-   "Team complete!Customer Success EUCrest earned",
+  ]
+
+ ❯ src/lootCrates.test.tsx:375:56
+    373|     advance(crateChargesForMs);
+    374|
+    375|     expect(tokens().map((token) => token.textContent)).toEqual(["+20 X…
+       |                                                        ^
+    376|     expect(tokenOf("crest").querySelector("[data-crest-art='collected'…
+    377|     expect(delayOf(tokenOf("crest"))).toBeGreaterThanOrEqual(delayOf(t…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #468: a drop that completes a team's crest lands the crest after the hoggie card > shows the crest at once in the finish under reduced motion
+Error: [2mexpect([22m[31mreceived[39m[2m).toHaveTextContent()[22m
+
+[31mreceived[39m value must be a Node.
+Received has type:  Null
+Received has value: [31mnull[39m
+ ❯ src/lootCrates.test.tsx:392:30
+    390|
+    391|     expect(dialog()).toHaveAttribute("data-phase", "ended");
+    392|     expect(tokenOf("crest")).toHaveTextContent("Customer Success EU");
+       |                              ^
+    393|     expect(rewardChips()).toContain("Customer Success EU crest · Team …
+    394|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  |website| src/lootCrates.test.tsx > #468: a drop that completes a team's crest lands the crest after the hoggie card > lands no crest for a drop that completed none, and keeps the burst's length
+Error: [2mexpect([22m[31melement[39m[2m).toHaveTextContent()[22m
+
+Expected element to have text content:
+[32m  You found a common Croissant.[39m
+Received:
+[31m[39m
+ ❯ src/lootCrates.test.tsx:403:55
+    401|     advance(burstPlaysForMs);
+    402|     expect(dialog()).not.toHaveAttribute("data-phase", "bursting");
+    403|     expect(screen.getByTestId("moment-announcement")).toHaveTextConten…
+       |                                                       ^
+    404|     expect(screen.getByTestId("moment-announcement")).not.toHaveTextCo…
+    405|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+

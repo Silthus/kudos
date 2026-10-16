@@ -61,3 +61,18 @@ describe("#467 CL21: a hoggie found shows in the timeline", () => {
     expect(within(main()).getByRole("button", { name: "Show new activity" })).toBeInTheDocument();
   });
 });
+
+describe("#468: a find that completed a team's crest says so", () => {
+  it("adds the crest's name to the headline and its art beside the hoggie", async () => {
+    await opened([aFound("rocket", now - 20 * minute, drops.rocketCompletingBlitzscale)]);
+    const found = within(main()).getByRole("article", { name: "You found a 🟧 Legendary Rocket and completed Blitzscale" });
+    expect(found.querySelector("[data-crest-art='collected'] img")).toHaveAttribute("src", expect.stringMatching(/blitzscale\.png$/));
+    expect(found.querySelector("h3")!.parentElement).not.toHaveClass("shrink-0");
+  });
+
+  it("shows no crest for a find that completed none", async () => {
+    await opened([aFound("rocket", now - 20 * minute, { ...drops.legendaryRocket, crest: null })]);
+    const found = within(main()).getByRole("article", { name: "You found a 🟧 Legendary Rocket" });
+    expect(found.querySelector("[data-crest-art]")).toBeNull();
+  });
+});

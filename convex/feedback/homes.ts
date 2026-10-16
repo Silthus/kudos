@@ -4,8 +4,9 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { bookFactsOf, type AchievementFacts } from "../achievements/achievements";
 import { achievementsApplyIn, achievementsShownTo } from "../achievements/flag";
 import { groupModeShownTo, type GroupModeFacts } from "../groups/groupMode";
+import { crateStoreOf, waitingCratesOf, type CrateStore } from "../hoggies/boughtCrates";
 import { hoggiesOf, type HoggiesHome } from "../hoggies/collection";
-import { crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
+import { crateStoreShownTo, crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
 import { xpRecordedEventValidator } from "../bus/events";
 import { groupsShownAndExposedTo, type GroupId } from "../groups/groups";
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";
@@ -29,7 +30,8 @@ import { thisWeeksQuestsOf, unopenedCratesOf, type UnopenedCrate, type WeeklyQue
 import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/xpLevels";
 import { customKudosEmojiPickerFor, type CustomKudosEmojiPicker } from "../store/customKudosEmoji";
 import { inventoryHomeOf, type InventoryHome } from "../store/inventory";
-import { itemRefusalValidator, type ItemRefusal } from "../store/rows";
+import { type ItemRefusal } from "../store/rows";
+import { homeRefusalValidator, type HomeRefusal } from "./homeRefusal";
 import { storeShownAndExposedTo } from "../store/visibility";
 import { unlocksShownTo } from "../unlocks/launch";
 import { namedFor, scheduled } from "../unlocks/schedule";
@@ -54,7 +56,8 @@ export type ShownTab =
       earlierCrates: UnopenedCrate[] | null;
       earlierGroupCrates: WaitingGroupCrate[] | null;
       journey: JourneyStepShown[] | null;
-      hoggies: HoggiesHome | null;
+      hoggies: HoggiesShown | null;
+      boughtCrates: string[] | null;
     }
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView; groups: GroupsBoard<GroupId> | null; myGroup: MyGroupBoardView | null }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
@@ -64,6 +67,10 @@ export type ShownTab =
   | { tab: "admin"; announcementChannel: string | null; achievements: boolean; groupMode: GroupModeFacts | null; mondayPost: MondayPostSwitch | null; customKudosEmoji: CustomKudosEmojiPicker | null };
 
 export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
+
+export type CrateStoreShown = CrateStore & { short: number | null };
+
+export type HoggiesShown = HoggiesHome & { crateStore: CrateStoreShown | null };
 
 export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoints: number | null; skillTreeTab: boolean; coins: number | null };
 
@@ -107,7 +114,7 @@ const tabsBesideProfile: Array<{ tab: HomeTab; shownWith: (slices: Slices & Door
 ];
 
 export const shownHomeOf = internalMutation({
-  args: { workspace: v.string(), user: v.string(), frontDoor: v.boolean(), refused: v.optional(itemRefusalValidator) },
+  args: { workspace: v.string(), user: v.string(), frontDoor: v.boolean(), refused: v.optional(homeRefusalValidator) },
   handler: async (ctx, { workspace, user, frontDoor, refused }): Promise<ShownHome | null> => {
     const person = await lookup(ctx, workspace, user);
     if (person?.kind !== "member") return null;
@@ -153,7 +160,7 @@ export async function republishOnRoleChange(ctx: MutationCtx, before: MemberFact
   if (await xpLevelsOnFor(ctx, member)) await republish(ctx, member);
 }
 
-export async function republish(ctx: MutationCtx, member: MemberId, refused?: ItemRefusal) {
+export async function republish(ctx: MutationCtx, member: MemberId, refused?: HomeRefusal) {
   await ctx.scheduler.runAfter(0, internal.slack.appHome.publishHome, { ...(await chatUserOf(ctx, member)), ...(refused !== undefined && { refused }) });
 }
 
@@ -187,11 +194,11 @@ function tabsOf(slices: Slices & Door): HomeTab[] {
 
 type Viewer = { workspace: string; user: string; member: MemberId; timeZone: string | undefined; admin: boolean };
 
-async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection, refused: ItemRefusal | null): Promise<ShownTab> {
+async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection, refused: HomeRefusal | null): Promise<ShownTab> {
   switch (tab) {
     case "profile":
-      if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null };
-      if (!slices.unlocks) return { tab, progression: { ...(await progressionHomeOf(ctx, viewer.member)), skillTreeTab: false, coins: null }, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null };
+      if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null, boughtCrates: null };
+      if (!slices.unlocks) return { tab, progression: { ...(await progressionHomeOf(ctx, viewer.member)), skillTreeTab: false, coins: null }, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null, boughtCrates: null };
       return {
         tab,
         progression: await toldProgressionOf(ctx, viewer.member, slices),
@@ -200,7 +207,8 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         ...(slices.quests ? await openedGroupQuestOf(ctx, viewer.member) : noGroupQuest),
         earlierCrates: slices.quests ? await openedEarlierCratesOf(ctx, viewer.member) : null,
         journey: slices.quests ? await journeyShownTo(ctx, viewer.member) : null,
-        hoggies: await hoggiesInTheBookOf(ctx, viewer.member, slices),
+        hoggies: await hoggiesInTheBookOf(ctx, viewer.member, slices, refused),
+        boughtCrates: (await hoggiesShownTo(ctx, viewer.member)) ? await waitingCratesOf(ctx, viewer.member) : null,
       };
     case "leaderboard":
       return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period), groups: null, myGroup: null };
@@ -209,7 +217,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
     case "skillTree":
       return { tab, perks: await memberPerksOf(ctx, viewer.member), coinsName: namedFor(scheduled("coins"), slices.store).name };
     case "inventory":
-      return { tab, balance: await balanceOf(ctx, viewer.member), inventory: await inventoryHomeOf(ctx, viewer.member), kudosEmoji: (await settingsOf(ctx, viewer.workspace)).kudosEmoji, refused };
+      return { tab, balance: await balanceOf(ctx, viewer.member), inventory: await inventoryHomeOf(ctx, viewer.member), kudosEmoji: (await settingsOf(ctx, viewer.workspace)).kudosEmoji, refused: itemRefusalIn(refused) };
     case "settings":
       return {
         tab,
@@ -236,8 +244,21 @@ function namedForStore({ ready, next }: UnlocksHome, storeShown: boolean): Unloc
   return { ready: ready.map((entry) => namedFor(entry, storeShown)), next: next === null ? null : namedFor(next, storeShown) };
 }
 
-async function hoggiesInTheBookOf(ctx: QueryCtx, member: MemberId, { book }: Slices) {
-  return book && (await hoggiesShownTo(ctx, member)) ? hoggiesOf(ctx, member, { crests: await crestsShownTo(ctx, member) }) : null;
+async function hoggiesInTheBookOf(ctx: QueryCtx, member: MemberId, { book, coins }: Slices, refused: HomeRefusal | null): Promise<HoggiesShown | null> {
+  if (!book || !(await hoggiesShownTo(ctx, member))) return null;
+  const hoggies = await hoggiesOf(ctx, member, { crests: await crestsShownTo(ctx, member) });
+  return { ...hoggies, crateStore: coins && (await crateStoreShownTo(ctx, member)) ? await crateStoreToldTo(ctx, member, refused) : null };
+}
+
+async function crateStoreToldTo(ctx: QueryCtx, member: MemberId, refused: HomeRefusal | null): Promise<CrateStoreShown | null> {
+  const store = await crateStoreOf(ctx, member);
+  if (store === null) return null;
+  const refusedForCoins = refused !== null && "crate" in refused && refused.reason === "no-coins";
+  return { ...store, short: refusedForCoins ? store.price - (await balanceOf(ctx, member)) : null };
+}
+
+function itemRefusalIn(refused: HomeRefusal | null): ItemRefusal | null {
+  return refused !== null && "item" in refused ? refused : null;
 }
 
 async function applyingMessageSettingsOf(ctx: QueryCtx, member: MemberId) {

@@ -1,5 +1,7 @@
+import { crateStoreOf, waitingCratesOf, type CrateStore } from "../hoggies/boughtCrates";
 import { collectionOf, type HeldCrest, type HeldHoggie, type RarityShare } from "../hoggies/collection";
-import { crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
+import { crateStoreShownTo, crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
+import type { QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 import { bookPageOf } from "./book";
 import { memberQuery } from "./memberQuery";
@@ -10,7 +12,9 @@ export type CollectionHoggie = HeldHoggie & { seen: string | null };
 
 export type CollectionCrest = HeldCrest & { seen: string | null };
 
-export type CollectionAnswer = { kind: "not-found" } | PageWaits | { kind: "collection"; rarities: RarityShare[]; hoggies: CollectionHoggie[]; owned: number; total: number; crests?: CollectionCrest[] };
+export type BoughtCrates = { bought?: string[]; crateStore?: CrateStore | null };
+
+export type CollectionAnswer = { kind: "not-found" } | PageWaits | ({ kind: "collection"; rarities: RarityShare[]; hoggies: CollectionHoggie[]; owned: number; total: number; crests?: CollectionCrest[] } & BoughtCrates);
 
 export const getCollection = memberQuery(async (ctx, me): Promise<CollectionAnswer> => {
   if (!(await hoggiesShownTo(ctx, me.member))) return { kind: "not-found" };
@@ -18,8 +22,15 @@ export const getCollection = memberQuery(async (ctx, me): Promise<CollectionAnsw
   if (page.kind !== "open") return page;
   const { rarities, hoggies, owned, total, crests } = await collectionOf(ctx, me.member, { crests: await crestsShownTo(ctx, me.member) });
   const collection = { kind: "collection" as const, rarities, hoggies: await Promise.all(hoggies.map((hoggie) => seenBy(me.member, hoggie))), owned, total };
-  return crests === undefined ? collection : { ...collection, crests: await Promise.all(crests.map((crest) => crestSeenBy(me.member, crest))) };
+  const withCrests = crests === undefined ? collection : { ...collection, crests: await Promise.all(crests.map((crest) => crestSeenBy(me.member, crest))) };
+  return { ...withCrests, ...(await boughtCratesOf(ctx, me.member)) };
 });
+
+async function boughtCratesOf(ctx: QueryCtx, member: MemberId): Promise<BoughtCrates> {
+  const storeShown = await crateStoreShownTo(ctx, member);
+  const bought = await waitingCratesOf(ctx, member);
+  return { ...((storeShown || bought.length > 0) && { bought }), ...(storeShown && { crateStore: await crateStoreOf(ctx, member) }) };
+}
 
 async function seenBy(member: MemberId, hoggie: HeldHoggie): Promise<CollectionHoggie> {
   return { ...hoggie, seen: hoggie.firstAt === null ? null : await seenKeyOf(member, `hoggie:${hoggie.hoggie}:${hoggie.firstAt}`) };

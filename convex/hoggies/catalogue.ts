@@ -243,6 +243,7 @@ export const catalogue = {
   version: 2,
   hoggies: rarities.flatMap(({ rarity }) => versionOne[rarity].map(([hoggie, name]): CatalogueHoggie => ({ hoggie, name, rarity }))),
   crests: versionTwoCrests.map(([crest, name, roster]): CatalogueCrest => ({ crest, name, roster })),
+  cratePrice: 50,
 } as const;
 
 export const firstVersionWithCrests = 2;
