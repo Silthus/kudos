@@ -20,7 +20,7 @@ const mondayNineInNewYork = Date.parse("2026-10-19T13:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
 const footer = "<slack://app?team=T1&id=A_KUDOS&tab=home|Change what I send you> in App Home's Settings tab.";
 const nudge = "Hugs are a quick thanks. A kudos that names a teammate and says why earns much more XP.";
-const recapRow = "section: *Weekly hugs recap* — The hugs your emoji reactions gave and got last week, with their XP, on Monday morning. [select: As a DM]";
+const recapRow = "section: *Weekly hugs recap* — Last week's hugs, the :taco: you and your teammates reacted, with their XP, on Monday morning. [select: As a DM]";
 const sendHugsRecap = "slack/hugsRecap:sendHugsRecap";
 
 const everyone = ["U_ALICE", "U_BOB", "U_CAROL", "U_DANA", "U_ERIN"];

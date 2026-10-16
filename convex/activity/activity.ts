@@ -10,14 +10,14 @@ import { perkOf } from "../progression/tree";
 import { questsFinishedByMessage } from "../quests/finishedBy";
 import { hugsShownTo } from "../hugs/flag";
 import { withoutSkinTone } from "../slack/reactions";
-import { hugsGivenNewestFirst, hugsReceivedNewestFirst, type GivenHug, type ReceivedHugs, type TimelineHug } from "../hugs/records";
+import { hugsGivenNewestFirst, hugsReceivedNewestFirst, newestHugReceivedAt, type GivenHug, type ReceivedHugs, type TimelineHug } from "../hugs/records";
 import { hugXp } from "../hugs/xp";
 import { levelUpsNewestFirst } from "../unlocks/unlocks";
 import { chatUserOf, timeZoneOf, type MemberId } from "../workspace/directory";
 import type { MessageRef } from "../engine/messageEvent";
 import type { Activity, ActivityEntry, BonusEarned, Found, KudosGiven, KudosReceived, LevelUp, Message, RecentKudos, HugGiven, HugReceived } from "./entries";
 import { kudosFactsOf, kudosWordsOf, mentionsOfOnePage, permalinkOfMessage, personOf, type Mentions } from "./kudos";
-import { beforeFor, decodePosition, encodePosition, newestFirst, ranks, type Position, type Rank } from "./position";
+import { beforeFor, decodeCursor, encodeCursor, encodePosition, newestFirst, ranks, type Cursor, type Position, type Rank } from "./position";
 
 export type Filter = "all" | "received" | "given";
 
@@ -25,7 +25,7 @@ export type Direction = Exclude<Filter, "all">;
 
 type GainsShown = { xp: boolean; quests: boolean; bonuses: boolean };
 
-type Viewer = { member: MemberId; gainsShown: () => Promise<GainsShown>; hugsShown: () => Promise<boolean> };
+type Viewer = { member: MemberId; gainsShown: () => Promise<GainsShown>; hugsShown: () => Promise<boolean>; hugsAsOf: number | undefined };
 
 type Pending = { position: Position; recipients?: number; entry: (mentions: Mentions) => Promise<ActivityEntry> };
 
@@ -114,7 +114,7 @@ const hugsReceived: Source = {
   read: async (ctx, viewer, before, take) => {
     if (!(await viewer.hugsShown())) return whole([]);
     return whole(
-      (await firstOf(hugsReceivedNewestFirst(ctx, viewer.member, before), take)).map((received) => ({
+      (await firstOf(hugsReceivedNewestFirst(ctx, viewer.member, before, viewer.hugsAsOf), take)).map((received) => ({
         position: { at: received.at, rank: ranks.hugReceived, created: received.created },
         entry: (mentions) => hugReceivedEntryOf(ctx, viewer, mentions, received),
       })),
@@ -129,7 +129,7 @@ const sourcesOf: Record<Filter, Source[]> = {
 };
 
 export async function activityOf(ctx: QueryCtx, member: MemberId, { filter, cursor, limit }: { filter: Filter; cursor: string | null; limit?: number }): Promise<Activity> {
-  const { entries, after } = await pageOf(ctx, member, filter, cursor === null ? null : decodePosition(cursor), sizeOf(limit, activityPage));
+  const { entries, after } = await pageOf(ctx, member, filter, cursor === null ? null : decodeCursor(cursor), sizeOf(limit, activityPage));
   return { kind: "activity", entries, cursor: after, timeZone: await timeZoneOf(ctx, member) };
 }
 
@@ -138,8 +138,11 @@ export async function recentKudosOf(ctx: QueryCtx, member: MemberId, { direction
   return { kind: "recent", entries: entries.filter(isKudos) };
 }
 
-async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, after: Position | null, size: number) {
-  const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown: once(() => hugsShownTo(ctx, member)) };
+async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, cursor: Cursor | null, size: number) {
+  const hugsShown = once(() => hugsShownTo(ctx, member));
+  const hugsAsOf = cursor === null ? await hugsSnapshotOf(ctx, member, filter, hugsShown) : cursor.hugsAsOf;
+  const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown, hugsAsOf };
+  const after = cursor?.after ?? null;
   const reads = await Promise.all(sourcesOf[filter].map(({ rank, read }) => read(ctx, viewer, beforeFor(rank, after), size + 1)));
   const pending = reads.flatMap((read) => read.pending).sort((one, other) => newestFirst(one.position, other.position));
   const page = withinRecipients(completeUpTo(pending, cutPositionOf(reads)).slice(0, size));
@@ -147,7 +150,12 @@ async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, after: Po
   const entries = await Promise.all(page.map(({ entry }) => entry(mentions)));
   const last = page.at(-1);
   const more = pending.length > page.length || reads.some((read) => read.cut);
-  return { entries, after: more && last !== undefined ? encodePosition(last.position) : null };
+  return { entries, after: more && last !== undefined ? encodeCursor({ after: last.position, hugsAsOf }) : null };
+}
+
+async function hugsSnapshotOf(ctx: QueryCtx, member: MemberId, filter: Filter, hugsShown: () => Promise<boolean>): Promise<number | undefined> {
+  if (filter !== "all" || !(await hugsShown())) return undefined;
+  return newestHugReceivedAt(ctx, member);
 }
 
 function cutPositionOf(reads: Read[]): Position | undefined {

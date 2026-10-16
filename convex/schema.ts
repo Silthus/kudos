@@ -299,6 +299,7 @@ export default defineSchema({
     hugs: v.number(),
     emoji: v.string(),
     at: v.number(),
+    givers: v.array(v.object({ giver: v.id("members"), at: v.number() })),
   })
     .index("by_member_message", ["member", "workspace", "conversation", "message"])
     .index("by_member_at", ["member", "at"]),

@@ -48,8 +48,13 @@ export async function countReceivedOnTheMessage(ctx: MutationCtx, hug: Hug, memb
     .query("hugsReceived")
     .withIndex("by_member_message", (q) => q.eq("member", member).eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
     .unique();
-  if (received === null) await ctx.db.insert("hugsReceived", { member, workspace, conversation, message, onKudos, hugs: 1, emoji, at });
-  else await ctx.db.patch(received._id, { hugs: received.hugs + 1, ...(at >= received.at && { emoji, at }) });
+  const giver = { giver: hug.giver, at };
+  if (received === null) await ctx.db.insert("hugsReceived", { member, workspace, conversation, message, onKudos, hugs: 1, emoji, at, givers: [giver] });
+  else await ctx.db.patch(received._id, { hugs: received.hugs + 1, givers: newestGivers([...received.givers, giver]), ...(at >= received.at && { emoji, at }) });
+}
+
+function newestGivers(givers: PaidGiver[]): PaidGiver[] {
+  return givers.toSorted((one, other) => other.at - one.at).slice(0, giversShown);
 }
 
 export type TimelineHug = { message: MessageRef; onKudos: boolean; emoji: string; at: number; created: number };
@@ -58,7 +63,13 @@ export type GivenHug = TimelineHug & { people: MemberId[] };
 
 export type ReceivedHugs = TimelineHug & { hugs: number; givers: MemberId[] };
 
+type PaidGiver = { giver: MemberId; at: number };
+
+type HugsReceivedRow = Doc<"hugsReceived">;
+
 const giversShown = 5;
+
+const movedRowsRead = 50;
 
 export async function* hugsGivenNewestFirst(ctx: QueryCtx, giver: MemberId, before: Before): AsyncGenerator<GivenHug> {
   for (const range of rangesBefore(before)) {
@@ -70,23 +81,64 @@ export async function* hugsGivenNewestFirst(ctx: QueryCtx, giver: MemberId, befo
   }
 }
 
-export async function* hugsReceivedNewestFirst(ctx: QueryCtx, member: MemberId, before: Before): AsyncGenerator<ReceivedHugs> {
+export async function newestHugReceivedAt(ctx: QueryCtx, member: MemberId): Promise<number> {
+  const newest = await ctx.db
+    .query("hugsReceived")
+    .withIndex("by_member_at", (q) => q.eq("member", member))
+    .order("desc")
+    .first();
+  return newest?.at ?? 0;
+}
+
+export async function* hugsReceivedNewestFirst(ctx: QueryCtx, member: MemberId, before: Before, asOf: number | undefined): AsyncGenerator<ReceivedHugs> {
+  const moved = asOf === undefined ? [] : await movedSinceBelow(ctx, member, asOf, before);
+  for await (const row of rowsBefore(ctx, member, before)) {
+    while (moved.length > 0 && isNewer(moved[0]!, row)) yield moved.shift()!;
+    yield row;
+  }
+  yield* moved;
+}
+
+async function* rowsBefore(ctx: QueryCtx, member: MemberId, before: Before): AsyncGenerator<ReceivedHugs> {
   for (const range of rangesBefore(before)) {
     const rows = ctx.db
       .query("hugsReceived")
       .withIndex("by_member_at", (q) => withinRange(q.eq("member", member), range))
       .order("desc");
-    for await (const received of rows) yield { ...timelineHugOf(received), hugs: received.hugs, givers: await newestGiversOn(ctx, received) };
+    for await (const received of rows) yield receivedHugsOf(received, received.at);
   }
 }
 
-async function newestGiversOn(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<MemberId[]> {
-  const newest = await ctx.db
+async function movedSinceBelow(ctx: QueryCtx, member: MemberId, asOf: number, before: Before): Promise<ReceivedHugs[]> {
+  const moved = await ctx.db
+    .query("hugsReceived")
+    .withIndex("by_member_at", (q) => q.eq("member", member).gt("at", asOf))
+    .take(movedRowsRead);
+  const placed = await Promise.all(moved.map(async (row) => ({ row, at: await placeAsOf(ctx, row, asOf) })));
+  return placed
+    .flatMap(({ row, at }) => (at === undefined ? [] : [receivedHugsOf(row, at)]))
+    .filter((received) => isNewer(before, received))
+    .toSorted((one, other) => (isNewer(one, other) ? -1 : 1));
+}
+
+async function placeAsOf(ctx: QueryCtx, row: HugsReceivedRow, asOf: number): Promise<number | undefined> {
+  const kept = row.givers.find(({ at }) => at <= asOf);
+  if (kept !== undefined || row.givers.length === row.hugs) return kept?.at;
+  const { workspace, conversation, message } = row;
+  const older = await ctx.db
     .query("hugs")
-    .withIndex("by_message_at", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
+    .withIndex("by_message_at", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message).lte("at", asOf))
     .order("desc")
-    .take(giversShown);
-  return newest.map(({ giver }) => giver);
+    .first();
+  return older?.at;
+}
+
+function isNewer(one: Before, other: Before): boolean {
+  return one.at > other.at || (one.at === other.at && one.created > other.created);
+}
+
+function receivedHugsOf(row: HugsReceivedRow, at: number): ReceivedHugs {
+  return { ...timelineHugOf(row), at, hugs: row.hugs, givers: row.givers.map(({ giver }) => giver) };
 }
 
 type AtIndex<Q> = { eq(field: "at", value: number): AtIndexCreated<Q>; lt(field: "at", value: number): Q } & Q;
