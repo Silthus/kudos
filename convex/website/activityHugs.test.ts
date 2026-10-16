@@ -187,6 +187,46 @@ describe("SR11: a hug on the activity timeline", () => {
     expect(keyOf(fresh.entries[0]!)).toBe(keyOf(second.entries[0]!));
   });
 
+  test("a hug reacted before the first page but paid after the cursor passed its new place leaves its message's row where the first page found it, so a later page returns it once", async () => {
+    await hugsOn();
+    const messages = ["1791970700.000100", "1791970800.000100", "1791970900.000100"];
+    const firstHugs: number[] = [];
+    for (const ts of messages) {
+      firstHugs.push(await hug(bob, alice, { ts }));
+      vi.advanceTimersByTime(minute);
+    }
+    const asAlice = await signedIn(alice);
+    const reactedBetween = Math.floor(firstHugs[1]! / 1000) + 30;
+    await react(t, { user: carol.user, itemUser: alice.user, ts: messages[0], eventTs: `${reactedBetween}.000200` });
+
+    const first = await activityOf(asAlice, { filter: "all", limit: 1 });
+    const second = await activityOf(asAlice, { filter: "all", limit: 1, cursor: first.cursor });
+    await settle(t);
+    const rest = await activityOf(asAlice, { filter: "all", limit: 10, cursor: second.cursor });
+
+    expect([first, second, rest].map(({ entries }) => entries.map(onOf))).toEqual([[`C1/${messages[2]}`], [`C1/${messages[1]}`], [`C1/${messages[0]}`]]);
+    expect(rest.entries.map(({ at }) => at)).toEqual([firstHugs[0]]);
+    expect((await activityOf(asAlice, { filter: "all", limit: 10 })).entries.map(onOf)).toEqual([`C1/${messages[2]}`, `C1/${messages[0]}`, `C1/${messages[1]}`]);
+  });
+
+  test("a cursor carries no hugs snapshot once hugs is off for the viewer, as main's cursors don't", async () => {
+    await hugsOn();
+    await kudos(bob, [alice], "1791970600.000100");
+    vi.advanceTimersByTime(minute);
+    await kudos(carol, [alice], "1791970650.000100");
+    vi.advanceTimersByTime(minute);
+    await hug(bob, alice);
+    const asAlice = await signedIn(alice);
+    const mainsCursor = /^-?\d+(?:\.\d+)?_[0-5]_\d+(?:\.\d+)?$/;
+
+    const on = await activityOf(asAlice, { filter: "all", limit: 1 });
+    await hugsOn(false);
+    const off = await activityOf(asAlice, { filter: "all", limit: 1, cursor: on.cursor });
+
+    expect(on.cursor).not.toMatch(mainsCursor);
+    expect(off.cursor).toMatch(mainsCursor);
+  });
+
   test("a hugReceived row names only teammates whose hug paid its member", async () => {
     await hugsOn();
     await kudos(alice, [bob, carol]);

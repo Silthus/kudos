@@ -10,7 +10,7 @@ import { perkOf } from "../progression/tree";
 import { questsFinishedByMessage } from "../quests/finishedBy";
 import { hugsShownTo } from "../hugs/flag";
 import { withoutSkinTone } from "../slack/reactions";
-import { hugsGivenNewestFirst, hugsReceivedNewestFirst, newestHugReceivedAt, type GivenHug, type ReceivedHugs, type TimelineHug } from "../hugs/records";
+import { hugsGivenNewestFirst, hugsReceivedNewestFirst, hugsReceivedSnapshot, type GivenHug, type ReceivedHugs, type TimelineHug } from "../hugs/records";
 import { hugXp } from "../hugs/xp";
 import { levelUpsNewestFirst } from "../unlocks/unlocks";
 import { chatUserOf, timeZoneOf, type MemberId } from "../workspace/directory";
@@ -140,7 +140,7 @@ export async function recentKudosOf(ctx: QueryCtx, member: MemberId, { direction
 
 async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, cursor: Cursor | null, size: number) {
   const hugsShown = once(() => hugsShownTo(ctx, member));
-  const hugsAsOf = cursor === null ? await hugsSnapshotOf(ctx, member, filter, hugsShown) : cursor.hugsAsOf;
+  const hugsAsOf = await hugsSnapshotOf(ctx, member, filter, hugsShown, cursor);
   const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown, hugsAsOf };
   const after = cursor?.after ?? null;
   const reads = await Promise.all(sourcesOf[filter].map(({ rank, read }) => read(ctx, viewer, beforeFor(rank, after), size + 1)));
@@ -153,9 +153,9 @@ async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, cursor: C
   return { entries, after: more && last !== undefined ? encodeCursor({ after: last.position, hugsAsOf }) : null };
 }
 
-async function hugsSnapshotOf(ctx: QueryCtx, member: MemberId, filter: Filter, hugsShown: () => Promise<boolean>): Promise<number | undefined> {
+async function hugsSnapshotOf(ctx: QueryCtx, member: MemberId, filter: Filter, hugsShown: () => Promise<boolean>, cursor: Cursor | null): Promise<number | undefined> {
   if (filter !== "all" || !(await hugsShown())) return undefined;
-  return newestHugReceivedAt(ctx, member);
+  return cursor === null ? hugsReceivedSnapshot(ctx, member) : cursor.hugsAsOf;
 }
 
 function cutPositionOf(reads: Read[]): Position | undefined {
