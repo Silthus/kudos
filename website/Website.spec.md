@@ -70,6 +70,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   over: useLinkTargetOnceLanded in website/src/linkTarget.ts, run over the Quests page's cards of earlier weeks' crates, for two weeks' group crates beside a weekly crate of the same week and this week's group crate, a group crate already opened, and a target with a broken week or none
   via: #517: ?crate=group:{week} lands on an earlier week's waiting group crate
   because: map #1 links an earlier week's group crate `Open` in Slack to `/quests` (#509), and without a target the member lands among every waiting crate with nothing to say which one they pressed; opening it on arrival would spend their reveal before they saw the page (#500, #517)
+  refuted: waitingCrateTargetOf gave an earlier week's group crate this week's group target instead of { kind: group, week } -> both earlier weeks' landings found no crate to focus, 2 of 5 tests red (2026-10-16)
   kinds: output
   checklist: destination-confinement dismissed: the website sends nothing on arrival; the crate opens only when the member presses its open button
   checklist: redaction dismissed: the target names a week, never a member or a group
