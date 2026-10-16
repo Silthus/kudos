@@ -48,7 +48,7 @@ function buyButtons() {
 }
 
 function buyButtonFor(name: string) {
-  return within(notYoursYet()).getByRole("button", { name: new RegExp(`^(Buy ${name} for|Buying ${name})`) });
+  return within(notYoursYet()).getByRole("button", { name: new RegExp(`^(Buy for \\d+ coins|Buying…), ${name}$`) });
 }
 
 function announcement() {
@@ -76,9 +76,10 @@ describe("WS341 C4: an item on sale offers Buy for {n} coins in the inventory", 
   it("offers Buy on each item on sale, named for its item, and on nothing else", () => {
     buyWith(async () => ({ kind: "refused", reason: null }));
 
-    expect(buyButtons().map((button) => button.textContent)).toEqual(["Buy for 100 coins", "Buy for 100 coins"]);
-    expect(buyButtonFor("Glowing Star")).toHaveAccessibleName("Buy Glowing Star for 100 coins");
-    expect(buyButtonFor("Gem")).toHaveAccessibleName("Buy Gem for 100 coins");
+    expect(buyButtons().map((button) => button.textContent)).toEqual(["Buy for 100 coins, Glowing Star", "Buy for 100 coins, Gem"]);
+    for (const button of buyButtons()) expect(button.getAttribute("aria-label")).toBeNull();
+    expect(buyButtonFor("Glowing Star")).toHaveAccessibleName("Buy for 100 coins, Glowing Star");
+    expect(buyButtonFor("Gem")).toHaveAccessibleName("Buy for 100 coins, Gem");
     expect(within(notYoursYet()).getAllByRole("listitem").at(-1)).toHaveTextContent("Silver in Generosity");
     expect(within(yours()).queryByRole("button", { name: /^Buy/ })).not.toBeInTheDocument();
   });
@@ -120,7 +121,7 @@ describe("WS341 C4: an item on sale offers Buy for {n} coins in the inventory", 
 
     await user.click(buyButtonFor("Gem"));
 
-    expect(buyButtonFor("Gem")).toHaveTextContent("Buying…");
+    expect(buyButtonFor("Gem")).toHaveAccessibleName("Buying…, Gem");
     expect(buyButtonFor("Gem")).toHaveAttribute("aria-disabled", "true");
     expect(buyButtonFor("Gem")).toHaveFocus();
     expect(buyButtonFor("Glowing Star")).toHaveAttribute("aria-disabled", "true");
@@ -161,6 +162,16 @@ describe("WS341 V13: a bought item turns owned in place, never as a crate", () =
     expect(within(yours()).getByText("Rocket").closest("li")).not.toHaveClass("perk-pop");
     fireEvent.animationEnd(tile);
     expect(tile).not.toHaveClass("perk-pop");
+  });
+
+  it("takes the bought item out of Not yours yet at the answer, before the read moves it", async () => {
+    const { user } = buyWith(async () => ({ kind: "bought", item: gem }));
+
+    await user.click(buyButtonFor("Gem"));
+
+    expect(announcement()).toHaveTextContent("You bought Gem.");
+    expect(within(notYoursYet()).queryByText("Gem")).not.toBeInTheDocument();
+    expect(buyButtons()).toHaveLength(1);
   });
 
   it("names the item the purchase was for even when the read already moved it", async () => {
@@ -254,6 +265,20 @@ describe("WS87 WS341: a refusal, an error and a retry", () => {
     await user.click(buyButtonFor("Gem"));
 
     expect(requests()[1]).not.toBe(requests()[0]);
+  });
+});
+
+describe("WS339 V24: the Buy row's layout", () => {
+  it("is a small button, not an extra-small one, so a phone has a tap target", () => {
+    buyWith(async () => ({ kind: "refused", reason: null }));
+
+    for (const button of buyButtons()) expect(button).toHaveAttribute("data-size", "sm");
+  });
+
+  it("keeps the purchase's status line's height before any answer, so an answer moves nothing", () => {
+    buyWith(async () => ({ kind: "refused", reason: null }));
+
+    expect(announcement()).toHaveClass("min-h-5");
   });
 });
 

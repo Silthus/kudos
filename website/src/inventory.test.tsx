@@ -67,7 +67,7 @@ describe("WS341 ST26: the inventory side of the home's main slot, read only", ()
     renderApp(memberWithTheInventory);
 
     const notYet = within(kudosEmoji()).getByRole("list", { name: "Not yours yet" });
-    expect(readAloudIn(notYet)).toEqual(["Glowing StarBuy for 100 coins", "GemBuy for 100 coins", "RibbonSilver in Generosity"]);
+    expect(readAloudIn(notYet)).toEqual(["Glowing StarBuy for 100 coins, Glowing Star", "GemBuy for 100 coins, Gem", "RibbonSilver in Generosity"]);
     expect(glyphsIn(notYet)).toEqual(["🌟", "💎", "🎀"]);
   });
 

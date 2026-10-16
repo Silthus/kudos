@@ -36,7 +36,7 @@ function KudosEmojiSection({ inventory, kudosEmoji, coins, buyItem }: KudosEmoji
   const heading = useRef<HTMLHeadingElement>(null);
   const purchasing = useItemPurchase(buyItem, () => heading.current?.focus());
   const yours = ownedIn(inventory, purchasing);
-  const notYet = inventory.catalogue.filter(({ item }) => !yours.some(({ entry }) => entry.item === item));
+  const notYet = inventory.catalogue.filter(({ item }) => item !== purchasing.justBought && !yours.some(({ entry }) => entry.item === item));
   const equipped = inventory.slots.filter(({ item }) => item !== null).length;
   return (
     <section aria-labelledby="inventory-kudos-emoji" className="flex flex-col gap-3">
@@ -63,7 +63,7 @@ function KudosEmojiSection({ inventory, kudosEmoji, coins, buyItem }: KudosEmoji
 
 function PurchaseNotice({ notice }: { notice: ItemNotice | undefined }) {
   return (
-    <p role="status" className="flex items-center gap-1.5 text-sm">
+    <p role="status" className="flex min-h-5 items-center gap-1.5 text-sm">
       {notice?.kind === "bought" && <IconCheck aria-hidden="true" className="size-3.5 shrink-0 text-foreground" />}
       {notice?.text}
     </p>
@@ -129,16 +129,16 @@ function BuyAction({ item, price, coins, purchasing }: { item: InventoryItem; pr
   return (
     <span className="flex shrink-0 flex-col items-end gap-0.5">
       <Button
-        size="xs"
+        size="sm"
         variant="outline"
         disabled={short > 0}
         aria-disabled={busy || short > 0 || undefined}
-        aria-label={sending ? `Buying ${item.name}…` : `Buy ${item.name} for ${coinsText(price)}`}
         aria-describedby={short > 0 ? hint : undefined}
         onClick={() => purchasing.buy(item)}
         className="tabular-nums"
       >
         {sending ? "Buying…" : `Buy for ${coinsText(price)}`}
+        <span className="sr-only">{`, ${item.name}`}</span>
       </Button>
       {short > 0 && (
         <span id={hint} className="text-[11px] text-muted-foreground tabular-nums">
