@@ -1,5 +1,5 @@
 import type { QuestsRead } from "./questsRead";
-import type { JourneyStep, MyQuests, QuestSlot, QuestsAnswer, WaitingCrate } from "./shell";
+import type { GroupQuestCard, GroupQuestCrate, JourneyStep, MyQuests, QuestSlot, QuestsAnswer, WaitingCrate } from "./shell";
 
 const chatUrl = "https://app.slack.com/client/T1";
 
@@ -61,11 +61,25 @@ const joiningIn: QuestSlot = {
   seen: null,
 };
 
-const lastWeeksCrate: WaitingCrate = { goal: "Thank someone and say why on 2 different days.", week: "2026-10-05", reward: { xp: 20 }, crate: { kind: "weekly", week: "2026-10-05", slot: 0 }, seen: "e3b5c8", waiting: false };
+const lastWeeksCrate: WaitingCrate = { goal: "Thank someone and say why on 2 different days.", group: null, week: "2026-10-05", reward: { xp: 20 }, crate: { kind: "weekly", week: "2026-10-05", slot: 0 }, seen: "e3b5c8", waiting: false };
 
 const twoWeeksAgosCrateOfTheSameQuest: WaitingCrate = { ...lastWeeksCrate, week: "2026-09-28", crate: { kind: "weekly", week: "2026-09-28", slot: 2 }, seen: "a7f2c1" };
 
-const week: QuestsAnswer = { kind: "quests", slots: [inProgress, finished, openedAndSwapped], swap: { used: true, available: false }, waiting: [], bonus: null, chatUrl };
+const week: QuestsAnswer = { kind: "quests", slots: [inProgress, finished, openedAndSwapped], swap: { used: true, available: false }, group: null, waiting: [], bonus: null, chatUrl };
+
+const ants = "1000000000000000000000userGroups" as GroupQuestCrate["group"];
+
+const groupInProgress: GroupQuestCard = { group: "Ants", goal: "Thank someone and say why.", progress: { done: 1, target: 3 }, you: true, reward: { xp: 0, coins: 15 }, state: "in-progress", waiting: false, crate: null, seen: null };
+
+const groupFinished: GroupQuestCard = { ...groupInProgress, progress: { done: 3, target: 3 }, state: "finished", crate: { kind: "group", group: ants, week: thisWeek }, seen: "9a1b2c" };
+
+const groupFinishedWithoutYou: GroupQuestCard = { ...groupFinished, you: false, crate: null, seen: null };
+
+const groupClaimed: GroupQuestCard = { ...groupFinished, state: "opened", crate: null };
+
+const lastWeeksGroupCrate: WaitingCrate = { goal: "Thank someone outside Ants.", group: "Ants", week: "2026-10-05", reward: { xp: 0, coins: 15 }, crate: { kind: "group", group: ants, week: "2026-10-05" }, seen: "5d6e7f", waiting: false };
+
+export const groupQuests = { groupInProgress, groupFinished, groupFinishedWithoutYou, groupClaimed, lastWeeksGroupCrate };
 
 const sayingWhyTwice: QuestSlot = { ...joiningIn, kind: "Say why", goal: "Thank someone and say why, 2 times.", progress: { done: 0, target: 2 } };
 
@@ -118,7 +132,12 @@ export const questsFixtures = {
   weekWithABonus: { ...week, bonus: someoneNew },
   weekPayingCoins,
   weekWithAFinishedBonus: { ...week, slots: [inProgress, openedAndSwapped], bonus: firstQuestFinished },
-  noDraw: { kind: "quests", slots: [], swap: { used: false, available: false }, waiting: [], bonus: null, chatUrl },
+  weekWithTheGroupQuest: { ...week, group: groupInProgress },
+  weekWithTheGroupQuestFinished: { ...week, group: groupFinished },
+  weekWithTheGroupQuestFinishedWithoutYou: { ...week, group: groupFinishedWithoutYou },
+  weekWithTheGroupQuestClaimed: { ...week, group: groupClaimed },
+  weekWithLastWeeksGroupCrate: { ...week, group: groupInProgress, waiting: [lastWeeksGroupCrate] },
+  noDraw: { kind: "quests", slots: [], swap: { used: false, available: false }, group: null, waiting: [], bonus: null, chatUrl },
   locked: { kind: "locked", level: 2 },
   ready: { kind: "ready" },
   notFound: { kind: "not-found" },

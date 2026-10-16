@@ -4,7 +4,7 @@ import { Button, buttonVariants } from "@posthog/quill";
 import { AppLink } from "../AppLink";
 import { hogOf, isOrAre, waitsOf, webPageOf } from "../features";
 import type { Feature, FeatureCard, MemberProfile } from "../shell";
-import { rewardWords } from "../quests/QuestReward";
+import { earnedLineOf } from "../quests/QuestReward";
 import { prefersReducedMotion } from "../reducedMotion";
 import { SlackLink } from "../SlackLink";
 import { CrateArt, CrateGlyph } from "./CrateArt";
@@ -245,7 +245,7 @@ function RewardEndState({ crate, chips, offerQuests, onClose, onReplay }: Reward
       <IconArrowRight aria-hidden="true" className="size-4" />
     </AppLink>
   );
-  return <EndFrame headline={`You earned ${rewardWords(crate.reward)}`} chips={chips} onClose={onClose} onReplay={onReplay} go={toQuests} />;
+  return <EndFrame headline={earnedLineOf(crate.reward)} chips={chips} onClose={onClose} onReplay={onReplay} go={toQuests} />;
 }
 
 type EndFrameProps = { headline: string; chips?: ReactNode; go: ReactNode; next?: ReactNode; onClose: Close; onReplay: () => void; children?: ReactNode };
