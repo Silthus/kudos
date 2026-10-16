@@ -2,14 +2,17 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { ReportableError } from "../analytics/exceptions";
 import { memberDecision } from "../analytics/flags";
-import { chatUserOf, type MemberId } from "../workspace/directory";
-import { keepsMembers } from "../workspace/userGroups";
+import type { ChatUserId } from "../engine/messageEvent";
+import { chatUserOf, type MemberId, type People } from "../workspace/directory";
+import { keepsMembers, usersInUserGroup } from "../workspace/userGroups";
 import { groupsApplyTo, groupsFlag } from "./flag";
 import type { GroupModeKind } from "./mode";
 
 export type GroupId = Id<"userGroups">;
 
 export type GroupRef = { group: GroupId; name: string };
+
+export type CountingGroup = GroupRef & { people: MemberId[] };
 
 export type GroupMode = { mode: GroupModeKind; allowlist?: GroupId[] };
 
@@ -45,6 +48,21 @@ export async function availableIn(ctx: QueryCtx, workspace: string): Promise<boo
     if (countsAsGroup(row, mode)) return true;
   }
   return false;
+}
+
+export async function countingGroupsWithPeopleIn(ctx: QueryCtx, workspace: string, people: People): Promise<CountingGroup[]> {
+  const mode = await groupModeOf(ctx, workspace);
+  const counting = (await userGroupsIn(ctx, workspace).collect()).filter((row) => countsAsGroup(row, mode));
+  const membersByUser = currentMembersByUser(people);
+  return Promise.all(counting.map(async (row) => ({ group: row._id, name: row.name, people: membersAmong(await usersInUserGroup(ctx, row), membersByUser) })));
+}
+
+function currentMembersByUser(people: People): Map<ChatUserId, MemberId> {
+  return new Map([...people].filter(([, { former }]) => !former).map(([member, { user }]) => [user, member]));
+}
+
+function membersAmong(users: ChatUserId[], membersByUser: Map<ChatUserId, MemberId>): MemberId[] {
+  return users.flatMap((user) => membersByUser.get(user) ?? []);
 }
 
 export async function groupsShownTo(ctx: QueryCtx | MutationCtx, member: MemberId): Promise<boolean> {

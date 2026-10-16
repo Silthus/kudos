@@ -180,6 +180,10 @@ async function replaceMembers(ctx: MutationCtx, row: Doc<"userGroups">, users: C
   return [...removed.map(({ user }) => user), ...wanted];
 }
 
+export async function usersInUserGroup(ctx: QueryCtx, key: GroupKey): Promise<ChatUserId[]> {
+  return (await membershipsOf(ctx, key).collect()).map(({ user }) => user);
+}
+
 function membershipsOf(ctx: QueryCtx, { workspace, group }: GroupKey) {
   return ctx.db.query("userGroupMembers").withIndex("by_group", (q) => q.eq("workspace", workspace).eq("group", group));
 }
