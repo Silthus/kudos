@@ -124,7 +124,7 @@ function Stickers({ stickers, chatUrl, timeZone }: { stickers: TeamPages["sticke
           {stickers.map((sticker) => (
             <li key={sticker.key} data-sticker={sticker.key} data-former={sticker.former ? "" : undefined} className="bk-face flex flex-col items-center gap-1 rounded-lg border bg-card px-1 pb-1.5 pt-2 text-center">
               <StickerFace sticker={sticker} className="size-10" />
-              <span className={`w-full truncate text-xs font-medium ${sticker.former ? "text-muted-foreground" : ""}`}>{sticker.name}</span>
+              <span title={sticker.name} className={`line-clamp-2 w-full break-words text-xs font-medium leading-tight ${sticker.former ? "text-muted-foreground" : ""}`}>{sticker.name}</span>
               <span className="text-[11px] leading-tight tabular-nums text-muted-foreground">{dateWords(sticker.firstAt, timeZone)}</span>
               {sticker.former && <span className="text-[11px] leading-tight text-muted-foreground">Former teammate</span>}
             </li>
