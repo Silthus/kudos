@@ -35,6 +35,7 @@ describe("#435: the router reads every target a Slack link carries", () => {
     { link: "/?crate=journey", page: { page: "home", crate: "journey" }, route: { page: "home", crate: "journey" } },
     { link: "/quests?crate=weekly%3A2026-10-05%3A2", page: { page: "quests", crate: lastWeeksCrate }, route: { page: "quests", crate: lastWeeksCrate } },
     { link: "/book/collection?crate=bought%3A2", page: { page: "bookCollection", crate: secondBoughtCrate }, route: { page: "book", bookPage: "collection", crate: secondBoughtCrate } },
+    { link: "/book/collection?crate=store", page: { page: "bookCollection", crate: "store" }, route: { page: "book", bookPage: "collection", crate: "store" } },
   ])("$link", ({ link, page, route }) => {
     const url = urlOf(origin, page);
     expect(url).toBe(`${origin}${link}`);
@@ -45,11 +46,11 @@ describe("#435: the router reads every target a Slack link carries", () => {
     expect(routeOf(new URL(`${origin}/quests?crate=${crate}`))).toEqual({ page: "quests" });
   });
 
-  test.each(["bought", "bought:", "bought:x", "bought:-1", "bought:0", "bought:1.5", "bought:1:2", "sold:1"])("#469: drops a broken bought crate: ?crate=%s", (crate) => {
+  test.each(["bought", "bought:", "bought:x", "bought:-1", "bought:0", "bought:1.5", "bought:1:2", "bought:1000000000000000000000", "sold:1"])("#469: drops a broken bought crate: ?crate=%s", (crate) => {
     expect(routeOf(new URL(`${origin}/book/collection?crate=${crate}`))).toEqual({ page: "book", bookPage: "collection" });
   });
 
-  test.each([1.5, 0, -1])("#469: the link function writes no target for a bought crate numbered %s, so both sides agree", (n) => {
+  test.each([1.5, 0, -1, 1e21])("#469: the link function writes no target for a bought crate numbered %s, so both sides agree", (n) => {
     expect(urlOf(origin, { page: "bookCollection", crate: { kind: "bought", n } })).toBe(`${origin}/book/collection`);
   });
 });

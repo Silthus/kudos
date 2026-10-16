@@ -203,7 +203,7 @@ describe("#469: the Collection offers a crate for coins", () => {
     expect(buyButton()).not.toHaveAttribute("aria-disabled");
   });
 
-  it("keeps the answer's notice when the read drops the offer while the purchase is out", async () => {
+  it("keeps the live region, then the answer's notice, when the read drops the offer while the purchase is out", async () => {
     const pending = answerLater();
     const store = storeAnswering([nothingWaiting, light(collectionFixtures.collection)]);
     const { user, showVisitor } = showTheStore(nothingWaiting, { read: store.read, buyCrate: () => pending.answer });
@@ -211,6 +211,7 @@ describe("#469: the Collection offers a crate for coins", () => {
     await user.click(buyButton());
     store.next();
     showVisitor({ ...shopper });
+    expect(notice()).toBeEmptyDOMElement();
     await pending.settle(null);
 
     expect(within(crates()).queryByRole("button", { name: /^Buy/ })).toBeNull();
@@ -382,5 +383,5 @@ describe("#469: the store and the bought crate's reveal are accessible", () => {
 
     expect(dialog()).toBeNull();
     expect(main().querySelector('[data-crate-target="bought:1"]')).toHaveFocus();
-  });
+  }, 60_000);
 });

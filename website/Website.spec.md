@@ -42,10 +42,10 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: commit-ordered-effects dismissed: arriving issues no command and no external effect
   checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
   checklist: declared-target-coverage dismissed: there is no fan-out; one page lands on one crate
-- a link lands on a bought crate and never opens it: A link with `?crate=bought:{n}` on `/book/collection` scrolls that bought crate into view among the Collection's crates waiting to open and focuses its `Open` once the collection answer lands, and never opens the crate; a crate already opened or a broken target leaves the plain page.
-  over: useLinkTargetOnceLanded in website/src/linkTarget.ts, run by App over the Collection page's waiting bought crates, for a crate that waits, a crate already opened, a broken target and an answer that lands after loading
-  via: #469: ?crate=bought:{n} lands on that bought crate's Open and never opens it
-  because: App Home's `Open` for a crate the member bought becomes a website link once this page exists (#465, #469), and opening it on arrival would spend their reveal before they saw the page (#435, #500)
+- a link lands on a bought crate and never opens it: A link with `?crate=bought:{n}` on `/book/collection` scrolls that bought crate into view among the Collection's crates waiting to open and focuses its `Open` once the collection answer lands, and never opens the crate; `?crate=store` scrolls to the crate offer and focuses `Buy a crate`, held or not, and never buys; a crate already opened, a missing offer or a broken target leaves the plain page.
+  over: useLinkTargetOnceLanded in website/src/linkTarget.ts, run by App over the Collection page's waiting bought crates and its crate offer, for a crate that waits, a crate already opened, the offer with coins to spare and held short, the offer absent, a broken target and an answer that lands after loading
+  via: #469: ?crate=bought:{n} lands on that bought crate's Open and ?crate=store on Buy a crate, never opening or buying
+  because: App Home's `Open` for a crate the member bought and its `Buy a crate` become website links once this page exists (#465, #469, #509), and opening or buying on arrival would spend their reveal before they saw the page (#435, #500)
   kinds: output
   checklist: destination-confinement dismissed: the website sends nothing on arrival; the crate opens only when the member presses Open
   checklist: redaction dismissed: the target names the member's own crate number, never a member

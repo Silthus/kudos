@@ -20,7 +20,7 @@ export function CrateStore({ collection, coins, buyCrate }: CrateStoreProps) {
   const offer = collection.crateStore ?? null;
   const purchase = useCratePurchase(buyCrate, offer?.next);
   const list = useFocusOnTheBoughtCrate(purchase);
-  if (offer === null && waiting.length === 0 && purchase.notice === undefined) return null;
+  if (offer === null && waiting.length === 0 && purchase.notice === undefined && !purchase.buying) return null;
   return (
     <section aria-labelledby={headingId} data-crate-store className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -105,7 +105,7 @@ function Offer({ price, coins, purchase, primary }: OfferProps) {
         <p className="text-sm font-medium">Your next crate</p>
         <p className="text-xs text-muted-foreground">{`It costs ${coinsText(price)}. Coins are never refunded.`}</p>
       </div>
-      <div className="flex flex-col items-end gap-1">
+      <div className="flex flex-col items-end gap-1" {...crateTargetAttributes("store")}>
         <Button
           variant={primary ? "primary" : "outline"}
           size="sm"

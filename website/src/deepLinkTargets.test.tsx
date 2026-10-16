@@ -352,7 +352,7 @@ describe("#435: axe finds no violations on a landing", () => {
   });
 });
 
-describe("#469: ?crate=bought:{n} lands on that bought crate's Open and never opens it", () => {
+describe("#469: ?crate=bought:{n} lands on that bought crate's Open and ?crate=store on Buy a crate, never opening or buying", () => {
   const shopper = { ...shellFixtures.memberWithTheInventory, coins: 120 };
   const twoWaiting: Collection = { ...collectionFixtures.withTheStore, hoggies: collectionFixtures.withTheStore.hoggies.slice(0, 6), crests: undefined };
 
@@ -383,6 +383,36 @@ describe("#469: ?crate=bought:{n} lands on that bought crate's Open and never op
   ])("leaves the plain page for %s", (_, path) => {
     const scrolled = watchScrolling();
     showTheCollectionAt(path);
+
+    expect(scrolled).toEqual([]);
+    expect(document.body).toHaveFocus();
+  });
+
+  it("?crate=store scrolls to the offer and focuses Buy a crate, never buying", () => {
+    const scrolled = watchScrolling();
+    const { actions } = showTheCollectionAt("/book/collection?crate=store");
+
+    const buy = within(main()).getByRole("button", { name: "Buy a crate · 50 coins" });
+    expect(scrolled).toHaveLength(1);
+    expect(scrolled[0]!.contains(buy)).toBe(true);
+    expect(buy).toHaveFocus();
+    expect(actions.buyCrate).not.toHaveBeenCalled();
+    expect(actions.openCrate).not.toHaveBeenCalled();
+  });
+
+  it("?crate=store focuses a Buy held short of coins too, still never buying", () => {
+    visit("/book/collection?crate=store");
+    const { actions } = renderApp({ ...shopper, coins: 20 }, undefined, undefined, undefined, fixedBook(bookFixtures.everyLadder), undefined, undefined, undefined, undefined, undefined, undefined, fixedCollection(twoWaiting));
+
+    const buy = within(main()).getByRole("button", { name: "Buy a crate · 50 coins" });
+    expect(buy).toHaveFocus();
+    expect(buy).toHaveAttribute("aria-disabled", "true");
+    expect(actions.buyCrate).not.toHaveBeenCalled();
+  });
+
+  it("leaves the plain page for ?crate=store while the answer carries no offer", () => {
+    const scrolled = watchScrolling();
+    showTheCollectionAt("/book/collection?crate=store", { ...twoWaiting, crateStore: null });
 
     expect(scrolled).toEqual([]);
     expect(document.body).toHaveFocus();

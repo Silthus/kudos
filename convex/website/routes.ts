@@ -6,7 +6,7 @@ import type { pageValidator } from "./link";
 
 export type Page = Infer<typeof pageValidator>;
 
-const namedCrateValidator = v.union(...featureValidator.members, v.literal("journey"), v.literal("group"));
+const namedCrateValidator = v.union(...featureValidator.members, v.literal("journey"), v.literal("group"), v.literal("store"));
 
 type NamedCrate = Infer<typeof namedCrateValidator>;
 
@@ -27,7 +27,7 @@ const boughtCrateParam = /^bought:(\d+)$/;
 export function crateParamOf(crate: CrateTarget): string | undefined {
   if (typeof crate === "string") return crate;
   if (crate.kind === "weekly") return `${crate.kind}:${crate.week}:${crate.slot}`;
-  return Number.isInteger(crate.n) && crate.n > 0 ? `${crate.kind}:${crate.n}` : undefined;
+  return isACrateNumber(crate.n) ? `${crate.kind}:${crate.n}` : undefined;
 }
 
 export function crateTargetIn(param: string | null): CrateTarget | undefined {
@@ -38,7 +38,11 @@ export function crateTargetIn(param: string | null): CrateTarget | undefined {
   if (weekly !== null) return { kind: "weekly", week: weekly[1]!, slot: Number(weekly[2]) };
   const bought = boughtCrateParam.exec(param);
   const n = bought === null ? 0 : Number(bought[1]);
-  return n > 0 ? { kind: "bought", n } : undefined;
+  return isACrateNumber(n) ? { kind: "bought", n } : undefined;
+}
+
+function isACrateNumber(n: number) {
+  return Number.isSafeInteger(n) && n > 0;
 }
 
 export function boughtCrateTargetOf(crate: string): BoughtCrateTarget | undefined {
@@ -106,6 +110,10 @@ export function questCratePageOf(quest: Quest): Page {
 export function boughtCratePageOf(crate: string): Page {
   const target = boughtCrateTargetOf(crate);
   return target === undefined ? { page: "bookCollection" } : { page: "bookCollection", crate: target };
+}
+
+export function crateOfferPageOf(): Page {
+  return { page: "bookCollection", crate: "store" };
 }
 
 export function earlierWeekCratePageOf(quest: WeeklyQuest | GroupQuestCrate): Page {
