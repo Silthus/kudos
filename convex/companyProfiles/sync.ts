@@ -87,7 +87,7 @@ async function readTeamPages(): Promise<Read> {
     teams.push(...parsed.teams);
   }
   const profiles = profilesOf(teams);
-  return profiles.length === 0 ? { kind: "failed", reason: "empty" } : { kind: "read", profiles, teams: companyTeamsOf(teams) };
+  return profiles.length === 0 ? { kind: "failed", reason: "empty" } : { kind: "read", profiles, teams: keptTeamsOf(teams) };
 }
 
 async function pageOf(page: number): Promise<Response | undefined> {
@@ -135,18 +135,25 @@ function isConsistent(parsed: TeamsPage, page: number, pageCountSoFar: number) {
 function teamOf(team: unknown): Team | undefined {
   const slug = at(team, "attributes", "slug");
   const name = at(team, "attributes", "name");
-  const leads = idsOf(at(team, "attributes", "leadProfiles", "data") ?? []);
+  const leads = idsOf(at(team, "attributes", "leadProfiles", "data"));
   const profiles = at(team, "attributes", "profiles", "data");
   if (!isOptionalText(slug) || !isOptionalText(name) || leads === undefined || !Array.isArray(profiles)) return undefined;
   const parsed = profiles.map(profileOf);
   if (!parsed.every((profile) => profile !== undefined)) return undefined;
+  const keptSlug = nonBlank(slug);
+  const keptName = nonBlank(name);
   return {
-    ...(typeof slug === "string" && { slug }),
-    ...(typeof name === "string" && name.trim() !== "" && { name: name.trim() }),
+    ...(keptSlug !== undefined && { slug: keptSlug }),
+    ...(keptName !== undefined && { name: keptName }),
     crest: at(team, "attributes", "crest", "data", "attributes", "url"),
     leads,
     profiles: parsed,
   };
+}
+
+function nonBlank(text: unknown) {
+  const trimmed = typeof text === "string" ? text.trim() : "";
+  return trimmed === "" ? undefined : trimmed;
 }
 
 function isOptionalText(value: unknown) {
@@ -190,7 +197,7 @@ function profilesOf(teams: Team[]): CompanyProfile[] {
 
 function newProfile(person: TeamProfile, name: string): CompanyProfile {
   const image = sizedCloudinaryImage(person.cutout);
-  const role = typeof person.role === "string" ? person.role.trim() : "";
+  const role = nonBlank(person.role);
   return {
     profile: person.id,
     firstName: person.firstName,
@@ -199,11 +206,11 @@ function newProfile(person: TeamProfile, name: string): CompanyProfile {
     ...(image !== undefined && { image }),
     colour: colourOf(person.colour),
     teams: [],
-    ...(role !== "" && { role }),
+    ...(role !== undefined && { role }),
   };
 }
 
-function companyTeamsOf(teams: Team[]): CompanyTeam[] {
+function keptTeamsOf(teams: Team[]): CompanyTeam[] {
   return teams.filter(isKept).map((team) => {
     const crestImage = sizedCloudinaryImage(team.crest);
     return {

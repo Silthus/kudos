@@ -168,10 +168,9 @@ describe("WS22: a failed posthog.com read keeps the previous profiles", () => {
       "malformed",
     ],
     "a team whose name isn't text": [() => Response.json({ data: [{ id: 1, attributes: { slug: "analytics", name: 7, profiles: { data: [] } } }], meta: { pagination: { page: 1, pageCount: 1 } } }), "malformed"],
-    "a team whose leads aren't profiles": [
-      () => Response.json({ data: [{ id: 1, attributes: { slug: "analytics", name: "Analytics", leadProfiles: { data: ["Oriel"] }, profiles: { data: [] } } }], meta: { pagination: { page: 1, pageCount: 1 } } }),
-      "malformed",
-    ],
+    "a team whose leads aren't profiles": [() => aTeamWithLeads({ data: ["Oriel"] }), "malformed"],
+    "a team without its lead profiles": [() => aTeamWithLeads(undefined), "malformed"],
+    "a team whose lead profiles hold no list": [() => aTeamWithLeads({ data: null }), "malformed"],
     "no pagination": [() => Response.json({ data: [] }), "malformed"],
     "no profiles at all": [() => Response.json({ data: [], meta: { pagination: { page: 1, pageCount: 1 } } }), "empty"],
   } satisfies Record<string, [ScriptedAnswer, string]>;
@@ -240,4 +239,9 @@ describe("WS22: a failed posthog.com read keeps the previous profiles", () => {
 async function withPagination(asPostHogComWould: () => Response, pagination: { page: number; pageCount: number }) {
   const body = await asPostHogComWould().json();
   return Response.json({ ...body, meta: { pagination } });
+}
+
+function aTeamWithLeads(leadProfiles: unknown) {
+  const oriel = { id: 3, attributes: { firstName: "Oriel", lastName: "Pemberton", color: "teal", companyRole: null, avatar: { data: null } } };
+  return Response.json({ data: [{ id: 1, attributes: { slug: "analytics", name: "Analytics", crest: { data: null }, leadProfiles, profiles: { data: [oriel] } } }], meta: { pagination: { page: 1, pageCount: 1 } } });
 }

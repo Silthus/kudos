@@ -672,6 +672,10 @@
     {
       "name": "teammate",
       "definition": "Another member of the same workspace, seen from one member: someone they can thank or be thanked by. The website shows a teammate by name and face while the directory has them, and as A teammate with the nameless face once it no longer names them. A teammate is a person, never a hoggie."
+    },
+    {
+      "name": "company team",
+      "definition": "The deployment's copy of a team on the company's website: its slug, name, crest image, leads and people as company profile IDs in the website's order. The daily sync replaces every company team together with the company profiles, after a complete read."
     }
   ],
   "retired": [

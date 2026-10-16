@@ -4,7 +4,7 @@ The website's copy of posthog.com's public team pages, and the matcher for one m
 
 ## invariants
 - a failed posthog.com read keeps the previous profiles: A sync replaces the company profiles and the company teams, both together, only after it read every page of posthog.com's team API in full and found it well formed and not empty; any other read keeps the previous profiles and teams and logs a fixed code.
-  over: a sync after a good read, answered by an error status, a network failure, a body that isn't JSON, a team without its profiles, a team whose name isn't text, a team whose leads aren't profiles, a profile without a last name, no pagination, no profiles at all, a later page that declares fewer pages or answers as the first page again, and a failure on a later page
+  over: a sync after a good read, answered by an error status, a network failure, a body that isn't JSON, a team without its profiles, a team whose name isn't text, a team whose leads aren't profiles, a team without its lead profiles or whose lead profiles hold no list, a profile without a last name, no pagination, no profiles at all, a later page that declares fewer pages or answers as the first page again, and a failure on a later page
   via: WS22: a failed posthog.com read keeps the previous profiles
   because: posthog.com is outside the deployment's control; a partial, failed or changed answer replacing the table would turn every member's face back to their Slack photo, and empty or cut the team pages, until the next good day (WS22, CV15)
   crossing: posthog-com -> domain

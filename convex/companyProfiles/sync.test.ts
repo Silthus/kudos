@@ -82,7 +82,7 @@ describe("CV15: the sync keeps every company team with its name, crest, leads an
   });
 
   test("a team without a slug or a name is skipped, and its people are still kept as profiles on their other teams", async () => {
-    postHogCom.withTeams({ ...lanterns, slug: null }, { ...kites, name: null }, { slug: "ferns", name: "Ferns", profiles: [wren] }, { slug: "moths", name: "  ", profiles: [tamsin] });
+    postHogCom.withTeams({ ...lanterns, slug: null }, { ...kites, name: null }, { slug: "ferns", name: "Ferns", profiles: [wren] }, { slug: "moths", name: "  ", profiles: [tamsin] }, { slug: " ", name: "Wisps", profiles: [oriel] });
     await syncCompanyProfiles();
 
     expect(await companyTeams()).toEqual([{ team: "ferns", name: "Ferns", crest: null, leads: [], people: [wren.id] }]);
