@@ -291,9 +291,8 @@ async function workspaceDeciding(...definitions: FlagDefinition[]) {
 }
 
 async function giveKudos(t: Backend, giver: string, recipients: string[], words: string, emojiNames = ["taco"]) {
-  sentMessages += 1;
   const blocks = [section(...recipients.flatMap((recipient) => [mention(recipient), text(" ")]), text(`${words} `), ...emojiNames.map((name) => emoji(name)))];
-  await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${Math.floor(Date.now() / 1000) + sentMessages}.000100` })));
+  await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: nextTs() })));
   await settleInTimeOrder(t);
 }
 
