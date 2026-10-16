@@ -636,6 +636,10 @@
     {
       "name": "Slack open",
       "definition": "App Home's Open for a crate: the Slack command that opens it, whose rows and events are the measure a website open is held to (D17)."
+    },
+    {
+      "name": "group album",
+      "definition": "One counting group's people in a member's sticker book: the group's current members other than the owner, each held once the owner has their sticker, counted as held of total. It is collected by thanking people and is never a team crest, which is collected by finding hoggies in crates."
     }
   ],
   "retired": [

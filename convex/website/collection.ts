@@ -1,10 +1,12 @@
 import { crateStoreOf, waitingCratesOf, type CrateStore } from "../hoggies/boughtCrates";
 import { collectionOf, type HeldCrest, type HeldHoggie, type RarityShare } from "../hoggies/collection";
 import { crateStoreShownTo, crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
+import { groupsShownTo, type GroupId } from "../groups/groups";
 import type { QueryCtx } from "../_generated/server";
+import { albumsOf, type Album } from "../stickers/albums";
 import { stickersShownTo } from "../stickers/flag";
-import { stickersNewestFirst } from "../stickers/records";
-import { peopleIn, type MemberId } from "../workspace/directory";
+import { stickersNewestFirst, type HeldSticker } from "../stickers/records";
+import { peopleIn, type MemberId, type People } from "../workspace/directory";
 import { bookPageOf } from "./book";
 import { teammateOf, type Face } from "./faces";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
@@ -15,13 +17,19 @@ export type CollectionHoggie = HeldHoggie & { seen: string | null };
 
 export type CollectionCrest = HeldCrest & { seen: string | null };
 
-export type Sticker = { name: string; face: Face; former: boolean; key: string; firstAt: number; seen: string };
+export type Teammate = { name: string; face: Face; former: boolean };
 
-export type Stickers = { stickers?: Sticker[] };
+export type Sticker = Teammate & { key: string; firstAt: number; seen: string };
+
+export type AlbumPerson = Teammate & { key: string; held: boolean };
+
+export type GroupAlbum = { group: GroupId; name: string; mine: boolean; held: number; total: number; people: AlbumPerson[] };
+
+export type StickerBook = { stickers?: Sticker[]; albums?: GroupAlbum[] };
 
 export type BoughtCrates = { bought?: string[]; crateStore?: CrateStore | null };
 
-export type CollectionAnswer = { kind: "not-found" } | PageWaits | ({ kind: "collection"; rarities: RarityShare[]; hoggies: CollectionHoggie[]; owned: number; total: number; crests?: CollectionCrest[] } & BoughtCrates & Stickers);
+export type CollectionAnswer = { kind: "not-found" } | PageWaits | ({ kind: "collection"; rarities: RarityShare[]; hoggies: CollectionHoggie[]; owned: number; total: number; crests?: CollectionCrest[] } & BoughtCrates & StickerBook);
 
 export const getCollection = memberQuery(async (ctx, me): Promise<CollectionAnswer> => {
   if (!(await hoggiesShownTo(ctx, me.member))) return { kind: "not-found" };
@@ -30,21 +38,35 @@ export const getCollection = memberQuery(async (ctx, me): Promise<CollectionAnsw
   const { rarities, hoggies, owned, total, crests } = await collectionOf(ctx, me.member, { crests: await crestsShownTo(ctx, me.member) });
   const collection = { kind: "collection" as const, rarities, hoggies: await Promise.all(hoggies.map((hoggie) => seenBy(me.member, hoggie))), owned, total };
   const withCrests = crests === undefined ? collection : { ...collection, crests: await Promise.all(crests.map((crest) => crestSeenBy(me.member, crest))) };
-  return { ...withCrests, ...(await boughtCratesOf(ctx, me.member)), ...(await stickersOf(ctx, me)) };
+  return { ...withCrests, ...(await boughtCratesOf(ctx, me.member)), ...(await stickerBookOf(ctx, me)) };
 });
 
-async function stickersOf(ctx: QueryCtx, me: VerifiedMember): Promise<Stickers> {
+async function stickerBookOf(ctx: QueryCtx, me: VerifiedMember): Promise<StickerBook> {
   if (!(await stickersShownTo(ctx, me.member))) return {};
   const people = await peopleIn(ctx, me.workspace);
-  const stickers = await stickersNewestFirst(ctx, me.member);
-  return {
-    stickers: await Promise.all(
-      stickers.map(async ({ person, firstAt }) => {
-        const { name, picture, former } = people.get(person) ?? { name: undefined, picture: null, former: true };
-        return { ...teammateOf(name, picture), former, key: await seenKeyOf(me.member, `sticker:${person}`), firstAt, seen: await seenKeyOf(me.member, `sticker:${person}:${firstAt}`) };
-      }),
-    ),
-  };
+  const held = await stickersNewestFirst(ctx, me.member);
+  const stickers = await Promise.all(held.map((sticker) => stickerOf(me.member, people, sticker)));
+  if (!(await groupsShownTo(ctx, me.member))) return { stickers };
+  const albums = await albumsOf(ctx, me, people, held);
+  return { stickers, albums: await Promise.all(albums.map((album) => groupAlbumOf(me.member, people, album))) };
+}
+
+async function stickerOf(member: MemberId, people: People, { person, firstAt }: HeldSticker): Promise<Sticker> {
+  return { ...teammateIn(people, person), key: await stickerKeyOf(member, person), firstAt, seen: await seenKeyOf(member, `sticker:${person}:${firstAt}`) };
+}
+
+async function groupAlbumOf(member: MemberId, people: People, { people: albumPeople, ...album }: Album): Promise<GroupAlbum> {
+  const shown = await Promise.all(albumPeople.map(async ({ person, held }) => ({ ...teammateIn(people, person), key: await stickerKeyOf(member, person), held })));
+  return { ...album, people: shown.toSorted((first, second) => first.name.localeCompare(second.name)) };
+}
+
+function teammateIn(people: People, person: MemberId): Teammate {
+  const { name, picture, former } = people.get(person) ?? { name: undefined, picture: null, former: true };
+  return { ...teammateOf(name, picture), former };
+}
+
+function stickerKeyOf(member: MemberId, person: MemberId) {
+  return seenKeyOf(member, `sticker:${person}`);
 }
 
 async function boughtCratesOf(ctx: QueryCtx, member: MemberId): Promise<BoughtCrates> {

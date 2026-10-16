@@ -158,14 +158,16 @@ export async function currentMembersOf(ctx: QueryCtx, workspace: string): Promis
   return people.filter(({ kind }) => kind === "member").map(({ _id }) => _id);
 }
 
-export type Person = { name: string | undefined; picture: string | null; former: boolean };
+export type Person = { user: ChatUserId; name: string | undefined; picture: string | null; former: boolean };
 
-export async function peopleIn(ctx: QueryCtx, workspace: string): Promise<Map<MemberId, Person>> {
+export type People = Map<MemberId, Person>;
+
+export async function peopleIn(ctx: QueryCtx, workspace: string): Promise<People> {
   const rows = await ctx.db
     .query("members")
     .withIndex("by_user", (q) => q.eq("workspace", workspace))
     .collect();
-  return new Map(rows.map((row) => [row._id, row.kind === "member" ? { name: row.name, picture: row.picture ?? null, former: false } : { name: undefined, picture: null, former: true }]));
+  return new Map(rows.map((row) => [row._id, { user: row.user, ...(row.kind === "member" ? { name: row.name, picture: row.picture ?? null, former: false } : { name: undefined, picture: null, former: true }) }]));
 }
 
 export async function teammatesOf(ctx: QueryCtx, workspace: string, member: MemberId): Promise<MemberId[]> {
