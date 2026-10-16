@@ -5,10 +5,13 @@ import { FakeSlack, httpStatus, networkFailure, type ScriptedAnswer } from "../.
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { aDeploymentForWorkspace, aMember, aSession, switchWebsite, type SignInIdentity } from "../../testing/website";
 import { api, internal } from "../_generated/api";
+import { companyTeamsOf } from "./teams";
 
 const wren = { user: "U_WREN", name: "Wren Halloway", image: "https://avatars.slack-edge.com/wren.png" };
 const wrenOnTheTeamPage = { id: 1, firstName: "Wren", lastName: "Halloway", colour: "lilac", cutout: aCutout("wren") };
 const oriel = { id: 2, firstName: "Oriel", lastName: "Pemberton", colour: "teal", cutout: aCutout("oriel") };
+const analytics = { slug: "analytics", name: "Analytics", crest: aCutout("analytics_crest"), leads: [1], profiles: [wrenOnTheTeamPage] };
+const analyticsKept = { team: "analytics", name: "Analytics", crest: { kind: "image", url: "https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/analytics_crest.png" }, leads: [1], people: [1] };
 const wrensFace = { kind: "company-profile", image: "https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/wren.png", colour: "#8567FF", initials: "WH" };
 
 let postHogCom: FakePostHogCom;
@@ -36,6 +39,10 @@ function urlOf(input: string | URL | Request) {
 
 function syncCompanyProfiles() {
   return t.action(internal.companyProfiles.sync.syncCompanyProfiles, {});
+}
+
+function companyTeams() {
+  return t.run((ctx) => companyTeamsOf(ctx));
 }
 
 async function faceOf(identity: SignInIdentity) {
@@ -160,12 +167,17 @@ describe("WS22: a failed posthog.com read keeps the previous profiles", () => {
       () => Response.json({ data: [{ id: 1, attributes: { slug: "analytics", profiles: { data: [{ id: 3, attributes: { firstName: "Oriel" } }] } } }], meta: { pagination: { page: 1, pageCount: 1 } } }),
       "malformed",
     ],
+    "a team whose name isn't text": [() => Response.json({ data: [{ id: 1, attributes: { slug: "analytics", name: 7, profiles: { data: [] } } }], meta: { pagination: { page: 1, pageCount: 1 } } }), "malformed"],
+    "a team whose leads aren't profiles": [
+      () => Response.json({ data: [{ id: 1, attributes: { slug: "analytics", name: "Analytics", leadProfiles: { data: ["Oriel"] }, profiles: { data: [] } } }], meta: { pagination: { page: 1, pageCount: 1 } } }),
+      "malformed",
+    ],
     "no pagination": [() => Response.json({ data: [] }), "malformed"],
     "no profiles at all": [() => Response.json({ data: [], meta: { pagination: { page: 1, pageCount: 1 } } }), "empty"],
   } satisfies Record<string, [ScriptedAnswer, string]>;
 
-  test.each(Object.entries(unreadable))("a read that answers %s keeps the previous profiles and logs a fixed code", async (_, [answer, reason]) => {
-    postHogCom.withTeams({ slug: "analytics", profiles: [wrenOnTheTeamPage] });
+  test.each(Object.entries(unreadable))("a read that answers %s keeps the previous profiles and teams and logs a fixed code", async (_, [answer, reason]) => {
+    postHogCom.withTeams(analytics);
     await syncCompanyProfiles();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     postHogCom.withTeams().answersPage(1, answer);
@@ -173,6 +185,7 @@ describe("WS22: a failed posthog.com read keeps the previous profiles", () => {
     await syncCompanyProfiles();
 
     expect(await faceOf(wren)).toEqual(wrensFace);
+    expect(await companyTeams()).toEqual([analyticsKept]);
     expect(warn).toHaveBeenCalledWith("companyProfiles.read_failed", { reason });
   });
 
@@ -182,8 +195,8 @@ describe("WS22: a failed posthog.com read keeps the previous profiles", () => {
     "answers no teams": () => Response.json({ data: [], meta: { pagination: { page: 2, pageCount: 3 } } }),
   } satisfies Record<string, ScriptedAnswer>;
 
-  test.each(Object.entries(inconsistentLaterPages))("a later page that %s keeps the previous profiles as malformed", async (_, answer) => {
-    postHogCom.withTeams({ slug: "analytics", profiles: [wrenOnTheTeamPage] });
+  test.each(Object.entries(inconsistentLaterPages))("a later page that %s keeps the previous profiles and teams as malformed", async (_, answer) => {
+    postHogCom.withTeams(analytics);
     await syncCompanyProfiles();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     postHogCom.pagedBy(1).withTeams({ slug: "growth", profiles: [oriel] }, { slug: "design", profiles: [] }, { slug: "analytics", profiles: [] }).answersPage(2, answer);
@@ -191,11 +204,12 @@ describe("WS22: a failed posthog.com read keeps the previous profiles", () => {
     await syncCompanyProfiles();
 
     expect(await faceOf(wren)).toEqual(wrensFace);
+    expect(await companyTeams()).toEqual([analyticsKept]);
     expect(warn).toHaveBeenCalledWith("companyProfiles.read_failed", { reason: "malformed" });
   });
 
-  test("a first page that answers no teams but declares more pages keeps the previous profiles as malformed", async () => {
-    postHogCom.withTeams({ slug: "analytics", profiles: [wrenOnTheTeamPage] });
+  test("a first page that answers no teams but declares more pages keeps the previous profiles and teams as malformed", async () => {
+    postHogCom.withTeams(analytics);
     await syncCompanyProfiles();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     postHogCom
@@ -206,11 +220,12 @@ describe("WS22: a failed posthog.com read keeps the previous profiles", () => {
     await syncCompanyProfiles();
 
     expect(await faceOf(wren)).toEqual(wrensFace);
+    expect(await companyTeams()).toEqual([analyticsKept]);
     expect(warn).toHaveBeenCalledWith("companyProfiles.read_failed", { reason: "malformed" });
   });
 
-  test("a read that fails on a later page keeps the previous profiles", async () => {
-    postHogCom.withTeams({ slug: "analytics", profiles: [wrenOnTheTeamPage] });
+  test("a read that fails on a later page keeps the previous profiles and teams", async () => {
+    postHogCom.withTeams(analytics);
     await syncCompanyProfiles();
     vi.spyOn(console, "warn").mockImplementation(() => {});
     postHogCom.pagedBy(1).withTeams({ slug: "growth", profiles: [] }, { slug: "analytics", profiles: [] }).answersPage(2, httpStatus(500));
@@ -218,6 +233,7 @@ describe("WS22: a failed posthog.com read keeps the previous profiles", () => {
     await syncCompanyProfiles();
 
     expect(await faceOf(wren)).toEqual(wrensFace);
+    expect(await companyTeams()).toEqual([analyticsKept]);
   });
 });
 

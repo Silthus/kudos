@@ -68,7 +68,20 @@ export default defineSchema({
     image: v.optional(v.string()),
     colour: v.string(),
     team: v.optional(v.string()),
+    profile: v.optional(v.number()),
+    teams: v.optional(v.array(v.string())),
+    role: v.optional(v.string()),
+    asOf: v.optional(v.number()),
   }).index("by_normalised_name", ["normalisedName"]),
+
+  companyTeams: defineTable({
+    team: v.string(),
+    name: v.string(),
+    crestImage: v.optional(v.string()),
+    leads: v.array(v.number()),
+    people: v.array(v.number()),
+    asOf: v.number(),
+  }).index("by_team", ["team"]),
 
   slackReceipts: defineTable({
     workspace: v.string(),

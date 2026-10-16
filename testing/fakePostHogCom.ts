@@ -6,13 +6,16 @@ export type TeamPageProfile = {
   lastName: string;
   colour?: string | null;
   cutout?: string | null;
+  role?: string | null;
 };
 
-export type TeamPage = { slug: string | null; profiles: TeamPageProfile[] };
+export type TeamPage = { slug: string | null; name?: string | null; crest?: string | null; leads?: number[]; profiles: TeamPageProfile[] };
 
 const host = "better-animal-d658c56969.strapiapp.com";
 
 export const aCutout = (file: string) => `https://res.cloudinary.com/posthog-test/image/upload/v1/${file}.png`;
+
+type Asked = { teamFields: string[]; profileFields: string[]; populates: (relation: string) => boolean };
 
 export class FakePostHogCom {
   private teams: TeamPage[] = [];
@@ -42,29 +45,48 @@ export class FakePostHogCom {
     const url = new URL(input instanceof Request ? input.url : input);
     if (url.pathname !== "/api/teams") return new Response("not found", { status: 404 });
     const page = Number(url.searchParams.get("pagination[page]") ?? "1");
-    const asPostHogComWould = () => Response.json(this.page(page));
+    const asPostHogComWould = () => Response.json(this.page(page, askedIn(url)));
     const scripted = this.scripted.get(page);
     return scripted === undefined ? asPostHogComWould() : scripted(asPostHogComWould);
   };
 
-  private page(page: number) {
+  private page(page: number, asked: Asked) {
     const pageCount = Math.max(1, Math.ceil(this.teams.length / this.pageSize));
     const teams = this.teams.slice((page - 1) * this.pageSize, page * this.pageSize);
     return {
-      data: teams.map((team, index) => ({ id: index + 1, attributes: { slug: team.slug, profiles: { data: team.profiles.map(asStrapiProfile) } } })),
+      data: teams.map((team, index) => ({ id: index + 1, attributes: asStrapiTeam(team, asked) })),
       meta: { pagination: { page, pageSize: this.pageSize, pageCount, total: this.teams.length } },
     };
   }
 }
 
-function asStrapiProfile({ id, firstName, lastName, colour, cutout }: TeamPageProfile) {
+function askedIn(url: URL): Asked {
+  const keys = [...url.searchParams.keys()];
+  const valuesOf = (field: RegExp) => keys.filter((key) => field.test(key)).map((key) => url.searchParams.get(key)!);
+  return {
+    teamFields: valuesOf(/^fields\[\d+\]$/),
+    profileFields: valuesOf(/^populate\[profiles\]\[fields\]\[\d+\]$/),
+    populates: (relation) => keys.some((key) => key.startsWith(`populate${relation}`)),
+  };
+}
+
+function asStrapiTeam({ slug, name, crest, leads, profiles }: TeamPage, asked: Asked) {
+  return {
+    ...(asked.teamFields.includes("slug") && { slug }),
+    ...(asked.teamFields.includes("name") && { name: name ?? null }),
+    ...(asked.populates("[crest]") && { crest: { data: crest ? { id: 1, attributes: { url: crest } } : null } }),
+    ...(asked.populates("[leadProfiles]") && { leadProfiles: { data: (leads ?? []).map((id) => ({ id, attributes: {} })) } }),
+    ...(asked.populates("[profiles]") && { profiles: { data: profiles.map((profile) => asStrapiProfile(profile, asked)) } }),
+  };
+}
+
+function asStrapiProfile({ id, firstName, lastName, colour, cutout, role }: TeamPageProfile, asked: Asked) {
+  const fields = { firstName, lastName, color: colour ?? null, companyRole: role ?? null };
   return {
     id,
     attributes: {
-      firstName,
-      lastName,
-      color: colour ?? null,
-      avatar: { data: cutout ? { id, attributes: { url: cutout } } : null },
+      ...Object.fromEntries(Object.entries(fields).filter(([field]) => asked.profileFields.includes(field))),
+      ...(asked.populates("[profiles][populate][avatar]") && { avatar: { data: cutout ? { id, attributes: { url: cutout } } : null } }),
     },
   };
 }
