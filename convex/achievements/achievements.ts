@@ -1,6 +1,7 @@
-import { v } from "convex/values";
-import { internalMutation, internalQuery, type QueryCtx } from "../_generated/server";
-import { kudosGivenEventValidator } from "../bus/events";
+import { v, type Infer } from "convex/values";
+import { internal } from "../_generated/api";
+import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { republish } from "../feedback/homes";
 import { tellTiersEarned } from "../feedback/tierNotices";
 import { isOpened } from "../feedback/unlockFilter";
@@ -8,7 +9,7 @@ import { tierItemOf, type CatalogueItem } from "../store/catalogue";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { countAward, countingOf, countOf } from "./counting";
 import { achievementsLiveIn, bookAppliesIn, bookLaunchedAt } from "./flag";
-import { coinsPaidBy, ladders, ladderOf, type LadderId, type Tier, type TierId, type TierRef } from "./ladders";
+import { coinsPaidBy, ladders, ladderOf, tierRefValidator, type LadderId, type Tier, type TierId, type TierRef } from "./ladders";
 import { laddersCountedLiveIn, replayWhatIsNew } from "./replay";
 import { tierRewardsRecordedFor, type TierRewardsRecorded } from "./tierRewards";
 import { earnedTiersOf, type EarnedTier } from "./tiers";
@@ -26,27 +27,56 @@ export type LadderFacts = { ladder: LadderId; name: string; counts: string; coun
 
 export type AchievementFacts = { ladders: LadderFacts[] };
 
+const awardsAPage = 25;
+
+const untoldValidator = v.array(v.object({ member: v.id("members"), earned: v.array(tierRefValidator) }));
+
+type Untold = Infer<typeof untoldValidator>;
+
+type Counted = Map<MemberId, TierRef[]>;
+
 export const countKudosGiven = internalMutation({
-  args: { event: kudosGivenEventValidator },
-  handler: async (ctx, { event }): Promise<void> => {
+  args: { event: kudosGivenEventValidator, from: v.optional(v.number()), untold: v.optional(untoldValidator) },
+  handler: async (ctx, { event, from = 0, untold = [] }): Promise<void> => {
     const shown = await achievementsLiveIn(ctx, event.workspace);
     if ((await bookLaunchedAt(ctx, event.workspace)) === null) return;
     await replayWhatIsNew(ctx, event.workspace);
-    const counted = new Map<MemberId, TierRef[]>();
-    for (const ladder of await laddersCountedLiveIn(ctx, event.workspace)) {
-      for (const award of event.awards) {
-        const counting = countingOf(ladder, award);
-        const earned = await countAward(ctx, event.workspace, counting, { ...award, day: event.day, at: event.at }, { tiers: ladderOf(ladder).tiers, ...(!shown && { hidden: true }) });
-        if (earned !== null) counted.set(counting.member, [...(counted.get(counting.member) ?? []), ...earned]);
-      }
-    }
+    const live = await laddersCountedLiveIn(ctx, event.workspace);
+    const next = from + awardsAPage;
+    const counted = await countPage(ctx, event, live, { awards: event.awards.slice(from, next), shown, untold });
+    const later = event.awards.slice(next);
+    const countedLater = membersCountedIn(live, later);
+    if (later.length > 0) await ctx.scheduler.runAfter(0, internal.achievements.achievements.countKudosGiven, { event, from: next, untold: shown ? untoldAmong(counted, countedLater) : [] });
     if (!shown) return;
     for (const [member, earned] of counted) {
+      if (countedLater.has(member)) continue;
       if (await isOpened(ctx, member, "book")) await republish(ctx, member);
       await tellTiersEarned(ctx, { member, message: event.message, at: event.at, earned });
     }
   },
 });
+
+type Page = { awards: KudosGivenEvent["awards"]; shown: boolean; untold: Untold };
+
+async function countPage(ctx: MutationCtx, event: KudosGivenEvent, live: LadderId[], { awards, shown, untold }: Page): Promise<Counted> {
+  const counted: Counted = new Map(untold.map(({ member, earned }) => [member, earned]));
+  for (const ladder of live) {
+    for (const award of awards) {
+      const counting = countingOf(ladder, award);
+      const earned = await countAward(ctx, event.workspace, counting, { ...award, day: event.day, at: event.at }, { tiers: ladderOf(ladder).tiers, ...(!shown && { hidden: true }) });
+      if (earned !== null) counted.set(counting.member, [...(counted.get(counting.member) ?? []), ...earned]);
+    }
+  }
+  return counted;
+}
+
+function membersCountedIn(live: LadderId[], awards: KudosGivenEvent["awards"]): Set<MemberId> {
+  return new Set(live.flatMap((ladder) => awards.map((award) => countingOf(ladder, award).member)));
+}
+
+function untoldAmong(counted: Counted, countedLater: Set<MemberId>): Untold {
+  return [...counted].filter(([member]) => countedLater.has(member)).map(([member, earned]) => ({ member, earned }));
+}
 
 export const achievementsOf = internalQuery({
   args: { member: v.id("members") },
