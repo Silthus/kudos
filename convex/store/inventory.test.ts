@@ -10,7 +10,6 @@ import { grantItem } from "./inventory";
 
 const openedAt = Date.parse("2026-10-14T10:00:00Z");
 const hour = 60 * 60 * 1000;
-const storeEmoji = ["sunflower", "rocket", "glowing-star", "gem", "rainbow", "clover", "doughnut", "cookie", "crown", "balloon", "cactus", "trophy"].map((id) => `kudos-emoji-${id}`);
 const tierEmoji = ["ribbon", "sparkling-heart", "jigsaw", "anchor", "confetti", "maple-leaf", "teddy-bear"].map((id) => `kudos-emoji-${id}`);
 const hedgehog = "kudos-emoji-hedgehog";
 const storeOn = ["xp-levels", "unlocks", "coins", "store"].map(onForEveryone);
@@ -30,18 +29,13 @@ afterEach(() => {
 });
 
 describe("ST26: inventoryOf, as the website reads it", () => {
-  test("after opening Coins, the starter is owned since the opening and fills slot 1, and the store lists its twelve emoji for sale", async () => {
+  test("after opening Coins, the starter is owned since the opening, and no standard emoji is for sale", async () => {
     const { t, member } = await memberWhoOpenedCoins(storeOn);
 
     const inventory = await t.query(internal.store.inventory.inventoryOf, { member });
 
-    expect(inventory?.slots).toEqual([
-      { slot: "emoji-1", item: hedgehog },
-      { slot: "emoji-2", item: null },
-      { slot: "emoji-3", item: null },
-    ]);
     expect(inventory?.owned).toEqual([{ item: hedgehog, arrivedAt: openedAt }]);
-    expect(onSaleOf(inventory!.catalogue)).toEqual([[hedgehog, false], ...storeEmoji.map((item) => [item, true])]);
+    expect(onSaleOf(inventory!.catalogue)).toEqual([[hedgehog, false]]);
     expect(inventory?.catalogue[0]).toEqual({
       item: hedgehog,
       kind: "kudosEmoji",
@@ -51,10 +45,9 @@ describe("ST26: inventoryOf, as the website reads it", () => {
       source: { kind: "starter" },
       onSale: false,
     });
-    expect(inventory?.catalogue[1]).toMatchObject({ name: "Sunflower", emoji: "sunflower", art: { kind: "unicode", glyph: "🌻" }, source: { kind: "store", price: 100 } });
   });
 
-  test("granted items arrive in order, are never for sale, and the workspace's own emoji isn't listed", async () => {
+  test("granted items arrive in order, and an owned store emoji keeps its price but is never for sale", async () => {
     const { t, member } = await memberWhoOpenedCoins(storeOn, { kudosEmoji: "rocket" });
     await t.run((ctx) => grantItem(ctx, { member, item: "kudos-emoji-ribbon", source: "tier", arrivedAt: openedAt + 2 * hour }));
     await t.run((ctx) => grantItem(ctx, { member, item: "kudos-emoji-sunflower", source: "store", arrivedAt: openedAt + hour }));
@@ -66,8 +59,8 @@ describe("ST26: inventoryOf, as the website reads it", () => {
       { item: "kudos-emoji-sunflower", arrivedAt: openedAt + hour },
       { item: "kudos-emoji-ribbon", arrivedAt: openedAt + 2 * hour },
     ]);
-    const forSale = storeEmoji.filter((item) => item !== "kudos-emoji-sunflower" && item !== "kudos-emoji-rocket");
-    expect(onSaleOf(inventory!.catalogue)).toEqual([[hedgehog, false], ["kudos-emoji-sunflower", false], ...forSale.map((item) => [item, true]), ["kudos-emoji-ribbon", false]]);
+    expect(onSaleOf(inventory!.catalogue)).toEqual([[hedgehog, false], ["kudos-emoji-sunflower", false], ["kudos-emoji-ribbon", false]]);
+    expect(inventory?.catalogue[1]).toMatchObject({ name: "Sunflower", emoji: "sunflower", art: { kind: "unicode", glyph: "🌻" }, source: { kind: "store", price: 100 } });
   });
 
   test("while the Book is open, the tier emoji not owned are listed, never for sale", async () => {
@@ -75,7 +68,7 @@ describe("ST26: inventoryOf, as the website reads it", () => {
 
     const inventory = await t.query(internal.store.inventory.inventoryOf, { member });
 
-    expect(onSaleOf(inventory!.catalogue)).toEqual([[hedgehog, false], ...storeEmoji.map((item) => [item, true]), ...tierEmoji.map((item) => [item, false])]);
+    expect(onSaleOf(inventory!.catalogue)).toEqual([[hedgehog, false], ...tierEmoji.map((item) => [item, false])]);
   });
 
   test("ST4: a tier emoji that is the workspace's own emoji is never listed as not yours yet", async () => {

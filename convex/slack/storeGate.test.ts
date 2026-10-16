@@ -4,7 +4,7 @@ import { FakeSlack, type SlackCall } from "../../testing/fakeSlack";
 import { flagsFromPostHog, journeyShippedBeforeAnyoneJoined, offForEveryone, onForEmails, onForEveryone, postHogDeciding } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, publishedHome, readBlocks, staleButtonOf, staleMenuOptionOf, type Block } from "../../testing/slackInteractions";
+import { blockActions, publishedHome, readBlocks, staleButtonOf, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { achievementsLiveIn } from "../achievements/flag";
@@ -65,22 +65,21 @@ afterEach(() => {
 });
 
 describe("ST20 ST22 ST23: the store is dark wherever it isn't shown", { timeout: 120_000 }, () => {
-  test("with store on for Alice, her walk reaches every store path: Coins and inventory, the Inventory tab, the tier emoji line, your-emoji and her loadout's kudos", async () => {
+  test("with store on for Alice, her walk reaches every store path: Coins and inventory, the Inventory tab, the tier emoji line, your-emoji and her owned emoji's kudos", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
 
-    const { loadoutKudos } = await walkEveryStorePath(t, "U_ALICE");
+    const { ownedKudos } = await walkEveryStorePath(t, "U_ALICE");
 
     const told = slackCallsAbout("U_ALICE").flatMap(readCall).join("\n");
     expect(told).toContain("*Coins and inventory* is ready.");
     expect(told).toContain("Coins and inventory are open.");
-    expect(told).toContain(`${generousSoul} + :ribbon: Ribbon for your kudos emoji slots`);
+    expect(told).toContain(`${generousSoul} + :ribbon: Ribbon for your kudos emoji`);
     expect(told).toContain("Quest done: Give a kudos that says why with one of your kudos emoji (+40 XP, +20 🪙)");
-    expect(publishedHome(slack, "U_ALICE")).toEqual(expect.arrayContaining(["header: Inventory", "section: Slot 1 · 🦔 Hedgehog [button: Take off]", "section: Slot 2 · 🎀 Ribbon [button: Take off]"]));
-    expect(await kudosMessagesOf(t, "U_ALICE")).toContain(loadoutKudos);
+    expect(publishedHome(slack, "U_ALICE")).toEqual(expect.arrayContaining(["header: Inventory", "section: 🦔 Hedgehog", "section: 🎀 Ribbon"]));
+    expect(await kudosMessagesOf(t, "U_ALICE")).toContain(ownedKudos);
     expect(await goalsInActivityOf(t, "U_ALICE")).toContain(yourEmojiGoal);
     expect(await inventoryOf(t, "U_ALICE")).not.toBeNull();
-    expect(await storeRowsOf(t, "U_ALICE")).toMatchObject({ purchases: [{ outcome: { kind: "bought", item: rocket } }], yourEmoji: ["activated", "rewarded"] });
-    expect(eventsPublishedSince(0)).toContain("itemBought");
+    expect(await storeRowsOf(t, "U_ALICE")).toMatchObject({ purchases: [{ outcome: { kind: "refused", item: rocket, reason: "not-for-sale" } }], yourEmoji: ["activated", "rewarded"] });
   });
 
   test.each([
@@ -90,20 +89,20 @@ describe("ST20 ST22 ST23: the store is dark wherever it isn't shown", { timeout:
     ["on but coins off", onWithoutCoins, { flagsKeySet: true, coinsNamed: false, silverEarned: true, tierTold: true }],
     ["on but xp-levels off", onWithoutXpLevels, { flagsKeySet: true, coinsNamed: false, silverEarned: false, tierTold: false }],
     ["on but unlocks off", onWithoutUnlocks, { flagsKeySet: true, coinsNamed: false, silverEarned: false, tierTold: false }],
-  ])("with store %s, the same walk shows nothing of the store anywhere, the loadout claims nothing, and a silver tier earned still grants its emoji", async (_, definitions, { flagsKeySet, coinsNamed, silverEarned, tierTold }) => {
+  ])("with store %s, the same walk shows nothing of the store anywhere, her owned emoji claim nothing, and a silver tier earned still grants its emoji", async (_, definitions, { flagsKeySet, coinsNamed, silverEarned, tierTold }) => {
     const t = await workspaceDeciding(...definitions);
     if (!flagsKeySet) vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "");
 
-    const { loadoutKudos } = await walkEveryStorePath(t, "U_ALICE");
+    const { ownedKudos } = await walkEveryStorePath(t, "U_ALICE");
 
     const told = slack.calls.flatMap(readCall);
     expect(told.filter(namesTheStore)).toEqual([]);
     if (coinsNamed) expect(told).toEqual(expect.arrayContaining(["section: *Coins* is ready. It opens your wallet and the coin perks. [button: Open]", expect.stringMatching(/^Coins are open\. You already have \d+ 🪙\.$/)]));
     if (tierTold) expect(told.join("\n")).toContain(`${generousSoul}\n`);
-    expect(await kudosMessagesOf(t, "U_ALICE")).not.toContain(loadoutKudos);
+    expect(await kudosMessagesOf(t, "U_ALICE")).not.toContain(ownedKudos);
     expect(await goalsInActivityOf(t, "U_ALICE")).not.toContain(yourEmojiGoal);
     expect(await inventoryOf(t, "U_ALICE")).toBeNull();
-    expect(await storeRowsOf(t, "U_ALICE")).toEqual({ collection: silverEarned ? [{ item: ribbon, source: "tier" }] : [], loadouts: [], purchases: [], yourEmoji: [] });
+    expect(await storeRowsOf(t, "U_ALICE")).toEqual({ collection: silverEarned ? [{ item: ribbon, source: "tier" }] : [], purchases: [], yourEmoji: [] });
     expect(eventsPublishedSince(0)).not.toContain("itemBought");
   });
 
@@ -121,23 +120,21 @@ describe("ST20 ST22 ST23: the store is dark wherever it isn't shown", { timeout:
     expect(whilePreviewed.collection).toEqual([{ item: ribbon, source: "tier" }]);
   });
 
-  test.each(["coins", "xp-levels", "unlocks"])("once Alice's store was shown and her slots filled, turning %s off hides it again: nothing names the store, inventoryOf answers null, her loadout claims nothing and stale clicks write nothing", async (off) => {
+  test.each(["coins", "xp-levels", "unlocks"])("once Alice's store was shown and she owned a tier emoji, turning %s off hides it again: nothing names the store, inventoryOf answers null, her owned emoji claim nothing and a stale Buy writes nothing", async (off) => {
     const t = await workspaceDeciding(...previewedByAlice);
     await walkEveryStorePath(t, "U_ALICE");
     const before = slack.calls.length;
 
     await flagsFromPostHog(t, postHog, ...featuresOnBut(off), onForEmails(store, alicesEmail));
     vi.setSystemTime(tuesday + 2 * dayMs);
-    const loadoutKudos = await giveKudos(t, "U_ALICE", ["U_DANA"], saysWhy, ["hedgehog", "ribbon"]);
+    const ownedKudos = await giveKudos(t, "U_ALICE", ["U_DANA"], saysWhy, ["hedgehog", "ribbon"]);
     await openHome(t, "U_ALICE");
     const stored = await everythingStoredButExposures(t);
     const published = vi.mocked(publish).mock.calls.length;
     await click(t, "U_ALICE", { type: "buyItem", item: "kudos-emoji-gem" });
-    await pick(t, "U_ALICE", { type: "equip", item: ribbon, slot: "emoji-3" });
-    await click(t, "U_ALICE", { type: "takeOff", slot: "emoji-1" });
 
     expect(slack.calls.slice(before).flatMap(readCall).filter(namesTheStore)).toEqual([]);
-    expect(await kudosMessagesOf(t, "U_ALICE")).not.toContain(loadoutKudos);
+    expect(await kudosMessagesOf(t, "U_ALICE")).not.toContain(ownedKudos);
     expect(await inventoryOf(t, "U_ALICE")).toBeNull();
     expect(await everythingStoredButExposures(t)).toEqual(stored);
     expect(eventsPublishedSince(published)).toEqual([]);
@@ -145,7 +142,7 @@ describe("ST20 ST22 ST23: the store is dark wherever it isn't shown", { timeout:
 });
 
 describe("ST22 O35 O36: the store flag turned off and on, its stale clicks and its exposure", { timeout: 120_000 }, () => {
-  test("O35 F24: turning store off and on again rewrites nothing and shows the same collection and loadout", async () => {
+  test("O35 F24: turning store off and on again rewrites nothing and shows the same collection", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await walkEveryStorePath(t, "U_ALICE");
     await openHome(t, "U_ALICE");
@@ -170,15 +167,13 @@ describe("ST22 O35 O36: the store flag turned off and on, its stale clicks and i
     ["on but coins off", onWithoutCoins],
     ["on but xp-levels off", onWithoutXpLevels],
     ["on but unlocks off", onWithoutUnlocks],
-  ])("with store %s, a stale Buy, Put in slot and Take off write nothing, spend nothing and publish nothing", async (_, definitions) => {
+  ])("with store %s, a stale Buy writes nothing, spends nothing and publishes nothing", async (_, definitions) => {
     const t = await workspaceDeciding(...definitions);
     await walkEveryStorePath(t, "U_ALICE");
     const stored = await everythingStoredButExposures(t);
     const published = vi.mocked(publish).mock.calls.length;
 
     await click(t, "U_ALICE", { type: "buyItem", item: "kudos-emoji-gem" });
-    await pick(t, "U_ALICE", { type: "equip", item: ribbon, slot: "emoji-3" });
-    await click(t, "U_ALICE", { type: "takeOff", slot: "emoji-1" });
 
     expect(await everythingStoredButExposures(t)).toEqual(stored);
     expect(eventsPublishedSince(published)).toEqual([]);
@@ -192,8 +187,6 @@ describe("ST22 O35 O36: the store flag turned off and on, its stale clicks and i
     const published = vi.mocked(publish).mock.calls.length;
 
     await click(t, "U_ALICE", { type: "buyItem", item: "kudos-emoji-gem" });
-    await pick(t, "U_ALICE", { type: "equip", item: rocket, slot: "emoji-1" });
-    await click(t, "U_ALICE", { type: "takeOff", slot: "emoji-2" });
 
     expect(await everythingStoredButExposures(t)).toEqual(stored);
     expect(eventsPublishedSince(published)).toEqual([]);
@@ -246,14 +239,11 @@ async function walkEveryStorePath(t: Backend, user: string) {
   await openHome(t, user);
   await click(t, user, { type: "showHomeTab", tab: "inventory" });
   await click(t, user, { type: "buyItem", item: rocket });
-  await pick(t, user, { type: "equip", item: ribbon, slot: "emoji-2" });
-  await pick(t, user, { type: "equip", item: rocket, slot: "emoji-3" });
-  await click(t, user, { type: "takeOff", slot: "emoji-3" });
   vi.setSystemTime(tuesday + dayMs);
-  const loadoutKudos = await giveKudos(t, user, [third], saysWhy, ["hedgehog", "ribbon"]);
+  const ownedKudos = await giveKudos(t, user, [third], saysWhy, ["hedgehog", "ribbon"]);
   await openHome(t, user);
   vi.setSystemTime(tuesday);
-  return { loadoutKudos };
+  return { ownedKudos };
 }
 
 async function othersSideOfBothWalks(definitions: FlagDefinition[]) {
@@ -298,10 +288,6 @@ async function openHome(t: Backend, user: string) {
 
 async function click(t: Backend, user: string, command: unknown) {
   await send(t, blockActions(user, staleButtonOf(command)));
-}
-
-async function pick(t: Backend, user: string, command: unknown) {
-  await send(t, blockActions(user, staleMenuOptionOf(command)));
 }
 
 async function send(t: Backend, interaction: string) {
@@ -375,7 +361,6 @@ async function storeRowsOf(t: Backend, user: string) {
     const ofMember = <Row extends { member: MemberId }>(rows: Row[]) => rows.filter((row) => row.member === member);
     return {
       collection: ofMember(await ctx.db.query("collection").collect()).map(({ item, source }) => ({ item, source })),
-      loadouts: ofMember(await ctx.db.query("loadouts").collect()).map(({ slot, item }) => ({ slot, item })),
       purchases: ofMember(await ctx.db.query("itemPurchases").collect()).map(({ outcome }) => ({ outcome })),
       yourEmoji: [
         ...ofMember(await ctx.db.query("journeySteps").collect()).flatMap(({ step }) => (step === "your-emoji" ? ["activated"] : [])),
