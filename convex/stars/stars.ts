@@ -9,6 +9,7 @@ import { starBudgetOf } from "../workspace/settings";
 import { starsOnAndExposedFor } from "./flag";
 import type { StarReaction } from "./reaction";
 import { insertStar, starOf, starsGivenOn, type StarFor } from "./records";
+import { countStarGiven } from "./weeks";
 import { starXp, starsCatalogueVersion } from "./xp";
 
 export type StarDecision = { kind: "given" } | { kind: "nothing" } | { kind: "unknown-people"; users: string[] };
@@ -57,6 +58,7 @@ type NewStar = MessageRef & StarFor & { giver: MemberId; at: number; day: string
 async function recordStar(ctx: MutationCtx, star: NewStar) {
   const { workspace, conversation, message, giver, onKudos, at, day } = star;
   await insertStar(ctx, star);
+  await countStarGiven(ctx, star);
   const key = `star-given:${conversation}:${message}`;
   await recordReward(ctx, workspace, { member: giver, key, xp: starXp, coins: 0, item: null, catalogueVersion: starsCatalogueVersion, at });
   await publish(ctx, { type: "starGiven", workspace, giver, message: { workspace, conversation, message }, onKudos, at, day });

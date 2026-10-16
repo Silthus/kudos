@@ -349,7 +349,7 @@ async function workspace({ transactionLimits = false } = {}) {
 
 const everyFeature = ["stars", "xp-levels", "unlocks", "quests", "skill-tree", "achievements", "coins", "crate-rewards", "website", "groups", "everyone-board", "activity"];
 
-const writtenByAStar: Array<keyof typeof schema.tables> = ["stars", "starPeople", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
+const writtenByAStar: Array<keyof typeof schema.tables> = ["stars", "starPeople", "starWeeks", "starWeekMessages", "starCounts", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
 
 const writtenByTheReceiptLookupOrFlag: Array<keyof typeof schema.tables> = ["slackReceipts", "members", "analyticsIds", "workspaceKeys", "flagExposures", "analyticsOutbox", "journeySteps"];
 

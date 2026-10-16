@@ -246,6 +246,31 @@ export default defineSchema({
     .index("by_message_recipient", ["workspace", "conversation", "message", "recipient"])
     .index("by_workspace", ["workspace"]),
 
+  starWeeks: defineTable({
+    workspace: v.string(),
+    member: v.id("members"),
+    week: v.string(),
+    given: v.number(),
+    givenXp: v.number(),
+    received: v.number(),
+    receivedXp: v.number(),
+    mostStarred: v.optional(v.object({ conversation: v.string(), message: v.string(), stars: v.number(), lastAt: v.number() })),
+    recap: v.union(v.literal("waiting"), v.literal("scheduled"), v.literal("sent"), v.literal("skipped"), v.literal("failed")),
+    dueAt: v.optional(v.number()),
+    tries: v.number(),
+  })
+    .index("by_member_week", ["member", "week"])
+    .index("by_recap_due", ["recap", "dueAt"]),
+
+  starWeekMessages: defineTable({ member: v.id("members"), week: v.string(), conversation: v.string(), message: v.string(), stars: v.number(), lastAt: v.number() }).index("by_member_week_message", [
+    "member",
+    "week",
+    "conversation",
+    "message",
+  ]),
+
+  starCounts: defineTable({ workspace: v.string(), conversation: v.string(), message: v.string(), stars: v.number() }).index("by_message", ["workspace", "conversation", "message"]),
+
   stars: defineTable({
     workspace: v.string(),
     conversation: v.string(),

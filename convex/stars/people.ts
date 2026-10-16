@@ -6,6 +6,7 @@ import { recipientsPageOf } from "../engine/awards";
 import { recordReward } from "../progression/progression";
 import { isMember, type MemberId } from "../workspace/directory";
 import { insertPaid, isPaid, starOf, type Star } from "./records";
+import { countStarReceived } from "./weeks";
 import { starXp, starsCatalogueVersion } from "./xp";
 
 const peopleAPage = 100;
@@ -32,6 +33,7 @@ async function peoplePageOf(ctx: QueryCtx, star: Star, cursor: string | null): P
 async function payPerson(ctx: MutationCtx, star: Star, person: MemberId) {
   if (!(await isMember(ctx, person)) || (await isPaid(ctx, star, person))) return;
   await insertPaid(ctx, star, person);
+  await countStarReceived(ctx, star, person);
   const key = `star:${star.giver}:${star.conversation}:${star.message}`;
   await recordReward(ctx, star.workspace, { member: person, key, xp: starXp, coins: 0, item: null, catalogueVersion: starsCatalogueVersion, at: star.at });
 }

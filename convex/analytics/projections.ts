@@ -51,6 +51,7 @@ export type ProductEvent = {
     | "perk bought"
     | "hoggie dropped"
     | "star given"
+    | "stars recap sent"
     | "achievement earned"
     | "app home opened"
     | "command used"
@@ -73,7 +74,8 @@ export type UsageFact =
   | { kind: "leaderboardVisibilityChanged"; workspace: string; member: MemberId; visible: boolean; at: number }
   | { kind: "primaryGroupPicked"; workspace: string; member: MemberId; surface: PickSurface; at: number }
   | { kind: "messageSettingChanged"; workspace: string; member: MemberId; setting: MessageKind; on: boolean; place?: MessagePlace; at: number }
-  | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number };
+  | { kind: "profileCardViewed"; workspace: string; member: MemberId; own: boolean; surface: "command"; at: number }
+  | { kind: "starsRecapSent"; workspace: string; member: MemberId; given: number; received: number; xp: number; at: number };
 
 export type PickSurface = "welcome" | "settings" | "website";
 
@@ -250,5 +252,7 @@ export function projectUsage(fact: UsageFact): ProductEvent {
       return { event: "message setting changed", subject, at: fact.at, properties: { kind: fact.setting, on: fact.on, ...(fact.place !== undefined && { place: fact.place }) } };
     case "profileCardViewed":
       return { event: "profile card viewed", subject, at: fact.at, properties: { own: fact.own, surface: fact.surface } };
+    case "starsRecapSent":
+      return { event: "stars recap sent", subject, at: fact.at, properties: { stars_given: fact.given, stars_received: fact.received, xp: fact.xp } };
   }
 }
