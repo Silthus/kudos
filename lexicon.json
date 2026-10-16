@@ -636,6 +636,18 @@
     {
       "name": "Slack open",
       "definition": "App Home's Open for a crate: the Slack command that opens it, whose rows and events are the measure a website open is held to (D17)."
+    },
+    {
+      "name": "Crowd Favourite",
+      "definition": "The ladder that counts the chime-ins on kudos messages a member wrote, in total, once per chime-in (CH24); it applies only where the chime-ins workspace decision is on."
+    },
+    {
+      "name": "Standing Ovation",
+      "definition": "The ladder that counts the most chime-ins on one kudos message a member was an original recipient of, once per chime-in (CH24); it applies only where the chime-ins workspace decision is on."
+    },
+    {
+      "name": "Amplifier",
+      "definition": "The ladder that counts the times a member chimed in, once per chime-in, never per award (CH24); it applies only where the chime-ins workspace decision is on."
     }
   ],
   "retired": [
