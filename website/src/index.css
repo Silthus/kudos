@@ -60,12 +60,14 @@
   --rarity-legendary: #c2410c;
 }
 
-.dark,
-.moment-scrim {
+.dark {
   --medal-bronze: #d39a68;
   --medal-silver: #bfc2c8;
   --medal-gold: #e2b53a;
   --medal-diamond: #7cc9de;
+}
+
+:is(.dark, .moment-scrim) {
   --rarity-common: #aeb3c4;
   --rarity-uncommon: #4ade80;
   --rarity-rare: #60a5fa;
