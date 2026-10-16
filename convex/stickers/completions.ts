@@ -1,6 +1,7 @@
 import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { countAlbumsCompleted } from "../achievements/achievements";
 import { publish } from "../bus/publish";
 import { awardIdValidator, type AwardId } from "../engine/awards";
 import { messageRefValidator } from "../engine/messageEvent";
@@ -83,4 +84,13 @@ async function recordCompletions(ctx: MutationCtx, { workspace, member, message,
   for (const { group, total } of albums) await ctx.db.insert("albumCompletions", { member, group, award, at, people: total, told });
   const groups = albums.map(({ group, total }) => ({ group, people: total }));
   await publish(ctx, { type: "albumsCompleted", workspace, member, message, award, groups, at, told });
+  await countAlbumsCompleted(ctx, { workspace, member, message, at }, await completionRecordsInOrder(ctx, member));
+}
+
+async function completionRecordsInOrder(ctx: QueryCtx, member: MemberId) {
+  const completions = await ctx.db
+    .query("albumCompletions")
+    .withIndex("by_member_group", (q) => q.eq("member", member))
+    .collect();
+  return completions.toSorted((first, second) => first._creationTime - second._creationTime).map(({ award, at, told }) => ({ award, at, told }));
 }

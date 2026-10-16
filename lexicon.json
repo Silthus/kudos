@@ -648,6 +648,10 @@
     {
       "name": "teammate",
       "definition": "Another member of the same workspace, seen from one member: someone they can thank or be thanked by. The website shows a teammate by name and face while the directory has them, and as A teammate with the nameless face once it no longer names them. A teammate is a person, never a hoggie."
+    },
+    {
+      "name": "Team Spirit",
+      "definition": "The completion ladder that counts the group albums a member completed: bronze Team Spirit at 1, silver All Hands at 2, gold Tight-Knit at 4 and diamond Unbreakable Crew at 8, behind the team-spirit flag"
     }
   ],
   "retired": [

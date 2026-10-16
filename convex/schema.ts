@@ -1,7 +1,7 @@
 import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { ladderValidator } from "./achievements/ladders";
+import { awardLadderValidator, ladderValidator } from "./achievements/ladders";
 import { messageKindValidator, messagePlaceValidator } from "./messageSettings/kinds";
 import { bookReplayCursorValidator, bookReplayValidator } from "./achievements/replay";
 import { earnedTierValidator } from "./achievements/tiers";
@@ -343,7 +343,7 @@ export default defineSchema({
 
   ladderMarks: defineTable({
     member: v.id("members"),
-    ladder: ladderValidator,
+    ladder: awardLadderValidator,
     group: v.string(),
     key: v.string(),
   }).index("by_member_ladder_group", ["member", "ladder", "group"]),
@@ -351,7 +351,7 @@ export default defineSchema({
   countedAwards: defineTable({
     award: awardIdValidator,
     member: v.id("members"),
-    ladder: ladderValidator,
+    ladder: awardLadderValidator,
     count: v.number(),
     at: v.number(),
   })

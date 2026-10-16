@@ -193,7 +193,7 @@ describe("WS90: getBook reads achievementsOf's facts", () => {
 
     const book = await openBook(asSignedIn);
 
-    expect(book.ladders.map(({ ladder }) => ladder)).toEqual(shippedLadders.map(({ ladder }) => ladder));
+    expect(book.ladders.map(({ ladder }) => ladder)).toEqual(shippedLadders.map(({ ladder }) => ladder).filter((ladder) => ladder !== "team-spirit"));
     expect(ladderIn(book, "generosity")).toEqual({
       ladder: "generosity",
       name: "Generosity",

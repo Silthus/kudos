@@ -5,13 +5,13 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { awardsInWorkspace } from "../engine/awards";
 import { awardReaching, countAward, countingOf } from "./counting";
 import { achievementsApplyIn } from "./flag";
-import { ladderOf, ladders, ladderValidator, tierValidator, type LadderId, type TierId } from "./ladders";
+import { awardLadders, awardLadderValidator, ladderOf, tierValidator, type AwardLadderId, type TierId } from "./ladders";
 import { earnTier } from "./tiers";
 
 export const bookReplayValidator = v.object({
   workspace: v.string(),
   batch: v.id("bookBatches"),
-  ladder: ladderValidator,
+  ladder: awardLadderValidator,
   tiers: v.array(tierValidator),
   countsLadder: v.boolean(),
   cursor: v.optional(v.union(v.string(), v.null())),
@@ -44,9 +44,9 @@ export async function replayWhatIsNew(ctx: MutationCtx, workspace: string): Prom
   }
 }
 
-export async function laddersCountedLiveIn(ctx: QueryCtx, workspace: string): Promise<LadderId[]> {
+export async function laddersCountedLiveIn(ctx: QueryCtx, workspace: string): Promise<AwardLadderId[]> {
   const replays = await replaysIn(ctx, workspace);
-  return ladders.ladders.map(({ ladder }) => ladder).filter((ladder) => replays.some((replay) => replay.ladder === ladder && replay.countsLadder && replay.isDone));
+  return awardLadders().map(({ ladder }) => ladder).filter((ladder) => replays.some((replay) => replay.ladder === ladder && replay.countsLadder && replay.isDone));
 }
 
 export const replayPage = internalMutation({
@@ -68,7 +68,7 @@ export const replayPage = internalMutation({
 });
 
 function unevaluatedIn(replays: BookReplay[]): Unevaluated[] {
-  return ladders.ladders.flatMap(({ ladder, tiers }) => {
+  return awardLadders().flatMap(({ ladder, tiers }) => {
     const ofLadder = replays.filter((replay) => replay.ladder === ladder);
     const evaluated = new Set(ofLadder.flatMap((replay) => replay.tiers));
     const added = tiers.map(({ tier }) => tier).filter((tier) => !evaluated.has(tier));
@@ -118,7 +118,7 @@ function cursorRowOf(ctx: QueryCtx, replay: Id<"bookReplays">) {
     .unique();
 }
 
-function tiersOf(ladder: LadderId, tiers: TierId[]) {
+function tiersOf(ladder: AwardLadderId, tiers: TierId[]) {
   return ladderOf(ladder).tiers.filter(({ tier }) => tiers.includes(tier));
 }
 

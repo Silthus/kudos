@@ -369,16 +369,16 @@ describe("WS332: the Book's category pages", () => {
   });
 
   it("puts a ladder a newer backend returns, with no category yet, on the last category that holds a ladder", () => {
-    const newer = { ...bookFixtures.book.ladders[0], ladder: "team-spirit" as LadderId, name: "Team Spirit" };
+    const newer = { ...bookFixtures.book.ladders[0], ladder: "new-horizons" as LadderId, name: "New Horizons" };
     showBookAt("/book?page=thanked", { ...bookFixtures.book, ladders: [...bookFixtures.book.ladders, newer] });
-    expect(ladderNames()).toEqual(["Recognition", "Team Spirit"]);
+    expect(ladderNames()).toEqual(["Recognition", "New Horizons"]);
   });
 
   it("keeps the read's order when a ladder with no category comes before the last category's own", () => {
     const [generosity, recognition] = bookFixtures.book.ladders;
-    const newer = { ...generosity, ladder: "team-spirit" as LadderId, name: "Team Spirit" };
+    const newer = { ...generosity, ladder: "new-horizons" as LadderId, name: "New Horizons" };
     showBookAt("/book?page=thanked", { ...bookFixtures.book, ladders: [generosity, newer, recognition] });
-    expect(ladderNames()).toEqual(["Team Spirit", "Recognition"]);
+    expect(ladderNames()).toEqual(["New Horizons", "Recognition"]);
   });
 });
 

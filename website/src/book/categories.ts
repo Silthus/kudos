@@ -19,6 +19,7 @@ export const ladderCategories: Record<LadderCard["ladder"], CategoryId> = {
   recognition: "thanked",
   connections: "connections",
   "old-friends": "connections",
+  "team-spirit": "connections",
   applause: "crowd",
 };
 

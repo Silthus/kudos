@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { laddersShownTo } from "../achievements/shown";
 import type { ParseHook } from "../parser/parser";
 import { openedAtOf, stateOf } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
@@ -153,7 +154,8 @@ function listedIn(workspaceEmoji: string, entry: CatalogueItem): entry is StoreI
 
 async function tierItemsListedFor(ctx: QueryCtx, member: MemberId, workspaceEmoji: string): Promise<TierItem[]> {
   if ((await stateOf(ctx, member, "book")) !== "open") return [];
-  return catalogue.items.filter((entry: CatalogueItem): entry is TierItem => entry.source.kind === "tier" && entry.emoji !== workspaceEmoji);
+  const shown = await laddersShownTo(ctx, member);
+  return catalogue.items.filter((entry: CatalogueItem): entry is TierItem => entry.source.kind === "tier" && shown.includes(entry.source.ladder) && entry.emoji !== workspaceEmoji);
 }
 
 function storeItemsIn(workspaceEmoji: string, custom?: CustomItems, { slotsRetired } = { slotsRetired: false }): StoreItem[] {

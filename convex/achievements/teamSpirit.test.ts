@@ -16,7 +16,7 @@ import { ladders, type Ladder, type LadderId } from "./ladders";
 
 const now = new Date("2026-10-16T10:00:00Z");
 const minuteMs = 60_000;
-const bookFlags = ["xp-levels", "unlocks", "achievements", "everyone-board", "skill-tree", "collection", "sticker-book", "groups", "coins", "store"];
+const bookFlags = ["xp-levels", "unlocks", "achievements", "everyone-board", "skill-tree", "collection", "sticker-book", "groups", "coins", "store", "profile-card"];
 const catalogue = ladders as unknown as { version: string; ladders: Ladder[] };
 const shippedCatalogue = { version: catalogue.version, ladders: [...catalogue.ladders] };
 const awardLadders: LadderId[] = ["generosity", "recognition", "connections", "dependability", "applause", "seasons", "old-friends"];
@@ -101,8 +101,9 @@ async function memberOf(person: Person): Promise<MemberId> {
 
 async function withTheBookOpen(person: Person): Promise<Reader> {
   const member = await memberOf(person);
-  await reachesLevel(t, member, 4);
+  await reachesLevel(t, member, 6);
   await opens(t, member, "book");
+  await opens(t, member, "coins");
   return (await aSignedInSession(t, person)).asSignedIn;
 }
 
@@ -176,7 +177,7 @@ async function bookInAppHome(person: Person) {
 
 async function tierItemsListedFor(reader: Reader) {
   const profile = await reader.query(api.website.profile.getMyProfile, {});
-  if (profile.kind !== "profile" || profile.inventory === null) throw new Error(`expected an inventory, got ${JSON.stringify(profile)}`);
+  if (profile.kind !== "member" || profile.inventory === null) throw new Error(`expected an inventory, got ${JSON.stringify(profile)}`);
   return profile.inventory.catalogue.filter(({ source }) => source.kind === "tier").map(({ item }) => item);
 }
 
@@ -305,9 +306,9 @@ describe("SB22: a tier from thanking the last missing person is told privately u
     await thanks(teammates[1]!, alice);
 
     expect(teamSpiritDmsTo(alice)).toEqual([
-      "🏅 You earned Team Spirit (Team Spirit, bronze). +10 coins",
+      "🏅 You earned Team Spirit (Team Spirit, bronze). +10 🪙",
       "Next: All Hands at 2 group albums completed.",
-      "🏅 You earned All Hands (Team Spirit, silver). + :handshake: Handshake for your kudos emoji",
+      "🏅 You earned All Hands (Team Spirit, silver). + :handshake: Handshake for your kudos emoji slots",
       "Next: Tight-Knit at 4 group albums completed.",
     ]);
     expect(publicLinesNamingTeamSpirit()).toEqual([]);
@@ -328,7 +329,7 @@ describe("SB21: Team Spirit is a completion ladder that the Book's replay and th
 
     expect(await t.run((ctx) => ctx.db.query("bookBatches").collect())).toEqual(batchesBefore);
     const rows = await t.run(async (ctx) => [...(await ctx.db.query("bookReplays").collect()), ...(await ctx.db.query("countedAwards").collect()), ...(await ctx.db.query("ladderMarks").collect())]);
-    expect(rows.filter(({ ladder }) => ladder === "team-spirit")).toEqual([]);
+    expect(rows.filter(({ ladder }) => !awardLadders.includes(ladder))).toEqual([]);
     expect((await teamSpiritTiersStored(alice)).map(({ tier }) => tier)).toEqual(["bronze"]);
   });
 });
