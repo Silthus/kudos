@@ -333,6 +333,35 @@ describe("WS87 WS341: a refusal, an error and a retry", () => {
   });
 });
 
+describe("WS341: Buy beside the gear panel's two sides", () => {
+  it("clears an earlier refusal from the status line while a retry is on its way", async () => {
+    const later = answerLater();
+    const answers: Array<Promise<ItemBuyAnswer>> = [Promise.resolve({ kind: "refused", reason: "no-coins" }), later.answer];
+    const { user } = buyWith(() => answers.shift()!);
+
+    await user.click(buyButtonFor("Gem"));
+    expect(announcement()).toHaveTextContent("Not enough coins yet.");
+    await user.click(buyButtonFor("Gem"));
+
+    expect(announcement()).not.toHaveTextContent("Not enough coins yet.");
+    await later.settle({ kind: "refused", reason: "no-coins" });
+    expect(announcement()).toHaveTextContent("Not enough coins yet.");
+  });
+
+  it("keeps a purchase on its way across a turn to the Character side and back, and says when it lands", async () => {
+    const later = answerLater();
+    const { user } = buyWith(() => later.answer);
+
+    await user.click(buyButtonFor("Gem"));
+    await user.click(within(screen.getByRole("main")).getByRole("button", { name: "Character" }));
+    turnToTheInventory();
+
+    expect(buyButtonFor("Gem")).toHaveTextContent("Buying…");
+    await later.settle({ kind: "bought", item: "kudos-emoji-gem" });
+    expect(announcement()).toHaveTextContent("You bought Gem.");
+  });
+});
+
 describe("WS339 V24: the Buy row's layout", () => {
   it("is a small button, not an extra-small one, so a phone has a tap target", () => {
     buyWith(async () => ({ kind: "refused", reason: null }));

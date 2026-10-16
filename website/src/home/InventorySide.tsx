@@ -1,17 +1,17 @@
 import { IconCheck, IconEmoji } from "@posthog/icons";
 import { Button } from "@posthog/quill";
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import type { InventoryItem, ItemSource, MemberInventory, MemberProfile, ShellActions, Slot } from "../shell";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from "react";
+import type { InventoryItem, ItemSource, MemberInventory, MemberProfile, Slot } from "../shell";
 import { CoinGlyph } from "../skills/glyphs";
 import { coinsText } from "../skills/perkWords";
 import { cameOff, itemIn, ItemArt, ownedIn, slotName, wentInto, type LoadoutActions, type Owned, type SendLoadout } from "./gear";
-import { shortfallText, useItemPurchase, type ItemPurchasing, type PendingItemPurchase } from "./itemPurchase";
+import { shortfallText, type ItemPurchasing } from "./itemPurchase";
 
 type Said = { text: string; done: boolean };
 
-type InventorySideProps = { member: MemberProfile; inventory: MemberInventory; loadout: LoadoutActions; send: SendLoadout; buyItem: ShellActions["buyItem"]; pendingPurchase: PendingItemPurchase };
+type InventorySideProps = { member: MemberProfile; inventory: MemberInventory; loadout: LoadoutActions; send: SendLoadout; purchasing: ItemPurchasing; heading: RefObject<HTMLHeadingElement | null> };
 
-export function InventorySide({ member, inventory, loadout, send, buyItem, pendingPurchase }: InventorySideProps) {
+export function InventorySide({ member, inventory, loadout, send, purchasing, heading }: InventorySideProps) {
   const [said, setSaid] = useState<Said>();
   return (
     <div className="flex flex-col gap-4">
@@ -28,7 +28,7 @@ export function InventorySide({ member, inventory, loadout, send, buyItem, pendi
         </p>
         {member.coins !== null && <Balance coins={member.coins} />}
       </div>
-      <KudosEmojiSection inventory={inventory} kudosEmoji={member.kudosEmoji} coins={member.coins ?? 0} loadout={loadout} send={send} buyItem={buyItem} pendingPurchase={pendingPurchase} onSaid={setSaid} />
+      <KudosEmojiSection inventory={inventory} kudosEmoji={member.kudosEmoji} coins={member.coins ?? 0} loadout={loadout} send={send} purchasing={purchasing} heading={heading} onSaid={setSaid} />
     </div>
   );
 }
@@ -42,11 +42,9 @@ function Balance({ coins }: { coins: number }) {
   );
 }
 
-type KudosEmojiSectionProps = { inventory: MemberInventory; kudosEmoji: string; coins: number; loadout: LoadoutActions; send: SendLoadout; buyItem: ShellActions["buyItem"]; pendingPurchase: PendingItemPurchase; onSaid: (said: Said) => void };
+type KudosEmojiSectionProps = { inventory: MemberInventory; kudosEmoji: string; coins: number; loadout: LoadoutActions; send: SendLoadout; purchasing: ItemPurchasing; heading: RefObject<HTMLHeadingElement | null>; onSaid: (said: Said | undefined) => void };
 
-function KudosEmojiSection({ inventory, kudosEmoji, coins, loadout, send, buyItem, pendingPurchase, onSaid }: KudosEmojiSectionProps) {
-  const heading = useRef<HTMLHeadingElement>(null);
-  const purchasing = useItemPurchase(buyItem, pendingPurchase, () => heading.current?.focus());
+function KudosEmojiSection({ inventory, kudosEmoji, coins, loadout, send, purchasing, heading, onSaid }: KudosEmojiSectionProps) {
   const [choosingFor, setChoosingFor] = useState<InventoryItem | null>(null);
   const tiles = useRef(new Map<string, HTMLButtonElement>());
   const choice = useRef(0);
@@ -55,7 +53,8 @@ function KudosEmojiSection({ inventory, kudosEmoji, coins, loadout, send, buyIte
 
   useEffect(() => {
     if (purchasing.notice !== undefined) onSaid({ text: purchasing.notice.text, done: purchasing.notice.kind === "bought" });
-  }, [purchasing.notice, onSaid]);
+    else if (purchasing.buying !== undefined) onSaid(undefined);
+  }, [purchasing.notice, purchasing.buying, onSaid]);
   const equipped = inventory.slots.filter(({ item }) => item !== null).length;
 
   const stopChoosing = (item: InventoryItem) => {

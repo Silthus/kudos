@@ -1,0 +1,4 @@
+     × clears an earlier refusal from the status line while a retry is on its way 112ms
+     × keeps a purchase on its way across a turn to the Character side and back, and says when it lands 205ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  2 failed | 26 passed (28)
