@@ -113,6 +113,7 @@ function KudosEmojiSection({ inventory, kudosEmoji, coins, loadout, send, purcha
       </ul>
       {choosingFor !== null && <SlotChoice key={choosingFor.item} item={choosingFor} inventory={inventory} onChoose={(slot) => void putIn(choosingFor, slot)} onCancel={() => stopChoosing(choosingFor)} />}
       {notYet.length > 0 && <NotYoursYet items={notYet} coins={coins} purchasing={purchasing} />}
+      {slotsRetired && !notYet.some(onSaleInTheStore) && <p className="text-xs text-muted-foreground">Nothing for sale right now.</p>}
     </section>
   );
 }
@@ -216,6 +217,10 @@ function NotYoursYet({ items, coins, purchasing }: { items: InventoryItem[]; coi
       </ul>
     </div>
   );
+}
+
+function onSaleInTheStore(item: InventoryItem): boolean {
+  return item.onSale && item.source.kind === "store";
 }
 
 function BuyAction({ item, price, coins, purchasing }: { item: InventoryItem; price: number; coins: number; purchasing: ItemPurchasing }) {

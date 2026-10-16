@@ -60,4 +60,15 @@ const withCustomEmoji: MemberInventory = {
   catalogue: [hedgehog, partyParrot, shipIt],
 };
 
-export const inventoryFixtures = { twoEquippedOfThree, starterOnly, withCustomEmoji } as const;
+const slotsRetiredWithNothingForSale: MemberInventory = {
+  slots: [],
+  owned: [
+    { item: hedgehog.item, arrivedAt: arrived },
+    { item: rocket.item, arrivedAt: arrived + hour },
+  ],
+  catalogue: [hedgehog, rocket, ribbon],
+};
+
+const slotsRetiredWithOneForSale: MemberInventory = { ...slotsRetiredWithNothingForSale, catalogue: [...slotsRetiredWithNothingForSale.catalogue, shipIt] };
+
+export const inventoryFixtures = { twoEquippedOfThree, starterOnly, withCustomEmoji, slotsRetiredWithNothingForSale, slotsRetiredWithOneForSale } as const;

@@ -77,6 +77,41 @@ describe("RS5: with slots retired, the gear panel shows the owned kudos emoji an
   });
 });
 
+describe("RS5: with slots retired and nothing on sale, the store says so as App Home does", () => {
+  const { memberWithNothingForSale, memberWithOneEmojiForSale } = shellFixtures;
+  const nothingForSale = "Nothing for sale right now.";
+
+  it("says Nothing for sale right now. below what isn't yours yet", () => {
+    renderApp(memberWithNothingForSale);
+
+    const notYet = within(kudosEmoji()).getByRole("list", { name: "Not yours yet" });
+    expect(readAloudIn(notYet)).toEqual(["RibbonSilver in Generosity"]);
+    expect(follows(notYet, within(kudosEmoji()).getByText(nothingForSale))).toBe(true);
+  });
+
+  it("says nothing of the kind while a custom emoji is on sale", () => {
+    renderApp(memberWithOneEmojiForSale);
+
+    expect(within(kudosEmoji()).getByRole("button", { name: "Buy for 100 coins, :shipit:" })).toBeInTheDocument();
+    expect(kudosEmoji()).not.toHaveTextContent(nothingForSale);
+  });
+
+  it("says nothing of the kind while slots are kept, as App Home's slots tab doesn't", () => {
+    showInventory({ ...memberWithTheInventory, inventory: { ...memberWithNothingForSale.inventory!, slots: memberWithTheInventory.inventory!.slots } });
+
+    expect(kudosEmoji()).not.toHaveTextContent(nothingForSale);
+  });
+
+  it.each([false, true])("passes axe with dark mode %s", async (dark) => {
+    fakeSystemTheme(dark);
+    renderApp(memberWithNothingForSale);
+
+    const results = await axe.run(inventory(), { rules: { "color-contrast": { enabled: false } } });
+
+    expect(results.violations).toEqual([]);
+  });
+});
+
 describe("WS341 ST26: the inventory side of the home's main slot, read only", () => {
   it("holds the kudos emoji section with the slots in use, the owned items with their slots, and the balance", () => {
     showInventory(memberWithTheInventory);

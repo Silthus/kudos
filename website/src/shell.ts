@@ -115,7 +115,7 @@ const skillTreeFeature = { feature: "skillTree", name: "Skill tree", opens: "the
 
 const questsFeature = { feature: "quests", name: "Quests", opens: "your weekly quests", level: 2, seen: "4c8e1f" } as const;
 
-const coinsFeature = { feature: "coins", name: "Coins and inventory", opens: "the wallet, the store's kudos emoji and your emoji slots", level: 6, seen: "e5a6b7" } as const;
+const coinsFeature = { feature: "coins", name: "Coins and inventory", opens: "your wallet, the store's kudos emoji and your emoji slots", level: 6, seen: "e5a6b7" } as const;
 
 const locked = { state: "locked", readyAt: null, openedAt: null } as const;
 
@@ -176,6 +176,10 @@ const memberWithTheInventory: MemberProfile = {
 };
 
 const memberWithCustomEmoji: MemberProfile = { ...memberWithTheInventory, inventory: inventoryFixtures.withCustomEmoji };
+
+const memberWithNothingForSale: MemberProfile = { ...memberWithTheInventory, inventory: inventoryFixtures.slotsRetiredWithNothingForSale };
+
+const memberWithOneEmojiForSale: MemberProfile = { ...memberWithTheInventory, inventory: inventoryFixtures.slotsRetiredWithOneForSale };
 
 const memberShortOfCoins: MemberProfile = { ...memberWithTheInventory, coins: 40 };
 
@@ -274,6 +278,8 @@ export const shellFixtures = {
   memberWithCoinsOpened,
   memberWithTheInventory,
   memberWithCustomEmoji,
+  memberWithNothingForSale,
+  memberWithOneEmojiForSale,
   memberShortOfCoins,
   memberWithTheCrateStore,
   memberWithCoinsBeforeTheStore,
@@ -331,6 +337,8 @@ const fixturesByName: Record<string, ShellState> = {
   "member-crossing-into-level-6": shellFixtures.memberCrossingIntoLevel6,
   "member-with-the-inventory": shellFixtures.memberWithTheInventory,
   "member-with-custom-emoji": shellFixtures.memberWithCustomEmoji,
+  "member-with-nothing-for-sale": shellFixtures.memberWithNothingForSale,
+  "member-with-one-emoji-for-sale": shellFixtures.memberWithOneEmojiForSale,
   "member-short-of-coins": shellFixtures.memberShortOfCoins,
   "member-with-the-crate-store": shellFixtures.memberWithTheCrateStore,
   error: shellFixtures.error,
