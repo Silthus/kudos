@@ -2,7 +2,7 @@ import { makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { type FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { onForEveryone, postHogDeciding, testBackendServing, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsFromPostHog, offForEveryone, onForEveryone, postHogDeciding, testBackendServing, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest } from "../../testing/signedSlack";
 import { memberChanged, settle, settleInTimeOrder, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
@@ -104,6 +104,22 @@ describe("WS344 P82: getQuests carries the member's group quest as counts, never
 
     expect(quests.group).toBeNull();
     expect(quests.waiting).toEqual([]);
+  });
+});
+
+describe("F26 F27 F28 F29: a member previews the website by their own decision", { timeout: 60_000 }, () => {
+  test("with groups turned off after the group quest finished, a stale Claim on the group crate is refused and opens nothing", async () => {
+    const t = await antsWithTheGroupQuestDrawn(...groupQuestFlags);
+    await threeAntsSayWhy(t);
+    const crate = (await questsOf(t, "U_ANN")).group!.crate!;
+    await flagsFromPostHog(t, postHog, ...[...groupQuestFlags.filter((flag) => flag !== "groups"), "website"].map(onForEveryone), offForEveryone("groups"));
+
+    const { asSignedIn } = await aSession(t, { user: "U_ANN" });
+    const answer = await asSignedIn.mutation(api.website.commands.openQuestCrate, { quest: crate });
+    await settle(t);
+
+    expect(answer, "a group crate opened through the website with groups off").toEqual({ kind: "refused" });
+    expect(await t.run((ctx) => ctx.db.query("crateOpenings").collect()), "a crate opening stored with groups off").toEqual([]);
   });
 });
 
