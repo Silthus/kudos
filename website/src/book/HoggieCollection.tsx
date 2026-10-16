@@ -33,8 +33,7 @@ export function HoggieCollection({ collection, timeZone, coins, buyCrate, avatar
         </PageTitle>
         <p className="text-sm text-muted-foreground">{`Every crate you open drops one hoggie. Find all ${collection.total}.`}</p>
       </header>
-      <FoundSoFar collection={collection} timeZone={timeZone} />
-      {avatarChoice !== null && <YourAvatar choice={avatarChoice} />}
+      <FoundSoFar collection={collection} timeZone={timeZone} avatar={avatarChoice} />
       <CrateStore collection={collection} coins={coins} buyCrate={buyCrate} />
       <div className="flex flex-col gap-8">
         {collection.crests !== undefined && <CrestSection crests={collection.crests} hoggies={collection.hoggies} fresh={fresh} timeZone={timeZone} />}
@@ -46,7 +45,7 @@ export function HoggieCollection({ collection, timeZone, coins, buyCrate, avatar
   );
 }
 
-function FoundSoFar({ collection, timeZone }: CollectionProps) {
+function FoundSoFar({ collection, timeZone, avatar }: CollectionProps & { avatar: AvatarChoice | null }) {
   const sentence = foundWordsOf(collection);
   const latest = latestFindOf(collection);
   return (
@@ -66,6 +65,7 @@ function FoundSoFar({ collection, timeZone }: CollectionProps) {
               </span>
             </div>
             {collection.crests !== undefined && <p className="text-xs tabular-nums text-muted-foreground">{crestWordsOf(collection.crests)}</p>}
+            {avatar !== null && (avatar.current !== null || collection.owned > 0) && <YourAvatar choice={avatar} />}
           </div>
         </CardContent>
       </Card>

@@ -1,16 +1,8 @@
-.own-avatar {
-  display: inline-grid;
-  flex-shrink: 0;
-  place-items: center;
-  overflow: hidden;
-  border-radius: 9999px;
-  border: var(--avatar-ring, 2px) solid var(--rarity);
-  background: color-mix(in oklab, var(--rarity) 14%, var(--card));
+.hoggie-coin.own-avatar {
+  border-width: var(--avatar-ring, 2px);
 }
 
 .own-avatar img {
-  width: 84%;
-  max-width: none;
+  width: 76%;
   height: auto;
-  translate: 0 6%;
 }

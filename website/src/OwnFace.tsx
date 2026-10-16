@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { hoggiePictureOf } from "./crates/Hoggie";
 import { MemberFace, usePictureFailure } from "./Face";
 import type { Avatar, Face } from "./shell";
+import "./book/collection.css";
 import "./ownFace.css";
 
 type OwnFaceProps = { face: Face; avatar: Avatar | null | undefined; className: string };
@@ -18,7 +19,7 @@ function AvatarHoggie({ avatar: { hoggie, rarity }, picture, face, className }: 
   const art = usePictureFailure();
   if (art.failed) return <MemberFace face={face} className={className} />;
   return (
-    <span data-avatar={hoggie} data-rarity={rarity} className={`own-avatar ${className}`} style={{ "--rarity": `var(--rarity-${rarity})` } as CSSProperties}>
+    <span data-avatar={hoggie} data-rarity={rarity} className={`hoggie-coin own-avatar ${className}`} style={{ "--rarity": `var(--rarity-${rarity})` } as CSSProperties}>
       <img ref={art.picture} src={picture} alt="" draggable={false} onError={art.onError} />
     </span>
   );

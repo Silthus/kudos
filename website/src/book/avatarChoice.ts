@@ -10,7 +10,7 @@ export function useAvatarChoice(current: Avatar | null | undefined, setAvatar: S
 }
 
 function landedLineOf(current: Avatar | null) {
-  return current === null ? "Your Slack picture is back." : `${current.name} is your avatar.`;
+  return current === null ? "Your picture is back." : `${current.name} is your avatar.`;
 }
 
 function answerOf(reply: AvatarReply): Answer {

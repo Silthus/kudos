@@ -3,6 +3,10 @@ import axe from "axe-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { collectionFixtures, fixedCollection } from "./collectionFixtures";
+import type { MyCollection } from "./collectionRead";
+import { hoggiePictureOf } from "./crates/Hoggie";
+import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
+import { fixtureRecentKudos } from "./recentKudosFixtures";
 import type { CollectionHoggie } from "./collectionRead";
 import { fixedProfileCard, profileCardFixtures } from "./profileCardFixtures";
 import type { ProfileCardRead } from "./profileCardRead";
@@ -36,10 +40,10 @@ const cardShowing = (avatar: Avatar | null | undefined): MyProfileCard => (avata
 
 const brokenCard: ProfileCardRead = (asking) => (asking ? { kind: "broken" } : undefined);
 
-type Shown = { member: MemberProfile; readCard?: ProfileCardRead; setAvatar?: ShellActions["setAvatar"] };
+type Shown = { member: MemberProfile; readCard?: ProfileCardRead; setAvatar?: ShellActions["setAvatar"]; collection?: MyCollection };
 
-function show({ member, readCard = fixedProfileCard(cardShowing(member.avatar)), setAvatar }: Shown) {
-  return renderApp(member, undefined, { setAvatar }, undefined, fixedBook(bookFixtures.everyLadder as MyBook), undefined, readCard, undefined, undefined, undefined, undefined, fixedCollection(theCollection));
+function show({ member, readCard = fixedProfileCard(cardShowing(member.avatar)), setAvatar, collection = theCollection }: Shown) {
+  return renderApp(member, fixedLeaderboard(leaderboardFixtures.midBoard), { setAvatar }, undefined, fixedBook(bookFixtures.everyLadder as MyBook), undefined, readCard, fixtureRecentKudos, undefined, undefined, undefined, fixedCollection(collection));
 }
 
 function header() {
@@ -108,9 +112,28 @@ describe("#568: a member's own face shows the hoggie they picked as their avatar
       const avatar = avatarIn(place);
       expect(avatar).toHaveAttribute("data-avatar", asleep.hoggie);
       expect(avatar).toHaveAttribute("data-rarity", asleep.rarity);
-      expect(avatar?.querySelector("img")).not.toBeNull();
+      expect(avatar).toHaveClass("hoggie-coin");
+      expect(avatar?.style.getPropertyValue("--rarity")).toBe(`var(--rarity-${asleep.rarity})`);
+      expect(avatar?.querySelector("img")).toHaveAttribute("src", hoggiePictureOf(asleep.art));
       expect(slackPictureIn(place)).toBeNull();
     }
+  });
+
+  it("never draws the avatar on another member's face, on the home's Recent kudos or on the leaderboard", () => {
+    show({ member: { ...withAvatar(asleep), leaderboard: { kind: "open" } } });
+    const recentKudos = screen.getByRole("region", { name: "Recent kudos" });
+    expect(recentKudos.querySelectorAll("img, [aria-hidden='true'].rounded-full").length).toBeGreaterThan(0);
+    expect(avatarIn(recentKudos)).toBeNull();
+    expect(document.querySelectorAll("[data-avatar]")).toHaveLength(3);
+    for (const place of ownFaces()) expect(avatarIn(place)).not.toBeNull();
+  });
+
+  it("draws the avatar only in the header on the leaderboard, never on a row", () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    show({ member: { ...withAvatar(asleep), leaderboard: { kind: "open" } } });
+    expect(screen.getAllByRole("listitem").length).toBeGreaterThan(3);
+    expect(document.querySelectorAll("[data-avatar]")).toHaveLength(1);
+    expect(avatarIn(header())).not.toBeNull();
   });
 
   it("draws the avatar hoggie in the gear portrait in place of the Slack picture", () => {
@@ -151,9 +174,17 @@ describe("#568: a member picks a hoggie they hold as their avatar on /book/colle
     expect(within(screen.getByRole("main")).queryByRole("button", { name: "Remove avatar" })).not.toBeInTheDocument();
   });
 
+  it("asks for no pick while the member holds no hoggie", () => {
+    show({ member: withAvatar(null), collection: collectionFixtures.nothingFound });
+    expect(screen.queryByRole("region", { name: "Your avatar" })).not.toBeInTheDocument();
+    expect(within(screen.getByRole("main")).queryByRole("button", { name: /as avatar/ })).not.toBeInTheDocument();
+  });
+
   it("marks the current avatar's tile and offers Remove avatar", () => {
     show({ member: withAvatar(asleep) });
     expect(tile(asleep.hoggie)).toHaveAttribute("data-avatar-current");
+    expect(tile(asleep.hoggie)).toHaveAttribute("aria-current", "true");
+    expect(tile(heart.hoggie)).not.toHaveAttribute("aria-current");
     expect(within(tile(asleep.hoggie)).getByText("Your avatar")).toBeInTheDocument();
     expect(within(tile(asleep.hoggie)).queryByRole("button", { name: /Use as avatar/ })).not.toBeInTheDocument();
     expect(within(tile(heart.hoggie)).getByRole("button", { name: `Use as avatar: ${heart.name}` })).toBeInTheDocument();
@@ -168,7 +199,7 @@ describe("#568: a member picks a hoggie they hold as their avatar on /book/colle
     expect(setAvatar).toHaveBeenCalledWith(heart.hoggie);
     showVisitor(withAvatar(avatarOf(heart)));
     expect(await screen.findByText(`${heart.name} is your avatar.`)).toHaveClass("sr-only");
-    expect(within(screen.getByRole("region", { name: "Your avatar" })).getByText(`${heart.name} shows in place of your Slack picture.`)).toBeVisible();
+    expect(within(screen.getByRole("region", { name: "Your avatar" })).getByText(`${heart.name} shows in place of your picture.`)).toBeVisible();
     expect(avatarIn(header())).toHaveAttribute("data-avatar", heart.hoggie);
     expect(tile(heart.hoggie)).toHaveAttribute("data-avatar-current");
   });
@@ -180,7 +211,7 @@ describe("#568: a member picks a hoggie they hold as their avatar on /book/colle
     expect(setAvatar).toHaveBeenCalledTimes(1);
     expect(setAvatar).toHaveBeenCalledWith(null);
     showVisitor(withAvatar(null));
-    expect(await screen.findByText("Your Slack picture is back.")).toBeInTheDocument();
+    expect(await screen.findByText("Your picture is back.")).toBeInTheDocument();
     expect(avatarIn(header())).toBeNull();
     expect(slackPictureIn(header())).not.toBeNull();
   });
