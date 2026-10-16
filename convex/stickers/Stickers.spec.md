@@ -24,7 +24,7 @@ Stickers: the people a member collects in the Book (SB1–SB6, decision 27): one
   checklist: declared-target-coverage dismissed: the writers are recordStickers and backfillStickers, both reached by the oracle through recordStickersOf
   checklist: completion-evidence dismissed: nothing waits on a sticker; the backfill record's isDone says the backfill read to the last award
 - the sticker book is private: A member's stickers are answered only to that member, who is taken from the website's guard, never from an argument.
-  over: getCollection signed in as one of two members who each hold stickers, and the same call given another member's ID
+  over: getCollection signed in as each of three members who hold stickers of one another, and the same call given another member's ID
   via: the sticker book is private
   because: the sticker book shows who a member has and hasn't thanked (SB10, user story 21): a read answering another member's stickers would show that member's gaps to anyone who asked
   kinds: read

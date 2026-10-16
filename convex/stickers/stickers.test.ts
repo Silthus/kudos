@@ -301,14 +301,18 @@ describe("SB1 SB11: a sticker shows the person as the directory has them now", {
 });
 
 describe("the sticker book is private", { timeout: 60_000 }, () => {
-  test("a member's call answers only their own stickers and takes no member to read another's", async () => {
+  test("each member's call answers only their own stickers and takes no member to read another's", async () => {
     await stickerBookOn();
-    const at = await thanks(alice, bob);
-    await thanks(carol, alice);
+    const first = await thanks(alice, bob);
+    const second = await thanks(carol, alice);
     await settle(t);
+    const asAlice = await withTheBookOpen(alice);
     const asBob = await withTheBookOpen(bob);
+    const asCarol = await withTheBookOpen(carol);
 
-    expect(await stickersOf(asBob)).toEqual([await stickerOf(bob, alice, at)]);
+    expect(await stickersOf(asAlice)).toEqual([await stickerOf(alice, carol, second), await stickerOf(alice, bob, first)]);
+    expect(await stickersOf(asBob)).toEqual([await stickerOf(bob, alice, first)]);
+    expect(await stickersOf(asCarol)).toEqual([await stickerOf(carol, alice, second)]);
     await expect(asBob.query(api.website.collection.getCollection, { member: await memberOf(alice) } as never)).rejects.toThrow();
   });
 });
