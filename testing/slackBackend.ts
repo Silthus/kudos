@@ -7,7 +7,7 @@ import type { DataModel } from "../convex/_generated/dataModel";
 import schema from "../convex/schema";
 import { modules } from "../convex/test.setup";
 import { signedRequest } from "./signedSlack";
-import { memberEvent, messageChangedEvent, messageDeletedEvent, messageEvent, threadParentDeletedEvent, type DeletionOptions, type EditOptions, type MessageOptions, type RichElement } from "./slackMessages";
+import { memberEvent, messageChangedEvent, messageDeletedEvent, messageEvent, reactionEvent, threadParentDeletedEvent, type DeletionOptions, type EditOptions, type MessageOptions, type ReactionOptions, type RichElement } from "./slackMessages";
 
 export type Backend = ReturnType<typeof testBackend>;
 
@@ -35,6 +35,10 @@ export async function deleteMessage(t: Backend, options: DeletionOptions = {}) {
 
 export async function deleteThreadParent(t: Backend, options: DeletionOptions = {}) {
   return t.fetch("/slack/events", await signedRequest(threadParentDeletedEvent(options)));
+}
+
+export async function react(t: Backend, options: ReactionOptions = {}) {
+  return t.fetch("/slack/events", await signedRequest(reactionEvent(options)));
 }
 
 export async function memberChanged(t: Backend, ...event: Parameters<typeof memberEvent>) {

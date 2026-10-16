@@ -13,6 +13,7 @@ import {
   questsDrawnEventValidator,
   groupQuestDrawnEventValidator,
   questSwappedEventValidator,
+  hugGivenEventValidator,
   unlockOpenedEventValidator,
   unlockReadyEventValidator,
   unlocksLaunchedEventValidator,
@@ -33,6 +34,7 @@ import {
   projectQuestsDrawn,
   projectGroupQuestDrawn,
   projectQuestSwapped,
+  projectHugGiven,
   projectUnlockOpened,
   projectUnlockReady,
   projectUnlocksLaunched,
@@ -133,6 +135,13 @@ export const recordHoggieDropped = internalMutation({
   args: { event: hoggieDroppedEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
     await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectHoggieDropped(event)]));
+  },
+});
+
+export const recordHugGiven = internalMutation({
+  args: { event: hugGivenEventValidator },
+  handler: async (ctx, { event }): Promise<void> => {
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectHugGiven(event)]));
   },
 });
 

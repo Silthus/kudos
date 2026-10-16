@@ -356,7 +356,7 @@ describe("WS314: each quest card carries its kind's hedgehog", () => {
   it.each([
     ["Say why", "Thank someone and say why, 3 times.", hedgehogReadingPng],
     ["Reach out", "Thank someone you haven't thanked before.", hedgehogExplorerPng],
-    ["Join in", "Chime in on a kudos someone else gave.", hedgehogMegaphonePng],
+    ["Join in", "Give 5 hugs to teammates' messages.", hedgehogMegaphonePng],
   ])("shows E's %s hedgehog at 64 px", (_, goal, picture) => {
     showQuests(questsFixtures.everyKind);
     const art = artOf(cardOf(goal));
