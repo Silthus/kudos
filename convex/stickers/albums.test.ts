@@ -15,11 +15,15 @@ import type { MemberId } from "../workspace/directory";
 const now = new Date("2026-10-16T10:00:00Z");
 const minuteMs = 60_000;
 const bookFlags = ["xp-levels", "unlocks", "achievements", "everyone-board", "skill-tree", "collection"];
-const alice = { user: "U_ALICE", name: "Alice Archer" };
-const bob = { user: "U_BOB", name: "Bob Brandt" };
-const carol = { user: "U_CAROL", name: "Carol Chen" };
-const dan = { user: "U_DAN", name: "Dan Dorsey" };
-const eve = { user: "U_EVE", name: "Eve Ekwueme" };
+const alice = { user: "U_E", name: "Alice Archer" };
+const bob = { user: "U_D", name: "Bob Brandt" };
+const carol = { user: "U_C", name: "Carol Chen" };
+const dan = { user: "U_B", name: "Dan Dorsey" };
+const eve = { user: "U_A", name: "Eve Ekwueme" };
+const owls = "S_1";
+const cats = "S_2";
+const bees = "S_3";
+const ants = "S_4";
 
 type Person = { user: string; name: string };
 type Reader = Awaited<ReturnType<typeof aSignedInSession>>["asSignedIn"];
@@ -125,10 +129,10 @@ describe("SB7 SB11: every counting group is a group album of the people I hold a
   test("every counting group is an album with held of total, empty ones included, my own groups first and then by name", async () => {
     await albumsOn();
     await joined(alice, bob, carol, dan, eve);
-    await groupIs("S_OWLS", "Owls", [alice]);
-    await groupIs("S_ANTS", "Ants", [carol, alice, bob]);
-    await groupIs("S_BEES", "Bees", [eve, dan]);
-    await groupIs("S_CATS", "Cats", []);
+    await groupIs(owls, "Owls", [alice]);
+    await groupIs(ants, "Ants", [carol, alice, bob]);
+    await groupIs(bees, "Bees", [eve, dan]);
+    await groupIs(cats, "Cats", []);
     await groupIs("S_ADMINS", "Admins", [alice, bob], { autoType: "admin" });
     await groupIs("S_GONE", "Gone", [alice, bob], { disabled: true });
     await thanks(alice, bob);
@@ -136,10 +140,10 @@ describe("SB7 SB11: every counting group is a group album of the people I hold a
     const reader = await withTheBookOpen(alice);
 
     expect(await albumsOf(reader)).toEqual([
-      { group: await groupIdOf("S_ANTS"), name: "Ants", mine: true, held: 1, total: 2, people: [await personIn(alice, bob, true), await personIn(alice, carol, false)] },
-      { group: await groupIdOf("S_OWLS"), name: "Owls", mine: true, held: 0, total: 0, people: [] },
-      { group: await groupIdOf("S_BEES"), name: "Bees", mine: false, held: 1, total: 2, people: [await personIn(alice, dan, false), await personIn(alice, eve, true)] },
-      { group: await groupIdOf("S_CATS"), name: "Cats", mine: false, held: 0, total: 0, people: [] },
+      { group: await groupIdOf(ants), name: "Ants", mine: true, held: 1, total: 2, people: [await personIn(alice, bob, true), await personIn(alice, carol, false)] },
+      { group: await groupIdOf(owls), name: "Owls", mine: true, held: 0, total: 0, people: [] },
+      { group: await groupIdOf(bees), name: "Bees", mine: false, held: 1, total: 2, people: [await personIn(alice, dan, false), await personIn(alice, eve, true)] },
+      { group: await groupIdOf(cats), name: "Cats", mine: false, held: 0, total: 0, people: [] },
     ]);
   });
 });
@@ -150,11 +154,11 @@ describe("SB7: an album's people are the members in its user group other than it
     const robot = { user: "U_ROBOT", name: "Robot" };
     await joined(alice, bob, carol);
     await memberChanged(t, "team_join", { id: robot.user, real_name: robot.name, is_bot: true });
-    await groupIs("S_ANTS", "Ants", [alice, bob, carol, robot, { user: "U_STRANGER", name: "Stranger" }]);
+    await groupIs(ants, "Ants", [alice, bob, carol, robot, { user: "U_STRANGER", name: "Stranger" }]);
     await memberChanged(t, "user_change", { id: carol.user, team_id: "T1", deleted: true });
     await settle(t);
 
-    expect(await albumsOf(await withTheBookOpen(alice))).toEqual([{ group: await groupIdOf("S_ANTS"), name: "Ants", mine: true, held: 0, total: 1, people: [await personIn(alice, bob, false)] }]);
+    expect(await albumsOf(await withTheBookOpen(alice))).toEqual([{ group: await groupIdOf(ants), name: "Ants", mine: true, held: 0, total: 1, people: [await personIn(alice, bob, false)] }]);
   });
 });
 
@@ -162,18 +166,18 @@ describe("SB8: an album follows its group on the next read", { timeout: 60_000 }
   test("a join adds a person, a departure removes one, and a group that stops counting drops out of the Book", async () => {
     await albumsOn();
     await joined(alice, bob, carol, dan);
-    await groupIs("S_ANTS", "Ants", [alice, bob]);
-    await groupIs("S_BEES", "Bees", [dan]);
+    await groupIs(ants, "Ants", [alice, bob]);
+    await groupIs(bees, "Bees", [dan]);
     await thanks(alice, bob, carol);
     const reader = await withTheBookOpen(alice);
 
-    await groupChanged("S_ANTS", "Ants", [alice, carol, dan]);
+    await groupChanged(ants, "Ants", [alice, carol, dan]);
     expect(await albumsOf(reader)).toEqual([
-      { group: await groupIdOf("S_ANTS"), name: "Ants", mine: true, held: 1, total: 2, people: [await personIn(alice, carol, true), await personIn(alice, dan, false)] },
-      { group: await groupIdOf("S_BEES"), name: "Bees", mine: false, held: 0, total: 1, people: [await personIn(alice, dan, false)] },
+      { group: await groupIdOf(ants), name: "Ants", mine: true, held: 1, total: 2, people: [await personIn(alice, carol, true), await personIn(alice, dan, false)] },
+      { group: await groupIdOf(bees), name: "Bees", mine: false, held: 0, total: 1, people: [await personIn(alice, dan, false)] },
     ]);
 
-    await groupChanged("S_BEES", "Bees", [dan], { disabled: true });
+    await groupChanged(bees, "Bees", [dan], { disabled: true });
     expect((await albumsOf(reader))?.map(({ name }) => name)).toEqual(["Ants"]);
   });
 });
@@ -183,7 +187,7 @@ describe("SB9: no groups shown, no albums", { timeout: 60_000 }, () => {
     await switchWebsite(t, postHog, true, ...bookFlags, "sticker-book");
     await bookShippedBeforeAnyoneJoined(t);
     await joined(alice, bob);
-    await groupIs("S_ANTS", "Ants", [alice, bob]);
+    await groupIs(ants, "Ants", [alice, bob]);
     await groupIs("S_ADMINS", "Admins", [alice, bob], { autoType: "admin" });
     await thanks(alice, bob);
     const reader = await withTheBookOpen(alice);
@@ -193,7 +197,7 @@ describe("SB9: no groups shown, no albums", { timeout: 60_000 }, () => {
     expect(groupsOff).not.toHaveProperty("albums");
 
     await albumsOn();
-    await groupChanged("S_ANTS", "Ants", [alice, bob], { disabled: true });
+    await groupChanged(ants, "Ants", [alice, bob], { disabled: true });
     const noneCounting = await collectionOf(reader);
     expect(noneCounting.stickers).toHaveLength(1);
     expect(noneCounting).not.toHaveProperty("albums");

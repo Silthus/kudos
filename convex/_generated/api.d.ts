@@ -193,6 +193,7 @@ import type * as slack_webApi from "../slack/webApi.js";
 import type * as slack_welcome from "../slack/welcome.js";
 import type * as slack_workspaceLink from "../slack/workspaceLink.js";
 import type * as slack_workspaceUrl from "../slack/workspaceUrl.js";
+import type * as stickers_albums from "../stickers/albums.js";
 import type * as stickers_backfill from "../stickers/backfill.js";
 import type * as stickers_flag from "../stickers/flag.js";
 import type * as stickers_records from "../stickers/records.js";
@@ -441,6 +442,7 @@ declare const fullApi: ApiFromModules<{
   "slack/welcome": typeof slack_welcome;
   "slack/workspaceLink": typeof slack_workspaceLink;
   "slack/workspaceUrl": typeof slack_workspaceUrl;
+  "stickers/albums": typeof stickers_albums;
   "stickers/backfill": typeof stickers_backfill;
   "stickers/flag": typeof stickers_flag;
   "stickers/records": typeof stickers_records;
