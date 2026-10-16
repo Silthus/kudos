@@ -46,12 +46,12 @@ export const countKudosGiven = internalMutation({
     const counted = await countPage(ctx, event, live, { awards: event.awards.slice(from, next), shown, untold });
     const later = event.awards.slice(next);
     const countedLater = membersCountedIn(live, later);
-    if (later.length > 0) await ctx.scheduler.runAfter(0, internal.achievements.achievements.countKudosGiven, { event, from: next, untold: shown ? untoldAmong(counted, countedLater) : [] });
+    if (later.length > 0) await ctx.scheduler.runAfter(0, internal.achievements.achievements.countKudosGiven, { event, from: next, untold: shown ? untoldAmong(counted, countedLater) : untold });
     if (!shown) return;
     for (const [member, earned] of counted) {
       if (countedLater.has(member)) continue;
       if (await isOpened(ctx, member, "book")) await republish(ctx, member);
-      await tellTiersEarned(ctx, { member, message: event.message, at: event.at, earned });
+      await tellTiersEarned(ctx, { member, message: event.message, at: event.at, earned: inCatalogueOrder(earned) });
     }
   },
 });
@@ -72,6 +72,10 @@ async function countPage(ctx: MutationCtx, event: KudosGivenEvent, live: LadderI
 
 function membersCountedIn(live: LadderId[], awards: KudosGivenEvent["awards"]): Set<MemberId> {
   return new Set(live.flatMap((ladder) => awards.map((award) => countingOf(ladder, award).member)));
+}
+
+function inCatalogueOrder(earned: TierRef[]): TierRef[] {
+  return ladders.ladders.flatMap(({ ladder, tiers }) => tiers.filter(({ tier }) => earned.some((ref) => ref.ladder === ladder && ref.tier === tier)).map(({ tier }) => ({ ladder, tier })));
 }
 
 function untoldAmong(counted: Counted, countedLater: Set<MemberId>): Untold {

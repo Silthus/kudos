@@ -7,7 +7,7 @@ import { testBackend, type Backend } from "../../testing/slackBackend";
 import { internal } from "../_generated/api";
 import type { DomainEvent, KudosGivenEvent } from "../bus/events";
 import type { LadderFacts, TierItemFacts } from "./achievements";
-import type { LadderId } from "./ladders";
+import type { LadderId, TierId } from "./ladders";
 import { publish } from "../bus/publish";
 import type { MemberId } from "../workspace/directory";
 
@@ -82,6 +82,52 @@ describe("P76 P78: a tier earned while the Book doesn't apply is kept as never t
       { member: alice, ladder: "seasons", tier: "bronze", hidden: true },
       { member: alice, ladder: "generosity", tier: "silver", hidden: undefined },
       { member: bob, ladder: "recognition", tier: "silver", hidden: undefined },
+    ]);
+  });
+});
+
+describe("#378: a kudos counted over several mutations tells each member the tiers it earned them once", () => {
+  test("a giver whose tiers are earned on the first and the fifth mutation hears of all of them in one DM, in catalogue order", async () => {
+    const { t, alice } = await withMembers();
+    await openTheBook(t, alice);
+    const event = await kudosGivenToMany(t, alice, 101);
+
+    await countEveryMutation(t, event);
+
+    expect(await tierDmsTo(t, alice)).toEqual([
+      [
+        { ladder: "generosity", tier: "bronze" },
+        { ladder: "generosity", tier: "silver" },
+        { ladder: "generosity", tier: "gold" },
+        { ladder: "connections", tier: "bronze" },
+        { ladder: "connections", tier: "silver" },
+        { ladder: "connections", tier: "gold" },
+        { ladder: "connections", tier: "diamond" },
+        { ladder: "seasons", tier: "bronze" },
+      ],
+    ]);
+  });
+
+  test("tiers earned while the Book is shown are told after a mutation that ran while it was dark", async () => {
+    const { t, alice } = await withMembers();
+    await openTheBook(t, alice);
+    const event = await kudosGivenToMany(t, alice, 51);
+
+    await countEveryMutation(t, event, async (from) => {
+      if (from === 25) await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("achievements"));
+      if (from === 50) await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("achievements"));
+    });
+
+    expect(await tierDmsTo(t, alice)).toEqual([
+      [
+        { ladder: "generosity", tier: "bronze" },
+        { ladder: "generosity", tier: "silver" },
+        { ladder: "connections", tier: "bronze" },
+        { ladder: "connections", tier: "silver" },
+        { ladder: "connections", tier: "gold" },
+        { ladder: "connections", tier: "diamond" },
+        { ladder: "seasons", tier: "bronze" },
+      ],
     ]);
   });
 });
@@ -214,6 +260,48 @@ async function kudosGiven(t: Backend, giver: MemberId, recipient: MemberId, { ku
     const award = await ctx.db.insert("awards", { workspace, conversation, message, giver, recipient, kudos, day: event.day, at });
     return { ...event, awards: [{ award, giver, recipient, kudos }] };
   });
+}
+
+async function openTheBook(t: Backend, member: MemberId) {
+  await t.run((ctx) => ctx.db.insert("unlocks", { member, feature: "book", readyAt: now.getTime(), openedAt: now.getTime() }));
+}
+
+async function kudosGivenToMany(t: Backend, giver: MemberId, recipients: number): Promise<KudosGivenEvent> {
+  return t.run(async (ctx) => {
+    const event = kudosGivenEvent(giver, giver, { at: now.getTime() });
+    const { workspace, conversation, message } = event.message;
+    const awards = [];
+    for (let index = 0; index < recipients; index += 1) {
+      const recipient = await ctx.db.insert("members", { workspace, user: `U_NEW${index}`, kind: "member" });
+      const award = await ctx.db.insert("awards", { workspace, conversation, message, giver, recipient, kudos: 1, day: event.day, at: event.at });
+      awards.push({ award, giver, recipient, kudos: 1 });
+    }
+    return { ...event, awards };
+  });
+}
+
+async function countEveryMutation(t: Backend, event: KudosGivenEvent, before: (from: number) => Promise<void> = async () => {}) {
+  await count(t, event);
+  for (let next = await nextCounting(t); next !== null; next = await nextCounting(t)) {
+    await t.run((ctx) => ctx.scheduler.cancel(next._id));
+    const args = next.args[0] as { event: KudosGivenEvent; from: number; untold: Array<{ member: MemberId; earned: Array<{ ladder: LadderId; tier: TierId }> }> };
+    await before(args.from);
+    await t.mutation(internal.achievements.achievements.countKudosGiven, args);
+  }
+}
+
+async function nextCounting(t: Backend) {
+  const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return jobs.find(({ name, state }) => name === "achievements/achievements:countKudosGiven" && state.kind === "pending") ?? null;
+}
+
+async function tierDmsTo(t: Backend, member: MemberId) {
+  const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return jobs
+    .filter(({ name }) => name === "slack/directMessages:deliverDirectMessage")
+    .map(({ args }) => args[0] as { member: MemberId; notification: { kind: string; tiers?: unknown } })
+    .filter((delivery) => delivery.member === member && delivery.notification.kind === "tiers-earned")
+    .map(({ notification }) => notification.tiers);
 }
 
 async function count(t: Backend, event: KudosGivenEvent) {

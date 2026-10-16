@@ -13,6 +13,7 @@ import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const everyFeature = ["xp-levels", "unlocks", "quests", "skill-tree", "achievements", "coins", "crate-rewards", "website", "groups", "everyone-board", "activity"];
+const kudosTs = `${now.getTime() / 1000}.000100`;
 const convexScheduleLimit = 1000;
 const kudosGivenSubscribers = new Set(subscribers.kudosGiven.map((subscription) => getFunctionName("subscriber" in subscription ? subscription.subscriber : subscription)));
 
@@ -42,25 +43,25 @@ describe("kudosGiven subscribers stay within Convex's limits: one kudos naming 7
     const alice = await withTheBookOpen(t, "U_ALICE");
     const recipients = newMembers(700);
 
-    await post(t, [section(...recipients.map((user) => mention(user)), emoji("taco"))], { user: "U_ALICE" });
+    await post(t, [section(...recipients.map((user) => mention(user)), emoji("taco"))], { user: "U_ALICE", ts: kudosTs });
     const subscriberRuns = await settleRunningSubscribersOneByOne(t);
 
     expect(subscriberRuns.filter(({ refused, scheduled }) => refused !== undefined || scheduled >= convexScheduleLimit)).toEqual([]);
     expect(await countedOf(t, recipients)).toEqual(recipients.map((user) => ({ user, recognition: 1, xp: true })));
     expect(await ladderCountOf(t, alice, "generosity")).toBe(700);
-    expect(await tiersToldTo(t, alice)).toEqual([
-      [
-        { ladder: "generosity", tier: "bronze" },
-        { ladder: "generosity", tier: "silver" },
-        { ladder: "generosity", tier: "gold" },
-        { ladder: "generosity", tier: "diamond" },
-        { ladder: "connections", tier: "bronze" },
-        { ladder: "connections", tier: "silver" },
-        { ladder: "connections", tier: "gold" },
-        { ladder: "connections", tier: "diamond" },
-        { ladder: "seasons", tier: "bronze" },
-      ],
-    ]);
+    const alicesTiers = [
+      { ladder: "generosity", tier: "bronze" },
+      { ladder: "generosity", tier: "silver" },
+      { ladder: "generosity", tier: "gold" },
+      { ladder: "generosity", tier: "diamond" },
+      { ladder: "connections", tier: "bronze" },
+      { ladder: "connections", tier: "silver" },
+      { ladder: "connections", tier: "gold" },
+      { ladder: "connections", tier: "diamond" },
+      { ladder: "seasons", tier: "bronze" },
+    ];
+    expect(await tiersToldTo(t, alice)).toEqual([alicesTiers]);
+    expect(await tierNoticesOf(t, alice)).toEqual([{ message: kudosTs, tiers: alicesTiers }]);
   });
 });
 
@@ -177,4 +178,9 @@ async function tiersToldTo(t: Backend, member: MemberId) {
     .map(({ args }) => args[0] as TierNotification)
     .filter((delivery) => delivery.member === member && delivery.notification.kind === "tiers-earned")
     .map(({ notification }) => notification.tiers);
+}
+
+async function tierNoticesOf(t: Backend, member: MemberId) {
+  const notices = await t.run((ctx) => ctx.db.query("tierNotices").collect());
+  return notices.filter((notice) => notice.member === member).map(({ message, tiers }) => ({ message, tiers }));
 }
