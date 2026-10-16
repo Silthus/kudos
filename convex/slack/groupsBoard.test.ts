@@ -162,6 +162,15 @@ describe("GB15, GB16, GB17: the My group board and the peer line", { timeout: 60
     expect(reply.text).toBe([...antsGroupsThisWeek, "", ...antsThisWeek, "", "*Everyone*", ...everyoneImproved, "You improved more than 60% of Ants."].join("\n"));
   });
 
+  test("WS344: a viewer who improved more than everyone else in their group reads that, never more than 100%", async () => {
+    const t = await antsImproved(boardsOn);
+
+    const reply = await command(t, "U_ABE", "leaderboard");
+
+    expect(reply.text.split("\n").at(-1)).toBe("You improved more than everyone else in Ants.");
+    expect(reply.text).not.toContain("100% of");
+  });
+
   test("the Leaderboard tab shows the same boards and lines as the command", async () => {
     const t = await antsImproved(boardsOn);
     await openHome(t, "U_ANN");

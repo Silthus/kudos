@@ -6,8 +6,8 @@ import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
 import { renderLookUpFailed, renderNotAMember, renderProfileCard, renderProfileCardUsage } from "../feedback/profileCard";
 import type { Line } from "../feedback/segments";
 import { isProfileCardShownTo } from "../profileCard/flag";
-import { profileCardOf } from "../profileCard/profileCard";
-import { lookup, type MemberFacts } from "../workspace/directory";
+import { groupNameOnCard, profileCardOf } from "../profileCard/profileCard";
+import { lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { answerCommand, knownOrLookedUp, onceKnown, type Viewer } from "./commandReplies";
 import { attemptArgs, failedAttempt, slackTextOf, tryAtMostThreeTimes } from "./delivery";
 
@@ -64,7 +64,13 @@ async function answerTo(ctx: MutationCtx, viewing: Viewing, request: CardRequest
 async function cardAnswerOf(ctx: MutationCtx, viewing: Viewer, user: string, target: MemberFacts): Promise<Answer> {
   if (target.kind !== "member") return { lines: renderNotAMember(user), own: null };
   const own = viewing.user === user;
-  return { lines: renderProfileCard(user, await profileCardOf(ctx, target.member, { own })), own };
+  const card = { ...(await profileCardOf(ctx, target.member, { own })), group: await groupNameShownTo(ctx, viewing, target.member) };
+  return { lines: renderProfileCard(user, card), own };
+}
+
+async function groupNameShownTo(ctx: MutationCtx, viewing: Viewer, member: MemberId) {
+  const viewer = await lookup(ctx, viewing.workspace, viewing.user);
+  return viewer?.kind === "member" ? groupNameOnCard(ctx, viewer.member, member) : null;
 }
 
 function exposeOnceKnown(ctx: MutationCtx, viewing: Viewing, shown: boolean, own: boolean | null) {
