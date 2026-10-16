@@ -17,7 +17,7 @@
     },
     {
       "name": "giver",
-      "definition": "The member who gives kudos, by writing a kudos message or by chiming in on one, and spends their own daily allowance, then weekly reserve, on it."
+      "definition": "The member who gives kudos by writing a kudos message, and spends their own daily allowance, then weekly reserve, on it. A star's giver is the member whose reaction it is; a star spends no allowance."
     },
     {
       "name": "recipient",
@@ -45,7 +45,7 @@
     },
     {
       "name": "award",
-      "definition": "The kudos one giver gave one recipient through one kudos message or one chime-in. An award is permanent: neither editing nor deleting the message, nor removing a reaction, changes it (ADR-0001). Not a grant or gift.",
+      "definition": "The kudos one giver gave one recipient through one kudos message. An award is permanent: neither editing nor deleting the message, nor removing a reaction, changes it (ADR-0001). A star is not an award. Not a grant or gift.",
       "rejected": [
         {
           "alternative": "gift",
@@ -199,7 +199,7 @@
     },
     {
       "name": "crowd booster",
-      "definition": "A booster for 24 hours that a chime-in threshold gives everyone who chimed in on a kudos message and its giver, stronger at each higher threshold. Only the strongest Crowd booster a member holds counts."
+      "definition": "A booster for 24 hours that a popular kudos message once gave the people on it. Cut with every booster (decision 12); the star boost pays XP and gives no booster."
     },
     {
       "name": "group",
@@ -422,7 +422,7 @@
     },
     {
       "name": "qualifying recognition",
-      "definition": "The first award from a giver to a recipient on the giver's day whose stored gate decision says it is thoughtful kudos, from a kudos message or, later, a chime-in. Every per-recognition bonus XP line and giving coin pays once per qualifying recognition, however many kudos the award carries; base XP still counts every kudos. Whether an award is one, and whether it is the giver's first of the day or the first to that recipient in the giver's week, is kept for every award whether or not the giver owns a perk (P16, P17)."
+      "definition": "The first award from a giver to a recipient on the giver's day whose stored gate decision says it is thoughtful kudos, from a kudos message; a star never is one. Every per-recognition bonus XP line and giving coin pays once per qualifying recognition, however many kudos the award carries; base XP still counts every kudos. Whether an award is one, and whether it is the giver's first of the day or the first to that recipient in the giver's week, is kept for every award whether or not the giver owns a perk (P16, P17)."
     },
     {
       "name": "launch batch",
@@ -502,7 +502,7 @@
     },
     {
       "name": "bonus",
-      "definition": "Bonus XP: XP a recognition earns beyond base XP, apart from quest and Journey rewards. While the skill tree applies, each effect perk the giver owns that pays on a qualifying recognition writes one bonus line { source, xp } on the giver's effects record, fixed when the record is written and never recomputed (ADR-0004). A Given reply separately stores, when it is written, each perk's bonus summed over the message's awards, and while the skill tree still applies at delivery the gains line shows each as '{perk} bonus (+{xp} XP)' after base XP and any Quest done parts; that stored amount can differ from effects records written later. Later, reaching a chime-in threshold gives its recipients bonus XP. Not the perk, which pays it, and not the gains line, which shows it; the weekly reserve's bonus kudos and the bonus quest are other things."
+      "definition": "Bonus XP: XP a recognition earns beyond base XP, apart from quest and Journey rewards. While the skill tree applies, each effect perk the giver owns that pays on a qualifying recognition writes one bonus line { source, xp } on the giver's effects record, fixed when the record is written and never recomputed (ADR-0004). A Given reply separately stores, when it is written, each perk's bonus summed over the message's awards, and while the skill tree still applies at delivery the gains line shows each as '{perk} bonus (+{xp} XP)' after base XP and any Quest done parts; that stored amount can differ from effects records written later. Not the perk, which pays it, and not the gains line, which shows it; the weekly reserve's bonus kudos, the bonus quest and the star boost are other things."
     },
     {
       "name": "places climbed",
