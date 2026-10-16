@@ -23,6 +23,7 @@ describe("#435: the router reads every target a Slack link carries", () => {
   const origin = "https://kudos-site.test";
   const lastWeeksCrate = { kind: "weekly", week: "2026-10-05", slot: 2 } as const;
   const secondBoughtCrate = { kind: "bought", n: 2 } as const;
+  const lastWeeksGroupCrate = { kind: "group", week: "2026-10-05" } as const;
 
   test.each<{ link: string; page: Page; route: Route }>([
     { link: "/quests?quest=2", page: { page: "quests", quest: 2 }, route: { page: "quests", quest: 2 } },
@@ -36,6 +37,7 @@ describe("#435: the router reads every target a Slack link carries", () => {
     { link: "/quests?crate=weekly%3A2026-10-05%3A2", page: { page: "quests", crate: lastWeeksCrate }, route: { page: "quests", crate: lastWeeksCrate } },
     { link: "/book/collection?crate=bought%3A2", page: { page: "bookCollection", crate: secondBoughtCrate }, route: { page: "book", bookPage: "collection", crate: secondBoughtCrate } },
     { link: "/book/collection?crate=store", page: { page: "bookCollection", crate: "store" }, route: { page: "book", bookPage: "collection", crate: "store" } },
+    { link: "/quests?crate=group%3A2026-10-05", page: { page: "quests", crate: lastWeeksGroupCrate }, route: { page: "quests", crate: lastWeeksGroupCrate } },
   ])("$link", ({ link, page, route }) => {
     const url = urlOf(origin, page);
     expect(url).toBe(`${origin}${link}`);
@@ -52,5 +54,7 @@ describe("#435: the router reads every target a Slack link carries", () => {
 
   test.each([1.5, 0, -1, 1e21])("#469: the link function writes no target for a bought crate numbered %s, so both sides agree", (n) => {
     expect(urlOf(origin, { page: "bookCollection", crate: { kind: "bought", n } })).toBe(`${origin}/book/collection`);
+  test.each(["group:", "group:last-week", "group:2026-10-05:1", "group:2026-10-5", "groups:2026-10-05"])("drops a broken group crate: ?crate=%s", (crate) => {
+    expect(routeOf(new URL(`${origin}/quests?crate=${crate}`))).toEqual({ page: "quests" });
   });
 });

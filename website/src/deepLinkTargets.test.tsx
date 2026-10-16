@@ -245,6 +245,37 @@ describe("#500: ?crate=weekly:{week}:{slot} lands on an earlier week's waiting c
   });
 });
 
+function waitingGroupCard(week: string) {
+  return within(within(main()).getByRole("region", { name: "Waiting to open" }))
+    .getAllByRole("article")
+    .find((card) => card.querySelector(`time[datetime="${week}"]`) !== null && within(card).queryByText("Ants quest") !== null)!;
+}
+
+describe("#517: ?crate=group:{week} lands on an earlier week's waiting group crate", () => {
+  it.each(["2026-10-05", "2026-09-28"])("scrolls to %s's group crate and focuses its Claim, never opening it", (week) => {
+    const scrolled = watchScrolling();
+    const { actions } = showQuestsAt(`/quests?crate=group%3A${week}`, questsFixtures.weekWithTwoWeeksOfGroupCrates);
+
+    const card = waitingGroupCard(week);
+    expect(scrolled).toEqual([card]);
+    expect(within(card).getByRole("button", { name: "Claim" })).toHaveFocus();
+    expect(actions.openQuestCrate).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["a group crate already opened", "/quests?crate=group:2026-09-21"],
+    ["a broken target", "/quests?crate=group:last-week"],
+    ["a target with no week", "/quests?crate=group:"],
+  ])("lands on the plain page for %s", (_, path) => {
+    const scrolled = watchScrolling();
+    showQuestsAt(path, questsFixtures.weekWithTwoWeeksOfGroupCrates);
+
+    expect(scrolled).toEqual([]);
+    expect(document.body).toHaveFocus();
+  });
+});
+
 describe("#435: a target waits out a connecting read", () => {
   it("lands /skills?perk= once the tree answers after connecting", () => {
     preferWideScreen();
@@ -326,7 +357,7 @@ describe("#435: a quest or perk target waits for its page's content", () => {
 });
 
 describe("#435: a target survives sign-in", () => {
-  it.each(["/skills?perk=spark", "/quests?crate=quests", "/?crate=journey", "/book?crate=book", "/leaderboard?period=month&crate=leaderboard", "/quests?crate=weekly%3A2026-10-05%3A0"])("signs in back to %s", async (path) => {
+  it.each(["/skills?perk=spark", "/quests?crate=quests", "/?crate=journey", "/book?crate=book", "/leaderboard?period=month&crate=leaderboard", "/quests?crate=weekly%3A2026-10-05%3A0", "/quests?crate=group%3A2026-10-05"])("signs in back to %s", async (path) => {
     visit(path);
     const { actions, user } = renderApp(shellFixtures.signedOut);
     await user.click(screen.getByRole("button", { name: "Sign in with Slack" }));
@@ -341,6 +372,7 @@ describe("#435: axe finds no violations on a landing", () => {
     { name: "a ready crate", render: () => readyPages[0]!.reads((visit(readyPages[0]!.path), readyPages[0]!.member)) },
     { name: "a Journey crate", render: () => (visit("/?crate=journey"), renderApp(shellFixtures.memberWithQuests)) },
     { name: "an earlier week's crate", render: () => showQuestsAt("/quests?crate=weekly:2026-10-05:0", questsFixtures.weekWithLastWeeksCrate) },
+    { name: "an earlier week's group crate", render: () => showQuestsAt("/quests?crate=group:2026-10-05", questsFixtures.weekWithTwoWeeksOfGroupCrates) },
   ];
 
   it.each(landings.flatMap((landing) => [false, true].map((dark) => ({ ...landing, dark, mode: dark ? "dark" : "light" }))))("$name in $mode mode", async ({ render, wide, dark }) => {
