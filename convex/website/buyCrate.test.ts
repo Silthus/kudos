@@ -218,6 +218,16 @@ describe("CL28 CL30: a bought crate waits until its member opens it, and drops o
     expect(await openCrate(asSignedIn, "bought:1")).toEqual({ kind: "opened", drop: await dropDrawnFor(member, "bought:1") });
   });
 
+  test("every waiting bought crate is listed, however many wait", async () => {
+    const { member, asSignedIn } = await aCrateStoreShopperWith(0);
+    const crates = Array.from({ length: 101 }, (_, index) => `bought:${index + 1}`);
+    await t.run(async (ctx) => {
+      for (const [index, crate] of crates.entries()) await ctx.db.insert("boughtCrates", { member, crate, n: index + 1, boughtAt: now.getTime() });
+    });
+
+    expect(await storeOf(asSignedIn)).toEqual({ bought: crates, crateStore: { price: 50, next: 102 } });
+  });
+
   test("with crate-store off, a bought crate stays listed and still opens, and the store is no longer offered", async () => {
     const { member, asSignedIn } = await aCrateStoreShopperWith(50);
     await buyCrate(asSignedIn, 1);

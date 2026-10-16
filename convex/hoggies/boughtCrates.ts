@@ -12,8 +12,6 @@ import type { CratePurchaseOutcome, CrateRefusal } from "./records";
 
 export type CrateStore = { price: number; next: number };
 
-const boughtCratesListed = 100;
-
 export async function buyCrate(ctx: MutationCtx, member: MemberId, next: number, at: number): Promise<CratePurchaseOutcome | null> {
   if (!(await hoggiesShownTo(ctx, member)) || !(await crateStoreOpenFor(ctx, member))) return null;
   const crate = boughtCrateKeyOf(next);
@@ -49,7 +47,7 @@ export async function waitingCratesOf(ctx: QueryCtx, member: MemberId): Promise<
   const waiting = await ctx.db
     .query("boughtCrates")
     .withIndex("by_member_opened", (q) => q.eq("member", member).eq("openedAt", undefined))
-    .take(boughtCratesListed);
+    .collect();
   return waiting.map(({ crate }) => crate);
 }
 
