@@ -6,8 +6,9 @@ export type HoggieTileLanding = { tile: HTMLElement; coin: HTMLElement | null };
 type Waiting = { within?: number };
 
 export async function landOnHoggieTile({ hoggie, rarity }: { hoggie: string; rarity: Rarity }, { within = 1500 }: Waiting = {}): Promise<HoggieTileLanding | null> {
+  if (document.querySelector("[data-spread]") === null) return null;
   flipTheBookTo(spreadHrefOf({ kind: "hoggies", rarity }));
-  const tile = await elementOnce(`[data-hoggie="${hoggie}"]`, within);
+  const tile = await connectedElementOnce(`[data-spread="hoggies"] [data-hoggie="${hoggie}"]`, within);
   if (tile === null) return null;
   tile.scrollIntoView({ block: "center", behavior: "instant" });
   return { tile, coin: tile.querySelector<HTMLElement>("[data-coin]") };
@@ -22,6 +23,17 @@ function flipTheBookTo(href: string) {
   if (window.location.pathname + window.location.search + window.location.hash === href) return;
   window.history.pushState(null, "", href);
   window.dispatchEvent(new PopStateEvent("popstate"));
+}
+
+async function connectedElementOnce(selector: string, within: number) {
+  const found = await elementOnce(selector, within);
+  if (found === null) return null;
+  await nextFrame();
+  return found.isConnected ? found : document.querySelector<HTMLElement>(selector);
+}
+
+function nextFrame() {
+  return new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 }
 
 function elementOnce(selector: string, within: number) {

@@ -12,7 +12,7 @@ import { stickerWordsOf } from "../StickerTile";
 import { ChapterLabel, Page, PageHeading, rarityNameOf, RarityPip, row } from "./Page";
 import { Ring } from "./Ring";
 import { spreadHrefOf } from "./spreads";
-import { latestCrestArtOf, type TeamPages } from "./teamPages";
+import { latestCrestArtOf, teamsCountOf, type TeamPages } from "./teamPages";
 import { newItemsOf } from "./whatsNew";
 
 type Fresh = { fresh: ReadonlySet<string>; timeZone: string };
@@ -73,18 +73,18 @@ function RarityRows({ collection }: { collection: Collection }) {
 }
 
 function TeamsAtAGlance({ teams, chapter }: { teams: TeamPages; chapter: number }) {
-  const { collected, total } = teams.crests;
+  const { counted: { collected, total }, of } = teamsCountOf(teams);
   const crest = latestCrestArtOf(teams.pages);
   return (
     <>
       <ChapterLabel>{`Chapter ${chapter} · Teams`}</ChapterLabel>
-      <AppLink href={spreadHrefOf({ kind: "teams" })} aria-label={`Teams, ${collected} of ${total} crests`} className={`${row} gap-5 rounded-lg p-2`}>
+      <AppLink href={spreadHrefOf({ kind: "teams" })} aria-label={`Teams, ${collected} of ${total} ${of}`} className={`${row} gap-5 rounded-lg p-2`}>
         <Ring value={collected} max={total} size={96}>
           {crest === null ? <span className="hud-display text-2xl font-extrabold tabular-nums">{collected}</span> : <TeamCrest art={crest.art} size={70} collected={crest.collected} />}
         </Ring>
         <span className="flex min-w-0 flex-col">
           <span className="hud-display text-3xl font-extrabold tabular-nums leading-none">{collected}</span>
-          <span className="text-sm text-muted-foreground">{`of ${total} crests`}</span>
+          <span className="text-sm text-muted-foreground">{`of ${total} ${of}`}</span>
           {teams.stickers !== undefined && <span className="mt-1 text-xs text-muted-foreground">{stickerWordsOf(teams.stickers)}</span>}
         </span>
       </AppLink>

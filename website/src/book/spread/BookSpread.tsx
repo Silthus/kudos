@@ -14,7 +14,7 @@ import { countOf, PageTabs, type Tab } from "./PageTabs";
 import { spreadHrefOf, spreadKeyOf, tabOf, type Spread } from "./spreads";
 import { TeamSpread } from "./TeamSpread";
 import { TeamsSpread } from "./TeamsSpread";
-import { teamPageNamed, teamPagesOf, type TeamPages } from "./teamPages";
+import { teamPageNamed, teamPagesOf, teamsCountOf, type TeamPages } from "./teamPages";
 import "./spread.css";
 
 type YourBook = Extract<BookAnswer, { kind: "book" }>;
@@ -43,7 +43,7 @@ export function BookSpread({ book, collection, spread, chatUrl, coins, onBuyCrat
         <article key={key} data-spread={shown.kind} aria-label={articleLabelOf(shown, teams)} className="bk-book bk-flip-in grid overflow-hidden lg:grid-cols-2">
           {shown.kind === "cover" && <CoverSpread collection={collection} teams={teams} ladders={book.ladders} fresh={fresh} timeZone={book.timeZone} />}
           {shown.kind === "hoggies" && <HoggiesSpread collection={collection} rarity={shown.rarity} fresh={fresh} timeZone={book.timeZone} avatar={avatarChoice} firstPage={numbering.hoggies} />}
-          {shown.kind === "teams" && teams !== null && <TeamsSpread teams={teams} chatUrl={chatUrl} firstPage={numbering.teams} />}
+          {shown.kind === "teams" && teams !== null && <TeamsSpread teams={teams} chatUrl={chatUrl} timeZone={book.timeZone} firstPage={numbering.teams} />}
           {shown.kind === "team" && teams !== null && <TeamSpread teams={teams} page={teamPageNamed(teams.pages, shown.team)!} timeZone={book.timeZone} firstPage={numbering.team} />}
           {shown.kind === "achievements" && <AchievementsSpread ladders={book.ladders} category={shown.category} timeZone={book.timeZone} chapter={teams === null ? 2 : 3} firstPage={numbering.achievements} />}
         </article>
@@ -64,9 +64,14 @@ function tabsOf(collection: Collection, teams: TeamPages | null, book: YourBook)
   return [
     { tab: "cover", label: "Cover", count: null, href: spreadHrefOf({ kind: "cover" }) },
     { tab: "hoggies", label: "Hoggies", count: countOf(collection.owned, collection.total, "found"), href: spreadHrefOf({ kind: "hoggies", rarity: "legendary" }) },
-    ...(teams === null ? [] : [{ tab: "teams" as const, label: "Teams", count: countOf(teams.crests.collected, teams.crests.total, "crests"), href: spreadHrefOf({ kind: "teams" }) }]),
+    ...(teams === null ? [] : [teamsTabOf(teams)]),
     { tab: "achievements", label: "Achievements", count: countOf(tiers.earned, tiers.total, "tiers"), href: spreadHrefOf({ kind: "achievements", category: "all" }) },
   ];
+}
+
+function teamsTabOf(teams: TeamPages): Tab {
+  const { counted, of } = teamsCountOf(teams);
+  return { tab: "teams", label: "Teams", count: countOf(counted.collected, counted.total, of), href: spreadHrefOf({ kind: "teams" }) };
 }
 
 function pageNumbersOf(rarities: number, withTeams: boolean) {

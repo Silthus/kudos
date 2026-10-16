@@ -44,7 +44,7 @@ import { useLinkTargetOnceLanded } from "./linkTarget";
 import type { SettingsRead, SettingsShown } from "./settingsRead";
 import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
 import type { SpotlightDraw } from "./spotlightRead";
-import { hrefOf, useRoute, type ActivityFilter, type BookPageId, type Route, type Screen } from "./route";
+import { returnAddressOf, useRoute, type ActivityFilter, type BookPageId, type Route, type Screen } from "./route";
 import type { Spread } from "./book/spread/spreads";
 import type { Feature, MemberProfile, Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome, useSignInWhenAsked } from "./signInAttempt";
@@ -66,7 +66,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   const quests = useQuests(onQuests || questsOpen);
   const onBook = member !== undefined && route.page === "book";
   const book = useBook(onBook);
-  const onCollection = onBook && route.bookPage === "collection";
+  const onCollection = onBook && (route.bookPage === "collection" || showsTheBookSpread(member));
   const collection = useCollection(onBook || (onHome && isBookOpenFor(member)));
   const onSkills = member !== undefined && route.page === "skills";
   const skillTree = useSkillTree(onSkills);
@@ -101,7 +101,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   );
   const signIn = useCallback(() => {
     rememberSignInStarted();
-    actions.signIn(hrefOf(route));
+    actions.signIn(returnAddressOf(route));
   }, [actions, route]);
   const takingToSlack = useSignInWhenAsked(shown, signIn);
   const page: ShellState = takingToSlack ? { kind: "loading" } : (memberShown ?? shown);
@@ -115,7 +115,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
     <NavigateProvider value={arriveAt}>
       <MomentsProvider value={moments}>
         {signingIn ? (
-          <SignedOutPage returnTo={hrefOf(route)} onSignIn={signIn} />
+          <SignedOutPage returnTo={returnAddressOf(route)} onSignIn={signIn} />
         ) : (
           <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={busy} revealing={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
             <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>

@@ -8,18 +8,24 @@ export type TeamSlot = { key: string; name: string; held: boolean; heldAt: numbe
 
 export type TeamPage = { slug: string; name: string; art: CrestArt | null; mine: boolean; held: number; total: number; completedAt: number | null; complete: boolean; seen: string | null; slots: TeamSlot[] };
 
-export type TeamPages = { pages: TeamPage[]; crests: { collected: number; total: number }; stickers: Sticker[] | undefined };
+export type Counted = { collected: number; total: number };
+
+export type TeamPages = { pages: TeamPage[]; crests: Counted | null; albums: Counted | null; stickers: Sticker[] | undefined };
 
 export function teamPagesOf({ crests, albums, stickers, hoggies }: Collection): TeamPages | null {
   if (crests === undefined && albums === undefined && stickers === undefined) return null;
   const byHoggie = new Map(hoggies.map((hoggie) => [hoggie.hoggie, hoggie]));
-  const pages = [...(crests ?? []).map((crest) => crestPageOf(crest, byHoggie)), ...(albums ?? []).map(groupPageOf)];
-  return { pages, crests: crestCountOf(pages, crests !== undefined), stickers };
+  const crestPages = (crests ?? []).map((crest) => crestPageOf(crest, byHoggie));
+  const albumPages = (albums ?? []).map(groupPageOf);
+  return { pages: [...crestPages, ...albumPages], crests: crests === undefined ? null : countedOf(crestPages), albums: albums === undefined ? null : countedOf(albumPages), stickers };
 }
 
-function crestCountOf(pages: TeamPage[], withCrests: boolean) {
-  const counted = withCrests ? pages.filter(({ art }) => art !== null) : pages;
-  return { collected: counted.filter(({ complete }) => complete).length, total: counted.length };
+function countedOf(pages: TeamPage[]): Counted {
+  return { collected: pages.filter(({ complete }) => complete).length, total: pages.length };
+}
+
+export function teamsCountOf({ crests, albums }: TeamPages): { counted: Counted; of: "crests" | "albums" } {
+  return crests === null ? { counted: albums ?? { collected: 0, total: 0 }, of: "albums" } : { counted: crests, of: "crests" };
 }
 
 function crestPageOf(crest: CollectionCrest, hoggies: ReadonlyMap<string, CollectionHoggie>): TeamPage {

@@ -65,7 +65,7 @@ describe("#435: the router reads every target a Slack link carries", () => {
   });
 });
 
-describe("#585: the Book's spread lives in the hash and survives canonicalisation", () => {
+describe("#585: the Book's spread is read from the hash", () => {
   test.each<[string, Route]>([
     ["/book#cover", { page: "book", bookPage: "overview", spread: { kind: "cover" } }],
     ["/book#hoggies", { page: "book", bookPage: "overview", spread: { kind: "hoggies", rarity: "legendary" } }],

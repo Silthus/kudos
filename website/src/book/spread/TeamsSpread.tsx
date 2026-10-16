@@ -3,6 +3,7 @@ import { AppLink } from "../../AppLink";
 import { TeamCrest } from "../../crates/TeamCrest";
 import { MemberFace } from "../../Face";
 import { QuietBar } from "../Bar";
+import { dateWords } from "../dates";
 import { NoStickersYet } from "../NoStickersYet";
 import { PersonSilhouette } from "../PersonSilhouette";
 import { StickerFace, stickerWordsOf } from "../StickerTile";
@@ -11,9 +12,9 @@ import { ChapterLabel, Page, PageHeading, row } from "./Page";
 import { spreadHrefOf } from "./spreads";
 import type { TeamPage, TeamPages, TeamSlot } from "./teamPages";
 
-type TeamsProps = { teams: TeamPages; chatUrl: string; firstPage: number };
+type TeamsProps = { teams: TeamPages; chatUrl: string; timeZone: string; firstPage: number };
 
-export function TeamsSpread({ teams, chatUrl, firstPage }: TeamsProps) {
+export function TeamsSpread({ teams, chatUrl, timeZone, firstPage }: TeamsProps) {
   const mine = teams.pages.filter((page) => page.mine);
   const started = teams.pages.filter((page) => !page.mine && page.held > 0);
   const untouched = teams.pages.filter((page) => !page.mine && page.held === 0);
@@ -33,7 +34,7 @@ export function TeamsSpread({ teams, chatUrl, firstPage }: TeamsProps) {
         <Group title="Pages started" aside={`${started.length} with at least one sticker`}>
           {started.length === 0 ? <li className="px-2 text-sm text-muted-foreground">No page started yet. Open a crate, or thank a teammate, and its page begins.</li> : started.map((page) => <li key={page.slug}>{<TeamRow page={page} />}</li>)}
         </Group>
-        {teams.stickers !== undefined && <Stickers stickers={teams.stickers} chatUrl={chatUrl} />}
+        {teams.stickers !== undefined && <Stickers stickers={teams.stickers} chatUrl={chatUrl} timeZone={timeZone} />}
       </Page>
       <Page side="right" number={firstPage + 1} label="Teams not started">
         <Group title={`Not started · ${untouched.length} ${untouched.length === 1 ? "team" : "teams"}`} columns>
@@ -83,7 +84,7 @@ function TeamArt({ page, size }: { page: TeamPage; size: number }) {
   if (page.art !== null) {
     return (
       <span className="bk-crest-hover inline-flex">
-        <TeamCrest art={page.art} size={size} collected={page.held > 0} />
+        <TeamCrest art={page.art} size={size} collected={page.complete} />
       </span>
     );
   }
@@ -94,6 +95,10 @@ function TeamArt({ page, size }: { page: TeamPage; size: number }) {
 function SlotFace({ slot, size }: { slot: TeamSlot; size: number }) {
   if (slot.picture.kind === "hoggie") return <HoggieCoin art={slot.picture.art} rarity={slot.picture.rarity} size={size} />;
   return <StickerFace sticker={{ face: slot.picture.face, former: slot.picture.former }} className={faceSizes[size] ?? "size-9"} />;
+}
+
+function stickerLineOf(sticker: { name: string; firstAt: number; former: boolean }, timeZone: string) {
+  return `${sticker.name} · since ${dateWords(sticker.firstAt, timeZone)}${sticker.former ? " · former teammate" : ""}`;
 }
 
 function Faces({ slots }: { slots: TeamSlot[] }) {
@@ -108,9 +113,8 @@ function Faces({ slots }: { slots: TeamSlot[] }) {
   );
 }
 
-function Stickers({ stickers, chatUrl }: { stickers: TeamPages["stickers"] & object; chatUrl: string }) {
+function Stickers({ stickers, chatUrl, timeZone }: { stickers: TeamPages["stickers"] & object; chatUrl: string; timeZone: string }) {
   const headingId = useId();
-  const shown = stickers.slice(0, 12);
   return (
     <section aria-labelledby={headingId} className="mt-auto flex flex-col gap-2 border-t pt-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -120,13 +124,13 @@ function Stickers({ stickers, chatUrl }: { stickers: TeamPages["stickers"] & obj
       {stickers.length === 0 ? (
         <NoStickersYet chatUrl={chatUrl} />
       ) : (
-        <ul aria-hidden="true" className="flex flex-wrap items-center gap-1">
-          {shown.map((sticker) => (
-            <li key={sticker.key} className="bk-face inline-flex">
+        <ul aria-labelledby={headingId} className="flex flex-wrap items-center gap-1">
+          {stickers.map((sticker) => (
+            <li key={sticker.key} data-sticker={sticker.key} title={stickerLineOf(sticker, timeZone)} className="bk-face inline-flex">
               <StickerFace sticker={sticker} className="size-8" />
+              <span className="sr-only">{stickerLineOf(sticker, timeZone)}</span>
             </li>
           ))}
-          {stickers.length > shown.length && <li className="grid size-8 place-items-center rounded-full bg-muted text-[11px] font-semibold tabular-nums text-muted-foreground">{`+${stickers.length - shown.length}`}</li>}
         </ul>
       )}
     </section>

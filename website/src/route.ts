@@ -148,6 +148,10 @@ function keepingTheHash(href: string) {
   return href + window.location.hash;
 }
 
+export function returnAddressOf(route: Route) {
+  return keepingTheHash(hrefOf(route));
+}
+
 export function useRoute() {
   const [route, setRoute] = useState(currentRoute);
 

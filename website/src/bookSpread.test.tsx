@@ -158,7 +158,8 @@ describe("#585: with book-spread on, /book and /book/collection render one open 
     expect(address()).toBe("/book#hoggies/epic");
     expect(tilesIn(page("right"))).toHaveLength(15);
     expect(within(page("right")).getByRole("link", { name: /Previous.*Legendary/ })).toHaveAttribute("href", "/book#hoggies/legendary");
-    expect(within(tile("coffee-cup"))).toBeTruthy();
+    expect(tile("level-up")).toHaveAttribute("data-rarity", "epic");
+    expect(main().querySelector('[data-hoggie="coffee-cup"]')).toBeNull();
   });
 
   it("draws a rarity's tiles with name, date and New, and keeps Use as avatar on them", async () => {
@@ -224,6 +225,12 @@ describe("#585: with book-spread on, /book and /book/collection render one open 
     expect(within(left).getByRole("link", { name: new RegExp(`^${peopleOps.name}\\s?\\d`) })).toHaveAttribute("href", "/book#teams/people-ops");
     expect(within(left).getByRole("heading", { name: "Stickers" })).toBeInTheDocument();
     expect(left).toHaveTextContent("12 stickers of teammates");
+    const stickers = within(within(left).getByRole("list", { name: "Stickers" })).getAllByRole("listitem");
+    expect(stickers.map((item) => item.getAttribute("data-sticker"))).toEqual(collectionFixtures.withTheStickerBook.stickers.map(({ key }) => key));
+    expect(stickers.find((item) => item.getAttribute("data-sticker") === "k:gone")).toHaveTextContent("A teammate · since 28 Aug 2026 · former teammate");
+    const started = within(left).getByRole("link", { name: /^AI Observability\s?\d/ });
+    expect(started.querySelector("[data-crest-art]")).toHaveAttribute("data-crest-art", "missing");
+    expect(within(left).getByRole("link", { name: new RegExp(`^${peopleOps.name}\\s?\\d`) }).querySelector("[data-crest-art]")).toHaveAttribute("data-crest-art", "collected");
     const right = page("right");
     expect(within(right).getByRole("heading", { name: /Not started/ })).toBeInTheDocument();
     const untouched = collectionFixtures.withTheStickerBook.albums.find((album) => !album.mine && album.held === 0)!;
@@ -254,6 +261,28 @@ describe("#585: with book-spread on, /book and /book/collection render one open 
     expect(within(page("right")).queryByLabelText("Album complete")).toBeNull();
   });
 
+  it("counts albums on the Teams tab while the collection carries albums but no crests, and never calls them crests", () => {
+    visit("/book");
+    const albumsOnly: Collection = { ...collectionFixtures.collectionWithoutCrests, stickers: collectionFixtures.withTheStickerBook.stickers, albums: collectionFixtures.withTheStickerBook.albums };
+    showBook(reader, albumsOnly);
+    expect(tab("Teams, 1 of 5 albums")).toHaveTextContent("1/5");
+    expect(within(page("right")).getByRole("link", { name: "Teams, 1 of 5 albums" })).toBeInTheDocument();
+    expect(book()).not.toHaveTextContent(/crests/);
+    expect(pageTabs()).not.toHaveTextContent(/crests/);
+  });
+
+  it("falls back to the Teams spread for a team the hash does not name, and says when a group has no one else in it", () => {
+    visit("/book#teams/nope");
+    showBook(reader, collectionFixtures.withTheStickerBook);
+    expect(book()).toHaveAttribute("data-spread", "teams");
+    cleanup();
+    visit("/book#teams/group:new-starters");
+    showBook(reader, collectionFixtures.withTheStickerBook);
+    expect(book()).toHaveAccessibleName("New starters album");
+    expect(page("right")).toHaveTextContent("No one else in this group yet.");
+    expect(page("right").querySelector("[data-slot]")).toBeNull();
+  });
+
   it("hides the Teams tab while the collection carries no crests, stickers or albums", () => {
     visit("/book");
     showBook(reader, collectionFixtures.collectionWithoutCrests);
@@ -269,6 +298,25 @@ describe("#585: with book-spread on, /book and /book/collection render one open 
     act(() => window.history.back());
     await waitFor(() => expect(book()).toHaveAttribute("data-spread", "hoggies"));
     expect(address()).toBe("/book#hoggies/legendary");
+  });
+
+  it("sends a signed-out visitor back to the spread the hash names", async () => {
+    visit("/book#hoggies/common");
+    const { actions, user } = renderApp(shellFixtures.signedOut);
+    await user.click(screen.getByRole("button", { name: "Sign in with Slack" }));
+    expect(actions.signIn).toHaveBeenCalledWith("/book#hoggies/common");
+  });
+
+  it("lands /book?crate=bought:2 on its Open once a late collection answers under the spread", async () => {
+    visit("/book?crate=bought%3A2");
+    let landed = false;
+    const shopper = withTheBookSpread(shellFixtures.memberWithTheCrateStore);
+    const { showVisitor } = renderApp(shopper, undefined, {}, undefined, fixedBook(theBook), undefined, undefined, undefined, undefined, undefined, undefined, (asking) => (asking && landed ? collectionFixtures.withTheStore : undefined));
+    expect(main().querySelector("[data-spread]")).toBeNull();
+    landed = true;
+    showVisitor({ ...shopper });
+    const crates = within(main()).getByRole("region", { name: "Crates" });
+    await waitFor(() => expect(within(crates).getAllByRole("button", { name: "Open" })[1]).toHaveFocus());
   });
 
   it("keeps Buy a crate and the waiting crates under the book, and ?crate=bought:2 still lands on its Open", async () => {
@@ -293,9 +341,11 @@ describe("#585: with book-spread on, /book and /book/collection render one open 
     await waitFor(() => expect(landing!.tile).not.toHaveAttribute("data-landed"));
   });
 
-  it("answers null from landOnHoggieTile when no spread shows the tile", async () => {
-    visit("/book");
+  it("answers null from landOnHoggieTile and leaves the address alone while no spread is open", async () => {
+    visit("/book/collection");
     showBook(shellFixtures.memberWithTheBookOpened);
     await expect(landOnHoggieTile({ hoggie: "coffee-cup", rarity: "common" }, { within: 20 })).resolves.toBeNull();
+    expect(address()).toBe("/book/collection");
+    expect(tile("coffee-cup")).toBeInTheDocument();
   });
 });

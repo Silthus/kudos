@@ -2,6 +2,7 @@ import { IconArrowLeft, IconCheck } from "@posthog/icons";
 import type { CSSProperties } from "react";
 import { AppLink } from "../../AppLink";
 import { TeamCrest } from "../../crates/TeamCrest";
+import { usePictureFailure } from "../../Face";
 import type { Face } from "../../shell";
 import { dateWords } from "../dates";
 import { HoggieCoin } from "../HoggieCoin";
@@ -22,7 +23,7 @@ export function TeamSpread({ teams, page, timeZone, firstPage }: TeamProps) {
           All teams
         </AppLink>
         <header className="flex items-center gap-4">
-          <span className="bk-crest-frame grid size-20 shrink-0 place-items-center bg-foreground/10 sm:size-24">{page.art === null ? <PersonSilhouette className="size-12" /> : <TeamCrest art={page.art} size={64} collected={page.held > 0} />}</span>
+          <span className="bk-crest-frame grid size-20 shrink-0 place-items-center bg-foreground/10 sm:size-24">{page.art === null ? <PersonSilhouette className="size-12" /> : <TeamCrest art={page.art} size={64} collected={page.complete} />}</span>
           <div className="min-w-0">
             <ChapterLabel>{page.mine ? "Your group" : page.art === null ? "Group" : "Team"}</ChapterLabel>
             <h2 className="hud-display truncate text-3xl font-bold leading-tight sm:text-4xl">{page.name}</h2>
@@ -120,9 +121,19 @@ function SlotPortrait({ slot }: { slot: TeamSlot }) {
 }
 
 function Portrait({ face, former }: { face: Face; former: boolean }) {
-  if (face.kind === "initials") return <span className="hud-display absolute inset-0 grid place-items-center text-3xl font-bold text-muted-foreground">{face.initials}</span>;
+  if (face.kind === "initials") return <PortraitInitials initials={face.initials} />;
+  return <PortraitPicture key={face.image} face={face} former={former} />;
+}
+
+function PortraitPicture({ face, former }: { face: Exclude<Face, { kind: "initials" }>; former: boolean }) {
+  const { failed, picture, onError } = usePictureFailure();
+  if (failed) return <PortraitInitials initials={face.initials} />;
   const onColour: CSSProperties | undefined = face.kind === "company-profile" ? { backgroundColor: face.colour } : undefined;
-  return <img src={face.image} alt="" loading="lazy" style={onColour} className={`absolute inset-0 size-full object-cover ${face.kind === "company-profile" ? "object-top" : ""} ${former ? "grayscale" : ""}`} />;
+  return <img ref={picture} src={face.image} alt="" loading="lazy" style={onColour} onError={onError} className={`absolute inset-0 size-full object-cover ${face.kind === "company-profile" ? "object-top" : ""} ${former ? "grayscale" : ""}`} />;
+}
+
+function PortraitInitials({ initials }: { initials: string }) {
+  return <span className="hud-display absolute inset-0 grid place-items-center text-3xl font-bold text-muted-foreground">{initials}</span>;
 }
 
 function EmptySlot({ slot, number }: { slot: TeamSlot; number: number }) {
