@@ -5,7 +5,7 @@ import { post, react, settle, testBackend, type Backend } from "../../testing/sl
 import { emoji, mention, section, text, type ReactionOptions } from "../../testing/slackMessages";
 import { unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { aDeploymentForWorkspace, aSession, switchWebsite } from "../../testing/website";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import { catalogue } from "../hoggies/catalogue";
 import type { MemberId } from "../workspace/directory";
 import type { Activity, ActivityEntry, Person } from "./activity";
@@ -177,6 +177,29 @@ describe("SR11: a hug on the activity timeline", () => {
     expect(onsOf(fresh.entries)).toEqual([m3, m1, m4, m2]);
     expect(fresh.entries.map((entry) => (entry.kind === "hugReceived" ? entry.hugs : 0))).toEqual([2, 2, 1, 1]);
     expect(keyOf(fresh.entries[0]!)).toBe(keyOf(second.entries[0]!));
+  });
+
+  test("a hug reacted with a custom emoji Slack lists carries its image on both rows, a skin tone included, and none once Slack no longer lists it", async () => {
+    await hugsOn();
+    const tacoPng = "https://emoji.slack-edge.com/T1/taco/7a8b9c.png";
+    slack.withCustomEmoji("taco", tacoPng);
+    await syncCustomEmoji();
+    await kudos(carol, [dana], "1791971000.000200", "C2");
+    vi.advanceTimersByTime(minute);
+    await hug(bob, alice, { reaction: "taco::skin-tone-2" });
+    const [asAlice, asBob] = await Promise.all([signedIn(alice), signedIn(bob)]);
+    const emojiOf = async (caller: Caller) => (await activityOf(caller, { filter: "all" })).entries.map((entry) => (entry.kind === "hugReceived" || entry.kind === "hugGiven" ? { kind: entry.kind, emoji: entry.emoji, emojiImage: entry.emojiImage } : entry.kind));
+
+    expect([...(await emojiOf(asAlice)), ...(await emojiOf(asBob))]).toEqual([
+      { kind: "hugReceived", emoji: "taco::skin-tone-2", emojiImage: tacoPng },
+      { kind: "hugGiven", emoji: "taco::skin-tone-2", emojiImage: tacoPng },
+    ]);
+
+    slack.withoutCustomEmoji("taco");
+    await syncCustomEmoji();
+    const unlisted = [...(await activityOf(asAlice, { filter: "all" })).entries, ...(await activityOf(asBob, { filter: "all" })).entries];
+    expect(unlisted.map(({ kind }) => kind)).toEqual(["hugReceived", "hugGiven"]);
+    for (const entry of unlisted) expect(entry).not.toHaveProperty("emojiImage");
   });
 
   test("xp is null while XP doesn't show to the viewer", async () => {
@@ -433,4 +456,9 @@ function keyOf(entry: ActivityEntry) {
 function onOf(entry: ActivityEntry | undefined) {
   if (entry?.kind !== "hugReceived" && entry?.kind !== "hugGiven") throw new Error(`expected a hug entry, got ${entry?.kind}`);
   return entry.on;
+}
+
+async function syncCustomEmoji() {
+  await t.action(internal.slack.customEmoji.syncCustomEmoji, {});
+  await settle(t);
 }

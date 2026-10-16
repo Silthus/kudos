@@ -29,12 +29,16 @@ export const kudosEmojiOf = internalQuery({
 
 export function hugReactionOf(envelope: ReactionEnvelope, kudosEmoji: string): HugReaction | null {
   const { user, reaction, item_user: author, item, event_ts: eventTs } = envelope.event;
-  if (!isText(reaction) || reaction.replace(skinToneSuffix, "") !== kudosEmoji) return null;
+  if (!isText(reaction) || withoutSkinTone(reaction) !== kudosEmoji) return null;
   if (item?.type !== "message" || !isText(item.channel) || !isText(item.ts) || isDirectMessage(item.channel)) return null;
   if (!isText(user) || !isText(author) || !isText(eventTs) || author === user) return null;
   const appBotUser = appBotUserOf(envelope);
   if (user === appBotUser || author === appBotUser) return null;
   return { workspace: envelope.team_id, giver: user, author, conversation: item.channel, message: item.ts, emoji: reaction, at: Number(eventTs) * 1000 };
+}
+
+export function withoutSkinTone(emoji: string): string {
+  return emoji.replace(skinToneSuffix, "");
 }
 
 function isDirectMessage(conversation: string) {

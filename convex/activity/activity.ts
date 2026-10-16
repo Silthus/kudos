@@ -9,6 +9,7 @@ import { giverXpOf } from "../progression/progression";
 import { perkOf } from "../progression/tree";
 import { questsFinishedByMessage } from "../quests/finishedBy";
 import { hugsShownTo } from "../hugs/flag";
+import { withoutSkinTone } from "../slack/reactions";
 import { hugsGivenNewestFirst, hugsReceivedNewestFirst, type GivenHug, type ReceivedHugs, type TimelineHug } from "../hugs/records";
 import { hugXp } from "../hugs/xp";
 import { levelUpsNewestFirst } from "../unlocks/unlocks";
@@ -195,11 +196,11 @@ async function hugGivenEntryOf(ctx: QueryCtx, viewer: Viewer, mentions: Mentions
   return { kind: "hugGiven", key: encodePosition({ at, rank: ranks.hugGiven, created }), at, people: persons, emoji, xp, ...facts };
 }
 
-type HugFacts = { on: string; permalink: string | null; kudos: Message | null };
+type HugFacts = { emojiImage?: string; on: string; permalink: string | null; kudos: Message | null };
 
-async function hugFactsOf(ctx: QueryCtx, mentions: Mentions, { message, onKudos }: TimelineHug): Promise<HugFacts> {
-  const [permalink, kudos] = await Promise.all([permalinkOfMessage(ctx, message), onKudos ? kudosWordsOf(ctx, mentions, message) : null]);
-  return { on: onKeyOf(message), permalink, kudos };
+async function hugFactsOf(ctx: QueryCtx, mentions: Mentions, { message, onKudos, emoji }: TimelineHug): Promise<HugFacts> {
+  const [emojiImage, permalink, kudos] = await Promise.all([mentions.emojiImage(message.workspace, withoutSkinTone(emoji)), permalinkOfMessage(ctx, message), onKudos ? kudosWordsOf(ctx, mentions, message) : null]);
+  return { ...(emojiImage !== undefined && { emojiImage }), on: onKeyOf(message), permalink, kudos };
 }
 
 function onKeyOf({ conversation, message }: MessageRef): string {
