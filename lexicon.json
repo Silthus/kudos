@@ -179,7 +179,7 @@
     },
     {
       "name": "chime-in",
-      "definition": "A member's click on the app's kudos reaction under a given kudos message within a day of it, once per member and message; the message's giver and recipients cannot chime in. It gives each recipient one more kudos from the clicker's daily allowance, then weekly reserve, is thoughtful when the message was, and counts toward the message's chime-in thresholds.",
+      "definition": "A member's click on the app's kudos reaction under someone else's Given kudos message within 24 hours of it, once per member and message; the message's giver and recipients cannot chime in. It gives each of the message's recipients 1 kudos from the clicker's daily allowance, all or nothing, as awards from the clicker, and is never thoughtful kudos, since the clicker wrote no words (CH4). Removing the reaction changes nothing.",
       "rejected": [
         {
           "alternative": "super kudos",
@@ -189,7 +189,7 @@
     },
     {
       "name": "chime-in threshold",
-      "definition": "A number of chime-ins on one kudos message (3, 5, 10, 20, 50 or 100). Reaching one gives everyone who chimed in, and the giver, a stronger Crowd booster, and gives the recipients bonus XP."
+      "definition": "Cut on #32 (2026-10-16): a number of chime-ins on one kudos message (3, 5, 10, 20, 50 or 100) that once set a public line. Reaching one does nothing: no public line, no XP, no booster and no drop (CH13-CH15)."
     },
     {
       "name": "sticker book",
@@ -516,7 +516,7 @@
     },
     {
       "name": "bonus",
-      "definition": "Bonus XP: XP a recognition earns beyond base XP, apart from quest and Journey rewards. While the skill tree applies, each effect perk the giver owns that pays on a qualifying recognition writes one bonus line { source, xp } on the giver's effects record, fixed when the record is written and never recomputed (ADR-0004). A Given reply separately stores, when it is written, each perk's bonus summed over the message's awards, and while the skill tree still applies at delivery the gains line shows each as '{perk} bonus (+{xp} XP)' after base XP and any Quest done parts; that stored amount can differ from effects records written later. Later, reaching a chime-in threshold gives its recipients bonus XP. Not the perk, which pays it, and not the gains line, which shows it; the weekly reserve's bonus kudos and the bonus quest are other things."
+      "definition": "Bonus XP: XP a recognition earns beyond base XP, apart from quest and Journey rewards. While the skill tree applies, each effect perk the giver owns that pays on a qualifying recognition writes one bonus line { source, xp } on the giver's effects record, fixed when the record is written and never recomputed (ADR-0004). A Given reply separately stores, when it is written, each perk's bonus summed over the message's awards, and while the skill tree still applies at delivery the gains line shows each as '{perk} bonus (+{xp} XP)' after base XP and any Quest done parts; that stored amount can differ from effects records written later. Not the perk, which pays it, and not the gains line, which shows it; the weekly reserve's bonus kudos and the bonus quest are other things."
     },
     {
       "name": "places climbed",
