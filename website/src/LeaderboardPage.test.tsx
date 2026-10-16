@@ -1,8 +1,10 @@
+import { hedgehogTownCrierPng } from "@posthog/brand/hoggies/png";
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import type { BoardRead } from "./boardRead";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { shellFixtures, type Leaderboard, type MyLeaderboard, type Period, type VisibilityReply } from "./shell";
+import { picturesIn } from "./test/pictures";
 import { renderApp } from "./test/renderApp";
 import { navEntryNames } from "./test/screensNav";
 import { fakeSystemTheme } from "./test/systemTheme";
@@ -768,7 +770,7 @@ describe("WS44: an empty board", () => {
     expect(pageTitle()).toHaveTextContent("Nobody is on this board yet.");
     expect(document.title).toBe("HedgeHug · Leaderboard");
     const board = within(main()).getByRole("region", { name: "Everyone · All time" });
-    expect([...board.querySelectorAll("svg")].filter((art) => art.closest("a") === null)).toHaveLength(1);
+    expect(picturesIn(board)).toEqual([hedgehogTownCrierPng]);
     expect(within(board).getAllByRole("link")).toEqual([within(board).getByRole("link", { name: "Thank someone in Slack (opens in a new tab)" })]);
     expect(within(main()).queryByRole("list", { name: "Top three" })).not.toBeInTheDocument();
     expect(within(main()).queryByRole("list", { name: "No. · member, kudos given" })).not.toBeInTheDocument();

@@ -21,6 +21,7 @@ import type { QuestsAnswer } from "./quests";
 
 const now = new Date("2026-10-14T10:00:00Z");
 const thisWeek = "2026-10-12";
+const sunday = new Date("2026-10-18T10:00:00Z");
 const nextMonday = new Date("2026-10-19T10:00:00Z");
 const juno = { user: "U_JUNO", name: "Juno Whitlock" };
 const rowan = { user: "U_ROWAN", name: "Rowan Pike" };
@@ -90,6 +91,18 @@ async function aLongHistory(giver: MemberId, recipient: MemberId, awards: number
     await t.run(async (ctx) => {
       for (let index = batch * 8000; index < Math.min(awards, (batch + 1) * 8000); index++) {
         await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `history-${index}`, giver, recipient, kudos: 1, day: "2025-01-01", at: longAgo });
+      }
+    });
+  }
+}
+
+async function thankedOnceEach(giver: MemberId, people: number) {
+  const longAgo = Date.parse("2025-01-01T10:00:00Z");
+  for (let batch = 0; batch * 2000 < people; batch++) {
+    await t.run(async (ctx) => {
+      for (let index = batch * 2000; index < Math.min(people, (batch + 1) * 2000); index++) {
+        const recipient = await ctx.db.insert("members", { workspace: "T1", user: `U_GONE_${index}`, kind: "not-a-member" });
+        await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `gone-${index}`, giver, recipient, kudos: 1, day: "2025-01-01", at: longAgo });
       }
     });
   }
@@ -339,18 +352,6 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     });
   });
 
-  test("a member with a long history of kudos still reads this week's slots and swap within Convex's read limits", async () => {
-    t = testBackend({ transactionLimits: true });
-    await questsApply();
-    const { member, asSignedIn, teammate } = await aTeam();
-    await questsOpenFor(member, "say-why-twice");
-    await aLongHistory(member, teammate.member, 33_000);
-
-    const { slots, swap } = await openQuests(asSignedIn);
-    expect(slots).toEqual([expect.objectContaining({ slot: 0, state: "in-progress" })]);
-    expect(swap).toEqual({ used: false, available: true });
-  });
-
   test("P85: after the Monday turn, last week's finished, unopened crate waits, and leaves once opened", async () => {
     const { member, asSignedIn, teammate } = await aTeam();
     await questsOpenFor(member, "say-why", "someone-new", "say-why-three-times");
@@ -410,6 +411,46 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     vi.setSystemTime(nextMonday);
 
     expect((await openQuests(asSignedIn)).waiting[0]!.seen).toBe(finished);
+  });
+});
+
+describe("P81: the week's swap reads within Convex's limits, however many kudos the member gave", () => {
+  test("a member with a long history of kudos still reads this week's slots and swap within Convex's read limits", async () => {
+    t = testBackend({ transactionLimits: true });
+    await questsApply();
+    const { member, asSignedIn, teammate } = await aTeam();
+    await questsOpenFor(member, "say-why-twice");
+    await aLongHistory(member, teammate.member, 33_000);
+
+    const { slots, swap } = await openQuests(asSignedIn);
+    expect(slots).toEqual([expect.objectContaining({ slot: 0, state: "in-progress" })]);
+    expect(swap).toEqual({ used: false, available: true });
+  });
+
+  test("a member with a long history of kudos whose only quest left to swap in needs someone not thanked in 30 days still reads the swap and swaps within Convex's read limits", async () => {
+    t = testBackend({ transactionLimits: true });
+    vi.setSystemTime(sunday);
+    await questsApply();
+    const { member, asSignedIn, teammate } = await aTeam();
+    await questsOpenFor(member, "say-why", "say-why-twice", "say-why-three-times");
+    await aLongHistory(member, teammate.member, 33_000);
+
+    expect((await openQuests(asSignedIn)).swap).toEqual({ used: false, available: true });
+    await swaps(member, 1);
+    expect((await domainFactsOf(member))!.week!.swap).toMatchObject({ slot: 1, replaced: "say-why-twice", quest: "not-in-30-days" });
+  });
+
+  test("a member who once thanked 4,100 people since gone still reads the swap and swaps within Convex's read limits", async () => {
+    t = testBackend({ transactionLimits: true });
+    vi.setSystemTime(sunday);
+    await questsApply();
+    const { member, asSignedIn } = await aTeam();
+    await questsOpenFor(member, "say-why", "say-why-twice", "say-why-three-times");
+    await thankedOnceEach(member, 4_100);
+
+    expect((await openQuests(asSignedIn)).swap).toEqual({ used: false, available: true });
+    await swaps(member, 1);
+    expect((await domainFactsOf(member))!.week!.swap).toMatchObject({ slot: 1, replaced: "say-why-twice", quest: expect.stringMatching(/^(someone-new|not-in-30-days)$/) });
   });
 });
 

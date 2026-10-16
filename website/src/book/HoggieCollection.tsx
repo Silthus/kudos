@@ -3,8 +3,10 @@ import { useId } from "react";
 import type { Collection, CollectionCrest, CollectionHoggie, RarityShare } from "../collectionRead";
 import { rarityWordsOf } from "../crates/drops";
 import { PageTitle } from "../PageTitle";
+import type { ShellActions } from "../shell";
 import { Bar } from "./Bar";
 import { collectedCrestsOf, crestWordsOf } from "./crests";
+import { CrateStore } from "./CrateStore";
 import { CrestTile } from "./CrestTile";
 import { dateWords } from "./dates";
 import { HoggieCoin, nothingFoundYet } from "./HoggieCoin";
@@ -14,7 +16,9 @@ import { useFreshKeys } from "./useFreshKeys";
 
 type CollectionProps = { collection: Collection; timeZone: string };
 
-export function HoggieCollection({ collection, timeZone }: CollectionProps) {
+type HoggieCollectionProps = CollectionProps & { coins: number | null; buyCrate: ShellActions["buyCrate"] };
+
+export function HoggieCollection({ collection, timeZone, coins, buyCrate }: HoggieCollectionProps) {
   const fresh = useFreshKeys([...collection.hoggies, ...(collection.crests ?? [])].flatMap(({ seen }) => seen ?? []));
   const rarestFirst = [...collection.rarities].reverse();
   return (
@@ -27,6 +31,7 @@ export function HoggieCollection({ collection, timeZone }: CollectionProps) {
         <p className="text-sm text-muted-foreground">{`Every crate you open drops one hoggie. Find all ${collection.total}.`}</p>
       </header>
       <FoundSoFar collection={collection} timeZone={timeZone} />
+      <CrateStore collection={collection} coins={coins} buyCrate={buyCrate} />
       <div className="flex flex-col gap-8">
         {collection.crests !== undefined && <CrestSection crests={collection.crests} hoggies={collection.hoggies} fresh={fresh} timeZone={timeZone} />}
         {rarestFirst.map((share) => (

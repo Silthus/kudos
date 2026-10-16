@@ -79,7 +79,7 @@ function LockedHog({ feature }: { feature: Feature }) {
   const Hog = hogOf(feature);
   return (
     <span aria-hidden="true" data-locked-hog className="relative shrink-0">
-      <Hog size={48} title="" className="opacity-25 brightness-0 dark:invert" />
+      <Hog size={48} className="opacity-25 brightness-0 dark:invert" />
       <span data-padlock className="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full bg-foreground text-background">
         <IconLock className="size-3" />
       </span>

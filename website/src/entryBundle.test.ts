@@ -3,11 +3,11 @@ import { fileURLToPath } from "node:url";
 import { build, type Rolldown } from "vite";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-const entryBudgetGzipBytes = 2_700_000;
+const entryBudgetGzipBytes = 340_000;
 
 afterEach(() => vi.unstubAllEnvs());
 
-describe("#514: the production entry bundle stays within its budget", () => {
+describe("#514 #519: the production entry bundle stays within its budget", () => {
   test("the entry chunk and every chunk it imports statically, which every visitor downloads first, stay under their gzipped budget", { timeout: 120_000 }, async () => {
     const chunks = firstLoadOf(await productionChunks());
     expect(chunks.reduce((bytes, chunk) => bytes + gzipSync(chunk.code).byteLength, 0)).toBeLessThanOrEqual(entryBudgetGzipBytes);

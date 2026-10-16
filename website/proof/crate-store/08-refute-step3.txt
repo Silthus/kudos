@@ -1,0 +1,5 @@
+refuted convex/website/a website command never launches unlocks (totality oracle): the website's buyCrate and openCrate no longer check noLaunchWaitsFor before running the command
+  the detector went red: 2 of 30 tests under "a website command never launches unlocks" failed: a website command never launches unlocks WS62 P77: with no unlocks launch recorded, buying a crate answers null and opening one refused, and neither launches anything; a website command never launches unlocks WS62 P91: with quests on and no Journey launch, buying a crate answers null and opening one refused, and neither launches the Journey
+  recorded in .coherence/runs/9f91fd5a-1233-4e4a-a1d9-5edc6800663b.jsonl at 2026-10-16T06:25:06.203Z
+now restore the code and run: run — the refutation counts as witnessed once a later run finds the same totality oracle passing
+exit 0

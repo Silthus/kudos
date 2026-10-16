@@ -128,6 +128,49 @@ export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: 
   return lastThanked;
 }
 
+const thankedBeforeSince = -Infinity;
+
+const repeatsReadBeforeSkipping = 16;
+
+export async function lastThankedSince(ctx: QueryCtx, giver: MemberId, since: number, atOrBefore: number): Promise<Map<MemberId, number>> {
+  const lastThanked = new Map<MemberId, number>();
+  for (const recipient of await everThankedBy(ctx, giver, atOrBefore)) lastThanked.set(recipient, thankedBeforeSince);
+  for (const { recipient, at } of await givenAfter(ctx, giver, since, atOrBefore)) {
+    if (at > lastThanked.get(recipient)!) lastThanked.set(recipient, at);
+  }
+  return lastThanked;
+}
+
+async function everThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<Set<MemberId>> {
+  const thanked = new Set<MemberId>();
+  let past: MemberId | null = null;
+  do past = await thankedUntilOneRepeats(ctx, giver, past, atOrBefore, thanked);
+  while (past !== null);
+  return thanked;
+}
+
+async function thankedUntilOneRepeats(ctx: QueryCtx, giver: MemberId, past: MemberId | null, atOrBefore: number, thanked: Set<MemberId>): Promise<MemberId | null> {
+  let repeats = 0;
+  for await (const { recipient, at } of givenByRecipient(ctx, giver, past)) {
+    if (!thanked.has(recipient)) {
+      if (at <= atOrBefore) thanked.add(recipient);
+      repeats = 0;
+    } else if (++repeats === repeatsReadBeforeSkipping) return recipient;
+  }
+  return null;
+}
+
+function givenByRecipient(ctx: QueryCtx, giver: MemberId, past: MemberId | null) {
+  return ctx.db.query("awards").withIndex("by_giver_recipient", (q) => (past === null ? q.eq("giver", giver) : q.eq("giver", giver).gt("recipient", past)));
+}
+
+function givenAfter(ctx: QueryCtx, giver: MemberId, since: number, atOrBefore: number) {
+  return ctx.db
+    .query("awards")
+    .withIndex("by_giver_at", (q) => q.eq("giver", giver).gt("at", since).lte("at", atOrBefore))
+    .collect();
+}
+
 export async function givenBetween(ctx: QueryCtx, giver: MemberId, since: number, until: number): Promise<DatedAward[]> {
   const awards = await ctx.db
     .query("awards")

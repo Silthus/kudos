@@ -4,7 +4,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { unlockOpenedEventValidator, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { allowanceDay, allowanceLeft } from "../engine/allowance";
-import { awardIdValidator, lastThankedBefore, lastThankedBy } from "../engine/awards";
+import { awardIdValidator, lastThankedBefore, lastThankedSince } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { notifyWeeklyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
@@ -18,7 +18,7 @@ import { questsLiveFor } from "./flag";
 import { rewardValidator, type Reward } from "./journey";
 import { pendingWeeklyCratesBefore } from "./pendingCrates";
 import { feasibility, feasibleBecauseValidator, questIdValidator, questOf, questPool, type DrawFacts, type FeasibleBecause, type PoolQuest, type QuestId, type Recipient } from "./pool";
-import { counts, isRecipient, questProgress, type CountedAward, type QuestAward } from "./progress";
+import { counts, isRecipient, notThankedForMs, questProgress, type CountedAward, type QuestAward } from "./progress";
 import { drawRank } from "./rank";
 import type { WeeklyQuest } from "./step";
 import { daysLeftInWeek, weekKeyOf, weekKeyOfDay, weekStartOf, type WeekKey } from "./week";
@@ -268,7 +268,7 @@ function weeklyQuest(week: WeekKey, { slot }: Slot): WeeklyQuest {
 }
 
 export async function drawFactsOf(ctx: QueryCtx, member: MemberId, at: number): Promise<DrawFacts> {
-  return factsWithTheDaySpent(ctx, member, at, await lastThankedBy(ctx, member, at));
+  return factsWithTheDaySpent(ctx, member, at, await lastThankedAsOf(ctx, member, at, at));
 }
 
 function factsWithoutHistory(ctx: QueryCtx, member: MemberId, at: number): Promise<DrawFacts> {
@@ -282,10 +282,14 @@ async function factsWithTheDaySpent(ctx: QueryCtx, member: MemberId, at: number,
 }
 
 async function factsAtTheStartOf(ctx: QueryCtx, member: MemberId, weekStart: number): Promise<DrawFacts> {
-  return factsWithTheDayUnspent(ctx, member, weekStart, await lastThankedBy(ctx, member, weekStart - 1));
+  return factsWithTheDayUnspent(ctx, member, weekStart, await lastThankedAsOf(ctx, member, weekStart, weekStart - 1));
 }
 
 type LastThanked = Map<MemberId, number>;
+
+function lastThankedAsOf(ctx: QueryCtx, member: MemberId, at: number, atOrBefore: number): Promise<LastThanked> {
+  return lastThankedSince(ctx, member, at - notThankedForMs, atOrBefore);
+}
 
 async function factsWithTheDayUnspent(ctx: QueryCtx, member: MemberId, at: number, lastThanked: LastThanked): Promise<DrawFacts> {
   const { workspace } = await chatUserOf(ctx, member);

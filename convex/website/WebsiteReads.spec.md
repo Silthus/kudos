@@ -111,19 +111,19 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   checklist: commit-ordered-effects dismissed: the lists are constants; comparing them issues no effect
   checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is sent
   checklist: declared-target-coverage declared as the route list is the paths the router serves
-- the router reads every target a link carries: Every target the backend's link function writes into a link, a quest's slot, a perk and a crate, is read back by the website's router as the same target, so a Slack link that names a perk or a ready crate lands on it.
-  over: urlOf in convex/website/routes.ts read back through routeOf in website/src/route.ts, for `quest`, `perk` on `/skills`, `crate` on `/quests`, `/leaderboard`, `/book` and `/skills`, `crate=journey` on the root, an earlier week's `crate=weekly:{week}:{slot}` on `/quests`, which the router drops unless its week is a date and its slot a number, and an earlier week's group crate `crate=group:{week}` on `/quests`, which the router drops unless its week is a date
+- the router reads every target a link carries: Every target the backend's link function writes into a link, a quest's slot, a perk and a crate, is read back by the website's router as the same target, so a Slack link that names a perk, a ready crate or a crate the member bought lands on it.
+  over: urlOf in convex/website/routes.ts read back through routeOf in website/src/route.ts, for `quest`, `perk` on `/skills`, `crate` on `/quests`, `/leaderboard`, `/book` and `/skills`, `crate=journey` on the root, an earlier week's `crate=weekly:{week}:{slot}` on `/quests`, which the router drops unless its week is a date and its slot a number, an earlier week's group crate `crate=group:{week}` on `/quests`, which the router drops unless its week is a date, a bought crate's `crate=bought:{n}` on `/book/collection`, which both sides drop unless n is a safe positive whole number, and the crate offer's `crate=store` on `/book/collection`
   via: #435: the router reads every target a Slack link carries
   refuted: let perkIn in website/src/route.ts answer no perk -> the contract test failed reading /skills?perk=spark (2026-10-15)
   because: map #1 links the level-up DM's `Buy` to a perk and each crate's `Open` to its crate (#435), and a parameter the router dropped would land the member on the plain page with nothing to say why (SW10, SW11)
   kinds: output
-  checklist: destination-confinement dismissed: the target is a perk ID, a crate name from a fixed list, a weekly crate of a date and a number, or a group crate of a date; the router drops any other value
+  checklist: destination-confinement dismissed: the target is a perk ID, a crate name from a fixed list including the crate offer, a weekly crate of a date and a number, a group crate of a date, or a bought crate's safe positive number; both sides drop any other value
   checklist: redaction dismissed: a target names a perk or a feature, never a member
   checklist: commit-ordered-effects dismissed: parsing a link issues no effect
   checklist: circuit-breaker-policy dismissed: nothing is sent
   checklist: declared-target-coverage dismissed: the link has one target, the website
 - one function builds every website link: websiteLinkOf answers SITE_URL plus the asked page's route, the Leaderboard keeping its period, and a page not on the route list resolves to the root, so a link never names a path the website doesn't serve.
-  over: websiteLinkOf while the website is open, for the root, the Leaderboard's three periods, the Quests page, and the `/skills` and `/book` pages, and for the documented targets: `perk` on `/skills`, `crate` with a feature on its page, `crate=journey` on the root, and an earlier week's weekly crate and group crate on `/quests`
+  over: websiteLinkOf while the website is open, for the root, the Leaderboard's three periods, the Quests page, the `/skills` and `/book` pages and the Book's `/book/earned` and `/book/collection`, and for the documented targets: `perk` on `/skills`, `crate` with a feature on its page, `crate=journey` on the root, an earlier week's weekly crate and group crate on `/quests`, and a bought crate and the crate offer on `/book/collection`
   via: SW11: one function builds every website link
   refuted: routeOf answered an unlisted page's own path instead of the root -> the three unlisted pages linked to /quests, /skills and /book (2026-10-14)
   because: a link to a page the website doesn't serve yet would land a member on the not-found page, so every message builds its link from the route list through one function, and a page shipped later switches its links on with its route (SW11, SW13)
@@ -198,6 +198,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   because: unlocks' launch grandfathers every member at once and belongs to Slack until the product owner switches unlocks on (P77, WS62); a website call that reached openUnlock before the launch would run it through unlocksLiveIn
   crossing: browser -> domain
   entrances: mutation openFeature, mutation openQuestCrate, mutation buyPerk, mutation buyItem, mutation buyCrate, mutation openCrate, mutation setBoardVisibility, mutation swapQuest, mutation setMessageSetting, mutation pickPrimaryGroup, mutation equip, mutation takeOff
+  refuted: the website's buyCrate and openCrate no longer checked noLaunchWaitsFor before running the command -> with no unlocks launch recorded, and with quests on and no Journey launch, buying a crate answered bought instead of null and opening one answered opened instead of refused (2026-10-16)
   refuted: buyItem checked only the store's visibility, not the Journey's and the Book's recorded launches -> with quests on and no Journey launch, and with achievements on and no Book launch, the purchase answered bought (2026-10-15)
   refuted: buyPerk checked only the tree feature's entry on the unlock path, not the Journey's and the Book's recorded launches -> with quests on and no Journey launch the purchase answered bought, and with achievements on and no Book launch the purchase answered bought (2026-10-14)
   refuted: openFeature and openQuestCrate didn't check the Book's recorded launch -> with achievements on and no Book launch, opening a ready Leaderboard and a finished Journey step answered opened, and App Home's republish would record the Book's launch (2026-10-14)
@@ -225,6 +226,7 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   because: Unlocks alone decides what may open (D17, P73, WS62, WS64); a website path that wrote its own state could open what Slack still holds, and the reveal must follow only what Unlocks recorded
   crossing: browser -> domain
   entrances: mutation openFeature, mutation openQuestCrate, mutation buyPerk, mutation buyItem, mutation buyCrate, mutation openCrate, mutation setBoardVisibility, mutation swapQuest, mutation setMessageSetting, mutation pickPrimaryGroup, mutation equip, mutation takeOff
+  refuted: the website's openCrate no longer scheduled App Home's republish after an open -> the crate bought and opened on the website left the rows Slack's leave but one republish fewer than the two the claim names (2026-10-16)
   refuted: buyItem ran Commands' buyItem with only the recorded launches as its gate -> a purchase before Coins opened answered refused with coins-not-open instead of no reason kind (2026-10-15)
   refuted: buyPerk answered progression's below-row refusal as points -> the perk above the member's level answered points instead of level (2026-10-14)
   refuted: openQuestCrate answered opened without reading the quests module's crate opening -> the active step, the unfinished and the never-drawn weekly quest answered opened (2026-10-14)

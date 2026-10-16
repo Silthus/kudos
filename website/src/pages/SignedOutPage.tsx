@@ -1,4 +1,4 @@
-import { HedgehogHandClasp } from "@posthog/brand/hoggies";
+import { HedgehogHandClasp } from "../hoggies";
 import { Button, Card, CardContent } from "@posthog/quill";
 import { routeList } from "../../../convex/website/routes";
 import { PageTitle } from "../PageTitle";
@@ -24,7 +24,7 @@ export function SignInCard({ returnTo, onSignIn }: SignInProps) {
   return (
     <Card className="mx-auto w-full max-w-sm">
       <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
-        <HedgehogHandClasp size={112} title="" />
+        <HedgehogHandClasp size={112} />
         <div>
           <PageTitle tab="Sign in">HedgeHug</PageTitle>
           <p className="text-sm text-muted-foreground">Thanks a Hog</p>

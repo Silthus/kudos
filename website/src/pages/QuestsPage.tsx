@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { HedgehogExplorer, HedgehogMegaphone, HedgehogPuzzle, HedgehogReading, HedgehogTownCrier } from "@posthog/brand/hoggies";
+import { HedgehogExplorer, HedgehogMegaphone, HedgehogPuzzle, HedgehogReading, HedgehogTownCrier, type Hoggie } from "../hoggies";
 import { IconCheck, IconClock, IconRefresh } from "@posthog/icons";
 import { Arrow } from "../Arrow";
 import { Button, Card, CardContent } from "@posthog/quill";
@@ -7,7 +7,7 @@ import { AppLink } from "../AppLink";
 import { attemptMessages, questCrateHomeAttributes, useMoments } from "../crates/moments";
 import { questCrateOf, type CrateFacts, type QuestCrate } from "../crates/readyCrates";
 import { Claimed } from "../crates/RewardCrate";
-import { hogOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "../features";
+import { hogOf, openWebPageOf, plainNameOf, type WebPage } from "../features";
 import { PageTitle } from "../PageTitle";
 import { crateTargetAttributes, questTargetAttributes } from "../linkTarget";
 import type { CrateTarget } from "../route";
@@ -124,7 +124,7 @@ const artOf: Record<QuestSlot["kind"], Hoggie> = { "Say why": HedgehogReading, "
 function QuestArt({ Hog, claimed }: { Hog: Hoggie; claimed: boolean }) {
   return (
     <span data-quest-art aria-hidden="true" className="relative flex shrink-0 items-center justify-center rounded-lg bg-muted/60" style={{ width: 64, height: 64 }}>
-      <Hog size={55} title="" className={claimed ? "grayscale" : undefined} />
+      <Hog size={55} className={claimed ? "grayscale" : undefined} />
       {claimed && (
         <span data-claimed-check className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-success text-success-foreground ring-2 ring-card">
           <IconCheck className="size-3" />
@@ -379,7 +379,7 @@ function WeekOf({ week }: Pick<WaitingCrate, "week">) {
 function NoQuests({ chatUrl, firstCrate }: { chatUrl: string } & FirstCrate) {
   return (
     <section aria-label="Your quests this week" className="flex flex-col items-center gap-4 rounded-lg border bg-card px-4 py-10 text-center">
-      <HedgehogTownCrier size={96} title="" />
+      <HedgehogTownCrier size={96} />
       <p className="text-sm text-muted-foreground">You have no quests this week.</p>
       <SlackLink chatUrl={chatUrl} variant={firstCrate === undefined ? "primary" : "outline"}>
         Open Slack

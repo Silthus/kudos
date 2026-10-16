@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
-import { HedgehogTownCrier } from "@posthog/brand/hoggies";
+import { HedgehogTownCrier } from "./hoggies";
 import { PageTitle } from "./PageTitle";
 
 type SaysProps = { title: string; tab: string; children: ReactNode; action?: ReactNode };
 
 export function MaxSays(props: SaysProps) {
-  return <Says art={<HedgehogTownCrier size={112} title="" />} {...props} />;
+  return <Says art={<HedgehogTownCrier size={112} />} {...props} />;
 }
 
 export function Says({ art, title, tab, children, action }: SaysProps & { art: ReactNode }) {
@@ -22,7 +22,7 @@ export function Says({ art, title, tab, children, action }: SaysProps & { art: R
 export function MaxLine({ children }: { children: ReactNode }) {
   return (
     <p className="flex items-center gap-3 text-sm">
-      <HedgehogTownCrier size={40} title="" className="shrink-0" />
+      <HedgehogTownCrier size={40} className="shrink-0" />
       <span>{children}</span>
     </p>
   );

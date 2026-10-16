@@ -1,0 +1,23 @@
+## staged break
+-    await republish(ctx, me.member);
+## refute
+refuted convex/website/a website command is a D17 command (totality oracle): the website's openCrate no longer schedules App Home's republish after an open
+  the detector went red: 1 of 88 tests under "a website command is a D17 command" failed: a website command is a D17 command CL27: a crate bought and opened on the website leaves the rows App Home's Buy and Open of the same crate leave, and schedules App Home's republish
+  recorded in .coherence/runs/9f91fd5a-1233-4e4a-a1d9-5edc6800663b.jsonl at 2026-10-16T06:27:51.023Z
+now restore the code and run: run — the refutation counts as witnessed once a later run finds the same totality oracle passing
+refute exit 0
+## restored byte for byte (clean against HEAD)
+## rerun
+convex/website/a website command never launches unlocks
+  totality oracle: pass (24.6 s, one invocation for every test the bullets name); refutation witnessed
+    30 tests under "a website command never launches unlocks" passed in one invocation of pnpm exec vitest run -t <2 names> --reporter=json --outputFile=<report>
+convex/website/a website command is a D17 command
+  totality oracle: pass (24.6 s, one invocation for every test the bullets name); refutation witnessed
+    88 tests under "a website command is a D17 command" passed in one invocation of pnpm exec vitest run -t <2 names> --reporter=json --outputFile=<report>
+run recorded in .coherence/runs/9f91fd5a-1233-4e4a-a1d9-5edc6800663b.jsonl: 2 enforcements, 2 pass, 0 fail, 0 not run; instrument typescript (none); 24.8 s
+each alone, in its own invocation:
+  convex/website/a website command never launches unlocks: pass (22.1 s)
+  convex/website/a website command is a D17 command: pass (23.2 s)
+per-test run recorded in .coherence/runs/9f91fd5a-1233-4e4a-a1d9-5edc6800663b.jsonl: 2 alone, 2 pass; 45.2 s
+every totality oracle that passed batched passes alone
+rerun exit 0
