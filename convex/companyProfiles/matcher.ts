@@ -1,6 +1,6 @@
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
-import { chatUserOf, type MemberId } from "../workspace/directory";
+import { chatUserOf, memberRowsIn, type MemberId, type MemberRows } from "../workspace/directory";
 import { normalisedName } from "./faces";
 
 export type MatchedBy = "name" | "self" | "admin";
@@ -22,9 +22,9 @@ export async function companyProfileOf(ctx: QueryCtx, member: MemberId): Promise
   return (await companyProfilesIn(ctx, workspace)).matches.get(member) ?? null;
 }
 
-export async function companyProfilesIn(ctx: QueryCtx, workspace: string): Promise<CompanyProfiles> {
+export async function companyProfilesIn(ctx: QueryCtx, workspace: string, members?: MemberRows): Promise<CompanyProfiles> {
   const profiles = await currentProfiles(ctx);
-  const names = await currentMemberNames(ctx, workspace);
+  const names = currentMemberNames(members ?? (await memberRowsIn(ctx, workspace)));
   const links = (await linksIn(ctx, workspace)).filter(({ member }) => names.has(member)).sort(earlierFirst);
   const byId = new Map(profiles.map((profile) => [profile.profile, profile]));
   const matches = new Map<MemberId, ProfileMatch>();
@@ -80,11 +80,7 @@ async function currentProfiles(ctx: QueryCtx): Promise<CompanyProfile[]> {
   );
 }
 
-async function currentMemberNames(ctx: QueryCtx, workspace: string): Promise<Map<MemberId, string>> {
-  const rows = await ctx.db
-    .query("members")
-    .withIndex("by_user", (q) => q.eq("workspace", workspace))
-    .collect();
+function currentMemberNames(rows: MemberRows): Map<MemberId, string> {
   return new Map(rows.flatMap((row) => (row.kind === "member" ? [[row._id, normalisedName(row.realName ?? row.name ?? "")] as const] : [])));
 }
 

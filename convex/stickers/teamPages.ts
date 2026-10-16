@@ -2,7 +2,7 @@ import { companyProfilesIn, publicNameOf, type CompanyProfile } from "../company
 import { companyTeamsOf, type CompanyTeam, type TeamCrestArt } from "../companyProfiles/teams";
 import { crestNamed } from "../hoggies/catalogue";
 import type { QueryCtx } from "../_generated/server";
-import type { MemberId } from "../workspace/directory";
+import type { MemberId, MemberRows } from "../workspace/directory";
 import type { AlbumOwner } from "./albums";
 import type { HeldSticker } from "./records";
 
@@ -28,12 +28,14 @@ export type TeamPageOf = {
   crest: { collectedAt: number } | null;
 };
 
+export type TeamPagesFrom = { members: MemberRows; stickers: HeldSticker[]; crests: CollectedCrest[] };
+
 type Held = { stickers: Map<MemberId, number>; crests: Map<string, number> };
 
 type Company = { profiles: Map<number, CompanyProfile>; holders: Map<number, MemberId> };
 
-export async function teamPagesOf(ctx: QueryCtx, owner: AlbumOwner, stickers: HeldSticker[], crests: CollectedCrest[]): Promise<TeamPageOf[]> {
-  const { profiles, holders } = await companyProfilesIn(ctx, owner.workspace);
+export async function teamPagesOf(ctx: QueryCtx, owner: AlbumOwner, { members, stickers, crests }: TeamPagesFrom): Promise<TeamPageOf[]> {
+  const { profiles, holders } = await companyProfilesIn(ctx, owner.workspace, members);
   const company = { profiles: new Map(profiles.map((profile) => [profile.profile, profile])), holders };
   const teams = await companyTeamsOf(ctx);
   const held = { stickers: new Map(stickers.map(({ person, firstAt }) => [person, firstAt])), crests: new Map(crests.map(({ crest, collectedAt }) => [crest, collectedAt])) };

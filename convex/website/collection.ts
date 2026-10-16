@@ -9,7 +9,7 @@ import { albumsOf, type Album } from "../stickers/albums";
 import { stickersShownTo } from "../stickers/flag";
 import { stickersNewestFirst, type HeldSticker } from "../stickers/records";
 import { teamPagesOf, type CollectedCrest, type PersonOnPage, type TeamPageOf } from "../stickers/teamPages";
-import { peopleIn, type MemberId, type People } from "../workspace/directory";
+import { memberRowsIn, peopleOf, type MemberId, type MemberRows, type People } from "../workspace/directory";
 import { bookPageOf } from "./book";
 import { companyTeammateOf, teammateOf, type Face } from "./faces";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
@@ -53,11 +53,12 @@ type TeamPagesShown = { crests: CollectedCrest[] };
 
 async function stickerBookOf(ctx: QueryCtx, me: VerifiedMember, teamPages: TeamPagesShown | null): Promise<StickerBook> {
   if (!(await stickersShownTo(ctx, me.member))) return {};
-  const people = await peopleIn(ctx, me.workspace);
+  const members = await memberRowsIn(ctx, me.workspace);
+  const people = peopleOf(members);
   const held = await stickersNewestFirst(ctx, me.member);
   const keyOf = stickerKeysOf(me.member);
   const stickers = await Promise.all(held.map((sticker) => stickerOf(me.member, people, keyOf, sticker)));
-  if (teamPages !== null) return { stickers, teams: await teamsOf(ctx, me, people, keyOf, held, teamPages) };
+  if (teamPages !== null) return { stickers, teams: await teamsOf(ctx, me, { members, people, keyOf, held }, teamPages) };
   if (!(await groupsShownTo(ctx, me.member))) return { stickers };
   const albums = await albumsOf(ctx, me, people, held);
   return { stickers, albums: await Promise.all(albums.map((album) => groupAlbumOf(people, keyOf, album))) };
@@ -83,8 +84,10 @@ async function groupAlbumOf(people: People, keyOf: StickerKeys, { people: albumP
   return { ...album, people: shown.toSorted((first, second) => first.name.localeCompare(second.name)) };
 }
 
-async function teamsOf(ctx: QueryCtx, me: VerifiedMember, people: People, keyOf: StickerKeys, held: HeldSticker[], { crests }: TeamPagesShown): Promise<TeamPage[]> {
-  const pages = await teamPagesOf(ctx, me, held, crests);
+type Directory = { members: MemberRows; people: People; keyOf: StickerKeys; held: HeldSticker[] };
+
+async function teamsOf(ctx: QueryCtx, me: VerifiedMember, { members, people, keyOf, held }: Directory, { crests }: TeamPagesShown): Promise<TeamPage[]> {
+  const pages = await teamPagesOf(ctx, me, { members, stickers: held, crests });
   return Promise.all(pages.map((page) => teamPageOf(me.member, people, keyOf, page)));
 }
 
