@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef } from "react";
+import { useCallback, useLayoutEffect, useRef, type ReactNode } from "react";
 import { NavigateProvider } from "./AppLink";
 import { LevelUpAnnouncement, MomentAnnouncement } from "./crates/MomentAnnouncement";
 import { MomentsProvider, useCrateMoments, useMembersShown, type Flight, type Reveal } from "./crates/moments";
@@ -288,22 +288,20 @@ type Answers = { onSignIn: () => void; onSignOut: () => void };
 type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; collection: CollectionShown | undefined; page: BookPageId } & Answers;
 
 function BookAnswerPage({ member, book, collection, page, ...actions }: BookAnswerPageProps) {
-  if (book === undefined) return <LoadingPage shape="column" />;
-  if (book.kind === "not-found") return <NotFoundPage />;
-  if (book.kind === "ready" || book.kind === "locked") return <FeatureWaitsPage feature="book" waiting={book} member={member} />;
-  if (book.kind !== "book") return <AnswerPage answer={book} {...actions} />;
-  if (page === "collection") return <CollectionAnswerPage member={member} book={book} collection={collection} {...actions} />;
+  const collectionWaits = page === "collection" ? bookFeatureWaitsOf(collection, member, actions) : null;
+  if (collectionWaits !== null) return collectionWaits;
+  const bookWaits = bookFeatureWaitsOf(book, member, actions);
+  if (bookWaits !== null) return bookWaits;
+  if (book?.kind !== "book") return null;
   return <BookPage book={book} collection={collection} page={page} chatUrl={member.chatUrl} />;
 }
 
-type CollectionAnswerPageProps = { member: MemberProfile; book: Extract<BookShown, { kind: "book" }>; collection: CollectionShown | undefined } & Answers;
-
-function CollectionAnswerPage({ member, book, collection, ...actions }: CollectionAnswerPageProps) {
-  if (collection === undefined) return <LoadingPage shape="column" />;
-  if (collection.kind === "not-found") return <NotFoundPage />;
-  if (collection.kind === "ready" || collection.kind === "locked") return <FeatureWaitsPage feature="book" waiting={collection} member={member} />;
-  if (collection.kind !== "collection") return <AnswerPage answer={collection} {...actions} />;
-  return <BookPage book={book} collection={collection} page="collection" chatUrl={member.chatUrl} />;
+function bookFeatureWaitsOf(answer: BookShown | CollectionShown | undefined, member: MemberProfile, actions: Answers): ReactNode | null {
+  if (answer === undefined) return <LoadingPage shape="column" />;
+  if (answer.kind === "not-found") return <NotFoundPage />;
+  if (answer.kind === "ready" || answer.kind === "locked") return <FeatureWaitsPage feature="book" waiting={answer} member={member} />;
+  if (answer.kind === "book" || answer.kind === "collection") return null;
+  return <AnswerPage answer={answer} {...actions} />;
 }
 
 type SkillTreeAnswerPageProps = { member: MemberProfile; skillTree: SkillTreeShown | undefined; onBuyPerk: ShellActions["buyPerk"]; onSignIn: () => void; onSignOut: () => void };

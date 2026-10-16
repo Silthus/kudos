@@ -50,6 +50,15 @@ describe("#467 CL15: /book/collection answers like the Book", () => {
     expect(pageTitle()).toHaveTextContent("Page not found");
   });
 
+  it("is the not-found page while getCollection answers not-found, whatever getBook says", () => {
+    showCollection(collectionFixtures.notFound, { member: shellFixtures.memberWaitingForTheBook, book: bookFixtures.locked });
+    expect(pageTitle()).toHaveTextContent("Page not found");
+    cleanup();
+    showCollection(collectionFixtures.notFound, { member: shellFixtures.memberWithTheBookReady, book: bookFixtures.ready });
+    expect(pageTitle()).toHaveTextContent("Page not found");
+    expect(within(main()).queryByRole("button", { name: "Open" })).not.toBeInTheDocument();
+  });
+
   it("shows the locked page while getCollection answers locked", () => {
     showCollection(collectionFixtures.locked, { member: shellFixtures.memberWaitingForTheBook, book: bookFixtures.locked });
     expect(pageTitle()).toHaveTextContent("Unlocks at level 4");
@@ -137,9 +146,11 @@ describe("#467: the Collection page is a collector's book of every hoggie", () =
     expect(tilesIn(raritySection("⬜ Common")).map((tile) => tile.dataset.hoggie)).toEqual(expected("common"));
   });
 
-  it("draws a found hoggie in full art on its rarity's colour, with its name and ×{count} past the first copy", () => {
+  it("draws a found hoggie in full art on its rarity's colour, with its name, the date it was first found and ×{count} past the first copy", () => {
     showCollection(theCollection);
     const coffeeCup = tile("coffee-cup");
+    expect(within(coffeeCup).getByText("16 Sept 2026")).toBeInTheDocument();
+    expect(within(tile("wizard")).queryByText(/2026/)).not.toBeInTheDocument();
     expect(coffeeCup).toHaveAttribute("data-held", "found");
     expect(coffeeCup).toHaveAttribute("data-rarity", "common");
     expect(coffeeCup.querySelector("svg")).not.toBeNull();
@@ -163,6 +174,22 @@ describe("#467: the Collection page is a collector's book of every hoggie", () =
     showCollection(theCollection);
     expect(within(tile("rocket")).getByText("New")).toBeInTheDocument();
     expect(within(tile("coffee-cup")).queryByText("New")).not.toBeInTheDocument();
+    cleanup();
+    showCollection(theCollection);
+    expect(within(tile("rocket")).queryByText("New")).not.toBeInTheDocument();
+  });
+
+  it("tags a hoggie that arrives while the page is open New, and marks it seen", () => {
+    const [rocket] = theCollection.hoggies.filter(({ hoggie }) => hoggie === "rocket");
+    const beforeTheRocket = { ...theCollection, hoggies: theCollection.hoggies.map((entry) => (entry === rocket ? { ...entry, count: 0, firstAt: null, seen: null } : entry)), owned: 40 };
+    for (const { seen } of theCollection.hoggies) if (seen !== null && seen !== rocket!.seen) markSeen(seen);
+    let answer: MyCollection = beforeTheRocket;
+    const { showVisitor } = showCollection(beforeTheRocket, { read: (asking) => (asking ? answer : undefined) });
+    expect(within(tile("rocket")).queryByText("New")).not.toBeInTheDocument();
+    answer = theCollection;
+    showVisitor(shellFixtures.memberWithTheBookOpened);
+    expect(within(tile("rocket")).getByText("New")).toBeInTheDocument();
+    expect(within(tile("rocket")).getByText("14 Oct 2026")).toBeInTheDocument();
     cleanup();
     showCollection(theCollection);
     expect(within(tile("rocket")).queryByText("New")).not.toBeInTheDocument();
@@ -192,6 +219,7 @@ describe("#467: the Collection page is a collector's book of every hoggie", () =
     showCollection(theCollection);
     const tileLink = within(main()).getByRole("link", { name: "Collection, 41 of 151 hoggies found" });
     expect(tileLink).toHaveAttribute("href", "/book/collection");
+    expect(tileLink).toHaveAccessibleDescription("⬜ Common 24 of 60, 🟩 Uncommon 9 of 40, 🟦 Rare 5 of 30, 🟪 Epic 2 of 15, 🟧 Legendary 1 of 6");
     cleanup();
     preferWideScreen();
     window.history.replaceState(null, "", "/book");

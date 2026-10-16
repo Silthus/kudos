@@ -60,7 +60,8 @@
   --rarity-legendary: #c2410c;
 }
 
-.dark {
+.dark,
+.moment-scrim {
   --medal-bronze: #d39a68;
   --medal-silver: #bfc2c8;
   --medal-gold: #e2b53a;
