@@ -27,6 +27,7 @@ export type PackSession = {
 
 export function usePackSession(crates: BoughtCrate[], openCrate: ShellActions["openCrate"]): PackSession {
   const [stage, setStage] = useState<Stage>({ kind: "stack" });
+  const [inTheScene, setInTheScene] = useState<BoughtCrate[]>([]);
   const [fanned, setFanned] = useState(false);
   const [attempts, setAttempts] = useState<Partial<Record<string, Attempt>>>({});
   const [opened, setOpened] = useState<OpenedPack[]>([]);
@@ -38,13 +39,17 @@ export function usePackSession(crates: BoughtCrate[], openCrate: ShellActions["o
   const session = useRef(0);
   const cratesNow = useRef(crates);
   cratesNow.current = crates;
+  const goneNow = useRef(gone);
+  goneNow.current = gone;
+  const inTheSceneNow = useRef(inTheScene);
+  inTheSceneNow.current = inTheScene;
   const waiting = crates.filter(({ crate }) => !gone.includes(crate));
 
   const attemptIs = useCallback((crate: string, attempt: Attempt | undefined) => setAttempts((all) => ({ ...all, [crate]: attempt })), []);
 
   const open = useCallback(
     async (crate: string) => {
-      const pack = cratesNow.current.find((waiting) => waiting.crate === crate);
+      const pack = inTheSceneNow.current.find((shown) => shown.crate === crate);
       if (pack === undefined || sending.current.has(crate)) return;
       const sentIn = session.current;
       sending.current.add(crate);
@@ -72,6 +77,9 @@ export function usePackSession(crates: BoughtCrate[], openCrate: ShellActions["o
 
   const pick = useCallback(
     (crate: BoughtCrate) => {
+      const shown = cratesNow.current.filter((waiting) => !goneNow.current.includes(waiting.crate));
+      inTheSceneNow.current = shown;
+      setInTheScene(shown);
       setStage({ kind: "scene" });
       void open(crate.crate);
     },
@@ -88,17 +96,17 @@ export function usePackSession(crates: BoughtCrate[], openCrate: ShellActions["o
     setOpened([]);
     setFanned(false);
     setReturnFocus(true);
+    setGone((before) => [...before, ...opened.map(({ crate }) => crate)]);
     setStage(opened.length === 0 ? { kind: "stack" } : { kind: "landing", opened });
   }, [opened]);
 
   const landed = useCallback(() => {
     if (stage.kind !== "landing") return;
-    setGone((before) => [...before, ...stage.opened.map(({ crate }) => crate)]);
     setAnnouncement(inTheBookWordsOf(stage.opened));
     setStage({ kind: "stack" });
   }, [stage]);
 
-  const scenePacks = waiting.map(({ crate, target }): ScenePack => {
+  const scenePacks = inTheScene.map(({ crate, target }): ScenePack => {
     const found = opened.find((pack) => pack.crate === crate);
     const attempt = attempts[crate];
     return { crate, n: target.n, state: found !== undefined ? "opened" : attempt === "opening" ? "tearing" : "sealed", drop: found?.drop, message: attempt === undefined || attempt === "opening" ? undefined : attemptMessages[attempt] };

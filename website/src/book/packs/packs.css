@@ -1,5 +1,3 @@
-/* Foil packs: the layered stack below the book, the opening scene over its scrim, and the hoggie landing in its tile. Sizes follow --pk-w. */
-
 .pk-scene {
   --glow: var(--band-lemon);
   --pk-w: 220px;
@@ -362,8 +360,6 @@
   }
 }
 
-/* The layered stack on the page. */
-
 .pk-stack {
   position: relative;
   height: calc(var(--pk-w) * 1.5);
@@ -388,12 +384,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pk-stack-item {
+  .pk-stack-item,
+  .pk-pack,
+  .pk-body,
+  .pk-top,
+  .pk-card,
+  .pk-rays {
     transition: none;
   }
 }
-
-/* The opening scene. */
 
 .pk-scrim {
   --glow: var(--band-lemon);
@@ -472,8 +471,6 @@
   outline: 2px solid var(--band-lemon);
   outline-offset: 4px;
 }
-
-/* A hoggie landing in its tile. */
 
 .hoggie-tile[data-landed] {
   border-color: var(--rarity);

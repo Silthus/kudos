@@ -11,9 +11,11 @@ const packWidth = 200;
 export function PackScene({ packs, latest, revealed, onOpen, onRevealed, onFinish }: PackSceneProps) {
   const dialog = useRef<HTMLDivElement>(null);
   useEffect(() => dialog.current?.focus(), []);
+  useInertPageBehind();
   const allRevealed = revealed === packs.length;
   const rarity = latest?.drop?.rarity ?? "common";
   const onKeyDown = (event: KeyboardEvent) => {
+    if (isAnAppShortcut(event)) return event.stopPropagation();
     if (event.key === "Tab") return keepFocusIn(dialog.current, event);
     if (event.key !== "Escape") return;
     event.preventDefault();
@@ -61,6 +63,19 @@ function PutThemInTheBook({ onFinish }: { onFinish: () => void }) {
       <IconArrowRight aria-hidden="true" className="size-4" />
     </button>
   );
+}
+
+function useInertPageBehind() {
+  useEffect(() => {
+    const page = document.querySelector<HTMLElement>(".hud-root");
+    if (page === null) return;
+    page.setAttribute("inert", "");
+    return () => page.removeAttribute("inert");
+  }, []);
+}
+
+function isAnAppShortcut(event: KeyboardEvent) {
+  return (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k";
 }
 
 const actionSelector = "button:not(:disabled)";

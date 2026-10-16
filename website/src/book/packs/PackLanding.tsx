@@ -28,10 +28,12 @@ export function PackLanding({ opened, onDone }: PackLandingProps) {
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
+      const stillWanted = () => !cancelled;
       for (const drop of opened.flatMap(({ drop }) => drop ?? [])) {
         if (cancelled) return;
         setCurrent(drop);
-        await land(drop, ghost);
+        await land(drop, ghost, stillWanted);
+        if (cancelled) return;
         setCurrent(undefined);
         await wait(landingPauseMs);
       }
@@ -53,14 +55,15 @@ export function PackLanding({ opened, onDone }: PackLandingProps) {
   );
 }
 
-async function land(drop: Drop, ghost: RefObject<HTMLSpanElement | null>) {
+async function land(drop: Drop, ghost: RefObject<HTMLSpanElement | null>, stillWanted: () => boolean) {
   flipTheBookTo(drop.rarity);
   await wait(bookFlipsForMs);
   const tile = await appears(`[data-hoggie="${drop.hoggie}"]`, tileSettlesForMs, tileLooksEveryMs);
+  if (!stillWanted()) return;
   if (tile !== null) scrollIntoViewIfNeeded(tile);
   const target = tile?.querySelector<HTMLElement>("[data-coin]") ?? tile ?? document.querySelector<HTMLElement>("[data-crate-store]");
   if (ghost.current !== null && target !== null && !prefersReducedMotion()) await flyBetween(ghost.current, target.getBoundingClientRect(), packFliesForMs);
-  if (tile !== null) markFor(tile, "data-landed", tileGlowsForMs);
+  if (tile !== null && stillWanted()) markFor(tile, "data-landed", tileGlowsForMs);
 }
 
 function flipTheBookTo(rarity: Drop["rarity"]) {

@@ -95,6 +95,11 @@ function showThePacks(answer: MyCollection = twoPacks, { member = shopper, read 
   return { ...view, openCrate: opening };
 }
 
+function storeAnswering(answers: MyCollection[]): { read: CollectionRead; next: () => void } {
+  let at = 0;
+  return { read: (asking) => (asking ? answers[at] : undefined), next: () => (at += 1) };
+}
+
 function answersByCrate(drops: Record<string, Drop>) {
   return async (crate: string): Promise<CrateOpenReply> => ({ kind: "opened", drop: drops[crate]! });
 }
@@ -239,8 +244,37 @@ describe("#586: tapping a pack opens the scene over a dark scrim", () => {
     expect(dialog()).toBeNull();
     expect(packButtons()).toHaveLength(2);
     expect(packButtons()[0]).toHaveFocus();
-    await act(async () => settleAnswer({ kind: "refused" }));
+    await act(async () => settleAnswer({ kind: "opened", drop: doctor }));
+    expect(dialog()).toBeNull();
     expect(packButtons()).toHaveLength(2);
+    expect(window.location.hash).toBe("");
+    expect(announcement()).toHaveTextContent("");
+  });
+
+  it("keeps an opened pack in the row when the read drops its crate, and still offers Put them in the book once the rest are open", async () => {
+    const store = storeAnswering([twoPacks, { ...twoPacks, bought: ["bought:2"] }]);
+    const { showVisitor } = await fanOutAndOpen(0, { read: store.read });
+    await revealTheTappedPack();
+
+    store.next();
+    showVisitor({ ...shopper });
+
+    expect(packInScene("bought:1")).toHaveAttribute("data-phase", "reveal");
+    expect(dialog()).toHaveTextContent("Packs · 1 of 2 opened");
+    fireEvent.click(packInScene("bought:2").querySelector("button")!);
+    await act(async () => {});
+    await revealTheTappedPack();
+    expect(within(dialog()!).getByRole("button", { name: "Put them in the book" })).toBeInTheDocument();
+  });
+
+  it("keeps the command palette shut behind the scene", async () => {
+    await fanOutAndOpen(0);
+
+    fireEvent.keyDown(dialog()!, { key: "k", ctrlKey: true });
+
+    expect(screen.queryByRole("dialog", { name: "Command palette" })).toBeNull();
+    expect(dialog()).toHaveAccessibleName("Opening your packs");
+    expect(document.querySelector(".hud-root")).toHaveAttribute("inert");
   });
 });
 
@@ -279,6 +313,7 @@ describe("#586: Put them in the book lands each hoggie on its tile", () => {
     fireEvent.keyDown(dialog()!, { key: "Escape" });
 
     expect(dialog()).toBeNull();
+    expect(stack()).toHaveAccessibleName("1 pack waiting");
     await settle(bookFlipsForMs);
     await settle(tileSettlesForMs);
     expect(tile("doctor")).toHaveAttribute("data-landed");
