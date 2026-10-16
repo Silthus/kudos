@@ -529,6 +529,38 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
   });
 });
 
+describe("WS344 GB16: getLeaderboard carries the Everyone board's peer line", () => {
+  test("a member who improved more than most of their group reads the percent and the group", async () => {
+    await flagsOn("website", "everyone-board", "groups");
+    const ants = await aGroupOf("Ants", juno.user, "U_ANN", "U_AL", "U_BO");
+    await gives(juno.user, 4);
+    await gives("U_ANN", 1);
+    await gives("U_AL", 1);
+    await gives("U_BO", 5);
+    const { asSignedIn } = await aSession(t, juno);
+
+    expect((await board("week", asSignedIn)).peer).toEqual({ percent: 60, group: { group: ants, name: "Ants" } });
+  });
+
+  test("the peer line reads null while groups is off", async () => {
+    await flagsOn("website", "everyone-board");
+    await aGroupOf("Ants", juno.user, "U_ANN", "U_AL", "U_BO");
+    await gives(juno.user, 4);
+    const { asSignedIn } = await aSession(t, juno);
+
+    expect((await board("week", asSignedIn)).peer).toBeNull();
+  });
+});
+
+async function aGroupOf(name: string, ...users: string[]) {
+  const group = await t.run((ctx) => ctx.db.insert("userGroups", { workspace: "T1", group: `S_${name}`, handle: name.toLowerCase(), name, enabled: true, automatic: false, members: users.length, asOf: 0, membersAsOf: 0 }));
+  for (const user of users) {
+    const member = await aMember(user, user === juno.user ? "Juno" : user);
+    await t.run((ctx) => ctx.db.insert("memberGroups", { workspace: "T1", member, groups: [group], primary: group }));
+  }
+  return group;
+}
+
 type MemberOptions = { kind?: "member" | "not-a-member"; timeZone?: string; picture?: string };
 
 function aMember(user: string, name?: string, { kind = "member", timeZone, picture }: MemberOptions = {}): Promise<Id<"members">> {
