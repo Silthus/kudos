@@ -3,9 +3,9 @@ import type { QueryCtx } from "../_generated/server";
 import type { MemberId, People } from "../workspace/directory";
 import type { HeldSticker } from "./records";
 
-export type AlbumPerson = { person: MemberId; held: boolean };
+export type PersonInAlbum = { person: MemberId; held: boolean };
 
-export type Album = GroupRef & { mine: boolean; held: number; total: number; people: AlbumPerson[] };
+export type Album = GroupRef & { mine: boolean; held: number; total: number; people: PersonInAlbum[] };
 
 export type AlbumOwner = { member: MemberId; workspace: string };
 

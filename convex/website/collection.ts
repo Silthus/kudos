@@ -1,7 +1,7 @@
 import { crateStoreOf, waitingCratesOf, type CrateStore } from "../hoggies/boughtCrates";
 import { collectionOf, type HeldCrest, type HeldHoggie, type RarityShare } from "../hoggies/collection";
 import { crateStoreShownTo, crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
-import { groupsShownTo, type GroupId } from "../groups/groups";
+import { groupsShownTo } from "../groups/groups";
 import type { QueryCtx } from "../_generated/server";
 import { albumsOf, type Album } from "../stickers/albums";
 import { stickersShownTo } from "../stickers/flag";
@@ -23,7 +23,7 @@ export type Sticker = Teammate & { key: string; firstAt: number; seen: string };
 
 export type AlbumPerson = Teammate & { key: string; held: boolean };
 
-export type GroupAlbum = { group: GroupId; name: string; mine: boolean; held: number; total: number; people: AlbumPerson[] };
+export type GroupAlbum = Omit<Album, "people"> & { people: AlbumPerson[] };
 
 export type StickerBook = { stickers?: Sticker[]; albums?: GroupAlbum[] };
 
@@ -45,28 +45,36 @@ async function stickerBookOf(ctx: QueryCtx, me: VerifiedMember): Promise<Sticker
   if (!(await stickersShownTo(ctx, me.member))) return {};
   const people = await peopleIn(ctx, me.workspace);
   const held = await stickersNewestFirst(ctx, me.member);
-  const stickers = await Promise.all(held.map((sticker) => stickerOf(me.member, people, sticker)));
+  const keyOf = stickerKeysOf(me.member);
+  const stickers = await Promise.all(held.map((sticker) => stickerOf(me.member, people, keyOf, sticker)));
   if (!(await groupsShownTo(ctx, me.member))) return { stickers };
   const albums = await albumsOf(ctx, me, people, held);
-  return { stickers, albums: await Promise.all(albums.map((album) => groupAlbumOf(me.member, people, album))) };
+  return { stickers, albums: await Promise.all(albums.map((album) => groupAlbumOf(people, keyOf, album))) };
 }
 
-async function stickerOf(member: MemberId, people: People, { person, firstAt }: HeldSticker): Promise<Sticker> {
-  return { ...teammateIn(people, person), key: await stickerKeyOf(member, person), firstAt, seen: await seenKeyOf(member, `sticker:${person}:${firstAt}`) };
+type StickerKeys = (person: MemberId) => Promise<string>;
+
+function stickerKeysOf(member: MemberId): StickerKeys {
+  const keys = new Map<MemberId, Promise<string>>();
+  return (person) => {
+    const key = keys.get(person) ?? seenKeyOf(member, `sticker:${person}`);
+    keys.set(person, key);
+    return key;
+  };
 }
 
-async function groupAlbumOf(member: MemberId, people: People, { people: albumPeople, ...album }: Album): Promise<GroupAlbum> {
-  const shown = await Promise.all(albumPeople.map(async ({ person, held }) => ({ ...teammateIn(people, person), key: await stickerKeyOf(member, person), held })));
+async function stickerOf(member: MemberId, people: People, keyOf: StickerKeys, { person, firstAt }: HeldSticker): Promise<Sticker> {
+  return { ...teammateIn(people, person), key: await keyOf(person), firstAt, seen: await seenKeyOf(member, `sticker:${person}:${firstAt}`) };
+}
+
+async function groupAlbumOf(people: People, keyOf: StickerKeys, { people: albumPeople, ...album }: Album): Promise<GroupAlbum> {
+  const shown = await Promise.all(albumPeople.map(async ({ person, held }) => ({ ...teammateIn(people, person), key: await keyOf(person), held })));
   return { ...album, people: shown.toSorted((first, second) => first.name.localeCompare(second.name)) };
 }
 
 function teammateIn(people: People, person: MemberId): Teammate {
   const { name, picture, former } = people.get(person) ?? { name: undefined, picture: null, former: true };
   return { ...teammateOf(name, picture), former };
-}
-
-function stickerKeyOf(member: MemberId, person: MemberId) {
-  return seenKeyOf(member, `sticker:${person}`);
 }
 
 async function boughtCratesOf(ctx: QueryCtx, member: MemberId): Promise<BoughtCrates> {
