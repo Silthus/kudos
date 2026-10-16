@@ -3,7 +3,8 @@ import { useId } from "react";
 import type { Collection, CollectionCrest, CollectionHoggie, GroupAlbum, RarityShare, Sticker } from "../collectionRead";
 import { rarityWordsOf } from "../crates/drops";
 import { PageTitle } from "../PageTitle";
-import type { ShellActions } from "../shell";
+import type { Avatar, ShellActions } from "../shell";
+import { useAvatarChoice, type AvatarChoice } from "./avatarChoice";
 import { Bar } from "./Bar";
 import { CollectionSection } from "./CollectionSection";
 import { collectedCrestsOf, crestWordsOf } from "./crests";
@@ -19,12 +20,14 @@ import { foundWordsOf, latestFindOf, type LatestFind } from "./latestFind";
 import { sectionsOf } from "./sections";
 import { StickerTile, stickerWordsOf } from "./StickerTile";
 import { useFreshKeys } from "./useFreshKeys";
+import { YourAvatar } from "./YourAvatar";
 
 type CollectionProps = { collection: Collection; timeZone: string };
 
-type HoggieCollectionProps = CollectionProps & { coins: number | null; buyCrate: ShellActions["buyCrate"]; chatUrl: string };
+type HoggieCollectionProps = CollectionProps & { coins: number | null; buyCrate: ShellActions["buyCrate"]; chatUrl: string; avatar: Avatar | null | undefined; setAvatar: ShellActions["setAvatar"] };
 
-export function HoggieCollection({ collection, timeZone, coins, buyCrate, chatUrl }: HoggieCollectionProps) {
+export function HoggieCollection({ collection, timeZone, coins, buyCrate, chatUrl, avatar, setAvatar }: HoggieCollectionProps) {
+  const avatarChoice = useAvatarChoice(avatar, setAvatar);
   const fresh = useFreshKeys([...collection.hoggies, ...(collection.crests ?? []), ...(collection.stickers ?? [])].flatMap(({ seen }) => seen ?? []));
   return (
     <>
@@ -36,10 +39,10 @@ export function HoggieCollection({ collection, timeZone, coins, buyCrate, chatUr
         <p className="text-sm text-muted-foreground">{`Every crate you open drops one hoggie. Find all ${collection.total}.`}</p>
       </header>
       <JumpList sections={sectionsOf(collection)} />
-      <FoundSoFar collection={collection} timeZone={timeZone} />
+      <FoundSoFar collection={collection} timeZone={timeZone} avatar={avatarChoice} />
       <CrateStore collection={collection} coins={coins} buyCrate={buyCrate} />
       <div className="flex flex-col gap-10">
-        <HoggiesSection collection={collection} fresh={fresh} timeZone={timeZone} />
+        <HoggiesSection collection={collection} fresh={fresh} timeZone={timeZone} avatar={avatarChoice} />
         {collection.crests !== undefined && <CrestSection crests={collection.crests} hoggies={collection.hoggies} fresh={fresh} timeZone={timeZone} />}
         {collection.stickers !== undefined && <StickerSection stickers={collection.stickers} fresh={fresh} timeZone={timeZone} chatUrl={chatUrl} />}
         {collection.albums !== undefined && <AlbumSection albums={collection.albums} />}
@@ -48,7 +51,7 @@ export function HoggieCollection({ collection, timeZone, coins, buyCrate, chatUr
   );
 }
 
-function FoundSoFar({ collection, timeZone }: CollectionProps) {
+function FoundSoFar({ collection, timeZone, avatar }: CollectionProps & { avatar: AvatarChoice | null }) {
   const sentence = foundWordsOf(collection);
   const latest = latestFindOf(collection);
   return (
@@ -69,6 +72,7 @@ function FoundSoFar({ collection, timeZone }: CollectionProps) {
             </div>
             {collection.crests !== undefined && <p className="text-xs tabular-nums text-muted-foreground">{crestWordsOf(collection.crests)}</p>}
             {collection.stickers !== undefined && <p className="text-xs tabular-nums text-muted-foreground">{stickerWordsOf(collection.stickers)}</p>}
+            {avatar !== null && (avatar.current !== null || collection.owned > 0) && <YourAvatar choice={avatar} />}
           </div>
         </CardContent>
       </Card>
@@ -87,22 +91,22 @@ export function LatestCoin({ latest, size }: { latest: LatestFind | null; size: 
 
 type Fresh = { fresh: ReadonlySet<string>; timeZone: string };
 
-function HoggiesSection({ collection, fresh, timeZone }: CollectionProps & Fresh) {
+function HoggiesSection({ collection, fresh, timeZone, avatar }: CollectionProps & Fresh & { avatar: AvatarChoice | null }) {
   const rarestFirst = [...collection.rarities].reverse();
   return (
     <CollectionSection id="hoggies" title="Hoggies" aside={`${collection.owned} of ${collection.total} found`}>
       <div className="flex flex-col gap-6">
         {rarestFirst.map((share) => (
-          <RaritySection key={share.rarity} share={share} hoggies={collection.hoggies.filter(({ rarity }) => rarity === share.rarity)} fresh={fresh} timeZone={timeZone} />
+          <RaritySection key={share.rarity} share={share} hoggies={collection.hoggies.filter(({ rarity }) => rarity === share.rarity)} fresh={fresh} timeZone={timeZone} avatar={avatar} />
         ))}
       </div>
     </CollectionSection>
   );
 }
 
-type RaritySectionProps = { share: RarityShare; hoggies: CollectionHoggie[] } & Fresh;
+type RaritySectionProps = { share: RarityShare; hoggies: CollectionHoggie[]; avatar: AvatarChoice | null } & Fresh;
 
-function RaritySection({ share: { rarity, chance, owned, total }, hoggies, fresh, timeZone }: RaritySectionProps) {
+function RaritySection({ share: { rarity, chance, owned, total }, hoggies, fresh, timeZone, avatar }: RaritySectionProps) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} data-rarity={rarity} className="flex flex-col gap-3">
@@ -114,7 +118,7 @@ function RaritySection({ share: { rarity, chance, owned, total }, hoggies, fresh
       </div>
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6">
         {hoggies.map((hoggie) => (
-          <HoggieTile key={hoggie.hoggie} hoggie={hoggie} fresh={hoggie.seen !== null && fresh.has(hoggie.seen)} timeZone={timeZone} />
+          <HoggieTile key={hoggie.hoggie} hoggie={hoggie} fresh={hoggie.seen !== null && fresh.has(hoggie.seen)} timeZone={timeZone} avatar={avatar} />
         ))}
       </ul>
     </section>

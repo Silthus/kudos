@@ -23,6 +23,11 @@
   border-color: color-mix(in oklab, var(--rarity) 55%, var(--border));
 }
 
+.hoggie-tile[data-avatar-current] {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
 .hoggie-tile[data-held="found"][data-rarity="legendary"] {
   background: linear-gradient(170deg, color-mix(in oklab, var(--rarity) 14%, var(--card)), var(--card) 70%);
 }
