@@ -61,9 +61,10 @@ export const countKudosGiven = internalMutation({
 });
 
 export async function countAlbumsCompleted(ctx: MutationCtx, { workspace, member }: CompletionsRecorded, completions: Completion[]): Promise<void> {
+  if (completions.length === 0) return;
   const shown = await achievementsApplyIn(ctx, workspace);
-  const told = await countCompletions(ctx, { workspace, member, ladder: "team-spirit" }, completions, shown ? {} : { hidden: true });
-  if (!shown) return;
+  const { changed, told } = await countCompletions(ctx, { workspace, member, ladder: "team-spirit" }, completions, shown ? {} : { hidden: true });
+  if (!shown || !changed) return;
   if (await isOpened(ctx, member, "book")) await republish(ctx, member);
   for (const [award, earned] of byReachingAward(told)) {
     const message = await messageOfAward(ctx, award);

@@ -48,6 +48,7 @@ export const checkAlbums = internalMutation({
     const finished = recorded.length === due.length;
     const told = await toldAfterTheFirstCheck(ctx, check, finished);
     if (recorded.length > 0) await recordCompletions(ctx, check, recorded, told);
+    await countAlbumsCompleted(ctx, check, await completionRecordsInOrder(ctx, check.member));
     if (!finished) await ctx.scheduler.runAfter(0, internal.stickers.completions.checkAlbums, { check });
   },
 });
@@ -84,7 +85,6 @@ async function recordCompletions(ctx: MutationCtx, { workspace, member, message,
   for (const { group, total } of albums) await ctx.db.insert("albumCompletions", { member, group, award, at, people: total, told });
   const groups = albums.map(({ group, total }) => ({ group, people: total }));
   await publish(ctx, { type: "albumsCompleted", workspace, member, message, award, groups, at, told });
-  await countAlbumsCompleted(ctx, { workspace, member }, await completionRecordsInOrder(ctx, member));
 }
 
 async function completionRecordsInOrder(ctx: QueryCtx, member: MemberId) {

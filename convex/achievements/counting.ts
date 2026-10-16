@@ -17,6 +17,8 @@ export type Completion = { award: AwardId; at: number; told: boolean };
 
 export type CompletionTier = { tier: TierRef; reaching: Completion };
 
+export type CompletionsCounted = { changed: boolean; told: CompletionTier[] };
+
 export type DatedAward = GivenAward & { at: number };
 
 type Units = (ctx: MutationCtx, counting: AwardCounting, award: DatedAward) => Promise<number>;
@@ -63,17 +65,18 @@ export async function countAward(ctx: MutationCtx, workspace: string, counting: 
   return earned;
 }
 
-export async function countCompletions(ctx: MutationCtx, { workspace, member, ladder }: CompletionCounting, completions: Completion[], { hidden }: Pick<Earning, "hidden">): Promise<CompletionTier[]> {
-  await setCount(ctx, { member, ladder }, completions.length);
+export async function countCompletions(ctx: MutationCtx, { workspace, member, ladder }: CompletionCounting, completions: Completion[], { hidden }: Pick<Earning, "hidden">): Promise<CompletionsCounted> {
+  let changed = await setCount(ctx, { member, ladder }, completions.length);
   const told: CompletionTier[] = [];
   for (const tier of ladderOf(ladder).tiers) {
     const reaching = completions[tier.count - 1];
     if (reaching === undefined) continue;
     const silent = hidden ?? (reaching.told ? undefined : true);
     const earned = await earnTier(ctx, { workspace, member, ladder, award: reaching.award, at: reaching.at, hidden: silent }, tier);
+    changed ||= earned;
     if (earned && silent === undefined) told.push({ tier: { ladder, tier: tier.tier }, reaching });
   }
-  return told;
+  return { changed, told };
 }
 
 export async function awardReaching(ctx: QueryCtx, { member, ladder }: AwardCounting, count: number): Promise<{ award: AwardId; at: number } | null> {
@@ -121,10 +124,12 @@ async function isCounted(ctx: QueryCtx, { member, ladder }: AwardCounting, award
   return row !== null;
 }
 
-async function setCount(ctx: MutationCtx, counting: Counting, count: number) {
+async function setCount(ctx: MutationCtx, counting: Counting, count: number): Promise<boolean> {
   const row = await countRow(ctx, counting);
+  if (row?.count === count) return false;
   if (row === null) await ctx.db.insert("ladderCounts", { ...counting, count });
-  else if (row.count !== count) await ctx.db.patch(row._id, { count });
+  else await ctx.db.patch(row._id, { count });
+  return true;
 }
 
 function countRow(ctx: QueryCtx, { member, ladder }: Counting) {

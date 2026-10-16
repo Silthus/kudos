@@ -271,10 +271,10 @@ describe("SB21: Team Spirit counts completed group albums", { timeout: 120_000 }
     });
   });
 
-  test("a tier added to the catalogue later is found from the completion records in order at the next completion", async () => {
+  test("a tier added to the catalogue later is found from the completion records in order at the member's next new sticker, with no new completion", async () => {
     await teamSpiritShipped(true);
     await joined(alice, dan, ...teammates);
-    await eachInAGroupOfTheirOwn(teammates);
+    await eachInAGroupOfTheirOwn(teammates.slice(0, 8));
     const reader = await withTheBookOpen(alice);
     await afterTheFirstCheck(alice);
     catalogue.ladders = shippedCatalogue.ladders.map((ladder) => (ladder.ladder === "team-spirit" ? { ...ladder, tiers: ladder.tiers.filter(({ tier }) => tier !== "diamond") } : ladder));
@@ -287,7 +287,7 @@ describe("SB21: Team Spirit counts completed group albums", { timeout: 120_000 }
     await thanks(teammates[8]!, alice);
 
     expect((await teamSpiritTiersStored(alice)).find(({ tier }) => tier === "diamond")).toEqual({ tier: "diamond", award: await awardOf(completedAt[7]!), earnedAt: completedAt[7], hidden: false });
-    expect(await earnedOn(reader)).toMatchObject({ count: 9 });
+    expect(await earnedOn(reader)).toMatchObject({ count: 8 });
     expect(await messagesToldTeamSpirit(alice, "diamond"), "the added tier is told under the message of the completion that reached it").toEqual([tsOfMessageAt.get(completedAt[7]!)]);
   });
 });
