@@ -38,15 +38,17 @@ A fixture build (`VITE_SHELL_FIXTURE=member-with-the-book-opened`, made-up teamm
 `review-round-1.md`: GPT-6.1 Sol (high, `codex exec --sandbox read-only`) over the diff against `main` with the ticket, SB1–SB17, the visual language and the agent instructions as the oracle. Five findings.
 
 1. **Taken.** Album people were named only on hover: the roster sentence is now visible text under the faces, and the test asserts it sits outside any `aria-hidden` ancestor.
-2. **Taken in part.** The fragment offset grows to 112 px (`scroll-mt-28`), above the 91 px narrow HUD. Measuring the header at runtime for the transient failure notice is a follow-up, together with the Book index's `top-24`, which makes the same assumption.
+2. **Taken, in two steps.** First the fragment offset grew to 112 px; the final read held that a header carrying the ready-pill failure notice still grows past it. Now the HUD measures itself: `useMeasuredHudHeight` (`hudHeight.ts`) observes the sticky header and publishes `--hud-height`, and every section's scroll margin is that height plus 1 rem. A test stubs the observer, grows the header to 140 px and reads the variable and the margin back. The Book index's `top-24` still assumes 96 px; it overlaps a taller header by a few pixels and is a follow-up.
 3. **Taken.** `stickers: []` is now a V23 empty state: one hedgehog, Max's line, one Slack action, tested with and without albums.
 4. **Taken.** The roster assertion checks for a hidden ancestor, and the axe matrix gains the page with the sticker book and the page with it open but empty, in light and dark.
 5. **Taken.** The fixtures carry drawn faces as Slack photos, drawn cutouts on their own colour as company profiles, and initials.
 
+`review-final.md`: a second GPT-6.1 Sol read of the fixes with the round-1 findings as its checklist: 1, 3, 4 and 5 resolved, 2 partly, no new defects. Finding 2's remaining case is fixed as above.
+
 ## Calls
 
 - Hoggies before Team crests, mirroring Stickers before Group albums: the pieces, then the sets they complete.
-- The jump list appears with two or more sections, as plain fragment links with a scroll margin for the sticky header.
+- The jump list appears with two or more sections, as plain fragment links; the sections' scroll margin follows the HUD's measured height.
 - A former teammate's sticker stays, dimmed, with the directory's name or "A teammate".
 - An album's people are an aria-hidden row of faces and silhouettes with one spoken sentence, as the crest tile's roster.
 - The fixture build's Collection carries the sticker book for every member fixture.

@@ -1,5 +1,5 @@
 import { cleanup, screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { collectionFixtures, fixedCollection } from "./collectionFixtures";
 import type { MyCollection } from "./collectionRead";
@@ -16,6 +16,11 @@ beforeEach(() => {
   fakeSystemTheme(false);
   localStorage.clear();
   window.history.replaceState(null, "", "/book/collection");
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  document.documentElement.style.removeProperty("--hud-height");
 });
 
 function main() {
@@ -203,6 +208,30 @@ describe("#555: the Collection's sections and the jump list at the top", () => {
     ]);
     for (const [name, href] of jumpLinks()) expect(document.getElementById(href!.slice(1))).toBe(section(name!));
     expect(jumpList()!.compareDocumentPosition(section("Your collection")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("lands a jump below the HUD whatever its height: the sections' scroll margin follows the measured sticky header", () => {
+    const observing: { callback: ResizeObserverCallback; observed: Element[] }[] = [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observed: Element[] = [];
+        constructor(public callback: ResizeObserverCallback) {
+          observing.push(this);
+        }
+        observe(element: Element) {
+          this.observed.push(element);
+        }
+        disconnect() {}
+      },
+    );
+    showCollection(theBook);
+    const header = document.querySelector<HTMLElement>("header.sticky")!;
+    expect(observing.flatMap(({ observed }) => observed)).toContain(header);
+    Object.defineProperty(header, "offsetHeight", { configurable: true, value: 140 });
+    for (const { callback } of observing) callback([], {} as ResizeObserver);
+    expect(document.documentElement.style.getPropertyValue("--hud-height")).toBe("140px");
+    expect(section("Stickers").style.scrollMarginTop).toBe("calc(var(--hud-height, 96px) + 1rem)");
   });
 
   it("lists only the sections the answer carries, and needs none while there is one section", () => {
