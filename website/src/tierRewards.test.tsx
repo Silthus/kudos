@@ -217,7 +217,7 @@ describe("WS347: the achievement-earned page", () => {
 
   it("answers like /book while the Book is locked", () => {
     showBookAt("/book/earned", bookFixtures.locked, shellFixtures.memberWaitingForTheBook);
-    expect(pageTitle()).toHaveTextContent("Unlocks at level 4");
+    expect(pageTitle()).toHaveTextContent("Unlocks at level 1");
   });
 
   it("animates only without a reduced-motion preference, and never loops", () => {

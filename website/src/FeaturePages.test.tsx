@@ -26,7 +26,7 @@ describe("WS81: the pages join the nav, the home and the crate", () => {
 
   it("lists each open feature with a web page in schedule order", () => {
     renderApp(shellFixtures.memberWithEveryFeatureOpen);
-    expect(screenNav()).toEqual(["Profile", "Leaderboard", "Book", "Skill tree"]);
+    expect(screenNav()).toEqual(["Profile", "Book", "Leaderboard", "Skill tree"]);
   });
 
   it.each([

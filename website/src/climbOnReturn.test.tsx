@@ -291,19 +291,19 @@ describe("#413: the climb on return", () => {
 
 describe("#413: a level-up celebration worth the moment", () => {
   it("celebrates once at the end of a climb across a level, naming the new level and what it made ready", async () => {
-    visitedBefore(at(90));
-    visit(at(130));
+    visitedBefore(at(10));
+    visit(at(50));
 
-    expect(heroRing()).toHaveAccessibleName("Level 2, 10 XP to level 3");
+    expect(heroRing()).toHaveAccessibleName("Level 1, 10 XP to level 2");
     await readTheActivity();
     land(flights()[0]!);
     expect(celebration()).toBeNull();
     await climbAll();
 
-    expect(heroRing()).toHaveAccessibleName("Level 3, 170 XP to level 4");
-    expect(celebration()).toHaveTextContent("Level 3");
+    expect(heroRing()).toHaveAccessibleName("Level 2, 50 XP to level 3");
+    expect(celebration()).toHaveTextContent("Level 2");
     expect(celebration()).toHaveTextContent("Leaderboard is ready to open");
-    expect(levelAnnouncement()).toHaveTextContent("You reached level 3. Leaderboard is ready to open.");
+    expect(levelAnnouncement()).toHaveTextContent("You reached level 2. Leaderboard is ready to open.");
   });
 
   it("names the skill point a level earns", async () => {

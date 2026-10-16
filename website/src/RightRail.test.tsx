@@ -433,8 +433,8 @@ describe("WS344 GB32: the public card names the member's primary group", () => {
 
 describe("WS111: every answer has one rendering", () => {
   const panels = [
-    { name: "Quests this week", feature: "Quests", show: showingQuests, link: ["See all quests", "/quests"], locked: { kind: "locked", level: 2 } as const, showOpen: () => showingQuests(questsFixtures.week), row: "Thank someone and say why, 3 times." },
-    { name: "Where you stand", feature: "Leaderboard", show: showingBoard, link: ["Open the leaderboard", "/leaderboard"], locked: { kind: "locked", level: 3 } as const, showOpen: () => showingBoard(leaderboardFixtures.midBoard), row: "Above you: Hal Sato, 12 kudos given" },
+    { name: "Quests this week", feature: "Quests", show: showingQuests, link: ["See all quests", "/quests"], locked: { kind: "locked", level: 3 } as const, showOpen: () => showingQuests(questsFixtures.week), row: "Thank someone and say why, 3 times." },
+    { name: "Where you stand", feature: "Leaderboard", show: showingBoard, link: ["Open the leaderboard", "/leaderboard"], locked: { kind: "locked", level: 2 } as const, showOpen: () => showingBoard(leaderboardFixtures.midBoard), row: "Above you: Hal Sato, 12 kudos given" },
   ];
 
   describe.each(panels)("$name", ({ name, feature, show, link, locked, showOpen, row }) => {
@@ -493,6 +493,6 @@ describe("WS111: every answer has one rendering", () => {
   it("follows getMyProfile, never getQuests, for the panel's state", () => {
     railOf(shellFixtures.memberWithEveryPanelLocked, { quests: fixedQuests(questsFixtures.week) });
     expect(queryPanel("Quests this week")).toBeNull();
-    expect(panel("Quests")).toHaveTextContent("Unlocks at level 2");
+    expect(panel("Quests")).toHaveTextContent("Unlocks at level 3");
   });
 });

@@ -115,15 +115,15 @@ describe("WS97 WS102: one panel per shipped feature, in its slot", () => {
 
   it("lists the same features in the nav, each in the state its panel shows (WS301)", () => {
     renderApp(shellFixtures.memberAcrossTheSheet);
-    expect(navEntryNames()).toEqual(["Profile", "Quests", "Leaderboard: unlock ready. Open its crate", "Book", "Skill tree, locked. Unlocks at level 5"]);
+    expect(navEntryNames()).toEqual(["Profile", "Book", "Leaderboard: unlock ready. Open its crate", "Quests", "Skill tree, locked. Unlocks at level 5"]);
   });
 });
 
 describe("WS103: a locked panel", () => {
   it.each([
-    ["Quests", 2, "Weekly quests of your own."],
-    ["Leaderboard", 3, "See where you stand."],
-    ["Book", 4, "Achievements you earn as you thank colleagues and they thank you."],
+    ["Book", 1, "Achievements you earn as you thank colleagues and they thank you."],
+    ["Leaderboard", 2, "See where you stand."],
+    ["Quests", 3, "Weekly quests of your own."],
     ["Skill tree", 5, "Perks you choose with skill points."],
   ])("shows %s's level and its one sentence, with no progress, action or game frame", (name, level, sentence) => {
     renderApp(shellFixtures.memberWithEveryPanelLocked);

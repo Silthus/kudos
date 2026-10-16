@@ -342,7 +342,7 @@ describe("WS222 WS201: the empty spotlight, and none while the read answers not-
   });
 
   it.each<{ state: string; visitor: typeof shellFixtures.memberWithTheBoard; board: BoardRead }>([
-    { state: "locked", visitor: shellFixtures.memberWaitingForTheBoard, board: (period) => period && { kind: "locked", level: 3 } },
+    { state: "locked", visitor: shellFixtures.memberWaitingForTheBoard, board: (period) => period && { kind: "locked", level: 2 } },
     { state: "ready", visitor: shellFixtures.memberWithTheBoardReady, board: (period) => period && { kind: "ready" } },
     { state: "not-found", visitor: shellFixtures.member, board: (period) => period && { kind: "not-found" } },
   ])("never draws on the $state leaderboard page", async ({ visitor, board }) => {

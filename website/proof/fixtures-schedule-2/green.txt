@@ -1,0 +1,13 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/fixtures-schedule-2/website
+
+
+ Test Files  1 passed (1)
+      Tests  99 passed (99)
+   Start at  13:21:57
+   Duration  12.94s (transform 67%, import 13%, environment 12%, tests 4%, worker 3%, setup 1%)
+
+  Transform  |website| transforming modules took 8.41s · 67% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
+
