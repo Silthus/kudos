@@ -1,37 +1,49 @@
-import type { Before } from "../engine/awards";
+import { fromTheNewestDecided, type DecidedBelow } from "../engine/awards";
 
 export type Rank = 0 | 1 | 2 | 3 | 4 | 5;
 
 export const ranks = { levelUp: 0, kudosGiven: 1, kudosReceived: 2, found: 3, hugGiven: 4, hugReceived: 5 } as const satisfies Record<string, Rank>;
 
-export type Position = { at: number; rank: Rank; created: number };
+export type Position = { decided: number; rank: Rank };
 
 export type Cursor = { after: Position; hugsAsOf?: number };
 
-const encoded = /^(-?\d+(?:\.\d+)?)_([0-5])_(\d+(?:\.\d+)?)(?:_(\d+(?:\.\d+)?))?$/;
+export type Instant = { at: number; rank: Rank; created: number };
 
-export function encodePosition({ at, rank, created }: Position): string {
+const decidedCursor = /^d(\d+(?:\.\d+)?)_([0-5])(?:_(\d+(?:\.\d+)?))?$/;
+
+const instantCursor = /^(-?\d+(?:\.\d+)?)_([0-5])_(\d+(?:\.\d+)?)(?:_(\d+(?:\.\d+)?))?$/;
+
+export function keyOf({ at, rank, created }: Instant): string {
   return `${at}_${rank}_${created}`;
 }
 
-export function encodeCursor({ after, hugsAsOf }: Cursor): string {
-  return hugsAsOf === undefined ? encodePosition(after) : `${encodePosition(after)}_${hugsAsOf}`;
+export function encodeCursor({ after: { decided, rank }, hugsAsOf }: Cursor): string {
+  const position = `d${decided}_${rank}`;
+  return hugsAsOf === undefined ? position : `${position}_${hugsAsOf}`;
 }
 
 export function decodeCursor(cursor: string): Cursor {
-  const parts = encoded.exec(cursor);
-  if (parts === null) throw new Error("unreadable activity cursor");
-  const after = { at: Number(parts[1]), rank: Number(parts[2]) as Rank, created: Number(parts[3]) };
-  return parts[4] === undefined ? { after } : { after, hugsAsOf: Number(parts[4]) };
+  const decided = decidedCursor.exec(cursor);
+  if (decided !== null) return cursorOf({ decided: Number(decided[1]), rank: Number(decided[2]) as Rank }, decided[3]);
+  const instant = instantCursor.exec(cursor);
+  if (instant !== null) return cursorOf(decidedAtInstant({ at: Number(instant[1]), rank: Number(instant[2]) as Rank, created: Number(instant[3]) }), instant[4]);
+  throw new Error("unreadable activity cursor");
+}
+
+function cursorOf(after: Position, hugsAsOf: string | undefined): Cursor {
+  return hugsAsOf === undefined ? { after } : { after, hugsAsOf: Number(hugsAsOf) };
+}
+
+function decidedAtInstant({ at, rank, created }: Instant): Position {
+  return { decided: rank === ranks.found ? at : created, rank };
 }
 
 export function newestFirst(one: Position, other: Position): number {
-  return other.at - one.at || one.rank - other.rank || other.created - one.created;
+  return other.decided - one.decided || one.rank - other.rank;
 }
 
-export function beforeFor(rank: Rank, after: Position | null): Before {
-  if (after === null) return { at: Infinity, created: Infinity };
-  if (rank < after.rank) return { at: after.at, created: -Infinity };
-  if (rank > after.rank) return { at: after.at, created: Infinity };
-  return { at: after.at, created: after.created };
+export function belowFor(rank: Rank, after: Position | null): DecidedBelow {
+  if (after === null) return fromTheNewestDecided;
+  return { decided: after.decided, inclusive: rank > after.rank };
 }

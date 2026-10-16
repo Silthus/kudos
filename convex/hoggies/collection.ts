@@ -1,8 +1,9 @@
 import type { Doc } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
+import { fromTheNewestDecided } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import { catalogue, rarities, type CatalogueCrest, type CatalogueHoggie, type Rarity } from "./catalogue";
-import { dropsNewestFirst, fromTheNewestDrop, type CrestArt, type CrestsShown, type Drop, type HoggieArt } from "./drops";
+import { dropsNewestFirst, type CrestArt, type CrestsShown, type Drop, type HoggieArt } from "./drops";
 
 export type HeldHoggie = CatalogueHoggie & { art: HoggieArt; count: number; firstAt: number | null };
 
@@ -51,7 +52,7 @@ export async function talliesOf(ctx: QueryCtx, member: MemberId): Promise<Tallie
 }
 
 async function lastFoundBy(ctx: QueryCtx, member: MemberId): Promise<Drop | null> {
-  for await (const { drop } of dropsNewestFirst(ctx, member, fromTheNewestDrop, { crests: false })) return drop;
+  for await (const { drop } of dropsNewestFirst(ctx, member, fromTheNewestDecided, { crests: false })) return drop;
   return null;
 }
 

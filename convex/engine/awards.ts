@@ -315,13 +315,21 @@ export async function* awardsReceivedNewestFirst(ctx: QueryCtx, recipient: Membe
         return range.createdBefore === undefined ? received.eq("at", range.at) : received.eq("at", range.at).lt("_creationTime", range.createdBefore);
       })
       .order("desc");
-    for await (const row of rows) yield { award: row._id, message: refOf(row), giver: row.giver, kudos: row.kudos, at: row.at, created: row._creationTime };
+    for await (const row of rows) yield receivedAwardOf(row);
   }
 }
 
-export async function* messagesGivenNewestFirst(ctx: QueryCtx, giver: MemberId, before: Before): AsyncGenerator<GivenMessageAwards> {
+function receivedAwardOf(row: AwardRow): ReceivedAward {
+  return { award: row._id, message: refOf(row), giver: row.giver, kudos: row.kudos, at: row.at, created: row._creationTime };
+}
+
+export function messagesGivenNewestFirst(ctx: QueryCtx, giver: MemberId, before: Before): AsyncGenerator<GivenMessageAwards> {
+  return byMessage(awardsGivenNewestFirst(ctx, giver, before));
+}
+
+async function* byMessage(rows: AsyncIterable<AwardRow>): AsyncGenerator<GivenMessageAwards> {
   let current: GivenMessageAwards | null = null;
-  for await (const row of awardsGivenNewestFirst(ctx, giver, before)) {
+  for await (const row of rows) {
     if (current !== null && messageKey(row) !== messageKey(current.message)) {
       yield current;
       current = null;
@@ -345,6 +353,34 @@ async function* awardsGivenNewestFirst(ctx: QueryCtx, giver: MemberId, before: B
       })
       .order("desc");
   }
+}
+
+export type DecidedBelow = { decided: number; inclusive: boolean };
+
+export const fromTheNewestDecided: DecidedBelow = { decided: Infinity, inclusive: true };
+
+type DecidedIndex<Q> = { lt(field: "_creationTime", value: number): Q; lte(field: "_creationTime", value: number): Q } & Q;
+
+export function decidedBelow<Q>(q: DecidedIndex<Q>, { decided, inclusive }: DecidedBelow): Q {
+  if (decided === Infinity) return q;
+  return inclusive ? q.lte("_creationTime", decided) : q.lt("_creationTime", decided);
+}
+
+export async function* awardsReceivedByDecision(ctx: QueryCtx, recipient: MemberId, below: DecidedBelow): AsyncGenerator<ReceivedAward> {
+  const rows = ctx.db
+    .query("awards")
+    .withIndex("by_recipient_decided", (q) => decidedBelow(q.eq("recipient", recipient), below))
+    .order("desc");
+  for await (const row of rows) yield receivedAwardOf(row);
+}
+
+export function messagesGivenByDecision(ctx: QueryCtx, giver: MemberId, below: DecidedBelow): AsyncGenerator<GivenMessageAwards> {
+  return byMessage(
+    ctx.db
+      .query("awards")
+      .withIndex("by_giver_decided", (q) => decidedBelow(q.eq("giver", giver), below))
+      .order("desc"),
+  );
 }
 
 export function rangesBefore({ at, created }: Before): AtRange[] {

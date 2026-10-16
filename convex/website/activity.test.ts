@@ -194,14 +194,14 @@ describe("AT16 AT17 AT18: order, filters and pages", () => {
     await activityOn();
     const me = await aNamedMember("Bob Brandt", bob.user);
     const [ada, cy, dee, eve] = await Promise.all([aNamedMember("Ada", "U_ADA"), aNamedMember("Cy", "U_CY"), aNamedMember("Dee", "U_DEE"), aNamedMember("Eve", "U_EVE")]);
-    await thanks(ada, [me], "1.1", instant);
-    await thanks(me, [ada, cy], "1.2", instant);
-    await thanks(cy, [me], "1.3", instant);
-    await thanks(eve, [cy], "1.4", instant);
-    await thanks(me, [dee], "1.5", instant);
-    await thanks(dee, [me], "1.6", instant);
     await thanks(eve, [me], "0.1", earlier);
     await thanks(me, [eve], "0.2", earlier);
+    await thanks(ada, [me], "1.1", instant);
+    await thanks(cy, [me], "1.3", instant);
+    await thanks(dee, [me], "1.6", instant);
+    await thanks(me, [ada, cy], "1.2", instant);
+    await thanks(eve, [cy], "1.4", instant);
+    await thanks(me, [dee], "1.5", instant);
     return signedIn(bob);
   }
 
@@ -226,7 +226,7 @@ describe("AT16 AT17 AT18: order, filters and pages", () => {
     return pages;
   }
 
-  test("answers every entry newest first, given above received within one instant, and newer documents first", async () => {
+  test("answers every entry newest decided first, many inside one instant", async () => {
     const asBob = await aBusyInstant();
 
     const { entries, cursor } = await activityOf(asBob, { filter: "all" });
@@ -600,8 +600,8 @@ describe("AT18: a page's reads are bounded", () => {
     });
     for (let index = 0; index < messages; index++) {
       await t.run(async (ctx) => {
-        for (const recipient of thanked) await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `given-${index}`, giver: me, recipient, kudos: 1, day: "2026-10-14", at: postedAt + index });
         await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `received-${index}`, giver: thanked[0]!, recipient: me, kudos: 1, day: "2026-10-14", at: postedAt + index });
+        for (const recipient of thanked) await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `given-${index}`, giver: me, recipient, kudos: 1, day: "2026-10-14", at: postedAt + index });
       });
     }
     const asBob = await signedIn(bob);

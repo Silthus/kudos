@@ -255,10 +255,10 @@ describe("AT18: a page's reads are bounded", () => {
     await t.run(async (ctx) => {
       for (let index = 0; index < 60; index++) {
         const cause = { workspace: "T1", conversation: "C1", message: `given-${index}` };
-        await ctx.db.insert("levelUps", { member: me, level: index + 2, ready: [], at });
         await ctx.db.insert("awards", { ...cause, giver: me, recipient: teammate, kudos: 1, day: "2026-10-13", at });
         for (const key of everyQuest) await ctx.db.insert("rewardRecords", { member: me, key, xp: 20, coins: 0, item: null, catalogueVersion: "1", at, cause });
       }
+      for (let index = 0; index < 60; index++) await ctx.db.insert("levelUps", { member: me, level: index + 2, ready: [], at });
     });
 
     const first = await activityOf(alice, { filter: "all", limit: 50 });
