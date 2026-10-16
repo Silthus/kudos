@@ -270,6 +270,7 @@ async function walkIn(backend: Backend) {
   await reaction({ user: alice.user, itemUser: dana.user, ts: danasOldMessage });
   await reaction({ user: dana.user, itemUser: dana.user, ts: danasMessage });
   await reaction({ user: carol.user, itemUser: dana.user, ts: danasMessage, reaction: "tada" });
+  await thanks(carol, "Thanks for pairing on the flaky deploy", bob);
   for (const { user } of members) await openHome(user);
   await theRecapSweepRuns();
   await settleUpTo(t, mondayAfter);
