@@ -10,7 +10,7 @@ The product owner's direction (2026-10-15, map #57 decision 25): the Book become
 
 **The reveal.** #452 already reads `drop` from the open's answer and bursts it out last as a card; this ticket adds nothing there beyond the rarity tokens' home, and the recording below proves the drop landing on the fixture that supplies one.
 
-**Until #462 merges.** `website/src/collectionRead.ts`, `website/src/activity/found.ts` and `website/src/crates/drops.ts` carry local copies of the published shapes (`CollectionAnswer`, `Found`, `Drop`), and `LiveApp` binds `useCollection` to a read that answers `not-found`, so production is byte-equal to `main` until the real read exists. The switch to `api.website.collection.getCollection` and the convex types is the follow-up on this PR once `main` has #462.
+**The real read.** Ship #462 (PR #495) landed on `main` on 2026-10-16, so `LiveApp` subscribes to `api.website.collection.getCollection`, the website types come from `convex/website/collection.ts`, `convex/hoggies/drops.ts` and `convex/activity/entries.ts`, and the fixtures build from `convex/hoggies/catalogue.ts`. The local copies the draft carried are gone.
 
 ## Tests
 
@@ -50,3 +50,14 @@ A fixture build (`VITE_SHELL_FIXTURE=member-with-the-book-opened`) served with `
 3. The overview tile's rarity counts were squares alone, hidden from assistive tech: squares plus words, and a spoken description on the link.
 4. The reveal kept #452's own hex values beside the new tokens: the scrim now takes the tokens' dark values.
 5. First-found dates were screen-reader only: each found tile shows its date.
+
+## Live run on a local backend
+
+`live-rig.sh` starts a fresh `convex-local-backend` on 11410/11411 (its own instance and storage under `/tmp`, never a cloud deployment) and deploys this tree; `live-driver.mts` (run with `bun`) answers Slack and PostHog with the repo's `FakeSlack` and `FakePostHog` on 11412, turns the flags on for everyone (`xp-levels`, `unlocks`, `everyone-board`, `achievements`, `skill-tree`, `quests`, `activity`, `website`, `collection`), and drives Alice through signed Slack requests: a kudos to Bob, levels 2 to 5, then `Open` on the Leaderboard, the Book, the Skill tree and Quests from App Home. Each open drops one hoggie. `live-transcript.txt` is the run; `live-getCollection-alice.json` and `live-getActivity-alice.json` are the website's answers read with `convex run --identity` for Alice's appended `authSessions` row. The browser signed in with the appended refresh token in `localStorage` (Convex Auth's own refresh minted the JWT with keys set on the local deployment).
+
+| What | File |
+|---|---|
+| `/book/collection` from the real `getCollection`: 4 of 151, the two rare finds tagged New, each found tile dated | `8-live-collection-1280-light.png`, `8-live-collection-1280-dark.png` |
+| `/activity` with the four `found` entries between the level marks and the kudos | `9-live-activity-found-1280-light.png` |
+| The home's Book panel with 4 of 151 and the latest find | `10-live-home-book-panel-1280-light.png` |
+| A real drop: `Open` on the Journey reward runs `openQuestCrate`, the backend draws Doll House, and the reveal bursts it out as the card; the Book panel behind reads 5 of 151 | `11-live-reveal-real-drop-light.mp4`, `11-live-reveal-real-drop-finish-light.png` |
