@@ -20,6 +20,7 @@ export const pageValidator = v.union(
   v.object({ page: v.literal("book"), crate }),
   v.object({ page: v.literal("bookEarned"), crate }),
   v.object({ page: v.literal("bookCollection"), crate }),
+  v.object({ page: v.literal("settings") }),
 );
 
 const frontDoorLinksValidator = v.object({ origin: v.string(), pages: v.array(v.object({ label: v.string(), url: v.string() })) });

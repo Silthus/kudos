@@ -7,6 +7,7 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlocks, publishedViews, readBlocks, staleButtonOf, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
+import { isOnTheBoards } from "../leaderboard/visibility";
 import type { QuestId } from "../quests/pool";
 
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
@@ -25,6 +26,8 @@ const sayingWhyThreeWays: QuestId[] = ["say-why", "say-why-twice", "say-why-thre
 const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board", "skill-tree"];
 const openOnTheWeb = (path: string) => `[link: Open ${siteUrl}${path}]`;
 const swapOnTheWeb = (slot: number) => `[link: Swap ${siteUrl}/quests?quest=${slot}]`;
+const settingsLine = "You can change these settings on the web, too.";
+const settingsOnTheWeb = (entry = "") => `section: ${settingsLine} [link: Settings ${siteUrl}${entry}/settings]`;
 const sayingWhyCounts = "context: Saying why counts when your message has 5 or more words besides mentions and emoji.";
 const hints = [
   "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
@@ -178,7 +181,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(publishedHome(slack, "U_ALICE").slice(0, 2)).toEqual(["actions: [Profile] | Settings", "header: Your kudos"]);
   });
 
-  test("Settings and Admin are today's tabs, each ending with the link to the website", async () => {
+  test("Settings opens with a link to the website's Settings page above today's settings, and Admin is today's tab, each ending with the link to the website", async () => {
     slack.withMember("U_ALICE", { is_admin: true });
     const t = await workspace("xp-levels", "everyone-board", "website");
     await openHome(t, "U_ALICE");
@@ -192,6 +195,8 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(settings).toEqual([
       "actions: Profile | [Settings] | Admin",
       "header: Settings",
+      settingsOnTheWeb(),
+      "divider",
       "section: *Show me on the leaderboards*",
       "actions: [On] | Off",
       "context: When it's off, nobody sees you on the leaderboards, you included.",
@@ -203,6 +208,46 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     ]);
     expect(admin.slice(0, 2)).toEqual(["actions: Profile | Settings | [Admin]", "header: Admin"]);
     expect(admin.slice(-2)).toEqual(["divider", websiteLink]);
+  });
+
+  test("the Settings link names the Settings page to screen readers, and clicking it runs no command and publishes App Home no more", async () => {
+    const t = await workspace("xp-levels", "everyone-board", "website");
+    await openHome(t, "U_ALICE");
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Settings")));
+    const published = publishedViews(slack, "U_ALICE").length;
+
+    const response = await send(t, buttonBeside(settingsLine, "Settings"));
+
+    expect(accessoryBeside(settingsLine)).toEqual({
+      type: "button",
+      text: { type: "plain_text", text: "Settings" },
+      url: `${siteUrl}/settings`,
+      action_id: "website-link:settings",
+      accessibility_label: "Change your settings on HedgeHug's Settings page",
+    });
+    expect(response.status).toBe(200);
+    expect(publishedViews(slack, "U_ALICE")).toHaveLength(published);
+  });
+
+  test("Slack's settings still work beside the link: switching the leaderboards off hides the member and keeps the link", async () => {
+    const t = await workspace("xp-levels", "everyone-board", "website");
+    await openHome(t, "U_ALICE");
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Settings")));
+
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Off")));
+
+    expect(publishedHome(slack, "U_ALICE").slice(1, 6)).toEqual(["header: Settings", settingsOnTheWeb(), "divider", "section: *Show me on the leaderboards*", "actions: On | [Off]"]);
+    expect(await onTheBoards(t, "U_ALICE")).toBe(false);
+  });
+
+  test("for a member previewing the website while it is closed for the workspace, the Settings link goes through the page's sign-in entry", async () => {
+    slack.withMember("U_ALICE", { profile: { email: alicesEmail } });
+    const t = await workspace("xp-levels", "everyone-board", onForEmails("website", alicesEmail));
+    await openHome(t, "U_ALICE");
+
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Settings")));
+
+    expect(publishedHome(slack, "U_ALICE")[2]).toBe(settingsOnTheWeb("/sign-in"));
   });
 
   test("opening the ready features swaps their Open for page buttons, and a stale Open from before the links still opens its crate", async () => {
@@ -302,6 +347,17 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     ...hints,
   ];
 
+  const todaysSettings = [
+    "actions: Profile | Leaderboard | [Settings]",
+    "header: Settings",
+    "section: *Show me on the leaderboards*",
+    "actions: [On] | Off",
+    "context: When it's off, nobody sees you on the leaderboards, you included.",
+    "divider",
+    "section: I'll celebrate your level ups in public once your workspace picks a channel. [button: Mute notices]",
+    "section: I send you a DM when you reach a level. [button: Turn off DMs]",
+  ];
+
   const closed: Array<{ condition: string; website: string[]; env?: Record<string, string> }> = [
     { condition: "while the website flag is off", website: [] },
     { condition: "while SITE_URL is unset", website: ["website"], env: { SITE_URL: "" } },
@@ -316,6 +372,17 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
     expect(publishedHome(slack, "U_ALICE")).toEqual(todaysHome);
+  });
+
+  test.each(closed)("$condition, a member with every other flag on sees today's Settings tab", async ({ website, env = {} }) => {
+    for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
+    const t = await workspace(...everyFlag, ...website);
+    await levelThreeWithQuestsDrawn(t);
+    await openReadyFeatures(t);
+
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Settings")));
+
+    expect(publishedHome(slack, "U_ALICE")).toEqual(todaysSettings);
   });
 });
 
@@ -568,6 +635,11 @@ async function swapsOf(t: Backend, user: string) {
       .withIndex("by_member_week", (q) => q.eq("member", member))
       .collect(),
   );
+}
+
+async function onTheBoards(t: Backend, user: string) {
+  const member = await memberOf(t, user);
+  return t.run((ctx) => isOnTheBoards(ctx, member));
 }
 
 async function memberOf(t: Backend, user: string) {
