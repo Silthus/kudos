@@ -1,6 +1,6 @@
 import { assets } from "@posthog/brand/hoggies/metadata";
-import { catalogue, rarities, type Rarity } from "../../convex/hoggies/catalogue";
-import type { Collection, CollectionHoggie, CollectionRead, MyCollection, RarityShare } from "./collectionRead";
+import { catalogue, rarities, type CatalogueCrest, type Rarity } from "../../convex/hoggies/catalogue";
+import type { Collection, CollectionCrest, CollectionHoggie, CollectionRead, MyCollection, RarityShare } from "./collectionRead";
 import type { ShellState } from "./shell";
 
 const at = (iso: string) => Date.parse(iso);
@@ -58,17 +58,25 @@ function hoggieOf(hoggie: string, rarity: Rarity, find: Find | undefined): Colle
   return { hoggie, name: names.get(hoggie) ?? hoggie, rarity, art: { kind: "hoggie", slug: hoggie }, count: find?.count ?? 0, firstAt, seen: firstAt === null ? null : `hoggie:${hoggie}:${firstAt}` };
 }
 
-function collectionWith(finds: Record<string, Find>): Collection {
+function crestOf({ crest, name, roster }: CatalogueCrest, hoggies: CollectionHoggie[]): CollectionCrest {
+  const firstFinds = roster.flatMap((onRoster) => hoggies.find(({ hoggie }) => hoggie === onRoster)?.firstAt ?? []);
+  const collectedAt = firstFinds.length === roster.length ? Math.max(...firstFinds) : null;
+  return { crest, name, art: { kind: "crest", slug: crest }, roster: [...roster], held: firstFinds.length, collectedAt, seen: collectedAt === null ? null : `crest:${crest}:${collectedAt}` };
+}
+
+function collectionWith(finds: Record<string, Find>, { crests }: { crests: boolean } = { crests: true }): Collection {
   const hoggies = catalogue.hoggies.map(({ hoggie, rarity }) => hoggieOf(hoggie, rarity, finds[hoggie]));
   const held = hoggies.filter(({ count }) => count > 0);
   const shares = rarities.map(({ rarity, weight }): RarityShare => ({ rarity, chance: weight, owned: held.filter((hoggie) => hoggie.rarity === rarity).length, total: hoggies.filter((hoggie) => hoggie.rarity === rarity).length }));
-  return { kind: "collection", rarities: shares, hoggies, owned: held.length, total: hoggies.length };
+  const collection: Collection = { kind: "collection", rarities: shares, hoggies, owned: held.length, total: hoggies.length };
+  return crests ? { ...collection, crests: catalogue.crests.map((entry) => crestOf(entry, hoggies)) } : collection;
 }
 
 const everyHoggieFound = Object.fromEntries(catalogue.hoggies.map(({ hoggie }, index) => [hoggie, { count: 1 + (index % 3), firstAt: `2026-0${1 + (index % 9)}-1${index % 10}T09:00:00Z` }]));
 
 export const collectionFixtures = {
   collection: collectionWith(found),
+  collectionWithoutCrests: collectionWith(found, { crests: false }),
   nothingFound: collectionWith({}),
   complete: collectionWith(everyHoggieFound),
   locked: { kind: "locked", level: 4 },

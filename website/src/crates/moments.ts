@@ -3,7 +3,7 @@ import { focusPageTitle } from "../pageFocus";
 import type { CrateAnswer, Feature, ShellActions } from "../shell";
 import { rewardWords } from "../quests/QuestReward";
 import { dropOf, type Drop } from "./drops";
-import { rewardLabelOf, type ReadyCrate } from "./readyCrates";
+import { rewardLabelOf, type QuestCrate, type ReadyCrate } from "./readyCrates";
 import { climbRewardOf, type Climb, type OnTheWay, type Reward, type RewardKind } from "./rewards";
 import { hasSeen, markSeen } from "./seen";
 
@@ -25,7 +25,7 @@ export type Moments = {
   chart(rewards: Reward[]): void;
   setOut(crate: ReadyCrate): void;
   landed(crate: ReadyCrate, kind: RewardKind): void;
-  finish(crate: ReadyCrate): void;
+  finish(crate: ReadyCrate, drop: Drop | null): void;
   close(how: { returnFocus: boolean }): void;
   announcement: string;
   onTheWay: OnTheWay[];
@@ -132,9 +132,9 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
 
   const land = useCallback((crate: ReadyCrate) => setFlights((queued) => (queued[0]?.crate.seen === crate.seen ? queued.slice(1) : queued)), []);
 
-  const finish = useCallback((crate: ReadyCrate) => {
+  const finish = useCallback((crate: ReadyCrate, drop: Drop | null) => {
     markSeen(crate.seen);
-    setAnnouncement(openedAnnouncementOf(crate));
+    setAnnouncement(openedAnnouncementOf(crate, drop));
   }, []);
 
   const close = useCallback(
@@ -213,11 +213,21 @@ export function questCrateHomeAttributes(seen: string | null) {
   return seen === null ? {} : { "data-quest-crate": seen, tabIndex: -1 };
 }
 
-function openedAnnouncementOf(crate: ReadyCrate) {
-  if (crate.kind === "feature") return `You opened ${crate.card.name}.`;
+function openedAnnouncementOf(crate: ReadyCrate, drop: Drop | null) {
+  const opened = crate.kind === "feature" ? `You opened ${crate.card.name}.` : questOpenedWordsOf(crate);
+  return drop === null ? opened : `${opened} ${foundWordsOf(drop)}`;
+}
+
+function questOpenedWordsOf(crate: QuestCrate) {
   const label = crate.quest.kind === "journey" ? rewardLabelOf(crate) : rewardLabelOf(crate).toLowerCase();
   const words = rewardWords(crate.reward);
   return words === undefined ? `You opened your ${label}.` : `You opened your ${label}. You earned ${words}.`;
+}
+
+function foundWordsOf(drop: Drop) {
+  const article = /^[aeiou]/.test(drop.rarity) ? "an" : "a";
+  const found = `You found ${article} ${drop.rarity} ${drop.name}.`;
+  return drop.crest ? `${found} It completed the ${drop.crest.name} crest.` : found;
 }
 
 function focusCrateHomeOrTitle(crate: ReadyCrate) {

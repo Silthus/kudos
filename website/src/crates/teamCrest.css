@@ -1,0 +1,16 @@
+.team-crest {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+}
+
+.team-crest img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.team-crest-missing {
+  filter: grayscale(1);
+  opacity: 0.45;
+}

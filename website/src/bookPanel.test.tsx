@@ -52,3 +52,16 @@ describe("#467: the home's Book panel carries the collection's progress", () => 
     }
   });
 });
+
+describe("#468: the home's Book panel counts the team crests beside the hoggies", () => {
+  it("says how many crests are collected of the total", () => {
+    showHome(collectionFixtures.collection);
+    expect(bookPanel()).toHaveTextContent("41 of 151 hoggies found · 2 of 54 crests");
+  });
+
+  it("says nothing about crests while the answer carries none", () => {
+    showHome(collectionFixtures.collectionWithoutCrests);
+    expect(bookPanel()).toHaveTextContent("41 of 151 hoggies found");
+    expect(bookPanel()).not.toHaveTextContent("crests");
+  });
+});

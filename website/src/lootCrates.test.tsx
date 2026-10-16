@@ -1,6 +1,7 @@
 import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { burstPlaysForMs, crateChargesForMs } from "./crates/RevealDialog";
+import { crestBeatDelayMs, crestBeatPlaysForMs } from "./crates/RewardTokens";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { shellFixtures, type Drop, type MemberProfile, type MyQuests, type OpenAnswer } from "./shell";
 import { renderApp } from "./test/renderApp";
@@ -348,5 +349,59 @@ describe("#452: the reveal's last beat is the hoggie card a drop brings, which n
     expect(tokenOf("drop")).toHaveAttribute("data-rarity", "common");
     fireEvent.keyDown(dialog()!, { key: "Escape" });
     expect(rewardChips()).toEqual(["+20 XP", "+1 skill point", "+10 coins", "Angel · ⬜ Common · ×3"]);
+  });
+});
+
+describe("#468: a drop that completes a team's crest lands the crest after the hoggie card", () => {
+  const customerSuccessEU = { crest: "customer-success-eu", name: "Customer Success EU", art: { kind: "crest", slug: "customer-success-eu" } } as const;
+  const croissant: Drop = { hoggie: "croissant", name: "Croissant", rarity: "common", art: { kind: "hoggie", slug: "croissant" }, copy: 1, isNew: true, crest: customerSuccessEU };
+
+  async function claimADrop(drop: Drop) {
+    window.history.replaceState(null, "", "/quests");
+    renderApp(payingCoins, undefined, { openQuestCrate: async () => ({ kind: "opened", drop }) }, fixedQuests(questsFixtures.weekPayingCoins));
+    vi.useFakeTimers();
+    fireEvent.click(within(cardOf(coinsQuest)).getByRole("button", { name: "Claim" }));
+    await act(async () => {});
+  }
+
+  function delayOf(token: HTMLElement) {
+    return parseInt(token.closest<HTMLElement>(".reward-token-slot")!.style.getPropertyValue("--pop-delay"), 10);
+  }
+
+  it("lands the crest as its own card after the hoggie, naming the team, holds the burst for the beat, and lists it in the finish", async () => {
+    await claimADrop(croissant);
+    advance(crateChargesForMs);
+
+    expect(tokens().map((token) => token.textContent)).toEqual(["+20 XP", "+1 skill point", "+10 coins", "CroissantNew!⬜ Common", "Team complete!Customer Success EUCrest earned"]);
+    expect(tokenOf("crest").querySelector("[data-crest-art='collected'] img")).toHaveAttribute("src", expect.stringMatching(/customer-success-eu\.png$/));
+    expect(delayOf(tokenOf("crest"))).toBeGreaterThanOrEqual(delayOf(tokenOf("drop")) + crestBeatDelayMs);
+    advance(burstPlaysForMs);
+    expect(dialog()).toHaveAttribute("data-phase", "bursting");
+    advance(crestBeatPlaysForMs);
+    expect(dialog()).not.toHaveAttribute("data-phase", "bursting");
+    fireEvent.keyDown(dialog()!, { key: "Escape" });
+    expect(rewardChips()).toEqual(["+20 XP", "+1 skill point", "+10 coins", "Croissant · ⬜ Common · New!", "Customer Success EU crest · Team complete"]);
+    expect(screen.getByTestId("moment-announcement")).toHaveTextContent("You found a common Croissant. It completed the Customer Success EU crest.");
+  });
+
+  it("shows the crest at once in the finish under reduced motion", async () => {
+    preferReducedMotion();
+    await claimADrop(croissant);
+
+    expect(dialog()).toHaveAttribute("data-phase", "ended");
+    expect(tokenOf("crest")).toHaveTextContent("Customer Success EU");
+    expect(rewardChips()).toContain("Customer Success EU crest · Team complete");
+  });
+
+  it("lands no crest for a drop that completed none, and keeps the burst's length", async () => {
+    await claimADrop({ ...croissant, crest: null });
+    advance(crateChargesForMs);
+
+    expect(tokens().map((token) => token.textContent)).toEqual(["+20 XP", "+1 skill point", "+10 coins", "CroissantNew!⬜ Common"]);
+    advance(burstPlaysForMs);
+    expect(dialog()).not.toHaveAttribute("data-phase", "bursting");
+    fireEvent.keyDown(dialog()!, { key: "Escape" });
+    expect(screen.getByTestId("moment-announcement")).toHaveTextContent("You found a common Croissant.");
+    expect(screen.getByTestId("moment-announcement")).not.toHaveTextContent("crest");
   });
 });

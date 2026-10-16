@@ -1,4 +1,5 @@
 import { Bar } from "../book/Bar";
+import { crestCountOf } from "../book/crests";
 import { LatestCoin } from "../book/HoggieCollection";
 import { foundWordsOf, latestFindOf } from "../book/latestFind";
 import type { Collection } from "../collectionRead";
@@ -13,7 +14,10 @@ export function BookPanel({ label, collection }: { label: string; collection: Co
       <div className="flex items-center gap-3">
         <LatestCoin latest={latest} size={56} />
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <span className="text-sm font-medium tabular-nums">{sentence}</span>
+          <span className="text-sm font-medium tabular-nums">
+            {sentence}
+            {collection.crests !== undefined && <span className="text-muted-foreground">{` · ${crestCountOf(collection.crests)}`}</span>}
+          </span>
           <Bar label={sentence} value={collection.owned} max={collection.total} />
           <span className="text-xs text-muted-foreground">
             {latest === null ? (
