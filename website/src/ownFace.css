@@ -1,0 +1,8 @@
+.hoggie-coin.own-avatar {
+  border-width: var(--avatar-ring, 2px);
+}
+
+.own-avatar img {
+  width: 76%;
+  height: auto;
+}
