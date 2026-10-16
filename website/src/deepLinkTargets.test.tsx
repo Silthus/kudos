@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
@@ -494,6 +494,24 @@ describe("#531: ?panel=inventory and ?section={section} land on their heading, n
     expect(within(regionOf("Inventory")).getByRole("region", { name: "Kudos emoji" })).toBeInTheDocument();
     expectNothingSent(actions);
     expect(window.location.search).toBe("?panel=inventory");
+  });
+
+  it("lands on the Inventory again when history returns to the link after the member turned to Character", async () => {
+    visit("/?panel=inventory");
+    const { user } = renderApp(shellFixtures.memberWithTheInventory);
+    await user.click(within(main()).getByRole("button", { name: "Character" }));
+    act(() => {
+      window.history.pushState(null, "", "/");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    const scrolled = watchScrolling();
+    act(() => {
+      window.history.pushState(null, "", "/?panel=inventory");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+
+    expect(scrolled).toEqual([regionOf("Inventory")]);
+    expect(heading("Inventory")).toHaveFocus();
   });
 
   it.each([

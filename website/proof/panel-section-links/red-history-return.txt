@@ -1,0 +1,3 @@
+     × lands on the Inventory again when history returns to the link after the member turned to Character 271ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 9 passed | 61 skipped (71)

@@ -24,7 +24,7 @@ export function HomePage({ member, panel, reads, useRecentKudos, onBuyItem, pend
         <Hero member={member} />
         {hasGivenNoKudos(member) && <FirstKudosNudge member={member} />}
         <JourneyPanel journey={member.journey} />
-        <GearPanel member={member} opensOn={panel === "inventory" ? "inventory" : "character"} loadout={loadout} buyItem={onBuyItem} pendingPurchase={pendingPurchase} />
+        <GearPanel key={panel ?? "plain"} member={member} opensOn={panel === "inventory" ? "inventory" : "character"} loadout={loadout} buyItem={onBuyItem} pendingPurchase={pendingPurchase} />
         <MainColumnPanels member={member} collection={reads.collection} />
       </div>
       <div className="flex min-w-0 flex-col gap-6">
