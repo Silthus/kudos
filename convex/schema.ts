@@ -80,7 +80,7 @@ export default defineSchema({
     baseAllowance: v.optional(v.number()),
     kudosEmoji: v.optional(v.string()),
     announcementChannel: v.optional(v.string()),
-    starBudget: v.optional(v.number()),
+    hugBudget: v.optional(v.number()),
     url: v.optional(v.string()),
     urlRequestedAt: v.optional(v.number()),
   }).index("by_workspace", ["workspace"]),
@@ -247,7 +247,7 @@ export default defineSchema({
     .index("by_message_recipient", ["workspace", "conversation", "message", "recipient"])
     .index("by_workspace", ["workspace"]),
 
-  starWeeks: defineTable({
+  hugWeeks: defineTable({
     workspace: v.string(),
     member: v.id("members"),
     week: v.string(),
@@ -255,7 +255,7 @@ export default defineSchema({
     givenXp: v.number(),
     received: v.number(),
     receivedXp: v.number(),
-    mostStarred: v.optional(v.object({ conversation: v.string(), message: v.string(), stars: v.number(), lastAt: v.number() })),
+    mostHugged: v.optional(v.object({ conversation: v.string(), message: v.string(), hugs: v.number(), lastAt: v.number() })),
     recap: v.union(v.literal("waiting"), v.literal("scheduled"), v.literal("sent"), v.literal("skipped"), v.literal("failed")),
     dueAt: v.optional(v.number()),
     tries: v.number(),
@@ -263,30 +263,45 @@ export default defineSchema({
     .index("by_member_week", ["member", "week"])
     .index("by_recap_due", ["recap", "dueAt"]),
 
-  starWeekMessages: defineTable({ member: v.id("members"), week: v.string(), conversation: v.string(), message: v.string(), stars: v.number(), lastAt: v.number() }).index("by_member_week_message", [
+  hugWeekMessages: defineTable({ member: v.id("members"), week: v.string(), conversation: v.string(), message: v.string(), hugs: v.number(), lastAt: v.number() }).index("by_member_week_message", [
     "member",
     "week",
     "conversation",
     "message",
   ]),
 
-  starCounts: defineTable({ workspace: v.string(), conversation: v.string(), message: v.string(), stars: v.number() }).index("by_message", ["workspace", "conversation", "message"]),
+  hugCounts: defineTable({ workspace: v.string(), conversation: v.string(), message: v.string(), hugs: v.number() }).index("by_message", ["workspace", "conversation", "message"]),
 
-  stars: defineTable({
+  hugs: defineTable({
     workspace: v.string(),
     conversation: v.string(),
     message: v.string(),
     giver: v.id("members"),
     onKudos: v.boolean(),
     author: v.optional(v.id("members")),
+    emoji: v.string(),
     at: v.number(),
     day: v.string(),
   })
     .index("by_message_giver", ["workspace", "conversation", "message", "giver"])
+    .index("by_message_at", ["workspace", "conversation", "message", "at"])
     .index("by_giver_day", ["giver", "day"])
     .index("by_giver_at", ["giver", "at"]),
 
-  starPeople: defineTable({ star: v.id("stars"), member: v.id("members"), at: v.number() }).index("by_star_member", ["star", "member"]).index("by_member_at", ["member", "at"]),
+  hugPeople: defineTable({ hug: v.id("hugs"), member: v.id("members"), at: v.number() }).index("by_hug_member", ["hug", "member"]),
+
+  hugsReceived: defineTable({
+    member: v.id("members"),
+    workspace: v.string(),
+    conversation: v.string(),
+    message: v.string(),
+    onKudos: v.boolean(),
+    hugs: v.number(),
+    emoji: v.string(),
+    at: v.number(),
+  })
+    .index("by_member_message", ["member", "workspace", "conversation", "message"])
+    .index("by_member_at", ["member", "at"]),
 
   kudosTotals: defineTable({
     member: v.id("members"),

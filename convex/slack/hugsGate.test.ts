@@ -17,16 +17,16 @@ import { openUnlock } from "../unlocks/unlocks";
 import type { ActivityAnswer } from "../website/activity";
 import type { Denial } from "../website/memberQuery";
 
-const theStars = vi.hoisted(() => ({ removed: false }));
+const theHugs = vi.hoisted(() => ({ removed: false }));
 
 vi.mock("./reactions", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./reactions")>();
-  return { ...actual, isReactionAdded: vi.fn((...args: Parameters<typeof actual.isReactionAdded>) => !theStars.removed && actual.isReactionAdded(...args)) };
+  return { ...actual, isReactionAdded: vi.fn((...args: Parameters<typeof actual.isReactionAdded>) => !theHugs.removed && actual.isReactionAdded(...args)) };
 });
 
-vi.mock("../stars/flag", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../stars/flag")>();
-  return { ...actual, starsShownTo: vi.fn((...args: Parameters<typeof actual.starsShownTo>) => (theStars.removed ? Promise.resolve(false) : actual.starsShownTo(...args))) };
+vi.mock("../hugs/flag", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../hugs/flag")>();
+  return { ...actual, hugsShownTo: vi.fn((...args: Parameters<typeof actual.hugsShownTo>) => (theHugs.removed ? Promise.resolve(false) : actual.hugsShownTo(...args))) };
 });
 
 vi.mock("../quests/rank", async (importOriginal) => {
@@ -49,11 +49,11 @@ const mondayAfter = Date.parse("2026-10-19T10:00:00Z");
 const minuteMs = 60_000;
 const hourMs = 60 * minuteMs;
 const siteUrl = "https://kudos-site.test";
-const stars = "stars";
+const hugs = "hugs";
 const everyOtherFlag = ["xp-levels", "unlocks", "achievements", "collection", "crests", "crate-store", "crate-rewards", "coins", "store", "quests", "group-quest", "groups", "activity", "everyone-board", "profile-card", "hoggie-avatar", "message-settings", "custom-kudos-emoji", "monday-post", "skill-tree", "slots-retired"];
-const starTables = ["stars", "starPeople", "starWeeks", "starWeekMessages", "starCounts"] as const;
-const reactionEventIds = /^EvStar/;
-const starLookUp = "slack/starLookups:lookUpStarPeople";
+const hugTables = ["hugs", "hugPeople", "hugWeeks", "hugWeekMessages", "hugCounts"] as const;
+const reactionEventIds = /^EvHug/;
+const hugLookUp = "slack/hugLookups:lookUpHugPeople";
 const outboxDelivery = "analytics/drain:";
 const identifyDelivery = "analytics/person:identifyNewPeople";
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
@@ -77,7 +77,7 @@ let steps = 0;
 let reactions = 0;
 
 beforeEach(() => {
-  theStars.removed = false;
+  theHugs.removed = false;
   vi.stubEnv("SLACK_SIGNING_SECRET", signingSecret);
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
@@ -94,78 +94,78 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const starsOff: Array<{ condition: string; flag: FlagDefinition[]; turnOff?: () => void; exposed: Exposure[] }> = [
-  { condition: "with stars off", flag: [offForEveryone(stars)], exposed: exposuresOfTheWalksStarReactionsAt(false) },
-  { condition: "while PostHog has no stars flag", flag: [], exposed: exposuresOfTheWalksStarReactionsAt(false) },
-  { condition: "without the flags key, even when PostHog turned stars on", flag: [onForEveryone(stars)], turnOff: () => vi.stubEnv("POSTHOG_PERSONAL_API_KEY", ""), exposed: [] },
+const hugsOff: Array<{ condition: string; flag: FlagDefinition[]; turnOff?: () => void; exposed: Exposure[] }> = [
+  { condition: "with hugs off", flag: [offForEveryone(hugs)], exposed: exposuresOfTheWalksHugReactionsAt(false) },
+  { condition: "while PostHog has no hugs flag", flag: [], exposed: exposuresOfTheWalksHugReactionsAt(false) },
+  { condition: "without the flags key, even when PostHog turned hugs on", flag: [onForEveryone(hugs)], turnOff: () => vi.stubEnv("POSTHOG_PERSONAL_API_KEY", ""), exposed: [] },
   {
-    condition: "in production, while stars is on in the sandbox and for the product owner's email only",
+    condition: "in production, while hugs is on in the sandbox and for the product owner's email only",
     flag: [asTheShipCreatesIt()],
     turnOff: () => vi.stubEnv("KUDOS_ENVIRONMENT", "production"),
-    exposed: exposuresOfTheWalksStarReactionsAt(false),
+    exposed: exposuresOfTheWalksHugReactionsAt(false),
   },
 ];
 
-describe("SR21: stars are dark where the flag is off, at the Slack and website boundaries, and only the members it is on for give stars", { timeout: 240_000 }, () => {
-  test.each(starsOff)("$condition, a walk of kudos, kudos emoji reactions, App Home, the Monday recap and every website read leaves what the same walk leaves without stars, apart from SR21's list", async ({ flag, turnOff, exposed }) => {
-    theStars.removed = true;
-    const withoutStars = await walkIn(await aliceBobCarolAndDanaInAnts(flag, turnOff));
+describe("SR21: hugs are dark where the flag is off, at the Slack and website boundaries, and only the members it is on for give hugs", { timeout: 240_000 }, () => {
+  test.each(hugsOff)("$condition, a walk of kudos, kudos emoji reactions, App Home, the Monday recap and every website read leaves what the same walk leaves without hugs, apart from SR21's list", async ({ flag, turnOff, exposed }) => {
+    theHugs.removed = true;
+    const withoutHugs = await walkIn(await aliceBobCarolAndDanaInAnts(flag, turnOff));
     freshFakes();
-    theStars.removed = false;
+    theHugs.removed = false;
 
     const walk = await walkIn(await aliceBobCarolAndDanaInAnts(flag, turnOff));
 
-    expect(apartFromSR21sList(walk.seen)).toEqual(apartFromSR21sList(withoutStars.seen));
-    expect(walk.stars).toEqual({ stars: [], starPeople: [], starWeeks: [], starWeekMessages: [], starCounts: [] });
+    expect(apartFromSR21sList(walk.seen)).toEqual(apartFromSR21sList(withoutHugs.seen));
+    expect(walk.hugs).toEqual({ hugs: [], hugPeople: [], hugWeeks: [], hugWeekMessages: [], hugCounts: [] });
     expect(lookUpsOf(walk.seen)).toEqual([erin.user]);
-    expect(lookUpsOf(withoutStars.seen)).toEqual([]);
-    expect(starExposures(walk)).toEqual(exposed);
+    expect(lookUpsOf(withoutHugs.seen)).toEqual([]);
+    expect(hugExposures(walk)).toEqual(exposed);
   });
 
-  test("with stars on, the same walk gives stars, pays XP, shows them on the timeline and sends the Monday recap, so the comparison above can tell", async () => {
-    theStars.removed = true;
-    const withoutStars = await walkIn(await aliceBobCarolAndDanaInAnts([offForEveryone(stars)]));
+  test("with hugs on, the same walk gives hugs, pays XP, shows them on the timeline and sends the Monday recap, so the comparison above can tell", async () => {
+    theHugs.removed = true;
+    const withoutHugs = await walkIn(await aliceBobCarolAndDanaInAnts([offForEveryone(hugs)]));
     freshFakes();
-    theStars.removed = false;
+    theHugs.removed = false;
 
-    const walk = await walkIn(await aliceBobCarolAndDanaInAnts([onForEveryone(stars)]));
+    const walk = await walkIn(await aliceBobCarolAndDanaInAnts([onForEveryone(hugs)]));
 
-    expect(apartFromSR21sList(walk.seen)).not.toEqual(apartFromSR21sList(withoutStars.seen));
-    expect(walk.stars.stars.map(({ giver }) => giver).sort()).toEqual(["<member U_BOB>", "<member U_CAROL>", "<member U_DANA>", "<member U_ERIN>"]);
+    expect(apartFromSR21sList(walk.seen)).not.toEqual(apartFromSR21sList(withoutHugs.seen));
+    expect(walk.hugs.hugs.map(({ giver }) => giver).sort()).toEqual(["<member U_BOB>", "<member U_CAROL>", "<member U_DANA>", "<member U_ERIN>"]);
     expect(recapsTo(bob)).toHaveLength(1);
-    expect(timelineKinds(walk, carol)).toContain("starReceived");
-    expect(starExposures(walk)).toEqual([{ member: alice.user, value: true }, ...exposuresOfTheWalksStarReactionsAt(true)]);
+    expect(timelineKinds(walk, carol)).toContain("hugReceived");
+    expect(hugExposures(walk)).toEqual([{ member: alice.user, value: true }, ...exposuresOfTheWalksHugReactionsAt(true)]);
   });
 
-  test("with stars on for one member's email only, only that member's reactions are stars, they pay people whose flag is off, and those people's timelines, settings and recaps stay unchanged", async () => {
-    theStars.removed = true;
-    const withoutStars = await walkIn(await aliceBobCarolAndDanaInAnts([onForEmails(stars, dana.email)]));
+  test("with hugs on for one member's email only, only that member's reactions are hugs, they pay people whose flag is off, and those people's timelines, settings and recaps stay unchanged", async () => {
+    theHugs.removed = true;
+    const withoutHugs = await walkIn(await aliceBobCarolAndDanaInAnts([onForEmails(hugs, dana.email)]));
     freshFakes();
-    theStars.removed = false;
+    theHugs.removed = false;
 
-    const walk = await walkIn(await aliceBobCarolAndDanaInAnts([onForEmails(stars, dana.email)]));
+    const walk = await walkIn(await aliceBobCarolAndDanaInAnts([onForEmails(hugs, dana.email)]));
 
-    expect(walk.stars.stars).toEqual([expect.objectContaining({ giver: "<member U_DANA>", onKudos: true })]);
-    expect(walk.stars.starPeople.map(({ member }) => member).sort()).toEqual(["<member U_BOB>", "<member U_CAROL>"]);
-    expect(walk.xp).toEqual({ ...withoutStars.xp, U_BOB: withoutStars.xp.U_BOB! + 1, U_CAROL: withoutStars.xp.U_CAROL! + 1, U_DANA: withoutStars.xp.U_DANA! + 1 });
+    expect(walk.hugs.hugs).toEqual([expect.objectContaining({ giver: "<member U_DANA>", onKudos: true })]);
+    expect(walk.hugs.hugPeople.map(({ member }) => member).sort()).toEqual(["<member U_BOB>", "<member U_CAROL>"]);
+    expect(walk.xp).toEqual({ ...withoutHugs.xp, U_BOB: withoutHugs.xp.U_BOB! + 1, U_CAROL: withoutHugs.xp.U_CAROL! + 1, U_DANA: withoutHugs.xp.U_DANA! + 1 });
     for (const person of [alice, bob, carol]) {
       for (const read of ["activity", "activityPageByPage", "recentKudosReceived", "recentKudosGiven"] as const) {
-        expect(walk.seen.answers[person.user]![read], `${person.user}'s ${read}`).toEqual(withoutStars.seen.answers[person.user]![read]);
+        expect(walk.seen.answers[person.user]![read], `${person.user}'s ${read}`).toEqual(withoutHugs.seen.answers[person.user]![read]);
       }
-      expect(walk.seen.answers[person.user]!.settings).toEqual(withoutStars.seen.answers[person.user]!.settings);
-      expect(walk.seen.settingsTabs[person.user]).toEqual(withoutStars.seen.settingsTabs[person.user]);
+      expect(walk.seen.answers[person.user]!.settings).toEqual(withoutHugs.seen.answers[person.user]!.settings);
+      expect(walk.seen.settingsTabs[person.user]).toEqual(withoutHugs.seen.settingsTabs[person.user]);
       expect(slack.messagesIn(person.user).filter(isRecap)).toEqual([]);
     }
     for (const person of [bob, carol]) {
-      expect(messagesTo(walk.seen, person)).toEqual(messagesTo(withoutStars.seen, person));
-      expect(postHogEventsOf(walk.seen, person)).toEqual(postHogEventsOf(withoutStars.seen, person));
+      expect(messagesTo(walk.seen, person)).toEqual(messagesTo(withoutHugs.seen, person));
+      expect(postHogEventsOf(walk.seen, person)).toEqual(postHogEventsOf(withoutHugs.seen, person));
     }
-    expect(walk.seen.answers[alice.user]).toEqual(withoutStars.seen.answers[alice.user]);
-    expect(walk.seen.homes[alice.user]).toEqual(withoutStars.seen.homes[alice.user]);
-    expect(timelineKinds(walk, dana)).toContain("starGiven");
-    expect(walk.seen.settingsTabs[dana.user]).not.toEqual(withoutStars.seen.settingsTabs[dana.user]);
-    expect(recapsTo(dana)).toEqual([expect.stringContaining("You gave 1 star (+1 XP).")]);
-    expect(starExposures(walk)).toEqual([
+    expect(walk.seen.answers[alice.user]).toEqual(withoutHugs.seen.answers[alice.user]);
+    expect(walk.seen.homes[alice.user]).toEqual(withoutHugs.seen.homes[alice.user]);
+    expect(timelineKinds(walk, dana)).toContain("hugGiven");
+    expect(walk.seen.settingsTabs[dana.user]).not.toEqual(withoutHugs.seen.settingsTabs[dana.user]);
+    expect(recapsTo(dana)).toEqual([expect.stringContaining("You reacted :taco: and gave 1 hug (+1 XP).")]);
+    expect(hugExposures(walk)).toEqual([
       { member: bob.user, value: false },
       { member: carol.user, value: false },
       { member: dana.user, value: true },
@@ -173,42 +173,42 @@ describe("SR21: stars are dark where the flag is off, at the Slack and website b
     ]);
   });
 
-  test("the flag is exposed only for a reaction that passes every other part of SR1: once a member's flag turns off, a reaction on a message they starred or past their star budget exposes nothing", async () => {
-    t = await aliceBobCarolAndDanaInAnts([onForEveryone(stars)]);
-    await t.mutation(internal.workspace.settings.setStarBudget, { workspace: "T1", starBudget: 2 });
+  test("the flag is exposed only for a reaction that passes every other part of SR1: once a member's flag turns off, a reaction on a message they hugged or past their hug budget exposes nothing", async () => {
+    t = await aliceBobCarolAndDanaInAnts([onForEveryone(hugs)]);
+    await t.mutation(internal.workspace.settings.setHugBudget, { workspace: "T1", hugBudget: 2 });
     const [carolsMessage, danasMessage, alicesMessage] = [2, 3, 4].map((hours) => earlierMessage(hours * hourMs));
     await reaction({ user: bob.user, itemUser: carol.user, ts: carolsMessage });
 
-    await starsAre(offForEveryone(stars));
+    await hugsAre(offForEveryone(hugs));
     await reaction({ user: bob.user, itemUser: carol.user, ts: carolsMessage, reaction: "taco::skin-tone-2" });
-    expect(await exposuresSoFar(), "after a second reaction on the message Bob starred, within his budget").toEqual([{ member: bob.user, value: true }]);
+    expect(await exposuresSoFar(), "after a second reaction on the message Bob hugged, within his budget").toEqual([{ member: bob.user, value: true }]);
 
-    await starsAre(onForEveryone(stars));
+    await hugsAre(onForEveryone(hugs));
     await reaction({ user: bob.user, itemUser: dana.user, ts: danasMessage });
-    await starsAre(offForEveryone(stars));
+    await hugsAre(offForEveryone(hugs));
     await reaction({ user: bob.user, itemUser: alice.user, ts: alicesMessage });
     expect(await exposuresSoFar(), "after a reaction past Bob's budget of 2").toEqual([{ member: bob.user, value: true }]);
 
     await reaction({ user: carol.user, itemUser: alice.user, ts: alicesMessage });
-    expect(await exposuresSoFar(), "after Carol's reaction while stars is off").toEqual([
+    expect(await exposuresSoFar(), "after Carol's reaction while hugs is off").toEqual([
       { member: bob.user, value: true },
       { member: carol.user, value: false },
     ]);
   });
 });
 
-async function starsAre(flag: FlagDefinition) {
+async function hugsAre(flag: FlagDefinition) {
   await flagsFromPostHog(t, postHog, ...everyOtherFlag.map(onForEveryone), onForEveryone("website"), flag);
 }
 
 async function exposuresSoFar() {
   namedIds = await idsNamedByTheirMember();
-  return starExposures({ postHogEvents: postHog.events() });
+  return hugExposures({ postHogEvents: postHog.events() });
 }
 
 function asTheShipCreatesIt(): FlagDefinition {
   return {
-    key: stars,
+    key: hugs,
     filters: {
       groups: [
         { properties: [{ key: "environment", type: "person", value: ["sandbox"], operator: "exact" }], rollout_percentage: 100 },
@@ -220,7 +220,7 @@ function asTheShipCreatesIt(): FlagDefinition {
 
 type Exposure = { member: string; value: boolean };
 
-function exposuresOfTheWalksStarReactionsAt(value: boolean): Exposure[] {
+function exposuresOfTheWalksHugReactionsAt(value: boolean): Exposure[] {
   return [bob, carol, dana, erin].map(({ user }) => ({ member: user, value }));
 }
 
@@ -288,9 +288,9 @@ async function walkIn(backend: Backend) {
     slackCalls: slack.calls.map((call) => JSON.stringify(call)).sort(),
     postHogEvents: orderFree(withStableIds(postHog.events().map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsInContentOrder(),
-    jobsApartFromTheLookUpAndAnalyticsDelivery: await jobsInContentOrder({ apartFrom: [starLookUp, outboxDelivery, identifyDelivery] }),
+    jobsApartFromTheLookUpAndAnalyticsDelivery: await jobsInContentOrder({ apartFrom: [hugLookUp, outboxDelivery, identifyDelivery] }),
   };
-  return { seen, stars: await storedStars(), xp: await xpOfEveryone(), postHogEvents: postHog.events() };
+  return { seen, hugs: await storedHugs(), xp: await xpOfEveryone(), postHogEvents: postHog.events() };
 }
 
 type Walk = Awaited<ReturnType<typeof walkIn>>;
@@ -301,13 +301,13 @@ function apartFromSR21sList(seen: Seen) {
   return {
     ...seen,
     slackCalls: seen.slackCalls.filter((call) => !isLookUpOf(erin, call)),
-    postHogEvents: seen.postHogEvents.filter((event) => !isStarsExposure(event) && !isIdentifyOfTheLookedUp(event)),
+    postHogEvents: seen.postHogEvents.filter((event) => !isHugsExposure(event) && !isIdentifyOfTheLookedUp(event)),
     tables: {
       ...tables,
       slackReceipts: slackReceipts!.filter(({ eventId }) => !reactionEventIds.test(String(eventId))),
       analyticsIds: analyticsIds!.filter(({ member }) => member !== `<member ${erin.user}>`),
-      flagExposures: flagExposures!.filter(({ flag }) => flag !== stars),
-      analyticsOutbox: analyticsOutbox!.filter((row) => !isStarsExposure(row) && !isIdentifyOfTheLookedUp({ ...row, distinct_id: row.distinctId })),
+      flagExposures: flagExposures!.filter(({ flag }) => flag !== hugs),
+      analyticsOutbox: analyticsOutbox!.filter((row) => !isHugsExposure(row) && !isIdentifyOfTheLookedUp({ ...row, distinct_id: row.distinctId })),
     },
   };
 }
@@ -316,8 +316,8 @@ function isIdentifyOfTheLookedUp({ event, distinct_id }: { event?: unknown; dist
   return event === "$identify" && distinct_id === `<analytics ID of ${erin.user}>`;
 }
 
-function isStarsExposure({ event, properties }: { event?: unknown; properties?: unknown }) {
-  return event === "$feature_flag_called" && (properties as Record<string, unknown>).$feature_flag === stars;
+function isHugsExposure({ event, properties }: { event?: unknown; properties?: unknown }) {
+  return event === "$feature_flag_called" && (properties as Record<string, unknown>).$feature_flag === hugs;
 }
 
 function isLookUpOf(person: Person, call: string) {
@@ -329,10 +329,10 @@ function lookUpsOf(seen: Seen) {
   return seen.slackCalls.filter((call) => isLookUpOf(erin, call)).map(() => erin.user);
 }
 
-function starExposures({ postHogEvents }: Pick<Walk, "postHogEvents">): Exposure[] {
+function hugExposures({ postHogEvents }: Pick<Walk, "postHogEvents">): Exposure[] {
   const userOf = new Map([...namedIds].map(([id, name]) => [id, name.replace(/^<analytics ID of (\w+)>$/, "$1")]));
   return postHogEvents
-    .filter(isStarsExposure)
+    .filter(isHugsExposure)
     .map(({ distinct_id, properties }) => ({ member: userOf.get(distinct_id) ?? distinct_id, value: properties.$feature_flag_response as boolean }))
     .toSorted((a, b) => a.member.localeCompare(b.member));
 }
@@ -345,7 +345,7 @@ function messagesTo(seen: Seen, person: Person) {
 }
 
 function postHogEventsOf(seen: Seen, person: Person) {
-  return seen.postHogEvents.filter((event) => event.distinct_id === `<analytics ID of ${person.user}>` && !isStarsExposure(event));
+  return seen.postHogEvents.filter((event) => event.distinct_id === `<analytics ID of ${person.user}>` && !isHugsExposure(event));
 }
 
 function timelineKinds(walk: Walk, person: Person) {
@@ -353,7 +353,7 @@ function timelineKinds(walk: Walk, person: Person) {
 }
 
 function isRecap({ text }: { text?: unknown }) {
-  return String(text).startsWith(":taco: Your week in stars");
+  return String(text).startsWith(":taco: Your week in hugs");
 }
 
 function recapsTo(person: Person) {
@@ -420,8 +420,8 @@ async function settingsTabOf(user: string) {
 }
 
 async function theRecapSweepRuns() {
-  const job = crons.crons["schedule each member's weekly stars recap"];
-  if (job === undefined) throw new Error("no cron job schedules each member's weekly stars recap");
+  const job = crons.crons["schedule each member's weekly hugs recap"];
+  if (job === undefined) throw new Error("no cron job schedules each member's weekly hugs recap");
   nextStep();
   await t.mutation(makeFunctionReference<"mutation">(job.name), {});
   await settled();
@@ -483,10 +483,10 @@ async function jobsInContentOrder({ apartFrom }: { apartFrom: string[] }) {
   return withStableIds(jobs.toSorted((a, b) => contentOf(a).localeCompare(contentOf(b))));
 }
 
-async function storedStars() {
+async function storedHugs() {
   const rows = await t.run(async (ctx) => {
-    const stored = {} as Record<(typeof starTables)[number], Array<Record<string, unknown>>>;
-    for (const table of starTables) stored[table] = await ctx.db.query(table).collect();
+    const stored = {} as Record<(typeof hugTables)[number], Array<Record<string, unknown>>>;
+    for (const table of hugTables) stored[table] = await ctx.db.query(table).collect();
     return stored;
   });
   return withStableIds(rows);
@@ -554,12 +554,12 @@ async function thanks(giver: Person, why: string, ...recipients: Person[]) {
 async function reaction(options: ReactionOptions) {
   nextStep();
   reactions += 1;
-  await react(t, { eventId: `EvStar${reactions}`, ...options });
+  await react(t, { eventId: `EvHug${reactions}`, ...options });
   await settled();
 }
 
 async function reactionOfSomeoneTheDirectoryDoesNotKnow(options: ReactionOptions & { user: string }) {
-  if (!theStars.removed) return reaction(options);
+  if (!theHugs.removed) return reaction(options);
   nextStep();
   reactions += 1;
   await t.mutation(internal.workspace.directory.fillEntry, { workspace: "T1", user: erin.user, entry: { kind: "member", name: erin.name, email: erin.email, displayName: erin.name }, asOf: Date.now() });

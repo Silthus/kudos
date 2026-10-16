@@ -22,8 +22,8 @@ export function Entry({ entry, ...shown }: { entry: ActivityEntry } & EntryProps
       return <LevelMark entry={entry} {...shown} />;
     case "found":
       return <FoundMark entry={entry} {...shown} />;
-    case "starGiven":
-    case "starReceived":
+    case "hugGiven":
+    case "hugReceived":
       return null;
   }
 }

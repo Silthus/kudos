@@ -23,7 +23,7 @@ beforeEach(() => {
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
   slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB").withMember("U_CAROL").withMember("U_DANA").withMember("U_BOT", { is_bot: true });
-  postHog = flagsOnForEveryone(slack.fetch, "stars");
+  postHog = flagsOnForEveryone(slack.fetch, "hugs");
 });
 
 afterEach(() => {
@@ -32,11 +32,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("SR1 SR8: a kudos emoji reaction on a teammate's message is a star", () => {
+describe("SR1 SR8: a kudos emoji reaction on a teammate's message is a hug", () => {
   test("Bob's :taco: on Alice's message gives Alice 1 XP and Bob 1 XP, and sends nothing to Slack", async () => {
     const t = await workspace();
 
-    const response = await star(t, { user: "U_BOB", itemUser: "U_ALICE" });
+    const response = await hug(t, { user: "U_BOB", itemUser: "U_ALICE" });
 
     expect(response.status).toBe(200);
     expect(await xpOf(t, "U_ALICE")).toBe(1);
@@ -50,40 +50,40 @@ describe("SR1 SR8: a kudos emoji reaction on a teammate's message is a star", ()
   ])("%s still counts", async (_, options) => {
     const t = await workspace();
 
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE", ...options });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE", ...options });
 
     expect(await xpOf(t, "U_ALICE")).toBe(1);
     expect(await xpOf(t, "U_BOB")).toBe(1);
   });
 
-  test("P13: the star's XP takes Alice to level 2, and the level reached follows as for any reward", async () => {
+  test("P13: the hug's XP takes Alice to level 2, and the level reached follows as for any reward", async () => {
     const t = await workspace();
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - 2 * hourMs) });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - 2 * hourMs) });
     await givenXp(t, "U_ALICE", 18);
 
-    await star(t, { user: "U_CAROL", itemUser: "U_ALICE" });
+    await hug(t, { user: "U_CAROL", itemUser: "U_ALICE" });
 
     expect(await standing(t, "U_ALICE")).toEqual({ xp: 20, level: 2, skillPoints: 0 });
     expect(levelsReached()).toEqual([2]);
   });
 
-  test("SR3: on a Given kudos message the star is for its recipients still members, not its author", async () => {
+  test("SR3: on a Given kudos message the hug is for its recipients still members, not its author", async () => {
     const t = await workspace();
     await kudos(t, "U_ALICE", ["U_CAROL", "U_DANA"]);
     const before = await xpOfEveryone(t);
     await memberLeft(t, "U_DANA");
 
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE" });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE" });
 
     expect(await xpOfEveryone(t)).toEqual({ ...before, U_BOB: before.U_BOB + 1, U_CAROL: before.U_CAROL + 1 });
   });
 
-  test("SR8: a star pays its people whatever their own flag says, the giver's flag alone decides", async () => {
+  test("SR8: a hug pays its people whatever their own flag says, the giver's flag alone decides", async () => {
     const t = await workspace();
-    await withStarsOnOnlyFor(t, "U_BOB");
+    await withHugsOnOnlyFor(t, "U_BOB");
 
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE" });
-    await star(t, { user: "U_ALICE", itemUser: "U_BOB", ts: slackTs(now.getTime() - 2 * hourMs) });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE" });
+    await hug(t, { user: "U_ALICE", itemUser: "U_BOB", ts: slackTs(now.getTime() - 2 * hourMs) });
 
     expect(await xpOf(t, "U_ALICE")).toBe(1);
     expect(await xpOf(t, "U_BOB")).toBe(1);
@@ -108,24 +108,24 @@ describe("SR1 SR18: every other reaction does nothing", () => {
   ])("a reaction %s gives no XP and calls Slack for nothing but its people", async (_, options) => {
     const t = await workspace();
 
-    const response = await star(t, { user: "U_BOB", itemUser: "U_ALICE", ...options });
+    const response = await hug(t, { user: "U_BOB", itemUser: "U_ALICE", ...options });
 
     expect(response.status).toBe(200);
     expect(await xpOfEveryone(t)).toEqual({ U_ALICE: 0, U_BOB: 0, U_CAROL: 0, U_DANA: 0, U_BOT: 0 });
     expect(slackWrites()).toEqual([]);
-    expect(starsGiven()).toEqual([]);
+    expect(hugsGiven()).toEqual([]);
   });
 
-  test("SR4: a star on a Given kudos message whose author has left gives no XP", async () => {
+  test("SR4: a hug on a Given kudos message whose author has left gives no XP", async () => {
     const t = await workspace();
     await kudos(t, "U_ALICE", ["U_CAROL", "U_DANA"]);
     await memberChanged(t, "user_change", { id: "U_ALICE", deleted: true });
     const before = await xpOfEveryone(t);
 
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE" });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE" });
 
     expect(await xpOfEveryone(t)).toEqual(before);
-    expect(starsGiven()).toEqual([]);
+    expect(hugsGiven()).toEqual([]);
   });
 
   test.each([
@@ -136,19 +136,19 @@ describe("SR1 SR18: every other reaction does nothing", () => {
     await kudos(t, "U_ALICE", ["U_CAROL", "U_DANA"]);
     const before = await xpOfEveryone(t);
 
-    await star(t, { user, itemUser: "U_ALICE" });
+    await hug(t, { user, itemUser: "U_ALICE" });
 
     expect(await xpOfEveryone(t)).toEqual(before);
-    expect(starsGiven()).toEqual([]);
+    expect(hugsGiven()).toEqual([]);
   });
 });
 
 describe("SR4: people the directory doesn't know are looked up first", () => {
-  test("an unknown giver's first star counts once users.info answers, after a failed try", async () => {
+  test("an unknown giver's first hug counts once users.info answers, after a failed try", async () => {
     const t = await workspace();
     slack.answering("users.info", httpStatus(500));
 
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE" });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE" });
 
     expect(await xpOf(t, "U_BOB")).toBe(1);
     expect(await xpOf(t, "U_ALICE")).toBe(1);
@@ -158,24 +158,24 @@ describe("SR4: people the directory doesn't know are looked up first", () => {
     const t = await workspace();
     slack.withMember("U_GONE", { deleted: true });
 
-    await star(t, { user: "U_GONE", itemUser: "U_ALICE" });
+    await hug(t, { user: "U_GONE", itemUser: "U_ALICE" });
 
     expect(await xpOf(t, "U_ALICE")).toBe(0);
-    expect(starsGiven()).toEqual([]);
+    expect(hugsGiven()).toEqual([]);
   });
 
-  test("an author whose lookup fails 3 times makes the star do nothing, and Slack is asked no more", async () => {
+  test("an author whose lookup fails 3 times makes the hug do nothing, and Slack is asked no more", async () => {
     const t = await workspace();
     slack.answering("users.info", ...Array.from({ length: 3 }, () => httpStatus(500)));
-    await star(t, { user: "U_BOB", itemUser: "U_EVE" });
+    await hug(t, { user: "U_BOB", itemUser: "U_EVE" });
 
     expect(slack.callsTo("users.info").filter(({ user }) => user === "U_EVE")).toHaveLength(3);
     expect(await xpOf(t, "U_BOB")).toBe(0);
-    expect(starsGiven()).toEqual([]);
+    expect(hugsGiven()).toEqual([]);
   });
 });
 
-describe("SR16: a star reaches PostHog as star given, with only whether it was on a kudos message", () => {
+describe("SR16: a hug reaches PostHog as hug given, with only whether it was on a kudos message", () => {
   test.each([
     ["an ordinary message", false],
     ["a Given kudos message", true],
@@ -183,19 +183,19 @@ describe("SR16: a star reaches PostHog as star given, with only whether it was o
     const t = await workspace();
     if (onKudos) await kudos(t, "U_ALICE", ["U_CAROL"]);
 
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE" });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE" });
 
-    const given = starsGiven();
+    const given = hugsGiven();
     const shared = { environment: "sandbox", workspace_key: expect.any(String), taxonomy_version: expect.any(Number) };
     expect(given.map(({ properties }) => properties)).toEqual([{ ...shared, on_kudos: onKudos }]);
     expect(JSON.stringify(given)).not.toMatch(new RegExp(`U_ALICE|U_BOB|C1|${secondsOf(messageTs)}`));
   });
 });
 
-describe("SR6 SR23: a star never passes the star budget", { timeout: 60_000 }, () => {
-  test("two reactions at once can't both be the 10th star", async () => {
+describe("SR6 SR23: a hug never passes the hug budget", { timeout: 60_000 }, () => {
+  test("two reactions at once can't both be the 10th hug", async () => {
     const t = await workspace();
-    for (let index = 0; index < 9; index += 1) await star(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - (index + 1) * 60_000) });
+    for (let index = 0; index < 9; index += 1) await hug(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - (index + 1) * 60_000) });
 
     for (const user of ["U_CAROL", "U_DANA"]) await memberChanged(t, "team_join", { id: user });
     await settle(t);
@@ -210,41 +210,41 @@ describe("SR6 SR23: a star never passes the star budget", { timeout: 60_000 }, (
     expect((await xpOf(t, "U_CAROL")) + (await xpOf(t, "U_DANA"))).toBe(1);
   });
 
-  test("the 11th star on the giver's day writes and says nothing, and the next day it counts", async () => {
+  test("the 11th hug on the giver's day writes and says nothing, and the next day it counts", async () => {
     const t = await workspace();
 
-    for (let index = 0; index < 11; index += 1) await star(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - (index + 1) * 60_000) });
+    for (let index = 0; index < 11; index += 1) await hug(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - (index + 1) * 60_000) });
 
     expect(await xpOf(t, "U_BOB")).toBe(10);
     expect(await xpOf(t, "U_ALICE")).toBe(10);
     expect(slackWrites()).toEqual([]);
 
     vi.setSystemTime(now.getTime() + 15 * hourMs);
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - 11 * 60_000) });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - 11 * 60_000) });
 
     expect(await xpOf(t, "U_BOB")).toBe(11);
   });
 
-  test("a workspace's starBudget changes the number", async () => {
+  test("a workspace's hugBudget changes the number", async () => {
     const t = await workspace();
-    await t.mutation(internal.workspace.settings.setStarBudget, { workspace: "T1", starBudget: 2 });
+    await t.mutation(internal.workspace.settings.setHugBudget, { workspace: "T1", hugBudget: 2 });
 
-    for (let index = 0; index < 3; index += 1) await star(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - (index + 1) * 60_000) });
+    for (let index = 0; index < 3; index += 1) await hug(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - (index + 1) * 60_000) });
 
     expect(await xpOf(t, "U_BOB")).toBe(2);
   });
 
-  test("a star budget for a workspace Kudos doesn't know is refused, and the known workspace keeps 10", async () => {
+  test("a hug budget for a workspace Kudos doesn't know is refused, and the known workspace keeps 10", async () => {
     const t = await workspace();
 
-    await expect(t.mutation(internal.workspace.settings.setStarBudget, { workspace: "T_TYPO", starBudget: 2 })).rejects.toThrow("Kudos knows no workspace T_TYPO");
+    await expect(t.mutation(internal.workspace.settings.setHugBudget, { workspace: "T_TYPO", hugBudget: 2 })).rejects.toThrow("Kudos knows no workspace T_TYPO");
 
-    for (let index = 0; index < 3; index += 1) await star(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - (index + 1) * 60_000) });
+    for (let index = 0; index < 3; index += 1) await hug(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - (index + 1) * 60_000) });
     expect(await xpOf(t, "U_BOB")).toBe(3);
   });
 });
 
-describe("SR5 SR23: a member stars a message at most once", { timeout: 60_000 }, () => {
+describe("SR5 SR23: a member hugs a message at most once", { timeout: 60_000 }, () => {
   test.each<[string, (eventId: string) => ReactionOptions[]]>([
     ["a redelivered event", (eventId) => [{ eventId }, { eventId }]],
     ["a removed and re-added reaction", () => [{}, { type: "reaction_removed" }, {}]],
@@ -252,50 +252,50 @@ describe("SR5 SR23: a member stars a message at most once", { timeout: 60_000 },
   ])("%s pays the author and the giver once", async (_, reactions) => {
     const t = await workspace();
 
-    for (const options of reactions("Ev-once")) await star(t, { user: "U_BOB", itemUser: "U_ALICE", ...options });
+    for (const options of reactions("Ev-once")) await hug(t, { user: "U_BOB", itemUser: "U_ALICE", ...options });
 
     expect(await xpOf(t, "U_ALICE")).toBe(1);
     expect(await xpOf(t, "U_BOB")).toBe(1);
-    expect(starsGiven()).toHaveLength(1);
+    expect(hugsGiven()).toHaveLength(1);
   });
 
-  test("a redelivered star on a Given kudos message pays each recipient once", async () => {
+  test("a redelivered hug on a Given kudos message pays each recipient once", async () => {
     const t = await workspace();
     await kudos(t, "U_ALICE", ["U_CAROL", "U_DANA"]);
     const before = await xpOfEveryone(t);
 
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE", eventId: "Ev-once" });
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE", eventId: "Ev-again" });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE", eventId: "Ev-once" });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE", eventId: "Ev-again" });
 
     expect(await xpOfEveryone(t)).toEqual({ ...before, U_BOB: before.U_BOB + 1, U_CAROL: before.U_CAROL + 1, U_DANA: before.U_DANA + 1 });
   });
 });
 
-describe("SR2 SR23: a star is never an award", { timeout: 120_000 }, () => {
-  test("with every feature on, stars change nothing but their own records, XP and the flag's exposure: boards, kudos totals, coins, quests, the Journey and the allowance stay as they were", async () => {
+describe("SR2 SR23: a hug is never an award", { timeout: 120_000 }, () => {
+  test("with every feature on, hugs change nothing but their own records, XP and the flag's exposure: boards, kudos totals, coins, quests, the Journey and the allowance stay as they were", async () => {
     const t = await everyFeatureOn();
     await kudos(t, "U_ALICE", ["U_CAROL"]);
     await kudos(t, "U_BOB", ["U_ALICE"], slackTs(now.getTime() - hourMs + 1_000));
     await kudos(t, "U_CAROL", ["U_DANA"], slackTs(now.getTime() - hourMs + 2_000));
     await kudos(t, "U_DANA", ["U_BOB"], slackTs(now.getTime() - hourMs + 3_000));
     vi.setSystemTime(now);
-    const withoutStars = await everythingStored(t, { except: writtenByAStar });
+    const withoutHugs = await everythingStored(t, { except: writtenByAHug });
 
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE" });
-    await star(t, { user: "U_DANA", itemUser: "U_BOB", ts: slackTs(now.getTime() - hourMs + 1_000) });
-    await star(t, { user: "U_ALICE", itemUser: "U_DANA", ts: slackTs(now.getTime() - 2 * hourMs) });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE" });
+    await hug(t, { user: "U_DANA", itemUser: "U_BOB", ts: slackTs(now.getTime() - hourMs + 1_000) });
+    await hug(t, { user: "U_ALICE", itemUser: "U_DANA", ts: slackTs(now.getTime() - 2 * hourMs) });
 
-    expect(starsGiven()).toHaveLength(3);
-    expect(await everythingStored(t, { except: writtenByAStar })).toEqual(withoutStars);
+    expect(hugsGiven()).toHaveLength(3);
+    expect(await everythingStored(t, { except: writtenByAHug })).toEqual(withoutHugs);
   });
 });
 
-describe("SR9: a star's people are paid in pages", () => {
-  test("a star on a kudos message with 250 recipients pays every recipient once and the giver once, within Convex's limits", { timeout: 120_000 }, async () => {
+describe("SR9: a hug's people are paid in pages", () => {
+  test("a hug on a kudos message with 250 recipients pays every recipient once and the giver once, within Convex's limits", { timeout: 120_000 }, async () => {
     const t = await workspace({ transactionLimits: true });
     const recipients = await kudosSeededFor(t, "U_ALICE", 250);
 
-    await star(t, { user: "U_BOB", itemUser: "U_ALICE" });
+    await hug(t, { user: "U_BOB", itemUser: "U_ALICE" });
 
     expect(await xpOf(t, "U_BOB")).toBe(1);
     expect(await xpOf(t, "U_ALICE")).toBe(0);
@@ -309,9 +309,9 @@ async function workspace({ transactionLimits = false } = {}) {
   return flagsLoaded(t);
 }
 
-const everyFeature = ["stars", "xp-levels", "unlocks", "quests", "skill-tree", "achievements", "coins", "crate-rewards", "website", "groups", "everyone-board", "activity"];
+const everyFeature = ["hugs", "xp-levels", "unlocks", "quests", "skill-tree", "achievements", "coins", "crate-rewards", "website", "groups", "everyone-board", "activity"];
 
-const writtenByAStar: Array<keyof typeof schema.tables> = ["stars", "starPeople", "starWeeks", "starWeekMessages", "starCounts", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
+const writtenByAHug: Array<keyof typeof schema.tables> = ["hugs", "hugPeople", "hugsReceived", "hugWeeks", "hugWeekMessages", "hugCounts", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
 
 async function everyFeatureOn() {
   const t = await workspace();
@@ -320,7 +320,7 @@ async function everyFeatureOn() {
   return bookShippedBeforeAnyoneJoined(t);
 }
 
-async function star(t: Backend, options: ReactionOptions) {
+async function hug(t: Backend, options: ReactionOptions) {
   const response = await react(t, { ts: messageTs, ...options });
   await settle(t);
   return response;
@@ -349,9 +349,9 @@ async function memberLeft(t: Backend, user: string) {
   await t.run((ctx) => ctx.db.patch(member!, { kind: "not-a-member" }));
 }
 
-async function withStarsOnOnlyFor(t: Backend, user: string) {
+async function withHugsOnOnlyFor(t: Backend, user: string) {
   slack.withMember(user, { profile: { email: emailOf(user) } });
-  await flagsFromPostHog(t, postHog, onForEmails("stars", emailOf(user)));
+  await flagsFromPostHog(t, postHog, onForEmails("hugs", emailOf(user)));
 }
 
 function emailOf(user: string) {
@@ -395,8 +395,8 @@ function slackWrites() {
   return slack.calls.filter(({ method }) => !["users.info", "views.publish", "auth.test"].includes(method)).map(({ method }) => method);
 }
 
-function starsGiven() {
-  return postHog.events().filter(({ event }) => event === "star given");
+function hugsGiven() {
+  return postHog.events().filter(({ event }) => event === "hug given");
 }
 
 function levelsReached() {

@@ -13,7 +13,7 @@ import {
   questsDrawnEventValidator,
   groupQuestDrawnEventValidator,
   questSwappedEventValidator,
-  starGivenEventValidator,
+  hugGivenEventValidator,
   unlockOpenedEventValidator,
   unlockReadyEventValidator,
   unlocksLaunchedEventValidator,
@@ -34,7 +34,7 @@ import {
   projectQuestsDrawn,
   projectGroupQuestDrawn,
   projectQuestSwapped,
-  projectStarGiven,
+  projectHugGiven,
   projectUnlockOpened,
   projectUnlockReady,
   projectUnlocksLaunched,
@@ -138,10 +138,10 @@ export const recordHoggieDropped = internalMutation({
   },
 });
 
-export const recordStarGiven = internalMutation({
-  args: { event: starGivenEventValidator },
+export const recordHugGiven = internalMutation({
+  args: { event: hugGivenEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectStarGiven(event)]));
+    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, [projectHugGiven(event)]));
   },
 });
 

@@ -227,8 +227,8 @@ export const crateBoughtEventValidator = v.object({ type: v.literal("crateBought
 
 export type CrateBoughtEvent = Infer<typeof crateBoughtEventValidator>;
 
-export const starGivenEventValidator = v.object({
-  type: v.literal("starGiven"),
+export const hugGivenEventValidator = v.object({
+  type: v.literal("hugGiven"),
   workspace: v.string(),
   giver: v.id("members"),
   message: messageRefValidator,
@@ -237,7 +237,7 @@ export const starGivenEventValidator = v.object({
   day: v.string(),
 });
 
-export type StarGivenEvent = Infer<typeof starGivenEventValidator>;
+export type HugGivenEvent = Infer<typeof hugGivenEventValidator>;
 
 export type DomainEvent =
   | KudosGivenEvent
@@ -263,7 +263,7 @@ export type DomainEvent =
   | AwardsAttributedEvent
   | HoggieDroppedEvent
   | CrateBoughtEvent
-  | StarGivenEvent;
+  | HugGivenEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];

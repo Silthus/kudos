@@ -6,7 +6,7 @@ import { emojiChangeOf, isEmojiChanged } from "./customEmoji";
 import { directoryRecordOfEvent, isMemberChanged } from "./directory";
 import { isUserGroupChanged, userGroupChangeOf } from "./userGroups";
 import { isMessage, mayAffectKudos, messageEventOf, type EventCallback } from "./normalize";
-import { isReactionAdded, starReactionOf } from "./reactions";
+import { isReactionAdded, hugReactionOf } from "./reactions";
 import { readSignedBody } from "./signature";
 
 type Envelope = { type: "url_verification"; challenge: string } | EventCallback | { type: "app_rate_limited" };
@@ -37,7 +37,7 @@ async function receiveSlackEvent(ctx: ActionCtx, request: Request) {
     if (emojiChanged !== null) await ctx.runMutation(internal.slack.receipts.receiveEmojiChanged, emojiChanged);
   } else if (envelope.type === "event_callback" && isReactionAdded(envelope)) {
     const kudosEmoji = await ctx.runQuery(internal.slack.reactions.kudosEmojiOf, { workspace: envelope.team_id });
-    const reaction = starReactionOf(envelope, kudosEmoji);
+    const reaction = hugReactionOf(envelope, kudosEmoji);
     if (reaction !== null) await ctx.runMutation(internal.slack.receipts.receiveReaction, { eventId: envelope.event_id, reaction });
   } else if (envelope.type === "event_callback") {
     const event = messageEventOf(envelope);

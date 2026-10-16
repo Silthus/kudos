@@ -7,7 +7,7 @@ export type WorkspaceSettings = { baseAllowance: number; kudosEmoji: string; ann
 
 const defaultBaseAllowance = 3;
 const fallbackKudosEmoji = "taco";
-const defaultStarBudget = 10;
+const defaultHugBudget = 10;
 
 export async function settingsOf(ctx: QueryCtx, workspace: string): Promise<WorkspaceSettings> {
   const row = await workspaceRow(ctx, workspace);
@@ -18,17 +18,17 @@ export async function settingsOf(ctx: QueryCtx, workspace: string): Promise<Work
   };
 }
 
-export async function starBudgetOf(ctx: QueryCtx, workspace: string): Promise<number> {
-  return (await workspaceRow(ctx, workspace))?.starBudget ?? defaultStarBudget;
+export async function hugBudgetOf(ctx: QueryCtx, workspace: string): Promise<number> {
+  return (await workspaceRow(ctx, workspace))?.hugBudget ?? defaultHugBudget;
 }
 
-export const setStarBudget = internalMutation({
-  args: { workspace: v.string(), starBudget: v.number() },
-  handler: async (ctx, { workspace, starBudget }) => {
-    if (!Number.isInteger(starBudget) || starBudget < 0) throw new Error("A star budget is a whole number of stars, 0 or more");
+export const setHugBudget = internalMutation({
+  args: { workspace: v.string(), hugBudget: v.number() },
+  handler: async (ctx, { workspace, hugBudget }) => {
+    if (!Number.isInteger(hugBudget) || hugBudget < 0) throw new Error("A hug budget is a whole number of hugs, 0 or more");
     const row = await workspaceRow(ctx, workspace);
     if (row === null) throw new Error(`Kudos knows no workspace ${workspace}`);
-    await ctx.db.patch(row._id, { starBudget });
+    await ctx.db.patch(row._id, { hugBudget });
   },
 });
 
