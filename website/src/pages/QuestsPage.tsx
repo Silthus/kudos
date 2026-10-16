@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { HedgehogExplorer, HedgehogMegaphone, HedgehogReading, HedgehogTownCrier } from "@posthog/brand/hoggies";
+import { HedgehogExplorer, HedgehogMegaphone, HedgehogPuzzle, HedgehogReading, HedgehogTownCrier } from "@posthog/brand/hoggies";
 import { IconCheck, IconClock, IconRefresh } from "@posthog/icons";
 import { Arrow } from "../Arrow";
 import { Button, Card, CardContent } from "@posthog/quill";
@@ -11,9 +11,10 @@ import { hogOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "..
 import { PageTitle } from "../PageTitle";
 import { crateTargetAttributes, questTargetAttributes } from "../linkTarget";
 import { Coins, xpLineOf } from "../quests/QuestReward";
+import { missedTheReward, sharedRewardSentenceOf } from "../quests/groupQuestCopy";
 import { QuestTag } from "../quests/QuestTag";
 import { sameQuest, useQuestSwap, type QuestSwap } from "../quests/questSwap";
-import type { JourneyStep, MemberProfile, QuestReward, QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
+import type { GroupQuestCard, JourneyStep, MemberProfile, QuestReward, QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
 import { SlackLink } from "../SlackLink";
 
 type ThisWeek = Extract<QuestsAnswer, { kind: "quests" }>;
@@ -21,7 +22,7 @@ type ThisWeek = Extract<QuestsAnswer, { kind: "quests" }>;
 type QuestsPageProps = { quests: ThisWeek; member: MemberProfile; swapQuest: ShellActions["swapQuest"] };
 
 export function QuestsPage({ quests, member, swapQuest }: QuestsPageProps) {
-  const firstCrate = [...quests.slots, ...(quests.bonus === null ? [] : [quests.bonus]), ...quests.waiting].find(({ crate }) => crate !== null)?.seen;
+  const firstCrate = [...quests.slots, ...(quests.bonus === null ? [] : [quests.bonus]), ...quests.waiting, ...(quests.group === null ? [] : [quests.group])].find(({ crate }) => crate !== null)?.seen;
   const swap = useQuestSwap(swapQuest, quests.slots);
   return (
     <div className="flex flex-col gap-6">
@@ -44,7 +45,10 @@ export function QuestsPage({ quests, member, swapQuest }: QuestsPageProps) {
           {quests.bonus !== null && <BonusQuest step={quests.bonus} page={pageElsewhereOf(member, quests.bonus)} firstCrate={firstCrate} />}
           <WaitingToOpen waiting={quests.waiting} firstCrate={firstCrate} />
         </div>
-        <HowQuestsWork />
+        <div className="flex min-w-0 flex-col gap-6">
+          {quests.group !== null && <GroupQuest quest={quests.group} firstCrate={firstCrate} />}
+          <HowQuestsWork />
+        </div>
       </div>
       <p role="status" className="sr-only">
         {swap.announcement}
@@ -129,8 +133,8 @@ function QuestArt({ Hog, claimed }: { Hog: Hoggie; claimed: boolean }) {
   );
 }
 
-function QuestProgress({ done, target }: QuestSlot["progress"]) {
-  const label = `${done} of ${target}`;
+function QuestProgress({ done, target, tookPart = false }: QuestSlot["progress"] & { tookPart?: boolean }) {
+  const label = tookPart ? `${done} of ${target} took part` : `${done} of ${target}`;
   return (
     <div className="flex items-center gap-2.5">
       <div role="progressbar" aria-label={label} aria-valuenow={done} aria-valuemin={0} aria-valuemax={target} className="h-2 flex-1 overflow-hidden rounded-full border border-muted-foreground p-px">
@@ -147,11 +151,27 @@ function RewardRow({ reward, waiting, children }: { reward: QuestReward; waiting
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
       <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium tabular-nums text-muted-foreground">
-        <span>{xpLineOf(reward, waiting)}</span>
-        {reward.coins !== undefined && <Coins coins={reward.coins} />}
+        <RewardLine reward={reward} waiting={waiting} />
       </span>
       {children}
     </div>
+  );
+}
+
+function RewardLine({ reward, waiting }: { reward: QuestReward; waiting: boolean }) {
+  if (reward.xp > 0)
+    return (
+      <>
+        <span>{xpLineOf(reward, waiting)}</span>
+        {reward.coins !== undefined && <Coins coins={reward.coins} />}
+      </>
+    );
+  if (reward.coins === undefined) return null;
+  return (
+    <span>
+      <Coins coins={reward.coins} />
+      {waiting && " waiting"}
+    </span>
   );
 }
 
@@ -276,14 +296,70 @@ function WaitingToOpen({ waiting, firstCrate }: { waiting: WaitingCrate[] } & Fi
 
 function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate) {
   return (
-    <article className="hud-panel relative flex scroll-mt-28 flex-col gap-2 rounded-lg border bg-card p-4" {...crateTargetAttributes(entry.crate)} {...questCrateHomeAttributes(entry.seen)}>
-      <WeekOf week={entry.week} />
+    <article className="hud-panel relative flex scroll-mt-28 flex-col gap-2 rounded-lg border bg-card p-4" {...(entry.crate.kind === "weekly" && crateTargetAttributes(entry.crate))} {...questCrateHomeAttributes(entry.seen)}>
+      <div className="flex flex-wrap items-center gap-x-2">
+        <WeekOf week={entry.week} />
+        {entry.group !== null && (
+          <>
+            <span aria-hidden="true" className="hud-label">
+              ·
+            </span>
+            <span className="hud-label">{entry.group} quest</span>
+          </>
+        )}
+      </div>
       <h3 className="text-sm font-medium">{entry.goal}</h3>
       <RewardRow reward={entry.reward} waiting={entry.waiting}>
         <ClaimOf facts={entry} firstCrate={firstCrate} />
       </RewardRow>
     </article>
   );
+}
+
+function GroupQuest({ quest, firstCrate }: { quest: GroupQuestCard } & FirstCrate) {
+  const { group, goal, progress, you, state, seen } = quest;
+  const claimed = state === "opened";
+  return (
+    <section aria-labelledby="group-quest-title" className="flex flex-col gap-3">
+      <h2 id="group-quest-title" className="hud-label">
+        Group quest · {group}
+      </h2>
+      <article
+        className={`hud-panel relative scroll-mt-28 rounded-lg border bg-card p-4 text-card-foreground ${claimed ? "opacity-90" : ""}`}
+        data-claimed={claimed || undefined}
+        {...questTargetAttributes("group")}
+        {...(quest.crate !== null && crateTargetAttributes("group"))}
+        {...questCrateHomeAttributes(seen)}
+      >
+        <div className="flex items-start gap-3 sm:gap-4">
+          <QuestArt Hog={HedgehogPuzzle} claimed={claimed} />
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            {you && (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <QuestTag>You took part</QuestTag>
+              </div>
+            )}
+            <h3 tabIndex={-1} className={questHeading}>
+              {goal}
+            </h3>
+            <QuestProgress {...progress} tookPart />
+            {!missedTheReward(quest) && (
+              <RewardRow reward={quest.reward} waiting={quest.waiting}>
+                {claimed ? <Claimed /> : <ClaimOf facts={quest} firstCrate={firstCrate} />}
+              </RewardRow>
+            )}
+            <SharedReward quest={quest} />
+          </div>
+        </div>
+      </article>
+    </section>
+  );
+}
+
+function SharedReward({ quest }: { quest: GroupQuestCard }) {
+  const sentence = sharedRewardSentenceOf(quest);
+  if (sentence === undefined) return null;
+  return <p className="text-sm text-muted-foreground">{sentence}</p>;
 }
 
 function WeekOf({ week }: Pick<WaitingCrate, "week">) {

@@ -5,7 +5,7 @@ import { bookHref, categoryAsked, type CategoryId } from "./book/categories";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
 
-export type QuestTarget = number | "journey";
+export type QuestTarget = number | "journey" | "group";
 
 export type ActivityFilter = "all" | "received" | "given";
 
@@ -99,7 +99,7 @@ function periodIn(search: string): Period {
 
 function questIn(search: string): QuestTarget | undefined {
   const asked = new URLSearchParams(search).get("quest");
-  if (asked === "journey") return asked;
+  if (asked === "journey" || asked === "group") return asked;
   return asked !== null && /^\d+$/.test(asked) ? Number(asked) : undefined;
 }
 
