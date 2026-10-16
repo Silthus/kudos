@@ -71,6 +71,7 @@ let slack: FakeSlack;
 let postHog: FakePostHog;
 let t: Backend;
 let namedIds = new Map<string, string>();
+let rowLabels = new Map<string, string>();
 let phase = tuesday;
 let steps = 0;
 let reactions = 0;
@@ -148,7 +149,9 @@ describe("SR21: stars are dark where the flag is off, at the Slack and website b
     expect(walk.stars.starPeople.map(({ member }) => member).sort()).toEqual(["<member U_BOB>", "<member U_CAROL>"]);
     expect(walk.xp).toEqual({ ...withoutStars.xp, U_BOB: withoutStars.xp.U_BOB! + 1, U_CAROL: withoutStars.xp.U_CAROL! + 1, U_DANA: withoutStars.xp.U_DANA! + 1 });
     for (const person of [alice, bob, carol]) {
-      expect(walk.seen.answers[person.user]!.activity).toEqual(withoutStars.seen.answers[person.user]!.activity);
+      for (const read of ["activity", "activityPageByPage", "recentKudosReceived", "recentKudosGiven"] as const) {
+        expect(walk.seen.answers[person.user]![read], `${person.user}'s ${read}`).toEqual(withoutStars.seen.answers[person.user]![read]);
+      }
       expect(walk.seen.answers[person.user]!.settings).toEqual(withoutStars.seen.answers[person.user]!.settings);
       expect(walk.seen.settingsTabs[person.user]).toEqual(withoutStars.seen.settingsTabs[person.user]);
       expect(slack.messagesIn(person.user).filter(isRecap)).toEqual([]);
@@ -172,23 +175,36 @@ describe("SR21: stars are dark where the flag is off, at the Slack and website b
 
   test("the flag is exposed only for a reaction that passes every other part of SR1: once a member's flag turns off, a reaction on a message they starred or past their star budget exposes nothing", async () => {
     t = await aliceBobCarolAndDanaInAnts([onForEveryone(stars)]);
-    await t.mutation(internal.workspace.settings.setStarBudget, { workspace: "T1", starBudget: 1 });
-    const carolsMessage = earlierMessage(2 * hourMs);
-    const danasMessage = earlierMessage(3 * hourMs);
+    await t.mutation(internal.workspace.settings.setStarBudget, { workspace: "T1", starBudget: 2 });
+    const [carolsMessage, danasMessage, alicesMessage] = [2, 3, 4].map((hours) => earlierMessage(hours * hourMs));
     await reaction({ user: bob.user, itemUser: carol.user, ts: carolsMessage });
 
-    await flagsFromPostHog(t, postHog, ...everyOtherFlag.map(onForEveryone), onForEveryone("website"), offForEveryone(stars));
+    await starsAre(offForEveryone(stars));
     await reaction({ user: bob.user, itemUser: carol.user, ts: carolsMessage, reaction: "taco::skin-tone-2" });
-    await reaction({ user: bob.user, itemUser: dana.user, ts: danasMessage });
-    await reaction({ user: carol.user, itemUser: dana.user, ts: danasMessage });
+    expect(await exposuresSoFar(), "after a second reaction on the message Bob starred, within his budget").toEqual([{ member: bob.user, value: true }]);
 
-    namedIds = await idsNamedByTheirMember();
-    expect(starExposures({ postHogEvents: postHog.events() })).toEqual([
+    await starsAre(onForEveryone(stars));
+    await reaction({ user: bob.user, itemUser: dana.user, ts: danasMessage });
+    await starsAre(offForEveryone(stars));
+    await reaction({ user: bob.user, itemUser: alice.user, ts: alicesMessage });
+    expect(await exposuresSoFar(), "after a reaction past Bob's budget of 2").toEqual([{ member: bob.user, value: true }]);
+
+    await reaction({ user: carol.user, itemUser: alice.user, ts: alicesMessage });
+    expect(await exposuresSoFar(), "after Carol's reaction while stars is off").toEqual([
       { member: bob.user, value: true },
       { member: carol.user, value: false },
     ]);
   });
 });
+
+async function starsAre(flag: FlagDefinition) {
+  await flagsFromPostHog(t, postHog, ...everyOtherFlag.map(onForEveryone), onForEveryone("website"), flag);
+}
+
+async function exposuresSoFar() {
+  namedIds = await idsNamedByTheirMember();
+  return starExposures({ postHogEvents: postHog.events() });
+}
 
 function asTheShipCreatesIt(): FlagDefinition {
   return {
@@ -215,6 +231,7 @@ async function aliceBobCarolAndDanaInAnts(flag: FlagDefinition[], turnOff?: () =
   steps = 0;
   reactions = 0;
   namedIds = new Map();
+  rowLabels = new Map();
   t = await flagsFromPostHog(testBackend(), postHog, ...everyOtherFlag.map(onForEveryone), onForEveryone("website"), ...flag);
   turnOff?.();
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
@@ -427,6 +444,7 @@ function withStableIds<T>(value: T): T {
     if (opaque.has(key) && typeof field === "string") return stable(key, field);
     if (typeof field !== "string") return field;
     if (namedIds.has(field)) return namedIds.get(field);
+    if (rowLabels.has(field)) return rowLabels.get(field);
     if (containsANamedId(field)) return withNamedIds(field);
     if (createdInTheSameMillisecond.test(field)) return field.replace(createdInTheSameMillisecond, "$1.<tie>");
     if (convexTestId.test(field)) return stable("document", field);
@@ -443,12 +461,14 @@ function withNamedIds(field: string) {
 }
 
 async function rowsInContentOrder() {
+  rowLabels = new Map();
   const tables = await t.run(async (ctx) => {
     const rows = {} as Record<TableName, Record<string, unknown>[]>;
     for (const table of Object.keys(schema.tables) as TableName[]) rows[table] = await ctx.db.query(table).collect();
     return rows;
   });
   const inContentOrder = Object.fromEntries(Object.entries(tables).map(([table, rows]) => [table, rows.toSorted((a, b) => contentOf(a).localeCompare(contentOf(b)))]));
+  rowLabels = new Map(Object.entries(inContentOrder).flatMap(([table, rows]) => rows.map((row, index) => [String(row._id), `<${table} ${index + 1}>`] as const)));
   return withStableIds(inContentOrder);
 }
 
