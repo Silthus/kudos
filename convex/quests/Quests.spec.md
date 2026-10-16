@@ -332,6 +332,7 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   over: getQuests and rerollQuest, run with Convex's transaction limits, for a member who gave 33,000 kudos to their one teammate, with a quest anyone can finish left outside the draw, and on a Sunday with only the quest for someone not thanked in 30 days left
   via: P81: the week's swap reads within Convex's limits, however many kudos the member gave
   because: App Home and the website read the swap on every render, and a read of every kudos a member gave fails past Convex's 32,000 scanned documents (#416), so the read is bounded by the people a member thanked and the kudos of the 30 days the quest pool looks back, and the draw facts it shares stay those of the whole history (P80, P81)
+  refuted: the 30-day window of lastThankedSince read every award the member gave up to the facts' time -> the Sunday case failed on Convex's 32,000 scanned documents in lastThankedSince (2026-10-16)
   kinds: budget
   checklist: bounded-admission dismissed: nothing admits concurrent work; each read and each swap is one Convex function
   checklist: fair-admission dismissed: no contenders wait for capacity
