@@ -12,9 +12,9 @@ import { lookup, type MemberId } from "../workspace/directory";
 import { grantItem } from "./inventory";
 
 const openedAt = Date.parse("2026-10-14T10:00:00Z");
-const rocket = "kudos-emoji-rocket";
-const gem = "kudos-emoji-gem";
-const storeOn = ["xp-levels", "unlocks", "coins", "store"].map(onForEveryone);
+const shipit = "custom:shipit";
+const partyparrot = "custom:partyparrot";
+const storeOn = ["xp-levels", "unlocks", "coins", "store", "custom-kudos-emoji"].map(onForEveryone);
 
 let postHog: FakePostHog;
 let rewards = 0;
@@ -32,23 +32,22 @@ afterEach(() => {
 });
 
 describe("ST13 ST27: buyItem through D17, as the website calls it", () => {
-  test("with 100 🪙, it spends them, adds the item to the collection with source store, and puts it in no slot", async () => {
+  test("with 100 🪙, it spends them, adds the item to the collection with source store", async () => {
     const { t, member } = await memberWhoOpenedCoins(storeOn, { coins: 100 });
 
-    expect(await buyItem(t, member, rocket, "website:juno:1")).toEqual({ kind: "bought", item: rocket });
+    expect(await buyItem(t, member, shipit, "website:juno:1")).toEqual({ kind: "bought", item: shipit });
 
     const inventory = await t.query(internal.store.inventory.inventoryOf, { member });
-    expect(inventory?.owned.at(-1)).toEqual({ item: rocket, arrivedAt: openedAt });
-    expect(inventory?.slots.map(({ item }) => item)).toEqual(["kudos-emoji-hedgehog", null, null]);
-    expect(inventory?.catalogue.find(({ item }) => item === rocket)?.onSale).toBe(false);
-    expect(await collectionOf(t, member)).toEqual([{ item: rocket, source: "store" }]);
+    expect(inventory?.owned.at(-1)).toEqual({ item: shipit, arrivedAt: openedAt });
+    expect(inventory?.catalogue.find(({ item }) => item === shipit)?.onSale).toBe(false);
+    expect(await collectionOf(t, member)).toEqual([{ item: shipit, source: "store" }]);
     expect(await coinsOf(t, member)).toBe(0);
   });
 
   test("with 60 🪙, it is refused no-coins and changes nothing", async () => {
     const { t, member } = await memberWhoOpenedCoins(storeOn, { coins: 60 });
 
-    expect(await buyItem(t, member, rocket, "website:juno:1")).toEqual({ kind: "refused", item: rocket, reason: "no-coins" });
+    expect(await buyItem(t, member, shipit, "website:juno:1")).toEqual({ kind: "refused", item: shipit, reason: "no-coins" });
 
     expect(await collectionOf(t, member)).toEqual([]);
     expect(await coinsOf(t, member)).toBe(60);
@@ -56,14 +55,15 @@ describe("ST13 ST27: buyItem through D17, as the website calls it", () => {
 
   test("an owned item is refused owned, before the coins are counted", async () => {
     const { t, member } = await memberWhoOpenedCoins(storeOn, { coins: 100 });
-    await buyItem(t, member, rocket, "website:juno:1");
+    await buyItem(t, member, shipit, "website:juno:1");
 
-    expect(await buyItem(t, member, rocket, "website:juno:2")).toEqual({ kind: "refused", item: rocket, reason: "owned" });
+    expect(await buyItem(t, member, shipit, "website:juno:2")).toEqual({ kind: "refused", item: shipit, reason: "owned" });
     expect(await coinsOf(t, member)).toBe(0);
   });
 
   test.each([
-    ["the workspace's own emoji", rocket, "rocket"],
+    ["the workspace's own emoji", shipit, "shipit"],
+    ["a standard emoji", "kudos-emoji-rocket", "taco"],
     ["an unknown ID", "kudos-emoji-unicorn", "taco"],
     ["the starter", "kudos-emoji-hedgehog", "taco"],
     ["a silver tier's emoji", "kudos-emoji-ribbon", "taco"],
@@ -90,7 +90,7 @@ describe("ST13 ST27: buyItem through D17, as the website calls it", () => {
     await flagsFromPostHog(t, postHog, ...definitions);
     const before = await storedRowsOf(t);
 
-    expect(await buyItem(t, member, rocket, "website:juno:1")).toBeNull();
+    expect(await buyItem(t, member, shipit, "website:juno:1")).toBeNull();
 
     expect(await storedRowsOf(t)).toEqual(before);
   });
@@ -100,21 +100,21 @@ describe("a purchase spends coins once per idempotency key", () => {
   test("the same key answers its stored outcome and does nothing else, whatever changed since", async () => {
     const { t, member } = await memberWhoOpenedCoins(storeOn, { coins: 160 });
 
-    expect(await buyItem(t, member, rocket, "slack:1")).toEqual({ kind: "bought", item: rocket });
-    expect(await buyItem(t, member, rocket, "slack:1")).toEqual({ kind: "bought", item: rocket });
-    expect(await buyItem(t, member, gem, "slack:1")).toEqual({ kind: "bought", item: rocket });
-    expect(await buyItem(t, member, gem, "slack:2")).toEqual({ kind: "refused", item: gem, reason: "no-coins" });
+    expect(await buyItem(t, member, shipit, "slack:1")).toEqual({ kind: "bought", item: shipit });
+    expect(await buyItem(t, member, shipit, "slack:1")).toEqual({ kind: "bought", item: shipit });
+    expect(await buyItem(t, member, partyparrot, "slack:1")).toEqual({ kind: "bought", item: shipit });
+    expect(await buyItem(t, member, partyparrot, "slack:2")).toEqual({ kind: "refused", item: partyparrot, reason: "no-coins" });
     await earn(t, member, 100);
-    expect(await buyItem(t, member, gem, "slack:2")).toEqual({ kind: "refused", item: gem, reason: "no-coins" });
-    expect(await buyItem(t, member, gem, "slack:3")).toEqual({ kind: "bought", item: gem });
+    expect(await buyItem(t, member, partyparrot, "slack:2")).toEqual({ kind: "refused", item: partyparrot, reason: "no-coins" });
+    expect(await buyItem(t, member, partyparrot, "slack:3")).toEqual({ kind: "bought", item: partyparrot });
 
     expect(await collectionOf(t, member)).toEqual([
-      { item: rocket, source: "store" },
-      { item: gem, source: "store" },
+      { item: shipit, source: "store" },
+      { item: partyparrot, source: "store" },
     ]);
     expect(await spendsOf(t, member)).toEqual([
-      { coins: 100, for: { item: rocket } },
-      { coins: 100, for: { item: gem } },
+      { coins: 100, for: { item: shipit } },
+      { coins: 100, for: { item: partyparrot } },
     ]);
     expect(await coinsOf(t, member)).toBe(60);
     expect(await coinsOf(t, member)).toBe(await recordedCoinsOf(t, member));
@@ -172,5 +172,8 @@ async function memberWhoOpenedCoins(definitions: FlagDefinition[], { coins, kudo
   await reachesLevel(t, member, 6);
   for (const feature of opening) await opens(t, member, feature);
   if (coins > 0) await earn(t, member, coins);
+  await t.run(async (ctx) => {
+    for (const name of ["shipit", "partyparrot"]) await ctx.db.insert("customKudosEmoji", { workspace: "T1", name, url: `https://emoji.slack-edge.com/T1/${name}/0a1b2c.png`, pickedAt: openedAt });
+  });
   return { t, member };
 }

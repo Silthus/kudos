@@ -8,6 +8,7 @@ import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlock
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { isOnTheBoards } from "../leaderboard/visibility";
+import { recordReward } from "../progression/progression";
 import type { QuestId } from "../quests/pool";
 
 const tuesday = Date.parse("2026-10-13T10:00:00Z");
@@ -312,7 +313,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
   });
 
   test("the Inventory tab opens with a link to the home's inventory panel above Slack's inventory, which still works, and names it to screen readers", async () => {
-    const t = await workspace("xp-levels", "unlocks", "coins", "store", "website");
+    const t = await workspace("xp-levels", "unlocks", "coins", "store", "custom-kudos-emoji", "website");
     await coinsOpenedBy(t, "U_ALICE");
     await openHome(t, "U_ALICE");
 
@@ -335,12 +336,21 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       accessibility_label: "Open your inventory on HedgeHug's home page",
     });
 
-    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Take off")));
+    const alice = await memberOf(t, "U_ALICE");
+    await t.run(async (ctx) => {
+      await ctx.db.insert("customKudosEmoji", { workspace: "T1", name: "shipit", url: "https://emoji.slack-edge.com/T1/shipit/0a1b2c.png", pickedAt: Date.now() });
+      await recordReward(ctx, "T1", { member: alice, key: "test:savings", xp: 0, coins: 96, item: null, catalogueVersion: "2", at: 0 });
+    });
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Inventory")));
+    const published = publishedViews(slack, "U_ALICE").length;
 
-    expect(publishedHome(slack, "U_ALICE").slice(2, 8)).toEqual([inventoryOnTheWeb, "divider", "section: 4 🪙", "divider", "section: *Your kudos emoji*", "section: Slot 1 · empty"]);
+    await send(t, buttonBeside(":shipit: · 100 🪙", "Buy"));
+
+    expect(publishedViews(slack, "U_ALICE")).toHaveLength(published + 1);
+    expect(publishedHome(slack, "U_ALICE").slice(2, 9)).toEqual([inventoryOnTheWeb, "divider", "section: 0 🪙", "divider", "section: *Your kudos emoji*", "section: 🦔 Hedgehog", "section: :shipit:"]);
   });
 
-  test("clicking the Inventory link takes nothing off and publishes App Home no more", async () => {
+  test("clicking the Inventory link changes nothing and publishes App Home no more", async () => {
     const t = await workspace("xp-levels", "unlocks", "coins", "store", "website");
     await coinsOpenedBy(t, "U_ALICE");
     await openHome(t, "U_ALICE");
@@ -351,7 +361,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
 
     expect(response.status).toBe(200);
     expect(publishedViews(slack, "U_ALICE")).toHaveLength(published);
-    expect(publishedHome(slack, "U_ALICE")).toContain("section: Slot 1 · 🦔 Hedgehog [button: Take off]");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: 🦔 Hedgehog");
   });
 
   test("opening the ready features swaps their Open for page buttons, and a stale Open from before the links still opens its crate", async () => {
@@ -468,13 +478,11 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     "section: 4 🪙",
     "divider",
     "section: *Your kudos emoji*",
-    "section: Slot 1 · 🦔 Hedgehog [button: Take off]",
-    "section: Slot 2 · empty",
-    "section: Slot 3 · empty",
-    "context: Each emoji in a slot counts as a kudos, like :taco:.",
+    "section: 🦔 Hedgehog",
+    "context: Each of your kudos emoji counts as a kudos, like :taco:.",
     "divider",
     "section: *Store*",
-    ...["🌻 Sunflower", "🚀 Rocket", "🌟 Glowing Star", "💎 Gem", "🌈 Rainbow", "🍀 Clover", "🍩 Doughnut", "🍪 Cookie", "👑 Crown", "🎈 Balloon", "🌵 Cactus", "🏆 Trophy"].map((item) => `section: ${item} · 100 🪙 [button: Buy]`),
+    "context: Nothing for sale right now.",
   ];
 
   const closed: Array<{ condition: string; website: string[]; env?: Record<string, string> }> = [

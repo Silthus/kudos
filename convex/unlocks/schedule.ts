@@ -16,10 +16,6 @@ export type ScheduledFeature = { feature: Feature; level: number; name: string; 
 type Naming = Pick<ScheduledFeature, "name" | "opens">;
 
 const namedWithTheStore: Partial<Record<Feature, Naming>> = {
-  coins: { name: "Coins and inventory", opens: "your wallet, the store's kudos emoji and your emoji slots" },
-};
-
-const namedWithTheStoreWithoutSlots: Partial<Record<Feature, Naming>> = {
   coins: { name: "Coins and inventory", opens: "your wallet, the store and your kudos emoji" },
 };
 
@@ -44,18 +40,13 @@ export function scheduled(feature: Feature): ScheduledFeature {
   return schedule.features.find((entry) => entry.feature === feature)!;
 }
 
-export type StoreNaming = { storeShown: boolean; slotsRetired: boolean };
+export type StoreNaming = { storeShown: boolean };
 
-export const withoutTheStore: StoreNaming = { storeShown: false, slotsRetired: false };
+export const withoutTheStore: StoreNaming = { storeShown: false };
 
-export function namedFor(entry: ScheduledFeature, { storeShown, slotsRetired }: StoreNaming): ScheduledFeature {
-  const naming = storeNamingsOf(storeShown, slotsRetired)[entry.feature];
+export function namedFor(entry: ScheduledFeature, { storeShown }: StoreNaming): ScheduledFeature {
+  const naming = storeShown ? namedWithTheStore[entry.feature] : undefined;
   return naming === undefined ? entry : { ...entry, ...naming };
-}
-
-function storeNamingsOf(storeShown: boolean, slotsRetired: boolean): Partial<Record<Feature, Naming>> {
-  if (!storeShown) return {};
-  return slotsRetired ? namedWithTheStoreWithoutSlots : namedWithTheStore;
 }
 
 export function shippedIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<ScheduledFeature[]> {

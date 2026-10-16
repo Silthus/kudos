@@ -630,7 +630,6 @@ describe("WS87 WS335: an item purchase never sends again by itself", () => {
     sentOverHttp.mockResolvedValue({ kind: "bought", item: "kudos-emoji-gem" });
     const { user } = renderLiveSite();
 
-    await user.click(await screen.findByRole("button", { name: "Inventory" }));
     await user.click(await screen.findByRole("button", { name: "Buy for 100 coins, Gem" }));
 
     expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/commands:buyItem", args: { item: "kudos-emoji-gem", request: expect.stringMatching(/^[0-9a-f-]{36}$/) } });

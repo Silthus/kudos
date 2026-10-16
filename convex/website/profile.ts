@@ -7,6 +7,7 @@ import { progressionHomeOf } from "../progression/progression";
 import { xpLevelsOnFor } from "../progression/xpLevels";
 import { workspaceLink } from "../slack/workspaceLink";
 import { visibleWalletOf } from "../wallet/wallet";
+import { bookSpreadShownTo } from "./bookSpread";
 import { followTheClock } from "./clock";
 import { faceOf, type Face } from "./faces";
 import { inventoryShownTo, type MemberInventory } from "./inventory";
@@ -45,6 +46,7 @@ export type MemberProfile = {
   groups: boolean;
   settings: boolean;
   avatar?: Avatar | null;
+  bookSpread?: true;
 };
 
 export type MyProfile = Denial | MemberProfile;
@@ -74,6 +76,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     groups: await groupsShownTo(ctx, me.member),
     settings: await settingsShownTo(ctx, me, leaderboard),
     ...(await avatarShownOn(ctx, me.member, me.member)),
+    ...(await bookSpreadShownTo(ctx, me.member)),
   };
 });
 
