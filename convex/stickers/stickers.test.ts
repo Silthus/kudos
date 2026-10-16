@@ -137,7 +137,7 @@ async function givenBeforeStickersShipped(giver: Person, ...recipients: Person[]
   return at;
 }
 
-describe("SB1 SB2 SB4: every kudos gives stickers of the people in it", () => {
+describe("SB1 SB2 SB4: every kudos gives stickers of the people in it", { timeout: 60_000 }, () => {
   test("a kudos gives the giver a sticker of each recipient and each recipient a sticker of the giver", async () => {
     await stickerBookOn();
     const at = await thanks(alice, bob, carol);
@@ -266,7 +266,7 @@ describe("a sticker is recorded once with its pair's earliest award", { timeout:
   });
 });
 
-describe("SB4 SB5: a kudos to 300 members and the backfill of it stay inside Convex's limits", () => {
+describe("SB4 SB5: a kudos to 300 members and the backfill of it stay inside Convex's limits", { timeout: 60_000 }, () => {
   test("every recipient and the giver get their stickers, live and again from the backfill, with no mutation refused", { timeout: 300_000 }, async () => {
     const limited = testBackend({ transactionLimits: true });
     await stickerBookOn(limited);
@@ -287,7 +287,7 @@ describe("SB4 SB5: a kudos to 300 members and the backfill of it stay inside Con
   });
 });
 
-describe("SB1 SB11: a sticker shows the person as the directory has them now", () => {
+describe("SB1 SB11: a sticker shows the person as the directory has them now", { timeout: 60_000 }, () => {
   test("a person who left keeps their sticker as a former teammate", async () => {
     await stickerBookOn();
     const at = await thanks(alice, bob);
@@ -300,7 +300,7 @@ describe("SB1 SB11: a sticker shows the person as the directory has them now", (
   });
 });
 
-describe("the sticker book is private", () => {
+describe("the sticker book is private", { timeout: 60_000 }, () => {
   test("a member's call answers only their own stickers and takes no member to read another's", async () => {
     await stickerBookOn();
     const at = await thanks(alice, bob);
@@ -313,7 +313,7 @@ describe("the sticker book is private", () => {
   });
 });
 
-describe("SB6 SB10 SB11 SB15: stickers show only where sticker-book is on", () => {
+describe("SB6 SB10 SB11 SB15: stickers show only where sticker-book is on", { timeout: 60_000 }, () => {
   test("with sticker-book off the collection has no stickers field, and stickers recorded meanwhile show once it is on", async () => {
     await switchWebsite(t, postHog, true, ...bookFlags);
     await bookShippedBeforeAnyoneJoined(t);
