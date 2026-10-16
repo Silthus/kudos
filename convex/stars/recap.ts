@@ -4,6 +4,7 @@ import type { Id } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { reportStarsRecapSent } from "../analytics/isolatedUsage";
 import { wallClockAt, type DayKey } from "../engine/allowance";
+import { threadRootOf } from "../engine/engine";
 import { settingsFooterFor, type SettingsFooter } from "../feedback/settingsFooter";
 import { placeOf } from "../messageSettings/messageSettings";
 import { xpLevelsOnFor } from "../progression/xpLevels";
@@ -115,7 +116,7 @@ async function recapWantedBy(ctx: MutationCtx, member: MemberId) {
 async function recapLinesOf(ctx: QueryCtx, week: StarWeek): Promise<RecapLine[]> {
   const { kudosEmoji } = await settingsOf(ctx, week.workspace);
   const url = await workspaceUrlOf(ctx, week.workspace);
-  const mostStarred = week.mostStarred === undefined || url === null ? [] : [mostStarredLineOf(url, week.workspace, week.mostStarred)];
+  const mostStarred = week.mostStarred === undefined || url === null ? [] : [await mostStarredLineOf(ctx, url, week.workspace, week.mostStarred)];
   return [`:${kudosEmoji}: Your week in stars`, countsLineOf(week), ...mostStarred, nudge];
 }
 
@@ -125,8 +126,9 @@ function countsLineOf({ given, givenXp, received, receivedXp }: StarWeek) {
   return `You gave ${starsOf(given)} (+${givenXp} XP) and got ${received} (+${receivedXp} XP).`;
 }
 
-function mostStarredLineOf(url: string, workspace: string, { conversation, message, stars }: MostStarred): RecapLine {
-  return { text: `Your most-starred message got ${starsOf(stars)}: `, link: { url: permalinkOf(url, { workspace, conversation, message }, null), label: "open it in Slack" } };
+async function mostStarredLineOf(ctx: QueryCtx, url: string, workspace: string, { conversation, message, stars }: MostStarred): Promise<RecapLine> {
+  const ref = { workspace, conversation, message };
+  return { text: `Your most-starred message got ${starsOf(stars)}: `, link: { url: permalinkOf(url, ref, await threadRootOf(ctx, ref)), label: "open it in Slack" } };
 }
 
 function starsOf(count: number) {

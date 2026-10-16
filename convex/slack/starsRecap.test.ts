@@ -6,7 +6,7 @@ import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, onForEmails, onForEv
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { blockActions, optionPickedInHome, publishedHome, publishedHomeBlocks, type BlockAction } from "../../testing/slackInteractions";
 import { convexStops, memberChanged, pendingJobs, react, settleUpTo, setWorkspaceSettings, testBackend, type Backend } from "../../testing/slackBackend";
-import { appHomeOpened } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import crons from "../crons";
 
@@ -161,6 +161,19 @@ describe("SR12 SR14: the most-starred message is the one that got the member the
     await recapsSentOnMonday(t);
 
     expect(recapTo("U_ALICE")).toContain(`Your most-starred message got 2 stars: <${permalinkOf(messageOf(1))}|open it in Slack>`);
+  });
+
+  test("a most-starred kudos posted as a thread reply links to the reply inside its thread, as the timeline does", async () => {
+    const t = await workspace();
+    const threadRoot = messageOf(1);
+    const reply = messageOf(2);
+    await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention("U_ALICE"), emoji("taco"))], { user: "U_BOB", ts: reply, threadTs: threadRoot })));
+    await settleUpTo(t, Date.now() + minuteMs);
+    await star(t, "U_CAROL", "U_BOB", reply);
+
+    await recapsSentOnMonday(t);
+
+    expect(recapTo("U_ALICE")).toContain(`Your most-starred message got 1 star: <${permalinkOf(reply)}?thread_ts=${threadRoot}&cid=C1|open it in Slack>`);
   });
 });
 
@@ -339,7 +352,7 @@ describe("SR16: stars recap sent reaches PostHog", () => {
       { ...shared, stars_given: 1, stars_received: 1, xp: 2 },
       { ...shared, stars_given: 1, stars_received: 0, xp: 1 },
     ]);
-    expect(JSON.stringify(recapsSent())).not.toMatch(/U_ALICE|U_BOB|U_CAROL|C1|1760/);
+    expect(JSON.stringify(recapsSent())).not.toMatch(new RegExp(`U_ALICE|U_BOB|U_CAROL|C1|${messageOf(1).split(".")[0]}`));
   });
 });
 
