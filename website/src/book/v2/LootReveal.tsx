@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { Button } from "@posthog/quill";
-import { copyWordsOf, rarityWordsOf, type Drop } from "../../crates/drops";
+import { rarityWordsOf, type Drop } from "../../crates/drops";
 import { DropArtwork } from "../../crates/Hoggie";
 import { prefersReducedMotion } from "../../reducedMotion";
 import { CrateHint, LootCrate, type LootPhase } from "./LootCrate";
@@ -85,22 +85,11 @@ function Found({ drop, othersReady, onClose, onNext, onReplay }: FoundProps) {
   return (
     <div className="flex w-full flex-col items-center gap-5">
       <span className="loot-ribbon loot-ribbon-in" data-rarity={drop.rarity} style={{ "--d": "0.1s" } as CSSProperties}>
-        {legendary ? "✦ Legendary find ✦" : rarityWordsOf(drop.rarity).replace(/^\S+\s/, "")}
+        {legendary ? "✦ Legendary find ✦" : `${rarityWordsOf(drop.rarity).replace(/^\S+\s/, "")} find`}
       </span>
       <h2 className="hud-display loot-in text-[clamp(2.25rem,8vw,3.5rem)] font-extrabold leading-[0.95] text-balance" style={{ "--d": "0.25s" } as CSSProperties}>
-        {legendary ? `${drop.name}!` : `You found ${drop.name}`}
+        {drop.name}
       </h2>
-      <div className="loot-card loot-in" data-rarity={drop.rarity} style={{ "--d": "0.4s" } as CSSProperties}>
-        <span className="loot-copy" data-new={drop.isNew || undefined}>
-          {copyWordsOf(drop)}
-        </span>
-        <span className="text-xs font-bold uppercase tracking-[0.14em]" style={{ color: "rgb(255 255 255 / 0.75)" }}>
-          {legendary ? "1 in 50 crates" : `${rarityWordsOf(drop.rarity).replace(/^\S+\s/, "")} · it goes in your Hoggies chapter`}
-        </span>
-        <span className="text-sm" style={{ color: "rgb(255 255 255 / 0.85)" }}>
-          {drop.isNew ? "A new page in your book." : `Copy ${drop.copy}. Duplicates count toward trades later.`}
-        </span>
-      </div>
       <div className="loot-in flex w-full max-w-md flex-wrap items-center justify-center gap-2 rounded-lg bg-card p-4 text-card-foreground shadow-2xl" style={{ "--d": "0.55s" } as CSSProperties}>
         {othersReady > 0 && (
           <Button variant="primary" onClick={onNext}>

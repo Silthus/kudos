@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button } from "@posthog/quill";
 import { catalogue, rarities, type Rarity } from "../../../../convex/hoggies/catalogue";
-import { copyWordsOf, rarityWordsOf } from "../../crates/drops";
+import { rarityWordsOf } from "../../crates/drops";
 import { DropArtwork } from "../../crates/Hoggie";
 import { prefersReducedMotion } from "../../reducedMotion";
 import { CrateHint } from "./LootCrate";
@@ -104,7 +104,7 @@ export function SpinReveal({ label, drop, othersReady, onClose, onNext }: LootRe
         {phase === "landed" && (
           <div className="flex w-full flex-col items-center gap-4">
             <span className="loot-ribbon loot-ribbon-in" data-rarity={drop.rarity}>
-              {legendary ? "✦ Legendary ✦" : `${wordsOnly(drop.rarity)} · ${copyWordsOf(drop)}`}
+              {legendary ? "✦ Legendary find ✦" : `${wordsOnly(drop.rarity)} find`}
             </span>
             <h2 className="hud-display loot-in text-[clamp(2rem,7vw,3rem)] font-extrabold leading-tight" style={{ "--d": "0.2s" } as CSSProperties}>
               {drop.name}
