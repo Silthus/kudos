@@ -24,3 +24,18 @@ These are Vite fixture builds (`VITE_SHELL_FIXTURE=<name>`), served by `vite pre
 | Locked page: `/book` for `member-waiting-for-the-book`, "Unlocks at level 1" | [light](shots/book-locked-light.png) | [dark](shots/book-locked-dark.png) |
 
 The fixture build serves fixed leaderboard and quests reads, so it has no locked `/leaderboard` or `/quests` page. Their locked pages are covered by `LeaderboardPage.test.tsx` (level 2) and `QuestsPage.test.tsx` (level 3). The locked panels on the level-1 home show the same "Unlocks at level n" values.
+
+## Review
+
+**GPT-6.1 Sol, high** ([review-sol.md](review-sol.md)), read-only, on the diff at `3e51539d`, with the ticket, `convex/unlocks/schedule.ts` and `website/Website.spec.md` as the oracle. It accepted all four recorded calls and found no deleted test or weakened assertion.
+
+| Finding | Outcome |
+|---|---|
+| `questRewardKinds.test.tsx`: `withForty` had Quests open at level 2 | **Fixed**: level 3, with the same reward staying inside the level and every coin assertion intact |
+| `header.test.tsx`: the three-page member listed Quests before the Book | **Fixed**: its features sorted by level, the scroll and focus assertions intact |
+| `accessibility.test.tsx`: case names said "book locked until level 4" and "quests locked until level 2" | **Fixed**: level 1 and level 3 |
+| `proof/header-phone`, `proof/hud-nav`, `proof/feature-gates` fixtures still compose schedule-1 paths | **Rejected**: these are earlier tickets' proof rigs, kept to reproduce their own screenshots. No gate builds or tests them, and moving them would change what they recorded |
+| `fixtureReads.ts`: the fixture build's quests and leaderboard reads are fixed, so `/quests` renders open content for a member whose nav says Quests is locked | **Rejected for this ticket**: the fixed reads predate #570 and name no level, and the nav and panels follow the schedule. Named as a follow-up in #570's resolution: derive those reads from the visitor's card, as the Book's already do |
+| `SkillTreePage.tsx`, `perkWords.ts`: "Every level from 5 on gives one skill point" | **Rejected**: this is progression's skill-point rule (`skillTreeLevel` in `convex/progression/levels.ts`), not a feature's unlock level, and schedule 2 left it at 5. The copy is still true |
+| `fixtureSchedule.test.tsx`: "nothing locked at or below the member's level" contradicts the pending-readiness Book | **Rejected**: that check covers only members with a progression. The pending-readiness Book is `memberWaitingForTheBook`, which has none, and `BookPage.test.tsx` keeps covering it |
+| The proof was missing | **Stale**: the review read the diff before the proof commit, which has the screenshots, red, green and the gate |
