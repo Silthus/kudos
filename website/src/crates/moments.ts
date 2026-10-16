@@ -216,7 +216,8 @@ export function questCrateHomeAttributes(seen: string | null) {
 function openedAnnouncementOf(crate: ReadyCrate) {
   if (crate.kind === "feature") return `You opened ${crate.card.name}.`;
   const label = crate.quest.kind === "journey" ? rewardLabelOf(crate) : rewardLabelOf(crate).toLowerCase();
-  return `You opened your ${label}. You earned ${rewardWords(crate.reward)}.`;
+  const words = rewardWords(crate.reward);
+  return words === undefined ? `You opened your ${label}.` : `You opened your ${label}. You earned ${words}.`;
 }
 
 function focusCrateHomeOrTitle(crate: ReadyCrate) {

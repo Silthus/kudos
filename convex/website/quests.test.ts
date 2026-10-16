@@ -224,7 +224,7 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     const { member, asSignedIn } = await signedIn();
     await questsOpenFor(member);
 
-    expect(await questsOf(asSignedIn)).toEqual({ kind: "quests", slots: [], swap: { used: false, available: false }, waiting: [], bonus: null, chatUrl: workspaceLink("T1") });
+    expect(await questsOf(asSignedIn)).toEqual({ kind: "quests", slots: [], swap: { used: false, available: false }, group: null, waiting: [], bonus: null, chatUrl: workspaceLink("T1") });
   });
 
   test("P80: fewer than three drawn quests read as that many slots, in slot order, each in progress at 0", async () => {
@@ -361,7 +361,7 @@ describe("WS70: getQuests reads the quests module's facts", () => {
     const afterTheTurn = await openQuests(asSignedIn);
 
     expect(afterTheTurn.slots).toEqual([]);
-    expect(afterTheTurn.waiting).toEqual([{ goal: "Thank someone and say why.", week: thisWeek, reward: { xp: 20 }, crate: { kind: "weekly", week: thisWeek, slot: 0 }, seen: expect.any(String), waiting: false }]);
+    expect(afterTheTurn.waiting).toEqual([{ goal: "Thank someone and say why.", group: null, week: thisWeek, reward: { xp: 20 }, crate: { kind: "weekly", week: thisWeek, slot: 0 }, seen: expect.any(String), waiting: false }]);
 
     await opensCrate(member, afterTheTurn.waiting[0]!.crate);
 
@@ -441,7 +441,7 @@ describe("CR13: waiting says a finished crate's reward still waits in it", () =>
     vi.setSystemTime(nextMonday);
 
     expect((await openQuests(asSignedIn)).waiting).toEqual([
-      { goal: "Thank someone you haven't thanked before.", week: thisWeek, reward: { xp: 20 }, crate: { kind: "weekly", week: thisWeek, slot: 1 }, seen: expect.any(String), waiting: true },
+      { goal: "Thank someone you haven't thanked before.", group: null, week: thisWeek, reward: { xp: 20 }, crate: { kind: "weekly", week: thisWeek, slot: 1 }, seen: expect.any(String), waiting: true },
     ]);
   });
 

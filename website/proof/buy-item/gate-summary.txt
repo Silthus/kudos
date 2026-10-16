@@ -1,0 +1,19 @@
+# Full gate on 1a6d1067 (fleet heavy -- pnpm gate): typecheck green, 243 files / 4510 tests passed; coherence failed only on the unknown noun 'slack buy' in the new spec lines.
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+
+ Test Files  243 passed (243)
+      Tests  4510 passed (4510)
+   Start at  23:59:36
+   Duration  293.73s (tests 89%, import 6%, environment 3%, transform 1%)
+
+
+# After rewording (next commit): fleet heavy -- pnpm coherence
+lacking: enforcement 0, refutation 1, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-15T23:47:56.964Z (1129 runs)
+0 rejected names, 0 unknown nouns (991 files), 37 in records
+exit 0

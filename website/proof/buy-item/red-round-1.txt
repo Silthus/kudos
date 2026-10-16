@@ -1,0 +1,5 @@
+     × WS61 WS335: an item ID longer than any catalogue or custom emoji ID is rejected before the store and writes nothing 647ms
+     × sends buyItem once over HTTP with the session's token and the item's pending request, never through the socket's queue 492ms
+     × pops the bought tile once, and not under reduced motion 578ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  3 failed | 83 skipped (86)

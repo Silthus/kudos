@@ -2,7 +2,7 @@ import { questCrateHomeAttributes } from "../crates/moments";
 import { questCrateOf } from "../crates/readyCrates";
 import { Done, RewardCrate } from "../crates/RewardCrate";
 import { crateTargetAttributes } from "../linkTarget";
-import { Coins, rewardWords, xpLineOf } from "../quests/QuestReward";
+import { Coins, earnedLineOf, xpLineOf } from "../quests/QuestReward";
 import type { JourneyStep } from "../shell";
 
 export function JourneyPanel({ journey }: { journey: JourneyStep[] | null }) {
@@ -43,7 +43,7 @@ function StepItem(step: JourneyStep) {
       )}
       {state === "finished" && waiting && <p className="text-xs font-medium tabular-nums text-muted-foreground">{xpLineOf(reward, waiting)}</p>}
       {crate !== undefined && <RewardCrate crate={crate} open="outline" />}
-      {state === "opened" && <Done>{`You earned ${rewardWords(reward)}`}</Done>}
+      {state === "opened" && <Done>{earnedLineOf(reward)}</Done>}
     </li>
   );
 }

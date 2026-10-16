@@ -16,6 +16,8 @@ import { perkValidator } from "../progression/tree";
 import { journeyStartedFor, questsApplyTo } from "../quests/flag";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { swappedSlotIn } from "../quests/weekly";
+import type { ItemRefusal } from "../store/rows";
+import { storeVisibleTo } from "../store/visibility";
 import { featureValidator } from "../unlocks/feature";
 import { unlockPathShownTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
@@ -37,6 +39,10 @@ export type SwapAnswer = { kind: "swapped" } | { kind: "refused" };
 export type PurchaseRefusal = "owned" | "level" | "requires" | "points" | "coins" | "coins-not-open" | "not-open";
 
 export type PurchaseAnswer = { kind: "bought" } | { kind: "refused"; reason: PurchaseRefusal | null };
+
+export type ItemPurchaseRefusal = ItemRefusal["reason"];
+
+export type ItemPurchaseAnswer = { kind: "bought"; item: string } | { kind: "refused"; reason: ItemPurchaseRefusal | null };
 
 export type VisibilityAnswer = { kind: "set"; visible: boolean } | { kind: "refused" };
 
@@ -107,6 +113,24 @@ export const buyPerk = memberMutation({
   },
 });
 
+const longestItemId = 128;
+
+const itemRefusedAtTheGate: ItemPurchaseAnswer = { kind: "refused", reason: null };
+
+export const buyItem = memberMutation({
+  args: { item: v.string(), request: v.string() },
+  handler: async (ctx, me, person, { item, request }): Promise<ItemPurchaseAnswer> => {
+    if (!isUuid(request)) throw new Error("A purchase's request must be a UUID.");
+    if (item.length > longestItemId) throw new Error("A purchase's item is longer than any item ID.");
+    if (!(await storeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return itemRefusedAtTheGate;
+    const outcome = await runCommand(ctx, me.workspace, person, { type: "buyItem", item }, `website:${me.member}:${request}`);
+    if (outcome === null || !("item" in outcome)) return itemRefusedAtTheGate;
+    if (outcome.kind === "refused") return { kind: "refused", reason: outcome.reason };
+    await republish(ctx, me.member);
+    return { kind: "bought", item: outcome.item };
+  },
+});
+
 export const setBoardVisibility = memberMutation({
   args: { visible: v.boolean() },
   handler: async (ctx, me, person, { visible }): Promise<VisibilityAnswer> => {
@@ -169,6 +193,10 @@ function isUuid(request: string) {
 
 async function treeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
   return featurePageOf(await unlockPathOf(ctx, me), "skillTree").kind === "open" && (await noLaunchWaitsFor(ctx, me));
+}
+
+async function storeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
+  return (await storeVisibleTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
 }
 
 async function boardOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
