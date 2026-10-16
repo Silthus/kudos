@@ -333,6 +333,7 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   via: P81: the week's swap reads within Convex's limits, however many kudos the member gave
   because: App Home and the website read the swap on every render, and a read of every kudos a member gave fails past Convex's 32,000 scanned documents (#416), while one index range per person thanked fails past 4,096 people, which one kudos to a large user group reaches, so the read skips only past people thanked many times, and the draw facts it shares stay those of the whole history (P80, P81)
   refuted: the 30-day window of lastThankedSince read every award the member gave up to the facts' time -> the Sunday case failed on Convex's 32,000 scanned documents in lastThankedSince (2026-10-16)
+  refuted: the stream of whom a member thanked never skipped past a person thanked many times -> the Sunday case failed on Convex's 32,000 scanned documents in thankedUntilOneRepeats (2026-10-16)
   kinds: budget
   checklist: bounded-admission dismissed: nothing admits concurrent work; each read and each swap is one Convex function
   checklist: fair-admission dismissed: no contenders wait for capacity
