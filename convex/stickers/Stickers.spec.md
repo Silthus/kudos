@@ -4,7 +4,7 @@ Stickers: the people a member collects in the Book (SB1–SB6, decision 27): one
 
 ## invariants
 - a sticker is recorded once with its pair's earliest award: Every member holds at most one sticker of each person, and its `firstAward` and `firstAt` are the pair's earliest award in award order in either direction, however often and in whatever order the live subscriber and the backfill record it.
-  over: a second kudos between the same two and a thanks back, two messages whose subscribers run in reverse order, a thanks back the other way recorded before the thanks it answers, one person named twice in a message, a redelivered kudosGiven, the backfill run twice, and the backfill over earlier kudos with kudos given while it runs, read through getCollection
+  over: a second kudos between the same two and a thanks back, two messages whose subscribers run in reverse order, a thanks back the other way recorded before the thanks it answers, one person named twice in a message, a redelivered kudosGiven and the backfill run twice, compared record for record, the backfill over earlier kudos, its start by the first kudos, and a kudos given between two of its pages with its own subscriber held back, read through getCollection and the stored firstAward
   via: a sticker is recorded once with its pair's earliest award
   because: a sticker says since when two people have thanked each other (SB2, user story 7): if a subscriber running late or a redelivery wrote a second sticker or a later award, the Book would count one colleague twice, show the wrong first time and mark an old sticker new again
   kinds: storage, state

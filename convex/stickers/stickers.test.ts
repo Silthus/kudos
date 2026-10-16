@@ -8,6 +8,7 @@ import { emoji, mention, section } from "../../testing/slackMessages";
 import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
+import { awardsOfMessage } from "../engine/awards";
 import type { CollectionAnswer } from "../website/collection";
 import { seenKeyOf } from "../website/seen";
 import type { MemberId } from "../workspace/directory";
@@ -16,6 +17,7 @@ const now = new Date("2026-10-16T10:00:00Z");
 const minuteMs = 60_000;
 const bookFlags = ["xp-levels", "unlocks", "achievements", "everyone-board", "skill-tree", "collection"];
 const stickerJob = "stickers/stickers:recordStickers";
+const backfillJob = "stickers/backfill:backfillStickers";
 const alice = { user: "U_ALICE", name: "Alice Archer" };
 const bob = { user: "U_BOB", name: "Bob Brandt" };
 const carol = { user: "U_CAROL", name: "Carol Chen" };
@@ -57,10 +59,31 @@ function nextTs() {
   return { ts: `${Date.now() / 1000}.${String(messages).padStart(6, "0")}`, at: Date.now() };
 }
 
+const tsOfMessageAt = new Map<number, string>();
+
 async function thanks(giver: Person, ...recipients: Person[]) {
+  return thanksIn(t, giver, recipients);
+}
+
+async function thanksIn(backend: Backend, giver: Person, recipients: Person[]) {
   const { ts, at } = nextTs();
-  await post(t, [section(...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts });
+  tsOfMessageAt.set(at, ts);
+  await post(backend, [section(...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts });
   return at;
+}
+
+async function awardsOfMessageAt(at: number) {
+  return t.run((ctx) => awardsOfMessage(ctx, { workspace: "T1", conversation: "C1", message: tsOfMessageAt.get(at)! }));
+}
+
+function storedStickers(backend = t) {
+  return backend.run((ctx) => ctx.db.query("stickers").collect());
+}
+
+async function storedFirstAwardsBetween(one: Person, other: Person) {
+  const [member, person] = [await memberOf(one), await memberOf(other)];
+  const pair = (await storedStickers()).filter((sticker) => (sticker.member === member && sticker.person === person) || (sticker.member === person && sticker.person === member));
+  return pair.map(({ firstAward }) => firstAward);
 }
 
 async function memberOf(person: Person, backend = t): Promise<MemberId> {
@@ -131,10 +154,20 @@ async function runs(job: HeldJob, backend = t) {
 }
 
 async function givenBeforeStickersShipped(giver: Person, ...recipients: Person[]) {
-  const at = await thanks(giver, ...recipients);
-  await heldBackStickerJobs();
-  await settle(t);
+  return givenBeforeStickersShippedIn(t, giver, recipients);
+}
+
+async function givenBeforeStickersShippedIn(backend: Backend, giver: Person, recipients: Person[]) {
+  const at = await thanksIn(backend, giver, recipients);
+  await heldBackStickerJobs(backend);
+  await settle(backend);
   return at;
+}
+
+function newMembers(prefix: string, count: number): Person[] {
+  const people = Array.from({ length: count }, (_, index) => ({ user: `${prefix}${String(index).padStart(3, "0")}`, name: `${prefix.slice(2)} Person${index}` }));
+  for (const person of people) slack.withMember(person.user, { real_name: person.name });
+  return people;
 }
 
 describe("SB1 SB2 SB4: every kudos gives stickers of the people in it", { timeout: 60_000 }, () => {
@@ -190,6 +223,8 @@ describe("a sticker is recorded once with its pair's earliest award", { timeout:
 
     expect(await stickersOf(await withTheBookOpen(bob))).toEqual([await stickerOf(bob, alice, first)]);
     expect((await stickersOf(await withTheBookOpen(alice)))?.[1]).toEqual(await stickerOf(alice, bob, first));
+    const [firstAward] = await awardsOfMessageAt(first);
+    expect(await storedFirstAwardsBetween(alice, bob)).toEqual([firstAward!.award, firstAward!.award]);
   });
 
   test("a thanks back the other way, recorded first, records the earlier thanks", async () => {
@@ -204,6 +239,8 @@ describe("a sticker is recorded once with its pair's earliest award", { timeout:
 
     expect(await stickersOf(await withTheBookOpen(alice))).toEqual([await stickerOf(alice, bob, first)]);
     expect(await stickersOf(await withTheBookOpen(bob))).toEqual([await stickerOf(bob, alice, first)]);
+    const [firstAward] = await awardsOfMessageAt(first);
+    expect(await storedFirstAwardsBetween(alice, bob)).toEqual([firstAward!.award, firstAward!.award]);
   });
 
   test("one person named twice in a message gives one sticker each way", async () => {
@@ -222,6 +259,7 @@ describe("a sticker is recorded once with its pair's earliest award", { timeout:
     await runs(job!);
     await settle(t);
     const readers = { alice: await withTheBookOpen(alice), bob: await withTheBookOpen(bob) };
+    const recorded = await storedStickers();
 
     await runs(job!);
     await t.mutation(internal.stickers.backfill.startStickerBackfill, { workspace: "T1" });
@@ -231,7 +269,7 @@ describe("a sticker is recorded once with its pair's earliest award", { timeout:
 
     expect(await stickersOf(readers.alice)).toEqual([await stickerOf(alice, bob, first)]);
     expect(await stickersOf(readers.bob)).toEqual([await stickerOf(bob, alice, first)]);
-    expect(await t.run((ctx) => ctx.db.query("stickers").collect())).toHaveLength(2);
+    expect(await storedStickers()).toEqual(recorded);
   });
 
   test("the ship's backfill gives the stickers of every kudos before it, in award order", async () => {
@@ -248,42 +286,56 @@ describe("a sticker is recorded once with its pair's earliest award", { timeout:
     expect(await stickersOf(reader)).toEqual([await stickerOf(alice, carol, second), await stickerOf(alice, bob, first)]);
   });
 
-  test("the first kudos in a workspace without a backfill starts it, and kudos given while it runs count too", async () => {
+  test("the first kudos in a workspace without a backfill starts it", async () => {
+    await stickerBookOn();
+    const earlier = await givenBeforeStickersShipped(alice, bob);
+
+    const later = await thanks(carol, alice);
+    await settle(t);
+
+    expect(await stickersOf(await withTheBookOpen(alice))).toEqual([await stickerOf(alice, carol, later), await stickerOf(alice, bob, earlier)]);
+  });
+
+  test("a kudos given between two backfill pages, its own subscriber held back, is read by the backfill's next page", async () => {
     await stickerBookOn();
     await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 60 }));
-    const recipients = Array.from({ length: 60 }, (_, index) => ({ user: `U_NEW${String(index).padStart(2, "0")}`, name: `New Person${index}` }));
-    for (const person of recipients) slack.withMember(person.user, { real_name: person.name });
+    const recipients = newMembers("U_NEW", 60);
     const earlier = await givenBeforeStickersShipped(alice, ...recipients);
-    const thanksBack = await givenBeforeStickersShipped(bob, alice);
+    await t.mutation(internal.stickers.backfill.startStickerBackfill, { workspace: "T1" });
+    const [firstPage] = await cancelPending(t, backfillJob);
+    await runs(firstPage!);
+    const [secondPage] = await cancelPending(t, backfillJob);
 
-    const during = await thanks(carol, alice);
+    const during = await givenBeforeStickersShipped(bob, alice);
+    await runs(secondPage!);
     await settle(t);
 
     const stickers = await stickersOf(await withTheBookOpen(alice));
-    expect(stickers?.slice(0, 2)).toEqual([await stickerOf(alice, carol, during), await stickerOf(alice, bob, thanksBack)]);
-    expect(stickers?.slice(2).map(({ firstAt }) => firstAt)).toEqual(recipients.map(() => earlier));
-    expect(stickers).toHaveLength(62);
+    expect(stickers?.[0]).toEqual(await stickerOf(alice, bob, during));
+    expect(stickers?.slice(1).map(({ firstAt }) => firstAt)).toEqual(recipients.map(() => earlier));
+    expect(await stickersOf(await withTheBookOpen(bob))).toEqual([await stickerOf(bob, alice, during)]);
   });
 });
 
 describe("SB4 SB5: a kudos to 300 members and the backfill of it stay inside Convex's limits", { timeout: 60_000 }, () => {
-  test("every recipient and the giver get their stickers, live and again from the backfill, with no mutation refused", { timeout: 300_000 }, async () => {
+  test("a kudos to 300 members gives its stickers live, and the backfill gives those of an earlier one, with no mutation refused", { timeout: 300_000 }, async () => {
     const limited = testBackend({ transactionLimits: true });
     await stickerBookOn(limited);
     await limited.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 300 }));
-    const recipients = Array.from({ length: 300 }, (_, index) => ({ user: `U_MANY${String(index).padStart(3, "0")}`, name: `Many Person${index}` }));
-    for (const person of recipients) slack.withMember(person.user, { real_name: person.name });
-    const { ts, at } = nextTs();
+    const recipients = newMembers("U_MANY", 300);
+    const earlier = await givenBeforeStickersShippedIn(limited, carol, recipients);
 
-    await post(limited, [section(...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: alice.user, ts });
-    await settle(limited);
-    await limited.mutation(internal.stickers.backfill.startStickerBackfill, { workspace: "T1" });
+    const at = await thanksIn(limited, alice, recipients);
     await settle(limited);
 
-    const stickers = await stickersOf(await withTheBookOpen(alice, limited));
-    expect(stickers).toHaveLength(300);
-    expect(new Set(stickers?.map(({ firstAt }) => firstAt))).toEqual(new Set([at]));
-    expect(await stickersOf(await withTheBookOpen(recipients[299]!, limited))).toEqual([await stickerOf(recipients[299]!, alice, at, { backend: limited })]);
+    const last = recipients[299]!;
+    const alicesStickers = await stickersOf(await withTheBookOpen(alice, limited));
+    expect(alicesStickers).toHaveLength(300);
+    expect(new Set(alicesStickers?.map(({ firstAt }) => firstAt))).toEqual(new Set([at]));
+    const carolsStickers = await stickersOf(await withTheBookOpen(carol, limited));
+    expect(carolsStickers).toHaveLength(300);
+    expect(new Set(carolsStickers?.map(({ firstAt }) => firstAt))).toEqual(new Set([earlier]));
+    expect(await stickersOf(await withTheBookOpen(last, limited))).toEqual([await stickerOf(last, alice, at, { backend: limited }), await stickerOf(last, carol, earlier, { backend: limited })]);
   });
 });
 
