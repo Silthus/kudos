@@ -1,22 +1,26 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import type { FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, isWelcome } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsLoaded, flagsOnForEveryone, journeyShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { blockActions, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
-import { internal } from "../_generated/api";
+import { appHomeOpened, emoji, memberEvent, mention, messageEvent, section } from "../../testing/slackMessages";
+import { aSignedInSession, switchWebsite } from "../../testing/website";
+import { api, internal } from "../_generated/api";
 import { journeyOf } from "../quests/journey";
 import type { MemberId } from "../workspace/directory";
 import type { Feature } from "../unlocks/feature";
 
 const now = new Date("2026-10-16T10:00:00Z");
 const form = { contentType: "application/x-www-form-urlencoded" };
+const everyFlag = ["xp-levels", "unlocks", "everyone-board", "quests", "achievements"];
 const bookReady = "section: *Book* is ready. It opens achievements. [button: Open]";
 const leaderboardReady = "section: *Leaderboard* is ready. It opens the boards. [button: Open]";
 const questsReady = "section: *Quests* is ready. It opens your weekly quests. [button: Open]";
 
 let slack: FakeSlack;
+let postHog: FakePostHog;
 let sentMessages = 0;
 
 beforeEach(() => {
@@ -25,7 +29,7 @@ beforeEach(() => {
   vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-test");
   vi.stubEnv("SLACK_APP_ID", "A_KUDOS");
   slack = new FakeSlack().withMember("U_ALICE").withMember("U_BOB").withMember("U_CAROL");
-  flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "everyone-board", "quests", "achievements");
+  postHog = flagsOnForEveryone(slack.fetch, ...everyFlag);
   sentMessages = 0;
 });
 
@@ -76,6 +80,19 @@ describe("unlock schedule 2: the Book at level 1, the Leaderboard at level 2, Qu
     await openHome(t, "U_CAROL");
 
     expect(unlockLinesOf(publishedHome(slack, "U_CAROL"))).toEqual([bookReady, "section: Next: Leaderboard at level 2."]);
+    expect(dmsTo("U_CAROL")).toEqual([]);
+  });
+
+  test("a member at level 1 whom nothing in Slack has shown unlocks signs in to the website first and reads the Book ready, and no DM names it", async () => {
+    vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+    const t = await workspace();
+    await switchWebsite(t, postHog, true, ...everyFlag);
+    await t.fetch("/slack/events", await signedRequest(memberEvent("team_join", { id: "U_CAROL", name: "carol" })));
+    await settle(t);
+
+    const { asSignedIn } = await aSignedInSession(t, { user: "U_CAROL", name: "Carol" });
+
+    expect(await asSignedIn.query(api.website.book.getBook, {})).toEqual({ kind: "ready" });
     expect(dmsTo("U_CAROL")).toEqual([]);
   });
 

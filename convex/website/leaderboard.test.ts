@@ -445,8 +445,8 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
     await aMember("U_JUNO", "Juno");
     const { asSignedIn } = await aSession(t, juno);
 
-    expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "locked", level: 3 });
-    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "locked", level: 3 } });
+    expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "locked", level: 2 });
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "locked", level: 2 } });
   });
 
   test("before the launch, website reads never run it: no launch is recorded", async () => {
@@ -471,14 +471,14 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
       await gives("U_JUNO", 2);
       const { asSignedIn } = await aSession(t, juno);
 
-      expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "locked", level: 3 });
-      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "locked", level: 3 } });
+      expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "locked", level: 2 });
+      expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", leaderboard: { kind: "locked", level: 2 } });
     });
 
-    test("a member at level 3 who hasn't opened it reads ready, with no board facts", async () => {
+    test("a member at level 2 who hasn't opened it reads ready, with no board facts", async () => {
       await aMember("U_JUNO", "Juno");
       await gives("U_JUNO", 2);
-      await reachesLevelThree("U_JUNO");
+      await reachesLevelTwo("U_JUNO");
       const { asSignedIn } = await aSession(t, juno);
 
       expect(await leaderboard("week", asSignedIn)).toEqual({ kind: "ready" });
@@ -488,7 +488,7 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
     test("a member who opened it reads the board", async () => {
       await aMember("U_JUNO", "Juno");
       await gives("U_JUNO", 2);
-      await reachesLevelThree("U_JUNO");
+      await reachesLevelTwo("U_JUNO");
       await opensTheLeaderboard("U_JUNO");
       const { asSignedIn } = await aSession(t, juno);
 
@@ -510,7 +510,7 @@ describe("WS52: the website's leaderboard waits for its unlock", () => {
       await aMember("U_ANN", "Ann");
       await gives("U_ANN", 5);
       await gives("U_JUNO", 2);
-      await reachesLevelThree("U_JUNO");
+      await reachesLevelTwo("U_JUNO");
       await opensTheLeaderboard("U_JUNO");
       const { asSignedIn } = await aSession(t, juno);
 
@@ -599,8 +599,8 @@ function unlocksLaunched() {
   return unlocksShippedBeforeAnyoneJoined(t);
 }
 
-async function reachesLevelThree(user: string) {
-  await reachesLevel(t, await memberIdOf(user), 3);
+async function reachesLevelTwo(user: string) {
+  await reachesLevel(t, await memberIdOf(user), 2);
 }
 
 async function opensTheLeaderboard(user: string) {

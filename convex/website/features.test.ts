@@ -87,21 +87,21 @@ describe("the website's feature states are Unlocks' facts", () => {
   describe("while unlocks apply", () => {
     beforeEach(() => launchedThen(...allFlags));
 
-    test("WS56 WS57: a member at level 1 reads the shipped Leaderboard locked at level 3, with its name and what it opens", async () => {
+    test("WS56 WS57: a member at level 1 reads the shipped Leaderboard locked at level 2, with its name and what it opens", async () => {
       const { asSignedIn } = await signedInMember();
 
       const profile = await myProfile(asSignedIn);
 
       expect(profile.features).toEqual([
-        { feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 3, state: "locked", readyAt: null, openedAt: null, seen: expect.any(String) },
+        { feature: "leaderboard", name: "Leaderboard", opens: "the boards", level: 2, state: "locked", readyAt: null, openedAt: null, seen: expect.any(String) },
       ]);
-      expect(profile.leaderboard).toEqual({ kind: "locked", level: 3 });
+      expect(profile.leaderboard).toEqual({ kind: "locked", level: 2 });
     });
 
-    test("WS56 WS57: a member at level 3 reads it ready since the moment their level made it ready", async () => {
+    test("WS56 WS57: a member at level 2 reads it ready since the moment their level made it ready", async () => {
       const { member, asSignedIn } = await signedInMember();
       const readyAt = Date.parse("2026-10-14T09:00:00Z");
-      await reachesLevel(t, member, 3, readyAt);
+      await reachesLevel(t, member, 2, readyAt);
 
       const profile = await myProfile(asSignedIn);
 
@@ -111,7 +111,7 @@ describe("the website's feature states are Unlocks' facts", () => {
 
     test("WS56 WS57: a member who opened it reads it open, with when", async () => {
       const { member, asSignedIn } = await signedInMember();
-      await reachesLevel(t, member, 3, Date.parse("2026-10-14T09:00:00Z"));
+      await reachesLevel(t, member, 2, Date.parse("2026-10-14T09:00:00Z"));
       await opens(t, member, "leaderboard");
 
       const profile = await myProfile(asSignedIn);
@@ -150,7 +150,7 @@ describe("the website shows only shipped features", () => {
     const features = (await myProfile(asSignedIn)).features;
 
     expect(features?.map(({ feature, name, level, state }) => ({ feature, name, level, state }))).toEqual([
-      { feature: "leaderboard", name: "Leaderboard", level: 3, state: "ready" },
+      { feature: "leaderboard", name: "Leaderboard", level: 2, state: "ready" },
       { feature: "skillTree", name: "Skill tree", level: 5, state: "ready" },
     ]);
   });
@@ -189,10 +189,10 @@ describe("WS79: a feature page follows its entry, beside an unchanged leaderboar
   describe("while unlocks apply and skill-tree is on", () => {
     beforeEach(() => launchedThen(...allFlags, "skill-tree"));
 
-    test("a member at level 1 reads the Skill tree locked at level 5 and the leaderboard locked at level 3", async () => {
+    test("a member at level 1 reads the Skill tree locked at level 5 and the leaderboard locked at level 2", async () => {
       const { asSignedIn } = await signedInMember();
 
-      expect(pagesOf(await myProfile(asSignedIn))).toEqual({ skillTree: { state: "locked", level: 5 }, leaderboard: { kind: "locked", level: 3 } });
+      expect(pagesOf(await myProfile(asSignedIn))).toEqual({ skillTree: { state: "locked", level: 5 }, leaderboard: { kind: "locked", level: 2 } });
     });
 
     test("a member at level 5 reads both ready", async () => {

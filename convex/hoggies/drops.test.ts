@@ -81,7 +81,7 @@ async function aFinishedWeeklyQuestIn(backend: Backend = t, ...alsoOn: string[])
   await flagsOn(backend, ...questsFlags, ...alsoOn);
   await journeyShippedBeforeAnyoneJoined(backend);
   const team = await aTeamIn(backend);
-  await reachesLevel(backend, team.member, 2);
+  await reachesLevel(backend, team.member, 3);
   await opens(backend, team.member, "quests");
   const slots = (["say-why", "say-why-three-times"] as const).map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 15 } }));
   await backend.run((ctx) => ctx.db.insert("questDraws", { member: team.member, week: thisWeek, drawnAt: Date.now(), slots }));
@@ -93,7 +93,7 @@ async function aReadyFeatureIn(backend: Backend = t, ...alsoOn: string[]) {
   await flagsOn(backend, ...questsFlags, ...alsoOn);
   await journeyShippedBeforeAnyoneJoined(backend);
   const team = await aTeamIn(backend);
-  await reachesLevel(backend, team.member, 2);
+  await reachesLevel(backend, team.member, 3);
   return team;
 }
 
@@ -376,7 +376,7 @@ describe("CL7 CL18: collection's exposure", () => {
 
     await openQuestCrate(asSignedIn);
     await openQuestCrate(asSignedIn);
-    await reachesLevel(t, member, 2);
+    await reachesLevel(t, member, 3);
     await openFeature(asSignedIn);
     await settleInTimeOrder(t);
 

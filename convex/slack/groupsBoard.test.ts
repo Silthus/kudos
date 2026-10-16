@@ -243,7 +243,7 @@ describe("GB17: the group boards wait for the Leaderboard and for groups", { tim
 
     const reply = await command(t, "U_ANN", "leaderboard");
 
-    expect(reply).toEqual({ response_type: "ephemeral", text: "Leaderboard opens at level 3." });
+    expect(reply).toEqual({ response_type: "ephemeral", text: "Leaderboard opens at level 2." });
   });
 
   test("with groups off, the reply and the tab are the Everyone board alone, as before groups", async () => {

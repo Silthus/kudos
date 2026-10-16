@@ -56,6 +56,12 @@ export async function unlocksPreviewedBy(ctx: MutationCtx, member: MemberId): Pr
   if (!(await unlocksOnIn(ctx, workspace))) await unlocksOpenedFor(ctx, workspace, member);
 }
 
+export async function readyFromTheStartOnTheWebsite(ctx: MutationCtx, member: MemberId): Promise<void> {
+  if (!(await unlockPathShownTo(ctx, member))) return;
+  const { workspace } = await chatUserOf(ctx, member);
+  await makeReadyFromTheStart(ctx, workspace, member);
+}
+
 export async function unlockPathShownIn(ctx: QueryCtx, workspace: string): Promise<boolean> {
   return (await xpLevelsShownIn(ctx, workspace)) && (await unlocksAppliedIn(ctx, workspace));
 }

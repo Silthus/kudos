@@ -36,10 +36,10 @@ afterEach(() => {
 });
 
 describe("E1 P73: a level up makes a feature ready, and Open opens it", () => {
-  test("with xp-levels and unlocks on and Quests shipped, reaching level 2 sends unlock made ready for quests; Open in the level-up DM sends unlock opened by member", async () => {
+  test("with xp-levels and unlocks on and Quests shipped, reaching level 3 sends unlock made ready for quests; Open in the level-up DM sends unlock opened by member", async () => {
     const t = await unlocksLaunchedBeforeAnyoneJoined("quests");
 
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
     const madeReady = await unlockRowOf(t, "U_ALICE", "quests");
 
     const alice = givenBy();
@@ -62,7 +62,7 @@ describe("E1 P73: a level up makes a feature ready, and Open opens it", () => {
 describe("E7: exactly once", () => {
   test("the Open interaction redelivered, and a second click on Open, send no second unlock opened", async () => {
     const t = await unlocksLaunchedBeforeAnyoneJoined("quests");
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
     const open = openInLevelUpDm("U_ALICE");
 
     await click(t, open);
@@ -74,9 +74,9 @@ describe("E7: exactly once", () => {
 });
 
 describe("E1 P78: the ship sweep makes a shipped feature ready", () => {
-  test("a Leaderboard that ships after a member passed level 3 is made ready by the sweep, which sends unlock made ready once, at the sweep's time", async () => {
+  test("a Leaderboard that ships after a member passed level 2 is made ready by the sweep, which sends unlock made ready once, at the sweep's time", async () => {
     const t = await unlocksLaunchedBeforeAnyoneJoined();
-    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
     expect(unlockEvents()).toEqual([]);
 
     await flagsFromPostHog(t, postHog, ...flagsOn("leaderboard"));
@@ -142,8 +142,9 @@ describe("E10: analytics follows the stored facts, never the flags", () => {
 
   test("with quests on and unlocks off, the readiness unlocks still stores is sent, and nothing is opened", async () => {
     const t = await flagsFromPostHog(testBackend(), postHog, onForEveryone("xp-levels"), offForEveryone("unlocks"), onForEveryone("quests"));
+    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
 
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_ALICE", "U_BOB", 10);
 
     await unlockRowOf(t, "U_ALICE", "quests");
     expect(unlockEvents().map(({ event, distinct_id, properties }) => ({ event, distinct_id, feature: properties.feature }))).toEqual([

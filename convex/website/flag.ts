@@ -5,7 +5,7 @@ import { bookLaunchDueIn } from "../achievements/flag";
 import { workspaceKeyOf } from "../analytics/outbox";
 import { journeyLaunchDueIn, journeyPreviewedBy } from "../quests/flag";
 import { signInWorkspace } from "../slack/signIn";
-import { unlocksLaunchDueIn, unlocksPreviewedBy } from "../unlocks/launch";
+import { readyFromTheStartOnTheWebsite, unlocksLaunchDueIn, unlocksPreviewedBy } from "../unlocks/launch";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 
 export const websiteFlag = { key: "website", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
@@ -25,8 +25,10 @@ export function websiteOpenTo(ctx: QueryCtx | MutationCtx, member: MemberId): Pr
 export async function websiteShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
   const shown = await memberDecision(ctx, websiteFlag, member);
   await exposed(ctx, websiteFlag, member, shown);
-  if (shown) await runDuePreviewMoments(ctx, member);
-  return shown;
+  if (!shown) return false;
+  await runDuePreviewMoments(ctx, member);
+  await readyFromTheStartOnTheWebsite(ctx, member);
+  return true;
 }
 
 export async function websiteAdmits(ctx: MutationCtx, member: MemberId): Promise<boolean> {

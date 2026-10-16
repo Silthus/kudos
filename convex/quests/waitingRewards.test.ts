@@ -6,6 +6,7 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, publishedHome, publishedHomeBlocks, readBlocks, staleButtonOf, type Block, type BlockAction } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { reachesLevel } from "../../testing/unlocks";
 import { internal } from "../_generated/api";
 import type { QueryCtx } from "../_generated/server";
 import type { NotificationLine } from "../feedback/notify";
@@ -226,6 +227,7 @@ async function openedQuests(t: Backend, user: string, reward: { xp: number; coin
   await giveKudos(t, user, "U_BOB");
   await openHome(t, user);
   await click(t, user, staleButtonOf({ type: "openQuestCrate", quest: { kind: "journey", step: "first-thanks" } }));
+  await reachesLevel(t, await t.run((ctx) => memberIn(ctx, user)), 3);
   await t.run(async (ctx) => {
     const member = await memberIn(ctx, user);
     const slots = (["say-why", "say-why-twice", "say-why-three-times"] as QuestId[]).map((quest, slot) => ({

@@ -57,7 +57,7 @@ afterEach(() => {
 });
 
 describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the website's link function answers a link", { timeout: 30_000 }, () => {
-  test("a member who opened Quests and the Leaderboard sees the summary: allowance, one level line, the waiting crate, the week's quests with Swap, and buttons to Home, Quests and the Leaderboard", async () => {
+  test("a member who opened Quests and the Leaderboard sees the summary: allowance, one level line, the waiting crate, the week's quests with Swap, and buttons to Home, the Leaderboard and Quests", async () => {
     const t = await workspace(...everyFlag, "website");
     await levelThreeWithQuestsDrawn(t);
     await openReadyFeatures(t);
@@ -71,8 +71,8 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       "divider",
       `section: ✅ ${sayWhy} ${openOnTheWeb("/quests?quest=0")}`,
       `section: ✅ Give a kudos that says why. ${openOnTheWeb("/?crate=journey")}`,
-      `section: ✅ Finish a weekly quest. ${openOnTheWeb("/?crate=journey")}`,
       `section: ✅ Thank someone you haven't thanked before. ${openOnTheWeb("/?crate=journey")}`,
+      `section: ✅ Finish a weekly quest. ${openOnTheWeb("/?crate=journey")}`,
       "divider",
       "section: *Quests this week*",
       `section: ✅ ${sayWhy} You earned *20 XP*.`,
@@ -80,17 +80,17 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
       `section: ${threeTimes} *1/3* · *20 XP* ${swapOnTheWeb(2)}`,
       sayingWhyCounts,
       "divider",
-      "actions: Open HedgeHug | Quests | Leaderboard",
+      "actions: Open HedgeHug | Leaderboard | Quests",
       "divider",
       ...hints,
     ]);
-    expect(publishedHomeBlocks(slack, "U_ALICE").filter((block) => readBlocks([block])[0] === "actions: Open HedgeHug | Quests | Leaderboard")).toEqual([
+    expect(publishedHomeBlocks(slack, "U_ALICE").filter((block) => readBlocks([block])[0] === "actions: Open HedgeHug | Leaderboard | Quests")).toEqual([
       {
         type: "actions",
         elements: [
           { type: "button", text: { type: "plain_text", text: "Open HedgeHug" }, url: `${siteUrl}/`, action_id: "website-link-0" },
-          { type: "button", text: { type: "plain_text", text: "Quests" }, url: `${siteUrl}/quests`, action_id: "website-link-1" },
-          { type: "button", text: { type: "plain_text", text: "Leaderboard" }, url: `${siteUrl}/leaderboard`, action_id: "website-link-2" },
+          { type: "button", text: { type: "plain_text", text: "Leaderboard" }, url: `${siteUrl}/leaderboard`, action_id: "website-link-1" },
+          { type: "button", text: { type: "plain_text", text: "Quests" }, url: `${siteUrl}/quests`, action_id: "website-link-2" },
         ],
       },
     ]);
@@ -156,9 +156,9 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Settings");
     expect(linkButtonsIn(publishedHomeBlocks(slack, "U_ALICE"))).toEqual([
       { label: "Open HedgeHug", url: `${siteUrl}/` },
-      { label: "Quests", url: `${siteUrl}/quests` },
-      { label: "Leaderboard", url: `${siteUrl}/leaderboard` },
       { label: "Book", url: `${siteUrl}/book` },
+      { label: "Leaderboard", url: `${siteUrl}/leaderboard` },
+      { label: "Quests", url: `${siteUrl}/quests` },
       { label: "Skill tree", url: `${siteUrl}/skills` },
     ]);
   });
@@ -274,7 +274,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     await openReadyFeatures(t);
 
     expect(publishedHome(slack, "U_ALICE").filter((line) => line.includes("is ready."))).toEqual([]);
-    expect(linkButtonsIn(publishedHomeBlocks(slack, "U_ALICE")).map(({ label }) => label)).toEqual(["Open HedgeHug", "Quests", "Leaderboard"]);
+    expect(linkButtonsIn(publishedHomeBlocks(slack, "U_ALICE")).map(({ label }) => label)).toEqual(["Open HedgeHug", "Leaderboard", "Quests"]);
 
     await send(t, blockActions("U_ALICE", staleButtonOf({ type: "openQuestCrate", quest: { kind: "journey", step: "first-thanks" } })));
 
@@ -293,16 +293,16 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
       `section: *Week of Oct 12:* ✅ ${sayWhy} ${openOnTheWeb("/quests?crate=weekly%3A2026-10-12%3A0")}`,
       `section: ✅ Give a kudos that says why. ${openOnTheWeb("/?crate=journey")}`,
-      `section: ✅ Finish a weekly quest. ${openOnTheWeb("/?crate=journey")}`,
       `section: ✅ Thank someone you haven't thanked before. ${openOnTheWeb("/?crate=journey")}`,
+      `section: ✅ Finish a weekly quest. ${openOnTheWeb("/?crate=journey")}`,
     ]);
 
     await send(t, blockActions("U_ALICE", staleButtonOf({ type: "openQuestCrate", quest: { kind: "weekly", week: "2026-10-12", slot: 0 } })));
 
     expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
       `section: ✅ Give a kudos that says why. ${openOnTheWeb("/?crate=journey")}`,
-      `section: ✅ Finish a weekly quest. ${openOnTheWeb("/?crate=journey")}`,
       `section: ✅ Thank someone you haven't thanked before. ${openOnTheWeb("/?crate=journey")}`,
+      `section: ✅ Finish a weekly quest. ${openOnTheWeb("/?crate=journey")}`,
     ]);
   });
 
@@ -355,8 +355,8 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     sayingWhyCounts,
     "divider",
     "section: *Journey:* ✅ Give a kudos that says why. You earned *10 XP*. [button: Open]",
-    "section: *Journey:* ✅ Finish a weekly quest. You earned *20 XP*. [button: Open]",
     "section: *Journey:* ✅ Thank someone you haven't thanked before. You earned *30 XP*. [button: Open]",
+    "section: *Journey:* ✅ Finish a weekly quest. You earned *20 XP*. [button: Open]",
     "divider",
     "section fields: *Given this week*\n*2* | *Received this week*\n*0* | *Given in total*\n*2* | *Received in total*\n*0*",
     "divider",
@@ -408,8 +408,8 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     await levelThreeWithQuestsDrawn(t);
 
     expect(publishedHome(slack, "U_ALICE").filter((line) => line.includes("is ready."))).toEqual([
-      `section: *Quests* is ready. ${openOnTheWeb("/quests?crate=quests")}`,
       `section: *Leaderboard* is ready. ${openOnTheWeb("/leaderboard?crate=leaderboard")}`,
+      `section: *Quests* is ready. ${openOnTheWeb("/quests?crate=quests")}`,
     ]);
     expect(accessoryBeside("*Quests* is ready.")).toEqual({
       type: "button",

@@ -4,11 +4,13 @@ import { routedFetch, type CapturedEvent, type FakePostHog } from "../../testing
 import { FakeSlack } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonInHome, type BlockAction } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, buttonInHome, publishedHomeBlocks, type BlockAction } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { reachesLevel } from "../../testing/unlocks";
 import { internal } from "../_generated/api";
 import { publish } from "../bus/publish";
 import type { QuestId } from "../quests/pool";
+import type { Feature } from "../unlocks/feature";
 import type { MemberId } from "../workspace/directory";
 
 vi.mock("../bus/publish", async (importOriginal) => {
@@ -82,11 +84,12 @@ describe("E1 P88: a new member's Journey steps send journey step activated as th
   test("opening Quests sends first-quest at the opening", async () => {
     const t = await newMembersWith(...everyFlag);
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await reachesLevel(t, await memberOf(t, "U_ALICE"), 3);
     await openHome(t, "U_ALICE");
     await drawFor(t, "U_ALICE", ["say-why", "say-why-twice", "say-why-three-times"]);
     const openedAt = aMinuteLater();
 
-    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Open"));
+    await click(t, "U_ALICE", openButtonInHome("U_ALICE", "quests"));
 
     expect(stepsActivatedOn(giverId()).map(stepAndTime)).toEqual([
       { step: "first-thanks", timestamp: now.toISOString() },
@@ -193,6 +196,12 @@ async function openHome(t: Backend, user: string) {
 async function click(t: Backend, user: string, action: BlockAction) {
   await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, action), form));
   await settleInTimeOrder(t);
+}
+
+function openButtonInHome(user: string, feature: Feature) {
+  const command = JSON.stringify({ type: "openUnlock", feature });
+  const block = publishedHomeBlocks(slack, user).find((candidate) => candidate.accessory?.value === command);
+  return buttonIn([block!], "Open");
 }
 
 async function hourlySweep(t: Backend) {

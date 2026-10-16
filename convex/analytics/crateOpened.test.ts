@@ -4,10 +4,12 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, buttonInHome, type Block } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, publishedHomeBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { reachesLevel } from "../../testing/unlocks";
 import { internal } from "../_generated/api";
 import type { QuestId } from "../quests/pool";
+import type { Feature } from "../unlocks/feature";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const wednesday = now.getTime() + 24 * 60 * 60 * 1000;
@@ -125,14 +127,21 @@ async function workspace() {
 async function openedQuests(quests: QuestId[]) {
   const t = await workspace();
   await giveKudos(t, "U_ALICE", saysWhy);
+  const member = await memberOf(t, "U_ALICE");
+  await reachesLevel(t, member, 3);
   await t.fetch("/slack/events", await signedRequest(appHomeOpened("U_ALICE")));
   await settle(t);
-  const member = await memberOf(t, "U_ALICE");
   const slots = quests.map((quest, slot) => ({ slot, quest, reward: rewardOf20Xp, catalogueVersion: "1", feasibleBecause }));
   await t.run((ctx) => ctx.db.insert("questDraws", { member, week, drawnAt: now.getTime(), slots }));
-  await t.fetch("/slack/interactivity", await signedRequest(blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")), form));
+  await t.fetch("/slack/interactivity", await signedRequest(blockActions("U_ALICE", openButtonInHomeFor("quests")), form));
   await settle(t);
   return t;
+}
+
+function openButtonInHomeFor(feature: Feature) {
+  const command = JSON.stringify({ type: "openUnlock", feature });
+  const block = publishedHomeBlocks(slack, "U_ALICE").find((candidate) => candidate.accessory?.value === command);
+  return buttonIn([block!], "Open");
 }
 
 async function swapFirstSlotFor(t: Backend, replaced: QuestId, quest: QuestId) {
