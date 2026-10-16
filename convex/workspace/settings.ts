@@ -7,6 +7,7 @@ export type WorkspaceSettings = { baseAllowance: number; kudosEmoji: string; ann
 
 const defaultBaseAllowance = 3;
 const fallbackKudosEmoji = "taco";
+const defaultHugBudget = 10;
 
 export async function settingsOf(ctx: QueryCtx, workspace: string): Promise<WorkspaceSettings> {
   const row = await workspaceRow(ctx, workspace);
@@ -16,6 +17,20 @@ export async function settingsOf(ctx: QueryCtx, workspace: string): Promise<Work
     announcementChannel: row?.announcementChannel ?? null,
   };
 }
+
+export async function hugBudgetOf(ctx: QueryCtx, workspace: string): Promise<number> {
+  return (await workspaceRow(ctx, workspace))?.hugBudget ?? defaultHugBudget;
+}
+
+export const setHugBudget = internalMutation({
+  args: { workspace: v.string(), hugBudget: v.number() },
+  handler: async (ctx, { workspace, hugBudget }) => {
+    if (!Number.isInteger(hugBudget) || hugBudget < 0) throw new Error("A hug budget is a whole number of hugs, 0 or more");
+    const row = await workspaceRow(ctx, workspace);
+    if (row === null) throw new Error(`Kudos knows no workspace ${workspace}`);
+    await ctx.db.patch(row._id, { hugBudget });
+  },
+});
 
 export const pickAnnouncementChannel = internalMutation({
   args: { workspace: v.string(), channel: v.union(v.string(), v.null()) },
