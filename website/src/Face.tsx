@@ -7,15 +7,20 @@ export function MemberFace({ face, className }: { face: Face; className: string 
 }
 
 function FaceImage({ face, className }: { face: Exclude<Face, { kind: "initials" }>; className: string }) {
+  const { failed, picture, onError } = usePictureFailure();
+  if (failed) return <Initials initials={face.initials} className={className} />;
+  const onColour: CSSProperties | undefined = face.kind === "company-profile" ? { backgroundColor: face.colour } : undefined;
+  const fill = face.kind === "slack" ? "bg-muted object-cover" : "object-cover object-top";
+  return <img ref={picture} src={face.image} alt="" style={onColour} onError={onError} className={`shrink-0 rounded-full ${fill} ${className}`} />;
+}
+
+export function usePictureFailure() {
   const [failed, setFailed] = useState(false);
   const picture = useRef<HTMLImageElement>(null);
   useLayoutEffect(() => {
     if (picture.current !== null && alreadyFailed(picture.current)) setFailed(true);
   }, []);
-  if (failed) return <Initials initials={face.initials} className={className} />;
-  const onColour: CSSProperties | undefined = face.kind === "company-profile" ? { backgroundColor: face.colour } : undefined;
-  const fill = face.kind === "slack" ? "bg-muted object-cover" : "object-cover object-top";
-  return <img ref={picture} src={face.image} alt="" style={onColour} onError={() => setFailed(true)} className={`shrink-0 rounded-full ${fill} ${className}`} />;
+  return { failed, picture, onError: () => setFailed(true) };
 }
 
 function alreadyFailed(image: HTMLImageElement) {

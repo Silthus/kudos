@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
 import { bookFixtures } from "./bookFixtures";
+import { collectionFixtures } from "./collectionFixtures";
 import { leaderboardFixtures } from "./leaderboardFixtures";
 import { recentKudosFixtures } from "./recentKudosFixtures";
 import { shellFixtures } from "./shell";
@@ -586,6 +587,40 @@ describe("WS321: the visibility switch never sends again by itself", () => {
     expect(openFeatureCall).not.toHaveBeenCalled();
     boardAnswers(leaderboardFixtures.left);
     expect(await screen.findByText("You're off the leaderboards.")).toBeInTheDocument();
+  });
+});
+
+describe("#568: a member picks a hoggie they hold as their avatar on /book/collection", () => {
+  const rocket = { hoggie: "rocket", name: "Rocket", rarity: "legendary", art: { kind: "hoggie", slug: "rocket" } } as const;
+  const banana = collectionFixtures.collection.hoggies.find(({ hoggie }) => hoggie === "banana")!;
+
+  function onTheCollectionWith(avatar: typeof rocket | null) {
+    window.history.replaceState(null, "", "/book/collection");
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithTheBookOpened, avatar });
+    boardRead.mockImplementation((query: string) => (query === "website/collection:getCollection" ? collectionFixtures.collection : bookFixtures.book));
+  }
+
+  it("sends Use as avatar's one setAvatar over HTTP with the session's token and the tile's hoggie, never through the socket's queue", async () => {
+    onTheCollectionWith(null);
+    sentOverHttp.mockResolvedValue({ kind: "set", avatar: { hoggie: banana.hoggie, name: banana.name, rarity: banana.rarity, art: banana.art } });
+    const { user } = renderLiveSite();
+
+    await user.click(await screen.findByRole("button", { name: `Use as avatar: ${banana.name}` }));
+
+    expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/commands:setAvatar", args: { hoggie: banana.hoggie } });
+    expect(openFeatureCall).not.toHaveBeenCalled();
+    expect(buyPerkCall).not.toHaveBeenCalled();
+  });
+
+  it("sends Remove avatar's one setAvatar with null over HTTP, never through the socket's queue", async () => {
+    onTheCollectionWith(rocket);
+    sentOverHttp.mockResolvedValue({ kind: "set", avatar: null });
+    const { user } = renderLiveSite();
+
+    await user.click(await screen.findByRole("button", { name: "Remove avatar" }));
+
+    expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/commands:setAvatar", args: { hoggie: null } });
+    expect(openFeatureCall).not.toHaveBeenCalled();
   });
 });
 

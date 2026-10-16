@@ -1,9 +1,9 @@
-import { MemberFace } from "./Face";
 import { LevelRing } from "./LevelRing";
+import { OwnFace } from "./OwnFace";
 import type { MemberProfile } from "./shell";
 
 export function LeveledFace({ member, className }: { member: MemberProfile; className: string }) {
-  const face = <MemberFace face={member.face} className={className} />;
+  const face = <OwnFace face={member.face} avatar={member.avatar} className={className} />;
   if (member.progression === null) return face;
   return (
     <LevelRing progression={member.progression} size={44} stroke={5}>

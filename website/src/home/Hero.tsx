@@ -3,9 +3,9 @@ import { buttonVariants } from "@posthog/quill";
 import { AppLink } from "../AppLink";
 import { useCountUp } from "../countUp";
 import { heroRingAttributes, heroXpBarAttributes } from "../crates/RewardFlight";
-import { MemberFace } from "../Face";
 import { LevelRing, levelShare } from "../LevelRing";
 import { MaxLine } from "../Max";
+import { OwnFace } from "../OwnFace";
 import { PageTitle } from "../PageTitle";
 import { hasGivenNoKudos } from "./FirstKudosNudge";
 import { pageOf } from "../features";
@@ -19,7 +19,7 @@ export function Hero({ member }: { member: MemberProfile }) {
   return (
     <section aria-labelledby="home-title" className="flex flex-col items-start gap-6 text-left sm:flex-row sm:items-center sm:gap-7 sm:py-4">
       <div className="flex items-center gap-5 sm:contents">
-        <MemberFace face={member.face} className="size-28" />
+        <OwnFace face={member.face} avatar={member.avatar} className="size-28 [--avatar-ring:4px]" />
         {progression !== null && <HeroRing progression={progression} />}
       </div>
       <div className="flex w-full min-w-0 flex-1 flex-col items-start">
