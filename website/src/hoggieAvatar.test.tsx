@@ -167,7 +167,8 @@ describe("#568: a member picks a hoggie they hold as their avatar on /book/colle
     expect(setAvatar).toHaveBeenCalledTimes(1);
     expect(setAvatar).toHaveBeenCalledWith(heart.hoggie);
     showVisitor(withAvatar(avatarOf(heart)));
-    expect(await screen.findByText(`${heart.name} is your avatar.`)).toBeInTheDocument();
+    expect(await screen.findByText(`${heart.name} is your avatar.`)).toHaveClass("sr-only");
+    expect(within(screen.getByRole("region", { name: "Your avatar" })).getByText(`${heart.name} shows in place of your Slack picture.`)).toBeVisible();
     expect(avatarIn(header())).toHaveAttribute("data-avatar", heart.hoggie);
     expect(tile(heart.hoggie)).toHaveAttribute("data-avatar-current");
   });
@@ -188,7 +189,7 @@ describe("#568: a member picks a hoggie they hold as their avatar on /book/colle
     const setAvatar = vi.fn(async () => ({ kind: "refused" }) as const);
     const { user } = show({ member: withAvatar(asleep), setAvatar });
     await user.click(within(tile(heart.hoggie)).getByRole("button", { name: `Use as avatar: ${heart.name}` }));
-    expect(await screen.findByText("That couldn't be changed.")).toBeInTheDocument();
+    expect(await screen.findByText("That couldn't be changed.")).not.toHaveClass("sr-only");
     expect(avatarIn(header())).toHaveAttribute("data-avatar", asleep.hoggie);
   });
 

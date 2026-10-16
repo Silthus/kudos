@@ -26,8 +26,8 @@ export function HoggieTile({ hoggie, fresh, timeZone, avatar }: HoggieTileProps)
 function AvatarAction({ hoggie, avatar, isAvatar }: { hoggie: CollectionHoggie; avatar: AvatarChoice; isAvatar: boolean }) {
   if (isAvatar) return <Tag>Your avatar</Tag>;
   return (
-    <Button variant="link-muted" size="xs" disabled={avatar.pending} onClick={() => avatar.choose(hoggie.hoggie)}>
-      Use as avatar<span className="sr-only">{`: ${hoggie.name}`}</span>
+    <Button variant="link-muted" size="xs" aria-label={`Use as avatar: ${hoggie.name}`} disabled={avatar.pending} onClick={() => avatar.choose(hoggie.hoggie)}>
+      Use as avatar
     </Button>
   );
 }

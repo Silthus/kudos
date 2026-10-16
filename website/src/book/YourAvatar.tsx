@@ -1,8 +1,7 @@
 import { Button } from "@posthog/quill";
-import { StatusLine } from "../settings/StatusLine";
 import type { AvatarChoice } from "./avatarChoice";
 
-export function YourAvatar({ choice: { current, pending, line, choose } }: { choice: AvatarChoice }) {
+export function YourAvatar({ choice: { current, pending, settled, line, choose } }: { choice: AvatarChoice }) {
   return (
     <section aria-label="Your avatar" className="flex flex-col gap-1">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
@@ -13,7 +12,9 @@ export function YourAvatar({ choice: { current, pending, line, choose } }: { cho
           </Button>
         )}
       </div>
-      <StatusLine line={line} />
+      <p role="status" className={settled === "landed" || line === "" ? "sr-only" : "text-sm text-muted-foreground"}>
+        {line}
+      </p>
     </section>
   );
 }
