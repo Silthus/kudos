@@ -1,0 +1,40 @@
+ ❯ convex/website/buyItem.test.ts:396:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/29]⎯
+
+ FAIL  |convex| convex/website/buyItem.test.ts > a coin spent on the website for an item is spent once > WS335: two requests for two items with coins for one buy one
+Error: Expected a Convex function exported from module "website/commands" as `buyItem`, but there is no such export.
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2490:15
+    2488|     const func = module[exportName];
+    2489|     if (func === undefined) {
+    2490|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2491|     }
+    2492|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2202:34
+ ❯ mutation node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2252:20
+ ❯ convex/website/buyItem.test.ts:409:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/29]⎯
+
+ FAIL  |convex| convex/website/buyItem.test.ts > a coin spent on the website for an item is spent once > WS335: a website request never replays a Slack Buy whose event carries the same string
+Error: Expected a Convex function exported from module "website/commands" as `buyItem`, but there is no such export.
+ ❯ resolveFunction node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2490:15
+    2488|     const func = module[exportName];
+    2489|     if (func === undefined) {
+    2490|         throw new Error(`Expected a Convex function exported from modu…
+       |               ^
+    2491|     }
+    2492|     const handler = getHandler(func);
+ ❯ Object.mutationFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2202:34
+ ❯ mutation node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2252:20
+ ❯ convex/website/buyItem.test.ts:424:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/29]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  29 failed (29)
+   Start at  23:24:42
+   Duration  3.03s (tests 50%, transform 34%, import 14%, environment 2%)
+

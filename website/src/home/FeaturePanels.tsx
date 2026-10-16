@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { IconLock } from "@posthog/icons";
 import type { BoardAnswer } from "../boardRead";
+import type { CollectionShown } from "../collectionRead";
 import { Crate } from "../crates/Crate";
 import { hogOf, pageOf, plainNameOf, sentenceOf, type PagedFeature } from "../features";
 import { readyInSlack } from "../pages/FeatureWaitsPage";
@@ -8,6 +9,7 @@ import type { ProfileCardShown } from "../profileCardRead";
 import type { QuestsShown } from "../questsRead";
 import type { Feature, FeatureCard, MemberProfile } from "../shell";
 import { pointsToSpend } from "../skills/perkWords";
+import { BookPanel } from "./BookPanel";
 import { PageLink, Panel } from "./Panel";
 import { QuestsPanel } from "./QuestsPanel";
 import { StandingPanel } from "./StandingPanel";
@@ -20,12 +22,14 @@ type RailSlot = "quests" | "leaderboard";
 
 export type RailReads = { quests: QuestsShown | undefined; board: BoardAnswer | undefined; card: ProfileCardShown | undefined };
 
+export type HomeReads = RailReads & { collection: CollectionShown | undefined };
+
 const mainColumn: MainSlot[] = ["book", "skillTree"];
 
 const rightRail: RailSlot[] = ["quests", "leaderboard"];
 
-export function MainColumnPanels({ member }: { member: MemberProfile }) {
-  return mainColumn.map((slot) => <SlotPanel key={slot} slot={slot} member={member} open={<OpenPanel slot={slot} member={member} />} />);
+export function MainColumnPanels({ member, collection }: { member: MemberProfile; collection: CollectionShown | undefined }) {
+  return mainColumn.map((slot) => <SlotPanel key={slot} slot={slot} member={member} open={<OpenPanel slot={slot} member={member} collection={collection} />} />);
 }
 
 export function RightRailPanels({ member, reads }: { member: MemberProfile; reads: RailReads }) {
@@ -99,10 +103,12 @@ function ReadyInSlackPanel({ slot }: { slot: RailSlot }) {
   );
 }
 
-function OpenPanel({ slot, member }: { slot: MainSlot; member: MemberProfile }) {
+function OpenPanel({ slot, member, collection }: { slot: MainSlot; member: MemberProfile; collection: CollectionShown | undefined }) {
+  const label = cardOf(member, slot)?.name ?? plainNameOf(slot);
+  if (slot === "book" && collection?.kind === "collection") return <BookPanel label={label} collection={collection} />;
   const line = slot === "skillTree" && member.skillPoints !== null ? pointsToSpend(member.skillPoints) : pageOf(slot).sentence;
   return (
-    <Panel id={slot} label={cardOf(member, slot)?.name ?? plainNameOf(slot)}>
+    <Panel id={slot} label={label}>
       <p className="text-sm text-muted-foreground">{line}</p>
       <PageLink feature={slot} />
     </Panel>

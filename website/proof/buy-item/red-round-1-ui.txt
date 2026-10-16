@@ -1,0 +1,24 @@
+     × lists what isn't yours yet with Buy for its price in coins or the silver tier that gives it 429ms
+     × offers Buy on each item on sale, named for its item, and on nothing else 1055ms
+     × disables Buy with E's shortfall hint while the member is short, keeping it focusable with the hint as its description 429ms
+     × sends buyItem for that item with a browser request at once, with no confirmation dialog 277ms
+     × reads Buying…, disabled and still, until the answer, and sends once however often Buy is pressed 698ms
+     × shows the item among yours from the read, says You bought {name}. and moves focus to the kudos emoji heading 244ms
+     × pops the bought tile once, and not under reduced motion 163ms
+     × takes the bought item out of Not yours yet at the answer, before the read moves it 143ms
+     × names the item the purchase was for even when the read already moved it 120ms
+     × drops the coins chip to the new balance, as a perk purchase does (WS87) 168ms
+     × says what a refusal for no-coins means and changes nothing 165ms
+     × says what a refusal for owned means and changes nothing 218ms
+     × says what a refusal for not-for-sale means and changes nothing 90ms
+     × says what a refusal for coins-not-open means and changes nothing 240ms
+     × says what a refusal for null means and changes nothing 174ms
+     × says HedgeHug couldn't be reached, enables Buy again, and resends the same request for the same item 76ms
+     × makes a fresh request for another item after an error, and after any definite answer 469ms
+     × ends Buying… on a denial and says nothing, leaving the frame to the profile's own answer 134ms
+     × forgets the pending request when the signed-in member changes 72ms
+     × is a small button, not an extra-small one, so a phone has a tap target 127ms
+     × keeps the purchase's status line's height before any answer, so an answer moves nothing 67ms
+     × sends buyItem once over HTTP with the session's token and the item's pending request, never through the socket's queue 1203ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 22 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  22 failed | 57 passed (79)

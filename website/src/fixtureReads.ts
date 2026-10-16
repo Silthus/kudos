@@ -1,6 +1,7 @@
 import { fixtureActivityWatch, fixtureReadActivity } from "./activityFixtures";
 import type { AppReads } from "./App";
 import { fixtureBookFor } from "./bookFixtures";
+import { fixtureCollectionFor } from "./collectionFixtures";
 import { fixedLeaderboard, leaderboardFixtures } from "./leaderboardFixtures";
 import { fixtureProfileCardFor } from "./profileCardFixtures";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
@@ -21,6 +22,7 @@ export function fixtureReadsFor(visitor: ShellState): AppReads {
     useLeaderboard: fixtureLeaderboard,
     useQuests: fixtureQuests,
     useBook: fixtureBookFor(visitor),
+    useCollection: fixtureCollectionFor(visitor),
     useSkillTree: fixtureSkillTreeFor(visitor),
     useProfileCard: fixtureProfileCardFor(visitor),
     useRecentKudos: fixtureRecentKudos,

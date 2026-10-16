@@ -11,6 +11,7 @@ import { App } from "./App";
 import type { ActivityRead, ActivityShown } from "./activityRead";
 import type { BoardAnswer } from "./boardRead";
 import type { BookShown } from "./bookRead";
+import type { CollectionShown } from "./collectionRead";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
 import { useSocketUnreachable } from "./connection";
@@ -49,6 +50,7 @@ function LiveApp() {
       useLeaderboard={(period, withGroupBoards) => useLiveLeaderboard(period, withGroupBoards, unreachable)}
       useQuests={(asking) => useLiveQuests(asking, unreachable)}
       useBook={(asking) => useLiveBook(asking, unreachable)}
+      useCollection={(asking) => useLiveCollection(asking, unreachable)}
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
       useSettings={(asking) => useLiveSettings(asking, unreachable)}
       useProfileCard={useLiveProfileCard}
@@ -83,6 +85,14 @@ function useLiveQuests(asking: boolean, unreachable: boolean): QuestsShown | und
   if (quests instanceof Error) return { kind: "broken" };
   if (quests === undefined && unreachable) return { kind: "connecting" };
   return quests;
+}
+
+function useLiveCollection(asking: boolean, unreachable: boolean): CollectionShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { collection: { query: api.website.collection.getCollection, args: {} } } : {}), [asking]);
+  const { collection } = useQueries(request);
+  if (collection instanceof Error) return { kind: "broken" };
+  if (collection === undefined && unreachable) return { kind: "connecting" };
+  return collection;
 }
 
 function useLiveBook(asking: boolean, unreachable: boolean): BookShown | undefined {
@@ -156,6 +166,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const openQuestCrate = useMutation(api.website.commands.openQuestCrate);
   const buyPerk = useMutation(api.website.commands.buyPerk);
   const swapQuest = useMutation(api.website.commands.swapQuest);
+  const buyItem = useSentOnce(api.website.commands.buyItem);
   const setBoardVisibility = useSentOnce(api.website.commands.setBoardVisibility);
   const setMessageSetting = useSentOnce(api.website.commands.setMessageSetting);
   const pickPrimaryGroup = useSentOnce(api.website.commands.pickPrimaryGroup);
@@ -164,6 +175,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       openFeature: (feature) => answerWithin(commandAnswerBudgetMs, openFeature({ feature })),
       openQuestCrate: (quest) => answerWithin(commandAnswerBudgetMs, openQuestCrate({ quest })),
       buyPerk: ({ perk, request }) => answerWithin(commandAnswerBudgetMs, buyPerk({ perk, request })),
+      buyItem: ({ item, request }) => answerWithin(commandAnswerBudgetMs, buyItem({ item, request })),
       swapQuest: (quest) => answerWithin(commandAnswerBudgetMs, swapQuest({ quest })),
       setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
       setMessageSetting: (kind, place) => answerWithin(commandAnswerBudgetMs, setMessageSetting({ kind, place })),
@@ -175,7 +187,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, onSignInFailure],
   );
 }
 
