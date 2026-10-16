@@ -108,7 +108,7 @@ async function countCopy(ctx: MutationCtx, member: MemberId, hoggie: string, at:
   return tally.count + 1;
 }
 
-function tallyOf(ctx: QueryCtx, member: MemberId, hoggie: string): Promise<Doc<"hoggieTallies"> | null> {
+export function tallyOf(ctx: QueryCtx, member: MemberId, hoggie: string): Promise<Doc<"hoggieTallies"> | null> {
   return ctx.db
     .query("hoggieTallies")
     .withIndex("by_member_hoggie", (q) => q.eq("member", member).eq("hoggie", hoggie))

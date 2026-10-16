@@ -2,7 +2,7 @@ import { v, type ObjectType } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { withholdingWords } from "../analytics/exceptions";
-import { commandValidator, runCommand } from "../commands/commands";
+import { commandsOfferedTo, commandValidator, runCommand } from "../commands/commands";
 import { welcomePickOf } from "../feedback/welcome";
 import { messageDeletedValidator, messageEventValidator } from "../engine/messageEvent";
 import { republish } from "../feedback/homes";
@@ -59,12 +59,14 @@ export const receiveHomeClick = internalMutation({
     ephemeral: v.optional(v.object({ threadRoot: v.optional(v.string()) })),
   },
   handler: async (ctx, { user, commands, conversation, message, ephemeral, ...receipt }) => {
+    const person = await lookup(ctx, receipt.workspace, user);
+    const offered = person?.kind === "member" ? await commandsOfferedTo(ctx, person.member, commands) : commands;
+    if (offered.length === 0) return;
     if (await isRedelivered(ctx, receipt)) return;
     await ctx.db.insert("slackReceipts", receipt);
-    const person = await lookup(ctx, receipt.workspace, user);
     if (person?.kind !== "member") return;
     let refused: HomeRefusal | undefined;
-    for (const command of commands) {
+    for (const command of offered) {
       const outcome = await runCommand(ctx, receipt.workspace, person, command, `slack:${receipt.eventId}`);
       if (outcome !== null && "perk" in outcome && conversation !== undefined) {
         const answeredIn = ephemeral === undefined ? { conversation } : { conversation: user, beside: { conversation, ...ephemeral } };

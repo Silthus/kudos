@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, type ActionCtx, type MutationCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { recordUsage, recordUsageWithoutBlocking } from "../analytics/usage";
+import { avatarShownOn } from "../hoggies/avatar";
 import { renderLookUpFailed, renderNotAMember, renderProfileCard, renderProfileCardUsage } from "../feedback/profileCard";
 import type { Line } from "../feedback/segments";
 import { isProfileCardShownTo } from "../profileCard/flag";
@@ -64,13 +65,14 @@ async function answerTo(ctx: MutationCtx, viewing: Viewing, request: CardRequest
 async function cardAnswerOf(ctx: MutationCtx, viewing: Viewer, user: string, target: MemberFacts): Promise<Answer> {
   if (target.kind !== "member") return { lines: renderNotAMember(user), own: null };
   const own = viewing.user === user;
-  const card = { ...(await profileCardOf(ctx, target.member, { own })), group: await groupNameShownTo(ctx, viewing, target.member) };
+  const card = { ...(await profileCardOf(ctx, target.member, { own })), ...(await shownTo(ctx, viewing, target.member)) };
   return { lines: renderProfileCard(user, card), own };
 }
 
-async function groupNameShownTo(ctx: MutationCtx, viewing: Viewer, member: MemberId) {
+async function shownTo(ctx: MutationCtx, viewing: Viewer, member: MemberId) {
   const viewer = await lookup(ctx, viewing.workspace, viewing.user);
-  return viewer?.kind === "member" ? groupNameOnCard(ctx, viewer.member, member) : null;
+  if (viewer?.kind !== "member") return { group: null };
+  return { group: await groupNameOnCard(ctx, viewer.member, member), ...(await avatarShownOn(ctx, viewer.member, member)) };
 }
 
 function exposeOnceKnown(ctx: MutationCtx, viewing: Viewing, shown: boolean, own: boolean | null) {
