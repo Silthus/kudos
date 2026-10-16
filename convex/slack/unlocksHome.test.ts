@@ -8,6 +8,7 @@ import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { LevelReachedEvent } from "../bus/events";
+import { xpToReach } from "../progression/levels";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const firstMessageAt = now.getTime() + 1000;
@@ -58,7 +59,7 @@ describe("P74 P73: App Home's Profile tab lists each ready feature with Open", (
 
   test("clicking Open opens the Leaderboard for good and republishes App Home without its line; replaying the click or clicking the stale button again opens nothing", async () => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
     await openHome(t, "U_ALICE");
     const openButton = buttonInHome(slack, "U_ALICE", "Open");
     const openClick = blockActions("U_ALICE", openButton);
@@ -82,7 +83,7 @@ describe("P74 P73: App Home's Profile tab lists each ready feature with Open", (
 
   test("a stale Open clicked after everyone-board went off opens nothing, and App Home republishes without the Leaderboard", async () => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", 10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 2);
     await openHome(t, "U_ALICE");
     const openButton = buttonInHome(slack, "U_ALICE", "Open");
     await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("everyone-board"));
@@ -97,13 +98,13 @@ describe("P74 P73: App Home's Profile tab lists each ready feature with Open", (
 describe("P74: App Home republishes once readiness commits", () => {
   test("when the XP refresh publishes App Home before the Leaderboard's readiness commits, readiness republishes it with Open, without the member reopening it", async () => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await openHome(t, "U_ALICE");
-    const reached = await levelThreeReachedBy(t, "U_ALICE");
+    const reached = await levelReachedBy(t, "U_ALICE", 2);
 
     await t.mutation(internal.feedback.homes.refreshHomeOnXp, { event: { type: "xpRecorded", workspace: "T1", member: reached.member, at: reached.at } });
     await settle(t);
-    expect(unlockLinesOf(publishedHome(slack, "U_ALICE"))).toEqual(["section: Next: Leaderboard at level 3."]);
+    expect(unlockLinesOf(publishedHome(slack, "U_ALICE"))).toEqual(["section: Next: Leaderboard at level 2."]);
     await t.mutation(internal.unlocks.unlocks.makeReady, { event: reached });
     await settle(t);
 
@@ -112,13 +113,13 @@ describe("P74: App Home republishes once readiness commits", () => {
 });
 
 describe("P74 P78: the Next line names the lowest shipped feature still locked", () => {
-  test("a member at level 2 sees `Next: Leaderboard at level 3.`", async () => {
+  test("a member at level 1 sees `Next: Leaderboard at level 2.`", async () => {
     const t = await workspace();
-    await giveKudos(t, "U_ALICE", "U_BOB", 2);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     await openHome(t, "U_ALICE");
 
-    expect(unlockLinesOf(publishedHome(slack, "U_ALICE"))).toEqual(["section: Next: Leaderboard at level 3."]);
+    expect(unlockLinesOf(publishedHome(slack, "U_ALICE"))).toEqual(["section: Next: Leaderboard at level 2."]);
   });
 
   test("with everyone-board off, no feature is ready, named or teased at any level", async () => {
@@ -140,7 +141,7 @@ async function unlockRows(t: Backend) {
   return t.run(async (ctx) => (await ctx.db.query("unlocks").collect()).map(({ feature, readyAt, openedAt }) => ({ feature, readyAt, ...(openedAt !== undefined && { openedAt }) })));
 }
 
-async function levelThreeReachedBy(t: Backend, user: string): Promise<LevelReachedEvent> {
+async function levelReachedBy(t: Backend, user: string, level: number): Promise<LevelReachedEvent> {
   const member = await t.run(async (ctx) => {
     const row = await ctx.db
       .query("members")
@@ -150,11 +151,11 @@ async function levelThreeReachedBy(t: Backend, user: string): Promise<LevelReach
       .query("memberProgress")
       .withIndex("by_member", (q) => q.eq("member", row!._id))
       .unique();
-    await ctx.db.patch(progress!._id, { xp: 100 });
+    await ctx.db.patch(progress!._id, { xp: xpToReach(level) });
     return row!._id;
   });
   const message = { workspace: "T1", conversation: "C1", message: "1760349600.000100" };
-  return { type: "levelReached", workspace: "T1", member, level: 3, skillPointsGained: 0, skillPoints: 0, xpToNextLevel: 200, message, at: Date.now() };
+  return { type: "levelReached", workspace: "T1", member, level, skillPointsGained: 0, skillPoints: 0, xpToNextLevel: xpToReach(level + 1) - xpToReach(level), message, at: Date.now() };
 }
 
 async function workspace() {

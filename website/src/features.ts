@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { HedgehogExplorer, HedgehogMoney, HedgehogOrganized, HedgehogReading, HedgehogStar, HedgehogWizard, type Hoggie } from "./hoggies";
+import { HedgehogMoney, HedgehogOrganized, HedgehogReading, HedgehogStar, HedgehogWizard, type Hoggie } from "./hoggies";
 import { IconBook, IconListTree, IconStar, IconTarget } from "@posthog/icons";
 import { perkOf } from "../../convex/progression/tree";
 import type { Screen } from "./route";
@@ -13,7 +13,6 @@ const plainNames: Record<Feature, string> = {
   book: "Book",
   skillTree: "Skill tree",
   coins: "Coins",
-  hedgehogs: "Hedgehogs",
 };
 
 export function plainNameOf(feature: Feature): string {
@@ -28,7 +27,6 @@ const grammaticalNumbers: Record<Feature, GrammaticalNumber> = {
   book: "singular",
   skillTree: "singular",
   coins: "plural",
-  hedgehogs: "plural",
 };
 
 export function isOrAre(feature: Feature): "is" | "are" {
@@ -45,7 +43,6 @@ const hogs: Record<Feature, Hoggie> = {
   book: HedgehogReading,
   skillTree: HedgehogWizard,
   coins: HedgehogMoney,
-  hedgehogs: HedgehogExplorer,
 };
 
 const sentences: Record<Feature, string> = {
@@ -54,7 +51,6 @@ const sentences: Record<Feature, string> = {
   book: "Achievements you earn as you thank colleagues and they thank you.",
   skillTree: "Perks you choose with skill points.",
   coins: "Coins you spend on hedgehogs and kudos emoji.",
-  hedgehogs: "Hedgehogs to collect, and one to pick as your avatar.",
 };
 
 const sentencesNamingGroups: Partial<Record<Feature, string>> = {

@@ -4,8 +4,9 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, buttonInHome, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, buttonInHome, openUnlockInHome, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, memberEvent, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { reachesLevel } from "../../testing/unlocks";
 import { internal } from "../_generated/api";
 import type { DomainEvent } from "../bus/events";
 import { publish } from "../bus/publish";
@@ -56,11 +57,12 @@ describe("P88 P89: opening Quests or the Leaderboard shows its Journey step, and
   test("opening Quests shows first-quest in the Journey, and finishing a weekly quest finishes it with one 20 XP reward record, one DM with Open and its crate in App Home", async () => {
     const t = await workspace();
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await reachesLevel(t, await memberOf(t, "U_ALICE"), 3);
     await openHome(t, "U_ALICE");
     expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([firstThanksDone]);
     await drawFor(t, "U_ALICE", ["say-why", "say-why-twice", "say-why-three-times"]);
 
-    await click(t, "U_ALICE", buttonInHome(slack, "U_ALICE", "Open"));
+    await click(t, "U_ALICE", openUnlockInHome(slack, "U_ALICE", "quests"));
 
     expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([firstThanksDone, firstQuestActive]);
 
@@ -122,8 +124,8 @@ describe("P88 P89: opening Quests or the Leaderboard shows its Journey step, and
     const journey = (await t.query(internal.quests.quests.questsOf, { member: alice }))!.journey;
 
     expect(journey.filter(({ step }) => step !== "first-thanks")).toEqual([
-      { step: "first-quest", activatedAt: now.getTime(), reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "2", finishedAt: null, openedAt: null, waiting: false },
       { step: "someone-new", activatedAt: now.getTime() + minuteMs, reward: { xp: 30, coins: 0, item: null }, catalogueVersion: "2", finishedAt: now.getTime() + 2 * minuteMs, openedAt: null, waiting: false },
+      { step: "first-quest", activatedAt: now.getTime(), reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "2", finishedAt: null, openedAt: null, waiting: false },
     ]);
   });
 
@@ -378,6 +380,7 @@ async function click(t: Backend, user: string, action: ReturnType<typeof buttonI
   await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, action), form));
   await settle(t);
 }
+
 
 function journeyIn(home: string[]) {
   const start = home.findIndex((line) => line.includes("*Journey:*"));

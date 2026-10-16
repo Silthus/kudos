@@ -5,8 +5,9 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, buttonInHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, buttonInHome, openUnlockInHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { internal } from "../_generated/api";
 import crons from "../crons";
 
 const dayMs = 24 * 60 * 60 * 1000;
@@ -175,8 +176,9 @@ describe("O10: a draw and a swap carry only pool IDs", () => {
     await t.run((ctx) => ctx.db.insert("workspaces", { workspace: team, kudosEmoji: "taco", baseAllowance: 10 }));
 
     await giveKudos(t, people.giver, people.recipient, saysWhy, team);
+    await reachesLevelThree(t, people.giver, team);
     await openHome(t, people.giver, team);
-    await send(t, blockActions(people.giver, buttonInHome(slack, people.giver, "Open"), { team }));
+    await send(t, blockActions(people.giver, openUnlockInHome(slack, people.giver, "quests"), { team }));
     await send(t, blockActions(people.giver, buttonInHome(slack, people.giver, "Swap"), { team }));
 
     expect(questsDrawn().length).toBeGreaterThan(0);
@@ -200,9 +202,18 @@ async function workspace(flags: FlagDefinition[] = everyProgressionFlag.map(onFo
 
 async function openQuests(t: Backend) {
   await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+  await reachesLevelThree(t, "U_ALICE");
   await openHome(t, "U_ALICE");
-  await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+  await send(t, blockActions("U_ALICE", openUnlockInHome(slack, "U_ALICE", "quests")));
 }
+
+async function reachesLevelThree(t: Backend, user: string, workspace = "T1") {
+  const member = await t.run(async (ctx) => (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id);
+  const event = { type: "levelReached" as const, workspace, member, level: 3, skillPointsGained: 0, skillPoints: 0, xpToNextLevel: 200, at: Date.now() };
+  await t.mutation(internal.unlocks.unlocks.makeReady, { event });
+  await settled(t);
+}
+
 
 async function openedQuestsWithAFeasibleReplacement() {
   const t = await workspace();

@@ -3,6 +3,8 @@ import { internal } from "../_generated/api";
 import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type ActionCtx, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
+import { readyFromTheStartOnceVerified } from "../website/flag";
+import { lookup } from "../workspace/directory";
 import { lookUpUser, type LookUp } from "./directory";
 import { convexActionTimeLimitMs, strandedPerSweep } from "./strandedJobs";
 
@@ -50,7 +52,7 @@ export const recordAttempt = internalMutation({
   handler: async (ctx, { workspace, user, found, retryAfterMs }) => {
     const verification = await verificationOf(ctx, workspace, user);
     if (verification === null) return;
-    if (found) return ctx.db.delete(verification._id);
+    if (found) return verified(ctx, verification);
     const attempts = verification.attempts + 1;
     if (attempts >= verificationTries) return ctx.db.patch(verification._id, { attempts, state: "failed" });
     const waitMs = Math.max(retryAfterMs ?? 0, firstRetryMs * 2 ** (attempts - 1));
@@ -58,6 +60,12 @@ export const recordAttempt = internalMutation({
     await ctx.scheduler.runAfter(waitMs, internal.slack.verifyMember.verifyMember, { workspace, user });
   },
 });
+
+async function verified(ctx: MutationCtx, verification: Doc<"memberVerifications">) {
+  await ctx.db.delete(verification._id);
+  const person = await lookup(ctx, verification.workspace, verification.user);
+  if (person?.kind === "member") await readyFromTheStartOnceVerified(ctx, person.member);
+}
 
 export const retryStranded = internalMutation({
   args: {},
@@ -71,7 +79,9 @@ export const retryStranded = internalMutation({
   },
 });
 
-async function tryAgainCountingTheStrandedTry(ctx: MutationCtx, { _id, workspace, user, attempts }: Doc<"memberVerifications">) {
+async function tryAgainCountingTheStrandedTry(ctx: MutationCtx, verification: Doc<"memberVerifications">) {
+  const { _id, workspace, user, attempts } = verification;
+  if ((await lookup(ctx, workspace, user))?.kind === "member") return verified(ctx, verification);
   const attemptsWithStrandedTry = attempts + 1;
   if (attemptsWithStrandedTry >= verificationTries) return ctx.db.patch(_id, { attempts: attemptsWithStrandedTry, state: "failed" });
   await ctx.db.patch(_id, { attempts: attemptsWithStrandedTry, nextTryAt: Date.now() });

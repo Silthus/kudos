@@ -6,6 +6,7 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, publishedHome, publishedHomeBlocks, readBlocks, type Block, type BlockAction } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, memberEvent, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { reachesLevel } from "../../testing/unlocks";
 import { coinsPaidBy } from "../achievements/ladders";
 import { payTierCoins } from "../achievements/tierCoins";
 import type { QueryCtx } from "../_generated/server";
@@ -133,7 +134,7 @@ describe("CR1 CR2: a quest's reward finished while crate-rewards is on waits in 
 
 describe("CR3: opening the crate applies the held reward once", () => {
   test("opening a Journey step's crate from App Home adds its XP, crosses the level with a level-up DM and a reward-level notice, and a second open adds nothing", async () => {
-    const t = await workspaceDeciding(...held);
+    const t = await workspaceDeciding(...held, onForEveryone("everyone-board"));
     await giveKudos(t, "U_ALICE", "U_BOB");
     await openHome(t, "U_ALICE");
     const open = journeyOpenButtonInHome("U_ALICE");
@@ -141,7 +142,7 @@ describe("CR3: opening the crate applies the held reward once", () => {
     await click(t, "U_ALICE", open);
 
     expect(await standingAndBalanceOf(t, "U_ALICE")).toEqual({ xp: 20, level: 2, skillPoints: 0, balance: 4 });
-    expect(levelUpDmsTo("U_ALICE")).toEqual(["🎉 You reached level 2!\nLevel 3 is 80 XP away.\n*Quests* is ready. It opens your weekly quests."]);
+    expect(levelUpDmsTo("U_ALICE")).toEqual(["🎉 You reached level 2!\nLevel 3 is 80 XP away.\n*Leaderboard* is ready. It opens the boards."]);
     expect(publicNotices()).toEqual([{ channel: "C_NEWS", text: expect.stringContaining("reached level 2") }]);
 
     await click(t, "U_ALICE", open);
@@ -268,6 +269,8 @@ async function openedQuests(t: Backend, user: string, reward: { xp: number; coin
   await giveKudos(t, user, "U_BOB");
   await openHome(t, user);
   await click(t, user, journeyOpenButtonInHome(user));
+  await reachesLevel(t, await t.run((ctx) => memberIn(ctx, user)), 3);
+  await openHome(t, user);
   await t.run(async (ctx) => {
     const member = await memberIn(ctx, user);
     const slots = (["say-why", "say-why-twice", "say-why-three-times"] as QuestId[]).map((quest, slot) => ({

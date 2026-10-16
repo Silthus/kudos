@@ -4,8 +4,9 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonInHome } from "../../testing/slackInteractions";
+import { blockActions, openUnlockInHome } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { reachesLevel } from "../../testing/unlocks";
 import { internal } from "../_generated/api";
 import type { QuestId } from "../quests/pool";
 
@@ -110,20 +111,24 @@ async function workspace() {
 async function openedQuests(quests: QuestId[]) {
   const t = await workspace();
   await giveKudos(t, "U_ALICE", saysWhy);
+  await reachesLevel(t, await memberOf(t, "U_ALICE"), 3);
   await t.fetch("/slack/events", await signedRequest(appHomeOpened("U_ALICE")));
   await settle(t);
   await drawFor(t, "U_ALICE", quests);
-  await t.fetch("/slack/interactivity", await signedRequest(blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")), { contentType: "application/x-www-form-urlencoded" }));
+  await t.fetch("/slack/interactivity", await signedRequest(blockActions("U_ALICE", openUnlockInHome(slack, "U_ALICE", "quests")), { contentType: "application/x-www-form-urlencoded" }));
   await settle(t);
   return t;
 }
 
+
+function memberOf(t: Backend, user: string) {
+  return t.run(async (ctx) => (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id);
+}
+
 async function drawFor(t: Backend, user: string, quests: QuestId[]) {
   const slots = quests.map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));
-  await t.run(async (ctx) => {
-    const member = (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id;
-    await ctx.db.insert("questDraws", { member, week: "2026-10-12", drawnAt: now.getTime(), slots });
-  });
+  const member = await memberOf(t, user);
+  await t.run((ctx) => ctx.db.insert("questDraws", { member, week: "2026-10-12", drawnAt: now.getTime(), slots }));
 }
 
 async function kudosRequestBody(giver: string, words: string, at = Date.now()) {

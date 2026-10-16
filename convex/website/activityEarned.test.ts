@@ -5,6 +5,7 @@ import { anIdInHalfOf, journeyShippedBeforeAnyoneJoined, onForEveryone, onForHal
 import { post, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonInHome, staleButtonOf } from "../../testing/slackInteractions";
 import { signedRequest } from "../../testing/signedSlack";
+import { reachesLevel } from "../../testing/unlocks";
 import { appHomeOpened, emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSession, switchWebsite } from "../../testing/website";
 import { api, components, internal } from "../_generated/api";
@@ -389,6 +390,7 @@ async function questsOpened(quests: QuestId[]) {
   await switchWebsite(t, postHog, true, ...progression, "quests");
   await unlocksShippedBeforeAnyoneJoined(t);
   await thank([bob], saysWhy);
+  await reachesLevel(t, await memberOf(alice), 3);
   await t.fetch("/slack/events", await signedRequest(appHomeOpened(alice.user)));
   await settle(t);
   await drawFor(alice.user, quests);
@@ -400,6 +402,7 @@ async function questsOpenedWithCrateRewards(quests: QuestId[]) {
   await switchWebsite(t, postHog, true, ...progression, "quests", "crate-rewards");
   await unlocksShippedBeforeAnyoneJoined(t);
   await thank([bob], saysWhy);
+  await reachesLevel(t, await memberOf(alice), 3);
   await t.fetch("/slack/events", await signedRequest(appHomeOpened(alice.user)));
   await settle(t);
   await openQuestCrateFromSlack(alice, { kind: "journey", step: "first-thanks" });
@@ -416,6 +419,10 @@ async function questsDoneByLatestKudosOf(person: { user: string; name: string })
 async function openQuestCrateFromSlack({ user }: { user: string }, quest: Quest) {
   await t.fetch("/slack/interactivity", await signedRequest(blockActions(user, staleButtonOf({ type: "openQuestCrate", quest })), form));
   await settle(t);
+}
+
+function memberOf({ user }: { user: string }) {
+  return t.run(async (ctx) => (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id);
 }
 
 async function drawFor(user: string, quests: QuestId[]) {

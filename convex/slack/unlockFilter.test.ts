@@ -106,7 +106,7 @@ describe("P76: a feature's lines wait for its opening", () => {
     expect(dmsTo("U_ALICE").slice(-2)).toEqual([levelSixDmOfferingRowFive, ["🎉 You reached level 6!", "Level 7 is 500 XP away."]]);
   });
 
-  test("with everyone-board on, a level 1 member is told the Leaderboard opens at level 3, by /hedgehug leaderboard, and App Home has no Leaderboard tab", async () => {
+  test("with everyone-board on, a level 1 member is told the Leaderboard opens at level 2, by /hedgehug leaderboard, and App Home has no Leaderboard tab", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "everyone-board");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
@@ -114,9 +114,9 @@ describe("P76: a feature's lines wait for its opening", () => {
     const reply = await leaderboardCommand(t, "U_ALICE");
     await openHome(t, "U_ALICE");
 
-    expect(reply).toEqual({ response_type: "ephemeral", text: "Leaderboard opens at level 3." });
+    expect(reply).toEqual({ response_type: "ephemeral", text: "Leaderboard opens at level 2." });
     expect(publishedHome(slack, "U_ALICE")[0]).toBe("actions: [Profile] | Settings");
-    expect(publishedHome(slack, "U_ALICE")).toContain("section: Next: Leaderboard at level 3.");
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: Next: Leaderboard at level 2.");
   });
 
   test("at level 3, before opening, /hedgehug leaderboard says the Leaderboard is ready, and App Home shows its crate but no Leaderboard tab", async () => {
@@ -177,7 +177,7 @@ describe("P76: a feature's lines wait for its opening", () => {
 });
 
 describe("O36: the leaderboard command records the exposures it decides by", () => {
-  test("a member whose exposures aren't recorded yet has them recorded when /hedgehug leaderboard tells them the Leaderboard opens at level 3", async () => {
+  test("a member whose exposures aren't recorded yet has them recorded when /hedgehug leaderboard tells them the Leaderboard opens at level 2", async () => {
     flagsOnForEveryone(slack.fetch, "xp-levels", "unlocks", "everyone-board");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);

@@ -47,7 +47,7 @@ describe("QM6 QM7: the welcome has a version for a first recipient and one for a
 
     await giveKudos(t, "U_ALICE", ["U_BOB"]);
 
-    const unlocks = `${earnsXp} As you level up you unlock weekly quests, a skill tree and the Book of achievements.`;
+    const unlocks = `${earnsXp} The Book of achievements is yours from the start. As you level up you unlock weekly quests at level 3 and a skill tree at level 5.`;
     expect(welcomeTo("U_BOB")).toEqual({
       channel: "U_BOB",
       text: [
@@ -117,12 +117,13 @@ describe("QM6 QM7: the welcome has a version for a first recipient and one for a
     { flags: ["xp-levels"], line: earnsXp },
     { flags: ["xp-levels", "unlocks"], line: earnsXp },
     { flags: ["xp-levels", "quests", "skill-tree", "achievements"], line: earnsXp },
-    { flags: ["xp-levels", "unlocks", "quests"], line: `${earnsXp} As you level up you unlock weekly quests.` },
-    { flags: ["xp-levels", "unlocks", "skill-tree"], line: `${earnsXp} As you level up you unlock a skill tree.` },
-    { flags: ["xp-levels", "unlocks", "achievements"], line: `${earnsXp} As you level up you unlock the Book of achievements.` },
-    { flags: ["xp-levels", "unlocks", "quests", "skill-tree"], line: `${earnsXp} As you level up you unlock weekly quests and a skill tree.` },
-    { flags: ["xp-levels", "unlocks", "skill-tree", "achievements"], line: `${earnsXp} As you level up you unlock a skill tree and the Book of achievements.` },
-    { flags: ["xp-levels", "unlocks", "quests", "achievements"], line: `${earnsXp} As you level up you unlock weekly quests and the Book of achievements.` },
+    { flags: ["xp-levels", "unlocks", "quests"], line: `${earnsXp} As you level up you unlock weekly quests at level 3.` },
+    { flags: ["xp-levels", "unlocks", "skill-tree"], line: `${earnsXp} As you level up you unlock a skill tree at level 5.` },
+    { flags: ["xp-levels", "unlocks", "achievements"], line: `${earnsXp} The Book of achievements is yours from the start.` },
+    { flags: ["xp-levels", "unlocks", "quests", "skill-tree"], line: `${earnsXp} As you level up you unlock weekly quests at level 3 and a skill tree at level 5.` },
+    { flags: ["xp-levels", "unlocks", "everyone-board", "quests"], line: `${earnsXp} As you level up you unlock the leaderboard at level 2 and weekly quests at level 3.` },
+    { flags: ["xp-levels", "unlocks", "skill-tree", "achievements"], line: `${earnsXp} The Book of achievements is yours from the start. As you level up you unlock a skill tree at level 5.` },
+    { flags: ["xp-levels", "unlocks", "quests", "achievements"], line: `${earnsXp} The Book of achievements is yours from the start. As you level up you unlock weekly quests at level 3.` },
   ])("with $flags on, the line after the welcome line is $line", async ({ flags, line }) => {
     const t = await workspace(...flags);
 

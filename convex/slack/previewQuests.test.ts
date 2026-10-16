@@ -6,6 +6,7 @@ import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, publishedHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { reachesLevel } from "../../testing/unlocks";
 import { internal } from "../_generated/api";
 import { questsLiveFor } from "../quests/flag";
 import type { QuestId } from "../quests/pool";
@@ -45,6 +46,7 @@ describe("F17 F22: quests previewed by one member's email", () => {
     const t = await workspaceDeciding(...previewedByAlice);
 
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await reachesLevel(t, await memberOf(t, "U_ALICE"), 3);
     await openHome(t, "U_ALICE");
     await send(t, blockActions("U_ALICE", buttonBeside(publishedHomeBlocks(slack, "U_ALICE"), "*Quests* is ready", "Open")));
 
@@ -254,6 +256,7 @@ async function announcingIn(t: Backend, channel: string) {
 
 async function openedQuests(t: Backend, user: string, drawn: QuestId[]) {
   await giveKudos(t, user, "U_BOB", saysWhy);
+  await reachesLevel(t, await memberOf(t, user), 3);
   await openHome(t, user);
   await t.run(async (ctx) => {
     const member = (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id;

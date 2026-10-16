@@ -93,7 +93,7 @@ function drawnIn(backend: Backend, member: MemberId, quests: QuestId[], reward: 
 async function aFinishedWeeklyQuest() {
   await questsApplyIn();
   const team = await aTeamIn();
-  await reachesLevel(t, team.member, 2);
+  await reachesLevel(t, team.member, 3);
   await opens(t, team.member, "quests");
   await drawnIn(t, team.member, ["say-why", "say-why-three-times"]);
   await thanks(t, team.member, team.teammate);
