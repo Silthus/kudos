@@ -77,3 +77,13 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: commit-ordered-effects dismissed: arriving issues no command and no external effect
   checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
   checklist: declared-target-coverage dismissed: there is no fan-out; one page lands on one crate
+- a link lands on a panel or a settings section and never acts: A link with `?panel=inventory` on the root turns the home's gear panel to its Inventory side, scrolls it into view and focuses its heading once the profile lands, and never buys, equips or takes anything off; a link with `?section=visibility`, `?section=messages` or `?section=group` on `/settings` scrolls that section into view and focuses its heading once the settings answer lands, and never sends a setting; a profile without an inventory, an unknown panel, a hidden section or an unknown one leaves the plain page.
+  over: useLinkTargetOnceLanded in website/src/linkTarget.ts, run by App over the home's gear panel and the Settings page's Leaderboards, Messages and Your group sections, for an inventory the profile carries and one it doesn't, an unknown panel, each of the three sections, a hidden section, an unknown section and a settings answer that lands after loading
+  via: #531: ?panel=inventory and ?section={section} land on their heading, never acting
+  because: map #1 links App Home's Inventory and Settings tabs to the website (#531), and each holds controls that write: Buy, Take off and a slot's emoji on the inventory, and every switch and choice on Settings; a link that pressed one on arrival would change the member's loadout, coins or settings before they saw the page, so a link only takes them to the heading (#435, #469)
+  kinds: output
+  checklist: destination-confinement dismissed: the website sends nothing on arrival; a command goes only when the member presses a control
+  checklist: redaction dismissed: the target names a panel or a section from a fixed list, never a member
+  checklist: commit-ordered-effects dismissed: arriving issues no command and no external effect
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
+  checklist: declared-target-coverage dismissed: there is no fan-out; one page lands on one heading

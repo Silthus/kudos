@@ -358,7 +358,7 @@ describe("#435: a quest or perk target waits for its page's content", () => {
 });
 
 describe("#435: a target survives sign-in", () => {
-  it.each(["/skills?perk=spark", "/quests?crate=quests", "/?crate=journey", "/book?crate=book", "/leaderboard?period=month&crate=leaderboard", "/quests?crate=weekly%3A2026-10-05%3A0", "/quests?crate=group%3A2026-10-05"])("signs in back to %s", async (path) => {
+  it.each(["/skills?perk=spark", "/quests?crate=quests", "/?crate=journey", "/book?crate=book", "/leaderboard?period=month&crate=leaderboard", "/quests?crate=weekly%3A2026-10-05%3A0", "/quests?crate=group%3A2026-10-05", "/?panel=inventory", "/settings?section=group"])("signs in back to %s", async (path) => {
     visit(path);
     const { actions, user } = renderApp(shellFixtures.signedOut);
     await user.click(screen.getByRole("button", { name: "Sign in with Slack" }));

@@ -7,19 +7,20 @@ import type { Feature } from "../unlocks/feature";
 import { scheduled } from "../unlocks/schedule";
 import { lookup, type MemberId } from "../workspace/directory";
 import { websiteOpen, websiteOpenTo } from "./flag";
-import { crateTargetValidator, listedPageOf, signInEntry, urlOf, type Page } from "./routes";
+import { crateTargetValidator, homePanelValidator, listedPageOf, settingsSectionValidator, signInEntry, urlOf, type Page } from "./routes";
 import { openFeaturesOf } from "./unlockPath";
 
 const crate = v.optional(crateTargetValidator);
 
 export const pageValidator = v.union(
-  v.object({ page: v.literal("home"), crate }),
+  v.object({ page: v.literal("home"), panel: v.optional(homePanelValidator), crate }),
   v.object({ page: v.literal("leaderboard"), period: periodValidator, crate }),
   v.object({ page: v.literal("quests"), quest: v.optional(v.number()), crate }),
   v.object({ page: v.literal("skillTree"), perk: v.optional(perkValidator), crate }),
   v.object({ page: v.literal("book"), crate }),
   v.object({ page: v.literal("bookEarned"), crate }),
   v.object({ page: v.literal("bookCollection"), crate }),
+  v.object({ page: v.literal("settings"), section: v.optional(settingsSectionValidator) }),
 );
 
 const frontDoorLinksValidator = v.object({ origin: v.string(), pages: v.array(v.object({ label: v.string(), url: v.string() })) });

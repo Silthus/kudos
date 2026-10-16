@@ -4,14 +4,14 @@ import { AppLink } from "../AppLink";
 import { featureCardAttributes } from "../crates/moments";
 import { pageOf, type PagedFeature } from "../features";
 
-type PanelProps = { id: string; label: string; aside?: ReactNode; gameObject?: boolean; busy?: boolean; children?: ReactNode };
+type PanelProps = { id: string; label: string; target?: Record<`data-${string}`, string>; aside?: ReactNode; gameObject?: boolean; busy?: boolean; children?: ReactNode };
 
-export function Panel({ id, label, aside, gameObject = false, busy = false, children }: PanelProps) {
+export function Panel({ id, label, target, aside, gameObject = false, busy = false, children }: PanelProps) {
   const titleId = `${id}-panel-title`;
   return (
-    <section aria-labelledby={titleId} aria-busy={busy || undefined} className={`relative flex flex-col gap-3 rounded-lg border bg-card p-4 ${gameObject ? "hud-panel" : ""}`}>
+    <section aria-labelledby={titleId} aria-busy={busy || undefined} {...target} className={`relative flex flex-col gap-3 rounded-lg border bg-card p-4 ${gameObject ? "hud-panel" : ""}`}>
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id={titleId} className="hud-label">
+        <h2 id={titleId} tabIndex={target === undefined ? undefined : -1} className="hud-label outline-none">
           {label}
         </h2>
         {aside !== undefined && <span className="flex items-center gap-1 text-xs text-muted-foreground">{aside}</span>}

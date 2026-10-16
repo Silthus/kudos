@@ -6,6 +6,8 @@ import type { pageValidator } from "./link";
 
 export type Page = Infer<typeof pageValidator>;
 
+type CratePage = Extract<Page, { crate?: CrateTarget }>;
+
 const namedCrateValidator = v.union(...featureValidator.members, v.literal("journey"), v.literal("group"), v.literal("store"));
 
 type NamedCrate = Infer<typeof namedCrateValidator>;
@@ -19,6 +21,16 @@ export type BoughtCrateTarget = Infer<typeof boughtCrateValidator>;
 export const crateTargetValidator = v.union(...namedCrateValidator.members, weeklyQuestValidator, earlierGroupCrateValidator, boughtCrateValidator);
 
 export type CrateTarget = Infer<typeof crateTargetValidator>;
+
+export const homePanelValidator = v.literal("inventory");
+
+export type HomePanel = Infer<typeof homePanelValidator>;
+
+export const settingsSectionValidator = v.union(v.literal("visibility"), v.literal("messages"), v.literal("group"));
+
+export type SettingsSection = Infer<typeof settingsSectionValidator>;
+
+export const settingsSections: readonly SettingsSection[] = settingsSectionValidator.members.map(({ value }) => value);
 
 const namedCrates: readonly NamedCrate[] = namedCrateValidator.members.map(({ value }) => value);
 
@@ -77,9 +89,10 @@ const pathOf: Record<Page["page"], string> = {
   book: "/book",
   bookEarned: "/book/earned",
   bookCollection: "/book/collection",
+  settings: "/settings",
 };
 
-const featurePages: Partial<Record<Feature, Page>> = {
+const featurePages: Partial<Record<Feature, CratePage>> = {
   quests: { page: "quests" },
   leaderboard: { page: "leaderboard", period: "week" },
   book: { page: "book" },
@@ -100,13 +113,15 @@ function searchOf(page: Page) {
   if (page.page === "leaderboard" && page.period !== "week") search.set("period", page.period);
   if (page.page === "quests" && page.quest !== undefined) search.set("quest", String(page.quest));
   if (page.page === "skillTree" && page.perk !== undefined) search.set("perk", page.perk);
-  const crate = page.crate === undefined ? undefined : crateParamOf(page.crate);
+  if (page.page === "home" && page.panel !== undefined) search.set("panel", page.panel);
+  if (page.page === "settings" && page.section !== undefined) search.set("section", page.section);
+  const crate = !("crate" in page) || page.crate === undefined ? undefined : crateParamOf(page.crate);
   if (crate !== undefined) search.set("crate", crate);
   const query = search.toString();
   return query === "" ? "" : `?${query}`;
 }
 
-export function listedPageOf(feature: Feature): Page | null {
+export function listedPageOf(feature: Feature): CratePage | null {
   const page = featurePages[feature];
   return page !== undefined && listed(page) ? page : null;
 }

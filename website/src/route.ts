@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { perkValidator, type PerkId } from "../../convex/progression/tree";
-import { crateParamOf, crateTargetIn, signInEntry, type CrateTarget } from "../../convex/website/routes";
+import { crateParamOf, crateTargetIn, settingsSections, signInEntry, type CrateTarget, type HomePanel, type SettingsSection } from "../../convex/website/routes";
 import { bookHref, categoryAsked, type CategoryId } from "./book/categories";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
@@ -9,18 +9,18 @@ export type QuestTarget = number | "journey" | "group";
 
 export type ActivityFilter = "all" | "received" | "given";
 
-export type { CrateTarget };
+export type { CrateTarget, HomePanel, SettingsSection };
 
 type Targets = { crate?: CrateTarget };
 
 export type Route =
-  | ({ page: "home" } & Targets)
+  | ({ page: "home"; panel?: HomePanel } & Targets)
   | { page: "activity"; filter: ActivityFilter }
   | ({ page: "leaderboard"; period: Period } & Targets)
   | ({ page: "quests"; quest?: QuestTarget } & Targets)
   | ({ page: "book"; bookPage: BookPageId } & Targets)
   | ({ page: "skills"; perk?: PerkId } & Targets)
-  | { page: "settings" }
+  | { page: "settings"; section?: SettingsSection }
   | { page: "not-found" };
 
 export type BookPageId = CategoryId | "overview" | "earned" | "collection";
@@ -28,7 +28,7 @@ export type BookPageId = CategoryId | "overview" | "earned" | "collection";
 export type Screen = Exclude<Route["page"], "not-found" | "activity">;
 
 const routeAt = {
-  "/": (search) => ({ page: "home", crate: crateIn(search) }),
+  "/": (search) => ({ page: "home", panel: panelIn(search), crate: crateIn(search) }),
   "/activity": (search) => ({ page: "activity", filter: filterIn(search) }),
   "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search), crate: crateIn(search) }),
   "/quests": (search) => ({ page: "quests", quest: questIn(search), crate: crateIn(search) }),
@@ -36,7 +36,7 @@ const routeAt = {
   "/book": (search) => ({ page: "book", bookPage: categoryAsked(search), crate: crateIn(search) }),
   "/book/earned": () => ({ page: "book", bookPage: "earned" }),
   "/book/collection": (search) => ({ page: "book", bookPage: "collection", crate: crateIn(search) }),
-  "/settings": () => ({ page: "settings" }),
+  "/settings": (search) => ({ page: "settings", section: sectionIn(search) }),
 } satisfies Record<string, (search: string) => Route>;
 
 type ServedPath = keyof typeof routeAt;
@@ -69,6 +69,8 @@ function pageHrefOf(route: Route) {
 function withTargetsOf(route: Route, href: string) {
   const targets = new URLSearchParams();
   if (route.page === "skills" && route.perk !== undefined) targets.set("perk", route.perk);
+  if (route.page === "home" && route.panel !== undefined) targets.set("panel", route.panel);
+  if (route.page === "settings" && route.section !== undefined) targets.set("section", route.section);
   const crate = "crate" in route && route.crate !== undefined ? crateParamOf(route.crate) : undefined;
   if (crate !== undefined) targets.set("crate", crate);
   if (targets.size === 0) return href;
@@ -110,6 +112,15 @@ const perks: readonly PerkId[] = perkValidator.members.map(({ value }) => value)
 function perkIn(search: string): PerkId | undefined {
   const asked = new URLSearchParams(search).get("perk");
   return perks.find((perk) => perk === asked);
+}
+
+function panelIn(search: string): HomePanel | undefined {
+  return new URLSearchParams(search).get("panel") === "inventory" ? "inventory" : undefined;
+}
+
+function sectionIn(search: string): SettingsSection | undefined {
+  const asked = new URLSearchParams(search).get("section");
+  return settingsSections.find((section) => section === asked);
 }
 
 function crateIn(search: string): CrateTarget | undefined {

@@ -1,4 +1,5 @@
 import { Panel } from "../home/Panel";
+import { panelTargetAttributes } from "../linkTarget";
 import { VisibilitySwitch } from "../leaderboard/VisibilitySwitch";
 import { PageTitle } from "../PageTitle";
 import { GroupPicker } from "../settings/GroupPicker";
@@ -19,7 +20,7 @@ export function SettingsPage({ settings: { messages, board, group }, actions }: 
       </header>
       {messages !== null && <Messages messages={messages} setMessageSetting={actions.setMessageSetting} />}
       {board !== null && (
-        <Panel id="leaderboards" label="Leaderboards">
+        <Panel id="leaderboards" label="Leaderboards" target={panelTargetAttributes("visibility")}>
           <p className="text-sm text-muted-foreground">When you're off, nobody sees you on the leaderboards, you included.</p>
           <div className="text-sm font-semibold">
             <VisibilitySwitch onTheBoards={board.onTheBoards} setBoardVisibility={actions.setBoardVisibility} />
@@ -27,7 +28,7 @@ export function SettingsPage({ settings: { messages, board, group }, actions }: 
         </Panel>
       )}
       {group !== null && (
-        <Panel id="your-group" label="Your group">
+        <Panel id="your-group" label="Your group" target={panelTargetAttributes("group")}>
           <p className="text-sm text-muted-foreground">Your kudos count for one group on the leaderboard.</p>
           <GroupPicker choice={group} pickPrimaryGroup={actions.pickPrimaryGroup} />
         </Panel>
@@ -38,7 +39,7 @@ export function SettingsPage({ settings: { messages, board, group }, actions }: 
 
 function Messages({ messages, setMessageSetting }: { messages: MessageSetting[]; setMessageSetting: ShellActions["setMessageSetting"] }) {
   return (
-    <Panel id="messages" label="Messages">
+    <Panel id="messages" label="Messages" target={panelTargetAttributes("messages")}>
       <p className="text-sm text-muted-foreground">In the channel means a message only you see, beside the kudos that caused it. If I can't post it there, it comes as a DM.</p>
       <div className="flex flex-col">
         {messages.map((setting) => (

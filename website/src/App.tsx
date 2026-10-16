@@ -106,7 +106,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   const busy = page.kind === "loading" || (onTheBoard && answer === undefined) || (onQuests && quests === undefined) || (onBook && book === undefined) || (onCollection && collection === undefined) || (onSkills && skillTree === undefined) || (onSettings && settings === undefined) || (onActivity && activityWatch === undefined);
   const connecting = [onTheBoard || onHome ? board : undefined, onQuests || onHome ? quests : undefined, onBook ? book : undefined, onCollection ? collection : undefined, onSkills ? skillTree : undefined, onSettings ? settings : undefined].some((answer) => answer?.kind === "connecting");
   const pageLanded = page.kind === "member" && !busy && !connecting && !revealing;
-  useLinkTargetOnceLanded(route, { quest: pageLanded && quests?.kind === "quests", perk: pageLanded && skillTree?.kind === "tree", crate: pageLanded });
+  useLinkTargetOnceLanded(route, { quest: pageLanded && quests?.kind === "quests", perk: pageLanded && skillTree?.kind === "tree", crate: pageLanded, panel: pageLanded, section: pageLanded && settings?.kind === "settings" });
   const signingIn = page.kind === "signed-out" && route.page !== "not-found";
   const readyCrates = member === undefined ? [] : readyCratesOf(member, quests);
   return (
@@ -254,7 +254,7 @@ function Page({ state, route, board, quests, book, collection, skillTree, settin
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
   if (route.page === "not-found") return <NotFoundPage />;
   if (state.kind !== "member") return <AnswerPage answer={state} {...actions} />;
-  if (route.page === "home") return quests?.kind === "connecting" || board?.kind === "connecting" ? <ConnectingPage /> : <HomePage key={membersShown} member={state} reads={{ quests, board, card: profileCard, collection }} useRecentKudos={useRecentKudos} onBuyItem={onBuyItem} pendingPurchase={pendingItemPurchase} loadout={loadoutActions} />;
+  if (route.page === "home") return quests?.kind === "connecting" || board?.kind === "connecting" ? <ConnectingPage /> : <HomePage key={membersShown} member={state} panel={route.panel} reads={{ quests, board, card: profileCard, collection }} useRecentKudos={useRecentKudos} onBuyItem={onBuyItem} pendingPurchase={pendingItemPurchase} loadout={loadoutActions} />;
   if (route.page === "activity") return <ActivityAnswerPage filter={route.filter} activity={activity} chatUrl={state.chatUrl} {...actions} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} onSwapQuest={onSwapQuest} {...actions} />;
   if (route.page === "book") return <BookAnswerPage member={state} book={book} collection={collection} page={route.bookPage} onBuyCrate={onBuyCrate} {...actions} />;
