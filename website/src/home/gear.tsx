@@ -10,6 +10,10 @@ export type Sent = { kind: "changed" } | { kind: "not-changed"; line: string };
 
 export type SendLoadout = ReturnType<typeof useLoadoutCommand>;
 
+export function slotsRetiredIn({ slots }: MemberInventory): boolean {
+  return slots.length === 0;
+}
+
 export function ownedIn({ slots, owned, catalogue }: MemberInventory): Owned[] {
   const slotted = slots.flatMap(({ item }) => (item === null ? [] : [item]));
   const ids = [...new Set([...owned.map(({ item }) => item), ...slotted])];

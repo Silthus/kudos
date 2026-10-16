@@ -33,9 +33,9 @@ import { customKudosEmojiPickerFor, type CustomKudosEmojiPicker } from "../store
 import { inventoryHomeOf, type InventoryHome } from "../store/inventory";
 import { type ItemRefusal } from "../store/rows";
 import { homeRefusalValidator, type HomeRefusal } from "./homeRefusal";
-import { storeShownAndExposedTo } from "../store/visibility";
+import { slotsRetiredFor, storeShownAndExposedTo } from "../store/visibility";
 import { unlocksShownTo } from "../unlocks/launch";
-import { namedFor, scheduled } from "../unlocks/schedule";
+import { namedFor, scheduled, type ScheduledFeature, type StoreNaming } from "../unlocks/schedule";
 import { unlocksHomeOf, type UnlocksHome } from "../unlocks/unlocks";
 import { coinsVisibleAndExposedTo } from "../wallet/visibility";
 import { balanceOf } from "../wallet/wallet";
@@ -206,7 +206,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
       return {
         tab,
         progression: await toldProgressionOf(ctx, viewer.member, slices),
-        unlocks: namedForStore(await unlocksHomeOf(ctx, viewer.member), slices.store),
+        unlocks: namedForStore(await unlocksHomeOf(ctx, viewer.member), await storeNamingOf(ctx, viewer.member, slices)),
         quests: slices.quests ? await openedQuestsOf(ctx, viewer.member) : null,
         ...(slices.quests ? await openedGroupQuestOf(ctx, viewer.member) : noGroupQuest),
         earlierCrates: slices.quests ? await openedEarlierCratesOf(ctx, viewer.member) : null,
@@ -219,7 +219,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
     case "book":
       return { tab, book: await bookFactsOf(ctx, viewer.member), timeZone: (await ctx.db.get(viewer.member))?.timeZone };
     case "skillTree":
-      return { tab, perks: await memberPerksOf(ctx, viewer.member), coinsName: namedFor(scheduled("coins"), slices.store).name };
+      return { tab, perks: await memberPerksOf(ctx, viewer.member), coinsName: namedFor(scheduled("coins"), await storeNamingOf(ctx, viewer.member, slices)).name };
     case "inventory":
       return { tab, balance: await balanceOf(ctx, viewer.member), inventory: await inventoryHomeOf(ctx, viewer.member), kudosEmoji: (await settingsOf(ctx, viewer.workspace)).kudosEmoji, refused: itemRefusalIn(refused) };
     case "settings":
@@ -244,8 +244,13 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
   }
 }
 
-function namedForStore({ ready, next }: UnlocksHome, storeShown: boolean): UnlocksHome {
-  return { ready: ready.map((entry) => namedFor(entry, storeShown)), next: next === null ? null : namedFor(next, storeShown) };
+async function storeNamingOf(ctx: QueryCtx, member: MemberId, { store }: Slices): Promise<StoreNaming> {
+  return { storeShown: store, slotsRetired: store && (await slotsRetiredFor(ctx, member)) };
+}
+
+function namedForStore({ ready, next }: UnlocksHome, naming: StoreNaming): UnlocksHome {
+  const named = (entry: ScheduledFeature) => namedFor(entry, naming);
+  return { ready: ready.map(named), next: next === null ? null : named(next) };
 }
 
 async function hoggiesInTheBookOf(ctx: QueryCtx, member: MemberId, { book, coins }: Slices, refused: HomeRefusal | null): Promise<HoggiesShown | null> {

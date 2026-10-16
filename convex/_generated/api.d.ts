@@ -202,6 +202,7 @@ import type * as store_customKudosEmojiFlag from "../store/customKudosEmojiFlag.
 import type * as store_equipping from "../store/equipping.js";
 import type * as store_inventory from "../store/inventory.js";
 import type * as store_rows from "../store/rows.js";
+import type * as store_slotsRetiredFlag from "../store/slotsRetiredFlag.js";
 import type * as store_storeFlag from "../store/storeFlag.js";
 import type * as store_visibility from "../store/visibility.js";
 import type * as unlocks_feature from "../unlocks/feature.js";
@@ -448,6 +449,7 @@ declare const fullApi: ApiFromModules<{
   "store/equipping": typeof store_equipping;
   "store/inventory": typeof store_inventory;
   "store/rows": typeof store_rows;
+  "store/slotsRetiredFlag": typeof store_slotsRetiredFlag;
   "store/storeFlag": typeof store_storeFlag;
   "store/visibility": typeof store_visibility;
   "unlocks/feature": typeof unlocks_feature;

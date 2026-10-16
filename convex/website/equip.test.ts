@@ -103,6 +103,20 @@ async function homeRepublishesFor(user: string) {
   return (await scheduledFunctions()).filter(({ name, args: [args] }) => name === "slack/appHome:publishHome" && (args as { user?: string }).user === user);
 }
 
+describe("RS5: with slots retired, the website's equip and take-off are ignored", { timeout: 30_000 }, () => {
+  test("Put in slot, the starter's own slot again, and Take off each answer refused and write nothing", async () => {
+    const { asSignedIn } = await anOpenInventoryIn(t, "slots-retired");
+    const before = await everythingWritten();
+    const eventsBefore = publishedEvents().length;
+
+    expect(await equip(asSignedIn, rocket, "emoji-2")).toEqual({ kind: "refused" });
+    expect(await equip(asSignedIn, hedgehog, "emoji-1")).toEqual({ kind: "refused" });
+    expect(await takeOff(asSignedIn, "emoji-1")).toEqual({ kind: "refused" });
+    expect(await everythingWritten()).toEqual(before);
+    expect(publishedEvents().slice(eventsBefore)).toEqual([]);
+  });
+});
+
 describe("website commands pass one guard", { timeout: 30_000 }, () => {
   test("WS61: without a session, each answers signed-out and writes nothing", async () => {
     await anOpenInventoryIn();
