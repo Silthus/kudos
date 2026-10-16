@@ -121,6 +121,13 @@ describe("#580: the reacted emoji is drawn inline", () => {
     expect(within(row).getByRole("img", { name: ":hedgehug:" })).toHaveAttribute("src", "https://emoji.slack-edge.com/T1/hedgehug/abc.png");
   });
 
+  it("draws the picture first, even for a name the emoji table knows", async () => {
+    await opened([aHugGiven("h1", now - minute, { emoji: "hugging_face", emojiImage: "https://emoji.slack-edge.com/T1/hugging_face/abc.png" })]);
+    const row = article("You reacted :hugging_face: on Bo Okafor's message");
+    expect(within(row).getByRole("img", { name: ":hugging_face:" })).toHaveAttribute("src", "https://emoji.slack-edge.com/T1/hugging_face/abc.png");
+    expect(row).not.toHaveTextContent("🤗");
+  });
+
   it("names a custom emoji without a picture in a chip", async () => {
     await opened([aHugGiven("h1", now - minute, { emoji: "partyparrot" })]);
     const row = article("You reacted :partyparrot: on Bo Okafor's message");

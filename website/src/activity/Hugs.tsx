@@ -44,17 +44,17 @@ function HugRow({ side, entry, face, counts, slackName, index, timeZone, childre
       data-side={side}
       className={`flex gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring ${given ? "justify-end" : "justify-start"}`}
     >
-      {face !== undefined && <div className="shrink-0 pt-px">{face}</div>}
+      {face !== undefined && <div className="-mt-1 w-15 shrink-0">{face}</div>}
       <div className={`flex max-w-[80%] min-w-0 flex-col gap-1 text-xs text-muted-foreground ${given ? "items-end text-right" : "items-start"}`}>
         <div className="max-w-full px-1 [overflow-wrap:anywhere]">
-          <h3 id={headlineId} className="inline font-medium text-foreground/80">
+          <h3 id={headlineId} className="inline text-foreground/80">
             {children}
           </h3>
-          {counts.length > 0 && <span className="tabular-nums">{` · ${counts.join(" · ")}`}</span>}
+          {counts.length > 0 && <span className="whitespace-nowrap tabular-nums">{` · ${counts.join(" · ")}`}</span>}
           <When at={entry.at} timeZone={timeZone} className="ml-2 whitespace-nowrap" />
+          {entry.permalink !== null && <OpenInSlack permalink={entry.permalink} name={slackName} className="ml-2 text-xs" />}
         </div>
         {entry.kudos !== null && <QuotedKudos kudos={entry.kudos} />}
-        {entry.permalink !== null && <OpenInSlack permalink={entry.permalink} name={slackName} className="px-1 text-xs" />}
       </div>
     </article>
   );
