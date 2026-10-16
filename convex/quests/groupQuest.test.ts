@@ -476,37 +476,52 @@ describe("GB23 P85: a group reward's crate waits for its member and opens once",
   });
 });
 
-describe("CL6: a group quest's crate drops no hoggie", { timeout: 60_000 }, () => {
-  test("a contributor's group crate opened while collection is on stores no drop and publishes no hoggieDropped", async () => {
+describe("CL6: a group quest's crate drops one hoggie", { timeout: 60_000 }, () => {
+  test("a contributor's group crate opened twice while collection is on stores one drop and publishes hoggie dropped once, with the group crate's kind", async () => {
     const { t, members, groups } = await antsOfFiveDrew();
     await flagsFromPostHog(t, postHog, ...[...everyFlag, "collection"].map(onForEveryone));
     for (const [giver, recipient] of [["U_A1", "U_A2"], ["U_A2", "U_A3"], ["U_A3", "U_A1"]] as const) await gives(t, members[giver]!, members[recipient]!, tuesday);
+    const crate = { kind: "group" as const, group: groups.Ants!, week: thisWeek };
 
-    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, { kind: "group", group: groups.Ants!, week: thisWeek }))).toBe("done");
+    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate))).toBe("done");
+    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate))).toBe("done");
     await settle(t);
 
-    expect(await t.run((ctx) => ctx.db.query("drops").collect())).toEqual([]);
-    expect(postHog.productEvents().filter(({ event }) => event === "hoggie dropped")).toEqual([]);
+    expect(await t.run((ctx) => ctx.db.query("drops").collect())).toEqual([expect.objectContaining({ member: members.U_A1!, crate: groupRewardKey(groups.Ants!, thisWeek), n: 1, copy: 1 })]);
+    expect(postHog.productEvents().filter(({ event }) => event === "hoggie dropped").map(({ properties: { crate_kind } }) => crate_kind)).toEqual(["group"]);
   });
 
-  test("the website's open of a group crate answers drop null while collection is on, no drop field while it is off, and sends no collection exposure", async () => {
+  test("the website's open of a group crate answers its one drop while collection is on, and the same drop again", async () => {
     vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
     const { t, members, groups } = await antsOfFiveDrew();
-    const withWebsite = (collection: string[]) => flagsFromPostHog(t, postHog, ...[...everyFlag, "website", ...collection].map(onForEveryone));
-    await withWebsite(["collection"]);
+    await flagsFromPostHog(t, postHog, ...[...everyFlag, "website", "collection"].map(onForEveryone));
     await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
     for (const [giver, recipient] of [["U_A1", "U_A2"], ["U_A2", "U_A3"], ["U_A3", "U_A1"]] as const) await gives(t, members[giver]!, members[recipient]!, tuesday);
     const { asSignedIn } = await aSignedInSession(t, { user: "U_A1" });
     const openGroupCrate = () => asSignedIn.mutation(api.website.commands.openQuestCrate, { quest: { kind: "group", group: groups.Ants!, week: thisWeek } });
 
-    expect(await openGroupCrate()).toEqual({ kind: "opened", applied: null, drop: null });
-    expect(await openGroupCrate()).toEqual({ kind: "opened", applied: null, drop: null });
-    await withWebsite([]);
+    const first = await openGroupCrate();
+    const [stored] = await t.run((ctx) => ctx.db.query("drops").collect());
+
+    expect(first).toEqual({ kind: "opened", applied: null, drop: expect.objectContaining({ hoggie: stored!.hoggie, rarity: stored!.rarity, copy: 1, isNew: true }) });
+    expect(await openGroupCrate()).toEqual(first);
+  });
+
+  test("with collection off, the website's open of a group crate answers main's opened, stores no drop and exposes collection false once", async () => {
+    vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+    const { t, members, groups } = await antsOfFiveDrew();
+    await flagsFromPostHog(t, postHog, ...[...everyFlag, "website"].map(onForEveryone));
+    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+    for (const [giver, recipient] of [["U_A1", "U_A2"], ["U_A2", "U_A3"], ["U_A3", "U_A1"]] as const) await gives(t, members[giver]!, members[recipient]!, tuesday);
+    const { asSignedIn } = await aSignedInSession(t, { user: "U_A1" });
+    const openGroupCrate = () => asSignedIn.mutation(api.website.commands.openQuestCrate, { quest: { kind: "group", group: groups.Ants!, week: thisWeek } });
+
+    expect(await openGroupCrate()).toEqual({ kind: "opened", applied: null });
     expect(await openGroupCrate()).toEqual({ kind: "opened", applied: null });
     await settle(t);
 
     expect(await t.run((ctx) => ctx.db.query("drops").collect())).toEqual([]);
-    expect(postHog.events().filter(({ event, properties }) => event === "$feature_flag_called" && properties.$feature_flag === "collection")).toEqual([]);
+    expect(postHog.events().filter(({ event, properties }) => event === "$feature_flag_called" && properties.$feature_flag === "collection").map(({ properties }) => properties.$feature_flag_response)).toEqual([false]);
   });
 });
 

@@ -12,6 +12,8 @@ import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../.
 import crons from "../crons";
 import { finishQuest } from "../quests/finish";
 import { groupQuestPool } from "../quests/groupPool";
+import { achievementsLiveIn } from "../achievements/flag";
+import { hoggieNamed, rarityLabel } from "../hoggies/catalogue";
 import { keepOpen } from "../unlocks/unlocks";
 
 const lastTuesday = Date.parse("2026-10-13T10:00:00Z");
@@ -102,6 +104,25 @@ describe("GB23 GB24: a week of kudos that say why finishes the group quest, and 
   });
 });
 
+describe("CL6: a group quest's crate drops one hoggie, and App Home names it", { timeout: 60_000 }, () => {
+  test("Open on the group quest's crate, with collection on, drops one hoggie and App Home's hoggies line names it as the last found", async () => {
+    const t = await antsOpenedQuests("collection", "achievements");
+    await bookOpenedFor(t, "U_ANN");
+    await sweepAt(t, lastTuesday);
+    await sweepAt(t, mondaySweep);
+    vi.setSystemTime(tuesday);
+    for (const [giver, recipient] of [["U_ANN", "U_AL"], ["U_AL", "U_AMY"], ["U_AMY", "U_ANN"]] as const) await giveKudos(t, giver, recipient, saysWhy);
+    await openHome(t, "U_ANN");
+
+    await click(t, "U_ANN", groupQuestCrateIn(publishedHomeBlocks(slack, "U_ANN")));
+
+    const drops = await t.run((ctx) => ctx.db.query("drops").collect());
+    expect(drops).toEqual([expect.objectContaining({ crate: expect.stringMatching(/^group:.+:2026-10-19$/) })]);
+    const { name, rarity } = hoggieNamed(drops[0]!.hoggie)!;
+    expect(publishedHome(slack, "U_ANN")).toContain(`section: Hoggies: 1 of 151 · last found: ${name} (${rarityLabel(rarity)})`);
+  });
+});
+
 describe("GB23 P85: a group crate left unopened waits in App Home after its week", { timeout: 60_000 }, () => {
   test("next week, App Home lists Ann's unopened Ants crate under Waiting to open, and Open opens it", async () => {
     const t = await antsOpenedQuests();
@@ -187,6 +208,14 @@ async function antsOpenedQuests(...alsoOn: string[]): Promise<Backend> {
   });
   await settle(t);
   return t;
+}
+
+async function bookOpenedFor(t: Backend, user: string) {
+  await t.run(async (ctx) => {
+    await achievementsLiveIn(ctx, "T1");
+    await keepOpen(ctx, { workspace: "T1", member: await memberOf(ctx, user), at: lastTuesday }, "book");
+  });
+  await settle(t);
 }
 
 async function memberOf(ctx: MutationCtx, user: string) {
