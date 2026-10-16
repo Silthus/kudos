@@ -153,7 +153,7 @@ describe("#467: the Collection page is a collector's book of every hoggie", () =
     expect(within(tile("wizard")).queryByText(/2026/)).not.toBeInTheDocument();
     expect(coffeeCup).toHaveAttribute("data-held", "found");
     expect(coffeeCup).toHaveAttribute("data-rarity", "common");
-    expect(coffeeCup.querySelector("svg")).not.toBeNull();
+    expect(coffeeCup.querySelector("img")).toHaveAttribute("src", expect.stringMatching(/coffee-cup\.png$/));
     expect(coffeeCup.querySelector(".hog-silhouette")).toBeNull();
     expect(within(coffeeCup).getByText("Coffee Cup")).toBeInTheDocument();
     expect(within(coffeeCup).getByText("×4")).toBeInTheDocument();
@@ -164,7 +164,8 @@ describe("#467: the Collection page is a collector's book of every hoggie", () =
     showCollection(theCollection);
     const wizard = tile("wizard");
     expect(wizard).toHaveAttribute("data-held", "missing");
-    expect(wizard.querySelector(".hog-silhouette svg")).not.toBeNull();
+    expect(wizard.querySelector<HTMLElement>(".hog-silhouette [data-silhouette-art]")!.style.getPropertyValue("--art")).toMatch(/wizard-1\.png"\)$/);
+    expect(wizard.querySelector("img")).toBeNull();
     expect(within(wizard).getByText("Wizard")).toBeInTheDocument();
     expect(wizard).toHaveTextContent("Not found yet");
   });
