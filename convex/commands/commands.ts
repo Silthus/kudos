@@ -21,6 +21,7 @@ import { perkValidator } from "../progression/tree";
 import { openQuestCrate } from "../quests/open";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { rerollQuest } from "../quests/weekly";
+import { setAvatar } from "../hoggies/avatar";
 import { buyCrate, openCrate } from "../hoggies/boughtCrates";
 import type { CratePurchaseOutcome } from "../hoggies/records";
 import { buyItem } from "../store/buying";
@@ -54,6 +55,7 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("setCustomKudosEmoji"), emoji: v.array(v.string()) }),
   v.object({ type: v.literal("buyCrate"), next: v.number() }),
   v.object({ type: v.literal("openCrate"), crate: v.string() }),
+  v.object({ type: v.literal("setAvatar"), hoggie: v.union(v.string(), v.null()) }),
 );
 
 export type Command = Infer<typeof commandValidator>;
@@ -125,6 +127,9 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return buyCrate(ctx, member, command.next, Date.now());
     case "openCrate":
       await openCrate(ctx, member, command.crate, Date.now());
+      return null;
+    case "setAvatar":
+      await setAvatar(ctx, member, command.hoggie);
       return null;
     case "equip":
       return equip(ctx, member, command.item, command.slot);

@@ -5,6 +5,7 @@ import type { Command } from "../commands/commands";
 import type { HomeFacts, KudosHome } from "../engine/home";
 import type { GroupChoice } from "../groups/pick";
 import type { GroupId, GroupRef } from "../groups/groups";
+import type { AvatarChoice } from "../hoggies/avatar";
 import { rarityLabel } from "../hoggies/catalogue";
 import type { GroupModeFacts } from "../groups/groupMode";
 import type { MondayPostSwitch } from "../leaderboard/mondayPost";
@@ -39,6 +40,7 @@ import { renderBoards } from "./leaderboard";
 import { openTheWebsite, productName, skillPointsOf, slashCommand } from "./naming";
 import { medals } from "./medals";
 import type { Line } from "./segments";
+import { avatarText, hoggieLabel } from "./avatar";
 import { unopenedTextOf } from "./unlockFilter";
 
 export type HomeView = { tabBar?: Choice[]; title: string; groups: HomeLine[][] };
@@ -214,7 +216,20 @@ function hoggiesLinesOf(hoggies: HoggiesShown | null, website: string | null): H
   if (hoggies === null) return [];
   const text = `Hoggies: ${hoggies.owned} of ${hoggies.total}${crestsPartOf(hoggies)} · ${lastFoundPartOf(hoggies)}`;
   const line: HomeLine = website === null ? { kind: "text", text } : { kind: "action", text, action: linkOnTheWeb({ label: "View", spoken: "View your hoggies", id: "hoggies" }, { page: "bookCollection" }, website) };
-  return [[line, ...crateOfferLines(hoggies.crateStore, website)]];
+  return [[line, ...avatarLinesOf(hoggies.avatar, website), ...crateOfferLines(hoggies.crateStore, website)]];
+}
+
+const avatarOptionsShown = 100;
+
+function avatarLinesOf(choice: AvatarChoice | null, website: string | null): HomeLine[] {
+  if (choice === null) return [];
+  const { avatar, held } = choice;
+  if (website !== null) return avatar === null ? [] : [{ kind: "text", text: avatarText(avatar) }];
+  if (held.length === 0) return [];
+  const none: Choice[] = avatar === null ? [] : [{ label: "No avatar", command: { type: "setAvatar", hoggie: null }, selected: false }];
+  const options = held.map((hoggie): Choice => ({ label: hoggieLabel(hoggie), command: { type: "setAvatar", hoggie: hoggie.hoggie }, selected: hoggie.hoggie === avatar?.hoggie }));
+  const text = avatar === null ? "Pick a hoggie you hold as your avatar." : avatarText(avatar);
+  return [{ kind: "pick", id: "setAvatar", text, placeholder: "Use as avatar", options: [...none, ...options].slice(0, avatarOptionsShown) }];
 }
 
 function crateOfferLines(store: CrateStoreShown | null, website: string | null): HomeLine[] {
