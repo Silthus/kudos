@@ -69,7 +69,7 @@ async function aTeam() {
 }
 
 async function questsOpenFor(member: MemberId, ...drawn: QuestId[]) {
-  await reachesLevel(t, member, 2);
+  await reachesLevel(t, member, 3);
   await opens(t, member, "quests");
   if (drawn.length > 0) await drawnIn(member, thisWeek, drawn);
 }
@@ -220,15 +220,15 @@ describe("quests are invisible where they don't apply", () => {
 describe("WS70: getQuests reads the quests module's facts", () => {
   beforeEach(questsApply);
 
-  test("a member at level 1 reads Quests locked at level 2, with no quest fact", async () => {
+  test("a member at level 1 reads Quests locked at level 3, with no quest fact", async () => {
     const { asSignedIn } = await signedIn();
 
-    expect(await questsOf(asSignedIn)).toEqual({ kind: "locked", level: 2 });
+    expect(await questsOf(asSignedIn)).toEqual({ kind: "locked", level: 3 });
   });
 
-  test("a member at level 2 reads Quests ready, with no quest fact", async () => {
+  test("a member at level 3 reads Quests ready, with no quest fact", async () => {
     const { member, asSignedIn } = await signedIn();
-    await reachesLevel(t, member, 2);
+    await reachesLevel(t, member, 3);
 
     expect(await questsOf(asSignedIn)).toEqual({ kind: "ready" });
   });
@@ -544,7 +544,7 @@ describe("WS71: getMyProfile's journey", () => {
   test("the Journey isn't gated by the Quests feature: a member at level 1 reads their step", async () => {
     const { asSignedIn } = await signedIn();
 
-    expect(await questsOf(asSignedIn)).toEqual({ kind: "locked", level: 2 });
+    expect(await questsOf(asSignedIn)).toEqual({ kind: "locked", level: 3 });
     expect(await journeyOf(asSignedIn)).toHaveLength(1);
   });
 

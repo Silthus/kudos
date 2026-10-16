@@ -166,7 +166,6 @@ describe("E1: unlock made ready and unlock opened", () => {
     ["book", "book"],
     ["skillTree", "skill tree"],
     ["coins", "coins"],
-    ["hedgehogs", "hedgehogs"],
   ];
 
   test.each(featureNames)("%s made ready is unlock made ready with feature %s, on the member at the fact's time", (feature, name) => {

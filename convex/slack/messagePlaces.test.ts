@@ -334,7 +334,15 @@ async function bookOpenedBy(user: string) {
 }
 
 async function bookOpened(t: Backend, user: string) {
-  await t.run(async (ctx) => ctx.db.insert("unlocks", { member: await memberIn(ctx, user), feature: "book", readyAt: Date.now(), openedAt: Date.now() }));
+  await t.run(async (ctx) => {
+    const member = await memberIn(ctx, user);
+    const row = await ctx.db
+      .query("unlocks")
+      .withIndex("by_member_feature", (q) => q.eq("member", member).eq("feature", "book"))
+      .unique();
+    if (row === null) await ctx.db.insert("unlocks", { member, feature: "book", readyAt: Date.now(), openedAt: Date.now() });
+    else await ctx.db.patch(row._id, { openedAt: Date.now() });
+  });
 }
 
 async function questsOpenedBy(user: string) {

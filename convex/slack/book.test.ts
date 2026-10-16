@@ -48,7 +48,7 @@ describe("P58 P61 P67 P76: a member at level 4 opens the Book and sees the tiers
 
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
-    expect(levelUpDmsTo("U_ALICE").map((dm) => dm.text)).toEqual([`🎉 You reached level 4!\nLevel 5 is 295 XP away.\n${bookReady}`]);
+    expect(levelUpDmsTo("U_ALICE").map((dm) => dm.text)).toEqual(["🎉 You reached level 4!\nLevel 5 is 295 XP away."]);
     await openHome(t, "U_ALICE");
     const beforeOpening = publishedHome(slack, "U_ALICE");
     expect(beforeOpening[0]).toBe("actions: [Profile] | Settings");

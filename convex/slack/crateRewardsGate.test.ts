@@ -6,6 +6,7 @@ import { signedRequest } from "../../testing/signedSlack";
 import { everythingStored, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, publishedHomeBlocks, readBlocks, type Block, type BlockAction } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aSession } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { QueryCtx } from "../_generated/server";
@@ -232,6 +233,7 @@ async function walkEveryCratePath(t: Backend, user: string, startingAt = tuesday
   const site = await websiteOf(t, user);
   const steps = stepsFrom(startingAt);
   await steps.next(() => giveKudos(t, user, first));
+  await reachesLevelThree(t, user);
   await steps.next(() => openHome(t, user));
   const reads = [await site.reads()];
   await steps.next(() => clickIfShown(t, user, "*Journey:* ✅"));
@@ -264,6 +266,7 @@ function stepsFrom(start: number) {
 async function heldCratesOf(t: Backend, user: string) {
   const [first, second] = friendsOf[user]!;
   await aWhileLater(() => giveKudos(t, user, first));
+  await reachesLevelThree(t, user);
   await openHome(t, user);
   await click(t, user, openButtonBeside(user, "*Journey:* ✅"));
   await questsDrawnFor(t, user);
@@ -271,6 +274,10 @@ async function heldCratesOf(t: Backend, user: string) {
   await aWhileLater(() => giveKudos(t, user, second));
   await openHome(t, user);
   expect(await rewardsOf(t, user)).toEqual(everyCrateFinished.map((key) => ({ key, held: true })));
+}
+
+async function reachesLevelThree(t: Backend, user: string) {
+  await reachesLevel(t, await t.run((ctx) => memberIn(ctx, user)), 3);
 }
 
 function aWhileLater<Done>(step: () => Promise<Done>) {

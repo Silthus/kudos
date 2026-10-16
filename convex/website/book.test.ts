@@ -5,7 +5,7 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { opens, reachesLevel } from "../../testing/unlocks";
-import { aDeploymentForWorkspace, aMember, aSession, switchWebsite } from "../../testing/website";
+import { aDeploymentForWorkspace, aMember, aSession, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { LadderFacts } from "../achievements/achievements";
 import { ladders, type Ladder } from "../achievements/ladders";
@@ -158,11 +158,12 @@ describe("WS80 WS90: getBook follows the Book's unlock", () => {
     expect(await t.run((ctx) => ctx.db.query("bookLaunches").collect())).toEqual([]);
   });
 
-  test("a member at level 1 reads the Book locked at level 4, with no achievement fact", async () => {
+  test("a member at level 1 whom nothing in Slack has shown unlocks signs in and reads the Book ready, with no achievement fact", async () => {
     await bookShipped();
-    const { asSignedIn } = await signedIn();
+    await aMember(t, juno.user);
+    const { asSignedIn } = await aSignedInSession(t, juno);
 
-    expect(await bookOf(asSignedIn)).toEqual({ kind: "locked", level: 4 });
+    expect(await bookOf(asSignedIn)).toEqual({ kind: "ready" });
   });
 
   test("a member at level 4 who hasn't opened the Book reads it ready, with no achievement fact", async () => {

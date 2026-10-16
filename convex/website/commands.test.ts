@@ -265,10 +265,13 @@ describe("a website command is a D17 command", () => {
   test("WS62 P91: with the Journey launched, a ready Quests opens for good", async () => {
     await launchedThen(...allFlags, "quests");
     await journeyShippedBeforeAnyoneJoined(t);
-    const { member, asSignedIn } = await withLevel(2);
+    const { member, asSignedIn } = await withLevel(3);
 
     expect(await openFeature(asSignedIn, "quests")).toEqual({ kind: "opened" });
-    expect(await unlockRowsOf(member)).toMatchObject([{ feature: "quests", openedAt: now.getTime() }]);
+    expect((await unlockRowsOf(member)).map(({ feature, openedAt }) => ({ feature, openedAt }))).toEqual([
+      { feature: "leaderboard", openedAt: undefined },
+      { feature: "quests", openedAt: now.getTime() },
+    ]);
   });
 
   test("WS63: a doubled open opens once and answers opened again, keeping the first time", async () => {

@@ -5,8 +5,9 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, publishedHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { reachesLevel } from "../../testing/unlocks";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import crons from "../crons";
@@ -204,9 +205,10 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
   test("App Home opened at 00:05 on Monday shows this week's 3 new quests at 0, last week's are gone and the XP stays; last week's finished crate still opens from its DM", async () => {
     const t = await slackWorkspace();
     await giveKudos(t, "U_ALICE", "U_BOB");
+    await reachesLevel(t, await t.run((ctx) => memberOf(ctx, "U_ALICE")), 3);
     await openHome(t, "U_ALICE");
     await drawLastWeek(t, "U_ALICE", ["say-why", "say-why-three-times", "say-why-two-days"]);
-    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    await send(t, blockActions("U_ALICE", buttonBeside("*Quests* is ready", "Open")));
     await giveKudos(t, "U_ALICE", "U_BOB");
     const finishedDm = slack.callsTo("chat.postMessage").find(({ text }) => String(text).startsWith("✅ You finished a quest"))!;
     const standing = await t.run(async (ctx) => standingOf(ctx, await memberOf(ctx, "U_ALICE")));
@@ -230,9 +232,10 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
   test("App Home after the Monday turn lists last week's unopened crate as waiting to open, and its Open opens it", async () => {
     const t = await slackWorkspace();
     await giveKudos(t, "U_ALICE", "U_BOB");
+    await reachesLevel(t, await t.run((ctx) => memberOf(ctx, "U_ALICE")), 3);
     await openHome(t, "U_ALICE");
     await drawLastWeek(t, "U_ALICE", ["say-why", "say-why-three-times", "say-why-two-days"]);
-    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    await send(t, blockActions("U_ALICE", buttonBeside("*Quests* is ready", "Open")));
     await giveKudos(t, "U_ALICE", "U_BOB");
     vi.setSystemTime(mondayInUtc + 5 * minuteMs);
 
@@ -249,8 +252,9 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
   test("with 100 crates waiting from earlier weeks, App Home shows the oldest 5 and how many more within Slack's 100 blocks, and opening one brings the next", async () => {
     const t = await slackWorkspace();
     await giveKudos(t, "U_ALICE", "U_BOB");
+    await reachesLevel(t, await t.run((ctx) => memberOf(ctx, "U_ALICE")), 3);
     await openHome(t, "U_ALICE");
-    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    await send(t, blockActions("U_ALICE", buttonBeside("*Quests* is ready", "Open")));
     await waitingFromAnEarlierWeek(t, "U_ALICE", 100);
 
     await openHome(t, "U_ALICE");
@@ -268,8 +272,9 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
   test("with 6 crates waiting from earlier weeks, App Home shows the oldest 5 and says 1 more crate waits", async () => {
     const t = await slackWorkspace();
     await giveKudos(t, "U_ALICE", "U_BOB");
+    await reachesLevel(t, await t.run((ctx) => memberOf(ctx, "U_ALICE")), 3);
     await openHome(t, "U_ALICE");
-    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    await send(t, blockActions("U_ALICE", buttonBeside("*Quests* is ready", "Open")));
     await waitingFromAnEarlierWeek(t, "U_ALICE", 6);
 
     await openHome(t, "U_ALICE");
@@ -281,8 +286,9 @@ describe("P80 P85: a new week replaces the last on App Home without a penalty, a
     slack.withMember("U_ALICE", { tz: "America/Los_Angeles" });
     const t = await slackWorkspace();
     await giveKudos(t, "U_ALICE", "U_BOB");
+    await reachesLevel(t, await t.run((ctx) => memberOf(ctx, "U_ALICE")), 3);
     await openHome(t, "U_ALICE");
-    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+    await send(t, blockActions("U_ALICE", buttonBeside("*Quests* is ready", "Open")));
     await waitingFromAnEarlierWeek(t, "U_ALICE", 1, "2026-09-28");
     await waitingFromAnEarlierWeek(t, "U_ALICE", 1, "2026-10-05");
 

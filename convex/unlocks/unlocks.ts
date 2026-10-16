@@ -11,7 +11,7 @@ import { xpLevelsOnFor } from "../progression/xpLevels";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import type { Feature } from "./feature";
 import { unlocksLiveFor, unlocksShownTo } from "./launch";
-import { scheduled, shippedTo, type ScheduledFeature } from "./schedule";
+import { readyFromTheStart, schedule, scheduled, shippedTo, type ScheduledFeature } from "./schedule";
 
 export type UnlockState = "unshipped" | "locked" | "ready" | "open";
 
@@ -98,6 +98,11 @@ export async function withoutReadiness(ctx: QueryCtx, member: MemberId, features
   const without: ScheduledFeature[] = [];
   for (const entry of features) if ((await unlockRow(ctx, member, entry.feature)) === null) without.push(entry);
   return without;
+}
+
+export async function makeReadyFromTheStart(ctx: MutationCtx, workspace: string, member: MemberId) {
+  const due = await withoutReadiness(ctx, member, schedule.features.filter(readyFromTheStart));
+  if (due.length > 0) await storeReadiness(ctx, { workspace, member, at: Date.now() }, await shippedTo(ctx, member, due));
 }
 
 export function reachedAt(features: readonly ScheduledFeature[], level: number) {
