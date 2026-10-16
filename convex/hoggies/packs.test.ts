@@ -368,11 +368,11 @@ describe("CV10: a paid bonus in hoggieDropped and hoggie dropped", () => {
   });
 });
 
-describe("CV11: with packs off or unset, the opens answer main's and pay no bonus", () => {
+describe("CV11: with packs off or unset, the opens pay no bonus", () => {
   test.each([
     { condition: "off", packs: [offForEveryone("packs")] },
     { condition: "unset", packs: [] },
-  ])("with packs $condition, the opens answer no bonus, hoggieDropped carries none, and only the flag's exposure differs", async ({ packs }) => {
+  ])("with packs $condition, the website's opens answer the held reward alone, and no drop record or hoggieDropped carries a bonus", async ({ packs }) => {
     const { asSignedIn } = await aFinishedWeeklyQuestIn(t, "crate-rewards");
     await flagsFromPostHog(t, postHog, ...["website", ...questsFlags, "crate-rewards", "collection"].map(onForEveryone), ...packs);
     vi.mocked(publish).mockClear();
@@ -383,7 +383,7 @@ describe("CV11: with packs off or unset, the opens answer main's and pay no bonu
     expect(withoutExposureOf("packs", await everyTable()).drops).toEqual([expect.not.objectContaining({ pack: expect.anything() }), expect.not.objectContaining({ pack: expect.anything() })]);
   });
 
-  test("with packs off, a feature's and a bought crate's opens answer main's, with no applied field", async () => {
+  test("with packs off, a feature's and a bought crate's opens answer opened with the drop and no applied field", async () => {
     const { asSignedIn } = await aShopperWithABoughtCrate();
 
     expect(await openCrate(asSignedIn)).toEqual({ kind: "opened", drop: expect.objectContaining({ copy: 1 }) });
