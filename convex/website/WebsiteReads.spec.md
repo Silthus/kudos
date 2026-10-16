@@ -386,6 +386,15 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   kinds: read
   checklist: scoped-reads declared as website reads pass one guard
   checklist: redaction dismissed: the fact is one boolean about the member's own view and names no group or member
+- getMyProfile says bookSpread only while book-spread is on: getMyProfile's member answer carries bookSpread true exactly while the book-spread flag is on in the signed-in member's own decision, read without an exposure, and carries no bookSpread key otherwise, so with the flag off, unset, or the flags key missing every answer equals the one before the flag existed and the website keeps today's Book pages.
+  over: getMyProfile while book-spread is off, while PostHog has no such flag, in production under the ship's condition for another member's email, without the flags key, and while it is on for everyone, in the sandbox under the ship's condition and for the product owner's email in production
+  via: getMyProfile says bookSpread only while book-spread is on
+  because: the Book redesign ships dark behind a member decision and widens only once its proofs pass (#584, #587), and the website never reads a flag, so it switches /book on this one field; an additive optional key keeps every flag-off answer byte-equal to main's
+  crossing: browser -> domain
+  entrances: query getMyProfile
+  kinds: read
+  checklist: scoped-reads declared as website reads pass one guard
+  checklist: redaction dismissed: the fact is one boolean about the member's own view and names no member
 - only the allowed workspace signs in, and only while open: A sign-in creates or updates an account only for a profile of the deployment's SLACK_WORKSPACE_ID with a non-empty Slack user, and only while the website flag is on in the workspace decision or in the member's own.
   over: the sign-in callback for a profile from another workspace, an empty Slack user, an unset SLACK_WORKSPACE_ID, and the flag off
   via: WS3 WS6: only the allowed workspace signs in, and only while open

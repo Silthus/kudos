@@ -231,6 +231,7 @@ import type * as wallet_wallet from "../wallet/wallet.js";
 import type * as website_abandonedHandshakes from "../website/abandonedHandshakes.js";
 import type * as website_activity from "../website/activity.js";
 import type * as website_book from "../website/book.js";
+import type * as website_bookSpread from "../website/bookSpread.js";
 import type * as website_clock from "../website/clock.js";
 import type * as website_collection from "../website/collection.js";
 import type * as website_commands from "../website/commands.js";
@@ -492,6 +493,7 @@ declare const fullApi: ApiFromModules<{
   "website/abandonedHandshakes": typeof website_abandonedHandshakes;
   "website/activity": typeof website_activity;
   "website/book": typeof website_book;
+  "website/bookSpread": typeof website_bookSpread;
   "website/clock": typeof website_clock;
   "website/collection": typeof website_collection;
   "website/commands": typeof website_commands;
