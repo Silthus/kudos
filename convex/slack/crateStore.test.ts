@@ -4,7 +4,7 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest } from "../../testing/signedSlack";
 import { settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonInHome, publishedHome, publishedHomeBlocks, staleButtonOf } from "../../testing/slackInteractions";
+import { blockActions, buttonInHome, publishedHome, publishedHomeBlocks, publishedViews, staleButtonOf } from "../../testing/slackInteractions";
 import { appHomeOpened } from "../../testing/slackMessages";
 import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aMember, switchWebsite } from "../../testing/website";
@@ -21,6 +21,7 @@ const crateStoreFlags = ["xp-levels", "unlocks", "achievements", "coins", "colle
 const levelSix = 1000;
 const hoggiesLine = "section: Hoggies: 0 of 151 · every crate you open drops one.";
 const buyLine = "section: A crate drops one hoggie when you open it. [button: Buy a crate · 50 🪙]";
+const siteUrl = "https://kudos-site.test";
 
 let postHog: FakePostHog;
 let slack: FakeSlack;
@@ -41,9 +42,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function junoWith(coins: number, { website = false } = {}) {
-  if (website) vi.stubEnv("SITE_URL", "https://kudos-site.test");
-  await switchWebsite(t, postHog, website, ...crateStoreFlags.filter((flag) => flag !== "collection"));
+async function junoWith(coins: number) {
+  await switchWebsite(t, postHog, false, ...crateStoreFlags.filter((flag) => flag !== "collection"));
   await bookShippedBeforeAnyoneJoined(t);
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
   const member = await aMember(t, juno);
@@ -52,14 +52,21 @@ async function junoWith(coins: number, { website = false } = {}) {
   await opens(t, member, "book");
   await opens(t, member, "coins");
   if (coins > 0) await t.run((ctx) => recordReward(ctx, "T1", { member, key: `test:earned:${coins}`, xp: 0, coins, item: null, catalogueVersion: "2", at: 0 }));
-  await switchWebsite(t, postHog, website, ...crateStoreFlags);
+  await switchWebsite(t, postHog, false, ...crateStoreFlags);
   await openHome();
   return member;
 }
 
+async function openTheWebsite() {
+  vi.stubEnv("SITE_URL", siteUrl);
+  await switchWebsite(t, postHog, true, ...crateStoreFlags);
+  await openHome();
+}
+
 async function send(body: string, init?: { contentType: string }) {
-  await t.fetch(init === undefined ? "/slack/events" : "/slack/interactivity", await signedRequest(body, init));
+  const response = await t.fetch(init === undefined ? "/slack/events" : "/slack/interactivity", await signedRequest(body, init));
   await settleInTimeOrder(t);
+  return response;
 }
 
 function openHome() {
@@ -138,18 +145,6 @@ describe("CL29: App Home sells a crate for 50 🪙 under the hoggies line", { ti
     expect(home).toContain("section: A crate you bought [button: Open]");
   });
 
-  test("on the website's front door, a bought crate waits among the crates to open, and its Open opens it in Slack", async () => {
-    const member = await junoWith(50, { website: true });
-    await click();
-
-    expect(publishedHome(slack, juno)).toContain("section: A crate you bought [button: Open]");
-    await click(buttonInHome(slack, juno, "Open"));
-
-    const lastFound = await lastFoundLineFor(member, "bought:1");
-    expect(publishedHome(slack, juno).filter((line) => line.startsWith(lastFound))).toHaveLength(1);
-    expect(publishedHome(slack, juno)).not.toContain("section: A crate you bought [button: Open]");
-  });
-
   test("Buy with 20 🪙 shows You need 30 more 🪙. under the offer, buys nothing, and the line is gone at the next publish", async () => {
     const member = await junoWith(20);
 
@@ -183,3 +178,56 @@ describe("CL29: App Home sells a crate for 50 🪙 under the hoggies line", { ti
     expect(publishedHome(slack, juno)).toContain(await lastFoundLineFor(member, "bought:1"));
   });
 });
+
+describe("each crate's Open in Slack links to the page where it opens while the website is open", { timeout: 30_000 }, () => {
+  test("the crates a member bought link their Open to the oldest one on the Collection page, and a click on it opens nothing and publishes App Home no more", async () => {
+    const member = await junoWith(100);
+    await click();
+    await click();
+    await openTheWebsite();
+    const crates = `section: 2 crates you bought [link: Open ${siteUrl}/book/collection?crate=bought%3A1]`;
+    const published = publishedViews(slack, juno).length;
+
+    expect(publishedHome(slack, juno)).toContain(crates);
+    expect(accessoryBeside("2 crates you bought")).toEqual({
+      type: "button",
+      text: { type: "plain_text", text: "Open" },
+      url: `${siteUrl}/book/collection?crate=bought%3A1`,
+      action_id: "website-link:bought:1",
+      accessibility_label: "Open a crate you bought on HedgeHug's Collection page",
+    });
+    const response = await click(buttonInHome(slack, juno, "Open"));
+    expect(response.status).toBe(200);
+    expect(publishedViews(slack, juno)).toHaveLength(published);
+    expect(publishedHome(slack, juno)).toContain(crates);
+    expect(await coinsOf(member)).toBe(0);
+  });
+});
+
+describe("the crate store's Buy in Slack links to the Collection page while the website is open", { timeout: 30_000 }, () => {
+  test("Buy a crate · 50 🪙 links to the crate store on the Collection page with no confirmation, and a click on it buys nothing and publishes App Home no more", async () => {
+    const member = await junoWith(100);
+    await openTheWebsite();
+    const published = publishedViews(slack, juno).length;
+
+    expect(linesAfter(`${hoggiesLine} [link: View ${siteUrl}/book/collection]`, 2)).toEqual([
+      `${hoggiesLine} [link: View ${siteUrl}/book/collection]`,
+      `section: A crate drops one hoggie when you open it. [link: Buy a crate · 50 🪙 ${siteUrl}/book/collection?crate=store]`,
+    ]);
+    expect(accessoryBeside("A crate drops one hoggie")).toEqual({
+      type: "button",
+      text: { type: "plain_text", text: "Buy a crate · 50 🪙" },
+      url: `${siteUrl}/book/collection?crate=store`,
+      action_id: "website-link:crate-store",
+      accessibility_label: "Buy a crate for 50 coins on HedgeHug's Collection page",
+    });
+    const response = await click();
+    expect(response.status).toBe(200);
+    expect(publishedViews(slack, juno)).toHaveLength(published);
+    expect(await coinsOf(member)).toBe(100);
+  });
+});
+
+function accessoryBeside(text: string) {
+  return publishedHomeBlocks(slack, juno).find((block) => block.text?.text.startsWith(text))?.accessory;
+}
