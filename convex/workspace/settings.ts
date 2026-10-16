@@ -27,8 +27,8 @@ export const setStarBudget = internalMutation({
   handler: async (ctx, { workspace, starBudget }) => {
     if (!Number.isInteger(starBudget) || starBudget < 0) throw new Error("A star budget is a whole number of stars, 0 or more");
     const row = await workspaceRow(ctx, workspace);
-    if (row === null) await ctx.db.insert("workspaces", { workspace, starBudget });
-    else await ctx.db.patch(row._id, { starBudget });
+    if (row === null) throw new Error(`Kudos knows no workspace ${workspace}`);
+    await ctx.db.patch(row._id, { starBudget });
   },
 });
 

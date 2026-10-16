@@ -186,8 +186,9 @@ describe("SR16: a star reaches PostHog as star given, with only whether it was o
     await star(t, { user: "U_BOB", itemUser: "U_ALICE" });
 
     const given = starsGiven();
-    expect(given.map(({ properties }) => properties.on_kudos)).toEqual([onKudos]);
-    expect(JSON.stringify(given)).not.toMatch(/U_ALICE|U_BOB|C1|1760/);
+    const shared = { environment: "sandbox", workspace_key: expect.any(String), taxonomy_version: expect.any(Number) };
+    expect(given.map(({ properties }) => properties)).toEqual([{ ...shared, on_kudos: onKudos }]);
+    expect(JSON.stringify(given)).not.toMatch(new RegExp(`U_ALICE|U_BOB|C1|${secondsOf(messageTs)}`));
   });
 });
 
@@ -231,6 +232,15 @@ describe("SR6 SR23: a star never passes the star budget", { timeout: 60_000 }, (
     for (let index = 0; index < 3; index += 1) await star(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - (index + 1) * 60_000) });
 
     expect(await xpOf(t, "U_BOB")).toBe(2);
+  });
+
+  test("a star budget for a workspace Kudos doesn't know is refused, and the known workspace keeps 10", async () => {
+    const t = await workspace();
+
+    await expect(t.mutation(internal.workspace.settings.setStarBudget, { workspace: "T_TYPO", starBudget: 2 })).rejects.toThrow("Kudos knows no workspace T_TYPO");
+
+    for (let index = 0; index < 3; index += 1) await star(t, { user: "U_BOB", itemUser: "U_ALICE", ts: slackTs(now.getTime() - (index + 1) * 60_000) });
+    expect(await xpOf(t, "U_BOB")).toBe(3);
   });
 });
 
@@ -398,4 +408,8 @@ function levelsReached() {
 
 function slackTs(at: number) {
   return `${Math.floor(at / 1000)}.000100`;
+}
+
+function secondsOf(slackTimestamp: string) {
+  return slackTimestamp.split(".")[0];
 }
