@@ -41,8 +41,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function junoWith(coins: number) {
-  await switchWebsite(t, postHog, false, ...crateStoreFlags.filter((flag) => flag !== "collection"));
+async function junoWith(coins: number, { website = false } = {}) {
+  if (website) vi.stubEnv("SITE_URL", "https://kudos-site.test");
+  await switchWebsite(t, postHog, website, ...crateStoreFlags.filter((flag) => flag !== "collection"));
   await bookShippedBeforeAnyoneJoined(t);
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
   const member = await aMember(t, juno);
@@ -51,7 +52,7 @@ async function junoWith(coins: number) {
   await opens(t, member, "book");
   await opens(t, member, "coins");
   if (coins > 0) await t.run((ctx) => recordReward(ctx, "T1", { member, key: `test:earned:${coins}`, xp: 0, coins, item: null, catalogueVersion: "2", at: 0 }));
-  await switchWebsite(t, postHog, false, ...crateStoreFlags);
+  await switchWebsite(t, postHog, website, ...crateStoreFlags);
   await openHome();
   return member;
 }
@@ -122,6 +123,31 @@ describe("CL29: App Home sells a crate for 50 🪙 under the hoggies line", { ti
     const home = publishedHome(slack, juno);
     expect(home).toContain(await lastFoundLineFor(member, "bought:1"));
     expect(home).not.toContain("section: *Waiting to open*");
+  });
+
+  test("two bought crates wait on one line, 2 crates you bought, whose Open opens the oldest", async () => {
+    const member = await junoWith(100);
+    await click();
+    await click();
+
+    expect(publishedHome(slack, juno)).toContain("section: 2 crates you bought [button: Open]");
+    await click(buttonInHome(slack, juno, "Open"));
+
+    const home = publishedHome(slack, juno);
+    expect(home).toContain(await lastFoundLineFor(member, "bought:1"));
+    expect(home).toContain("section: A crate you bought [button: Open]");
+  });
+
+  test("on the website's front door, a bought crate waits among the crates to open, and its Open opens it in Slack", async () => {
+    const member = await junoWith(50, { website: true });
+    await click();
+
+    expect(publishedHome(slack, juno)).toContain("section: A crate you bought [button: Open]");
+    await click(buttonInHome(slack, juno, "Open"));
+
+    const lastFound = await lastFoundLineFor(member, "bought:1");
+    expect(publishedHome(slack, juno).filter((line) => line.startsWith(lastFound))).toHaveLength(1);
+    expect(publishedHome(slack, juno)).not.toContain("section: A crate you bought [button: Open]");
   });
 
   test("Buy with 20 🪙 shows You need 30 more 🪙. under the offer, buys nothing, and the line is gone at the next publish", async () => {
