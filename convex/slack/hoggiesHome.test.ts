@@ -4,7 +4,7 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined, flagsFromPostHog, flagsOnForEveryone, onForEveryone } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, publishedHome, staleButtonOf } from "../../testing/slackInteractions";
+import { blockActions, publishedHome, publishedHomeBlocks, staleButtonOf } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import { catalogue, hoggieNamed, type Rarity } from "../hoggies/catalogue";
@@ -106,7 +106,7 @@ describe("CL16: App Home names the hoggies found while collection is on and the 
     expect(hoggiesLineIn(publishedHome(slack, "U_ALICE"))).toEqual([noDropYet]);
   });
 
-  test("the front door's summary carries the line after the waiting crates, linking to the Book on the website", async () => {
+  test("the front door's summary carries the line after the waiting crates, linking to the Book's Collection page on the website", async () => {
     const t = await workspace(...bookFlags, "collection", "website");
     await levelFour(t);
 
@@ -120,15 +120,16 @@ describe("CL16: App Home names the hoggies found while collection is on and the 
       "divider",
       `section: *Leaderboard* is ready. [link: Open ${siteUrl}/leaderboard?crate=leaderboard]`,
       "divider",
-      `${await lastFoundLine(t, 1, "unlock:book")} [link: View ${siteUrl}/book]`,
+      `${await lastFoundLine(t, 1, "unlock:book")} [link: View ${siteUrl}/book/collection]`,
       "divider",
       `actions: Open HedgeHug | Book`,
       "divider",
       ...hints,
     ]);
+    expect(hoggiesAccessory()).toMatchObject({ url: `${siteUrl}/book/collection`, action_id: "website-link:hoggies", accessibility_label: "View your hoggies on HedgeHug's Collection page" });
   });
 
-  test("the front door's summary with no drop yet links to the Book too", async () => {
+  test("the front door's summary with no drop yet links to the Collection page too", async () => {
     const t = await workspace(...bookFlags, "website");
     await levelFour(t);
     await openFromAppHome(t, "book");
@@ -136,7 +137,7 @@ describe("CL16: App Home names the hoggies found while collection is on and the 
 
     await openHome(t, "U_ALICE");
 
-    expect(hoggiesLineIn(publishedHome(slack, "U_ALICE"))).toEqual([`${noDropYet} [link: View ${siteUrl}/book]`]);
+    expect(hoggiesLineIn(publishedHome(slack, "U_ALICE"))).toEqual([`${noDropYet} [link: View ${siteUrl}/book/collection]`]);
   });
 
   test("CL13: there's no line while the Book is closed, even with hoggies found", async () => {
@@ -187,14 +188,14 @@ describe("CL25: App Home's hoggies line counts the crests collected while crests
     ]);
   });
 
-  test("the front door's summary carries the count too, linking to the Book on the website", async () => {
+  test("the front door's summary carries the count too, linking to the Collection page on the website", async () => {
     const t = await workspace(...bookFlags, "collection", "crests", "website");
     planned.set("unlock:book", "roller-coaster");
     await levelFour(t);
 
     await openFromAppHome(t, "book");
 
-    expect(hoggiesLineIn(publishedHome(slack, "U_ALICE"))).toEqual([`section: Hoggies: 1 of 151 · 0 crests · last found: Roller Coaster (🟦 Rare) [link: View ${siteUrl}/book]`]);
+    expect(hoggiesLineIn(publishedHome(slack, "U_ALICE"))).toEqual([`section: Hoggies: 1 of 151 · 0 crests · last found: Roller Coaster (🟦 Rare) [link: View ${siteUrl}/book/collection]`]);
   });
 
   test("a member with no drop yet sees no crest beside every crate dropping one", async () => {
@@ -300,4 +301,8 @@ async function send(t: Backend, interaction: string) {
   const response = await t.fetch("/slack/interactivity", await signedRequest(interaction, form));
   await settle(t);
   return response;
+}
+
+function hoggiesAccessory() {
+  return publishedHomeBlocks(slack, "U_ALICE").find((block) => block.text?.text.startsWith("Hoggies:"))?.accessory;
 }
