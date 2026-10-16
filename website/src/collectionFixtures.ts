@@ -2,6 +2,7 @@ import { assets } from "@posthog/brand/hoggies/metadata";
 import { catalogue, rarities, type CatalogueCrest, type Rarity } from "../../convex/hoggies/catalogue";
 import type { Collection, CollectionCrest, CollectionHoggie, CollectionRead, MyCollection, RarityShare } from "./collectionRead";
 import type { ShellState } from "./shell";
+import { albums, stickers } from "./stickerBookFixtures";
 
 const at = (iso: string) => Date.parse(iso);
 
@@ -82,6 +83,11 @@ export const collectionFixtures = {
   withTheStore: { ...collectionWith(found), bought: ["bought:1", "bought:2"], crateStore: storeOffering(3) },
   withTheStoreAndNothingWaiting: { ...collectionWith(found), bought: [], crateStore: storeOffering(1) },
   withTheStoreWhileCoinsAreHidden: { ...collectionWith(found), bought: ["bought:1"], crateStore: null },
+  withTheStickerBook: { ...collectionWith(found), stickers, albums },
+  withStickersOnly: { ...collectionWith(found), stickers },
+  withNoStickersYet: { ...collectionWith(found), stickers: [], albums: albums.map((album) => ({ ...album, held: 0, people: album.people.map((person) => ({ ...person, held: false })) })) },
+  withNoStickersAndNoAlbums: { ...collectionWith(found), stickers: [] },
+  withTheStoreAndTheStickerBook: { ...collectionWith(found), bought: ["bought:1", "bought:2"], crateStore: storeOffering(3), stickers, albums },
   nothingFound: collectionWith({}),
   complete: collectionWith(everyHoggieFound),
   locked: { kind: "locked", level: 1 },
@@ -103,5 +109,5 @@ function collectionAnswerFor(visitor: ShellState): MyCollection {
   if (card === undefined) return collectionFixtures.notFound;
   if (card.state === "locked") return { kind: "locked", level: card.level };
   if (card.state === "ready") return collectionFixtures.ready;
-  return visitor.coins === null ? collectionFixtures.collection : collectionFixtures.withTheStore;
+  return visitor.coins === null ? collectionFixtures.withTheStickerBook : collectionFixtures.withTheStoreAndTheStickerBook;
 }
