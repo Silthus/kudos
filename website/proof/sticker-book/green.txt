@@ -1,0 +1,9 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/sticker-book/website
+
+
+ Test Files  2 passed (2)
+      Tests  43 passed (43)
+   Start at  15:54:12
+   Duration  5.94s (tests 60%, import 16%, transform 14%, environment 8%, setup 2%)
+
