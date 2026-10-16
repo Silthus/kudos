@@ -12,7 +12,6 @@ import {
   publishedHomeBlocks,
   readBlocks,
   staleButtonOf,
-  staleMenuOptionOf,
   stalePicksOf,
   type Block,
 } from "../../testing/slackInteractions";
@@ -67,9 +66,9 @@ describe("ST35 O36: custom kudos emoji are dark wherever custom-kudos-emoji isn'
     ["off", customOff, true],
     ["not created", storeOn, true],
     ["on but the flags key missing", onForEveryoneDeciding, false],
-  ])("with custom-kudos-emoji %s after Alice slotted :shipit:, no picker, no custom item and no claim reach Slack or inventoryOf, nothing is picked, bought or slotted, and it all returns when it is on again", async (_, definitions, flagsKeySet) => {
+  ])("with custom-kudos-emoji %s after Alice bought :shipit:, no picker, no custom item and no claim reach Slack or inventoryOf, nothing is picked or bought, and it all returns when it is on again", async (_, definitions, flagsKeySet) => {
     const t = await workspaceDeciding(...onForEveryoneDeciding);
-    await danaPicksAndAliceSlotsShipit(t);
+    await danaPicksAndAliceBuysShipit(t);
     const shown = await customSideOf(t, "U_ALICE");
     const stored = await storeStateOf(t);
     const before = slack.calls.length;
@@ -94,9 +93,9 @@ describe("ST35 O36: custom kudos emoji are dark wherever custom-kudos-emoji isn'
   test.each([
     ["store off", storeOffForAliceAndBob],
     ["coins off", coinsOffForAliceAndBob],
-  ])("with custom-kudos-emoji on but %s for Alice, Bob and the admin Erin, they see no picker and no custom item, her :shipit: claims nothing, their stale clicks pick, buy and slot nothing, and no new custom-kudos-emoji exposure is sent for them", async (_, definitions) => {
+  ])("with custom-kudos-emoji on but %s for Alice, Bob and the admin Erin, they see no picker and no custom item, her :shipit: claims nothing, their stale clicks pick and buy nothing, and no new custom-kudos-emoji exposure is sent for them", async (_, definitions) => {
     const t = await workspaceDeciding(...onForEveryoneDeciding);
-    await danaPicksAndAliceSlotsShipit(t);
+    await danaPicksAndAliceBuysShipit(t);
     const exposed = { alice: await exposuresOf(t, "U_ALICE"), bob: await exposuresOf(t, "U_BOB") };
     const stored = await storeStateOf(t);
     const before = slack.calls.length;
@@ -119,7 +118,7 @@ describe("ST35 O36: custom kudos emoji are dark wherever custom-kudos-emoji isn'
     vi.setSystemTime(tuesday);
     const whileOff = await othersSideOfDanasWalk(customOff);
 
-    expect(whilePreviewed.danaThanked).toMatchObject({ kudosEmoji: "shipit", loadoutEmoji: ["shipit"], awards: [{ kudos: 1 }] });
+    expect(whilePreviewed.danaThanked).toMatchObject({ kudosEmoji: "shipit", ownedEmoji: ["shipit"], awards: [{ kudos: 1 }] });
     expect(whilePreviewed.danaBought).toEqual([{ kind: "bought", item: shipit }]);
     expect(whilePreviewed.told.filter(namesCustomEmoji)).toEqual([]);
     expect(whilePreviewed.saidInPublic.filter(namesTheSource)).toEqual([]);
@@ -133,7 +132,7 @@ describe("ST35 O36: custom kudos emoji are dark wherever custom-kudos-emoji isn'
   test("O36 F25: the custom-kudos-emoji exposure goes once per member and value, again for a value that changed, and never for a member the store isn't shown to", async () => {
     const t = await workspaceDeciding(...[...storeOnFor(danasEmail, "alice@example.com"), onForEmails(customKudosEmoji, danasEmail)]);
     await opensCoinsWith(t, "U_ALICE", 100);
-    await danaPicksBuysAndSlots(t);
+    await danaPicksAndBuys(t);
     await walkEveryCustomPath(t);
     await walkEveryCustomPath(t);
 
@@ -154,24 +153,22 @@ describe("ST35 O36: custom kudos emoji are dark wherever custom-kudos-emoji isn'
   });
 });
 
-async function danaPicksAndAliceSlotsShipit(t: Backend) {
+async function danaPicksAndAliceBuysShipit(t: Backend) {
   await opensCoinsWith(t, "U_ALICE", 100);
   await opensCoinsWith(t, "U_BOB", 100);
   await openAdmin(t, "U_DANA");
   await send(t, blockActions("U_DANA", stalePicksOf(picker, "shipit", "partyparrot")));
   await openInventory(t, "U_ALICE");
   await click(t, "U_ALICE", { type: "buyItem", item: shipit });
-  await pick(t, "U_ALICE", { type: "equip", item: shipit, slot: "emoji-2" });
   vi.setSystemTime(Date.now() + dayMs);
 }
 
-async function danaPicksBuysAndSlots(t: Backend) {
+async function danaPicksAndBuys(t: Backend) {
   await opensCoinsWith(t, "U_DANA", savedUp);
   await openAdmin(t, "U_DANA");
   await send(t, blockActions("U_DANA", stalePicksOf(picker, "shipit", "partyparrot")));
   await openInventory(t, "U_DANA");
   await click(t, "U_DANA", { type: "buyItem", item: shipit });
-  await pick(t, "U_DANA", { type: "equip", item: shipit, slot: "emoji-2" });
   vi.setSystemTime(Date.now() + dayMs);
 }
 
@@ -183,7 +180,6 @@ async function walkEveryCustomPath(t: Backend) {
   for (const user of ["U_ALICE", "U_BOB"]) {
     await openInventory(t, user);
     await click(t, user, { type: "buyItem", item: partyparrot });
-    await pick(t, user, { type: "equip", item: shipit, slot: "emoji-3" });
   }
   const before = (await kudosGivenEvents(t)).length;
   await giveKudos(t, "U_ALICE", [friendOf.U_ALICE!], saysWhy, ["shipit"]);
@@ -195,7 +191,7 @@ async function walkEveryCustomPath(t: Backend) {
 async function othersSideOfDanasWalk(definitions: FlagDefinition[]) {
   const t = await workspaceDeciding(...definitions);
   await opensCoinsWith(t, "U_ALICE", 100);
-  await danaPicksBuysAndSlots(t);
+  await danaPicksAndBuys(t);
   await walkEveryCustomPath(t);
   const before = (await kudosGivenEvents(t)).length;
   await giveKudos(t, "U_DANA", [friendOf.U_DANA!], saysWhy, ["shipit"]);
@@ -269,10 +265,6 @@ async function click(t: Backend, user: string, command: unknown) {
   await send(t, blockActions(user, staleButtonOf(command)));
 }
 
-async function pick(t: Backend, user: string, command: unknown) {
-  await send(t, blockActions(user, staleMenuOptionOf(command)));
-}
-
 async function send(t: Backend, interaction: string) {
   const response = await t.fetch("/slack/interactivity", await signedRequest(interaction, form));
   expect(response.status).toBe(200);
@@ -311,14 +303,13 @@ async function customItemsInInventoryOf(t: Backend, user: string) {
   const inventory = await t.query(internal.store.inventory.inventoryOf, { member: await memberOf(t, user) });
   if (inventory === null) return null;
   const custom = (item: string | null) => item?.startsWith("custom:") === true;
-  return [...inventory.slots.map(({ item }) => item), ...inventory.owned.map(({ item }) => item), ...inventory.catalogue.map(({ item }) => item)].filter(custom);
+  return [...inventory.owned.map(({ item }) => item), ...inventory.catalogue.map(({ item }) => item)].filter(custom);
 }
 
 function storeStateOf(t: Backend) {
   return t.run(async (ctx) => ({
     customKudosEmoji: await ctx.db.query("customKudosEmoji").collect(),
     collection: await ctx.db.query("collection").collect(),
-    loadouts: await ctx.db.query("loadouts").collect(),
     bought: (await ctx.db.query("itemPurchases").collect()).filter(({ outcome }) => outcome.kind === "bought"),
     wallets: await ctx.db.query("wallets").collect(),
     coinSpends: await ctx.db.query("coinSpends").collect(),

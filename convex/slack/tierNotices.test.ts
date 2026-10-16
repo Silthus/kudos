@@ -246,17 +246,6 @@ describe("CO20: a tier DM line that paid coins says them while coins are visible
 });
 
 describe("ST16 ST18: a silver tier gives its kudos emoji, and its DM line says it while the store is visible", { timeout: 30_000 }, () => {
-  test("RS6: with slots retired, Generous Soul's line gives its emoji for your kudos emoji", async () => {
-    const t = await workspaceDeciding(onForEveryone("store"), onForEveryone("slots-retired"));
-    const [alice] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
-    await openCoins(t, alice!);
-    await withGiven(t, alice!, 24);
-
-    await giveKudos(t, "U_ALICE", "U_BOB");
-
-    expect(tierDmsTo("U_ALICE")[0]).toMatch(/^🏅 You earned Generous Soul \(Generosity, silver\)\. \+ :ribbon: Ribbon for your kudos emoji\n/);
-  });
-
   test("with Coins and the inventory open, Generous Soul's line says its emoji, the bronze line keeps its coins, and no public line names the emoji", async () => {
     const t = await workspaceDeciding(onForEveryone("store"));
     const [alice] = await membersWithTheBookOpen(t, "U_ALICE", "U_BOB");
@@ -266,7 +255,7 @@ describe("ST16 ST18: a silver tier gives its kudos emoji, and its DM line says i
     await giveKudos(t, "U_ALICE", "U_BOB");
 
     expect(tierDmsTo("U_ALICE")).toEqual([
-      "🏅 You earned Generous Soul (Generosity, silver). + :ribbon: Ribbon for your kudos emoji slots\n🏅 You earned First Chapter (Seasons, bronze). +10 🪙\nNext: Heart of the Team at 100 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given.",
+      "🏅 You earned Generous Soul (Generosity, silver). + :ribbon: Ribbon for your kudos emoji\n🏅 You earned First Chapter (Seasons, bronze). +10 🪙\nNext: Heart of the Team at 100 kudos given.\nNext: Season of Thanks at 3 calendar months with a kudos given.",
     ]);
     expect(tierLinesIn("C_NEWS")).toEqual(["🏅 <@U_ALICE> earned Generous Soul and First Chapter.", "🏅 <@U_BOB> earned Noticed."]);
   });
@@ -304,7 +293,7 @@ describe("ST16 ST18: a silver tier gives its kudos emoji, and its DM line says i
     await settle(t);
 
     expect(tierDmsTo("U_BOB")).toEqual([
-      "🏅 You earned Noticed (Recognition, bronze). +10 🪙\n🏅 You earned Appreciated (Recognition, silver). + :sparkling_heart: Sparkling Heart for your kudos emoji slots\nNext: Highly Valued at 100 kudos received.",
+      "🏅 You earned Noticed (Recognition, bronze). +10 🪙\n🏅 You earned Appreciated (Recognition, silver). + :sparkling_heart: Sparkling Heart for your kudos emoji\nNext: Highly Valued at 100 kudos received.",
     ]);
   });
 });

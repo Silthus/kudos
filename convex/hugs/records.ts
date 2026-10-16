@@ -1,7 +1,7 @@
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { DayKey } from "../engine/allowance";
-import { awardsOfMessage, rangesBefore, type AtRange, type Before } from "../engine/awards";
+import { awardsOfMessage, decidedBelow, type DecidedBelow } from "../engine/awards";
 import type { MessageRef } from "../engine/messageEvent";
 import type { MemberId } from "../workspace/directory";
 
@@ -72,14 +72,12 @@ type HugsReceivedRow = Doc<"hugsReceived">;
 const giversShown = 5;
 
 
-export async function* hugsGivenNewestFirst(ctx: QueryCtx, giver: MemberId, before: Before): AsyncGenerator<GivenHug> {
-  for (const range of rangesBefore(before)) {
-    const rows = ctx.db
-      .query("hugs")
-      .withIndex("by_giver_at", (q) => withinRange(q.eq("giver", giver), range))
-      .order("desc");
-    for await (const hug of rows) yield { ...timelineHugOf(hug), people: await peopleOf(ctx, hug) };
-  }
+export async function* hugsGivenByDecision(ctx: QueryCtx, giver: MemberId, below: DecidedBelow): AsyncGenerator<GivenHug> {
+  const rows = ctx.db
+    .query("hugs")
+    .withIndex("by_giver_decided", (q) => decidedBelow(q.eq("giver", giver), below))
+    .order("desc");
+  for await (const hug of rows) yield { ...timelineHugOf(hug), people: await peopleOf(ctx, hug) };
 }
 
 export async function hugsReceivedSnapshot(ctx: QueryCtx, member: MemberId): Promise<number> {
@@ -91,14 +89,12 @@ export async function hugsReceivedSnapshot(ctx: QueryCtx, member: MemberId): Pro
   return newest?._creationTime ?? 0;
 }
 
-export async function* hugsReceivedNewestFirst(ctx: QueryCtx, member: MemberId, before: Before, snapshot: number | undefined): AsyncGenerator<ReceivedHugs> {
-  for (const range of rangesBefore(before)) {
-    const versions = ctx.db
-      .query("hugsReceived")
-      .withIndex("by_member_at", (q) => withinRange(q.eq("member", member), range))
-      .order("desc");
-    for await (const version of versions) if (isLiveAt(version, snapshot)) yield receivedHugsOf(version);
-  }
+export async function* hugsReceivedByDecision(ctx: QueryCtx, member: MemberId, below: DecidedBelow, snapshot: number | undefined): AsyncGenerator<ReceivedHugs> {
+  const versions = ctx.db
+    .query("hugsReceived")
+    .withIndex("by_member", (q) => decidedBelow(q.eq("member", member), below))
+    .order("desc");
+  for await (const version of versions) if (isLiveAt(version, snapshot)) yield receivedHugsOf(version);
 }
 
 function isLiveAt({ _creationTime, supersededAt }: HugsReceivedRow, snapshot: number | undefined): boolean {
@@ -108,15 +104,6 @@ function isLiveAt({ _creationTime, supersededAt }: HugsReceivedRow, snapshot: nu
 
 function receivedHugsOf(row: HugsReceivedRow): ReceivedHugs {
   return { ...timelineHugOf(row), hugs: row.hugs, givers: row.givers.map(({ giver }) => giver) };
-}
-
-type AtIndex<Q> = { eq(field: "at", value: number): AtIndexCreated<Q>; lt(field: "at", value: number): Q } & Q;
-
-type AtIndexCreated<Q> = { lt(field: "_creationTime", value: number): Q } & Q;
-
-function withinRange<Q>(q: AtIndex<Q>, range: AtRange): Q {
-  if (range.kind === "older") return range.than === undefined ? q : q.lt("at", range.than);
-  return range.createdBefore === undefined ? q.eq("at", range.at) : q.eq("at", range.at).lt("_creationTime", range.createdBefore);
 }
 
 function timelineHugOf({ workspace, conversation, message, onKudos, emoji, at, _creationTime }: Hug | Doc<"hugsReceived">): TimelineHug {

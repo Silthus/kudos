@@ -14,13 +14,13 @@ export function namesOf(people: Person[]) {
   return list.format([...names.slice(0, namesShown - 1), `${others} others`]);
 }
 
-export function Faces({ people }: { people: Person[] }) {
+export function Faces({ people, faceSize = "size-8" }: { people: Person[]; faceSize?: string }) {
   const shown = people.slice(0, facesShown);
   return (
     <span className="flex shrink-0">
       {shown.map((person, index) => (
         <span key={index} data-testid="person-face" className={`relative rounded-full ring-2 ring-card ${index === 0 ? "" : "-ml-1.5"}`} style={{ zIndex: shown.length - index }}>
-          <MemberFace face={person.face} className="size-8" />
+          <MemberFace face={person.face} className={faceSize} />
         </span>
       ))}
     </span>

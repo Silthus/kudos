@@ -1,6 +1,7 @@
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
+import { decidedBelow, type DecidedBelow } from "../engine/awards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { applyGain } from "../progression/progression";
 import type { AppliedReward } from "../progression/rewards";
@@ -20,11 +21,7 @@ export type Drop = { hoggie: string; name: string; rarity: Rarity; art: HoggieAr
 
 export type CrestsShown = { crests: boolean };
 
-export type DroppedAt = { at: number; n: number; drop: Drop };
-
-export type DropBefore = { at: number; n: number };
-
-export const fromTheNewestDrop: DropBefore = { at: Infinity, n: Infinity };
+export type DroppedAt = { at: number; n: number; decided: number; drop: Drop };
 
 export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number): Promise<void> {
   if ((await dropRecordOf(ctx, member, crate)) !== null || !(await hoggiesDropFor(ctx, member))) return;
@@ -55,30 +52,12 @@ export async function dropOf(ctx: MutationCtx, member: MemberId, crate: CrateKey
   return shownDrop(record, { crests });
 }
 
-export async function* dropsNewestFirst(ctx: QueryCtx, member: MemberId, before: DropBefore, shown: CrestsShown): AsyncGenerator<DroppedAt> {
-  for (const range of rangesBefore(before)) {
-    const rows = ctx.db
-      .query("drops")
-      .withIndex("by_member_at", (q) => {
-        const dropped = q.eq("member", member);
-        if (range.kind === "all") return dropped;
-        if (range.kind === "instant") return dropped.eq("at", range.at).lt("n", range.nBefore);
-        return range.withInstant ? dropped.lte("at", range.at) : dropped.lt("at", range.at);
-      })
-      .order("desc");
-    for await (const record of rows) yield { at: record.at, n: record.n, drop: shownDrop(record, shown) };
-  }
-}
-
-type DropRange = { kind: "all" } | { kind: "instant"; at: number; nBefore: number } | { kind: "older"; at: number; withInstant: boolean };
-
-function rangesBefore({ at, n }: DropBefore): DropRange[] {
-  if (at === Infinity) return [{ kind: "all" }];
-  if (n === Infinity || n === -Infinity) return [{ kind: "older", at, withInstant: n === Infinity }];
-  return [
-    { kind: "instant", at, nBefore: n },
-    { kind: "older", at, withInstant: false },
-  ];
+export async function* dropsByDecision(ctx: QueryCtx, member: MemberId, below: DecidedBelow, shown: CrestsShown): AsyncGenerator<DroppedAt> {
+  const rows = ctx.db
+    .query("drops")
+    .withIndex("by_member", (q) => decidedBelow(q.eq("member", member), below))
+    .order("desc");
+  for await (const record of rows) yield { at: record.at, n: record.n, decided: record._creationTime, drop: shownDrop(record, shown) };
 }
 
 function shownDrop({ hoggie, rarity, copy, crest }: DropRecord, shown: CrestsShown): Drop {

@@ -22,6 +22,7 @@ export const kudosGivenEventValidator = v.object({
   awards: v.array(awardValidator),
   via: v.literal("message"),
   kudosEmoji: v.string(),
+  ownedEmoji: v.optional(v.array(v.string())),
   loadoutEmoji: v.optional(v.array(v.string())),
   annotations: annotationsValidator,
   allowance: v.object({ dailyOpening: v.number(), dailyLeft: v.number() }),

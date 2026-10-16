@@ -30,7 +30,7 @@ import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
 import { journeyActivationValidator, rewardValidator } from "./quests/journey";
 import { questDrawValidator, questProgressValidator, questSwapValidator } from "./quests/weekly";
-import { collectedItemValidator, customKudosEmojiValidator, itemPurchaseValidator, loadoutSlotValidator } from "./store/rows";
+import { collectedItemValidator, customKudosEmojiValidator, itemPurchaseValidator } from "./store/rows";
 import { featureValidator } from "./unlocks/feature";
 import { welcomedAsValidator } from "./welcome/welcomedAs";
 import { memberProfileFields } from "./workspace/memberProfile";
@@ -243,6 +243,8 @@ export default defineSchema({
     .index("by_recipient", ["recipient", "day"])
     .index("by_recipient_at", ["recipient", "at"])
     .index("by_giver_at", ["giver", "at"])
+    .index("by_recipient_decided", ["recipient"])
+    .index("by_giver_decided", ["giver"])
     .index("by_message", ["workspace", "conversation", "message"])
     .index("by_message_recipient", ["workspace", "conversation", "message", "recipient"])
     .index("by_workspace", ["workspace"]),
@@ -285,7 +287,7 @@ export default defineSchema({
   })
     .index("by_message_giver", ["workspace", "conversation", "message", "giver"])
     .index("by_giver_day", ["giver", "day"])
-    .index("by_giver_at", ["giver", "at"]),
+    .index("by_giver_decided", ["giver"]),
 
   hugPeople: defineTable({ hug: v.id("hugs"), member: v.id("members"), at: v.number() }).index("by_hug_member", ["hug", "member"]),
 
@@ -302,8 +304,7 @@ export default defineSchema({
     supersededAt: v.optional(v.number()),
   })
     .index("by_member", ["member"])
-    .index("by_member_message", ["member", "workspace", "conversation", "message"])
-    .index("by_member_at", ["member", "at"]),
+    .index("by_member_message", ["member", "workspace", "conversation", "message"]),
 
   kudosTotals: defineTable({
     member: v.id("members"),
@@ -375,8 +376,6 @@ export default defineSchema({
   coinSpends: defineTable(coinSpendValidator).index("by_member", ["member"]),
 
   collection: defineTable(collectedItemValidator).index("by_member_item", ["member", "item"]),
-
-  loadouts: defineTable(loadoutSlotValidator).index("by_member_slot", ["member", "slot"]),
 
   itemPurchases: defineTable(itemPurchaseValidator).index("by_member_key", ["member", "key"]),
 
@@ -469,7 +468,7 @@ export default defineSchema({
 
   pendingCrates: defineTable(pendingCrateValidator).index("by_member_key", ["member", "key"]).index("by_member", ["member"]),
 
-  drops: defineTable(dropValidator).index("by_member_crate", ["member", "crate"]).index("by_member_at", ["member", "at", "n"]),
+  drops: defineTable(dropValidator).index("by_member_crate", ["member", "crate"]).index("by_member", ["member"]),
 
   hoggieTallies: defineTable(hoggieTallyValidator).index("by_member_hoggie", ["member", "hoggie"]),
 
@@ -552,7 +551,7 @@ export default defineSchema({
     at: v.number(),
   })
     .index("by_member_level", ["member", "level"])
-    .index("by_member_at", ["member", "at"]),
+    .index("by_member", ["member"]),
 
   homes: defineTable({
     member: v.id("members"),

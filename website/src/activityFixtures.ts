@@ -1,7 +1,7 @@
 import type { ActivityRead, ActivityWatch } from "./activityRead";
 import type { ActivityFilter } from "./route";
 import type { Drop } from "./crates/drops";
-import type { Activity, ActivityEntry, Found, KudosGiven, KudosReceived, LevelUp, Message, Person } from "./shell";
+import type { Activity, ActivityEntry, Found, HugGiven, HugReceived, KudosGiven, KudosReceived, LevelUp, Message, Person } from "./shell";
 
 type Words = Extract<Message, { kind: "text" }>;
 
@@ -32,6 +32,14 @@ export function aReceived(key: string, at: number, changes: Partial<KudosReceive
 
 export function aGiven(key: string, at: number, changes: Partial<KudosGiven> = {}): KudosGiven {
   return { kind: "kudosGiven", key, at, recipients: [teammates.bo], kudos: 1, channel: { visibility: "public" }, saidWhy: false, permalink: null, message: words(`Thanks for ${key}`), earned: { xp: 10, questsDone: [], bonuses: [] }, ...changes };
+}
+
+export function aHugReceived(on: string, at: number, changes: Partial<HugReceived> = {}): HugReceived {
+  return { kind: "hugReceived", key: on, at, givers: [teammates.ada], emoji: "hugging_face", hugs: 1, xp: 1, on, permalink: null, kudos: null, ...changes };
+}
+
+export function aHugGiven(key: string, at: number, changes: Partial<HugGiven> = {}): HugGiven {
+  return { kind: "hugGiven", key, at, people: [teammates.bo], emoji: "hugging_face", xp: 1, on: `C1/${key}`, permalink: null, kudos: null, ...changes };
 }
 
 export function aLevelUp(level: number, at: number): LevelUp {
@@ -69,7 +77,21 @@ const story: ActivityEntry[] = [
     permalink: "https://example.slack.com/archives/C1/p1",
     message: words("Thanks for pairing on the release checklist, it saved us a whole afternoon ", { kind: "emoji", name: "tada", unicode: "🎉" }, { kind: "emoji", name: "hedgehug", image: "/favicon.svg" }, { kind: "emoji", name: "raised_hands::skin-tone-4" }),
   }),
+  aHugReceived("C1/standup", fixtureNow - 90 * 60 * 1000, {
+    givers: [teammates.cleo, teammates.dev, teammates.bo, teammates.eli],
+    emoji: "hedgehug",
+    emojiImage: "/favicon.svg",
+    hugs: 4,
+    xp: 4,
+    permalink: "https://example.slack.com/archives/C1/p4",
+  }),
   aFound("rocket", fixtureNow - 2 * hour, drops.rocketCompletingBlitzscale),
+  aHugGiven("release-notes", fixtureNow - 150 * 60 * 1000, {
+    people: [teammates.dev],
+    emoji: "+1::skin-tone-3",
+    kudos: words("Thanks for writing the release notes so clearly"),
+    permalink: "https://example.slack.com/archives/C1/p5",
+  }),
   aGiven("incident", fixtureNow - 3 * hour, {
     recipients: [teammates.cleo, teammates.dev],
     kudos: 2,

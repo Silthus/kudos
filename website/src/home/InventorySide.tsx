@@ -1,24 +1,22 @@
 import { IconCheck, IconEmoji } from "@posthog/icons";
 import { Button } from "@posthog/quill";
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from "react";
-import type { InventoryItem, ItemSource, MemberInventory, MemberProfile, Slot } from "../shell";
+import { useId, type RefObject } from "react";
+import type { InventoryItem, ItemSource, MemberInventory, MemberProfile } from "../shell";
 import { CoinGlyph } from "../skills/glyphs";
 import { coinsText } from "../skills/perkWords";
-import { cameOff, itemIn, ItemArt, ownedIn, slotName, slotsRetiredIn, wentInto, type LoadoutActions, type Owned, type SendLoadout } from "./gear";
+import { ItemArt, ownedIn } from "./gear";
 import { shortfallText, type ItemPurchasing } from "./itemPurchase";
 
 export type Said = { text: string; done: boolean };
 
-type InventorySideProps = { member: MemberProfile; inventory: MemberInventory; loadout: LoadoutActions; send: SendLoadout; purchasing: ItemPurchasing; heading: RefObject<HTMLHeadingElement | null>; said: Said | undefined; onSaid: (said: Said | undefined) => void };
+type InventorySideProps = { member: MemberProfile; inventory: MemberInventory; purchasing: ItemPurchasing; heading: RefObject<HTMLHeadingElement | null>; said: Said | undefined };
 
-export function InventorySide({ member, inventory, loadout, send, purchasing, heading, said, onSaid }: InventorySideProps) {
+export function InventorySide({ member, inventory, purchasing, heading, said }: InventorySideProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p role="status" className="min-h-5 text-sm text-muted-foreground">
-          {said === undefined ? (
-            idleLineOf(inventory)
-          ) : (
+          {said !== undefined && (
             <span className="flex items-center gap-1.5">
               {said.done && <IconCheck aria-hidden="true" className="size-3.5 shrink-0 text-foreground" />}
               {said.text}
@@ -27,13 +25,9 @@ export function InventorySide({ member, inventory, loadout, send, purchasing, he
         </p>
         {member.coins !== null && <Balance coins={member.coins} />}
       </div>
-      <KudosEmojiSection inventory={inventory} kudosEmoji={member.kudosEmoji} coins={member.coins ?? 0} loadout={loadout} send={send} purchasing={purchasing} heading={heading} onSaid={onSaid} />
+      <KudosEmojiSection inventory={inventory} kudosEmoji={member.kudosEmoji} coins={member.coins ?? 0} purchasing={purchasing} heading={heading} />
     </div>
   );
-}
-
-function idleLineOf(inventory: MemberInventory) {
-  return slotsRetiredIn(inventory) ? "" : "Pick something you own to wear it. Pick a worn emoji to take it off.";
 }
 
 function Balance({ coins }: { coins: number }) {
@@ -45,75 +39,30 @@ function Balance({ coins }: { coins: number }) {
   );
 }
 
-type KudosEmojiSectionProps = { inventory: MemberInventory; kudosEmoji: string; coins: number; loadout: LoadoutActions; send: SendLoadout; purchasing: ItemPurchasing; heading: RefObject<HTMLHeadingElement | null>; onSaid: (said: Said | undefined) => void };
+type KudosEmojiSectionProps = { inventory: MemberInventory; kudosEmoji: string; coins: number; purchasing: ItemPurchasing; heading: RefObject<HTMLHeadingElement | null> };
 
-function KudosEmojiSection({ inventory, kudosEmoji, coins, loadout, send, purchasing, heading, onSaid }: KudosEmojiSectionProps) {
-  const [choosingFor, setChoosingFor] = useState<InventoryItem | null>(null);
-  const tiles = useRef(new Map<string, HTMLButtonElement>());
-  const choice = useRef(0);
+function KudosEmojiSection({ inventory, kudosEmoji, coins, purchasing, heading }: KudosEmojiSectionProps) {
   const yours = ownedIn(inventory);
-  const notYet = inventory.catalogue.filter(({ item }) => !purchasing.bought.includes(item) && !yours.some(({ entry }) => entry.item === item));
-  const equipped = inventory.slots.filter(({ item }) => item !== null).length;
-  const slotsRetired = slotsRetiredIn(inventory);
-
-  const stopChoosing = (item: InventoryItem) => {
-    choice.current += 1;
-    tiles.current.get(item.item)?.focus();
-    setChoosingFor(null);
-  };
-
-  const change = async (command: () => ReturnType<LoadoutActions["equip"]>, changedLine: string) => {
-    const sent = await send(command);
-    if (sent !== null) onSaid(sent.kind === "changed" ? { text: changedLine, done: true } : { text: sent.line, done: false });
-    return sent?.kind === "changed";
-  };
-
-  const press = ({ entry, slot }: Owned) => {
-    if (slot === null) {
-      choice.current += 1;
-      return setChoosingFor(entry);
-    }
-    void change(() => loadout.takeOff(slot), cameOff(entry, slot));
-  };
-
-  const putIn = async (item: InventoryItem, slot: Slot) => {
-    const asked = choice.current;
-    if ((await change(() => loadout.equip(item.item, slot), wentInto(item, slot, itemIn(inventory, slot)))) && choice.current === asked) stopChoosing(item);
-  };
+  const notYet = inventory.catalogue.filter(({ item }) => !purchasing.bought.includes(item) && !yours.some((entry) => entry.item === item));
 
   return (
     <section aria-labelledby="inventory-kudos-emoji" className="flex flex-col gap-3">
       <div className="flex flex-col gap-0.5">
-        <div className="flex items-baseline justify-between gap-3">
-          <h3 ref={heading} tabIndex={-1} id="inventory-kudos-emoji" className="hud-display flex items-center gap-1.5 text-lg leading-none font-bold">
-            <IconEmoji aria-hidden="true" className="size-4 self-center text-muted-foreground" />
-            Kudos emoji
-          </h3>
-          {!slotsRetired && <span className="text-xs text-muted-foreground tabular-nums">{`Equipped ${equipped}/${inventory.slots.length}`}</span>}
-        </div>
-        <p className="text-xs text-muted-foreground">{slotsRetired ? `Each of your kudos emoji counts as a kudos, like :${kudosEmoji}:.` : `Each emoji in a slot counts as a kudos, like :${kudosEmoji}:.`}</p>
+        <h3 ref={heading} tabIndex={-1} id="inventory-kudos-emoji" className="hud-display flex items-center gap-1.5 text-lg leading-none font-bold">
+          <IconEmoji aria-hidden="true" className="size-4 self-center text-muted-foreground" />
+          Kudos emoji
+        </h3>
+        <p className="text-xs text-muted-foreground">{`Each of your kudos emoji counts as a kudos, like :${kudosEmoji}:.`}</p>
       </div>
       <ul aria-label="Yours" className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-        {yours.map((owned) => (
-          <li key={owned.entry.item} onAnimationEnd={owned.entry.item === purchasing.justBought ? purchasing.popped : undefined} className={`flex ${owned.entry.item === purchasing.justBought ? "perk-pop" : ""}`}>
-            {slotsRetired ? (
-              <OwnedEmoji item={owned.entry} />
-            ) : (
-              <OwnedTile
-                ref={(button) => {
-                  if (button === null) tiles.current.delete(owned.entry.item);
-                  else tiles.current.set(owned.entry.item, button);
-                }}
-                owned={owned}
-                onPress={() => press(owned)}
-              />
-            )}
+        {yours.map((item) => (
+          <li key={item.item} onAnimationEnd={item.item === purchasing.justBought ? purchasing.popped : undefined} className={`flex ${item.item === purchasing.justBought ? "perk-pop" : ""}`}>
+            <OwnedEmoji item={item} />
           </li>
         ))}
       </ul>
-      {choosingFor !== null && <SlotChoice key={choosingFor.item} item={choosingFor} inventory={inventory} onChoose={(slot) => void putIn(choosingFor, slot)} onCancel={() => stopChoosing(choosingFor)} />}
       {notYet.length > 0 && <NotYoursYet items={notYet} coins={coins} purchasing={purchasing} />}
-      {slotsRetired && !notYet.some(onSaleInTheStore) && <p className="text-xs text-muted-foreground">Nothing for sale right now.</p>}
+      {!notYet.some(onSaleInTheStore) && <p className="text-xs text-muted-foreground">Nothing for sale right now.</p>}
     </section>
   );
 }
@@ -126,75 +75,6 @@ function OwnedEmoji({ item }: { item: InventoryItem }) {
       </span>
       <span className="w-full truncate text-xs font-medium">{item.name}</span>
     </span>
-  );
-}
-
-type OwnedTileProps = { ref: (button: HTMLButtonElement | null) => void; owned: Owned; onPress: () => void };
-
-function OwnedTile({ ref, owned: { entry, slot }, onPress }: OwnedTileProps) {
-  return (
-    <button
-      ref={ref}
-      type="button"
-      onClick={onPress}
-      aria-pressed={slot !== null}
-      aria-label={slot === null ? `Wear ${entry.name}` : `Take off ${entry.name}, in ${slotName(slot)}`}
-      className={`relative flex h-28 w-full flex-col items-center justify-between gap-2 rounded-md border p-2.5 text-center hover:bg-fill-hover ${slot === null ? "bg-card" : "bg-fill-selected"}`}
-    >
-      <span className="flex flex-1 items-center justify-center">
-        <ItemArt item={entry} className="size-12 text-[2rem]" />
-      </span>
-      <span className="w-full truncate text-xs font-medium">{entry.name}</span>
-      {slot !== null && (
-        <span aria-hidden="true" data-slot-mark className="absolute top-1.5 right-1.5 flex items-center gap-1 text-[11px] text-muted-foreground tabular-nums">
-          <IconCheck className="size-3.5 text-foreground" />
-          {slot.slice("emoji-".length)}
-        </span>
-      )}
-    </button>
-  );
-}
-
-type SlotChoiceProps = { item: InventoryItem; inventory: MemberInventory; onChoose: (slot: Slot) => void; onCancel: () => void };
-
-function SlotChoice({ item, inventory, onChoose, onCancel }: SlotChoiceProps) {
-  const choices = useRef<HTMLDivElement>(null);
-  const headingId = "inventory-slot-choice";
-
-  useEffect(() => {
-    const list = choices.current;
-    (list?.querySelector<HTMLButtonElement>("button[data-empty]") ?? list?.querySelector<HTMLButtonElement>("button"))?.focus();
-  }, []);
-
-  const cancelOnEscape = (event: KeyboardEvent) => {
-    if (event.key === "Escape") onCancel();
-  };
-
-  return (
-    <div role="group" aria-labelledby={headingId} onKeyDown={cancelOnEscape} className="flex flex-col gap-2 rounded-md border bg-muted p-2.5">
-      <span id={headingId} className="hud-label">{`Put ${item.name} in`}</span>
-      <div ref={choices} className="flex flex-wrap items-center gap-1.5">
-        {inventory.slots.map(({ slot }) => {
-          const held = itemIn(inventory, slot);
-          return (
-            <button
-              key={slot}
-              type="button"
-              data-empty={held === null || undefined}
-              onClick={() => onChoose(slot)}
-              aria-label={held === null ? `${slotName(slot)}, empty` : `${slotName(slot)}, replacing ${held.name}`}
-              className={`inline-flex min-h-9 items-center gap-1.5 rounded-md border bg-card px-2.5 text-sm font-medium hover:bg-fill-hover ${held === null ? "border-dashed border-muted-foreground" : ""}`}
-            >
-              {slotName(slot)}
-              {held === null ? <span className="text-xs text-muted-foreground">Empty</span> : <ItemArt item={held} className="size-5 text-base" />}
-            </button>
-          );
-        })}
-        <button type="button" onClick={onCancel} className="min-h-9 px-2 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-          Cancel
-        </button>
-      </div>
-    </div>
   );
 }
 

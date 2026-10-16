@@ -318,7 +318,7 @@ describe("CV13: a pack pays its bonus once", { timeout: 60_000 }, () => {
     expect(await openQuestCrate(asSignedIn)).toEqual({ kind: "refused" });
     expect(await openFeature(asSignedIn)).toEqual({ kind: "refused" });
     expect(await t.run((ctx) => ctx.db.query("memberProgress").collect())).toEqual([]);
-    expect(await t.run((ctx) => ctx.db.query("drops").withIndex("by_member_at", (q) => q.eq("member", member)).collect())).toEqual([]);
+    expect(await t.run((ctx) => ctx.db.query("drops").withIndex("by_member", (q) => q.eq("member", member)).collect())).toEqual([]);
   });
 
   test("CV5: a crate opened while packs was off keeps no bonus once packs turns on, and a pack paid stays paid when packs turns off", async () => {

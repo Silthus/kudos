@@ -24,9 +24,9 @@ import { YourAvatar } from "./YourAvatar";
 
 type CollectionProps = { collection: Collection; timeZone: string };
 
-type HoggieCollectionProps = CollectionProps & { coins: number | null; buyCrate: ShellActions["buyCrate"]; chatUrl: string; avatar: Avatar | null | undefined; setAvatar: ShellActions["setAvatar"] };
+type HoggieCollectionProps = CollectionProps & { coins: number | null; buyCrate: ShellActions["buyCrate"]; openPack: ShellActions["openCrate"] | undefined; chatUrl: string; avatar: Avatar | null | undefined; setAvatar: ShellActions["setAvatar"] };
 
-export function HoggieCollection({ collection, timeZone, coins, buyCrate, chatUrl, avatar, setAvatar }: HoggieCollectionProps) {
+export function HoggieCollection({ collection, timeZone, coins, buyCrate, openPack, chatUrl, avatar, setAvatar }: HoggieCollectionProps) {
   const avatarChoice = useAvatarChoice(avatar, setAvatar);
   const fresh = useFreshKeys([...collection.hoggies, ...(collection.crests ?? []), ...(collection.stickers ?? [])].flatMap(({ seen }) => seen ?? []));
   return (
@@ -40,7 +40,7 @@ export function HoggieCollection({ collection, timeZone, coins, buyCrate, chatUr
       </header>
       <JumpList sections={sectionsOf(collection)} />
       <FoundSoFar collection={collection} timeZone={timeZone} avatar={avatarChoice} />
-      <CrateStore collection={collection} coins={coins} buyCrate={buyCrate} />
+      <CrateStore collection={collection} coins={coins} buyCrate={buyCrate} openPack={openPack} />
       <div className="flex flex-col gap-10">
         <HoggiesSection collection={collection} fresh={fresh} timeZone={timeZone} avatar={avatarChoice} />
         {collection.crests !== undefined && <CrestSection crests={collection.crests} hoggies={collection.hoggies} fresh={fresh} timeZone={timeZone} />}

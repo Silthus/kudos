@@ -29,7 +29,7 @@
     },
     {
       "name": "kudos emoji",
-      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, which is the deployment's default unless the workspace changes it (:taco: when the deployment sets none), plus the emoji in the giver's loadout while the store is visible to them, or, where slots-retired is on for the giver, every kudos emoji item they own in place of the loadout. Each occurrence in a kudos message is one kudos for every recipient."
+      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, which is the deployment's default unless the workspace changes it (:taco: when the deployment sets none), plus, while the store is visible to them, every kudos emoji item they own: the starter, the ones they bought, the ones a tier gave them and the custom ones they may see. Each occurrence in a kudos message is one kudos for every recipient."
     },
     {
       "name": "kudos message",
@@ -118,10 +118,6 @@
     {
       "name": "title",
       "definition": "An unlocked name a member can show next to their own, such as Bridge Builder."
-    },
-    {
-      "name": "loadout",
-      "definition": "A member's three kudos emoji slots, and their hedgehog once hedgehogs ship. The starter 🦔 fills the first slot until the member changes the loadout."
     },
     {
       "name": "collection",
@@ -239,7 +235,10 @@
     },
     {
       "name": "domain event",
-      "definition": "A fact a module publishes when something happened in the domain, such as kudosGiven, so that later modules react to it without the publisher knowing them. It is published in the transaction that made it true, and its shape only grows by adding fields."
+      "definition": "A fact a module publishes when something happened in the domain, such as kudosGiven, so that later modules react to it without the publisher knowing them. It is published in the transaction that made it true, and its shape only grows by adding fields.",
+      "properties": {
+        "loadout emoji": "kudosGiven's earlier name for the owned emoji its giver claimed, before #579 renamed it ownedEmoji. The event still accepts it, so a subscriber job queued before that deploy runs, and the Journey reads it where ownedEmoji is absent. Nothing writes it any more."
+      }
     },
     {
       "name": "hook",
@@ -574,7 +573,7 @@
     },
     {
       "name": "inventory",
-      "definition": "A member's loadout and collection together, opened with Coins."
+      "definition": "A member's collection beside the store, opened with Coins."
     },
     {
       "name": "message setting",
@@ -680,6 +679,10 @@
     {
       "name": "pack",
       "definition": "A crate as the Book shows it: opening it drops a hoggie and pays a pack bonus (CV2)."
+    },
+    {
+      "name": "spread",
+      "definition": "Two facing pages of the Book shown at once on the website: the cover, one rarity of hoggies, the teams, one team's album, or the achievements of one category or the recently earned tiers. Page tabs on the book's top edge flip between them, and the current one lives in the address's hash so a link lands on it."
     }
   ],
   "retired": [
@@ -687,6 +690,11 @@
       "name": "DM setting",
       "definition": "App Home's earlier switch over progression DMs (P63), now read and written through the member's message setting: it shows on while any of the four DM kinds (level ups, new features, quests and the Journey, Book tiers) is on, and sets all four. A stored DM setting off reads as those kinds off. It never silences the welcome message, and changes no XP or level.",
       "because": "decision 24 (#376): one message setting per kind replaces the DM setting; the product owner's words retire it"
+    },
+    {
+      "name": "loadout",
+      "definition": "A member's three kudos emoji slots, and their hedgehog once hedgehogs ship. The starter 🦔 fills the first slot until the member changes the loadout.",
+      "because": "the product owner retired slots (call 9 on #558) and widened slots-retired to everyone on 2026-10-16; #579 removes the slot code, so no loadout remains"
     },
     {
       "name": "chime-in",
@@ -709,6 +717,10 @@
     {
       "concept": "dm setting",
       "because": "decision 24 (#376): one message setting per kind replaces the DM setting; the product owner's words retire it"
+    },
+    {
+      "concept": "loadout",
+      "because": "the product owner retired slots (call 9 on #558) and widened slots-retired to everyone on 2026-10-16; #579 removes the slot code, so no loadout remains"
     },
     {
       "concept": "chime-in",

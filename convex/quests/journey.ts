@@ -153,7 +153,7 @@ async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent): Promise
 }
 
 async function advanceYourEmoji(ctx: MutationCtx, event: KudosGivenEvent): Promise<JourneyActivation | null> {
-  if (saysWhyWithLoadoutEmoji(event)) {
+  if (saysWhyWithOwnedEmoji(event)) {
     const yourEmoji = await activated(ctx, event.workspace, event.giver, "your-emoji", event.at, journey);
     return finishedOrNull(ctx, event.workspace, yourEmoji, Math.max(event.at, yourEmoji.activatedAt), event.message);
   }
@@ -163,8 +163,8 @@ async function advanceYourEmoji(ctx: MutationCtx, event: KudosGivenEvent): Promi
   return null;
 }
 
-function saysWhyWithLoadoutEmoji({ annotations, loadoutEmoji = [] }: KudosGivenEvent): boolean {
-  return gateDecisionOf(annotations)?.thoughtful === true && loadoutEmoji.length > 0;
+function saysWhyWithOwnedEmoji({ annotations, ownedEmoji, loadoutEmoji }: KudosGivenEvent): boolean {
+  return gateDecisionOf(annotations)?.thoughtful === true && (ownedEmoji ?? loadoutEmoji ?? []).length > 0;
 }
 
 function finishOfTwoDays({ at, message }: KudosGivenEvent, counted: JourneyActivation["sayingWhy"]): { at: number; cause?: MessageRef } {

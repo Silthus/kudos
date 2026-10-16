@@ -136,13 +136,6 @@ describe("#568: a member's own face shows the hoggie they picked as their avatar
     expect(avatarIn(header())).not.toBeNull();
   });
 
-  it("draws the avatar hoggie in the gear portrait in place of the Slack picture", () => {
-    show({ member: { ...shellFixtures.memberWithTheInventory, face: sam.face, avatar: asleep } });
-    const portrait = screen.getByRole("region", { name: /^Character/ });
-    expect(avatarIn(portrait)).toHaveAttribute("data-avatar", asleep.hoggie);
-    expect(slackPictureIn(portrait)).toBeNull();
-  });
-
   it("shows What teammates see from the card's own answer, and the Slack picture there while the card fails to load", () => {
     show({ member: withAvatar(asleep), readCard: brokenCard });
     expect(avatarIn(teammatesSee())).toBeNull();

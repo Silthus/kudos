@@ -1,6 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
-import { awardsReceivedNewestFirst, messagesGivenNewestFirst, type Before, type GivenMessageAwards, type MessageAward, type ReceivedAward } from "../engine/awards";
-import { dropsNewestFirst } from "../hoggies/drops";
+import { awardsReceivedByDecision, messagesGivenByDecision, type DecidedBelow, type GivenMessageAwards, type MessageAward, type ReceivedAward } from "../engine/awards";
+import { dropsByDecision } from "../hoggies/drops";
 import { crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
 import { bonusRecordedWith } from "../progression/effects";
 import { bonusGainsShownTo, questGainsShownTo, xpGainsShownTo } from "../progression/gainsView";
@@ -10,14 +10,14 @@ import { perkOf } from "../progression/tree";
 import { questsFinishedByMessage } from "../quests/finishedBy";
 import { hugsShownTo } from "../hugs/flag";
 import { withoutSkinTone } from "../slack/reactions";
-import { hugsGivenNewestFirst, hugsReceivedNewestFirst, hugsReceivedSnapshot, type GivenHug, type ReceivedHugs, type TimelineHug } from "../hugs/records";
+import { hugsGivenByDecision, hugsReceivedByDecision, hugsReceivedSnapshot, type GivenHug, type ReceivedHugs, type TimelineHug } from "../hugs/records";
 import { hugXp } from "../hugs/xp";
-import { levelUpsNewestFirst } from "../unlocks/unlocks";
+import { levelUpsByDecision } from "../unlocks/unlocks";
 import { chatUserOf, timeZoneOf, type MemberId } from "../workspace/directory";
 import type { MessageRef } from "../engine/messageEvent";
 import type { Activity, ActivityEntry, BonusEarned, Found, KudosGiven, KudosReceived, LevelUp, Message, RecentKudos, HugGiven, HugReceived } from "./entries";
 import { kudosFactsOf, kudosWordsOf, mentionsOfOnePage, permalinkOfMessage, personOf, type Mentions } from "./kudos";
-import { beforeFor, decodeCursor, encodeCursor, encodePosition, newestFirst, ranks, type Cursor, type Position, type Rank } from "./position";
+import { belowFor, decodeCursor, encodeCursor, keyOf, newestFirst, ranks, type Cursor, type Position, type Rank } from "./position";
 
 export type Filter = "all" | "received" | "given";
 
@@ -31,7 +31,7 @@ type Pending = { position: Position; recipients?: number; entry: (mentions: Ment
 
 type Read = { pending: Pending[]; cut: boolean };
 
-type Source = { rank: Rank; read: (ctx: QueryCtx, viewer: Viewer, before: Before, take: number) => Promise<Read> };
+type Source = { rank: Rank; read: (ctx: QueryCtx, viewer: Viewer, below: DecidedBelow, take: number) => Promise<Read> };
 
 type PageSize = { min: number; max: number; usual: number };
 
@@ -42,11 +42,11 @@ export const recipientsPerPage = 700;
 
 const levelUps: Source = {
   rank: ranks.levelUp,
-  read: async (ctx, { member, gainsShown }, before, take) => {
+  read: async (ctx, { member, gainsShown }, below, take) => {
     if (!(await gainsShown()).xp) return { pending: [], cut: false };
     return whole(
-      (await firstOf(levelUpsNewestFirst(ctx, member, before), take)).map(({ level, at, created }) => ({
-        position: { at, rank: ranks.levelUp, created },
+      (await firstOf(levelUpsByDecision(ctx, member, below), take)).map(({ level, at, created }) => ({
+        position: { decided: created, rank: ranks.levelUp },
         entry: async (): Promise<LevelUp> => ({ kind: "levelUp", at, level }),
       })),
     );
@@ -55,10 +55,10 @@ const levelUps: Source = {
 
 const kudosReceived: Source = {
   rank: ranks.kudosReceived,
-  read: async (ctx, { member }, before, take) =>
+  read: async (ctx, { member }, below, take) =>
     whole(
-      (await firstOf(awardsReceivedNewestFirst(ctx, member, before), take)).map((award) => ({
-        position: { at: award.at, rank: ranks.kudosReceived, created: award.created },
+      (await firstOf(awardsReceivedByDecision(ctx, member, below), take)).map((award) => ({
+        position: { decided: award.created, rank: ranks.kudosReceived },
         entry: (mentions) => receivedEntryOf(ctx, mentions, award),
       })),
     ),
@@ -66,11 +66,11 @@ const kudosReceived: Source = {
 
 const kudosGiven: Source = {
   rank: ranks.kudosGiven,
-  read: async (ctx, viewer, before, take) => {
-    const { taken, cut } = await firstWithinRecipients(messagesGivenNewestFirst(ctx, viewer.member, before), take, ({ awards }) => awards.length);
+  read: async (ctx, viewer, below, take) => {
+    const { taken, cut } = await firstWithinRecipients(messagesGivenByDecision(ctx, viewer.member, below), take, ({ awards }) => awards.length);
     return {
       pending: taken.map((given) => ({
-        position: { at: given.at, rank: ranks.kudosGiven, created: given.created },
+        position: { decided: given.created, rank: ranks.kudosGiven },
         recipients: given.awards.length,
         entry: (mentions) => givenEntryOf(ctx, viewer, mentions, given),
       })),
@@ -81,26 +81,26 @@ const kudosGiven: Source = {
 
 const found: Source = {
   rank: ranks.found,
-  read: async (ctx, { member }, { at, created }, take) => {
+  read: async (ctx, { member }, below, take) => {
     if (!(await hoggiesShownTo(ctx, member))) return whole([]);
     const shown = { crests: await crestsShownTo(ctx, member) };
     return whole(
-      (await firstOf(dropsNewestFirst(ctx, member, { at, n: created }, shown), take)).map(({ at, n, drop }) => {
-        const position: Position = { at, rank: ranks.found, created: n };
-        return { position, entry: async (): Promise<Found> => ({ kind: "found", at, key: encodePosition(position), drop }) };
-      }),
+      (await firstOf(dropsByDecision(ctx, member, below, shown), take)).map(({ at, n, decided, drop }) => ({
+        position: { decided, rank: ranks.found },
+        entry: async (): Promise<Found> => ({ kind: "found", at, key: keyOf({ at, rank: ranks.found, created: n }), drop }),
+      })),
     );
   },
 };
 
 const hugsGiven: Source = {
   rank: ranks.hugGiven,
-  read: async (ctx, viewer, before, take) => {
+  read: async (ctx, viewer, below, take) => {
     if (!(await viewer.hugsShown())) return whole([]);
-    const { taken, cut } = await firstWithinRecipients(hugsGivenNewestFirst(ctx, viewer.member, before), take, ({ people }) => people.length);
+    const { taken, cut } = await firstWithinRecipients(hugsGivenByDecision(ctx, viewer.member, below), take, ({ people }) => people.length);
     return {
       pending: taken.map((given) => ({
-        position: { at: given.at, rank: ranks.hugGiven, created: given.created },
+        position: { decided: given.created, rank: ranks.hugGiven },
         recipients: given.people.length,
         entry: (mentions) => hugGivenEntryOf(ctx, viewer, mentions, given),
       })),
@@ -111,11 +111,11 @@ const hugsGiven: Source = {
 
 const hugsReceived: Source = {
   rank: ranks.hugReceived,
-  read: async (ctx, viewer, before, take) => {
+  read: async (ctx, viewer, below, take) => {
     if (!(await viewer.hugsShown())) return whole([]);
     return whole(
-      (await firstOf(hugsReceivedNewestFirst(ctx, viewer.member, before, viewer.hugsAsOf), take)).map((received) => ({
-        position: { at: received.at, rank: ranks.hugReceived, created: received.created },
+      (await firstOf(hugsReceivedByDecision(ctx, viewer.member, below, viewer.hugsAsOf), take)).map((received) => ({
+        position: { decided: received.created, rank: ranks.hugReceived },
         entry: (mentions) => hugReceivedEntryOf(ctx, viewer, mentions, received),
       })),
     );
@@ -143,7 +143,7 @@ async function pageOf(ctx: QueryCtx, member: MemberId, filter: Filter, cursor: C
   const hugsAsOf = await hugsSnapshotOf(ctx, member, filter, hugsShown, cursor);
   const viewer: Viewer = { member, gainsShown: once(() => gainsShownTo(ctx, member)), hugsShown, hugsAsOf };
   const after = cursor?.after ?? null;
-  const reads = await Promise.all(sourcesOf[filter].map(({ rank, read }) => read(ctx, viewer, beforeFor(rank, after), size + 1)));
+  const reads = await Promise.all(sourcesOf[filter].map(({ rank, read }) => read(ctx, viewer, belowFor(rank, after), size + 1)));
   const pending = reads.flatMap((read) => read.pending).sort((one, other) => newestFirst(one.position, other.position));
   const page = withinRecipients(completeUpTo(pending, cutPositionOf(reads)).slice(0, size));
   const mentions = mentionsOfOnePage(ctx);
@@ -183,13 +183,13 @@ function withinRecipients(pending: Pending[]): Pending[] {
 
 async function receivedEntryOf(ctx: QueryCtx, mentions: Mentions, { award, message, giver, at, created }: ReceivedAward): Promise<KudosReceived> {
   const [person, facts] = await Promise.all([personOf(ctx, giver), kudosFactsOf(ctx, mentions, message, award)]);
-  return { kind: "kudosReceived", key: encodePosition({ at, rank: ranks.kudosReceived, created }), at, giver: person, ...facts };
+  return { kind: "kudosReceived", key: keyOf({ at, rank: ranks.kudosReceived, created }), at, giver: person, ...facts };
 }
 
 async function givenEntryOf(ctx: QueryCtx, viewer: Viewer, mentions: Mentions, given: GivenMessageAwards): Promise<KudosGiven> {
   const { first, message, awards, at, created } = given;
   const [recipients, facts, earned] = await Promise.all([Promise.all(awards.map(({ recipient }) => personOf(ctx, recipient))), kudosFactsOf(ctx, mentions, message, first), earnedBy(ctx, viewer, given)]);
-  return { kind: "kudosGiven", key: encodePosition({ at, rank: ranks.kudosGiven, created }), at, recipients, kudos: awards[0]?.kudos ?? 0, ...facts, earned };
+  return { kind: "kudosGiven", key: keyOf({ at, rank: ranks.kudosGiven, created }), at, recipients, kudos: awards[0]?.kudos ?? 0, ...facts, earned };
 }
 
 async function hugReceivedEntryOf(ctx: QueryCtx, viewer: Viewer, mentions: Mentions, received: ReceivedHugs): Promise<HugReceived> {
@@ -201,7 +201,7 @@ async function hugReceivedEntryOf(ctx: QueryCtx, viewer: Viewer, mentions: Menti
 async function hugGivenEntryOf(ctx: QueryCtx, viewer: Viewer, mentions: Mentions, given: GivenHug): Promise<HugGiven> {
   const { people, emoji, at, created } = given;
   const [persons, xp, facts] = await Promise.all([Promise.all(people.map((person) => personOf(ctx, person))), hugXpShownTo(viewer, 1), hugFactsOf(ctx, mentions, given)]);
-  return { kind: "hugGiven", key: encodePosition({ at, rank: ranks.hugGiven, created }), at, people: persons, emoji, xp, ...facts };
+  return { kind: "hugGiven", key: keyOf({ at, rank: ranks.hugGiven, created }), at, people: persons, emoji, xp, ...facts };
 }
 
 type HugFacts = { emojiImage?: string; on: string; permalink: string | null; kudos: Message | null };
