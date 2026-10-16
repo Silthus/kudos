@@ -28,6 +28,21 @@ export function pendingWeeklyCratesBefore(ctx: QueryCtx, member: MemberId, week:
     .collect();
 }
 
+export function pendingCratesOldestFirst(ctx: QueryCtx, member: MemberId, limit: number) {
+  return ctx.db
+    .query("pendingCrates")
+    .withIndex("by_member", (q) => q.eq("member", member))
+    .take(limit);
+}
+
+export function pendingWeeklyCratesInWeekOrder(ctx: QueryCtx, member: MemberId, limit: number) {
+  const weekly = rewardKeyPrefixOf("weekly");
+  return ctx.db
+    .query("pendingCrates")
+    .withIndex("by_member_key", (q) => q.eq("member", member).gte("key", weekly).lt("key", `${weekly}\uffff`))
+    .take(limit);
+}
+
 export const backfillPendingCrates = observedAction({
   args: { restart: v.optional(v.boolean()) },
   handler: async (ctx, { restart }): Promise<null> => {

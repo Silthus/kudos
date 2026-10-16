@@ -70,13 +70,15 @@ export async function recordReward(ctx: MutationCtx, workspace: string, reward: 
   return "recorded";
 }
 
-export async function applyHeldReward(ctx: MutationCtx, workspace: string, reward: RewardRecord, at: number): Promise<AppliedReward> {
-  const from = await standingWithCoinsOf(ctx, reward.member);
-  await applyReward(ctx, workspace, reward, at);
-  return { xp: reward.xp, coins: reward.coins, from, to: await standingWithCoinsOf(ctx, reward.member) };
+export type Gain = Pick<RewardRecord, "member" | "xp" | "coins">;
+
+export async function applyGain(ctx: MutationCtx, workspace: string, gain: Gain, at: number): Promise<AppliedReward> {
+  const from = await standingWithCoinsOf(ctx, gain.member);
+  await applyReward(ctx, workspace, gain, at);
+  return { xp: gain.xp, coins: gain.coins, from, to: await standingWithCoinsOf(ctx, gain.member) };
 }
 
-async function applyReward(ctx: MutationCtx, workspace: string, { member, xp, coins }: RewardRecord, at: number) {
+async function applyReward(ctx: MutationCtx, workspace: string, { member, xp, coins }: Gain, at: number) {
   await credit(ctx, member, coins);
   const { state, events } = rewarded(await progressOf(ctx, member), { xp }, { workspace, at });
   await saveProgress(ctx, state);

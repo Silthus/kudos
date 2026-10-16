@@ -1,4 +1,5 @@
 import { v, type Infer } from "convex/values";
+import type { CrateKind } from "./crateKey";
 
 export const rarityValidator = v.union(v.literal("common"), v.literal("uncommon"), v.literal("rare"), v.literal("epic"), v.literal("legendary"));
 
@@ -247,6 +248,15 @@ export const catalogue = {
 } as const;
 
 export const firstVersionWithCrests = 2;
+
+export type PackBand = { xp: { least: number; most: number; step: number }; coins: { least: number; most: number } };
+
+const everyKindsFirstBand: PackBand = { xp: { least: 5, most: 25, step: 5 }, coins: { least: 1, most: 5 } };
+
+export const packBands: { version: number; bands: Record<CrateKind, PackBand> } = {
+  version: 1,
+  bands: { weekly: everyKindsFirstBand, group: everyKindsFirstBand, journey: everyKindsFirstBand, unlock: everyKindsFirstBand, bought: everyKindsFirstBand },
+};
 
 export function rarityLabel(rarity: Rarity): string {
   return labels[rarity];

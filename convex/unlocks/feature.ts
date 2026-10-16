@@ -9,3 +9,11 @@ export const featureValidator = v.union(
 );
 
 export type Feature = Infer<typeof featureValidator>;
+
+export function featureCrateKeyOf(feature: Feature): `unlock:${Feature}` {
+  return `unlock:${feature}`;
+}
+
+export function featureOfCrateKey(crate: string): Feature | null {
+  return featureValidator.members.map(({ value }) => value).find((feature) => featureCrateKeyOf(feature) === crate) ?? null;
+}

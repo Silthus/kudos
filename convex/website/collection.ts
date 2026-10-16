@@ -2,7 +2,8 @@ import { companyFaceOfProfile } from "../companyProfiles/faces";
 import { teamPagesShownTo } from "../companyProfiles/flag";
 import { crateStoreOf, waitingCratesOf, type CrateStore } from "../hoggies/boughtCrates";
 import { collectionOf, type HeldCrest, type HeldHoggie, type RarityShare } from "../hoggies/collection";
-import { crateStoreShownTo, crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
+import { crateStoreShownTo, crestsShownTo, hoggiesShownTo, packsShownTo } from "../hoggies/flag";
+import { waitingPacksOf, type WaitingPacks } from "../hoggies/waitingPacks";
 import { groupsShownTo } from "../groups/groups";
 import type { QueryCtx } from "../_generated/server";
 import { albumsOf, type Album } from "../stickers/albums";
@@ -11,6 +12,7 @@ import { stickersNewestFirst, type HeldSticker } from "../stickers/records";
 import { teamPagesOf, type CollectedCrest, type PersonOnPage, type TeamPageOf } from "../stickers/teamPages";
 import { memberRowsIn, peopleOf, type MemberId, type MemberRows, type People } from "../workspace/directory";
 import { bookPageOf } from "./book";
+import { noLaunchWaitsFor } from "./flag";
 import { companyTeammateOf, teammateOf, type Face } from "./faces";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
 import { seenKeyOf } from "./seen";
@@ -36,7 +38,9 @@ export type StickerBook = { stickers?: Sticker[]; albums?: GroupAlbum[]; teams?:
 
 export type BoughtCrates = { bought?: string[]; crateStore?: CrateStore | null };
 
-export type CollectionAnswer = { kind: "not-found" } | PageWaits | ({ kind: "collection"; rarities: RarityShare[]; hoggies: CollectionHoggie[]; owned: number; total: number; crests?: CollectionCrest[] } & BoughtCrates & StickerBook);
+export type PackStack = Partial<WaitingPacks>;
+
+export type CollectionAnswer = { kind: "not-found" } | PageWaits | ({ kind: "collection"; rarities: RarityShare[]; hoggies: CollectionHoggie[]; owned: number; total: number; crests?: CollectionCrest[] } & BoughtCrates & PackStack & StickerBook);
 
 export const getCollection = memberQuery(async (ctx, me): Promise<CollectionAnswer> => {
   if (!(await hoggiesShownTo(ctx, me.member))) return { kind: "not-found" };
@@ -46,7 +50,7 @@ export const getCollection = memberQuery(async (ctx, me): Promise<CollectionAnsw
   const collection = { kind: "collection" as const, rarities, hoggies: await Promise.all(hoggies.map((hoggie) => seenBy(me.member, hoggie))), owned, total };
   const teamPages = (await teamPagesShownTo(ctx, me.member)) ? { crests: collectedCrestsIn(crests ?? []) } : null;
   const withCrests = crests === undefined || teamPages !== null ? collection : { ...collection, crests: await Promise.all(crests.map((crest) => crestSeenBy(me.member, crest))) };
-  return { ...withCrests, ...(await boughtCratesOf(ctx, me.member)), ...(await stickerBookOf(ctx, me, teamPages)) };
+  return { ...withCrests, ...(await boughtCratesOf(ctx, me.member)), ...(await packStackOf(ctx, me)), ...(await stickerBookOf(ctx, me, teamPages)) };
 });
 
 type TeamPagesShown = { crests: CollectedCrest[] };
@@ -111,6 +115,11 @@ function collectedCrestsIn(crests: HeldCrest[]): CollectedCrest[] {
 function teammateIn(people: People, person: MemberId): Teammate {
   const { name, picture, former } = people.get(person) ?? { name: undefined, picture: null, former: true };
   return { ...teammateOf(name, picture), former };
+}
+
+async function packStackOf(ctx: QueryCtx, me: VerifiedMember): Promise<PackStack> {
+  if (!(await packsShownTo(ctx, me.member))) return {};
+  return (await noLaunchWaitsFor(ctx, me)) ? waitingPacksOf(ctx, me.member) : { packs: [], morePacks: false };
 }
 
 async function boughtCratesOf(ctx: QueryCtx, member: MemberId): Promise<BoughtCrates> {

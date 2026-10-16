@@ -35,6 +35,17 @@ export function journeyQuestOfRewardKey(key: string): JourneyQuest | null {
   return step === undefined ? null : { kind: "journey", step };
 }
 
+export function questOfRewardKey(ctx: QueryCtx, key: string): Quest | null {
+  const quest = weeklyQuestOfRewardKey(key) ?? journeyQuestOfRewardKey(key) ?? groupQuestOfRewardKey(ctx, key);
+  return quest !== null && rewardKeyOf(quest) === key ? quest : null;
+}
+
+function groupQuestOfRewardKey(ctx: QueryCtx, key: string): Quest | null {
+  const groupWeek = groupWeekOfRewardKey(key);
+  const group = groupWeek === null ? null : ctx.db.normalizeId("userGroups", groupWeek.group);
+  return groupWeek === null || group === null ? null : { kind: "group", group, week: groupWeek.week };
+}
+
 export function rewardKeyPrefixOf<K extends Quest["kind"]>(kind: K): `${K}:` {
   return `${kind}:`;
 }

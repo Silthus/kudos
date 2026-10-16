@@ -220,6 +220,7 @@ export const hoggieDroppedEventValidator = v.object({
   rarity: rarityValidator,
   copy: v.number(),
   at: v.number(),
+  pack: v.optional(v.object({ xp: v.number(), coins: v.number() })),
 });
 
 export type HoggieDroppedEvent = Infer<typeof hoggieDroppedEventValidator>;

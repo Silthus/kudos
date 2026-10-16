@@ -681,6 +681,14 @@
       "definition": "A member's page in the Book for one company team: the team's posthog.com people matched to other current members, each held where the member holds their sticker, with the team's unmatched people counted; derived on every read, never stored"
     },
     {
+      "name": "pack bonus",
+      "definition": "The XP and coins a pack pays on top of what its crate held, drawn per crate from its kind's band and paid once, at the crate's first open, while packs is on (CV2-CV5)."
+    },
+    {
+      "name": "pack",
+      "definition": "A crate as the Book shows it: opening it drops a hoggie and pays a pack bonus (CV2)."
+    },
+    {
       "name": "spread",
       "definition": "Two facing pages of the Book shown at once on the website: the cover, one rarity of hoggies, the teams, one team's album, or the achievements of one category or the recently earned tiers. Page tabs on the book's top edge flip between them, and the current one lives in the address's hash so a link lands on it."
     }

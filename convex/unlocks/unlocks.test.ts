@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { withoutCollectionExposure } from "../../testing/hoggies";
+import { withoutCollectionExposure, withoutDropExposures } from "../../testing/hoggies";
 import { FakeSlack } from "../../testing/fakeSlack";
 import type { FakePostHog } from "../../testing/fakePostHog";
 import { flagsFromPostHog, flagsLoaded, flagsOnForEveryone, offForEveryone, onForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
@@ -153,7 +153,7 @@ describe("P92: opening grants nothing", () => {
     await open(t, alice, "leaderboard");
 
     const after = await everyTable(t);
-    expect(withoutCollectionExposure({ ...after, unlocks: [], drops: [], hoggieTallies: [], dropTallies: [] })).toEqual({ ...before, unlocks: [] });
+    expect(withoutDropExposures({ ...after, unlocks: [], drops: [], hoggieTallies: [], dropTallies: [] })).toEqual({ ...before, unlocks: [] });
     expect(after.drops).toEqual([expect.objectContaining({ member: alice, crate: "unlock:leaderboard", n: 1, copy: 1, at: now.getTime() })]);
     expect(vi.mocked(publish).mock.calls.map(([, event]) => event.type)).toEqual(["hoggieDropped", "unlockOpened"]);
   });
