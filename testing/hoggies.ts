@@ -18,6 +18,10 @@ export function withoutCollectionExposure<T extends Tables>(tables: T): T {
   return withoutExposureOf("collection", tables);
 }
 
+export function withoutDropExposures<T extends Tables>(tables: T): T {
+  return withoutExposureOf("packs", withoutCollectionExposure(tables));
+}
+
 export async function holds(t: Backend, member: MemberId, ...hoggies: string[]) {
   await t.run(async (ctx) => {
     for (const hoggie of hoggies) {

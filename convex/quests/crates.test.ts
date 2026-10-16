@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { withoutCollectionExposure } from "../../testing/hoggies";
+import { withoutCollectionExposure, withoutDropExposures } from "../../testing/hoggies";
 import { kudosGivenEventWithAward } from "../../testing/busEvents";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
@@ -86,7 +86,7 @@ describe("CR3 P92: opening a crate applies its held reward once", () => {
     expect(await open(t, alice)).toBe("done");
 
     const after = await everyTable(t);
-    expect(withoutCollectionExposure({ ...after, crateOpenings: [], memberProgress: [], drops: [], hoggieTallies: [], dropTallies: [] })).toEqual({ ...before, memberProgress: [] });
+    expect(withoutDropExposures({ ...after, crateOpenings: [], memberProgress: [], drops: [], hoggieTallies: [], dropTallies: [] })).toEqual({ ...before, memberProgress: [] });
     expect(after.drops).toEqual([expect.objectContaining({ member: alice, crate: "journey:first-thanks", n: 1, copy: 1, at: openedAt })]);
     expect(published().map(({ type }) => type)).toEqual(["xpRecorded", "hoggieDropped", "questOpened"]);
 
