@@ -4,7 +4,7 @@ import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { ReportableError } from "../analytics/exceptions";
 import { reconcileLater } from "../groups/reconcile";
-import { recordDepartures, recordKeepingChange } from "../groups/transitions";
+import { KeepingChanges, recordDepartures } from "../groups/transitions";
 import { followPeopleLater, requestCatchUp } from "../analytics/person";
 import type { ChatUserId } from "../engine/messageEvent";
 import { isOlder } from "./directory";
@@ -79,7 +79,8 @@ export const keepUserGroups = internalMutation({
     if (stored.length + unknown.length > maxUserGroupsKept) throw new ReportableError("Slack listed more user groups than the directory keeps");
     const gone = unlistedIn(stored, scope, listed).map((group) => ({ ...group, enabled: false }));
     const changes = [];
-    for (const group of [...listed, ...gone]) changes.push(await keepUserGroup(ctx, group, asOf));
+    const keeping = new KeepingChanges(ctx);
+    for (const group of [...listed, ...gone]) changes.push(await keepUserGroup(ctx, keeping, group, asOf));
     if (changes.includes("stopped-keeping-members")) await ctx.scheduler.runAfter(0, internal.workspace.userGroups.clearUnkeptMemberships, {});
     if (changes.includes("renamed")) await requestCatchUp(ctx);
   },
@@ -137,18 +138,18 @@ function usersByWorkspaceOf(memberships: Doc<"userGroupMembers">[]): Map<string,
   return new Map([...usersByWorkspace].map(([workspace, users]) => [workspace, [...users]]));
 }
 
-async function keepUserGroup(ctx: MutationCtx, group: UserGroup, asOf: number): Promise<UserGroupChange> {
+async function keepUserGroup(ctx: MutationCtx, keeping: KeepingChanges, group: UserGroup, asOf: number): Promise<UserGroupChange> {
   const row = await userGroupRow(ctx, group);
   if (row !== null && isOlder(asOf, row.asOf)) return "unchanged";
   const { members, ...described } = group;
   const kept = { ...described, asOf, ...(!isOlder(asOf, row?.membersCountAsOf) && members !== undefined && { members, membersCountAsOf: asOf }) };
   if (row === null) {
-    const inserted = await ctx.db.get(await ctx.db.insert("userGroups", kept));
-    if (inserted !== null && keepsMembers(inserted)) await recordKeepingChange(ctx, inserted, true, Date.now());
+    const inserted = await ctx.db.insert("userGroups", kept);
+    if (keepsMembers(group)) await keeping.record({ _id: inserted, workspace: group.workspace }, true, Date.now());
     return "unchanged";
   }
   await ctx.db.patch(row._id, kept);
-  if (keepsMembers(row) !== keepsMembers(group)) await recordKeepingChange(ctx, row, keepsMembers(group), Date.now());
+  if (keepsMembers(row) !== keepsMembers(group)) await keeping.record(row, keepsMembers(group), Date.now());
   if (!keepsMembers(row)) return "unchanged";
   if (!keepsMembers(group)) return "stopped-keeping-members";
   return row.handle === group.handle ? "unchanged" : "renamed";

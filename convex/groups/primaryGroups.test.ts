@@ -423,6 +423,59 @@ describe("GB9, call 13: reconciling a member replays the transition log", () => 
     expect(await primaryGroupNameAt(t, "U_ANN", reconciled - 1)).toBe("Owls");
     expect(await primaryGroupNameAt(t, "U_ANN", reconciled)).toBe("Zebras");
   });
+
+  test("a member who comes back in no counting group never gets a group for the time they were away", async () => {
+    const t = testBackend();
+    slack.withUserGroup("S_OWL", { name: "Owls", users: [] }).withUserGroup("S_ZEBRA", { name: "Zebras", users: ["U_BOB"] });
+    await sync(t);
+    await joined(t, "U_ANN");
+    await memberChanged(t, "user_change", { id: "U_ANN", deleted: true });
+    await settle(t);
+    vi.advanceTimersByTime(30_000);
+    slack.withUserGroup("S_OWL", { name: "Owls", users: ["U_ANN"] });
+    await userGroupChanged(t, "subteam_members_changed", "S_OWL");
+    await settle(t);
+    const inOwlsWhileAway = Date.now();
+    vi.advanceTimersByTime(30_000);
+    slack.withUserGroup("S_OWL", { name: "Owls", users: [] });
+    await userGroupChanged(t, "subteam_members_changed", "S_OWL");
+    await settle(t);
+    vi.advanceTimersByTime(30_000);
+    await memberChanged(t, "user_change", { id: "U_ANN" });
+    await settle(t);
+    vi.advanceTimersByTime(30_000);
+
+    slack.withUserGroup("S_ZEBRA", { name: "Zebras", users: ["U_ANN", "U_BOB"] });
+    await userGroupChanged(t, "subteam_members_changed", "S_ZEBRA");
+    await settle(t);
+
+    expect(await primaryGroupNameAt(t, "U_ANN", inOwlsWhileAway)).toBeNull();
+    expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Zebras");
+  });
+
+  test("a group the copy dropped before the log existed is never a fallback for a departure the log records", async () => {
+    const t = testBackend();
+    slack.withUserGroup("S_OWL", { name: "Owls", users: ["U_ANN"] }).withUserGroup("S_ZEBRA", { name: "Zebras", users: ["U_ANN", "U_BOB"] });
+    await sync(t);
+    await joined(t, "U_ANN");
+    expect(await primaryGroupNameOf(t, "U_ANN")).toBe("Owls");
+    vi.advanceTimersByTime(60_000);
+    await t.run(async (ctx) => {
+      const zebras = await ctx.db
+        .query("userGroupMembers")
+        .withIndex("by_group", (q) => q.eq("workspace", "T1").eq("group", "S_ZEBRA").eq("user", "U_ANN"))
+        .unique();
+      await ctx.db.delete(zebras!._id);
+    });
+    vi.advanceTimersByTime(60_000);
+
+    slack.withUserGroup("S_OWL", { name: "Owls", users: [] });
+    await userGroupChanged(t, "subteam_members_changed", "S_OWL");
+    await settle(t);
+
+    expect(await primaryGroupNameOf(t, "U_ANN")).toBeNull();
+    expect((await historyOf(t, "U_ANN")).map(({ group }) => group)).toEqual(["Owls", null]);
+  });
 });
 
 describe("GB1, GB3: groups are available only where an enabled custom group counts", () => {
@@ -502,6 +555,29 @@ describe("GB35: reconciliation pages stay within Convex's limits", () => {
     await settle(t);
 
     expect(await countingGroupCountsOf(t)).toEqual({ 20: 100 });
+  });
+
+  test("a page of 100 members whose group stopped and started counting 40 times before it ran records every change within Convex's limits", { timeout: 120_000 }, async () => {
+    const t = testBackend({ transactionLimits: true });
+    const people = Array.from({ length: 100 }, (_, index) => `U_${String(index).padStart(3, "0")}`);
+    const startedAt = Date.now();
+    await t.run(async (ctx) => {
+      const group = await ctx.db.insert("userGroups", { workspace: "T1", group: "S_FLIP", handle: "flip", name: "Flip", enabled: true, automatic: false, members: 100, asOf: 0, membersAsOf: 0 });
+      for (const user of people) {
+        const member = await ctx.db.insert("members", { workspace: "T1", user, kind: "member", timeZone: undefined, asOf: 0 });
+        await ctx.db.insert("userGroupMembers", { workspace: "T1", group: "S_FLIP", user });
+        await ctx.db.insert("memberGroups", { workspace: "T1", member, groups: [group], primary: group });
+        await ctx.db.insert("primaryGroupHistory", { workspace: "T1", member, from: null, group, cause: "default", at: startedAt });
+      }
+      for (let flip = 1; flip <= 40; flip += 1) await ctx.db.insert("groupCountingChanges", { workspace: "T1", group, counts: flip % 2 === 0, at: startedAt + flip * 1_000 });
+    });
+    vi.setSystemTime(startedAt + 60_000);
+
+    await t.mutation(internal.groups.reconcile.reconcileUsers, { workspace: "T1", users: people });
+    await settle(t);
+
+    const entries = await t.run(async (ctx) => (await ctx.db.query("primaryGroupHistory").collect()).length);
+    expect(entries).toBe(100 * 41);
   });
 
   test("a page whose people lie far apart in a large directory reads it in bounded steps and reconciles each of them", { timeout: 60_000 }, async () => {

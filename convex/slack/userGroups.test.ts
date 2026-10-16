@@ -369,6 +369,15 @@ describe("Convex's limit of 1,000 scheduled functions per call", () => {
     expect(scheduled.filter(({ name }) => name.endsWith(":refreshMembers")).length + groupsAhead.length).toBe(1_001);
   });
 
+  test("a first listing of 2,000 enabled user groups keeps every one within Convex's limits", { timeout: 120_000 }, async () => {
+    const t = testBackend({ transactionLimits: true });
+    const listed = Array.from({ length: 2_000 }, (_, index) => ({ workspace: "T1", group: `S_${index}`, handle: `g${index}`, name: `Group ${index}`, enabled: true, automatic: false }));
+
+    await t.mutation(internal.workspace.userGroups.keepUserGroups, { listed, scope: { kind: "every-group" }, asOf: Date.now() });
+
+    expect(await t.run(async (ctx) => (await ctx.db.query("userGroups").collect()).length)).toBe(2_000);
+  });
+
   test("a listing that disables 1,001 user groups schedules fewer than 1,000 functions", async () => {
     const t = testBackend();
     await t.run(async (ctx) => {

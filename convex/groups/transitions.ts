@@ -1,9 +1,11 @@
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { ChatUserId } from "../engine/messageEvent";
-import { groupModeOf, isAllowed, type GroupId } from "./groups";
+import { groupModeOf, isAllowed, type GroupId, type GroupMode } from "./groups";
 
 export type CountingChange = Pick<Doc<"groupCountingChanges">, "counts" | "at">;
+
+type LoggedGroup = Pick<Doc<"userGroups">, "_id" | "workspace">;
 
 export function joinedAtOf({ _creationTime }: Doc<"userGroupMembers">): number {
   return Math.floor(_creationTime);
@@ -22,11 +24,19 @@ export function departuresSince(ctx: QueryCtx, workspace: string, user: ChatUser
     .collect();
 }
 
-export async function recordKeepingChange(ctx: MutationCtx, group: Doc<"userGroups">, keepsMembers: boolean, at: number) {
-  if (isAllowed(group, await groupModeOf(ctx, group.workspace))) await recordCountingChange(ctx, group, keepsMembers, at);
+export class KeepingChanges {
+  private readonly modes = new Map<string, Promise<GroupMode>>();
+
+  constructor(private readonly ctx: MutationCtx) {}
+
+  async record(group: LoggedGroup, keepsMembers: boolean, at: number) {
+    const mode = this.modes.get(group.workspace) ?? groupModeOf(this.ctx, group.workspace);
+    this.modes.set(group.workspace, mode);
+    if (isAllowed(group, await mode)) await recordCountingChange(this.ctx, group, keepsMembers, at);
+  }
 }
 
-export async function recordCountingChange(ctx: MutationCtx, group: Doc<"userGroups">, counts: boolean, at: number) {
+export async function recordCountingChange(ctx: MutationCtx, group: LoggedGroup, counts: boolean, at: number) {
   await ctx.db.insert("groupCountingChanges", { workspace: group.workspace, group: group._id, counts, at });
 }
 

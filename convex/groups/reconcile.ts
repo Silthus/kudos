@@ -14,6 +14,7 @@ const directoryRowsPerPage = 1_000;
 const membershipsPerPage = 8_000;
 const indexRangesPerPage = 3_000;
 const indexRangesPerPerson = 6;
+const indexRangesPerHistoryWrite = 2;
 
 export async function reconcileLater(ctx: MutationCtx, workspace: string, users: ChatUserId[]) {
   const sorted = users.toSorted();
@@ -109,6 +110,10 @@ class GroupRows {
     private readonly workspace: string,
   ) {}
 
+  countHistoryWrites(changes: number) {
+    this.indexRangesRead += changes * indexRangesPerHistoryWrite;
+  }
+
   exhausted(): boolean {
     return this.documentsRead >= membershipsPerPage || this.indexRangesRead >= indexRangesPerPage;
   }
@@ -203,19 +208,37 @@ class Timeline {
 
 async function reconcile(ctx: MutationCtx, person: Doc<"members">, groupRows: GroupRows, recordedAt?: number) {
   const row = await memberGroupsOf(ctx, person._id);
-  const since = (await latestEntryOf(ctx, person._id))?.at ?? person._creationTime;
-  let primary = row?.primary ?? null;
-  const timeline = await groupRows.timelineOf(person.user, since, [...(row?.groups ?? []), ...(primary === null ? [] : [primary])]);
+  const since = Math.max((await latestEntryOf(ctx, person._id))?.at ?? person._creationTime, row?.directoryChangedAt ?? Number.NEGATIVE_INFINITY);
+  const before = row?.primary ?? null;
+  const timeline = await groupRows.timelineOf(person.user, since, before === null ? [] : [before]);
   const isMember = person.kind === "member";
   const memberUntil = memberUntilOf(isMember, recordedAt);
   const replayed = memberUntil === undefined ? [] : timeline.instantsBetween(since, memberUntil);
-  for (const at of replayed) primary = await moveTo(ctx, person, primary, timeline.countingAt(at), at);
   const counting = isMember ? timeline.countingNow() : [];
-  primary = await moveTo(ctx, person, primary, counting, recordedAt ?? Date.now());
-  const groups = [...new Set(counting.map(({ _id }) => _id))];
-  if (row === null && groups.length === 0 && primary === null) return;
-  if (row === null) await ctx.db.insert("memberGroups", { workspace: person.workspace, member: person._id, groups, primary });
-  else if (!sameGroups(row.groups, groups) || primary !== row.primary) await ctx.db.patch(row._id, { groups, primary });
+  const steps = [...replayed.map((at) => ({ at, counting: timeline.countingAt(at) })), { at: recordedAt ?? Date.now(), counting }];
+  let primary = before;
+  let changes = 0;
+  for (const step of steps) {
+    const next = primaryAt(primary, step.counting);
+    if (next === primary) continue;
+    await recordChange(ctx, person, primary, next, primary === null ? "default" : "fallback", step.at);
+    primary = next;
+    changes += 1;
+  }
+  groupRows.countHistoryWrites(changes);
+  await keepMemberGroups(ctx, person, row, { groups: [...new Set(counting.map(({ _id }) => _id))], primary, ...(recordedAt !== undefined && { directoryChangedAt: recordedAt }) });
+}
+
+type MemberGroups = Pick<Doc<"memberGroups">, "groups" | "primary" | "directoryChangedAt">;
+
+async function keepMemberGroups(ctx: MutationCtx, person: Doc<"members">, row: Doc<"memberGroups"> | null, kept: MemberGroups) {
+  if (row === null) {
+    const fencesReplay = kept.directoryChangedAt !== undefined && kept.directoryChangedAt > person._creationTime;
+    if (kept.groups.length > 0 || kept.primary !== null || fencesReplay) await ctx.db.insert("memberGroups", { workspace: person.workspace, member: person._id, ...kept });
+    return;
+  }
+  const unchanged = sameGroups(row.groups, kept.groups) && row.primary === kept.primary && kept.directoryChangedAt === undefined;
+  if (!unchanged) await ctx.db.patch(row._id, kept);
 }
 
 function memberUntilOf(isMember: boolean, recordedAt: number | undefined): number | undefined {
@@ -223,10 +246,8 @@ function memberUntilOf(isMember: boolean, recordedAt: number | undefined): numbe
   return isMember ? Date.now() : undefined;
 }
 
-async function moveTo(ctx: MutationCtx, person: Doc<"members">, primary: GroupId | null, counting: Doc<"userGroups">[], at: number): Promise<GroupId | null> {
-  const next = primary !== null && counting.some(({ _id }) => _id === primary) ? primary : smallestOf(counting);
-  if (next !== primary) await recordChange(ctx, person, primary, next, primary === null ? "default" : "fallback", at);
-  return next;
+function primaryAt(primary: GroupId | null, counting: Doc<"userGroups">[]): GroupId | null {
+  return primary !== null && counting.some(({ _id }) => _id === primary) ? primary : smallestOf(counting);
 }
 
 function smallestOf(groups: Doc<"userGroups">[]): GroupId | null {

@@ -140,6 +140,7 @@ export default defineSchema({
     member: v.id("members"),
     groups: v.array(v.id("userGroups")),
     primary: v.union(v.id("userGroups"), v.null()),
+    directoryChangedAt: v.optional(v.number()),
   })
     .index("by_member", ["member"])
     .index("by_primary", ["primary"]),
