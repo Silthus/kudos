@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { perkValidator, type PerkId } from "../../convex/progression/tree";
 import { crateParamOf, crateTargetIn, settingsSections, signInEntry, type CrateTarget, type HomePanel, type SettingsSection } from "../../convex/website/routes";
 import { bookHref, categoryAsked, type CategoryId } from "./book/categories";
+import { spreadIn, type Spread } from "./book/spread/spreads";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
 
@@ -18,7 +19,7 @@ export type Route =
   | { page: "activity"; filter: ActivityFilter }
   | ({ page: "leaderboard"; period: Period } & Targets)
   | ({ page: "quests"; quest?: QuestTarget } & Targets)
-  | ({ page: "book"; bookPage: BookPageId } & Targets)
+  | ({ page: "book"; bookPage: BookPageId; spread?: Spread } & Targets)
   | ({ page: "skills"; perk?: PerkId } & Targets)
   | { page: "settings"; section?: SettingsSection }
   | { page: "not-found" };
@@ -33,19 +34,19 @@ const routeAt = {
   "/leaderboard": (search) => ({ page: "leaderboard", period: periodIn(search), crate: crateIn(search) }),
   "/quests": (search) => ({ page: "quests", quest: questIn(search), crate: crateIn(search) }),
   "/skills": (search) => ({ page: "skills", perk: perkIn(search), crate: crateIn(search) }),
-  "/book": (search) => ({ page: "book", bookPage: categoryAsked(search), crate: crateIn(search) }),
+  "/book": (search, hash) => ({ page: "book", bookPage: categoryAsked(search), crate: crateIn(search), spread: spreadIn(hash) }),
   "/book/earned": () => ({ page: "book", bookPage: "earned" }),
-  "/book/collection": (search) => ({ page: "book", bookPage: "collection", crate: crateIn(search) }),
+  "/book/collection": (search, hash) => ({ page: "book", bookPage: "collection", crate: crateIn(search), spread: spreadIn(hash) }),
   "/settings": (search) => ({ page: "settings", section: sectionIn(search) }),
-} satisfies Record<string, (search: string) => Route>;
+} satisfies Record<string, (search: string, hash: string) => Route>;
 
 type ServedPath = keyof typeof routeAt;
 
 export const servedPaths = Object.keys(routeAt) as ServedPath[];
 
-export function routeOf({ pathname, search }: { pathname: string; search: string }): Route {
+export function routeOf({ pathname, search, hash }: { pathname: string; search: string; hash: string }): Route {
   const served = servedPaths.find((path) => path === withoutTheSignInEntry(pathname));
-  return served === undefined ? { page: "not-found" } : routeAt[served](search);
+  return served === undefined ? { page: "not-found" } : routeAt[served](search, hash);
 }
 
 export function withoutTheSignInEntry(pathname: string) {
@@ -132,7 +133,7 @@ function currentRoute() {
 }
 
 function currentAddress() {
-  return window.location.pathname + window.location.search;
+  return window.location.pathname + window.location.search + window.location.hash;
 }
 
 function keepingSignInCode(href: string) {
@@ -143,12 +144,16 @@ function keepingSignInCode(href: string) {
   return address.pathname + address.search;
 }
 
+function keepingTheHash(href: string) {
+  return href + window.location.hash;
+}
+
 export function useRoute() {
   const [route, setRoute] = useState(currentRoute);
 
   useEffect(() => {
     if (route.page !== "leaderboard" && route.page !== "book" && route.page !== "activity") return;
-    const canonical = keepingSignInCode(hrefOf(route));
+    const canonical = keepingTheHash(keepingSignInCode(hrefOf(route)));
     if (canonical !== currentAddress()) window.history.replaceState(null, "", canonical);
   }, [route]);
 

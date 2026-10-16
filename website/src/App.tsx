@@ -24,6 +24,7 @@ import { LoadingPage, type LoadingShape } from "./pages/LoadingPage";
 import type { PendingItemPurchase } from "./home/itemPurchase";
 import { HomePage, type LoadoutActions } from "./pages/HomePage";
 import { BookPage } from "./pages/BookPage";
+import { showsTheBookSpread } from "./book/spread/bookSpread";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { FeatureWaitsPage } from "./pages/FeatureWaitsPage";
 import { QuestsPage } from "./pages/QuestsPage";
@@ -44,6 +45,7 @@ import type { SettingsRead, SettingsShown } from "./settingsRead";
 import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
 import type { SpotlightDraw } from "./spotlightRead";
 import { hrefOf, useRoute, type ActivityFilter, type BookPageId, type Route, type Screen } from "./route";
+import type { Spread } from "./book/spread/spreads";
 import type { Feature, MemberProfile, Period, ShellActions, ShellState } from "./shell";
 import { rememberSignInStarted, useSignInOutcome, useSignInWhenAsked } from "./signInAttempt";
 
@@ -258,7 +260,7 @@ function Page({ state, route, board, quests, book, collection, skillTree, settin
   if (route.page === "home") return quests?.kind === "connecting" || board?.kind === "connecting" ? <ConnectingPage /> : <HomePage key={membersShown} member={state} panel={route.panel} reads={{ quests, board, card: profileCard, collection }} useRecentKudos={useRecentKudos} onBuyItem={onBuyItem} pendingPurchase={pendingItemPurchase} loadout={loadoutActions} />;
   if (route.page === "activity") return <ActivityAnswerPage filter={route.filter} activity={activity} chatUrl={state.chatUrl} {...actions} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} onSwapQuest={onSwapQuest} {...actions} />;
-  if (route.page === "book") return <BookAnswerPage member={state} book={book} collection={collection} page={route.bookPage} onBuyCrate={onBuyCrate} onSetAvatar={onSetAvatar} {...actions} />;
+  if (route.page === "book") return <BookAnswerPage member={state} book={book} collection={collection} page={route.bookPage} spread={route.spread} onBuyCrate={onBuyCrate} onSetAvatar={onSetAvatar} {...actions} />;
   if (route.page === "settings") return <SettingsAnswerPage settings={settings} actions={settingsActions} {...actions} />;
   if (route.page === "skills") return <SkillTreeAnswerPage key={membersShown} member={state} skillTree={skillTree} onBuyPerk={onBuyPerk} {...actions} />;
   if (board === undefined) return <LoadingPage shape="board" />;
@@ -293,15 +295,17 @@ function ActivityAnswerPage({ filter, activity, chatUrl, ...actions }: { filter:
 
 type Answers = { onSignIn: () => void; onSignOut: () => void };
 
-type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; collection: CollectionShown | undefined; page: BookPageId; onBuyCrate: ShellActions["buyCrate"]; onSetAvatar: ShellActions["setAvatar"] } & Answers;
+type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; collection: CollectionShown | undefined; page: BookPageId; spread: Spread | undefined; onBuyCrate: ShellActions["buyCrate"]; onSetAvatar: ShellActions["setAvatar"] } & Answers;
 
-function BookAnswerPage({ member, book, collection, page, onBuyCrate, onSetAvatar, ...actions }: BookAnswerPageProps) {
+function BookAnswerPage({ member, book, collection, page, spread, onBuyCrate, onSetAvatar, ...actions }: BookAnswerPageProps) {
+  const asASpread = page !== "earned" && showsTheBookSpread(member);
+  if (asASpread && collection === undefined) return <LoadingPage shape="column" />;
   const collectionWaits = page === "collection" ? bookFeatureWaitsOf(collection, member, actions) : null;
   if (collectionWaits !== null) return collectionWaits;
   const bookWaits = bookFeatureWaitsOf(book, member, actions);
   if (bookWaits !== null) return bookWaits;
   if (book?.kind !== "book") return null;
-  return <BookPage book={book} collection={collection} page={page} chatUrl={member.chatUrl} coins={member.coins} onBuyCrate={onBuyCrate} avatar={member.avatar} onSetAvatar={onSetAvatar} />;
+  return <BookPage book={book} collection={collection} page={page} spread={spread} asASpread={asASpread} chatUrl={member.chatUrl} coins={member.coins} onBuyCrate={onBuyCrate} avatar={member.avatar} onSetAvatar={onSetAvatar} />;
 }
 
 function bookFeatureWaitsOf(answer: BookShown | CollectionShown | undefined, member: MemberProfile, actions: Answers): ReactNode | null {

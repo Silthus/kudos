@@ -64,3 +64,27 @@ describe("#435: the router reads every target a Slack link carries", () => {
     expect(routeOf(new URL(`${origin}/quests?crate=${crate}`))).toEqual({ page: "quests" });
   });
 });
+
+describe("#585: the Book's spread lives in the hash and survives canonicalisation", () => {
+  test.each<[string, Route]>([
+    ["/book#cover", { page: "book", bookPage: "overview", spread: { kind: "cover" } }],
+    ["/book#hoggies", { page: "book", bookPage: "overview", spread: { kind: "hoggies", rarity: "legendary" } }],
+    ["/book#hoggies/rare", { page: "book", bookPage: "overview", spread: { kind: "hoggies", rarity: "rare" } }],
+    ["/book#hoggies/bogus", { page: "book", bookPage: "overview", spread: { kind: "hoggies", rarity: "legendary" } }],
+    ["/book#teams", { page: "book", bookPage: "overview", spread: { kind: "teams" } }],
+    ["/book#teams/people-ops", { page: "book", bookPage: "overview", spread: { kind: "team", team: "people-ops" } }],
+    ["/book#teams/group:platform", { page: "book", bookPage: "overview", spread: { kind: "team", team: "group:platform" } }],
+    ["/book#achievements", { page: "book", bookPage: "overview", spread: { kind: "achievements", category: "all" } }],
+    ["/book?page=giving#achievements/crowd", { page: "book", bookPage: "giving", spread: { kind: "achievements", category: "crowd" } }],
+    ["/book/collection#hoggies/epic", { page: "book", bookPage: "collection", spread: { kind: "hoggies", rarity: "epic" } }],
+    ["/book/collection?crate=store#teams", { page: "book", bookPage: "collection", crate: "store", spread: { kind: "teams" } }],
+    ["/book#nonsense", { page: "book", bookPage: "overview" }],
+    ["/book", { page: "book", bookPage: "overview" }],
+  ])("reads %s", (path, route) => {
+    expect(routeOf(new URL(`${origin}${path}`))).toEqual(route);
+  });
+
+  test("a hash on another page is ignored", () => {
+    expect(routeOf(new URL(`${origin}/quests#hoggies/rare`))).toEqual({ page: "quests" });
+  });
+});

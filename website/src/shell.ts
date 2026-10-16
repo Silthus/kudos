@@ -187,6 +187,8 @@ const memberShortOfCoins: MemberProfile = { ...memberWithTheInventory, coins: 40
 
 const memberWithTheCrateStore: MemberProfile = { ...memberWithTheInventory, ...onTheUnlockPath({ ...bookFeature, ...opened }, { ...leaderboardFeature, ...opened }, { ...coinsFeature, ...opened }), coins: 120 };
 
+const memberWithTheBookSpread = { ...memberWithTheCrateStore, avatar: null, bookSpread: true } as MemberProfile;
+
 const memberWithCoinsBeforeTheStore: MemberProfile = { ...memberWithCoinsOpened, coins: 40 };
 
 const memberAcrossTheSheet: MemberProfile = {
@@ -296,6 +298,7 @@ export const shellFixtures = {
   memberWithOneEmojiForSale,
   memberShortOfCoins,
   memberWithTheCrateStore,
+  memberWithTheBookSpread,
   memberWithCoinsBeforeTheStore,
   memberWithNothingShipped,
   memberAtLevel1WithTheBookReady,
@@ -359,6 +362,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-one-emoji-for-sale": shellFixtures.memberWithOneEmojiForSale,
   "member-short-of-coins": shellFixtures.memberShortOfCoins,
   "member-with-the-crate-store": shellFixtures.memberWithTheCrateStore,
+  "member-with-the-book-spread": shellFixtures.memberWithTheBookSpread,
   error: shellFixtures.error,
 };
 
