@@ -11,7 +11,7 @@ import { hogOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "..
 import { PageTitle } from "../PageTitle";
 import { crateTargetAttributes, questTargetAttributes } from "../linkTarget";
 import { Coins, xpLineOf } from "../quests/QuestReward";
-import { sharedRewardSentenceOf } from "../quests/groupQuestCopy";
+import { missedTheReward, sharedRewardSentenceOf } from "../quests/groupQuestCopy";
 import { QuestTag } from "../quests/QuestTag";
 import { sameQuest, useQuestSwap, type QuestSwap } from "../quests/questSwap";
 import type { GroupQuestCard, JourneyStep, MemberProfile, QuestReward, QuestsAnswer, QuestSlot, ShellActions, WaitingCrate, WeekSwap } from "../shell";
@@ -299,7 +299,14 @@ function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate
     <article className="hud-panel relative flex flex-col gap-2 rounded-lg border bg-card p-4" {...questCrateHomeAttributes(entry.seen)}>
       <div className="flex flex-wrap items-center gap-x-2">
         <WeekOf week={entry.week} />
-        {entry.group !== null && <span className="hud-label">· {entry.group} quest</span>}
+        {entry.group !== null && (
+          <>
+            <span aria-hidden="true" className="hud-label">
+              ·
+            </span>
+            <span className="hud-label">{entry.group} quest</span>
+          </>
+        )}
       </div>
       <h3 className="text-sm font-medium">{entry.goal}</h3>
       <RewardRow reward={entry.reward} waiting={entry.waiting}>
@@ -336,9 +343,11 @@ function GroupQuest({ quest, firstCrate }: { quest: GroupQuestCard } & FirstCrat
               {goal}
             </h3>
             <QuestProgress {...progress} tookPart />
-            <RewardRow reward={quest.reward} waiting={quest.waiting}>
-              {claimed ? <Claimed /> : <ClaimOf facts={quest} firstCrate={firstCrate} />}
-            </RewardRow>
+            {!missedTheReward(quest) && (
+              <RewardRow reward={quest.reward} waiting={quest.waiting}>
+                {claimed ? <Claimed /> : <ClaimOf facts={quest} firstCrate={firstCrate} />}
+              </RewardRow>
+            )}
             <SharedReward quest={quest} />
           </div>
         </div>

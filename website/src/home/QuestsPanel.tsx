@@ -1,7 +1,7 @@
 import { IconPeople } from "@posthog/icons";
 import { AppLink } from "../AppLink";
 import { Coins, xpLineOf } from "../quests/QuestReward";
-import { sharedRewardSentenceOf } from "../quests/groupQuestCopy";
+import { missedTheReward, sharedRewardSentenceOf } from "../quests/groupQuestCopy";
 import { QuestTag } from "../quests/QuestTag";
 import { Claimed } from "../crates/RewardCrate";
 import { MaxLine } from "../Max";
@@ -64,18 +64,14 @@ function GroupRow({ quest }: { quest: GroupQuestCard }) {
           <IconPeople aria-hidden="true" className="mr-1 inline size-3.5 align-[-2px] text-muted-foreground" />
           {named}
         </span>
-        <CoinsOf reward={reward} />
+        {!missedTheReward(quest) && <CoinsOf reward={reward} />}
         {state === "finished" && crate !== null && <Claim />}
       </AppLink>
-      {state === "in-progress" && <Progress goal={named} {...progress} />}
-      {state === "opened" && (
-        <span className="self-start">
-          <Claimed />
-        </span>
-      )}
-      {you && (
-        <span className="self-start">
-          <QuestTag>You took part</QuestTag>
+      {state === "in-progress" && <Progress goal={named} {...progress} tookPart />}
+      {(you || state === "opened") && (
+        <span className="flex flex-wrap items-center gap-1.5 self-start">
+          {state === "opened" && <Claimed />}
+          {you && <QuestTag>You took part</QuestTag>}
         </span>
       )}
       {sentence !== undefined && <p className="text-xs text-muted-foreground">{sentence}</p>}
@@ -143,13 +139,13 @@ function Claim() {
   );
 }
 
-function Progress({ goal, done, target }: { goal: string } & QuestSlot["progress"]) {
+function Progress({ goal, done, target, tookPart = false }: { goal: string; tookPart?: boolean } & QuestSlot["progress"]) {
   return (
     <div className="flex items-center gap-2.5">
       <div role="progressbar" aria-label={goal} aria-valuenow={done} aria-valuemin={0} aria-valuemax={target} className="h-1.5 flex-1 overflow-hidden rounded-full border border-muted-foreground">
         <div className="h-full rounded-full bg-muted-foreground" style={{ width: `${Math.min(100, (done / target) * 100)}%` }} />
       </div>
-      <span aria-hidden="true" className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">{`${done}/${target}`}</span>
+      <span aria-hidden="true" className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">{tookPart ? `${done}/${target} took part` : `${done}/${target}`}</span>
     </div>
   );
 }

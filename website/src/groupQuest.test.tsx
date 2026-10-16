@@ -79,6 +79,7 @@ describe("WS344 P82: /quests shows the member's group quest beside the personal 
     showQuests(questsFixtures.weekWithTheGroupQuestFinishedWithoutYou);
     expect(within(groupQuest()).queryByRole("button", { name: "Claim" })).not.toBeInTheDocument();
     expect(groupQuest()).toHaveTextContent("Ants finished it. Take part this week to get the reward too.");
+    expect(groupQuest()).not.toHaveTextContent("15");
   });
 
   it("claimed: Claimed, and no Claim", () => {
@@ -146,6 +147,7 @@ describe("WS344: the home's Quests this week has a row for the group quest", () 
     const row = within(questsPanel()).getByRole("link", { name: /Ants quest:/ }).closest("li")!;
     expect(row).toHaveTextContent("You took part");
     expect(row).toHaveTextContent("Everyone in Ants who takes part gets the reward once 3 have.");
+    expect(row).toHaveTextContent("1/3 took part");
   });
 
   it("finished without the viewer: no Claim, and it says how to get the reward too", () => {
@@ -154,6 +156,7 @@ describe("WS344: the home's Quests this week has a row for the group quest", () 
     expect(row).not.toHaveTextContent("Claim");
     expect(row).not.toHaveTextContent("You took part");
     expect(row).toHaveTextContent("Ants finished it. Take part this week to get the reward too.");
+    expect(row).not.toHaveTextContent("15");
   });
 
   it("shows the group quest after the personal quests with its counts, linking to it on /quests", () => {
