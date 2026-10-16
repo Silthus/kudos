@@ -10,7 +10,9 @@ import { reconcileMember } from "../groups/reconcile";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { xpLevelsOnFor } from "../progression/xpLevels";
 import { questsApplyTo } from "../quests/flag";
+import { everyoneBoardOnFor } from "../leaderboard/flag";
 import { unlockPathShownTo } from "../unlocks/launch";
+import { readyFromTheStart, scheduled } from "../unlocks/schedule";
 import { websiteOriginFor } from "../website/link";
 import { welcomedAsValidator, type WelcomedAs } from "../welcome/welcomedAs";
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
@@ -124,19 +126,26 @@ function separatorBefore(index: number, count: number) {
 
 async function progressLinesOf(ctx: QueryCtx, workspace: string, member: MemberId | undefined): Promise<Line[]> {
   if (member === undefined || !(await xpLevelsOnFor(ctx, member))) return [];
-  const unlocks = await unlockedFeaturesOf(ctx, workspace, member);
-  const unlocking = unlocks.length === 0 ? "" : ` As you level up you unlock ${joinedWords(unlocks)}.`;
-  return [[{ text: `Every kudos you give or receive earns XP.${unlocking}` }]];
+  const features = await welcomedFeaturesOf(ctx, workspace, member);
+  const fromTheStart = features.filter(readyFromTheStart).map(({ name }) => ` ${capitalized(name)} is yours from the start.`);
+  const later = features.filter((entry) => !readyFromTheStart(entry)).map(({ name, level }) => `${name} at level ${level}`);
+  const unlocking = later.length === 0 ? "" : ` As you level up you unlock ${joinedWords(later)}.`;
+  return [[{ text: `Every kudos you give or receive earns XP.${fromTheStart.join("")}${unlocking}` }]];
 }
 
-async function unlockedFeaturesOf(ctx: QueryCtx, workspace: string, member: MemberId): Promise<string[]> {
+async function welcomedFeaturesOf(ctx: QueryCtx, workspace: string, member: MemberId) {
   if (!(await unlockPathShownTo(ctx, member))) return [];
   const features = [
-    { name: "weekly quests", applies: await questsApplyTo(ctx, member) },
-    { name: "a skill tree", applies: await skillTreeAppliesIn(ctx, workspace) },
-    { name: "the Book of achievements", applies: await bookAppliesIn(ctx, workspace) },
+    { name: "the Book of achievements", level: scheduled("book").level, applies: await bookAppliesIn(ctx, workspace) },
+    { name: "the leaderboard", level: scheduled("leaderboard").level, applies: await everyoneBoardOnFor(ctx, member) },
+    { name: "weekly quests", level: scheduled("quests").level, applies: await questsApplyTo(ctx, member) },
+    { name: "a skill tree", level: scheduled("skillTree").level, applies: await skillTreeAppliesIn(ctx, workspace) },
   ];
-  return features.filter(({ applies }) => applies).map(({ name }) => name);
+  return features.filter(({ applies }) => applies);
+}
+
+function capitalized(words: string) {
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 function stepOf({ welcomed }: Welcome, kudosEmoji: string): Line {

@@ -8,7 +8,7 @@ import { xpLevelsOnFor, xpLevelsShownIn, xpLevelsShownTo } from "../progression/
 import { chatUserOf, lookup, type MemberId } from "../workspace/directory";
 import { previewMomentOf } from "./previewMoments";
 import { shippedIn, shippedTo } from "./schedule";
-import { keepOpen } from "./unlocks";
+import { keepOpen, makeReadyFromTheStart } from "./unlocks";
 
 export const unlocksFlag = { key: "unlocks", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
 
@@ -33,7 +33,9 @@ export const exposeUnlocks = internalMutation({
 export async function unlocksLiveFor(ctx: MutationCtx, member: MemberId): Promise<UnlocksFor> {
   const { workspace } = await chatUserOf(ctx, member);
   await unlocksLiveIn(ctx, workspace);
-  return unlocksOpenedFor(ctx, workspace, member);
+  const live = await unlocksOpenedFor(ctx, workspace, member);
+  if (live !== "off") await makeReadyFromTheStart(ctx, workspace, member);
+  return live;
 }
 
 export async function unlocksOpenedFor(ctx: MutationCtx, workspace: string, member: MemberId): Promise<UnlocksFor> {
