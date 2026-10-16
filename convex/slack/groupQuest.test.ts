@@ -153,7 +153,7 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     expect(accessoryBeside("U_ANN", "Ants quest:")).toMatchObject({ url: `${siteUrl}/quests?crate=group`, action_id: expect.stringMatching(/^website-link:group:.+:2026-10-19$/), accessibility_label: "Open on HedgeHug's Quests page" });
   });
 
-  test("an earlier week's group crate waiting to open links to the Quests page", async () => {
+  test("an earlier week's group crate waiting to open links to that week's waiting crate on the Quests page", async () => {
     const t = await antsOpenedQuests(...websiteOpen);
     await sweepAt(t, lastTuesday);
     await sweepAt(t, mondaySweep);
@@ -163,8 +163,9 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     vi.setSystemTime(tuesday + 7 * 24 * 60 * 60 * 1000);
     await openHome(t, "U_ANN");
 
-    expect(publishedHome(slack, "U_ANN")).toContain(`${earlierGroupCrateLine} [link: Open ${siteUrl}/quests]`);
-    expect(accessoryBeside("U_ANN", "*Week of Oct 19:* ✅ Ants quest:")).toMatchObject({ url: `${siteUrl}/quests`, action_id: expect.stringMatching(/^website-link:group:.+:2026-10-19$/), accessibility_label: "Open on HedgeHug's Quests page" });
+    const ownWeek = `${siteUrl}/quests?crate=group%3A2026-10-19`;
+    expect(publishedHome(slack, "U_ANN")).toContain(`${earlierGroupCrateLine} [link: Open ${ownWeek}]`);
+    expect(accessoryBeside("U_ANN", "*Week of Oct 19:* ✅ Ants quest:")).toMatchObject({ url: ownWeek, action_id: expect.stringMatching(/^website-link:group:.+:2026-10-19$/), accessibility_label: "Open on HedgeHug's Quests page" });
   });
 });
 
