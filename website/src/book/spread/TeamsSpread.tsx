@@ -97,10 +97,6 @@ function SlotFace({ slot, size }: { slot: TeamSlot; size: number }) {
   return <StickerFace sticker={{ face: slot.picture.face, former: slot.picture.former }} className={faceSizes[size] ?? "size-9"} />;
 }
 
-function stickerLineOf(sticker: { name: string; firstAt: number; former: boolean }, timeZone: string) {
-  return `${sticker.name} · since ${dateWords(sticker.firstAt, timeZone)}${sticker.former ? " · former teammate" : ""}`;
-}
-
 function Faces({ slots }: { slots: TeamSlot[] }) {
   return (
     <span aria-hidden="true" className="flex flex-wrap gap-1">
@@ -124,11 +120,13 @@ function Stickers({ stickers, chatUrl, timeZone }: { stickers: TeamPages["sticke
       {stickers.length === 0 ? (
         <NoStickersYet chatUrl={chatUrl} />
       ) : (
-        <ul aria-labelledby={headingId} className="flex flex-wrap items-center gap-1">
+        <ul aria-labelledby={headingId} className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-3">
           {stickers.map((sticker) => (
-            <li key={sticker.key} data-sticker={sticker.key} title={stickerLineOf(sticker, timeZone)} className="bk-face inline-flex">
-              <StickerFace sticker={sticker} className="size-8" />
-              <span className="sr-only">{stickerLineOf(sticker, timeZone)}</span>
+            <li key={sticker.key} data-sticker={sticker.key} data-former={sticker.former ? "" : undefined} className="bk-face flex flex-col items-center gap-1 rounded-lg border bg-card px-1 pb-1.5 pt-2 text-center">
+              <StickerFace sticker={sticker} className="size-10" />
+              <span className={`w-full truncate text-xs font-medium ${sticker.former ? "text-muted-foreground" : ""}`}>{sticker.name}</span>
+              <span className="text-[11px] leading-tight tabular-nums text-muted-foreground">{dateWords(sticker.firstAt, timeZone)}</span>
+              {sticker.former && <span className="text-[11px] leading-tight text-muted-foreground">Former teammate</span>}
             </li>
           ))}
         </ul>

@@ -227,7 +227,10 @@ describe("#585: with book-spread on, /book and /book/collection render one open 
     expect(left).toHaveTextContent("12 stickers of teammates");
     const stickers = within(within(left).getByRole("list", { name: "Stickers" })).getAllByRole("listitem");
     expect(stickers.map((item) => item.getAttribute("data-sticker"))).toEqual(collectionFixtures.withTheStickerBook.stickers.map(({ key }) => key));
-    expect(stickers.find((item) => item.getAttribute("data-sticker") === "k:gone")).toHaveTextContent("A teammate · since 28 Aug 2026 · former teammate");
+    const gone = stickers.find((item) => item.getAttribute("data-sticker") === "k:gone")!;
+    expect(within(gone).getByText("A teammate")).toBeVisible();
+    expect(within(gone).getByText("28 Aug 2026")).toBeVisible();
+    expect(within(gone).getByText("Former teammate")).toBeVisible();
     const started = within(left).getByRole("link", { name: /^AI Observability\s?\d/ });
     expect(started.querySelector("[data-crest-art]")).toHaveAttribute("data-crest-art", "missing");
     expect(within(left).getByRole("link", { name: new RegExp(`^${peopleOps.name}\\s?\\d`) }).querySelector("[data-crest-art]")).toHaveAttribute("data-crest-art", "collected");
@@ -303,8 +306,28 @@ describe("#585: with book-spread on, /book and /book/collection render one open 
   it("sends a signed-out visitor back to the spread the hash names", async () => {
     visit("/book#hoggies/common");
     const { actions, user } = renderApp(shellFixtures.signedOut);
+    expect(screen.getByText(/You'll land on/)).toHaveTextContent("You'll land on /book#hoggies/common afterwards.");
     await user.click(screen.getByRole("button", { name: "Sign in with Slack" }));
     expect(actions.signIn).toHaveBeenCalledWith("/book#hoggies/common");
+  });
+
+  it("leaves /book/earned alone: it renders without waiting for the collection", () => {
+    visit("/book/earned");
+    renderApp(reader, undefined, {}, undefined, fixedBook(theBook), undefined, undefined, undefined, undefined, undefined, undefined, () => undefined);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/earned/);
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+  });
+
+  it("shows a broken or denied collection as the page's answer instead of today's Book, and today's Book when the collection is not found", () => {
+    visit("/book");
+    showBook(reader, { kind: "broken" });
+    expect(main().querySelector("[data-spread]")).toBeNull();
+    expect(within(main()).queryByRole("link", { name: "Overview" })).toBeNull();
+    cleanup();
+    visit("/book");
+    showBook(reader, collectionFixtures.notFound);
+    expect(main().querySelector("[data-spread]")).toBeNull();
+    expect(within(main()).getByRole("navigation", { name: "Book pages" })).toHaveTextContent("Overview");
   });
 
   it("lands /book?crate=bought:2 on its Open once a late collection answers under the spread", async () => {

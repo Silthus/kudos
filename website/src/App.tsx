@@ -66,7 +66,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   const quests = useQuests(onQuests || questsOpen);
   const onBook = member !== undefined && route.page === "book";
   const book = useBook(onBook);
-  const onCollection = onBook && (route.bookPage === "collection" || showsTheBookSpread(member));
+  const onCollection = onBook && (route.bookPage === "collection" || (route.bookPage !== "earned" && showsTheBookSpread(member)));
   const collection = useCollection(onBook || (onHome && isBookOpenFor(member)));
   const onSkills = member !== undefined && route.page === "skills";
   const skillTree = useSkillTree(onSkills);
@@ -299,8 +299,7 @@ type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined;
 
 function BookAnswerPage({ member, book, collection, page, spread, onBuyCrate, onSetAvatar, ...actions }: BookAnswerPageProps) {
   const asASpread = page !== "earned" && showsTheBookSpread(member);
-  if (asASpread && collection === undefined) return <LoadingPage shape="column" />;
-  const collectionWaits = page === "collection" ? bookFeatureWaitsOf(collection, member, actions) : null;
+  const collectionWaits = page === "collection" || (asASpread && collection?.kind !== "not-found") ? bookFeatureWaitsOf(collection, member, actions) : null;
   if (collectionWaits !== null) return collectionWaits;
   const bookWaits = bookFeatureWaitsOf(book, member, actions);
   if (bookWaits !== null) return bookWaits;
