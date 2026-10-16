@@ -1,6 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
-import { kudosEmojiNameOf, starterItem } from "../store/catalogue";
-import { loadoutOf, ownedBy } from "../store/inventory";
+import { kudosEmojiNameOf, starterEmoji } from "../store/catalogue";
+import { loadoutOf } from "../store/inventory";
 import { slotsRetiredFor } from "../store/visibility";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
@@ -27,7 +27,7 @@ export function journeyGoalOf(step: JourneyStep): string {
 }
 
 async function yourEmojiHintOf(ctx: QueryCtx, member: MemberId): Promise<string> {
-  if (await slotsRetiredFor(ctx, member)) return yourEmojiUseOf(ctx, member, await firstOwnedEmojiOf(ctx, member), "is one of your kudos emoji");
+  if (await slotsRetiredFor(ctx, member)) return yourEmojiUseOf(ctx, member, starterEmoji, "is one of your kudos emoji");
   const slotted = await firstSlottedEmojiOf(ctx, member);
   if (slotted === null) return "Put one of your kudos emoji in a slot in the Inventory tab first.";
   return yourEmojiUseOf(ctx, member, slotted, "is in your slots");
@@ -36,11 +36,6 @@ async function yourEmojiHintOf(ctx: QueryCtx, member: MemberId): Promise<string>
 async function yourEmojiUseOf(ctx: QueryCtx, member: MemberId, emoji: string, whereItIs: string): Promise<string> {
   const { workspace } = await chatUserOf(ctx, member);
   return `:${emoji}: ${whereItIs}: use it in a kudos like :${(await settingsOf(ctx, workspace)).kudosEmoji}:. ${saysWhyCounts}`;
-}
-
-async function firstOwnedEmojiOf(ctx: QueryCtx, member: MemberId): Promise<string> {
-  const [first] = (await ownedBy(ctx, member)).flatMap(({ item }) => kudosEmojiNameOf(item) ?? []);
-  return first ?? kudosEmojiNameOf(starterItem)!;
 }
 
 async function firstSlottedEmojiOf(ctx: QueryCtx, member: MemberId): Promise<string | null> {

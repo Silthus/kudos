@@ -303,7 +303,7 @@ function ladderLines({ ladder, name, count, tiers, next }: LadderFacts, timeZone
   return [{ kind: "text", text: `${bold(name)} · ${bold(count)} ${countsOf(ladder, count)}` }, ...earnedLines, ...nextLine];
 }
 
-export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[], rewardsOf: (ref: TierRef) => TierRewardsTold, slotsRetired = false): string[] {
+export function tiersEarnedLines(told: TierRef[], everyTierEarned: TierRef[], rewardsOf: (ref: TierRef) => TierRewardsTold, slotsRetired: boolean): string[] {
   const itemsGoTo = slotsRetired ? "your kudos emoji" : "your kudos emoji slots";
   const earnedLines = told.map((ref) => `🏅 You earned ${tierOf(ref).name} (${ladderOf(ref.ladder).name}, ${ref.tier}).${tierRewardsPartOf(rewardsOf(ref), itemsGoTo)}`);
   const ladders = [...new Set(told.map(({ ladder }) => ladder))];

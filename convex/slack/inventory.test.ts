@@ -142,6 +142,17 @@ describe("RS6: with slots retired, Coins and inventory's copy names no slot", { 
     expect(textsOfDmsTo("U_ALICE").at(-1)).toBe("Coins and inventory are open. You already have 8 🪙, and 🦔 is one of your kudos emoji: use it in a kudos like :taco:.");
   });
 
+  test("App Home's ready Coins and inventory opens your wallet, the store and your kudos emoji", async () => {
+    const t = await workspaceDeciding(...slotsRetiredForAlice);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
+    await xpOf(t, "U_ALICE", xpBelowLevelSix);
+    await giveKudos(t, "U_ALICE", ["U_CAROL"], saysWhy);
+
+    await openHome(t, "U_ALICE");
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: *Coins and inventory* is ready. It opens your wallet, the store and your kudos emoji. [button: Open]");
+  });
+
   test("with nothing earned yet, the opening DM leaves the balance out", async () => {
     const t = await workspaceDeciding(...slotsRetiredForAlice);
 

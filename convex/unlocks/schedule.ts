@@ -39,7 +39,11 @@ export function scheduled(feature: Feature): ScheduledFeature {
   return schedule.features.find((entry) => entry.feature === feature)!;
 }
 
-export function namedFor(entry: ScheduledFeature, storeShown: boolean, slotsRetired = false): ScheduledFeature {
+export type StoreNaming = { storeShown: boolean; slotsRetired: boolean };
+
+export const withoutTheStore: StoreNaming = { storeShown: false, slotsRetired: false };
+
+export function namedFor(entry: ScheduledFeature, { storeShown, slotsRetired }: StoreNaming): ScheduledFeature {
   const naming = storeNamingsOf(storeShown, slotsRetired)[entry.feature];
   return naming === undefined ? entry : { ...entry, ...naming };
 }

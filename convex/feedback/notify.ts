@@ -132,7 +132,8 @@ export const purchaseReplyStillWanted = internalQuery({
     const { workspace } = await chatUserOf(ctx, member);
     if (!(await skillTreeAppliesIn(ctx, workspace))) return null;
     if (isCoinPerk(perkOf(outcome.perk)) && !(await coinsApplyTo(ctx, member))) return null;
-    return purchaseReplyOf(outcome, namedFor(scheduled("coins"), await storeShownTo(ctx, member)).name);
+    const storeShown = await storeShownTo(ctx, member);
+    return purchaseReplyOf(outcome, namedFor(scheduled("coins"), { storeShown, slotsRetired: storeShown && (await slotsRetiredFor(ctx, member)) }).name);
   },
 });
 
@@ -145,7 +146,7 @@ function renderNotification(notification: Notification, { website, openTree, eve
   if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp, waits(notification.quest), website, thisWeek)];
   if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned, (ref) => recordedRewardsOf(ref, tierRewardsShown), slotsRetired);
   if (notification.kind === "coins-opened") return [inventoryWith === null ? coinsOpenedLineOf(notification.balance) : inventoryOpenedLineOf(notification.balance, inventoryWith, slotsRetired)];
-  const crates = notification.ready.map((feature) => readyCrateOf(namedFor(scheduled(feature), inventoryWith !== null, slotsRetired), website));
+  const crates = notification.ready.map((feature) => readyCrateOf(namedFor(scheduled(feature), { storeShown: inventoryWith !== null, slotsRetired }), website));
   if (notification.kind !== "level-reached") return crates;
   return [...levelReachedLines(notification, openTree), ...crates, ...perkOffersOf(openTree, website)];
 }
