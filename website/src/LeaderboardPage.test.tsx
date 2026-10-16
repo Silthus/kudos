@@ -177,6 +177,10 @@ describe("WS52: the leaderboard page waits for its unlock", () => {
   });
 });
 
+function choose(board: string) {
+  fireEvent.click(screen.getByRole("tab", { name: board }));
+}
+
 function showBoard(answer: Leaderboard, path = "/leaderboard") {
   visit(path);
   return renderApp(withTheBoard, fixedLeaderboard(answer));
@@ -784,6 +788,19 @@ describe("WS45: only you see these", () => {
     showBoard(answer, path);
     expect(onlyYou()).toHaveTextContent(says);
     expect(onlyYou()).not.toHaveTextContent(/▼|fewer|lost|dropped/);
+  });
+
+  it("GB16 WS344: puts the peer line right after the improvement line", () => {
+    showBoard(leaderboardFixtures.withAPeerLine, "/leaderboard");
+    choose("Everyone");
+    const peer = within(onlyYou()!).getByText("You improved more than 60% of Team Ants.");
+    expect(peer.previousElementSibling).toHaveTextContent("▲ 3 more kudos than this time last week · ▲ 2 places");
+  });
+
+  it("GB16 WS344: says everyone else rather than more than 100%", () => {
+    showBoard(leaderboardFixtures.aheadOfTheWholeGroup, "/leaderboard");
+    choose("Everyone");
+    expect(onlyYou()).toHaveTextContent("You improved more than everyone else in Team Ants.");
   });
 
   it("is not shown without a line", () => {
