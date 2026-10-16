@@ -210,29 +210,47 @@ describe("#555: the Collection's sections and the jump list at the top", () => {
     expect(jumpList()!.compareDocumentPosition(section("Your collection")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("lands a jump below the HUD whatever its height: the sections' scroll margin follows the measured sticky header", () => {
-    const observing: { callback: ResizeObserverCallback; observed: Element[] }[] = [];
+  it("lands a jump below the HUD whatever its height: the sections' scroll margin follows the measured sticky header, until the shell unmounts", () => {
+    const observers: FakeResizeObserver[] = [];
     vi.stubGlobal(
       "ResizeObserver",
-      class {
+      class FakeResizeObserver {
         observed: Element[] = [];
+        disconnected = false;
         constructor(public callback: ResizeObserverCallback) {
-          observing.push(this);
+          observers.push(this);
         }
         observe(element: Element) {
           this.observed.push(element);
         }
-        disconnect() {}
+        disconnect() {
+          this.disconnected = true;
+        }
       },
     );
-    showCollection(theBook);
+    const { unmount } = showCollection(theBook);
     const header = document.querySelector<HTMLElement>("header.sticky")!;
-    expect(observing.flatMap(({ observed }) => observed)).toContain(header);
+    const live = observers.filter((observer) => !observer.disconnected);
+    expect(live).toHaveLength(1);
+    expect(live[0]!.observed).toEqual([header]);
     Object.defineProperty(header, "offsetHeight", { configurable: true, value: 140 });
-    for (const { callback } of observing) callback([], {} as ResizeObserver);
+    live[0]!.callback([], live[0] as unknown as ResizeObserver);
     expect(document.documentElement.style.getPropertyValue("--hud-height")).toBe("140px");
     expect(section("Stickers").style.scrollMarginTop).toBe("calc(var(--hud-height, 96px) + 1rem)");
+    unmount();
+    expect(live[0]!.disconnected).toBe(true);
+    expect(document.documentElement.style.getPropertyValue("--hud-height")).toBe("");
   });
+
+  it("publishes and clears the HUD's height even where ResizeObserver is missing", () => {
+    vi.stubGlobal("ResizeObserver", undefined);
+    const { unmount } = showCollection(theBook);
+    expect(document.documentElement.style.getPropertyValue("--hud-height")).toBe("0px");
+    unmount();
+    expect(document.documentElement.style.getPropertyValue("--hud-height")).toBe("");
+  });
+
+  type FakeResizeObserver = { callback: ResizeObserverCallback; observed: Element[]; disconnected: boolean };
 
   it("lists only the sections the answer carries, and needs none while there is one section", () => {
     showCollection(collectionFixtures.withStickersOnly);

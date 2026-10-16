@@ -45,6 +45,8 @@ A fixture build (`VITE_SHELL_FIXTURE=member-with-the-book-opened`, made-up teamm
 
 `review-final.md`: a second GPT-6.1 Sol read of the fixes with the round-1 findings as its checklist: 1, 3, 4 and 5 resolved, 2 partly, no new defects. Finding 2's remaining case is fixed as above.
 
+`review-final-2.md`: a third read, of the measured header only: two minors, both taken. The hook's cleanup is unconditional (it removes `--hud-height` and disconnects the observer when there is one), and the test tracks disconnection, drives only the live observer, unmounts, and reads the variable back empty; a second test covers a browser without `ResizeObserver`.
+
 ## Calls
 
 - Hoggies before Team crests, mirroring Stickers before Group albums: the pieces, then the sets they complete.

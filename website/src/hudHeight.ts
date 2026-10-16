@@ -11,10 +11,18 @@ export function useMeasuredHudHeight() {
     if (element === null) return;
     const publish = () => document.documentElement.style.setProperty(hudHeightVariable, `${element.offsetHeight}px`);
     publish();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(publish);
-    observer.observe(element);
-    return () => observer.disconnect();
+    const observer = observing(element, publish);
+    return () => {
+      observer?.disconnect();
+      document.documentElement.style.removeProperty(hudHeightVariable);
+    };
   }, []);
   return hud;
+}
+
+function observing(element: HTMLElement, onResize: () => void) {
+  if (typeof ResizeObserver === "undefined") return null;
+  const observer = new ResizeObserver(onResize);
+  observer.observe(element);
+  return observer;
 }
