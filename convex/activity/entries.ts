@@ -50,9 +50,9 @@ export type LevelUp = { kind: "levelUp"; at: number; level: number };
 
 export type Found = { kind: "found"; at: number; key: string; drop: Drop };
 
-export type HugReceived = { kind: "hugReceived"; key: string; at: number; givers: Person[]; emoji: string; hugs: number; xp: number | null; on: string; permalink: string | null; kudos: Message | null };
+export type HugReceived = { kind: "hugReceived"; key: string; at: number; givers: Person[]; emoji: string; emojiImage?: string; hugs: number; xp: number | null; on: string; permalink: string | null; kudos: Message | null };
 
-export type HugGiven = { kind: "hugGiven"; key: string; at: number; people: Person[]; emoji: string; xp: number | null; on: string; permalink: string | null; kudos: Message | null };
+export type HugGiven = { kind: "hugGiven"; key: string; at: number; people: Person[]; emoji: string; emojiImage?: string; xp: number | null; on: string; permalink: string | null; kudos: Message | null };
 
 export type ActivityEntry = KudosReceived | KudosGiven | LevelUp | Found | HugGiven | HugReceived;
 
