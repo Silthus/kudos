@@ -1,17 +1,20 @@
+import type { AvatarShown } from "../hoggies/avatar";
+import { avatarText } from "./avatar";
 import type { Medal, ProfileCard } from "../profileCard/profileCard";
 import { asWritten } from "./groupCopy";
 import { medals } from "./medals";
 import { slashCommand } from "./naming";
 import type { Line } from "./segments";
 
-export type ShownCard = ProfileCard & { group: string | null };
+export type ShownCard = ProfileCard & { group: string | null } & AvatarShown;
 
-export function renderProfileCard(user: string, { group, level, medals: shown }: ShownCard): Line[] {
+export function renderProfileCard(user: string, { avatar, group, level, medals: shown }: ShownCard): Line[] {
   const name: Line = [{ text: "*" }, { mention: { kind: "person", user } }, { text: "*" }];
+  const avatarLine: Line[] = avatar ? [[{ text: avatarText(avatar) }]] : [];
   const groupLine: Line[] = group === null ? [] : [[{ text: asWritten({ name: group }) }]];
   const levelLine: Line[] = level === null ? [] : [[{ text: `Level ${level}` }]];
   const medalLine: Line[] = shown.length === 0 ? [] : [[{ text: shown.map(medalText).join(" · ") }]];
-  return [name, ...groupLine, ...levelLine, ...medalLine];
+  return [name, ...avatarLine, ...groupLine, ...levelLine, ...medalLine];
 }
 
 export function renderNotAMember(user: string): Line[] {

@@ -14,8 +14,8 @@ export function groupOptionsOf(groups: GroupRef[]) {
   return groups.map(({ group, name }) => ({ text: plainText(shortened(name, optionTextLimit)), value: group }));
 }
 
-export function optionListsOf<Option>(options: Option[]) {
+export function optionListsOf<Option>(options: Option[], listed = "Groups") {
   if (options.length <= optionsPerList) return { options };
   const lists = Array.from({ length: Math.ceil(options.length / optionsPerList) }, (_, index) => options.slice(index * optionsPerList, (index + 1) * optionsPerList));
-  return { option_groups: lists.map((list, index) => ({ label: plainText(`Groups ${index * optionsPerList + 1}–${index * optionsPerList + list.length}`), options: list })) };
+  return { option_groups: lists.map((list, index) => ({ label: plainText(`${listed} ${index * optionsPerList + 1}–${index * optionsPerList + list.length}`), options: list })) };
 }
