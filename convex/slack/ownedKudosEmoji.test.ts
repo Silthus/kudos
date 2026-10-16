@@ -5,7 +5,7 @@ import { flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, postHogDe
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonInHome, publishedHome, publishedHomeBlocks, staleButtonOf, staleMenuOptionOf } from "../../testing/slackInteractions";
-import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, messageChangedEvent, messageEvent, section, text } from "../../testing/slackMessages";
 import type { KudosGivenEvent } from "../bus/events";
 import { recordReward } from "../progression/progression";
 import { grantItem } from "../store/inventory";
@@ -161,6 +161,56 @@ describe("ST32 ST36: the store sells only the picked custom emoji, and owners ke
   });
 });
 
+describe("ST10: edits and rechecks parse with the kudos emoji owned at the time", { timeout: 60_000 }, () => {
+  test("a message the engine stored doesn't become a kudos when it is edited in prose only after its emoji was bought", async () => {
+    const t = await aliceWhoCanBuyShipit();
+    const message = await postMessage(t, saysWhy, ["shipit"]);
+    await editMessage(t, message, 1, `${saysWhy}, really`, ["shipit"]);
+    const before = (await kudosGivenEvents(t)).length;
+
+    await send(t, blockActions("U_ALICE", buyButtonBeside(":shipit: · 100 🪙")));
+    await editMessage(t, message, 2, `${saysWhy}, really and truly`, ["shipit"]);
+
+    expect(await kudosGivenEvents(t)).toHaveLength(before);
+  });
+
+  test("an edit that adds an owned emoji to a message the engine stored gives with what is owned at the edit", async () => {
+    const t = await aliceWhoCanBuyShipit();
+    const message = await postMessage(t, saysWhy, []);
+    await editMessage(t, message, 1, `${saysWhy}, really`, []);
+    await send(t, blockActions("U_ALICE", buyButtonBeside(":shipit: · 100 🪙")));
+
+    await editMessage(t, message, 2, `${saysWhy}, really`, ["shipit"]);
+
+    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ kudosEmoji: "shipit", ownedEmoji: ["shipit"], awards: [{ kudos: 1 }] });
+  });
+
+  test("an edit of a message the engine never stored is its first revision, so after a Buy a prose-only edit gives (accepted)", async () => {
+    const t = await aliceWhoCanBuyShipit();
+    const message = await postMessage(t, saysWhy, ["shipit"]);
+    const before = (await kudosGivenEvents(t)).length;
+    await send(t, blockActions("U_ALICE", buyButtonBeside(":shipit: · 100 🪙")));
+
+    await editMessage(t, message, 1, `${saysWhy}, really`, ["shipit"]);
+
+    expect((await kudosGivenEvents(t)).slice(before)).toMatchObject([{ kudosEmoji: "shipit", ownedEmoji: ["shipit"], awards: [{ kudos: 1 }] }]);
+  });
+
+  test("an attempt waiting for a directory recheck costs what its giver owns when it is evaluated", async () => {
+    const t = await aliceWhoCanBuyShipit();
+    slack.joiningAt("U_DAVE", new Date(Date.now() + 5 * 60_000));
+    const before = (await kudosGivenEvents(t)).length;
+
+    await t.fetch("/slack/events", await signedRequest(messageEvent([section(mention("U_DAVE"), text(` ${saysWhy} `), emoji("taco"), emoji("shipit"))], { user: "U_ALICE", ts: nextTs() })));
+    await t.finishInProgressScheduledFunctions();
+    await t.fetch("/slack/interactivity", await signedRequest(blockActions("U_ALICE", buyButtonBeside(":shipit: · 100 🪙")), form));
+    await t.finishInProgressScheduledFunctions();
+    await settleInTimeOrder(t);
+
+    expect((await kudosGivenEvents(t)).slice(before)).toMatchObject([{ kudosEmoji: "taco", ownedEmoji: ["shipit"], awards: [{ kudos: 2 }] }]);
+  });
+});
+
 describe("a click on a Put in slot or Take off that an old App Home still shows is ignored", { timeout: 30_000 }, () => {
   test("it answers Slack, writes nothing and calls Slack for nothing", async () => {
     const t = await aliceAndCarolWhoOpenedCoins(storeShown, { owning: [rocket] });
@@ -188,6 +238,36 @@ async function aliceAndCarolWhoOpenedCoins(definitions: FlagDefinition[], { owni
   });
   vi.setSystemTime(tuesday + dayMs);
   return t;
+}
+
+async function aliceWhoCanBuyShipit() {
+  const t = await aliceAndCarolWhoOpenedCoins([...storeShown, onForEmails("custom-kudos-emoji", alicesEmail)]);
+  await t.run((ctx) => ctx.db.insert("customKudosEmoji", { workspace: "T1", name: "shipit", url: shipitArt, pickedAt: tuesday }));
+  await earns(t, "U_ALICE", 200);
+  await openInventory(t, "U_ALICE");
+  return t;
+}
+
+async function postMessage(t: Backend, words: string, emojiNames: string[]) {
+  const ts = nextTs();
+  await t.fetch("/slack/events", await signedRequest(messageEvent(blocksToBob(words, emojiNames), { user: "U_ALICE", ts })));
+  await settleInTimeOrder(t);
+  return ts;
+}
+
+async function editMessage(t: Backend, ts: string, edit: number, words: string, emojiNames: string[]) {
+  const editedTs = `${Math.floor(Date.now() / 1000) + 60 * edit}.000200`;
+  await t.fetch("/slack/events", await signedRequest(messageChangedEvent(blocksToBob(words, emojiNames), { user: "U_ALICE", ts, editedTs })));
+  await settleInTimeOrder(t);
+}
+
+function blocksToBob(words: string, emojiNames: string[]) {
+  return [section(mention("U_BOB"), text(` ${words} `), ...emojiNames.map((name) => emoji(name)))];
+}
+
+function nextTs() {
+  sentMessages += 1;
+  return `${Math.floor(Date.now() / 1000) + sentMessages}.000100`;
 }
 
 async function coinsOpenedBy(t: Backend, user: string) {

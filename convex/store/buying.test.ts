@@ -32,7 +32,7 @@ afterEach(() => {
 });
 
 describe("ST13 ST27: buyItem through D17, as the website calls it", () => {
-  test("with 100 🪙, it spends them, adds the item to the collection with source store, ", async () => {
+  test("with 100 🪙, it spends them, adds the item to the collection with source store", async () => {
     const { t, member } = await memberWhoOpenedCoins(storeOn, { coins: 100 });
 
     expect(await buyItem(t, member, shipit, "website:juno:1")).toEqual({ kind: "bought", item: shipit });
