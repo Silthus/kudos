@@ -31,7 +31,7 @@ import { slots as slotNames, type ItemRefusal } from "../store/rows";
 import { scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import type { UnlocksHome } from "../unlocks/unlocks";
 import type { FrontDoorLinks } from "../website/link";
-import { boughtCratePageOf, crateOfferPageOf, earlierWeekCratePageOf, questCratePageOf, readyCratePageOf, urlOf, weeklyCratePageOf, type Page } from "../website/routes";
+import { boughtCratePageOf, crateOfferPageOf, earlierWeekCratePageOf, questCratePageOf, readyCratePageOf, urlOf, weeklyCratePageOf, type Page, type SettingsSection } from "../website/routes";
 import { coinsPartOf, inCoins } from "./coins";
 import type { CrateStoreShown, HoggiesShown, HomeTab, JourneyStepShown, ShownHome, ShownTab, ToldProgression } from "./homes";
 import { countsFor, pickQuestion } from "./groupCopy";
@@ -82,6 +82,16 @@ const earlierCratesShown = 5;
 
 const pageNames: Record<Page["page"], string> = { home: "home", leaderboard: "Leaderboard", quests: "Quests", skillTree: "Skill tree", book: "Book", bookEarned: "Book", bookCollection: "Collection", settings: "Settings" };
 
+const sectionLinks: Record<SettingsSection, { label: string; spoken: string }> = {
+  visibility: { label: "Leaderboards", spoken: "Change whether you show on the leaderboards" },
+  messages: { label: "Messages", spoken: "Change what I send you" },
+  group: { label: "Your group", spoken: "Change the group you count for" },
+};
+
+type SectionLinks = (section: SettingsSection) => HomeLine[];
+
+const noSectionLinks: SectionLinks = () => [];
+
 const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, groupQuest: null, earlierCrates: null, earlierGroupCrates: null, journey: null, hoggies: null, boughtCrates: null };
 
 export function renderHome(facts: HomeFacts, home: ShownHome | null, frontDoor: FrontDoorLinks | null): HomeView {
@@ -93,7 +103,7 @@ export function renderHome(facts: HomeFacts, home: ShownHome | null, frontDoor: 
 
 function memberViewOf(facts: MemberHome, home: ShownHome | null): HomeView {
   if (home === null) return profileOf(facts, noProfileFacts);
-  return { tabBar: tabBar(home.tabs, home.shown.tab), ...tabOf(facts, home.shown) };
+  return { tabBar: tabBar(home.tabs, home.shown.tab), ...tabOf(facts, home.shown, noSectionLinks) };
 }
 
 function frontDoorOf(facts: MemberHome, home: ShownHome | null, links: FrontDoorLinks): HomeView {
@@ -103,14 +113,23 @@ function frontDoorOf(facts: MemberHome, home: ShownHome | null, links: FrontDoor
   return { tabBar: tabBar(home.tabs, shown.tab), ...view };
 }
 
-function frontDoorTabOf(facts: MemberHome, shown: ShownTab, { origin, settings }: FrontDoorLinks): HomeView {
-  const view = tabOf(facts, shown);
-  return shown.tab === "settings" && settings ? { ...view, groups: [[settingsOnTheWeb(origin)], ...view.groups] } : view;
+function frontDoorTabOf(facts: MemberHome, shown: ShownTab, links: FrontDoorLinks): HomeView {
+  const view = tabOf(facts, shown, sectionLinksOf(links));
+  return shown.tab === "inventory" ? { ...view, groups: [[inventoryOnTheWeb(links.origin)], ...view.groups] } : view;
 }
 
-function settingsOnTheWeb(website: string): HomeLine {
-  const action = linkOnTheWeb({ label: "Settings", spoken: "Change your settings", id: "settings" }, { page: "settings" }, website);
-  return { kind: "action", text: "You can change these settings on the web, too.", action };
+function sectionLinksOf({ origin, sections }: FrontDoorLinks): SectionLinks {
+  return (section) => (sections.includes(section) ? [sectionOnTheWeb(section, origin)] : []);
+}
+
+function sectionOnTheWeb(section: SettingsSection, website: string): HomeLine {
+  const action = linkOnTheWeb({ ...sectionLinks[section], id: `settings:${section}` }, { page: "settings", section }, website);
+  return { kind: "action", text: "You can change this on the web, too.", action };
+}
+
+function inventoryOnTheWeb(website: string): HomeLine {
+  const action = linkOnTheWeb({ label: "Inventory", spoken: "Open your inventory", id: "inventory" }, { page: "home", panel: "inventory" }, website);
+  return { kind: "action", text: "Your inventory is on the web, too.", action };
 }
 
 function withWebsiteLink(view: HomeView, website: string): HomeView {
@@ -121,7 +140,7 @@ function tabBar(tabs: HomeTab[], selected: HomeTab): Choice[] {
   return tabs.map((tab) => ({ label: tabLabels[tab], command: { type: "showHomeTab", tab }, selected: tab === selected }));
 }
 
-function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
+function tabOf(facts: MemberHome, shown: ShownTab, sectionLinksTo: SectionLinks): HomeView {
   switch (shown.tab) {
     case "profile":
       return profileOf(facts, shown);
@@ -134,7 +153,7 @@ function tabOf(facts: MemberHome, shown: ShownTab): HomeView {
     case "inventory":
       return { title: "Inventory", groups: inventoryGroups(shown) };
     case "settings":
-      return { title: "Settings", groups: settingsGroups(shown) };
+      return { title: "Settings", groups: settingsGroups(shown, sectionLinksTo) };
     case "admin":
       return { title: "Admin", groups: adminGroups(shown) };
   }
@@ -434,12 +453,12 @@ export function whyNotOf({ state, row, requires, skillPoints, coins }: Perk & { 
   }
 }
 
-function settingsGroups({ onTheBoards, progress, messages, achievements, channelPicked, groups }: Extract<ShownTab, { tab: "settings" }>): HomeLine[][] {
-  const leaderboard = onTheBoards === null ? [] : [leaderboardSwitch(onTheBoards)];
-  const primaryGroup = groups === null ? [] : [[primaryGroupSetting(groups)]];
+function settingsGroups({ onTheBoards, progress, messages, achievements, channelPicked, groups }: Extract<ShownTab, { tab: "settings" }>, sectionLinksTo: SectionLinks): HomeLine[][] {
+  const leaderboard = onTheBoards === null ? [] : [[...leaderboardSwitch(onTheBoards), ...sectionLinksTo("visibility")]];
+  const primaryGroup = groups === null ? [] : [[primaryGroupSetting(groups), ...sectionLinksTo("group")]];
   const copy = settingCopyOf(achievements, channelPicked);
   const progression = progress === null ? [] : [[setting(copy, progress, "muteNotices"), setting(copy, progress, "dms")]];
-  const sent = messages === null ? [] : [whatISendYouOf(messages)];
+  const sent = messages === null ? [] : [[...whatISendYouOf(messages), ...sectionLinksTo("messages")]];
   return [...leaderboard, ...primaryGroup, ...progression, ...sent];
 }
 
