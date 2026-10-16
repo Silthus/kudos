@@ -315,7 +315,7 @@ describe("ST35: custom-kudos-emoji is the member's own decision", { timeout: 60_
     await send(t, blockActions("U_ALICE", staleButtonOf({ type: "buyItem", item: shipit })));
 
     expect(publishedHome(slack, "U_ALICE").join("\n")).not.toContain(":shipit: ·");
-    expect(publishedHome(slack, "U_ALICE").at(-1)).toBe("context: :shipit: isn't for sale.");
+    expect(publishedHome(slack, "U_ALICE").at(-1)).toBe("context: It isn't for sale.");
     expect(await coinsOf(t, "U_ALICE")).toBe(100);
     expect(externalPickerInHome(slack, "U_DANA")).toBeDefined();
   });

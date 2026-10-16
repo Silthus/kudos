@@ -261,7 +261,7 @@ describe("WS87 WS341: a refusal, an error and a retry", () => {
 
     await user.click(buyButtonFor("Gem"));
 
-    expect(announcement()).toHaveTextContent("Pick something you own to wear it. Pick a worn emoji to take it off.");
+    expect(announcement()).toBeEmptyDOMElement();
     expect(buyButtonFor("Gem")).toHaveTextContent("Buy for 100 coins");
   });
 
