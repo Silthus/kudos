@@ -13,6 +13,10 @@ export type CompanyProfiles = { profiles: CompanyProfile[]; matches: Map<MemberI
 
 type Link = Doc<"companyProfileLinks">;
 
+export function publicNameOf({ firstName, lastName }: CompanyProfile) {
+  return `${firstName.trim()} ${lastName.trim()}`;
+}
+
 export async function companyProfileOf(ctx: QueryCtx, member: MemberId): Promise<ProfileMatch | null> {
   const { workspace } = await chatUserOf(ctx, member);
   return (await companyProfilesIn(ctx, workspace)).matches.get(member) ?? null;

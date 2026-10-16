@@ -215,6 +215,7 @@ import type * as stickers_backfill from "../stickers/backfill.js";
 import type * as stickers_flag from "../stickers/flag.js";
 import type * as stickers_records from "../stickers/records.js";
 import type * as stickers_stickers from "../stickers/stickers.js";
+import type * as stickers_teamPages from "../stickers/teamPages.js";
 import type * as store_buying from "../store/buying.js";
 import type * as store_catalogue from "../store/catalogue.js";
 import type * as store_customKudosEmoji from "../store/customKudosEmoji.js";
@@ -482,6 +483,7 @@ declare const fullApi: ApiFromModules<{
   "stickers/flag": typeof stickers_flag;
   "stickers/records": typeof stickers_records;
   "stickers/stickers": typeof stickers_stickers;
+  "stickers/teamPages": typeof stickers_teamPages;
   "store/buying": typeof store_buying;
   "store/catalogue": typeof store_catalogue;
   "store/customKudosEmoji": typeof store_customKudosEmoji;

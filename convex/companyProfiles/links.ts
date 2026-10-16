@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { chatUserOf, type MemberId } from "../workspace/directory";
-import type { CompanyFace } from "./faces";
-import { companyProfilesIn, type CompanyProfile, type CompanyProfiles, type MatchedBy } from "./matcher";
+import { companyFaceOfProfile, type CompanyFace } from "./faces";
+import { companyProfilesIn, publicNameOf, type CompanyProfile, type CompanyProfiles, type MatchedBy } from "./matcher";
 import { companyTeamsOf } from "./teams";
 
 export type ProfileChoice = { profile: number; name: string; role: string | null; teams: string[]; face: CompanyFace | null };
@@ -46,12 +46,12 @@ function refusalOf({ profiles, matches, holders }: CompanyProfiles, member: Memb
 
 async function choicesFrom(ctx: QueryCtx): Promise<(profile: CompanyProfile) => ProfileChoice> {
   const teamNames = new Map((await companyTeamsOf(ctx)).map(({ team, name }) => [team, name]));
-  return ({ profile, firstName, lastName, role, teams, image, colour }) => ({
-    profile,
-    name: `${firstName.trim()} ${lastName.trim()}`,
-    role: role ?? null,
-    teams: teams.flatMap((team) => teamNames.get(team) ?? []),
-    face: image === undefined ? null : { image, colour },
+  return (companyProfile) => ({
+    profile: companyProfile.profile,
+    name: publicNameOf(companyProfile),
+    role: companyProfile.role ?? null,
+    teams: companyProfile.teams.flatMap((team) => teamNames.get(team) ?? []),
+    face: companyFaceOfProfile(companyProfile),
   });
 }
 

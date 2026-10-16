@@ -29,6 +29,11 @@ export function teammateOf(name: string | undefined, picture: string | null) {
   return { name: name ?? nameless, face: teammateFaceOf(name, picture) };
 }
 
+export function companyTeammateOf(name: string | undefined, picture: string | null, company: CompanyFace | null) {
+  const teammate = teammateOf(name, picture);
+  return company === null ? teammate : { ...teammate, face: { kind: "company-profile" as const, ...company, initials: teammate.face.initials } };
+}
+
 function teammateFaceOf(name: string | undefined, picture: string | null): Face {
   const initials = initialsOf({ name });
   if (picture !== null) return { kind: "slack", image: picture, initials };
