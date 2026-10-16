@@ -26,8 +26,10 @@ const sayingWhyThreeWays: QuestId[] = ["say-why", "say-why-twice", "say-why-thre
 const everyFlag = ["xp-levels", "unlocks", "quests", "everyone-board", "skill-tree"];
 const openOnTheWeb = (path: string) => `[link: Open ${siteUrl}${path}]`;
 const swapOnTheWeb = (slot: number) => `[link: Swap ${siteUrl}/quests?quest=${slot}]`;
-const settingsLine = "You can change these settings on the web, too.";
-const settingsOnTheWeb = (entry = "") => `section: ${settingsLine} [link: Settings ${siteUrl}${entry}/settings]`;
+const onTheWebLine = "You can change this on the web, too.";
+const sectionOnTheWeb = (label: string, section: string, entry = "") => `section: ${onTheWebLine} [link: ${label} ${siteUrl}${entry}/settings?section=${section}]`;
+const inventoryLine = "Your inventory is on the web, too.";
+const inventoryOnTheWeb = `section: ${inventoryLine} [link: Inventory ${siteUrl}/?panel=inventory]`;
 const sayingWhyCounts = "context: Saying why counts when your message has 5 or more words besides mentions and emoji.";
 const hints = [
   "context: To give kudos, mention a teammate and add :taco: to your message. Each :taco: gives everyone you mention 1 kudos.",
@@ -181,7 +183,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(publishedHome(slack, "U_ALICE").slice(0, 2)).toEqual(["actions: [Profile] | Settings", "header: Your kudos"]);
   });
 
-  test("Settings opens with a link to the website's Settings page above today's settings, and Admin is today's tab, each ending with the link to the website", async () => {
+  test("Settings links each setting that has a section on the website's Settings page to that section, the notice switches having none, and Admin is today's tab, each ending with the link to the website", async () => {
     slack.withMember("U_ALICE", { is_admin: true });
     const t = await workspace("xp-levels", "everyone-board", "website");
     await openHome(t, "U_ALICE");
@@ -195,11 +197,10 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(settings).toEqual([
       "actions: Profile | [Settings] | Admin",
       "header: Settings",
-      settingsOnTheWeb(),
-      "divider",
       "section: *Show me on the leaderboards*",
       "actions: [On] | Off",
       "context: When it's off, nobody sees you on the leaderboards, you included.",
+      sectionOnTheWeb("Leaderboards", "visibility"),
       "divider",
       "section: I'll celebrate your level ups in public once your workspace picks a channel. [button: Mute notices]",
       "section: I send you a DM when you reach a level. [button: Turn off DMs]",
@@ -210,20 +211,20 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(admin.slice(-2)).toEqual(["divider", websiteLink]);
   });
 
-  test("the Settings link names the Settings page to screen readers, and clicking it runs no command and publishes App Home no more", async () => {
+  test("each section link names what it changes on the Settings page to screen readers, and clicking it runs no command and publishes App Home no more", async () => {
     const t = await workspace("xp-levels", "everyone-board", "website");
     await openHome(t, "U_ALICE");
     await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Settings")));
     const published = publishedViews(slack, "U_ALICE").length;
 
-    const response = await send(t, buttonBeside(settingsLine, "Settings"));
+    const response = await send(t, buttonBeside(onTheWebLine, "Leaderboards"));
 
-    expect(accessoryBeside(settingsLine)).toEqual({
+    expect(accessoryBeside(onTheWebLine)).toEqual({
       type: "button",
-      text: { type: "plain_text", text: "Settings" },
-      url: `${siteUrl}/settings`,
-      action_id: "website-link:settings",
-      accessibility_label: "Change your settings on HedgeHug's Settings page",
+      text: { type: "plain_text", text: "Leaderboards" },
+      url: `${siteUrl}/settings?section=visibility`,
+      action_id: "website-link:settings:visibility",
+      accessibility_label: "Change whether you show on the leaderboards on HedgeHug's Settings page",
     });
     expect(response.status).toBe(200);
     expect(publishedViews(slack, "U_ALICE")).toHaveLength(published);
@@ -236,8 +237,52 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
 
     await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Off")));
 
-    expect(publishedHome(slack, "U_ALICE").slice(1, 6)).toEqual(["header: Settings", settingsOnTheWeb(), "divider", "section: *Show me on the leaderboards*", "actions: On | [Off]"]);
+    expect(publishedHome(slack, "U_ALICE").slice(1, 6)).toEqual([
+      "header: Settings",
+      "section: *Show me on the leaderboards*",
+      "actions: On | [Off]",
+      "context: When it's off, nobody sees you on the leaderboards, you included.",
+      sectionOnTheWeb("Leaderboards", "visibility"),
+    ]);
     expect(await onTheBoards(t, "U_ALICE")).toBe(false);
+  });
+
+  test("what I send you ends with a link to the Settings page's messages section, and the leaderboards with theirs", async () => {
+    const t = await workspace("xp-levels", "everyone-board", "message-settings", "website");
+    await openHome(t, "U_ALICE");
+
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Settings")));
+
+    const home = publishedHome(slack, "U_ALICE");
+    expect(areaOf(home, "section: *Show me on the leaderboards*").at(-1)).toBe(sectionOnTheWeb("Leaderboards", "visibility"));
+    expect(areaOf(home, "section: *What I send you*").at(-1)).toBe(sectionOnTheWeb("Messages", "messages"));
+    expect(accessoryOf(`${siteUrl}/settings?section=messages`)).toMatchObject({ action_id: "website-link:settings:messages", accessibility_label: "Change what I send you on HedgeHug's Settings page" });
+  });
+
+  test("while the primary-group picker shows, it ends with a link to the Settings page's group section", async () => {
+    slack.withUserGroup("S_GARDEN", { name: "Gardeners", users: ["U_ALICE", "U_BOB"] }).withUserGroup("S_ZEBRA", { name: "Zebras", users: ["U_ALICE"] });
+    const t = await workspaceWithUserGroups("xp-levels", "groups", "website");
+    await openHome(t, "U_ALICE");
+
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Settings")));
+
+    const home = publishedHome(slack, "U_ALICE");
+    const picker = home.findIndex((line) => line.startsWith("section: Which group do you count for on the leaderboard?"));
+    expect(home.slice(picker + 1, picker + 3)).toEqual([sectionOnTheWeb("Your group", "group"), "divider"]);
+    expect(accessoryOf(`${siteUrl}/settings?section=group`)).toMatchObject({ action_id: "website-link:settings:group", accessibility_label: "Change the group you count for on HedgeHug's Settings page" });
+  });
+
+  test("a setting whose section the website's Settings page hides gets no link: the group of a member in one group, and the leaderboards before the member opens the Leaderboard", async () => {
+    slack.withUserGroup("S_GARDEN", { name: "Gardeners", users: ["U_ALICE", "U_BOB"] });
+    const t = await workspaceWithUserGroups("xp-levels", "unlocks", "everyone-board", "groups", "website");
+    await openHome(t, "U_ALICE");
+
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Settings")));
+
+    const home = publishedHome(slack, "U_ALICE");
+    expect(home).toContain("section: *Show me on the leaderboards*");
+    expect(home).toContain("section: You count for Gardeners on the leaderboard.");
+    expect(home.filter((line) => line.includes(onTheWebLine))).toEqual([]);
   });
 
   test("while the website's Settings page has no setting for the member, the Settings tab has no link to it", async () => {
@@ -256,14 +301,57 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     ]);
   });
 
-  test("for a member previewing the website while it is closed for the workspace, the Settings link goes through the page's sign-in entry", async () => {
+  test("for a member previewing the website while it is closed for the workspace, a section link goes through the page's sign-in entry", async () => {
     slack.withMember("U_ALICE", { profile: { email: alicesEmail } });
     const t = await workspace("xp-levels", "everyone-board", onForEmails("website", alicesEmail));
     await openHome(t, "U_ALICE");
 
     await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Settings")));
 
-    expect(publishedHome(slack, "U_ALICE")[2]).toBe(settingsOnTheWeb("/sign-in"));
+    expect(publishedHome(slack, "U_ALICE")[5]).toBe(sectionOnTheWeb("Leaderboards", "visibility", "/sign-in"));
+  });
+
+  test("the Inventory tab opens with a link to the home's inventory panel above Slack's inventory, which still works, and names it to screen readers", async () => {
+    const t = await workspace("xp-levels", "unlocks", "coins", "store", "website");
+    await coinsOpenedBy(t, "U_ALICE");
+    await openHome(t, "U_ALICE");
+
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Inventory")));
+
+    expect(publishedHome(slack, "U_ALICE").slice(0, 7)).toEqual([
+      "actions: Profile | [Inventory] | Settings",
+      "header: Inventory",
+      inventoryOnTheWeb,
+      "divider",
+      "section: 4 🪙",
+      "divider",
+      "section: *Your kudos emoji*",
+    ]);
+    expect(accessoryBeside(inventoryLine)).toEqual({
+      type: "button",
+      text: { type: "plain_text", text: "Inventory" },
+      url: `${siteUrl}/?panel=inventory`,
+      action_id: "website-link:inventory",
+      accessibility_label: "Open your inventory on HedgeHug's home page",
+    });
+
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Take off")));
+
+    expect(publishedHome(slack, "U_ALICE").slice(2, 8)).toEqual([inventoryOnTheWeb, "divider", "section: 4 🪙", "divider", "section: *Your kudos emoji*", "section: Slot 1 · empty"]);
+  });
+
+  test("clicking the Inventory link takes nothing off and publishes App Home no more", async () => {
+    const t = await workspace("xp-levels", "unlocks", "coins", "store", "website");
+    await coinsOpenedBy(t, "U_ALICE");
+    await openHome(t, "U_ALICE");
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Inventory")));
+    const published = publishedViews(slack, "U_ALICE").length;
+
+    const response = await send(t, buttonBeside(inventoryLine, "Inventory"));
+
+    expect(response.status).toBe(200);
+    expect(publishedViews(slack, "U_ALICE")).toHaveLength(published);
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: Slot 1 · 🦔 Hedgehog [button: Take off]");
   });
 
   test("opening the ready features swaps their Open for page buttons, and a stale Open from before the links still opens its crate", async () => {
@@ -374,6 +462,21 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     "section: I send you a DM when you reach a level. [button: Turn off DMs]",
   ];
 
+  const todaysInventory = [
+    "actions: Profile | [Inventory] | Settings",
+    "header: Inventory",
+    "section: 4 🪙",
+    "divider",
+    "section: *Your kudos emoji*",
+    "section: Slot 1 · 🦔 Hedgehog [button: Take off]",
+    "section: Slot 2 · empty",
+    "section: Slot 3 · empty",
+    "context: Each emoji in a slot counts as a kudos, like :taco:.",
+    "divider",
+    "section: *Store*",
+    ...["🌻 Sunflower", "🚀 Rocket", "🌟 Glowing Star", "💎 Gem", "🌈 Rainbow", "🍀 Clover", "🍩 Doughnut", "🍪 Cookie", "👑 Crown", "🎈 Balloon", "🌵 Cactus", "🏆 Trophy"].map((item) => `section: ${item} · 100 🪙 [button: Buy]`),
+  ];
+
   const closed: Array<{ condition: string; website: string[]; env?: Record<string, string> }> = [
     { condition: "while the website flag is off", website: [] },
     { condition: "while SITE_URL is unset", website: ["website"], env: { SITE_URL: "" } },
@@ -399,6 +502,17 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Settings")));
 
     expect(publishedHome(slack, "U_ALICE")).toEqual(todaysSettings);
+  });
+
+  test.each(closed)("$condition, a member who opened Coins and inventory sees today's Inventory tab", async ({ website, env = {} }) => {
+    for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
+    const t = await workspace("xp-levels", "unlocks", "coins", "store", ...website);
+    await coinsOpenedBy(t, "U_ALICE");
+    await openHome(t, "U_ALICE");
+
+    await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Inventory")));
+
+    expect(publishedHome(slack, "U_ALICE")).toEqual(todaysInventory);
   });
 });
 
@@ -580,6 +694,16 @@ describe("each quest's Swap in Slack links to its card on the Quests page while 
   });
 });
 
+function accessoryOf(url: string) {
+  return publishedHomeBlocks(slack, "U_ALICE").find((block) => (block.accessory as { url?: string } | undefined)?.url === url)?.accessory;
+}
+
+function areaOf(home: string[], heading: string) {
+  const start = home.indexOf(heading);
+  const end = home.indexOf("divider", start);
+  return home.slice(start, end === -1 ? undefined : end);
+}
+
 function accessoryBeside(text: string) {
   return publishedHomeBlocks(slack, "U_ALICE").find((block) => readBlocks([block])[0]?.startsWith(`section: ${text}`))?.accessory;
 }
@@ -597,6 +721,20 @@ async function workspace(...flags: Array<string | FlagDefinition>) {
   await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
   return unlocksShippedBeforeAnyoneJoined(t);
+}
+
+async function workspaceWithUserGroups(...flags: string[]) {
+  const t = await workspace(...flags);
+  await t.action(internal.slack.userGroups.syncUserGroups, {});
+  await settle(t);
+  return t;
+}
+
+async function coinsOpenedBy(t: Backend, user: string) {
+  await giveKudos(t, user, "U_BOB", saysWhy);
+  await xpOf(t, user, 990);
+  await giveKudos(t, user, "U_BOB", saysWhy);
+  await send(t, blockActions(user, staleButtonOf({ type: "openUnlock", feature: "coins" })));
 }
 
 async function levelThreeWithQuestsDrawn(t: Backend) {

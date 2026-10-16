@@ -5,6 +5,7 @@ import { isOnTheBoards } from "../leaderboard/visibility";
 import { messageSettingsOnFor } from "../messageSettings/flag";
 import { messageSettingsOf, type MessageSetting } from "../messageSettings/messageSettings";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
+import { settingsSections, type SettingsSection } from "./routes";
 import { leaderboardStateOf, unlockPathOf, type FeaturePage } from "./unlockPath";
 
 export type { MessageSetting } from "../messageSettings/messageSettings";
@@ -29,8 +30,10 @@ async function settingsOf(ctx: QueryCtx, me: VerifiedMember): Promise<MySettings
   return { kind: "settings", board: await boardSettingOf(ctx, me), messages: await messagesOf(ctx, me), group: await groupPickOf(ctx, me) };
 }
 
-export async function settingsPageOpenTo(ctx: QueryCtx, me: VerifiedMember): Promise<boolean> {
-  return hasAny(await settingsOf(ctx, me));
+export async function settingsSectionsShownTo(ctx: QueryCtx, me: VerifiedMember): Promise<SettingsSection[]> {
+  const { board, messages, group } = await settingsOf(ctx, me);
+  const shown: Record<SettingsSection, boolean> = { visibility: board !== null, messages: messages !== null, group: group !== null };
+  return settingsSections.filter((section) => shown[section]);
 }
 
 function hasAny({ board, messages, group }: MySettings) {
