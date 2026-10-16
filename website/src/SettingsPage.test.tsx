@@ -124,6 +124,15 @@ describe("Messages: where each message reaches the member", () => {
     expect(within(messages).getByText(/In the channel means a message only you see, beside the kudos that caused it/)).toBeInTheDocument();
   });
 
+  it("#580: draws a shortcode in a description as its emoji, and a custom one as a quiet chip", () => {
+    const recapWithBoth = settingsFixtures.withHugsRecap.messages.map((setting) => ({ ...setting, description: setting.description.replace(":hedgehug:", ":hugging_face: and :hedgehug:") }));
+    showSettings({ ...settingsFixtures.withHugsRecap, messages: recapWithBoth });
+
+    const recap = within(section("Messages")).getByRole("group", { name: "Weekly hugs recap" });
+    expect(recap).toHaveTextContent("Last week's hugs, the 🤗 and :hedgehug: you and your teammates reacted, with their XP, on Monday morning.");
+    expect(within(recap).getByText(":hedgehug:")).toHaveAttribute("data-custom-emoji");
+  });
+
   it("offers a kind with three places as one choice, checked from the read", () => {
     showSettings(settingsFixtures.everything);
 

@@ -1,7 +1,6 @@
 import { useId, type ReactNode } from "react";
-import { CustomEmoji, EmojiName } from "../CustomEmoji";
+import { NamedEmoji } from "../Emoji";
 import type { HugGiven, HugReceived, Message } from "../shell";
-import { emojiCharacterOf, withoutSkinTone } from "./emoji";
 import type { EntryProps } from "./Entries";
 import { OpenInSlack, When } from "./EntryParts";
 import { KudosMessage } from "./KudosMessage";
@@ -12,7 +11,7 @@ export function HugReceivedRow({ entry, ...shown }: { entry: HugReceived } & Ent
   return (
     <HugRow side="received" entry={entry} face={<Faces people={entry.givers} faceSize="size-6" />} counts={[hugsOf(entry.hugs), ...xpOf(entry.xp)]} slackName={what} {...shown}>
       {`${whoReacted(entry)} reacted `}
-      <ReactedEmoji entry={entry} />
+      <NamedEmoji name={entry.emoji} image={entry.emojiImage} />
       {` on ${what}`}
     </HugRow>
   );
@@ -23,7 +22,7 @@ export function HugGivenRow({ entry, ...shown }: { entry: HugGiven } & EntryProp
   return (
     <HugRow side="given" entry={entry} counts={xpOf(entry.xp)} slackName={what} {...shown}>
       {"You reacted "}
-      <ReactedEmoji entry={entry} />
+      <NamedEmoji name={entry.emoji} image={entry.emojiImage} />
       {` on ${what}`}
     </HugRow>
   );
@@ -66,12 +65,6 @@ function QuotedKudos({ kudos }: { kudos: Message }) {
       <KudosMessage message={kudos} clamped />
     </blockquote>
   );
-}
-
-function ReactedEmoji({ entry: { emoji, emojiImage } }: { entry: HugReceived | HugGiven }) {
-  const label = `:${withoutSkinTone(emoji)}:`;
-  if (emojiImage !== undefined) return <CustomEmoji key={emojiImage} label={label} image={emojiImage} className="inline h-[1.2em] w-auto align-[-0.25em]" />;
-  return emojiCharacterOf(emoji) ?? <EmojiName label={label} />;
 }
 
 function whoReacted({ givers, hugs }: HugReceived) {
