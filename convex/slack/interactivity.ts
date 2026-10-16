@@ -1,6 +1,6 @@
 import { internal } from "../_generated/api";
 import { observedHttpAction } from "../analytics/boundary";
-import { commandOf, type Command } from "../commands/commands";
+import { commandOf, isWebsiteOnly, type Command } from "../commands/commands";
 import type { ActionCtx } from "../_generated/server";
 import { customEmojiOptionOf, customEmojiPickerAction } from "./customEmojiPicker";
 import { readSignedBody } from "./signature";
@@ -62,7 +62,7 @@ export function encodeHomeAction(command: Command) {
 
 function commandsOf(action: Action, selections: Selections): Command[] {
   const command = commandOf(selectedCommandOf(action, selections));
-  return command === null ? [] : [command];
+  return command === null || isWebsiteOnly(command) ? [] : [command];
 }
 
 function selectedCommandOf(action: Action, selections: Selections): unknown {

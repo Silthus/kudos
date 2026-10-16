@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { aCutout, FakePostHogCom, type TeamPageProfile } from "../../testing/fakePostHogCom";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { testBackend, type Backend } from "../../testing/slackBackend";
+import { signedRequest } from "../../testing/signedSlack";
+import { settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
+import { blockActions, staleButtonOf } from "../../testing/slackInteractions";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { seenKeyOf } from "../website/seen";
@@ -27,6 +29,7 @@ const tamsinChoice = { profile: 4, name: "Tamsin Vale", role: null, teams: ["Ana
 
 let postHog: FakePostHog;
 let postHogCom: FakePostHogCom;
+let slack: FakeSlack;
 let t: Backend;
 
 beforeEach(async () => {
@@ -34,7 +37,7 @@ beforeEach(async () => {
   aDeploymentForWorkspace();
   postHog = new FakePostHog();
   postHogCom = new FakePostHogCom();
-  const slack = new FakeSlack();
+  slack = new FakeSlack();
   vi.stubGlobal("fetch", routedFetch(postHog, (input, init) => (postHogCom.owns(urlOf(input)) ? postHogCom.fetch(input) : slack.fetch(input, init))));
   t = testBackend();
   await onPostHogCom(wrenProfile, orielProfile, samanthaProfile, tamsinProfile);
@@ -650,6 +653,22 @@ describe("CV20: the admin override", () => {
 
     expect(await admin.linkTeammate(await keyOf(sam, sam), 3)).toEqual({ kind: "refused", reason: "unknown" });
     expect(await links()).toEqual([]);
+  });
+
+  test("a Slack click carrying either link command is no command at all: no receipt, no App Home, no link and no exposure", async () => {
+    await teamPagesOn();
+    const admin = await anAdmin();
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+    const form = { contentType: "application/x-www-form-urlencoded" };
+
+    await t.fetch("/slack/interactivity", await signedRequest(blockActions(admin.user, staleButtonOf({ type: "linkCompanyProfile", member: sam.member, profile: 3 })), form));
+    await t.fetch("/slack/interactivity", await signedRequest(blockActions(sam.user, staleButtonOf({ type: "linkMyCompanyProfile", profile: 3 })), form));
+    await settleInTimeOrder(t);
+
+    expect(await t.run((ctx) => ctx.db.query("slackReceipts").collect())).toEqual([]);
+    expect(slack.calls.filter(({ method }) => method === "views.publish")).toEqual([]);
+    expect(await links()).toEqual([]);
+    expect(await teamPagesExposures()).toEqual([]);
   });
 
   test("the command decides team-pages with exposure, and the admin part without", async () => {

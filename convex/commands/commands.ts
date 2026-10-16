@@ -68,6 +68,12 @@ export type Command = Infer<typeof commandValidator>;
 
 export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | LoadoutOutcome | CratePurchaseOutcome | SelfLinkOutcome | AdminLinkOutcome | null;
 
+const websiteOnly: ReadonlySet<Command["type"]> = new Set(["linkMyCompanyProfile", "linkCompanyProfile"]);
+
+export function isWebsiteOnly({ type }: Command): boolean {
+  return websiteOnly.has(type);
+}
+
 export function commandOf(candidate: unknown): Command | null {
   return conforms(commandValidator, candidate) ? (candidate as Command) : null;
 }
