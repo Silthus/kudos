@@ -1,4 +1,4 @@
-pnpm gate on 355ca697 (origin/main at c4589db8 merged), through ~/dev/fleet/fleet heavy: 4623 of 4624 passed; the one failure is newWeek.test.ts's 105-member sweep timing out at 60 s under load. Rerun alone with the earlier flaky files and #291's tests: 5 files, 81 tests passed.
+pnpm gate on 2e6ead4b (origin/main with #497 merged), through ~/dev/fleet/fleet heavy: 4651 of 4652 passed; the one failure is newWeek.test.ts's 105-member sweep timing out at 60 s under load, which passes when rerun alone.
 
 stderr | convex/quests/newWeek.test.ts
 views.publish has no known result: ReportableError: SLACK_BOT_TOKEN is not set
@@ -38,4 +38,8 @@ If this is a long-running test, pass a timeout value as the last argument or con
 
 [ELIFECYCLE] Test failed. See above for more details.
 [ELIFECYCLE] Command failed with exit code 1.
+gate-exit=1
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed | 251 passed (252)
+      Tests  1 failed | 4651 passed (4652)
 gate-exit=1
