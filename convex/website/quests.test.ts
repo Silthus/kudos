@@ -96,6 +96,18 @@ async function aLongHistory(giver: MemberId, recipient: MemberId, awards: number
   }
 }
 
+async function thankedOnceEach(giver: MemberId, people: number) {
+  const longAgo = Date.parse("2025-01-01T10:00:00Z");
+  for (let batch = 0; batch * 2000 < people; batch++) {
+    await t.run(async (ctx) => {
+      for (let index = batch * 2000; index < Math.min(people, (batch + 1) * 2000); index++) {
+        const recipient = await ctx.db.insert("members", { workspace: "T1", user: `U_GONE_${index}`, kind: "not-a-member" });
+        await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message: `gone-${index}`, giver, recipient, kudos: 1, day: "2025-01-01", at: longAgo });
+      }
+    });
+  }
+}
+
 async function openedCratesIn(member: MemberId, week: string, crates: number) {
   const at = Date.parse("2026-10-07T10:00:00Z");
   for (let batch = 0; batch * 2100 < crates; batch++) {
@@ -426,6 +438,19 @@ describe("P81: the week's swap reads within Convex's limits, however many kudos 
     expect((await openQuests(asSignedIn)).swap).toEqual({ used: false, available: true });
     await swaps(member, 1);
     expect((await domainFactsOf(member))!.week!.swap).toMatchObject({ slot: 1, replaced: "say-why-twice", quest: "not-in-30-days" });
+  });
+
+  test("a member who once thanked 4,100 people since gone still reads the swap and swaps within Convex's read limits", async () => {
+    t = testBackend({ transactionLimits: true });
+    vi.setSystemTime(sunday);
+    await questsApply();
+    const { member, asSignedIn } = await aTeam();
+    await questsOpenFor(member, "say-why", "say-why-twice", "say-why-three-times");
+    await thankedOnceEach(member, 4_100);
+
+    expect((await openQuests(asSignedIn)).swap).toEqual({ used: false, available: true });
+    await swaps(member, 1);
+    expect((await domainFactsOf(member))!.week!.swap).toMatchObject({ slot: 1, replaced: "say-why-twice", quest: expect.stringMatching(/^(someone-new|not-in-30-days)$/) });
   });
 });
 

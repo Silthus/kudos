@@ -130,6 +130,8 @@ export async function lastThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: 
 
 const thankedBeforeSince = -Infinity;
 
+const repeatsReadBeforeSkipping = 16;
+
 export async function lastThankedSince(ctx: QueryCtx, giver: MemberId, since: number, atOrBefore: number): Promise<Map<MemberId, number>> {
   const lastThanked = new Map<MemberId, number>();
   for (const recipient of await everThankedBy(ctx, giver, atOrBefore)) lastThanked.set(recipient, thankedBeforeSince);
@@ -141,17 +143,25 @@ export async function lastThankedSince(ctx: QueryCtx, giver: MemberId, since: nu
 
 async function everThankedBy(ctx: QueryCtx, giver: MemberId, atOrBefore: number): Promise<Set<MemberId>> {
   const thanked = new Set<MemberId>();
-  for (let next = await nextThankedAfter(ctx, giver, null, atOrBefore); next !== null; next = await nextThankedAfter(ctx, giver, next, atOrBefore)) thanked.add(next);
+  let past: MemberId | null = null;
+  do past = await thankedUntilOneRepeats(ctx, giver, past, atOrBefore, thanked);
+  while (past !== null);
   return thanked;
 }
 
-async function nextThankedAfter(ctx: QueryCtx, giver: MemberId, after: MemberId | null, atOrBefore: number): Promise<MemberId | null> {
-  const award = await ctx.db
-    .query("awards")
-    .withIndex("by_giver_recipient", (q) => (after === null ? q.eq("giver", giver) : q.eq("giver", giver).gt("recipient", after)))
-    .filter((q) => q.lte(q.field("at"), atOrBefore))
-    .first();
-  return award?.recipient ?? null;
+async function thankedUntilOneRepeats(ctx: QueryCtx, giver: MemberId, past: MemberId | null, atOrBefore: number, thanked: Set<MemberId>): Promise<MemberId | null> {
+  let repeats = 0;
+  for await (const { recipient, at } of givenByRecipient(ctx, giver, past)) {
+    if (!thanked.has(recipient)) {
+      if (at <= atOrBefore) thanked.add(recipient);
+      repeats = 0;
+    } else if (++repeats === repeatsReadBeforeSkipping) return recipient;
+  }
+  return null;
+}
+
+function givenByRecipient(ctx: QueryCtx, giver: MemberId, past: MemberId | null) {
+  return ctx.db.query("awards").withIndex("by_giver_recipient", (q) => (past === null ? q.eq("giver", giver) : q.eq("giver", giver).gt("recipient", past)));
 }
 
 function givenAfter(ctx: QueryCtx, giver: MemberId, since: number, atOrBefore: number) {
