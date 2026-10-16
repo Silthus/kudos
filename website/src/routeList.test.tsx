@@ -54,6 +54,8 @@ describe("#435: the router reads every target a Slack link carries", () => {
 
   test.each([1.5, 0, -1, 1e21])("#469: the link function writes no target for a bought crate numbered %s, so both sides agree", (n) => {
     expect(urlOf(origin, { page: "bookCollection", crate: { kind: "bought", n } })).toBe(`${origin}/book/collection`);
+  });
+
   test.each(["group:", "group:last-week", "group:2026-10-05:1", "group:2026-10-5", "groups:2026-10-05"])("drops a broken group crate: ?crate=%s", (crate) => {
     expect(routeOf(new URL(`${origin}/quests?crate=${crate}`))).toEqual({ page: "quests" });
   });
