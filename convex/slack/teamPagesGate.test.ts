@@ -95,7 +95,8 @@ const everyOtherFlag = [
   "book-spread",
 ];
 const companyTables = ["companyProfiles", "companyTeams", "companyProfileLinks"] as const;
-const exposureDelivery = ["analytics/drain:", "analytics/person:identifyNewPeople"];
+const exposureDelivery = ["analytics/drain:drain", "analytics/drain:recover", "analytics/person:identifyNewPeople"];
+const deliveringMore = ["analytics/drain:drain", "analytics/drain:recover"];
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
 const carol = { user: "U_CAROL", name: "Carol Diaz", email: "carol@example.com" };
@@ -166,7 +167,7 @@ describe("CV28: team pages are dark where team-pages is off, show only to the me
 
     expect(walk.seen).toEqual(withoutTeamPages.seen);
     expect(leftAfterRemoving(withoutTeamPages.deliveryJobs, walk.deliveryJobs)).toEqual([]);
-    expect(leftAfterRemoving(walk.deliveryJobs, withoutTeamPages.deliveryJobs).every(({ name }) => name.startsWith("analytics/drain:"))).toBe(true);
+    expect(leftAfterRemoving(walk.deliveryJobs, withoutTeamPages.deliveryJobs).every(({ name }) => deliveringMore.includes(name))).toBe(true);
     expect(JSON.stringify(walk.seen.answers)).not.toMatch(/"teams"|"companyProfile"|"admin"|Robert|Pat Quill/);
     expect(walk.links).toEqual([
       { by: "admin", member: "<member U_CAROL>", profile: null },
@@ -453,7 +454,7 @@ async function rowsWrittenApartFromTheCompanyRows() {
 
 async function jobsInContentOrder({ delivering }: { delivering: boolean }) {
   const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
-  const jobs = scheduled.filter(({ name }) => delivering === exposureDelivery.some((left) => name.startsWith(left))).map(({ name, args, scheduledTime, state }) => ({ name, args, scheduledTime, state: state.kind }));
+  const jobs = scheduled.filter(({ name }) => delivering === exposureDelivery.includes(name)).map(({ name, args, scheduledTime, state }) => ({ name, args, scheduledTime, state: state.kind }));
   return withStableIds(jobs.toSorted((a, b) => contentOf(a).localeCompare(contentOf(b))));
 }
 
