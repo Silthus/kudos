@@ -152,6 +152,22 @@ describe("WS341 V13: a bought item turns owned in place, never as a crate", () =
     expect(document.querySelector("[data-crate]")).toBeNull();
   });
 
+  it("buys a picked custom kudos emoji, the only kind the store sells, and draws it among yours by its Slack picture", async () => {
+    const shipit = "custom:shipit";
+    const pending = answerLater();
+    const { user, showVisitor, buyItem } = buyWith(() => pending.answer, shellFixtures.memberWithOneEmojiForSale);
+
+    await user.click(buyButtonFor(":shipit:"));
+    showVisitor(owning(shellFixtures.memberWithOneEmojiForSale, shipit, 136));
+    await pending.settle({ kind: "bought", item: shipit });
+
+    expect(buyItem).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ item: shipit }));
+    const tile = within(yours()).getByText(":shipit:").closest("li")!;
+    expect(tile.querySelector("img")).toHaveAttribute("alt", ":shipit:");
+    expect(announcement()).toHaveTextContent("You bought :shipit:.");
+    expect(within(kudosEmoji()).getByText("Nothing for sale right now.")).toBeInTheDocument();
+  });
+
   it("pops the bought tile once, and not under reduced motion", async () => {
     const { user, showVisitor } = buyWith(async () => ({ kind: "bought", item: gem }));
     await user.click(buyButtonFor("Gem"));
