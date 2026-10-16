@@ -238,3 +238,40 @@ export function slashCommand(conversation: Conversation, options: SlashCommandOp
     trigger_id: "1.2.3",
   }).toString();
 }
+
+export const kudosAppBotUser = "U_KUDOS_BOT";
+
+export type ReactionOptions = {
+  team?: string;
+  user?: string;
+  reaction?: string;
+  itemUser?: string | null;
+  channel?: string;
+  ts?: string;
+  itemType?: "message" | "file";
+  eventTs?: string;
+  eventId?: string;
+  type?: "reaction_added" | "reaction_removed";
+};
+
+export function reactionEvent(options: ReactionOptions = {}) {
+  eventCounter += 1;
+  const team = options.team ?? "T1";
+  const ts = options.ts ?? "1760349600.000100";
+  const item = options.itemType === "file" ? { type: "file", file: "F1" } : { type: "message", channel: options.channel ?? "C1", ts };
+  return JSON.stringify({
+    type: "event_callback",
+    team_id: team,
+    event_id: options.eventId ?? `Ev${eventCounter}`,
+    event_time: Math.floor(Date.now() / 1000),
+    authorizations: [{ team_id: team, user_id: kudosAppBotUser, is_bot: true }],
+    event: {
+      type: options.type ?? "reaction_added",
+      user: options.user ?? "U_BOB",
+      reaction: options.reaction ?? "taco",
+      ...(options.itemUser !== null && { item_user: options.itemUser ?? "U_ALICE" }),
+      item,
+      event_ts: options.eventTs ?? `${Math.floor(Date.now() / 1000)}.000200`,
+    },
+  });
+}
