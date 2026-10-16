@@ -12,7 +12,7 @@ export type CrateTarget = Infer<typeof crateTargetValidator>;
 
 export const crateTargets: readonly CrateTarget[] = crateTargetValidator.members.map(({ value }) => value);
 
-export const routeList: readonly string[] = ["/", "/leaderboard", "/quests", "/skills", "/book", "/book/earned", "/activity", "/settings"];
+export const routeList: readonly string[] = ["/", "/leaderboard", "/quests", "/skills", "/book", "/book/earned", "/book/collection", "/activity", "/settings"];
 
 export const signInEntry = "/sign-in";
 

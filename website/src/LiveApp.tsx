@@ -11,6 +11,7 @@ import { App } from "./App";
 import type { ActivityRead, ActivityShown } from "./activityRead";
 import type { BoardAnswer } from "./boardRead";
 import type { BookShown } from "./bookRead";
+import type { CollectionShown } from "./collectionRead";
 import { useCodeRedemptionFailed } from "./codeRedemption";
 import { answerWithin } from "./commandAnswer";
 import { useSocketUnreachable } from "./connection";
@@ -49,6 +50,7 @@ function LiveApp() {
       useLeaderboard={(period, withGroupBoards) => useLiveLeaderboard(period, withGroupBoards, unreachable)}
       useQuests={(asking) => useLiveQuests(asking, unreachable)}
       useBook={(asking) => useLiveBook(asking, unreachable)}
+      useCollection={(asking) => useLiveCollection(asking, unreachable)}
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
       useSettings={(asking) => useLiveSettings(asking, unreachable)}
       useProfileCard={useLiveProfileCard}
@@ -83,6 +85,14 @@ function useLiveQuests(asking: boolean, unreachable: boolean): QuestsShown | und
   if (quests instanceof Error) return { kind: "broken" };
   if (quests === undefined && unreachable) return { kind: "connecting" };
   return quests;
+}
+
+function useLiveCollection(asking: boolean, unreachable: boolean): CollectionShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { collection: { query: api.website.collection.getCollection, args: {} } } : {}), [asking]);
+  const { collection } = useQueries(request);
+  if (collection instanceof Error) return { kind: "broken" };
+  if (collection === undefined && unreachable) return { kind: "connecting" };
+  return collection;
 }
 
 function useLiveBook(asking: boolean, unreachable: boolean): BookShown | undefined {
