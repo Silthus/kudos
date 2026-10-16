@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { tiersEarned } from "./book/progress";
 import { landOnHoggieTile, markLanded } from "./book/spread/landing";
-import { collectionFixtures, fixedCollection } from "./collectionFixtures";
-import type { Collection, MyCollection } from "./collectionRead";
+import { collectionFixtures } from "./collectionFixtures";
+import type { Collection, CollectionShown } from "./collectionRead";
 import { markSeen } from "./crates/seen";
 import { shellFixtures, type MemberProfile } from "./shell";
 import { renderApp } from "./test/renderApp";
@@ -38,8 +38,8 @@ function address() {
   return window.location.pathname + window.location.search + window.location.hash;
 }
 
-function showBook(member: MemberProfile, collection: MyCollection = theCollection, commands: Parameters<typeof renderApp>[2] = {}) {
-  return renderApp(member, undefined, commands, undefined, fixedBook(theBook), undefined, undefined, undefined, undefined, undefined, undefined, fixedCollection(collection));
+function showBook(member: MemberProfile, collection: CollectionShown = theCollection, commands: Parameters<typeof renderApp>[2] = {}) {
+  return renderApp(member, undefined, commands, undefined, fixedBook(theBook), undefined, undefined, undefined, undefined, undefined, undefined, (asking) => (asking ? collection : undefined));
 }
 
 function main() {
