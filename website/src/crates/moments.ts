@@ -46,7 +46,7 @@ export function useMoments() {
   return useContext(MomentsContext);
 }
 
-type Commands = Pick<ShellActions, "openFeature" | "openQuestCrate">;
+type Commands = Pick<ShellActions, "openFeature" | "openQuestCrate" | "openCrate">;
 
 type Shown = { signedOut: boolean; crates: string[] | undefined; onQuests: boolean };
 
@@ -86,7 +86,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   onQuestsNow.current = onQuests;
 
   const queue = useCallback((crate: ReadyCrate, fromQuests: boolean, drop: Drop | null, climb: Climb | undefined) => {
-    const seenBefore = hasSeen(crate.seen);
+    const seenBefore = crate.kind !== "bought" && hasSeen(crate.seen);
     setReveals((queued) => (queued.some((shown) => shown.crate.seen === crate.seen) ? queued : [...queued, { crate, seenBefore, fromQuests, drop }]));
     if (!seenBefore) setFlights((queued) => (queued.some((flying) => flying.crate.seen === crate.seen) ? queued : [...queued, flightOf(crate, climb)]));
   }, []);
@@ -101,7 +101,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
       attemptIs(seen, "opening");
       setAnnouncement("");
       try {
-        const answer = await (crate.kind === "feature" ? commands.openFeature(crate.card.feature) : commands.openQuestCrate(crate.quest));
+        const answer = await sendOpen(commands, crate);
         if (session.current !== sentIn) return;
         if (answer.kind === "opened") queue(crate, fromQuests, dropOf(answer), climbOf(answer));
         if (answer.kind === "opened" && crate.kind === "feature") setPopIns((waiting) => [...waiting, popInKey(crate.card.feature, "entry"), popInKey(crate.card.feature, "chip")]);
@@ -133,7 +133,7 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   const land = useCallback((crate: ReadyCrate) => setFlights((queued) => (queued[0]?.crate.seen === crate.seen ? queued.slice(1) : queued)), []);
 
   const finish = useCallback((crate: ReadyCrate, drop: Drop | null) => {
-    markSeen(crate.seen);
+    if (crate.kind !== "bought") markSeen(crate.seen);
     setAnnouncement(openedAnnouncementOf(crate, drop));
   }, []);
 
@@ -171,6 +171,11 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     popsIn: (feature, where) => popIns.includes(popInKey(feature, where)),
     poppedIn: (feature, where) => setPopIns((waiting) => waiting.filter((key) => key !== popInKey(feature, where))),
   };
+}
+
+function sendOpen(commands: Commands, crate: ReadyCrate) {
+  if (crate.kind === "feature") return commands.openFeature(crate.card.feature);
+  return crate.kind === "quest" ? commands.openQuestCrate(crate.quest) : commands.openCrate(crate.crate);
 }
 
 function uncharted({ setOut, reward }: Flight) {
@@ -214,7 +219,7 @@ export function questCrateHomeAttributes(seen: string | null) {
 }
 
 function openedAnnouncementOf(crate: ReadyCrate, drop: Drop | null) {
-  const opened = crate.kind === "feature" ? `You opened ${crate.card.name}.` : questOpenedWordsOf(crate);
+  const opened = crate.kind === "feature" ? `You opened ${crate.card.name}.` : crate.kind === "quest" ? questOpenedWordsOf(crate) : "You opened a crate you bought.";
   return drop === null ? opened : `${opened} ${foundWordsOf(drop)}`;
 }
 
@@ -231,7 +236,7 @@ function foundWordsOf(drop: Drop) {
 }
 
 function focusCrateHomeOrTitle(crate: ReadyCrate) {
-  const selector = crate.kind === "feature" ? `[data-feature-card="${crate.card.feature}"]` : `[data-quest-crate="${crate.seen}"]`;
+  const selector = crate.kind === "feature" ? `[data-feature-card="${crate.card.feature}"]` : crate.kind === "quest" ? `[data-quest-crate="${crate.seen}"]` : `[data-crate-target="${crate.crate}"]`;
   const home = document.querySelector<HTMLElement>(`main ${selector}`);
   if (home === null) focusPageTitle();
   else home.focus();

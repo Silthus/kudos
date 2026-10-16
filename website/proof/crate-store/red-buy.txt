@@ -1,0 +1,448 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/crate-store/website
+
+ ❯ |website| src/crateStore.test.tsx (12 tests | 11 failed) 4369ms
+   ❯ #469: the Collection offers a crate for coins (12)
+     × offers Buy a crate · 50 coins under a Crates heading with its one line, while the store is open and nothing waits 152ms
+     × offers no Buy while coins are hidden, and still lists the crates waiting 25ms
+     × disables Buy with the shortfall hint while the member is short, keeping it focusable with the hint as its description 33ms
+     × sends buyCrate once with the store's next, reads Buying… until the answer, says You bought a crate, and the coins chip counts down with the read 31ms
+     × offers again with the read's fresh next after stale, saying the offer changed 18ms
+     × says That couldn't be bought. Not enough coi… after { kind: 'refused', reason: 'no-coins' }, and offers again 22ms
+     × says That couldn't be bought. Open Coins fir… after { kind: 'refused', …(1) }, and offers again 21ms
+     × says That couldn't be bought right now. after null, and offers again 31ms
+     × says That couldn't be bought right now. after { kind: 'closed' }, and offers again 22ms
+     × says HedgeHug couldn't be reached when the send fails 22ms
+     × moves focus to the bought crate's Open once the read lists it 16ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/crateStore.test.tsx > #469: the Collection offers a crate for coins > offers Buy a crate · 50 coins under a Crates heading with its one line, while the store is open and nothing waits
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Crates"
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33maria-busy[39m=[32m"true"[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33maria-hidden[39m=[32m"true"[39m
+    [33mclass[39m=[32m"grid gap-6 lg:items-start "[39m
+    [33mdata-loading-placeholder[39m=[32m"column"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex min-w-0 flex-col gap-6 mx-auto w-full max-w-3xl"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-md bg-muted h-9 w-44"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col gap-3 py-4"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-3 w-20"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-9 w-64 max-w-full"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-4 w-full max-w-xl"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted mt-1 h-10 w-52"[39m
+        [36m/>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-lg border bg-card h-36"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-lg border bg-card h-36"[39m
+      [36m/>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ crates src/crateStore.test.tsx:25:25
+     23|
+     24| function crates() {
+     25|   return within(main()).getByRole("region", { name: "Crates" });
+       |                         ^
+     26| }
+     27|
+ ❯ src/crateStore.test.tsx:67:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  |website| src/crateStore.test.tsx > #469: the Collection offers a crate for coins > offers no Buy while coins are hidden, and still lists the crates waiting
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Crates"
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33maria-busy[39m=[32m"true"[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33maria-hidden[39m=[32m"true"[39m
+    [33mclass[39m=[32m"grid gap-6 lg:items-start "[39m
+    [33mdata-loading-placeholder[39m=[32m"column"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex min-w-0 flex-col gap-6 mx-auto w-full max-w-3xl"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-md bg-muted h-9 w-44"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col gap-3 py-4"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-3 w-20"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-9 w-64 max-w-full"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-4 w-full max-w-xl"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted mt-1 h-10 w-52"[39m
+        [36m/>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-lg border bg-card h-36"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-lg border bg-card h-36"[39m
+      [36m/>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ crates src/crateStore.test.tsx:25:25
+     23|
+     24| function crates() {
+     25|   return within(main()).getByRole("region", { name: "Crates" });
+       |                         ^
+     26| }
+     27|
+ ❯ src/crateStore.test.tsx:83:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  |website| src/crateStore.test.tsx > #469: the Collection offers a crate for coins > disables Buy with the shortfall hint while the member is short, keeping it focusable with the hint as its description
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Crates"
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33maria-busy[39m=[32m"true"[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33maria-hidden[39m=[32m"true"[39m
+    [33mclass[39m=[32m"grid gap-6 lg:items-start "[39m
+    [33mdata-loading-placeholder[39m=[32m"column"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex min-w-0 flex-col gap-6 mx-auto w-full max-w-3xl"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-md bg-muted h-9 w-44"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col gap-3 py-4"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-3 w-20"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-9 w-64 max-w-full"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-4 w-full max-w-xl"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted mt-1 h-10 w-52"[39m
+        [36m/>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-lg border bg-card h-36"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-lg border bg-card h-36"[39m
+      [36m/>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ crates src/crateStore.test.tsx:25:25
+     23|
+     24| function crates() {
+     25|   return within(main()).getByRole("region", { name: "Crates" });
+       |                         ^
+     26| }
+     27|
+ ❯ buyButton src/crateStore.test.tsx:29:17
+ ❯ src/crateStore.test.tsx:90:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  |website| src/crateStore.test.tsx > #469: the Collection offers a crate for coins > sends buyCrate once with the store's next, reads Buying… until the answer, says You bought a crate, and the coins chip counts down with the read
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Crates"
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33maria-busy[39m=[32m"true"[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33maria-hidden[39m=[32m"true"[39m
+    [33mclass[39m=[32m"grid gap-6 lg:items-start "[39m
+    [33mdata-loading-placeholder[39m=[32m"column"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex min-w-0 flex-col gap-6 mx-auto w-full max-w-3xl"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-md bg-muted h-9 w-44"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col gap-3 py-4"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-3 w-20"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-9 w-64 max-w-full"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-4 w-full max-w-xl"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted mt-1 h-10 w-52"[39m
+        [36m/>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-lg border bg-card h-36"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-lg border bg-card h-36"[39m
+      [36m/>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ crates src/crateStore.test.tsx:25:25
+     23|
+     24| function crates() {
+     25|   return within(main()).getByRole("region", { name: "Crates" });
+       |                         ^
+     26| }
+     27|
+ ❯ buyButton src/crateStore.test.tsx:29:17
+ ❯ src/crateStore.test.tsx:103:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  |website| src/crateStore.test.tsx > #469: the Collection offers a crate for coins > offers again with the read's fresh next after stale, saying the offer changed
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Crates"
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m/>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ crates src/crateStore.test.tsx:25:25
+     23|
+     24| function crates() {
+     25|   return within(main()).getByRole("region", { name: "Crates" });
+       |                         ^
+     26| }
+     27|
+ ❯ buyButton src/crateStore.test.tsx:29:17
+ ❯ src/crateStore.test.tsx:126:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  |website| src/crateStore.test.tsx > #469: the Collection offers a crate for coins > says That couldn't be bought. Not enough coi… after { kind: 'refused', reason: 'no-coins' }, and offers again
+ FAIL  |website| src/crateStore.test.tsx > #469: the Collection offers a crate for coins > says That couldn't be bought. Open Coins fir… after { kind: 'refused', …(1) }, and offers again
+ FAIL  |website| src/crateStore.test.tsx > #469: the Collection offers a crate for coins > says That couldn't be bought right now. after null, and offers again
+ FAIL  |website| src/crateStore.test.tsx > #469: the Collection offers a crate for coins > says That couldn't be bought right now. after { kind: 'closed' }, and offers again
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Crates"
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33maria-busy[39m=[32m"true"[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33maria-hidden[39m=[32m"true"[39m
+    [33mclass[39m=[32m"grid gap-6 lg:items-start "[39m
+    [33mdata-loading-placeholder[39m=[32m"column"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex min-w-0 flex-col gap-6 mx-auto w-full max-w-3xl"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-md bg-muted h-9 w-44"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col gap-3 py-4"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-3 w-20"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-9 w-64 max-w-full"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-4 w-full max-w-xl"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted mt-1 h-10 w-52"[39m
+        [36m/>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-lg border bg-card h-36"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-lg border bg-card h-36"[39m
+      [36m/>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ crates src/crateStore.test.tsx:25:25
+     23|
+     24| function crates() {
+     25|   return within(main()).getByRole("region", { name: "Crates" });
+       |                         ^
+     26| }
+     27|
+ ❯ buyButton src/crateStore.test.tsx:29:17
+ ❯ src/crateStore.test.tsx:145:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  |website| src/crateStore.test.tsx > #469: the Collection offers a crate for coins > says HedgeHug couldn't be reached when the send fails
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Crates"
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33maria-busy[39m=[32m"true"[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m>[39m
+  [36m<div[39m
+    [33maria-hidden[39m=[32m"true"[39m
+    [33mclass[39m=[32m"grid gap-6 lg:items-start "[39m
+    [33mdata-loading-placeholder[39m=[32m"column"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex min-w-0 flex-col gap-6 mx-auto w-full max-w-3xl"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-md bg-muted h-9 w-44"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col gap-3 py-4"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-3 w-20"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-9 w-64 max-w-full"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted h-4 w-full max-w-xl"[39m
+        [36m/>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"rounded-md bg-muted mt-1 h-10 w-52"[39m
+        [36m/>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-lg border bg-card h-36"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"rounded-lg border bg-card h-36"[39m
+      [36m/>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</main>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ crates src/crateStore.test.tsx:25:25
+     23|
+     24| function crates() {
+     25|   return within(main()).getByRole("region", { name: "Crates" });
+       |                         ^
+     26| }
+     27|
+ ❯ buyButton src/crateStore.test.tsx:29:17
+ ❯ src/crateStore.test.tsx:155:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  |website| src/crateStore.test.tsx > #469: the Collection offers a crate for coins > moves focus to the bought crate's Open once the read lists it
+TestingLibraryElementError: Unable to find an accessible element with the role "region" and name "Crates"
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+[36m<main[39m
+  [33mclass[39m=[32m"mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8"[39m
+[36m/>[39m
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ crates src/crateStore.test.tsx:25:25
+     23|
+     24| function crates() {
+     25|   return within(main()).getByRole("region", { name: "Crates" });
+       |                         ^
+     26| }
+     27|
+ ❯ buyButton src/crateStore.test.tsx:29:17
+ ❯ src/crateStore.test.tsx:168:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  11 failed | 1 passed (12)
+   Start at  06:05:31
+   Duration  6.89s (tests 64%, import 17%, transform 11%, environment 6%, setup 1%)
+

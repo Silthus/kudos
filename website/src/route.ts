@@ -69,7 +69,8 @@ function pageHrefOf(route: Route) {
 function withTargetsOf(route: Route, href: string) {
   const targets = new URLSearchParams();
   if (route.page === "skills" && route.perk !== undefined) targets.set("perk", route.perk);
-  if ("crate" in route && route.crate !== undefined) targets.set("crate", crateParamOf(route.crate));
+  const crate = "crate" in route && route.crate !== undefined ? crateParamOf(route.crate) : undefined;
+  if (crate !== undefined) targets.set("crate", crate);
   if (targets.size === 0) return href;
   return `${href}${href.includes("?") ? "&" : "?"}${targets}`;
 }

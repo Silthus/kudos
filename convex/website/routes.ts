@@ -6,13 +6,17 @@ import type { pageValidator } from "./link";
 
 export type Page = Infer<typeof pageValidator>;
 
-const namedCrateValidator = v.union(...featureValidator.members, v.literal("journey"), v.literal("group"));
+const namedCrateValidator = v.union(...featureValidator.members, v.literal("journey"), v.literal("group"), v.literal("store"));
 
 type NamedCrate = Infer<typeof namedCrateValidator>;
 
 const earlierGroupCrateValidator = v.object({ kind: v.literal("group"), week: v.string() });
 
-export const crateTargetValidator = v.union(...namedCrateValidator.members, weeklyQuestValidator, earlierGroupCrateValidator);
+const boughtCrateValidator = v.object({ kind: v.literal("bought"), n: v.number() });
+
+export type BoughtCrateTarget = Infer<typeof boughtCrateValidator>;
+
+export const crateTargetValidator = v.union(...namedCrateValidator.members, weeklyQuestValidator, earlierGroupCrateValidator, boughtCrateValidator);
 
 export type CrateTarget = Infer<typeof crateTargetValidator>;
 
@@ -22,19 +26,38 @@ const weeklyCrateParam = /^weekly:(\d{4}-\d{2}-\d{2}):(\d+)$/;
 
 const earlierGroupCrateParam = /^group:(\d{4}-\d{2}-\d{2})$/;
 
-export function crateParamOf(crate: CrateTarget): string {
+const boughtCrateParam = /^bought:(\d+)$/;
+
+export function crateParamOf(crate: CrateTarget): string | undefined {
   if (typeof crate === "string") return crate;
-  return crate.kind === "weekly" ? `weekly:${crate.week}:${crate.slot}` : `group:${crate.week}`;
+  if (crate.kind === "weekly") return `weekly:${crate.week}:${crate.slot}`;
+  if (crate.kind === "group") return `group:${crate.week}`;
+  return isACrateNumber(crate.n) ? `bought:${crate.n}` : undefined;
 }
 
 export function crateTargetIn(param: string | null): CrateTarget | undefined {
   if (param === null) return undefined;
-  return namedCrates.find((crate) => crate === param) ?? weeklyCrateIn(param) ?? earlierGroupCrateIn(param);
+  return namedCrates.find((crate) => crate === param) ?? weeklyCrateIn(param) ?? earlierGroupCrateIn(param) ?? boughtCrateIn(param);
 }
 
 function weeklyCrateIn(param: string): CrateTarget | undefined {
   const weekly = weeklyCrateParam.exec(param);
   return weekly === null ? undefined : { kind: "weekly", week: weekly[1]!, slot: Number(weekly[2]) };
+}
+
+function boughtCrateIn(param: string): CrateTarget | undefined {
+  const bought = boughtCrateParam.exec(param);
+  const n = bought === null ? 0 : Number(bought[1]);
+  return isACrateNumber(n) ? { kind: "bought", n } : undefined;
+}
+
+function isACrateNumber(n: number) {
+  return Number.isSafeInteger(n) && n > 0;
+}
+
+export function boughtCrateTargetOf(crate: string): BoughtCrateTarget | undefined {
+  const target = crateTargetIn(crate);
+  return typeof target === "object" && target.kind === "bought" ? target : undefined;
 }
 
 function earlierGroupCrateIn(param: string): CrateTarget | undefined {
@@ -77,7 +100,8 @@ function searchOf(page: Page) {
   if (page.page === "leaderboard" && page.period !== "week") search.set("period", page.period);
   if (page.page === "quests" && page.quest !== undefined) search.set("quest", String(page.quest));
   if (page.page === "skillTree" && page.perk !== undefined) search.set("perk", page.perk);
-  if (page.crate !== undefined) search.set("crate", crateParamOf(page.crate));
+  const crate = page.crate === undefined ? undefined : crateParamOf(page.crate);
+  if (crate !== undefined) search.set("crate", crate);
   const query = search.toString();
   return query === "" ? "" : `?${query}`;
 }
@@ -96,6 +120,15 @@ export function questCratePageOf(quest: Quest): Page {
   if (quest.kind === "journey") return { page: "home", crate: "journey" };
   if (quest.kind === "weekly") return { page: "quests", quest: quest.slot };
   return { page: "quests", crate: "group" };
+}
+
+export function boughtCratePageOf(crate: string): Page {
+  const target = boughtCrateTargetOf(crate);
+  return target === undefined ? { page: "bookCollection" } : { page: "bookCollection", crate: target };
+}
+
+export function crateOfferPageOf(): Page {
+  return { page: "bookCollection", crate: "store" };
 }
 
 export function earlierWeekCratePageOf(quest: WeeklyQuest | GroupQuestCrate): Page {

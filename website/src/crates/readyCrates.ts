@@ -1,3 +1,4 @@
+import { boughtCrateTargetOf, type BoughtCrateTarget } from "../../../convex/website/routes";
 import { readyFeaturesOf, webPageOf } from "../features";
 import type { QuestsShown } from "../questsRead";
 import type { Screen } from "../route";
@@ -7,7 +8,9 @@ export type FeatureCrate = { kind: "feature"; card: FeatureCard; seen: string };
 
 export type QuestCrate = { kind: "quest"; quest: Quest; reward: QuestReward; seen: string };
 
-export type ReadyCrate = FeatureCrate | QuestCrate;
+export type BoughtCrate = { kind: "bought"; crate: string; target: BoughtCrateTarget; seen: string };
+
+export type ReadyCrate = FeatureCrate | QuestCrate | BoughtCrate;
 
 export type CrateFacts = { crate: Quest | null; seen: string | null; reward: QuestReward };
 
@@ -17,6 +20,18 @@ export function featureCrateOf(card: FeatureCard): FeatureCrate {
 
 export function questCrateOf({ crate, seen, reward }: CrateFacts): QuestCrate | undefined {
   return crate === null || seen === null ? undefined : { kind: "quest", quest: crate, reward, seen };
+}
+
+export function boughtCrateOf(crate: string): BoughtCrate | undefined {
+  const target = boughtCrateTargetOf(crate);
+  return target === undefined ? undefined : { kind: "bought", crate, target, seen: crate };
+}
+
+export const boughtCrateLabel = "A crate you bought";
+
+export function crateLabelOf(crate: ReadyCrate): string {
+  if (crate.kind === "feature") return `Level ${crate.card.level} unlock`;
+  return crate.kind === "quest" ? rewardLabelOf(crate) : boughtCrateLabel;
 }
 
 const rewardLabels: Record<Quest["kind"], string> = { journey: "Journey reward", weekly: "Quest reward", group: "Group quest reward" };
@@ -31,6 +46,7 @@ export function readyCratesOf(member: MemberProfile, quests: QuestsShown | undef
 
 export function isShownOn(crate: ReadyCrate, screen: Screen | undefined, quests: QuestsShown | undefined) {
   if (crate.kind === "feature") return screen === "home" || (screen !== undefined && screen === webPageOf(crate.card.feature)?.screen);
+  if (crate.kind === "bought") return screen === "book";
   if (crate.quest.kind !== "journey") return screen === "quests";
   return screen === "home" || (screen === "quests" && isTheBonus(crate, quests));
 }

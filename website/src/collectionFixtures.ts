@@ -72,11 +72,16 @@ function collectionWith(finds: Record<string, Find>, { crests }: { crests: boole
   return crests ? { ...collection, crests: catalogue.crests.map((entry) => crestOf(entry, hoggies)) } : collection;
 }
 
+const storeOffering = (next: number) => ({ price: 50, next });
+
 const everyHoggieFound = Object.fromEntries(catalogue.hoggies.map(({ hoggie }, index) => [hoggie, { count: 1 + (index % 3), firstAt: `2026-0${1 + (index % 9)}-1${index % 10}T09:00:00Z` }]));
 
 export const collectionFixtures = {
   collection: collectionWith(found),
   collectionWithoutCrests: collectionWith(found, { crests: false }),
+  withTheStore: { ...collectionWith(found), bought: ["bought:1", "bought:2"], crateStore: storeOffering(3) },
+  withTheStoreAndNothingWaiting: { ...collectionWith(found), bought: [], crateStore: storeOffering(1) },
+  withTheStoreWhileCoinsAreHidden: { ...collectionWith(found), bought: ["bought:1"], crateStore: null },
   nothingFound: collectionWith({}),
   complete: collectionWith(everyHoggieFound),
   locked: { kind: "locked", level: 4 },
@@ -93,9 +98,10 @@ export function fixtureCollectionFor(visitor: ShellState): CollectionRead {
 }
 
 function collectionAnswerFor(visitor: ShellState): MyCollection {
-  const card = visitor.kind === "member" ? visitor.features?.find(({ feature }) => feature === "book") : undefined;
+  if (visitor.kind !== "member") return collectionFixtures.notFound;
+  const card = visitor.features?.find(({ feature }) => feature === "book");
   if (card === undefined) return collectionFixtures.notFound;
   if (card.state === "locked") return { kind: "locked", level: card.level };
   if (card.state === "ready") return collectionFixtures.ready;
-  return collectionFixtures.collection;
+  return visitor.coins === null ? collectionFixtures.collection : collectionFixtures.withTheStore;
 }

@@ -1,0 +1,50 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/crate-store
+
+ ❯ |convex| convex/website/link.test.ts (18 tests | 2 failed) 103ms
+   ❯ SW11: one function builds every website link (18)
+     × a listed page links to SITE_URL plus its route: https://kudos-site.test/book/collection 12ms
+     × #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/book/collection… 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/link.test.ts > SW11: one function builds every website link > a listed page links to SITE_URL plus its route: https://kudos-site.test/book/collection
+Error: Validator error: Expected one of object, object, object, object, object, object, got `{"page":"bookCollection"}`
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:906:23
+    904|             }
+    905|             if (!isValid) {
+    906|                 throw new Error(`Validator error: Expected one of ${va…
+       |                       ^
+    907|             }
+    908|             return;
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:924:21
+ ❯ validateFunctionArgs node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2426:5
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2157:17
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:20
+ ❯ convex/website/link.test.ts:40:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |convex| convex/website/link.test.ts > SW11: one function builds every website link > #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/book/collection…
+Error: Validator error: Expected one of object, object, object, object, object, object, got `{"crate":{"kind":"bought","n":2},"page":"bookCollection"}`
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:906:23
+    904|             }
+    905|             if (!isValid) {
+    906|                 throw new Error(`Validator error: Expected one of ${va…
+       |                       ^
+    907|             }
+    908|             return;
+ ❯ validateValidator node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:924:21
+ ❯ validateFunctionArgs node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2426:5
+ ❯ Object.queryFromPath node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2157:17
+ ❯ query node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:20
+ ❯ convex/website/link.test.ts:54:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 16 passed (18)
+   Start at  06:02:50
+   Duration  1.10s (transform 62%, import 24%, tests 10%, environment 4%)
+

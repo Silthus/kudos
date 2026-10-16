@@ -117,7 +117,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
         ) : (
           <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={busy} revealing={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
             <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
-              <Page state={page} route={route} board={board} quests={quests} book={book} collection={collection} skillTree={skillTree} settings={settings} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} pendingItemPurchase={pendingItemPurchase} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onBuyItem={actions.buyItem} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} settingsActions={actions} loadoutActions={actions} onSignIn={signIn} onSignOut={actions.signOut} />
+              <Page state={page} route={route} board={board} quests={quests} book={book} collection={collection} skillTree={skillTree} settings={settings} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} pendingItemPurchase={pendingItemPurchase} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onBuyItem={actions.buyItem} onBuyCrate={actions.buyCrate} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} settingsActions={actions} loadoutActions={actions} onSignIn={signIn} onSignOut={actions.signOut} />
             </ErrorBoundary>
           </Frame>
         )}
@@ -239,6 +239,7 @@ type PageProps = {
   onChoosePeriod: (period: Period) => void;
   onBuyPerk: ShellActions["buyPerk"];
   onBuyItem: ShellActions["buyItem"];
+  onBuyCrate: ShellActions["buyCrate"];
   onSetBoardVisibility: ShellActions["setBoardVisibility"];
   onSwapQuest: ShellActions["swapQuest"];
   settingsActions: SettingsActions;
@@ -247,7 +248,7 @@ type PageProps = {
   onSignOut: () => void;
 };
 
-function Page({ state, route, board, quests, book, collection, skillTree, settings, profileCard, useRecentKudos, activity, drawSpotlight, membersShown, pendingItemPurchase, onChoosePeriod, onBuyPerk, onBuyItem, onSetBoardVisibility, onSwapQuest, settingsActions, loadoutActions, ...actions }: PageProps) {
+function Page({ state, route, board, quests, book, collection, skillTree, settings, profileCard, useRecentKudos, activity, drawSpotlight, membersShown, pendingItemPurchase, onChoosePeriod, onBuyPerk, onBuyItem, onBuyCrate, onSetBoardVisibility, onSwapQuest, settingsActions, loadoutActions, ...actions }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return <LoadingPage shape={loadingShapeOf(route)} />;
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
@@ -256,7 +257,7 @@ function Page({ state, route, board, quests, book, collection, skillTree, settin
   if (route.page === "home") return quests?.kind === "connecting" || board?.kind === "connecting" ? <ConnectingPage /> : <HomePage key={membersShown} member={state} reads={{ quests, board, card: profileCard, collection }} useRecentKudos={useRecentKudos} onBuyItem={onBuyItem} pendingPurchase={pendingItemPurchase} loadout={loadoutActions} />;
   if (route.page === "activity") return <ActivityAnswerPage filter={route.filter} activity={activity} chatUrl={state.chatUrl} {...actions} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} onSwapQuest={onSwapQuest} {...actions} />;
-  if (route.page === "book") return <BookAnswerPage member={state} book={book} collection={collection} page={route.bookPage} {...actions} />;
+  if (route.page === "book") return <BookAnswerPage member={state} book={book} collection={collection} page={route.bookPage} onBuyCrate={onBuyCrate} {...actions} />;
   if (route.page === "settings") return <SettingsAnswerPage settings={settings} actions={settingsActions} {...actions} />;
   if (route.page === "skills") return <SkillTreeAnswerPage key={membersShown} member={state} skillTree={skillTree} onBuyPerk={onBuyPerk} {...actions} />;
   if (board === undefined) return <LoadingPage shape="board" />;
@@ -291,15 +292,15 @@ function ActivityAnswerPage({ filter, activity, chatUrl, ...actions }: { filter:
 
 type Answers = { onSignIn: () => void; onSignOut: () => void };
 
-type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; collection: CollectionShown | undefined; page: BookPageId } & Answers;
+type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; collection: CollectionShown | undefined; page: BookPageId; onBuyCrate: ShellActions["buyCrate"] } & Answers;
 
-function BookAnswerPage({ member, book, collection, page, ...actions }: BookAnswerPageProps) {
+function BookAnswerPage({ member, book, collection, page, onBuyCrate, ...actions }: BookAnswerPageProps) {
   const collectionWaits = page === "collection" ? bookFeatureWaitsOf(collection, member, actions) : null;
   if (collectionWaits !== null) return collectionWaits;
   const bookWaits = bookFeatureWaitsOf(book, member, actions);
   if (bookWaits !== null) return bookWaits;
   if (book?.kind !== "book") return null;
-  return <BookPage book={book} collection={collection} page={page} chatUrl={member.chatUrl} />;
+  return <BookPage book={book} collection={collection} page={page} chatUrl={member.chatUrl} coins={member.coins} onBuyCrate={onBuyCrate} />;
 }
 
 function bookFeatureWaitsOf(answer: BookShown | CollectionShown | undefined, member: MemberProfile, actions: Answers): ReactNode | null {
