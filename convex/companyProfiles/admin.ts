@@ -1,5 +1,5 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { peopleIn, type MemberId } from "../workspace/directory";
+import { peopleIn, personFactsOf, type MemberId } from "../workspace/directory";
 import { byName, choicesFrom, type ProfileChoice } from "./links";
 import { companyProfilesIn, currentProfiles, type MatchedBy } from "./matcher";
 
@@ -50,8 +50,7 @@ export async function linkCompanyProfile(ctx: MutationCtx, workspace: string, ca
 }
 
 async function isCurrentMemberOf(ctx: QueryCtx, workspace: string, member: MemberId) {
-  const row = await ctx.db.get(member);
-  return row?.kind === "member" && row.workspace === workspace;
+  return (await personFactsOf(ctx, member))?.workspace === workspace;
 }
 
 async function isKnownProfile(ctx: QueryCtx, profile: AdminLinkTarget) {
