@@ -3,12 +3,10 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, publishedHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, openUnlockInHome, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { reachesLevel } from "../../testing/unlocks";
 import { replyPrivately } from "../feedback/replies";
-import { encodeHomeAction } from "../slack/interactivity";
-import type { Feature } from "../unlocks/feature";
 import type { QuestId } from "./pool";
 
 const now = new Date("2026-10-13T10:00:00Z");
@@ -60,7 +58,7 @@ describe("P80 P76: a member who opens Quests gets 3 quests for this week on App 
     expect(publishedHome(slack, "U_ALICE")).toContain(questsReady);
     expect(questsIn(publishedHome(slack, "U_ALICE"))).toEqual([]);
 
-    await send(t, blockActions("U_ALICE", openUnlockInHome("U_ALICE", "quests")));
+    await send(t, blockActions("U_ALICE", openUnlockInHome(slack, "U_ALICE", "quests")));
 
     const [title, ...rest] = questsIn(publishedHome(slack, "U_ALICE"));
     const goals = rest.slice(0, -1);
@@ -216,7 +214,7 @@ async function openedQuests(quests: QuestId[]) {
   await reachesLevel(t, await memberOf(t, "U_ALICE"), 3);
   await openHome(t, "U_ALICE");
   await drawFor(t, "U_ALICE", quests);
-  await send(t, blockActions("U_ALICE", openUnlockInHome("U_ALICE", "quests")));
+  await send(t, blockActions("U_ALICE", openUnlockInHome(slack, "U_ALICE", "quests")));
   return t;
 }
 
@@ -224,10 +222,6 @@ async function memberOf(t: Backend, user: string) {
   return t.run(async (ctx) => (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id);
 }
 
-function openUnlockInHome(user: string, feature: Feature) {
-  const action = encodeHomeAction({ type: "openUnlock", feature });
-  return buttonIn(publishedHomeBlocks(slack, user).filter(({ accessory }) => accessory?.action_id === action), "Open");
-}
 
 async function drawFor(t: Backend, user: string, quests: QuestId[]) {
   const slots = quests.map((quest, slot) => ({ slot, quest, reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1", feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));

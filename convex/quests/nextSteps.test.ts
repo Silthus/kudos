@@ -4,14 +4,13 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, buttonInHome, openUnlockInHome, publishedHome, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, memberEvent, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { reachesLevel } from "../../testing/unlocks";
 import { internal } from "../_generated/api";
 import type { DomainEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import { standingOf } from "../progression/progression";
-import { encodeHomeAction } from "../slack/interactivity";
 import type { Feature } from "../unlocks/feature";
 import type { MemberId } from "../workspace/directory";
 import type { QuestId } from "./pool";
@@ -63,7 +62,7 @@ describe("P88 P89: opening Quests or the Leaderboard shows its Journey step, and
     expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([firstThanksDone]);
     await drawFor(t, "U_ALICE", ["say-why", "say-why-twice", "say-why-three-times"]);
 
-    await click(t, "U_ALICE", openUnlockInHome("U_ALICE", "quests"));
+    await click(t, "U_ALICE", openUnlockInHome(slack, "U_ALICE", "quests"));
 
     expect(journeyIn(publishedHome(slack, "U_ALICE"))).toEqual([firstThanksDone, firstQuestActive]);
 
@@ -382,10 +381,6 @@ async function click(t: Backend, user: string, action: ReturnType<typeof buttonI
   await settle(t);
 }
 
-function openUnlockInHome(user: string, feature: Feature) {
-  const action = encodeHomeAction({ type: "openUnlock", feature });
-  return buttonIn(publishedHomeBlocks(slack, user).filter(({ accessory }) => accessory?.action_id === action), "Open");
-}
 
 function journeyIn(home: string[]) {
   const start = home.findIndex((line) => line.includes("*Journey:*"));

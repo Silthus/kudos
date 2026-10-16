@@ -30,7 +30,7 @@ export const schedule = {
   ],
 } as const satisfies { version: string; features: readonly ScheduledFeature[] };
 
-export const startingLevel = 1;
+const startingLevel = 1;
 
 export function readyFromTheStart({ level }: Pick<ScheduledFeature, "level">): boolean {
   return level <= startingLevel;

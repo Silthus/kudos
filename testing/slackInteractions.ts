@@ -67,6 +67,11 @@ export function buttonInHome(slack: FakeSlack, user: string, label: string): Blo
   return buttonIn(publishedHomeBlocks(slack, user), label);
 }
 
+export function openUnlockInHome(slack: FakeSlack, user: string, feature: string): BlockAction {
+  const command = JSON.stringify({ type: "openUnlock", feature });
+  return buttonIn(publishedHomeBlocks(slack, user).filter(({ accessory }) => accessory?.value === command), "Open");
+}
+
 export function channelPickerInHome(slack: FakeSlack, user: string, channel: string | null): BlockAction {
   const picker = publishedHomeBlocks(slack, user)
     .flatMap(elementsOf)

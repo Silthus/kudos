@@ -4,7 +4,7 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, publishedHomeBlocks } from "../../testing/slackInteractions";
+import { blockActions, openUnlockInHome } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { reachesLevel } from "../../testing/unlocks";
 import { internal } from "../_generated/api";
@@ -115,16 +115,11 @@ async function openedQuests(quests: QuestId[]) {
   await t.fetch("/slack/events", await signedRequest(appHomeOpened("U_ALICE")));
   await settle(t);
   await drawFor(t, "U_ALICE", quests);
-  await t.fetch("/slack/interactivity", await signedRequest(blockActions("U_ALICE", questsOpenInHome()), { contentType: "application/x-www-form-urlencoded" }));
+  await t.fetch("/slack/interactivity", await signedRequest(blockActions("U_ALICE", openUnlockInHome(slack, "U_ALICE", "quests")), { contentType: "application/x-www-form-urlencoded" }));
   await settle(t);
   return t;
 }
 
-function questsOpenInHome() {
-  const command = JSON.stringify({ type: "openUnlock", feature: "quests" });
-  const block = publishedHomeBlocks(slack, "U_ALICE").find((candidate) => candidate.accessory?.value === command);
-  return buttonIn([block!], "Open");
-}
 
 function memberOf(t: Backend, user: string) {
   return t.run(async (ctx) => (await ctx.db.query("members").collect()).find((row) => row.user === user)!._id);

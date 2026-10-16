@@ -110,6 +110,18 @@ describe("unlock schedule 2: the Book at level 1, the Leaderboard at level 2, Qu
     expect(dmsTo("U_CAROL")).toEqual([]);
   });
 
+  test("a person the directory doesn't know yet signs in to the website, and once Slack verifies them they read the Book ready, and no DM names it", async () => {
+    vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
+    const t = await journeyShippedBeforeAnyoneJoined(await workspace());
+    await switchWebsite(t, postHog, true, ...everyFlag);
+
+    const { asSignedIn } = await aSignedInSession(t, { user: "U_CAROL", name: "Carol" });
+    await settle(t);
+
+    expect(await asSignedIn.query(api.website.book.getBook, {})).toEqual({ kind: "ready" });
+    expect(dmsTo("U_CAROL")).toEqual([]);
+  });
+
   test("a level 2 member who opened Quests under schedule 1 keeps them open; the sweep makes the Book and the Leaderboard ready and its DM names the Leaderboard alone", async () => {
     const t = await workspace();
     await giveKudos(t, "U_ALICE", "U_BOB", 2);

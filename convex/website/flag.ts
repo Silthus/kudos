@@ -41,10 +41,18 @@ export async function workspaceLaunchDueIn(ctx: QueryCtx, workspace: string): Pr
 }
 
 async function runDueMoments(ctx: MutationCtx, member: MemberId) {
-  if (await workspaceLaunchDueIn(ctx, (await chatUserOf(ctx, member)).workspace)) return;
+  if (await launchDueFor(ctx, member)) return;
   await unlocksPreviewedBy(ctx, member);
   await journeyPreviewedBy(ctx, member);
   await readyFromTheStartOnTheWebsite(ctx, member);
+}
+
+export async function readyFromTheStartOnceVerified(ctx: MutationCtx, member: MemberId) {
+  if (!(await launchDueFor(ctx, member))) await readyFromTheStartOnTheWebsite(ctx, member);
+}
+
+async function launchDueFor(ctx: MutationCtx, member: MemberId) {
+  return workspaceLaunchDueIn(ctx, (await chatUserOf(ctx, member)).workspace);
 }
 
 async function websiteFlagThrough(ctx: QueryCtx | MutationCtx, read: typeof workspaceDecision): Promise<boolean> {

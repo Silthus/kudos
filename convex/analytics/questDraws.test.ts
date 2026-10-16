@@ -5,7 +5,7 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsFromPostHog, offForEveryone, onForEveryone, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, buttonInHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, buttonInHome, openUnlockInHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import crons from "../crons";
@@ -178,7 +178,7 @@ describe("O10: a draw and a swap carry only pool IDs", () => {
     await giveKudos(t, people.giver, people.recipient, saysWhy, team);
     await reachesLevelThree(t, people.giver, team);
     await openHome(t, people.giver, team);
-    await send(t, blockActions(people.giver, questsOpenInHome(people.giver), { team }));
+    await send(t, blockActions(people.giver, openUnlockInHome(slack, people.giver, "quests"), { team }));
     await send(t, blockActions(people.giver, buttonInHome(slack, people.giver, "Swap"), { team }));
 
     expect(questsDrawn().length).toBeGreaterThan(0);
@@ -204,7 +204,7 @@ async function openQuests(t: Backend) {
   await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
   await reachesLevelThree(t, "U_ALICE");
   await openHome(t, "U_ALICE");
-  await send(t, blockActions("U_ALICE", questsOpenInHome("U_ALICE")));
+  await send(t, blockActions("U_ALICE", openUnlockInHome(slack, "U_ALICE", "quests")));
 }
 
 async function reachesLevelThree(t: Backend, user: string, workspace = "T1") {
@@ -214,11 +214,6 @@ async function reachesLevelThree(t: Backend, user: string, workspace = "T1") {
   await settled(t);
 }
 
-function questsOpenInHome(user: string) {
-  const command = JSON.stringify({ type: "openUnlock", feature: "quests" });
-  const block = publishedHomeBlocks(slack, user).find((candidate) => candidate.accessory?.value === command);
-  return buttonIn([block!], "Open");
-}
 
 async function openedQuestsWithAFeasibleReplacement() {
   const t = await workspace();
