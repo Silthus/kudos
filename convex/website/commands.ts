@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { runCommand } from "../commands/commands";
+import type { SelfLinkRefusal } from "../companyProfiles/links";
 import { republish } from "../feedback/homes";
 import { countingGroupsOf, groupsShownTo, primaryGroupOf } from "../groups/groups";
 import { messageSettingsOnFor } from "../messageSettings/flag";
@@ -58,6 +59,8 @@ export type VisibilityAnswer = { kind: "set"; visible: boolean } | { kind: "refu
 export type MessageSettingAnswer = { kind: "set"; place: MessagePlace } | { kind: "refused" };
 
 export type GroupPickAnswer = { kind: "picked"; group: string } | { kind: "refused" };
+
+export type CompanyProfileLinkAnswer = { kind: "linked" } | { kind: "refused"; reason: SelfLinkRefusal | null };
 
 export type AvatarAnswer = { kind: "set"; avatar: Avatar | null } | { kind: "refused" };
 
@@ -245,6 +248,15 @@ export const setMessageSetting = memberMutation({
     const stored = await placeOf(ctx, me.member, kind);
     if (stored !== before) await republish(ctx, me.member);
     return stored === place ? { kind: "set", place } : refused;
+  },
+});
+
+export const linkMyCompanyProfile = memberMutation({
+  args: { profile: v.union(v.number(), v.null()) },
+  handler: async (ctx, me, person, { profile }): Promise<CompanyProfileLinkAnswer> => {
+    const outcome = await runCommand(ctx, me.workspace, person, { type: "linkMyCompanyProfile", profile }, `website:linkMyCompanyProfile:${me.member}`);
+    if (outcome === null || !("profile" in outcome)) return { kind: "refused", reason: null };
+    return outcome.kind === "linked" ? { kind: "linked" } : { kind: "refused", reason: outcome.reason };
   },
 });
 

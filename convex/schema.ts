@@ -83,6 +83,17 @@ export default defineSchema({
     asOf: v.number(),
   }).index("by_team", ["team"]),
 
+  companyProfileLinks: defineTable({
+    workspace: v.string(),
+    member: v.id("members"),
+    profile: v.union(v.number(), v.null()),
+    by: v.union(v.literal("self"), v.literal("admin")),
+    setBy: v.id("members"),
+    at: v.number(),
+  })
+    .index("by_member", ["workspace", "member", "by"])
+    .index("by_profile", ["workspace", "profile"]),
+
   slackReceipts: defineTable({
     workspace: v.string(),
     eventId: v.string(),

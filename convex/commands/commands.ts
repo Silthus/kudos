@@ -21,6 +21,8 @@ import { perkValidator } from "../progression/tree";
 import { openQuestCrate } from "../quests/open";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { rerollQuest } from "../quests/weekly";
+import { teamPagesApplyTo } from "../companyProfiles/flag";
+import { linkMyCompanyProfile, type SelfLinkOutcome } from "../companyProfiles/links";
 import { setAvatar } from "../hoggies/avatar";
 import { avatarShownTo } from "../hoggies/flag";
 import { buyCrate, openCrate } from "../hoggies/boughtCrates";
@@ -57,11 +59,12 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("buyCrate"), next: v.number() }),
   v.object({ type: v.literal("openCrate"), crate: v.string() }),
   v.object({ type: v.literal("setAvatar"), hoggie: v.union(v.string(), v.null()) }),
+  v.object({ type: v.literal("linkMyCompanyProfile"), profile: v.union(v.number(), v.null()) }),
 );
 
 export type Command = Infer<typeof commandValidator>;
 
-export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | LoadoutOutcome | CratePurchaseOutcome | null;
+export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | LoadoutOutcome | CratePurchaseOutcome | SelfLinkOutcome | null;
 
 export function commandOf(candidate: unknown): Command | null {
   return conforms(commandValidator, candidate) ? (candidate as Command) : null;
@@ -138,6 +141,8 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     case "setAvatar":
       await setAvatar(ctx, member, command.hoggie);
       return null;
+    case "linkMyCompanyProfile":
+      return (await teamPagesApplyTo(ctx, member)) ? linkMyCompanyProfile(ctx, member, command.profile) : null;
     case "equip":
       return equip(ctx, member, command.item, command.slot);
     case "takeOff":
