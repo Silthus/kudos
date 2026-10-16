@@ -9,7 +9,8 @@ The proof for WS341's Character side and in-place equipping. The screenshots com
 - [`refutation-no-gate.txt`](refutation-no-gate.txt): the gate replaced by `true`. With quests on and no Journey launch, or achievements on and no Book launch, equip answered `equipped`, and 2 tests failed.
 - [`red-website.txt`](red-website.txt): `website/src/characterPanel.test.tsx` on `main`'s tree, 27 of 27 failing.
 - [`red-review-round-1.txt`](red-review-round-1.txt): the review's race findings as tests before their fix, 3 failing: a late answer closing a newer picker or slot choice, and a second command sent after switching sides.
-- [`gate.txt`](gate.txt): `pnpm gate` on the tree merged with the latest `main`: 4623 of 4624 tests passing, with one load timeout in an unrelated sweep test that passes alone; the typecheck and Coherence's checks pass. CI's gate on the PR head is the final word.
+- [`gate.txt`](gate.txt): `pnpm gate` green on the tree merged with the latest `main` (with #292's Buy): 4711 tests, the typecheck, and Coherence's checks.
+- [`red-merge-292.txt`](red-merge-292.txt): Sol's read of the #292 merge as 2 failing tests: a stale purchase line during a retry, and a purchase lost across a turn to the Character side. Both pass after the fix.
 - [`green-website.txt`](green-website.txt): that file and #283's `inventory.test.tsx` after the review fixes, 51 of 51 passing.
 
 ## Screenshots
