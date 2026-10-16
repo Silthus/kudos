@@ -20,7 +20,7 @@ export const kudosGivenEventValidator = v.object({
   message: messageRefValidator,
   giver: v.id("members"),
   awards: v.array(awardValidator),
-  via: v.union(v.literal("message"), v.literal("chime-in")),
+  via: v.literal("message"),
   kudosEmoji: v.string(),
   loadoutEmoji: v.optional(v.array(v.string())),
   annotations: annotationsValidator,
@@ -227,6 +227,18 @@ export const crateBoughtEventValidator = v.object({ type: v.literal("crateBought
 
 export type CrateBoughtEvent = Infer<typeof crateBoughtEventValidator>;
 
+export const starGivenEventValidator = v.object({
+  type: v.literal("starGiven"),
+  workspace: v.string(),
+  giver: v.id("members"),
+  message: messageRefValidator,
+  onKudos: v.boolean(),
+  at: v.number(),
+  day: v.string(),
+});
+
+export type StarGivenEvent = Infer<typeof starGivenEventValidator>;
+
 export type DomainEvent =
   | KudosGivenEvent
   | AttemptFailedEvent
@@ -250,7 +262,8 @@ export type DomainEvent =
   | PrimaryGroupChangedEvent
   | AwardsAttributedEvent
   | HoggieDroppedEvent
-  | CrateBoughtEvent;
+  | CrateBoughtEvent
+  | StarGivenEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];

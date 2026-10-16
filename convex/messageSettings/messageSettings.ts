@@ -3,6 +3,7 @@ import { bookAppliesIn } from "../achievements/flag";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
 import { questsApplyTo } from "../quests/flag";
+import { starsShownTo } from "../stars/flag";
 import { unlocksAppliedTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
 import { coinsVisibleTo } from "../wallet/visibility";
@@ -23,6 +24,7 @@ const appliesWhile: Record<MessageKind, Applies> = {
   quests: (ctx, member) => questsApplyTo(ctx, member),
   achievements: async (ctx, member, workspace) => (await bookAppliesIn(ctx, workspace)) && (await stateOf(ctx, member, "book")) === "open",
   celebrations: (ctx, _, workspace) => xpLevelsShownIn(ctx, workspace),
+  "stars-recap": (ctx, member) => starsShownTo(ctx, member),
 };
 
 export async function messageSettingsOf(ctx: QueryCtx, member: MemberId): Promise<MessageSetting[]> {

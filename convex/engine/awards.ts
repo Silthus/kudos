@@ -105,6 +105,30 @@ export async function awardsOfMessage(ctx: QueryCtx, { workspace, conversation, 
   return awards.map(({ _id, giver, recipient, kudos, day, at }) => ({ award: _id, giver, recipient, kudos, day, at }));
 }
 
+export async function authorOfGiven(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<MemberId | null> {
+  const award = await ctx.db
+    .query("awards")
+    .withIndex("by_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
+    .first();
+  return award?.giver ?? null;
+}
+
+export async function receivedOn(ctx: QueryCtx, { workspace, conversation, message }: MessageRef, member: MemberId): Promise<boolean> {
+  const award = await ctx.db
+    .query("awards")
+    .withIndex("by_message_recipient", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message).eq("recipient", member))
+    .first();
+  return award !== null;
+}
+
+export async function recipientsPageOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef, page: PaginationOptions): Promise<PaginationResult<MemberId>> {
+  const result = await ctx.db
+    .query("awards")
+    .withIndex("by_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
+    .paginate(page);
+  return { ...result, page: result.page.map(({ recipient }) => recipient) };
+}
+
 export async function dayThankedBefore(ctx: QueryCtx, award: AwardId): Promise<DayKey | null> {
   const current = await ctx.db.get(award);
   if (current === null) return null;
