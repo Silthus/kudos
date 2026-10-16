@@ -146,7 +146,7 @@ function linkButtonOf({ label, url }: { label: string; url: string }, index: num
 function pickerOf({ id, placeholder, options }: Extract<HomeLine, { kind: "pick" }>) {
   const selectOptions = options.map(({ label, command }) => ({ text: plainText(label), value: encodeHomeAction(command) }));
   const initial = options.findIndex(({ selected }) => selected);
-  return { type: "static_select", action_id: id, placeholder: plainText(placeholder), options: selectOptions, ...(initial >= 0 && { initial_option: selectOptions[initial] }) };
+  return { type: "static_select", action_id: id, placeholder: plainText(placeholder), ...optionListsOf(selectOptions, "Options"), ...(initial >= 0 && { initial_option: selectOptions[initial] }) };
 }
 
 function channelPickerOf({ picks, picked }: Extract<HomeLine, { kind: "pick-channel" }>) {

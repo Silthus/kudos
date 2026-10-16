@@ -219,8 +219,6 @@ function hoggiesLinesOf(hoggies: HoggiesShown | null, website: string | null): H
   return [[line, ...avatarLinesOf(hoggies.avatar, website), ...crateOfferLines(hoggies.crateStore, website)]];
 }
 
-const avatarOptionsShown = 100;
-
 function avatarLinesOf(choice: AvatarChoice | null, website: string | null): HomeLine[] {
   if (choice === null) return [];
   const { avatar, held } = choice;
@@ -229,7 +227,7 @@ function avatarLinesOf(choice: AvatarChoice | null, website: string | null): Hom
   const none: Choice[] = avatar === null ? [] : [{ label: "No avatar", command: { type: "setAvatar", hoggie: null }, selected: false }];
   const options = held.map((hoggie): Choice => ({ label: hoggieLabel(hoggie), command: { type: "setAvatar", hoggie: hoggie.hoggie }, selected: hoggie.hoggie === avatar?.hoggie }));
   const text = avatar === null ? "Pick a hoggie you hold as your avatar." : avatarText(avatar);
-  return [{ kind: "pick", id: "setAvatar", text, placeholder: "Use as avatar", options: [...none, ...options].slice(0, avatarOptionsShown) }];
+  return [{ kind: "pick", id: "setAvatar", text, placeholder: "Use as avatar", options: [...none, ...options] }];
 }
 
 function crateOfferLines(store: CrateStoreShown | null, website: string | null): HomeLine[] {
