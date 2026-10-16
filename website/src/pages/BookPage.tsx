@@ -14,7 +14,7 @@ type YourBook = Extract<BookAnswer, { kind: "book" }>;
 
 type YourCollection = Extract<CollectionShown, { kind: "collection" }>;
 
-type Shopping = { coins: number | null; onBuyCrate: ShellActions["buyCrate"]; avatar: Avatar | null | undefined; onSetAvatar: ShellActions["setAvatar"] };
+type Shopping = { coins: number | null; onBuyCrate: ShellActions["buyCrate"]; onOpenPack: ShellActions["openCrate"] | undefined; avatar: Avatar | null | undefined; onSetAvatar: ShellActions["setAvatar"] };
 
 type BookPageProps = { book: YourBook; collection: CollectionShown | undefined; page: BookPageId; chatUrl: string } & Shopping;
 
@@ -23,7 +23,7 @@ export function BookPage({ book, collection, page, chatUrl, ...shopping }: BookP
   return <BookPages book={book} collection={collection?.kind === "collection" ? collection : undefined} page={page} chatUrl={chatUrl} {...shopping} />;
 }
 
-function BookPages({ book, collection, page, chatUrl, coins, onBuyCrate, avatar, onSetAvatar }: { book: YourBook; collection: YourCollection | undefined; page: Exclude<BookPageId, "earned">; chatUrl: string } & Shopping) {
+function BookPages({ book, collection, page, chatUrl, coins, onBuyCrate, onOpenPack, avatar, onSetAvatar }: { book: YourBook; collection: YourCollection | undefined; page: Exclude<BookPageId, "earned">; chatUrl: string } & Shopping) {
   const wide = useWideScreen();
   const chapters = chaptersOf(book.ladders);
   const chapter = chapters.find(({ category }) => category.id === page);
@@ -34,7 +34,7 @@ function BookPages({ book, collection, page, chatUrl, coins, onBuyCrate, avatar,
     <div className="grid gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:gap-6">
       {wide ? <BookIndex {...index} /> : <BookPagePicker {...index} />}
       <div className="flex min-w-0 flex-col gap-6">
-        {onTheCollection ? <HoggieCollection collection={collection} timeZone={book.timeZone} coins={coins} buyCrate={onBuyCrate} chatUrl={chatUrl} avatar={avatar} setAvatar={onSetAvatar} /> : chapter === undefined ? <OverviewPage book={book} collection={collection} /> : <ChapterPage chapter={chapter} timeZone={book.timeZone} />}
+        {onTheCollection ? <HoggieCollection collection={collection} timeZone={book.timeZone} coins={coins} buyCrate={onBuyCrate} openPack={onOpenPack} chatUrl={chatUrl} avatar={avatar} setAvatar={onSetAvatar} /> : chapter === undefined ? <OverviewPage book={book} collection={collection} /> : <ChapterPage chapter={chapter} timeZone={book.timeZone} />}
       </div>
     </div>
   );
