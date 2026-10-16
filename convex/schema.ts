@@ -284,7 +284,6 @@ export default defineSchema({
     day: v.string(),
   })
     .index("by_message_giver", ["workspace", "conversation", "message", "giver"])
-    .index("by_message_at", ["workspace", "conversation", "message", "at"])
     .index("by_giver_day", ["giver", "day"])
     .index("by_giver_at", ["giver", "at"]),
 
@@ -299,7 +298,10 @@ export default defineSchema({
     hugs: v.number(),
     emoji: v.string(),
     at: v.number(),
+    givers: v.array(v.object({ giver: v.id("members"), at: v.number() })),
+    supersededAt: v.optional(v.number()),
   })
+    .index("by_member", ["member"])
     .index("by_member_message", ["member", "workspace", "conversation", "message"])
     .index("by_member_at", ["member", "at"]),
 

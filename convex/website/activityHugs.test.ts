@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { memberChanged, post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text, type ReactionOptions } from "../../testing/slackMessages";
 import { unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { aDeploymentForWorkspace, aSession, switchWebsite } from "../../testing/website";
@@ -17,6 +17,7 @@ const alice = { user: "U_ALICE", name: "Alice Archer" };
 const bob = { user: "U_BOB", name: "Bob Brandt" };
 const carol = { user: "U_CAROL", name: "Carol Chen" };
 const dana = { user: "U_DANA", name: "Dana Diaz" };
+const erin = { user: "U_ERIN", name: "Erin Ellis" };
 const reason = "for the calm rollback of the billing service";
 const timeline = ["activity", "xp-levels", "unlocks", "collection"];
 const minute = 60_000;
@@ -47,6 +48,11 @@ afterEach(() => {
 
 function hugsOn(on = true, ...flags: string[]) {
   return switchWebsite(t, postHog, true, ...(flags.length > 0 ? flags : timeline), ...(on ? ["hugs"] : []));
+}
+
+function slackMember(person: Someone): Someone {
+  slack.withMember(person.user, { real_name: person.name, tz: "Europe/Berlin" });
+  return person;
 }
 
 function personOf({ name }: Someone): Person {
@@ -152,11 +158,12 @@ describe("SR11: a hug on the activity timeline", () => {
     expect(given.map(({ kind }) => kind)).toEqual(["hugGiven", "hugGiven"]);
   });
 
-  test("a new hug moves its message's row to the top under the same key, and paging from a cursor never repeats a row nor skips one below it", async () => {
+  test("a new hug moves its message's row to the top under the same key, and paging from a cursor returns every row once, a row that moved since the first page at its place then", async () => {
     await hugsOn();
     const messages = ["1791970700.000100", "1791970800.000100", "1791970900.000100", "1791971000.000100"];
+    const firstHugs: number[] = [];
     for (const ts of messages) {
-      await hug(bob, alice, { ts });
+      firstHugs.push(await hug(bob, alice, { ts }));
       vi.advanceTimersByTime(minute);
     }
     const asAlice = await signedIn(alice);
@@ -172,11 +179,94 @@ describe("SR11: a hug on the activity timeline", () => {
     const rest = await activityOf(asAlice, { filter: "all", limit: 10, cursor: second.cursor });
     const fresh = await activityOf(asAlice, { filter: "all", limit: 10 });
 
-    expect([first, second, rest].map(({ entries }) => onsOf(entries))).toEqual([[m4], [m3], [m2]]);
+    expect([first, second, rest].map(({ entries }) => onsOf(entries))).toEqual([[m4], [m3], [m2, m1]]);
+    expect(rest.entries.map(({ at }) => at)).toEqual([firstHugs[1], firstHugs[0]]);
     expect(rest.cursor).toBeNull();
     expect(onsOf(fresh.entries)).toEqual([m3, m1, m4, m2]);
     expect(fresh.entries.map((entry) => (entry.kind === "hugReceived" ? entry.hugs : 0))).toEqual([2, 2, 1, 1]);
     expect(keyOf(fresh.entries[0]!)).toBe(keyOf(second.entries[0]!));
+  });
+
+  test("a hug reacted before the first page but paid after the cursor passed its new place leaves its message's row where the first page found it, so a later page returns it once", async () => {
+    await hugsOn();
+    const messages = ["1791970700.000100", "1791970800.000100", "1791970900.000100"];
+    const firstHugs: number[] = [];
+    for (const ts of messages) {
+      firstHugs.push(await hug(bob, alice, { ts }));
+      vi.advanceTimersByTime(minute);
+    }
+    const asAlice = await signedIn(alice);
+    const reactedBetween = Math.floor(firstHugs[1]! / 1000) + 30;
+    await react(t, { user: carol.user, itemUser: alice.user, ts: messages[0], eventTs: `${reactedBetween}.000200` });
+
+    const first = await activityOf(asAlice, { filter: "all", limit: 1 });
+    const second = await activityOf(asAlice, { filter: "all", limit: 1, cursor: first.cursor });
+    await settle(t);
+    const rest = await activityOf(asAlice, { filter: "all", limit: 10, cursor: second.cursor });
+
+    expect([first, second, rest].map(({ entries }) => entries.map(onOf))).toEqual([[`C1/${messages[2]}`], [`C1/${messages[1]}`], [`C1/${messages[0]}`]]);
+    expect(rest.entries.map(({ at }) => at)).toEqual([firstHugs[0]]);
+    expect((await activityOf(asAlice, { filter: "all", limit: 10 })).entries.map(onOf)).toEqual([`C1/${messages[2]}`, `C1/${messages[0]}`, `C1/${messages[1]}`]);
+  });
+
+  test("a cursor carries no hugs snapshot once hugs is off for the viewer, as main's cursors don't", async () => {
+    await hugsOn();
+    await kudos(bob, [alice], "1791970600.000100");
+    vi.advanceTimersByTime(minute);
+    await kudos(carol, [alice], "1791970650.000100");
+    vi.advanceTimersByTime(minute);
+    await hug(bob, alice);
+    const asAlice = await signedIn(alice);
+    const mainsCursor = /^-?\d+(?:\.\d+)?_[0-5]_\d+(?:\.\d+)?$/;
+
+    const on = await activityOf(asAlice, { filter: "all", limit: 1 });
+    await hugsOn(false);
+    const off = await activityOf(asAlice, { filter: "all", limit: 1, cursor: on.cursor });
+
+    expect(on.cursor).not.toMatch(mainsCursor);
+    expect(off.cursor).toMatch(mainsCursor);
+  });
+
+  test("a cursor from a page read while hugs was hidden gains a snapshot once hugs shows, so a later move skips nothing", async () => {
+    await hugsOn();
+    await kudos(bob, [alice], "1791970600.000100");
+    vi.advanceTimersByTime(minute);
+    const messages = ["1791970700.000100", "1791970800.000100"];
+    for (const ts of messages) {
+      await hug(bob, alice, { ts });
+      vi.advanceTimersByTime(minute);
+    }
+    await kudos(carol, [alice], `${Math.floor(Date.now() / 1000)}.000300`);
+    vi.advanceTimersByTime(minute);
+    const asAlice = await signedIn(alice);
+
+    await hugsOn(false);
+    const hidden = await activityOf(asAlice, { filter: "all", limit: 1 });
+    await hugsOn();
+    const shown = await activityOf(asAlice, { filter: "all", limit: 1, cursor: hidden.cursor });
+    await hug(carol, alice, { ts: messages[0] });
+    const rest = await activityOf(asAlice, { filter: "all", limit: 10, cursor: shown.cursor });
+
+    expect([hidden, shown, rest].map(({ entries }) => entries.map(({ kind }) => kind))).toEqual([["kudosReceived"], ["hugReceived"], ["hugReceived", "kudosReceived"]]);
+    expect([...shown.entries, ...rest.entries].flatMap((entry) => (entry.kind === "hugReceived" ? [entry.on] : []))).toEqual([`C1/${messages[1]}`, `C1/${messages[0]}`]);
+  });
+
+  test("a hugReceived row names only teammates whose hug paid its member", async () => {
+    await hugsOn();
+    await kudos(alice, [bob, carol]);
+    vi.advanceTimersByTime(minute);
+    await hug(dana, alice);
+    await memberChanged(t, "user_change", { id: bob.user, team_id: "T1", deleted: true });
+    await settle(t);
+    vi.advanceTimersByTime(minute);
+    await hug(slackMember(erin), alice);
+    await memberChanged(t, "user_change", { id: bob.user, team_id: "T1", real_name: bob.name, tz: "Europe/Berlin" });
+    await settle(t);
+
+    const hugsOf = async (person: Someone) => (await activityOf(await signedIn(person), { filter: "all" })).entries.flatMap((entry) => (entry.kind === "hugReceived" ? [{ givers: entry.givers.map(({ name }) => name), hugs: entry.hugs }] : []));
+
+    expect(await hugsOf(bob)).toEqual([{ givers: [dana.name], hugs: 1 }]);
+    expect(await hugsOf(carol)).toEqual([{ givers: [erin.name, dana.name], hugs: 2 }]);
   });
 
   test("a hug reacted with a custom emoji Slack lists carries its image on both rows, a skin tone included, and none once Slack no longer lists it", async () => {
@@ -402,7 +492,7 @@ describe("SR11 SR24: a page of hugs stays within Convex's limits", () => {
         await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message, giver: teammate, recipient: me, kudos: 1, day: "2026-10-14", at: at - 1 });
         const received = await ctx.db.insert("hugs", { workspace: "T1", conversation: "C1", message, giver: teammate, onKudos: true, emoji: "taco", at: at + index, day: "2026-10-14" });
         await ctx.db.insert("hugPeople", { hug: received, member: me, at: at + index });
-        await ctx.db.insert("hugsReceived", { member: me, workspace: "T1", conversation: "C1", message, onKudos: true, hugs: 1, emoji: "taco", at: at + index });
+        await ctx.db.insert("hugsReceived", { member: me, workspace: "T1", conversation: "C1", message, onKudos: true, hugs: 1, emoji: "taco", at: at + index, givers: [{ giver: teammate, at: at + index }] });
         await ctx.db.insert("awards", { workspace: "T1", conversation: "C2", message, giver: teammate, recipient: teammate, kudos: 1, day: "2026-10-14", at: at - 1 });
         await ctx.db.insert("hugs", { workspace: "T1", conversation: "C2", message, giver: me, onKudos: true, emoji: "taco", at: at + index, day: "2026-10-14" });
       }
@@ -432,7 +522,7 @@ async function aHugReceived(giver: MemberId, author: MemberId, message: string, 
   await t.run(async (ctx) => {
     const hug = await ctx.db.insert("hugs", { workspace: "T1", conversation: "C1", message, giver, onKudos: false, author, emoji: "taco", at, day: "2026-10-14" });
     await ctx.db.insert("hugPeople", { hug, member: author, at });
-    await ctx.db.insert("hugsReceived", { member: author, workspace: "T1", conversation: "C1", message, onKudos: false, hugs: 1, emoji: "taco", at });
+    await ctx.db.insert("hugsReceived", { member: author, workspace: "T1", conversation: "C1", message, onKudos: false, hugs: 1, emoji: "taco", at, givers: [{ giver, at }] });
   });
 }
 

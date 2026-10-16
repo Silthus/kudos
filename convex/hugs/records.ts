@@ -44,12 +44,19 @@ export async function insertPaid(ctx: MutationCtx, hug: Hug, member: MemberId) {
 
 export async function countReceivedOnTheMessage(ctx: MutationCtx, hug: Hug, member: MemberId) {
   const { workspace, conversation, message, onKudos, emoji, at } = hug;
-  const received = await ctx.db
+  const current = await ctx.db
     .query("hugsReceived")
     .withIndex("by_member_message", (q) => q.eq("member", member).eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
-    .unique();
-  if (received === null) await ctx.db.insert("hugsReceived", { member, workspace, conversation, message, onKudos, hugs: 1, emoji, at });
-  else await ctx.db.patch(received._id, { hugs: received.hugs + 1, ...(at >= received.at && { emoji, at }) });
+    .order("desc")
+    .first();
+  const giver = { giver: hug.giver, at };
+  const next = current === null ? { hugs: 1, emoji, at, givers: [giver] } : { hugs: current.hugs + 1, givers: newestGivers([...current.givers, giver]), ...(at >= current.at ? { emoji, at } : { emoji: current.emoji, at: current.at }) };
+  const version = await ctx.db.insert("hugsReceived", { member, workspace, conversation, message, onKudos, ...next });
+  if (current !== null) await ctx.db.patch(current._id, { supersededAt: (await ctx.db.get(version))!._creationTime });
+}
+
+function newestGivers(givers: PaidGiver[]): PaidGiver[] {
+  return givers.toSorted((one, other) => other.at - one.at).slice(0, giversShown);
 }
 
 export type TimelineHug = { message: MessageRef; onKudos: boolean; emoji: string; at: number; created: number };
@@ -58,7 +65,12 @@ export type GivenHug = TimelineHug & { people: MemberId[] };
 
 export type ReceivedHugs = TimelineHug & { hugs: number; givers: MemberId[] };
 
+type PaidGiver = { giver: MemberId; at: number };
+
+type HugsReceivedRow = Doc<"hugsReceived">;
+
 const giversShown = 5;
+
 
 export async function* hugsGivenNewestFirst(ctx: QueryCtx, giver: MemberId, before: Before): AsyncGenerator<GivenHug> {
   for (const range of rangesBefore(before)) {
@@ -70,23 +82,32 @@ export async function* hugsGivenNewestFirst(ctx: QueryCtx, giver: MemberId, befo
   }
 }
 
-export async function* hugsReceivedNewestFirst(ctx: QueryCtx, member: MemberId, before: Before): AsyncGenerator<ReceivedHugs> {
+export async function hugsReceivedSnapshot(ctx: QueryCtx, member: MemberId): Promise<number> {
+  const newest = await ctx.db
+    .query("hugsReceived")
+    .withIndex("by_member", (q) => q.eq("member", member))
+    .order("desc")
+    .first();
+  return newest?._creationTime ?? 0;
+}
+
+export async function* hugsReceivedNewestFirst(ctx: QueryCtx, member: MemberId, before: Before, snapshot: number | undefined): AsyncGenerator<ReceivedHugs> {
   for (const range of rangesBefore(before)) {
-    const rows = ctx.db
+    const versions = ctx.db
       .query("hugsReceived")
       .withIndex("by_member_at", (q) => withinRange(q.eq("member", member), range))
       .order("desc");
-    for await (const received of rows) yield { ...timelineHugOf(received), hugs: received.hugs, givers: await newestGiversOn(ctx, received) };
+    for await (const version of versions) if (isLiveAt(version, snapshot)) yield receivedHugsOf(version);
   }
 }
 
-async function newestGiversOn(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<MemberId[]> {
-  const newest = await ctx.db
-    .query("hugs")
-    .withIndex("by_message_at", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
-    .order("desc")
-    .take(giversShown);
-  return newest.map(({ giver }) => giver);
+function isLiveAt({ _creationTime, supersededAt }: HugsReceivedRow, snapshot: number | undefined): boolean {
+  if (snapshot === undefined) return supersededAt === undefined;
+  return _creationTime <= snapshot && (supersededAt === undefined || supersededAt > snapshot);
+}
+
+function receivedHugsOf(row: HugsReceivedRow): ReceivedHugs {
+  return { ...timelineHugOf(row), hugs: row.hugs, givers: row.givers.map(({ giver }) => giver) };
 }
 
 type AtIndex<Q> = { eq(field: "at", value: number): AtIndexCreated<Q>; lt(field: "at", value: number): Q } & Q;
