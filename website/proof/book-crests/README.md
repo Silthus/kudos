@@ -45,6 +45,8 @@ The sandbox runs the ship head and was not deployed. This branch's build was poi
 
 ## Review
 
+`review-final.md`: a second GPT-6.1 Sol read of the fixes since round 1 with the round-1 findings as its checklist: both resolved, no regression, ship.
+
 `review-round-1.md`: GPT-6.1 Sol (high, `codex exec --sandbox read-only`) over the diff against `main` with the ticket, the website spec, the visual language and the hoggies contract as the oracle. Two findings, both taken: the found row's text now shrinks and wraps at 390 px, and a crest tile names every roster hoggie as held or still missing.
 
 ## Calls
