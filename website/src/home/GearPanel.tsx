@@ -17,6 +17,11 @@ type GearPanelProps = { member: MemberProfile; opensOn: Side; loadout: LoadoutAc
 
 export function GearPanel({ member, opensOn, loadout, buyItem, pendingPurchase }: GearPanelProps) {
   const [{ side, turns }, setTurn] = useState<Turn>({ side: opensOn, turns: 0 });
+  const [landing, setLanding] = useState(opensOn);
+  if (opensOn !== landing) {
+    setLanding(opensOn);
+    if (opensOn === "inventory") setTurn({ side: opensOn, turns });
+  }
   const send = useLoadoutCommand();
   const kudosEmojiHeading = useRef<HTMLHeadingElement>(null);
   const [said, setSaid] = useState<Said>();

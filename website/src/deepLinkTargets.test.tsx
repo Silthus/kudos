@@ -8,7 +8,7 @@ import { fixedQuests, questsFixtures } from "./questsFixtures";
 import { fixedSettings, settingsFixtures } from "./settingsFixtures";
 import type { BoardRead } from "./boardRead";
 import type { QuestsRead, QuestsShown } from "./questsRead";
-import { shellFixtures, type MemberProfile, type MyQuests, type MySettings, type MySkillTree, type ShellState } from "./shell";
+import { shellFixtures, type ItemBuyAnswer, type MemberProfile, type MyQuests, type MySettings, type MySkillTree, type ShellState } from "./shell";
 import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
 import { fixedSkillTree, skillTreeFixtures } from "./skillTreeFixtures";
 import { renderApp } from "./test/renderApp";
@@ -512,6 +512,21 @@ describe("#531: ?panel=inventory and ?section={section} land on their heading, n
 
     expect(scrolled).toEqual([regionOf("Inventory")]);
     expect(heading("Inventory")).toHaveFocus();
+  });
+
+  it("keeps a purchase in flight when the address leaves the link", async () => {
+    let answer: (reply: ItemBuyAnswer) => void = () => undefined;
+    visit("/?panel=inventory");
+    const { user } = renderApp(shellFixtures.memberWithTheInventory, undefined, { buyItem: () => new Promise((settle) => (answer = settle)) });
+    await user.click(within(regionOf("Inventory")).getByRole("button", { name: "Buy for 100 coins, Gem" }));
+    act(() => {
+      window.history.pushState(null, "", "/");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+
+    expect(within(regionOf("Inventory")).getByRole("button", { name: "Buying…, Gem" })).toBeInTheDocument();
+    await act(async () => answer({ kind: "bought", item: "gem" }));
+    expect(within(regionOf("Inventory")).queryByRole("button", { name: "Buying…, Gem" })).not.toBeInTheDocument();
   });
 
   it.each([
