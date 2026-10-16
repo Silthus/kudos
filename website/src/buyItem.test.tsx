@@ -286,6 +286,29 @@ describe("WS87 WS341: a refusal, an error and a retry", () => {
     expect(second).toBe(first);
   });
 
+  it("keeps another item's pending request when an earlier purchase answers late, after Connecting", async () => {
+    const gemAnswer = answerLater();
+    const starFails = answerLater();
+    let questsConnecting = false;
+    const readQuests = (asking: boolean) => (questsConnecting ? ({ kind: "connecting" } as never) : asking ? { kind: "not-found" as const } : undefined);
+    const answers = [gemAnswer.answer, starFails.answer];
+    const spy = vi.fn((_: ItemPurchase) => answers.shift() ?? Promise.resolve<ItemBuyAnswer>({ kind: "refused", reason: null }));
+    const { user, showVisitor } = renderApp(memberWithTheInventory, undefined, { buyItem: spy }, readQuests);
+    await user.click(buyButtonFor("Gem"));
+    questsConnecting = true;
+    showVisitor({ ...memberWithTheInventory });
+    questsConnecting = false;
+    showVisitor({ ...memberWithTheInventory });
+
+    await user.click(buyButtonFor("Glowing Star"));
+    await gemAnswer.settle({ kind: "refused", reason: "no-coins" });
+    await starFails.fail();
+    await user.click(buyButtonFor("Glowing Star"));
+
+    const [, star, starAgain] = spy.mock.calls.map(([{ request }]) => request);
+    expect(starAgain).toBe(star);
+  });
+
   it("forgets the pending request when the signed-in member changes", async () => {
     const pending = answerLater();
     let calls = 0;

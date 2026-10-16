@@ -21,8 +21,8 @@ export function useItemPurchase(buyItem: ShellActions["buyItem"], pending: Pendi
     return pending.current;
   };
 
-  const answered = (item: InventoryItem, answer: ItemBuyAnswer) => {
-    pending.current = undefined;
+  const answered = (item: InventoryItem, purchase: ItemPurchase, answer: ItemBuyAnswer) => {
+    if (pending.current === purchase) pending.current = undefined;
     setNotice(noticeOf(item, answer));
     if (answer.kind !== "bought") return;
     setBought((earlier) => [...earlier, answer.item]);
@@ -36,7 +36,7 @@ export function useItemPurchase(buyItem: ShellActions["buyItem"], pending: Pendi
     setNotice(undefined);
     setJustBought(undefined);
     try {
-      answered(item, await buyItem(purchase));
+      answered(item, purchase, await buyItem(purchase));
     } catch {
       setNotice({ kind: "unreachable", text: attemptMessages.unreachable });
     } finally {
