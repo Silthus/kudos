@@ -35,7 +35,7 @@ function People({ people }: { people: AlbumPerson[] }) {
           </li>
         ))}
       </ul>
-      <span className="sr-only">{albumWordsOf(people)}</span>
+      <p className="text-xs leading-snug text-muted-foreground">{albumWordsOf(people)}</p>
     </>
   );
 }

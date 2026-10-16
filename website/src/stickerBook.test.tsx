@@ -71,6 +71,7 @@ describe("#555 SB11 SB13: the Collection's stickers, one of every teammate", () 
     showCollection(theBook);
     const noor = sticker("k:noor");
     expect(noor.querySelector("img")).toHaveAttribute("src", expect.stringMatching(/^data:image\/svg\+xml/));
+    expect(noor.querySelector("img")).toHaveStyle({ backgroundColor: "#f7a35c" });
     expect(within(noor).getByText("Noor Haddad")).toBeInTheDocument();
     expect(within(noor).getByText("14 Oct 2026")).toBeInTheDocument();
     expect(noor).not.toHaveAttribute("data-former");
@@ -100,6 +101,23 @@ describe("#555 SB11 SB13: the Collection's stickers, one of every teammate", () 
     expect(within(gone).getByText("A teammate")).toBeInTheDocument();
     expect(within(gone).getByText("?")).toBeInTheDocument();
     expect(gone).toHaveTextContent("28 Aug 2026");
+  });
+
+  it("says No stickers yet with Max's line and one Slack action while the book is open but holds none, with or without albums", () => {
+    showCollection(collectionFixtures.withNoStickersYet);
+    const stickers = section("Stickers");
+    expect(stickers).toHaveTextContent("0 collected");
+    expect(stickers.querySelectorAll("[data-sticker]")).toHaveLength(0);
+    expect(stickers).toHaveTextContent("No stickers yet. Thank a teammate in Slack, or get thanked, and their sticker lands here.");
+    expect(within(stickers).getByRole("link", { name: /Thank someone in Slack/ })).toHaveAttribute("href", shellFixtures.memberWithTheBookOpened.chatUrl);
+    expect(section("Your collection")).toHaveTextContent("No stickers of teammates yet");
+    expect(album("platform")).toHaveTextContent("0 of 6");
+    expect(album("platform").querySelectorAll("[data-held='held']")).toHaveLength(0);
+    cleanup();
+    showCollection(collectionFixtures.withNoStickersAndNoAlbums);
+    expect(within(section("Stickers")).getByRole("link", { name: /Thank someone in Slack/ })).toBeInTheDocument();
+    expect(within(main()).queryByRole("region", { name: "Group albums" })).not.toBeInTheDocument();
+    expect(jumpLinks().map(([name]) => name)).toEqual(["Hoggies", "Team crests", "Stickers"]);
   });
 
   it("names no sticker and no album while the answer carries none, as main does", () => {
@@ -136,8 +154,10 @@ describe("#555 SB7 SB9 SB13: group albums, one per Slack group, filled by thanki
     expect(hana.querySelector("img")).toBeNull();
     expect(hana.querySelector("[data-silhouette]")).not.toBeNull();
     expect(hana).toHaveAttribute("title", "Hana Kowalski");
-    expect(platform).toHaveTextContent("Held: Felix Brandt, Jonas Weber, Noor Haddad, Priya Natarajan. Still missing: Hana Kowalski, Omar Siddiqui.");
-    expect(album("support")).toHaveTextContent("Everyone here: Amara Okonkwo, Leo Fischer, Mei Tanaka, Sofia Esposito, Tomás Rivera.");
+    const roster = within(platform).getByText("Held: Felix Brandt, Jonas Weber, Noor Haddad, Priya Natarajan. Still missing: Hana Kowalski, Omar Siddiqui.");
+    expect(roster.closest("[aria-hidden]")).toBeNull();
+    expect(roster).not.toHaveClass("sr-only");
+    expect(within(album("support")).getByText("Everyone here: Amara Okonkwo, Leo Fischer, Mei Tanaka, Sofia Esposito, Tomás Rivera.").closest("[aria-hidden]")).toBeNull();
   });
 
   it("says when a group has no one else in it yet", () => {

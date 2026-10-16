@@ -1,0 +1,11 @@
+1. **Major — [GroupAlbumCard.tsx:33](/home/coder/dev/kudos-wt/sticker-book/website/src/book/GroupAlbumCard.tsx:33): Album people require hover to identify.** Names exist only in `title`; the readable roster is `sr-only`. Touch users see identical missing silhouettes without knowing whom to thank, and keyboard users cannot focus them. This prevents using the ticket’s album roster. Render visible names beside or beneath each person, retaining the spoken sentence if the visual row stays `aria-hidden`.
+
+2. **Minor — [CollectionSection.tsx:8](/home/coder/dev/kudos-wt/sticker-book/website/src/book/CollectionSection.tsx:8): The fragment offset assumes a shorter header.** `scroll-mt-24` reserves 96px, but the narrow sticky header can exceed that with the level-ring avatar, navigation row, and failure notice. Jumping can obscure the section heading, contrary to V24. Base the offset on the header’s actual height and verify a jump with the populated mobile HUD.
+
+3. **Minor — [HoggieCollection.tsx:142](/home/coder/dev/kudos-wt/sticker-book/website/src/book/HoggieCollection.tsx:142): An enabled book with no stickers renders an empty list.** `stickers: []` is a valid SB11 answer, but receives no empty-state explanation or action. V23 requires an empty state that points toward giving thanks in Slack. Add that branch and exercise it with albums present and absent.
+
+4. **Minor — [stickerBook.test.tsx:139](/home/coder/dev/kudos-wt/sticker-book/website/src/stickerBook.test.tsx:139): The spoken-roster assertions do not prove accessibility.** `toHaveTextContent` also passes if the sentence is placed inside the `aria-hidden` row. Moreover, every Collection entry in the existing axe matrix supplies a flag-off fixture, leaving the new UI unchecked against V24. Assert that the sentence has no hidden ancestor and add the enabled fixture to both theme checks.
+
+5. **Minor — [stickerBookFixtures.ts:59](/home/coder/dev/kudos-wt/sticker-book/website/src/stickerBookFixtures.ts:59): The face fixtures disguise initials as Slack photos.** Every image-backed person is another initials tile, and none exercises the company-profile cutout and background required by V19. Consequently, the visual proof cannot establish how actual faces look in stickers or albums. Include an invented face image and a synthetic `company-profile` face with its own colour.
+
+fix first.

@@ -85,6 +85,8 @@ export const collectionFixtures = {
   withTheStoreWhileCoinsAreHidden: { ...collectionWith(found), bought: ["bought:1"], crateStore: null },
   withTheStickerBook: { ...collectionWith(found), stickers, albums },
   withStickersOnly: { ...collectionWith(found), stickers },
+  withNoStickersYet: { ...collectionWith(found), stickers: [], albums: albums.map((album) => ({ ...album, held: 0, people: album.people.map((person) => ({ ...person, held: false })) })) },
+  withNoStickersAndNoAlbums: { ...collectionWith(found), stickers: [] },
   withTheStoreAndTheStickerBook: { ...collectionWith(found), bought: ["bought:1", "bought:2"], crateStore: storeOffering(3), stickers, albums },
   nothingFound: collectionWith({}),
   complete: collectionWith(everyHoggieFound),

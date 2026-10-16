@@ -26,5 +26,6 @@ export function StickerFace({ sticker, className }: { sticker: Pick<Sticker, "fa
 }
 
 export function stickerWordsOf(stickers: Sticker[]) {
+  if (stickers.length === 0) return "No stickers of teammates yet";
   return stickers.length === 1 ? "1 sticker of a teammate" : `${stickers.length} stickers of teammates`;
 }

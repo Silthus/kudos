@@ -13,6 +13,7 @@ import { dateWords } from "./dates";
 import { GroupAlbumCard } from "./GroupAlbumCard";
 import { HoggieCoin, nothingFoundYet } from "./HoggieCoin";
 import { HoggieTile } from "./HoggieTile";
+import { NoStickersYet } from "./NoStickersYet";
 import { JumpList } from "./JumpList";
 import { foundWordsOf, latestFindOf, type LatestFind } from "./latestFind";
 import { sectionsOf } from "./sections";
@@ -21,9 +22,9 @@ import { useFreshKeys } from "./useFreshKeys";
 
 type CollectionProps = { collection: Collection; timeZone: string };
 
-type HoggieCollectionProps = CollectionProps & { coins: number | null; buyCrate: ShellActions["buyCrate"] };
+type HoggieCollectionProps = CollectionProps & { coins: number | null; buyCrate: ShellActions["buyCrate"]; chatUrl: string };
 
-export function HoggieCollection({ collection, timeZone, coins, buyCrate }: HoggieCollectionProps) {
+export function HoggieCollection({ collection, timeZone, coins, buyCrate, chatUrl }: HoggieCollectionProps) {
   const fresh = useFreshKeys([...collection.hoggies, ...(collection.crests ?? []), ...(collection.stickers ?? [])].flatMap(({ seen }) => seen ?? []));
   return (
     <>
@@ -40,7 +41,7 @@ export function HoggieCollection({ collection, timeZone, coins, buyCrate }: Hogg
       <div className="flex flex-col gap-10">
         <HoggiesSection collection={collection} fresh={fresh} timeZone={timeZone} />
         {collection.crests !== undefined && <CrestSection crests={collection.crests} hoggies={collection.hoggies} fresh={fresh} timeZone={timeZone} />}
-        {collection.stickers !== undefined && <StickerSection stickers={collection.stickers} fresh={fresh} timeZone={timeZone} />}
+        {collection.stickers !== undefined && <StickerSection stickers={collection.stickers} fresh={fresh} timeZone={timeZone} chatUrl={chatUrl} />}
         {collection.albums !== undefined && <AlbumSection albums={collection.albums} />}
       </div>
     </>
@@ -136,14 +137,18 @@ function CrestSection({ crests, hoggies, fresh, timeZone }: CrestSectionProps) {
   );
 }
 
-function StickerSection({ stickers, fresh, timeZone }: { stickers: Sticker[] } & Fresh) {
+function StickerSection({ stickers, fresh, timeZone, chatUrl }: { stickers: Sticker[]; chatUrl: string } & Fresh) {
   return (
     <CollectionSection id="stickers" title="Stickers" aside={`One of every teammate you thank, or who thanks you · ${stickers.length} collected`}>
-      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6">
-        {stickers.map((sticker) => (
-          <StickerTile key={sticker.key} sticker={sticker} fresh={fresh.has(sticker.seen)} timeZone={timeZone} />
-        ))}
-      </ul>
+      {stickers.length === 0 ? (
+        <NoStickersYet chatUrl={chatUrl} />
+      ) : (
+        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6">
+          {stickers.map((sticker) => (
+            <StickerTile key={sticker.key} sticker={sticker} fresh={fresh.has(sticker.seen)} timeZone={timeZone} />
+          ))}
+        </ul>
+      )}
     </CollectionSection>
   );
 }
