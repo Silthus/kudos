@@ -261,6 +261,7 @@ describe("#468: the Collection's team crests, each a set of hoggies", () => {
     expect(within(peopleOps).getByText("People & Ops")).toBeInTheDocument();
     expect(coinsIn(peopleOps)).toEqual(["found", "found", "found"]);
     expect(within(peopleOps).getByText("7 Oct 2026")).toBeInTheDocument();
+    expect(peopleOps).toHaveTextContent("Roster complete: Heart, Namaste, Coconut.");
     expect(within(peopleOps).getByText("New")).toBeInTheDocument();
     expect(within(crestTile("platform-ux")).queryByText("New")).not.toBeInTheDocument();
     cleanup();
@@ -275,9 +276,11 @@ describe("#468: the Collection's team crests, each a set of hoggies", () => {
     expect(customerSuccess.querySelector("[data-crest-art='missing'] img")).not.toBeNull();
     expect(coinsIn(customerSuccess)).toEqual(["missing", "found", "missing"]);
     expect(customerSuccess).toHaveTextContent("1 of 3");
-    expect(customerSuccess).toHaveTextContent("Still missing: Gladiator, Hooligan");
+    expect(customerSuccess).toHaveTextContent("Held: Croissant. Still missing: Gladiator, Hooligan.");
     expect(within(customerSuccess).queryByText(/2026/)).not.toBeInTheDocument();
     expect(crestTile("ai-gateway")).toHaveTextContent("0 of 3");
+    expect(crestTile("ai-gateway")).toHaveTextContent("Still missing: Transformer, Traffic Controller, Cursor.");
+    expect(crestTile("ai-gateway")).not.toHaveTextContent("Held:");
   });
 
   it("leaves the crests out while the answer carries none", () => {

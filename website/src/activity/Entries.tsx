@@ -106,7 +106,7 @@ function FoundMark({ entry: { at, drop }, index, timeZone }: { entry: Found } & 
       <span aria-hidden="true" className="h-px flex-1 bg-border" />
       <HoggieCoin art={drop.art} rarity={drop.rarity} size={44} />
       {drop.crest && <TeamCrest art={drop.crest.art} size={44} />}
-      <div className="flex shrink-0 flex-col text-sm">
+      <div className="flex min-w-0 flex-col text-sm">
         <h3 id={headlineId} className="font-medium">
           {drop.crest ? `${found} and completed ${drop.crest.name}` : found}
         </h3>
