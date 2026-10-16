@@ -401,12 +401,16 @@ function refusalLinesOf(inventory: InventoryHome, refused: ItemRefusal | null, b
   const isRefused = (item: CatalogueItem | null) => item !== null && item.item === refused?.item;
   const owned = inventory.kind === "slots" ? [...inventory.slots, ...inventory.collection] : inventory.owned;
   const placed = [...owned, ...inventory.store].some(isRefused);
-  const unplaced = inventory.kind === "owned" ? lines.map((line) => namingTheItem(line, refused)) : lines;
+  const unplaced = inventory.kind === "owned" ? lines.map((line) => namingTheItem(line, refusedItemIn(inventory, refused))) : lines;
   return { after: (item) => (isRefused(item) ? lines : []), unplaced: placed ? [] : unplaced };
 }
 
-function namingTheItem(line: HomeLine, refused: ItemRefusal | null): HomeLine {
-  const item = refused === null ? undefined : itemOf(refused.item);
+function refusedItemIn({ customShown }: Extract<InventoryHome, { kind: "owned" }>, refused: ItemRefusal | null): CatalogueItem | undefined {
+  if (refused === null) return undefined;
+  return itemOf(refused.item) ?? customShown.find(({ item }) => item === refused.item);
+}
+
+function namingTheItem(line: HomeLine, item: CatalogueItem | undefined): HomeLine {
   return item === undefined || line.kind !== "hint" ? line : { ...line, text: line.text.replace(/^It /, `${itemLabelOf(item)} `) };
 }
 

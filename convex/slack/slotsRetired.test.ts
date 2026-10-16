@@ -25,6 +25,7 @@ const rocket = "kudos-emoji-rocket";
 const ribbon = "kudos-emoji-ribbon";
 const shipit = "custom:shipit";
 const shipitArt = "https://emoji.slack-edge.com/T1/shipit/0a1b2c.png";
+const partyArt = "https://emoji.slack-edge.com/T1/partyparrot/3c4d5e.gif";
 
 const storeShown = [onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEmails("coins", alicesEmail, carolsEmail), onForEmails("store", alicesEmail, carolsEmail)];
 const retiredForAlice = [...storeShown, onForEmails(slotsRetired, alicesEmail)];
@@ -140,6 +141,20 @@ describe("RS3 RS4: with slots retired, the store stops selling standard emoji an
     await send(t, blockActions("U_ALICE", buyButtonBeside(":shipit: · 100 🪙")));
     expect(await coinsOf(t, "U_ALICE")).toBe(104);
     expect(await collectionOf(t, "U_ALICE")).toEqual([shipit]);
+  });
+
+  test("a stale Buy of a custom emoji that left the store names it, not the one still for sale", async () => {
+    const t = await aliceAndCarolWhoOpenedCoins([...retiredForAlice, onForEmails("custom-kudos-emoji", alicesEmail)]);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("customKudosEmoji", { workspace: "T1", name: "shipit", url: shipitArt, pickedAt: tuesday, unpickedAt: tuesday });
+      await ctx.db.insert("customKudosEmoji", { workspace: "T1", name: "partyparrot", url: partyArt, pickedAt: tuesday });
+    });
+    await earns(t, "U_ALICE", 200);
+    await openInventory(t, "U_ALICE");
+
+    await send(t, blockActions("U_ALICE", staleButtonOf({ type: "buyItem", item: shipit })));
+
+    expect(publishedHome(slack, "U_ALICE").slice(-3)).toEqual(["section: *Store*", "section: :partyparrot: · 100 🪙 [button: Buy]", "context: :shipit: isn't for sale."]);
   });
 
   test("with nothing picked for the store, the Store says there is nothing for sale", async () => {

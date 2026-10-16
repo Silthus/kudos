@@ -21,7 +21,7 @@ export type Inventory = {
   catalogue: Array<CatalogueItem & { onSale: boolean }>;
 };
 
-export type InventoryHome = ({ kind: "slots"; slots: Array<CatalogueItem | null>; collection: CatalogueItem[] } | { kind: "owned"; owned: CatalogueItem[] }) & { store: StoreItem[]; notYoursYet: TierItem[] };
+export type InventoryHome = ({ kind: "slots"; slots: Array<CatalogueItem | null>; collection: CatalogueItem[] } | { kind: "owned"; owned: CatalogueItem[]; customShown: StoreItem[] }) & { store: StoreItem[]; notYoursYet: TierItem[] };
 
 export const loadoutHook: ParseHook = {
   name: "loadout",
@@ -80,7 +80,7 @@ async function ownedHomeOf(ctx: MutationCtx, member: MemberId, known: KnownItems
   const workspaceEmoji = await workspaceEmojiOf(ctx, member);
   const store = storeItemsIn(workspaceEmoji, known.custom, { slotsRetired: true }).filter(({ item }) => !ownedItems.has(item));
   const notYoursYet = (await tierItemsListedFor(ctx, member, workspaceEmoji)).filter(({ item }) => !ownedItems.has(item));
-  return { kind: "owned", owned: owned.flatMap(({ item }) => known.itemOf(item) ?? []), store, notYoursYet };
+  return { kind: "owned", owned: owned.flatMap(({ item }) => known.itemOf(item) ?? []), customShown: known.custom.all, store, notYoursYet };
 }
 
 export async function grantItem(ctx: MutationCtx, granted: CollectedItem): Promise<boolean> {
