@@ -249,7 +249,10 @@
     },
     {
       "name": "domain event",
-      "definition": "A fact a module publishes when something happened in the domain, such as kudosGiven, so that later modules react to it without the publisher knowing them. It is published in the transaction that made it true, and its shape only grows by adding fields."
+      "definition": "A fact a module publishes when something happened in the domain, such as kudosGiven, so that later modules react to it without the publisher knowing them. It is published in the transaction that made it true, and its shape only grows by adding fields.",
+      "properties": {
+        "loadout emoji": "kudosGiven's earlier name for the owned emoji its giver claimed, before #579 renamed it ownedEmoji. The event still accepts it, so a subscriber job queued before that deploy runs, and the Journey reads it where ownedEmoji is absent. Nothing writes it any more."
+      }
     },
     {
       "name": "hook",

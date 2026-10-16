@@ -8,6 +8,7 @@ import { blockActions, publishedHome, staleButtonOf } from "../../testing/slackI
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
 import type { KudosGivenEvent } from "../bus/events";
+import { subscribers } from "../bus/publish";
 import { activityOf } from "../activity/activity";
 import { balanceOf } from "../wallet/wallet";
 import type { MemberId } from "../workspace/directory";
@@ -187,6 +188,26 @@ describe("ST19: your-emoji, the Journey's last step", { timeout: 60_000 }, () =>
   });
 });
 
+describe("a kudosGiven job queued before the owned emoji field was renamed still runs", { timeout: 60_000 }, () => {
+  test("every kudosGiven subscriber takes an event naming its owned emoji under the field's earlier name, and your-emoji finishes on it", async () => {
+    const t = await workspaceDeciding(...previewedByAlice);
+    await coinsOpenedBy(t, "U_ALICE");
+    vi.setSystemTime(tuesday + dayMs);
+    await giveKudos(t, "U_ALICE", ["U_CAROL"], saysWhy, ["taco"]);
+    const { ownedEmoji: _, ...given } = await lastKudosGiven(t);
+    const queuedBeforeTheDeploy: KudosGivenEvent = { ...given, loadoutEmoji: ["hedgehog"] };
+
+    await t.run(async (ctx) => {
+      for (const subscription of subscribers.kudosGiven) await ctx.scheduler.runAfter(0, "subscriber" in subscription ? subscription.subscriber : subscription, { event: queuedBeforeTheDeploy });
+    });
+    await settle(t);
+
+    expect(await failedJobsOf(t)).toEqual([]);
+
+    expect(await rewardRecordsOf(t, "U_ALICE")).toMatchObject([{ xp: 40, coins: 20, item: null }]);
+  });
+});
+
 async function coinsOpenedBy(t: Backend, user: string) {
   await giveKudos(t, user, ["U_BOB"], saysWhy);
   await xpOf(t, user, xpBelowLevelSix);
@@ -318,6 +339,11 @@ async function yourEmojiFactsOf(t: Backend, user: string) {
 async function balanceOfUser(t: Backend, user: string) {
   const member = await memberOf(t, user);
   return t.run((ctx) => balanceOf(ctx, member));
+}
+
+async function failedJobsOf(t: Backend) {
+  const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return jobs.filter(({ state }) => state.kind === "failed").map(({ name }) => name);
 }
 
 async function lastKudosGiven(t: Backend): Promise<KudosGivenEvent> {

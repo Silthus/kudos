@@ -163,8 +163,8 @@ async function advanceYourEmoji(ctx: MutationCtx, event: KudosGivenEvent): Promi
   return null;
 }
 
-function saysWhyWithOwnedEmoji({ annotations, ownedEmoji = [] }: KudosGivenEvent): boolean {
-  return gateDecisionOf(annotations)?.thoughtful === true && ownedEmoji.length > 0;
+function saysWhyWithOwnedEmoji({ annotations, ownedEmoji, loadoutEmoji }: KudosGivenEvent): boolean {
+  return gateDecisionOf(annotations)?.thoughtful === true && (ownedEmoji ?? loadoutEmoji ?? []).length > 0;
 }
 
 function finishOfTwoDays({ at, message }: KudosGivenEvent, counted: JourneyActivation["sayingWhy"]): { at: number; cause?: MessageRef } {

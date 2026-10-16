@@ -23,6 +23,7 @@ export const kudosGivenEventValidator = v.object({
   via: v.union(v.literal("message"), v.literal("chime-in")),
   kudosEmoji: v.string(),
   ownedEmoji: v.optional(v.array(v.string())),
+  loadoutEmoji: v.optional(v.array(v.string())),
   annotations: annotationsValidator,
   allowance: v.object({ dailyOpening: v.number(), dailyLeft: v.number() }),
   skippedMentions: v.number(),
