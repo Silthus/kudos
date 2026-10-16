@@ -90,7 +90,7 @@ describe("HA3: the avatar is dark where hoggie-avatar is off, shows only to and 
       expect(walk.answers[user]!.profile).toMatchObject({ avatar: { hoggie: "banana" } });
       expect(walk.answers[user]!.card).toMatchObject({ avatar: { hoggie: "banana" } });
       expect(walk.homes.inSlack[user]!.join("\n")).toContain("Avatar: Rocket (🟧 Legendary)");
-      expect(walk.homes.frontDoor[user]!).toContain("section: Avatar: Banana (⬜ Common)");
+      expect(walk.homes.frontDoor[user]!).toContain("section: Avatar: Banana (⬜ Common) [select: Banana (⬜ Common)]");
     }
     expect(walk.cards.inSlack).toEqual([`*<@${bob.user}>*\nAvatar: Rocket (🟧 Legendary)\nLevel 4`, `*<@${alice.user}>*\nAvatar: Rocket (🟧 Legendary)\nLevel 4`]);
     expect(walk.tables.hoggieAvatars.map(({ member, hoggie }) => ({ member, hoggie }))).toEqual([

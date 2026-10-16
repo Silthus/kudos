@@ -119,7 +119,7 @@ describe("HA3: the avatar is dark where hoggie-avatar is off, shows only to and 
 
     await serving(...avatarFlags.map(onForEveryone));
 
-    expect(await avatarSurfacesOf(ann)).toEqual({ profile: rocket, card: rocket, ownCard: `*<@${ann.user}>*\nAvatar: Rocket (🟧 Legendary)\nLevel 4`, teammateCard: `*<@${ann.user}>*\nAvatar: Rocket (🟧 Legendary)\nLevel 4`, home: ["section: Avatar: Rocket (🟧 Legendary)"] });
+    expect(await avatarSurfacesOf(ann)).toEqual({ profile: rocket, card: rocket, ownCard: `*<@${ann.user}>*\nAvatar: Rocket (🟧 Legendary)\nLevel 4`, teammateCard: `*<@${ann.user}>*\nAvatar: Rocket (🟧 Legendary)\nLevel 4`, home: ["section: Avatar: Rocket (🟧 Legendary) [select: Rocket (🟧 Legendary)]"] });
   });
 
   test("a stale Use as avatar click while hoggie-avatar is off is ignored as main ignores it: no receipt, no App Home publish", async () => {
@@ -174,15 +174,15 @@ describe("HA2: the avatar shows where the member's face shows", { timeout: 60_00
     expect(await card(bea.user, ann.user)).toEqual(`*<@${ann.user}>*\nAvatar: Rocket (🟧 Legendary)\nLevel 4`);
   });
 
-  test("App Home names the avatar beside the hoggies when the website is the front door", async () => {
+  test("App Home keeps the avatar and its Use as avatar menu beside the hoggies when the website is the front door", async () => {
     const member = await annWithTheBook();
-    await holds(t, member, "rocket");
+    await holds(t, member, "banana", "rocket");
     await (await onTheWebsite(ann)).mutation(api.website.commands.setAvatar, { hoggie: "rocket" });
     await openHome(ann.user);
 
-    const home = publishedHome(slack, ann.user);
-    expect(home).toContain("section: Avatar: Rocket (🟧 Legendary)");
-    expect(home.join("\n")).not.toContain("static_select");
+    expect(publishedHome(slack, ann.user)).toContain("section: Avatar: Rocket (🟧 Legendary) [select: Rocket (🟧 Legendary)]");
+    await click(ann.user, menuOptionInHome(slack, ann.user, "Avatar: Rocket (🟧 Legendary)", "Banana (⬜ Common)"));
+    expect(await avatarRows()).toEqual([{ member, hoggie: "banana" }]);
   });
 });
 

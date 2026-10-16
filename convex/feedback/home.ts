@@ -235,14 +235,12 @@ function hoggiesLinesOf(hoggies: HoggiesShown | null, website: string | null): H
   if (hoggies === null) return [];
   const text = `Hoggies: ${hoggies.owned} of ${hoggies.total}${crestsPartOf(hoggies)} · ${lastFoundPartOf(hoggies)}`;
   const line: HomeLine = website === null ? { kind: "text", text } : { kind: "action", text, action: linkOnTheWeb({ label: "View", spoken: "View your hoggies", id: "hoggies" }, { page: "bookCollection" }, website) };
-  return [[line, ...avatarLinesOf(hoggies.avatar, website), ...crateOfferLines(hoggies.crateStore, website)]];
+  return [[line, ...avatarLinesOf(hoggies.avatar), ...crateOfferLines(hoggies.crateStore, website)]];
 }
 
-function avatarLinesOf(choice: AvatarChoice | null, website: string | null): HomeLine[] {
-  if (choice === null) return [];
+function avatarLinesOf(choice: AvatarChoice | null): HomeLine[] {
+  if (choice === null || choice.held.length === 0) return [];
   const { avatar, held } = choice;
-  if (website !== null) return avatar === null ? [] : [{ kind: "text", text: avatarText(avatar) }];
-  if (held.length === 0) return [];
   const none: Choice[] = avatar === null ? [] : [{ label: "No avatar", command: { type: "setAvatar", hoggie: null }, selected: false }];
   const options = held.map((hoggie): Choice => ({ label: hoggieLabel(hoggie), command: { type: "setAvatar", hoggie: hoggie.hoggie }, selected: hoggie.hoggie === avatar?.hoggie }));
   const text = avatar === null ? "Pick a hoggie you hold as your avatar." : avatarText(avatar);
