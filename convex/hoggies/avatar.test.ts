@@ -122,6 +122,18 @@ describe("HA3: the avatar is dark where hoggie-avatar is off, shows only to and 
     expect(await avatarSurfacesOf(ann)).toEqual({ profile: rocket, card: rocket, ownCard: `*<@${ann.user}>*\nAvatar: Rocket (🟧 Legendary)\nLevel 4`, teammateCard: `*<@${ann.user}>*\nAvatar: Rocket (🟧 Legendary)\nLevel 4`, home: ["section: Avatar: Rocket (🟧 Legendary)"] });
   });
 
+  test("a stale Use as avatar click while hoggie-avatar is off is ignored as main ignores it: no receipt, no App Home publish", async () => {
+    const member = await annWithTheBook();
+    await holds(t, member, "rocket");
+    await serving(...everyFlagBut("hoggie-avatar"));
+    const before = { publishes: slack.callsTo("views.publish").length, receipts: await receiptCount() };
+
+    await click(ann.user, staleMenuOptionOf({ type: "setAvatar", hoggie: "rocket" }));
+
+    expect({ publishes: slack.callsTo("views.publish").length, receipts: await receiptCount() }).toEqual(before);
+    expect(await avatarRows()).toEqual([]);
+  });
+
   test("with collection off, an avatar set earlier shows nowhere and can't be changed, even with hoggie-avatar on", async () => {
     const member = await annWithTheBook();
     await aTeammate(bea);
@@ -254,6 +266,10 @@ async function card(viewer: string, user: string) {
   const reply = (await response.json()) as { text: string };
   await settleInTimeOrder(t);
   return reply.text;
+}
+
+function receiptCount() {
+  return t.run(async (ctx) => (await ctx.db.query("slackReceipts").collect()).length);
 }
 
 function avatarRows() {

@@ -1,6 +1,6 @@
 import { v, type GenericValidator, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
-import type { MutationCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { pickSurfaceValidator, reportLeaderboardViewed, reportLeaderboardVisibilityChanged, reportMessageSettingChanged, reportPrimaryGroupPicked } from "../analytics/isolatedUsage";
 import { groupsShownAndExposedTo } from "../groups/groups";
 import { pickPrimaryGroup } from "../groups/pick";
@@ -22,6 +22,7 @@ import { openQuestCrate } from "../quests/open";
 import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { rerollQuest } from "../quests/weekly";
 import { setAvatar } from "../hoggies/avatar";
+import { avatarShownTo } from "../hoggies/flag";
 import { buyCrate, openCrate } from "../hoggies/boughtCrates";
 import type { CratePurchaseOutcome } from "../hoggies/records";
 import { buyItem } from "../store/buying";
@@ -64,6 +65,12 @@ export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | LoadoutOutc
 
 export function commandOf(candidate: unknown): Command | null {
   return conforms(commandValidator, candidate) ? (candidate as Command) : null;
+}
+
+export async function commandsOfferedTo(ctx: QueryCtx, member: MemberId, commands: Command[]): Promise<Command[]> {
+  const setsAvatar = ({ type }: Command) => type === "setAvatar";
+  if (!commands.some(setsAvatar) || (await avatarShownTo(ctx, member))) return commands;
+  return commands.filter((command) => !setsAvatar(command));
 }
 
 export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, idempotencyKey: string): Promise<CommandOutcome> {
