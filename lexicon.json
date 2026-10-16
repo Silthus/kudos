@@ -381,7 +381,10 @@
     },
     {
       "name": "crate",
-      "definition": "How a member takes something the game has ready for them: a feature their level made ready, or a finished quest or Journey step. Opening it is one action: a feature's crate and a quest's crate whose reward counted at its finish only reveal what is already recorded, a quest's crate holding a held reward applies that reward once, at its first open, and a crate a member opens themselves can drop a hoggie nobody knows before the open. What it records is known before it opens; its hoggie is not."
+      "definition": "How a member takes something the game has ready for them: a feature their level made ready, or a finished quest or Journey step. Opening it is one action: a feature's crate and a quest's crate whose reward counted at its finish only reveal what is already recorded, a quest's crate holding a held reward applies that reward once, at its first open, and a crate a member opens themselves can drop a hoggie nobody knows before the open. What it records is known before it opens; its hoggie is not.",
+      "aliases": [
+        "unopened crate"
+      ]
     },
     {
       "name": "medal",
