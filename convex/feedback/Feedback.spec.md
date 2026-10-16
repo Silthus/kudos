@@ -133,6 +133,7 @@ Feedback: the indicator on each kudos message as desired state and the private r
   over: the App Home summary of a member with every flag on at level 3 with Quests and the Leaderboard ready, at level 5 with the skill tree ready, at level 6 with the Book and Coins ready, and with a weekly quest and Journey steps finished, with two crates from each of two earlier weeks, of a member previewing the website at level 3, and clicks on an `Open` link button and on the website button
   via: each crate's Open in Slack links to the page where it opens while the website is open
   because: the website's reveal is the moment a member opens what they earned, so an `Open` that opened the crate in Slack took that moment away (#230); a link must lead to the page that shows the crate, never to one the route list doesn't serve (SW10, SW11), and a click that only follows a link has nothing to change, so publishing App Home for it is wasted work
+  refuted: earlierWeekCratePageOf answered the plain Quests page with no crate target -> 2 of 8 failed: the earlier week's crate linked `/quests` instead of `/quests?crate=weekly%3A{week}%3A{slot}` (2026-10-16)
   crossing: slack-request -> domain
   entrances: route POST /slack/events, route POST /slack/interactivity
   kinds: output
