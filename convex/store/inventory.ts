@@ -7,7 +7,7 @@ import { settingsOf } from "../workspace/settings";
 import { catalogue, isCustomItem, itemOf, kudosEmojiNameOf, starterItem, type CatalogueItem, type ItemId, type StoreItem, type TierItem } from "./catalogue";
 import { customItemsShownAndExposedTo, customItemsShownTo, customKudosEmojiShownAndExposedTo, customKudosEmojiShownTo, type CustomItems } from "./customKudosEmoji";
 import { slots, type CollectedItem, type Slot } from "./rows";
-import { storeVisibleAndExposedTo, storeVisibleTo } from "./visibility";
+import { slotsRetiredAndExposedFor, slotsRetiredFor, storeVisibleAndExposedTo, storeVisibleTo } from "./visibility";
 
 export type { StoreItem } from "./catalogue";
 
@@ -21,11 +21,11 @@ export type Inventory = {
   catalogue: Array<CatalogueItem & { onSale: boolean }>;
 };
 
-export type InventoryHome = { slots: Array<CatalogueItem | null>; collection: CatalogueItem[]; store: StoreItem[]; notYoursYet: TierItem[] };
+export type InventoryHome = ({ kind: "slots"; slots: Array<CatalogueItem | null>; collection: CatalogueItem[] } | { kind: "owned"; owned: CatalogueItem[]; customShown: StoreItem[] }) & { store: StoreItem[]; notYoursYet: TierItem[] };
 
 export const loadoutHook: ParseHook = {
   name: "loadout",
-  kudosEmoji: (ctx, { giver }) => (giver === undefined ? Promise.resolve([]) : loadoutEmojiOf(ctx, giver)),
+  kudosEmoji: (ctx, { giver }) => (giver === undefined ? Promise.resolve([]) : kudosEmojiOwnedBy(ctx, giver)),
 };
 
 export const inventoryOf = internalQuery({
@@ -37,8 +37,19 @@ export async function visibleInventoryOf(ctx: QueryCtx, member: MemberId): Promi
   return (await storeVisibleTo(ctx, member)) ? inventoryFor(ctx, member) : null;
 }
 
-export async function loadoutEmojiOf(ctx: MutationCtx, member: MemberId): Promise<string[]> {
+async function kudosEmojiOwnedBy(ctx: MutationCtx, member: MemberId): Promise<string[]> {
   if (!(await storeVisibleAndExposedTo(ctx, member))) return [];
+  return (await slotsRetiredAndExposedFor(ctx, member)) ? everyOwnedEmojiOf(ctx, member) : loadoutEmojiOf(ctx, member);
+}
+
+async function everyOwnedEmojiOf(ctx: MutationCtx, member: MemberId): Promise<string[]> {
+  const collected = await collectedBy(ctx, member);
+  const customShown = collected.some(({ item }) => isCustomItem(item)) && (await customKudosEmojiShownAndExposedTo(ctx, member));
+  const owned = [starterItem, ...collected.map(({ item }) => item).filter((item) => customShown || !isCustomItem(item))];
+  return owned.flatMap((item) => kudosEmojiNameOf(item) ?? []);
+}
+
+async function loadoutEmojiOf(ctx: MutationCtx, member: MemberId): Promise<string[]> {
   const stored = await storedLoadoutOf(ctx, member);
   const customShown = stored.some(({ item }) => isCustomItem(item)) && (await customKudosEmojiShownAndExposedTo(ctx, member));
   return loadoutShown(stored, customShown).flatMap(({ item }) => (item === null ? [] : (kudosEmojiNameOf(item) ?? [])));
@@ -51,6 +62,7 @@ export async function loadoutOf(ctx: QueryCtx, member: MemberId): Promise<Loadou
 
 export async function inventoryHomeOf(ctx: MutationCtx, member: MemberId): Promise<InventoryHome> {
   const known = itemsKnownWith(await customItemsShownAndExposedTo(ctx, member));
+  if (await slotsRetiredAndExposedFor(ctx, member)) return ownedHomeOf(ctx, member, known);
   const loadout = await loadoutOf(ctx, member);
   const slotted = new Set(loadout.map(({ item }) => item));
   const owned = await ownedBy(ctx, member);
@@ -59,7 +71,16 @@ export async function inventoryHomeOf(ctx: MutationCtx, member: MemberId): Promi
   const workspaceEmoji = await workspaceEmojiOf(ctx, member);
   const store = storeItemsIn(workspaceEmoji, known.custom).filter(({ item }) => !ownedOrSlotted.has(item));
   const notYoursYet = (await tierItemsListedFor(ctx, member, workspaceEmoji)).filter(({ item }) => !ownedOrSlotted.has(item));
-  return { slots: loadout.map(({ item }) => (item === null ? null : (known.itemOf(item) ?? null))), collection: unslotted.flatMap(({ item }) => known.itemOf(item) ?? []), store, notYoursYet };
+  return { kind: "slots", slots: loadout.map(({ item }) => (item === null ? null : (known.itemOf(item) ?? null))), collection: unslotted.flatMap(({ item }) => known.itemOf(item) ?? []), store, notYoursYet };
+}
+
+async function ownedHomeOf(ctx: MutationCtx, member: MemberId, known: KnownItems): Promise<InventoryHome> {
+  const owned = await ownedBy(ctx, member);
+  const ownedItems = new Set(owned.map(({ item }) => item));
+  const workspaceEmoji = await workspaceEmojiOf(ctx, member);
+  const store = storeItemsIn(workspaceEmoji, known.custom, { slotsRetired: true }).filter(({ item }) => !ownedItems.has(item));
+  const notYoursYet = (await tierItemsListedFor(ctx, member, workspaceEmoji)).filter(({ item }) => !ownedItems.has(item));
+  return { kind: "owned", owned: owned.flatMap(({ item }) => known.itemOf(item) ?? []), customShown: known.custom.all, store, notYoursYet };
 }
 
 export async function grantItem(ctx: MutationCtx, granted: CollectedItem): Promise<boolean> {
@@ -70,7 +91,8 @@ export async function grantItem(ctx: MutationCtx, granted: CollectedItem): Promi
 
 export async function storeItemFor(ctx: QueryCtx, member: MemberId, item: ItemId): Promise<StoreItem | null> {
   const custom = isCustomItem(item) ? await customItemsShownTo(ctx, member) : undefined;
-  return storeItemsIn(await workspaceEmojiOf(ctx, member), custom).find((entry) => entry.item === item) ?? null;
+  const shelf = { slotsRetired: await slotsRetiredFor(ctx, member) };
+  return storeItemsIn(await workspaceEmojiOf(ctx, member), custom, shelf).find((entry) => entry.item === item) ?? null;
 }
 
 export async function owns(ctx: QueryCtx, member: MemberId, item: ItemId): Promise<boolean> {
@@ -80,10 +102,7 @@ export async function owns(ctx: QueryCtx, member: MemberId, item: ItemId): Promi
 export async function ownedBy(ctx: QueryCtx, member: MemberId): Promise<OwnedItem[]> {
   const openedAt = await openedAtOf(ctx, member, "coins");
   const starter = openedAt === null ? [] : [{ item: starterItem, arrivedAt: openedAt }];
-  const collected = await ctx.db
-    .query("collection")
-    .withIndex("by_member_item", (q) => q.eq("member", member))
-    .collect();
+  const collected = await collectedBy(ctx, member);
   const customHidden = collected.some(({ item }) => isCustomItem(item)) && !(await customKudosEmojiShownTo(ctx, member));
   const shown = customHidden ? collected.filter(({ item }) => !isCustomItem(item)) : collected;
   const granted = shown.sort((a, b) => a.arrivedAt - b.arrivedAt).map(({ item, arrivedAt }) => ({ item, arrivedAt }));
@@ -92,11 +111,12 @@ export async function ownedBy(ctx: QueryCtx, member: MemberId): Promise<OwnedIte
 
 async function inventoryFor(ctx: QueryCtx, member: MemberId): Promise<Inventory> {
   const known = itemsKnownWith(await customItemsShownTo(ctx, member));
-  const loadout = await loadoutOf(ctx, member);
+  const slotsRetired = await slotsRetiredFor(ctx, member);
+  const loadout = slotsRetired ? [] : await loadoutOf(ctx, member);
   const owned = await ownedBy(ctx, member);
   const ownedOrSlotted = new Set([...owned.map(({ item }) => item), ...loadout.flatMap(({ item }) => (item === null ? [] : [item]))]);
   const workspaceEmoji = await workspaceEmojiOf(ctx, member);
-  const sold = new Set(storeItemsIn(workspaceEmoji, known.custom).map(({ item }) => item));
+  const sold = new Set(storeItemsIn(workspaceEmoji, known.custom, { slotsRetired }).map(({ item }) => item));
   const tierItems = new Set((await tierItemsListedFor(ctx, member, workspaceEmoji)).map(({ item }) => item));
   const forSale = (entry: CatalogueItem) => sold.has(entry.item) && !ownedOrSlotted.has(entry.item);
   const shown = (entry: CatalogueItem) => ownedOrSlotted.has(entry.item) || forSale(entry) || tierItems.has(entry.item);
@@ -106,6 +126,8 @@ async function inventoryFor(ctx: QueryCtx, member: MemberId): Promise<Inventory>
     catalogue: known.items.filter(shown).map((entry) => ({ ...entry, onSale: forSale(entry) })),
   };
 }
+
+type KnownItems = ReturnType<typeof itemsKnownWith>;
 
 function itemsKnownWith(custom: CustomItems) {
   const items: CatalogueItem[] = [...catalogue.items, ...custom.all];
@@ -134,12 +156,20 @@ async function tierItemsListedFor(ctx: QueryCtx, member: MemberId, workspaceEmoj
   return catalogue.items.filter((entry: CatalogueItem): entry is TierItem => entry.source.kind === "tier" && entry.emoji !== workspaceEmoji);
 }
 
-function storeItemsIn(workspaceEmoji: string, custom?: CustomItems): StoreItem[] {
-  return [...catalogue.items, ...(custom?.picked ?? [])].filter((entry: CatalogueItem) => listedIn(workspaceEmoji, entry));
+function storeItemsIn(workspaceEmoji: string, custom?: CustomItems, { slotsRetired } = { slotsRetired: false }): StoreItem[] {
+  const standard = slotsRetired ? [] : catalogue.items;
+  return [...standard, ...(custom?.picked ?? [])].filter((entry: CatalogueItem) => listedIn(workspaceEmoji, entry));
 }
 
 async function workspaceEmojiOf(ctx: QueryCtx, member: MemberId) {
   return (await settingsOf(ctx, (await chatUserOf(ctx, member)).workspace)).kudosEmoji;
+}
+
+function collectedBy(ctx: QueryCtx, member: MemberId) {
+  return ctx.db
+    .query("collection")
+    .withIndex("by_member_item", (q) => q.eq("member", member))
+    .collect();
 }
 
 function collectedRow(ctx: QueryCtx, member: MemberId, item: ItemId) {

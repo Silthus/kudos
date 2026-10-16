@@ -141,7 +141,7 @@ export const questsFixtures = {
   weekWithLastWeeksGroupCrate: { ...week, group: groupInProgress, waiting: [lastWeeksGroupCrate] },
   weekWithTwoWeeksOfGroupCrates: { ...week, group: groupFinished, waiting: [twoWeeksAgosGroupCrate, lastWeeksCrate, lastWeeksGroupCrate] },
   noDraw: { kind: "quests", slots: [], swap: { used: false, available: false }, group: null, waiting: [], bonus: null, chatUrl },
-  locked: { kind: "locked", level: 2 },
+  locked: { kind: "locked", level: 3 },
   ready: { kind: "ready" },
   notFound: { kind: "not-found" },
 } as const satisfies Record<string, MyQuests>;

@@ -7,7 +7,7 @@ import { notifyFeaturesShipped } from "../feedback/notify";
 import { levelOf } from "../progression/levels";
 import { xpLevelsOnFor } from "../progression/xpLevels";
 import { unlocksLiveIn, unlocksOpenedFor } from "./launch";
-import { schedule, shippedTo } from "./schedule";
+import { readyFromTheStart, schedule, shippedTo } from "./schedule";
 import { reachedAt, storeReadiness, withoutReadiness } from "./unlocks";
 
 const membersPerSweep = 25;
@@ -27,11 +27,14 @@ export const sweep = internalMutation({
 });
 
 async function makeShippedReady(ctx: MutationCtx, { _id: member, workspace }: Doc<"members">) {
-  const due = await shippedTo(ctx, member, await withoutReadiness(ctx, member, reachedAt(schedule.features, await levelOfMember(ctx, member))));
+  const level = await levelOfStarted(ctx, member);
+  if (level === null) return;
+  const due = await shippedTo(ctx, member, await withoutReadiness(ctx, member, reachedAt(schedule.features, level)));
   if (due.length === 0) return;
   const previewStarted = (await unlocksOpenedFor(ctx, workspace, member)) === "previewStarted";
   const madeReady = await storeReadiness(ctx, { workspace, member, at: Date.now() }, due);
-  if (madeReady.length > 0) await notifyFeaturesShipped(ctx, member, madeReady);
+  const news = madeReady.filter((entry) => !readyFromTheStart(entry));
+  if (news.length > 0) await notifyFeaturesShipped(ctx, member, news);
   if (previewStarted || (madeReady.length > 0 && (await xpLevelsOnFor(ctx, member)))) await republish(ctx, member);
 }
 
@@ -43,10 +46,10 @@ function launchOncePerWorkspace(ctx: MutationCtx) {
   };
 }
 
-async function levelOfMember(ctx: MutationCtx, member: Doc<"members">["_id"]) {
+async function levelOfStarted(ctx: MutationCtx, member: Doc<"members">["_id"]) {
   const progress = await ctx.db
     .query("memberProgress")
     .withIndex("by_member", (q) => q.eq("member", member))
     .unique();
-  return levelOf(progress?.xp ?? 0);
+  return progress === null ? null : levelOf(progress.xp);
 }

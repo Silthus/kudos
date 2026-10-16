@@ -29,7 +29,7 @@
     },
     {
       "name": "kudos emoji",
-      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, which is the deployment's default unless the workspace changes it (:taco: when the deployment sets none), plus the emoji in the giver's loadout while the store is visible to them. Each occurrence in a kudos message is one kudos for every recipient."
+      "definition": "An emoji that gives kudos for a giver: the workspace's emoji, which is the deployment's default unless the workspace changes it (:taco: when the deployment sets none), plus the emoji in the giver's loadout while the store is visible to them, or, where slots-retired is on for the giver, every kudos emoji item they own in place of the loadout. Each occurrence in a kudos message is one kudos for every recipient."
     },
     {
       "name": "kudos message",
@@ -642,6 +642,10 @@
     {
       "name": "crowd",
       "definition": "The Book's category of ladders about many people joining in: Applause and, with stars, Crowd Favourite, Standing Ovation and Amplifier. The website keys each of these ladders to it."
+    },
+    {
+      "name": "avatar",
+      "definition": "The hoggie a member picked from the hoggies they hold to stand for them where their face shows: App Home's profile, their profile card and the website's reads of their profile. A member has one or none, can change it or go back to none for free, and without one keeps their picture."
     }
   ],
   "retired": [

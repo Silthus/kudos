@@ -6,10 +6,11 @@ import { messageSettingsOnFor } from "../messageSettings/flag";
 import { messageKindValidator, messagePlaceValidator, type MessageKind, type MessagePlace } from "../messageSettings/kinds";
 import { kindAppliesTo, placeOf, placesOf } from "../messageSettings/messageSettings";
 import { isOnTheBoards } from "../leaderboard/visibility";
+import { avatarOf, type Avatar } from "../hoggies/avatar";
 import { crateStoreOf, openedCrateDropOf } from "../hoggies/boughtCrates";
 import { dropsAHoggie } from "../hoggies/crateKey";
 import { dropOf, type Drop } from "../hoggies/drops";
-import { hoggiesShownTo } from "../hoggies/flag";
+import { avatarShownTo, hoggiesShownTo } from "../hoggies/flag";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
 import { loadoutOf } from "../store/inventory";
 import { slotValidator, type Slot } from "../store/rows";
@@ -21,7 +22,7 @@ import { questValidator, weeklyQuestValidator } from "../quests/step";
 import { swappedSlotIn } from "../quests/weekly";
 import type { CrateRefusal } from "../hoggies/records";
 import type { ItemRefusal } from "../store/rows";
-import { storeVisibleTo } from "../store/visibility";
+import { slotsRetiredFor, storeVisibleTo } from "../store/visibility";
 import { featureValidator } from "../unlocks/feature";
 import { unlockPathShownTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
@@ -57,6 +58,8 @@ export type VisibilityAnswer = { kind: "set"; visible: boolean } | { kind: "refu
 export type MessageSettingAnswer = { kind: "set"; place: MessagePlace } | { kind: "refused" };
 
 export type GroupPickAnswer = { kind: "picked"; group: string } | { kind: "refused" };
+
+export type AvatarAnswer = { kind: "set"; avatar: Avatar | null } | { kind: "refused" };
 
 export type LoadoutAnswer = { kind: "equipped"; slot: Slot; item: string } | { kind: "takenOff"; slot: Slot } | { kind: "refused" };
 
@@ -181,7 +184,7 @@ export const setBoardVisibility = memberMutation({
 export const equip = memberMutation({
   args: { item: v.string(), slot: slotValidator },
   handler: async (ctx, me, person, { item, slot }): Promise<LoadoutAnswer> => {
-    if (!(await storeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
+    if (!(await slotsOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
     const held = await itemIn(ctx, me, slot);
     await runCommand(ctx, me.workspace, person, { type: "equip", item, slot }, `website:equip:${me.member}:${slot}`);
     if ((await itemIn(ctx, me, slot)) !== item) return refused;
@@ -193,12 +196,25 @@ export const equip = memberMutation({
 export const takeOff = memberMutation({
   args: { slot: slotValidator },
   handler: async (ctx, me, person, { slot }): Promise<LoadoutAnswer> => {
-    if (!(await storeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
+    if (!(await slotsOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
     const held = await itemIn(ctx, me, slot);
     await runCommand(ctx, me.workspace, person, { type: "takeOff", slot }, `website:takeOff:${me.member}:${slot}`);
     if ((await itemIn(ctx, me, slot)) !== null) return refused;
     if (held !== null) await republish(ctx, me.member);
     return { kind: "takenOff", slot };
+  },
+});
+
+export const setAvatar = memberMutation({
+  args: { hoggie: v.union(v.string(), v.null()) },
+  handler: async (ctx, me, person, { hoggie }): Promise<AvatarAnswer> => {
+    if (!(await noLaunchWaitsFor(ctx, me))) return refused;
+    const before = await avatarOf(ctx, me.member);
+    await runCommand(ctx, me.workspace, person, { type: "setAvatar", hoggie }, `website:setAvatar:${me.member}`);
+    if (!(await avatarShownTo(ctx, me.member))) return refused;
+    const after = await avatarOf(ctx, me.member);
+    if (after?.hoggie !== before?.hoggie) await republish(ctx, me.member);
+    return (after?.hoggie ?? null) === hoggie ? { kind: "set", avatar: after } : refused;
   },
 });
 
@@ -260,6 +276,10 @@ async function treeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember
 
 async function storeOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
   return (await storeVisibleTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
+}
+
+async function slotsOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {
+  return (await storeOpenWithEveryLaunchRecorded(ctx, me)) && !(await slotsRetiredFor(ctx, me.member));
 }
 
 async function boardOpenWithEveryLaunchRecorded(ctx: QueryCtx, me: VerifiedMember) {

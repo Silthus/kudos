@@ -93,7 +93,6 @@ const featureNames: Record<Feature, string> = {
   book: "book",
   skillTree: "skill tree",
   coins: "coins",
-  hedgehogs: "hedgehogs",
 };
 
 const commandResultNames: Record<KudosCommandResult, string> = {

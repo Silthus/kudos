@@ -61,7 +61,7 @@ describe("#467 CL15: /book/collection answers like the Book", () => {
 
   it("shows the locked page while getCollection answers locked", () => {
     showCollection(collectionFixtures.locked, { member: shellFixtures.memberWaitingForTheBook, book: bookFixtures.locked });
-    expect(pageTitle()).toHaveTextContent("Unlocks at level 4");
+    expect(pageTitle()).toHaveTextContent("Unlocks at level 1");
   });
 
   it("shows the Book's crate in place with a primary Open while getCollection answers ready", () => {

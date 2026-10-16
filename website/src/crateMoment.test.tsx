@@ -80,7 +80,7 @@ describe("WS66: the reveal follows the server", () => {
     expect(openButton()).toHaveAttribute("aria-disabled", "true");
     expect(dialog()).toBeNull();
     await pending.settle({ kind: "opened" });
-    expect(dialog()).toHaveAccessibleName("Level 3 unlock");
+    expect(dialog()).toHaveAccessibleName("Level 2 unlock");
   });
 
   it("ends on the end state with the headline, the line, Go to and Done once the reveal has played", async () => {
@@ -135,7 +135,7 @@ describe("WS66: the reveal follows the server", () => {
     expect(openButton()).not.toHaveAttribute("aria-disabled", "true");
     await user.click(openButton());
     expect(openFeature).toHaveBeenCalledTimes(2);
-    expect(dialog()).toHaveAccessibleName("Level 3 unlock");
+    expect(dialog()).toHaveAccessibleName("Level 2 unlock");
   });
 
   it.each([
@@ -274,7 +274,7 @@ describe("WS66: the reveal holds up against overlapping answers and sessions", (
     await user.click(openButton());
     showVisitor(withAnotherFeatureShipped(shellFixtures.memberWithTheBoardReady));
     await pending.settle({ kind: "opened" });
-    expect(dialog()).toHaveAccessibleName("Level 3 unlock");
+    expect(dialog()).toHaveAccessibleName("Level 2 unlock");
   });
 
   it("keeps focus in the dialog after Replay under reduced motion, so Esc still closes it", async () => {
@@ -369,8 +369,8 @@ describe("WS67: /leaderboard's ready state opens in place", () => {
 
   it("keeps the locked page while the board is locked", () => {
     window.history.replaceState(null, "", "/leaderboard");
-    renderApp(shellFixtures.memberWaitingForTheBoard, (period) => (period && { kind: "locked", level: 3 }));
-    expect(main()).toHaveTextContent("Unlocks at level 3");
+    renderApp(shellFixtures.memberWaitingForTheBoard, (period) => (period && { kind: "locked", level: 2 }));
+    expect(main()).toHaveTextContent("Unlocks at level 2");
     expect(within(main()).queryByRole("button", { name: "Open" })).toBeNull();
   });
 });
@@ -439,7 +439,7 @@ describe("WS68: the ready pill", () => {
     expect(pill()).toHaveAccessibleName("Opening…");
     expect(dialog()).toBeNull();
     await pending.settle({ kind: "opened" });
-    expect(dialog()).toHaveAccessibleName("Level 3 unlock");
+    expect(dialog()).toHaveAccessibleName("Level 2 unlock");
   });
 
   it("ends a refusal from the pill as the crate does, with no reveal", async () => {
@@ -484,13 +484,13 @@ describe("WS75: the keyboard path", () => {
     const { user } = renderApp(ready, undefined, { openFeature: async () => ({ kind: "opened" }) });
     within(screen.getByRole("banner")).getByRole("button", { name: "1 ready" }).focus();
     await user.keyboard(" ");
-    expect(dialog()).toHaveAccessibleName("Level 3 unlock");
+    expect(dialog()).toHaveAccessibleName("Level 2 unlock");
   });
 });
 
 function withAnotherFeatureShipped(member: MemberProfile): MemberProfile {
-  const quests = { feature: "quests", name: "Quests", opens: "your weekly quests", level: 2, state: "open", readyAt: null, openedAt: null, seen: "quests-of-the-same-member" } as const;
-  return { ...member, features: [quests, ...member.features!] };
+  const book = { feature: "book", name: "Book", opens: "your achievements", level: 1, state: "open", readyAt: null, openedAt: null, seen: "book-of-the-same-member" } as const;
+  return { ...member, features: [book, ...member.features!] };
 }
 
 function withSeenKeys(member: MemberProfile, keys: Record<string, string>): MemberProfile {

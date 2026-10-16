@@ -331,8 +331,8 @@ describe("F26 F27 F28 F29: a member previews the website by their own decision",
       const bobsLinks = await t.query(internal.website.link.frontDoorLinksOf, { workspace: allowedWorkspace, user: bob.user });
 
       expect(alicesLinks).toEqual({ origin: `${siteUrl}/sign-in`, pages: [
-          { label: "Quests", url: `${siteUrl}/sign-in/quests` },
           { label: "Leaderboard", url: `${siteUrl}/sign-in/leaderboard` },
+          { label: "Quests", url: `${siteUrl}/sign-in/quests` },
         ],
         sections: ["visibility"],
       });

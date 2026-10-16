@@ -11,7 +11,7 @@ import type { Feature } from "./feature";
 
 type ShipFlag = Flag<boolean>;
 
-export type ScheduledFeature = { feature: Feature; level: number; name: string; opens: string; shipsWith: ShipFlag | null };
+export type ScheduledFeature = { feature: Feature; level: number; name: string; opens: string; shipsWith: ShipFlag };
 
 type Naming = Pick<ScheduledFeature, "name" | "opens">;
 
@@ -19,25 +19,43 @@ const namedWithTheStore: Partial<Record<Feature, Naming>> = {
   coins: { name: "Coins and inventory", opens: "your wallet, the store's kudos emoji and your emoji slots" },
 };
 
+const namedWithTheStoreWithoutSlots: Partial<Record<Feature, Naming>> = {
+  coins: { name: "Coins and inventory", opens: "your wallet, the store and your kudos emoji" },
+};
+
 export const schedule = {
-  version: "1",
+  version: "2",
   features: [
-    { feature: "quests", level: 2, name: "Quests", opens: "your weekly quests", shipsWith: questsFlag },
-    { feature: "leaderboard", level: 3, name: "Leaderboard", opens: "the boards", shipsWith: everyoneBoardFlag },
-    { feature: "book", level: 4, name: "Book", opens: "achievements", shipsWith: achievementsFlag },
+    { feature: "book", level: 1, name: "Book", opens: "achievements", shipsWith: achievementsFlag },
+    { feature: "leaderboard", level: 2, name: "Leaderboard", opens: "the boards", shipsWith: everyoneBoardFlag },
+    { feature: "quests", level: 3, name: "Quests", opens: "your weekly quests", shipsWith: questsFlag },
     { feature: "skillTree", level: skillTreeLevel, name: "Skill tree", opens: "the tree and your first skill point", shipsWith: skillTreeFlag },
     { feature: "coins", level: 6, name: "Coins", opens: "your wallet and the coin perks", shipsWith: coinsFlag },
-    { feature: "hedgehogs", level: 7, name: "Hedgehogs", opens: "the hedgehog collection, your avatar and the store's hedgehogs", shipsWith: null },
   ],
 } as const satisfies { version: string; features: readonly ScheduledFeature[] };
+
+const startingLevel = 1;
+
+export function readyFromTheStart({ level }: Pick<ScheduledFeature, "level">): boolean {
+  return level <= startingLevel;
+}
 
 export function scheduled(feature: Feature): ScheduledFeature {
   return schedule.features.find((entry) => entry.feature === feature)!;
 }
 
-export function namedFor(entry: ScheduledFeature, storeShown: boolean): ScheduledFeature {
-  const naming = storeShown ? namedWithTheStore[entry.feature] : undefined;
+export type StoreNaming = { storeShown: boolean; slotsRetired: boolean };
+
+export const withoutTheStore: StoreNaming = { storeShown: false, slotsRetired: false };
+
+export function namedFor(entry: ScheduledFeature, { storeShown, slotsRetired }: StoreNaming): ScheduledFeature {
+  const naming = storeNamingsOf(storeShown, slotsRetired)[entry.feature];
   return naming === undefined ? entry : { ...entry, ...naming };
+}
+
+function storeNamingsOf(storeShown: boolean, slotsRetired: boolean): Partial<Record<Feature, Naming>> {
+  if (!storeShown) return {};
+  return slotsRetired ? namedWithTheStoreWithoutSlots : namedWithTheStore;
 }
 
 export function shippedIn(ctx: QueryCtx | MutationCtx, workspace: string): Promise<ScheduledFeature[]> {
@@ -51,7 +69,7 @@ export function shippedTo(ctx: QueryCtx | MutationCtx, member: MemberId, among: 
 async function shippedBy(decides: (flag: ShipFlag) => Promise<boolean>, among: readonly ScheduledFeature[]) {
   const shipped: ScheduledFeature[] = [];
   for (const entry of among) {
-    if (entry.shipsWith !== null && (await decides(entry.shipsWith))) shipped.push(entry);
+    if (await decides(entry.shipsWith)) shipped.push(entry);
   }
   return shipped;
 }

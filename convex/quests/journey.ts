@@ -34,9 +34,9 @@ export const journey = {
   version: "2",
   steps: [
     { step: "first-thanks", reward: { xp: 10, coins: 0, item: null } },
-    { step: "first-quest", reward: { xp: 20, coins: 0, item: null } },
-    { step: "someone-new", reward: { xp: 30, coins: 0, item: null } },
     { step: "two-days", reward: { xp: 30, coins: 0, item: null } },
+    { step: "someone-new", reward: { xp: 30, coins: 0, item: null } },
+    { step: "first-quest", reward: { xp: 20, coins: 0, item: null } },
     { step: "your-emoji", reward: { xp: 40, coins: 20, item: null } },
   ],
 } as const satisfies JourneyCatalogue;

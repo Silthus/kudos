@@ -1,5 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
 import { homeFacts } from "../engine/home";
+import { avatarShownOn, type Avatar } from "../hoggies/avatar";
 import { groupsShownTo } from "../groups/groups";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
@@ -16,6 +17,7 @@ import { skillPointsOf } from "./skillTree";
 import { featureCardsOf, leaderboardStateOf, unlockPathOf, type FeatureCard, type FeaturePage } from "./unlockPath";
 
 export type { Face } from "./faces";
+export type { Avatar } from "../hoggies/avatar";
 export type { FeatureCard, FeaturePage, PageWaits } from "./unlockPath";
 export type { JourneyStep } from "./quests";
 export type { InventoryItem, ItemSource, MemberInventory } from "./inventory";
@@ -42,6 +44,7 @@ export type MemberProfile = {
   inventory: MemberInventory | null;
   groups: boolean;
   settings: boolean;
+  avatar?: Avatar | null;
 };
 
 export type MyProfile = Denial | MemberProfile;
@@ -62,7 +65,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     lifetime: { given: facts.given, received: facts.received },
     chatUrl: workspaceLink(me.workspace),
     leaderboard,
-    features: await featureCardsOf(me, path),
+    features: await featureCardsOf(ctx, me, path),
     journey: await journeyStepsOf(ctx, me),
     progression: await progressionOf(ctx, me),
     skillPoints: await skillPointsOf(ctx, me, path),
@@ -70,6 +73,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     inventory: await inventoryShownTo(ctx, me.member),
     groups: await groupsShownTo(ctx, me.member),
     settings: await settingsShownTo(ctx, me, leaderboard),
+    ...(await avatarShownOn(ctx, me.member, me.member)),
   };
 });
 

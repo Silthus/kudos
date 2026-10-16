@@ -4,6 +4,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { bookFactsOf, type AchievementFacts } from "../achievements/achievements";
 import { achievementsApplyIn, achievementsShownTo } from "../achievements/flag";
 import { groupModeShownTo, type GroupModeFacts } from "../groups/groupMode";
+import { avatarChoiceOf, type AvatarChoice } from "../hoggies/avatar";
 import { crateStoreOf, waitingCratesOf, type CrateStore } from "../hoggies/boughtCrates";
 import { hoggiesOf, type HoggiesHome } from "../hoggies/collection";
 import { crateStoreShownTo, crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
@@ -32,9 +33,9 @@ import { customKudosEmojiPickerFor, type CustomKudosEmojiPicker } from "../store
 import { inventoryHomeOf, type InventoryHome } from "../store/inventory";
 import { type ItemRefusal } from "../store/rows";
 import { homeRefusalValidator, type HomeRefusal } from "./homeRefusal";
-import { storeShownAndExposedTo } from "../store/visibility";
+import { slotsRetiredFor, storeShownAndExposedTo } from "../store/visibility";
 import { unlocksShownTo } from "../unlocks/launch";
-import { namedFor, scheduled } from "../unlocks/schedule";
+import { namedFor, scheduled, type ScheduledFeature, type StoreNaming } from "../unlocks/schedule";
 import { unlocksHomeOf, type UnlocksHome } from "../unlocks/unlocks";
 import { coinsVisibleAndExposedTo } from "../wallet/visibility";
 import { balanceOf } from "../wallet/wallet";
@@ -70,7 +71,7 @@ export type ShownHome = { tabs: HomeTab[]; shown: ShownTab };
 
 export type CrateStoreShown = CrateStore & { short: number | null };
 
-export type HoggiesShown = HoggiesHome & { crateStore: CrateStoreShown | null };
+export type HoggiesShown = HoggiesHome & { crateStore: CrateStoreShown | null; avatar: AvatarChoice | null };
 
 export type ToldProgression = Omit<ProgressionHome, "skillPoints"> & { skillPoints: number | null; skillTreeTab: boolean; coins: number | null };
 
@@ -205,7 +206,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
       return {
         tab,
         progression: await toldProgressionOf(ctx, viewer.member, slices),
-        unlocks: namedForStore(await unlocksHomeOf(ctx, viewer.member), slices.store),
+        unlocks: namedForStore(await unlocksHomeOf(ctx, viewer.member), await storeNamingOf(ctx, viewer.member, slices)),
         quests: slices.quests ? await openedQuestsOf(ctx, viewer.member) : null,
         ...(slices.quests ? await openedGroupQuestOf(ctx, viewer.member) : noGroupQuest),
         earlierCrates: slices.quests ? await openedEarlierCratesOf(ctx, viewer.member) : null,
@@ -218,7 +219,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
     case "book":
       return { tab, book: await bookFactsOf(ctx, viewer.member), timeZone: (await ctx.db.get(viewer.member))?.timeZone };
     case "skillTree":
-      return { tab, perks: await memberPerksOf(ctx, viewer.member), coinsName: namedFor(scheduled("coins"), slices.store).name };
+      return { tab, perks: await memberPerksOf(ctx, viewer.member), coinsName: namedFor(scheduled("coins"), await storeNamingOf(ctx, viewer.member, slices)).name };
     case "inventory":
       return { tab, balance: await balanceOf(ctx, viewer.member), inventory: await inventoryHomeOf(ctx, viewer.member), kudosEmoji: (await settingsOf(ctx, viewer.workspace)).kudosEmoji, refused: itemRefusalIn(refused) };
     case "settings":
@@ -243,14 +244,19 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
   }
 }
 
-function namedForStore({ ready, next }: UnlocksHome, storeShown: boolean): UnlocksHome {
-  return { ready: ready.map((entry) => namedFor(entry, storeShown)), next: next === null ? null : namedFor(next, storeShown) };
+async function storeNamingOf(ctx: QueryCtx, member: MemberId, { store }: Slices): Promise<StoreNaming> {
+  return { storeShown: store, slotsRetired: store && (await slotsRetiredFor(ctx, member)) };
+}
+
+function namedForStore({ ready, next }: UnlocksHome, naming: StoreNaming): UnlocksHome {
+  const named = (entry: ScheduledFeature) => namedFor(entry, naming);
+  return { ready: ready.map(named), next: next === null ? null : named(next) };
 }
 
 async function hoggiesInTheBookOf(ctx: QueryCtx, member: MemberId, { book, coins }: Slices, refused: HomeRefusal | null): Promise<HoggiesShown | null> {
   if (!book || !(await hoggiesShownTo(ctx, member))) return null;
   const hoggies = await hoggiesOf(ctx, member, { crests: await crestsShownTo(ctx, member) });
-  return { ...hoggies, crateStore: coins && (await crateStoreShownTo(ctx, member)) ? await crateStoreToldTo(ctx, member, refused) : null };
+  return { ...hoggies, crateStore: coins && (await crateStoreShownTo(ctx, member)) ? await crateStoreToldTo(ctx, member, refused) : null, avatar: await avatarChoiceOf(ctx, member) };
 }
 
 async function crateStoreToldTo(ctx: QueryCtx, member: MemberId, refused: HomeRefusal | null): Promise<CrateStoreShown | null> {

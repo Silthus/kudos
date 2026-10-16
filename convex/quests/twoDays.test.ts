@@ -32,6 +32,7 @@ const twoDaysDone = "section: *Journey:* ✅ Give kudos that say why on 2 differ
 const finishedTwoDays = "✅ You finished a Journey step: Give kudos that say why on 2 different days. You earned *30 XP*.";
 const twoDaysReward = { xp: 30, coins: 0, item: null };
 const firstThanksDone = "section: *Journey:* ✅ Give a kudos that says why. You earned *10 XP*. [button: Open]";
+const bookReadyInHome = "section: *Book* is ready. It opens achievements. [button: Open]";
 
 let slack: FakeSlack;
 let postHog: FakePostHog;
@@ -524,13 +525,11 @@ async function opened(t: Backend, member: MemberId, feature: "book", at: number)
 
 async function bookReady(t: Backend, user: string) {
   await openHome(t, user);
-  const member = await memberOf(t, user);
-  await t.run((ctx) => ctx.db.insert("unlocks", { member, feature: "book", readyAt: Date.now() }));
+  expect(publishedHome(slack, user)).toContain(bookReadyInHome);
 }
 
 async function openBook(t: Backend, user: string) {
   await bookReady(t, user);
-  await openHome(t, user);
   await click(t, user, buttonIn(publishedHomeBlocks(slack, user).filter((block) => block.text?.text.includes("*Book* is ready")), "Open"));
   await click(t, user, buttonInHome(slack, user, "Profile"));
 }

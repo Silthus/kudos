@@ -42,6 +42,8 @@ export const catalogue = {
 
 export const starterItem: ItemId = starter.item;
 
+export const starterEmoji: string = starter.emoji;
+
 export type TierItem = CatalogueItem & { source: { kind: "tier"; ladder: LadderId; tier: "silver" } };
 
 export type StoreItem = CatalogueItem & { source: { kind: "store"; price: number } };

@@ -6,6 +6,7 @@ import { blockActions, buttonIn, buttonInHome, type Block } from "../../testing/
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { everythingStored, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section, slashCommand, text } from "../../testing/slackMessages";
+import { internal } from "../_generated/api";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -206,6 +207,7 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
     );
     await post(t, [section(text("Marmalade note to Zephyrine herself "), mention(people.giver), emoji("artichokeparty"))], { ...fromZephyrine, ts: "1760349602.626262" });
     await settle(t);
+    await reachesLevelThree(t, team, people.giver, { workspace: team, conversation: channel, message: "1760349601.515151" });
     const levelUpDm = slack.callsTo("chat.postMessage").find(({ channel, blocks }) => channel === people.giver && JSON.stringify(blocks ?? []).includes("openUnlock"));
     const openQuests = blockActions(people.giver, buttonIn(levelUpDm!.blocks as Block[], "Open"), { team, inMessage: { channel: people.giver, ts: "1760349700.818181" } });
     await t.fetch("/slack/interactivity", await signedRequest(openQuests, { contentType: "application/x-www-form-urlencoded" }));
@@ -348,6 +350,13 @@ describe("O26: capture is off", () => {
     expect((await t.run((ctx) => ctx.db.query("awards").collect())).length).toBe(2);
   });
 });
+
+async function reachesLevelThree(t: Backend, workspace: string, user: string, message: { workspace: string; conversation: string; message: string }) {
+  const member = await t.run(async (ctx) => (await ctx.db.query("members").collect()).find((row) => row.workspace === workspace && row.user === user)!._id);
+  const event = { type: "levelReached" as const, workspace, member, level: 3, skillPointsGained: 0, skillPoints: 0, xpToNextLevel: 200, message, at: Date.now() };
+  await t.mutation(internal.unlocks.unlocks.makeReady, { event });
+  await settle(t);
+}
 
 function kudosGivenProperties() {
   const given = postHog.events().filter((event) => event.event === "kudos given");

@@ -4,8 +4,9 @@ import { FakeSlack } from "../../testing/fakeSlack";
 import { flagsLoaded, flagsOnForEveryone, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { blockActions, buttonIn, buttonInHome, publishedHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
+import { blockActions, buttonIn, openUnlockInHome, publishedHome, publishedHomeBlocks, readBlocks, type Block } from "../../testing/slackInteractions";
 import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
+import { reachesLevel } from "../../testing/unlocks";
 import { internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
 import type { PromisedReward } from "./finish";
@@ -232,11 +233,14 @@ describe("P81: a week swaps one unfinished quest at most", () => {
 async function openedQuests(quests: QuestId[], promised: PromisedReward = { reward: { xp: 20, coins: 0, item: null }, catalogueVersion: "1" }) {
   const t = await workspace();
   await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+  const [alice] = await membersOf(t, "U_ALICE");
+  await reachesLevel(t, alice!, 3);
   await openHome(t, "U_ALICE");
   await drawFor(t, "U_ALICE", quests, promised);
-  await send(t, blockActions("U_ALICE", buttonInHome(slack, "U_ALICE", "Open")));
+  await send(t, blockActions("U_ALICE", openUnlockInHome(slack, "U_ALICE", "quests")));
   return t;
 }
+
 
 async function drawFor(t: Backend, user: string, quests: QuestId[], promised: PromisedReward) {
   const slots = quests.map((quest, slot) => ({ slot, quest, ...promised, feasibleBecause: { peopleLeft: 1, recognitionsLeft: 18 } }));

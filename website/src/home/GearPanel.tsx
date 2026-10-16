@@ -3,7 +3,7 @@ import { ToggleGroup, ToggleGroupItem } from "@posthog/quill";
 import { useRef, useState } from "react";
 import type { MemberInventory, MemberProfile, ShellActions } from "../shell";
 import { CharacterSide } from "./CharacterSide";
-import { useLoadoutCommand, type LoadoutActions } from "./gear";
+import { slotsRetiredIn, useLoadoutCommand, type LoadoutActions } from "./gear";
 import { InventorySide, type Said } from "./InventorySide";
 import { panelTargetAttributes } from "../linkTarget";
 import { useItemPurchase, type PendingItemPurchase } from "./itemPurchase";
@@ -27,6 +27,13 @@ export function GearPanel({ member, opensOn, loadout, buyItem, pendingPurchase }
   const [said, setSaid] = useState<Said>();
   const purchasing = useItemPurchase(buyItem, pendingPurchase, () => kudosEmojiHeading.current?.focus(), (notice) => setSaid(notice && { text: notice.text, done: notice.kind === "bought" }));
   if (member.inventory === null) return null;
+  if (slotsRetiredIn(member.inventory)) {
+    return (
+      <Panel id="gear" label="Inventory" target={panelTargetAttributes("inventory")} gameObject>
+        <InventorySide member={member} inventory={member.inventory} loadout={loadout} send={send} purchasing={purchasing} heading={kudosEmojiHeading} said={said} onSaid={setSaid} />
+      </Panel>
+    );
+  }
   const turnTo = (next: Side) => next !== side && setTurn({ side: next, turns: turns + 1 });
   return (
     <Panel id="gear" label={labelOf(side, member.inventory)} target={side === "inventory" ? panelTargetAttributes("inventory") : undefined} aside={<SideToggle side={side} onTurn={turnTo} />} gameObject>

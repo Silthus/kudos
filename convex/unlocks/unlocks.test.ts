@@ -46,12 +46,13 @@ describe("P73 P79: readiness is stored once, with its time, when levelReached ar
 
   test("P6: a member who jumps from level 1 to level 5 gets every shipped feature at or below level 5, and level 2 alone makes nothing ready", async () => {
     const { t, alice } = await withMember();
+    await flagsFromPostHog(t, postHog, onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("everyone-board"), onForEveryone("quests"));
 
     await levelReached(t, alice, 2);
-    expect(await unlocksOf(t, alice)).toEqual([{ feature: "leaderboard", state: "locked", readyAt: null, openedAt: null }]);
+    expect(await unlocksOf(t, alice)).toEqual([{ feature: "quests", state: "locked", readyAt: null, openedAt: null }]);
 
     await levelReached(t, alice, 5);
-    expect(await unlocksOf(t, alice)).toEqual([{ feature: "leaderboard", state: "ready", readyAt: now.getTime(), openedAt: null }]);
+    expect(await unlocksOf(t, alice)).toEqual([{ feature: "quests", state: "ready", readyAt: now.getTime(), openedAt: null }]);
   });
 
   test("a replayed levelReached writes nothing new and publishes nothing new", async () => {
@@ -83,10 +84,9 @@ describe("P78: an unshipped feature is never ready, named or counted", () => {
 
   test("the website read gives each shipped feature's state, readyAt and openedAt, and leaves unshipped features out", async () => {
     const { t, alice } = await withMember();
-    await levelReached(t, alice, 2);
     expect(await unlocksOf(t, alice)).toEqual([{ feature: "leaderboard", state: "locked", readyAt: null, openedAt: null }]);
 
-    await levelReached(t, alice, 3);
+    await levelReached(t, alice, 2);
     expect(await unlocksOf(t, alice)).toEqual([{ feature: "leaderboard", state: "ready", readyAt: now.getTime(), openedAt: null }]);
 
     vi.setSystemTime(now.getTime() + 60_000);
@@ -245,7 +245,7 @@ describe("P78: a feature that ships later is made ready once by the ship sweep",
 
   test("a member below the Leaderboard's level gets nothing from the sweep", async () => {
     const { t, alice } = await withMember();
-    await withEarnings(t, alice, 99);
+    await withEarnings(t, alice, 19);
 
     await sweep(t);
 

@@ -55,6 +55,7 @@ import type * as engine_messageEvent from "../engine/messageEvent.js";
 import type * as engine_spotlight from "../engine/spotlight.js";
 import type * as engine_spotlightDraws from "../engine/spotlightDraws.js";
 import type * as engine_totals from "../engine/totals.js";
+import type * as feedback_avatar from "../feedback/avatar.js";
 import type * as feedback_beside from "../feedback/beside.js";
 import type * as feedback_coins from "../feedback/coins.js";
 import type * as feedback_deepLinks from "../feedback/deepLinks.js";
@@ -88,6 +89,7 @@ import type * as groups_mode from "../groups/mode.js";
 import type * as groups_pick from "../groups/pick.js";
 import type * as groups_reconcile from "../groups/reconcile.js";
 import type * as groups_transitions from "../groups/transitions.js";
+import type * as hoggies_avatar from "../hoggies/avatar.js";
 import type * as hoggies_boughtCrates from "../hoggies/boughtCrates.js";
 import type * as hoggies_catalogue from "../hoggies/catalogue.js";
 import type * as hoggies_collection from "../hoggies/collection.js";
@@ -211,6 +213,7 @@ import type * as store_customKudosEmojiFlag from "../store/customKudosEmojiFlag.
 import type * as store_equipping from "../store/equipping.js";
 import type * as store_inventory from "../store/inventory.js";
 import type * as store_rows from "../store/rows.js";
+import type * as store_slotsRetiredFlag from "../store/slotsRetiredFlag.js";
 import type * as store_storeFlag from "../store/storeFlag.js";
 import type * as store_visibility from "../store/visibility.js";
 import type * as unlocks_feature from "../unlocks/feature.js";
@@ -310,6 +313,7 @@ declare const fullApi: ApiFromModules<{
   "engine/spotlight": typeof engine_spotlight;
   "engine/spotlightDraws": typeof engine_spotlightDraws;
   "engine/totals": typeof engine_totals;
+  "feedback/avatar": typeof feedback_avatar;
   "feedback/beside": typeof feedback_beside;
   "feedback/coins": typeof feedback_coins;
   "feedback/deepLinks": typeof feedback_deepLinks;
@@ -343,6 +347,7 @@ declare const fullApi: ApiFromModules<{
   "groups/pick": typeof groups_pick;
   "groups/reconcile": typeof groups_reconcile;
   "groups/transitions": typeof groups_transitions;
+  "hoggies/avatar": typeof hoggies_avatar;
   "hoggies/boughtCrates": typeof hoggies_boughtCrates;
   "hoggies/catalogue": typeof hoggies_catalogue;
   "hoggies/collection": typeof hoggies_collection;
@@ -466,6 +471,7 @@ declare const fullApi: ApiFromModules<{
   "store/equipping": typeof store_equipping;
   "store/inventory": typeof store_inventory;
   "store/rows": typeof store_rows;
+  "store/slotsRetiredFlag": typeof store_slotsRetiredFlag;
   "store/storeFlag": typeof store_storeFlag;
   "store/visibility": typeof store_visibility;
   "unlocks/feature": typeof unlocks_feature;

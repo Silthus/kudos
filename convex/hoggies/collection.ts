@@ -42,7 +42,7 @@ function crestHeldIn({ crest, name, roster }: CatalogueCrest, tallies: Tallies):
   return { crest, name, art: { kind: "crest", slug: crest }, roster: [...roster], held: held.length, collectedAt: completing?.firstAt ?? null };
 }
 
-async function talliesOf(ctx: QueryCtx, member: MemberId): Promise<Tallies> {
+export async function talliesOf(ctx: QueryCtx, member: MemberId): Promise<Tallies> {
   const tallies = await ctx.db
     .query("hoggieTallies")
     .withIndex("by_member_hoggie", (q) => q.eq("member", member))

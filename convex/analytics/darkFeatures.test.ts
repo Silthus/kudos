@@ -106,7 +106,7 @@ describe("E9 E10: analytics sends exactly the facts the features stored, whateve
   test("with quests on and unlocks off, readiness is sent, and nothing from quests", async () => {
     const { t } = await walk(questsOnUnlocksOff, "on");
 
-    expect(eventsNamed("unlock made ready").map(({ distinct_id, properties }) => `${distinct_id === giver() ? "giver" : "recipient"} ${String(properties.feature)}`)).toEqual(["giver quests", "giver leaderboard", "recipient quests"]);
+    expect(eventsNamed("unlock made ready").map(({ distinct_id, properties }) => `${distinct_id === giver() ? "giver" : "recipient"} ${String(properties.feature)}`)).toEqual(["giver leaderboard", "giver quests", "recipient leaderboard"]);
     for (const table of ["journeySteps", "questDraws", "questSwaps", "rewardRecords", "crateOpenings"] as const) expect(await rowsOf(t, table), table).toEqual([]);
   });
 
@@ -305,11 +305,11 @@ async function walk(setup: Setup, capture: Capture) {
 
   await answered(await openHome(t, "U_ALICE"));
   await answered(await giveKudos(t, "U_ALICE", 2));
-  await answered(await act(t, "U_ALICE", { type: "openUnlock", feature: "quests" }));
-  await answered(await act(t, "U_ALICE", { type: "rerollQuest", quest: { kind: "weekly", week, slot: 0 } }));
+  await answered(await act(t, "U_ALICE", { type: "openUnlock", feature: "leaderboard" }));
   await answered(await act(t, "U_ALICE", { type: "openQuestCrate", quest: { kind: "journey", step: "first-thanks" } }));
   await answered(await giveKudos(t, "U_ALICE", 8));
-  await answered(await act(t, "U_ALICE", { type: "openUnlock", feature: "leaderboard" }));
+  await answered(await act(t, "U_ALICE", { type: "openUnlock", feature: "quests" }));
+  await answered(await act(t, "U_ALICE", { type: "rerollQuest", quest: { kind: "weekly", week, slot: 0 } }));
   await answered(await act(t, "U_ALICE", { type: "showHomeTab", tab: "leaderboard" }));
   await answered(await act(t, "U_ALICE", { type: "showLeaderboard", period: "month" }));
   await answered(await hedgehug(t, "U_ALICE", "leaderboard all"));

@@ -54,7 +54,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "home with every panel ready", path: "/", visitor: shellFixtures.memberWithEveryPanelReady },
   { name: "home with every panel open", path: "/", visitor: shellFixtures.memberWithEveryPanelOpen },
   { name: "home with panels open, ready and locked", path: "/", visitor: shellFixtures.memberAcrossTheSheet },
-  { name: "leaderboard locked until level 3", path: "/leaderboard", visitor: shellFixtures.memberWaitingForTheBoard, board: { kind: "locked", level: 3 } },
+  { name: "leaderboard locked until level 2", path: "/leaderboard", visitor: shellFixtures.memberWaitingForTheBoard, board: { kind: "locked", level: 2 } },
   { name: "leaderboard ready to open in place", path: "/leaderboard", visitor: shellFixtures.memberWithTheBoardReady, board: { kind: "ready" } },
   { name: "home with two crates and the ready pill", path: "/", visitor: shellFixtures.memberWithEveryFeatureReady },
   { name: "empty leaderboard", path: "/leaderboard?period=all", visitor: shellFixtures.memberWithTheBoard, board: leaderboardFixtures.empty },
@@ -69,7 +69,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "skill tree below its row, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithNoSkillPointsLeft, skillTree: skillTreeFixtures.belowTheRow, wide: true },
   { name: "skill tree with a perk that needs its base, on a wide screen", path: "/skills", visitor: shellFixtures.memberWithOneSkillPoint, skillTree: skillTreeFixtures.needsABase, wide: true },
   { name: "skill tree with every node state, the legend and the level chip", path: "/skills", visitor: shellFixtures.memberAtLevel7WithOneSkillPoint, skillTree: skillTreeFixtures.everyState },
-  { name: "book locked until level 4", path: "/book", visitor: shellFixtures.memberWaitingForTheBook, book: bookFixtures.locked },
+  { name: "book locked until level 1", path: "/book", visitor: shellFixtures.memberWaitingForTheBook, book: bookFixtures.locked },
   { name: "book ready to open in place", path: "/book", visitor: shellFixtures.memberWithTheBookReady, book: bookFixtures.ready },
   { name: "book with a ladder at bronze and a ladder not started", path: "/book", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.book },
   { name: "book's Giving page with every tier of a ladder earned", path: "/book?page=giving", visitor: shellFixtures.memberWithTheBookOpened, book: bookFixtures.everyTierEarned },
@@ -101,7 +101,7 @@ const pages: { name: string; path: string; visitor: ShellState; board?: MyLeader
   { name: "quests with a swap left", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekWithASwapLeft },
   { name: "quests after the week's swap", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.weekAfterTheSwap },
   { name: "quests of every kind, finished and claimed", path: "/quests", visitor: shellFixtures.memberWithQuests, quests: questsFixtures.everyKind },
-  { name: "quests locked until level 2", path: "/quests", visitor: shellFixtures.memberStartingTheJourney, quests: questsFixtures.locked },
+  { name: "quests locked until level 3", path: "/quests", visitor: shellFixtures.memberStartingTheJourney, quests: questsFixtures.locked },
   { name: "quests ready to open in place", path: "/quests", visitor: shellFixtures.memberWithQuestsReady, quests: questsFixtures.ready },
   { name: "error", path: "/", visitor: shellFixtures.error },
 ];
@@ -177,8 +177,8 @@ describe("WS24: every page passes axe in light and dark", () => {
     it(`the next unlock's tooltip, portaled outside the landmarks, meets WCAG 2.2 AA in ${dark ? "dark" : "light"}`, async () => {
       fakeSystemTheme(dark);
       const { user, getByRole } = renderApp(shellFixtures.memberWithEveryNavState);
-      await user.hover(within(getByRole("navigation", { name: "Screens" })).getByRole("link", { name: "Book, locked. Unlocks at level 4" }));
-      await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent("Next unlock · Book"));
+      await user.hover(within(getByRole("navigation", { name: "Screens" })).getByRole("link", { name: "Quests, locked. Unlocks at level 3" }));
+      await waitFor(() => expect(document.querySelector('[data-slot="tooltip-content"]')).toHaveTextContent("Next unlock · Quests"));
       expect(await violationsIn(document.body, { runOnly: { type: "tag", values: wcag22AA } })).toEqual([]);
     });
   }
@@ -193,7 +193,7 @@ const railStates: { name: string; board: BoardAnswer | undefined; quests: Quests
   { name: "open, off the boards", board: leaderboardFixtures.left, quests: questsFixtures.week },
   { name: "waiting for both answers", board: undefined, quests: undefined },
   { name: "with both reads failed", board: { kind: "broken" }, quests: { kind: "broken" } },
-  { name: "locked by the reads before getMyProfile catches up", board: { kind: "locked", level: 3 }, quests: { kind: "locked", level: 2 } },
+  { name: "locked by the reads before getMyProfile catches up", board: { kind: "locked", level: 2 }, quests: { kind: "locked", level: 3 } },
   { name: "ready by the reads before getMyProfile catches up", board: { kind: "ready" }, quests: { kind: "ready" } },
   { name: "at level 7", board: leaderboardFixtures.viewerLeads, quests: questsFixtures.week, visitor: { ...shellFixtures.memberWithEveryPanelOpen, progression: shellFixtures.memberAtLevel7.progression } },
   { name: "with the best four medals on the public card", board: leaderboardFixtures.midBoard, quests: questsFixtures.week, card: profileCardFixtures.bestFour },
