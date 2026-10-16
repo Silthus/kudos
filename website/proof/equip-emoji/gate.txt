@@ -1,0 +1,41 @@
+pnpm gate on 8ff0e206 (origin/main at 346a9d9c, with #292's Buy, merged), through ~/dev/fleet/fleet heavy: green.
+      refuted 2026-10-14: awardsReceivedNewestFirst read the whole recipient index instead of the member's own awards
+      kinds read: 2 shapes apply, 2 declared, 0 dismissed
+  the spotlight draws only public, said-why kudos of the member's workspace  invariant
+      totality oracle "AT31 AT34: the spotlight draws only public, said-why kudos of the member's workspace" over getSpotlight from a seed and through Next beside a private-channel kudos, a bare kudos, a kudos that gave nothing, a backfilled kudos with unknown visibility and another workspace's kudos, after an edit drops the reason, after a deletion in Slack, after the author leaves Slack, and while and after a giver or recipient leaves the leaderboards: verified 2026-10-14
+      crossing browser -> domain
+      refuted 2026-10-14: drawableKudosOf no longer required the kudos text's visibility to be public
+      kinds read: 2 shapes apply, 2 declared, 0 dismissed
+Welcome  convex/welcome/Welcome.spec.md
+  welcomed at most once  invariant
+      totality oracle "a member is welcomed at most once, whatever Slack redelivers and whichever awards follow" over the welcome messages sent for a first Given award, a redelivery of the Slack event that gave it, later awards that name the same members as giver or recipient, and one Given award naming more members than one page welcomes (QM10): verified 2026-10-14
+      refuted 2026-10-13: removed the isWelcomed check in welcomeNewMembers
+      kinds message, state: 15 shapes apply, 2 declared, 13 dismissed
+  a welcome never schedules past Convex's limit  invariant
+      totality oracle "a welcome never schedules past Convex's limit: one kudos naming 700 new members welcomes each of them once, and no welcome mutation schedules 1,000 functions or more" over one Given award naming 700 new members besides its giver, under a base allowance a maintainer raised, run with Convex's transaction limits on and each welcome page's scheduled functions counted: verified 2026-10-14
+      refuted 2026-10-14: raised membersPerPage in welcomeNewMembers to 100,000
+      kinds budget: 6 shapes apply, 1 declared, 5 dismissed
+Workspace  convex/workspace/Workspace.spec.md
+  only admins set the announcement channel  invariant
+      totality oracle "P69: only workspace admins and owners set the announcement channel" over setAnnouncementChannel commands from a member who isn't an admin, sent as a channel pick and as a button the member never saw, and from an admin removed by a later user_change: verified 2026-10-13
+      crossing slack-request -> domain
+      refuted 2026-10-13: setAnnouncementChannel no longer checked that the member is an admin
+      kinds identity, state: 10 shapes apply, 1 declared, 9 dismissed
+Website  website/Website.spec.md
+  a kudos message renders as text  invariant
+      totality oracle "a kudos message renders as text" over KudosMessage in website/src/activity/KudosMessage.tsx, the one renderer every surface hands a Message to, for text segments holding a script tag, an img tag with an onerror handler and HTML entities, and links with javascript: and data: URLs, with live links and clamped: verified 2026-10-14
+      crossing domain -> browser
+      refuted 2026-10-14: let isWebAddress accept every scheme
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
+  a link lands on a crate and never opens it  invariant
+      totality oracle "#435: ?crate={feature} lands on the page's ready crate" over useLinkTargetOnceLanded in website/src/linkTarget.ts, run by App over the ready band of each feature page, the home's Journey panel and the group quest's card, for a ready crate, a Journey step's crate, the group quest's crate, an unknown crate and another page's crate: verified 2026-10-15
+      refuted 2026-10-15: pressed the crate's Open on arrival instead of focusing it
+      kinds output: 5 shapes apply, 0 declared, 5 dismissed
+25 components, 199 bullets: 198 invariants, 1 requirement
+lacking: enforcement 0, refutation 1, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-15T23:47:56.964Z (1158 runs)
+GUARD FAILURE  df-bcaa003b in class bypassed-door, which convex/website/a member previews the website by their own decision has guarded since rs-ed24d6b7 closed df-79b4ea97: the guard was weaker than claimed; strengthen it and refute it again
+GUARD FAILURE  df-7a3efd91 in class bypassed-door, which convex/website/a member previews the website by their own decision has guarded since rs-ed24d6b7 closed df-79b4ea97: the guard was weaker than claimed; strengthen it and refute it again
+defects: 26 recorded, 23 closed (6 guarded, 17 decided, 0 with neither); 2 guard failures
+ADVISORY       373 Coherence names in text written to Coherence (records, spec grammar, coherence.config.json): gate 127, contract 46, panel 37, receipt 35, zone 33; reported, never failing, since inside the project its sense wins (--json lists each)
+0 rejected names, 0 unknown nouns (1026 files), 37 in records
+gate-exit=0

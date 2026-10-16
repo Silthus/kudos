@@ -27,6 +27,10 @@ function answerLater() {
   return { answer, settle: (value: ItemBuyAnswer) => act(async () => settle(value)), fail: () => act(async () => fail(new Error("connection closed"))) };
 }
 
+function turnToTheInventory() {
+  fireEvent.click(within(screen.getByRole("main")).getByRole("button", { name: "Inventory" }));
+}
+
 function inventory() {
   return within(screen.getByRole("main")).getByRole("region", { name: "Inventory" });
 }
@@ -68,6 +72,7 @@ function owning(member: MemberProfile, item: string, coins: number): MemberProfi
 function buyWith(buyItem: (purchase: ItemPurchase) => Promise<ItemBuyAnswer>, member: ShellState = memberWithTheInventory) {
   const spy = vi.fn(buyItem);
   const view = renderApp(member, undefined, { buyItem: spy });
+  if (member.kind === "member" && member.inventory !== null) turnToTheInventory();
   const requests = () => spy.mock.calls.map(([{ request }]) => request);
   return { ...view, buyItem: spy, requests };
 }
@@ -261,7 +266,7 @@ describe("WS87 WS341: a refusal, an error and a retry", () => {
 
     await user.click(buyButtonFor("Gem"));
 
-    expect(announcement()).toHaveTextContent(/^$/);
+    expect(announcement()).toHaveTextContent("Pick something you own to wear it. Pick a worn emoji to take it off.");
     expect(buyButtonFor("Gem")).toHaveTextContent("Buy for 100 coins");
   });
 
@@ -272,6 +277,7 @@ describe("WS87 WS341: a refusal, an error and a retry", () => {
     const readQuests = (asking: boolean) => (questsConnecting ? ({ kind: "connecting" } as never) : asking ? { kind: "not-found" as const } : undefined);
     const spy = vi.fn((_: ItemPurchase) => (++calls === 1 ? pending.answer : Promise.resolve<ItemBuyAnswer>({ kind: "refused", reason: null })));
     const { user, showVisitor } = renderApp(memberWithTheInventory, undefined, { buyItem: spy }, readQuests);
+    turnToTheInventory();
     await user.click(buyButtonFor("Gem"));
     await pending.fail();
 
@@ -280,6 +286,7 @@ describe("WS87 WS341: a refusal, an error and a retry", () => {
     expect(screen.queryByRole("region", { name: "Inventory" })).not.toBeInTheDocument();
     questsConnecting = false;
     showVisitor({ ...memberWithTheInventory });
+    turnToTheInventory();
     await user.click(buyButtonFor("Gem"));
 
     const [first, second] = spy.mock.calls.map(([{ request }]) => request);
@@ -294,11 +301,13 @@ describe("WS87 WS341: a refusal, an error and a retry", () => {
     const answers = [gemAnswer.answer, starFails.answer];
     const spy = vi.fn((_: ItemPurchase) => answers.shift() ?? Promise.resolve<ItemBuyAnswer>({ kind: "refused", reason: null }));
     const { user, showVisitor } = renderApp(memberWithTheInventory, undefined, { buyItem: spy }, readQuests);
+    turnToTheInventory();
     await user.click(buyButtonFor("Gem"));
     questsConnecting = true;
     showVisitor({ ...memberWithTheInventory });
     questsConnecting = false;
     showVisitor({ ...memberWithTheInventory });
+    turnToTheInventory();
 
     await user.click(buyButtonFor("Glowing Star"));
     await gemAnswer.settle({ kind: "refused", reason: "no-coins" });
@@ -317,9 +326,39 @@ describe("WS87 WS341: a refusal, an error and a retry", () => {
     await pending.fail();
 
     showVisitor({ ...memberWithTheInventory, name: "Alex Other", features: memberWithTheInventory.features!.map((card) => ({ ...card, seen: `other-${card.seen}` })) });
+    turnToTheInventory();
     await user.click(buyButtonFor("Gem"));
 
     expect(requests()[1]).not.toBe(requests()[0]);
+  });
+});
+
+describe("WS341: Buy beside the gear panel's two sides", () => {
+  it("clears an earlier refusal from the status line while a retry is on its way", async () => {
+    const later = answerLater();
+    const answers: Array<Promise<ItemBuyAnswer>> = [Promise.resolve({ kind: "refused", reason: "no-coins" }), later.answer];
+    const { user } = buyWith(() => answers.shift()!);
+
+    await user.click(buyButtonFor("Gem"));
+    expect(announcement()).toHaveTextContent("Not enough coins yet.");
+    await user.click(buyButtonFor("Gem"));
+
+    expect(announcement()).not.toHaveTextContent("Not enough coins yet.");
+    await later.settle({ kind: "refused", reason: "no-coins" });
+    expect(announcement()).toHaveTextContent("Not enough coins yet.");
+  });
+
+  it("keeps a purchase on its way across a turn to the Character side and back, and says when it lands", async () => {
+    const later = answerLater();
+    const { user } = buyWith(() => later.answer);
+
+    await user.click(buyButtonFor("Gem"));
+    await user.click(within(screen.getByRole("main")).getByRole("button", { name: "Character" }));
+    turnToTheInventory();
+
+    expect(buyButtonFor("Gem")).toHaveTextContent("Buying…");
+    await later.settle({ kind: "bought", item: "kudos-emoji-gem" });
+    expect(announcement()).toHaveTextContent("You bought Gem.");
   });
 });
 
@@ -341,6 +380,7 @@ describe("WS339 V24: the Buy row passes axe", () => {
   it.each([false, true])("with dark mode %s, with Buy offered and with the shortfall hint", async (dark) => {
     fakeSystemTheme(dark);
     const { showVisitor } = renderApp(memberWithTheInventory);
+    turnToTheInventory();
     expect((await axe.run(inventory(), { rules: { "color-contrast": { enabled: false } } })).violations).toEqual([]);
 
     showVisitor({ ...memberWithTheInventory, coins: 40 });

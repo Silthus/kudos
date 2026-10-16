@@ -1,0 +1,62 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/equip-emoji
+
+ ❯ |convex| convex/website/equip.test.ts (16 tests | 2 failed) 1900ms
+   ❯ WS335 WS341: a refused equip or take-off stops at the gate, before D17 (5)
+     × P91: with quests on and no Journey launch, an open inventory refuses both and neither launches the Journey nor joins anyone 43ms
+     × with achievements on and no Book launch, an open inventory refuses both and doesn't launch the Book 33ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/equip.test.ts > WS335 WS341: a refused equip or take-off stops at the gate, before D17 > P91: with quests on and no Journey launch, an open inventory refuses both and neither launches the Journey nor joins anyone
+AssertionError: expected { item: 'kudos-emoji-rocket', …(2) } to deeply equal { kind: 'refused' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "refused",
++   "item": "kudos-emoji-rocket",
++   "kind": "equipped",
++   "slot": "emoji-2",
+  }
+
+ ❯ convex/website/equip.test.ts:179:56
+    177|     vi.mocked(publish).mockClear();
+    178|
+    179|     expect(await equip(asSignedIn, rocket, "emoji-2")).toEqual({ kind:…
+       |                                                        ^
+    180|     expect(await takeOff(asSignedIn, "emoji-1")).toEqual({ kind: "refu…
+    181|     expect(await everythingWritten()).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |convex| convex/website/equip.test.ts > WS335 WS341: a refused equip or take-off stops at the gate, before D17 > with achievements on and no Book launch, an open inventory refuses both and doesn't launch the Book
+AssertionError: expected { item: 'kudos-emoji-rocket', …(2) } to deeply equal { kind: 'refused' }
+
+- Expected
++ Received
+
+  {
+-   "kind": "refused",
++   "item": "kudos-emoji-rocket",
++   "kind": "equipped",
++   "slot": "emoji-2",
+  }
+
+ ❯ convex/website/equip.test.ts:191:56
+    189|     vi.mocked(publish).mockClear();
+    190|
+    191|     expect(await equip(asSignedIn, rocket, "emoji-2")).toEqual({ kind:…
+       |                                                        ^
+    192|     expect(await takeOff(asSignedIn, "emoji-1")).toEqual({ kind: "refu…
+    193|     expect(await everythingWritten()).toEqual(before);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 14 passed (16)
+   Start at  23:23:45
+   Duration  3.76s (tests 52%, transform 36%, import 11%, environment 2%)
+

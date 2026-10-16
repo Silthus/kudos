@@ -1,7 +1,8 @@
 import { FirstKudosNudge, hasGivenNoKudos } from "../home/FirstKudosNudge";
 import { Hero } from "../home/Hero";
 import { MainColumnPanels, RightRailPanels, type HomeReads } from "../home/FeaturePanels";
-import { InventoryPanel } from "../home/InventoryPanel";
+import { GearPanel } from "../home/GearPanel";
+import type { LoadoutActions } from "../home/gear";
 import { JourneyPanel } from "../home/JourneyPanel";
 import { ProfileCardPanel } from "../home/ProfileCardPanel";
 import { MemberTabs } from "../home/MemberTabs";
@@ -10,9 +11,11 @@ import type { RecentKudosRead } from "../recentKudosRead";
 import type { PendingItemPurchase } from "../home/itemPurchase";
 import type { MemberProfile, ShellActions } from "../shell";
 
-type HomePageProps = { member: MemberProfile; reads: HomeReads; useRecentKudos: RecentKudosRead; onBuyItem: ShellActions["buyItem"]; pendingPurchase: PendingItemPurchase };
+export type { LoadoutActions };
 
-export function HomePage({ member, reads, useRecentKudos, onBuyItem, pendingPurchase }: HomePageProps) {
+type HomePageProps = { member: MemberProfile; reads: HomeReads; useRecentKudos: RecentKudosRead; onBuyItem: ShellActions["buyItem"]; pendingPurchase: PendingItemPurchase; loadout: LoadoutActions };
+
+export function HomePage({ member, reads, useRecentKudos, onBuyItem, pendingPurchase, loadout }: HomePageProps) {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
       <div className="flex min-w-0 flex-col gap-6">
@@ -20,7 +23,7 @@ export function HomePage({ member, reads, useRecentKudos, onBuyItem, pendingPurc
         <Hero member={member} />
         {hasGivenNoKudos(member) && <FirstKudosNudge member={member} />}
         <JourneyPanel journey={member.journey} />
-        <InventoryPanel member={member} buyItem={onBuyItem} pendingPurchase={pendingPurchase} />
+        <GearPanel member={member} loadout={loadout} buyItem={onBuyItem} pendingPurchase={pendingPurchase} />
         <MainColumnPanels member={member} collection={reads.collection} />
       </div>
       <div className="flex min-w-0 flex-col gap-6">

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { routedFetch, type FakePostHog } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus, rateLimitedFor } from "../../testing/fakeSlack";
-import { anIdInHalfOf, bookShippedBeforeAnyoneJoined, flagsFromPostHog, offForEveryone, onForEveryone, onForHalf, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { anIdInHalfOf, bookShippedBeforeAnyoneJoined, flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, onForHalf, postHogDeciding, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, settle, settleInTimeOrder, testBackend, type Backend } from "../../testing/slackBackend";
 import { slashCommandResponseUrl } from "../../testing/slackMessages";
@@ -277,6 +277,49 @@ describe("PC11 PC17: the profile-card flag", { timeout: 30_000 }, () => {
   });
 });
 
+describe("WS344 GB32: the card names the member's primary group while groups show to the viewer", { timeout: 30_000 }, () => {
+  const groupsOn = [...everyFlag, "groups"].map(onForEveryone);
+
+  test("a teammate whose primary group is Ants shows Ants under their name", async () => {
+    const t = await workspace({ flags: groupsOn });
+    await primaryGroupOf(t, "Ants", "U_ANN", "U_BEA");
+
+    expect(await card(t, "U_ANN", "<@U_BEA>")).toBe(["*<@U_BEA>*", "Ants", "Level 1"].join("\n"));
+    expect(await card(t, "U_ANN", "<@U_ANN>")).toBe(["*<@U_ANN>*", "Ants", "Level 1"].join("\n"));
+  });
+
+  test("a group named with &, < and > reads as written", async () => {
+    const t = await workspace({ flags: groupsOn });
+    await primaryGroupOf(t, "R&D <core>", "U_BEA");
+
+    expect(await card(t, "U_ANN", "<@U_BEA>")).toBe(["*<@U_BEA>*", "R&amp;D &lt;core&gt;", "Level 1"].join("\n"));
+  });
+
+  test("a teammate with no primary group shows the card without groups", async () => {
+    const t = await workspace({ flags: groupsOn });
+    await primaryGroupOf(t, "Ants", "U_ANN");
+
+    expect(await card(t, "U_ANN", "<@U_BEA>")).toBe(["*<@U_BEA>*", "Level 1"].join("\n"));
+  });
+
+  test("while groups don't show to the viewer, the card is the card without groups, whatever groups show to its member", async () => {
+    const t = await workspace({ flags: [...everyFlag.map(onForEveryone), onForEmails("groups", emailOf("U_BEA"))] });
+    await primaryGroupOf(t, "Ants", "U_ANN", "U_BEA");
+
+    expect(await card(t, "U_ANN", "<@U_BEA>")).toBe(["*<@U_BEA>*", "Level 1"].join("\n"));
+    expect(await card(t, "U_BEA", "<@U_ANN>")).toBe(["*<@U_ANN>*", "Ants", "Level 1"].join("\n"));
+  });
+
+  test("with groups off, the reply and every call are those of the card without groups", async () => {
+    const t = await workspace();
+    await primaryGroupOf(t, "Ants", "U_ANN", "U_BEA");
+
+    expect(await card(t, "U_ANN", "<@U_BEA>")).toBe(["*<@U_BEA>*", "Level 1"].join("\n"));
+    expect(slack.calls).toEqual([]);
+    expect(postHog.events().filter(({ properties }) => properties.$feature_flag === "groups")).toEqual([]);
+  });
+});
+
 describe("PC13: profile card viewed", { timeout: 30_000 }, () => {
   test("a card shown to a member sends profile card viewed, own or a teammate's, at the command", async () => {
     const t = await workspace();
@@ -342,7 +385,19 @@ async function lookedUp(t: Backend, user: string) {
 function memberOptions(user: string) {
   if (user === "U_BOT") return { is_bot: true };
   if (user === "U_GONE") return { deleted: true };
-  return { profile: { display_name: user.slice(2) } };
+  return { profile: { display_name: user.slice(2), email: emailOf(user) } };
+}
+
+function emailOf(user: string) {
+  return `${user.slice(2).toLowerCase()}@example.com`;
+}
+
+async function primaryGroupOf(t: Backend, name: string, ...users: string[]) {
+  const members = await Promise.all(users.map((user) => memberOf(t, user)));
+  await t.run(async (ctx) => {
+    const group = await ctx.db.insert("userGroups", { workspace: "T1", group: `S_${users.length}`, handle: "group", name, enabled: true, automatic: false, members: members.length, asOf: 0, membersAsOf: 0 });
+    for (const member of members) await ctx.db.insert("memberGroups", { workspace: "T1", member, groups: [group], primary: group });
+  });
 }
 
 async function card(t: Backend, viewer: string, text: string) {
