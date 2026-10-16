@@ -162,11 +162,20 @@ export type Person = { user: ChatUserId; name: string | undefined; picture: stri
 
 export type People = Map<MemberId, Person>;
 
-export async function peopleIn(ctx: QueryCtx, workspace: string): Promise<People> {
-  const rows = await ctx.db
+export type MemberRows = Doc<"members">[];
+
+export function memberRowsIn(ctx: QueryCtx, workspace: string): Promise<MemberRows> {
+  return ctx.db
     .query("members")
     .withIndex("by_user", (q) => q.eq("workspace", workspace))
     .collect();
+}
+
+export async function peopleIn(ctx: QueryCtx, workspace: string): Promise<People> {
+  return peopleOf(await memberRowsIn(ctx, workspace));
+}
+
+export function peopleOf(rows: MemberRows): People {
   return new Map(rows.map((row) => [row._id, { user: row.user, ...(row.kind === "member" ? { name: row.name, picture: row.picture ?? null, former: false } : { name: undefined, picture: null, former: true }) }]));
 }
 

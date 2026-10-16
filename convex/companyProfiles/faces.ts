@@ -2,6 +2,10 @@ import type { QueryCtx } from "../_generated/server";
 
 export type CompanyFace = { image: string; colour: string };
 
+export function companyFaceOfProfile({ image, colour }: { image?: string; colour: string }): CompanyFace | null {
+  return image === undefined ? null : { image, colour };
+}
+
 export function normalisedName(name: string) {
   return name
     .normalize("NFD")
