@@ -33,8 +33,10 @@ function isAPack(waiting: Waiting): waiting is WaitingPack {
   return dropsAHoggie(waiting.crate);
 }
 
+const crateKeyOrder = new Intl.Collator("en", { numeric: true });
+
 function byWaitingLongest(first: WaitingPack, second: WaitingPack) {
-  return first.at - second.at || (first.crate < second.crate ? -1 : first.crate > second.crate ? 1 : 0);
+  return first.at - second.at || crateKeyOrder.compare(first.crate, second.crate);
 }
 
 function numbered({ crate }: WaitingPack, index: number): Pack {

@@ -224,6 +224,13 @@ describe("CV7: every waiting pack in getCollection", { timeout: 60_000 }, () => 
     expect((await packsOf(asSignedIn)).packs, "once the launch is recorded").toContainEqual({ crate: "bought:1", kind: "bought", n: expect.any(Number) });
   });
 
+  test("orders crates bought in one instant by their number, so the 50 listed are the first 50 bought", async () => {
+    const { asSignedIn } = await aShopperWithEveryFeatureOpenIn(t, 60 * 50);
+    for (let next = 1; next <= 60; next++) await asSignedIn.mutation(api.website.commands.buyCrate, { next });
+
+    expect(await packsOf(asSignedIn)).toEqual({ packs: Array.from({ length: 50 }, (_, index) => ({ crate: `bought:${index + 1}`, kind: "bought", n: index + 1 })), morePacks: true });
+  });
+
   test("with packs off, getCollection answers the collection with no packs and no morePacks", async () => {
     const { asSignedIn } = await aCollectorWithEveryKindWaiting();
     await flagsOn(t, ...shopping, "collection");
