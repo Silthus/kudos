@@ -230,7 +230,7 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     await openHome(t, "U_ALICE");
 
     expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
-      `section: *Week of Oct 12:* ✅ ${sayWhy} ${openOnTheWeb("/quests")}`,
+      `section: *Week of Oct 12:* ✅ ${sayWhy} ${openOnTheWeb("/quests?crate=weekly%3A2026-10-12%3A0")}`,
       `section: ✅ Give a kudos that says why. ${openOnTheWeb("/?crate=journey")}`,
       `section: ✅ Finish a weekly quest. ${openOnTheWeb("/?crate=journey")}`,
       `section: ✅ Thank someone you haven't thanked before. ${openOnTheWeb("/?crate=journey")}`,
@@ -253,13 +253,8 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
 
     await openHome(t, "U_ALICE");
 
-    const crate = `section: *Week of Oct 5:* ✅ ${sayWhy} ${openOnTheWeb("/quests")}`;
     expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
-      crate,
-      crate,
-      crate,
-      crate,
-      crate,
+      ...[0, 1, 2, 3, 4].map((slot) => `section: *Week of Oct 5:* ✅ ${sayWhy} ${openOnTheWeb(`/quests?crate=weekly%3A2026-10-05%3A${slot}`)}`),
       `section: ✅ Give a kudos that says why. ${openOnTheWeb("/?crate=journey")}`,
       `section: ✅ Thank someone you haven't thanked before. ${openOnTheWeb("/?crate=journey")}`,
       "context: 2 more crates from earlier weeks wait to open.",
@@ -277,8 +272,8 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     await openHome(t, "U_ALICE");
 
     expect(waitingIn(publishedHome(slack, "U_ALICE"))).toEqual([
-      `section: *Week of Sep 28:* ✅ ${sayWhy} ${openOnTheWeb("/quests")}`,
-      `section: *Week of Oct 5:* ✅ ${sayWhy} ${openOnTheWeb("/quests")}`,
+      `section: *Week of Sep 28:* ✅ ${sayWhy} ${openOnTheWeb("/quests?crate=weekly%3A2026-09-28%3A0")}`,
+      `section: *Week of Oct 5:* ✅ ${sayWhy} ${openOnTheWeb("/quests?crate=weekly%3A2026-10-05%3A0")}`,
       `section: ✅ Give a kudos that says why. ${openOnTheWeb("/?crate=journey")}`,
       `section: ✅ Thank someone you haven't thanked before. ${openOnTheWeb("/?crate=journey")}`,
     ]);
@@ -354,14 +349,14 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     expect(accessoryBeside("*Skill tree* is ready.")).toMatchObject({ url: `${siteUrl}/skills?crate=skillTree`, action_id: "website-link:skillTree", accessibility_label: "Open on HedgeHug's Skill tree page" });
   });
 
-  test("a Journey step's crate links to the Journey's crate on the home, this week's quest crate to its quest's card on the Quests page, and an earlier week's to the Quests page", async () => {
+  test("a Journey step's crate links to the Journey's crate on the home, this week's quest crate to its quest's card on the Quests page, and an earlier week's to its own waiting crate there", async () => {
     const t = await workspace(...everyFlag, "website");
     await levelThreeWithQuestsDrawn(t);
     await openReadyFeatures(t);
     await waitingFromAnEarlierWeek(t, "U_ALICE", 1);
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
 
-    expect(accessoryBeside("*Week of Oct 5:*")).toMatchObject({ url: `${siteUrl}/quests`, action_id: "website-link:weekly:2026-10-05:0", accessibility_label: "Open on HedgeHug's Quests page" });
+    expect(accessoryBeside("*Week of Oct 5:*")).toMatchObject({ url: `${siteUrl}/quests?crate=weekly%3A2026-10-05%3A0`, action_id: "website-link:weekly:2026-10-05:0", accessibility_label: "Open on HedgeHug's Quests page" });
 
     expect(accessoryBeside(`✅ ${sayWhy}`)).toMatchObject({ url: `${siteUrl}/quests?quest=0`, action_id: "website-link:weekly:2026-10-12:0", accessibility_label: "Open on HedgeHug's Quests page" });
     expect(accessoryBeside("✅ Give a kudos that says why.")).toMatchObject({ url: `${siteUrl}/?crate=journey`, action_id: "website-link:journey:first-thanks", accessibility_label: "Open on HedgeHug's home page" });
@@ -379,6 +374,23 @@ describe("each crate's Open in Slack links to the page where it opens while the 
     expect([sayWhy, twice, threeTimes].map((goal) => accessoryBeside(`✅ ${goal}`))).toMatchObject(
       [0, 1, 2].map((slot) => ({ url: `${siteUrl}/quests?quest=${slot}`, action_id: `website-link:weekly:2026-10-12:${slot}`, accessibility_label: "Open on HedgeHug's Quests page" })),
     );
+  });
+
+  test("each earlier week's quest crate links to its own waiting crate on the Quests page, by its week and slot", async () => {
+    const t = await workspace(...everyFlag, "website");
+    await levelThreeWithQuestsDrawn(t);
+    await openReadyFeatures(t);
+    await waitingFromAnEarlierWeek(t, "U_ALICE", 2, "2026-09-28");
+    await waitingFromAnEarlierWeek(t, "U_ALICE", 2, "2026-10-05");
+
+    await openHome(t, "U_ALICE");
+
+    expect(waitingIn(publishedHome(slack, "U_ALICE")).filter((line) => line.includes("*Week of"))).toEqual([
+      `section: *Week of Sep 28:* ✅ ${sayWhy} ${openOnTheWeb("/quests?crate=weekly%3A2026-09-28%3A0")}`,
+      `section: *Week of Sep 28:* ✅ ${sayWhy} ${openOnTheWeb("/quests?crate=weekly%3A2026-09-28%3A1")}`,
+      `section: *Week of Oct 5:* ✅ ${sayWhy} ${openOnTheWeb("/quests?crate=weekly%3A2026-10-05%3A0")}`,
+      `section: *Week of Oct 5:* ✅ ${sayWhy} ${openOnTheWeb("/quests?crate=weekly%3A2026-10-05%3A1")}`,
+    ]);
   });
 
   test("a ready Book links to its crate on /book, and ready Coins, which has no crate on the home, links to the home", async () => {

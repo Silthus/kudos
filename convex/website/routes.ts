@@ -84,10 +84,12 @@ export function questCratePageOf(quest: Quest): Page {
   return { page: "quests" };
 }
 
-export const earlierWeekCratePage: Page = { page: "quests" };
+export function earlierWeekCratePageOf({ week, slot }: WeeklyQuest): Page {
+  return { page: "quests", crate: { kind: "weekly", week, slot } };
+}
 
 export function weeklyCratePageOf(quest: WeeklyQuest, thisWeek: WeekKey): Page {
-  return quest.week === thisWeek ? questCratePageOf(quest) : earlierWeekCratePage;
+  return quest.week === thisWeek ? questCratePageOf(quest) : earlierWeekCratePageOf(quest);
 }
 
 export function urlOf(origin: string, page: Page) {
