@@ -187,6 +187,21 @@ describe("SR11: a hug on the activity timeline", () => {
     expect(keyOf(fresh.entries[0]!)).toBe(keyOf(second.entries[0]!));
   });
 
+  test("a hug decided after newer entries answers first on the newest page of its giver and its author, at its reaction's time", async () => {
+    await hugsOn();
+    const reactedTs = `${Math.floor(Date.now() / 1000)}.000200`;
+    vi.advanceTimersByTime(10 * minute);
+    await kudos(carol, [alice, bob], `${Math.floor(Date.now() / 1000)}.000300`);
+    vi.advanceTimersByTime(minute);
+
+    await react(t, { user: bob.user, itemUser: alice.user, ts: postedTs, eventTs: reactedTs });
+    await settle(t);
+
+    const reactedAt = Number(reactedTs) * 1000;
+    expect((await activityOf(await signedIn(alice), { filter: "all", limit: 1 })).entries.map(seen)).toEqual([`hugReceived at ${reactedAt}`]);
+    expect((await activityOf(await signedIn(bob), { filter: "all", limit: 1 })).entries.map(seen)).toEqual([`hugGiven at ${reactedAt}`]);
+  });
+
   test("a hug reacted before the first page but paid after the cursor passed its new place leaves its message's row where the first page found it, so a later page returns it once", async () => {
     await hugsOn();
     const messages = ["1791970700.000100", "1791970800.000100", "1791970900.000100"];
@@ -206,10 +221,10 @@ describe("SR11: a hug on the activity timeline", () => {
 
     expect([first, second, rest].map(({ entries }) => entries.map(onOf))).toEqual([[`C1/${messages[2]}`], [`C1/${messages[1]}`], [`C1/${messages[0]}`]]);
     expect(rest.entries.map(({ at }) => at)).toEqual([firstHugs[0]]);
-    expect((await activityOf(asAlice, { filter: "all", limit: 10 })).entries.map(onOf)).toEqual([`C1/${messages[2]}`, `C1/${messages[0]}`, `C1/${messages[1]}`]);
+    expect((await activityOf(asAlice, { filter: "all", limit: 10 })).entries.map(onOf)).toEqual([`C1/${messages[0]}`, `C1/${messages[2]}`, `C1/${messages[1]}`]);
   });
 
-  test("a cursor carries no hugs snapshot once hugs is off for the viewer, as main's cursors don't", async () => {
+  test("a cursor carries no hugs snapshot once hugs is off for the viewer", async () => {
     await hugsOn();
     await kudos(bob, [alice], "1791970600.000100");
     vi.advanceTimersByTime(minute);
@@ -217,14 +232,14 @@ describe("SR11: a hug on the activity timeline", () => {
     vi.advanceTimersByTime(minute);
     await hug(bob, alice);
     const asAlice = await signedIn(alice);
-    const mainsCursor = /^-?\d+(?:\.\d+)?_[0-5]_\d+(?:\.\d+)?$/;
+    const withoutSnapshot = /^d\d+(?:\.\d+)?_[0-5]$/;
 
     const on = await activityOf(asAlice, { filter: "all", limit: 1 });
     await hugsOn(false);
     const off = await activityOf(asAlice, { filter: "all", limit: 1, cursor: on.cursor });
 
-    expect(on.cursor).not.toMatch(mainsCursor);
-    expect(off.cursor).toMatch(mainsCursor);
+    expect(on.cursor).not.toMatch(withoutSnapshot);
+    expect(off.cursor).toMatch(withoutSnapshot);
   });
 
   test("a cursor from a page read while hugs was hidden gains a snapshot once hugs shows, so a later move skips nothing", async () => {
@@ -350,6 +365,7 @@ describe("SR11: the page's recipients bound leaves a page without hug people as 
     await hugsOn(on, "activity");
     const at = now.getTime();
     const [me, teammate] = await Promise.all([aMemberNamed(alice), aMemberNamed(bob)]);
+    await aKudos(teammate, me, "1.1", at - 3 * minute);
     await t.run(async (ctx) => {
       for (let index = 0; index < 800; index++) {
         const recipient = await ctx.db.insert("members", { workspace: "T1", user: `U_${index}`, kind: "member", asOf: 0 });
@@ -357,7 +373,6 @@ describe("SR11: the page's recipients bound leaves a page without hug people as 
       }
     });
     await aKudos(teammate, me, "1.3", at - minute);
-    await aKudos(teammate, me, "1.1", at - 3 * minute);
 
     const { entries, cursor } = await activityOf(await signedIn(alice), { filter: "all" });
 
@@ -373,17 +388,17 @@ describe("SR11: hug entries in order and pages", () => {
 
   async function aDayOfEverything() {
     const [me, teammate, other] = await Promise.all([aMemberNamed(alice), aMemberNamed(bob), aMemberNamed(carol)]);
-    await aHugGiven(me, teammate, "2.1", evening);
-    await aKudos(teammate, me, "1.1", evening);
-    await aHugReceived(teammate, me, "2.2", noon);
-    await aLevelUp(me, 2, noon);
-    await aHugGiven(me, other, "2.3", noon);
-    await aKudos(me, teammate, "1.2", noon);
-    await aDrop(me, noon, 1);
-    await aHugReceived(other, me, "2.4", noon);
-    await aKudos(teammate, me, "1.3", noon);
     await aHugReceived(other, me, "2.5", morning);
     await aKudos(me, teammate, "1.4", morning);
+    await aHugReceived(teammate, me, "2.2", noon);
+    await aHugReceived(other, me, "2.4", noon);
+    await aHugGiven(me, other, "2.3", noon);
+    await aDrop(me, noon, 1);
+    await aKudos(teammate, me, "1.3", noon);
+    await aKudos(me, teammate, "1.2", noon);
+    await aLevelUp(me, 2, noon);
+    await aHugGiven(me, teammate, "2.1", evening);
+    await aKudos(teammate, me, "1.1", evening);
     return signedIn(alice);
   }
 
@@ -401,7 +416,7 @@ describe("SR11: hug entries in order and pages", () => {
     `hugReceived at ${morning}`,
   ];
 
-  test("sit in time order, below the kudos, level-up and found entries of their instant", async () => {
+  test("sit in decision order among the kudos, level-up and found entries", async () => {
     await hugsOn();
     const asAlice = await aDayOfEverything();
 
@@ -433,14 +448,17 @@ describe("SR11: hug entries in order and pages", () => {
     expect(entries.map(seen)).toEqual(newestFirst.slice(newestFirst.indexOf(`levelUp at ${noon}`) + 1));
   });
 
-  test("a cursor in the form main wrote before hugs reads the same position once hugs are on", async () => {
+  test("a cursor in the form main wrote before the decision order reads on from its entry, with and without a hugs snapshot", async () => {
     await hugsOn();
     const asAlice = await aDayOfEverything();
-    const writtenByMainBeforeHugs = "1791979200000_1_9999999999999";
+    const { entries } = await activityOf(asAlice, { filter: "all" });
+    const givenAtNoon = entries.findIndex((entry) => seen(entry) === `kudosGiven at ${noon}`);
+    const writtenByMain = keyOf(entries[givenAtNoon]!);
 
-    const { entries } = await activityOf(asAlice, { filter: "all", cursor: writtenByMainBeforeHugs, limit: 20 });
-
-    expect(entries.map(seen)).toEqual(newestFirst.slice(newestFirst.indexOf(`kudosGiven at ${noon}`)));
+    for (const cursor of [writtenByMain, `${writtenByMain}_${Date.now() + minute}`]) {
+      const rest = await activityOf(asAlice, { filter: "all", cursor, limit: 20 });
+      expect(rest.entries.map(seen)).toEqual(newestFirst.slice(givenAtNoon + 1));
+    }
   });
 });
 
@@ -458,7 +476,7 @@ describe("SR11 SR24: a page of hugs stays within Convex's limits", () => {
     });
     await t.run(async (ctx) => {
       for (let index = 0; index < 25; index++) {
-        for (const [conversation, giver, when] of [["C1", me, at + 2 * index + 1], ["C2", author, at + 2 * index]] as const) {
+        for (const [conversation, giver, when] of [["C2", author, at + 2 * index], ["C1", me, at + 2 * index + 1]] as const) {
           const message = `1791960${String(index).padStart(3, "0")}.000100`;
           const segments = Array.from({ length: 40 }, (_, mentioned) => ({ kind: "person" as const, user: `U_MENTIONED_${conversation}_${index}_${mentioned}` }));
           await ctx.db.insert("kudosTexts", { workspace: "T1", conversation, message, kind: "words", revision: 1n, author: giver === me ? alice.user : bob.user, edited: false, segments, visibility: "public", gate: null });
@@ -490,10 +508,13 @@ describe("SR11 SR24: a page of hugs stays within Convex's limits", () => {
         const segments = Array.from({ length: 40 }, (_, mentioned) => ({ kind: "person" as const, user: `U_MENTIONED_${index}_${mentioned}` }));
         await ctx.db.insert("kudosTexts", { workspace: "T1", conversation: "C1", message, kind: "words", revision: 1n, author: bob.user, edited: false, segments, visibility: "public", gate: null });
         await ctx.db.insert("awards", { workspace: "T1", conversation: "C1", message, giver: teammate, recipient: me, kudos: 1, day: "2026-10-14", at: at - 1 });
+        await ctx.db.insert("awards", { workspace: "T1", conversation: "C2", message, giver: teammate, recipient: teammate, kudos: 1, day: "2026-10-14", at: at - 1 });
+      }
+      for (let index = 0; index < 51; index++) {
+        const message = `1760350${String(index).padStart(3, "0")}.000100`;
         const received = await ctx.db.insert("hugs", { workspace: "T1", conversation: "C1", message, giver: teammate, onKudos: true, emoji: "taco", at: at + index, day: "2026-10-14" });
         await ctx.db.insert("hugPeople", { hug: received, member: me, at: at + index });
         await ctx.db.insert("hugsReceived", { member: me, workspace: "T1", conversation: "C1", message, onKudos: true, hugs: 1, emoji: "taco", at: at + index, givers: [{ giver: teammate, at: at + index }] });
-        await ctx.db.insert("awards", { workspace: "T1", conversation: "C2", message, giver: teammate, recipient: teammate, kudos: 1, day: "2026-10-14", at: at - 1 });
         await ctx.db.insert("hugs", { workspace: "T1", conversation: "C2", message, giver: me, onKudos: true, emoji: "taco", at: at + index, day: "2026-10-14" });
       }
     });

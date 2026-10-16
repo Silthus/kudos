@@ -3,7 +3,7 @@ import type { Doc } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { levelReachedEventValidator } from "../bus/events";
 import { publish } from "../bus/publish";
-import { rangesBefore, type Before } from "../engine/awards";
+import { decidedBelow, type DecidedBelow } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { dropFor } from "../hoggies/drops";
 import { notifyLevelReached } from "../feedback/notify";
@@ -127,18 +127,12 @@ function stateFrom(row: UnlockRow | null): MemberUnlock["state"] {
 
 export type RecordedLevelUp = { level: number; at: number; created: number };
 
-export async function* levelUpsNewestFirst(ctx: QueryCtx, member: MemberId, before: Before): AsyncGenerator<RecordedLevelUp> {
-  for (const range of rangesBefore(before)) {
-    const rows = ctx.db
-      .query("levelUps")
-      .withIndex("by_member_at", (q) => {
-        const reached = q.eq("member", member);
-        if (range.kind === "older") return range.than === undefined ? reached : reached.lt("at", range.than);
-        return range.createdBefore === undefined ? reached.eq("at", range.at) : reached.eq("at", range.at).lt("_creationTime", range.createdBefore);
-      })
-      .order("desc");
-    for await (const { level, at, _creationTime } of rows) yield { level, at, created: _creationTime };
-  }
+export async function* levelUpsByDecision(ctx: QueryCtx, member: MemberId, below: DecidedBelow): AsyncGenerator<RecordedLevelUp> {
+  const rows = ctx.db
+    .query("levelUps")
+    .withIndex("by_member", (q) => decidedBelow(q.eq("member", member), below))
+    .order("desc");
+  for await (const { level, at, _creationTime } of rows) yield { level, at, created: _creationTime };
 }
 
 function levelUpOf(ctx: QueryCtx, member: MemberId, level: number) {
