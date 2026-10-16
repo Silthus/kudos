@@ -134,6 +134,7 @@ Groups: which of the workspace's user groups count as groups (an enabled user gr
 - the transition log is insert-only: Once a dropped membership or a group starting or stopping to count is recorded in the transition log, nothing changes or deletes it; a later change is a new row.
   over: every module under convex that isn't a test, read as source
   via: GB9: the transition log is only ever inserted, never changed or deleted
+  refuted: recordDepartures deleted the user's earlier departures from the group before inserting the new one, keeping only the latest -> the test failed on its assertion that the transitions module never patches, replaces or deletes a row (2026-10-16)
   because: reconciliation replays the transition log from a member's latest history entry (GB9), so a row that changed or vanished would move or drop a departure the history already dates, or one a member's page hasn't replayed yet, and kudos spent in between would count for another group
   kinds: state
   checklist: revalidated-permission dismissed: no permission is involved; only the user group copy and the group mode write the log
@@ -146,6 +147,7 @@ Groups: which of the workspace's user groups count as groups (an enabled user gr
 - reconciliation replays the transition log: Whenever a member's reconciliation runs, their primary group changes at the instant of each membership the copy dropped or kept and each group that started or stopped counting since their latest history entry, so a departure keeps its own instant when the group changes again before their page runs, and a removal and re-add, a disable and re-enable or a switch away and back still leaves the fallback in between.
   over: a giver who left her group before someone else joined it, who was removed and added back, whose group Slack disabled and enabled again, and whose group left the allowlist and came back, each attributed before her page ran, and a member removed and added back whose page ran after both, delivered through the copy's members lists and listings and setGroupMode
   via: GB9, call 13: reconciling a member replays the transition log
+  refuted: reconcile replayed none of the transition log's instants, so only the copy as it is now and the directory's or the current instant decided a change -> 5 of 5 tests failed on their assertions: the kudos counted for Zebras or Owls, the group the giver had left, and the history held no fallback at the removal (2026-10-16)
   because: GB9 and GB10 attribute a kudos message to the giver's primary group in force at its spend instant, and the copy forgets a membership it drops, so a reconciliation that read only the copy as it is now would date a departure at the group's latest change and miss an absence that ended before the page ran, crediting kudos to a group the giver wasn't counting in
   kinds: state
   checklist: revalidated-permission dismissed: no permission is involved; reconciliation reads the copy, the log and the group mode itself
