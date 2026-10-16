@@ -105,7 +105,7 @@ function CategoryLadders({ chapter: { category, ladders }, timeZone }: { chapter
       </div>
       <div className="flex flex-col gap-3">
         {ladders.map((ladder) => (
-          <Ladder key={ladder.ladder} ladder={ladder} timeZone={timeZone} />
+          <Ladder key={ladder.ladder} ladder={ladder} timeZone={timeZone} compact />
         ))}
       </div>
     </>
