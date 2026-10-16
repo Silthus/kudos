@@ -115,7 +115,7 @@ function searchOf(page: Page) {
   if (page.page === "skillTree" && page.perk !== undefined) search.set("perk", page.perk);
   if (page.page === "home" && page.panel !== undefined) search.set("panel", page.panel);
   if (page.page === "settings" && page.section !== undefined) search.set("section", page.section);
-  const crate = !("crate" in page) || page.crate === undefined ? undefined : crateParamOf(page.crate);
+  const crate = "crate" in page && page.crate !== undefined ? crateParamOf(page.crate) : undefined;
   if (crate !== undefined) search.set("crate", crate);
   const query = search.toString();
   return query === "" ? "" : `?${query}`;

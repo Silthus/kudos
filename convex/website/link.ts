@@ -7,6 +7,7 @@ import type { Feature } from "../unlocks/feature";
 import { scheduled } from "../unlocks/schedule";
 import { lookup, type MemberId } from "../workspace/directory";
 import { websiteOpen, websiteOpenTo } from "./flag";
+import { settingsPageOpenTo } from "./settings";
 import { crateTargetValidator, homePanelValidator, listedPageOf, settingsSectionValidator, signInEntry, urlOf, type Page } from "./routes";
 import { openFeaturesOf } from "./unlockPath";
 
@@ -23,7 +24,7 @@ export const pageValidator = v.union(
   v.object({ page: v.literal("settings"), section: v.optional(settingsSectionValidator) }),
 );
 
-const frontDoorLinksValidator = v.object({ origin: v.string(), pages: v.array(v.object({ label: v.string(), url: v.string() })) });
+const frontDoorLinksValidator = v.object({ origin: v.string(), pages: v.array(v.object({ label: v.string(), url: v.string() })), settings: v.boolean() });
 
 export type FrontDoorLinks = Infer<typeof frontDoorLinksValidator>;
 
@@ -48,7 +49,8 @@ export const frontDoorLinksOf = internalQuery({
     if (origin === null) return null;
     const open = me === undefined ? [] : await openFeaturesOf(ctx, me);
     const pages = open.flatMap((feature) => listedLinkOf(origin, feature));
-    return { origin, pages };
+    const settings = me !== undefined && (await settingsPageOpenTo(ctx, me));
+    return { origin, pages, settings };
   },
 });
 
