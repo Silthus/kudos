@@ -63,3 +63,13 @@ A fixture build (`VITE_SHELL_FIXTURE=member-with-the-book-opened`) served with `
 | A real drop: `Open` on the Journey reward runs `openQuestCrate`, the backend draws Doll House, and the reveal bursts it out as the card; the Book panel behind reads 5 of 151 | `11-live-reveal-real-drop-light.mp4`, `11-live-reveal-real-drop-finish-light.png` |
 
 `review-final.md`: a second GPT-6.1 Sol read of the commits since round 1 (the merge of `main` with #462 and the switch to the real read), with the round-1 findings as its checklist: no findings, ship.
+
+## Sandbox, `different-dog-467`
+
+Map #1's conductor allowed one deploy of this tree (which carries `main` at `c4589db8`) to the shared sandbox, right before the proof: `sandbox-deploy.txt` is the hand deploy with `deploy-sandbox.yml`'s steps (dry run first, no index deleted, no rows cleared or migrated). Cy, the synthetic member `U0PRF350CYP` from #350, holds the four hoggies ship #462's walk dropped; nothing wrote a collection row. The reads ran as Cy through `convex run --identity` against Cy's existing `authSessions` row (`sandbox-getCollection-cy.json`, `sandbox-getActivity-cy.json`), and the browser signed in with one appended six-hour `authRefreshTokens` row for that session.
+
+| What | File |
+|---|---|
+| `/book/collection` on the sandbox: Cy's 4 of 151 (2 common, 1 uncommon, 1 rare), the rare Caveman tagged New on this browser's first visit | `12-sandbox-collection-cy-1280-light.png` |
+| The home's Book panel on the sandbox | `13-sandbox-home-cy-1280-light.png` |
+| `/activity` on the sandbox in dark: four `found` entries between Cy's kudos and level mark | `14-sandbox-activity-cy-1280-dark.png` |
