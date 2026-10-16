@@ -636,6 +636,10 @@
     {
       "name": "Slack open",
       "definition": "App Home's Open for a crate: the Slack command that opens it, whose rows and events are the measure a website open is held to (D17)."
+    },
+    {
+      "name": "avatar",
+      "definition": "The hoggie a member picked from the hoggies they hold to stand for them where their face shows: App Home's profile, their profile card and the website's reads of their profile. A member has one or none, can change it or go back to none for free, and without one keeps their picture."
     }
   ],
   "retired": [
