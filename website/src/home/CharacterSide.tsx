@@ -1,6 +1,6 @@
 import { IconCheck, IconEmoji } from "@posthog/icons";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { MemberFace } from "../Face";
+import { OwnFace } from "../OwnFace";
 import type { InventoryItem, MemberInventory, MemberProfile, Slot } from "../shell";
 import { cameOff, itemIn, ItemArt, ownedIn, slotHolding, slotName, wentInto, type LoadoutActions, type Owned, type SendLoadout } from "./gear";
 
@@ -85,7 +85,7 @@ function Portrait({ member, inventory, turned }: { member: MemberProfile; invent
   const worn = inventory.slots.flatMap(({ slot }) => itemIn(inventory, slot) ?? []);
   return (
     <div className={`flex min-h-64 flex-1 flex-col items-center justify-center gap-3 px-3 py-5 text-center ${turned ? "gear-stage-turn" : ""}`}>
-      <MemberFace face={member.face} className="size-32 text-xl" />
+      <OwnFace face={member.face} avatar={member.avatar} className="size-32 text-xl [--avatar-ring:4px]" />
       <div className="flex flex-col items-center gap-1.5 leading-tight">
         <span className="hud-display text-2xl font-bold">{member.name}</span>
         {worn.length > 0 && (

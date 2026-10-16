@@ -1,6 +1,6 @@
 import { tierWords } from "../book/dates";
 import { Medal } from "../book/Medal";
-import { MemberFace } from "../Face";
+import { OwnFace } from "../OwnFace";
 import type { ProfileCardShown } from "../profileCardRead";
 import type { Medal as CardMedal, MemberProfile } from "../shell";
 import { Panel } from "./Panel";
@@ -8,11 +8,12 @@ import { Panel } from "./Panel";
 export function ProfileCardPanel({ member, card }: { member: MemberProfile; card: ProfileCardShown | undefined }) {
   const medals = card?.kind === "card" ? card.medals : [];
   const group = card?.kind === "card" ? card.group : null;
+  const avatar = card?.kind === "card" ? card.avatar : undefined;
   return (
     <Panel id="profile-card" label="What teammates see" aside="Public" busy={card === undefined}>
       <div className="flex flex-col gap-3 rounded-lg border bg-linear-to-br from-card to-muted p-3 shadow-md">
         <div className="flex items-center gap-3">
-          <MemberFace face={member.face} className="size-14" />
+          <OwnFace face={member.face} avatar={avatar} className="size-14 [--avatar-ring:3px]" />
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <div className="flex items-baseline justify-between gap-2">
               <span className="truncate text-lg leading-tight font-semibold">{member.name ?? "You"}</span>

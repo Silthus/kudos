@@ -88,3 +88,28 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: commit-ordered-effects dismissed: arriving issues no command and no external effect
   checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
   checklist: declared-target-coverage dismissed: there is no fan-out; one page lands on one heading
+- a member's avatar changes only through setAvatar: While getMyProfile carries the avatar field, the Collection page offers `Use as avatar` on each hoggie the member holds, marks the current avatar's tile `Your avatar` with a primary border and as current, and says in the summary card what shows in place of the member's picture, with `Remove avatar` while one is set and nothing while they hold no hoggie and none is set; each press sends setAvatar once over HTTP with the tile's own hoggie or null, holds every choice until it answers, and says the new avatar once the profile shows it, a refusal calmly, or an unreachable server; the page offers no choice while the profile carries no avatar field and draws nothing of its own.
+  over: the Collection page at /book/collection for a profile with no avatar field, with none set, with one set and for a member holding no hoggie, over setAvatar answering set, refused, a pending answer and a failed send, and a second press while one is pending, and the live shell sending `Use as avatar` and `Remove avatar` once over HTTP with the session's token, never through the socket
+  via: #568: a member picks a hoggie they hold as their avatar on /book/collection
+  refuted: a tile's Use as avatar sent the current avatar's hoggie instead of the tile's own -> setAvatar was called with asleep instead of heart, 2 of 8 tests red (2026-10-16)
+  refuted: the live shell sent setAvatar through the socket's useMutation instead of once over HTTP -> no HTTP send for Use as avatar or Remove avatar, 2 of 11 tests red (2026-10-16)
+  because: the avatar is the member's own write behind `hoggie-avatar` and `collection` (#537); only the command knows what they hold and whether the flags are on, so the page may only ask it and show what the profile then answers, never a hoggie it decided on its own
+  kinds: state
+  checklist: revalidated-permission dismissed: every press sends the command, which reads the flags and the member's hoggies when it runs
+  checklist: legal-state-succession dismissed: the page holds no avatar state; the profile read shows what is stored
+  checklist: supersession-safety dismissed: setAvatar is safe to repeat by state, and a press waits for the one before it
+  checklist: commit-ordered-effects dismissed: the page sends one command per press and shows its answer
+  checklist: separation-of-duties dismissed: the member who presses is the member the session names; the command sets only their own avatar
+  checklist: worker-fencing dismissed: no worker runs; a second tab's press is the same command for the same member
+  checklist: resumption-coverage dismissed: nothing resumes; a reload reads the stored avatar again
+- the avatar shows only where the member's own face shows: The header, the hero and the gear portrait draw the avatar getMyProfile answers, and `What teammates see` draws the one getProfileCard answers, as the hoggie's art by its slug in a ring of its rarity's colour in place of the Slack picture, and the Slack picture while the answer carries no avatar, none is set, the card fails to load or the art fails to load; no other member's face, on the home's `Recent kudos` or on the leaderboard's rows, shows an avatar.
+  over: the header's avatar link, the hero, the gear portrait and `What teammates see` on the home for a profile and card with no avatar field, with none set and with one set, the art's source and ring colour, a card that fails to load and art that fails to load, and every face on the home's `Recent kudos` and on the leaderboard with an avatar set
+  via: #568: a member's own face shows the hoggie they picked as their avatar
+  refuted: What teammates see drew the profile's avatar instead of the card's own answer -> the card drew the avatar while the card failed to load, 1 of 6 tests red (2026-10-16)
+  because: the contract carries only the viewer's own avatar (#537), and the card is what teammates see, so it shows the card's own answer rather than the profile's
+  kinds: output
+  checklist: destination-confinement dismissed: the art comes from the bundled brand pictures by slug, never a URL from the answer
+  checklist: redaction dismissed: the member sees only their own avatar; other members' faces read no avatar
+  checklist: commit-ordered-effects dismissed: drawing issues no command and no external effect
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
+  checklist: declared-target-coverage dismissed: there is no fan-out; each face draws one answer
