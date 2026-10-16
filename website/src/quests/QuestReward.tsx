@@ -6,8 +6,14 @@ export function xpLineOf({ xp }: QuestReward, waiting: boolean) {
   return waiting ? `+${xp} XP waiting` : `+${xp} XP`;
 }
 
-export function rewardWords({ xp, coins }: QuestReward) {
-  return coins === undefined ? `${xp} XP` : `${xp} XP and ${coinsText(coins)}`;
+export function rewardWords({ xp, coins }: QuestReward): string | undefined {
+  const paid = [...(xp > 0 ? [`${xp} XP`] : []), ...(coins === undefined ? [] : [coinsText(coins)])];
+  return paid.length === 0 ? undefined : paid.join(" and ");
+}
+
+export function earnedLineOf(reward: QuestReward) {
+  const words = rewardWords(reward);
+  return words === undefined ? "Reward claimed" : `You earned ${words}`;
 }
 
 export function Coins({ coins }: { coins: number }) {

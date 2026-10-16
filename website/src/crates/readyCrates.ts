@@ -19,8 +19,10 @@ export function questCrateOf({ crate, seen, reward }: CrateFacts): QuestCrate | 
   return crate === null || seen === null ? undefined : { kind: "quest", quest: crate, reward, seen };
 }
 
+const rewardLabels: Record<Quest["kind"], string> = { journey: "Journey reward", weekly: "Quest reward", group: "Group quest reward" };
+
 export function rewardLabelOf({ quest }: QuestCrate) {
-  return quest.kind === "journey" ? "Journey reward" : "Quest reward";
+  return rewardLabels[quest.kind];
 }
 
 export function readyCratesOf(member: MemberProfile, quests: QuestsShown | undefined): ReadyCrate[] {
@@ -29,7 +31,7 @@ export function readyCratesOf(member: MemberProfile, quests: QuestsShown | undef
 
 export function isShownOn(crate: ReadyCrate, screen: Screen | undefined, quests: QuestsShown | undefined) {
   if (crate.kind === "feature") return screen === "home" || (screen !== undefined && screen === webPageOf(crate.card.feature)?.screen);
-  if (crate.quest.kind === "weekly") return screen === "quests";
+  if (crate.quest.kind !== "journey") return screen === "quests";
   return screen === "home" || (screen === "quests" && isTheBonus(crate, quests));
 }
 
@@ -38,6 +40,6 @@ function isTheBonus({ seen }: QuestCrate, quests: QuestsShown | undefined) {
 }
 
 function questCratesOf({ journey }: MemberProfile, quests: QuestsShown | undefined) {
-  const weekly = quests?.kind === "quests" ? [...quests.slots, ...quests.waiting] : [];
+  const weekly = quests?.kind === "quests" ? [...quests.slots, ...(quests.group === null ? [] : [quests.group]), ...quests.waiting] : [];
   return [...(journey ?? []), ...weekly].flatMap((facts) => questCrateOf(facts) ?? []);
 }

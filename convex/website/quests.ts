@@ -1,10 +1,12 @@
 import type { QueryCtx } from "../_generated/server";
+import { rewardOf } from "../progression/rewards";
 import { rewardKeyOf } from "../quests/crates";
 import { questsApplyTo } from "../quests/flag";
+import { earlierGroupCratesOf, groupQuestAppliesTo, groupQuestFor, type WaitingGroupCrate } from "../quests/groupQuest";
 import { projectedJourneyOf, type ProjectedJourneyStep, type Reward } from "../quests/journey";
 import { journeyCopyFor } from "../quests/journeyCopy";
 import { questOf, type PoolQuest } from "../quests/pool";
-import { featureOpening, type JourneyQuest, type Quest, type WeeklyQuest } from "../quests/step";
+import { featureOpening, type GroupQuestCrate, type JourneyQuest, type Quest, type WeeklyQuest } from "../quests/step";
 import type { WeekKey } from "../quests/week";
 import { drawnWeekOf, unopenedCratesOf, type DrawnWeek, type UnopenedCrate } from "../quests/weekly";
 import { workspaceLink } from "../slack/workspaceLink";
@@ -34,11 +36,23 @@ export type QuestSlot = {
   seen: string | null;
 };
 
-export type WaitingCrate = { goal: string; week: WeekKey; reward: QuestReward; crate: WeeklyQuest; seen: string; waiting: boolean };
+export type WaitingCrate = { goal: string; group: string | null; week: WeekKey; reward: QuestReward; crate: WeeklyQuest | GroupQuestCrate; seen: string; waiting: boolean };
+
+export type GroupQuestCard = {
+  group: string;
+  goal: string;
+  progress: { done: number; target: number };
+  you: boolean;
+  reward: QuestReward;
+  state: "in-progress" | "finished" | "opened";
+  waiting: boolean;
+  crate: GroupQuestCrate | null;
+  seen: string | null;
+};
 
 export type WeekSwap = { used: boolean; available: boolean };
 
-export type QuestsAnswer = { kind: "not-found" } | { kind: "locked"; level: number } | { kind: "ready" } | { kind: "quests"; slots: QuestSlot[]; swap: WeekSwap; waiting: WaitingCrate[]; bonus: JourneyStep | null; chatUrl: string };
+export type QuestsAnswer = { kind: "not-found" } | { kind: "locked"; level: number } | { kind: "ready" } | { kind: "quests"; slots: QuestSlot[]; swap: WeekSwap; group: GroupQuestCard | null; waiting: WaitingCrate[]; bonus: JourneyStep | null; chatUrl: string };
 
 export type JourneyStep = {
   step: JourneyQuest["step"];
@@ -72,7 +86,8 @@ export const getQuests = memberQuery(async (ctx, me): Promise<QuestsAnswer> => {
     kind: "quests",
     slots: week === null ? [] : await Promise.all(week.slots.map((slot) => questSlotOf(shown, week, slot))),
     swap: { used: week?.swap != null, available: week?.swapAvailable ?? false },
-    waiting: await Promise.all((await unopenedCratesOf(ctx, me.member, at)).map((crate) => waitingCrateOf(shown, crate))),
+    group: await groupQuestCardOf(ctx, shown, at),
+    waiting: [...(await Promise.all((await unopenedCratesOf(ctx, me.member, at)).map((crate) => waitingCrateOf(shown, crate)))), ...(await waitingGroupCratesOf(ctx, shown, at))].sort((one, other) => one.week.localeCompare(other.week)),
     bonus: await bonusStepOf(ctx, shown),
     chatUrl: workspaceLink(me.workspace),
   };
@@ -122,7 +137,42 @@ async function questSlotOf(shown: Shown, { swap }: DrawnWeek, facts: DrawnWeek["
 }
 
 async function waitingCrateOf(shown: Shown, { crate, week, goal, reward, waiting }: UnopenedCrate): Promise<WaitingCrate> {
-  return { goal, week, reward: rewardShown(reward, shown), crate, seen: await seenKeyOfCrate(shown.me, crate), waiting };
+  return { goal, group: null, week, reward: rewardShown(reward, shown), crate, seen: await seenKeyOfCrate(shown.me, crate), waiting };
+}
+
+async function groupQuestCardOf(ctx: QueryCtx, shown: Shown, at: number): Promise<GroupQuestCard | null> {
+  if (!(await groupQuestAppliesTo(ctx, shown.me.member))) return null;
+  const facts = await groupQuestFor(ctx, shown.me.member, at);
+  if (facts === null) return null;
+  const { group, goal, week, tookPart, target, you, done, reward, crate } = facts;
+  const quest: GroupQuestCrate = { kind: "group", group: group.group, week };
+  const state = crate?.opened ? "opened" : done ? "finished" : "in-progress";
+  const claimable = state === "finished" && crate !== null;
+  return {
+    group: group.name,
+    goal,
+    progress: { done: tookPart, target },
+    you,
+    reward: rewardShown(reward, shown),
+    state,
+    waiting: claimable && (await isHeld(ctx, shown, quest)),
+    crate: claimable ? quest : null,
+    seen: crate === null ? null : await seenKeyOfCrate(shown.me, quest),
+  };
+}
+
+async function waitingGroupCratesOf(ctx: QueryCtx, shown: Shown, at: number): Promise<WaitingCrate[]> {
+  if (!(await groupQuestAppliesTo(ctx, shown.me.member))) return [];
+  return Promise.all((await earlierGroupCratesOf(ctx, shown.me.member, at)).map((crate) => waitingGroupCrateOf(ctx, shown, crate)));
+}
+
+async function waitingGroupCrateOf(ctx: QueryCtx, shown: Shown, { crate, group, goal }: WaitingGroupCrate): Promise<WaitingCrate> {
+  const { xp, coins, held } = (await rewardOf(ctx, shown.me.member, rewardKeyOf(crate)))!;
+  return { goal, group, week: crate.week, reward: rewardShown({ xp, coins, item: null }, shown), crate, seen: await seenKeyOfCrate(shown.me, crate), waiting: held === true };
+}
+
+async function isHeld(ctx: QueryCtx, shown: Shown, crate: GroupQuestCrate) {
+  return (await rewardOf(ctx, shown.me.member, rewardKeyOf(crate)))?.held === true;
 }
 
 async function journeyStepOf(ctx: QueryCtx, shown: Shown, facts: ProjectedJourneyStep): Promise<JourneyStep> {
