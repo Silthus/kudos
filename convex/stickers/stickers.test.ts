@@ -318,12 +318,14 @@ describe("a sticker is recorded once with its pair's earliest award", { timeout:
 });
 
 describe("SB4 SB5: a kudos to 300 members and the backfill of it stay inside Convex's limits", { timeout: 60_000 }, () => {
-  test("a kudos to 300 members gives its stickers live, and the backfill gives those of an earlier one, with no mutation refused", { timeout: 300_000 }, async () => {
+  test("the backfill gives the stickers of an earlier kudos to 300 members, and a kudos to 300 members after it gives its own live, with no mutation refused", { timeout: 300_000 }, async () => {
     const limited = testBackend({ transactionLimits: true });
     await stickerBookOn(limited);
     await limited.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 300 }));
     const recipients = newMembers("U_MANY", 300);
     const earlier = await givenBeforeStickersShippedIn(limited, carol, recipients);
+    await limited.mutation(internal.stickers.backfill.startStickerBackfill, { workspace: "T1" });
+    await settle(limited);
 
     const at = await thanksIn(limited, alice, recipients);
     await settle(limited);
