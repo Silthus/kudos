@@ -10,6 +10,7 @@ import { Claimed } from "../crates/RewardCrate";
 import { hogOf, openWebPageOf, plainNameOf, type Hoggie, type WebPage } from "../features";
 import { PageTitle } from "../PageTitle";
 import { crateTargetAttributes, questTargetAttributes } from "../linkTarget";
+import type { CrateTarget } from "../route";
 import { Coins, xpLineOf } from "../quests/QuestReward";
 import { missedTheReward, sharedRewardSentenceOf } from "../quests/groupQuestCopy";
 import { QuestTag } from "../quests/QuestTag";
@@ -296,7 +297,7 @@ function WaitingToOpen({ waiting, firstCrate }: { waiting: WaitingCrate[] } & Fi
 
 function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate) {
   return (
-    <article className="hud-panel relative flex scroll-mt-28 flex-col gap-2 rounded-lg border bg-card p-4" {...(entry.crate.kind === "weekly" && crateTargetAttributes(entry.crate))} {...questCrateHomeAttributes(entry.seen)}>
+    <article className="hud-panel relative flex scroll-mt-28 flex-col gap-2 rounded-lg border bg-card p-4" {...crateTargetAttributes(waitingCrateTargetOf(entry.crate))} {...questCrateHomeAttributes(entry.seen)}>
       <div className="flex flex-wrap items-center gap-x-2">
         <WeekOf week={entry.week} />
         {entry.group !== null && (
@@ -314,6 +315,10 @@ function WaitingCard({ entry, firstCrate }: { entry: WaitingCrate } & FirstCrate
       </RewardRow>
     </article>
   );
+}
+
+function waitingCrateTargetOf(crate: WaitingCrate["crate"]): CrateTarget {
+  return crate.kind === "weekly" ? crate : { kind: "group", week: crate.week };
 }
 
 function GroupQuest({ quest, firstCrate }: { quest: GroupQuestCard } & FirstCrate) {

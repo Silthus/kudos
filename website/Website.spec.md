@@ -42,3 +42,13 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: commit-ordered-effects dismissed: arriving issues no command and no external effect
   checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
   checklist: declared-target-coverage dismissed: there is no fan-out; one page lands on one crate
+- a link lands on an earlier week's group crate and never opens it: A link with `?crate=group:{week}` on `/quests` scrolls that week's waiting group crate into view and focuses its `Claim` once the quests answer lands, and never opens the crate; a week with no waiting group crate or a broken target leaves the plain page.
+  over: useLinkTargetOnceLanded in website/src/linkTarget.ts, run by App over the Quests page's cards of earlier weeks' unopened crates, for two weeks' group crates beside a weekly crate of the same week and this week's group crate, a group crate already opened, and a target with a broken week or none
+  via: #517: ?crate=group:{week} lands on an earlier week's waiting group crate
+  because: map #1 links an earlier week's group crate `Open` in Slack to `/quests` (#509), and without a target the member lands among every waiting crate with nothing to say which one they pressed; opening it on arrival would spend their reveal before they saw the page (#500, #517)
+  kinds: output
+  checklist: destination-confinement dismissed: the website sends nothing on arrival; the crate opens only when the member presses Claim
+  checklist: redaction dismissed: the target names a week, never a member or a group
+  checklist: commit-ordered-effects dismissed: arriving issues no command and no external effect
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
+  checklist: declared-target-coverage dismissed: there is no fan-out; one page lands on one crate
