@@ -132,7 +132,7 @@ export function crateOfferPageOf(): Page {
 }
 
 export function earlierWeekCratePageOf(quest: WeeklyQuest | GroupQuestCrate): Page {
-  if (quest.kind === "group") return { page: "quests" };
+  if (quest.kind === "group") return { page: "quests", crate: { kind: "group", week: quest.week } };
   return { page: "quests", crate: { kind: "weekly", week: quest.week, slot: quest.slot } };
 }
 
