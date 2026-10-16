@@ -91,3 +91,25 @@ export const recordMessageSettingChanged = internalMutation({
     await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "messageSettingChanged", ...change }));
   },
 });
+
+const hugsRecapValidator = v.object({
+  workspace: v.string(),
+  member: v.id("members"),
+  given: v.number(),
+  received: v.number(),
+  xp: v.number(),
+  at: v.number(),
+});
+
+export type HugsRecap = Infer<typeof hugsRecapValidator>;
+
+export async function reportHugsRecapSent(ctx: MutationCtx, recap: HugsRecap) {
+  await ctx.scheduler.runAfter(0, internal.analytics.isolatedUsage.recordHugsRecapSent, recap);
+}
+
+export const recordHugsRecapSent = internalMutation({
+  args: hugsRecapValidator,
+  handler: async (ctx, recap): Promise<void> => {
+    await failuresLogged(usageNotRecorded, () => recordUsage(ctx, { kind: "hugsRecapSent", ...recap }));
+  },
+});

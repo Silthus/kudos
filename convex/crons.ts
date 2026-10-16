@@ -12,6 +12,7 @@ crons.interval("sweep failed scheduled functions", { minutes: 15 }, internal.ana
 crons.interval("make features that shipped ready", { hours: 1 }, internal.unlocks.sweep.sweep, {});
 crons.interval("draw each member's new week of quests", { hours: 1 }, internal.quests.newWeek.sweep, {});
 crons.interval("draw each group's weekly group quest", { hours: 1 }, internal.quests.groupQuest.sweep, {});
+crons.interval("schedule each member's weekly hugs recap", { hours: 1 }, internal.hugs.recap.sweep, {});
 crons.interval("tick the website clock", { minutes: 15 }, internal.website.clock.tick);
 crons.daily("delete abandoned sign-in handshakes", { hourUTC: 3, minuteUTC: 30 }, internal.website.abandonedHandshakes.deleteAbandoned);
 crons.daily("read the company profiles from posthog.com", { hourUTC: 4, minuteUTC: 0 }, internal.companyProfiles.sync.syncCompanyProfiles);

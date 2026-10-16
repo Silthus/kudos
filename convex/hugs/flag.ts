@@ -1,0 +1,15 @@
+import { exposed, memberDecision, type Flag } from "../analytics/flags";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
+import type { MemberId } from "../workspace/directory";
+
+export const hugsFlag = { key: "hugs", safeDefault: false, values: [false, true] } as const satisfies Flag<boolean>;
+
+export async function hugsOnAndExposedFor(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  const on = await memberDecision(ctx, hugsFlag, member);
+  await exposed(ctx, hugsFlag, member, on);
+  return on;
+}
+
+export function hugsShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return memberDecision(ctx, hugsFlag, member);
+}

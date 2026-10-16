@@ -50,6 +50,7 @@ export const subscribers: Registry = {
   awardsAttributed: [internal.leaderboard.groupTotals.countAwardsAttributed, internal.quests.groupQuest.followAwardsAttributed],
   hoggieDropped: [internal.analytics.subscribers.recordHoggieDropped],
   crateBought: [],
+  hugGiven: [internal.hugs.people.payHugPeople, internal.analytics.subscribers.recordHugGiven],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {

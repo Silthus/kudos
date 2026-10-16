@@ -8,6 +8,7 @@ export const messageKindValidator = v.union(
   v.literal("quests"),
   v.literal("achievements"),
   v.literal("celebrations"),
+  v.literal("hugs-recap"),
 );
 
 export type MessageKind = Infer<typeof messageKindValidator>;
@@ -26,6 +27,7 @@ export const messageKinds: readonly MessageKindEntry[] = [
   { kind: "quests", label: "Quests and Journey", description: "When you finish a quest or a Journey step." },
   { kind: "achievements", label: "Book tiers", description: "When you earn an achievement tier." },
   { kind: "celebrations", label: "Public celebrations", description: "Your level ups and tiers in the announcement channel." },
+  { kind: "hugs-recap", label: "Weekly hugs recap", description: "Last week's hugs, the {kudos emoji} you and your teammates reacted, with their XP, on Monday morning." },
 ];
 
 export const directMessageKinds: readonly MessageKind[] = ["level-ups", "new-features", "quests", "achievements"];
@@ -37,4 +39,5 @@ export const placesChosenFrom: Record<Exclude<MessageKind, "tips">, readonly Mes
   quests: ["dm", "channel", "none"],
   achievements: ["dm", "channel", "none"],
   celebrations: ["channel", "none"],
+  "hugs-recap": ["dm", "none"],
 };
