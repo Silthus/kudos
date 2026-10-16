@@ -189,7 +189,7 @@ describe("CR9 CR10 CR11: a reward waiting in its crate is told as waiting, and a
     vi.setSystemTime(nextMonday);
     await openHome(t, "U_ALICE");
 
-    expect(publishedHome(slack, "U_ALICE")).toContain(`section: *Week of Oct 12:* ✅ ${sayWhyGoal} · 300 XP waits in your crate ${openOnTheWeb("/quests")}`);
+    expect(publishedHome(slack, "U_ALICE")).toContain(`section: *Week of Oct 12:* ✅ ${sayWhyGoal} · 300 XP waits in your crate ${openOnTheWeb("/quests?crate=weekly%3A2026-10-12%3A0")}`);
   });
 
   test("CR11: rewards that counted at their finish read as today in the front door", async () => {
