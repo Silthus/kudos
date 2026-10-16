@@ -16,7 +16,7 @@ const teammatesPictures: Record<string, string> = {
   "Ivy Quinn": "https://secure.gravatar.com/avatar/ivy.jpg?s=192",
 };
 
-const board = { kind: "board", period: "week", chatUrl: "https://app.slack.com/client/T1", onTheBoards: true, groups: null, myGroup: null } as const;
+const board = { kind: "board", period: "week", chatUrl: "https://app.slack.com/client/T1", onTheBoards: true, peer: null, groups: null, myGroup: null } as const;
 
 const midBoard: Leaderboard = {
   ...board,
@@ -193,9 +193,25 @@ const withGroupBoardsAllTime: Leaderboard = {
   myGroup: { ...teamAnts, rows: teamAnts.rows.map((row) => ({ ...row, climbed: null })) },
 };
 
+const withAPeerLine: Leaderboard = { ...withGroupBoards, peer: { percent: 60, group: teamAnts.group } };
+
+const aheadOfTheWholeGroup: Leaderboard = { ...withGroupBoards, peer: { percent: 100, group: teamAnts.group } };
+
+const leftWhileMyGroupRanks: Leaderboard = {
+  ...left,
+  groups: groupsThisWeek,
+  myGroup: { ...teamAnts, rows: [row(1, 1, "Ada Lindqvist", 2)], window: [1], standing: { kind: "left" } },
+};
+
+const leftWhileMyGroupIsUnlisted: Leaderboard = {
+  ...left,
+  groups: withMyGroupUnlisted.groups,
+  myGroup: { ...teamAnts, rows: [], window: [], standing: { kind: "left" } },
+};
+
 const empty: Leaderboard = { ...board, period: "all", rows: [], window: [], standing: { kind: "not-ranked" }, improvement: null };
 
-export const leaderboardFixtures = { midBoard, midBoardAfterAClimb, withTeammatesFaces, viewerLeads, sharedLead, tiedBelowTheLead, notRanked, left, leftALongBoard, longBoardViewerInTheMiddle, longBoardViewerAtTheTop, longBoardViewerAtTheBottom, empty, withGroupBoards, withGroupsAndNoGroupOfMine, withMyGroupUnlisted, withMyGroupTiedOnGroups, withGroupsGivingNothingYet, withGroupBoardsAllTime } as const satisfies Record<string, Leaderboard>;
+export const leaderboardFixtures = { midBoard, midBoardAfterAClimb, withTeammatesFaces, viewerLeads, sharedLead, tiedBelowTheLead, notRanked, left, leftALongBoard, longBoardViewerInTheMiddle, longBoardViewerAtTheTop, longBoardViewerAtTheBottom, empty, withGroupBoards, withGroupsAndNoGroupOfMine, withMyGroupUnlisted, withMyGroupTiedOnGroups, withGroupsGivingNothingYet, withGroupBoardsAllTime, withAPeerLine, aheadOfTheWholeGroup, leftWhileMyGroupRanks, leftWhileMyGroupIsUnlisted } as const satisfies Record<string, Leaderboard>;
 
 export function fixedLeaderboard(answer: Leaderboard): BoardRead {
   return (period) => (period === undefined ? undefined : { ...answer, period });

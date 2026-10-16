@@ -27,6 +27,7 @@ export type { LeaderboardRow } from "../../convex/website/leaderboard";
 export type { GroupBoards, GroupsBoardShown, MyGroupBoards, MyGroupBoardShown } from "../../convex/website/groupBoards";
 export type { GroupId } from "../../convex/groups/groups";
 export type { Period } from "../../convex/leaderboard/periods";
+export type { Peer } from "../../convex/leaderboard/peer";
 export type { CommandAnswer, PurchaseAnswer, PurchaseRefusal, SwapAnswer } from "../../convex/website/commands";
 export type { GroupChoice, MessageKind, MessagePlace, MessageSetting, MySettings } from "../../convex/website/settings";
 export type { Feature } from "../../convex/unlocks/feature";

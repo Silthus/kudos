@@ -47,8 +47,10 @@ function showingBoard(answer: BoardAnswer | undefined, member: MemberProfile = e
   return railOf(member, { board: (period) => (period === undefined ? undefined : answer) });
 }
 
+const inAGroup = { ...everyPanelOpen, groups: true };
+
 function standingOn(board: Leaderboard) {
-  railOf(everyPanelOpen, { board: fixedLeaderboard(board) });
+  railOf(inAGroup, { board: fixedLeaderboard(board) });
   return panel("Where you stand");
 }
 
@@ -305,6 +307,127 @@ describe("WS110: Where you stand", () => {
     expect(asked.mock.calls.map(([period]) => period).filter((period) => period !== undefined)).toEqual([]);
     showVisitor(everyPanelOpen);
     expect(asked).toHaveBeenLastCalledWith("week", false);
+  });
+
+  it("WS344: asks for the group boards with this week's board only while groups show to the member", () => {
+    const asked = vi.fn<BoardRead>(() => undefined);
+    const { showVisitor } = railOf(everyPanelOpen, { board: asked });
+    expect(asked).toHaveBeenLastCalledWith("week", false);
+    showVisitor(inAGroup);
+    expect(asked).toHaveBeenLastCalledWith("week", true);
+  });
+});
+
+describe("WS344: My group and Groups in Where you stand", () => {
+  function rowLinks(standing: HTMLElement) {
+    return within(standing)
+      .getAllByRole("link")
+      .map((link) => link.getAttribute("aria-label") ?? link.textContent);
+  }
+
+  function neighboursOf(standing: HTMLElement, list: string) {
+    return within(within(standing).getByRole("list", { name: list }))
+      .getAllByRole("listitem")
+      .map((item) => item.textContent);
+  }
+
+  it("lists My group, Groups and Everyone in E's order, each a door to the leaderboard", () => {
+    const standing = standingOn(leaderboardFixtures.withGroupBoards);
+    expect(rowLinks(standing)).toEqual(["My group this week: you're #1, up 2 places", "Groups this week: your group is #2, up 1 place", "Everyone this week: you're #9", "Open the leaderboard"]);
+    expect(within(standing).getByRole("link", { name: "Groups this week: your group is #2, up 1 place" })).toHaveAttribute("href", "/leaderboard");
+    expect(standing).toHaveTextContent("Team Ants");
+    expect(standing).toHaveTextContent("Kudos per person");
+  });
+
+  it("gives My group's faces their words, with the places the viewer climbed under the rank", () => {
+    const standing = standingOn(leaderboardFixtures.withGroupBoards);
+    expect(neighboursOf(standing, "Your neighbours in Team Ants")).toEqual([expect.stringContaining("You: 4 kudos given"), expect.stringContaining("Below you: Ada Lindqvist, 2 kudos given")]);
+    const myGroup = within(standing).getByRole("link", { name: "My group this week: you're #1, up 2 places" });
+    expect(myGroup).toHaveTextContent("▲ 2");
+  });
+
+  it("shows the groups around the viewer's group as crests with their kudos per person, ringing their own", () => {
+    const standing = standingOn(leaderboardFixtures.withGroupBoards);
+    const groups = within(standing).getByRole("list", { name: "The groups around yours" });
+    expect(neighboursOf(standing, "The groups around yours")).toEqual([
+      expect.stringContaining("Above your group: Thistle, 3.2 kudos given per person"),
+      expect.stringContaining("Your group: Team Ants, 2.0 kudos given per person"),
+      expect.stringContaining("Below your group: Bees, 0.8 kudos given per person"),
+    ]);
+    expect(groups.querySelectorAll("[data-crest]")).toHaveLength(3);
+    expect(groups.querySelectorAll("[data-mine-ring]")).toHaveLength(1);
+  });
+
+  it("says tied under the group's rank when it shares it", () => {
+    const standing = standingOn(leaderboardFixtures.withMyGroupTiedOnGroups);
+    expect(within(standing).getByRole("link", { name: "Groups this week: your group is tied at #2, up 1 place" })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["no group", leaderboardFixtures.withGroupsAndNoGroupOfMine, "No group yet"],
+    ["a group that isn't listed", leaderboardFixtures.withMyGroupUnlisted, "Not listed yet"],
+  ])("says the board card's words on the Groups row for a viewer with %s, with no rank", (_, board, words) => {
+    const standing = standingOn(board);
+    const groupsRow = within(standing).getByText("Groups").closest("li")!;
+    expect(groupsRow).toHaveTextContent(words);
+    expect(groupsRow.textContent).not.toMatch(/#\d|per person,/);
+  });
+
+  it("asks a viewer whose group is unlisted and who gave nothing to give kudos, on the My group row", () => {
+    const standing = standingOn(leaderboardFixtures.withMyGroupUnlisted);
+    const myGroupRow = within(standing).getByText("My group").closest("li")!;
+    expect(myGroupRow).toHaveTextContent("Give kudos this week to join the board.");
+  });
+
+  it("shows only Everyone while the group boards don't apply", () => {
+    const standing = standingOn(leaderboardFixtures.midBoard);
+    expect(rowLinks(standing)).toEqual(["Everyone this week: you're #9", "Open the leaderboard"]);
+  });
+
+  it("keeps only the Groups row and says the viewer is hidden while they left the boards and their group still ranks", () => {
+    const standing = standingOn(leaderboardFixtures.leftWhileMyGroupRanks);
+    expect(rowLinks(standing)).toEqual(["Groups this week: your group is #2, up 1 place", "Open the leaderboard"]);
+    expect(standing).toHaveTextContent("You're hidden from leaderboards");
+    expect(standing).toHaveTextContent("You're off My group and Everyone. Groups still shows your group.");
+    expect(within(standing).queryByText("My group")).not.toBeInTheDocument();
+    expect(within(standing).queryByText("Everyone")).not.toBeInTheDocument();
+  });
+
+  it("uses the page's own line, with no hidden note, while the viewer left the boards and their group doesn't rank", () => {
+    const standing = standingOn(leaderboardFixtures.leftWhileMyGroupIsUnlisted);
+    expect(standing).not.toHaveTextContent("You're hidden from leaderboards");
+    expect(standing).toHaveTextContent('You\'re off the board by choice. Switch on "Show me on the leaderboards" to come back.');
+  });
+});
+
+describe("WS344 GB16: the peer line in Where you stand", () => {
+  it("says how much of their group the viewer improved more than", () => {
+    const standing = standingOn(leaderboardFixtures.withAPeerLine);
+    expect(standing).toHaveTextContent("You improved more than 60% of Team Ants.");
+  });
+
+  it("says everyone else, never more than 100%, while the viewer improved more than their whole group", () => {
+    const standing = standingOn(leaderboardFixtures.aheadOfTheWholeGroup);
+    expect(standing).toHaveTextContent("You improved more than everyone else in Team Ants.");
+    expect(standing).not.toHaveTextContent("100%");
+  });
+
+  it("says nothing without a peer line", () => {
+    expect(standingOn(leaderboardFixtures.withGroupBoards)).not.toHaveTextContent("You improved");
+  });
+});
+
+describe("WS344 GB32: the public card names the member's primary group", () => {
+  it("shows the group in muted text under the name", () => {
+    const card = cardShowing(profileCardFixtures.inAGroup);
+    const group = within(card).getByText("Team Ants");
+    expect(group).toHaveClass("text-muted-foreground");
+    expect(within(card).getByText("Sam Example").compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("shows no group line while the card has none", () => {
+    const card = cardShowing(profileCardFixtures.bestFour);
+    expect(card).not.toHaveTextContent("Team Ants");
   });
 });
 
