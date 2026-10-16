@@ -55,7 +55,7 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
   test("P85: every deploy backfills the pending-crate index last, so a failing backfill never holds back the website, and runs it whenever the backend deployed", () => {
     expect(steps.at(-1)).toBe(pendingCratesStep);
     expect(pendingCratesStep?.run).toBe(backfill);
-    expect(pendingCratesStep?.if).toBe(`\${{ !cancelled() && steps.${deployStep?.id}.outcome == 'success' && steps.tip.outputs.current == 'true' }}`);
+    expect(pendingCratesStep?.if).toBe(`\${{ !cancelled() && steps.${deployStep?.id}.outcome == 'success' }}`);
     expect(deployStep?.id).toBe("deploy");
   });
 
@@ -91,11 +91,10 @@ describe.each(deployments)("deploying the $name deployment", ({ name, file, trig
     expect(workflow.concurrency).toEqual({ group: `deploy-${name}`, "cancel-in-progress": false });
   });
 
-  test("a run the branch has already moved past deploys nothing, so a rerun never rolls the deployment back", () => {
-    const tipCheck = steps[steps.indexOf(deployStep!) - 1];
-    expect(tipCheck?.run).toContain('git ls-remote origin "$GITHUB_REF"');
-    const tipIsCurrent = `steps.${tipCheck?.id}.outputs.current == 'true'`;
-    for (const step of keyedSteps.filter((step) => step !== pendingCratesStep)) expect(step?.if).toBe(tipIsCurrent);
-    expect(pendingCratesStep?.if).toContain(`&& ${tipIsCurrent} }}`);
+  test("every run deploys the branch's tip as it stands when the run starts, so a burst of pushes never leaves the deployment behind", () => {
+    const checkout = steps.find((step) => step.uses?.startsWith("actions/checkout@"));
+    expect(checkout?.with).toMatchObject({ ref: "${{ github.ref }}" });
+    expect(steps.some((step) => step.run?.includes("git ls-remote"))).toBe(false);
+    for (const step of keyedSteps.filter((step) => step !== pendingCratesStep)) expect(step?.if).toBeUndefined();
   });
 });
