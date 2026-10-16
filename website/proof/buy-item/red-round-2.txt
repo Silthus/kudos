@@ -1,0 +1,6 @@
+     × keeps a bought item out of Not yours yet while another purchase is sent before the read moves either 346ms
+     × resends the same request after the home page gave way to Connecting and came back 218ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+Error: [2mexpect([22m[31melement[39m[2m).not.toBeInTheDocument()[22m
+AssertionError: expected 'c2814b30-3891-4026-9940-5fdb07ea182f' to be 'a2a84159-8b9e-4e0d-9756-ec456a61b8d4' // Object.is equality
+      Tests  2 failed | 23 skipped (25)
