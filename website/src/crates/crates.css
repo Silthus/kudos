@@ -154,11 +154,6 @@
   background: color-mix(in oklab, var(--band-night) 96%, transparent);
   color: var(--band-night-ink);
   --crate-edge: var(--band-night-edge);
-  --rarity-common: #ffffff;
-  --rarity-uncommon: #1eff00;
-  --rarity-rare: #0070dd;
-  --rarity-epic: #a335ee;
-  --rarity-legendary: #ff8000;
 }
 
 .moment-stage {

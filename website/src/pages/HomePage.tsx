@@ -1,6 +1,6 @@
 import { FirstKudosNudge, hasGivenNoKudos } from "../home/FirstKudosNudge";
 import { Hero } from "../home/Hero";
-import { MainColumnPanels, RightRailPanels, type RailReads } from "../home/FeaturePanels";
+import { MainColumnPanels, RightRailPanels, type HomeReads } from "../home/FeaturePanels";
 import { InventoryPanel } from "../home/InventoryPanel";
 import { JourneyPanel } from "../home/JourneyPanel";
 import { ProfileCardPanel } from "../home/ProfileCardPanel";
@@ -10,7 +10,7 @@ import type { RecentKudosRead } from "../recentKudosRead";
 import type { PendingItemPurchase } from "../home/itemPurchase";
 import type { MemberProfile, ShellActions } from "../shell";
 
-type HomePageProps = { member: MemberProfile; reads: RailReads; useRecentKudos: RecentKudosRead; onBuyItem: ShellActions["buyItem"]; pendingPurchase: PendingItemPurchase };
+type HomePageProps = { member: MemberProfile; reads: HomeReads; useRecentKudos: RecentKudosRead; onBuyItem: ShellActions["buyItem"]; pendingPurchase: PendingItemPurchase };
 
 export function HomePage({ member, reads, useRecentKudos, onBuyItem, pendingPurchase }: HomePageProps) {
   return (
@@ -21,7 +21,7 @@ export function HomePage({ member, reads, useRecentKudos, onBuyItem, pendingPurc
         {hasGivenNoKudos(member) && <FirstKudosNudge member={member} />}
         <JourneyPanel journey={member.journey} />
         <InventoryPanel member={member} buyItem={onBuyItem} pendingPurchase={pendingPurchase} />
-        <MainColumnPanels member={member} />
+        <MainColumnPanels member={member} collection={reads.collection} />
       </div>
       <div className="flex min-w-0 flex-col gap-6">
         <ProfileCardPanel member={member} card={reads.card} />

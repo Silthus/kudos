@@ -1,0 +1,24 @@
+== head c401c4b032d2a3f34b301dbccfafbcc9d9286963 2026-10-16T00:59:32Z
+▌ Deploying code to deployment:
+▌ [Production] lonir:kudos-sandbox:production (prod) (dashboard: https://dashboard.convex.dev/t/lonir/kudos-sandbox/different-dog-467)
+▌ └─ https://different-dog-467.convex.cloud
+- Deploying to https://different-dog-467.convex.cloud...
+A minor update is available for Convex (1.46.0 → 1.47.0)
+Changelog: https://github.com/get-convex/convex-js/blob/main/CHANGELOG.md#changelog
+Convex AI files are not installed. Run npx convex ai-files install to get started or npx convex ai-files disable to hide this message.
+✔ No indexes are deleted by this push
+Uploading functions to Convex...
+Generating TypeScript bindings...
+Running TypeScript...
+Pushing code to your Convex deployment...
+Schema validation complete.
+Finalizing push...
+✔ Deployed Convex functions to https://different-dog-467.convex.cloud
+== website
+
+✨ Upload complete!
+
+Your app is now available at: https://different-dog-467.convex.site
+== flag
+== profiles
+== done 2026-10-16T00:59:55Z

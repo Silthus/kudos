@@ -1,0 +1,145 @@
+{
+  "cursor": null,
+  "entries": [
+    {
+      "at": 1792111044424,
+      "drop": {
+        "art": {
+          "kind": "hoggie",
+          "slug": "star"
+        },
+        "copy": 1,
+        "hoggie": "star",
+        "isNew": true,
+        "name": "Star",
+        "rarity": "common"
+      },
+      "key": "1792111044424_3_4",
+      "kind": "found"
+    },
+    {
+      "at": 1792111039386,
+      "drop": {
+        "art": {
+          "kind": "hoggie",
+          "slug": "dj"
+        },
+        "copy": 1,
+        "hoggie": "dj",
+        "isNew": true,
+        "name": "Dj",
+        "rarity": "rare"
+      },
+      "key": "1792111039386_3_3",
+      "kind": "found"
+    },
+    {
+      "at": 1792111034351,
+      "drop": {
+        "art": {
+          "kind": "hoggie",
+          "slug": "croissant"
+        },
+        "copy": 1,
+        "hoggie": "croissant",
+        "isNew": true,
+        "name": "Croissant",
+        "rarity": "common"
+      },
+      "key": "1792111034351_3_2",
+      "kind": "found"
+    },
+    {
+      "at": 1792111029322,
+      "drop": {
+        "art": {
+          "kind": "hoggie",
+          "slug": "ape"
+        },
+        "copy": 1,
+        "hoggie": "ape",
+        "isNew": true,
+        "name": "Ape",
+        "rarity": "rare"
+      },
+      "key": "1792111029322_3_1",
+      "kind": "found"
+    },
+    {
+      "at": 1792111018544,
+      "kind": "levelUp",
+      "level": 5
+    },
+    {
+      "at": 1792111017839,
+      "kind": "levelUp",
+      "level": 4
+    },
+    {
+      "at": 1792111017158,
+      "kind": "levelUp",
+      "level": 3
+    },
+    {
+      "at": 1792111006963,
+      "kind": "levelUp",
+      "level": 2
+    },
+    {
+      "at": 1792111006963,
+      "channel": {
+        "visibility": "public"
+      },
+      "earned": {
+        "bonuses": [],
+        "questsDone": [
+          {
+            "goal": "Give a kudos that says why.",
+            "kind": "journey",
+            "waiting": false,
+            "xp": 10
+          }
+        ],
+        "xp": 10
+      },
+      "key": "1792111006963_1_1792111006990.1887",
+      "kind": "kudosGiven",
+      "kudos": 1,
+      "message": {
+        "edited": false,
+        "kind": "text",
+        "segments": [
+          {
+            "kind": "emoji",
+            "name": "taco"
+          },
+          {
+            "kind": "text",
+            "text": " "
+          },
+          {
+            "kind": "person",
+            "name": "Bob"
+          },
+          {
+            "kind": "text",
+            "text": " thanks for untangling the release notes today, it saved me hours"
+          }
+        ]
+      },
+      "permalink": "https://t1.slack.com/archives/C1/p1792111006963000",
+      "recipients": [
+        {
+          "face": {
+            "initials": "B",
+            "kind": "initials"
+          },
+          "name": "Bob"
+        }
+      ],
+      "saidWhy": true
+    }
+  ],
+  "kind": "activity",
+  "timeZone": null
+}
