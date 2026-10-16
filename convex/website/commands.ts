@@ -10,6 +10,8 @@ import { dropsAHoggie } from "../hoggies/crateKey";
 import { dropOf, type Drop } from "../hoggies/drops";
 import { hoggiesShownTo } from "../hoggies/flag";
 import { crateOpeningOf, rewardKeyOf } from "../quests/crates";
+import { loadoutOf } from "../store/inventory";
+import { slotValidator, type Slot } from "../store/rows";
 import type { Refusal } from "../progression/purchases";
 import type { AppliedReward, StandingWithCoins } from "../progression/rewards";
 import { perkValidator } from "../progression/tree";
@@ -49,6 +51,8 @@ export type VisibilityAnswer = { kind: "set"; visible: boolean } | { kind: "refu
 export type MessageSettingAnswer = { kind: "set"; place: MessagePlace } | { kind: "refused" };
 
 export type GroupPickAnswer = { kind: "picked"; group: string } | { kind: "refused" };
+
+export type LoadoutAnswer = { kind: "equipped"; slot: Slot; item: string } | { kind: "takenOff"; slot: Slot } | { kind: "refused" };
 
 const refused = { kind: "refused" } as const;
 
@@ -142,6 +146,34 @@ export const setBoardVisibility = memberMutation({
     return { kind: "set", visible: stored };
   },
 });
+
+export const equip = memberMutation({
+  args: { item: v.string(), slot: slotValidator },
+  handler: async (ctx, me, person, { item, slot }): Promise<LoadoutAnswer> => {
+    if (!(await storeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
+    const held = await itemIn(ctx, me, slot);
+    await runCommand(ctx, me.workspace, person, { type: "equip", item, slot }, `website:equip:${me.member}:${slot}`);
+    if ((await itemIn(ctx, me, slot)) !== item) return refused;
+    if (held !== item) await republish(ctx, me.member);
+    return { kind: "equipped", slot, item };
+  },
+});
+
+export const takeOff = memberMutation({
+  args: { slot: slotValidator },
+  handler: async (ctx, me, person, { slot }): Promise<LoadoutAnswer> => {
+    if (!(await storeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
+    const held = await itemIn(ctx, me, slot);
+    await runCommand(ctx, me.workspace, person, { type: "takeOff", slot }, `website:takeOff:${me.member}:${slot}`);
+    if ((await itemIn(ctx, me, slot)) !== null) return refused;
+    if (held !== null) await republish(ctx, me.member);
+    return { kind: "takenOff", slot };
+  },
+});
+
+async function itemIn(ctx: QueryCtx, me: VerifiedMember, slot: Slot) {
+  return (await loadoutOf(ctx, me.member)).find((each) => each.slot === slot)?.item ?? null;
+}
 
 async function dropShownTo(ctx: QueryCtx, me: VerifiedMember, crate: string): Promise<{ drop?: Drop | null }> {
   if (!(await hoggiesShownTo(ctx, me.member))) return {};

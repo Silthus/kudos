@@ -1,0 +1,612 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/equip-emoji/website
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ ❯ |website| src/characterPanel.test.tsx (31 tests | 3 failed) 15174ms
+   ❯ WS341 E101–E107: the centre-stage picker (15)
+     × leaves a slot opened while an equip was on its way open, with focus where the member put it 845ms
+     × sends one command across both sides while one is on its way 494ms
+   ❯ WS341 E117–E119 E126: equipping in place on the Inventory side (5)
+     × keeps a slot choice opened while an equip was on its way 878ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/characterPanel.test.tsx > WS341 E101–E107: the centre-stage picker > leaves a slot opened while an equip was on its way open, with focus where the member put it
+TestingLibraryElementError: Unable to find an accessible element with the role "group" and name `/^Choose for/`
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Character · 3 slots":
+  <h2
+    class="hud-label"
+    id="gear-panel-title"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "Gear side":
+  <div
+    aria-label="Gear side"
+    class="quill-toggle-group group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch"
+    data-orientation="horizontal"
+    data-quill="true"
+    data-size="sm"
+    data-slot="toggle-group"
+    data-spacing="0"
+    data-variant="outline"
+    role="group"
+    style="--gap: 0;"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Character":
+  <button
+    aria-disabled="false"
+    aria-pressed="true"
+    class="quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm text-foreground border-primary bg-fill-selected"
+    data-pressed=""
+    data-quill="true"
+    data-size="sm"
+    data-slot="toggle-group-item"
+    data-spacing="0"
+    data-variant="outline"
+    tabindex="0"
+    type="button"
+  />
+
+  Name "Inventory":
+  <button
+    aria-disabled="false"
+    aria-pressed="false"
+    class="quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm text-foreground"
+    data-quill="true"
+    data-size="sm"
+    data-slot="toggle-group-item"
+    data-spacing="0"
+    data-variant="outline"
+    tabindex="-1"
+    type="button"
+  />
+
+  --------------------------------------------------img:
+
+  Name "Your kudos emoji: Hedgehog, Rocket":
+  <span
+    aria-label="Your kudos emoji: Hedgehog, Rocket"
+    class="flex justify-center gap-1.5"
+    role="img"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Emoji 1: Hedgehog. Change it":
+  <button
+    aria-label="Emoji 1: Hedgehog. Change it"
+    aria-pressed="false"
+    class="flex min-h-24 w-full min-w-0 flex-col gap-1.5 rounded-lg border bg-background p-2.5 text-left hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground dark:bg-muted/40  "
+    type="button"
+  />
+
+  Name "Emoji 2: Rocket. Change it":
+  <button
+    aria-label="Emoji 2: Rocket. Change it"
+    aria-pressed="false"
+    class="flex min-h-24 w-full min-w-0 flex-col gap-1.5 rounded-lg border bg-background p-2.5 text-left hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground dark:bg-muted/40  "
+    type="button"
+  />
+
+  Name "Emoji 3: empty. Change it":
+  <button
+    aria-label="Emoji 3: empty. Change it"
+    aria-pressed="false"
+    class="flex min-h-24 w-full min-w-0 flex-col gap-1.5 rounded-lg border bg-background p-2.5 text-left hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground dark:bg-muted/40 border-dashed border-muted-foreground "
+    type="button"
+  />
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  <p
+    class="text-xs text-muted-foreground"
+    role="status"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-labelledby="gear-panel-title"
+  class="relative flex flex-col gap-3 rounded-lg border bg-card p-4 hud-panel"
+>
+  <div
+    class="flex items-baseline justify-between gap-3"
+  >
+    <h2
+      class="hud-label"
+      id="gear-panel-title"
+    >
+      Character · 3 slots
+    </h2>
+    <span
+      class="flex items-center gap-1 text-xs text-muted-foreground"
+    >
+      <div
+        aria-label="Gear side"
+        class="quill-toggle-group group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch"
+        data-orientation="horizontal"
+        data-quill="true"
+        data-size="sm"
+        data-slot="toggle-group"
+        data-spacing="0"
+        data-variant="outline"
+        role="group"
+        style="--gap: 0;"
+      >
+        <button
+          aria-disabled="false"
+          aria-pressed="true"
+          class="quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm text-foreground border-primary bg-fill-selected"
+          data-pressed=""
+          data-quill="true"
+          data-size="sm"
+          data-slot="toggle-group-item"
+          data-spacing="0"
+          data-variant="outline"
+          tabindex="0"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="LemonIcon"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            width="100%"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              clip-rule="evenodd"
+              d="M12 3.5a8.5 8.5 0 0 0-6.223 14.29C7.247 16.074 9.417 15 12 15c2.583 0 4.752 1.074 6.223 2.79A8.5 8.5 0 0 0 12 3.5Zm5.108 15.294C15.917 17.388 14.151 16.5 12 16.5c-2.15 0-3.917.888-5.109 2.294A8.46 8.46 0 0 0 12 20.5a8.46 8.46 0 0 0 5.108-1.706ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10c0 2.974-1.3 5.646-3.359 7.476A9.965 9.965 0 0 1 12 22a9.965 9.965 0 0 1-6.641-2.524A9.977 9.977 0 0 1 2 12Zm10-4.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM8 10a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z"
+              fill-rule="evenodd"
+            />
+          </svg>
+          Character
+        </button>
+        <button
+          aria-disabled="false"
+          aria-pressed="false"
+          class="quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm text-foreground"
+          data-quill="true"
+          data-size="sm"
+          data-slot="toggle-group-item"
+          data-spacing="0"
+          data-variant="outline"
+          tabindex="-1"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="LemonIcon"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            width="100%"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M21.75 17.34V6.75a.762.762 0 0 0-.052-.263v-.06a.912.912 0 0 0-.143-.21.551.551 0 0 0-.15-.112l-9-5.25a.75.75 0 0 0-.75 0l-9 5.25a.552.552 0 0 0-.15.112.912.912 0 0 0-.143.21v.06a.75.75 0 0 0-.112.263v10.59c-.004.05-.004.1 0 .15.02.044.042.086.067.128.021.042.046.082.075.12l.113.097a.513.513 0 0 0 .075.06l9 5.25h.12c.163.07.347.07.51 0h.12l9-5.25a.51.51 0 0 0 .075-.06l.112-.098a.69.69 0 0 0 .076-.12c.025-.04.047-.083.067-.127.034-.048.064-.098.09-.15Zm-18-9.285 7.5 4.373v8.767l-7.5-4.373V8.055Zm9 4.373 7.5-4.373v8.767l-7.5 4.373v-8.768ZM12 2.37l7.5 4.38-7.5 4.38-7.5-4.38L12 2.37Z"
+            />
+          </svg>
+          Inventory
+        </button>
+      </div>
+    </span>
+  </div>
+  <div>
+    <div
+      class="flex flex-col gap-3"
+    >
+      <div
+        class="grid grid-cols-3 gap-2.5 sm:grid-cols-[minmax(0,1fr)_7rem] sm:grid-rows-3"
+      >
+        <div
+          class="col-span-3 flex min-h-64 flex-col overflow-hidden rounded-lg border bg-muted sm:col-span-1 sm:row-span-3"
+        >
+          <div
+            class="flex flex-1 flex-col items-center justify-center gap-3 px-3 py-5 text-center gear-stage-turn"
+          >
+            <span
+              aria-hidden="true"
+              class="inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground size-24 text-lg"
+            >
+              SE
+            </span>
+            <div
+              class="flex flex-col items-center gap-1.5 leading-tight"
+            >
+              <span
+                class="hud-display text-2xl font-bold"
+              >
+                Sam Example
+              </span>
+              <span
+                aria-label="Your kudos emoji: Hedgehog, Rocket"
+                class="flex justify-center gap-1.5"
+                role="img"
+              >
+                <span
+                  aria-hidden="true"
+                  class="flex items-center justify-center lead...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ picker src/characterPanel.test.tsx:35:30
+     33|
+     34| function picker() {
+     35|   return within(character()).getByRole("group", { name: /^Choose for/ …
+       |                              ^
+     36| }
+     37|
+ ❯ src/characterPanel.test.tsx:240:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  |website| src/characterPanel.test.tsx > WS341 E101–E107: the centre-stage picker > sends one command across both sides while one is on its way
+AssertionError: expected "vi.fn()" to be called once with arguments: [ 'emoji-2' ]
+
+Received:
+
+  1st vi.fn() call:
+
+Compared values have no visual difference.
+
+  2nd vi.fn() call:
+
+  [
+-   "emoji-2",
++   "emoji-1",
+  ]
+
+
+Number of calls: 2
+
+ ❯ src/characterPanel.test.tsx:256:21
+    254|     await act(async () => pending.answer({ kind: "takenOff", slot: "em…
+    255|
+    256|     expect(takeOff).toHaveBeenCalledExactlyOnceWith("emoji-2");
+       |                     ^
+    257|   });
+    258| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  |website| src/characterPanel.test.tsx > WS341 E117–E119 E126: equipping in place on the Inventory side > keeps a slot choice opened while an equip was on its way
+TestingLibraryElementError: Unable to find an accessible element with the role "group" and name "Put Sunflower in"
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "Inventory":
+  <h2
+    class="hud-label"
+    id="gear-panel-title"
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "Gear side":
+  <div
+    aria-label="Gear side"
+    class="quill-toggle-group group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch"
+    data-orientation="horizontal"
+    data-quill="true"
+    data-size="sm"
+    data-slot="toggle-group"
+    data-spacing="0"
+    data-variant="outline"
+    role="group"
+    style="--gap: 0;"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Character":
+  <button
+    aria-disabled="false"
+    aria-pressed="false"
+    class="quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm text-foreground"
+    data-quill="true"
+    data-size="sm"
+    data-slot="toggle-group-item"
+    data-spacing="0"
+    data-variant="outline"
+    tabindex="-1"
+    type="button"
+  />
+
+  Name "Inventory":
+  <button
+    aria-disabled="false"
+    aria-pressed="true"
+    class="quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm text-foreground border-primary bg-fill-selected"
+    data-pressed=""
+    data-quill="true"
+    data-size="sm"
+    data-slot="toggle-group-item"
+    data-spacing="0"
+    data-variant="outline"
+    tabindex="0"
+    type="button"
+  />
+
+  --------------------------------------------------status:
+
+  Name "":
+  <p
+    class="min-h-5 text-sm text-muted-foreground"
+    role="status"
+  />
+
+  --------------------------------------------------
+  region:
+
+  Name "Kudos emoji":
+  <section
+    aria-labelledby="inventory-kudos-emoji"
+    class="flex flex-col gap-3"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "Kudos emoji":
+  <h3
+    class="hud-display flex items-center gap-1.5 text-lg leading-none font-bold"
+    id="inventory-kudos-emoji"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="text-xs text-muted-foreground"
+  />
+
+  --------------------------------------------------
+  list:
+
+  Name "Yours":
+  <ul
+    aria-label="Yours"
+    class="grid grid-cols-3 gap-2 sm:grid-cols-5"
+  />
+
+  Name "Not yours yet":
+  <ul
+    aria-labelledby="inventory-not-yet"
+    class="grid gap-1.5 sm:grid-cols-2"
+  />
+
+  --------------------------------------------------
+  listitem:
+
+  Name "":
+  <li
+    class="flex"
+  />
+
+  Name "":
+  <li
+    class="flex"
+  />
+
+  Name "":
+  <li
+    class="flex"
+  />
+
+  Name "":
+  <li
+    class="flex min-h-11 items-center gap-2.5 rounded-md border border-dashed px-2.5 py-1.5"
+  />
+
+  Name "":
+  <li
+    class="flex min-h-11 items-center gap-2.5 rounded-md border border-dashed px-2.5 py-1.5"
+  />
+
+  Name "":
+  <li
+    class="flex min-h-11 items-center gap-2.5 rounded-md border border-dashed px-2.5 py-1.5"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Take off Hedgehog, in Emoji 1":
+  <button
+    aria-label="Take off Hedgehog, in Emoji 1"
+    aria-pressed="true"
+    class="relative flex h-28 w-full flex-col items-center justify-between gap-2 rounded-md border p-2.5 text-center hover:bg-fill-hover bg-fill-selected"
+    type="button"
+  />
+
+  Name "Take off Rocket, in Emoji 2":
+  <button
+    aria-label="Take off Rocket, in Emoji 2"
+    aria-pressed="true"
+    class="relative flex h-28 w-full flex-col items-center justify-between gap-2 rounded-md border p-2.5 text-center hover:bg-fill-hover bg-fill-selected"
+    type="button"
+  />
+
+  Name "Wear Sunflower":
+  <button
+    aria-label="Wear Sunflower"
+    aria-pressed="false"
+    class="relative flex h-28 w-full flex-col items-center justify-between gap-2 rounded-md border p-2.5 text-center hover:bg-fill-hover bg-card"
+    type="button"
+  />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<section
+  aria-labelledby="gear-panel-title"
+  class="relative flex flex-col gap-3 rounded-lg border bg-card p-4 hud-panel"
+>
+  <div
+    class="flex items-baseline justify-between gap-3"
+  >
+    <h2
+      class="hud-label"
+      id="gear-panel-title"
+    >
+      Inventory
+    </h2>
+    <span
+      class="flex items-center gap-1 text-xs text-muted-foreground"
+    >
+      <div
+        aria-label="Gear side"
+        class="quill-toggle-group group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-stretch"
+        data-orientation="horizontal"
+        data-quill="true"
+        data-size="sm"
+        data-slot="toggle-group"
+        data-spacing="0"
+        data-variant="outline"
+        role="group"
+        style="--gap: 0;"
+      >
+        <button
+          aria-disabled="false"
+          aria-pressed="false"
+          class="quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm text-foreground"
+          data-quill="true"
+          data-size="sm"
+          data-slot="toggle-group-item"
+          data-spacing="0"
+          data-variant="outline"
+          tabindex="-1"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="LemonIcon"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            width="100%"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              clip-rule="evenodd"
+              d="M12 3.5a8.5 8.5 0 0 0-6.223 14.29C7.247 16.074 9.417 15 12 15c2.583 0 4.752 1.074 6.223 2.79A8.5 8.5 0 0 0 12 3.5Zm5.108 15.294C15.917 17.388 14.151 16.5 12 16.5c-2.15 0-3.917.888-5.109 2.294A8.46 8.46 0 0 0 12 20.5a8.46 8.46 0 0 0 5.108-1.706ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10c0 2.974-1.3 5.646-3.359 7.476A9.965 9.965 0 0 1 12 22a9.965 9.965 0 0 1-6.641-2.524A9.977 9.977 0 0 1 2 12Zm10-4.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM8 10a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z"
+              fill-rule="evenodd"
+            />
+          </svg>
+          Character
+        </button>
+        <button
+          aria-disabled="false"
+          aria-pressed="true"
+          class="quill-button group/button shrink-0 quill-button--variant-outline quill-button--size-default quill-toggle-group__item quill-toggle group/toggle inline-flex items-center justify-center gap-1 whitespace-nowrap quill-toggle--variant-outline quill-toggle--size-sm text-foreground border-primary bg-fill-selected"
+          data-pressed=""
+          data-quill="true"
+          data-size="sm"
+          data-slot="toggle-group-item"
+          data-spacing="0"
+          data-variant="outline"
+          tabindex="0"
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            class="LemonIcon"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            width="100%"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M21.75 17.34V6.75a.762.762 0 0 0-.052-.263v-.06a.912.912 0 0 0-.143-.21.551.551 0 0 0-.15-.112l-9-5.25a.75.75 0 0 0-.75 0l-9 5.25a.552.552 0 0 0-.15.112.912.912 0 0 0-.143.21v.06a.75.75 0 0 0-.112.263v10.59c-.004.05-.004.1 0 .15.02.044.042.086.067.128.021.042.046.082.075.12l.113.097a.513.513 0 0 0 .075.06l9 5.25h.12c.163.07.347.07.51 0h.12l9-5.25a.51.51 0 0 0 .075-.06l.112-.098a.69.69 0 0 0 .076-.12c.025-.04.047-.083.067-.127.034-.048.064-.098.09-.15Zm-18-9.285 7.5 4.373v8.767l-7.5-4.373V8.055Zm9 4.373 7.5-4.373v8.767l-7.5 4.373v-8.768ZM12 2.37l7.5 4.38-7.5 4.38-7.5-4.38L12 2.37Z"
+            />
+          </svg>
+          Inventory
+        </button>
+      </div>
+    </span>
+  </div>
+  <div
+    class="gear-turn"
+  >
+    <div
+      class="flex flex-col gap-4"
+    >
+      <div
+        class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <p
+          class="min-h-5 text-sm text-muted-foreground"
+          role="status"
+        >
+          <span
+            class="flex items-center gap-1.5"
+          >
+            <svg
+              aria-hidden="true"
+              class="LemonIcon size-3.5 shrink-0 text-foreground"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              width="100%"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g
+                clip-path="url(#icon/check__a)"
+              >
+                <path
+                  clip-rule="evenodd"
+                  d="M21.225 3.67a.75.75 0 0 1 .105 1.055L8.87 19.955a.75.75 0 0 1-1.11.056l-5.54-5.538a.75.75 0 0 1 1.061-1.061l4.953 4.952L20.169 3.775a.75.75 0 0 1 1.056-.105Z"
+                  fill-rule="evenodd"
+                />
+              </g>
+              <defs>
+                <clippath
+                  id="icon/check__a"
+                >
+                  <path
+                    d=...
+ ❯ Object.getElementError ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/characterPanel.test.tsx:345:32
+    343|     await act(async () => pending.answer({ kind: "equipped", item: "ku…
+    344|
+    345|     expect(within(inventory()).getByRole("group", { name: "Put Sunflow…
+       |                                ^
+    346|     expect(within(inventory()).getByRole("button", { name: "Emoji 3, e…
+    347|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 28 passed (31)
+   Start at  23:43:42
+   Duration  18.60s (tests 82%, import 8%, transform 6%, environment 3%, setup 1%)
+
