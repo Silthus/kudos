@@ -25,10 +25,8 @@ export function websiteOpenTo(ctx: QueryCtx | MutationCtx, member: MemberId): Pr
 export async function websiteShownTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
   const shown = await memberDecision(ctx, websiteFlag, member);
   await exposed(ctx, websiteFlag, member, shown);
-  if (!shown) return false;
-  await runDuePreviewMoments(ctx, member);
-  await readyFromTheStartOnTheWebsite(ctx, member);
-  return true;
+  if (shown) await runDueMoments(ctx, member);
+  return shown;
 }
 
 export async function websiteAdmits(ctx: MutationCtx, member: MemberId): Promise<boolean> {
@@ -42,10 +40,11 @@ export async function workspaceLaunchDueIn(ctx: QueryCtx, workspace: string): Pr
   return (await unlocksLaunchDueIn(ctx, workspace)) || (await journeyLaunchDueIn(ctx, workspace)) || (await bookLaunchDueIn(ctx, workspace));
 }
 
-async function runDuePreviewMoments(ctx: MutationCtx, member: MemberId) {
+async function runDueMoments(ctx: MutationCtx, member: MemberId) {
   if (await workspaceLaunchDueIn(ctx, (await chatUserOf(ctx, member)).workspace)) return;
   await unlocksPreviewedBy(ctx, member);
   await journeyPreviewedBy(ctx, member);
+  await readyFromTheStartOnTheWebsite(ctx, member);
 }
 
 async function websiteFlagThrough(ctx: QueryCtx | MutationCtx, read: typeof workspaceDecision): Promise<boolean> {

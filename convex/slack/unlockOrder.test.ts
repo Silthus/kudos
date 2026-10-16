@@ -99,7 +99,7 @@ describe("unlock schedule 2: the Book at level 1, the Leaderboard at level 2, Qu
 
   test("a member at level 1 whom nothing in Slack has shown unlocks signs in to the website first and reads the Book ready, and no DM names it", async () => {
     vi.stubEnv("SLACK_WORKSPACE_ID", "T1");
-    const t = await workspace();
+    const t = await journeyShippedBeforeAnyoneJoined(await workspace());
     await switchWebsite(t, postHog, true, ...everyFlag);
     await t.fetch("/slack/events", await signedRequest(memberEvent("team_join", { id: "U_CAROL", name: "carol" })));
     await settle(t);
