@@ -77,7 +77,21 @@ const story: ActivityEntry[] = [
     permalink: "https://example.slack.com/archives/C1/p1",
     message: words("Thanks for pairing on the release checklist, it saved us a whole afternoon ", { kind: "emoji", name: "tada", unicode: "🎉" }, { kind: "emoji", name: "hedgehug", image: "/favicon.svg" }, { kind: "emoji", name: "raised_hands::skin-tone-4" }),
   }),
+  aHugReceived("C1/standup", fixtureNow - 90 * 60 * 1000, {
+    givers: [teammates.cleo, teammates.dev, teammates.bo, teammates.eli],
+    emoji: "hedgehug",
+    emojiImage: "/favicon.svg",
+    hugs: 4,
+    xp: 4,
+    permalink: "https://example.slack.com/archives/C1/p4",
+  }),
   aFound("rocket", fixtureNow - 2 * hour, drops.rocketCompletingBlitzscale),
+  aHugGiven("release-notes", fixtureNow - 150 * 60 * 1000, {
+    people: [teammates.dev],
+    emoji: "+1::skin-tone-3",
+    kudos: words("Thanks for writing the release notes so clearly"),
+    permalink: "https://example.slack.com/archives/C1/p5",
+  }),
   aGiven("incident", fixtureNow - 3 * hour, {
     recipients: [teammates.cleo, teammates.dev],
     kudos: 2,

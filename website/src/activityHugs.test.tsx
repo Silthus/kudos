@@ -61,10 +61,10 @@ describe("#580: hugs received on one message show as one row on the left", () =>
   });
 
   it("names both teammates when two reacted on a message", async () => {
-    await opened([aHugReceived("C1/2", now - minute, { givers: [teammates.bo, teammates.ada], hugs: 2, xp: 2 })]);
-    const row = article("Bo Okafor and Ada Lindqvist reacted 🤗 on your message");
+    await opened([aHugReceived("C1/2", now - minute, { givers: [teammates.bo, teammates.cleo], hugs: 2, xp: 2 })]);
+    const row = article("Bo Okafor and Cleo Marchetti reacted 🤗 on your message");
     expect(row).toHaveTextContent("2 hugs · +2 XP");
-    expect(within(row).getAllByTestId("person-face").map((face) => face.textContent)).toEqual(["BO", "AL"]);
+    expect(within(row).getAllByTestId("person-face").map((face) => face.textContent)).toEqual(["BO", "CM"]);
   });
 
   it("names the newest giver and counts the others when six reacted, from the five givers the read holds", async () => {
