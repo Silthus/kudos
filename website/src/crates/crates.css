@@ -296,6 +296,12 @@
   background: color-mix(in oklab, var(--token-glow) 22%, transparent);
 }
 
+.drop-art-silhouette {
+  display: block;
+  background-color: currentColor;
+  mask: var(--art) center / contain no-repeat;
+}
+
 .drop-art-unknown {
   display: block;
   border-radius: 9999px;
