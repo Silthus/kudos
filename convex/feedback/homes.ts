@@ -4,6 +4,8 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { bookFactsOf, type AchievementFacts } from "../achievements/achievements";
 import { achievementsApplyIn, achievementsShownTo } from "../achievements/flag";
 import { groupModeShownTo, type GroupModeFacts } from "../groups/groupMode";
+import { hoggiesOf, type HoggiesHome } from "../hoggies/collection";
+import { hoggiesShownTo } from "../hoggies/flag";
 import { xpRecordedEventValidator } from "../bus/events";
 import { groupsShownAndExposedTo, type GroupId } from "../groups/groups";
 import { groupChoiceOf, type GroupChoice } from "../groups/pick";
@@ -52,6 +54,7 @@ export type ShownTab =
       earlierCrates: UnopenedCrate[] | null;
       earlierGroupCrates: WaitingGroupCrate[] | null;
       journey: JourneyStepShown[] | null;
+      hoggies: HoggiesHome | null;
     }
   | { tab: "leaderboard"; period: Period; board: EveryoneBoardView; groups: GroupsBoard<GroupId> | null; myGroup: MyGroupBoardView | null }
   | { tab: "book"; book: AchievementFacts; timeZone: string | undefined }
@@ -187,8 +190,8 @@ type Viewer = { workspace: string; user: string; member: MemberId; timeZone: str
 async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { tab, period }: HomeSelection, refused: ItemRefusal | null): Promise<ShownTab> {
   switch (tab) {
     case "profile":
-      if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null };
-      if (!slices.unlocks) return { tab, progression: { ...(await progressionHomeOf(ctx, viewer.member)), skillTreeTab: false, coins: null }, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null };
+      if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null };
+      if (!slices.unlocks) return { tab, progression: { ...(await progressionHomeOf(ctx, viewer.member)), skillTreeTab: false, coins: null }, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null };
       return {
         tab,
         progression: await toldProgressionOf(ctx, viewer.member, slices),
@@ -197,6 +200,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
         ...(slices.quests ? await openedGroupQuestOf(ctx, viewer.member) : noGroupQuest),
         earlierCrates: slices.quests ? await openedEarlierCratesOf(ctx, viewer.member) : null,
         journey: slices.quests ? await journeyShownTo(ctx, viewer.member) : null,
+        hoggies: await hoggiesInTheBookOf(ctx, viewer.member, slices),
       };
     case "leaderboard":
       return { tab, period, board: await everyoneBoardOf(ctx, viewer.workspace, viewer.user, period), groups: null, myGroup: null };
@@ -230,6 +234,10 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
 
 function namedForStore({ ready, next }: UnlocksHome, storeShown: boolean): UnlocksHome {
   return { ready: ready.map((entry) => namedFor(entry, storeShown)), next: next === null ? null : namedFor(next, storeShown) };
+}
+
+async function hoggiesInTheBookOf(ctx: QueryCtx, member: MemberId, { book }: Slices) {
+  return book && (await hoggiesShownTo(ctx, member)) ? hoggiesOf(ctx, member) : null;
 }
 
 async function applyingMessageSettingsOf(ctx: QueryCtx, member: MemberId) {

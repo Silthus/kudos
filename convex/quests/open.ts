@@ -1,5 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
+import { dropsAHoggie } from "../hoggies/crateKey";
+import { dropFor } from "../hoggies/drops";
 import { applyHeldReward } from "../progression/progression";
 import { rewardOf, type RewardRecord } from "../progression/rewards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
@@ -22,6 +24,7 @@ export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: 
   const applied = await appliedAtOpen(ctx, workspace, reward, at);
   await ctx.db.insert("crateOpenings", { member, key, at, ...(applied && { applied }) });
   await crateOpened(ctx, member, key);
+  if (dropsAHoggie(key)) await dropFor(ctx, member, key, at);
   await publish(ctx, { type: "questOpened", workspace, member, quest, ...(await poolQuestNamed(ctx, member, quest)), at });
   return "done";
 }

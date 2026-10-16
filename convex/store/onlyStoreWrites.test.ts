@@ -9,7 +9,7 @@ const equippingModule = "/convex/store/equipping.ts";
 test("ST5 ST6 ST13: only the store writes the collection, the loadout and item purchases, and the collection and purchases are insert-only", () => {
   const touching = (tables: string) =>
     Object.entries(sources)
-      .filter(([, source]) => new RegExp(`["'](${tables})["']`).test(source))
+      .filter(([, source]) => new RegExp(`\\(\\s*["'](${tables})["']`).test(source))
       .map(([path]) => path);
 
   expect(touching("collection")).toEqual([inventoryModule]);
