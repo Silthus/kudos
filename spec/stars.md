@@ -80,7 +80,7 @@ The product owner, 2026-10-16: "it would be cool to widen the angle a bit: not j
 #### What counts
 
 - **SR1. A star.** A star is a Slack `reaction_added` by a person on a message, where:
-  - the item is a message in a channel (public or private, top level or thread reply), never a DM, a group DM or a file;
+  - the item is a message (top level or thread reply), never a file, in a conversation that isn't a one-to-one DM. A reaction event carries only the conversation's ID, without the message events' channel type, so the rule is the ID: a `D…` ID is a DM and does nothing, and every other conversation the app is in counts, a group DM the app was added to included. No Slack call classifies it. *(Call 13.)*
   - the reaction's name, without a `::skin-tone-N` suffix, is the kudos emoji. Members' other kudos emoji, custom kudos emoji and every other emoji are ordinary reactions (stopping point 3 adds star kinds);
   - its time is within 24 hours of the message: `0 ≤ event_ts − item.ts < 24 h`, both Slack timestamps;
   - the giver is a member (R5);
@@ -91,10 +91,10 @@ The product owner, 2026-10-16: "it would be cool to widen the angle a bit: not j
   Every other reaction does nothing: a reaction by a bot or by the app itself (its indicator included), on a bot's or the app's message, on one's own message, after 24 hours, a second star by the same member on the same message, and `reaction_removed`. "Does nothing" means no record, no XP, no event and no Slack call or write beyond those SR21 lists.
 - **SR2. Not kudos.** A star is its own record, never an award. It spends no daily allowance or weekly reserve, and nothing that reads awards sees it: kudos totals, the leaderboard and group boards, the Monday post, the spotlight, quests and the Journey, achievements' kudos ladders, the sticker book, coins, drops and the gate decision (thoughtful kudos). Stars never reach the meaningful-thank-you classifier (#209, `thoughtful-ai`). *(Call 1.)*
 - **SR3. Who a star is for.**
-  - On a Given kudos message: each of its recipients who is still a member when the star is decided, read from the author's awards on the message. When none is, the star does nothing.
+  - On a Given kudos message: its recipients, from the author's awards on the message. Whether the giver is the author or a recipient is decided in the star's mutation with bounded reads (the message's author, and the giver's own award on the message). The people themselves are resolved after the star is recorded, in pages (SR9); a recipient who is no longer a member is skipped there, and the giver is paid whatever is skipped.
   - On any other message: its author, the event's `item_user`, when the directory says they are a member. A non-Given kudos message counts as any other message.
 - **SR4. Unknown people.** A giver or author the directory doesn't know is looked up from `users.info`, at most 3 times, as a signed-in person is today (`verifyMember`). The star is then decided as at its event time, with only the workspace, the two user IDs, the conversation, the message `ts` and the event time in the waiting job. A person who turns out not to be a member, or whose lookup fails 3 times, makes the star do nothing.
-- **SR5. Once per member and message.** A star is recorded once: `{ workspace, conversation, message, giver, people, at, day }`, unique per message and giver, insert-only, written only by the stars module.
+- **SR5. Once per member and message.** A star is recorded once: `{ workspace, conversation, message, giver, onKudos, at, day }`, unique per message and giver, insert-only, written only by the stars module.
   - A redelivered event (same `event_id`) stops at its receipt.
   - A reaction removed and added again, or a second skin tone, finds the record and does nothing.
   - A star past the budget writes no record, so the same member can star that message on a later day, within its 24 hours.
@@ -110,7 +110,7 @@ The product owner, 2026-10-16: "it would be cool to widen the angle a bit: not j
   - The reward keys are `star:{giver}:{conversation}:{ts}` for each person it is for and `star-given:{conversation}:{ts}` for the giver, so a star pays each of them once, whatever is redelivered.
   - The records carry no `cause`, so a star never looks like a quest the message finished. Their catalogue version is `stars-1`.
   - Coins 0, item none. A star pays XP to people whose `stars` flag is off: the giver's flag alone decides.
-- **SR9. Paged.** The star's mutation publishes `starGiven`. Progression pays it from the bus, 100 people a mutation, as it records effects today, so a star on a kudos message with many recipients stays within Convex's limits.
+- **SR9. Paged.** The star's mutation pays the giver and publishes `starGiven`. A job keyed by the star then resolves its people 100 a mutation, as progression records effects today: for each person it writes one row per star and person (unique, so a rerun skips who is done), updates their counts (SR14) and pays their 1 XP, then continues from the last person done. No mutation reads or writes more than one page of a star's people, so a star on a kudos message with hundreds of recipients stays within Convex's limits.
 - **SR10. No message for a star.** No Slack message is ever sent for a single star: no reply, no ephemeral, no DM, no reaction, no public line. A level-up the XP causes is a level-up like any other, and follows the member's message settings.
 
 #### Seeing stars
@@ -119,7 +119,11 @@ The product owner, 2026-10-16: "it would be cool to widen the angle a bit: not j
   - `starReceived`: `{ kind, key, at, giver: Person, xp: number | null, on: string, permalink: string | null, kudos: Message | null }`, one per star a person received;
   - `starGiven`: `{ kind, key, at, people: Person[], xp: number | null, on: string, permalink: string | null, kudos: Message | null }`, one per star the member gave.
 
-  `xp` follows the gains line's view rule (null while XP doesn't show to the viewer). `on` is an opaque key equal for every entry on the same message, so the website can fold adjacent entries on one message into one line ("Ana and 3 others starred your message"). The read doesn't group: one entry per star keeps the cursor a plain position. *(Call 6.)* `kudos` is the kudos message's words when the star was on one, resolved as a kudos entry's are, and null otherwise. `permalink` is built from the workspace URL, the channel and the `ts` once the URL is known; a star on a non-kudos thread reply has no thread root, so its link opens the message without its thread.
+  `xp` follows the gains line's view rule (null while XP doesn't show to the viewer). `on` is an opaque key equal for every entry on the same message, so the website can fold adjacent entries on one message into one line ("Ana and 3 others starred your message"), within the loaded page. The read doesn't group: one entry per star keeps the cursor a plain position. *(Call 6.)* `kudos` is the kudos message's words when the star was on one, resolved as a kudos entry's are, and null otherwise. `permalink` is built from the workspace URL, the channel and the `ts` once the URL is known; a star on a non-kudos thread reply has no thread root, so its link opens the message without its thread.
+
+  The website's copy (map #57, 2026-10-16): with `kudos` set, "{giver} starred the kudos you received" and "You starred {people}'s kudos"; otherwise "{giver} starred your message" and "You starred {person}'s message". It shows no channel tag: Slack's permalink enforces access.
+
+  The backend ticket stubs the two kinds in the website so it compiles; map #57 renders them, and its rows must be live before the product owner tries stars (SR22).
 
   Entries order by instant like the others, star entries below kudos entries at the same instant. Each kind reads one index range per page. The filters `received` and `given` stay kudos-only, and `getRecentKudos` is unchanged: stars aren't kudos.
 - **SR12. The weekly recap.** On Monday at 09:00 in the member's time zone (as the allowance reads it), a member who gave or received at least one star in the past week (Monday to Sunday, their time zone) gets one DM:
@@ -132,18 +136,18 @@ The product owner, 2026-10-16: "it would be cool to widen the angle a bit: not j
   ```
 
   - A line with a zero count is left out (`You gave 4 stars (+4 XP).`), and so is the most-starred line when they received none or the workspace URL isn't known yet. `1 star` is singular.
-  - The most-starred message is the one with the most stars among those they received stars on that week, the latest on a tie.
+  - The most-starred message is the one that got them the most stars that week (stars given in their Monday-to-Sunday week, not the message's all-time count), the one whose last star came latest on a tie.
   - The DM ends with the message settings footer every DM carries.
   - It is sent once per member and week, at most 3 tries, as a level-up DM is.
-  - It goes only while `stars` is on for the member, read with exposure when the recap is due, and while their `stars-recap` place is `dm`.
-- **SR13. The recap's setting.** A new message kind, `stars-recap`, "Weekly stars recap", "What your stars gave and got last week, on Monday morning.", with places DM (the default) or none and no in-channel place (decision 24). It applies while `stars` is on for the member, so it shows in App Home's Settings and the website's settings only then.
-- **SR14. The recap reads kept counts.** The star's mutation keeps, per person and week, the stars given and received, their XP and the most-starred message, and per message the number of stars on it. The recap reads one row per member and never collects stars. An hourly sweep reads only members with a star week not yet recapped.
+  - It goes only while `stars` is on for the member, read with exposure when the recap is due, while XP shows to them (`xp-levels`, which every notification already requires) and while their `stars-recap` place is `dm`. The footer follows `message-settings` as on every DM.
+- **SR13. The recap's setting.** A new message kind, `stars-recap`, "Weekly stars recap", "What your stars gave and got last week, on Monday morning.", with places DM (the default) or none and no in-channel place (decision 24). It applies while `stars` is on for the member, so it shows in App Home's Settings and the website's settings only then. It is not one of the DM kinds the earlier notification switches set, so those switches never write it.
+- **SR14. The recap reads kept counts.** The star's writes keep, per person and week (the person's own week): the stars given and received and their XP; per person, week and message, the stars it got them and when the last came, from which the week's most-starred message is kept up to date; and per message, its all-time star count (for stopping point 2). The recap reads one row per member and never collects stars. An hourly sweep reads only members with a star week not yet scheduled, and schedules each recap at its exact Monday 09:00 instant in the member's time zone, as the Monday post schedules its wall-clock time, so half-hour time zones get it on time. The sweep also recovers a recap whose job Convex stopped.
 
 #### Published
 
-- **SR15. The event.** A recorded star publishes `starGiven { workspace, giver, people, message: { workspace, conversation, message }, onKudos: boolean, at, day }` on the bus. Its subscribers are progression (SR8, SR9), analytics (SR16) and nothing else: no achievements, quests, leaderboard, groups, sticker book, unlocks or hoggies subscriber hears it.
+- **SR15. The event.** A recorded star publishes `starGiven { workspace, giver, message: { workspace, conversation, message }, onKudos: boolean, at, day }` on the bus. Its subscribers are the star's people job (SR9), analytics (SR16) and nothing else: no achievements, quests, leaderboard, groups, sticker book, unlocks or hoggies subscriber hears it.
 - **SR16. Analytics.** Two product events, with no Slack IDs, names or text (O10):
-  - `star given` for the giver: `people` (how many it is for) and `on_kudos` (whether the message was a Given kudos message);
+  - `star given` for the giver: `on_kudos` (whether the message was a Given kudos message);
   - `stars recap sent` for the member: `stars_given`, `stars_received` and `xp`.
 
 #### Slack app
@@ -165,18 +169,18 @@ The product owner, 2026-10-16: "it would be cool to widen the angle a bit: not j
   - It is read with exposure only for a reaction that passes every other part of SR1, so its exposure goes only where it decides something.
   - With it off, unset or the flags key missing, the reaction does nothing. Every Slack call, website read and table write then equals `main`'s, apart from what an App Home opening by the same person already causes on `main`:
     - the event's receipt;
-    - SR4's `users.info` lookup of an unknown person, with the directory row and group reconcile it writes;
+    - SR4's `users.info` lookup of an unknown person, with its verification row, its scheduled retries, and the directory row and group reconcile it writes;
     - the analytics identity and workspace key the member decision creates, with their `$identify`;
     - the flag's exposure row and its `$feature_flag_called` event.
   - The people a star is for are paid whatever their own flag says. Their timeline entries and recap show only where `stars` is on for them.
-- **SR22. Widening.** After the product owner has tried it, the conductor asks him before turning `stars` on in production (decision 18).
+- **SR22. Widening.** The product owner tries it once map #57's timeline rows are live. After he has tried it, the conductor asks him before turning `stars` on in production (decision 18).
 - **SR23. Coherence.** The stars module's component spec carries the invariants:
   - **a member stars a message at most once**: refuted by a redelivered event, a re-added reaction or a second skin tone paying twice;
   - **a star never passes the star budget**: refuted by two reactions at once both paying the eleventh star;
   - **a star is never an award**: refuted by a star changing a board, a kudos total, coins or a quest.
 
   As the gate's oracle, the Slack adapter's component spec carries **stars are dark where the flag is off**.
-- **SR24. Scale.** A star's mutation reads the receipt, the giver's and author's directory rows, the message's author awards (one bounded index range) when it is a kudos message, the giver's stars that day (at most the budget), the giver's star on the message (a unique lookup) and the count rows it updates. It never collects the message's other stars. Paying XP is paged (SR9).
+- **SR24. Scale.** A star's mutation reads the receipt, the giver's and author's directory rows, whether the message is a Given kudos message and the giver's own award on it (unique lookups), the giver's stars that day (at most the budget), the giver's star on the message (a unique lookup) and the giver's count rows. It never collects the message's other stars or its recipients: the people are paged (SR9).
 
 ### Stopping point 2: the boost, the Book and a quest
 
@@ -193,7 +197,7 @@ The product owner, 2026-10-16: "it would be cool to widen the angle a bit: not j
   | `amplifier` Amplifier | stars given | 10 Joined In | 50 Backup Vocals | 250 Amplifier | 1,000 One-Person Crowd |
 
   - Their tiers carry no promised reward: no coins (stars pay none, SR2), no kudos emoji (the slots retirement makes every owned kudos emoji count) and no drop (crates stay the one drop source). A tier is its Book entry and its tier notice. *(Call 8.)*
-  - They count from the star records and the per-message counts, and are replayed over the workspace's star history when they first apply (P62), with one summary per member.
+  - They count from the star records and the per-message counts, and are replayed over the workspace's star history when they first apply (P62), with one summary per member. Earned tiers today name the award that earned them, and replay reads award history; these ladders need a star-backed source: a tier earned by a star names that star, and replay walks star history. Existing award-backed tiers are unchanged, and no award is ever made up for a star.
 - **SR28. The Book.** `getBook` and App Home's Book show the three ladders where SR25 applies. Elsewhere the Book equals `main`'s.
 - **SR29. The quest.** Quest pool version `3` adds `give-stars`, "Give 5 stars to teammates' messages.": kind participation, target 5, the personal reward, `needs: ["stars"]` (replacing the pool's unused need for #32's feature). Its progress counts the member's stars after the draw, one per star.
 - **SR30. Feasible.** `give-stars` is feasible for a member (P80) while SR25 applies and `stars` is on for them, read without exposure at the draw. A drawn one stays for the week if the flag turns off. No quest ever asks to receive stars (P83).
@@ -216,7 +220,7 @@ The product owner, 2026-10-16: "it would be cool to widen the angle a bit: not j
   | `celebrate` | celebrate | `party` |
 
   The other candidates on #558 (`success`, `steve-jobs`, `hand-clasp`) stay out: one hoggie per kind. *(Call 9.)*
-- **SR34. The admin maps each kind.** The workspace admin uploads one custom emoji per kind from the brand art, then maps it in App Home's Admin tab: a "Star kinds" section with one row per kind and the custom emoji picker of ST31–ST35 (search the workspace's custom emoji, aliases folded). One emoji per kind and one kind per emoji. Clearing a row stops that emoji counting from then; stars already given stay. A kind without an emoji counts nothing.
+- **SR34. The admin maps each kind.** The workspace admin uploads one custom emoji per kind from the brand art, then maps it in App Home's Admin tab: a "Star kinds" section with one row per kind and the custom emoji picker of ST31–ST35 (search the workspace's custom emoji, aliases folded). One emoji per kind and one kind per emoji. The workspace's kudos emoji and its aliases can't be mapped: it is every member's star already (SR1). Clearing a row stops that emoji counting from then; stars already given stay. A kind without an emoji counts nothing.
 - **SR35. A kind counts once found.** A reaction with a mapped emoji (skin tone stripped) is a star for a giver who holds that kind's hoggie in their collection (CL6), from the moment they first found it, forever: no slots, no choosing. Everything else is SR1–SR24: the same budget, the same 1 XP each way, one star per member and message whatever the emoji. The star record keeps its kind.
 - **SR36. Every kind is worth the same.** No kind pays more, and the boost counts every star on a message.
 - **SR37. Known for.** A member is known for the kind they received most, all time, with at least 3 stars of it, the latest on a tie. The website's profile and the `/hedgehug` profile card show "Known for :{emoji}: {label}" while `star-kinds` is on for the viewer. The kudos emoji itself is never a "known for".
@@ -235,7 +239,7 @@ The product owner, 2026-10-16: "it would be cool to widen the angle a bit: not j
   - Progression gains a `starGiven` subscriber that pays reward records (SR8, SR9); nothing else in progression changes.
   - Activity gains two star sources beside levelUps and found (SR11). The website's activity switch must keep compiling: the activity ticket renders nothing for the new kinds until map #57 builds them.
   - Message settings gain the `stars-recap` kind (SR13). Analytics gains two projections (SR16). The manifest gains its scope and event (SR17). The workspace settings row gains an optional `starBudget`.
-- **Tables (stopping point 1).** `stars` (one per giver and message, indexed by giver and day, by giver and time, and by message and giver); a per-person row for each star's people, indexed by member and time, for the received timeline; `starCounts` (per message); `starWeeks` (per member and week: given, received, their XP, the most-starred message, and whether the recap was sent). Every star table is insert-only except the counts and weeks.
+- **Tables (stopping point 1).** `stars` (one per giver and message, indexed by giver and day, by giver and time, and by message and giver); a per-person row for each star's people, indexed by member and time, for the received timeline; `starCounts` (per message); per person, week and message counts; `starWeeks` (per member and week: given, received, their XP, the most-starred message, and whether the recap was scheduled and sent). Every star table is insert-only except the counts and weeks.
 - **No new public surface.** The star is an internal mutation run from the signed events route; the recap is an internal cron job. The website's reads only gain entries and a setting.
 - **The lexicon commit comes first.** The first build ticket cherry-picks `docs/stars`'s lexicon commit (the declares, the retires and the three rewrites), so `spec/stars` never carries a rejected name.
 
@@ -286,3 +290,5 @@ The product owner, 2026-10-16: "it would be cool to widen the angle a bit: not j
 10. The recap is sent at 09:00 Monday in the member's time zone, the Monday post's hour, and only while `stars` is on for the member (SR12).
 11. Only stopping point 1 is ticketed now; 2 and 3 are planned once the product owner has tried 1 in early November.
 12. The ship deploys dark and proves everything with signed synthetic events in the sandbox, then parks on the manifest paste before the live-reaction proof (the conductor's relay, 2026-10-16).
+13. A reaction's conversation is classified by its ID alone (SR1): `D…` is a DM and does nothing, everything else the app is in counts, group DMs included, over a `conversations.info` call per reaction.
+14. A star's people are resolved and paid after the star is recorded, in pages (SR3, SR9); the giver is paid in the star's mutation.
