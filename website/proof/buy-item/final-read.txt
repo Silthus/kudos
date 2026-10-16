@@ -1,0 +1,5 @@
+     × keeps another item's pending request when an earlier purchase answers late, after Connecting 784ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected '32d1dbc0-f3a1-41e1-a5c9-782a90bb35ce' to be '19b3b136-ff65-4481-95a2-74a04c60e487' // Object.is equality
+      Tests  1 failed | 25 skipped (26)
+      Tests  82 passed (82)

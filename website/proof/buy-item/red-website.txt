@@ -1,0 +1,20 @@
+     × offers Buy on each item on sale, named for its item, and on nothing else 462ms
+     × disables Buy with E's shortfall hint while the member is short, keeping it focusable with the hint as its description 649ms
+     × sends buyItem for that item with a browser request at once, with no confirmation dialog 136ms
+     × reads Buying…, disabled and still, until the answer, and sends once however often Buy is pressed 108ms
+     × shows the item among yours from the read, says You bought {name}. and moves focus to the kudos emoji heading 97ms
+     × pops the bought tile once, and not under reduced motion 174ms
+     × names the item the purchase was for even when the read already moved it 106ms
+     × drops the coins chip to the new balance, as a perk purchase does (WS87) 93ms
+     × says what a refusal for no-coins means and changes nothing 113ms
+     × says what a refusal for owned means and changes nothing 88ms
+     × says what a refusal for not-for-sale means and changes nothing 75ms
+     × says what a refusal for coins-not-open means and changes nothing 105ms
+     × says what a refusal for null means and changes nothing 105ms
+     × says HedgeHug couldn't be reached, enables Buy again, and resends the same request for the same item 69ms
+     × makes a fresh request for another item after an error, and after any definite answer 76ms
+     × ends Buying… on a denial and says nothing, leaving the frame to the profile's own answer 76ms
+     × forgets the pending request when the signed-in member changes 63ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  17 failed | 3 passed (20)
