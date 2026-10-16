@@ -143,7 +143,8 @@ async function keepUserGroup(ctx: MutationCtx, group: UserGroup, asOf: number): 
   const { members, ...described } = group;
   const kept = { ...described, asOf, ...(!isOlder(asOf, row?.membersCountAsOf) && members !== undefined && { members, membersCountAsOf: asOf }) };
   if (row === null) {
-    await ctx.db.insert("userGroups", kept);
+    const inserted = await ctx.db.get(await ctx.db.insert("userGroups", kept));
+    if (inserted !== null && keepsMembers(inserted)) await recordKeepingChange(ctx, inserted, true, Date.now());
     return "unchanged";
   }
   await ctx.db.patch(row._id, kept);

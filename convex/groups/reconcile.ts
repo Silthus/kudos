@@ -12,6 +12,8 @@ import { countingChangesOf, departuresSince, joinedAtOf, type CountingChange } f
 const usersPerPage = 100;
 const directoryRowsPerPage = 1_000;
 const membershipsPerPage = 8_000;
+const indexRangesPerPage = 3_000;
+const indexRangesPerPerson = 6;
 
 export async function reconcileLater(ctx: MutationCtx, workspace: string, users: ChatUserId[]) {
   const sorted = users.toSorted();
@@ -34,7 +36,7 @@ export const reconcileUsers = internalMutation({
     const groups = new GroupRows(ctx, workspace);
     for (const person of people) {
       if (!wanted.has(person.user)) continue;
-      if (groups.membershipsRead >= membershipsPerPage) return reconcileLater(ctx, workspace, sorted.filter((user) => user >= person.user));
+      if (groups.exhausted()) return reconcileLater(ctx, workspace, sorted.filter((user) => user >= person.user));
       await reconcile(ctx, person, groups);
     }
     const lastRead = people.at(-1)?.user;
@@ -56,7 +58,7 @@ export const reconcileWorkspace = internalMutation({
     const groups = new GroupRows(ctx, workspace);
     let reconciled = after;
     for (const person of people) {
-      if (groups.membershipsRead >= membershipsPerPage) break;
+      if (groups.exhausted()) break;
       await reconcile(ctx, person, groups);
       reconciled = person.user;
     }
@@ -86,7 +88,7 @@ export async function reconcilePageOf(ctx: MutationCtx, members: MemberId[]): Pr
     if (person === null) continue;
     const rows = groups.get(person.workspace) ?? new GroupRows(ctx, person.workspace);
     groups.set(person.workspace, rows);
-    if (index >= usersPerPage || rows.membershipsRead >= membershipsPerPage) return members.slice(index);
+    if (index >= usersPerPage || rows.exhausted()) return members.slice(index);
     await reconcile(ctx, person, rows);
   }
   return [];
@@ -99,24 +101,37 @@ class GroupRows {
   private readonly rowsById = new Map<GroupId, Promise<Doc<"userGroups"> | null>>();
   private readonly countingChanges = new Map<GroupId, Promise<CountingChange[]>>();
   private mode: Promise<GroupMode> | undefined;
-  membershipsRead = 0;
+  private documentsRead = 0;
+  private indexRangesRead = 0;
 
   constructor(
     private readonly ctx: MutationCtx,
     private readonly workspace: string,
   ) {}
 
-  async timelineOf(user: ChatUserId, since: number): Promise<Timeline> {
+  exhausted(): boolean {
+    return this.documentsRead >= membershipsPerPage || this.indexRangesRead >= indexRangesPerPage;
+  }
+
+  async timelineOf(user: ChatUserId, since: number, reconciled: GroupId[]): Promise<Timeline> {
     const [current, departed] = await Promise.all([userGroupMembershipsOf(this.ctx, this.workspace, user), departuresSince(this.ctx, this.workspace, user, since)]);
-    this.membershipsRead += current.length + departed.length;
-    const memberships = await Promise.all([
+    this.documentsRead += current.length + departed.length;
+    this.indexRangesRead += indexRangesPerPerson;
+    const recorded = await Promise.all([
       ...current.map(async (membership) => ({ row: await this.rowOf(membership.group), joinedAt: joinedAtOf(membership) })),
       ...departed.map(async ({ group, joinedAt, at }) => ({ row: await this.rowById(group), joinedAt, leftAt: at })),
     ]);
-    const known = memberships.filter((membership): membership is Membership => membership.row !== null);
+    const unexplained = await this.unexplainedOf(reconciled, recorded);
+    const known = [...recorded, ...unexplained].filter((membership): membership is Membership => membership.row !== null);
     const groups = [...new Set(known.map(({ row }) => row._id))];
     const changes = new Map(await Promise.all(groups.map(async (group) => [group, await this.countingChangesOf(group)] as const)));
     return new Timeline(known, changes, await this.modeOf());
+  }
+
+  private async unexplainedOf(reconciled: GroupId[], recorded: Array<{ row: Doc<"userGroups"> | null }>) {
+    const explained = new Set(recorded.flatMap(({ row }) => (row === null ? [] : [row._id])));
+    const missing = [...new Set(reconciled)].filter((group) => !explained.has(group));
+    return Promise.all(missing.map(async (group) => ({ row: await this.rowById(group), joinedAt: Number.NEGATIVE_INFINITY, leftAt: Number.POSITIVE_INFINITY })));
   }
 
   private modeOf() {
@@ -125,22 +140,27 @@ class GroupRows {
   }
 
   private rowOf(group: string) {
-    const row = this.rows.get(group) ?? userGroupRow(this.ctx, { workspace: this.workspace, group });
+    const row = this.rows.get(group) ?? this.readIndexRange(userGroupRow(this.ctx, { workspace: this.workspace, group }));
     this.rows.set(group, row);
     return row;
   }
 
   private rowById(group: GroupId) {
-    const row = this.rowsById.get(group) ?? this.ctx.db.get(group);
+    const row = this.rowsById.get(group) ?? this.readIndexRange(this.ctx.db.get(group));
     this.rowsById.set(group, row);
     return row;
+  }
+
+  private readIndexRange<T>(read: Promise<T>): Promise<T> {
+    this.indexRangesRead += 1;
+    return read;
   }
 
   private countingChangesOf(group: GroupId) {
     const known = this.countingChanges.get(group);
     if (known !== undefined) return known;
-    const changes = countingChangesOf(this.ctx, group).then((read) => {
-      this.membershipsRead += read.length;
+    const changes = this.readIndexRange(countingChangesOf(this.ctx, group)).then((read) => {
+      this.documentsRead += read.length;
       return read;
     });
     this.countingChanges.set(group, changes);
@@ -184,17 +204,23 @@ class Timeline {
 async function reconcile(ctx: MutationCtx, person: Doc<"members">, groupRows: GroupRows, recordedAt?: number) {
   const row = await memberGroupsOf(ctx, person._id);
   const since = (await latestEntryOf(ctx, person._id))?.at ?? person._creationTime;
-  const timeline = await groupRows.timelineOf(person.user, since);
-  const isMember = person.kind === "member";
-  const replayedUntil = isMember ? Date.now() : (recordedAt ?? since);
   let primary = row?.primary ?? null;
-  for (const at of timeline.instantsBetween(since, replayedUntil)) primary = await moveTo(ctx, person, primary, timeline.countingAt(at), at);
+  const timeline = await groupRows.timelineOf(person.user, since, [...(row?.groups ?? []), ...(primary === null ? [] : [primary])]);
+  const isMember = person.kind === "member";
+  const memberUntil = memberUntilOf(isMember, recordedAt);
+  const replayed = memberUntil === undefined ? [] : timeline.instantsBetween(since, memberUntil);
+  for (const at of replayed) primary = await moveTo(ctx, person, primary, timeline.countingAt(at), at);
   const counting = isMember ? timeline.countingNow() : [];
   primary = await moveTo(ctx, person, primary, counting, recordedAt ?? Date.now());
   const groups = [...new Set(counting.map(({ _id }) => _id))];
   if (row === null && groups.length === 0 && primary === null) return;
   if (row === null) await ctx.db.insert("memberGroups", { workspace: person.workspace, member: person._id, groups, primary });
   else if (!sameGroups(row.groups, groups) || primary !== row.primary) await ctx.db.patch(row._id, { groups, primary });
+}
+
+function memberUntilOf(isMember: boolean, recordedAt: number | undefined): number | undefined {
+  if (recordedAt !== undefined) return isMember ? undefined : recordedAt;
+  return isMember ? Date.now() : undefined;
 }
 
 async function moveTo(ctx: MutationCtx, person: Doc<"members">, primary: GroupId | null, counting: Doc<"userGroups">[], at: number): Promise<GroupId | null> {
