@@ -1,9 +1,11 @@
 import { Card, CardContent } from "@posthog/quill";
 import { useId } from "react";
-import type { Collection, CollectionHoggie, RarityShare } from "../collectionRead";
+import type { Collection, CollectionCrest, CollectionHoggie, RarityShare } from "../collectionRead";
 import { rarityWordsOf } from "../crates/drops";
 import { PageTitle } from "../PageTitle";
 import { Bar } from "./Bar";
+import { collectedCrestsOf, crestWordsOf } from "./crests";
+import { CrestTile } from "./CrestTile";
 import { dateWords } from "./dates";
 import { HoggieCoin, nothingFoundYet } from "./HoggieCoin";
 import { HoggieTile } from "./HoggieTile";
@@ -13,7 +15,7 @@ import { useFreshKeys } from "./useFreshKeys";
 type CollectionProps = { collection: Collection; timeZone: string };
 
 export function HoggieCollection({ collection, timeZone }: CollectionProps) {
-  const fresh = useFreshKeys(collection.hoggies.flatMap(({ seen }) => seen ?? []));
+  const fresh = useFreshKeys([...collection.hoggies, ...(collection.crests ?? [])].flatMap(({ seen }) => seen ?? []));
   const rarestFirst = [...collection.rarities].reverse();
   return (
     <>
@@ -26,6 +28,7 @@ export function HoggieCollection({ collection, timeZone }: CollectionProps) {
       </header>
       <FoundSoFar collection={collection} timeZone={timeZone} />
       <div className="flex flex-col gap-8">
+        {collection.crests !== undefined && <CrestSection crests={collection.crests} hoggies={collection.hoggies} fresh={fresh} timeZone={timeZone} />}
         {rarestFirst.map((share) => (
           <RaritySection key={share.rarity} share={share} hoggies={collection.hoggies.filter(({ rarity }) => rarity === share.rarity)} fresh={fresh} timeZone={timeZone} />
         ))}
@@ -53,6 +56,7 @@ function FoundSoFar({ collection, timeZone }: CollectionProps) {
                 {collection.owned} / {collection.total}
               </span>
             </div>
+            {collection.crests !== undefined && <p className="text-xs tabular-nums text-muted-foreground">{crestWordsOf(collection.crests)}</p>}
           </div>
         </CardContent>
       </Card>
@@ -84,6 +88,29 @@ function RaritySection({ share: { rarity, chance, owned, total }, hoggies, fresh
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6">
         {hoggies.map((hoggie) => (
           <HoggieTile key={hoggie.hoggie} hoggie={hoggie} fresh={hoggie.seen !== null && fresh.has(hoggie.seen)} timeZone={timeZone} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+type CrestSectionProps = { crests: CollectionCrest[]; hoggies: CollectionHoggie[]; fresh: ReadonlySet<string>; timeZone: string };
+
+function CrestSection({ crests, hoggies, fresh, timeZone }: CrestSectionProps) {
+  const headingId = useId();
+  const byHoggie = new Map(hoggies.map((hoggie) => [hoggie.hoggie, hoggie]));
+  const { collected, total } = collectedCrestsOf(crests);
+  return (
+    <section aria-labelledby={headingId} data-crests className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h2 id={headingId} className="hud-display text-lg font-bold leading-tight">
+          Team crests
+        </h2>
+        <span className="text-xs tabular-nums text-muted-foreground">{`Hold a team's whole roster to earn its crest · ${collected} of ${total} collected`}</span>
+      </div>
+      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+        {crests.map((crest) => (
+          <CrestTile key={crest.crest} crest={crest} hoggies={byHoggie} fresh={crest.seen !== null && fresh.has(crest.seen)} timeZone={timeZone} />
         ))}
       </ul>
     </section>

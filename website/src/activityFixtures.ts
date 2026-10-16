@@ -38,9 +38,12 @@ export function aLevelUp(level: number, at: number): LevelUp {
   return { kind: "levelUp", at, level };
 }
 
+const blitzscale = { crest: "blitzscale", name: "Blitzscale", art: { kind: "crest", slug: "blitzscale" } } as const;
+
 export const drops = {
   legendaryRocket: { hoggie: "rocket", name: "Rocket", rarity: "legendary", art: { kind: "hoggie", slug: "rocket" }, copy: 1, isNew: true },
   anotherCoffeeCup: { hoggie: "coffee-cup", name: "Coffee Cup", rarity: "common", art: { kind: "hoggie", slug: "coffee-cup" }, copy: 4, isNew: false },
+  rocketCompletingBlitzscale: { hoggie: "rocket", name: "Rocket", rarity: "legendary", art: { kind: "hoggie", slug: "rocket" }, copy: 1, isNew: true, crest: blitzscale },
 } as const satisfies Record<string, Drop>;
 
 export function aFound(key: string, at: number, drop: Drop): Found {
@@ -66,7 +69,7 @@ const story: ActivityEntry[] = [
     permalink: "https://example.slack.com/archives/C1/p1",
     message: words("Thanks for pairing on the release checklist, it saved us a whole afternoon ", { kind: "emoji", name: "tada", unicode: "🎉" }, { kind: "emoji", name: "hedgehug", image: "/favicon.svg" }, { kind: "emoji", name: "raised_hands::skin-tone-4" }),
   }),
-  aFound("rocket", fixtureNow - 2 * hour, drops.legendaryRocket),
+  aFound("rocket", fixtureNow - 2 * hour, drops.rocketCompletingBlitzscale),
   aGiven("incident", fixtureNow - 3 * hour, {
     recipients: [teammates.cleo, teammates.dev],
     kudos: 2,

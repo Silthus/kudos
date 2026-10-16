@@ -227,3 +227,62 @@ describe("#467: the Collection page is a collector's book of every hoggie", () =
     expect(within(main()).queryByRole("link", { name: /^Collection/ })).not.toBeInTheDocument();
   });
 });
+
+describe("#468: the Collection's team crests, each a set of hoggies", () => {
+  function crestsSection() {
+    return within(main()).getByRole("region", { name: "Team crests" });
+  }
+
+  function crestTile(crest: string) {
+    const found = main().querySelector<HTMLElement>(`[data-crest="${crest}"]`);
+    if (found === null) throw new Error(`No tile for ${crest}`);
+    return found;
+  }
+
+  function coinsIn(tile: HTMLElement) {
+    return [...tile.querySelectorAll<HTMLElement>("[data-coin]")].map((coin) => coin.dataset.coin);
+  }
+
+  it("lists all 54 crests in the answer's order in a Team crests section before the rarities, counting the collected ones", () => {
+    showCollection(theCollection);
+    const section = crestsSection();
+    expect(section).toHaveTextContent("2 of 54 collected");
+    expect([...section.querySelectorAll("[data-crest]")].map((tile) => tile.getAttribute("data-crest"))).toEqual(theCollection.crests!.map(({ crest }) => crest));
+    expect(section.compareDocumentPosition(raritySection("🟧 Legendary")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(main()).getByRole("region", { name: "Your collection" })).toHaveTextContent("2 of 54 team crests collected");
+  });
+
+  it("draws a collected crest in full art with its whole roster found, the date it was collected, and New until this browser has shown it", () => {
+    for (const { seen } of theCollection.crests!) if (seen !== null && !seen.startsWith("crest:people-ops:")) markSeen(seen);
+    showCollection(theCollection);
+    const peopleOps = crestTile("people-ops");
+    expect(peopleOps).toHaveAttribute("data-held", "collected");
+    expect(peopleOps.querySelector("[data-crest-art='collected'] img")).toHaveAttribute("src", expect.stringMatching(/people-ops\.png$/));
+    expect(within(peopleOps).getByText("People & Ops")).toBeInTheDocument();
+    expect(coinsIn(peopleOps)).toEqual(["found", "found", "found"]);
+    expect(within(peopleOps).getByText("7 Oct 2026")).toBeInTheDocument();
+    expect(within(peopleOps).getByText("New")).toBeInTheDocument();
+    expect(within(crestTile("platform-ux")).queryByText("New")).not.toBeInTheDocument();
+    cleanup();
+    showCollection(theCollection);
+    expect(within(crestTile("people-ops")).queryByText("New")).not.toBeInTheDocument();
+  });
+
+  it("shows an uncollected crest dimmed with its roster's progress: held hoggies in full, missing ones as silhouettes, and which are still missing", () => {
+    showCollection(theCollection);
+    const customerSuccess = crestTile("customer-success-eu");
+    expect(customerSuccess).toHaveAttribute("data-held", "progress");
+    expect(customerSuccess.querySelector("[data-crest-art='missing'] img")).not.toBeNull();
+    expect(coinsIn(customerSuccess)).toEqual(["missing", "found", "missing"]);
+    expect(customerSuccess).toHaveTextContent("1 of 3");
+    expect(customerSuccess).toHaveTextContent("Still missing: Gladiator, Hooligan");
+    expect(within(customerSuccess).queryByText(/2026/)).not.toBeInTheDocument();
+    expect(crestTile("ai-gateway")).toHaveTextContent("0 of 3");
+  });
+
+  it("leaves the crests out while the answer carries none", () => {
+    showCollection(collectionFixtures.collectionWithoutCrests);
+    expect(within(main()).queryByRole("region", { name: "Team crests" })).not.toBeInTheDocument();
+    expect(main()).not.toHaveTextContent("crests");
+  });
+});

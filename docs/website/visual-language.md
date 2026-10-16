@@ -41,7 +41,7 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
   | blue `#106fb2` | `#ffffff` | 5.33:1 |
   | night `#141414` | `#ffffff` | 18.4:1 |
 
-- **V13. Crates reveal their reward and their drop.** A feature the member's level has made ready, and a quest reward, each open as a crate in a full-screen reveal. Buying a perk or a kudos emoji is not a crate. A closed crate names only its kind ("Quest reward", "Journey reward", "Unlocks: Leaderboard") and never what is inside; the opening bursts each reward out and flies it into the HUD home that holds it (#452), and the one hoggie the open drew by rarity bursts out last as its card (`spec/collection.md` CL7, CL8). Opening reveals the reward the member has already earned, which the open applies but never chooses; the hoggie is the one thing nobody knows before the open.
+- **V13. Crates reveal their reward and their drop.** A feature the member's level has made ready, and a quest reward, each open as a crate in a full-screen reveal. Buying a perk or a kudos emoji is not a crate. A closed crate names only its kind ("Quest reward", "Journey reward", "Unlocks: Leaderboard") and never what is inside; the opening bursts each reward out and flies it into the HUD home that holds it (#452), and the one hoggie the open drew by rarity bursts out last as its card (`spec/collection.md` CL7, CL8); a drop that completes a team's crest lands that crest after the hoggie's card, on lemon rays, as a set completed and more celebrated than one hoggie (CL23). Opening reveals the reward the member has already earned, which the open applies but never chooses; the hoggie is the one thing nobody knows before the open.
 - **V14. Kudos received is quiet.** It leads with the giver's face, name and message. XP and the new sticker count follow quietly below, with no crate or chest.
 - **V15. Nothing interrupts a visit.** An event that happens while the member is on the site, such as a level up, joins the HUD's ready pill, and the member opens it when they want.
 
@@ -53,7 +53,8 @@ The parts: components and tokens from `@posthog/quill`, icons from `@posthog/ico
 
 - **V17. A hedgehog always carries meaning.** It appears in exactly these places:
   - the member's equipped hedgehog, as their avatar
-  - a hoggie in the collection, in full art once found and as a silhouette until then, and the latest find on the home's Book panel and in the activity
+  - a hoggie in the collection, in full art once found and as a silhouette until then, the same on a team crest's roster, and the latest find on the home's Book panel and in the activity
+  - a team's crest from `@posthog/brand`, in full colour once collected and dimmed until then, in the collection, the reveal and the activity; it is the team's art, never a hedgehog of its own
   - an emblem that identifies something: an achievement ladder, a Book category, or the crest of a group that maps to no team
   - one illustration per empty state, locked teaser, error page or moment
   - the HedgeHug logo, the `HedgehogHeart`: beside the wordmark in the header, above the name on the closed page, and as the favicon

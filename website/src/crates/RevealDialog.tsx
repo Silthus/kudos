@@ -13,7 +13,7 @@ import type { Drop } from "./drops";
 import { attemptMessages, useMoments, type Flight, type Reveal } from "./moments";
 import { rewardLabelOf, type QuestCrate, type ReadyCrate } from "./readyCrates";
 import { listedRewardOf, type Reward, type RewardKind } from "./rewards";
-import { flyingKindsOf, RewardChips, TokenStage, tokensOf, type Stage, type TokenKind } from "./RewardTokens";
+import { crestBeatPlaysForMs, flyingKindsOf, hasCrest, RewardChips, TokenStage, tokensOf, type Stage, type TokenKind } from "./RewardTokens";
 
 export const crateChargesForMs = 700;
 
@@ -31,7 +31,7 @@ type RevealDialogProps = Reveal & {
   othersReady: ReadyCrate[];
   flying: Flying | undefined;
   shown: MemberProfile;
-  onFinish: (crate: ReadyCrate) => void;
+  onFinish: (crate: ReadyCrate, drop: Drop | null) => void;
   onClose: Close;
   onSetOut: (crate: ReadyCrate) => void;
   onRewardLanded: (crate: ReadyCrate, kind: RewardKind) => void;
@@ -47,6 +47,7 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
   const [rehearsing, setRehearsing] = useState(false);
   const reward = useRewardOnStage(flying, crate);
   const tokens = tokensOf(reward, drop);
+  const burstLength = burstPlaysForMs + (hasCrest(tokens) ? crestBeatPlaysForMs : 0);
   const flies = flyingKindsOf(reward).length > 0;
   const onStage = flying ?? (rehearsing ? rehearsalOf(crate, reward) : undefined);
   const playing = phase !== "ended";
@@ -55,17 +56,17 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
   useEffect(() => {
     if (phase === "charging") dialog.current?.focus();
     if (phase !== "charging" && phase !== "bursting") return;
-    const timer = setTimeout(() => setPhase(phase === "charging" ? "bursting" : onStage !== undefined && flies ? "flying" : "ended"), phase === "charging" ? crateChargesForMs : burstPlaysForMs);
+    const timer = setTimeout(() => setPhase(phase === "charging" ? "bursting" : onStage !== undefined && flies ? "flying" : "ended"), phase === "charging" ? crateChargesForMs : burstLength);
     return () => clearTimeout(timer);
-  }, [phase, onStage, flies]);
+  }, [phase, onStage, flies, burstLength]);
 
   useEffect(() => {
     if (phase !== "charging") onSetOut(crate);
   }, [phase, crate, onSetOut]);
 
   useEffect(() => {
-    if (!playing) onFinish(crate);
-  }, [playing, crate, onFinish]);
+    if (!playing) onFinish(crate, drop);
+  }, [playing, crate, drop, onFinish]);
 
   const skip = () => setPhase("ended");
 
