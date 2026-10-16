@@ -267,6 +267,15 @@ describe("WS111: the home's rail reads through the live shell", () => {
     expect(subscriptionsTo("website/groupBoards:getGroupBoards")).toEqual([]);
   });
 
+  it("WS344: adds one subscription to this week's group boards while groups show to the member", () => {
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryPanelOpen, groups: true });
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+
+    expect(subscriptionsTo("website/leaderboard:getLeaderboard")).toEqual([{ period: "week" }]);
+    expect(subscriptionsTo("website/groupBoards:getGroupBoards")).toEqual([{ period: "week" }]);
+  });
+
   it("WS343: subscribes once to the member's own profile card on the home", () => {
     profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelOpen);
     boardRead.mockReturnValue(undefined);

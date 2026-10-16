@@ -7,14 +7,18 @@ import { Panel } from "./Panel";
 
 export function ProfileCardPanel({ member, card }: { member: MemberProfile; card: ProfileCardShown | undefined }) {
   const medals = card?.kind === "card" ? card.medals : [];
+  const group = card?.kind === "card" ? card.group : null;
   return (
     <Panel id="profile-card" label="What teammates see" aside="Public" busy={card === undefined}>
       <div className="flex flex-col gap-3 rounded-lg border bg-linear-to-br from-card to-muted p-3 shadow-md">
         <div className="flex items-center gap-3">
           <MemberFace face={member.face} className="size-14" />
-          <div className="flex min-w-0 flex-1 items-baseline justify-between gap-2">
-            <span className="truncate text-lg leading-tight font-semibold">{member.name ?? "You"}</span>
-            {member.progression !== null && <LevelTag level={member.progression.level} />}
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="truncate text-lg leading-tight font-semibold">{member.name ?? "You"}</span>
+              {member.progression !== null && <LevelTag level={member.progression.level} />}
+            </div>
+            {group !== null && <span className="truncate text-xs text-muted-foreground">{group}</span>}
           </div>
         </div>
         {medals.length > 0 && <BestMedals medals={medals} />}
