@@ -257,9 +257,10 @@ export default defineSchema({
     day: v.string(),
   })
     .index("by_message_giver", ["workspace", "conversation", "message", "giver"])
-    .index("by_giver_day", ["giver", "day"]),
+    .index("by_giver_day", ["giver", "day"])
+    .index("by_giver_at", ["giver", "at"]),
 
-  starPeople: defineTable({ star: v.id("stars"), member: v.id("members"), at: v.number() }).index("by_star_member", ["star", "member"]),
+  starPeople: defineTable({ star: v.id("stars"), member: v.id("members"), at: v.number() }).index("by_star_member", ["star", "member"]).index("by_member_at", ["member", "at"]),
 
   kudosTotals: defineTable({
     member: v.id("members"),

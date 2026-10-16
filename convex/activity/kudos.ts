@@ -53,6 +53,10 @@ export async function personOf(ctx: QueryCtx, member: MemberId): Promise<Person>
   return teammateOf(name, picture);
 }
 
+export async function kudosWordsOf(ctx: QueryCtx, mentions: Mentions, ref: MessageRef): Promise<Message> {
+  return (await wordsAndChannelOf(ctx, mentions, ref)).message;
+}
+
 async function wordsAndChannelOf(ctx: QueryCtx, mentions: Mentions, ref: MessageRef): Promise<{ channel: Channel; message: Message }> {
   const text = await wordsOf(ctx, ref);
   if (text.kind === "unavailable") return { channel: unknownChannel, message: { kind: "unavailable", reason: text.reason } };

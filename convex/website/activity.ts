@@ -5,7 +5,7 @@ import type { Activity, RecentKudos, Spotlight } from "../activity/entries";
 import { spotlightOf } from "../activity/spotlight";
 import { memberQuery, type Denial } from "./memberQuery";
 
-export type { Activity, ActivityEntry, Channel, Found, KudosGiven, KudosReceived, LevelUp, Message, Person, QuestDone, RecentKudos, Segment, Spotlight } from "../activity/entries";
+export type { Activity, ActivityEntry, Channel, Found, KudosGiven, KudosReceived, LevelUp, Message, Person, QuestDone, RecentKudos, Segment, Spotlight, StarGiven, StarReceived } from "../activity/entries";
 
 type NotFound = { kind: "not-found" };
 
