@@ -92,6 +92,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   over: the Collection page at /book/collection for a profile with no avatar field, with none set, with one set and with no hoggie held, over setAvatar answering set, refused, a pending answer and a failed send, and a second press while one is pending, and the live shell sending `Use as avatar` and `Remove avatar` once over HTTP with the session's token, never through the socket
   via: #568: a member picks a hoggie they hold as their avatar on /book/collection
   refuted: a tile's Use as avatar sent the current avatar's hoggie instead of the tile's own -> setAvatar was called with asleep instead of heart, 2 of 8 tests red (2026-10-16)
+  refuted: the live shell sent setAvatar through the socket's useMutation instead of once over HTTP -> no HTTP send for Use as avatar or Remove avatar, 2 of 11 tests red (2026-10-16)
   because: the avatar is the member's own write behind `hoggie-avatar` and `collection` (#537); only the command knows what they hold and whether the flags are on, so the page may only ask it and show what the profile then answers, never a hoggie it decided on its own
   kinds: state
   checklist: revalidated-permission dismissed: every press sends the command, which reads the flags and the member's hoggies when it runs
