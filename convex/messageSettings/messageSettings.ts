@@ -3,10 +3,12 @@ import { bookAppliesIn } from "../achievements/flag";
 import { skillTreeAppliesIn } from "../progression/skillTree";
 import { xpLevelsOnFor, xpLevelsShownIn } from "../progression/xpLevels";
 import { questsApplyTo } from "../quests/flag";
+import { hugsShownTo } from "../hugs/flag";
 import { unlocksAppliedTo } from "../unlocks/launch";
 import { stateOf } from "../unlocks/unlocks";
 import { coinsVisibleTo } from "../wallet/visibility";
 import { chatUserOf, type MemberId } from "../workspace/directory";
+import { settingsOf } from "../workspace/settings";
 import { directMessageKinds, messageKinds, placesChosenFrom, type MessageKind, type MessageKindEntry, type MessagePlace } from "./kinds";
 
 export type MessageSetting = MessageKindEntry & { applies: boolean; on: boolean; place: MessagePlace; places: readonly MessagePlace[] };
@@ -23,13 +25,17 @@ const appliesWhile: Record<MessageKind, Applies> = {
   quests: (ctx, member) => questsApplyTo(ctx, member),
   achievements: async (ctx, member, workspace) => (await bookAppliesIn(ctx, workspace)) && (await stateOf(ctx, member, "book")) === "open",
   celebrations: (ctx, _, workspace) => xpLevelsShownIn(ctx, workspace),
+  "hugs-recap": (ctx, member) => hugsShownTo(ctx, member),
 };
 
 export async function messageSettingsOf(ctx: QueryCtx, member: MemberId): Promise<MessageSetting[]> {
+  const { workspace } = await chatUserOf(ctx, member);
+  const { kudosEmoji } = await settingsOf(ctx, workspace);
   const settings: MessageSetting[] = [];
   for (const entry of messageKinds) {
     const place = await placeOf(ctx, member, entry.kind);
-    settings.push({ ...entry, applies: await kindAppliesTo(ctx, member, entry.kind), on: place !== "none", place, places: await placesOf(ctx, member, entry.kind) });
+    const description = entry.description.replace("{kudos emoji}", `:${kudosEmoji}:`);
+    settings.push({ ...entry, description, applies: await kindAppliesTo(ctx, member, entry.kind), on: place !== "none", place, places: await placesOf(ctx, member, entry.kind) });
   }
   return settings;
 }
