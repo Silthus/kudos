@@ -11,7 +11,7 @@ import { CrateArt, CrateGlyph } from "./CrateArt";
 import { CrateRewardFlight } from "./CrateRewardFlight";
 import type { Drop } from "./drops";
 import { attemptMessages, useMoments, type Flight, type Reveal } from "./moments";
-import { rewardLabelOf, type QuestCrate, type ReadyCrate } from "./readyCrates";
+import { crateLabelOf, type QuestCrate, type ReadyCrate } from "./readyCrates";
 import { listedRewardOf, type Reward, type RewardKind } from "./rewards";
 import { crestBeatPlaysForMs, flyingKindsOf, hasCrest, RewardChips, TokenStage, tokensOf, type Stage, type TokenKind } from "./RewardTokens";
 
@@ -110,20 +110,26 @@ export function RevealDialog({ crate, seenBefore, fromQuests, drop, chatUrl, que
     >
       <div className="moment-stage mx-auto flex w-full max-w-2xl flex-col items-center gap-3 px-5 pb-12 text-center">
         <span id={labelId} className="hud-label moment-label">
-          {crate.kind === "feature" ? `Level ${crate.card.level} unlock` : rewardLabelOf(crate)}
+          {crateLabelOf(crate)}
         </span>
         <div className={`crate-stage flex flex-col items-center pb-6 ${tokens.length > 0 ? "pt-4" : "pt-36"}`}>
           <TokenStage key={shownAt} tokens={tokens} stage={stageOf(phase)} flown={flown} />
-          <CrateArt phase={playing ? "opening" : "open"} width={220} Hog={hogOf(crate.kind === "feature" ? crate.card.feature : "quests")} />
+          <CrateArt phase={playing ? "opening" : "open"} width={220} Hog={hogOf(hogFeatureOf(crate))} />
         </div>
         {onStage !== undefined && (phase === "flying" || phase === "ended") && (
           <CrateRewardFlight key={rehearsing ? "rehearsal" : "flight"} reward={onStage.reward} shown={shown} landAtOnce={phase === "ended"} rehearsal={rehearsing || onStage.flight.climb === null} onRewardTaken={onRewardTaken} onRewardLanded={landed} onLanded={land} />
         )}
         {!playing && crate.kind === "feature" && <EndState key={shownAt} card={crate.card} chips={<RewardChips tokens={tokens} />} chatUrl={chatUrl} othersReady={othersReady} onClose={onClose} onReplay={replay} />}
+        {!playing && crate.kind === "bought" && <FoundEndState key={shownAt} drop={drop} chips={<RewardChips tokens={tokens} />} onClose={onClose} onReplay={replay} />}
         {!playing && crate.kind === "quest" && <RewardEndState key={shownAt} crate={crate} chips={<RewardChips tokens={tokens} />} offerQuests={questsOpen && !fromQuests} onClose={onClose} onReplay={replay} />}
       </div>
     </div>
   );
+}
+
+function hogFeatureOf(crate: ReadyCrate): Feature {
+  if (crate.kind === "feature") return crate.card.feature;
+  return crate.kind === "quest" ? "quests" : "book";
 }
 
 function stageOf(phase: Phase): Stage {
@@ -247,6 +253,12 @@ function RewardEndState({ crate, chips, offerQuests, onClose, onReplay }: Reward
     </AppLink>
   );
   return <EndFrame headline={earnedLineOf(crate.reward)} chips={chips} onClose={onClose} onReplay={onReplay} go={toQuests} />;
+}
+
+type FoundEndStateProps = { drop: Drop | null; chips: ReactNode; onClose: Close; onReplay: () => void };
+
+function FoundEndState({ drop, chips, onClose, onReplay }: FoundEndStateProps) {
+  return <EndFrame headline={drop === null ? "Crate opened" : `You found ${drop.name}`} chips={chips} onClose={onClose} onReplay={onReplay} go={undefined} />;
 }
 
 type EndFrameProps = { headline: string; chips?: ReactNode; go: ReactNode; next?: ReactNode; onClose: Close; onReplay: () => void; children?: ReactNode };

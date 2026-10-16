@@ -1,0 +1,14 @@
+convex/website/a website command never launches unlocks
+  totality oracle: pass (22.2 s, one invocation for every test the bullets name); refutation witnessed
+    30 tests under "a website command never launches unlocks" passed in one invocation of pnpm exec vitest run -t <2 names> --reporter=json --outputFile=<report>
+convex/website/a website command is a D17 command
+  totality oracle: pass (22.2 s, one invocation for every test the bullets name); refutation witnessed
+    88 tests under "a website command is a D17 command" passed in one invocation of pnpm exec vitest run -t <2 names> --reporter=json --outputFile=<report>
+run recorded in .coherence/runs/9f91fd5a-1233-4e4a-a1d9-5edc6800663b.jsonl: 2 enforcements, 2 pass, 0 fail, 0 not run; instrument typescript (none); 22.3 s
+each alone, in its own invocation:
+  convex/website/a website command never launches unlocks: pass (25.4 s)
+  convex/website/a website command is a D17 command: pass (30.9 s)
+per-test run recorded in .coherence/runs/9f91fd5a-1233-4e4a-a1d9-5edc6800663b.jsonl: 2 alone, 2 pass; 56.4 s
+every totality oracle that passed batched passes alone
+Latency: 1 test ran over 2× the median of its own last runs: convex/website/a website command is a D17 command 8.7 s against 2.1 s (machine 1.3× busier, allowed for). Find what each now does per item that it did once, before it becomes the suite's cost.
+exit 0

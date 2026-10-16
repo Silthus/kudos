@@ -7,7 +7,7 @@ export type QuestAward = { award: AwardId; recipient: MemberId; day: DayKey; at:
 
 export type CountedAward = Pick<QuestAward, "award" | "recipient" | "day">;
 
-const notThankedForMs = 30 * 24 * 60 * 60 * 1000;
+export const notThankedForMs = 30 * 24 * 60 * 60 * 1000;
 
 export function counts({ progress: { given } }: PoolQuest, award: QuestAward): boolean {
   return (award.saysWhy || !given.saysWhy) && isRecipient(given.to, award.lastThankedBefore, award.at);

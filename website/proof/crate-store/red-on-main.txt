@@ -1,0 +1,94 @@
+
+ RUN  v5.0.3 /tmp/i469/red-base/website
+
+ ❯ |website| src/routeList.test.tsx (26 tests | 1 failed) 75ms
+   ❯ #435: the router reads every target a Slack link carries (23)
+     × /book/collection?crate=bought%3A2 22ms
+ ❯ |website| src/crateStore.test.tsx (0 test)
+ ❯ |website| src/deepLinkTargets.test.tsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/crateStore.test.tsx [ src/crateStore.test.tsx ]
+TypeError: Cannot read properties of undefined (reading 'hoggies')
+ ❯ light src/crateStore.test.tsx:15:47
+     13|
+     14| function light<T extends Collection>(collection: T): T {
+     15|   return { ...collection, hoggies: collection.hoggies.slice(0, 6), cre…
+       |                                               ^
+     16| }
+     17|
+ ❯ src/crateStore.test.tsx:18:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  |website| src/deepLinkTargets.test.tsx [ src/deepLinkTargets.test.tsx ]
+TypeError: Cannot read properties of undefined (reading 'hoggies')
+ ❯ src/deepLinkTargets.test.tsx:357:113
+    355| describe("#469: ?crate=bought:{n} lands on that bought crate's Open an…
+    356|   const shopper = { ...shellFixtures.memberWithTheInventory, coins: 12…
+    357|   const twoWaiting: Collection = { ...collectionFixtures.withTheStore,…
+       |                                                                                                                 ^
+    358|
+    359|   function showTheCollectionAt(path: string, collection: Collection = …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > /book/collection?crate=bought%3A2
+AssertionError: expected 'https://kudos-site.test/book/collecti…' to be 'https://kudos-site.test/book/collecti…' // Object.is equality
+
+Expected: "https://kudos-site.test/book/collection?crate=bought%3A2"
+Received: "https://kudos-site.test/book/collection?crate=bought%3Aundefined%3Aundefined"
+
+ ❯ src/routeList.test.tsx:40:17
+     38|   ])("$link", ({ link, page, route }) => {
+     39|     const url = urlOf(origin, page);
+     40|     expect(url).toBe(`${origin}${link}`);
+       |                 ^
+     41|     expect(routeOf(new URL(url))).toEqual(route);
+     42|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  1 failed | 25 passed (26)
+   Start at  06:31:01
+   Duration  8.60s (environment 62%, setup 20%, transform 9%, import 7%, tests 1%)
+
+---- convex/website/link.test.ts
+
+ RUN  v5.0.3 /tmp/i469/red-base
+
+ ❯ |convex| convex/website/link.test.ts (18 tests | 1 failed) 856ms
+   ❯ SW11: one function builds every website link (18)
+     × #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/book/collection… 24ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |convex| convex/website/link.test.ts > SW11: one function builds every website link > #435: a link to a perk or a ready crate carries its target: https://kudos-site.test/book/collection…
+Error: Validator error: Expected one of object, object, object, object, object, object, object, got `{"crate":{"kind":"bought","n":2},"page":"bookCollection"}`
+ ❯ validateValidator ../../../home/coder/dev/kudos-wt/crate-store/node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:906:23
+    904|             }
+    905|             if (!isValid) {
+    906|                 throw new Error(`Validator error: Expected one of ${va…
+       |                       ^
+    907|             }
+    908|             return;
+ ❯ validateValidator ../../../home/coder/dev/kudos-wt/crate-store/node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:924:21
+ ❯ validateFunctionArgs ../../../home/coder/dev/kudos-wt/crate-store/node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2426:5
+ ❯ Object.queryFromPath ../../../home/coder/dev/kudos-wt/crate-store/node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2157:17
+ ❯ query ../../../home/coder/dev/kudos-wt/crate-store/node_modules/.pnpm/convex-test@0.0.61_convex@1.46.0_react@19.3.0_/node_modules/convex-test/dist/index.js:2243:20
+ ❯ convex/website/link.test.ts:54:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 17 passed (18)
+   Start at  06:31:12
+   Duration  6.98s (transform 72%, import 15%, tests 13%, environment 1%)
+

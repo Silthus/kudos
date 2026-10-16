@@ -1,0 +1,31 @@
+
+ RUN  v5.0.3 /home/coder/dev/kudos-wt/crate-store/website
+
+ ❯ |website| src/routeList.test.tsx (26 tests | 1 failed) 21ms
+   ❯ #435: the router reads every target a Slack link carries (23)
+     × /book/collection?crate=bought%3A2 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |website| src/routeList.test.tsx > #435: the router reads every target a Slack link carries > /book/collection?crate=bought%3A2
+AssertionError: expected 'https://kudos-site.test/' to be 'https://kudos-site.test/book/collecti…' // Object.is equality
+
+Expected: "https://kudos-site.test/book/collection?crate=bought%3A2"
+Received: "https://kudos-site.test/"
+
+ ❯ src/routeList.test.tsx:40:17
+     38|   ])("$link", ({ link, page, route }) => {
+     39|     const url = urlOf(origin, page);
+     40|     expect(url).toBe(`${origin}${link}`);
+       |                 ^
+     41|     expect(routeOf(new URL(url))).toEqual(route);
+     42|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 25 passed (26)
+   Start at  06:02:48
+   Duration  1.07s (environment 47%, import 34%, setup 11%, transform 6%, tests 2%)
+
