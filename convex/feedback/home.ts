@@ -80,7 +80,7 @@ const periods: Array<{ period: Period; label: string }> = [
 
 const earlierCratesShown = 5;
 
-const pageNames: Record<Page["page"], string> = { home: "home", leaderboard: "Leaderboard", quests: "Quests", skillTree: "Skill tree", book: "Book", bookEarned: "Book" };
+const pageNames: Record<Page["page"], string> = { home: "home", leaderboard: "Leaderboard", quests: "Quests", skillTree: "Skill tree", book: "Book", bookEarned: "Book", bookCollection: "Book" };
 
 const noProfileFacts: ProfileFacts = { progression: null, unlocks: null, quests: null, groupQuest: null, earlierCrates: null, earlierGroupCrates: null, journey: null, hoggies: null, boughtCrates: null };
 

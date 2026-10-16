@@ -167,6 +167,8 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const buyPerk = useMutation(api.website.commands.buyPerk);
   const swapQuest = useMutation(api.website.commands.swapQuest);
   const buyItem = useSentOnce(api.website.commands.buyItem);
+  const buyCrate = useSentOnce(api.website.commands.buyCrate);
+  const openCrate = useMutation(api.website.commands.openCrate);
   const setBoardVisibility = useSentOnce(api.website.commands.setBoardVisibility);
   const setMessageSetting = useSentOnce(api.website.commands.setMessageSetting);
   const pickPrimaryGroup = useSentOnce(api.website.commands.pickPrimaryGroup);
@@ -178,6 +180,8 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       openQuestCrate: (quest) => answerWithin(commandAnswerBudgetMs, openQuestCrate({ quest })),
       buyPerk: ({ perk, request }) => answerWithin(commandAnswerBudgetMs, buyPerk({ perk, request })),
       buyItem: ({ item, request }) => answerWithin(commandAnswerBudgetMs, buyItem({ item, request })),
+      buyCrate: (next) => answerWithin(commandAnswerBudgetMs, buyCrate({ next })),
+      openCrate: (crate) => answerWithin(commandAnswerBudgetMs, openCrate({ crate })),
       swapQuest: (quest) => answerWithin(commandAnswerBudgetMs, swapQuest({ quest })),
       setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
       setMessageSetting: (kind, place) => answerWithin(commandAnswerBudgetMs, setMessageSetting({ kind, place })),
@@ -191,7 +195,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, equip, takeOff, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, equip, takeOff, onSignInFailure],
   );
 }
 

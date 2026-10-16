@@ -42,3 +42,23 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: commit-ordered-effects dismissed: arriving issues no command and no external effect
   checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
   checklist: declared-target-coverage dismissed: there is no fan-out; one page lands on one crate
+- a link lands on a bought crate and never opens it: A link with `?crate=bought:{n}` on `/book/collection` scrolls that bought crate into view among the Collection's crates waiting to open and focuses its `Open` once the collection answer lands, and never opens the crate; a crate already opened or a broken target leaves the plain page.
+  over: useLinkTargetOnceLanded in website/src/linkTarget.ts, run by App over the Collection page's waiting bought crates, for a crate that waits, a crate already opened, a broken target and an answer that lands after loading
+  via: #469: ?crate=bought:{n} lands on that bought crate's Open and never opens it
+  because: App Home's `Open` for a crate the member bought becomes a website link once this page exists (#465, #469), and opening it on arrival would spend their reveal before they saw the page (#435, #500)
+  kinds: output
+  checklist: destination-confinement dismissed: the website sends nothing on arrival; the crate opens only when the member presses Open
+  checklist: redaction dismissed: the target names the member's own crate number, never a member
+  checklist: commit-ordered-effects dismissed: arriving issues no command and no external effect
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
+  checklist: declared-target-coverage dismissed: there is no fan-out; one page lands on one crate
+- the Collection sells and opens crates only through the website's commands: While getCollection carries a crate offer, the Collection page offers `Buy a crate · {price} coins`, held with the shortfall hint while the member's coins fall short, which sends buyCrate once with the offer's next and says what came back: a purchase, the offer changing, too few coins, Coins not open, or not right now for null and every denial; each crate getCollection lists as bought waits on the page with `Open`, which sends openCrate once with the crate's key and plays the full reveal with the hoggie card and, when the drop completes a team, the crest beat; the page writes nothing of its own, shows no offer while the answer carries none, and keeps bought crates out of the ready pill.
+  over: the Collection page at /book/collection with an offer and nothing waiting, with two crates waiting, with the offer absent, and with coins hidden, for a member with 120, 70 and 20 coins, over buyCrate answering bought, stale, no-coins, coins-not-open, null, a denial and a failed send, and openCrate answering a drop, a drop completing a crest, refused and a pending answer, in full and reduced motion
+  via: #469: the Collection offers a crate for coins
+  via: #469: a bought crate waits on the Collection page until its member opens it
+  because: the crate store is a coin spend (CL27) and the drop is decided at the first open (CL7): the page may only ask the commands and show their answers, since a page that counted, listed or revealed on its own could show a crate the wallet never paid for or a hoggie the open never drew
+  kinds: state
+  checklist: revalidated-permission dismissed: every press sends the command, which reads the flags and the wallet when it runs
+  checklist: legal-state-succession dismissed: the page holds no crate state; the read lists what is stored
+  checklist: supersession-safety dismissed: a repeated Buy carries the read's next and a repeated Open the same key, and both commands answer the same by state
+  checklist: commit-ordered-effects dismissed: the page sends one command per press and shows its answer

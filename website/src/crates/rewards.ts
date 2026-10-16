@@ -15,7 +15,7 @@ export function climbRewardOf({ xp, coins, from, to }: AppliedReward): Reward {
 }
 
 export function listedRewardOf(crate: ReadyCrate): Reward {
-  if (crate.kind === "feature") return { xp: 0, skillPoints: 0, coins: 0 };
+  if (crate.kind !== "quest") return { xp: 0, skillPoints: 0, coins: 0 };
   return { xp: crate.reward.xp, skillPoints: 0, coins: crate.reward.coins ?? 0 };
 }
 
@@ -70,7 +70,7 @@ function isTheSkillTree(crate: ReadyCrate) {
 }
 
 function crateRewardOf(crate: ReadyCrate, { progression, skillPoints }: MemberProfile, xpLandingLater: number): Reward {
-  if (crate.kind === "feature") return { xp: 0, skillPoints: 0, coins: 0 };
+  if (crate.kind !== "quest") return { xp: 0, skillPoints: 0, coins: 0 };
   const { xp, coins = 0 } = crate.reward;
   if (progression === null || skillPoints === null) return { xp, skillPoints: 0, coins };
   const levelOnceLanded = progressionBefore(progression, xpLandingLater).level;

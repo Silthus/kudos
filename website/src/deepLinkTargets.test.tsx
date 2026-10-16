@@ -2,6 +2,8 @@ import { screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
+import { collectionFixtures, fixedCollection } from "./collectionFixtures";
+import type { Collection } from "./collectionRead";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
 import type { BoardRead } from "./boardRead";
 import type { QuestsRead, QuestsShown } from "./questsRead";
@@ -347,5 +349,54 @@ describe("#435: axe finds no violations on a landing", () => {
     render();
     const { violations } = await axe.run(document.body);
     expect(violations.map(({ id, nodes }) => `${id}: ${nodes.map(({ target }) => target.join(" ")).join(", ")}`)).toEqual([]);
+  });
+});
+
+describe("#469: ?crate=bought:{n} lands on that bought crate's Open and never opens it", () => {
+  const shopper = { ...shellFixtures.memberWithTheInventory, coins: 120 };
+  const twoWaiting: Collection = { ...collectionFixtures.withTheStore, hoggies: collectionFixtures.withTheStore.hoggies.slice(0, 6), crests: undefined };
+
+  function showTheCollectionAt(path: string, collection: Collection = twoWaiting) {
+    visit(path);
+    return renderApp(shopper, undefined, undefined, undefined, fixedBook(bookFixtures.everyLadder), undefined, undefined, undefined, undefined, undefined, undefined, fixedCollection(collection));
+  }
+
+  function crateRow(crate: string) {
+    return main().querySelector<HTMLElement>(`[data-crate-target="${crate}"]`)!;
+  }
+
+  it("scrolls the crate into view and focuses its Open once the collection lands", () => {
+    const scrolled = watchScrolling();
+    const { actions } = showTheCollectionAt("/book/collection?crate=bought%3A2");
+
+    const open = within(crateRow("bought:2")).getByRole("button", { name: "Open" });
+    expect(scrolled).toEqual([crateRow("bought:2")]);
+    expect(open).toHaveFocus();
+    expect(actions.openCrate).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(window.location.search).toBe("?crate=bought%3A2");
+  });
+
+  it.each([
+    ["a crate already opened", "/book/collection?crate=bought:3"],
+    ["a broken target", "/book/collection?crate=bought:"],
+  ])("leaves the plain page for %s", (_, path) => {
+    const scrolled = watchScrolling();
+    showTheCollectionAt(path);
+
+    expect(scrolled).toEqual([]);
+    expect(document.body).toHaveFocus();
+  });
+
+  it("lands once the collection answers after loading", () => {
+    const scrolled = watchScrolling();
+    visit("/book/collection?crate=bought%3A1");
+    let landed = false;
+    const { showVisitor } = renderApp(shopper, undefined, undefined, undefined, fixedBook(bookFixtures.everyLadder), undefined, undefined, undefined, undefined, undefined, undefined, (asking) => (asking && landed ? twoWaiting : undefined));
+    expect(scrolled).toEqual([]);
+    landed = true;
+    showVisitor({ ...shopper });
+
+    expect(within(crateRow("bought:1")).getByRole("button", { name: "Open" })).toHaveFocus();
   });
 });

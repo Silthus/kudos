@@ -10,7 +10,11 @@ const namedCrateValidator = v.union(...featureValidator.members, v.literal("jour
 
 type NamedCrate = Infer<typeof namedCrateValidator>;
 
-export const crateTargetValidator = v.union(...namedCrateValidator.members, weeklyQuestValidator);
+const boughtCrateValidator = v.object({ kind: v.literal("bought"), n: v.number() });
+
+export type BoughtCrateTarget = Infer<typeof boughtCrateValidator>;
+
+export const crateTargetValidator = v.union(...namedCrateValidator.members, weeklyQuestValidator, boughtCrateValidator);
 
 export type CrateTarget = Infer<typeof crateTargetValidator>;
 
@@ -18,15 +22,26 @@ const namedCrates: readonly NamedCrate[] = namedCrateValidator.members.map(({ va
 
 const weeklyCrateParam = /^weekly:(\d{4}-\d{2}-\d{2}):(\d+)$/;
 
+const boughtCrateParam = /^bought:(\d+)$/;
+
 export function crateParamOf(crate: CrateTarget): string {
-  return typeof crate === "string" ? crate : `${crate.kind}:${crate.week}:${crate.slot}`;
+  if (typeof crate === "string") return crate;
+  return crate.kind === "weekly" ? `${crate.kind}:${crate.week}:${crate.slot}` : `${crate.kind}:${crate.n}`;
 }
 
 export function crateTargetIn(param: string | null): CrateTarget | undefined {
   const named = namedCrates.find((crate) => crate === param);
   if (named !== undefined) return named;
-  const weekly = param === null ? null : weeklyCrateParam.exec(param);
-  return weekly === null ? undefined : { kind: "weekly", week: weekly[1]!, slot: Number(weekly[2]) };
+  if (param === null) return undefined;
+  const weekly = weeklyCrateParam.exec(param);
+  if (weekly !== null) return { kind: "weekly", week: weekly[1]!, slot: Number(weekly[2]) };
+  const bought = boughtCrateParam.exec(param);
+  return bought === null ? undefined : { kind: "bought", n: Number(bought[1]) };
+}
+
+export function boughtCrateTargetOf(crate: string): BoughtCrateTarget | undefined {
+  const target = crateTargetIn(crate);
+  return typeof target === "object" && target.kind === "bought" ? target : undefined;
 }
 
 export const routeList: readonly string[] = ["/", "/leaderboard", "/quests", "/skills", "/book", "/book/earned", "/book/collection", "/activity", "/settings"];
@@ -40,6 +55,7 @@ const pathOf: Record<Page["page"], string> = {
   skillTree: "/skills",
   book: "/book",
   bookEarned: "/book/earned",
+  bookCollection: "/book/collection",
 };
 
 const featurePages: Partial<Record<Feature, Page>> = {
@@ -82,6 +98,11 @@ export function questCratePageOf(quest: Quest): Page {
   if (quest.kind === "journey") return { page: "home", crate: "journey" };
   if (quest.kind === "weekly") return { page: "quests", quest: quest.slot };
   return { page: "quests" };
+}
+
+export function boughtCratePageOf(crate: string): Page {
+  const target = boughtCrateTargetOf(crate);
+  return target === undefined ? { page: "bookCollection" } : { page: "bookCollection", crate: target };
 }
 
 export function earlierWeekCratePageOf({ week, slot }: WeeklyQuest): Page {
