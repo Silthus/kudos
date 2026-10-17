@@ -92,6 +92,7 @@ export const collectionFixtures = {
   withTeamPages: { ...collectionWith(found, { crests: false }), stickers, teams: teamPages },
   withTheStoreAndTheStickerBook: { ...collectionWith(found), bought: ["bought:1", "bought:2"], crateStore: storeOffering(3), stickers, albums },
   withFourPacks: { ...collectionWith(found), bought: ["bought:1", "bought:2", "bought:3", "bought:4"], crateStore: storeOffering(5), stickers, albums },
+  withFourPacksAndTeamPages: { ...collectionWith(found, { crests: false }), bought: ["bought:1", "bought:2", "bought:3", "bought:4"], crateStore: storeOffering(5), stickers, teams: teamPages },
   nothingFound: collectionWith({}),
   complete: collectionWith(everyHoggieFound),
   locked: { kind: "locked", level: 1 },
@@ -113,7 +114,7 @@ function collectionAnswerFor(visitor: ShellState): MyCollection {
   if (card === undefined) return collectionFixtures.notFound;
   if (card.state === "locked") return { kind: "locked", level: card.level };
   if (card.state === "ready") return collectionFixtures.ready;
-  if (showsTheBookSpread(visitor)) return collectionFixtures.withFourPacks;
+  if (showsTheBookSpread(visitor)) return collectionFixtures.withFourPacksAndTeamPages;
   return visitor.coins === null ? collectionFixtures.withTheStickerBook : collectionFixtures.withTheStoreAndTheStickerBook;
 }
 
