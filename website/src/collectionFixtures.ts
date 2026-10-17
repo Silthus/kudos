@@ -130,10 +130,9 @@ function collectionAnswerFor(visitor: ShellState, fixture: string | undefined): 
   if (card === undefined) return collectionFixtures.notFound;
   if (card.state === "locked") return { kind: "locked", level: card.level };
   if (card.state === "ready") return collectionFixtures.ready;
-  if (showsTheBookSpread(visitor)) return collectionFixtures.withFourPacksAndTeamPages;
   if (fixture === "member-with-more-packs") return { ...collectionFixtures.withEveryKindOfPack, morePacks: true };
   if (fixture === "member-with-packs") return collectionFixtures.withEveryKindOfPack;
-  if (showsTheBookSpread(visitor)) return collectionFixtures.withFourPacks;
+  if (showsTheBookSpread(visitor)) return collectionFixtures.withFourPacksAndTeamPages;
   return visitor.coins === null ? collectionFixtures.withTheStickerBook : collectionFixtures.withTheStoreAndTheStickerBook;
 }
 
