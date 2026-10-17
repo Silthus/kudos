@@ -3,6 +3,7 @@ import { focusPageTitle } from "../pageFocus";
 import type { CrateAnswer, Feature, ShellActions } from "../shell";
 import { rewardWords } from "../quests/QuestReward";
 import { dropOf, type Drop } from "./drops";
+import { featureOfPackKey, packKeyOf } from "./packKeys";
 import { rewardLabelOf, type QuestCrate, type ReadyCrate } from "./readyCrates";
 import { climbRewardOf, type Climb, type OnTheWay, type Reward, type RewardKind } from "./rewards";
 import { hasSeen, markSeen } from "./seen";
@@ -50,7 +51,9 @@ type Commands = Pick<ShellActions, "openFeature" | "openQuestCrate" | "openCrate
 
 type Shown = { signedOut: boolean; crates: string[] | undefined; onQuests: boolean };
 
-export function useCrateMoments(commands: Commands, { signedOut, crates, onQuests }: Shown): Moments {
+export type PacksOpening = { listed: boolean; has(crate: string): boolean; pick(crate: string): void; opened: { crate: string }[] };
+
+export function useCrateMoments(commands: Commands, { signedOut, crates, onQuests }: Shown, packs?: PacksOpening): Moments {
   const [attempts, setAttempts] = useState<Partial<Record<string, Attempt>>>({});
   const [reveals, setReveals] = useState<Reveal[]>([]);
   const [announcement, setAnnouncement] = useState("");
@@ -84,6 +87,9 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
   const attemptIs = useCallback((seen: string, attempt: Attempt | undefined) => setAttempts((all) => ({ ...all, [seen]: attempt })), []);
   const onQuestsNow = useRef(onQuests);
   onQuestsNow.current = onQuests;
+  const packsNow = useRef(packs);
+  packsNow.current = packs;
+  usePopInsForOpenedFeaturePacks(packs?.opened, setPopIns);
 
   const queue = useCallback((crate: ReadyCrate, fromQuests: boolean, drop: Drop | null, climb: Climb | undefined) => {
     const seenBefore = crate.kind !== "bought" && hasSeen(crate.seen);
@@ -93,6 +99,8 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
 
   const open = useCallback(
     async (crate: ReadyCrate) => {
+      const pack = packOf(packsNow.current, crate);
+      if (pack !== undefined) return packsNow.current?.pick(pack);
       const { seen } = crate;
       if (sending.current.has(seen)) return;
       const sentIn = session.current;
@@ -171,6 +179,24 @@ export function useCrateMoments(commands: Commands, { signedOut, crates, onQuest
     popsIn: (feature, where) => popIns.includes(popInKey(feature, where)),
     poppedIn: (feature, where) => setPopIns((waiting) => waiting.filter((key) => key !== popInKey(feature, where))),
   };
+}
+
+function packOf(packs: PacksOpening | undefined, crate: ReadyCrate): string | undefined {
+  if (packs === undefined || !packs.listed) return undefined;
+  const key = packKeyOf(crate);
+  return packs.has(key) ? key : undefined;
+}
+
+function usePopInsForOpenedFeaturePacks(opened: { crate: string }[] | undefined, setPopIns: (update: (waiting: string[]) => string[]) => void) {
+  const popped = useRef(new Set<string>());
+  useEffect(() => {
+    for (const { crate } of opened ?? []) {
+      const feature = featureOfPackKey(crate);
+      if (feature === undefined || popped.current.has(crate)) continue;
+      popped.current.add(crate);
+      setPopIns((waiting) => [...waiting, popInKey(feature, "entry"), popInKey(feature, "chip")]);
+    }
+  }, [opened, setPopIns]);
 }
 
 function sendOpen(commands: Commands, crate: ReadyCrate) {

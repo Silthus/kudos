@@ -9,7 +9,11 @@ import { ClimbSummary } from "./climb/ClimbSummary";
 import { useClimbOnReturn } from "./climb/useClimbOnReturn";
 import { LevelUpCelebration } from "./levelUp/LevelUpCelebration";
 import { useLevelUps } from "./levelUp/useLevelUps";
-import { rewardsOf, withTheRewardsHeld, type Reward } from "./crates/rewards";
+import { rewardsOf, withThePacksHeld, withTheRewardsHeld, type Reward } from "./crates/rewards";
+import { PackMoments } from "./book/packs/PackMoments";
+import { PacksProvider } from "./book/packs/PacksContext";
+import { waitingPacksOf } from "./book/packs/packs";
+import { usePackSession } from "./book/packs/usePackSession";
 import type { ActivityRead, ActivityShown, ActivityWatch } from "./activityRead";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import type { BookRead, BookShown } from "./bookRead";
@@ -67,7 +71,8 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   const onBook = member !== undefined && route.page === "book";
   const book = useBook(onBook);
   const onCollection = onBook && (route.bookPage === "collection" || (route.bookPage !== "earned" && showsTheBookSpread(member)));
-  const collection = useCollection(onBook || (onHome && isBookOpenFor(member)));
+  const readyCrates = member === undefined ? [] : readyCratesOf(member, quests);
+  const collection = useCollection(onBook || (isBookOpenFor(member) && (onHome || readyCrates.length > 0)));
   const onSkills = member !== undefined && route.page === "skills";
   const skillTree = useSkillTree(onSkills);
   const onSettings = member !== undefined && route.page === "settings";
@@ -79,12 +84,13 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   const membersShown = useMembersShown(cratesOf(member));
   const signedOut = member === undefined && !stillAsking(shown);
   const pendingItemPurchase = useMemo<PendingItemPurchase>(() => ({ current: undefined }), [membersShown, signedOut]);
-  const moments = useCrateMoments(actions, { signedOut, crates: cratesOf(member), onQuests });
+  const packSession = usePackSession(waitingPacksOf(collection?.kind === "collection" ? collection : undefined), actions.openCrate, { signedOut, membersShown });
+  const moments = useCrateMoments(actions, { signedOut, crates: cratesOf(member), onQuests }, packSession);
   const reveal = member !== undefined ? moments.reveal : undefined;
   const revealing = reveal !== undefined;
   const climb = useClimbOnReturn(member, membersShown, readActivity);
-  const memberShown = member === undefined ? undefined : climb.shownOf(withTheRewardsHeld(member, moments.onTheWay));
-  const levels = useLevelUps(memberShown, membersShown, climb.climbing || moments.opening);
+  const memberShown = member === undefined ? undefined : climb.shownOf(withThePacksHeld(withTheRewardsHeld(member, moments.onTheWay), packSession.holds));
+  const levels = useLevelUps(memberShown, membersShown, climb.climbing || moments.opening || packSession.opening);
   const rewards = member === undefined ? [] : rewardsOf(member, moments.onTheWay);
   const { chart } = moments;
   useLayoutEffect(() => chart(rewards), [chart, rewards]);
@@ -110,38 +116,40 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   const pageLanded = page.kind === "member" && !busy && !connecting && !revealing;
   useLinkTargetOnceLanded(route, { quest: pageLanded && quests?.kind === "quests", perk: pageLanded && skillTree?.kind === "tree", crate: pageLanded, panel: pageLanded, section: pageLanded && settings?.kind === "settings" });
   const signingIn = page.kind === "signed-out" && route.page !== "not-found";
-  const readyCrates = member === undefined ? [] : readyCratesOf(member, quests);
   return (
     <NavigateProvider value={arriveAt}>
       <MomentsProvider value={moments}>
-        {signingIn ? (
-          <SignedOutPage returnTo={returnAddressOf(route)} onSignIn={signIn} />
-        ) : (
-          <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={busy} revealing={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
-            <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
-              <Page state={page} route={route} board={board} quests={quests} book={book} collection={collection} skillTree={skillTree} settings={settings} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} pendingItemPurchase={pendingItemPurchase} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onBuyItem={actions.buyItem} onBuyCrate={actions.buyCrate} onOpenCrate={actions.openCrate} onSetAvatar={actions.setAvatar} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} settingsActions={actions} onSignIn={signIn} onSignOut={actions.signOut} />
-            </ErrorBoundary>
-          </Frame>
-        )}
-        {reveal !== undefined && member !== undefined && memberShown !== undefined && (
-          <RevealDialog
-            key={reveal.crate.seen}
-            {...reveal}
-            chatUrl={member.chatUrl}
-            questsOpen={questsOpen}
-            othersReady={readyCrates.filter(({ seen }) => seen !== reveal.crate.seen)}
-            flying={flying}
-            shown={memberShown}
-            onFinish={moments.finish}
-            onClose={moments.close}
-            onSetOut={moments.setOut}
-            onRewardLanded={moments.landed}
-          />
-        )}
-        {climb.chips !== undefined && memberShown !== undefined && <ClimbFlight chips={climb.chips} shown={memberShown} onLanded={climb.landed} onFinished={climb.finish} />}
-        {levels.levelUp !== undefined && memberShown !== undefined && <LevelUpCelebration key={levels.levelUp.key} levelUp={levels.levelUp} onDone={levels.done} />}
-        <MomentAnnouncement text={moments.announcement} />
-        <LevelUpAnnouncement text={levels.announcement} />
+        <PacksProvider value={packSession}>
+          {signingIn ? (
+            <SignedOutPage returnTo={returnAddressOf(route)} onSignIn={signIn} />
+          ) : (
+            <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={busy} revealing={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
+              <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
+                <Page state={page} route={route} board={board} quests={quests} book={book} collection={collection} skillTree={skillTree} settings={settings} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} pendingItemPurchase={pendingItemPurchase} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onBuyItem={actions.buyItem} onBuyCrate={actions.buyCrate} onOpenCrate={actions.openCrate} onSetAvatar={actions.setAvatar} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} settingsActions={actions} onSignIn={signIn} onSignOut={actions.signOut} />
+              </ErrorBoundary>
+            </Frame>
+          )}
+          {reveal !== undefined && member !== undefined && memberShown !== undefined && (
+            <RevealDialog
+              key={reveal.crate.seen}
+              {...reveal}
+              chatUrl={member.chatUrl}
+              questsOpen={questsOpen}
+              othersReady={readyCrates.filter(({ seen }) => seen !== reveal.crate.seen)}
+              flying={flying}
+              shown={memberShown}
+              onFinish={moments.finish}
+              onClose={moments.close}
+              onSetOut={moments.setOut}
+              onRewardLanded={moments.landed}
+            />
+          )}
+          <PackMoments session={packSession} shown={memberShown} />
+          {climb.chips !== undefined && memberShown !== undefined && <ClimbFlight chips={climb.chips} shown={memberShown} onLanded={climb.landed} onFinished={climb.finish} />}
+          {levels.levelUp !== undefined && memberShown !== undefined && <LevelUpCelebration key={levels.levelUp.key} levelUp={levels.levelUp} onDone={levels.done} />}
+          <MomentAnnouncement text={moments.announcement} />
+          <LevelUpAnnouncement text={levels.announcement} />
+        </PacksProvider>
       </MomentsProvider>
     </NavigateProvider>
   );
