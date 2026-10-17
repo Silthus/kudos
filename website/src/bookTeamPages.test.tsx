@@ -69,17 +69,20 @@ describe("#607: with team pages in the collection, the Teams chapter shows teams
   it("counts crests on the Teams tab and shows people collected, crests earned and the member's own crest on the cover", () => {
     visit("/book");
     showBook();
-    expect(tab("Teams, 2 of 7 crests")).toHaveTextContent("2/7");
-    const teams = within(page("right")).getByRole("link", { name: "Teams, 13 of 49 people collected, 2 crests earned" });
+    expect(tab("Teams, 3 of 8 crests")).toHaveTextContent("3/8");
+    const teams = within(page("right")).getByRole("link", { name: "Teams, 12 of 49 people collected, 3 crests earned" });
     expect(teams).toHaveAttribute("href", "/book#teams");
-    expect(teams).toHaveTextContent("13");
+    expect(teams).toHaveTextContent("12");
     expect(teams).toHaveTextContent("of 49 people collected");
+    expect(teams).toHaveTextContent("3 crests earned of 8");
     expect(teams).toHaveTextContent("12 stickers of teammates");
-    expect(crestArtOf(teams)).toHaveAttribute("data-crest-slug", "workflows");
+    expect(teams.querySelector("[data-own-crest]")).toHaveAttribute("data-own-crest", "cloud-platform");
     expect(book()).not.toHaveTextContent(/album/i);
   });
 
   it("lists a kept roster crest and a crest on a listed page under what's new, each leading to its team page", () => {
+    for (const { seen } of withTeams.hoggies) if (seen !== null) markSeen(seen);
+    for (const { seen } of withTeams.stickers) markSeen(seen);
     visit("/book");
     showBook();
     const fresh = within(page("right")).getByRole("heading", { name: "New since your last visit" }).parentElement!;

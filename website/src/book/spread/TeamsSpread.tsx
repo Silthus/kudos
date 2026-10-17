@@ -10,20 +10,24 @@ import { StickerFace, stickerWordsOf } from "../StickerTile";
 import { HoggieCoin } from "../HoggieCoin";
 import { ChapterLabel, Page, PageHeading, row } from "./Page";
 import { spreadHrefOf } from "./spreads";
-import type { TeamPage, TeamPages, TeamSlot } from "./teamPages";
+import { crestEarnedOn, type TeamPage, type TeamPages, type TeamSlot } from "./teamPages";
 
 type TeamsProps = { teams: TeamPages; chatUrl: string; timeZone: string; firstPage: number };
 
+const facesShown = 8;
+
 export function TeamsSpread({ teams, chatUrl, timeZone, firstPage }: TeamsProps) {
-  const mine = teams.pages.filter((page) => page.mine);
-  const started = teams.pages.filter((page) => !page.mine && page.held > 0);
-  const untouched = teams.pages.filter((page) => !page.mine && page.held === 0);
+  const listed = teams.pages.filter((page) => page.listed);
+  const kept = teams.pages.filter((page) => !page.listed);
+  const mine = listed.filter((page) => page.mine);
+  const started = listed.filter((page) => !page.mine && page.held > 0);
+  const untouched = listed.filter((page) => !page.mine && page.held === 0);
   return (
     <>
       <Page side="left" number={firstPage} label="Your teams and pages started">
         <ChapterLabel>Chapter 2 · Teams</ChapterLabel>
         {mine.length > 0 && (
-          <Group title="Your teams">
+          <Group title="Your teams" aside={teams.source === "team" ? "The teams posthog.com lists you on" : undefined}>
             {mine.map((page) => (
               <li key={page.slug}>
                 <TeamRow page={page} big />
@@ -32,18 +36,27 @@ export function TeamsSpread({ teams, chatUrl, timeZone, firstPage }: TeamsProps)
           </Group>
         )}
         <Group title="Pages started" aside={`${started.length} with at least one sticker`}>
-          {started.length === 0 ? <li className="px-2 text-sm text-muted-foreground">No page started yet. Open a crate, or thank a teammate, and its page begins.</li> : started.map((page) => <li key={page.slug}>{<TeamRow page={page} />}</li>)}
+          {started.length === 0 ? <li className="px-2 text-sm text-muted-foreground">{teams.source === "team" ? "No page started yet. Thank a teammate, or be thanked, and their team's page begins." : "No page started yet. Open a crate, or thank a teammate, and its page begins."}</li> : started.map((page) => <li key={page.slug}>{<TeamRow page={page} />}</li>)}
         </Group>
         {teams.stickers !== undefined && <Stickers stickers={teams.stickers} chatUrl={chatUrl} timeZone={timeZone} />}
       </Page>
       <Page side="right" number={firstPage + 1} label="Teams not started">
-        <Group title={`Not started · ${untouched.length} ${untouched.length === 1 ? "team" : "teams"}`} columns>
+        <Group title={`Not started · ${untouched.length} ${untouched.length === 1 ? "team" : "teams"}`} aside={teams.source === "team" ? "Thank anyone on them to start a page" : undefined} columns>
           {untouched.map((page) => (
             <li key={page.slug} className="break-inside-avoid">
               <TeamRow page={page} small />
             </li>
           ))}
         </Group>
+        {kept.length > 0 && (
+          <Group title={`Kept crests · ${kept.length}`} aside="Teams posthog.com no longer lists" columns>
+            {kept.map((page) => (
+              <li key={page.slug} className="break-inside-avoid">
+                <TeamRow page={page} small />
+              </li>
+            ))}
+          </Group>
+        )}
       </Page>
     </>
   );
@@ -69,10 +82,10 @@ function TeamRow({ page, big = false, small = false }: { page: TeamPage; big?: b
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="flex items-baseline justify-between gap-2">
           <span className={`truncate ${big ? "hud-display text-lg font-bold" : small ? "text-xs" : "text-sm font-medium"}`}>{page.name}</span>
-          <span className="text-xs tabular-nums text-muted-foreground">{small ? page.total : `${page.held}/${page.total}`}</span>
+          <span className="text-xs tabular-nums text-muted-foreground">{small ? (page.listed ? page.total : "kept") : `${page.held}/${page.total}`}</span>
         </span>
         {big && <QuietBar value={page.held} max={page.total} />}
-        {big && <Faces slots={page.slots} />}
+        {big && <Faces slots={page.slots} capped={page.source === "team"} />}
       </span>
     </AppLink>
   );
@@ -81,10 +94,10 @@ function TeamRow({ page, big = false, small = false }: { page: TeamPage; big?: b
 const faceSizes: Record<number, string> = { 56: "size-14", 36: "size-9", 26: "size-6" };
 
 function TeamArt({ page, size }: { page: TeamPage; size: number }) {
-  if (page.art !== null) {
+  if (page.art !== null || page.source === "team") {
     return (
       <span className="bk-crest-hover inline-flex">
-        <TeamCrest art={page.art} size={size} collected={page.complete} />
+        <TeamCrest art={page.art} size={size} collected={crestEarnedOn(page)} name={page.name} />
       </span>
     );
   }
@@ -97,14 +110,17 @@ function SlotFace({ slot, size }: { slot: TeamSlot; size: number }) {
   return <StickerFace sticker={{ face: slot.picture.face, former: slot.picture.former }} className={faceSizes[size] ?? "size-9"} />;
 }
 
-function Faces({ slots }: { slots: TeamSlot[] }) {
+function Faces({ slots, capped }: { slots: TeamSlot[]; capped: boolean }) {
+  const shown = capped ? slots.slice(0, facesShown) : slots;
+  const more = slots.length - shown.length;
   return (
     <span aria-hidden="true" className="flex flex-wrap gap-1">
-      {slots.map((slot) => (
+      {shown.map((slot) => (
         <span key={slot.key} className="bk-face inline-flex">
           {slot.held && slot.picture.kind === "face" ? <MemberFace face={slot.picture.face} className="size-6" /> : slot.held && slot.picture.kind === "hoggie" ? <HoggieCoin art={slot.picture.art} rarity={slot.picture.rarity} size={24} /> : <PersonSilhouette className="size-6" />}
         </span>
       ))}
+      {more > 0 && <span className="self-center text-xs tabular-nums text-muted-foreground">{`+${more}`}</span>}
     </span>
   );
 }
