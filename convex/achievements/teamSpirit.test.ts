@@ -59,6 +59,10 @@ async function teamSpirit(on: boolean) {
   await switchWebsite(t, postHog, true, ...bookFlags, ...(on ? ["team-spirit"] : []));
 }
 
+async function teamSpiritOnWithout(needed: string) {
+  await switchWebsite(t, postHog, true, ...bookFlags.filter((flag) => flag !== needed), "team-spirit");
+}
+
 async function teamSpiritShipped(on: boolean) {
   await setWorkspaceSettings(t, { kudosEmoji: "taco", announcementChannel: "C_NEWS" });
   await teamSpirit(on);
@@ -181,7 +185,7 @@ function teamSpiritDmsTo(person: Person) {
 }
 
 function namesTeamSpirit(text: string) {
-  return /Team Spirit|All Hands|Tight-Knit|Unbreakable Crew|group albums? completed|handshake|Handshake/.test(text);
+  return /Team Spirit|All Hands|Tight-Knit|Unbreakable Crew|team pages? completed|handshake|Handshake/.test(text);
 }
 
 function publicLinesNamingTeamSpirit() {
@@ -215,7 +219,7 @@ async function cardOf(viewer: Person, owner: Person) {
   return reply.text;
 }
 
-describe("SB21: Team Spirit counts completed group albums", { timeout: 120_000 }, () => {
+describe("CV35 SB21: Team Spirit counts completed team pages", { timeout: 120_000 }, () => {
   test("1, 2, 4 and 8 completions earn bronze, silver, gold and diamond once each, each caused by the completion that reached it, with coins and handshake paid once", async () => {
     await teamSpiritShipped(true);
     await joined(alice, dan, ...teammates.slice(0, 8));
@@ -266,7 +270,7 @@ describe("SB21: Team Spirit counts completed group albums", { timeout: 120_000 }
     expect(await teamSpiritIn(reader)).toEqual({
       ladder: "team-spirit",
       name: "Team Spirit",
-      counts: "group albums completed",
+      counts: "team pages completed",
       count: 1,
       tiers: [
         { tier: "bronze", name: "Team Spirit", at: 1, earnedAt: bronzeAt, seen: expect.any(String), rewards: [{ kind: "coins", coins: 10 }] },
@@ -276,6 +280,7 @@ describe("SB21: Team Spirit counts completed group albums", { timeout: 120_000 }
       ],
       next: { tier: "silver", at: 2 },
     });
+    expect(await bookInAppHome(alice)).toContain("*Team Spirit* · *1* team page completed");
   });
 
   test("a tier added to the catalogue later is found from the completion records in order at the member's next new sticker, with no new completion", async () => {
@@ -300,7 +305,7 @@ describe("SB21: Team Spirit counts completed group albums", { timeout: 120_000 }
 });
 
 describe("SB22: tiers from a member's first check are stored hidden and never told", { timeout: 120_000 }, () => {
-  test("albums complete at the first check earn their tiers silently, and opening the Book later names none of them", async () => {
+  test("pages complete at the first check earn their tiers silently, and opening the Book later names none of them", async () => {
     await teamSpiritShipped(false);
     await joined(alice, dan, ...teammates.slice(0, 2));
     await eachOnATeamOfTheirOwn(teammates.slice(0, 2));
@@ -335,8 +340,8 @@ describe("SB22: a tier from thanking the last missing person is told privately u
     await thanks(teammates[1]!, alice);
 
     expect(teamSpiritDmsTo(alice)).toEqual([
-      "Team complete · Squad 1 crest earned\n🏅 You earned Team Spirit (Team Spirit, bronze). +10 🪙\nNext: All Hands at 2 group albums completed.",
-      "Team complete · Squad 2 crest earned\n🏅 You earned All Hands (Team Spirit, silver). + :handshake: Handshake for your kudos emoji\nNext: Tight-Knit at 4 group albums completed.",
+      "Team complete · Squad 1 crest earned\n🏅 You earned Team Spirit (Team Spirit, bronze). +10 🪙\nNext: All Hands at 2 team pages completed.",
+      "Team complete · Squad 2 crest earned\n🏅 You earned All Hands (Team Spirit, silver). + :handshake: Handshake for your kudos emoji\nNext: Tight-Knit at 4 team pages completed.",
     ]);
     expect(publicLinesNamingTeamSpirit()).toEqual([]);
   });
@@ -411,6 +416,30 @@ describe("SB24: with team-spirit off nothing of Team Spirit shows", { timeout: 1
 
     await teamSpirit(false);
 
+    expect((await bookOf(aliceReads)).map(({ ladder }) => ladder)).toEqual(awardLadders);
+    expect(namesTeamSpirit(await bookInAppHome(alice))).toBe(false);
+    expect(await tierItemsListedFor(bobReads)).not.toContain(handshake);
+    expect(namesTeamSpirit(await cardOf(bob, alice))).toBe(false);
+  });
+});
+
+describe.each(["team-pages", "sticker-book"])("CV35 SB24: with %s off nothing of Team Spirit shows, though team-spirit is on", (needed) => {
+  test("the opening summary, the Book, App Home's Book, the inventory's tier items and a teammate's profile card leave Team Spirit out", { timeout: 120_000 }, async () => {
+    await teamSpiritShipped(true);
+    await joined(alice, bob, dan, ...teammates.slice(0, 2));
+    await eachOnATeamOfTheirOwn(teammates.slice(0, 2));
+    const bobReads = await withTheBookOpen(bob);
+    await afterTheFirstCheck(alice);
+    await thanks(teammates[0]!, alice);
+    await thanks(teammates[1]!, alice);
+    expect(await tierItemsListedFor(bobReads)).toContain(handshake);
+    expect(await cardOf(bob, alice)).toContain("All Hands");
+
+    await teamSpiritOnWithout(needed);
+    const aliceReads = await withTheBookOpen(alice);
+    await settle(t);
+
+    expect(teamSpiritDmsTo(alice)).toEqual([]);
     expect((await bookOf(aliceReads)).map(({ ladder }) => ladder)).toEqual(awardLadders);
     expect(namesTeamSpirit(await bookInAppHome(alice))).toBe(false);
     expect(await tierItemsListedFor(bobReads)).not.toContain(handshake);

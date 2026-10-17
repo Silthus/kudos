@@ -11,12 +11,16 @@ export function stickersShownTo(ctx: QueryCtx, member: MemberId): Promise<boolea
   return memberDecision(ctx, stickerBookFlag, member);
 }
 
-export function teamSpiritShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
-  return memberDecision(ctx, teamSpiritFlag, member);
+export async function teamSpiritShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return (await memberDecision(ctx, teamSpiritFlag, member)) && (await teamPagesInTheBookShownTo(ctx, member));
 }
 
 export async function teamSpiritAppliesTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
   const applies = await memberDecision(ctx, teamSpiritFlag, member);
   await exposed(ctx, teamSpiritFlag, member, applies);
-  return applies && (await stickersShownTo(ctx, member)) && (await teamPagesShownTo(ctx, member));
+  return applies && (await teamPagesInTheBookShownTo(ctx, member));
+}
+
+async function teamPagesInTheBookShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
+  return (await stickersShownTo(ctx, member)) && (await teamPagesShownTo(ctx, member));
 }

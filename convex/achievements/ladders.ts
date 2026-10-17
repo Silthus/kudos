@@ -73,8 +73,8 @@ export const ladders = {
     {
       ladder: "team-spirit",
       name: "Team Spirit",
-      counts: "group albums completed",
-      countsOne: "group album completed",
+      counts: "team pages completed",
+      countsOne: "team page completed",
       tiers: tiersOf("team-spirit", ["Team Spirit", "All Hands", "Tight-Knit", "Unbreakable Crew"], [1, 2, 4, 8]),
       countsCompletions: true,
     },
