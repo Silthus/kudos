@@ -448,6 +448,21 @@ describe("#606: every crate listed as a pack opens in the one scene, wherever it
       expect(flight()).toBeNull();
     });
 
+    it("#614: keeps an interrupted landing's to until the profile reads it, when another pack is picked before the socket caught up", async () => {
+      const { showVisitor } = await fanOutAndOpen(2, { member: beforeLevel6, openCrate: answering({ "bought:1": opened(doctor, acrossLevel6), "bought:2": opened(wizard, null) }) });
+      await revealTheTappedPack();
+      fireEvent.keyDown(dialog()!, { key: "Escape" });
+
+      fireEvent.click(packButtons()[0]!);
+      fireEvent.click(packButtons()[0]!);
+      await act(async () => {});
+      advance(1000);
+      expect(hud()).toEqual({ level: "Level 6, 490 XP to level 7", coins: "236" });
+
+      showVisitor({ ...afterTheOpen, coins: 186 });
+      expect(hud()).toEqual({ level: "Level 6, 490 XP to level 7", coins: "186" });
+    });
+
     it("keeps the scene and its live region when the last claim stops the collection read", async () => {
       window.history.replaceState(null, "", "/quests");
       let week: MyQuests = questsFixtures.weekPayingCoins;
