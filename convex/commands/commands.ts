@@ -36,6 +36,7 @@ import { featureValidator } from "../unlocks/feature";
 import { openUnlock } from "../unlocks/unlocks";
 import type { MemberId } from "../workspace/directory";
 import { setAnnouncementChannel } from "../workspace/settings";
+import { changeWorkspaceSettings, type WorkspaceSettingsOutcome } from "../workspace/workspaceSettings";
 
 export const commandValidator = v.union(
   v.object({ type: v.literal("showHomeTab"), tab: homeTabValidator }),
@@ -59,13 +60,14 @@ export const commandValidator = v.union(
   v.object({ type: v.literal("setAvatar"), hoggie: v.union(v.string(), v.null()) }),
   v.object({ type: v.literal("linkMyCompanyProfile"), profile: v.union(v.number(), v.null()) }),
   v.object({ type: v.literal("linkCompanyProfile"), member: v.union(v.id("members"), v.null()), profile: v.union(v.number(), v.literal("none"), v.null()) }),
+  v.object({ type: v.literal("setWorkspaceSettings"), baseAllowance: v.number(), kudosEmoji: v.string(), hugBudget: v.number() }),
 );
 
 export type Command = Infer<typeof commandValidator>;
 
-export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | CratePurchaseOutcome | SelfLinkOutcome | AdminLinkOutcome | null;
+export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | CratePurchaseOutcome | SelfLinkOutcome | AdminLinkOutcome | WorkspaceSettingsOutcome | null;
 
-const websiteOnly: ReadonlySet<Command["type"]> = new Set(["linkMyCompanyProfile", "linkCompanyProfile"]);
+const websiteOnly: ReadonlySet<Command["type"]> = new Set(["linkMyCompanyProfile", "linkCompanyProfile", "setWorkspaceSettings"]);
 
 export function isWebsiteOnly({ type }: Command): boolean {
   return websiteOnly.has(type);
@@ -150,6 +152,10 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       return (await teamPagesApplyTo(ctx, member)) ? linkMyCompanyProfile(ctx, member, command.profile) : null;
     case "linkCompanyProfile":
       return (await teamPagesApplyTo(ctx, member)) ? linkCompanyProfile(ctx, workspace, person, command.member, command.profile) : null;
+    case "setWorkspaceSettings": {
+      const { type: _, ...change } = command;
+      return changeWorkspaceSettings(ctx, workspace, member, change);
+    }
     case "setCustomKudosEmoji":
       if (await setCustomKudosEmoji(ctx, workspace, person, command.emoji)) await ctx.scheduler.runAfter(0, internal.feedback.homes.republishAdminsIn, { workspace });
       return null;

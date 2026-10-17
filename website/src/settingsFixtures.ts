@@ -1,5 +1,5 @@
 import type { SettingsRead, SettingsShown } from "./settingsRead";
-import type { AdminProfiles, CompanyProfileSetting, MessageSetting, MySettings, ProfileChoice } from "./shell";
+import type { AdminProfiles, CompanyProfileSetting, MessageSetting, MySettings, ProfileChoice, WorkspaceSettingsPart } from "./shell";
 
 const kudosReply: MessageSetting = { kind: "kudos-reply", label: "After-kudos reply", description: "What a kudos you gave earned you, right after you send it.", applies: true, on: true, place: "channel", places: ["channel", "dm", "none"] };
 
@@ -70,10 +70,16 @@ const manyTeammates: AdminProfiles = {
 
 export const adminParts = { teammates, manyTeammates } as const;
 
+export const workspaceParts = {
+  defaults: { baseAllowance: 3, kudosEmoji: "taco", kudosEmojiImage: null, hugBudget: 10 },
+  customEmoji: { baseAllowance: 3, kudosEmoji: "hoggo", kudosEmojiImage: "https://emoji.slack-edge.com/T1/hoggo/1.png", hugBudget: 10 },
+} as const satisfies Record<string, WorkspaceSettingsPart>;
+
 export const settingsFixtures = {
   everything,
   thisIsMe: { ...everything, companyProfile: unmatched },
   forAnAdmin: { ...everything, companyProfile: companyProfiles.byName, admin: teammates },
+  forTheMaintainer: { ...everything, workspace: workspaceParts.defaults },
 } as const satisfies Record<string, MySettings>;
 
 export function fixedSettings(settings: SettingsShown): SettingsRead {

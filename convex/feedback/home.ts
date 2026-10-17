@@ -84,7 +84,7 @@ const earlierCratesShown = 5;
 
 const pageNames: Record<Page["page"], string> = { home: "home", leaderboard: "Leaderboard", quests: "Quests", skillTree: "Skill tree", book: "Book", bookEarned: "Book", bookCollection: "Collection", settings: "Settings" };
 
-type HomeSection = Exclude<SettingsSection, "company-profile" | "admin">;
+type HomeSection = Exclude<SettingsSection, "company-profile" | "admin" | "workspace">;
 
 const sectionLinks: Record<HomeSection, { label: string; spoken: string }> = {
   visibility: { label: "Leaderboards", spoken: "Change whether you show on the leaderboards" },

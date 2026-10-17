@@ -6,11 +6,12 @@ import { CompanyProfileSection } from "../settings/CompanyProfileSection";
 import { GroupPicker } from "../settings/GroupPicker";
 import { MessageSettingRow } from "../settings/MessageSettingRow";
 import { TeammateMatching } from "../settings/TeammateMatching";
+import { WorkspaceSettings } from "../settings/WorkspaceSettings";
 import type { MessageSetting, MySettings, ShellActions } from "../shell";
 
-type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile"> };
+type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings"> };
 
-export function SettingsPage({ settings: { messages, board, group, companyProfile, admin }, actions }: SettingsPageProps) {
+export function SettingsPage({ settings: { messages, board, group, companyProfile, admin, workspace }, actions }: SettingsPageProps) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -37,6 +38,7 @@ export function SettingsPage({ settings: { messages, board, group, companyProfil
       )}
       {companyProfile !== undefined && <CompanyProfileSection setting={companyProfile} linkMyCompanyProfile={actions.linkMyCompanyProfile} />}
       {admin !== undefined && <TeammateMatching admin={admin} linkCompanyProfile={actions.linkCompanyProfile} />}
+      {workspace !== undefined && <WorkspaceSettings workspace={workspace} setWorkspaceSettings={actions.setWorkspaceSettings} />}
     </div>
   );
 }

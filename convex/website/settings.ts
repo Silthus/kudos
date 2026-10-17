@@ -9,6 +9,7 @@ import { isOnTheBoards } from "../leaderboard/visibility";
 import { messageSettingsOnFor } from "../messageSettings/flag";
 import { messageSettingsOf, type MessageSetting } from "../messageSettings/messageSettings";
 import { personFactsOf } from "../workspace/directory";
+import { workspaceSettingsPartOf, workspaceSettingsShownTo, type WorkspaceSettingsPart } from "../workspace/workspaceSettings";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
 import { settingsSections, type SettingsSection } from "./routes";
 import { teammateKeyOf } from "./teammateKeys";
@@ -18,6 +19,7 @@ export type { MessageSetting } from "../messageSettings/messageSettings";
 export type { MessageKind, MessagePlace } from "../messageSettings/kinds";
 export type { GroupChoice } from "../groups/pick";
 export type { CompanyProfileSetting, ProfileChoice } from "../companyProfiles/links";
+export type { WorkspaceSettingsPart } from "../workspace/workspaceSettings";
 
 type SectionSettings = { board: { onTheBoards: boolean } | null; messages: MessageSetting[] | null; group: GroupChoice | null };
 
@@ -26,7 +28,7 @@ export type AdminProfiles = {
   profiles: Array<ProfileChoice & { heldBy: string | null; by: MatchedBy | null }>;
 };
 
-export type MySettings = { kind: "settings"; companyProfile?: CompanyProfileSetting; admin?: AdminProfiles } & SectionSettings;
+export type MySettings = { kind: "settings"; companyProfile?: CompanyProfileSetting; admin?: AdminProfiles; workspace?: WorkspaceSettingsPart } & SectionSettings;
 
 export type SettingsAnswer = MySettings | { kind: "not-found" };
 
@@ -36,12 +38,16 @@ export const getSettings = memberQuery(async (ctx, me): Promise<SettingsAnswer> 
 });
 
 export async function settingsShownTo(ctx: QueryCtx, me: VerifiedMember, leaderboard: FeaturePage): Promise<boolean> {
-  if (leaderboard.kind === "open" || (await messageSettingsOnFor(ctx, me.member)) || (await teamPagesShownTo(ctx, me.member))) return true;
+  if (leaderboard.kind === "open" || (await messageSettingsOnFor(ctx, me.member)) || (await teamPagesShownTo(ctx, me.member)) || (await workspaceSettingsShownTo(ctx, me.member))) return true;
   return (await groupPickOf(ctx, me)) !== null;
 }
 
 async function settingsOf(ctx: QueryCtx, me: VerifiedMember): Promise<MySettings> {
-  return { kind: "settings", ...(await sectionSettingsOf(ctx, me)), ...(await companyProfileSectionOf(ctx, me)), ...(await adminPartOf(ctx, me)) };
+  return { kind: "settings", ...(await sectionSettingsOf(ctx, me)), ...(await companyProfileSectionOf(ctx, me)), ...(await adminPartOf(ctx, me)), ...(await workspacePartOf(ctx, me)) };
+}
+
+async function workspacePartOf(ctx: QueryCtx, me: VerifiedMember): Promise<{ workspace?: WorkspaceSettingsPart }> {
+  return (await workspaceSettingsShownTo(ctx, me.member)) ? { workspace: await workspaceSettingsPartOf(ctx, me.workspace) } : {};
 }
 
 async function sectionSettingsOf(ctx: QueryCtx, me: VerifiedMember): Promise<SectionSettings> {
@@ -69,12 +75,12 @@ async function adminPartShownTo(ctx: QueryCtx, me: VerifiedMember): Promise<bool
 
 export async function settingsSectionsShownTo(ctx: QueryCtx, me: VerifiedMember): Promise<SettingsSection[]> {
   const { board, messages, group } = await sectionSettingsOf(ctx, me);
-  const shown: Record<SettingsSection, boolean> = { visibility: board !== null, messages: messages !== null, group: group !== null, "company-profile": await teamPagesShownTo(ctx, me.member), admin: await adminPartShownTo(ctx, me) };
+  const shown: Record<SettingsSection, boolean> = { visibility: board !== null, messages: messages !== null, group: group !== null, "company-profile": await teamPagesShownTo(ctx, me.member), admin: await adminPartShownTo(ctx, me), workspace: await workspaceSettingsShownTo(ctx, me.member) };
   return settingsSections.filter((section) => shown[section]);
 }
 
-function hasAny({ board, messages, group, companyProfile }: MySettings) {
-  return board !== null || messages !== null || group !== null || companyProfile !== undefined;
+function hasAny({ board, messages, group, companyProfile, workspace }: MySettings) {
+  return board !== null || messages !== null || group !== null || companyProfile !== undefined || workspace !== undefined;
 }
 
 async function boardSettingOf(ctx: QueryCtx, me: VerifiedMember) {

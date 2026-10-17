@@ -1,7 +1,9 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
+import type { Doc } from "../_generated/dataModel";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { xpLevelsShownIn } from "../progression/xpLevels";
+import { emojiNameOf } from "./settingsBounds";
 
 export type WorkspaceSettings = { baseAllowance: number; kudosEmoji: string; announcementChannel: string | null };
 
@@ -51,10 +53,14 @@ async function announceIn(ctx: MutationCtx, workspace: string, channel: string |
   return true;
 }
 
-async function saveAnnouncementChannel(ctx: MutationCtx, workspace: string, announcementChannel: string | undefined) {
+function saveAnnouncementChannel(ctx: MutationCtx, workspace: string, announcementChannel: string | undefined) {
+  return saveWorkspaceSettings(ctx, workspace, { announcementChannel });
+}
+
+export async function saveWorkspaceSettings(ctx: MutationCtx, workspace: string, settings: Partial<Omit<Doc<"workspaces">, "_id" | "_creationTime" | "workspace">>) {
   const row = await workspaceRow(ctx, workspace);
-  if (row === null) await ctx.db.insert("workspaces", { workspace, announcementChannel });
-  else await ctx.db.patch(row._id, { announcementChannel });
+  if (row === null) await ctx.db.insert("workspaces", { workspace, ...settings });
+  else await ctx.db.patch(row._id, settings);
 }
 
 function workspaceRow(ctx: QueryCtx, workspace: string) {
@@ -65,6 +71,6 @@ function workspaceRow(ctx: QueryCtx, workspace: string) {
 }
 
 export function defaultKudosEmoji() {
-  const configured = process.env.KUDOS_EMOJI?.trim().toLowerCase().replace(/^:|:$/g, "");
-  return configured || fallbackKudosEmoji;
+  return emojiNameOf(process.env.KUDOS_EMOJI ?? "") || fallbackKudosEmoji;
 }
+

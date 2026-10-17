@@ -44,6 +44,7 @@ describe("#435: the router reads every target a Slack link carries", () => {
     { link: "/settings?section=group", page: { page: "settings", section: "group" }, route: { page: "settings", section: "group" } },
     { link: "/settings?section=company-profile", page: { page: "settings", section: "company-profile" }, route: { page: "settings", section: "company-profile" } },
     { link: "/settings?section=admin", page: { page: "settings", section: "admin" }, route: { page: "settings", section: "admin" } },
+    { link: "/settings?section=workspace", page: { page: "settings", section: "workspace" }, route: { page: "settings", section: "workspace" } },
   ])("$link", ({ link, page, route }) => {
     const url = urlOf(origin, page);
     expect(url).toBe(`${origin}${link}`);

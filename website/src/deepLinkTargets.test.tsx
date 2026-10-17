@@ -481,7 +481,7 @@ describe("#531: ?panel=inventory and ?section={section} land on their heading, n
   }
 
   function expectNothingSent(actions: ReturnType<typeof renderApp>["actions"]) {
-    for (const command of [actions.buyItem, actions.setBoardVisibility, actions.setMessageSetting, actions.pickPrimaryGroup, actions.linkMyCompanyProfile, actions.linkCompanyProfile, actions.openFeature, actions.openQuestCrate]) expect(command).not.toHaveBeenCalled();
+    for (const command of [actions.buyItem, actions.setBoardVisibility, actions.setMessageSetting, actions.pickPrimaryGroup, actions.linkMyCompanyProfile, actions.linkCompanyProfile, actions.setWorkspaceSettings, actions.openFeature, actions.openQuestCrate]) expect(command).not.toHaveBeenCalled();
   }
 
   it("/?panel=inventory scrolls the Inventory into view and focuses its heading", () => {
@@ -546,9 +546,10 @@ describe("#531: ?panel=inventory and ?section={section} land on their heading, n
     ["group", "Your group"],
     ["company-profile", "This is me on posthog.com"],
     ["admin", "Match teammates"],
+    ["workspace", "Workspace"],
   ])("/settings?section=%s scrolls the %s section into view and focuses its heading", (section, name) => {
     const scrolled = watchScrolling();
-    const { actions } = showSettingsAt(`/settings?section=${section}`, settingsFixtures.forAnAdmin);
+    const { actions } = showSettingsAt(`/settings?section=${section}`, { ...settingsFixtures.forAnAdmin, workspace: settingsFixtures.forTheMaintainer.workspace });
 
     expect(scrolled).toEqual([regionOf(name)]);
     expect(heading(name)).toHaveFocus();
@@ -560,6 +561,7 @@ describe("#531: ?panel=inventory and ?section={section} land on their heading, n
     ["a hidden section", "/settings?section=group", { ...settingsFixtures.everything, group: null }],
     ["the posthog.com section without a company profile", "/settings?section=company-profile", settingsFixtures.everything],
     ["the admin section for a member", "/settings?section=admin", settingsFixtures.thisIsMe],
+    ["the workspace section for anyone but the maintainer", "/settings?section=workspace", settingsFixtures.forAnAdmin],
     ["an unknown section", "/settings?section=nope", settingsFixtures.everything],
   ])("leaves the plain settings page for %s", (_, path, settings) => {
     const scrolled = watchScrolling();

@@ -673,6 +673,24 @@ describe("#608: a member's posthog.com match changes only through the link comma
   });
 });
 
+describe("the maintainer's workspace settings change only through setWorkspaceSettings", () => {
+  it("sends the maintainer's one setWorkspaceSettings over HTTP with the three settings, never through the socket's queue", async () => {
+    window.history.replaceState(null, "", "/settings");
+    profileRead.mockReturnValue(shellFixtures.memberWithSettings);
+    boardRead.mockImplementation((query: string) => (query === "website/settings:getSettings" ? settingsFixtures.forTheMaintainer : undefined));
+    sentOverHttp.mockResolvedValue({ kind: "set" });
+    const { user } = renderLiveSite();
+
+    const allowance = await screen.findByRole("spinbutton", { name: "Kudos a day" });
+    await user.clear(allowance);
+    await user.type(allowance, "6");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/commands:setWorkspaceSettings", args: { baseAllowance: 6, kudosEmoji: "taco", hugBudget: 10 } });
+    expect(openFeatureCall).not.toHaveBeenCalled();
+  });
+});
+
 describe("WS87 WS335: an item purchase never sends again by itself", () => {
   it("sends buyItem once over HTTP with the session's token and the item's pending request, never through the socket's queue", async () => {
     profileRead.mockReturnValue(shellFixtures.memberWithTheInventory);

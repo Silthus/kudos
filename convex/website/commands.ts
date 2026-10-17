@@ -28,6 +28,7 @@ import { unlockPathShownTo } from "../unlocks/launch";
 import { stateOf, type UnlockState } from "../unlocks/unlocks";
 import { coinsVisibleTo } from "../wallet/visibility";
 import { userGroupsOf } from "../workspace/userGroups";
+import type { WorkspaceSettingsRefusal } from "../workspace/workspaceSettings";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { noLaunchWaitsFor } from "./flag";
 import { memberMutation } from "./memberMutation";
@@ -63,6 +64,8 @@ export type GroupPickAnswer = { kind: "picked"; group: string } | { kind: "refus
 export type CompanyProfileLinkAnswer = { kind: "linked" } | { kind: "refused"; reason: SelfLinkRefusal | null };
 
 export type AdminProfileLinkAnswer = { kind: "linked" } | { kind: "refused"; reason: AdminLinkRefusal | null };
+
+export type WorkspaceSettingsAnswer = { kind: "set" } | { kind: "refused"; reason: WorkspaceSettingsRefusal | null };
 
 export type AvatarAnswer = { kind: "set"; avatar: Avatar | null } | { kind: "refused" };
 
@@ -315,6 +318,15 @@ export const linkCompanyProfile = memberMutation({
     const outcome = await runCommand(ctx, me.workspace, person, { type: "linkCompanyProfile", member, profile }, `website:linkCompanyProfile:${me.member}`);
     if (outcome === null || !("member" in outcome)) return { kind: "refused", reason: null };
     return outcome.kind === "linked" ? { kind: "linked" } : { kind: "refused", reason: outcome.reason };
+  },
+});
+
+export const setWorkspaceSettings = memberMutation({
+  args: { baseAllowance: v.number(), kudosEmoji: v.string(), hugBudget: v.number() },
+  handler: async (ctx, me, person, settings): Promise<WorkspaceSettingsAnswer> => {
+    const outcome = await runCommand(ctx, me.workspace, person, { type: "setWorkspaceSettings", ...settings }, `website:setWorkspaceSettings:${me.member}`);
+    if (outcome === null || !("saved" in outcome)) return { kind: "refused", reason: null };
+    return outcome.kind === "set" ? { kind: "set" } : { kind: "refused", reason: outcome.reason };
   },
 });
 
