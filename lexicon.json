@@ -699,6 +699,10 @@
     {
       "name": "lead",
       "definition": "A person posthog.com lists as leading a company team, marked on their team page tile and named on the page"
+    },
+    {
+      "name": "feature crate",
+      "definition": "The crate a ready feature on the unlock path shows until the member opens it; opening reveals the feature and, since collection v2, pays a pack bonus"
     }
   ],
   "retired": [
