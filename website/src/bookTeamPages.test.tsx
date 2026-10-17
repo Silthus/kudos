@@ -293,18 +293,41 @@ describe("#607: with team pages in the collection, the Teams chapter shows teams
   });
 
   it("keeps today's crests and group albums as the Teams chapter for every collection without teams", () => {
-    const withoutTeams: Collection[] = [collectionFixtures.collection, collectionFixtures.withTheStickerBook, collectionFixtures.withStickersOnly, { ...withTeams, teams: undefined }];
+    const { withTheStickerBook } = collectionFixtures;
+    const albumsOnly: Collection = { ...collectionFixtures.collectionWithoutCrests, stickers: withTheStickerBook.stickers, albums: withTheStickerBook.albums };
+    const withoutTeams: Collection[] = [collectionFixtures.collection, withTheStickerBook, collectionFixtures.withStickersOnly, albumsOnly, { ...withTeams, teams: undefined }];
     for (const collection of withoutTeams) {
-      const todaysPages = [...(collection.crests ?? []).map(({ crest }) => crest), ...(collection.albums ?? []).map(({ group }) => `group:${group}`)];
+      const todays = todaysPagesOf(collection);
       visit("/book");
       showBook(reader, collection);
       expect(within(page("right")).queryByRole("link", { name: /people collected/ }), "the cover counts people without teams").toBeNull();
+      expect(within(page("right")).getByRole("link", { name: `Teams, ${todaysCountOf(collection)}` }), "the cover counts today's crests or albums").toHaveAttribute("href", "/book#teams");
       cleanup();
       visit("/book#teams");
       showBook(reader, collection);
       const shown = [...book().querySelectorAll<HTMLElement>("[data-team]")].map((row) => row.dataset.team);
-      expect(shown.toSorted(), "the Teams spread lists today's crests and group albums").toEqual(todaysPages.toSorted());
+      expect(shown.toSorted(), "the Teams spread lists today's crests and group albums").toEqual(todays.map(({ slug }) => slug).toSorted());
       cleanup();
+      for (const opened of [todays.find(({ slug }) => !slug.startsWith("group:")), todays.find(({ slug }) => slug.startsWith("group:"))]) {
+        if (opened === undefined) continue;
+        visit(`/book#teams/${opened.slug}`);
+        showBook(reader, collection);
+        expect(book(), `${opened.slug} opens as today's album`).toHaveAccessibleName(`${opened.name} album`);
+        expect(slotsIn(page("right")).map((slot) => slot.dataset.slot), `${opened.slug} shows today's slots`).toEqual(opened.slots.slice(0, 12));
+        cleanup();
+      }
     }
   });
 });
+
+function todaysPagesOf({ crests, albums, hoggies }: Collection) {
+  const known = new Set(hoggies.map(({ hoggie }) => hoggie));
+  const crestPages = (crests ?? []).map((crest) => ({ slug: crest.crest, name: crest.name, slots: crest.roster.filter((hoggie) => known.has(hoggie)), earned: crest.collectedAt !== null }));
+  const albumPages = (albums ?? []).map((album) => ({ slug: `group:${album.group}`, name: album.name, slots: album.people.map(({ key }) => key), earned: album.total > 0 && album.held === album.total }));
+  return [...crestPages, ...albumPages];
+}
+
+function todaysCountOf(collection: Collection) {
+  const pages = todaysPagesOf(collection).filter(({ slug }) => slug.startsWith("group:") === (collection.crests === undefined));
+  return `${pages.filter(({ earned }) => earned).length} of ${pages.length} ${collection.crests === undefined ? "albums" : "crests"}`;
+}
