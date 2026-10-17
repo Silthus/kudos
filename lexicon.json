@@ -703,6 +703,10 @@
     {
       "name": "feature crate",
       "definition": "The crate a ready feature on the unlock path shows until the member opens it; opening reveals the feature and, since collection v2, pays a pack bonus"
+    },
+    {
+      "name": "match",
+      "definition": "The pairing of a workspace member with one posthog.com profile: by an admin link, else the member's own link, else a unique name match; a team page's people are the matched teammates"
     }
   ],
   "retired": [

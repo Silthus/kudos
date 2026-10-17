@@ -1,16 +1,12 @@
 import { cleanup, screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { bookFixtures, fixedBook } from "./bookFixtures";
 import { collectionFixtures } from "./collectionFixtures";
+import { settingsFixtures } from "./settingsFixtures";
 import type { SettingsRead } from "./settingsRead";
 import { shellFixtures, type MemberProfile } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
-
-vi.mock(import("../../convex/website/routes"), async (importOriginal) => {
-  const routes = await importOriginal();
-  return { ...routes, settingsSections: [...routes.settingsSections, "company-profile"] as typeof routes.settingsSections };
-});
 
 const reader: MemberProfile = { ...shellFixtures.memberWithTheBookOpened, bookSpread: true };
 
@@ -31,12 +27,12 @@ function rightPage() {
   return screen.getByRole("main").querySelector<HTMLElement>('[data-spread] [data-page="right"]')!;
 }
 
-describe("#607: once the route list has the company-profile section, an admin is linked from the unmatched line to the matching settings", () => {
-  it("links an admin, asks the settings only on a team with people to match, and links nobody else", async () => {
+describe("#607: an admin is linked from the unmatched line to the matching settings through the route list's company-profile section", () => {
+  it("links an admin, lands on the section, asks the settings only on a team with people to match, and links nobody else", async () => {
     const asked: boolean[] = [];
     const admin: SettingsRead = (asking) => {
       asked.push(asking);
-      return asking ? { ...settings, admin: { members: [], profiles: [] } } : undefined;
+      return asking ? settingsFixtures.forAnAdmin : undefined;
     };
     const app = showTeam("/book#teams/workflows", admin);
     const link = within(rightPage()).getByRole("link", { name: "Match them in Settings" });
@@ -44,6 +40,7 @@ describe("#607: once the route list has the company-profile section, an admin is
     expect(asked.some((asking) => asking)).toBe(true);
     await app.user.click(link);
     expect(window.location.pathname + window.location.search).toBe("/settings?section=company-profile");
+    expect(within(screen.getByRole("main")).getByRole("region", { name: "This is me on posthog.com" })).toBeInTheDocument();
     cleanup();
     asked.length = 0;
     showTeam("/book#teams/platform-features", admin);
