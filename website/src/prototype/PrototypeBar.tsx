@@ -42,7 +42,7 @@ export function PrototypeBar() {
   if (!prototypeOn) return null;
   const name = prototypeVariants.find(({ key }) => key === current)?.name ?? "Today's site";
   return (
-    <div data-prototype-bar style={{ position: "fixed", left: "50%", bottom: 14, transform: "translateX(-50%)", zIndex: 2147483000, display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", borderRadius: 999, background: "#111", color: "#fff", font: "600 13px/1 system-ui, sans-serif", boxShadow: "0 8px 24px rgb(0 0 0 / 35%)", border: "2px solid #f54e00" }}>
+    <div data-prototype-bar style={{ position: "fixed", left: "50%", bottom: 14, transform: "translateX(-50%)", zIndex: 2147483000, display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", borderRadius: 999, background: "#111", color: "#fff", font: "600 13px/1 system-ui, sans-serif", boxShadow: "0 8px 24px rgb(0 0 0 / 35%)", border: "2px solid #f54e00", maxWidth: "calc(100vw - 16px)" }}>
       <BarButton label="Previous variant" onClick={() => goTo(stepped(current, -1))}>
         ←
       </BarButton>
@@ -51,7 +51,7 @@ export function PrototypeBar() {
           {key}
         </BarButton>
       ))}
-      <span style={{ minWidth: 150, textAlign: "center", padding: "0 6px" }}>{current === null ? name : `${current} · ${name}`}</span>
+      <span style={{ minWidth: 150, textAlign: "center", padding: "0 6px", display: window.innerWidth < 560 ? "none" : undefined }}>{current === null ? name : `${current} · ${name}`}</span>
       <BarButton label="Today's site" pressed={current === null} onClick={() => goTo(null)}>
         0
       </BarButton>

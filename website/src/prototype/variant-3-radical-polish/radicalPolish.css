@@ -2209,3 +2209,14 @@
     align-items: flex-start;
   }
 }
+
+@media (max-width: 720px) {
+  .v3 {
+    overflow-x: clip;
+  }
+
+  .v3 .v3-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
