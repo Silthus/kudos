@@ -74,7 +74,6 @@ const siteUrl = "https://kudos-site.test";
 const stickerBook = "sticker-book";
 const everyOtherFlag = ["xp-levels", "unlocks", "achievements", "collection", "crests", "crate-store", "crate-rewards", "coins", "store", "quests", "group-quest", "groups", "activity", "everyone-board", "profile-card", "hoggie-avatar", "message-settings", "custom-kudos-emoji", "monday-post", "skill-tree"];
 const stickerTables = ["stickers", "stickerBackfills"] as const;
-const teamSpirit = "team-spirit";
 const backfillJob = "stickers/backfill:backfillStickers";
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
@@ -121,7 +120,7 @@ const stickerBookOff: Array<{ condition: string; flag: FlagDefinition[]; turnOff
 ];
 
 describe("SB15: the sticker book is dark where sticker-book is off, shows only to the members it is on for, and nothing exposes it", { timeout: 120_000 }, () => {
-  test.each(stickerBookOff)("$condition, a walk of kudos, App Home and every website read leaves what the same walk leaves without the sticker book, apart from the sticker records it stores and team-spirit's exposure", async ({ flag, turnOff }) => {
+  test.each(stickerBookOff)("$condition, a walk of kudos, App Home and every website read leaves what the same walk leaves without the sticker book, apart from the sticker records it stores", async ({ flag, turnOff }) => {
     theStickerBook.removed = true;
     const withoutTheStickerBook = await walkIn(await aliceBobAndCarolInAnts(flag, turnOff));
     freshFakes();
@@ -260,7 +259,7 @@ async function walkIn(backend: Backend) {
     answers,
     slackCallsTo: Object.fromEntries(members.map(({ user }) => [user, slackCallsAbout(user)])),
     slackCalls: slack.calls.map((call) => JSON.stringify(call)).sort(),
-    productEvents: orderFree(withStableIds(postHog.productEvents().filter((event) => !isTeamSpiritsExposure(event)).map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
+    productEvents: orderFree(withStableIds(postHog.productEvents().map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsWrittenApartFromStickers(),
   };
   return { seen, stickers: await storedStickerRecords(), backfills: await backfillRecords(), postHogEvents: postHog.events() };
@@ -376,8 +375,6 @@ async function rowsWrittenApartFromStickers() {
   const tables = await t.run(async (ctx) => {
     const rows = {} as Record<TableName, Record<string, unknown>[]>;
     for (const table of Object.keys(schema.tables) as TableName[]) if (!(stickerTables as readonly string[]).includes(table)) rows[table] = await ctx.db.query(table).collect();
-    rows.flagExposures = rows.flagExposures.filter(({ flag }) => flag !== teamSpirit);
-    rows.analyticsOutbox = rows.analyticsOutbox.filter((row) => !isTeamSpiritsExposure(row));
     return rows;
   });
   const inContentOrder = Object.fromEntries(Object.entries(tables).map(([table, rows]) => [table, rows.toSorted((a, b) => contentOf(a).localeCompare(contentOf(b)))]));
@@ -386,10 +383,6 @@ async function rowsWrittenApartFromStickers() {
 
 function contentOf(row: Record<string, unknown>) {
   return JSON.stringify(withStableIds(row), (key, field) => (opaque.has(key) || convexTestId.test(String(field)) ? undefined : field));
-}
-
-function isTeamSpiritsExposure({ event, properties }: { event?: unknown; properties?: unknown }) {
-  return event === "$feature_flag_called" && (properties as Record<string, unknown>).$feature_flag === teamSpirit;
 }
 
 async function storedStickerRecords() {

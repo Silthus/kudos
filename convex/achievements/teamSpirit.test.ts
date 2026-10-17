@@ -1,23 +1,24 @@
 import { makeFunctionReference } from "convex/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { FakePostHogCom } from "../../testing/fakePostHogCom";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest } from "../../testing/signedSlack";
 import { blockActions, buttonInHome, publishedHome } from "../../testing/slackInteractions";
 import { memberChanged, post, setWorkspaceSettings, settleInTimeOrder as settle, testBackend, type Backend } from "../../testing/slackBackend";
-import { appHomeOpened, emoji, mention, section, userGroupEvent } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, section } from "../../testing/slackMessages";
 import type { Person } from "../../testing/stickerBook";
 import { opens, reachesLevel } from "../../testing/unlocks";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import { awardsOfMessage } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
 import { ladders, type Ladder, type LadderId, type TierId } from "./ladders";
 
 const now = new Date("2026-10-16T10:00:00Z");
 const minuteMs = 60_000;
-const bookFlags = ["xp-levels", "unlocks", "achievements", "everyone-board", "skill-tree", "collection", "sticker-book", "groups", "coins", "store", "profile-card"];
+const bookFlags = ["xp-levels", "unlocks", "achievements", "everyone-board", "skill-tree", "collection", "sticker-book", "team-pages", "groups", "coins", "store", "profile-card"];
 const catalogue = ladders as unknown as { version: string; ladders: Ladder[] };
 const shippedCatalogue = { version: catalogue.version, ladders: [...catalogue.ladders] };
 const awardLadders: LadderId[] = ["generosity", "recognition", "connections", "dependability", "applause", "seasons", "old-friends"];
@@ -30,6 +31,7 @@ const teammates: Person[] = Array.from({ length: 9 }, (_, index) => ({ user: `U_
 type Reader = Awaited<ReturnType<typeof aSignedInSession>>["asSignedIn"];
 
 let postHog: FakePostHog;
+let postHogCom: FakePostHogCom;
 let slack: FakeSlack;
 let t: Backend;
 let messages = 0;
@@ -39,9 +41,10 @@ beforeEach(() => {
   vi.useFakeTimers({ now });
   aDeploymentForWorkspace();
   postHog = new FakePostHog();
+  postHogCom = new FakePostHogCom();
   slack = new FakeSlack();
   for (const person of [alice, bob, dan, ...teammates]) slack.withMember(person.user, { real_name: person.name });
-  vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
+  vi.stubGlobal("fetch", routedFetch(postHog, (input, init) => (postHogCom.owns(urlOf(input)) ? postHogCom.fetch(input) : slack.fetch(input, init))));
   t = testBackend();
 });
 
@@ -69,13 +72,18 @@ async function joined(...people: Person[]) {
   }
 }
 
-async function eachInAGroupOfTheirOwn(people: Person[]) {
-  for (const [index, person] of people.entries()) {
-    const group = `S_${index + 1}`;
-    slack.withUserGroup(group, { name: `Squad ${index + 1}`, users: [person.user] });
-    await t.fetch("/slack/events", await signedRequest(userGroupEvent("subteam_created", group)));
-    await settle(t);
-  }
+function urlOf(input: string | URL | Request) {
+  return new URL(input instanceof Request ? input.url : input);
+}
+
+async function eachOnATeamOfTheirOwn(people: Person[]) {
+  postHogCom.withTeams(
+    ...people.map((person, index) => {
+      const [firstName, lastName] = person.name.split(" ");
+      return { slug: `squad-${index + 1}`, name: `Squad ${index + 1}`, profiles: [{ id: index + 1, firstName: firstName!, lastName: lastName! }] };
+    }),
+  );
+  await t.action(internal.companyProfiles.sync.syncCompanyProfiles, {});
 }
 
 async function thanks(giver: Person, ...recipients: Person[]) {
@@ -95,9 +103,8 @@ async function redelivered(giver: Person, at: number) {
 }
 
 async function checkedAgain(person: Person, at: number) {
-  const message = { workspace: "T1", conversation: "C1", message: tsOfMessageAt.get(at)! };
-  const check = { workspace: "T1", member: await memberOf(person), message, award: await awardOf(at), at };
-  await t.mutation(makeFunctionReference<"mutation">("stickers/completions:checkAlbums"), { check });
+  const check = { workspace: "T1", member: await memberOf(person), award: await awardOf(at), at };
+  await t.mutation(makeFunctionReference<"mutation">("stickers/completions:checkTeamPages"), { check });
   await settle(t);
 }
 
@@ -212,7 +219,7 @@ describe("SB21: Team Spirit counts completed group albums", { timeout: 120_000 }
   test("1, 2, 4 and 8 completions earn bronze, silver, gold and diamond once each, each caused by the completion that reached it, with coins and handshake paid once", async () => {
     await teamSpiritShipped(true);
     await joined(alice, dan, ...teammates.slice(0, 8));
-    await eachInAGroupOfTheirOwn(teammates.slice(0, 8));
+    await eachOnATeamOfTheirOwn(teammates.slice(0, 8));
     const reader = await withTheBookOpen(alice);
     await afterTheFirstCheck(alice);
 
@@ -249,7 +256,7 @@ describe("SB21: Team Spirit counts completed group albums", { timeout: 120_000 }
   test("getBook answers the ladder under Connections while team-spirit is on, with its tiers, counts and rewards", async () => {
     await teamSpiritShipped(true);
     await joined(alice, dan, ...teammates.slice(0, 1));
-    await eachInAGroupOfTheirOwn(teammates.slice(0, 1));
+    await eachOnATeamOfTheirOwn(teammates.slice(0, 1));
     const reader = await withTheBookOpen(alice);
     await afterTheFirstCheck(alice);
     const bronzeAt = await thanks(teammates[0]!, alice);
@@ -274,7 +281,7 @@ describe("SB21: Team Spirit counts completed group albums", { timeout: 120_000 }
   test("a tier added to the catalogue later is found from the completion records in order at the member's next new sticker, with no new completion", async () => {
     await teamSpiritShipped(true);
     await joined(alice, dan, ...teammates);
-    await eachInAGroupOfTheirOwn(teammates.slice(0, 8));
+    await eachOnATeamOfTheirOwn(teammates.slice(0, 8));
     const reader = await withTheBookOpen(alice);
     await afterTheFirstCheck(alice);
     catalogue.ladders = shippedCatalogue.ladders.map((ladder) => (ladder.ladder === "team-spirit" ? { ...ladder, tiers: ladder.tiers.filter(({ tier }) => tier !== "diamond") } : ladder));
@@ -296,7 +303,7 @@ describe("SB22: tiers from a member's first check are stored hidden and never to
   test("albums complete at the first check earn their tiers silently, and opening the Book later names none of them", async () => {
     await teamSpiritShipped(false);
     await joined(alice, dan, ...teammates.slice(0, 2));
-    await eachInAGroupOfTheirOwn(teammates.slice(0, 2));
+    await eachOnATeamOfTheirOwn(teammates.slice(0, 2));
     await thanks(alice, ...teammates.slice(0, 2));
     await teamSpirit(true);
 
@@ -320,7 +327,7 @@ describe("SB22: a tier from thanking the last missing person is told privately u
   test("the tier is told by DM, and no public line names Team Spirit", async () => {
     await teamSpiritShipped(true);
     await joined(alice, dan, ...teammates.slice(0, 2));
-    await eachInAGroupOfTheirOwn(teammates.slice(0, 2));
+    await eachOnATeamOfTheirOwn(teammates.slice(0, 2));
     await withTheBookOpen(alice);
     await afterTheFirstCheck(alice);
 
@@ -328,8 +335,8 @@ describe("SB22: a tier from thanking the last missing person is told privately u
     await thanks(teammates[1]!, alice);
 
     expect(teamSpiritDmsTo(alice)).toEqual([
-      "🏅 You earned Team Spirit (Team Spirit, bronze). +10 🪙\nNext: All Hands at 2 group albums completed.",
-      "🏅 You earned All Hands (Team Spirit, silver). + :handshake: Handshake for your kudos emoji\nNext: Tight-Knit at 4 group albums completed.",
+      "Team complete · Squad 1 crest earned\n🏅 You earned Team Spirit (Team Spirit, bronze). +10 🪙\nNext: All Hands at 2 group albums completed.",
+      "Team complete · Squad 2 crest earned\n🏅 You earned All Hands (Team Spirit, silver). + :handshake: Handshake for your kudos emoji\nNext: Tight-Knit at 4 group albums completed.",
     ]);
     expect(publicLinesNamingTeamSpirit()).toEqual([]);
   });
@@ -337,7 +344,7 @@ describe("SB22: a tier from thanking the last missing person is told privately u
   test("a member who turned DMs off is told nothing, and no public line names Team Spirit", async () => {
     await teamSpiritShipped(true);
     await joined(alice, dan, ...teammates.slice(0, 1));
-    await eachInAGroupOfTheirOwn(teammates.slice(0, 1));
+    await eachOnATeamOfTheirOwn(teammates.slice(0, 1));
     await withTheBookOpen(alice);
     await afterTheFirstCheck(alice);
     const member = await memberOf(alice);
@@ -353,7 +360,7 @@ describe("SB22: a tier from thanking the last missing person is told privately u
   test("a told tier earned before the Book was opened is not named by the opening summary while team-spirit is off", async () => {
     await teamSpiritShipped(true);
     await joined(alice, dan, ...teammates.slice(0, 1));
-    await eachInAGroupOfTheirOwn(teammates.slice(0, 1));
+    await eachOnATeamOfTheirOwn(teammates.slice(0, 1));
     await afterTheFirstCheck(alice);
     await thanks(teammates[0]!, alice);
     expect((await teamSpiritTiersStored(alice)).map(({ tier, hidden }) => ({ tier, hidden }))).toEqual([{ tier: "bronze", hidden: false }]);
@@ -372,7 +379,7 @@ describe("SB21: Team Spirit is a completion ladder that the Book's replay and th
     catalogue.ladders = shippedCatalogue.ladders.filter(({ ladder }) => ladder !== "team-spirit");
     await teamSpiritShipped(true);
     await joined(alice, dan, ...teammates.slice(0, 1));
-    await eachInAGroupOfTheirOwn(teammates.slice(0, 1));
+    await eachOnATeamOfTheirOwn(teammates.slice(0, 1));
     await thanks(alice, dan);
     const batchesBefore = await t.run((ctx) => ctx.db.query("bookBatches").collect());
 
@@ -390,7 +397,7 @@ describe("SB24: with team-spirit off nothing of Team Spirit shows", { timeout: 1
   test("the Book, App Home's Book, the inventory's tier items and a teammate's profile card show Team Spirit while it is on, and nothing of it once it is off", async () => {
     await teamSpiritShipped(true);
     await joined(alice, bob, dan, ...teammates.slice(0, 2));
-    await eachInAGroupOfTheirOwn(teammates.slice(0, 2));
+    await eachOnATeamOfTheirOwn(teammates.slice(0, 2));
     const aliceReads = await withTheBookOpen(alice);
     const bobReads = await withTheBookOpen(bob);
     await afterTheFirstCheck(alice);
