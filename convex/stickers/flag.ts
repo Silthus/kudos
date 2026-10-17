@@ -16,8 +16,7 @@ export function teamSpiritShownTo(ctx: QueryCtx, member: MemberId): Promise<bool
 }
 
 export async function teamSpiritAppliesTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
-  if (!(await stickersShownTo(ctx, member)) || !(await teamPagesShownTo(ctx, member))) return false;
   const applies = await memberDecision(ctx, teamSpiritFlag, member);
   await exposed(ctx, teamSpiritFlag, member, applies);
-  return applies;
+  return applies && (await stickersShownTo(ctx, member)) && (await teamPagesShownTo(ctx, member));
 }
