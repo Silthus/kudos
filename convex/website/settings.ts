@@ -69,7 +69,7 @@ async function adminPartShownTo(ctx: QueryCtx, me: VerifiedMember): Promise<bool
 
 export async function settingsSectionsShownTo(ctx: QueryCtx, me: VerifiedMember): Promise<SettingsSection[]> {
   const { board, messages, group } = await sectionSettingsOf(ctx, me);
-  const shown: Record<SettingsSection, boolean> = { visibility: board !== null, messages: messages !== null, group: group !== null, admin: await adminPartShownTo(ctx, me) };
+  const shown: Record<SettingsSection, boolean> = { visibility: board !== null, messages: messages !== null, group: group !== null, "company-profile": await teamPagesShownTo(ctx, me.member), admin: await adminPartShownTo(ctx, me) };
   return settingsSections.filter((section) => shown[section]);
 }
 
