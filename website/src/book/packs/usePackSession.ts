@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { dropOf } from "../../crates/drops";
 import { attemptMessages, type Attempt } from "../../crates/moments";
-import type { PackHold, RewardKind } from "../../crates/rewards";
+import { landedEverywhere, type PackHold, type RewardKind } from "../../crates/rewards";
 import type { ShellActions } from "../../shell";
 import { inTheBookWordsOf, openedWordsOf, packOf, type OpenedPack, type ScenePack, type WaitingPack, type WaitingPacks } from "./packs";
 
@@ -151,7 +151,7 @@ export function usePackSession({ packs, listed, more }: WaitingPacks, openCrate:
   const landed = useCallback(() => {
     if (stage.kind !== "landing") return;
     setAnnouncement(inTheBookWordsOf(stage.opened));
-    setHeld([]);
+    setHeld((before) => before.map((hold) => ({ ...landedEverywhere(hold), crate: hold.crate })));
     setStage({ kind: "stack" });
   }, [stage]);
 
