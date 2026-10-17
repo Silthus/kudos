@@ -17,7 +17,7 @@ type TeamCrestProps = { art: TeamArt; size: number; collected?: boolean; name?: 
 
 export function TeamCrest({ art, size, collected = true, name }: TeamCrestProps) {
   if (art?.kind === "crest") return <BrandCrest art={art} size={size} collected={collected} />;
-  return <PictureCrest art={art} size={size} collected={collected} name={name} />;
+  return <PictureCrest key={art?.url} art={art} size={size} collected={collected} name={name} />;
 }
 
 function BrandCrest({ art, size, collected }: { art: CrestArt; size: number; collected: boolean }) {
@@ -34,7 +34,7 @@ function PictureCrest({ art, size, collected, name }: { art: Exclude<TeamArt, Cr
   const drawn = art !== null && !failed;
   return (
     <span aria-hidden="true" data-crest-art={collected ? "collected" : "missing"} data-crest-kind={drawn ? "image" : "default"} className={`team-crest ${collected ? "" : "team-crest-missing"}`} style={{ width: size, height: size }}>
-      {drawn ? <img ref={picture} key={art.url} src={art.url} alt="" width={size} height={size} draggable={false} onError={onError} /> : <DefaultCrest initial={initialOf(name)} />}
+      {drawn ? <img ref={picture} src={art.url} alt="" width={size} height={size} draggable={false} onError={onError} /> : <DefaultCrest initial={initialOf(name)} />}
     </span>
   );
 }

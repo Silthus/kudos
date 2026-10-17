@@ -25,7 +25,7 @@ import type { PendingItemPurchase } from "./home/itemPurchase";
 import { HomePage } from "./pages/HomePage";
 import { BookPage } from "./pages/BookPage";
 import { showsTheBookSpread } from "./book/spread/bookSpread";
-import { matchingSettingsHrefOf, onATeamSpread } from "./book/spread/matching";
+import { matchingAskedOn, matchingSettingsHrefOf } from "./book/spread/matching";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { FeatureWaitsPage } from "./pages/FeatureWaitsPage";
 import { QuestsPage } from "./pages/QuestsPage";
@@ -72,7 +72,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   const onSkills = member !== undefined && route.page === "skills";
   const skillTree = useSkillTree(onSkills);
   const onSettings = member !== undefined && route.page === "settings";
-  const matchingPeople = onCollection && onATeamSpread(route, collection);
+  const matchingPeople = matchingAskedOn(member, route, collection);
   const settings = useSettings(onSettings || matchingPeople);
   const matchingHref = matchingPeople ? matchingSettingsHrefOf(settings) : null;
   const profileCard = useProfileCard(onHome);

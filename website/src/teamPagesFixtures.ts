@@ -1,4 +1,4 @@
-import type { CollectionTeamPage, CollectionTeamPerson } from "./collectionRead";
+import type { CollectionTeamPage, CollectionTeamPerson, Sticker } from "./collectionRead";
 import { stickers, teammateOf } from "./stickerBookFixtures";
 import type { Face } from "./shell";
 
@@ -22,7 +22,7 @@ const heldStrangers = new Map([
 ]);
 
 const teams: readonly MadeUpTeam[] = [
-  { team: "workflows", name: "Workflows", art: { kind: "crest", slug: "workflows" }, mine: true, leads: ["Noor Haddad"], people: ["k:noor", "k:felix", "k:priya", "k:hana", "k:omar"], unmatched: [{ name: "Quill Harper", role: "Product Engineer" }] },
+  { team: "workflows", name: "Workflows", art: { kind: "crest", slug: "workflows" }, mine: true, leads: ["Noor Haddad", "Hana Kowalski"], people: ["k:noor", "k:felix", "k:priya", "k:hana", "k:omar"], unmatched: [{ name: "Quill Harper", role: "Product Engineer" }] },
   { team: "cloud-platform", name: "Cloud Platform", art: { kind: "crest", slug: "cloud-platform" }, mine: true, leads: ["Aisha Adeyemi"], people: [...strangers.keys()] },
   { team: "platform-features", name: "Platform Features", art: { kind: "crest", slug: "platform-features" }, leads: ["Mei Tanaka"], people: ["k:mei", "k:tomas", "k:felix"] },
   { team: "editorial", name: "Editorial", art: { kind: "crest", slug: "editorial" }, leads: ["Sofia Esposito", "Ivy Chen"], people: ["k:sofia", "k:ivy", "k:kai", "k:zara"], crest: { collectedAt: at("2026-09-20T09:00:00Z"), seen: "crest:editorial:1789894800000" } },
@@ -30,6 +30,7 @@ const teams: readonly MadeUpTeam[] = [
   { team: "hedgehog-labs", name: "Hedgehog Labs", art: { kind: "image", url: drawnCrest }, leads: [], people: ["k:diego", "k:lina"] },
   { team: "night-shift", name: "Night Shift", art: null, leads: ["Kai Nakamura"], people: ["k:kai", "k:elin"] },
   { team: "people-ops", name: "People & Ops", art: { kind: "crest", slug: "people-ops" }, listed: false, leads: [], people: [], crest: { collectedAt: at("2026-10-02T09:00:00Z"), seen: "crest:people-ops:1790931600000" } },
+  { team: "archive", name: "Archive", art: null, listed: false, leads: [], people: [] },
 ];
 
 function faceOf(key: string): { name: string; face: Face } {
@@ -56,3 +57,10 @@ function mineFirstThenByName(first: CollectionTeamPage, second: CollectionTeamPa
 }
 
 export const teamPages: CollectionTeamPage[] = teams.map(pageOf).toSorted(mineFirstThenByName);
+
+function strangerStickerOf([key, firstAt]: [string, number]): Sticker {
+  const { name, face } = faceOf(key);
+  return { key, name, face, former: false, firstAt, seen: `${key}:${firstAt}` };
+}
+
+export const teamStickers: Sticker[] = [...stickers, ...[...heldStrangers].map(strangerStickerOf)].toSorted((first, second) => second.firstAt - first.firstAt);

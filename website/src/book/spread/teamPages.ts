@@ -37,7 +37,9 @@ function countedOf(pages: TeamPage[]): Counted {
 }
 
 function peopleCountedOf(pages: TeamPage[]): Counted {
-  return pages.reduce((sum, page) => ({ collected: sum.collected + page.held, total: sum.total + page.total }), { collected: 0, total: 0 });
+  const held = new Map<string, boolean>();
+  for (const slot of pages.flatMap((page) => page.slots)) held.set(slot.key, (held.get(slot.key) ?? false) || slot.held);
+  return { collected: [...held.values()].filter(Boolean).length, total: held.size };
 }
 
 export function crestEarnedOn(page: TeamPage) {

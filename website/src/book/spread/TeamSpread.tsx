@@ -44,7 +44,7 @@ export function TeamSpread({ teams, page, timeZone, firstPage, matchingHref }: T
           <span className="text-xs tabular-nums text-muted-foreground">{`${page.held} of ${page.total} stuck in`}</span>
         </div>
         {page.total === 0 ? (
-          <p className="text-sm text-muted-foreground">{page.source === "team" ? "No one on this team is on Slack yet." : "No one else in this group yet."}</p>
+          <p className="text-sm text-muted-foreground">{page.source === "team" ? "No one to collect on this team yet." : "No one else in this group yet."}</p>
         ) : (
           <ol className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-3">
             {page.slots.slice(sheet.from, sheet.to).map((slot, at) => (
@@ -73,13 +73,21 @@ function useSheet(page: TeamPage): Sheet {
 }
 
 function SheetTurner({ sheet }: { sheet: Sheet }) {
-  const turner = "rounded-md px-2 py-1 text-xs font-medium hover:bg-fill-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
   return (
     <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-      <span>{sheet.at > 0 && <button type="button" onClick={() => sheet.turn(sheet.at - 1)} className={turner}>{`← Previous sheet`}</button>}</span>
-      <span className="tabular-nums">{`Sheet ${sheet.at + 1} of ${sheet.count}`}</span>
-      <span>{sheet.at < sheet.count - 1 && <button type="button" onClick={() => sheet.turn(sheet.at + 1)} className={turner}>{`Next sheet →`}</button>}</span>
+      <SheetButton label="← Previous sheet" to={sheet.at - 1} sheet={sheet} />
+      <span aria-live="polite" className="tabular-nums">{`Sheet ${sheet.at + 1} of ${sheet.count}`}</span>
+      <SheetButton label="Next sheet →" to={sheet.at + 1} sheet={sheet} />
     </div>
+  );
+}
+
+function SheetButton({ label, to, sheet }: { label: string; to: number; sheet: Sheet }) {
+  const open = to >= 0 && to < sheet.count;
+  return (
+    <button type="button" aria-disabled={!open} onClick={() => open && sheet.turn(to)} className={`rounded-md px-2 py-1 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${open ? "hover:bg-fill-hover" : "text-muted-foreground/50"}`}>
+      {label}
+    </button>
   );
 }
 
@@ -89,7 +97,7 @@ function kindWordsOf(page: TeamPage) {
 }
 
 function sizeWordsOf(page: TeamPage) {
-  if (page.source === "team") return `${page.total} ${page.total === 1 ? "person" : "people"} on posthog.com${page.leads.length === 0 ? "" : ` · led by ${page.leads.join(", ")}`}`;
+  if (page.source === "team") return `${page.total} ${page.total === 1 ? "person" : "people"} to collect${page.leads.length === 0 ? "" : ` · led by ${page.leads.join(", ")}`}`;
   return page.art === null ? `${page.total} ${page.total === 1 ? "person" : "people"} in the group` : `${page.total} hoggies on the roster`;
 }
 
@@ -109,7 +117,7 @@ function CrestPlate({ page }: { page: TeamPage }) {
 function Notes({ page, timeZone }: { page: TeamPage; timeZone: string }) {
   const missing = page.slots.filter((slot) => !slot.held);
   const share = page.total > 0 ? Math.round((page.held / page.total) * 100) : 0;
-  const names = missingWordsOf(missing, page.source === "team");
+  const names = namesWordsOf(missing.map((slot) => slot.name), page.source === "team");
   return (
     <div className="mt-auto flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between text-sm">
@@ -125,18 +133,21 @@ function Notes({ page, timeZone }: { page: TeamPage; timeZone: string }) {
   );
 }
 
-function missingWordsOf(missing: TeamSlot[], capped: boolean) {
-  const shown = capped ? missing.slice(0, namesShown) : missing;
-  const more = missing.length - shown.length;
-  return more === 0 ? shown.map((slot) => slot.name).join(", ") : `${shown.map((slot) => slot.name).join(", ")} and ${more} more`;
+function namesWordsOf(names: string[], capped: boolean) {
+  const shown = capped ? names.slice(0, namesShown) : names;
+  const more = names.length - shown.length;
+  return more === 0 ? shown.join(", ") : `${shown.join(", ")} and ${more} more`;
 }
 
 function Unmatched({ page, matchingHref }: { page: TeamPage; matchingHref: string | null }) {
   const count = page.unmatched.length;
-  const names = page.unmatched.map(({ name }) => name).join(", ");
+  const names = namesWordsOf(
+    page.unmatched.map(({ name }) => name),
+    true,
+  );
   return (
     <p className="text-xs text-muted-foreground">
-      {`${count} ${count === 1 ? "person" : "people"} on this team ${count === 1 ? "isn't" : "aren't"} on Slack yet: ${names}.`}
+      {`${count} ${count === 1 ? "person" : "people"} on this team ${count === 1 ? "isn't" : "aren't"} linked to a teammate yet: ${names}.`}
       {matchingHref !== null && (
         <>
           {" "}
@@ -165,12 +176,19 @@ function StickerCard({ slot, number, timeZone }: { slot: TeamSlot; number: numbe
         <span aria-hidden="true" className="hud-display absolute left-1 top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-[11px] font-bold tabular-nums text-foreground shadow-sm">
           {number}
         </span>
-        {slot.lead && <span className="absolute right-1 top-1 rounded-full bg-card px-1.5 text-[9px] font-bold uppercase tracking-wider text-foreground shadow-sm">Lead</span>}
-        <figcaption className="bk-name-strip absolute inset-x-0 bottom-0 truncate px-1.5 py-1 text-center text-[11px] font-semibold leading-tight">{slot.name}</figcaption>
+        {slot.lead && <LeadMarker />}
+        <figcaption className="bk-name-strip absolute inset-x-0 bottom-0 flex flex-col px-1.5 py-1 text-center leading-tight">
+          <span className="truncate text-[11px] font-semibold">{slot.name}</span>
+          {slot.role !== null && <span className="truncate text-[9px] font-medium opacity-80">{slot.role}</span>}
+        </figcaption>
       </div>
       <span className="sr-only">{`Sticker ${number}. ${facts}`}</span>
     </figure>
   );
+}
+
+function LeadMarker() {
+  return <span className="absolute right-1 top-1 rounded-full bg-card px-1.5 text-[9px] font-bold uppercase tracking-wider text-foreground shadow-sm">Lead</span>;
 }
 
 function SlotPortrait({ slot }: { slot: TeamSlot }) {
@@ -201,11 +219,14 @@ function PortraitInitials({ initials }: { initials: string }) {
 }
 
 function EmptySlot({ slot, number }: { slot: TeamSlot; number: number }) {
+  const person = slot.picture.kind === "face" && slot.role !== null;
   return (
-    <div className="bk-slot flex aspect-[3/4] flex-col items-center justify-center gap-1 p-2 text-center">
-      <span aria-hidden="true" className="hud-display text-2xl font-bold tabular-nums text-muted-foreground/70 sm:text-3xl">
+    <div className={`bk-slot flex aspect-[3/4] flex-col items-center justify-center gap-1 p-2 text-center ${person ? "relative" : ""}`}>
+      {person && <PersonSilhouette className="size-8" />}
+      <span aria-hidden="true" className={`hud-display font-bold tabular-nums text-muted-foreground/70 ${person ? "text-lg" : "text-2xl sm:text-3xl"}`}>
         {number}
       </span>
+      {slot.lead && <LeadMarker />}
       <span className="text-[11px] font-medium leading-tight text-muted-foreground">{slot.name}</span>
       {slot.role !== null && <span className="text-[10px] leading-tight text-muted-foreground/80">{slot.role}</span>}
       <span className="text-[10px] leading-tight text-muted-foreground/80">{slot.picture.kind === "hoggie" ? rarityNameOf(slot.picture.rarity) : "Not collected yet"}</span>
