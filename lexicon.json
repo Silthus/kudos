@@ -673,6 +673,14 @@
       "definition": "Another member of the same workspace, seen from one member: someone they can thank or be thanked by. The website shows a teammate by name and face while the directory has them, and as A teammate with the nameless face once it no longer names them. A teammate is a person, never a hoggie."
     },
     {
+      "name": "company team",
+      "definition": "The deployment's copy of a team on the company's website: its slug, name, crest image, leads and people as company profile IDs in the website's order. The daily sync replaces every company team together with the company profiles, after a complete read."
+    },
+    {
+      "name": "team page",
+      "definition": "A member's page in the Book for one company team: the team's posthog.com people matched to other current members, each held where the member holds their sticker, with the team's unmatched people counted; derived on every read, never stored"
+    },
+    {
       "name": "pack bonus",
       "definition": "The XP and coins a pack pays on top of what its crate held, drawn per crate from its kind's band and paid once, at the crate's first open, while packs is on (CV2-CV5)."
     },

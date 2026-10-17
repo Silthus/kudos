@@ -1,4 +1,6 @@
-import { companyFaceOf } from "../companyProfiles/faces";
+import { companyFaceOf, type CompanyFace } from "../companyProfiles/faces";
+import { teamPagesShownTo } from "../companyProfiles/flag";
+import { companyProfileOf } from "../companyProfiles/matcher";
 import type { QueryCtx } from "../_generated/server";
 import type { VerifiedMember } from "./memberQuery";
 
@@ -9,16 +11,27 @@ export type Face =
 
 export async function faceOf(ctx: QueryCtx, me: VerifiedMember): Promise<Face> {
   const initials = initialsOf(me);
-  const companyFace = await companyFaceOf(ctx, realNameOf(me));
+  const companyFace = await ownCompanyFaceOf(ctx, me);
   if (companyFace !== undefined) return { kind: "company-profile", ...companyFace, initials };
   if (me.image !== undefined) return { kind: "slack", image: me.image, initials };
   return { kind: "initials", initials };
+}
+
+async function ownCompanyFaceOf(ctx: QueryCtx, me: VerifiedMember): Promise<CompanyFace | undefined> {
+  if (!(await teamPagesShownTo(ctx, me.member))) return companyFaceOf(ctx, realNameOf(me));
+  const profile = (await companyProfileOf(ctx, me.member))?.profile;
+  return profile?.image === undefined ? undefined : { image: profile.image, colour: profile.colour };
 }
 
 export const nameless = "A teammate";
 
 export function teammateOf(name: string | undefined, picture: string | null) {
   return { name: name ?? nameless, face: teammateFaceOf(name, picture) };
+}
+
+export function companyTeammateOf(name: string | undefined, picture: string | null, company: CompanyFace | null) {
+  const teammate = teammateOf(name, picture);
+  return company === null ? teammate : { ...teammate, face: { kind: "company-profile" as const, ...company, initials: teammate.face.initials } };
 }
 
 function teammateFaceOf(name: string | undefined, picture: string | null): Face {
