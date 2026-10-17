@@ -1,36 +1,23 @@
-import { useLayoutEffect, useRef, type RefObject } from "react";
-import type { BoughtCrate } from "../../crates/readyCrates";
-import { focusPageTitle } from "../../pageFocus";
-import type { ShellActions } from "../../shell";
-import { PackLanding } from "./PackLanding";
-import { PackScene } from "./PackScene";
+import { useRef } from "react";
+import { usePacks } from "./PacksContext";
 import { PackStack } from "./PackStack";
-import { usePackSession, type PackSession } from "./usePackSession";
 
-type PackShelfProps = { crates: BoughtCrate[]; openCrate: ShellActions["openCrate"] };
-
-export function PackShelf({ crates, openCrate }: PackShelfProps) {
-  const session = usePackSession(crates, openCrate);
+export function PackShelf() {
+  const session = usePacks();
   const stack = useRef<HTMLDivElement>(null);
-  useFocusBackOnTheStack(session, stack);
+  if (session === undefined) return null;
   return (
     <>
-      {session.waiting.length > 0 && <PackStack crates={session.waiting} fanned={session.fanned} stackRef={stack} onFan={session.fan} onPick={session.pick} />}
-      {session.stage.kind === "scene" && <PackScene packs={session.scenePacks} latest={session.latest} revealed={session.revealed} onOpen={session.open} onRevealed={session.reveal} onFinish={session.finish} />}
-      {session.stage.kind === "landing" && <PackLanding opened={session.stage.opened} onDone={session.landed} />}
-      <p role="status" data-testid="pack-announcement" className="sr-only">
-        {session.announcement}
-      </p>
+      {session.waiting.length > 0 && <PackStack packs={session.waiting} more={session.more} fanned={session.fanned} stackRef={stack} onFan={session.fan} onPick={session.pick} />}
+      {!session.listed && <PackAnnouncement text={session.announcement} />}
     </>
   );
 }
 
-function useFocusBackOnTheStack({ stage, returnFocus, focused }: PackSession, stack: RefObject<HTMLDivElement | null>) {
-  useLayoutEffect(() => {
-    if (stage.kind !== "stack" || !returnFocus) return;
-    const firstPack = stack.current?.querySelector<HTMLElement>("button");
-    if (firstPack) firstPack.focus();
-    else focusPageTitle();
-    focused();
-  }, [stage, returnFocus, focused, stack]);
+export function PackAnnouncement({ text }: { text: string }) {
+  return (
+    <p role="status" data-testid="pack-announcement" className="sr-only">
+      {text}
+    </p>
+  );
 }
