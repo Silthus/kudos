@@ -624,8 +624,8 @@ describe("#568: a member picks a hoggie they hold as their avatar on /book/colle
   });
 });
 
-describe("#614: a pack never opens again by itself", () => {
-  it("sends the picked pack's one openCrate over HTTP with the session's token, never through the socket's queue", async () => {
+describe("#606: every crate listed as a pack opens in the one scene, wherever its Open is", () => {
+  it("#614: sends the picked pack's one openCrate over HTTP with the session's token, never through the socket's queue", async () => {
     window.history.replaceState(null, "", "/book/collection");
     profileRead.mockReturnValue(shellFixtures.memberWithPacks);
     boardRead.mockImplementation((query: string) => (query === "website/collection:getCollection" ? collectionFixtures.withEveryKindOfPack : bookFixtures.book));
