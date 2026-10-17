@@ -27,7 +27,7 @@ export function WorkspaceSettings({ workspace, setWorkspaceSettings }: Workspace
   const shown = keyOf(workspace);
   const [draft, setDraft] = useDraftOf(workspace, shown);
   const asked = changeOf(draft);
-  const edited = keyOf(asked) !== shown;
+  const edited = !isComplete(draft) || keyOf(asked) !== shown;
   const { pending, line, save } = useSentSave(shown, edited, setWorkspaceSettings);
   const savable = edited && !pending && isComplete(draft);
   const preview = emojiNameOf(draft.kudosEmoji);
@@ -39,12 +39,11 @@ export function WorkspaceSettings({ workspace, setWorkspaceSettings }: Workspace
     <Panel id="workspace-settings" label="Workspace" target={panelTargetAttributes("workspace")}>
       <p className="text-sm text-muted-foreground">As HedgeHug's maintainer, you set these for everyone in the workspace. A change counts from the next kudos or hug, today's included.</p>
       <form onSubmit={submit} className="flex flex-col gap-4">
-        <fieldset disabled={pending} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0">
-        <NumberField label="Kudos a day" hint="How many kudos each member can give a day." range={allowanceRange} value={draft.baseAllowance} onChange={(baseAllowance) => setDraft({ ...draft, baseAllowance })} />
+        <NumberField label="Kudos a day" hint="How many kudos each member can give a day." range={allowanceRange} held={pending} value={draft.baseAllowance} onChange={(baseAllowance) => setDraft({ ...draft, baseAllowance })} />
         <Field label="Kudos emoji" hint="The emoji that gives kudos and that a hug reacts with. The old one stops counting at once.">
           {(ids) => (
             <span className="flex items-center gap-2">
-              <input {...ids} type="text" value={draft.kudosEmoji} autoComplete="off" spellCheck={false} onChange={(event) => setDraft({ ...draft, kudosEmoji: event.target.value })} className={inputClass} />
+              <input {...ids} type="text" readOnly={pending} value={draft.kudosEmoji} autoComplete="off" spellCheck={false} onChange={(event) => setDraft({ ...draft, kudosEmoji: event.target.value })} className={inputClass} />
               {preview !== "" && (
                 <span className="block max-w-[40%] shrink-0 truncate text-xl">
                   <NamedEmoji name={preview} image={preview === workspace.kudosEmoji ? (workspace.kudosEmojiImage ?? undefined) : undefined} />
@@ -53,8 +52,7 @@ export function WorkspaceSettings({ workspace, setWorkspaceSettings }: Workspace
             </span>
           )}
         </Field>
-        <NumberField label="Hugs a day" hint="How many hugs each member can give a day. 0 means hugs earn nothing." range={hugBudgetRange} value={draft.hugBudget} onChange={(hugBudget) => setDraft({ ...draft, hugBudget })} />
-        </fieldset>
+        <NumberField label="Hugs a day" hint="How many hugs each member can give a day. 0 means hugs earn nothing." range={hugBudgetRange} held={pending} value={draft.hugBudget} onChange={(hugBudget) => setDraft({ ...draft, hugBudget })} />
         <div>
           <Button type="submit" variant="primary" disabled={!savable}>
             Save
@@ -68,10 +66,10 @@ export function WorkspaceSettings({ workspace, setWorkspaceSettings }: Workspace
 
 const inputClass = "h-10 w-full rounded-lg border border-muted-foreground bg-card px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
-type NumberFieldProps = { label: string; hint: string; range: { least: number; most: number }; value: string; onChange: (value: string) => void };
+type NumberFieldProps = { label: string; hint: string; range: { least: number; most: number }; held: boolean; value: string; onChange: (value: string) => void };
 
-function NumberField({ label, hint, range, value, onChange }: NumberFieldProps) {
-  return <Field label={label} hint={hint}>{(ids) => <input {...ids} type="number" inputMode="numeric" required min={range.least} max={range.most} step={1} value={value} onChange={(event) => onChange(event.target.value)} className={inputClass} />}</Field>;
+function NumberField({ label, hint, range, held, value, onChange }: NumberFieldProps) {
+  return <Field label={label} hint={hint}>{(ids) => <input {...ids} type="number" inputMode="numeric" required readOnly={held} min={range.least} max={range.most} step={1} value={value} onChange={(event) => onChange(event.target.value)} className={inputClass} />}</Field>;
 }
 
 type FieldIds = { id: string; "aria-describedby": string };
@@ -97,7 +95,7 @@ function useDraftOf(workspace: WorkspaceSettingsPart, shown: string) {
   const [draftShown, setDraftShown] = useState(shown);
   if (draftShown !== shown) {
     setDraftShown(shown);
-    setDraft(draftOf(workspace));
+    if (isAnswered(draft, draftShown, shown)) setDraft(draftOf(workspace));
   }
   return [draft, setDraft] as const;
 }
@@ -114,6 +112,11 @@ function answerOf(reply: WorkspaceSettingsReply, setReason: (reason: WorkspaceSe
   if (reply.kind !== "refused") return "denied";
   setReason(reply.reason);
   return "refused";
+}
+
+function isAnswered(draft: Draft, before: string, now: string) {
+  const drafted = keyOf(changeOf(draft));
+  return drafted === before || drafted === now;
 }
 
 function isComplete({ baseAllowance, hugBudget }: Draft) {

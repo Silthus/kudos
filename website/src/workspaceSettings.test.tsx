@@ -118,9 +118,37 @@ describe("the maintainer's workspace settings change only through setWorkspaceSe
     await user.type(field("Kudos a day"), "5");
     await user.click(saveButton());
 
-    for (const name of ["Kudos a day", "Kudos emoji", "Hugs a day"]) expect(field(name)).toBeDisabled();
+    for (const name of ["Kudos a day", "Kudos emoji", "Hugs a day"]) expect(field(name)).toHaveAttribute("readonly");
     await act(async () => later.resolve({ kind: "refused", reason: "allowance" }));
-    for (const name of ["Kudos a day", "Kudos emoji", "Hugs a day"]) expect(field(name)).toBeEnabled();
+    for (const name of ["Kudos a day", "Kudos emoji", "Hugs a day"]) expect(field(name)).not.toHaveAttribute("readonly");
+  });
+
+  it("keeps an edit typed after the answer when the read lands later", async () => {
+    const { user, showSettingsAnswer } = showSettings(forTheMaintainer(), async () => ({ kind: "set" }));
+    await user.clear(field("Kudos a day"));
+    await user.type(field("Kudos a day"), "5");
+    await user.click(saveButton());
+
+    await user.clear(field("Kudos a day"));
+    await user.type(field("Kudos a day"), "7");
+    showSettingsAnswer(forTheMaintainer({ ...workspaceParts.defaults, baseAllowance: 5 }));
+
+    expect(field("Kudos a day")).toHaveValue(7);
+    expect(saveButton()).not.toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("drops the saved line once a saved hug budget of 0 is cleared", async () => {
+    const zero = { ...workspaceParts.defaults, hugBudget: 0 };
+    const { user, showSettingsAnswer } = showSettings(forTheMaintainer(), async () => ({ kind: "set" }));
+    await user.clear(field("Hugs a day"));
+    await user.type(field("Hugs a day"), "0");
+    await user.click(saveButton());
+    showSettingsAnswer(forTheMaintainer(zero));
+    expect(await within(workspaceSection()).findByText("Saved. Every member gives and hugs by these from now on.")).toBeInTheDocument();
+
+    await user.clear(field("Hugs a day"));
+
+    expect(status()).not.toHaveTextContent("Saved.");
   });
 
   it("drops the saved line once the maintainer edits again", async () => {
