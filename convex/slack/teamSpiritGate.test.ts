@@ -248,6 +248,8 @@ describe("CV37 CV38: Team Spirit is dark where team-spirit is off, shows only to
     expect(teamSpiritIn(whileOn.answers), "the positive control shows Team Spirit while on").toMatchObject({ U_ALICE: { ladder: { count: 2 } }, U_CAROL: { ladder: { count: 1 } } });
     expect(teamSpiritIn(whileOff.answers), "nothing of Team Spirit while off").toEqual(Object.fromEntries(members.map(({ user }) => [user, { completed: [], ladder: null }])));
     expect(JSON.stringify(teamSpiritIn(whileOff.answers))).not.toMatch(/"completion"/);
+    expect(crestsOnPages(whileOff.answers), "no page carries an earned crest while off; nobody holds a roster crest").toEqual(Object.fromEntries(members.map(({ user }) => [user, []])));
+    expect(crestsOnPages(whileOn.answers), "the positive control: pages carry the earned crests while on").toEqual({ U_ALICE: ["hedgerow", "lantern"], U_BOB: [], U_CAROL: ["lantern"], U_DANA: [] });
     expect(teamSpiritIn(onAgain.answers), "on again shows what was shown before it was turned off").toEqual(teamSpiritIn(whileOn.answers));
     expect(completionsOn(afterTheNextSticker.answers.U_BOB!.collection), "pages filled while off are recorded at the next new sticker").toEqual(["hedgerow", "lantern"]);
     expect(completionLinesTo(alice), "each completion told once").toEqual(["Team complete · Lantern crest earned"]);
@@ -487,6 +489,14 @@ function tierItemsIn(profile: unknown) {
   const { inventory } = profile as { inventory?: { catalogue: Array<{ item: string; source: { kind: string } }> } | null };
   if (inventory === undefined || inventory === null) throw new Error(`expected an inventory, got ${JSON.stringify(profile)}`);
   return inventory.catalogue.filter(({ source }) => source.kind === "tier").map(({ item }) => item);
+}
+
+function crestsOnPages(answers: Answers) {
+  const crested = (collection: unknown) => {
+    const { teams = [] } = collection as { teams?: Array<{ team: string; crest: unknown }> };
+    return teams.filter(({ crest }) => crest !== null && crest !== undefined).map(({ team }) => team).toSorted();
+  };
+  return Object.fromEntries(Object.entries(answers).map(([user, { collection }]) => [user, crested(collection)]));
 }
 
 function completionsOn(collection: unknown) {
