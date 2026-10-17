@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { republish } from "../feedback/homes";
+import type { CompletedTeam } from "../feedback/notify";
 import { tellTiersEarned } from "../feedback/tierNotices";
 import { isOpened } from "../feedback/unlockFilter";
 import { messageOfAward, type AwardId, type AwardWithId } from "../engine/awards";
@@ -60,16 +61,25 @@ export const countKudosGiven = internalMutation({
   },
 });
 
-export async function countAlbumsCompleted(ctx: MutationCtx, { workspace, member }: CompletionsRecorded, completions: Completion[]): Promise<void> {
-  if (completions.length === 0) return;
+export type CompletedUnder = Map<AwardId, { at: number; teams: CompletedTeam[] }>;
+
+export async function countTeamPagesCompleted(ctx: MutationCtx, recorded: CompletionsRecorded, completions: Completion[], completed: CompletedUnder): Promise<void> {
+  const told = await tiersCountedFrom(ctx, recorded, completions);
+  for (const award of new Set([...told.keys(), ...completed.keys()])) {
+    const message = await messageOfAward(ctx, award);
+    const earned = told.get(award) ?? [];
+    const teams = completed.get(award);
+    if (message !== null) await tellTiersEarned(ctx, { member: recorded.member, message, at: earned[0]?.reaching.at ?? teams!.at, earned: earned.map(({ tier }) => tier), completed: teams?.teams ?? [] });
+  }
+}
+
+async function tiersCountedFrom(ctx: MutationCtx, { workspace, member }: CompletionsRecorded, completions: Completion[]): Promise<Map<AwardId, CompletionTier[]>> {
+  if (completions.length === 0) return new Map();
   const shown = await achievementsApplyIn(ctx, workspace);
   const { changed, told } = await countCompletions(ctx, { workspace, member, ladder: "team-spirit" }, completions, shown ? {} : { hidden: true });
-  if (!shown || !changed) return;
+  if (!shown || !changed) return new Map();
   if (await isOpened(ctx, member, "book")) await republish(ctx, member);
-  for (const [award, earned] of byReachingAward(told)) {
-    const message = await messageOfAward(ctx, award);
-    if (message !== null) await tellTiersEarned(ctx, { member, message, at: earned[0]!.reaching.at, earned: earned.map(({ tier }) => tier) });
-  }
+  return byReachingAward(told);
 }
 
 function byReachingAward(told: CompletionTier[]): Map<AwardId, CompletionTier[]> {

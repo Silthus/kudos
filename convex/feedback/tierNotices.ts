@@ -10,7 +10,7 @@ import { unlockOpenedEventValidator } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
 import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
-import { notify } from "./notify";
+import { notify, type CompletedTeam } from "./notify";
 import { announce, setPublicSection, type PublicSection } from "./publicReplies";
 import { isOpened } from "./unlockFilter";
 
@@ -31,24 +31,34 @@ export const tierSummaryValidator = v.object({
 
 type BatchTelling = { batch: BatchId; announced: boolean };
 
-export type TiersEarned = { member: MemberId; message: MessageRef; at: number; earned: TierRef[] };
+export type TiersEarned = { member: MemberId; message: MessageRef; at: number; earned: TierRef[]; completed?: CompletedTeam[] };
 
 const membersPerPage = 100;
 
-export async function tellTiersEarned(ctx: MutationCtx, { member, message, at, earned }: TiersEarned) {
-  if (earned.length === 0) return;
-  if (!(await wasOpenedBy(ctx, member, at))) return tellUntoldTiers(ctx, member);
-  const notice = await tierNoticeRow(ctx, member, message);
-  const told = notice?.tiers ?? [];
-  const untold = earned.filter((tier) => !told.some((each) => isSameTier(each, tier)));
-  if (untold.length === 0) return;
-  const tiers = [...told, ...untold];
-  if (notice === null) await ctx.db.insert("tierNotices", { member, ...message, tiers });
-  else await ctx.db.patch(notice._id, { tiers });
-  await notify(ctx, member, { kind: "tiers-earned", tiers: untold }, message);
+export async function tellTiersEarned(ctx: MutationCtx, { member, message, at, earned, completed = [] }: TiersEarned) {
+  const { untold, tiers } = await tiersToTellUnder(ctx, { member, message, at, earned });
+  if (untold.length === 0 && completed.length === 0) return;
+  await notify(ctx, member, { kind: "tiers-earned", tiers: untold, ...(completed.length > 0 && { teams: completed }) }, message);
   if (!untold.some(isToldPublicly)) return;
   const { user } = await chatUserOf(ctx, member);
   await setPublicSection(ctx, message, tierSection(member, user, tiers.filter(isToldPublicly)));
+}
+
+async function tiersToTellUnder(ctx: MutationCtx, { member, message, at, earned }: TiersEarned): Promise<{ untold: TierRef[]; tiers: TierRef[] }> {
+  const nothing = { untold: [], tiers: [] };
+  if (earned.length === 0) return nothing;
+  if (!(await wasOpenedBy(ctx, member, at))) {
+    await tellUntoldTiers(ctx, member);
+    return nothing;
+  }
+  const notice = await tierNoticeRow(ctx, member, message);
+  const told = notice?.tiers ?? [];
+  const untold = earned.filter((tier) => !told.some((each) => isSameTier(each, tier)));
+  if (untold.length === 0) return nothing;
+  const tiers = [...told, ...untold];
+  if (notice === null) await ctx.db.insert("tierNotices", { member, ...message, tiers });
+  else await ctx.db.patch(notice._id, { tiers });
+  return { untold, tiers };
 }
 
 export const tellOpeningSummary = internalMutation({

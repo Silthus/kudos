@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { awardIdValidator, earliestAwardFrom, type EarliestAward } from "../engine/awards";
+import { awardIdValidator, earliestAwardFrom, type AwardId, type EarliestAward } from "../engine/awards";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 
@@ -16,7 +16,7 @@ export const stickerBackfillValidator = v.object({
   isDone: v.boolean(),
 });
 
-export type HeldSticker = { person: MemberId; firstAt: number };
+export type HeldSticker = { person: MemberId; firstAward: AwardId; firstAt: number };
 
 export type Pair = { giver: MemberId; recipient: MemberId };
 
@@ -39,7 +39,7 @@ export async function stickersNewestFirst(ctx: QueryCtx, member: MemberId): Prom
     .withIndex("by_member_firstAt", (q) => q.eq("member", member))
     .order("desc")
     .collect();
-  return stickers.map(({ person, firstAt }) => ({ person, firstAt }));
+  return stickers.map(({ person, firstAward, firstAt }) => ({ person, firstAward, firstAt }));
 }
 
 type Owner = { member: MemberId; person: MemberId };

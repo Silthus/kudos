@@ -26,11 +26,21 @@ export async function collectionOf(ctx: QueryCtx, member: MemberId, shown: Crest
   return shown.crests ? { ...collection, crests: crestsHeldIn(tallies) } : collection;
 }
 
-export async function hoggiesOf(ctx: QueryCtx, member: MemberId, shown: CrestsShown): Promise<HoggiesHome> {
+export type CollectedCrest = { crest: string; collectedAt: number };
+
+export async function hoggiesOf(ctx: QueryCtx, member: MemberId, shown: CrestsShown, alsoHeld: string[] = []): Promise<HoggiesHome> {
   const tallies = await talliesOf(ctx, member);
   const owned = catalogue.hoggies.filter(({ hoggie }) => tallies.has(hoggie)).length;
-  const crests = shown.crests ? crestsHeldIn(tallies).filter(({ collectedAt }) => collectedAt !== null).length : null;
+  const crests = shown.crests ? new Set([...crestsCollectedIn(tallies).map(({ crest }) => crest), ...alsoHeld]).size : null;
   return { owned, total: catalogue.hoggies.length, lastFound: await lastFoundBy(ctx, member), crests };
+}
+
+export async function crestsCollectedBy(ctx: QueryCtx, member: MemberId): Promise<CollectedCrest[]> {
+  return crestsCollectedIn(await talliesOf(ctx, member));
+}
+
+function crestsCollectedIn(tallies: Tallies): CollectedCrest[] {
+  return crestsHeldIn(tallies).flatMap(({ crest, collectedAt }) => (collectedAt === null ? [] : [{ crest, collectedAt }]));
 }
 
 function crestsHeldIn(tallies: Tallies): HeldCrest[] {

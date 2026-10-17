@@ -311,7 +311,7 @@ describe("CV31 CV34: thanking a page's last missing person records it once under
     await thanks(oriel, juno, wren);
 
     expect(await pagesCompletedBy(wren)).toEqual([pageCompleted("zephyr", 1, false), pageCompleted("lantern", 1, true)]);
-    const besideTheKudos = slack.callsTo("chat.postEphemeral").filter(({ user }) => user === juno.user);
+    const besideTheKudos = slack.callsTo("chat.postEphemeral").filter(({ user, text }) => user === juno.user && String(text).includes("Team complete"));
     expect(besideTheKudos.map(({ channel, text }) => ({ channel, text: String(text).split("\n")[0] }))).toEqual([{ channel: "C1", text: "Team complete · Lantern crest earned" }]);
     expect(completionLinesTo(wren)).toEqual([]);
   });
@@ -337,7 +337,7 @@ describe("CV31 CV34: thanking a page's last missing person records it once under
 describe("CV31: a check that runs after a later kudos still credits the kudos that filled the page", { timeout: 60_000 }, () => {
   test("the record, its event and its line go under the filling kudos, never the one whose sticker triggered the check", async () => {
     await onPostHogCom(lantern, zephyr);
-    await teamSpiritShipped(true);
+    await teamSpiritShipped(true, "message-settings");
     await joined(juno, wren, oriel, tamsin, sam);
     const reader = await withTheBookOpen(juno);
     await thanks(juno, tamsin);
@@ -393,8 +393,6 @@ describe("a completed team page stays complete", { timeout: 60_000 }, () => {
       mine: false,
       listed: false,
       leads: [],
-      held: 0,
-      total: 0,
       unmatched: 0,
       unmatchedPeople: [],
       people: [],
@@ -421,7 +419,8 @@ describe("a completed team page stays complete", { timeout: 60_000 }, () => {
     await settle(t);
 
     expect(await completionOf(reader, "lantern")).toEqual(await recordedAt(juno, "lantern", completed, 2));
-    expect(await pagesCompletedBy(juno)).toEqual([pageCompleted("lantern", 2, false)]);
+    expect(await pagesCompletedBy(juno)).toEqual([pageCompleted("lantern", 2, true)]);
+    expect(completionLinesTo(juno)).toEqual(["Team complete · Lantern crest earned"]);
     expect(await storedCompletions()).toEqual(recorded);
   });
 });
@@ -479,7 +478,7 @@ describe("CV32: a member completing 60 pages at once stays inside Convex's limit
     expect(pages).toHaveLength(60);
     expect(pages.every(({ complete, completion }) => complete && completion?.at === last)).toBe(true);
     expect(await pagesCompletedBy(juno)).toHaveLength(60);
-    expect(await checksRun()).toEqual({ succeeded: 4, failed: 0 });
+    expect(await checksRun(), "two checks of the first kudos, three pages of 25, 25 and 10 for Juno, and one for Zed").toEqual({ succeeded: 6, failed: 0 });
   });
 });
 

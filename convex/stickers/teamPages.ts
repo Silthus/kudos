@@ -1,12 +1,17 @@
 import { companyProfilesIn, publicNameOf, type CompanyProfile } from "../companyProfiles/matcher";
-import { companyTeamsOf, type CompanyTeam, type TeamCrestArt } from "../companyProfiles/teams";
+import { companyTeamsOf, crestArtOf, type CompanyTeam, type TeamCrestArt } from "../companyProfiles/teams";
 import { crestNamed } from "../hoggies/catalogue";
+import type { CollectedCrest } from "../hoggies/collection";
 import type { QueryCtx } from "../_generated/server";
 import type { MemberId, MemberRows } from "../workspace/directory";
 import type { AlbumOwner } from "./albums";
 import type { HeldSticker } from "./records";
 
-export type CollectedCrest = { crest: string; collectedAt: number };
+export type { CollectedCrest };
+
+export type RecordedCompletion = { team: string; name: string; crestImage?: string; at: number };
+
+export type PageCrest = { collectedAt: number; by: "roster" | "page" };
 
 export type PersonOnPage = { person: MemberId; profile: CompanyProfile; lead: boolean; held: boolean; heldAt: number | null };
 
@@ -25,24 +30,33 @@ export type TeamPageOf = {
   complete: boolean;
   people: PersonOnPage[];
   unmatchedPeople: UnmatchedPerson[];
-  crest: { collectedAt: number } | null;
+  crest: PageCrest | null;
+  completion?: { at: number } | null;
 };
 
-export type TeamPagesFrom = { members: MemberRows; stickers: HeldSticker[]; crests: CollectedCrest[] };
+export type TeamPagesFrom = { members: MemberRows; stickers: HeldSticker[]; crests: CollectedCrest[]; completions?: RecordedCompletion[] };
 
-type Held = { stickers: Map<MemberId, number>; crests: Map<string, number> };
+type Held = { stickers: Map<MemberId, number>; crests: Map<string, number>; completions: Map<string, RecordedCompletion> | null };
 
 type Company = { profiles: Map<number, CompanyProfile>; holders: Map<number, MemberId> };
 
-export async function teamPagesOf(ctx: QueryCtx, owner: AlbumOwner, { members, stickers, crests }: TeamPagesFrom): Promise<TeamPageOf[]> {
+export async function teamPagesOf(ctx: QueryCtx, owner: AlbumOwner, { members, stickers, crests, completions }: TeamPagesFrom): Promise<TeamPageOf[]> {
   const { profiles, holders } = await companyProfilesIn(ctx, owner.workspace, members);
   const company = { profiles: new Map(profiles.map((profile) => [profile.profile, profile])), holders };
   const teams = await companyTeamsOf(ctx);
-  const held = { stickers: new Map(stickers.map(({ person, firstAt }) => [person, firstAt])), crests: new Map(crests.map(({ crest, collectedAt }) => [crest, collectedAt])) };
+  const held: Held = {
+    stickers: new Map(stickers.map(({ person, firstAt }) => [person, firstAt])),
+    crests: new Map(crests.map(({ crest, collectedAt }) => [crest, collectedAt])),
+    completions: completions === undefined ? null : new Map(completions.map((completion) => [completion.team, completion])),
+  };
   const onPostHogCom = new Set(teams.map(({ team }) => team));
   const listed = teams.map((team) => listedPageOf(owner.member, team, company, held));
-  const unlisted = crests.filter(({ crest }) => !onPostHogCom.has(crest)).flatMap(unlistedPageOf);
+  const unlisted = [...new Set([...held.crests.keys(), ...(held.completions?.keys() ?? [])])].filter((team) => !onPostHogCom.has(team)).flatMap((team) => unlistedPageOf(team, held));
   return [...listed, ...unlisted].toSorted(mineFirstThenByName);
+}
+
+export function isFull({ held, total }: Pick<TeamPageOf, "held" | "total">) {
+  return total > 0 && held === total;
 }
 
 function listedPageOf(owner: MemberId, { team, name, crest, leads, people }: CompanyTeam, { profiles, holders }: Company, held: Held): TeamPageOf {
@@ -53,7 +67,7 @@ function listedPageOf(owner: MemberId, { team, name, crest, leads, people }: Com
   });
   const unmatched = onTeam.filter(({ profile }) => !holders.has(profile));
   const heldCount = matched.filter((person) => person.held).length;
-  const collectedAt = held.crests.get(team);
+  const { complete, ...earned } = completionOf(team, held, isFull({ held: heldCount, total: matched.length }));
   return {
     team,
     name,
@@ -64,11 +78,24 @@ function listedPageOf(owner: MemberId, { team, name, crest, leads, people }: Com
     held: heldCount,
     total: matched.length,
     unmatched: unmatched.length,
-    complete: matched.length > 0 && heldCount === matched.length,
+    complete,
     people: matched,
     unmatchedPeople: unmatched.map((profile) => ({ name: publicNameOf(profile), role: profile.role ?? null })),
-    crest: collectedAt === undefined ? null : { collectedAt },
+    ...earned,
   };
+}
+
+function completionOf(team: string, { crests, completions }: Held, full: boolean): Pick<TeamPageOf, "complete" | "crest" | "completion"> {
+  const roster = crests.get(team);
+  const recorded = completions?.get(team);
+  const crest = earlierCrestOf(roster === undefined ? null : { collectedAt: roster, by: "roster" }, recorded === undefined ? null : { collectedAt: recorded.at, by: "page" });
+  if (completions === null) return { complete: full, crest };
+  return { complete: recorded !== undefined || full, crest, completion: recorded === undefined ? null : { at: recorded.at } };
+}
+
+function earlierCrestOf(roster: PageCrest | null, page: PageCrest | null): PageCrest | null {
+  if (roster === null || page === null) return roster ?? page;
+  return page.collectedAt < roster.collectedAt ? page : roster;
 }
 
 function personOf(person: MemberId, profile: CompanyProfile, leads: number[], { stickers }: Held): PersonOnPage {
@@ -76,26 +103,18 @@ function personOf(person: MemberId, profile: CompanyProfile, leads: number[], { 
   return { person, profile, lead: leads.includes(profile.profile), held: heldAt !== null, heldAt };
 }
 
-function unlistedPageOf({ crest, collectedAt }: CollectedCrest): TeamPageOf[] {
-  const entry = crestNamed(crest);
-  if (entry === undefined) return [];
-  return [
-    {
-      team: crest,
-      name: entry.name,
-      art: { kind: "crest", slug: crest },
-      mine: false,
-      listed: false,
-      leads: [],
-      held: 0,
-      total: 0,
-      unmatched: 0,
-      complete: false,
-      people: [],
-      unmatchedPeople: [],
-      crest: { collectedAt },
-    },
-  ];
+function unlistedPageOf(team: string, held: Held): TeamPageOf[] {
+  const named = unlistedNameOf(team, held);
+  if (named === null) return [];
+  const { complete, ...earned } = completionOf(team, held, false);
+  return [{ team, ...named, mine: false, listed: false, leads: [], held: 0, total: 0, unmatched: 0, complete, people: [], unmatchedPeople: [], ...earned }];
+}
+
+function unlistedNameOf(team: string, { completions }: Held): Pick<TeamPageOf, "name" | "art"> | null {
+  const recorded = completions?.get(team);
+  if (recorded !== undefined) return { name: recorded.name, art: crestArtOf(team, recorded.crestImage) };
+  const entry = crestNamed(team);
+  return entry === undefined ? null : { name: entry.name, art: { kind: "crest", slug: team } };
 }
 
 function mineFirstThenByName(first: TeamPageOf, second: TeamPageOf) {

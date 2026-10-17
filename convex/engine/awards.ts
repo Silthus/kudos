@@ -229,6 +229,11 @@ export async function awardAt(ctx: QueryCtx, award: AwardId): Promise<number | n
   return (await ctx.db.get(award))?.at ?? null;
 }
 
+export async function latestInAwardOrder(ctx: QueryCtx, awards: AwardId[]): Promise<AwardId | null> {
+  const rows = (await Promise.all(awards.map((award) => ctx.db.get(award)))).flatMap((row) => row ?? []);
+  return rows.reduce<(typeof rows)[number] | null>((latest, row) => (latest === null || row._creationTime > latest._creationTime ? row : latest), null)?._id ?? null;
+}
+
 export async function messageOfAward(ctx: QueryCtx, award: AwardId): Promise<MessageRef | null> {
   const row = await ctx.db.get(award);
   return row === null ? null : { workspace: row.workspace, conversation: row.conversation, message: row.message };

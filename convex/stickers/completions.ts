@@ -1,96 +1,110 @@
 import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
-import { countAlbumsCompleted } from "../achievements/achievements";
+import { countTeamPagesCompleted, type CompletedUnder } from "../achievements/achievements";
 import { publish } from "../bus/publish";
-import { awardIdValidator, type AwardId } from "../engine/awards";
-import { messageRefValidator } from "../engine/messageEvent";
 import type { KudosGivenEvent } from "../bus/events";
-import type { GroupId } from "../groups/groups";
-import { peopleIn, type MemberId } from "../workspace/directory";
-import { albumsOf, isFilled, type Album } from "./albums";
+import { companyTeamsOf } from "../companyProfiles/teams";
+import { awardIdValidator, latestInAwardOrder, messageOfAward, type AwardId } from "../engine/awards";
+import type { CompletedTeam } from "../feedback/notify";
+import { crestsCollectedBy } from "../hoggies/collection";
+import { crestsShownTo } from "../hoggies/flag";
+import { memberRowsIn, type MemberId } from "../workspace/directory";
 import { teamSpiritAppliesTo } from "./flag";
-import { stickersNewestFirst } from "./records";
+import { completionRecordsInOrder, teamsCompletedBy } from "./completionRecords";
+import { stickersNewestFirst, type HeldSticker } from "./records";
+import { isFull, teamPagesOf, type CollectedCrest, type TeamPageOf } from "./teamPages";
 
 export const completionsPerMutation = 25;
 
-export const albumCompletionValidator = v.object({
-  member: v.id("members"),
-  group: v.id("userGroups"),
-  award: awardIdValidator,
-  at: v.number(),
-  people: v.number(),
-  told: v.boolean(),
-});
-
-export const albumCheckValidator = v.object({ member: v.id("members"), at: v.number(), finished: v.boolean() });
-
-const checkValidator = v.object({ workspace: v.string(), member: v.id("members"), message: messageRefValidator, award: awardIdValidator, at: v.number() });
+const checkValidator = v.object({ workspace: v.string(), member: v.id("members"), award: awardIdValidator, at: v.number() });
 
 type Check = Infer<typeof checkValidator>;
 
 export type NewSticker = { member: MemberId; award: AwardId };
 
-export type RecordedCompletion = { completedAt: number };
+type DuePage = { page: TeamPageOf; completing: { award: AwardId; at: number } };
 
-export async function checkAlbumsAfter(ctx: MutationCtx, { workspace, message, at }: KudosGivenEvent, newStickers: NewSticker[]) {
+export async function checkTeamPagesAfter(ctx: MutationCtx, { workspace, at }: KudosGivenEvent, newStickers: NewSticker[]) {
   const awardOf = new Map<MemberId, AwardId>();
   for (const { member, award } of newStickers) if (!awardOf.has(member)) awardOf.set(member, award);
-  for (const [member, award] of awardOf) await ctx.scheduler.runAfter(0, internal.stickers.completions.checkAlbums, { check: { workspace, member, message, award, at } });
+  for (const [member, award] of awardOf) await ctx.scheduler.runAfter(0, internal.stickers.completions.checkTeamPages, { check: { workspace, member, award, at } });
 }
 
-export const checkAlbums = internalMutation({
+export const checkTeamPages = internalMutation({
   args: { check: checkValidator },
   handler: async (ctx, { check }) => {
     if (!(await teamSpiritAppliesTo(ctx, check.member))) return;
-    const due = await filledUnrecordedAlbums(ctx, check);
+    const roster = await rosterCrestsOf(ctx, check.member);
+    const due = await fullUnrecordedPages(ctx, check, roster);
     const recorded = due.slice(0, completionsPerMutation);
     const finished = recorded.length === due.length;
     const told = await toldAfterTheFirstCheck(ctx, check, finished);
-    if (recorded.length > 0) await recordCompletions(ctx, check, recorded, told);
-    await countAlbumsCompleted(ctx, check, await completionRecordsInOrder(ctx, check.member));
-    if (!finished) await ctx.scheduler.runAfter(0, internal.stickers.completions.checkAlbums, { check });
+    const completed = await recordCompletions(ctx, check, recorded, { told, roster });
+    await countTeamPagesCompleted(ctx, check, await completionRecordsInOrder(ctx, check.member), told ? completed : new Map());
+    if (!finished) await ctx.scheduler.runAfter(0, internal.stickers.completions.checkTeamPages, { check });
   },
 });
 
-export async function completionsOf(ctx: QueryCtx, member: MemberId): Promise<Map<GroupId, RecordedCompletion>> {
-  const completions = await ctx.db
-    .query("albumCompletions")
-    .withIndex("by_member_group", (q) => q.eq("member", member))
-    .collect();
-  return new Map(completions.map(({ group, at }) => [group, { completedAt: at }]));
+async function rosterCrestsOf(ctx: QueryCtx, member: MemberId): Promise<CollectedCrest[]> {
+  return (await crestsShownTo(ctx, member)) ? crestsCollectedBy(ctx, member) : [];
 }
 
 async function toldAfterTheFirstCheck(ctx: MutationCtx, { member, at }: Check, finished: boolean): Promise<boolean> {
   const first = await ctx.db
-    .query("albumChecks")
+    .query("teamPageChecks")
     .withIndex("by_member", (q) => q.eq("member", member))
     .unique();
-  if (first === null) await ctx.db.insert("albumChecks", { member, at, finished });
+  if (first === null) await ctx.db.insert("teamPageChecks", { member, at, finished });
   else if (!first.finished && finished) await ctx.db.patch(first._id, { finished });
   return first?.finished === true;
 }
 
-async function filledUnrecordedAlbums(ctx: QueryCtx, { workspace, member }: Check): Promise<Album[]> {
-  const albums = await albumsOf(ctx, { member, workspace }, await peopleIn(ctx, workspace), await stickersNewestFirst(ctx, member));
-  const recorded = await completionsOf(ctx, member);
-  return albums.filter((album) => isFilled(album) && !recorded.has(album.group)).toSorted(byNameThenGroup);
+async function fullUnrecordedPages(ctx: QueryCtx, { workspace, member }: Check, crests: CollectedCrest[]): Promise<DuePage[]> {
+  const stickers = await stickersNewestFirst(ctx, member);
+  const pages = await teamPagesOf(ctx, { member, workspace }, { members: await memberRowsIn(ctx, workspace), stickers, crests });
+  const recorded = new Set(await teamsCompletedBy(ctx, member));
+  const full = pages.filter((page) => page.listed && isFull(page) && !recorded.has(page.team)).toSorted(byNameThenTeam);
+  const held = new Map(stickers.map((sticker) => [sticker.person, sticker]));
+  const due: DuePage[] = [];
+  for (const page of full) due.push({ page, completing: await completingAwardOf(ctx, page, held) });
+  return due;
 }
 
-function byNameThenGroup(first: Album, second: Album) {
-  return first.name.localeCompare(second.name) || first.group.localeCompare(second.group);
+async function completingAwardOf(ctx: QueryCtx, { people }: TeamPageOf, held: Map<MemberId, HeldSticker>) {
+  const stickers = people.flatMap(({ person }) => held.get(person) ?? []);
+  const at = Math.max(...stickers.map(({ firstAt }) => firstAt));
+  const latest = [...new Set(stickers.filter(({ firstAt }) => firstAt === at).map(({ firstAward }) => firstAward))];
+  const award = latest.length === 1 ? latest[0]! : ((await latestInAwardOrder(ctx, latest)) ?? latest[0]!);
+  return { award, at };
 }
 
-async function recordCompletions(ctx: MutationCtx, { workspace, member, message, award, at }: Check, albums: Album[], told: boolean) {
-  for (const { group, total } of albums) await ctx.db.insert("albumCompletions", { member, group, award, at, people: total, told });
-  const groups = albums.map(({ group, total }) => ({ group, people: total }));
-  await publish(ctx, { type: "albumsCompleted", workspace, member, message, award, groups, at, told });
+function byNameThenTeam(first: TeamPageOf, second: TeamPageOf) {
+  return first.name.localeCompare(second.name) || first.team.localeCompare(second.team);
 }
 
-async function completionRecordsInOrder(ctx: QueryCtx, member: MemberId) {
-  const completions = await ctx.db
-    .query("albumCompletions")
-    .withIndex("by_member_group", (q) => q.eq("member", member))
-    .collect();
-  return completions.toSorted((first, second) => first._creationTime - second._creationTime).map(({ award, at, told }) => ({ award, at, told }));
+type Recording = { told: boolean; roster: CollectedCrest[] };
+
+async function recordCompletions(ctx: MutationCtx, { workspace, member }: Check, due: DuePage[], { told, roster }: Recording): Promise<CompletedUnder> {
+  if (due.length === 0) return new Map();
+  const crestImages = new Map((await companyTeamsOf(ctx)).map(({ team, crestImage }) => [team, crestImage]));
+  const completed = new Map<AwardId, { at: number; teams: CompletedTeam[]; counted: Array<{ team: string; people: number }> }>();
+  for (const { page, completing } of due) {
+    const crestImage = crestImages.get(page.team);
+    await ctx.db.insert("teamPageCompletions", { member, team: page.team, name: page.name, ...(crestImage !== undefined && { crestImage }), ...completing, people: page.total, told });
+    const under = completed.get(completing.award) ?? { at: completing.at, teams: [], counted: [] };
+    under.teams.push({ team: page.team, name: page.name, crestEarned: !rosterHeldBy(roster, page.team, completing.at) });
+    under.counted.push({ team: page.team, people: page.total });
+    completed.set(completing.award, under);
+  }
+  for (const [award, { at, counted }] of completed) {
+    const message = await messageOfAward(ctx, award);
+    if (message !== null) await publish(ctx, { type: "teamPagesCompleted", workspace, member, message, award, teams: counted, at, told });
+  }
+  return new Map([...completed].map(([award, { at, teams }]) => [award, { at, teams }]));
 }
+
+function rosterHeldBy(roster: CollectedCrest[], team: string, at: number) {
+  return roster.some(({ crest, collectedAt }) => crest === team && collectedAt <= at);
+}
+

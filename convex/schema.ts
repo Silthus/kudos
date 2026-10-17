@@ -25,7 +25,7 @@ import { effectsRecordValidator } from "./progression/progress";
 import { rewardRecordValidator } from "./progression/rewards";
 import { perkValidator } from "./progression/tree";
 import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator } from "./hoggies/records";
-import { albumCheckValidator, albumCompletionValidator } from "./stickers/completions";
+import { teamPageCheckValidator, teamPageCompletionValidator } from "./stickers/completionRecords";
 import { stickerBackfillValidator, stickerValidator } from "./stickers/records";
 import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
@@ -505,9 +505,9 @@ export default defineSchema({
 
   stickerBackfills: defineTable(stickerBackfillValidator).index("by_workspace", ["workspace"]),
 
-  albumCompletions: defineTable(albumCompletionValidator).index("by_member_group", ["member", "group"]),
+  teamPageCompletions: defineTable(teamPageCompletionValidator).index("by_member_team", ["member", "team"]),
 
-  albumChecks: defineTable(albumCheckValidator).index("by_member", ["member"]),
+  teamPageChecks: defineTable(teamPageCheckValidator).index("by_member", ["member"]),
 
   boughtCrates: defineTable(boughtCrateValidator).index("by_member_crate", ["member", "crate"]).index("by_member_n", ["member", "n"]).index("by_member_opened", ["member", "openedAt", "n"]),
 
