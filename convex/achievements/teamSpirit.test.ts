@@ -329,7 +329,7 @@ describe("SB22: a tier from thanking the last missing person is told privately u
 
     expect(teamSpiritDmsTo(alice)).toEqual([
       "🏅 You earned Team Spirit (Team Spirit, bronze). +10 🪙\nNext: All Hands at 2 group albums completed.",
-      "🏅 You earned All Hands (Team Spirit, silver). + :handshake: Handshake for your kudos emoji slots\nNext: Tight-Knit at 4 group albums completed.",
+      "🏅 You earned All Hands (Team Spirit, silver). + :handshake: Handshake for your kudos emoji\nNext: Tight-Knit at 4 group albums completed.",
     ]);
     expect(publicLinesNamingTeamSpirit()).toEqual([]);
   });
