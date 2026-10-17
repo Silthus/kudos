@@ -229,6 +229,29 @@ export async function awardAt(ctx: QueryCtx, award: AwardId): Promise<number | n
   return (await ctx.db.get(award))?.at ?? null;
 }
 
+export type LatestInAwardOrder = (awards: AwardId[]) => Promise<AwardId | null>;
+
+export function latestInAwardOrder(ctx: QueryCtx): LatestInAwardOrder {
+  const created = new Map<AwardId, number | null>();
+  const creationOf = async (award: AwardId) => {
+    if (!created.has(award)) created.set(award, (await ctx.db.get(award))?._creationTime ?? null);
+    return created.get(award)!;
+  };
+  return async (awards) => {
+    let latest: { award: AwardId; at: number } | null = null;
+    for (const award of awards) {
+      const at = await creationOf(award);
+      if (at !== null && (latest === null || at > latest.at)) latest = { award, at };
+    }
+    return latest?.award ?? null;
+  };
+}
+
+export async function messageOfAward(ctx: QueryCtx, award: AwardId): Promise<MessageRef | null> {
+  const row = await ctx.db.get(award);
+  return row === null ? null : { workspace: row.workspace, conversation: row.conversation, message: row.message };
+}
+
 export async function firstThanksOf(ctx: QueryCtx, giver: MemberId): Promise<number[]> {
   const awards = await ctx.db
     .query("awards")

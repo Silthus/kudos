@@ -1,7 +1,7 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { dayThankedBefore, type AwardId, type AwardWithId, type GivenAward } from "../engine/awards";
 import type { MemberId } from "../workspace/directory";
-import type { LadderId, Tier, TierRef } from "./ladders";
+import { ladderOf, type AwardLadderId, type CompletionLadderId, type LadderId, type Tier, type TierRef } from "./ladders";
 import { markOf, stepOf, type Mark, type MarkedLadder } from "./measures";
 import { thanksAnOldFriend } from "./oldFriends";
 import type { BatchId } from "./replay";
@@ -9,13 +9,23 @@ import { earnTier } from "./tiers";
 
 export type Counting = { member: MemberId; ladder: LadderId };
 
+export type AwardCounting = { member: MemberId; ladder: AwardLadderId };
+
+export type CompletionCounting = { workspace: string; member: MemberId; ladder: CompletionLadderId };
+
+export type Completion = { award: AwardId; at: number; told: boolean };
+
+export type CompletionTier = { tier: TierRef; reaching: Completion };
+
+export type CompletionsCounted = { changed: boolean; told: CompletionTier[] };
+
 export type DatedAward = GivenAward & { at: number };
 
-type Units = (ctx: MutationCtx, counting: Counting, award: DatedAward) => Promise<number>;
+type Units = (ctx: MutationCtx, counting: AwardCounting, award: DatedAward) => Promise<number>;
 
 const givenBy = ({ giver }: AwardWithId) => giver;
 
-const countedMember: Record<LadderId, (award: AwardWithId) => MemberId> = {
+const countedMember: Record<AwardLadderId, (award: AwardWithId) => MemberId> = {
   generosity: givenBy,
   recognition: ({ recipient }) => recipient,
   connections: givenBy,
@@ -27,7 +37,7 @@ const countedMember: Record<LadderId, (award: AwardWithId) => MemberId> = {
 
 const kudosUnits: Units = async (_ctx, _counting, { kudos }) => kudos;
 
-const unitsCounted: Record<LadderId, Units> = {
+const unitsCounted: Record<AwardLadderId, Units> = {
   generosity: kudosUnits,
   recognition: kudosUnits,
   connections: unitsMarked("connections"),
@@ -37,13 +47,13 @@ const unitsCounted: Record<LadderId, Units> = {
   "old-friends": async (ctx, _counting, { award, day }) => (thanksAnOldFriend(await dayThankedBefore(ctx, award), day) ? 1 : 0),
 };
 
-export function countingOf(ladder: LadderId, award: AwardWithId): Counting {
+export function countingOf(ladder: AwardLadderId, award: AwardWithId): AwardCounting {
   return { member: countedMember[ladder](award), ladder };
 }
 
 export type Earning = { tiers: Tier[]; batch?: BatchId; hidden?: true };
 
-export async function countAward(ctx: MutationCtx, workspace: string, counting: Counting, award: DatedAward, { tiers, batch, hidden }: Earning): Promise<TierRef[] | null> {
+export async function countAward(ctx: MutationCtx, workspace: string, counting: AwardCounting, award: DatedAward, { tiers, batch, hidden }: Earning): Promise<TierRef[] | null> {
   if (await isCounted(ctx, counting, award.award)) return null;
   const { before, after } = await addToCount(ctx, counting, await unitsCounted[counting.ladder](ctx, counting, award));
   await ctx.db.insert("countedAwards", { ...counting, award: award.award, count: after, at: award.at });
@@ -55,7 +65,21 @@ export async function countAward(ctx: MutationCtx, workspace: string, counting: 
   return earned;
 }
 
-export async function awardReaching(ctx: QueryCtx, { member, ladder }: Counting, count: number): Promise<{ award: AwardId; at: number } | null> {
+export async function countCompletions(ctx: MutationCtx, { workspace, member, ladder }: CompletionCounting, completions: Completion[], { hidden }: Pick<Earning, "hidden">): Promise<CompletionsCounted> {
+  let changed = await setCount(ctx, { member, ladder }, completions.length);
+  const told: CompletionTier[] = [];
+  for (const tier of ladderOf(ladder).tiers) {
+    const reaching = completions[tier.count - 1];
+    if (reaching === undefined) continue;
+    const silent = hidden ?? (reaching.told ? undefined : true);
+    const earned = await earnTier(ctx, { workspace, member, ladder, award: reaching.award, at: reaching.at, hidden: silent }, tier);
+    changed ||= earned;
+    if (earned && silent === undefined) told.push({ tier: { ladder, tier: tier.tier }, reaching });
+  }
+  return { changed, told };
+}
+
+export async function awardReaching(ctx: QueryCtx, { member, ladder }: AwardCounting, count: number): Promise<{ award: AwardId; at: number } | null> {
   return ctx.db
     .query("countedAwards")
     .withIndex("by_member_ladder_count", (q) => q.eq("member", member).eq("ladder", ladder).gte("count", count))
@@ -75,7 +99,7 @@ function unitsMarked(ladder: MarkedLadder): Units {
   };
 }
 
-async function markedIn(ctx: QueryCtx, { member, ladder }: Counting, { group, distinct }: Mark): Promise<string[]> {
+async function markedIn(ctx: QueryCtx, { member, ladder }: AwardCounting, { group, distinct }: Mark): Promise<string[]> {
   const marks = await ctx.db
     .query("ladderMarks")
     .withIndex("by_member_ladder_group", (q) => q.eq("member", member).eq("ladder", ladder).eq("group", group))
@@ -92,12 +116,20 @@ async function addToCount(ctx: MutationCtx, counting: Counting, units: number) {
   return { before, after };
 }
 
-async function isCounted(ctx: QueryCtx, { member, ladder }: Counting, award: AwardId) {
+async function isCounted(ctx: QueryCtx, { member, ladder }: AwardCounting, award: AwardId) {
   const row = await ctx.db
     .query("countedAwards")
     .withIndex("by_award_member_ladder", (q) => q.eq("award", award).eq("member", member).eq("ladder", ladder))
     .unique();
   return row !== null;
+}
+
+async function setCount(ctx: MutationCtx, counting: Counting, count: number): Promise<boolean> {
+  const row = await countRow(ctx, counting);
+  if (row?.count === count) return false;
+  if (row === null) await ctx.db.insert("ladderCounts", { ...counting, count });
+  else await ctx.db.patch(row._id, { count });
+  return true;
 }
 
 function countRow(ctx: QueryCtx, { member, ladder }: Counting) {

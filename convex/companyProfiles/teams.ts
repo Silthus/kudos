@@ -11,7 +11,11 @@ export async function companyTeamsOf(ctx: QueryCtx): Promise<CompanyTeam[]> {
   return teams.map(({ team, name, crestImage, leads, people }) => ({ team, name, crest: crestArtOf(team, crestImage), leads, people }));
 }
 
-function crestArtOf(team: string, crestImage: Doc<"companyTeams">["crestImage"]): TeamCrestArt {
+export async function crestImagesOf(ctx: QueryCtx): Promise<Map<string, string | undefined>> {
+  return new Map((await ctx.db.query("companyTeams").collect()).map(({ team, crestImage }) => [team, crestImage]));
+}
+
+export function crestArtOf(team: string, crestImage: Doc<"companyTeams">["crestImage"]): TeamCrestArt {
   if (crestNamed(team) !== undefined) return { kind: "crest", slug: team };
   return crestImage === undefined ? null : { kind: "image", url: crestImage };
 }

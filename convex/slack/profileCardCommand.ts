@@ -65,14 +65,19 @@ async function answerTo(ctx: MutationCtx, viewing: Viewing, request: CardRequest
 async function cardAnswerOf(ctx: MutationCtx, viewing: Viewer, user: string, target: MemberFacts): Promise<Answer> {
   if (target.kind !== "member") return { lines: renderNotAMember(user), own: null };
   const own = viewing.user === user;
-  const card = { ...(await profileCardOf(ctx, target.member, { own })), ...(await shownTo(ctx, viewing, target.member)) };
+  const card = { ...(await profileCardOf(ctx, target.member, { own, viewer: await viewerOf(ctx, viewing) })), ...(await shownTo(ctx, viewing, target.member)) };
   return { lines: renderProfileCard(user, card), own };
 }
 
 async function shownTo(ctx: MutationCtx, viewing: Viewer, member: MemberId) {
-  const viewer = await lookup(ctx, viewing.workspace, viewing.user);
-  if (viewer?.kind !== "member") return { group: null };
-  return { group: await groupNameOnCard(ctx, viewer.member, member), ...(await avatarShownOn(ctx, viewer.member, member)) };
+  const viewer = await viewerOf(ctx, viewing);
+  if (viewer === null) return { group: null };
+  return { group: await groupNameOnCard(ctx, viewer, member), ...(await avatarShownOn(ctx, viewer, member)) };
+}
+
+async function viewerOf(ctx: MutationCtx, { workspace, user }: Viewer): Promise<MemberId | null> {
+  const viewer = await lookup(ctx, workspace, user);
+  return viewer?.kind === "member" ? viewer.member : null;
 }
 
 function exposeOnceKnown(ctx: MutationCtx, viewing: Viewing, shown: boolean, own: boolean | null) {

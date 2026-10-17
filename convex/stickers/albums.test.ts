@@ -3,6 +3,7 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack, type UserGroupOptions } from "../../testing/fakeSlack";
 import { bookShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest } from "../../testing/signedSlack";
+import { everyoneHeldBy, seededGroups, seededMembers, type Person } from "../../testing/stickerBook";
 import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, userGroupEvent } from "../../testing/slackMessages";
 import { opens, reachesLevel } from "../../testing/unlocks";
@@ -25,7 +26,6 @@ const cats = "S_2";
 const bees = "S_3";
 const ants = "S_4";
 
-type Person = { user: string; name: string };
 type Reader = Awaited<ReturnType<typeof aSignedInSession>>["asSignedIn"];
 
 let postHog: FakePostHog;
@@ -210,9 +210,9 @@ describe("SB12: the people part of getCollection answers the supported size insi
     await albumsOn();
     await joined(alice, bob);
     await thanks(alice, bob);
-    const people = [alice, bob, ...(await seededMembers(1_998))];
-    await seededGroups(people, { groups: 60, size: 100 });
-    await everyoneHeldBy(alice, people);
+    const people = [alice, bob, ...(await seededMembers(t, 1_998))];
+    await seededGroups(t, people, { groups: 60, size: 100 });
+    await everyoneHeldBy(t, await memberOf(alice), people);
 
     const answer = await collectionOf(await withTheBookOpen(alice));
 
@@ -227,35 +227,3 @@ describe("SB12: the people part of getCollection answers the supported size insi
     expect(new TextEncoder().encode(JSON.stringify(answer)).length).toBeLessThan(2 * 1024 * 1024);
   });
 });
-
-async function seededMembers(count: number): Promise<Person[]> {
-  const people = Array.from({ length: count }, (_, index) => ({ user: `U0${String(index).padStart(9, "0")}`, name: `Teammate Number${index}` }));
-  await t.run(async (ctx) => {
-    for (const { user, name } of people) {
-      const picture = `https://avatars.slack-edge.com/2026-10-16/${user}_5f3e7c1a2b9d4e6f8a01_192.jpg`;
-      await ctx.db.insert("members", { workspace: "T1", user, kind: "member", name, realName: name, displayName: name, picture, asOf: 0 });
-    }
-  });
-  return people;
-}
-
-async function seededGroups(people: Person[], { groups, size }: { groups: number; size: number }) {
-  await t.run(async (ctx) => {
-    for (let index = 0; index < groups; index += 1) {
-      const group = `S_GROUP${String(index).padStart(2, "0")}`;
-      await ctx.db.insert("userGroups", { workspace: "T1", group, handle: group.toLowerCase(), name: `Group ${String(index).padStart(2, "0")}`, enabled: true, automatic: false, members: size, asOf: 0, membersAsOf: 0 });
-      for (let seat = 0; seat < size; seat += 1) await ctx.db.insert("userGroupMembers", { workspace: "T1", group, user: people[(index * size + seat) % people.length]!.user });
-    }
-  });
-}
-
-async function everyoneHeldBy(owner: Person, people: Person[]) {
-  const member = await memberOf(owner);
-  const { firstAward, firstAt } = (await t.run((ctx) => ctx.db.query("stickers").first()))!;
-  const others = await t.run(async (ctx) => (await ctx.db.query("members").collect()).filter(({ _id }) => _id !== member).map(({ _id }) => _id));
-  await t.run(async (ctx) => {
-    const held = new Set((await ctx.db.query("stickers").collect()).filter((sticker) => sticker.member === member).map(({ person }) => person));
-    for (const person of others) if (!held.has(person)) await ctx.db.insert("stickers", { member, person, firstAward, firstAt });
-  });
-  expect(others).toHaveLength(people.length - 1);
-}

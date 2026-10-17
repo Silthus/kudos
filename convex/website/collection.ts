@@ -7,9 +7,10 @@ import { waitingPacksOf, type WaitingPacks } from "../hoggies/waitingPacks";
 import { groupsShownTo } from "../groups/groups";
 import type { QueryCtx } from "../_generated/server";
 import { albumsOf, type Album } from "../stickers/albums";
-import { stickersShownTo } from "../stickers/flag";
+import { completionsOf } from "../stickers/completionRecords";
+import { stickersShownTo, teamSpiritShownTo } from "../stickers/flag";
 import { stickersNewestFirst, type HeldSticker } from "../stickers/records";
-import { teamPagesOf, type CollectedCrest, type PersonOnPage, type TeamPageOf } from "../stickers/teamPages";
+import { teamPagesOf, type CollectedCrest, type PageCrest, type PersonOnPage, type TeamPageOf } from "../stickers/teamPages";
 import { memberRowsIn, peopleOf, type MemberId, type MemberRows, type People } from "../workspace/directory";
 import { bookPageOf } from "./book";
 import { noLaunchWaitsFor } from "./flag";
@@ -32,7 +33,7 @@ export type GroupAlbum = Omit<Album, "people"> & { people: AlbumPerson[] };
 
 export type TeamPerson = { key: string; name: string; role: string | null; face: Face; lead: boolean; held: boolean; heldAt: number | null };
 
-export type TeamPage = Omit<TeamPageOf, "people" | "crest"> & { people: TeamPerson[]; crest: { collectedAt: number; seen: string } | null };
+export type TeamPage = Omit<TeamPageOf, "people" | "crest" | "completion"> & { people: TeamPerson[]; crest: { collectedAt: number; seen: string } | null; completion?: { at: number; seen: string } | null };
 
 export type StickerBook = { stickers?: Sticker[]; albums?: GroupAlbum[]; teams?: TeamPage[] };
 
@@ -91,16 +92,22 @@ async function groupAlbumOf(people: People, keyOf: StickerKeys, { people: albumP
 type Directory = { members: MemberRows; people: People; keyOf: StickerKeys; held: HeldSticker[] };
 
 async function teamsOf(ctx: QueryCtx, me: VerifiedMember, { members, people, keyOf, held }: Directory, { crests }: TeamPagesShown): Promise<TeamPage[]> {
-  const pages = await teamPagesOf(ctx, me, { members, stickers: held, crests });
+  const completions = (await teamSpiritShownTo(ctx, me.member)) ? await completionsOf(ctx, me.member) : undefined;
+  const pages = await teamPagesOf(ctx, me, { members, stickers: held, crests, ...(completions !== undefined && { completions }) });
   return Promise.all(pages.map((page) => teamPageOf(me.member, people, keyOf, page)));
 }
 
-async function teamPageOf(member: MemberId, people: People, keyOf: StickerKeys, { people: onPage, crest, ...page }: TeamPageOf): Promise<TeamPage> {
+async function teamPageOf(member: MemberId, people: People, keyOf: StickerKeys, { people: onPage, crest, completion, ...page }: TeamPageOf): Promise<TeamPage> {
   return {
     ...page,
     people: await Promise.all(onPage.map((person) => teamPersonOf(people, keyOf, person))),
-    crest: crest === null ? null : { ...crest, seen: await seenKeyOf(member, `crest:${page.team}:${crest.collectedAt}`) },
+    crest: crest === null ? null : { collectedAt: crest.collectedAt, seen: await crestSeenKeyOf(member, page.team, crest) },
+    ...(completion !== undefined && { completion: completion === null ? null : { at: completion.at, seen: await seenKeyOf(member, `page:${page.team}:${completion.at}`) } }),
   };
+}
+
+function crestSeenKeyOf(member: MemberId, team: string, { collectedAt, by }: PageCrest) {
+  return seenKeyOf(member, by === "page" ? `team:${team}:${collectedAt}` : `crest:${team}:${collectedAt}`);
 }
 
 async function teamPersonOf(people: People, keyOf: StickerKeys, { person, profile, lead, held, heldAt }: PersonOnPage): Promise<TeamPerson> {

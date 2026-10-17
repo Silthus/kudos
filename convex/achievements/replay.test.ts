@@ -13,6 +13,7 @@ import { ladders, type Ladder, type LadderId, type TierId } from "./ladders";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const dayMs = 24 * 60 * 60_000;
+const everyAwardLadder: LadderId[] = ["applause", "connections", "dependability", "generosity", "old-friends", "recognition", "seasons"];
 const catalogue = ladders as unknown as { version: string; ladders: Ladder[] };
 const shippedCatalogue = { version: catalogue.version, ladders: [...catalogue.ladders] };
 const countedFromMarks: LadderId[] = ["connections", "dependability", "applause", "seasons"];
@@ -56,7 +57,7 @@ describe("P62: at the Book's launch, achievements count every member's whole his
     await settle(t);
 
     expect(await ladderOf(t, alice, "generosity")).toEqual({ count: 2, earned: [{ tier: "bronze", earnedAt: first.at }] });
-    expect(await replaysIn(t, "T1")).toHaveLength(ladders.ladders.length);
+    expect(await ladderReplaysIn(t, "T1")).toEqual(everyAwardLadder);
     expect(await batchesIn(t, "T1")).toHaveLength(1);
   });
 
@@ -212,7 +213,7 @@ describe("P58 P62: Connections, Dependability, Applause and Seasons replay on th
     await settle(t);
     const generosityBefore = await earnedRows(t, alice, "generosity");
     const recognitionBefore = await earnedRows(t, bob, "recognition");
-    expect(await replaysIn(t, "T1")).toHaveLength(ladders.ladders.length);
+    expect(await ladderReplaysIn(t, "T1")).toEqual(["generosity", "old-friends", "recognition"]);
 
     shipped();
     await launch(t);
@@ -226,7 +227,7 @@ describe("P58 P62: Connections, Dependability, Applause and Seasons replay on th
     expect(await ladderOf(t, alice, "seasons")).toEqual({ count: 2, earned: [{ tier: "bronze", earnedAt: firstMonth.at }] });
     expect(await earnedRows(t, alice, "generosity")).toEqual(generosityBefore);
     expect(await earnedRows(t, bob, "recognition")).toEqual(recognitionBefore);
-    expect(await replaysIn(t, "T1")).toHaveLength(ladders.ladders.length);
+    expect(await ladderReplaysIn(t, "T1")).toEqual(everyAwardLadder);
     expect(await batchesIn(t, "T1")).toHaveLength(2);
   });
 });
@@ -451,6 +452,10 @@ function batchesIn(t: Backend, workspace: string) {
       .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
       .collect(),
   );
+}
+
+async function ladderReplaysIn(t: Backend, workspace: string): Promise<LadderId[]> {
+  return (await replaysIn(t, workspace)).map(({ ladder }) => ladder).toSorted();
 }
 
 function replaysIn(t: Backend, workspace: string) {

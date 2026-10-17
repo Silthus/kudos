@@ -1,6 +1,6 @@
 import { v, type Infer } from "convex/values";
 
-export const ladderValidator = v.union(
+export const awardLadderValidator = v.union(
   v.literal("generosity"),
   v.literal("recognition"),
   v.literal("connections"),
@@ -9,6 +9,10 @@ export const ladderValidator = v.union(
   v.literal("seasons"),
   v.literal("old-friends"),
 );
+
+export const completionLadderValidator = v.literal("team-spirit");
+
+export const ladderValidator = v.union(...awardLadderValidator.members, completionLadderValidator);
 
 export const tierValidator = v.union(v.literal("bronze"), v.literal("silver"), v.literal("gold"), v.literal("diamond"));
 
@@ -20,6 +24,10 @@ export const tierRefValidator = v.object({ ladder: ladderValidator, tier: tierVa
 
 export type LadderId = Infer<typeof ladderValidator>;
 
+export type AwardLadderId = Infer<typeof awardLadderValidator>;
+
+export type CompletionLadderId = Infer<typeof completionLadderValidator>;
+
 export type TierId = Infer<typeof tierValidator>;
 
 export type PromisedReward = Infer<typeof promisedRewardValidator>;
@@ -30,7 +38,7 @@ export type Tier = { tier: TierId; name: string; count: number; rewards: Promise
 
 export type CoinReward = { reward: string; coins: number };
 
-export type Ladder = { ladder: LadderId; name: string; counts: string; countsOne: string; tiers: Tier[] };
+export type Ladder = { ladder: LadderId; name: string; counts: string; countsOne: string; tiers: Tier[]; countsCompletions?: true };
 
 type FourTiers<T> = [T, T, T, T];
 
@@ -61,6 +69,14 @@ export const ladders = {
       counts: "different people thanked",
       countsOne: "person thanked",
       tiers: tiersOf("connections", ["Friendly Face", "Connector", "Social Butterfly", "Constellation Maker"], [3, 6, 12, 24]),
+    },
+    {
+      ladder: "team-spirit",
+      name: "Team Spirit",
+      counts: "team pages completed",
+      countsOne: "team page completed",
+      tiers: tiersOf("team-spirit", ["Team Spirit", "All Hands", "Tight-Knit", "Unbreakable Crew"], [1, 2, 4, 8]),
+      countsCompletions: true,
     },
     {
       ladder: "dependability",
@@ -95,6 +111,15 @@ export const ladders = {
 
 export function ladderOf(ladder: LadderId): Ladder {
   return ladders.ladders.find((entry) => entry.ladder === ladder)!;
+}
+
+export function awardLadders(): Array<Ladder & { ladder: AwardLadderId }> {
+  const catalogue: readonly Ladder[] = ladders.ladders;
+  return catalogue.filter((entry): entry is Ladder & { ladder: AwardLadderId } => entry.countsCompletions !== true);
+}
+
+export function isToldPublicly({ ladder }: Pick<TierRef, "ladder">): boolean {
+  return ladderOf(ladder).countsCompletions !== true;
 }
 
 export function tierOf({ ladder, tier }: TierRef): Tier {

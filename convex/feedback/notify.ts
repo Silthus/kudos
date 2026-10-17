@@ -4,6 +4,7 @@ import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/se
 import { achievementsApplyIn } from "../achievements/flag";
 import { tierRefValidator, type TierRef } from "../achievements/ladders";
 import { recordedRewardsOf, tierRewardsRecordedFor, type TierRewardsRecorded } from "../achievements/tierRewards";
+import { laddersShownTo } from "../achievements/shown";
 import { everyTierEarnedBy } from "../achievements/tiers";
 import type { LevelReachedEvent } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
@@ -21,6 +22,7 @@ import { journeyQuestValidator, weeklyQuestValidator, type JourneyQuest, type Qu
 import { weekKeyOf, type WeekKey } from "../quests/week";
 import { featureValidator, type Feature } from "../unlocks/feature";
 import { unlocksAppliedTo, unlocksShownTo } from "../unlocks/launch";
+import { teamSpiritShownTo } from "../stickers/flag";
 import { storeShownTo, storeVisibleTo } from "../store/visibility";
 import { namedFor, readyFromTheStart, scheduled, type ScheduledFeature } from "../unlocks/schedule";
 import { stateOf } from "../unlocks/unlocks";
@@ -36,6 +38,10 @@ import { skillPointsOf } from "./naming";
 import { settingsFooterFor, type SettingsFooter } from "./settingsFooter";
 import { isOpened, whenOpened } from "./unlockFilter";
 
+export const completedTeamValidator = v.object({ team: v.string(), name: v.string(), crestEarned: v.boolean() });
+
+export type CompletedTeam = Infer<typeof completedTeamValidator>;
+
 export const notificationValidator = v.union(
   v.object({
     kind: v.literal("level-reached"),
@@ -48,7 +54,7 @@ export const notificationValidator = v.union(
   v.object({ kind: v.literal("quest-finished"), quest: journeyQuestValidator, xp: v.number() }),
   v.object({ kind: v.literal("journey-joined"), finished: v.array(v.object({ quest: journeyQuestValidator, xp: v.number() })) }),
   v.object({ kind: v.literal("weekly-quest-finished"), quest: weeklyQuestValidator, goal: v.string(), xp: v.number() }),
-  v.object({ kind: v.literal("tiers-earned"), tiers: v.array(tierRefValidator) }),
+  v.object({ kind: v.literal("tiers-earned"), tiers: v.array(tierRefValidator), teams: v.optional(v.array(completedTeamValidator)) }),
   v.object({ kind: v.literal("coins-opened"), balance: v.number() }),
 );
 
@@ -143,11 +149,15 @@ function renderNotification(notification: Notification, { website, openTree, eve
   if (notification.kind === "quest-finished") return [finishedQuestCrateOf(notification.quest, notification.xp, waits(notification.quest), website)];
   if (notification.kind === "journey-joined") return notification.finished.map(({ quest, xp }) => finishedQuestCrateOf(quest, xp, waits(quest), website));
   if (notification.kind === "weekly-quest-finished") return [finishedWeeklyQuestCrateOf(notification.quest, notification.goal, notification.xp, waits(notification.quest), website, thisWeek)];
-  if (notification.kind === "tiers-earned") return tiersEarnedLines(notification.tiers, everyTierEarned, (ref) => recordedRewardsOf(ref, tierRewardsShown));
+  if (notification.kind === "tiers-earned") return [...(notification.teams ?? []).map(completionLineOf), ...tiersEarnedLines(notification.tiers, everyTierEarned, (ref) => recordedRewardsOf(ref, tierRewardsShown))];
   if (notification.kind === "coins-opened") return [inventoryWith === null ? coinsOpenedLineOf(notification.balance) : inventoryOpenedLineOf(notification.balance, inventoryWith)];
   const crates = notification.ready.map((feature) => readyCrateOf(namedFor(scheduled(feature), { storeShown: inventoryWith !== null }), website));
   if (notification.kind !== "level-reached") return crates;
   return [...levelReachedLines(notification, openTree), ...crates, ...perkOffersOf(openTree, website)];
+}
+
+function completionLineOf({ name, crestEarned }: CompletedTeam) {
+  return crestEarned ? `Team complete · ${name} crest earned` : `Team complete · ${name}`;
 }
 
 function levelReachedLines({ level, skillPoints, xpToNextLevel }: Extract<Notification, { kind: "level-reached" }>, openTree: MemberPerks | null) {
@@ -165,12 +175,28 @@ function perkOffersOf(openTree: MemberPerks | null, website: string | null): Not
 
 async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification | null> {
   if (isAboutQuests(notification)) return questsStillToldOf(ctx, workspace, member, notification);
-  if (notification.kind === "tiers-earned") return (await isBookOpenIn(ctx, workspace, member)) ? notification : null;
+  if (notification.kind === "tiers-earned") return tiersAndTeamsStillToldOf(ctx, workspace, member, notification);
   if (notification.kind === "coins-opened") return (await coinsVisibleTo(ctx, member)) ? notification : null;
   if (!(await unlocksAppliedTo(ctx, member))) return { ...notification, ready: [] };
   const ready = await stillReady(ctx, member, notification.ready);
   if (notification.kind !== "level-reached" || notification.skillPoints === null) return { ...notification, ready };
   return { ...notification, ready, skillPoints: await whenOpened(ctx, member, "skillTree", notification.skillPoints) };
+}
+
+type TiersEarnedNotification = Extract<Notification, { kind: "tiers-earned" }>;
+
+async function tiersAndTeamsStillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: TiersEarnedNotification): Promise<Notification | null> {
+  const tiers = (await isBookOpenIn(ctx, workspace, member)) ? await tiersStillShownTo(ctx, member, notification) : null;
+  if (notification.teams === undefined) return tiers;
+  const teams = (await teamSpiritShownTo(ctx, member)) ? notification.teams : [];
+  if (tiers === null && teams.length === 0) return null;
+  return { kind: "tiers-earned", tiers: tiers?.tiers ?? [], teams };
+}
+
+async function tiersStillShownTo(ctx: QueryCtx, member: MemberId, notification: TiersEarnedNotification): Promise<TiersEarnedNotification | null> {
+  const shown = await laddersShownTo(ctx, member);
+  const tiers = notification.tiers.filter(({ ladder }) => shown.includes(ladder));
+  return tiers.length === 0 ? null : { ...notification, tiers };
 }
 
 async function questsStillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: QuestNotification): Promise<QuestNotification | null> {

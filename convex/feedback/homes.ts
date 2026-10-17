@@ -7,6 +7,8 @@ import { groupModeShownTo, type GroupModeFacts } from "../groups/groupMode";
 import { avatarChoiceOf, type AvatarChoice } from "../hoggies/avatar";
 import { crateStoreOf, waitingCratesOf, type CrateStore } from "../hoggies/boughtCrates";
 import { hoggiesOf, type HoggiesHome } from "../hoggies/collection";
+import { teamsCompletedBy } from "../stickers/completionRecords";
+import { teamSpiritShownTo } from "../stickers/flag";
 import { crateStoreShownTo, crestsShownTo, hoggiesShownTo } from "../hoggies/flag";
 import { xpRecordedEventValidator } from "../bus/events";
 import { groupsShownAndExposedTo, type GroupId } from "../groups/groups";
@@ -255,8 +257,12 @@ function namedForStore({ ready, next }: UnlocksHome, naming: StoreNaming): Unloc
 
 async function hoggiesInTheBookOf(ctx: QueryCtx, member: MemberId, { book, coins }: Slices, refused: HomeRefusal | null): Promise<HoggiesShown | null> {
   if (!book || !(await hoggiesShownTo(ctx, member))) return null;
-  const hoggies = await hoggiesOf(ctx, member, { crests: await crestsShownTo(ctx, member) });
+  const hoggies = await hoggiesOf(ctx, member, { crests: await crestsShownTo(ctx, member) }, await crestsOfCompletedPages(ctx, member));
   return { ...hoggies, crateStore: coins && (await crateStoreShownTo(ctx, member)) ? await crateStoreToldTo(ctx, member, refused) : null, avatar: await avatarChoiceOf(ctx, member) };
+}
+
+async function crestsOfCompletedPages(ctx: QueryCtx, member: MemberId): Promise<string[]> {
+  return (await teamSpiritShownTo(ctx, member)) ? teamsCompletedBy(ctx, member) : [];
 }
 
 async function crateStoreToldTo(ctx: QueryCtx, member: MemberId, refused: HomeRefusal | null): Promise<CrateStoreShown | null> {

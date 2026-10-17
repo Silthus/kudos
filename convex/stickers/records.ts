@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { awardIdValidator, earliestAwardFrom, type EarliestAward } from "../engine/awards";
+import { awardIdValidator, earliestAwardFrom, type AwardId, type EarliestAward } from "../engine/awards";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 
@@ -16,20 +16,21 @@ export const stickerBackfillValidator = v.object({
   isDone: v.boolean(),
 });
 
-export type HeldSticker = { person: MemberId; firstAt: number };
+export type HeldSticker = { person: MemberId; firstAward: AwardId; firstAt: number };
 
 export type Pair = { giver: MemberId; recipient: MemberId };
 
-export async function recordStickersOf(ctx: MutationCtx, { giver, recipient }: Pair) {
-  if (giver === recipient) return;
+export async function recordStickersOf(ctx: MutationCtx, { giver, recipient }: Pair): Promise<MemberId[]> {
+  if (giver === recipient) return [];
   const missing = await stickersMissingOf(ctx, [
     { member: giver, person: recipient },
     { member: recipient, person: giver },
   ]);
-  if (missing.length === 0) return;
+  if (missing.length === 0) return [];
   const first = await earliestAwardBetween(ctx, giver, recipient);
-  if (first === null) return;
+  if (first === null) return [];
   for (const owner of missing) await ctx.db.insert("stickers", { ...owner, firstAward: first.award, firstAt: first.at });
+  return missing.map(({ member }) => member);
 }
 
 export async function stickersNewestFirst(ctx: QueryCtx, member: MemberId): Promise<HeldSticker[]> {
@@ -38,7 +39,7 @@ export async function stickersNewestFirst(ctx: QueryCtx, member: MemberId): Prom
     .withIndex("by_member_firstAt", (q) => q.eq("member", member))
     .order("desc")
     .collect();
-  return stickers.map(({ person, firstAt }) => ({ person, firstAt }));
+  return stickers.map(({ person, firstAward, firstAt }) => ({ person, firstAward, firstAt }));
 }
 
 type Owner = { member: MemberId; person: MemberId };

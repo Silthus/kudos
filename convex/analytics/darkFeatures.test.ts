@@ -178,7 +178,7 @@ describe("E11 O15: with capture on, off or failing, every member gets the same S
 });
 
 describe("E11: recording a product event writes only analytics' own rows and schedules only the drain and the identify job", () => {
-  test("re-running every recording job of four whole walks with every flag on, one of new members, one over members there before the launch, one through the skill tree and the Book and one through a group quest, each with no analytics ID or workspace key yet", async () => {
+  test("re-running every recording job of four whole walks with every flag on, one of new members, one over members there before the launch, one through the skill tree and the Book and one through a group quest whose team page completes, each with no analytics ID or workspace key yet", async () => {
     const reRun = new Set<string>();
 
     for (const walked of [() => walk(everyFlagOn, "on"), walkOverMembersThereBeforeTheLaunch, walkThroughTheSkillTreeAndTheBook, walkThroughAGroupQuest]) {
@@ -250,7 +250,7 @@ async function walkThroughTheSkillTreeAndTheBook() {
 
 async function walkThroughAGroupQuest() {
   start("on", "flags key set");
-  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "groups", "group-quest"].map(onForEveryone));
+  const t = await flagsFromPostHog(testBackend(), postHog, ...[...everyFlag, "groups", "group-quest", "sticker-book", "team-pages", "team-spirit"].map(onForEveryone));
   await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", kudosEmoji: "taco", baseAllowance: 10 }));
   await journeyShippedBeforeAnyoneJoined(t);
   for (const user of members) await openHome(t, user);
@@ -269,7 +269,26 @@ async function walkThroughAGroupQuest() {
   await settled(t);
 
   expect(eventsNamed("quest drawn").filter(({ properties }) => properties.kind === "group")).toHaveLength(members.length);
+
+  await everyoneOnOneTeam(t);
+  await giveKudos(t, "U_ALICE", 1);
+  expect(eventsNamed("team page completed")).toHaveLength(members.length);
   return { t };
+}
+
+async function everyoneOnOneTeam(t: Backend) {
+  await t.run(async (ctx) => {
+    const profiles = members.map((_, index) => 10_000 + index);
+    for (const [index, user] of members.entries()) {
+      const member = (await ctx.db
+        .query("members")
+        .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+        .unique())!._id;
+      await ctx.db.insert("companyProfiles", { profile: profiles[index]!, firstName: "Profile", lastName: `Person${index}`, normalisedName: `profile person${index}`, colour: "#8567FF", teams: ["lantern"], asOf: Date.now() });
+      await ctx.db.insert("companyProfileLinks", { workspace: "T1", member, profile: profiles[index]!, by: "self", setBy: member, at: Date.now() });
+    }
+    await ctx.db.insert("companyTeams", { team: "lantern", name: "Lantern", leads: [], people: profiles, asOf: Date.now() });
+  });
 }
 
 async function skillTreeOpenAtLevelFive(t: Backend, user: string) {

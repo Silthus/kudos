@@ -1,5 +1,5 @@
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
-import { hedgehogStarPng } from "@posthog/brand/hoggies/png";
+import { hedgehogCodingGroupPng, hedgehogStarPng } from "@posthog/brand/hoggies/png";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ladders, type LadderId } from "../../convex/achievements/ladders";
 import { ladderCategories } from "./book/categories";
@@ -368,17 +368,23 @@ describe("WS332: the Book's category pages", () => {
     expect(unkeyed).toEqual([]);
   });
 
+  it("puts Team Spirit on Connections in the read's order, with its own emblem, when the read returns it", () => {
+    showBookAt("/book?page=connections", bookFixtures.withTeamSpirit);
+    expect(ladderNames()).toEqual(["Connections", "Team Spirit", "Old Friends"]);
+    expect(drawnPicturesIn(ladderCard("Team Spirit").querySelector("[data-emblem]")!)).toEqual([hedgehogCodingGroupPng]);
+  });
+
   it("puts a ladder a newer backend returns, with no category yet, on the last category that holds a ladder", () => {
-    const newer = { ...bookFixtures.book.ladders[0], ladder: "team-spirit" as LadderId, name: "Team Spirit" };
+    const newer = { ...bookFixtures.book.ladders[0], ladder: "new-horizons" as LadderId, name: "New Horizons" };
     showBookAt("/book?page=thanked", { ...bookFixtures.book, ladders: [...bookFixtures.book.ladders, newer] });
-    expect(ladderNames()).toEqual(["Recognition", "Team Spirit"]);
+    expect(ladderNames()).toEqual(["Recognition", "New Horizons"]);
   });
 
   it("keeps the read's order when a ladder with no category comes before the last category's own", () => {
     const [generosity, recognition] = bookFixtures.book.ladders;
-    const newer = { ...generosity, ladder: "team-spirit" as LadderId, name: "Team Spirit" };
+    const newer = { ...generosity, ladder: "new-horizons" as LadderId, name: "New Horizons" };
     showBookAt("/book?page=thanked", { ...bookFixtures.book, ladders: [generosity, newer, recognition] });
-    expect(ladderNames()).toEqual(["Team Spirit", "Recognition"]);
+    expect(ladderNames()).toEqual(["New Horizons", "Recognition"]);
   });
 });
 

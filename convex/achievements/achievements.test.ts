@@ -332,6 +332,7 @@ const silverItems: Record<LadderId, TierItemFacts> = {
   applause: { item: "kudos-emoji-confetti", name: "Confetti", emoji: "confetti_ball", art: { kind: "unicode", glyph: "🎊" } },
   seasons: { item: "kudos-emoji-maple-leaf", name: "Maple Leaf", emoji: "maple_leaf", art: { kind: "unicode", glyph: "🍁" } },
   "old-friends": { item: "kudos-emoji-teddy-bear", name: "Teddy Bear", emoji: "teddy_bear", art: { kind: "unicode", glyph: "🧸" } },
+  "team-spirit": { item: "kudos-emoji-handshake", name: "Handshake", emoji: "handshake", art: { kind: "unicode", glyph: "🤝" } },
 };
 
 function notStarted(ladder: LadderId, name: string, counts: string, tiers: Array<[string, number]>): LadderFacts {

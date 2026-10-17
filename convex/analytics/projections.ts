@@ -1,6 +1,7 @@
 import { v, type Infer } from "convex/values";
 import type {
   AchievementEarnedEvent,
+  TeamPagesCompletedEvent,
   AttemptFailedEvent,
   HoggieDroppedEvent,
   HugGivenEvent,
@@ -52,6 +53,7 @@ export type ProductEvent = {
     | "hoggie dropped"
     | "hug given"
     | "hugs recap sent"
+    | "team page completed"
     | "achievement earned"
     | "app home opened"
     | "command used"
@@ -224,6 +226,10 @@ export function projectHoggieDropped(event: HoggieDroppedEvent): ProductEvent {
 
 export function projectHugGiven(event: HugGivenEvent): ProductEvent {
   return { event: "hug given", subject: { member: event.giver }, at: event.at, properties: { on_kudos: event.onKudos } };
+}
+
+export function projectTeamPagesCompleted({ member, teams, at, told }: TeamPagesCompletedEvent): ProductEvent[] {
+  return teams.map(({ team, people }) => ({ event: "team page completed", subject: { member }, at, properties: { team, people, told } }));
 }
 
 export function projectPerkBought(event: PerkBoughtEvent): ProductEvent {

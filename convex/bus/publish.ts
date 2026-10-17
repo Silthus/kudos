@@ -51,6 +51,7 @@ export const subscribers: Registry = {
   hoggieDropped: [internal.analytics.subscribers.recordHoggieDropped],
   crateBought: [],
   hugGiven: [internal.hugs.people.payHugPeople, internal.analytics.subscribers.recordHugGiven],
+  teamPagesCompleted: [internal.analytics.subscribers.recordTeamPagesCompleted],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {
