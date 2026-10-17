@@ -49,7 +49,7 @@ export function TeamSpread({ teams, page, timeZone, firstPage, matchingHref }: T
           <ol className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-3">
             {page.slots.slice(sheet.from, sheet.to).map((slot, at) => (
               <li key={slot.key} data-slot={slot.key} data-held={slot.held ? "held" : "missing"}>
-                {slot.held ? <StickerCard slot={slot} number={firstNumber + sheet.from + at} timeZone={timeZone} /> : <EmptySlot slot={slot} number={firstNumber + sheet.from + at} />}
+                {slot.held ? <StickerCard slot={slot} number={firstNumber + sheet.from + at} timeZone={timeZone} /> : <EmptySlot slot={slot} number={firstNumber + sheet.from + at} person={page.source === "team"} />}
               </li>
             ))}
           </ol>
@@ -225,8 +225,8 @@ function PortraitInitials({ initials }: { initials: string }) {
   return <span className="hud-display absolute inset-0 grid place-items-center text-3xl font-bold text-muted-foreground">{initials}</span>;
 }
 
-function EmptySlot({ slot, number }: { slot: TeamSlot; number: number }) {
-  if (slot.picture.kind === "face" && slot.role !== null) return <EmptyPersonSlot slot={slot} number={number} />;
+function EmptySlot({ slot, number, person }: { slot: TeamSlot; number: number; person: boolean }) {
+  if (person) return <EmptyPersonSlot slot={slot} number={number} />;
   return (
     <div className="bk-slot flex aspect-[3/4] flex-col items-center justify-center gap-1 p-2 text-center">
       <span aria-hidden="true" className="hud-display text-2xl font-bold tabular-nums text-muted-foreground/70 sm:text-3xl">
@@ -248,7 +248,7 @@ function EmptyPersonSlot({ slot, number }: { slot: TeamSlot; number: number }) {
       </span>
       {slot.lead && <LeadMarker />}
       <span className="text-[11px] font-medium leading-tight text-muted-foreground">{slot.name}</span>
-      <span className="text-[10px] leading-tight text-muted-foreground/80">{slot.role}</span>
+      {slot.role !== null && <span className="text-[10px] leading-tight text-muted-foreground/80">{slot.role}</span>}
       <span className="text-[10px] leading-tight text-muted-foreground/80">Not collected yet</span>
       <span className="sr-only">{`Sticker ${number}, empty.`}</span>
     </div>

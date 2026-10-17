@@ -184,6 +184,10 @@ describe("#607: with team pages in the collection, the Teams chapter shows teams
     showBook();
     expect(crestArtOf(page("left"))).toHaveAttribute("data-crest-kind", "default");
     expect(page("left")).toHaveTextContent("Night Shift");
+    const elin = slotsIn(page("right")).find((slot) => slot.dataset.slot === "k:elin")!;
+    expect(elin.querySelector("[data-silhouette]")).not.toBeNull();
+    expect(elin).toHaveTextContent("Lead");
+    expect(elin).toHaveTextContent("Elin SørensenNot collected yet");
     cleanup();
     visit("/book#teams/hedgehog-labs");
     showBook();

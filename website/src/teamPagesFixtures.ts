@@ -28,7 +28,7 @@ const teams: readonly MadeUpTeam[] = [
   { team: "editorial", name: "Editorial", art: { kind: "crest", slug: "editorial" }, leads: ["Sofia Esposito", "Ivy Chen"], people: ["k:sofia", "k:ivy", "k:kai", "k:zara"], crest: { collectedAt: at("2026-09-20T09:00:00Z"), seen: "crest:editorial:1789894800000" } },
   { team: "support", name: "Support", art: { kind: "crest", slug: "support" }, leads: ["Leo Fischer"], people: ["k:leo", "k:amara", "k:ben"], unmatched: [{ name: "Rae Lindqvist", role: "Support Engineer" }, { name: "Sol Novak", role: null }] },
   { team: "hedgehog-labs", name: "Hedgehog Labs", art: { kind: "image", url: drawnCrest }, leads: [], people: ["k:diego", "k:lina"] },
-  { team: "night-shift", name: "Night Shift", art: null, leads: ["Kai Nakamura"], people: ["k:kai", "k:elin"] },
+  { team: "night-shift", name: "Night Shift", art: null, leads: ["Kai Nakamura", "Elin Sørensen"], people: ["k:kai", "k:elin"] },
   { team: "people-ops", name: "People & Ops", art: { kind: "crest", slug: "people-ops" }, listed: false, leads: [], people: [], crest: { collectedAt: at("2026-10-02T09:00:00Z"), seen: "crest:people-ops:1790931600000" } },
   { team: "archive", name: "Archive", art: null, listed: false, leads: [], people: [] },
 ];
@@ -40,10 +40,12 @@ function faceOf(key: string): { name: string; face: Face } {
   return { name, face };
 }
 
+const withoutARole = new Set(["k:elin"]);
+
 function personOf(key: string, index: number, leads: string[]): CollectionTeamPerson {
   const { name, face } = faceOf(key);
   const since = heldAt.get(key) ?? heldStrangers.get(key) ?? null;
-  return { key, name, role: roles[index % roles.length]!, face, lead: leads.includes(name), held: since !== null, heldAt: since };
+  return { key, name, role: withoutARole.has(key) ? null : roles[index % roles.length]!, face, lead: leads.includes(name), held: since !== null, heldAt: since };
 }
 
 function pageOf({ team, name, art, mine = false, listed = true, leads, people, unmatched = [], crest = null }: MadeUpTeam): CollectionTeamPage {
