@@ -368,9 +368,9 @@ describe("WS332: the Book's category pages", () => {
     expect(unkeyed).toEqual([]);
   });
 
-  it("puts Team Spirit on Connections after Old Friends, with its own emblem, when the read returns it", () => {
+  it("puts Team Spirit on Connections in the read's order, with its own emblem, when the read returns it", () => {
     showBookAt("/book?page=connections", bookFixtures.withTeamSpirit);
-    expect(ladderNames()).toEqual(["Connections", "Old Friends", "Team Spirit"]);
+    expect(ladderNames()).toEqual(["Connections", "Team Spirit", "Old Friends"]);
     expect(drawnPicturesIn(ladderCard("Team Spirit").querySelector("[data-emblem]")!)).toEqual([hedgehogCodingGroupPng]);
   });
 
