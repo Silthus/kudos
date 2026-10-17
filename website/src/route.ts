@@ -5,6 +5,7 @@ import { bookHref, categoryAsked, type CategoryId } from "./book/categories";
 import { spreadIn, type Spread } from "./book/spread/spreads";
 import { periods } from "./leaderboard/periods";
 import type { Period } from "./shell";
+import { keepingTheVariant } from "./prototype/variants";
 
 export type QuestTarget = number | "journey" | "group";
 
@@ -157,7 +158,7 @@ export function useRoute() {
 
   useEffect(() => {
     if (route.page !== "leaderboard" && route.page !== "book" && route.page !== "activity") return;
-    const canonical = keepingTheHash(keepingSignInCode(hrefOf(route)));
+    const canonical = keepingTheVariant(keepingTheHash(keepingSignInCode(hrefOf(route))));
     if (canonical !== currentAddress()) window.history.replaceState(null, "", canonical);
   }, [route]);
 
@@ -168,17 +169,17 @@ export function useRoute() {
   }, []);
 
   const navigate = useCallback((href: string) => {
-    window.history.pushState(null, "", href);
+    window.history.pushState(null, "", keepingTheVariant(href));
     setRoute(currentRoute());
   }, []);
 
   const choosePeriod = useCallback((period: Period) => {
-    window.history.replaceState(null, "", leaderboardHref(period));
+    window.history.replaceState(null, "", keepingTheVariant(leaderboardHref(period)));
     setRoute(currentRoute());
   }, []);
 
   const chooseFilter = useCallback((filter: ActivityFilter) => {
-    window.history.replaceState(null, "", activityHref(filter));
+    window.history.replaceState(null, "", keepingTheVariant(activityHref(filter)));
     setRoute(currentRoute());
   }, []);
 

@@ -132,6 +132,7 @@ function collectionAnswerFor(visitor: ShellState, fixture: string | undefined): 
   if (card.state === "ready") return collectionFixtures.ready;
   if (fixture === "member-with-more-packs") return { ...collectionFixtures.withEveryKindOfPack, morePacks: true };
   if (fixture === "member-with-packs") return collectionFixtures.withEveryKindOfPack;
+  if (fixture === "prototype-redesign") return { ...collectionFixtures.withFourPacksAndTeamPages, packs: collectionFixtures.withEveryKindOfPack.packs, morePacks: false };
   if (showsTheBookSpread(visitor)) return collectionFixtures.withFourPacksAndTeamPages;
   return visitor.coins === null ? collectionFixtures.withTheStickerBook : collectionFixtures.withTheStoreAndTheStickerBook;
 }

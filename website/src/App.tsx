@@ -49,6 +49,8 @@ import { useLinkTargetOnceLanded } from "./linkTarget";
 import type { SettingsRead, SettingsShown } from "./settingsRead";
 import type { SkillTreeRead, SkillTreeShown } from "./skillTreeRead";
 import type { SpotlightDraw } from "./spotlightRead";
+import { PrototypeStage } from "./prototype/PrototypeStage";
+import { variantIn } from "./prototype/variants";
 import { returnAddressOf, useRoute, type ActivityFilter, type BookPageId, type Route, type Screen } from "./route";
 import type { Spread } from "./book/spread/spreads";
 import type { Feature, MemberProfile, Period, ShellActions, ShellState } from "./shell";
@@ -119,11 +121,22 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   const pageLanded = page.kind === "member" && !busy && !connecting && !revealing;
   useLinkTargetOnceLanded(route, { quest: pageLanded && quests?.kind === "quests", perk: pageLanded && skillTree?.kind === "tree", crate: pageLanded, panel: pageLanded, section: pageLanded && settings?.kind === "settings" });
   const signingIn = page.kind === "signed-out" && route.page !== "not-found";
+  const variant = variantIn(window.location.search);
+  const todaysPage = <Page state={page} route={route} board={board} quests={quests} book={book} collection={collection} matchingHref={matchingHref} skillTree={skillTree} settings={settings} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} pendingItemPurchase={pendingItemPurchase} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onBuyItem={actions.buyItem} onBuyCrate={actions.buyCrate} onOpenCrate={actions.openCrate} onSetAvatar={actions.setAvatar} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} settingsActions={actions} onSignIn={signIn} onSignOut={actions.signOut} />;
+  const todaysFrame = (content: ReactNode) => (
+    <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={busy} revealing={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
+      <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
+        {content}
+      </ErrorBoundary>
+    </Frame>
+  );
   return (
     <NavigateProvider value={arriveAt}>
       <MomentsProvider value={moments}>
         <PacksProvider value={packSession}>
-          {signingIn ? (
+          {variant !== null && memberShown !== undefined && page.kind === "member" ? (
+            <PrototypeStage variant={variant} route={route} member={memberShown} todaysPage={todaysPage} todaysFrame={todaysFrame} />
+          ) : signingIn ? (
             <SignedOutPage returnTo={returnAddressOf(route)} onSignIn={signIn} />
           ) : (
             <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={busy} revealing={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>

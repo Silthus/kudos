@@ -371,6 +371,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-with-the-book-spread": shellFixtures.memberWithTheBookSpread,
   "member-with-packs": shellFixtures.memberWithPacks,
   "member-with-more-packs": shellFixtures.memberWithPacks,
+  "prototype-redesign": { ...shellFixtures.memberWithPacks, settings: true, leaderboard: { kind: "open" } },
   error: shellFixtures.error,
 };
 
