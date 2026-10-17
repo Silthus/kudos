@@ -2,13 +2,15 @@ import { Panel } from "../home/Panel";
 import { panelTargetAttributes } from "../linkTarget";
 import { VisibilitySwitch } from "../leaderboard/VisibilitySwitch";
 import { PageTitle } from "../PageTitle";
+import { CompanyProfileSection } from "../settings/CompanyProfileSection";
 import { GroupPicker } from "../settings/GroupPicker";
 import { MessageSettingRow } from "../settings/MessageSettingRow";
+import { TeammateMatching } from "../settings/TeammateMatching";
 import type { MessageSetting, MySettings, ShellActions } from "../shell";
 
-type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup"> };
+type SettingsPageProps = { settings: MySettings; actions: Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile"> };
 
-export function SettingsPage({ settings: { messages, board, group }, actions }: SettingsPageProps) {
+export function SettingsPage({ settings: { messages, board, group, companyProfile, admin }, actions }: SettingsPageProps) {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <header className="flex flex-col gap-1">
@@ -33,6 +35,8 @@ export function SettingsPage({ settings: { messages, board, group }, actions }: 
           <GroupPicker choice={group} pickPrimaryGroup={actions.pickPrimaryGroup} />
         </Panel>
       )}
+      {companyProfile !== undefined && <CompanyProfileSection setting={companyProfile} linkMyCompanyProfile={actions.linkMyCompanyProfile} />}
+      {admin !== undefined && <TeammateMatching admin={admin} linkCompanyProfile={actions.linkCompanyProfile} />}
     </div>
   );
 }
