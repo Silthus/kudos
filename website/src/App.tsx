@@ -73,7 +73,6 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   const onCollection = onBook && (route.bookPage === "collection" || (route.bookPage !== "earned" && showsTheBookSpread(member)));
   const readyCrates = member === undefined ? [] : readyCratesOf(member, quests);
   const collection = useCollection(onBook || (isBookOpenFor(member) && (onHome || readyCrates.length > 0)));
-  const packSession = usePackSession(waitingPacksOf(collection?.kind === "collection" ? collection : undefined), actions.openCrate);
   const onSkills = member !== undefined && route.page === "skills";
   const skillTree = useSkillTree(onSkills);
   const onSettings = member !== undefined && route.page === "settings";
@@ -85,6 +84,7 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   const membersShown = useMembersShown(cratesOf(member));
   const signedOut = member === undefined && !stillAsking(shown);
   const pendingItemPurchase = useMemo<PendingItemPurchase>(() => ({ current: undefined }), [membersShown, signedOut]);
+  const packSession = usePackSession(waitingPacksOf(collection?.kind === "collection" ? collection : undefined), actions.openCrate, { signedOut, membersShown });
   const moments = useCrateMoments(actions, { signedOut, crates: cratesOf(member), onQuests }, packSession);
   const reveal = member !== undefined ? moments.reveal : undefined;
   const revealing = reveal !== undefined;

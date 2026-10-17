@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { dropOf } from "../../crates/drops";
 import { attemptMessages, type Attempt } from "../../crates/moments";
 import type { PackHold, RewardKind } from "../../crates/rewards";
@@ -34,8 +34,11 @@ export type PackSession = {
   focused(): void;
 };
 
-export function usePackSession({ packs, listed, more }: WaitingPacks, openCrate: ShellActions["openCrate"]): PackSession {
+export type Viewer = { signedOut: boolean; membersShown: number };
+
+export function usePackSession({ packs, listed, more }: WaitingPacks, openCrate: ShellActions["openCrate"], { signedOut, membersShown }: Viewer): PackSession {
   const [stage, setStage] = useState<Stage>({ kind: "stack" });
+  const [listedWhenPicked, setListedWhenPicked] = useState(false);
   const [inTheScene, setInTheScene] = useState<WaitingPack[]>([]);
   const [fanned, setFanned] = useState(false);
   const [attempts, setAttempts] = useState<Partial<Record<string, Attempt>>>({});
@@ -52,6 +55,31 @@ export function usePackSession({ packs, listed, more }: WaitingPacks, openCrate:
   waitingNow.current = waiting;
   const inTheSceneNow = useRef(inTheScene);
   inTheSceneNow.current = inTheScene;
+  const stageNow = useRef(stage);
+  stageNow.current = stage;
+
+  const forgetEverything = useCallback(() => {
+    session.current += 1;
+    sending.current.clear();
+    setStage({ kind: "stack" });
+    setInTheScene([]);
+    setFanned(false);
+    setAttempts({});
+    setOpened([]);
+    setHeld([]);
+    setRevealedCrates([]);
+    setGone([]);
+    setAnnouncement("");
+    setReturnFocus(false);
+  }, []);
+
+  useEffect(() => {
+    if (signedOut) forgetEverything();
+  }, [signedOut, forgetEverything]);
+
+  useEffect(() => {
+    if (membersShown > 1) forgetEverything();
+  }, [membersShown, forgetEverything]);
 
   const attemptIs = useCallback((crate: string, attempt: Attempt | undefined) => setAttempts((all) => ({ ...all, [crate]: attempt })), []);
 
@@ -84,16 +112,23 @@ export function usePackSession({ packs, listed, more }: WaitingPacks, openCrate:
     [openCrate, attemptIs],
   );
 
+  const putInTheBookAtOnce = useCallback((opened: OpenedPack[]) => {
+    setHeld([]);
+    setAnnouncement(inTheBookWordsOf(opened));
+  }, []);
+
   const pick = useCallback(
     (crate: string) => {
       const shown = waitingNow.current;
       if (!shown.some((pack) => pack.crate === crate)) return;
+      if (stageNow.current.kind === "landing") putInTheBookAtOnce(stageNow.current.opened);
       inTheSceneNow.current = shown;
       setInTheScene(shown);
+      setListedWhenPicked(listed);
       setStage({ kind: "scene" });
       void open(crate);
     },
-    [open],
+    [open, listed, putInTheBookAtOnce],
   );
 
   const reveal = useCallback((crate: string) => setRevealedCrates((before) => (before.includes(crate) ? before : [...before, crate])), []);
@@ -128,7 +163,7 @@ export function usePackSession({ packs, listed, more }: WaitingPacks, openCrate:
   return {
     stage,
     fanned,
-    listed,
+    listed: stage.kind === "stack" ? listed : listedWhenPicked,
     more,
     waiting,
     scenePacks,

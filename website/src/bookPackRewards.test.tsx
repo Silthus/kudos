@@ -6,7 +6,8 @@ import type { Collection, CollectionRead, MyCollection } from "./collectionRead"
 import { packFlipsForMs, packSlidesForMs } from "./book/packs/FoilPack";
 import { bookFlipsForMs, landingPauseMs, tileSettlesForMs } from "./book/packs/PackLanding";
 import { fixedQuests, questsFixtures } from "./questsFixtures";
-import { shellFixtures, type AppliedReward, type CrateOpenReply, type Drop, type MemberProfile } from "./shell";
+import type { QuestsRead } from "./questsRead";
+import { shellFixtures, type AppliedReward, type CrateOpenReply, type Drop, type MemberProfile, type MyQuests } from "./shell";
 import { renderApp } from "./test/renderApp";
 import { fakeSystemTheme, preferReducedMotion } from "./test/systemTheme";
 
@@ -137,11 +138,11 @@ async function settle(ms: number) {
   await act(async () => {});
 }
 
-type Shown = { member?: MemberProfile; read?: CollectionRead; openCrate?: (crate: string) => Promise<CrateOpenReply> };
+type Shown = { member?: MemberProfile; read?: CollectionRead; quests?: QuestsRead; openCrate?: (crate: string) => Promise<CrateOpenReply> };
 
-function showThePacks(answer: MyCollection = fourPacks, { member = shopper, read = fixedCollection(answer), openCrate = async () => ({ kind: "refused" }) }: Shown = {}) {
+function showThePacks(answer: MyCollection = fourPacks, { member = shopper, read = fixedCollection(answer), quests = fixedQuests(questsFixtures.weekPayingCoins), openCrate = async () => ({ kind: "refused" }) }: Shown = {}) {
   const opening = vi.fn(openCrate);
-  const view = renderApp(member, undefined, { openCrate: opening }, fixedQuests(questsFixtures.weekPayingCoins), fixedBook(bookFixtures.everyLadder), undefined, undefined, undefined, undefined, undefined, undefined, read);
+  const view = renderApp(member, undefined, { openCrate: opening }, quests, fixedBook(bookFixtures.everyLadder), undefined, undefined, undefined, undefined, undefined, undefined, read);
   return { ...view, openCrate: opening };
 }
 
@@ -150,7 +151,7 @@ function opened(drop: Drop, applied: AppliedReward | null): CrateOpenReply {
 }
 
 function answering(answers: Record<string, CrateOpenReply>) {
-  return async (crate: string): Promise<CrateOpenReply> => answers[crate]!;
+  return async (crate: string): Promise<CrateOpenReply> => answers[crate] ?? { kind: "refused" };
 }
 
 async function fanOutAndOpen(at: number, shown: Shown = {}, answer: MyCollection = fourPacks) {
@@ -391,4 +392,63 @@ describe("#606: every crate listed as a pack opens in the one scene, wherever it
       expect(screen.getByRole("heading", { level: 1 })).toHaveFocus();
     });
   });
+  describe("the session follows the viewer and outlives the read (review round 1)", () => {
+    it("forgets the scene, what's gone and a pending answer on sign-out, so a member who returns sees every pack", async () => {
+      let settleAnswer!: (answer: CrateOpenReply) => void;
+      const pending = new Promise<CrateOpenReply>((resolve) => (settleAnswer = resolve));
+      const { showVisitor } = await fanOutAndOpen(2);
+      await revealTheTappedPack();
+      fireEvent.keyDown(dialog()!, { key: "Escape" });
+      expect(stack()).toHaveAccessibleName("3 packs waiting");
+      fireEvent.click(packButtons()[0]!);
+      fireEvent.click(packButtons()[0]!);
+      await act(async () => {});
+
+      showVisitor(shellFixtures.signedOut);
+      expect(dialog()).toBeNull();
+      await act(async () => settleAnswer({ kind: "opened", drop: wizard, applied: null }));
+      expect(dialog()).toBeNull();
+
+      showVisitor(shopper);
+      expect(stack()).toHaveAccessibleName("4 packs waiting");
+      expect(screen.getByTestId("pack-announcement")).toHaveTextContent("");
+    });
+
+    it("puts an interrupted landing in the book at once when another pack is picked, so the HUD holds nothing stale", async () => {
+      const { showVisitor } = await fanOutAndOpen(2, { member: beforeLevel6, openCrate: answering({ "bought:1": opened(doctor, acrossLevel6), "bought:2": opened(wizard, null) }) });
+      showVisitor(afterTheOpen);
+      await revealTheTappedPack();
+      fireEvent.keyDown(dialog()!, { key: "Escape" });
+      expect(hud()).toEqual({ level: "Level 5, 10 XP to level 6", coins: "226" });
+
+      fireEvent.click(packButtons()[0]!);
+      fireEvent.click(packButtons()[0]!);
+
+      expect(dialog()).toHaveAccessibleName("Opening your packs");
+      expect(announcement()).toHaveTextContent(`${doctor.name} is in your book.`);
+      advance(1000);
+      expect(hud()).toEqual({ level: "Level 6, 490 XP to level 7", coins: "236" });
+      expect(flight()).toBeNull();
+    });
+
+    it("keeps the scene and its live region when the last claim stops the collection read", async () => {
+      window.history.replaceState(null, "", "/quests");
+      let week: MyQuests = questsFixtures.weekPayingCoins;
+      const read = vi.fn<CollectionRead>((asking) => (asking ? fourPacks : undefined));
+      const { showVisitor } = showThePacks(fourPacks, { member: { ...questing, journey: null }, read, quests: (asking) => (asking ? week : undefined), openCrate: answering({ [weeklyKey]: opened(doctor, withinLevel6) }) });
+      vi.useFakeTimers();
+      fireEvent.click(within(within(main()).getByRole("heading", { name: "Thank someone you haven't thanked before." }).closest("article")!).getByRole("button", { name: "Claim" }));
+      await act(async () => {});
+      await revealTheTappedPack();
+
+      week = { ...week, slots: [], waiting: [], bonus: null, group: null };
+      showVisitor({ ...questing, journey: null });
+
+      expect(read).toHaveBeenLastCalledWith(false);
+      expect(dialog()).toHaveAccessibleName("Opening your packs");
+      expect(chipsUnder(weeklyKey)).toEqual(["+85 XP", "+12 coins"]);
+      expect(announcement()).toHaveTextContent("You earned 85 XP and 12 coins.");
+    });
+  });
+
 });
