@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { normalisedName } from "../convex/companyProfiles/faces";
 import type { MemberId } from "../convex/workspace/directory";
 import type { Backend } from "./slackBackend";
 
@@ -34,4 +35,31 @@ export async function everyoneHeldBy(t: Backend, member: MemberId, people: Perso
     for (const person of others) if (!held.has(person) && !left.has(person)) await ctx.db.insert("stickers", { member, person, firstAward, firstAt });
   });
   expect(others).toHaveLength(people.length - 1);
+}
+
+export type CompanySize = { teams: number; size: number; onEvery?: Person };
+
+export async function seededCompany(t: Backend, people: Person[], { teams, size, onEvery }: CompanySize) {
+  const profileOf = new Map(people.map((person, index) => [person.user, 10_000 + index]));
+  const slugOf = (team: number) => `team-${String(team).padStart(3, "0")}`;
+  const peopleOn = (team: number) => {
+    const seated = Array.from({ length: size }, (_, seat) => people[(team * size + seat) % people.length]!);
+    return onEvery === undefined || seated.includes(onEvery) ? seated : [...seated, onEvery];
+  };
+  const onTeams = Array.from({ length: teams }, (_, team) => peopleOn(team));
+  await t.run(async (ctx) => {
+    for (const row of await ctx.db.query("companyProfiles").collect()) await ctx.db.delete(row._id);
+    for (const row of await ctx.db.query("companyTeams").collect()) await ctx.db.delete(row._id);
+    for (const person of people) {
+      const [firstName, ...rest] = person.name.split(" ");
+      const lastName = rest.join(" ");
+      const memberTeams = onTeams.flatMap((onTeam, team) => (onTeam.includes(person) ? [slugOf(team)] : []));
+      await ctx.db.insert("companyProfiles", { profile: profileOf.get(person.user)!, firstName: firstName!, lastName, normalisedName: normalisedName(person.name), colour: "#8567FF", teams: memberTeams, role: "Product Engineer", asOf: Date.now() });
+    }
+    for (const [team, onTeam] of onTeams.entries()) {
+      const crestImage = `https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/crests/${slugOf(team)}.png`;
+      const ids = onTeam.map(({ user }) => profileOf.get(user)!);
+      await ctx.db.insert("companyTeams", { team: slugOf(team), name: `Team ${String(team).padStart(3, "0")}`, crestImage, leads: ids.slice(0, 2), people: ids, asOf: Date.now() });
+    }
+  });
 }
