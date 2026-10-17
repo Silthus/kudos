@@ -421,7 +421,7 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: center;
-  gap: 1.5rem 2rem;
+  gap: calc(var(--pk-w, 200px) * 0.9) 2rem;
   padding-top: calc(var(--pk-w, 200px) * 0.85);
 }
 

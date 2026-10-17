@@ -69,22 +69,25 @@ export function PackLanding({ opened, shown, onRewardLanded, onDone }: PackLandi
   if (current === undefined) return null;
   const { pack, chipsFly } = current;
   const chips = chipsOf(pack.applied);
+  const coin = pack.drop !== null && (
+    <span ref={ghost} className="inline-flex drop-shadow-2xl">
+      <HoggieCoin art={pack.drop.art} rarity={pack.drop.rarity} size={128} />
+    </span>
+  );
   return createPortal(
     <div className="pointer-events-none fixed inset-0 z-[55] grid place-items-center" aria-hidden="true">
-      <div className="flex flex-col items-center gap-3">
-        {pack.drop !== null && (
-          <span ref={ghost} className="inline-flex drop-shadow-2xl">
-            <HoggieCoin art={pack.drop.art} rarity={pack.drop.rarity} size={128} />
-          </span>
-        )}
-        {chips.length > 0 && (
+      {chips.length === 0 ? (
+        coin
+      ) : (
+        <div className="flex flex-col items-center gap-3">
+          {coin}
           <span className="pk-chips">
             {chips.map((chip) => (
               <Chip key={chip.kind} chip={chip} flown={flown.includes(chip.kind)} chipRef={(element) => (element === null ? chipGhosts.current.delete(chip.kind) : chipGhosts.current.set(chip.kind, element))} />
             ))}
           </span>
-        )}
-      </div>
+        </div>
+      )}
       {chipsFly && pack.applied !== null && <CrateRewardFlight key={pack.crate} reward={climbRewardOf(pack.applied)} shown={shown} landAtOnce={false} originOf={originOf} onRewardTaken={taken} onRewardLanded={rewardLanded} onLanded={chipsDone} />}
     </div>,
     document.body,
