@@ -100,6 +100,19 @@ describe("the maintainer changes the workspace settings from Settings", { timeou
     expect(await workspacePartOf(owner)).toEqual({ ...defaults, kudosEmoji: "hoggo", kudosEmojiImage: "https://emoji.slack-edge.com/T1/hoggo/1.png" });
   });
 
+  test("a custom emoji alias saves as the emoji it aliases, as the store's picks do", async () => {
+    await workspaceSettingsOn();
+    const owner = await aTeammate(maintainer);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("customEmoji", { workspace: "T1", name: "hoggo", image: "https://emoji.slack-edge.com/T1/hoggo/1.png", listing: 1 });
+      await ctx.db.insert("customEmoji", { workspace: "T1", name: "hog", image: "https://emoji.slack-edge.com/T1/hoggo/1.png", aliasOf: "hoggo", listing: 1 });
+    });
+
+    await owner.save({ baseAllowance: 3, kudosEmoji: ":hog:", hugBudget: 10 });
+
+    expect(await workspacePartOf(owner)).toEqual({ ...defaults, kudosEmoji: "hoggo", kudosEmojiImage: "https://emoji.slack-edge.com/T1/hoggo/1.png" });
+  });
+
   test("a save for a workspace with no row yet stores one", async () => {
     await workspaceSettingsOn();
     const owner = await aTeammate(maintainer);

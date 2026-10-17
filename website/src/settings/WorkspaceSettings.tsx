@@ -26,17 +26,20 @@ const savedLine = "Saved. Every member gives and hugs by these from now on.";
 export function WorkspaceSettings({ workspace, setWorkspaceSettings }: WorkspaceSettingsProps) {
   const shown = keyOf(workspace);
   const [draft, setDraft] = useDraftOf(workspace, shown);
-  const { pending, line, save } = useSentSave(shown, setWorkspaceSettings);
   const asked = changeOf(draft);
+  const edited = keyOf(asked) !== shown;
+  const { pending, line, save } = useSentSave(shown, edited, setWorkspaceSettings);
+  const savable = edited && !pending && isComplete(draft);
   const preview = emojiNameOf(draft.kudosEmoji);
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    void save(asked);
+    if (savable) void save(asked);
   };
   return (
     <Panel id="workspace-settings" label="Workspace" target={panelTargetAttributes("workspace")}>
       <p className="text-sm text-muted-foreground">As HedgeHug's maintainer, you set these for everyone in the workspace. A change counts from the next kudos or hug, today's included.</p>
       <form onSubmit={submit} className="flex flex-col gap-4">
+        <fieldset disabled={pending} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0">
         <NumberField label="Kudos a day" hint="How many kudos each member can give a day." range={allowanceRange} value={draft.baseAllowance} onChange={(baseAllowance) => setDraft({ ...draft, baseAllowance })} />
         <Field label="Kudos emoji" hint="The emoji that gives kudos and that a hug reacts with. The old one stops counting at once.">
           {(ids) => (
@@ -51,8 +54,9 @@ export function WorkspaceSettings({ workspace, setWorkspaceSettings }: Workspace
           )}
         </Field>
         <NumberField label="Hugs a day" hint="How many hugs each member can give a day. 0 means hugs earn nothing." range={hugBudgetRange} value={draft.hugBudget} onChange={(hugBudget) => setDraft({ ...draft, hugBudget })} />
+        </fieldset>
         <div>
-          <Button type="submit" variant="primary" disabled={pending || keyOf(asked) === shown}>
+          <Button type="submit" variant="primary" disabled={!savable}>
             Save
           </Button>
         </div>
@@ -67,7 +71,7 @@ const inputClass = "h-10 w-full rounded-lg border border-muted-foreground bg-car
 type NumberFieldProps = { label: string; hint: string; range: { least: number; most: number }; value: string; onChange: (value: string) => void };
 
 function NumberField({ label, hint, range, value, onChange }: NumberFieldProps) {
-  return <Field label={label} hint={hint}>{(ids) => <input {...ids} type="number" inputMode="numeric" min={range.least} max={range.most} step={1} value={value} onChange={(event) => onChange(event.target.value)} className={inputClass} />}</Field>;
+  return <Field label={label} hint={hint}>{(ids) => <input {...ids} type="number" inputMode="numeric" required min={range.least} max={range.most} step={1} value={value} onChange={(event) => onChange(event.target.value)} className={inputClass} />}</Field>;
 }
 
 type FieldIds = { id: string; "aria-describedby": string };
@@ -98,10 +102,10 @@ function useDraftOf(workspace: WorkspaceSettingsPart, shown: string) {
   return [draft, setDraft] as const;
 }
 
-function useSentSave(shown: string, setWorkspaceSettings: ShellActions["setWorkspaceSettings"]) {
+function useSentSave(shown: string, edited: boolean, setWorkspaceSettings: ShellActions["setWorkspaceSettings"]) {
   const [reason, setReason] = useState<WorkspaceSettingsRefusal | null>(null);
   const { pending, settled, choose } = useSentChoice(shown, async (asked: string) => answerOf(await setWorkspaceSettings(changeOfKey(asked)), setReason));
-  const line = settled === "refused" ? refusalLines[reason ?? "off"] : lineAfter(settled, savedLine);
+  const line = settled === "refused" ? refusalLines[reason ?? "off"] : lineAfter(settled, edited ? "" : savedLine);
   return { pending, line, save: (change: WorkspaceSettingsChange) => choose(keyOf(change)) };
 }
 
@@ -110,6 +114,10 @@ function answerOf(reply: WorkspaceSettingsReply, setReason: (reason: WorkspaceSe
   if (reply.kind !== "refused") return "denied";
   setReason(reply.reason);
   return "refused";
+}
+
+function isComplete({ baseAllowance, hugBudget }: Draft) {
+  return baseAllowance.trim() !== "" && hugBudget.trim() !== "";
 }
 
 function draftOf({ baseAllowance, kudosEmoji, hugBudget }: WorkspaceSettingsPart): Draft {

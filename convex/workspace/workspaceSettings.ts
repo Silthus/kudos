@@ -1,6 +1,6 @@
 import { exposed, memberDecision, type Flag } from "../analytics/flags";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { customEmojiImageOf } from "./customEmoji";
+import { customEmojiImageOf, originalCustomEmojiOf } from "./customEmoji";
 import { chatUserOf, type MemberId } from "./directory";
 import { hugBudgetOf, saveWorkspaceSettings, settingsOf } from "./settings";
 import { allowanceRange, emojiNameOf, hugBudgetRange } from "./settingsBounds";
@@ -29,11 +29,16 @@ export async function workspaceSettingsPartOf(ctx: QueryCtx, workspace: string):
 export async function changeWorkspaceSettings(ctx: MutationCtx, workspace: string, member: MemberId, change: EditableSettings): Promise<WorkspaceSettingsOutcome | null> {
   if (!(await isTheMaintainer(ctx, member))) return refusedFor("not-maintainer");
   if (!(await workspaceSettingsApplyTo(ctx, member))) return null;
-  const settings = { ...change, kudosEmoji: emojiNameOf(change.kudosEmoji) };
+  const settings = { ...change, kudosEmoji: await originalEmojiNameOf(ctx, workspace, change.kudosEmoji) };
   const refusal = refusalOf(settings);
   if (refusal !== null) return refusedFor(refusal);
   await saveWorkspaceSettings(ctx, workspace, settings);
   return { kind: "set", saved: settings };
+}
+
+async function originalEmojiNameOf(ctx: QueryCtx, workspace: string, typed: string) {
+  const name = emojiNameOf(typed);
+  return (await originalCustomEmojiOf(ctx, workspace, name))?.name ?? name;
 }
 
 async function workspaceSettingsApplyTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {

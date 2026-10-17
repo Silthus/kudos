@@ -99,6 +99,43 @@ describe("the maintainer's workspace settings change only through setWorkspaceSe
     expect(field("Kudos emoji")).toHaveValue("pizza");
   });
 
+  it.each(["Kudos a day", "Hugs a day"])("holds Save while %s is empty, so a cleared field never saves as 0", async (name) => {
+    const { user, actions } = showSettings(forTheMaintainer(), async () => ({ kind: "set" }));
+
+    await user.clear(field(name));
+    await user.click(saveButton());
+    await user.keyboard("{Enter}");
+
+    expect(saveButton()).toHaveAttribute("aria-disabled", "true");
+    expect(actions.setWorkspaceSettings).not.toHaveBeenCalled();
+  });
+
+  it("holds every field while a save is in flight, so nothing typed then is lost when the read lands", async () => {
+    const later = answerLater();
+    const { user } = showSettings(forTheMaintainer(), () => later.answer);
+
+    await user.clear(field("Kudos a day"));
+    await user.type(field("Kudos a day"), "5");
+    await user.click(saveButton());
+
+    for (const name of ["Kudos a day", "Kudos emoji", "Hugs a day"]) expect(field(name)).toBeDisabled();
+    await act(async () => later.resolve({ kind: "refused", reason: "allowance" }));
+    for (const name of ["Kudos a day", "Kudos emoji", "Hugs a day"]) expect(field(name)).toBeEnabled();
+  });
+
+  it("drops the saved line once the maintainer edits again", async () => {
+    const { user, showSettingsAnswer } = showSettings(forTheMaintainer(), async () => ({ kind: "set" }));
+    await user.clear(field("Kudos a day"));
+    await user.type(field("Kudos a day"), "5");
+    await user.click(saveButton());
+    showSettingsAnswer(forTheMaintainer({ ...workspaceParts.defaults, baseAllowance: 5 }));
+    expect(await within(workspaceSection()).findByText("Saved. Every member gives and hugs by these from now on.")).toBeInTheDocument();
+
+    await user.type(field("Kudos a day"), "0");
+
+    expect(status()).not.toHaveTextContent("Saved.");
+  });
+
   it.each<[string, WorkspaceSettingsReply, string]>([
     ["an allowance out of range", { kind: "refused", reason: "allowance" }, "Kudos a day is a whole number from 1 to 20."],
     ["a malformed emoji", { kind: "refused", reason: "kudos-emoji" }, "Type one emoji's name, like :taco:, without a skin tone."],
