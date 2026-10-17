@@ -1,0 +1,27 @@
+# #608 running-app rig: a fresh local Convex backend at cf691c67, site http://127.0.0.1:13211. FakeSlack and FakePostHog on 13212. Made-up people only. Now: 2026-10-17T00:31:01.621Z.
+# Flags: website and message-settings on for everyone; team-pages on for Ada's, Sam's, Wren's and Juno's emails only, off for Oriel. Ada is the workspace admin.
+> team_join Ada Admin (workspace admin)
+  HTTP 200 
+> team_join Sam Okafor
+  HTTP 200 
+> team_join Wren Halloway
+  HTTP 200 
+> team_join Juno Marsh
+  HTTP 200 
+> team_join Oriel Pemberton
+  HTTP 200 
+
+## Juno picks Juniper Marsh on posthog.com through the command
+  Juno: linkMyCompanyProfile {profile: 5} -> {"kind":"linked"}
+  Ada Admin: getSettings -> companyProfile {"mine":null,"by":null,"choices":2}, admin 31 members, 31 profiles
+  Ada Admin: frontDoorLinksOf().sections -> ["messages","company-profile","admin"]
+  Sam Okafor: getSettings -> companyProfile {"mine":null,"by":null,"choices":2}, admin absent
+  Sam Okafor: frontDoorLinksOf().sections -> ["messages","company-profile"]
+  Wren Halloway: getSettings -> companyProfile {"mine":"Wren Halloway","by":"name","choices":3}, admin absent
+  Wren Halloway: frontDoorLinksOf().sections -> ["messages","company-profile"]
+  Juno Marsh: getSettings -> companyProfile {"mine":"Juniper Marsh","by":"self","choices":3}, admin absent
+  Juno Marsh: frontDoorLinksOf().sections -> ["messages","company-profile"]
+  Oriel Pemberton: getSettings -> companyProfile "absent", admin absent
+  Oriel Pemberton: frontDoorLinksOf().sections -> ["messages"]
+
+READY: browser sessions in /tmp/i608/rig/out/browser-sessions.json; the fakes keep serving until this process is stopped.
