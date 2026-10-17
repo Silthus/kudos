@@ -14,6 +14,7 @@ type CrateRewardFlightProps = {
   shown: MemberProfile;
   landAtOnce: boolean;
   rehearsal?: boolean;
+  originOf?: (kind: RewardKind) => Origin | undefined;
   onRewardTaken: (kind: RewardKind) => void;
   onRewardLanded: (kind: RewardKind) => void;
   onLanded: () => void;
@@ -29,11 +30,11 @@ const hops: Record<RewardKind, Pick<Hop, "glow" | "target">> = {
   coins: { glow: "var(--band-tangerine)", target: coinsChip },
 };
 
-export function CrateRewardFlight({ reward: rewardNow, shown, landAtOnce, rehearsal = false, onRewardTaken, onRewardLanded, onLanded }: CrateRewardFlightProps) {
+export function CrateRewardFlight({ reward: rewardNow, shown, landAtOnce, rehearsal = false, originOf = rewardTokenOrigin, onRewardTaken, onRewardLanded, onLanded }: CrateRewardFlightProps) {
   const shownNow = useRef(shown);
   shownNow.current = shown;
   const [reward] = useState(rewardNow);
-  const [course] = useState(() => hopsOf(reward));
+  const [course] = useState(() => hopsOf(reward, originOf));
   const [hop, setHop] = useState(0);
   const [levellingUp, levelUp] = useState(false);
   const finished = useRef(false);
@@ -91,8 +92,8 @@ export function CrateRewardFlight({ reward: rewardNow, shown, landAtOnce, rehear
   return <RewardFlight key={hop} source={current.source} target={current.target} amount={current.amount} glow={current.glow} onArrived={onArrived} onLanded={onHopLanded} />;
 }
 
-function hopsOf(reward: Reward): Hop[] {
-  return flyingKindsOf(reward).map((kind) => ({ kind, amount: amountOf(kind, reward), source: () => rewardTokenOrigin(kind), ...hops[kind] }));
+function hopsOf(reward: Reward, originOf: (kind: RewardKind) => Origin | undefined): Hop[] {
+  return flyingKindsOf(reward).map((kind) => ({ kind, amount: amountOf(kind, reward), source: () => originOf(kind), ...hops[kind] }));
 }
 
 function amountOf(kind: RewardKind, { xp, skillPoints, coins }: Reward) {

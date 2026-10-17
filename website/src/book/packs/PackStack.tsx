@@ -1,29 +1,30 @@
 import { useLayoutEffect, useState, type CSSProperties, type RefObject } from "react";
 import { crateTargetAttributes } from "../../linkTarget";
-import type { BoughtCrate } from "../../crates/readyCrates";
 import { FoilPack } from "./FoilPack";
-import { packsWaitingWordsOf, packsWordsOf } from "./packs";
+import { packsWaitingWordsOf, packsWordsOf, type WaitingPack } from "./packs";
 
-type PackStackProps = { crates: BoughtCrate[]; fanned: boolean; stackRef: RefObject<HTMLDivElement | null>; onFan: () => void; onPick: (crate: BoughtCrate) => void };
+type PackStackProps = { packs: WaitingPack[]; more: boolean; fanned: boolean; stackRef: RefObject<HTMLDivElement | null>; onFan: () => void; onPick: (crate: string) => void };
 
 const width = 120;
 
 const fanGap = 24;
 
-export function PackStack({ crates, fanned, stackRef, onFan, onPick }: PackStackProps) {
-  const step = useFanStep(stackRef, crates.length, fanned);
-  const middle = (crates.length - 1) / 2;
-  const waiting = packsWaitingWordsOf(crates.length);
+export function PackStack({ packs, more, fanned, stackRef, onFan, onPick }: PackStackProps) {
+  const step = useFanStep(stackRef, packs.length, fanned);
+  const middle = (packs.length - 1) / 2;
+  const waiting = packsWaitingWordsOf(packs.length);
   return (
     <div className="flex flex-col items-center gap-3">
       <div ref={stackRef} role="group" aria-label={waiting} className="pk-stack w-full" data-spread={fanned || undefined} style={{ "--pk-w": `${width}px` } as CSSProperties}>
-        {crates.map((crate, at) => (
-          <div key={crate.crate} {...crateTargetAttributes(crate.target)} className="pk-stack-item" style={layerStyle(at - middle, at, fanned, step)}>
-            <FoilPack n={crate.target.n} state="sealed" drop={undefined} width={width} still={!fanned} label={fanned ? `Open pack ${crate.target.n}` : `Fan out the ${packsWordsOf(crates.length)}`} onTap={() => (fanned ? onPick(crate) : onFan())} />
+        {packs.map((pack, at) => (
+          <div key={pack.crate} {...(pack.target !== undefined && crateTargetAttributes(pack.target))} className="pk-stack-item" style={layerStyle(at - middle, at, fanned, step)}>
+            <FoilPack n={pack.n} state="sealed" drop={undefined} width={width} still={!fanned} label={fanned ? `Open pack ${pack.n}` : `Fan out the ${packsWordsOf(packs.length)}`} onTap={() => (fanned ? onPick(pack.crate) : onFan())} />
           </div>
         ))}
       </div>
-      <p className="text-xs text-muted-foreground">{fanned ? "Pick a pack to open it." : `${waiting} · tap the stack to fan them out`}</p>
+      <p className="text-xs text-muted-foreground">
+        {fanned ? "Pick a pack to open it." : `${waiting}${more ? " + more" : ""} · tap the stack to fan them out`}
+      </p>
     </div>
   );
 }

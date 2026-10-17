@@ -17,12 +17,12 @@ const fixtureQuests = fixedQuests(questsFixtures.weekWithLastWeeksCrate);
 
 const fixtureSettings = fixedSettings(settingsFixtures.everything);
 
-export function fixtureReadsFor(visitor: ShellState): AppReads {
+export function fixtureReadsFor(visitor: ShellState, fixture?: string): AppReads {
   return {
     useLeaderboard: fixtureLeaderboard,
     useQuests: fixtureQuests,
     useBook: fixtureBookFor(visitor),
-    useCollection: fixtureCollectionFor(visitor),
+    useCollection: fixtureCollectionFor(visitor, fixture),
     useSkillTree: fixtureSkillTreeFor(visitor),
     useProfileCard: fixtureProfileCardFor(visitor),
     useRecentKudos: fixtureRecentKudos,

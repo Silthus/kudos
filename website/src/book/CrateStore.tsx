@@ -11,13 +11,17 @@ import type { ShellActions } from "../shell";
 import { CoinGlyph } from "../skills/glyphs";
 import { coinsText } from "../skills/perkWords";
 import { useCratePurchase, type CratePurchasing } from "./cratePurchase";
+import { usePacks } from "./packs/PacksContext";
 import { PackShelf } from "./packs/PackShelf";
 
 type CrateStoreProps = { collection: Collection; coins: number | null; buyCrate: ShellActions["buyCrate"]; openPack: ShellActions["openCrate"] | undefined };
 
 export function CrateStore({ collection, coins, buyCrate, openPack }: CrateStoreProps) {
   const headingId = useId();
-  const waiting = (collection.bought ?? []).flatMap((crate) => boughtCrateOf(crate) ?? []);
+  const packs = usePacks();
+  const asPacks = packs !== undefined && (openPack !== undefined || packs.listed);
+  const bought = (collection.bought ?? []).flatMap((crate) => boughtCrateOf(crate) ?? []);
+  const waiting = asPacks ? packs.waiting : bought;
   const offer = collection.crateStore ?? null;
   const purchase = useCratePurchase(buyCrate, offer?.next);
   useFocusOnTheBoughtCrate(purchase);
@@ -32,7 +36,7 @@ export function CrateStore({ collection, coins, buyCrate, openPack }: CrateStore
       </div>
       <Card>
         <CardContent className="flex flex-col gap-4">
-          {openPack !== undefined ? <PackShelf crates={waiting} openCrate={openPack} /> : waiting.length > 0 && <WaitingCrates crates={waiting} />}
+          {asPacks ? <PackShelf /> : <WaitingCrates crates={bought} />}
           {offer !== null && <Offer price={offer.price} coins={coins} purchase={purchase} primary={waiting.length === 0} />}
           <p role="status" className={`text-xs font-medium ${purchase.notice === undefined ? "sr-only" : ""}`}>
             {purchase.notice?.text}
@@ -54,6 +58,7 @@ function useFocusOnTheBoughtCrate(purchase: CratePurchasing) {
 }
 
 function WaitingCrates({ crates }: { crates: BoughtCrate[] }) {
+  if (crates.length === 0) return null;
   return (
     <ul aria-label="Waiting to open" className="flex flex-col gap-3">
       {crates.map((crate, at) => (
