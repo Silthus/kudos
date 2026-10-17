@@ -74,7 +74,7 @@ function madeUpFace(initials: string, look: MadeUpLook): Face {
   return { kind: "company-profile", image: pictureOf(drawnFace(20), ""), colour: look.colour, initials };
 }
 
-function teammateOf(key: string) {
+export function teammateOf(key: string) {
   const teammate = teammates.find((entry) => entry.key === key)!;
   return { key, name: teammate.name, face: madeUpFace(initialsOf(teammate.name), teammate.look), former: teammate.former ?? false };
 }

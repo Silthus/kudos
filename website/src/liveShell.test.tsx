@@ -9,6 +9,7 @@ import { bookFixtures } from "./bookFixtures";
 import { collectionFixtures } from "./collectionFixtures";
 import { leaderboardFixtures } from "./leaderboardFixtures";
 import { recentKudosFixtures } from "./recentKudosFixtures";
+import { settingsFixtures } from "./settingsFixtures";
 import { shellFixtures } from "./shell";
 import { skillTreeFixtures } from "./skillTreeFixtures";
 import { spotlightFixtures } from "./spotlightFixtures";
@@ -636,6 +637,38 @@ describe("#606: every crate listed as a pack opens in the one scene, wherever it
     await user.click(screen.getByRole("button", { name: "Open pack 4" }));
 
     expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/commands:openCrate", args: { crate: "bought:1" } });
+    expect(openFeatureCall).not.toHaveBeenCalled();
+  });
+});
+
+describe("#608: a member's posthog.com match changes only through the link commands", () => {
+  function onTheSettings() {
+    window.history.replaceState(null, "", "/settings");
+    profileRead.mockReturnValue(shellFixtures.memberWithSettings);
+    boardRead.mockImplementation((query: string) => (query === "website/settings:getSettings" ? settingsFixtures.forAnAdmin : undefined));
+  }
+
+  it("sends This is me's one linkMyCompanyProfile over HTTP with the session's token and the person's profile, never through the socket's queue", async () => {
+    onTheSettings();
+    boardRead.mockImplementation((query: string) => (query === "website/settings:getSettings" ? settingsFixtures.thisIsMe : undefined));
+    sentOverHttp.mockResolvedValue({ kind: "linked" });
+    const { user } = renderLiveSite();
+
+    await user.click(await screen.findByRole("button", { name: "This is me: Samantha Okafor" }));
+
+    expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/commands:linkMyCompanyProfile", args: { profile: 2 } });
+    expect(openFeatureCall).not.toHaveBeenCalled();
+  });
+
+  it("sends an admin's one linkCompanyProfile over HTTP with the teammate's key and the profile, never through the socket's queue", async () => {
+    onTheSettings();
+    sentOverHttp.mockResolvedValue({ kind: "linked" });
+    const { user } = renderLiveSite();
+
+    await user.click(await screen.findByRole("button", { name: "Change Ada Admin's match" }));
+    await user.click(screen.getByRole("button", { name: "Match Ada Admin to Oriel Pemberton" }));
+
+    expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/commands:linkCompanyProfile", args: { member: "k-ada", profile: 3 } });
     expect(openFeatureCall).not.toHaveBeenCalled();
   });
 });

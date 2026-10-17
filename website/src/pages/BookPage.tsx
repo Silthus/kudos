@@ -18,12 +18,12 @@ type YourCollection = Extract<CollectionShown, { kind: "collection" }>;
 
 type Shopping = { coins: number | null; onBuyCrate: ShellActions["buyCrate"]; onOpenPack: ShellActions["openCrate"] | undefined; avatar: Avatar | null | undefined; onSetAvatar: ShellActions["setAvatar"] };
 
-type BookPageProps = { book: YourBook; collection: CollectionShown | undefined; page: BookPageId; spread: Spread | undefined; asASpread: boolean; chatUrl: string } & Shopping;
+type BookPageProps = { book: YourBook; collection: CollectionShown | undefined; page: BookPageId; spread: Spread | undefined; asASpread: boolean; chatUrl: string; matchingHref: string | null } & Shopping;
 
-export function BookPage({ book, collection, page, spread, asASpread, chatUrl, ...shopping }: BookPageProps) {
+export function BookPage({ book, collection, page, spread, asASpread, chatUrl, matchingHref, ...shopping }: BookPageProps) {
   if (page === "earned") return <EarnedPage ladders={book.ladders} chatUrl={chatUrl} />;
   const yours = collection?.kind === "collection" ? collection : undefined;
-  if (asASpread && yours !== undefined) return <BookSpread book={book} collection={yours} spread={spreadAsked(spread, page)} chatUrl={chatUrl} {...shopping} />;
+  if (asASpread && yours !== undefined) return <BookSpread book={book} collection={yours} spread={spreadAsked(spread, page)} chatUrl={chatUrl} matchingHref={matchingHref} {...shopping} />;
   return <BookPages book={book} collection={yours} page={page} chatUrl={chatUrl} {...shopping} />;
 }
 

@@ -12,7 +12,7 @@ import { stickerWordsOf } from "../StickerTile";
 import { ChapterLabel, Page, PageHeading, rarityNameOf, RarityPip, row } from "./Page";
 import { Ring } from "./Ring";
 import { spreadHrefOf } from "./spreads";
-import { latestCrestArtOf, teamsCountOf, type TeamPages } from "./teamPages";
+import { crestEarnedOn, latestCrestArtOf, ownCrestOf, teamsCountOf, type TeamPages } from "./teamPages";
 import { newItemsOf } from "./whatsNew";
 
 type Fresh = { fresh: ReadonlySet<string>; timeZone: string };
@@ -73,6 +73,7 @@ function RarityRows({ collection }: { collection: Collection }) {
 }
 
 function TeamsAtAGlance({ teams, chapter }: { teams: TeamPages; chapter: number }) {
+  if (teams.source === "team") return <PeopleAtAGlance teams={teams} chapter={chapter} />;
   const { counted: { collected, total }, of } = teamsCountOf(teams);
   const crest = latestCrestArtOf(teams.pages);
   return (
@@ -85,6 +86,29 @@ function TeamsAtAGlance({ teams, chapter }: { teams: TeamPages; chapter: number 
         <span className="flex min-w-0 flex-col">
           <span className="hud-display text-3xl font-extrabold tabular-nums leading-none">{collected}</span>
           <span className="text-sm text-muted-foreground">{`of ${total} ${of}`}</span>
+          {teams.stickers !== undefined && <span className="mt-1 text-xs text-muted-foreground">{stickerWordsOf(teams.stickers)}</span>}
+        </span>
+      </AppLink>
+    </>
+  );
+}
+
+function PeopleAtAGlance({ teams, chapter }: { teams: TeamPages; chapter: number }) {
+  const people = teams.people ?? { collected: 0, total: 0 };
+  const crests = teams.crests ?? { collected: 0, total: 0 };
+  const own = ownCrestOf(teams.pages);
+  const crestWords = `${crests.collected} ${crests.collected === 1 ? "crest" : "crests"} earned`;
+  return (
+    <>
+      <ChapterLabel>{`Chapter ${chapter} · Teams`}</ChapterLabel>
+      <AppLink href={spreadHrefOf({ kind: "teams" })} aria-label={`Teams, ${people.collected} of ${people.total} people collected, ${crestWords}`} className={`${row} gap-5 rounded-lg p-2`}>
+        <Ring value={people.collected} max={people.total} size={96}>
+          {own === undefined ? <span className="hud-display text-2xl font-extrabold tabular-nums">{people.collected}</span> : <span data-own-crest={own.slug} className="inline-flex"><TeamCrest art={own.art} size={70} collected={crestEarnedOn(own)} name={own.name} /></span>}
+        </Ring>
+        <span className="flex min-w-0 flex-col">
+          <span className="hud-display text-3xl font-extrabold tabular-nums leading-none">{people.collected}</span>
+          <span className="text-sm text-muted-foreground">{`of ${people.total} people collected`}</span>
+          <span className="text-xs text-muted-foreground">{`${crestWords} of ${crests.total}`}</span>
           {teams.stickers !== undefined && <span className="mt-1 text-xs text-muted-foreground">{stickerWordsOf(teams.stickers)}</span>}
         </span>
       </AppLink>
