@@ -4,7 +4,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { countTeamPagesCompleted, type CompletedUnder } from "../achievements/achievements";
 import { publish } from "../bus/publish";
 import type { KudosGivenEvent } from "../bus/events";
-import { companyTeamsOf } from "../companyProfiles/teams";
+import { crestImagesOf } from "../companyProfiles/teams";
 import { awardIdValidator, latestInAwardOrder, messageOfAward, type AwardId, type LatestInAwardOrder } from "../engine/awards";
 import type { CompletedTeam } from "../feedback/notify";
 import { crestsCollectedBy } from "../hoggies/collection";
@@ -93,7 +93,7 @@ type Recording = { told: boolean; roster: CollectedCrest[] };
 
 async function recordCompletions(ctx: MutationCtx, { workspace, member }: Check, due: DuePage[], { told, roster }: Recording): Promise<CompletedUnder> {
   if (due.length === 0) return new Map();
-  const crestImages = new Map((await companyTeamsOf(ctx)).map(({ team, crestImage }) => [team, crestImage]));
+  const crestImages = await crestImagesOf(ctx);
   const completed = new Map<AwardId, { at: number; teams: CompletedTeam[]; counted: Array<{ team: string; people: number }> }>();
   for (const { page, completing } of due) {
     const crestImage = crestImages.get(page.team);
