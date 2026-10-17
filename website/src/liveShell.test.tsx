@@ -624,6 +624,22 @@ describe("#568: a member picks a hoggie they hold as their avatar on /book/colle
   });
 });
 
+describe("#614: a pack never opens again by itself", () => {
+  it("sends the picked pack's one openCrate over HTTP with the session's token, never through the socket's queue", async () => {
+    window.history.replaceState(null, "", "/book/collection");
+    profileRead.mockReturnValue(shellFixtures.memberWithPacks);
+    boardRead.mockImplementation((query: string) => (query === "website/collection:getCollection" ? collectionFixtures.withEveryKindOfPack : bookFixtures.book));
+    sentOverHttp.mockReturnValue(new Promise(() => undefined));
+    const { user } = renderLiveSite();
+
+    await user.click((await screen.findAllByRole("button", { name: "Fan out the 5 packs" }))[0]!);
+    await user.click(screen.getByRole("button", { name: "Open pack 4" }));
+
+    expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/commands:openCrate", args: { crate: "bought:1" } });
+    expect(openFeatureCall).not.toHaveBeenCalled();
+  });
+});
+
 describe("WS87 WS335: an item purchase never sends again by itself", () => {
   it("sends buyItem once over HTTP with the session's token and the item's pending request, never through the socket's queue", async () => {
     profileRead.mockReturnValue(shellFixtures.memberWithTheInventory);
