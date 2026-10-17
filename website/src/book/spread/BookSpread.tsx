@@ -19,12 +19,12 @@ import "./spread.css";
 
 type YourBook = Extract<BookAnswer, { kind: "book" }>;
 
-type BookSpreadProps = { book: YourBook; collection: Collection; spread: Spread; chatUrl: string; coins: number | null; onBuyCrate: ShellActions["buyCrate"]; onOpenPack: ShellActions["openCrate"] | undefined; avatar: Avatar | null | undefined; onSetAvatar: ShellActions["setAvatar"] };
+type BookSpreadProps = { book: YourBook; collection: Collection; spread: Spread; chatUrl: string; matchingHref: string | null; coins: number | null; onBuyCrate: ShellActions["buyCrate"]; onOpenPack: ShellActions["openCrate"] | undefined; avatar: Avatar | null | undefined; onSetAvatar: ShellActions["setAvatar"] };
 
-export function BookSpread({ book, collection, spread, chatUrl, coins, onBuyCrate, onOpenPack, avatar, onSetAvatar }: BookSpreadProps) {
+export function BookSpread({ book, collection, spread, chatUrl, matchingHref, coins, onBuyCrate, onOpenPack, avatar, onSetAvatar }: BookSpreadProps) {
   const avatarChoice = useAvatarChoice(avatar, onSetAvatar);
   const teams = teamPagesOf(collection);
-  const fresh = useFreshKeys([...collection.hoggies, ...(collection.crests ?? []), ...(collection.stickers ?? [])].flatMap(({ seen }) => seen ?? []));
+  const fresh = useFreshKeys([...collection.hoggies, ...(collection.crests ?? []), ...(collection.stickers ?? []), ...(collection.teams ?? []).map(({ crest }) => ({ seen: crest?.seen ?? null }))].flatMap(({ seen }) => seen ?? []));
   const shown = spreadShown(spread, teams);
   const key = spreadKeyOf(shown);
   const bookRef = useScrollToTheBookOnFlip(key);
@@ -44,7 +44,7 @@ export function BookSpread({ book, collection, spread, chatUrl, coins, onBuyCrat
           {shown.kind === "cover" && <CoverSpread collection={collection} teams={teams} ladders={book.ladders} fresh={fresh} timeZone={book.timeZone} />}
           {shown.kind === "hoggies" && <HoggiesSpread collection={collection} rarity={shown.rarity} fresh={fresh} timeZone={book.timeZone} avatar={avatarChoice} firstPage={numbering.hoggies} />}
           {shown.kind === "teams" && teams !== null && <TeamsSpread teams={teams} chatUrl={chatUrl} timeZone={book.timeZone} firstPage={numbering.teams} />}
-          {shown.kind === "team" && teams !== null && <TeamSpread teams={teams} page={teamPageNamed(teams.pages, shown.team)!} timeZone={book.timeZone} firstPage={numbering.team} />}
+          {shown.kind === "team" && teams !== null && <TeamSpread teams={teams} page={teamPageNamed(teams.pages, shown.team)!} timeZone={book.timeZone} firstPage={numbering.team} matchingHref={matchingHref} />}
           {shown.kind === "achievements" && <AchievementsSpread ladders={book.ladders} category={shown.category} timeZone={book.timeZone} chapter={teams === null ? 2 : 3} firstPage={numbering.achievements} />}
         </article>
       </div>
