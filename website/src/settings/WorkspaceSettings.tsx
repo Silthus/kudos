@@ -28,8 +28,8 @@ export function WorkspaceSettings({ workspace, setWorkspaceSettings }: Workspace
   const [draft, setDraft] = useDraftOf(workspace, shown);
   const asked = changeOf(draft);
   const edited = !isComplete(draft) || keyOf(asked) !== shown;
-  const { pending, line, save } = useSentSave(shown, edited, setWorkspaceSettings);
-  const savable = edited && !pending && isComplete(draft);
+  const { held, line, save } = useSentSave(shown, edited, setWorkspaceSettings);
+  const savable = edited && !held && isComplete(draft);
   const preview = emojiNameOf(draft.kudosEmoji);
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -39,11 +39,11 @@ export function WorkspaceSettings({ workspace, setWorkspaceSettings }: Workspace
     <Panel id="workspace-settings" label="Workspace" target={panelTargetAttributes("workspace")}>
       <p className="text-sm text-muted-foreground">As HedgeHug's maintainer, you set these for everyone in the workspace. A change counts from the next kudos or hug, today's included.</p>
       <form onSubmit={submit} className="flex flex-col gap-4">
-        <NumberField label="Kudos a day" hint="How many kudos each member can give a day." range={allowanceRange} held={pending} value={draft.baseAllowance} onChange={(baseAllowance) => setDraft({ ...draft, baseAllowance })} />
+        <NumberField label="Kudos a day" hint="How many kudos each member can give a day." range={allowanceRange} held={held} value={draft.baseAllowance} onChange={(baseAllowance) => setDraft({ ...draft, baseAllowance })} />
         <Field label="Kudos emoji" hint="The emoji that gives kudos and that a hug reacts with. The old one stops counting at once.">
           {(ids) => (
             <span className="flex items-center gap-2">
-              <input {...ids} type="text" readOnly={pending} value={draft.kudosEmoji} autoComplete="off" spellCheck={false} onChange={(event) => setDraft({ ...draft, kudosEmoji: event.target.value })} className={inputClass} />
+              <input {...ids} type="text" readOnly={held} value={draft.kudosEmoji} autoComplete="off" spellCheck={false} onChange={(event) => setDraft({ ...draft, kudosEmoji: event.target.value })} className={inputClass} />
               {preview !== "" && (
                 <span className="block max-w-[40%] shrink-0 truncate text-xl">
                   <NamedEmoji name={preview} image={preview === workspace.kudosEmoji ? (workspace.kudosEmojiImage ?? undefined) : undefined} />
@@ -52,7 +52,7 @@ export function WorkspaceSettings({ workspace, setWorkspaceSettings }: Workspace
             </span>
           )}
         </Field>
-        <NumberField label="Hugs a day" hint="How many hugs each member can give a day. 0 means hugs earn nothing." range={hugBudgetRange} held={pending} value={draft.hugBudget} onChange={(hugBudget) => setDraft({ ...draft, hugBudget })} />
+        <NumberField label="Hugs a day" hint="How many hugs each member can give a day. 0 means hugs earn nothing." range={hugBudgetRange} held={held} value={draft.hugBudget} onChange={(hugBudget) => setDraft({ ...draft, hugBudget })} />
         <div>
           <Button type="submit" variant="primary" disabled={!savable}>
             Save
@@ -95,16 +95,31 @@ function useDraftOf(workspace: WorkspaceSettingsPart, shown: string) {
   const [draftShown, setDraftShown] = useState(shown);
   if (draftShown !== shown) {
     setDraftShown(shown);
-    if (isAnswered(draft, draftShown, shown)) setDraft(draftOf(workspace));
+    setDraft(draftOf(workspace));
   }
   return [draft, setDraft] as const;
 }
 
 function useSentSave(shown: string, edited: boolean, setWorkspaceSettings: ShellActions["setWorkspaceSettings"]) {
   const [reason, setReason] = useState<WorkspaceSettingsRefusal | null>(null);
-  const { pending, settled, choose } = useSentChoice(shown, async (asked: string) => answerOf(await setWorkspaceSettings(changeOfKey(asked)), setReason));
+  const awaitedRead = useAwaitedRead(shown);
+  const { pending, settled, choose } = useSentChoice(shown, async (asked: string) => {
+    const answer = answerOf(await setWorkspaceSettings(changeOfKey(asked)), setReason);
+    if (answer === "landed") awaitedRead.await(asked);
+    return answer;
+  });
   const line = settled === "refused" ? refusalLines[reason ?? "off"] : lineAfter(settled, edited ? "" : savedLine);
-  return { pending, line, save: (change: WorkspaceSettingsChange) => choose(keyOf(change)) };
+  return { held: pending || awaitedRead.waiting, line, save: (change: WorkspaceSettingsChange) => choose(keyOf(change)) };
+}
+
+function useAwaitedRead(shown: string) {
+  const [awaited, setAwaited] = useState<string | null>(null);
+  const [awaitedShown, setAwaitedShown] = useState(shown);
+  if (awaitedShown !== shown) {
+    setAwaitedShown(shown);
+    setAwaited(null);
+  }
+  return { waiting: awaited !== null && awaited !== shown, await: (key: string) => setAwaited(key) };
 }
 
 function answerOf(reply: WorkspaceSettingsReply, setReason: (reason: WorkspaceSettingsRefusal | null) => void): Answer {
@@ -112,11 +127,6 @@ function answerOf(reply: WorkspaceSettingsReply, setReason: (reason: WorkspaceSe
   if (reply.kind !== "refused") return "denied";
   setReason(reply.reason);
   return "refused";
-}
-
-function isAnswered(draft: Draft, before: string, now: string) {
-  const drafted = keyOf(changeOf(draft));
-  return drafted === before || drafted === now;
 }
 
 function isComplete({ baseAllowance, hugBudget }: Draft) {

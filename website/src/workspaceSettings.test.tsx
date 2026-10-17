@@ -123,18 +123,21 @@ describe("the maintainer's workspace settings change only through setWorkspaceSe
     for (const name of ["Kudos a day", "Kudos emoji", "Hugs a day"]) expect(field(name)).not.toHaveAttribute("readonly");
   });
 
-  it("keeps an edit typed after the answer when the read lands later", async () => {
+  it("holds the fields from the answer until the read shows the save, so nothing typed in between is lost", async () => {
     const { user, showSettingsAnswer } = showSettings(forTheMaintainer(), async () => ({ kind: "set" }));
     await user.clear(field("Kudos a day"));
     await user.type(field("Kudos a day"), "5");
     await user.click(saveButton());
 
-    await user.clear(field("Kudos a day"));
     await user.type(field("Kudos a day"), "7");
-    showSettingsAnswer(forTheMaintainer({ ...workspaceParts.defaults, baseAllowance: 5 }));
+    expect(field("Kudos a day")).toHaveAttribute("readonly");
+    expect(field("Kudos a day")).toHaveValue(5);
 
-    expect(field("Kudos a day")).toHaveValue(7);
-    expect(saveButton()).not.toHaveAttribute("aria-disabled", "true");
+    showSettingsAnswer(forTheMaintainer({ ...workspaceParts.defaults, baseAllowance: 5 }));
+    expect(field("Kudos a day")).not.toHaveAttribute("readonly");
+    await user.clear(field("Kudos a day"));
+    await user.type(field("Kudos a day"), "3");
+    expect(field("Kudos a day")).toHaveValue(3);
   });
 
   it("drops the saved line once a saved hug budget of 0 is cleared", async () => {
