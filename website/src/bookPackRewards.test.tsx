@@ -367,6 +367,23 @@ describe("#606: every crate listed as a pack opens in the one scene, wherever it
       expect(announcement()).toHaveTextContent(`${doctor.name} is in your book.`);
     });
 
+    it("#614: keeps showing the answer's to after the landing until the profile reads it, since the open's one HTTP send can outrun the socket's read", async () => {
+      preferReducedMotion();
+      const { showVisitor } = await fanOutAndOpen(2, { member: beforeLevel6, openCrate: answering({ "bought:1": opened(doctor, acrossLevel6), "bought:2": opened(wizard, null) }) });
+
+      fireEvent.keyDown(dialog()!, { key: "Escape" });
+      await landTheHoggie();
+      await settle(landingPauseMs);
+      expect(announcement()).toHaveTextContent(`${doctor.name} is in your book.`);
+      expect(hud()).toEqual({ level: "Level 6, 490 XP to level 7", coins: "236" });
+
+      showVisitor(afterTheOpen);
+      expect(hud()).toEqual({ level: "Level 6, 490 XP to level 7", coins: "236" });
+
+      showVisitor({ ...afterTheOpen, coins: 186 });
+      expect(hud()).toEqual({ level: "Level 6, 490 XP to level 7", coins: "186" });
+    });
+
     it("opened away from the Book, puts the hoggie in the book without touching the page's hash, and still flies the chips", async () => {
       window.history.replaceState(null, "", "/quests");
       const { showVisitor } = showThePacks(fourPacks, { member: { ...questing, progression: beforeLevel6.progression }, openCrate: answering({ [weeklyKey]: opened(doctor, acrossLevel6) }) });
@@ -429,6 +446,21 @@ describe("#606: every crate listed as a pack opens in the one scene, wherever it
       advance(1000);
       expect(hud()).toEqual({ level: "Level 6, 490 XP to level 7", coins: "236" });
       expect(flight()).toBeNull();
+    });
+
+    it("#614: keeps an interrupted landing's to until the profile reads it, when another pack is picked before the socket caught up", async () => {
+      const { showVisitor } = await fanOutAndOpen(2, { member: beforeLevel6, openCrate: answering({ "bought:1": opened(doctor, acrossLevel6), "bought:2": opened(wizard, null) }) });
+      await revealTheTappedPack();
+      fireEvent.keyDown(dialog()!, { key: "Escape" });
+
+      fireEvent.click(packButtons()[0]!);
+      fireEvent.click(packButtons()[0]!);
+      await act(async () => {});
+      advance(1000);
+      expect(hud()).toEqual({ level: "Level 6, 490 XP to level 7", coins: "236" });
+
+      showVisitor({ ...afterTheOpen, coins: 186 });
+      expect(hud()).toEqual({ level: "Level 6, 490 XP to level 7", coins: "186" });
     });
 
     it("keeps the scene and its live region when the last claim stops the collection read", async () => {

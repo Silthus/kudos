@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { dropOf } from "../../crates/drops";
 import { attemptMessages, type Attempt } from "../../crates/moments";
-import type { PackHold, RewardKind } from "../../crates/rewards";
+import { landedEverywhere, type PackHold, type RewardKind } from "../../crates/rewards";
 import type { ShellActions } from "../../shell";
 import { inTheBookWordsOf, openedWordsOf, packOf, type OpenedPack, type ScenePack, type WaitingPack, type WaitingPacks } from "./packs";
 
@@ -113,10 +113,12 @@ export function usePackSession({ packs, listed, more }: WaitingPacks, openCrate:
     [openCrate, attemptIs],
   );
 
+  const settleTheHolds = useCallback(() => setHeld((before) => before.map((hold) => ({ ...landedEverywhere(hold), crate: hold.crate }))), []);
+
   const putInTheBookAtOnce = useCallback((opened: OpenedPack[]) => {
-    setHeld([]);
+    settleTheHolds();
     setAnnouncement(inTheBookWordsOf(opened));
-  }, []);
+  }, [settleTheHolds]);
 
   const pick = useCallback(
     (crate: string) => {
@@ -151,9 +153,9 @@ export function usePackSession({ packs, listed, more }: WaitingPacks, openCrate:
   const landed = useCallback(() => {
     if (stage.kind !== "landing") return;
     setAnnouncement(inTheBookWordsOf(stage.opened));
-    setHeld([]);
+    settleTheHolds();
     setStage({ kind: "stack" });
-  }, [stage]);
+  }, [stage, settleTheHolds]);
 
   const scenePacks = inTheScene.map(({ crate, n }): ScenePack => {
     const found = opened.find((pack) => pack.crate === crate);

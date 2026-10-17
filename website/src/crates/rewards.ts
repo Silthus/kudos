@@ -4,6 +4,8 @@ import type { ReadyCrate } from "./readyCrates";
 
 export type RewardKind = "xp" | "skillPoints" | "coins";
 
+const rewardKinds: RewardKind[] = ["xp", "skillPoints", "coins"];
+
 export type Reward = Record<RewardKind, number>;
 
 export type Climb = AppliedReward | null;
@@ -63,7 +65,16 @@ export function withTheRewardsHeld(member: MemberProfile, onTheWay: OnTheWay[]):
   };
 }
 
-export function withThePacksHeld(member: MemberProfile, holds: PackHold[]): MemberProfile {
+export function landedEverywhere(hold: PackHold): PackHold {
+  return { ...hold, landed: rewardKinds };
+}
+
+function readByTheProfile({ applied, landed }: PackHold, { progression }: MemberProfile) {
+  return landed.length === rewardKinds.length && (progression === null || progression.xp >= applied.to.xp);
+}
+
+export function withThePacksHeld(member: MemberProfile, allHolds: PackHold[]): MemberProfile {
+  const holds = allHolds.filter((hold) => !readByTheProfile(hold, member));
   if (holds.length === 0) return member;
   const pinned = (kind: RewardKind) => {
     const first = holds.find(({ landed }) => !landed.includes(kind)) ?? holds.at(-1)!;
