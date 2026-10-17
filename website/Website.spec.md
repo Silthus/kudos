@@ -129,6 +129,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   via: #606: every crate listed as a pack opens in the one scene, wherever its Open is
   refuted: packOf sent every ready crate to the pack scene while packs were listed, without asking whether getCollection lists it -> a crate that isn't listed lost today's reveal, 1 of 17 tests red (2026-10-17)
   refuted: the live shell sent openCrate through the socket's useMutation instead of once over HTTP -> no HTTP send for the picked pack, 1 of 18 tests red (2026-10-17)
+  refuted: the landing cleared every pack hold at once -> the HUD fell back to a profile that hadn't read the open, 226 coins and level 5 instead of 236 and level 6, 1 of 19 tests red (2026-10-17)
   because: the product owner asked for every crate to be a foil pack paying XP and coins (#584) and map #1 widened `packs` to every production member before this slice shipped, so the one reveal is the release and the packs-absent path must stay what #586 shipped
   kinds: output
   checklist: destination-confinement dismissed: the scene sends openCrate with a key getCollection listed and nothing else; a refused or unreachable answer re-seals the pack
