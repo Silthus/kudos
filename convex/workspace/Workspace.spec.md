@@ -42,6 +42,7 @@ Workspace: the settings with their defaults and the directory of the workspace's
 - only the maintainer changes the workspace settings: Only the member whose Slack user ID the deployment's KUDOS_MAINTAINER names, while `workspace-settings` is on for them, changes the daily allowance, the kudos emoji and the hug budget, and sees them in Settings; a workspace admin or anyone else, every member while KUDOS_MAINTAINER is unset or names someone else, and the maintainer while `workspace-settings` is off, changes nothing and sees no workspace part, and a Slack click carrying the command is no command at all.
   over: getSettings, Settings' sections and setWorkspaceSettings for the maintainer with `workspace-settings` on and off, a workspace admin who isn't the maintainer, KUDOS_MAINTAINER unset and naming another user, and a Slack click carrying setWorkspaceSettings
   via: only the maintainer changes the workspace settings
+  refuted: isTheMaintainer answered true for every member, whatever KUDOS_MAINTAINER named -> 3 of 5 tests failed: the workspace admin saw the workspace part, so did every member with KUDOS_MAINTAINER unset, and a save by a member KUDOS_MAINTAINER doesn't name answered set (2026-10-17)
   because: the three settings change what every member of the workspace can give and what counts as a kudos, at once and for today too; the product owner chose that only his own account may change them (2026-10-17), so a workspace admin, who already sets the announcement channel, must not, and a deployment that names nobody must leave every member out
   crossing: browser -> domain
   entrances: mutation setWorkspaceSettings
@@ -59,6 +60,7 @@ Workspace: the settings with their defaults and the directory of the workspace's
 - a workspace settings save stays in bounds: A save keeps the daily allowance a whole number from 1 to 20, the hug budget a whole number from 0 to 50 and the kudos emoji one emoji's name, trimmed, lowercased and without its colons, with no skin tone; any other value is refused with the setting it names and writes nothing.
   over: setWorkspaceSettings with an allowance of 0, 21 and 2.5, a hug budget of -1, 51 and 1.5, an emoji that is empty, holds a space or carries a skin tone, and the edges 1 and 20, 0 and 50
   via: a workspace settings save stays in bounds
+  refuted: isWithin no longer required a whole number -> 2 of 10 tests failed: an allowance of 2.5 and a hug budget of 1.5 were saved (2026-10-17)
   because: an allowance of 0 or a fraction would leave members unable to give or give part of a kudos, a large one or a large hug budget grows what one kudos message or one day's hugs reads and writes, and an emoji name the parser can never match turns every kudos into ordinary chat
   kinds: state, budget
   checklist: revalidated-permission dismissed: who may save is only the maintainer changes the workspace settings; this bullet bounds the values a permitted save writes
