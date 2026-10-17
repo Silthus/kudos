@@ -1,6 +1,6 @@
 // PROTOTYPE (#625): the floating variant switcher. Shown only in fixture builds. Never merge to main.
 import { useEffect, useReducer } from "react";
-import { prototypeOn, prototypeVariants, variantIn, type VariantKey } from "./variants";
+import { prototypeOn, prototypeRounds, prototypeVariants, variantIn, type VariantKey } from "./variants";
 
 function goTo(key: VariantKey | null) {
   const address = new URL(window.location.href);
@@ -41,17 +41,23 @@ export function PrototypeBar() {
 
   if (!prototypeOn) return null;
   const name = prototypeVariants.find(({ key }) => key === current)?.name ?? "Today's site";
+  const round = prototypeRounds.find(({ variants }) => variants.some(({ key }) => key === current))?.round;
   return (
     <div data-prototype-bar style={{ position: "fixed", left: "50%", bottom: 14, transform: "translateX(-50%)", zIndex: 2147483000, display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", borderRadius: 999, background: "#111", color: "#fff", font: "600 13px/1 system-ui, sans-serif", boxShadow: "0 8px 24px rgb(0 0 0 / 35%)", border: "2px solid #f54e00", maxWidth: "calc(100vw - 16px)" }}>
       <BarButton label="Previous variant" onClick={() => goTo(stepped(current, -1))}>
         ←
       </BarButton>
-      {prototypeVariants.map(({ key, name: variantName }) => (
-        <BarButton key={key} label={`Variant ${key}: ${variantName}`} pressed={key === current} onClick={() => goTo(key)}>
-          {key}
-        </BarButton>
+      {prototypeRounds.map(({ round, variants }) => (
+        <span key={round} style={{ display: "flex", alignItems: "center", gap: 4, paddingLeft: 6, borderLeft: "1px solid #444" }}>
+          <span style={{ fontSize: 10, opacity: 0.7, textTransform: "uppercase" }}>{round.replace("Round ", "R")}</span>
+          {variants.map(({ key, name: variantName }) => (
+            <BarButton key={key} label={`${round}, variant ${key}: ${variantName}`} pressed={key === current} onClick={() => goTo(key)}>
+              {key.replace("r1-", "")}
+            </BarButton>
+          ))}
+        </span>
       ))}
-      <span style={{ minWidth: 150, textAlign: "center", padding: "0 6px", display: window.innerWidth < 560 ? "none" : undefined }}>{current === null ? name : `${current} · ${name}`}</span>
+      <span style={{ minWidth: 150, textAlign: "center", padding: "0 6px", display: window.innerWidth < 560 ? "none" : undefined }}>{current === null ? name : `${round} · ${current.replace("r1-", "")} · ${name}`}</span>
       <BarButton label="Today's site" pressed={current === null} onClick={() => goTo(null)}>
         0
       </BarButton>

@@ -1,13 +1,31 @@
-// PROTOTYPE (#625): five radically different HedgeHug websites on today's routes, switched by ?variant=1..5. Never merge to main.
-export const prototypeVariants = [
-  { key: "1", name: "Game HUD" },
-  { key: "2", name: "The Book" },
-  { key: "3", name: "Radical polish" },
-  { key: "4", name: "Character sheet" },
-  { key: "5", name: "Corkboard desk" },
+// PROTOTYPE (#625): radically different HedgeHug websites on today's routes, switched by ?variant=. Round 2 is 1..4, round 1 stays at r1-1..r1-5. Never merge to main.
+export const prototypeRounds = [
+  {
+    round: "Round 2",
+    variants: [
+      { key: "1", name: "Meadow realm" },
+      { key: "2", name: "World map" },
+      { key: "3", name: "Sky island" },
+      { key: "4", name: "Guild hall" },
+    ],
+  },
+  {
+    round: "Round 1",
+    variants: [
+      { key: "r1-1", name: "Game HUD" },
+      { key: "r1-2", name: "The Book" },
+      { key: "r1-3", name: "Radical polish" },
+      { key: "r1-4", name: "Character sheet" },
+      { key: "r1-5", name: "Corkboard desk" },
+    ],
+  },
 ] as const;
 
-export type VariantKey = (typeof prototypeVariants)[number]["key"];
+type Variant = (typeof prototypeRounds)[number]["variants"][number];
+
+export const prototypeVariants: readonly Variant[] = prototypeRounds.flatMap(({ variants }): readonly Variant[] => variants);
+
+export type VariantKey = Variant["key"];
 
 export const prototypeOn = Boolean(import.meta.env.VITE_SHELL_FIXTURE);
 

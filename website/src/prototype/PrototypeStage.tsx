@@ -7,6 +7,10 @@ import { TheBook } from "./variant-2-the-book/TheBook";
 import { RadicalPolish } from "./variant-3-radical-polish/RadicalPolish";
 import { CharacterSheet } from "./variant-4-character-sheet/CharacterSheet";
 import { CorkboardDesk } from "./variant-5-corkboard-desk/CorkboardDesk";
+import { MeadowRealm } from "./round-2/variant-1-meadow-realm/MeadowRealm";
+import { WorldMap } from "./round-2/variant-2-world-map/WorldMap";
+import { SkyIsland } from "./round-2/variant-3-sky-island/SkyIsland";
+import { GuildHall } from "./round-2/variant-4-guild-hall/GuildHall";
 import type { VariantKey } from "./variants";
 
 export type VariantProps = {
@@ -17,11 +21,15 @@ export type VariantProps = {
 };
 
 const variantOf = {
-  "1": GameHud,
-  "2": TheBook,
-  "3": RadicalPolish,
-  "4": CharacterSheet,
-  "5": CorkboardDesk,
+  "1": MeadowRealm,
+  "2": WorldMap,
+  "3": SkyIsland,
+  "4": GuildHall,
+  "r1-1": GameHud,
+  "r1-2": TheBook,
+  "r1-3": RadicalPolish,
+  "r1-4": CharacterSheet,
+  "r1-5": CorkboardDesk,
 } satisfies Record<VariantKey, (props: VariantProps) => ReactNode>;
 
 export function PrototypeStage({ variant, ...props }: VariantProps & { variant: VariantKey }) {

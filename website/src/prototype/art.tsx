@@ -3,6 +3,10 @@ import { DropArtwork } from "../crates/Hoggie";
 import { TeamCrest, type TeamArt } from "../crates/TeamCrest";
 
 export { MemberFace } from "../Face";
+export { LadderEmblem as AchievementEmblem } from "../book/LadderEmblem";
+export { Medal as TierMedal } from "../book/Medal";
+export { Rosette as TierRosette } from "../book/Rosette";
+export { Ladder as AchievementLadder } from "../book/Ladder";
 export { DropArtwork };
 
 export function HoggieArt({ slug, size, silhouette = false }: { slug: string; size: number; silhouette?: boolean }) {
