@@ -177,13 +177,20 @@ function StickerCard({ slot, number, timeZone }: { slot: TeamSlot; number: numbe
           {number}
         </span>
         {slot.lead && <LeadMarker />}
-        <figcaption className="bk-name-strip absolute inset-x-0 bottom-0 flex flex-col px-1.5 py-1 text-center leading-tight">
-          <span className="truncate text-[11px] font-semibold">{slot.name}</span>
-          {slot.role !== null && <span className="truncate text-[9px] font-medium opacity-80">{slot.role}</span>}
-        </figcaption>
+        <NameStrip slot={slot} />
       </div>
       <span className="sr-only">{`Sticker ${number}. ${facts}`}</span>
     </figure>
+  );
+}
+
+function NameStrip({ slot }: { slot: TeamSlot }) {
+  if (slot.role === null) return <figcaption className="bk-name-strip absolute inset-x-0 bottom-0 truncate px-1.5 py-1 text-center text-[11px] font-semibold leading-tight">{slot.name}</figcaption>;
+  return (
+    <figcaption className="bk-name-strip absolute inset-x-0 bottom-0 flex flex-col px-1.5 py-1 text-center leading-tight">
+      <span className="truncate text-[11px] font-semibold">{slot.name}</span>
+      <span className="truncate text-[9px] font-medium opacity-80">{slot.role}</span>
+    </figcaption>
   );
 }
 
@@ -219,17 +226,30 @@ function PortraitInitials({ initials }: { initials: string }) {
 }
 
 function EmptySlot({ slot, number }: { slot: TeamSlot; number: number }) {
-  const person = slot.picture.kind === "face" && slot.role !== null;
+  if (slot.picture.kind === "face" && slot.role !== null) return <EmptyPersonSlot slot={slot} number={number} />;
   return (
-    <div className={`bk-slot flex aspect-[3/4] flex-col items-center justify-center gap-1 p-2 text-center ${person ? "relative" : ""}`}>
-      {person && <PersonSilhouette className="size-8" />}
-      <span aria-hidden="true" className={`hud-display font-bold tabular-nums text-muted-foreground/70 ${person ? "text-lg" : "text-2xl sm:text-3xl"}`}>
+    <div className="bk-slot flex aspect-[3/4] flex-col items-center justify-center gap-1 p-2 text-center">
+      <span aria-hidden="true" className="hud-display text-2xl font-bold tabular-nums text-muted-foreground/70 sm:text-3xl">
+        {number}
+      </span>
+      <span className="text-[11px] font-medium leading-tight text-muted-foreground">{slot.name}</span>
+      <span className="text-[10px] leading-tight text-muted-foreground/80">{slot.picture.kind === "hoggie" ? rarityNameOf(slot.picture.rarity) : "Not collected yet"}</span>
+      <span className="sr-only">{`Sticker ${number}, empty.`}</span>
+    </div>
+  );
+}
+
+function EmptyPersonSlot({ slot, number }: { slot: TeamSlot; number: number }) {
+  return (
+    <div className="bk-slot relative flex aspect-[3/4] flex-col items-center justify-center gap-1 p-2 text-center">
+      <PersonSilhouette className="size-8" />
+      <span aria-hidden="true" className="hud-display text-lg font-bold tabular-nums text-muted-foreground/70">
         {number}
       </span>
       {slot.lead && <LeadMarker />}
       <span className="text-[11px] font-medium leading-tight text-muted-foreground">{slot.name}</span>
-      {slot.role !== null && <span className="text-[10px] leading-tight text-muted-foreground/80">{slot.role}</span>}
-      <span className="text-[10px] leading-tight text-muted-foreground/80">{slot.picture.kind === "hoggie" ? rarityNameOf(slot.picture.rarity) : "Not collected yet"}</span>
+      <span className="text-[10px] leading-tight text-muted-foreground/80">{slot.role}</span>
+      <span className="text-[10px] leading-tight text-muted-foreground/80">Not collected yet</span>
       <span className="sr-only">{`Sticker ${number}, empty.`}</span>
     </div>
   );
