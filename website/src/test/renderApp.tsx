@@ -38,7 +38,7 @@ const noSettings: SettingsRead = (asking) => (asking ? { kind: "not-found" } : u
 
 const noProfileCard: ProfileCardRead = (asking) => (asking ? { kind: "not-found" } : undefined);
 
-type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate" | "buyPerk" | "buyItem" | "buyCrate" | "openCrate" | "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setAvatar" | "swapQuest">>;
+type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate" | "buyPerk" | "buyItem" | "buyCrate" | "openCrate" | "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setAvatar" | "swapQuest">>;
 
 export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBoard, commands: Commands = {}, readQuests: QuestsRead = noQuests, readBook: BookRead = noBook, readSkillTree: SkillTreeRead = noSkillTree, readProfileCard: ProfileCardRead = noProfileCard, readRecentKudos: RecentKudosRead = noRecentKudos, activity: ActivityReads = noActivity, drawSpotlight: SpotlightDraw = noSpotlight, readSettings: SettingsRead = noSettings, readCollection: CollectionRead = noCollection) {
   const actions = { signIn: vi.fn(), signOut: vi.fn(), openFeature: vi.fn(commands.openFeature ?? (async () => ({ kind: "refused" }) as const)),
@@ -52,6 +52,7 @@ export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBo
     pickPrimaryGroup: vi.fn(commands.pickPrimaryGroup ?? (async () => ({ kind: "refused" }) as const)),
     linkMyCompanyProfile: vi.fn(commands.linkMyCompanyProfile ?? (async () => ({ kind: "refused", reason: null }) as const)),
     linkCompanyProfile: vi.fn(commands.linkCompanyProfile ?? (async () => ({ kind: "refused", reason: null }) as const)),
+    setWorkspaceSettings: vi.fn(commands.setWorkspaceSettings ?? (async () => ({ kind: "refused", reason: null }) as const)),
     setAvatar: vi.fn(commands.setAvatar ?? (async () => ({ kind: "refused" }) as const)),
     swapQuest: vi.fn(commands.swapQuest ?? (async () => ({ kind: "refused" }) as const)),
   };

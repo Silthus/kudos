@@ -105,6 +105,10 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: linkCompanyProfile in convex/website/commands.ts
   trust: browser
 
+- mutation setWorkspaceSettings: a browser asks, for the maintainer, to save the workspace's daily allowance, kudos emoji and hug budget, with the three typed values as its arguments
+  handler: setWorkspaceSettings in convex/website/commands.ts
+  trust: browser
+
 ## invariants
 - the route list is the paths the router serves: The backend's route list holds exactly the paths the website's router serves, so a website link Slack shows never opens the not-found page, and a page that ships adds its path to both in one change.
   over: routeList in convex/website/routes.ts and servedPaths in website/src/route.ts, the list routeOf matches a path against
