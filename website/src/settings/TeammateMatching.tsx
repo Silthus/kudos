@@ -1,5 +1,5 @@
 import { Button } from "@posthog/quill";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Panel } from "../home/Panel";
 import { panelTargetAttributes } from "../linkTarget";
 import type { AdminLinkTarget, AdminProfiles, ShellActions } from "../shell";
@@ -27,6 +27,7 @@ export function TeammateMatching({ admin: { members, profiles }, linkCompanyProf
   const [search, setSearch] = useState("");
   const [onlyUnmatched, setOnlyUnmatched] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
+  const { sending, linkOnce } = useLinksInFlight(linkCompanyProfile);
   const workspace = useMemo(() => ({ profiles, profileOf: new Map(profiles.map((profile) => [profile.profile, profile])), nameOf: new Map(members.map(({ key, name }) => [key, name])) }), [members, profiles]);
   const searchable = useMemo(() => members.map((teammate) => ({ teammate, text: searchTextOf(teammate.name, profileNameOf(workspace.profileOf, teammate.profile)) })), [members, workspace]);
   const found = searchable.filter(({ teammate, text }) => (!onlyUnmatched || teammate.by === null) && isFoundBy(text, search)).map(({ teammate }) => teammate);
@@ -46,7 +47,7 @@ export function TeammateMatching({ admin: { members, profiles }, linkCompanyProf
       ) : (
         <ul aria-label="Teammates" className="max-h-[36rem] divide-y overflow-y-auto rounded-lg border">
           {found.slice(0, teammatesShownAtMost).map((teammate) => (
-            <TeammateRow key={teammate.key} teammate={teammate} workspace={workspace} editing={editing === teammate.key} onEdit={setEditing} linkCompanyProfile={linkCompanyProfile} />
+            <TeammateRow key={teammate.key} teammate={teammate} workspace={workspace} editing={editing === teammate.key} held={sending.has(teammate.key)} onEdit={setEditing} linkCompanyProfile={linkOnce} />
           ))}
         </ul>
       )}
@@ -55,11 +56,27 @@ export function TeammateMatching({ admin: { members, profiles }, linkCompanyProf
   );
 }
 
+function useLinksInFlight(linkCompanyProfile: ShellActions["linkCompanyProfile"]) {
+  const [sending, setSending] = useState<ReadonlySet<string>>(new Set());
+  const linkOnce = useCallback<ShellActions["linkCompanyProfile"]>(
+    async (member, profile) => {
+      setSending((keys) => new Set(keys).add(member));
+      try {
+        return await linkCompanyProfile(member, profile);
+      } finally {
+        setSending((keys) => new Set([...keys].filter((key) => key !== member)));
+      }
+    },
+    [linkCompanyProfile],
+  );
+  return { sending, linkOnce };
+}
+
 type Workspace = { profiles: HeldProfile[]; profileOf: Map<number, HeldProfile>; nameOf: Map<string, string> };
 
-type TeammateRowProps = { teammate: Teammate; workspace: Workspace; editing: boolean; onEdit: (key: string | null) => void; linkCompanyProfile: ShellActions["linkCompanyProfile"] };
+type TeammateRowProps = { teammate: Teammate; workspace: Workspace; editing: boolean; held: boolean; onEdit: (key: string | null) => void; linkCompanyProfile: ShellActions["linkCompanyProfile"] };
 
-function TeammateRow({ teammate, workspace, editing, onEdit, linkCompanyProfile }: TeammateRowProps) {
+function TeammateRow({ teammate, workspace, editing, held, onEdit, linkCompanyProfile }: TeammateRowProps) {
   const { key, name, profile, by } = teammate;
   const adminTarget: AdminLinkTarget = by === "admin" ? (profile ?? "none") : null;
   const { pending, lineOnceLanded, choose } = useSentLink(adminTarget, (asked: AdminLinkTarget) => linkCompanyProfile(key, asked), refusalLines);
@@ -70,6 +87,7 @@ function TeammateRow({ teammate, workspace, editing, onEdit, linkCompanyProfile 
   };
   const send = (asked: AdminLinkTarget) => {
     closeEditor();
+    if (held) return;
     void choose(asked);
   };
   return (
@@ -79,7 +97,7 @@ function TeammateRow({ teammate, workspace, editing, onEdit, linkCompanyProfile 
           <h3 className="truncate text-sm font-semibold">{name}</h3>
           <p className="text-xs text-muted-foreground">{matchWordsOf(teammate, workspace.profileOf)}</p>
         </div>
-        <Button ref={change} variant="outline" size="sm" aria-label={`Change ${name}'s match`} aria-expanded={editing} disabled={pending} onClick={() => onEdit(editing ? null : key)}>
+        <Button ref={change} variant="outline" size="sm" aria-label={`Change ${name}'s match`} aria-expanded={editing} disabled={pending || held} onClick={() => onEdit(editing ? null : key)}>
           Change
         </Button>
       </div>

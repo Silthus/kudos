@@ -126,6 +126,20 @@ describe("#608: a member's posthog.com match changes only through the link comma
       expect(linkMyCompanyProfile).toHaveBeenCalledOnce();
     });
 
+    it("keeps keyboard focus in the section when the pressed choice leaves the page, after a pick and after a clear", async () => {
+      const { user, showSettingsAnswer } = showSettings(withCompanyProfile(companyProfiles.unmatched), { linkMyCompanyProfile: async () => ({ kind: "linked" }) });
+
+      within(thisIsMe()).getByRole("button", { name: "This is me: Samantha Okafor" }).focus();
+      await user.keyboard("{Enter}");
+      showSettingsAnswer(withCompanyProfile(companyProfiles.bySelf));
+      expect(within(thisIsMe()).getByRole("heading", { level: 2, name: "This is me on posthog.com" })).toHaveFocus();
+
+      within(thisIsMe()).getByRole("button", { name: "That isn't me" }).focus();
+      await user.keyboard("{Enter}");
+      showSettingsAnswer(withCompanyProfile(companyProfiles.unmatched));
+      expect(within(thisIsMe()).getByRole("heading", { level: 2, name: "This is me on posthog.com" })).toHaveFocus();
+    });
+
     it("shows the member's own pick with That isn't me, which clears it, and offers the other people to change to", async () => {
       const linkMyCompanyProfile = vi.fn(async (): Promise<CompanyProfileLinkReply> => ({ kind: "linked" }));
       const { user, showSettingsAnswer } = showSettings(withCompanyProfile(companyProfiles.bySelf), { linkMyCompanyProfile });
@@ -260,6 +274,27 @@ describe("#608: a member's posthog.com match changes only through the link comma
 
       expect(within(rowOf("Ada Admin")).getByRole("status")).toHaveTextContent("Ada Admin is matched to Samantha Okafor.");
       expect(rowOf("Ada Admin")).toHaveTextContent("Matched by an admin to Samantha Okafor");
+    });
+
+    it("keeps a teammate held while their match is pending, even when a search hides the row and brings it back", async () => {
+      const pending = answerLater<AdminProfileLinkReply>();
+      const linkCompanyProfile = vi.fn(() => pending.answer);
+      const { user } = showSettings(forAnAdmin(adminParts.teammates), { linkCompanyProfile });
+
+      await user.click(within(await change(user, "Ada Admin")).getByRole("button", { name: "Not on posthog.com" }));
+      const search = within(matching()).getByRole("searchbox", { name: "Find a teammate" });
+      await user.type(search, "wren");
+      expect(shownTeammates()).toEqual(["Wren Halloway"]);
+      await user.clear(search);
+
+      const changeAda = within(rowOf("Ada Admin")).getByRole("button", { name: "Change Ada Admin's match" });
+      expect(changeAda).toHaveAttribute("aria-disabled", "true");
+      await user.click(changeAda);
+      expect(within(rowOf("Ada Admin")).queryByRole("group")).not.toBeInTheDocument();
+      expect(linkCompanyProfile).toHaveBeenCalledOnce();
+
+      await act(async () => pending.resolve({ kind: "linked" }));
+      expect(within(rowOf("Ada Admin")).getByRole("button", { name: "Change Ada Admin's match" })).not.toHaveAttribute("aria-disabled", "true");
     });
 
     it("leaves a teammate's current profile out of their choices", async () => {

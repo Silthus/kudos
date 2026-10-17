@@ -1,4 +1,5 @@
 import { Button } from "@posthog/quill";
+import { useEffect, useRef } from "react";
 import { Panel } from "../home/Panel";
 import { panelTargetAttributes } from "../linkTarget";
 import type { CompanyProfileSetting, ShellActions } from "../shell";
@@ -15,10 +16,13 @@ const refusalLines: RefusalLines<"matched" | "taken" | "unknown"> = {
   off: "Matching isn't open for you right now.",
 };
 
+const sectionHeadingId = "company-profile-panel-title";
+
 export function CompanyProfileSection({ setting, linkMyCompanyProfile }: CompanyProfileSectionProps) {
   const { mine, by, choices } = setting;
   const ownPick = by === "self" ? (mine?.profile ?? null) : null;
   const { pending, lineOnceLanded, choose } = useSentLink(ownPick, linkMyCompanyProfile, refusalLines);
+  const press = useFocusKeptAfterPress((profile: number | null) => void choose(profile));
   const picksForThemselves = by === null || by === "self";
   return (
     <Panel id="company-profile" label="This is me on posthog.com" target={panelTargetAttributes("company-profile")}>
@@ -27,7 +31,7 @@ export function CompanyProfileSection({ setting, linkMyCompanyProfile }: Company
         <div className="flex items-center gap-3 rounded-lg border p-3">
           <PersonSummary person={mine} heading="h3" />
           {by === "self" && (
-            <Button variant="link-muted" size="sm" disabled={pending} onClick={() => void choose(null)}>
+            <Button variant="link-muted" size="sm" disabled={pending} onClick={() => press(null)}>
               That isn't me
             </Button>
           )}
@@ -40,7 +44,7 @@ export function CompanyProfileSection({ setting, linkMyCompanyProfile }: Company
           people={choices.filter(({ profile }) => profile !== mine?.profile)}
           heading="h3"
           actionOf={(person) => (
-            <Button variant="outline" size="sm" aria-label={`This is me: ${person.name}`} disabled={pending} onClick={() => void choose(person.profile)}>
+            <Button variant="outline" size="sm" aria-label={`This is me: ${person.name}`} disabled={pending} onClick={() => press(person.profile)}>
               This is me
             </Button>
           )}
@@ -49,6 +53,19 @@ export function CompanyProfileSection({ setting, linkMyCompanyProfile }: Company
       <StatusLine line={lineOnceLanded(mine === null || ownPick === null ? "Your pick is cleared." : `You're ${mine.name} on posthog.com.`)} />
     </Panel>
   );
+}
+
+function useFocusKeptAfterPress<Value>(send: (value: Value) => void) {
+  const pressed = useRef(false);
+  useEffect(() => {
+    if (!pressed.current || document.activeElement !== document.body) return;
+    pressed.current = false;
+    document.getElementById(sectionHeadingId)?.focus();
+  });
+  return (value: Value) => {
+    pressed.current = true;
+    send(value);
+  };
 }
 
 function matchLineOf({ mine, by }: CompanyProfileSetting) {
