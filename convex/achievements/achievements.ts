@@ -4,7 +4,7 @@ import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { republish } from "../feedback/homes";
 import type { CompletedTeam } from "../feedback/notify";
-import { tellTiersEarned } from "../feedback/tierNotices";
+import { tellTiersEarned, type TiersEarned } from "../feedback/tierNotices";
 import { isOpened } from "../feedback/unlockFilter";
 import { messageOfAward, type AwardId, type AwardWithId } from "../engine/awards";
 import { tierItemOf, type CatalogueItem } from "../store/catalogue";
@@ -65,12 +65,17 @@ export type CompletedUnder = Map<AwardId, { at: number; teams: CompletedTeam[] }
 
 export async function countTeamPagesCompleted(ctx: MutationCtx, recorded: CompletionsRecorded, completions: Completion[], completed: CompletedUnder): Promise<void> {
   const told = await tiersCountedFrom(ctx, recorded, completions);
+  const underMessages = new Map<string, TiersEarned>();
   for (const award of new Set([...told.keys(), ...completed.keys()])) {
     const message = await messageOfAward(ctx, award);
-    const earned = told.get(award) ?? [];
-    const teams = completed.get(award);
-    if (message !== null) await tellTiersEarned(ctx, { member: recorded.member, message, at: earned[0]?.reaching.at ?? teams!.at, earned: earned.map(({ tier }) => tier), completed: teams?.teams ?? [] });
+    if (message === null) continue;
+    const key = JSON.stringify(message);
+    const under = underMessages.get(key) ?? { member: recorded.member, message, at: told.get(award)?.[0]?.reaching.at ?? completed.get(award)!.at, earned: [], completed: [] };
+    under.earned.push(...(told.get(award) ?? []).map(({ tier }) => tier));
+    under.completed!.push(...(completed.get(award)?.teams ?? []));
+    underMessages.set(key, under);
   }
+  for (const under of underMessages.values()) await tellTiersEarned(ctx, { ...under, completed: under.completed!.toSorted((first, second) => first.name.localeCompare(second.name)) });
 }
 
 async function tiersCountedFrom(ctx: MutationCtx, { workspace, member }: CompletionsRecorded, completions: Completion[]): Promise<Map<AwardId, CompletionTier[]>> {

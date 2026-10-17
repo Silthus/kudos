@@ -229,9 +229,25 @@ export async function awardAt(ctx: QueryCtx, award: AwardId): Promise<number | n
   return (await ctx.db.get(award))?.at ?? null;
 }
 
-export async function latestInAwardOrder(ctx: QueryCtx, awards: AwardId[]): Promise<AwardId | null> {
-  const rows = (await Promise.all(awards.map((award) => ctx.db.get(award)))).flatMap((row) => row ?? []);
-  return rows.reduce<(typeof rows)[number] | null>((latest, row) => (latest === null || row._creationTime > latest._creationTime ? row : latest), null)?._id ?? null;
+export type LatestInAwardOrder = (awards: AwardId[]) => Promise<AwardId | null>;
+
+export function latestInAwardOrder(ctx: QueryCtx): LatestInAwardOrder {
+  const created = new Map<AwardId, number>();
+  return async (awards) => {
+    for (const award of awards) if (!created.has(award)) await learnCreationOfMessageOf(ctx, award, created);
+    return awards.filter((award) => created.has(award)).reduce<AwardId | null>((latest, award) => (latest === null || created.get(award)! > created.get(latest)! ? award : latest), null);
+  };
+}
+
+async function learnCreationOfMessageOf(ctx: QueryCtx, award: AwardId, created: Map<AwardId, number>) {
+  const row = await ctx.db.get(award);
+  if (row === null) return;
+  const { workspace, conversation, message } = row;
+  const siblings = await ctx.db
+    .query("awards")
+    .withIndex("by_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
+    .collect();
+  for (const sibling of [row, ...siblings]) created.set(sibling._id, sibling._creationTime);
 }
 
 export async function messageOfAward(ctx: QueryCtx, award: AwardId): Promise<MessageRef | null> {

@@ -5,7 +5,7 @@ import { countTeamPagesCompleted, type CompletedUnder } from "../achievements/ac
 import { publish } from "../bus/publish";
 import type { KudosGivenEvent } from "../bus/events";
 import { companyTeamsOf } from "../companyProfiles/teams";
-import { awardIdValidator, latestInAwardOrder, messageOfAward, type AwardId } from "../engine/awards";
+import { awardIdValidator, latestInAwardOrder, messageOfAward, type AwardId, type LatestInAwardOrder } from "../engine/awards";
 import type { CompletedTeam } from "../feedback/notify";
 import { crestsCollectedBy } from "../hoggies/collection";
 import { crestsShownTo } from "../hoggies/flag";
@@ -36,11 +36,11 @@ export const checkTeamPages = internalMutation({
   handler: async (ctx, { check }) => {
     if (!(await teamSpiritAppliesTo(ctx, check.member))) return;
     const roster = await rosterCrestsOf(ctx, check.member);
-    const due = await fullUnrecordedPages(ctx, check, roster);
+    const { pages: due, held } = await fullUnrecordedPages(ctx, check, roster);
     const recorded = due.slice(0, completionsPerMutation);
     const finished = recorded.length === due.length;
     const told = await toldAfterTheFirstCheck(ctx, check, finished);
-    const completed = await recordCompletions(ctx, check, recorded, { told, roster });
+    const completed = await recordCompletions(ctx, check, await withCompletingAwards(ctx, recorded, held), { told, roster });
     await countTeamPagesCompleted(ctx, check, await completionRecordsInOrder(ctx, check.member), told ? completed : new Map());
     if (!finished) await ctx.scheduler.runAfter(0, internal.stickers.completions.checkTeamPages, { check });
   },
@@ -60,22 +60,28 @@ async function toldAfterTheFirstCheck(ctx: MutationCtx, { member, at }: Check, f
   return first?.finished === true;
 }
 
-async function fullUnrecordedPages(ctx: QueryCtx, { workspace, member }: Check, crests: CollectedCrest[]): Promise<DuePage[]> {
+type HeldStickers = Map<MemberId, HeldSticker>;
+
+async function fullUnrecordedPages(ctx: QueryCtx, { workspace, member }: Check, crests: CollectedCrest[]): Promise<{ pages: TeamPageOf[]; held: HeldStickers }> {
   const stickers = await stickersNewestFirst(ctx, member);
   const pages = await teamPagesOf(ctx, { member, workspace }, { members: await memberRowsIn(ctx, workspace), stickers, crests });
   const recorded = new Set(await teamsCompletedBy(ctx, member));
   const full = pages.filter((page) => page.listed && isFull(page) && !recorded.has(page.team)).toSorted(byNameThenTeam);
-  const held = new Map(stickers.map((sticker) => [sticker.person, sticker]));
+  return { pages: full, held: new Map(stickers.map((sticker) => [sticker.person, sticker])) };
+}
+
+async function withCompletingAwards(ctx: QueryCtx, pages: TeamPageOf[], held: HeldStickers): Promise<DuePage[]> {
+  const latestOf = latestInAwardOrder(ctx);
   const due: DuePage[] = [];
-  for (const page of full) due.push({ page, completing: await completingAwardOf(ctx, page, held) });
+  for (const page of pages) due.push({ page, completing: await completingAwardOf(page, held, latestOf) });
   return due;
 }
 
-async function completingAwardOf(ctx: QueryCtx, { people }: TeamPageOf, held: Map<MemberId, HeldSticker>) {
+async function completingAwardOf({ people }: TeamPageOf, held: HeldStickers, latestOf: LatestInAwardOrder) {
   const stickers = people.flatMap(({ person }) => held.get(person) ?? []);
   const at = Math.max(...stickers.map(({ firstAt }) => firstAt));
   const latest = [...new Set(stickers.filter(({ firstAt }) => firstAt === at).map(({ firstAward }) => firstAward))];
-  const award = latest.length === 1 ? latest[0]! : ((await latestInAwardOrder(ctx, latest)) ?? latest[0]!);
+  const award = latest.length === 1 ? latest[0]! : ((await latestOf(latest)) ?? latest[0]!);
   return { award, at };
 }
 

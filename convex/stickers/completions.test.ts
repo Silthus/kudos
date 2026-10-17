@@ -43,6 +43,7 @@ const ivoProfile = { id: 5, firstName: "Ivo", lastName: "Marchetti" };
 const batchExports: PostHogComTeam = { slug: "batch-exports", name: "Batch Exports", profiles: [junoProfile, wrenProfile, tamsinProfile] };
 const lantern: PostHogComTeam = { slug: "lantern", name: "Lantern", crest: aCutout("lantern-crest"), profiles: [orielProfile, wrenProfile] };
 const zephyr: PostHogComTeam = { slug: "zephyr", name: "Zephyr", profiles: [tamsinProfile] };
+const quill: PostHogComTeam = { slug: "quill", name: "Quill", profiles: [orielProfile] };
 
 const lanternArt = { kind: "image", url: `https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/lantern-crest.png` };
 
@@ -293,6 +294,23 @@ describe("CV31 CV34: thanking a page's last missing person records it once under
     expect(publicLinesNamingACompletion()).toEqual([]);
   });
 
+  test("one kudos to two people completing a page each tells both in one private message", async () => {
+    await onPostHogCom(zephyr, quill, lantern);
+    await teamSpiritShipped(true);
+    await joined(juno, wren, oriel, tamsin);
+    await withTheBookOpen(juno);
+    await thanks(juno, wren);
+
+    await thanks(juno, tamsin, oriel);
+
+    const toJuno = slack
+      .callsTo("chat.postMessage")
+      .filter(({ channel }) => channel === juno.user)
+      .map(({ text }) => String(text))
+      .filter((text) => text.includes("Team complete"));
+    expect(toJuno, "one kudos's completions went out in more than one message").toEqual([expect.stringMatching(/^Team complete · Lantern crest earned\nTeam complete · Quill crest earned\nTeam complete · Zephyr crest earned\n/)]);
+  });
+
   test("a member whose tiers go beside the kudos is told there, and one who turned tiers off is told nothing", async () => {
     await onPostHogCom(lantern, zephyr);
     await teamSpiritShipped(true, "message-settings");
@@ -462,6 +480,24 @@ describe("CV37: with team-spirit off no check writes anything", { timeout: 60_00
 });
 
 describe("CV32: a member completing 60 pages at once stays inside Convex's limits", { timeout: 60_000 }, () => {
+  test("60 pages of the supported size, filled at one instant by one message of distinct awards, record all 60 under the latest award of each, 25 per check mutation", { timeout: 600_000 }, async () => {
+    t = testBackend({ transactionLimits: true });
+    await teamSpiritShipped(true);
+    await joined(juno, wren, zed, oriel);
+    await thanks(juno, wren);
+    const people = [juno, wren, zed, oriel, ...(await seededMembers(t, 1_996))];
+    await seededCompany(t, people, { teams: 60, size: 100, onEvery: zed });
+    await everyoneHeldBy(t, await memberOf(juno), people, { except: [await memberOf(oriel)], distinctAwards: true });
+    const reader = await withTheBookOpen(juno);
+
+    await thanks(oriel, juno);
+
+    const pages = await pagesOf(reader);
+    expect(pages.filter(({ completion }) => completion !== null && completion !== undefined)).toHaveLength(60);
+    expect(await pagesCompletedBy(juno)).toHaveLength(60);
+    expect((await checksRun()).failed, "a check mutation went over Convex's limits").toBe(0);
+  });
+
   test("the last missing person on 60 pages of the supported size records all 60, 25 per check mutation, told", { timeout: 600_000 }, async () => {
     t = testBackend({ transactionLimits: true });
     await teamSpiritShipped(true);

@@ -26,13 +26,20 @@ export async function seededGroups(t: Backend, people: Person[], { groups, size 
   });
 }
 
-export async function everyoneHeldBy(t: Backend, member: MemberId, people: Person[], { except = [] }: { except?: MemberId[] } = {}) {
+export type Holding = { except?: MemberId[]; distinctAwards?: boolean };
+
+export async function everyoneHeldBy(t: Backend, member: MemberId, people: Person[], { except = [], distinctAwards = false }: Holding = {}) {
   const { firstAward, firstAt } = (await t.run((ctx) => ctx.db.query("stickers").first()))!;
   const others = await t.run(async (ctx) => (await ctx.db.query("members").collect()).filter(({ _id }) => _id !== member).map(({ _id }) => _id));
   const left = new Set(except);
   await t.run(async (ctx) => {
     const held = new Set((await ctx.db.query("stickers").collect()).filter((sticker) => sticker.member === member).map(({ person }) => person));
-    for (const person of others) if (!held.has(person) && !left.has(person)) await ctx.db.insert("stickers", { member, person, firstAward, firstAt });
+    const { _id, _creationTime, ...award } = (await ctx.db.get(firstAward))!;
+    for (const person of others) {
+      if (held.has(person) || left.has(person)) continue;
+      const given = distinctAwards ? await ctx.db.insert("awards", { ...award, recipient: person }) : firstAward;
+      await ctx.db.insert("stickers", { member, person, firstAward: given, firstAt });
+    }
   });
   expect(others).toHaveLength(people.length - 1);
 }
