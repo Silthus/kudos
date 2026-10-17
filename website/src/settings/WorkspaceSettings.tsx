@@ -43,7 +43,7 @@ export function WorkspaceSettings({ workspace, setWorkspaceSettings }: Workspace
             <span className="flex items-center gap-2">
               <input {...ids} type="text" value={draft.kudosEmoji} autoComplete="off" spellCheck={false} onChange={(event) => setDraft({ ...draft, kudosEmoji: event.target.value })} className={inputClass} />
               {preview !== "" && (
-                <span className="text-xl">
+                <span className="block max-w-[40%] shrink-0 truncate text-xl">
                   <NamedEmoji name={preview} image={preview === workspace.kudosEmoji ? (workspace.kudosEmojiImage ?? undefined) : undefined} />
                 </span>
               )}
@@ -52,7 +52,7 @@ export function WorkspaceSettings({ workspace, setWorkspaceSettings }: Workspace
         </Field>
         <NumberField label="Hugs a day" hint="How many hugs each member can give a day. 0 means hugs earn nothing." range={hugBudgetRange} value={draft.hugBudget} onChange={(hugBudget) => setDraft({ ...draft, hugBudget })} />
         <div>
-          <Button type="submit" disabled={pending || keyOf(asked) === shown}>
+          <Button type="submit" variant="primary" disabled={pending || keyOf(asked) === shown}>
             Save
           </Button>
         </div>

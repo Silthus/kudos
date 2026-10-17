@@ -271,6 +271,7 @@ import type * as workspace_customEmoji from "../workspace/customEmoji.js";
 import type * as workspace_directory from "../workspace/directory.js";
 import type * as workspace_memberProfile from "../workspace/memberProfile.js";
 import type * as workspace_settings from "../workspace/settings.js";
+import type * as workspace_settingsBounds from "../workspace/settingsBounds.js";
 import type * as workspace_url from "../workspace/url.js";
 import type * as workspace_userGroups from "../workspace/userGroups.js";
 import type * as workspace_wordDeletion from "../workspace/wordDeletion.js";
@@ -546,6 +547,7 @@ declare const fullApi: ApiFromModules<{
   "workspace/directory": typeof workspace_directory;
   "workspace/memberProfile": typeof workspace_memberProfile;
   "workspace/settings": typeof workspace_settings;
+  "workspace/settingsBounds": typeof workspace_settingsBounds;
   "workspace/url": typeof workspace_url;
   "workspace/userGroups": typeof workspace_userGroups;
   "workspace/wordDeletion": typeof workspace_wordDeletion;
