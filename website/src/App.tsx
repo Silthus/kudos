@@ -9,7 +9,11 @@ import { ClimbSummary } from "./climb/ClimbSummary";
 import { useClimbOnReturn } from "./climb/useClimbOnReturn";
 import { LevelUpCelebration } from "./levelUp/LevelUpCelebration";
 import { useLevelUps } from "./levelUp/useLevelUps";
-import { rewardsOf, withTheRewardsHeld, type Reward } from "./crates/rewards";
+import { rewardsOf, withThePacksHeld, withTheRewardsHeld, type Reward } from "./crates/rewards";
+import { PackMoments } from "./book/packs/PackMoments";
+import { PacksProvider } from "./book/packs/PacksContext";
+import { waitingPacksOf } from "./book/packs/packs";
+import { usePackSession } from "./book/packs/usePackSession";
 import type { ActivityRead, ActivityShown, ActivityWatch } from "./activityRead";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import type { BookRead, BookShown } from "./bookRead";
@@ -25,6 +29,7 @@ import type { PendingItemPurchase } from "./home/itemPurchase";
 import { HomePage } from "./pages/HomePage";
 import { BookPage } from "./pages/BookPage";
 import { showsTheBookSpread } from "./book/spread/bookSpread";
+import { matchingAskedOn, matchingSettingsHrefOf } from "./book/spread/matching";
 import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { FeatureWaitsPage } from "./pages/FeatureWaitsPage";
 import { QuestsPage } from "./pages/QuestsPage";
@@ -67,11 +72,14 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   const onBook = member !== undefined && route.page === "book";
   const book = useBook(onBook);
   const onCollection = onBook && (route.bookPage === "collection" || (route.bookPage !== "earned" && showsTheBookSpread(member)));
-  const collection = useCollection(onBook || (onHome && isBookOpenFor(member)));
+  const readyCrates = member === undefined ? [] : readyCratesOf(member, quests);
+  const collection = useCollection(onBook || (isBookOpenFor(member) && (onHome || readyCrates.length > 0)));
   const onSkills = member !== undefined && route.page === "skills";
   const skillTree = useSkillTree(onSkills);
   const onSettings = member !== undefined && route.page === "settings";
-  const settings = useSettings(onSettings);
+  const matchingPeople = matchingAskedOn(member, route, collection);
+  const settings = useSettings(onSettings || matchingPeople);
+  const matchingHref = matchingPeople ? matchingSettingsHrefOf(settings) : null;
   const profileCard = useProfileCard(onHome);
   const onActivity = member !== undefined && route.page === "activity";
   const activityWatch = useActivityWatch(onActivity ? route.filter : undefined);
@@ -79,12 +87,13 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   const membersShown = useMembersShown(cratesOf(member));
   const signedOut = member === undefined && !stillAsking(shown);
   const pendingItemPurchase = useMemo<PendingItemPurchase>(() => ({ current: undefined }), [membersShown, signedOut]);
-  const moments = useCrateMoments(actions, { signedOut, crates: cratesOf(member), onQuests });
+  const packSession = usePackSession(waitingPacksOf(collection?.kind === "collection" ? collection : undefined), actions.openCrate, { signedOut, membersShown });
+  const moments = useCrateMoments(actions, { signedOut, crates: cratesOf(member), onQuests }, packSession);
   const reveal = member !== undefined ? moments.reveal : undefined;
   const revealing = reveal !== undefined;
   const climb = useClimbOnReturn(member, membersShown, readActivity);
-  const memberShown = member === undefined ? undefined : climb.shownOf(withTheRewardsHeld(member, moments.onTheWay));
-  const levels = useLevelUps(memberShown, membersShown, climb.climbing || moments.opening);
+  const memberShown = member === undefined ? undefined : climb.shownOf(withThePacksHeld(withTheRewardsHeld(member, moments.onTheWay), packSession.holds));
+  const levels = useLevelUps(memberShown, membersShown, climb.climbing || moments.opening || packSession.opening);
   const rewards = member === undefined ? [] : rewardsOf(member, moments.onTheWay);
   const { chart } = moments;
   useLayoutEffect(() => chart(rewards), [chart, rewards]);
@@ -110,38 +119,40 @@ export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useC
   const pageLanded = page.kind === "member" && !busy && !connecting && !revealing;
   useLinkTargetOnceLanded(route, { quest: pageLanded && quests?.kind === "quests", perk: pageLanded && skillTree?.kind === "tree", crate: pageLanded, panel: pageLanded, section: pageLanded && settings?.kind === "settings" });
   const signingIn = page.kind === "signed-out" && route.page !== "not-found";
-  const readyCrates = member === undefined ? [] : readyCratesOf(member, quests);
   return (
     <NavigateProvider value={arriveAt}>
       <MomentsProvider value={moments}>
-        {signingIn ? (
-          <SignedOutPage returnTo={returnAddressOf(route)} onSignIn={signIn} />
-        ) : (
-          <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={busy} revealing={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
-            <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
-              <Page state={page} route={route} board={board} quests={quests} book={book} collection={collection} skillTree={skillTree} settings={settings} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} pendingItemPurchase={pendingItemPurchase} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onBuyItem={actions.buyItem} onBuyCrate={actions.buyCrate} onOpenCrate={actions.openCrate} onSetAvatar={actions.setAvatar} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} settingsActions={actions} onSignIn={signIn} onSignOut={actions.signOut} />
-            </ErrorBoundary>
-          </Frame>
-        )}
-        {reveal !== undefined && member !== undefined && memberShown !== undefined && (
-          <RevealDialog
-            key={reveal.crate.seen}
-            {...reveal}
-            chatUrl={member.chatUrl}
-            questsOpen={questsOpen}
-            othersReady={readyCrates.filter(({ seen }) => seen !== reveal.crate.seen)}
-            flying={flying}
-            shown={memberShown}
-            onFinish={moments.finish}
-            onClose={moments.close}
-            onSetOut={moments.setOut}
-            onRewardLanded={moments.landed}
-          />
-        )}
-        {climb.chips !== undefined && memberShown !== undefined && <ClimbFlight chips={climb.chips} shown={memberShown} onLanded={climb.landed} onFinished={climb.finish} />}
-        {levels.levelUp !== undefined && memberShown !== undefined && <LevelUpCelebration key={levels.levelUp.key} levelUp={levels.levelUp} onDone={levels.done} />}
-        <MomentAnnouncement text={moments.announcement} />
-        <LevelUpAnnouncement text={levels.announcement} />
+        <PacksProvider value={packSession}>
+          {signingIn ? (
+            <SignedOutPage returnTo={returnAddressOf(route)} onSignIn={signIn} />
+          ) : (
+            <Frame member={memberShown} ready={readyCrates} readyElsewhere={readyCrates.filter((crate) => !isShownOn(crate, screenOf(route), quests))} current={screenOf(route)} busy={busy} revealing={revealing} notice={climb.summary !== undefined && <ClimbSummary text={climb.summary} />} onSignOut={actions.signOut}>
+              <ErrorBoundary key={route.page} fallback={(failure) => <ErrorPage {...failure} />}>
+                <Page state={page} route={route} board={board} quests={quests} book={book} collection={collection} matchingHref={matchingHref} skillTree={skillTree} settings={settings} profileCard={profileCard} useRecentKudos={useRecentKudos} activity={{ shown: activity, watch: activityWatch, read: readActivity, onChooseFilter: chooseFilter }} drawSpotlight={drawSpotlight} membersShown={membersShown} pendingItemPurchase={pendingItemPurchase} onChoosePeriod={choosePeriod} onBuyPerk={actions.buyPerk} onBuyItem={actions.buyItem} onBuyCrate={actions.buyCrate} onOpenCrate={actions.openCrate} onSetAvatar={actions.setAvatar} onSetBoardVisibility={actions.setBoardVisibility} onSwapQuest={actions.swapQuest} settingsActions={actions} onSignIn={signIn} onSignOut={actions.signOut} />
+              </ErrorBoundary>
+            </Frame>
+          )}
+          {reveal !== undefined && member !== undefined && memberShown !== undefined && (
+            <RevealDialog
+              key={reveal.crate.seen}
+              {...reveal}
+              chatUrl={member.chatUrl}
+              questsOpen={questsOpen}
+              othersReady={readyCrates.filter(({ seen }) => seen !== reveal.crate.seen)}
+              flying={flying}
+              shown={memberShown}
+              onFinish={moments.finish}
+              onClose={moments.close}
+              onSetOut={moments.setOut}
+              onRewardLanded={moments.landed}
+            />
+          )}
+          <PackMoments session={packSession} shown={memberShown} />
+          {climb.chips !== undefined && memberShown !== undefined && <ClimbFlight chips={climb.chips} shown={memberShown} onLanded={climb.landed} onFinished={climb.finish} />}
+          {levels.levelUp !== undefined && memberShown !== undefined && <LevelUpCelebration key={levels.levelUp.key} levelUp={levels.levelUp} onDone={levels.done} />}
+          <MomentAnnouncement text={moments.announcement} />
+          <LevelUpAnnouncement text={levels.announcement} />
+        </PacksProvider>
       </MomentsProvider>
     </NavigateProvider>
   );
@@ -230,6 +241,7 @@ type PageProps = {
   quests: QuestsShown | undefined;
   book: BookShown | undefined;
   collection: CollectionShown | undefined;
+  matchingHref: string | null;
   skillTree: SkillTreeShown | undefined;
   settings: SettingsShown | undefined;
   profileCard: ProfileCardShown | undefined;
@@ -251,7 +263,7 @@ type PageProps = {
   onSignOut: () => void;
 };
 
-function Page({ state, route, board, quests, book, collection, skillTree, settings, profileCard, useRecentKudos, activity, drawSpotlight, membersShown, pendingItemPurchase, onChoosePeriod, onBuyPerk, onBuyItem, onBuyCrate, onOpenCrate, onSetAvatar, onSetBoardVisibility, onSwapQuest, settingsActions, ...actions }: PageProps) {
+function Page({ state, route, board, quests, book, collection, matchingHref, skillTree, settings, profileCard, useRecentKudos, activity, drawSpotlight, membersShown, pendingItemPurchase, onChoosePeriod, onBuyPerk, onBuyItem, onBuyCrate, onOpenCrate, onSetAvatar, onSetBoardVisibility, onSwapQuest, settingsActions, ...actions }: PageProps) {
   if (state.kind === "broken") throw new Error("This page failed to render.");
   if (state.kind === "loading") return <LoadingPage shape={loadingShapeOf(route)} />;
   if (state.kind === "connecting" || state.kind === "closed") return <AnswerPage answer={state} {...actions} />;
@@ -260,7 +272,7 @@ function Page({ state, route, board, quests, book, collection, skillTree, settin
   if (route.page === "home") return quests?.kind === "connecting" || board?.kind === "connecting" ? <ConnectingPage /> : <HomePage key={membersShown} member={state} reads={{ quests, board, card: profileCard, collection }} useRecentKudos={useRecentKudos} onBuyItem={onBuyItem} pendingPurchase={pendingItemPurchase} />;
   if (route.page === "activity") return <ActivityAnswerPage filter={route.filter} activity={activity} chatUrl={state.chatUrl} {...actions} />;
   if (route.page === "quests") return <QuestsAnswerPage member={state} quests={quests} onSwapQuest={onSwapQuest} {...actions} />;
-  if (route.page === "book") return <BookAnswerPage member={state} book={book} collection={collection} page={route.bookPage} spread={route.spread} onBuyCrate={onBuyCrate} onOpenCrate={onOpenCrate} onSetAvatar={onSetAvatar} {...actions} />;
+  if (route.page === "book") return <BookAnswerPage member={state} book={book} collection={collection} matchingHref={matchingHref} page={route.bookPage} spread={route.spread} onBuyCrate={onBuyCrate} onOpenCrate={onOpenCrate} onSetAvatar={onSetAvatar} {...actions} />;
   if (route.page === "settings") return <SettingsAnswerPage settings={settings} actions={settingsActions} {...actions} />;
   if (route.page === "skills") return <SkillTreeAnswerPage key={membersShown} member={state} skillTree={skillTree} onBuyPerk={onBuyPerk} {...actions} />;
   if (board === undefined) return <LoadingPage shape="board" />;
@@ -295,16 +307,16 @@ function ActivityAnswerPage({ filter, activity, chatUrl, ...actions }: { filter:
 
 type Answers = { onSignIn: () => void; onSignOut: () => void };
 
-type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; collection: CollectionShown | undefined; page: BookPageId; spread: Spread | undefined; onBuyCrate: ShellActions["buyCrate"]; onOpenCrate: ShellActions["openCrate"]; onSetAvatar: ShellActions["setAvatar"] } & Answers;
+type BookAnswerPageProps = { member: MemberProfile; book: BookShown | undefined; collection: CollectionShown | undefined; matchingHref: string | null; page: BookPageId; spread: Spread | undefined; onBuyCrate: ShellActions["buyCrate"]; onOpenCrate: ShellActions["openCrate"]; onSetAvatar: ShellActions["setAvatar"] } & Answers;
 
-function BookAnswerPage({ member, book, collection, page, spread, onBuyCrate, onOpenCrate, onSetAvatar, ...actions }: BookAnswerPageProps) {
+function BookAnswerPage({ member, book, collection, matchingHref, page, spread, onBuyCrate, onOpenCrate, onSetAvatar, ...actions }: BookAnswerPageProps) {
   const asASpread = page !== "earned" && showsTheBookSpread(member);
   const collectionWaits = page === "collection" || (asASpread && collection?.kind !== "not-found") ? bookFeatureWaitsOf(collection, member, actions) : null;
   if (collectionWaits !== null) return collectionWaits;
   const bookWaits = bookFeatureWaitsOf(book, member, actions);
   if (bookWaits !== null) return bookWaits;
   if (book?.kind !== "book") return null;
-  return <BookPage book={book} collection={collection} page={page} spread={spread} asASpread={asASpread} chatUrl={member.chatUrl} coins={member.coins} onBuyCrate={onBuyCrate} onOpenPack={asASpread ? onOpenCrate : undefined} avatar={member.avatar} onSetAvatar={onSetAvatar} />;
+  return <BookPage book={book} collection={collection} page={page} spread={spread} asASpread={asASpread} chatUrl={member.chatUrl} matchingHref={matchingHref} coins={member.coins} onBuyCrate={onBuyCrate} onOpenPack={asASpread ? onOpenCrate : undefined} avatar={member.avatar} onSetAvatar={onSetAvatar} />;
 }
 
 function bookFeatureWaitsOf(answer: BookShown | CollectionShown | undefined, member: MemberProfile, actions: Answers): ReactNode | null {
@@ -325,7 +337,7 @@ function SkillTreeAnswerPage({ member, skillTree, onBuyPerk, ...actions }: Skill
   return <SkillTreePage tree={skillTree} level={member.progression?.level} buyPerk={onBuyPerk} />;
 }
 
-type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup">;
+type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile">;
 
 function SettingsAnswerPage({ settings, actions, ...answers }: { settings: SettingsShown | undefined; actions: SettingsActions; onSignIn: () => void; onSignOut: () => void }) {
   if (settings === undefined) return <LoadingPage shape="column" />;

@@ -296,6 +296,18 @@ describe("CV17: a profile is matched to at most one member, links first", { time
 });
 
 describe("CV19: This is me on posthog.com", () => {
+  test("Settings' sections list company-profile while team-pages is on, so a link lands on it, and never while it is off", async () => {
+    vi.stubEnv("SITE_URL", "https://kudos-site.test");
+    await teamPagesOn();
+    const sam = await aTeammate("U_SAM", "Sam Okafor");
+
+    expect(await sam.sections()).toEqual(["company-profile"]);
+
+    await teamPagesOff();
+
+    expect(await sam.sections()).not.toContain("company-profile");
+  });
+
   test("while team-pages is on, Settings offers every profile no other member holds, by name, with its role, teams and face", async () => {
     await teamPagesOn();
     await aTeammate("U_ORIEL", "Oriel Pemberton");

@@ -4,11 +4,15 @@ import type { ReadyCrate } from "./readyCrates";
 
 export type RewardKind = "xp" | "skillPoints" | "coins";
 
+const rewardKinds: RewardKind[] = ["xp", "skillPoints", "coins"];
+
 export type Reward = Record<RewardKind, number>;
 
 export type Climb = AppliedReward | null;
 
 export type OnTheWay = { crate: ReadyCrate; landed: RewardKind[]; reward?: Reward; climb?: Climb };
+
+export type PackHold = { applied: AppliedReward; landed: RewardKind[] };
 
 export function climbRewardOf({ xp, coins, from, to }: AppliedReward): Reward {
   return { xp, skillPoints: Math.max(0, to.skillPoints - from.skillPoints), coins };
@@ -58,6 +62,30 @@ export function withTheRewardsHeld(member: MemberProfile, onTheWay: OnTheWay[]):
     progression: progression === null ? null : pinnedXp === undefined ? progressionBefore(progression, held("xp")) : progressionAt(pinnedXp),
     skillPoints: skillPoints === null ? null : (pinned("skillPoints") ?? Math.max(0, skillPoints - held("skillPoints"))),
     coins: coins === null ? null : (pinned("coins") ?? Math.max(0, coins - held("coins"))),
+  };
+}
+
+export function landedEverywhere(hold: PackHold): PackHold {
+  return { ...hold, landed: rewardKinds };
+}
+
+function readByTheProfile({ applied, landed }: PackHold, { progression }: MemberProfile) {
+  return landed.length === rewardKinds.length && (progression === null || progression.xp >= applied.to.xp);
+}
+
+export function withThePacksHeld(member: MemberProfile, allHolds: PackHold[]): MemberProfile {
+  const holds = allHolds.filter((hold) => !readByTheProfile(hold, member));
+  if (holds.length === 0) return member;
+  const pinned = (kind: RewardKind) => {
+    const first = holds.find(({ landed }) => !landed.includes(kind)) ?? holds.at(-1)!;
+    return first.applied[first.landed.includes(kind) ? "to" : "from"][kind];
+  };
+  const { progression, skillPoints, coins } = member;
+  return {
+    ...member,
+    progression: progression === null ? null : progressionAt(pinned("xp")),
+    skillPoints: skillPoints === null ? null : pinned("skillPoints"),
+    coins: coins === null ? null : pinned("coins"),
   };
 }
 

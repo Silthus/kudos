@@ -14,3 +14,7 @@
   filter: grayscale(1);
   opacity: 0.45;
 }
+
+.team-crest-default {
+  color: var(--muted-foreground);
+}

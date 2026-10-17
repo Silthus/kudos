@@ -168,10 +168,12 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const swapQuest = useMutation(api.website.commands.swapQuest);
   const buyItem = useSentOnce(api.website.commands.buyItem);
   const buyCrate = useSentOnce(api.website.commands.buyCrate);
-  const openCrate = useMutation(api.website.commands.openCrate);
+  const openCrate = useSentOnce(api.website.commands.openCrate);
   const setBoardVisibility = useSentOnce(api.website.commands.setBoardVisibility);
   const setMessageSetting = useSentOnce(api.website.commands.setMessageSetting);
   const pickPrimaryGroup = useSentOnce(api.website.commands.pickPrimaryGroup);
+  const linkMyCompanyProfile = useSentOnce(api.website.commands.linkMyCompanyProfile);
+  const linkCompanyProfile = useSentOnce(api.website.commands.linkCompanyProfile);
   const setAvatar = useSentOnce(api.website.commands.setAvatar);
   return useMemo(
     () => ({
@@ -185,6 +187,8 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       setBoardVisibility: (visible) => answerWithin(commandAnswerBudgetMs, setBoardVisibility({ visible })),
       setMessageSetting: (kind, place) => answerWithin(commandAnswerBudgetMs, setMessageSetting({ kind, place })),
       pickPrimaryGroup: (group) => answerWithin(commandAnswerBudgetMs, pickPrimaryGroup({ group })),
+      linkMyCompanyProfile: (profile) => answerWithin(commandAnswerBudgetMs, linkMyCompanyProfile({ profile })),
+      linkCompanyProfile: (member, profile) => answerWithin(commandAnswerBudgetMs, linkCompanyProfile({ member, profile })),
       setAvatar: (hoggie) => answerWithin(commandAnswerBudgetMs, setAvatar({ hoggie })),
       signIn: (returnTo) =>
         void signIn("slack", { redirectTo: returnTo }).catch(() => {
@@ -193,7 +197,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, setAvatar, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setAvatar, onSignInFailure],
   );
 }
 

@@ -2,7 +2,8 @@ import { useEffect, useRef, type CSSProperties, type KeyboardEvent } from "react
 import { createPortal } from "react-dom";
 import { IconArrowRight } from "@posthog/icons";
 import { FoilPack } from "./FoilPack";
-import { findWordsOf, nameOf, type OpenedPack, type ScenePack } from "./packs";
+import { Chips } from "./PackChip";
+import { chipsOf, findWordsOf, nameOf, type OpenedPack, type ScenePack } from "./packs";
 
 type PackSceneProps = { packs: ScenePack[]; latest: OpenedPack | undefined; revealed: number; onOpen: (crate: string) => void; onRevealed: (crate: string) => void; onFinish: () => void };
 
@@ -30,6 +31,7 @@ export function PackScene({ packs, latest, revealed, onOpen, onRevealed, onFinis
             <li key={pack.crate} className="pk-slot" data-pack={pack.crate}>
               <FoilPack n={pack.n} state={pack.state} drop={pack.drop} width={packWidth} label={`Open pack ${pack.n}`} message={pack.message} onTap={() => onOpen(pack.crate)} onRevealed={() => onRevealed(pack.crate)} />
               {pack.state === "sealed" && pack.message === undefined && <span className="pk-hint">Tap to open</span>}
+              {pack.revealed && <Chips chips={chipsOf(pack.applied)} />}
             </li>
           ))}
         </ul>

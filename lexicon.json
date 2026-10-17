@@ -695,6 +695,22 @@
     {
       "name": "Team Spirit",
       "definition": "The completion ladder that counts the group albums a member completed: bronze Team Spirit at 1, silver All Hands at 2, gold Tight-Knit at 4 and diamond Unbreakable Crew at 8, behind the team-spirit flag"
+    },
+    {
+      "name": "role",
+      "definition": "The job title posthog.com lists for a person, shown on their team page tile"
+    },
+    {
+      "name": "lead",
+      "definition": "A person posthog.com lists as leading a company team, marked on their team page tile and named on the page"
+    },
+    {
+      "name": "feature crate",
+      "definition": "The crate a ready feature on the unlock path shows until the member opens it; opening reveals the feature and, since collection v2, pays a pack bonus"
+    },
+    {
+      "name": "match",
+      "definition": "The pairing of a workspace member with one posthog.com profile: by an admin link, else the member's own link, else a unique name match; a team page's people are the matched teammates"
     }
   ],
   "retired": [

@@ -1,9 +1,11 @@
 import { assets } from "@posthog/brand/hoggies/metadata";
 import { catalogue, rarities, type CatalogueCrest, type Rarity } from "../../convex/hoggies/catalogue";
+import { levelOf } from "../../convex/progression/levels";
 import type { Collection, CollectionCrest, CollectionHoggie, CollectionRead, MyCollection, RarityShare } from "./collectionRead";
 import { showsTheBookSpread } from "./book/spread/bookSpread";
-import type { Drop, ShellState } from "./shell";
+import type { AppliedReward, CrateOpenReply, Drop, ShellState } from "./shell";
 import { albums, stickers } from "./stickerBookFixtures";
+import { teamPages, teamStickers } from "./teamPagesFixtures";
 
 const at = (iso: string) => Date.parse(iso);
 
@@ -88,8 +90,25 @@ export const collectionFixtures = {
   withStickersOnly: { ...collectionWith(found), stickers },
   withNoStickersYet: { ...collectionWith(found), stickers: [], albums: albums.map((album) => ({ ...album, held: 0, people: album.people.map((person) => ({ ...person, held: false })) })) },
   withNoStickersAndNoAlbums: { ...collectionWith(found), stickers: [] },
+  withTeamPages: { ...collectionWith(found, { crests: false }), stickers: teamStickers, teams: teamPages },
   withTheStoreAndTheStickerBook: { ...collectionWith(found), bought: ["bought:1", "bought:2"], crateStore: storeOffering(3), stickers, albums },
   withFourPacks: { ...collectionWith(found), bought: ["bought:1", "bought:2", "bought:3", "bought:4"], crateStore: storeOffering(5), stickers, albums },
+  withFourPacksAndTeamPages: { ...collectionWith(found, { crests: false }), bought: ["bought:1", "bought:2", "bought:3", "bought:4"], crateStore: storeOffering(5), stickers: teamStickers, teams: teamPages },
+  withEveryKindOfPack: {
+    ...collectionWith(found),
+    bought: ["bought:1", "bought:2"],
+    crateStore: storeOffering(3),
+    stickers,
+    albums,
+    packs: [
+      { crate: "journey:first-quest", kind: "journey", n: 1 },
+      { crate: "weekly:2026-10-05:0", kind: "weekly", n: 2 },
+      { crate: "weekly:2026-10-12:1", kind: "weekly", n: 3 },
+      { crate: "bought:1", kind: "bought", n: 4 },
+      { crate: "bought:2", kind: "bought", n: 5 },
+    ],
+    morePacks: false,
+  },
   nothingFound: collectionWith({}),
   complete: collectionWith(everyHoggieFound),
   locked: { kind: "locked", level: 1 },
@@ -101,25 +120,46 @@ export function fixedCollection(answer: MyCollection): CollectionRead {
   return (asking) => (asking ? answer : undefined);
 }
 
-export function fixtureCollectionFor(visitor: ShellState): CollectionRead {
-  return fixedCollection(collectionAnswerFor(visitor));
+export function fixtureCollectionFor(visitor: ShellState, fixture?: string): CollectionRead {
+  return fixedCollection(collectionAnswerFor(visitor, fixture));
 }
 
-function collectionAnswerFor(visitor: ShellState): MyCollection {
+function collectionAnswerFor(visitor: ShellState, fixture: string | undefined): MyCollection {
   if (visitor.kind !== "member") return collectionFixtures.notFound;
   const card = visitor.features?.find(({ feature }) => feature === "book");
   if (card === undefined) return collectionFixtures.notFound;
   if (card.state === "locked") return { kind: "locked", level: card.level };
   if (card.state === "ready") return collectionFixtures.ready;
-  if (showsTheBookSpread(visitor)) return collectionFixtures.withFourPacks;
+  if (fixture === "member-with-more-packs") return { ...collectionFixtures.withEveryKindOfPack, morePacks: true };
+  if (fixture === "member-with-packs") return collectionFixtures.withEveryKindOfPack;
+  if (showsTheBookSpread(visitor)) return collectionFixtures.withFourPacksAndTeamPages;
   return visitor.coins === null ? collectionFixtures.withTheStickerBook : collectionFixtures.withTheStoreAndTheStickerBook;
 }
 
-const packDrops = ["doctor", "wizard", "banana", "surfer"];
+const packDrops = ["doctor", "wizard", "banana", "surfer", "oprah"];
 
 export function fixturePackDropOf(crate: string): Drop {
-  const n = Number(crate.split(":")[1] ?? 1);
-  const slug = packDrops[(n - 1) % packDrops.length]!;
+  const slug = packDrops[(hashOf(crate) - 1) % packDrops.length]!;
   const hoggie = collectionFixtures.withFourPacks.hoggies.find((entry) => entry.hoggie === slug)!;
   return { hoggie: slug, name: hoggie.name, rarity: hoggie.rarity, art: hoggie.art, copy: hoggie.count + 1, isNew: hoggie.count === 0, crest: null };
+}
+
+export const fixtureStanding: AppliedReward["from"] = { xp: 1460, level: 6, coins: 236, skillPoints: 0 };
+
+let standing = fixtureStanding;
+
+export function fixturePackOpenOf(crate: string): CrateOpenReply {
+  const n = hashOf(crate);
+  const xp = 40 + Math.round(((n * 37) % 121) / 5) * 5;
+  const coins = 5 + ((n * 13) % 26);
+  const from = standing;
+  const to: AppliedReward["to"] = { ...from, xp: from.xp + xp, level: levelOf(from.xp + xp), coins: from.coins + coins };
+  standing = to;
+  return { kind: "opened", drop: fixturePackDropOf(crate), applied: { xp, coins, from, to } };
+}
+
+function hashOf(crate: string) {
+  const n = Number(crate.split(":").at(-1));
+  if (Number.isSafeInteger(n) && n > 0) return n;
+  return 1 + ([...crate].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 97);
 }
