@@ -2,8 +2,9 @@ import { v } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { achievementsApplyIn } from "../achievements/flag";
-import { ladders, tierNameOf, tierRefValidator, type TierRef } from "../achievements/ladders";
+import { isToldPublicly, ladders, tierNameOf, tierRefValidator, type TierRef } from "../achievements/ladders";
 import type { BatchId } from "../achievements/replay";
+import { laddersShownTo } from "../achievements/shown";
 import { everyTierEarnedBy } from "../achievements/tiers";
 import { unlockOpenedEventValidator } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
@@ -45,8 +46,9 @@ export async function tellTiersEarned(ctx: MutationCtx, { member, message, at, e
   if (notice === null) await ctx.db.insert("tierNotices", { member, ...message, tiers });
   else await ctx.db.patch(notice._id, { tiers });
   await notify(ctx, member, { kind: "tiers-earned", tiers: untold }, message);
+  if (!untold.some(isToldPublicly)) return;
   const { user } = await chatUserOf(ctx, member);
-  await setPublicSection(ctx, message, tierSection(member, user, tiers));
+  await setPublicSection(ctx, message, tierSection(member, user, tiers.filter(isToldPublicly)));
 }
 
 export const tellOpeningSummary = internalMutation({
@@ -82,13 +84,15 @@ async function tellUntoldTiers(ctx: MutationCtx, member: MemberId, { batch, anno
   if (tiers.length === 0) return;
   const summary = await ctx.db.insert("tierSummaries", { member, workspace, tiers, batch });
   await notify(ctx, member, { kind: "tiers-earned", tiers });
-  if (announced === true) await announce(ctx, workspace, { summary }, tierSection(member, user, tiers));
+  const toldPublicly = tiers.filter(isToldPublicly);
+  if (announced === true && toldPublicly.length > 0) await announce(ctx, workspace, { summary }, tierSection(member, user, toldPublicly));
 }
 
 async function untoldTiersOf(ctx: QueryCtx, member: MemberId, batch: BatchId | undefined): Promise<TierRef[]> {
   const told = await toldTiersOf(ctx, member);
   const earned = await tellableTiersOf(ctx, member, batch);
-  return ladders.ladders.flatMap(({ ladder, tiers }) =>
+  const shown = await laddersShownTo(ctx, member);
+  return ladders.ladders.filter(({ ladder }) => shown.includes(ladder)).flatMap(({ ladder, tiers }) =>
     tiers.map(({ tier }) => ({ ladder, tier })).filter((ref) => earned.some((row) => isSameTier(row, ref)) && !told.some((each) => isSameTier(each, ref))),
   );
 }

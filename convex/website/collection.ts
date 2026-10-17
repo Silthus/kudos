@@ -4,10 +4,11 @@ import { crateStoreOf, waitingCratesOf, type CrateStore } from "../hoggies/bough
 import { collectionOf, type HeldCrest, type HeldHoggie, type RarityShare } from "../hoggies/collection";
 import { crateStoreShownTo, crestsShownTo, hoggiesShownTo, packsShownTo } from "../hoggies/flag";
 import { waitingPacksOf, type WaitingPacks } from "../hoggies/waitingPacks";
-import { groupsShownTo } from "../groups/groups";
+import { groupsShownTo, type GroupId } from "../groups/groups";
 import type { QueryCtx } from "../_generated/server";
-import { albumsOf, type Album } from "../stickers/albums";
-import { stickersShownTo } from "../stickers/flag";
+import { albumsOf, isFilled, type Album } from "../stickers/albums";
+import { completionsOf, type RecordedCompletion } from "../stickers/completions";
+import { stickersShownTo, teamSpiritShownTo } from "../stickers/flag";
 import { stickersNewestFirst, type HeldSticker } from "../stickers/records";
 import { teamPagesOf, type CollectedCrest, type PersonOnPage, type TeamPageOf } from "../stickers/teamPages";
 import { memberRowsIn, peopleOf, type MemberId, type MemberRows, type People } from "../workspace/directory";
@@ -28,7 +29,9 @@ export type Sticker = Teammate & { key: string; firstAt: number; seen: string };
 
 export type AlbumPerson = Teammate & { key: string; held: boolean };
 
-export type GroupAlbum = Omit<Album, "people"> & { people: AlbumPerson[] };
+export type AlbumCompletion = { complete: boolean; completedAt: number | null; seen: string | null };
+
+export type GroupAlbum = Omit<Album, "people"> & { people: AlbumPerson[] } & Partial<AlbumCompletion>;
 
 export type TeamPerson = { key: string; name: string; role: string | null; face: Face; lead: boolean; held: boolean; heldAt: number | null };
 
@@ -65,7 +68,18 @@ async function stickerBookOf(ctx: QueryCtx, me: VerifiedMember, teamPages: TeamP
   if (teamPages !== null) return { stickers, teams: await teamsOf(ctx, me, { members, people, keyOf, held }, teamPages) };
   if (!(await groupsShownTo(ctx, me.member))) return { stickers };
   const albums = await albumsOf(ctx, me, people, held);
-  return { stickers, albums: await Promise.all(albums.map((album) => groupAlbumOf(people, keyOf, album))) };
+  const recorded = await completionsShownTo(ctx, me.member);
+  return { stickers, albums: await Promise.all(albums.map(async (album) => ({ ...(await groupAlbumOf(people, keyOf, album)), ...(recorded && (await completionOf(me.member, album, recorded))) }))) };
+}
+
+async function completionsShownTo(ctx: QueryCtx, member: MemberId): Promise<Map<GroupId, RecordedCompletion> | null> {
+  return (await teamSpiritShownTo(ctx, member)) ? completionsOf(ctx, member) : null;
+}
+
+async function completionOf(member: MemberId, album: Album, recorded: Map<GroupId, RecordedCompletion>): Promise<AlbumCompletion> {
+  const completedAt = recorded.get(album.group)?.completedAt ?? null;
+  const seen = completedAt === null ? null : await seenKeyOf(member, `album:${album.group}:${completedAt}`);
+  return { complete: completedAt !== null || isFilled(album), completedAt, seen };
 }
 
 type StickerKeys = (person: MemberId) => Promise<string>;

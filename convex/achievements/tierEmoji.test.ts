@@ -14,7 +14,7 @@ import { ladders, type LadderId, type TierId } from "./ladders";
 const now = new Date("2026-10-13T10:00:00Z");
 const earnedBeforeTheDeploy = now.getTime() - 30 * 86_400_000;
 const hourMs = 3_600_000;
-const silverEmoji = ["kudos-emoji-ribbon", "kudos-emoji-sparkling-heart", "kudos-emoji-jigsaw", "kudos-emoji-anchor", "kudos-emoji-confetti", "kudos-emoji-maple-leaf", "kudos-emoji-teddy-bear"];
+const silverEmoji = ["kudos-emoji-ribbon", "kudos-emoji-sparkling-heart", "kudos-emoji-jigsaw", "kudos-emoji-handshake", "kudos-emoji-anchor", "kudos-emoji-confetti", "kudos-emoji-maple-leaf", "kudos-emoji-teddy-bear"];
 const ribbon = { item: "kudos-emoji-ribbon", name: "Ribbon", emoji: "ribbon", art: { kind: "unicode", glyph: "🎀" } };
 const sparklingHeart = { item: "kudos-emoji-sparkling-heart", name: "Sparkling Heart", emoji: "sparkling_heart", art: { kind: "unicode", glyph: "💖" } };
 
@@ -47,7 +47,7 @@ describe("ST16 ST17: a silver tier's emoji is granted once, whether it is earned
     expect(await balanceIn(t, alice)).toBe(20);
   });
 
-  test("members holding all 28 tiers are granted each silver emoji once, at the time the job ran; a second run writes nothing", async () => {
+  test("members holding every tier are granted each silver emoji once, at the time the job ran; a second run writes nothing", async () => {
     const t = testBackend({ transactionLimits: true });
     const members = await membersHoldingEveryTier(t, 60);
     const ranAt = now.getTime() + hourMs;
@@ -56,14 +56,14 @@ describe("ST16 ST17: a silver tier's emoji is granted once, whether it is earned
     const first = await t.action(internal.achievements.tierEmoji.backfillTierEmoji, {});
     const second = await t.action(internal.achievements.tierEmoji.backfillTierEmoji, {});
 
-    expect(first).toEqual({ tiers: 60 * 28, granted: 60 * 7 });
-    expect(second).toEqual({ tiers: 60 * 28, granted: 0 });
+    expect(first).toEqual({ tiers: 60 * ladders.ladders.length * 4, granted: 60 * ladders.ladders.length });
+    expect(second).toEqual({ tiers: 60 * ladders.ladders.length * 4, granted: 0 });
     for (const member of [members[0]!, members.at(-1)!]) {
       expect((await collectionOf(t, member)).map(({ item, source, arrivedAt }) => [item, source, arrivedAt])).toEqual(silverEmoji.map((item) => [item, "tier", ranAt]));
       expect(new Set((await silverRewardsOf(t, member)).map(({ coins, at }) => [coins, at].join()))).toEqual(new Set([`0,${ranAt}`]));
       expect(await balanceIn(t, member)).toBe(0);
     }
-    expect(await t.run(async (ctx) => (await ctx.db.query("collection").collect()).length)).toBe(60 * 7);
+    expect(await t.run(async (ctx) => (await ctx.db.query("collection").collect()).length)).toBe(60 * ladders.ladders.length);
   });
 
   test("a silver tier earned live while the job runs is granted once, at its earned time", async () => {

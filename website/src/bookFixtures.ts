@@ -68,9 +68,10 @@ const ladderAtEveryStage = {
   applause: climbed("applause", 7, ["2026-06-11T09:00:00Z"]),
   seasons: climbed("seasons", 8, ["2026-01-30T09:00:00Z", "2026-03-31T09:00:00Z", "2026-06-30T09:00:00Z"]),
   "old-friends": climbed("old-friends", 4, ["2026-04-02T09:00:00Z", "2026-08-14T09:00:00Z"]),
+  "team-spirit": climbed("team-spirit", 2, ["2026-10-02T09:00:00Z", "2026-10-09T09:00:00Z"]),
 } satisfies Record<LadderId, LadderCard>;
 
-const everyShippedLadder = ladders.ladders.map(({ ladder }) => ladderAtEveryStage[ladder]);
+const everyShippedLadder = ladders.ladders.filter(({ ladder }) => ladder !== "team-spirit").map(({ ladder }) => ladderAtEveryStage[ladder]);
 
 const everyStage = (["generosity", "recognition", "connections", "dependability"] as const).map((ladder) => ladderAtEveryStage[ladder]);
 

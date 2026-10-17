@@ -5,13 +5,14 @@ import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { republish } from "../feedback/homes";
 import { tellTiersEarned } from "../feedback/tierNotices";
 import { isOpened } from "../feedback/unlockFilter";
-import type { AwardWithId } from "../engine/awards";
+import { messageOfAward, type AwardId, type AwardWithId } from "../engine/awards";
 import { tierItemOf, type CatalogueItem } from "../store/catalogue";
 import { chatUserOf, type MemberId } from "../workspace/directory";
-import { countAward, countingOf, countOf } from "./counting";
-import { achievementsLiveIn, bookAppliesIn, bookLaunchedAt } from "./flag";
-import { coinsPaidBy, ladders, ladderOf, tierRefValidator, type LadderId, type Tier, type TierId, type TierRef } from "./ladders";
+import { countAward, countCompletions, countingOf, countOf, type Completion, type CompletionTier } from "./counting";
+import { achievementsApplyIn, achievementsLiveIn, bookAppliesIn, bookLaunchedAt } from "./flag";
+import { coinsPaidBy, ladders, ladderOf, tierRefValidator, type AwardLadderId, type LadderId, type Tier, type TierId, type TierRef } from "./ladders";
 import { laddersCountedLiveIn, replayWhatIsNew } from "./replay";
+import { laddersShownTo } from "./shown";
 import { tierRewardsRecordedFor, type TierRewardsRecorded } from "./tierRewards";
 import { earnedTiersOf, type EarnedTier } from "./tiers";
 
@@ -36,6 +37,8 @@ type Untold = Infer<typeof untoldValidator>;
 
 type Counted = Map<MemberId, TierRef[]>;
 
+export type CompletionsRecorded = { workspace: string; member: MemberId };
+
 export const countKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator, from: v.optional(v.number()), untold: v.optional(untoldValidator) },
   handler: async (ctx, { event, from = 0, untold = [] }): Promise<void> => {
@@ -57,9 +60,27 @@ export const countKudosGiven = internalMutation({
   },
 });
 
+export async function countAlbumsCompleted(ctx: MutationCtx, { workspace, member }: CompletionsRecorded, completions: Completion[]): Promise<void> {
+  if (completions.length === 0) return;
+  const shown = await achievementsApplyIn(ctx, workspace);
+  const { changed, told } = await countCompletions(ctx, { workspace, member, ladder: "team-spirit" }, completions, shown ? {} : { hidden: true });
+  if (!shown || !changed) return;
+  if (await isOpened(ctx, member, "book")) await republish(ctx, member);
+  for (const [award, earned] of byReachingAward(told)) {
+    const message = await messageOfAward(ctx, award);
+    if (message !== null) await tellTiersEarned(ctx, { member, message, at: earned[0]!.reaching.at, earned: earned.map(({ tier }) => tier) });
+  }
+}
+
+function byReachingAward(told: CompletionTier[]): Map<AwardId, CompletionTier[]> {
+  const byAward = new Map<AwardId, CompletionTier[]>();
+  for (const each of told) byAward.set(each.reaching.award, [...(byAward.get(each.reaching.award) ?? []), each]);
+  return byAward;
+}
+
 type Page = { awards: AwardWithId[]; shown: boolean; untold: Untold };
 
-async function countPage(ctx: MutationCtx, event: KudosGivenEvent, live: LadderId[], { awards, shown, untold }: Page): Promise<Counted> {
+async function countPage(ctx: MutationCtx, event: KudosGivenEvent, live: AwardLadderId[], { awards, shown, untold }: Page): Promise<Counted> {
   const counted: Counted = new Map(untold.map(({ member, earned }) => [member, earned]));
   for (const ladder of live) {
     for (const award of awards) {
@@ -71,7 +92,7 @@ async function countPage(ctx: MutationCtx, event: KudosGivenEvent, live: LadderI
   return counted;
 }
 
-function membersCountedIn(live: LadderId[], awards: AwardWithId[]): Set<MemberId> {
+function membersCountedIn(live: AwardLadderId[], awards: AwardWithId[]): Set<MemberId> {
   return new Set(live.flatMap((ladder) => awards.map((award) => countingOf(ladder, award).member)));
 }
 
@@ -97,7 +118,7 @@ export async function achievementFactsOf(ctx: QueryCtx, member: MemberId): Promi
 export async function bookFactsOf(ctx: QueryCtx, member: MemberId): Promise<AchievementFacts> {
   const facts: LadderFacts[] = [];
   const recorded = await tierRewardsRecordedFor(ctx, member);
-  for (const { ladder } of ladders.ladders) facts.push(await ladderFactsOf(ctx, member, ladder, recorded));
+  for (const ladder of await laddersShownTo(ctx, member)) facts.push(await ladderFactsOf(ctx, member, ladder, recorded));
   return { ladders: facts };
 }
 

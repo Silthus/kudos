@@ -37,6 +37,7 @@ export const catalogue = {
     kudosEmoji("confetti", "confetti_ball", "🎊", "Confetti", silverIn("applause")),
     kudosEmoji("maple-leaf", "maple_leaf", "🍁", "Maple Leaf", silverIn("seasons")),
     kudosEmoji("teddy-bear", "teddy_bear", "🧸", "Teddy Bear", silverIn("old-friends")),
+    kudosEmoji("handshake", "handshake", "🤝", "Handshake", silverIn("team-spirit")),
   ],
 } as const satisfies { version: string; items: readonly CatalogueItem[] };
 

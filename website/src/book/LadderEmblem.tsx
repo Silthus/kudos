@@ -1,4 +1,4 @@
-import { HedgehogExplorer, HedgehogHandClasp, HedgehogHeart, HedgehogHourglass, HedgehogOrganized, HedgehogStar, HedgehogSuccess, type Hoggie } from "../hoggies";
+import { HedgehogCodingGroup, HedgehogExplorer, HedgehogHandClasp, HedgehogHeart, HedgehogHourglass, HedgehogOrganized, HedgehogStar, HedgehogSuccess, type Hoggie } from "../hoggies";
 import type { LadderCard, TierId } from "../shell";
 import { Rosette } from "./Rosette";
 
@@ -10,6 +10,7 @@ const emblems: Record<LadderCard["ladder"], Hoggie> = {
   applause: HedgehogSuccess,
   seasons: HedgehogHourglass,
   "old-friends": HedgehogHandClasp,
+  "team-spirit": HedgehogCodingGroup,
 };
 
 export function LadderEmblem({ ladder, best, size = 72 }: { ladder: LadderCard["ladder"]; best: TierId | null; size?: number }) {

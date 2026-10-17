@@ -4,6 +4,7 @@ import { internalQuery, type MutationCtx, type QueryCtx } from "../_generated/se
 import { achievementsApplyIn } from "../achievements/flag";
 import { tierRefValidator, type TierRef } from "../achievements/ladders";
 import { recordedRewardsOf, tierRewardsRecordedFor, type TierRewardsRecorded } from "../achievements/tierRewards";
+import { laddersShownTo } from "../achievements/shown";
 import { everyTierEarnedBy } from "../achievements/tiers";
 import type { LevelReachedEvent } from "../bus/events";
 import type { MessageRef } from "../engine/messageEvent";
@@ -165,12 +166,18 @@ function perkOffersOf(openTree: MemberPerks | null, website: string | null): Not
 
 async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: Notification): Promise<Notification | null> {
   if (isAboutQuests(notification)) return questsStillToldOf(ctx, workspace, member, notification);
-  if (notification.kind === "tiers-earned") return (await isBookOpenIn(ctx, workspace, member)) ? notification : null;
+  if (notification.kind === "tiers-earned") return (await isBookOpenIn(ctx, workspace, member)) ? await tiersStillShownTo(ctx, member, notification) : null;
   if (notification.kind === "coins-opened") return (await coinsVisibleTo(ctx, member)) ? notification : null;
   if (!(await unlocksAppliedTo(ctx, member))) return { ...notification, ready: [] };
   const ready = await stillReady(ctx, member, notification.ready);
   if (notification.kind !== "level-reached" || notification.skillPoints === null) return { ...notification, ready };
   return { ...notification, ready, skillPoints: await whenOpened(ctx, member, "skillTree", notification.skillPoints) };
+}
+
+async function tiersStillShownTo(ctx: QueryCtx, member: MemberId, notification: Extract<Notification, { kind: "tiers-earned" }>): Promise<Notification | null> {
+  const shown = await laddersShownTo(ctx, member);
+  const tiers = notification.tiers.filter(({ ladder }) => shown.includes(ladder));
+  return tiers.length === 0 ? null : { ...notification, tiers };
 }
 
 async function questsStillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, notification: QuestNotification): Promise<QuestNotification | null> {
