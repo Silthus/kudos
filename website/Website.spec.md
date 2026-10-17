@@ -121,6 +121,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   via: the maintainer's workspace settings change only through setWorkspaceSettings
   refuted: the live shell sent setWorkspaceSettings through the socket's useMutation instead of once over HTTP -> no HTTP send for Save, 1 of 12 tests red (2026-10-17)
   refuted: isComplete answered true for every draft -> Save was offered and sent with `Kudos a day` or `Hugs a day` empty, 2 of 16 tests red (2026-10-17)
+  refuted: the awaited read never held the fields -> the 7 typed between a landed save of 5 and its read went in unheld, 1 of 18 tests red (2026-10-17)
   because: only the command knows whether the caller is the maintainer, whether `workspace-settings` is on for them and whether each value is in bounds, so the page may only ask it and show what the read then answers; a socket mutation is resent after a reconnect, so a save goes once over HTTP like every other Settings command
   kinds: state
   checklist: revalidated-permission dismissed: every press sends the command, which reads the maintainer, the flag and the bounds when it runs
