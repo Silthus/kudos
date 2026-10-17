@@ -43,7 +43,7 @@ export function PrototypeBar() {
   const name = prototypeVariants.find(({ key }) => key === current)?.name ?? "Today's site";
   const round = prototypeRounds.find(({ variants }) => variants.some(({ key }) => key === current))?.round;
   return (
-    <div data-prototype-bar style={{ position: "fixed", left: "50%", bottom: 14, transform: "translateX(-50%)", zIndex: 2147483000, display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", borderRadius: 999, background: "#111", color: "#fff", font: "600 13px/1 system-ui, sans-serif", boxShadow: "0 8px 24px rgb(0 0 0 / 35%)", border: "2px solid #f54e00", maxWidth: "calc(100vw - 16px)" }}>
+    <div data-prototype-bar style={{ position: "fixed", left: "50%", bottom: 14, transform: "translateX(-50%)", zIndex: 2147483000, display: "flex", alignItems: "center", gap: 6, padding: "6px 8px", background: "#111", color: "#fff", font: "600 13px/1 system-ui, sans-serif", boxShadow: "0 8px 24px rgb(0 0 0 / 35%)", border: "2px solid #f54e00", maxWidth: "calc(100vw - 16px)", flexWrap: "wrap", justifyContent: "center", borderRadius: 22 }}>
       <BarButton label="Previous variant" onClick={() => goTo(stepped(current, -1))}>
         ←
       </BarButton>
