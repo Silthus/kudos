@@ -237,7 +237,7 @@ describe("#607: with team pages in the collection, the Teams chapter shows teams
     expect(priya).toHaveTextContent("PN");
   });
 
-  it("links an admin from the unmatched line to the matching settings only once the route list has the section", () => {
+  it("links an admin from the unmatched line to the matching settings, through the route list's section", () => {
     const sections = ["visibility", "messages", "group", "admin"];
     const admin = { kind: "settings" as const, board: null, messages: null, group: null, admin: { members: [], profiles: [] } };
     expect(matchingSettingsHrefOf(admin, sections)).toBeNull();
@@ -248,7 +248,11 @@ describe("#607: with team pages in the collection, the Teams chapter shows teams
     visit("/book#teams/workflows");
     showBook(reader, withTeams, adminSettings);
     expect(page("right")).toHaveTextContent("1 person on this team isn't linked to a teammate yet: Quill Harper.");
-    expect(within(page("right")).queryByRole("link", { name: /Settings/ })).toBeNull();
+    expect(within(page("right")).getByRole("link", { name: "Match them in Settings" })).toHaveAttribute("href", "/settings?section=company-profile");
+    cleanup();
+    visit("/book#teams/workflows");
+    showBook(reader, withTeams, (asking) => (asking ? { kind: "settings", board: null, messages: null, group: null } : undefined));
+    expect(within(page("right")).queryByRole("link", { name: "Match them in Settings" })).toBeNull();
   });
 
   it("asks for the settings only on the spread of a team with people to match, with the spread on and the section in the route list", () => {
@@ -268,12 +272,15 @@ describe("#607: with team pages in the collection, the Teams chapter shows teams
       asked.push(asking);
       return asking ? { kind: "not-found" } : undefined;
     };
-    for (const path of ["/book", "/book#teams", "/book#teams/workflows"]) {
+    for (const path of ["/book", "/book#teams", "/book#teams/platform-features", "/book#teams/nope"]) {
       visit(path);
       showBook(reader, withTeams, watching);
       cleanup();
     }
     expect(asked.every((asking) => !asking)).toBe(true);
+    visit("/book#teams/workflows");
+    showBook(reader, withTeams, watching);
+    expect(asked.some((asking) => asking)).toBe(true);
   });
 
   it("renders the chapter from an empty teams answer", () => {
