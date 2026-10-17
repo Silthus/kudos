@@ -292,4 +292,19 @@ describe("#607: with team pages in the collection, the Teams chapter shows teams
     expect(page("left")).toHaveTextContent("No page started yet.");
   });
 
+  it("keeps today's crests and group albums as the Teams chapter for every collection without teams", () => {
+    const withoutTeams: Collection[] = [collectionFixtures.collection, collectionFixtures.withTheStickerBook, collectionFixtures.withStickersOnly, { ...withTeams, teams: undefined }];
+    for (const collection of withoutTeams) {
+      const todaysPages = [...(collection.crests ?? []).map(({ crest }) => crest), ...(collection.albums ?? []).map(({ group }) => `group:${group}`)];
+      visit("/book");
+      showBook(reader, collection);
+      expect(within(page("right")).queryByRole("link", { name: /people collected/ }), "the cover counts people without teams").toBeNull();
+      cleanup();
+      visit("/book#teams");
+      showBook(reader, collection);
+      const shown = [...book().querySelectorAll<HTMLElement>("[data-team]")].map((row) => row.dataset.team);
+      expect(shown.toSorted(), "the Teams spread lists today's crests and group albums").toEqual(todaysPages.toSorted());
+      cleanup();
+    }
+  });
 });
