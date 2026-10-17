@@ -13,6 +13,7 @@ export type PackSession = {
   stage: Stage;
   fanned: boolean;
   listed: boolean;
+  announces: boolean;
   more: boolean;
   waiting: WaitingPack[];
   scenePacks: ScenePack[];
@@ -163,7 +164,8 @@ export function usePackSession({ packs, listed, more }: WaitingPacks, openCrate:
   return {
     stage,
     fanned,
-    listed: stage.kind === "stack" ? listed : listedWhenPicked,
+    listed,
+    announces: stage.kind === "stack" ? listed : listedWhenPicked,
     more,
     waiting,
     scenePacks,

@@ -445,6 +445,7 @@ describe("#606: every crate listed as a pack opens in the one scene, wherever it
       showVisitor({ ...questing, journey: null });
 
       expect(read).toHaveBeenLastCalledWith(false);
+      expect(within(main()).queryByRole("group")).toBeNull();
       expect(dialog()).toHaveAccessibleName("Opening your packs");
       expect(chipsUnder(weeklyKey)).toEqual(["+85 XP", "+12 coins"]);
       expect(announcement()).toHaveTextContent("You earned 85 XP and 12 coins.");

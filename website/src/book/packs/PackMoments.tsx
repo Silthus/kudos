@@ -15,7 +15,7 @@ export function PackMoments({ session, shown }: PackMomentsProps) {
     <>
       {session.stage.kind === "scene" && <PackScene packs={session.scenePacks} latest={session.latest} revealed={session.revealed} onOpen={session.open} onRevealed={session.reveal} onFinish={session.finish} />}
       {session.stage.kind === "landing" && <PackLanding opened={session.stage.opened} shown={shown} onRewardLanded={session.rewardLanded} onDone={session.landed} />}
-      {session.listed && <PackAnnouncement text={session.announcement} />}
+      {session.announces && <PackAnnouncement text={session.announcement} />}
     </>
   );
 }
