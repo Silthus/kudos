@@ -112,6 +112,7 @@ const carol = { user: "U_CAROL", name: "Carol Diaz", email: "carol@example.com" 
 const dana = { user: "U_DANA", name: "Dana Lindqvist", email: "dana@example.com" };
 const members = [alice, bob, carol, dana];
 const ants = "S_ANTS";
+const erin = { user: "U_ERIN", name: "Erin Castellanos", email: "erin@example.com" };
 const teamSpiritText = /"completion"|Team Spirit|All Hands|Tight-Knit|Unbreakable Crew|team pages? completed|Team complete|crest earned|handshake/i;
 
 const aliceProfile = { id: 1, firstName: "Alice", lastName: "Moreau", colour: "blue", cutout: aCutout("alice"), role: "Product Engineer" };
@@ -214,12 +215,13 @@ describe("CV37 CV38: Team Spirit is dark where team-spirit is off, shows only to
     namedIds = await idsNamedByTheirMember();
     for (const { user } of members) await openHome(user);
     await kudosOfTheWalk();
-    const whileOn = { answers: await everyonesAnswers(), kept: await keptRows() };
+    for (const { user } of members) await openHome(user);
+    const whileOn = { answers: await everyonesAnswers(), kept: await keptRows(), inSlack: await homesAndCards() };
 
     await flagsWith([offForEveryone(teamSpirit)]);
-    for (const { user } of members) await openHome(user);
     await thanks(bob, "Thanks for the steady hand on the on-call handover", dana);
-    const whileOff = { answers: await everyonesAnswers(), kept: await keptRows() };
+    for (const { user } of members) await openHome(user);
+    const whileOff = { answers: await everyonesAnswers(), kept: await keptRows(), inSlack: await homesAndCards() };
 
     await flagsWith([onForEveryone(teamSpirit)]);
     for (const { user } of members) await openHome(user);
@@ -227,9 +229,21 @@ describe("CV37 CV38: Team Spirit is dark where team-spirit is off, shows only to
     await thanks(bob, "Thanks for untangling the release notes with me", carol);
     const afterTheNextSticker = { answers: await everyonesAnswers(), kept: await keptRows() };
 
+    await joins(erin);
+    await thanksUntilItsNoticeWaits(dana, "Thanks for the warm welcome note", erin);
+    await flagsWith([offForEveryone(teamSpirit)]);
+    await settleInTimeOrder(t);
+    const deliveredWhileOff = await keptRows();
+    await flagsWith([onForEveryone(teamSpirit)]);
+    await openHome(dana.user);
+
     expect(whileOff.kept, "completions, checks and tiers kept while off").toEqual(whileOn.kept);
     expect(ownedHandshakes(whileOff.answers), "an earned handshake stays in its earner's inventory (d-58192288)").toEqual(["U_ALICE"]);
     expect(JSON.stringify(withoutTheOwnedHandshake(whileOff.answers)), "nothing else of Team Spirit shown while off").not.toMatch(teamSpiritText);
+    expect(JSON.stringify(whileOff.inSlack), "nothing of Team Spirit in App Home or a profile card while off").not.toMatch(teamSpiritText);
+    expect(crestCountsIn(whileOff.inSlack.homes), "App Home counts no crest of a completed page while off").toEqual({ U_ALICE: 0, U_BOB: 0, U_CAROL: 0, U_DANA: 0 });
+    expect(crestCountsIn(whileOn.inSlack.homes), "the positive control counts them while on").toEqual({ U_ALICE: 2, U_BOB: 0, U_CAROL: 1, U_DANA: 0 });
+    expect(whileOn.inSlack.cards["U_DANA sees U_ALICE"]).toMatch(/All Hands/);
     expect(onAgain.kept).toEqual(whileOn.kept);
     expect(teamSpiritIn(whileOn.answers), "the positive control shows Team Spirit while on").toMatchObject({ U_ALICE: { ladder: { count: 2 } }, U_CAROL: { ladder: { count: 1 } } });
     expect(teamSpiritIn(whileOff.answers), "nothing of Team Spirit while off").toEqual(Object.fromEntries(members.map(({ user }) => [user, { completed: [], ladder: null }])));
@@ -245,8 +259,10 @@ describe("CV37 CV38: Team Spirit is dark where team-spirit is off, shows only to
       U_CAROL: ["You earned All Hands (Team Spirit, silver).", "You earned Team Spirit (Team Spirit, bronze)."],
       U_DANA: [],
     });
+    expect(orderFree(deliveredWhileOff.completions.map(({ member, team, told }) => ({ member, team, told }))), "the completion recorded under the held notice").toContainEqual({ member: "<member U_DANA>", team: "hedgerow", told: true });
+    expect(completionLinesTo(dana), "a notice that waited past the flag turning off tells nothing, then or later").toEqual([]);
     const checkedWhileOff = [bob, dana];
-    expect(teamSpiritExposures(), "once per member and value: false only for the two checked while off").toEqual(Object.fromEntries(await Promise.all(members.map(async (member) => [await analyticsIdOf(member), checkedWhileOff.includes(member) ? [true, false] : [true]]))));
+    expect(teamSpiritExposures(), "once per member and value: false only for those checked while off").toEqual(Object.fromEntries(await Promise.all([...members, erin].map(async (member) => [await analyticsIdOf(member), checkedWhileOff.includes(member) ? [true, false] : [true]]))));
   });
 
   test("team-spirit's exposure goes once per member and value, only from the check, never from App Home, a kudos mutation or a website read", async () => {
@@ -261,6 +277,44 @@ describe("CV37 CV38: Team Spirit is dark where team-spirit is off, shows only to
     expect(onlyTheCheckExposes(), "team-spirit exposed only through teamSpiritAppliesTo, and that only from the check").toEqual({ exposedOutside: 0, appliedOutside: 0 });
   });
 });
+
+async function homesAndCards() {
+  return { homes: Object.fromEntries(members.map(({ user }) => [user, publishedHome(slack, user)])), cards: await cardsInSlack() };
+}
+
+function crestCountsIn(homes: Record<string, unknown>) {
+  return Object.fromEntries(Object.entries(homes).map(([user, home]) => [user, Number(/(\d+) crests? ·/.exec(JSON.stringify(home))?.[1] ?? Number.NaN)]));
+}
+
+async function joins(person: Person) {
+  slack.withMember(person.user, { is_admin: false, profile: { display_name: person.name, real_name: person.name, email: person.email } });
+  nextStep();
+  await memberChanged(t, "team_join", { id: person.user, is_admin: false, profile: { display_name: person.name, real_name: person.name, email: person.email } });
+  await settleInTimeOrder(t);
+  namedIds.set(await memberOf(person), `<member ${person.user}>`);
+}
+
+const deliverDirectMessage = "slack/directMessages:deliverDirectMessage";
+
+async function thanksUntilItsNoticeWaits(giver: Person, why: string, ...recipients: Person[]) {
+  nextStep();
+  await post(t, [section(text(`${why} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts: `${Date.now() / 1000}.${String(steps).padStart(6, "0")}` });
+  for (let fired = 0; fired < 200; fired += 1) {
+    await t.finishInProgressScheduledFunctions();
+    if (await aTierNoticeWaitsFor(giver)) return;
+    if (vi.getTimerCount() === 0) throw new Error(`no tier notice waited for ${giver.user}`);
+    vi.advanceTimersToNextTimer();
+  }
+  throw new Error("thanksUntilItsNoticeWaits: more than 200 timers fired");
+}
+
+async function aTierNoticeWaitsFor(person: Person) {
+  const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return scheduled.some(({ name, args, state }) => {
+    const [delivery] = args as Array<{ user?: string; notification?: { kind?: string } }>;
+    return name === deliverDirectMessage && state.kind === "pending" && delivery?.user === person.user && delivery.notification?.kind === "tiers-earned";
+  });
+}
 
 function calledFrom(caller: RegExp) {
   const frames = (new Error().stack ?? "").split("\n").slice(1).map((frame) => frame.trim().replace(/^at /, ""));
@@ -414,10 +468,11 @@ function ownedHandshakes(answers: Answers) {
 
 function withoutTheOwnedHandshake(answers: Answers): Answers {
   const withoutIt = (entries: InventoryEntry[]) => entries.filter(({ item }) => item !== handshake);
+  const owners = ownedHandshakes(answers);
   return Object.fromEntries(
     Object.entries(answers).map(([user, answer]) => {
       const inventory = inventoryIn(answer.profile);
-      if (inventory === null) return [user, answer];
+      if (inventory === null || !owners.includes(user)) return [user, answer];
       return [user, { ...answer, profile: { ...(answer.profile as object), inventory: { ...inventory, owned: withoutIt(inventory.owned), catalogue: withoutIt(inventory.catalogue) } } }];
     }),
   ) as Answers;
@@ -469,10 +524,22 @@ function withoutTheAnswersOf(person: Person, seen: Seen, named: Map<string, stri
   const { [person.user]: _home, ...homes } = seen.homes;
   const { [person.user]: _calls, ...slackCallsTo } = seen.slackCallsTo;
   const slackCalls = seen.slackCalls.filter((call) => !addresses(person, JSON.parse(call) as { args?: Record<string, unknown> }));
-  const theirs = [...[...named.values()].filter((name) => name.endsWith(` ${person.user}>`)), `"${person.user}"`, `<@${person.user}>`];
-  const notAbout = (row: unknown) => !theirs.some((name) => JSON.stringify(row).includes(name.replaceAll('"', '\\"')) || JSON.stringify(row).includes(name));
+  const theirs = new Set([...named.values()].filter((name) => name.endsWith(` ${person.user}>`)).concat(person.user));
+  const notAbout = (row: unknown) => !ownedBy(theirs, row);
   const tables = Object.fromEntries(Object.entries(seen.tables).map(([table, rows]) => [table, rows.filter(notAbout)]));
   return { ...seen, answers, homes, slackCallsTo, slackCalls, tables, postHogEvents: seen.postHogEvents.filter(notAbout), jobs: seen.jobs.filter(notAbout) };
+}
+
+const ownershipFields = ["member", "user", "distinct_id", "owner"];
+
+function ownedBy(theirs: Set<string>, row: unknown): boolean {
+  if (row === null || typeof row !== "object") return false;
+  const record = row as Record<string, unknown>;
+  if (ownershipFields.some((field) => typeof record[field] === "string" && theirs.has(record[field]))) return true;
+  return ["args", "event", "subject", "check", "properties"].some((nested) => {
+    const inside = record[nested];
+    return Array.isArray(inside) ? inside.some((each) => ownedBy(theirs, each)) : ownedBy(theirs, inside);
+  });
 }
 
 function addresses(person: Person, { args = {} }: { args?: Record<string, unknown> }) {
