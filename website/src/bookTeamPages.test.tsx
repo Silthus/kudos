@@ -192,6 +192,7 @@ describe("#607: with team pages in the collection, the Teams chapter shows teams
     await app.user.click(row);
     expect(address()).toBe("/book#teams/cloud-platform");
     const right = page("right");
+    expect(page("left")).toHaveTextContent("Still to swap thanks with Chiara Castillo, Dmitri Dubois, Esme Eriksen, Farid Ferreira, Greta Gallo, Hugo Horvat and 22 more.");
     expect(slotsIn(right)).toHaveLength(12);
     expect(right).toHaveTextContent("Stickers 1–12");
     expect(right).toHaveTextContent("Sheet 1 of 3");

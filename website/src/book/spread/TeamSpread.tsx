@@ -15,6 +15,8 @@ type TeamProps = { teams: TeamPages; page: TeamPage; timeZone: string; firstPage
 
 const sheetSize = 12;
 
+const namesShown = 6;
+
 export function TeamSpread({ teams, page, timeZone, firstPage, matchingHref }: TeamProps) {
   const firstNumber = firstStickerNumberOf(teams.pages, page);
   const sheet = useSheet(page);
@@ -107,7 +109,7 @@ function CrestPlate({ page }: { page: TeamPage }) {
 function Notes({ page, timeZone }: { page: TeamPage; timeZone: string }) {
   const missing = page.slots.filter((slot) => !slot.held);
   const share = page.total > 0 ? Math.round((page.held / page.total) * 100) : 0;
-  const names = missing.map((slot) => slot.name).join(", ");
+  const names = missingWordsOf(missing, page.source === "team");
   return (
     <div className="mt-auto flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between text-sm">
@@ -121,6 +123,12 @@ function Notes({ page, timeZone }: { page: TeamPage; timeZone: string }) {
       {page.completedAt !== null && <p className="text-xs text-muted-foreground">{`${page.source === "team" ? "Collected" : "Completed"} ${dateWords(page.completedAt, timeZone)}.`}</p>}
     </div>
   );
+}
+
+function missingWordsOf(missing: TeamSlot[], capped: boolean) {
+  const shown = capped ? missing.slice(0, namesShown) : missing;
+  const more = missing.length - shown.length;
+  return more === 0 ? shown.map((slot) => slot.name).join(", ") : `${shown.map((slot) => slot.name).join(", ")} and ${more} more`;
 }
 
 function Unmatched({ page, matchingHref }: { page: TeamPage; matchingHref: string | null }) {
