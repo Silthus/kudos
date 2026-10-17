@@ -1,7 +1,9 @@
 import type { Denial } from "../../convex/website/memberQuery";
-import type { AlbumPerson, CollectionAnswer, CollectionCrest, CollectionHoggie, GroupAlbum, Sticker } from "../../convex/website/collection";
+import type { AlbumPerson, CollectionAnswer, CollectionCrest, CollectionHoggie, GroupAlbum, Sticker, TeamPage, TeamPerson } from "../../convex/website/collection";
 
 export type { AlbumPerson, CollectionAnswer, CollectionCrest, CollectionHoggie, GroupAlbum, Sticker };
+
+export type { TeamPage as CollectionTeamPage, TeamPerson as CollectionTeamPerson };
 
 export type { RarityShare } from "../../convex/hoggies/collection";
 

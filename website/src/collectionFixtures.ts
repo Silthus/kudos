@@ -4,6 +4,7 @@ import type { Collection, CollectionCrest, CollectionHoggie, CollectionRead, MyC
 import { showsTheBookSpread } from "./book/spread/bookSpread";
 import type { Drop, ShellState } from "./shell";
 import { albums, stickers } from "./stickerBookFixtures";
+import { teamPages } from "./teamPagesFixtures";
 
 const at = (iso: string) => Date.parse(iso);
 
@@ -88,6 +89,7 @@ export const collectionFixtures = {
   withStickersOnly: { ...collectionWith(found), stickers },
   withNoStickersYet: { ...collectionWith(found), stickers: [], albums: albums.map((album) => ({ ...album, held: 0, people: album.people.map((person) => ({ ...person, held: false })) })) },
   withNoStickersAndNoAlbums: { ...collectionWith(found), stickers: [] },
+  withTeamPages: { ...collectionWith(found, { crests: false }), stickers, teams: teamPages },
   withTheStoreAndTheStickerBook: { ...collectionWith(found), bought: ["bought:1", "bought:2"], crateStore: storeOffering(3), stickers, albums },
   withFourPacks: { ...collectionWith(found), bought: ["bought:1", "bought:2", "bought:3", "bought:4"], crateStore: storeOffering(5), stickers, albums },
   nothingFound: collectionWith({}),
