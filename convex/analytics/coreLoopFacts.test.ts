@@ -2,7 +2,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vi
 import { FakePostHog, postHogHost, projectToken, routedFetch, type CapturedEvent } from "../../testing/fakePostHog";
 import { FakeSlack, httpStatus, slackError, type ScriptedAnswer } from "../../testing/fakeSlack";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
-import { edit, memberChanged, post, settle, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
+import { edit, memberChanged, post, settle, settleInTimeOrder, settleUntil, testBackend, type Backend } from "../../testing/slackBackend";
 import { appHomeOpened, emoji, mention, messageEvent, section, slashCommand, slashCommandResponseUrl, text, type Conversation } from "../../testing/slackMessages";
 import { recordUsage } from "./usage";
 
@@ -105,10 +105,10 @@ describe("O3: attempt failed", () => {
     const editedAt = new Date(now.getTime() + 60_000);
 
     await post(t, fourTacosToBob);
-    await settle(t);
+    await settleInTimeOrder(t);
     vi.setSystemTime(editedAt);
     await edit(t, oneTacoToBob, { editedTs: "1760349660.000100" });
-    await settle(t);
+    await settleInTimeOrder(t);
 
     const events = withoutWelcomes(coreLoopEvents());
     expect(events.map((event) => [event.event, event.properties.retry])).toEqual([
