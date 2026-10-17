@@ -185,6 +185,7 @@ describe("CV37 CV38: Team Spirit is dark where team-spirit is off, shows only to
     expect(completionsOn(answers.U_CAROL!.collection)).toEqual(["lantern"]);
     expect(completionsOn(answers.U_BOB!.collection)).toEqual([]);
     expect(JSON.stringify(answers.U_ALICE!.book)).toMatch(/All Hands/);
+    expect(tierItemsIn(answers.U_ALICE!.profile)).toContain("kudos-emoji-handshake");
     expect(walk.seen.cards["U_DANA sees U_ALICE"]).toMatch(/All Hands/);
     expect(orderFree((walk.seen.tables.teamPageCompletions ?? []).map(({ member, team, told }) => ({ member, team, told })))).toEqual([
       { member: "<member U_ALICE>", team: "hedgerow", told: false },
@@ -227,7 +228,8 @@ describe("CV37 CV38: Team Spirit is dark where team-spirit is off, shows only to
     const afterTheNextSticker = { answers: await everyonesAnswers(), kept: await keptRows() };
 
     expect(whileOff.kept, "completions, checks and tiers kept while off").toEqual(whileOn.kept);
-    expect(JSON.stringify(whileOff.answers), "nothing of Team Spirit shown while off").not.toMatch(teamSpiritText);
+    expect(ownedHandshakes(whileOff.answers), "an earned handshake stays in its earner's inventory (d-58192288)").toEqual(["U_ALICE"]);
+    expect(JSON.stringify(withoutTheOwnedHandshake(whileOff.answers)), "nothing else of Team Spirit shown while off").not.toMatch(teamSpiritText);
     expect(onAgain.kept).toEqual(whileOn.kept);
     expect(teamSpiritIn(whileOn.answers), "the positive control shows Team Spirit while on").toMatchObject({ U_ALICE: { ladder: { count: 2 } }, U_CAROL: { ladder: { count: 1 } } });
     expect(teamSpiritIn(whileOff.answers), "nothing of Team Spirit while off").toEqual(Object.fromEntries(members.map(({ user }) => [user, { completed: [], ladder: null }])));
@@ -297,9 +299,9 @@ async function everyoneInTheWorkspace(flag: FlagDefinition[], { turnOff }: { tur
     await settleInTimeOrder(t);
     const member = await memberOf(person);
     namedIds.set(member, `<member ${person.user}>`);
-    await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp: xpToReach(5), pointsSpent: 0 }));
-    for (const level of [4, 5]) await reachesLevel(t, member, level);
-    for (const feature of ["book", "leaderboard", "quests", "skillTree"] as const) await t.run((ctx) => openUnlock(ctx, member, feature));
+    await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp: xpToReach(6), pointsSpent: 0 }));
+    for (const level of [4, 5, 6]) await reachesLevel(t, member, level);
+    for (const feature of ["book", "leaderboard", "quests", "skillTree", "coins"] as const) await t.run((ctx) => openUnlock(ctx, member, feature));
   }
   await t.fetch("/slack/events", await signedRequest(userGroupEvent("subteam_created", ants)));
   await settleInTimeOrder(t);
@@ -390,7 +392,7 @@ async function cardsInSlack() {
   return cards;
 }
 
-function teamSpiritIn(answers: Record<string, Awaited<ReturnType<typeof onTheWebsite>>>) {
+function teamSpiritIn(answers: Answers) {
   const shown = (answer: Awaited<ReturnType<typeof onTheWebsite>>) => {
     const { teams = [] } = answer.collection as { teams?: Array<{ team: string; complete: boolean; crest: unknown; completion?: unknown }> };
     const { ladders = [] } = answer.book as { ladders?: Array<{ ladder: string }> };
@@ -398,6 +400,38 @@ function teamSpiritIn(answers: Record<string, Awaited<ReturnType<typeof onTheWeb
     return { completed: completed.map(({ team, complete, crest, completion }) => ({ team, complete, crest, completion })), ladder: ladders.find(({ ladder }) => ladder === teamSpirit) ?? null };
   };
   return Object.fromEntries(Object.entries(answers).map(([user, answer]) => [user, shown(answer)]));
+}
+
+type Answers = Record<string, Awaited<ReturnType<typeof onTheWebsite>>>;
+type InventoryEntry = { item: string };
+const handshake = "kudos-emoji-handshake";
+
+function ownedHandshakes(answers: Answers) {
+  return Object.entries(answers)
+    .filter(([, { profile }]) => (inventoryIn(profile)?.owned ?? []).some(({ item }) => item === handshake))
+    .map(([user]) => user);
+}
+
+function withoutTheOwnedHandshake(answers: Answers): Answers {
+  const withoutIt = (entries: InventoryEntry[]) => entries.filter(({ item }) => item !== handshake);
+  return Object.fromEntries(
+    Object.entries(answers).map(([user, answer]) => {
+      const inventory = inventoryIn(answer.profile);
+      if (inventory === null) return [user, answer];
+      return [user, { ...answer, profile: { ...(answer.profile as object), inventory: { ...inventory, owned: withoutIt(inventory.owned), catalogue: withoutIt(inventory.catalogue) } } }];
+    }),
+  ) as Answers;
+}
+
+function inventoryIn(profile: unknown) {
+  const { inventory = null } = profile as { inventory?: { owned: InventoryEntry[]; catalogue: InventoryEntry[] } | null };
+  return inventory;
+}
+
+function tierItemsIn(profile: unknown) {
+  const { inventory } = profile as { inventory?: { catalogue: Array<{ item: string; source: { kind: string } }> } | null };
+  if (inventory === undefined || inventory === null) throw new Error(`expected an inventory, got ${JSON.stringify(profile)}`);
+  return inventory.catalogue.filter(({ source }) => source.kind === "tier").map(({ item }) => item);
 }
 
 function completionsOn(collection: unknown) {
