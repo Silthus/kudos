@@ -56,14 +56,19 @@ export function CompanyProfileSection({ setting, linkMyCompanyProfile }: Company
 }
 
 function useFocusKeptAfterPress<Value>(send: (value: Value) => void) {
-  const pressed = useRef(false);
+  const pressed = useRef<Element | null>(null);
   useEffect(() => {
-    if (!pressed.current || document.activeElement !== document.body) return;
-    pressed.current = false;
-    document.getElementById(sectionHeadingId)?.focus();
+    const control = pressed.current;
+    if (control === null) return;
+    if (control.isConnected) {
+      if (document.activeElement !== control) pressed.current = null;
+      return;
+    }
+    pressed.current = null;
+    if (document.activeElement === document.body) document.getElementById(sectionHeadingId)?.focus();
   });
   return (value: Value) => {
-    pressed.current = true;
+    pressed.current = document.activeElement;
     send(value);
   };
 }

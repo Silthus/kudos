@@ -140,6 +140,21 @@ describe("#608: a member's posthog.com match changes only through the link comma
       expect(within(thisIsMe()).getByRole("heading", { level: 2, name: "This is me on posthog.com" })).toHaveFocus();
     });
 
+    it("leaves focus alone after a refused pick, when something else on the page later leaves", async () => {
+      const settings = { ...forAnAdmin(adminParts.teammates), companyProfile: companyProfiles.unmatched };
+      const { user, showSettingsAnswer } = showSettings(settings, { linkMyCompanyProfile: async () => ({ kind: "refused", reason: "taken" }), linkCompanyProfile: async () => ({ kind: "linked" }) });
+      await user.click(within(thisIsMe()).getByRole("button", { name: "This is me: Samantha Okafor" }));
+      await user.click(within(region("Match teammates")).getByRole("checkbox", { name: "Only teammates without a match" }));
+
+      const adaRow = within(within(region("Match teammates")).getByRole("list", { name: "Teammates" })).getByRole("heading", { level: 3, name: "Ada Admin" }).closest("li")!;
+      await user.click(within(adaRow).getByRole("button", { name: "Change Ada Admin's match" }));
+      await user.click(within(adaRow).getByRole("button", { name: "Not on posthog.com" }));
+      const matched = adminParts.teammates.members.map((member) => (member.key === "k-ada" ? { ...member, by: "admin" as const } : member));
+      showSettingsAnswer({ ...settings, admin: { ...adminParts.teammates, members: matched } });
+
+      expect(within(thisIsMe()).getByRole("heading", { level: 2, name: "This is me on posthog.com" })).not.toHaveFocus();
+    });
+
     it("shows the member's own pick with That isn't me, which clears it, and offers the other people to change to", async () => {
       const linkMyCompanyProfile = vi.fn(async (): Promise<CompanyProfileLinkReply> => ({ kind: "linked" }));
       const { user, showSettingsAnswer } = showSettings(withCompanyProfile(companyProfiles.bySelf), { linkMyCompanyProfile });
