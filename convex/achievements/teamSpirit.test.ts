@@ -205,6 +205,12 @@ async function bookInAppHome(person: Person) {
   return JSON.stringify(publishedHome(slack, person.user));
 }
 
+async function coinsOf(reader: Reader) {
+  const profile = await reader.query(api.website.profile.getMyProfile, {});
+  if (profile.kind !== "member" || profile.coins === null) throw new Error(`expected a wallet, got ${JSON.stringify(profile)}`);
+  return profile.coins;
+}
+
 async function tierItemsListedFor(reader: Reader) {
   const profile = await reader.query(api.website.profile.getMyProfile, {});
   if (profile.kind !== "member" || profile.inventory === null) throw new Error(`expected an inventory, got ${JSON.stringify(profile)}`);
@@ -219,6 +225,8 @@ async function cardOf(viewer: Person, owner: Person) {
   return reply.text;
 }
 
+const noticedCoins = 10;
+
 describe("CV35 SB21: Team Spirit counts completed team pages", { timeout: 120_000 }, () => {
   test("1, 2, 4 and 8 completions earn bronze, silver, gold and diamond once each, each caused by the completion that reached it, with coins and handshake paid once", async () => {
     await teamSpiritShipped(true);
@@ -228,9 +236,18 @@ describe("CV35 SB21: Team Spirit counts completed team pages", { timeout: 120_00
     await afterTheFirstCheck(alice);
 
     const completedAt: number[] = [];
-    for (const teammate of teammates.slice(0, 8)) completedAt.push(await thanks(teammate, alice));
+    const coinsGained: number[] = [];
+    for (const teammate of teammates.slice(0, 8)) {
+      const before = await coinsOf(reader);
+      completedAt.push(await thanks(teammate, alice));
+      coinsGained.push((await coinsOf(reader)) - before);
+    }
+    const coinsBeforeTheRetries = await coinsOf(reader);
     await redelivered(teammates[7]!, completedAt[7]!);
     await checkedAgain(alice, completedAt[7]!);
+
+    expect(coinsGained, "Team Spirit pays 10 at bronze and 100 at diamond; the first thanks alice receives also pays Noticed's 10").toEqual([10 + noticedCoins, 0, 0, 0, 0, 0, 0, 100]);
+    expect(await coinsOf(reader), "a redelivered kudos or a retried check paid coins again").toBe(coinsBeforeTheRetries);
 
     expect(await earnedOn(reader)).toEqual({
       count: 8,

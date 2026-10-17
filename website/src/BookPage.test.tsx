@@ -1,5 +1,5 @@
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
-import { hedgehogStarPng } from "@posthog/brand/hoggies/png";
+import { hedgehogCodingGroupPng, hedgehogStarPng } from "@posthog/brand/hoggies/png";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ladders, type LadderId } from "../../convex/achievements/ladders";
 import { ladderCategories } from "./book/categories";
@@ -366,6 +366,12 @@ describe("WS332: the Book's category pages", () => {
   it("keys every shipped ladder to a category", () => {
     const unkeyed = ladders.ladders.map(({ ladder }) => ladder).filter((ladder) => !Object.hasOwn(ladderCategories, ladder));
     expect(unkeyed).toEqual([]);
+  });
+
+  it("puts Team Spirit on Connections after Old Friends, with its own emblem, when the read returns it", () => {
+    showBookAt("/book?page=connections", bookFixtures.withTeamSpirit);
+    expect(ladderNames()).toEqual(["Connections", "Old Friends", "Team Spirit"]);
+    expect(drawnPicturesIn(ladderCard("Team Spirit").querySelector("[data-emblem]")!)).toEqual([hedgehogCodingGroupPng]);
   });
 
   it("puts a ladder a newer backend returns, with no category yet, on the last category that holds a ladder", () => {

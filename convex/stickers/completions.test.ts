@@ -21,6 +21,7 @@ import type { MemberId } from "../workspace/directory";
 
 const now = new Date("2026-10-16T10:00:00Z");
 const minuteMs = 60_000;
+const dayMs = 24 * 60 * minuteMs;
 const bookFlags = ["xp-levels", "unlocks", "achievements", "everyone-board", "skill-tree", "collection", "crests", "groups", "sticker-book", "team-pages"];
 const stickerJob = "stickers/stickers:recordStickers";
 const checkJob = "stickers/completions:checkTeamPages";
@@ -456,6 +457,30 @@ describe("CV33: App Home counts every crest the member holds, by roster or by pa
     await settle(t);
 
     expect(publishedHome(slack, juno.user).find((line) => line.startsWith("section: Hoggies:"))).toContain(" · 2 crests · ");
+  });
+
+  test("a told completion that reaches no new tier still refreshes the crest count in an App Home already open", async () => {
+    const beacon: PostHogComTeam = { slug: "beacon", name: "Beacon", profiles: [ivoProfile] };
+    await onPostHogCom(quill, zephyr, beacon);
+    await teamSpiritShipped(true);
+    await joined(juno, oriel, tamsin, ivo, sam);
+    await withTheBookOpen(juno);
+    await holds(t, await memberOf(juno), "coffee-run");
+    await thanks(juno, sam);
+    await thanks(juno, oriel);
+    await thanks(juno, tamsin);
+    await t.fetch("/slack/events", await signedRequest(appHomeOpened(juno.user)));
+    await settle(t);
+    expect(publishedHome(slack, juno.user).find((line) => line.startsWith("section: Hoggies:"))).toContain(" · 2 crests · ");
+    vi.setSystemTime(Date.now() + dayMs);
+    await given(juno, ivo);
+    const [check] = await checksOf(juno);
+
+    await runs(check!);
+    await settle(t);
+
+    expect(completionLinesTo(juno).at(-1)).toBe("Team complete · Beacon crest earned");
+    expect(publishedHome(slack, juno.user).find((line) => line.startsWith("section: Hoggies:"))).toContain(" · 3 crests · ");
   });
 });
 
