@@ -12,6 +12,7 @@ import { featureValidator } from "../unlocks/feature";
 import { rarityValidator } from "../hoggies/catalogue";
 import { surfaceValidator } from "../commands/surface";
 import type { MemberId } from "../workspace/directory";
+import { grantOutcomeValidator } from "../album/records";
 
 export const awardValidator = v.object({ award: awardIdValidator, giver: v.id("members"), recipient: v.id("members"), kudos: v.number() });
 
@@ -249,6 +250,21 @@ export const stickersCollectedEventValidator = v.object({
 
 export type StickersCollectedEvent = Infer<typeof stickersCollectedEventValidator>;
 
+export const thoughtfulPacksGrantedEventValidator = v.object({
+  type: v.literal("thoughtfulPacksGranted"),
+  workspace: v.string(),
+  giver: v.id("members"),
+  message: messageRefValidator,
+  outcomes: v.array(v.object({ recipient: v.id("members"), outcome: grantOutcomeValidator })),
+  at: v.number(),
+});
+
+export type ThoughtfulPacksGrantedEvent = Infer<typeof thoughtfulPacksGrantedEventValidator>;
+
+export const companyTeamsReplacedEventValidator = v.object({ type: v.literal("companyTeamsReplaced"), at: v.number() });
+
+export type CompanyTeamsReplacedEvent = Infer<typeof companyTeamsReplacedEventValidator>;
+
 export const crateBoughtEventValidator = v.object({ type: v.literal("crateBought"), workspace: v.string(), member: v.id("members"), crate: v.string(), price: v.number(), at: v.number() });
 
 export type CrateBoughtEvent = Infer<typeof crateBoughtEventValidator>;
@@ -291,7 +307,9 @@ export type DomainEvent =
   | CrateBoughtEvent
   | HugGivenEvent
   | TeamPagesCompletedEvent
-  | StickersCollectedEvent;
+  | StickersCollectedEvent
+  | ThoughtfulPacksGrantedEvent
+  | CompanyTeamsReplacedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];

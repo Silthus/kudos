@@ -16,6 +16,7 @@ import type {
   QuestsDrawnEvent,
   QuestSwappedEvent,
   StickersCollectedEvent,
+  ThoughtfulPacksGrantedEvent,
   UnlockOpenedEvent,
   UnlockReadyEvent,
   UnlocksLaunchedEvent,
@@ -56,6 +57,7 @@ export type ProductEvent = {
     | "hugs recap sent"
     | "team page completed"
     | "person collected"
+    | "packs earned"
     | "achievement earned"
     | "app home opened"
     | "command used"
@@ -241,6 +243,11 @@ export function projectTeamPagesCompleted({ member, teams, at, told }: TeamPages
 
 export function projectPersonCollected({ stickers, at }: StickersCollectedEvent): ProductEvent[] {
   return stickers.map(({ collector, firstGiver }) => ({ event: "person collected", subject: { member: collector }, at, properties: { via: firstGiver === collector ? "gave" : "received" } }));
+}
+
+export function projectPacksEarned({ giver, outcomes, at }: ThoughtfulPacksGrantedEvent): ProductEvent {
+  const packsEarned = outcomes.filter(({ outcome }) => outcome !== "nextWeek").length;
+  return { event: "packs earned", subject: { member: giver }, at, properties: { packs_earned: packsEarned, recipients: outcomes.length } };
 }
 
 export function projectPerkBought(event: PerkBoughtEvent): ProductEvent {

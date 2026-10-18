@@ -1,0 +1,11 @@
+PostHog project 662840, HogQL, 2026-10-18 ~21:05 UTC:
+SELECT timestamp, event, properties.packs_earned, properties.recipients, properties.environment
+FROM events WHERE event = 'packs earned' AND timestamp > now() - INTERVAL 4 DAY ORDER BY timestamp
+
+timestamp|event|packs_earned|recipients|environment
+2026-10-16T20:42:19.118000Z|packs earned|3.0|3.0|sandbox      <- first run, e087e77f
+2026-10-16T21:04:17.676000Z|packs earned|3.0|3.0|sandbox      <- second run, 2e2b1a78 (round 1 fixes)
+2026-10-17T20:42:23.818000Z|packs earned|0.0|1.0|sandbox      <- first run
+2026-10-17T21:04:22.066000Z|packs earned|0.0|1.0|sandbox      <- second run
+
+Each run: a thoughtful kudos to three people (packs_earned 3, recipients 3), then a second thoughtful kudos to one of them the same giver week (packs_earned 0, recipients 1), then a short "ty" (no grant, no event). The timestamps are the kudos instants: the driver back-dates the first two kudos by two days and one day so all three fall in the giver's week (Monday 2026-10-12) within the sandbox's daily allowance.

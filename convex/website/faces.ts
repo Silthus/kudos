@@ -11,7 +11,14 @@ export type Face =
   | { kind: "initials"; initials: string };
 
 export async function faceOf(ctx: QueryCtx, me: VerifiedMember): Promise<Face> {
-  const companyFace = await ownCompanyFaceOf(ctx, me);
+  return faceFrom(me, await ownCompanyFaceOf(ctx, me));
+}
+
+export async function storedFaceOf(ctx: QueryCtx, me: VerifiedMember): Promise<Face> {
+  return faceFrom(me, await ownStoredCompanyFaceOf(ctx, me));
+}
+
+function faceFrom(me: VerifiedMember, companyFace: CompanyFace | undefined): Face {
   if (companyFace !== undefined) return { kind: "company-profile", ...companyFace, initials: initialsOf(me) };
   return signInFaceOf(me);
 }
@@ -20,6 +27,11 @@ export function signInFaceOf(me: VerifiedMember): Face {
   const initials = initialsOf(me);
   if (me.image !== undefined) return { kind: "slack", image: me.image, initials };
   return { kind: "initials", initials };
+}
+
+async function ownStoredCompanyFaceOf(ctx: QueryCtx, me: VerifiedMember): Promise<CompanyFace | undefined> {
+  if (!(await teamPagesShownTo(ctx, me.member))) return companyFaceOf(ctx, realNameOf(me));
+  return (await storedCompanyFaceOf(ctx, me.workspace, me.member)) ?? undefined;
 }
 
 async function ownCompanyFaceOf(ctx: QueryCtx, me: VerifiedMember): Promise<CompanyFace | undefined> {
