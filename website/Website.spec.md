@@ -196,6 +196,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   over: every page rendered from the fixture app, `/`, `/activity` with each filter, `/leaderboard`, `/quests`, `/skills`, `/book`, `/book/collection`, two spread hashes and `/settings`, for the fixtures holding activity, the spotlight, recent kudos, teammates' Slack faces, custom emoji, the inventory, the Book and the crate store, every text node and every link, picture and label attribute; the replay options a capture answer starts posthog-js with; and the pinned recorder's own snapshots of a page holding a blocked paragraph, a typed input and a console line, under project settings that ask for console logs, payloads, canvas and unmasked inputs
   via: nothing private reaches PostHog from the browser
   refuted: KudosMessage's words lost their ph-no-capture block -> kudos words lay outside every block on the home, activity and leaderboard pages, 10 of 20 tests red (2026-10-18)
+  refuted: replay's options set maskAllInputs to false -> the options no longer masked every input and the pinned recorder's snapshots held the typed value, 2 of 22 tests red (2026-10-18)
   because: kudos words are colleagues' private thanks and permalinks and Slack pictures hold channel, message, team and user IDs, so none of them may reach a replay or an event that everyone in the organisation can open; names, levels, hoggies and quests stay visible as the product owner chose (masking A, MS23, MS27)
   kinds: output, message
   checklist: destination-confinement dismissed: the blocks change only what posthog-js records, and posthog-js sends only where the browser captures only while told to lets it
@@ -214,6 +215,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   over: the live shell opened at `/?code=…` and navigating to another address carrying a code, an event holding every URL property, person property and stack frame URL with a sign-in code, a Date and a plain property, and a replay URL with a sign-in code, a query parameter and a hash given to the replay options' URL mask
   via: no sign-in code leaves the browser
   refuted: the scrub left URLs inside lists, such as stack frames, untouched -> a stack frame kept the sign-in code, 1 of 2 tests red (2026-10-18)
+  refuted: replay's URL mask passed each recorded URL through unchanged -> a replay URL kept the sign-in code, 1 of 3 tests red (2026-10-18)
   because: the sign-in code from Slack redeems a session, so it must never sit in PostHog where anyone in the organisation can read it (MS21)
   kinds: credential, output
   checklist: destination-confinement dismissed: the scrub only removes; it sends nothing itself
