@@ -1,0 +1,373 @@
+{
+  "before the own links, read as Bramble": {
+    "kind": "boards",
+    "onTheBoards": true,
+    "people": [
+      {
+        "face": {
+          "kind": "initials",
+          "redacted": true
+        },
+        "name": "Marlo Penhallow",
+        "person": "js72mwzt364mmv79snhkbby3k18gh12f",
+        "rank": 1,
+        "teams": [],
+        "thoughtful": 3,
+        "tied": false,
+        "you": false
+      },
+      {
+        "face": {
+          "kind": "initials",
+          "redacted": true
+        },
+        "name": "Tamsin Okoro",
+        "person": "js73995bdb956zn7ca1myzyx618ggd1e",
+        "rank": 2,
+        "teams": [],
+        "thoughtful": 2,
+        "tied": false,
+        "you": false
+      },
+      {
+        "face": {
+          "kind": "initials",
+          "redacted": true
+        },
+        "name": "Bramble Achterberg",
+        "person": "js76nk28m0x2vrrqw0b0eha03n8ggpyg",
+        "rank": 3,
+        "teams": [],
+        "thoughtful": 1,
+        "tied": false,
+        "you": true
+      }
+    ],
+    "pinned": {
+      "me": {
+        "face": {
+          "kind": "initials",
+          "redacted": true
+        },
+        "name": "Bramble Achterberg",
+        "person": "js76nk28m0x2vrrqw0b0eha03n8ggpyg",
+        "rank": 3,
+        "teams": [],
+        "thoughtful": 1,
+        "tied": false,
+        "you": true
+      },
+      "teams": []
+    },
+    "teams": []
+  },
+  "after the own links, read as Bramble": {
+    "kind": "boards",
+    "onTheBoards": true,
+    "people": [
+      {
+        "face": {
+          "kind": "company-profile",
+          "redacted": true
+        },
+        "name": "Marlo Penhallow",
+        "person": "js72mwzt364mmv79snhkbby3k18gh12f",
+        "rank": 1,
+        "teams": [
+          "onboarding"
+        ],
+        "thoughtful": 3,
+        "tied": false,
+        "you": false
+      },
+      {
+        "face": {
+          "kind": "company-profile",
+          "redacted": true
+        },
+        "name": "Tamsin Okoro",
+        "person": "js73995bdb956zn7ca1myzyx618ggd1e",
+        "rank": 2,
+        "teams": [
+          "onboarding"
+        ],
+        "thoughtful": 2,
+        "tied": false,
+        "you": false
+      },
+      {
+        "face": {
+          "kind": "company-profile",
+          "redacted": true
+        },
+        "name": "Bramble Achterberg",
+        "person": "js76nk28m0x2vrrqw0b0eha03n8ggpyg",
+        "rank": 3,
+        "teams": [
+          "query-performance"
+        ],
+        "thoughtful": 1,
+        "tied": false,
+        "you": true
+      }
+    ],
+    "pinned": {
+      "me": {
+        "face": {
+          "kind": "company-profile",
+          "redacted": true
+        },
+        "name": "Bramble Achterberg",
+        "person": "js76nk28m0x2vrrqw0b0eha03n8ggpyg",
+        "rank": 3,
+        "teams": [
+          "query-performance"
+        ],
+        "thoughtful": 1,
+        "tied": false,
+        "you": true
+      },
+      "teams": [
+        {
+          "art": {
+            "kind": "image",
+            "redacted": true
+          },
+          "mine": true,
+          "name": "Query Performance",
+          "rank": 2,
+          "team": "query-performance",
+          "thoughtful": 1,
+          "tied": false
+        }
+      ]
+    },
+    "teams": [
+      {
+        "art": {
+          "kind": "crest",
+          "slug": "onboarding"
+        },
+        "mine": false,
+        "name": "Onboarding",
+        "rank": 1,
+        "team": "onboarding",
+        "thoughtful": 5,
+        "tied": false
+      },
+      {
+        "art": {
+          "kind": "image",
+          "redacted": true
+        },
+        "mine": true,
+        "name": "Query Performance",
+        "rank": 2,
+        "team": "query-performance",
+        "thoughtful": 1,
+        "tied": false
+      }
+    ]
+  },
+  "after the own links, read as Marlo": {
+    "kind": "boards",
+    "onTheBoards": true,
+    "people": [
+      {
+        "face": {
+          "kind": "company-profile",
+          "redacted": true
+        },
+        "name": "Marlo Penhallow",
+        "person": "js72mwzt364mmv79snhkbby3k18gh12f",
+        "rank": 1,
+        "teams": [
+          "onboarding"
+        ],
+        "thoughtful": 3,
+        "tied": false,
+        "you": true
+      },
+      {
+        "face": {
+          "kind": "company-profile",
+          "redacted": true
+        },
+        "name": "Tamsin Okoro",
+        "person": "js73995bdb956zn7ca1myzyx618ggd1e",
+        "rank": 2,
+        "teams": [
+          "onboarding"
+        ],
+        "thoughtful": 2,
+        "tied": false,
+        "you": false
+      },
+      {
+        "face": {
+          "kind": "company-profile",
+          "redacted": true
+        },
+        "name": "Bramble Achterberg",
+        "person": "js76nk28m0x2vrrqw0b0eha03n8ggpyg",
+        "rank": 3,
+        "teams": [
+          "query-performance"
+        ],
+        "thoughtful": 1,
+        "tied": false,
+        "you": false
+      }
+    ],
+    "pinned": {
+      "me": {
+        "face": {
+          "kind": "company-profile",
+          "redacted": true
+        },
+        "name": "Marlo Penhallow",
+        "person": "js72mwzt364mmv79snhkbby3k18gh12f",
+        "rank": 1,
+        "teams": [
+          "onboarding"
+        ],
+        "thoughtful": 3,
+        "tied": false,
+        "you": true
+      },
+      "teams": [
+        {
+          "art": {
+            "kind": "crest",
+            "slug": "onboarding"
+          },
+          "mine": true,
+          "name": "Onboarding",
+          "rank": 1,
+          "team": "onboarding",
+          "thoughtful": 5,
+          "tied": false
+        }
+      ]
+    },
+    "teams": [
+      {
+        "art": {
+          "kind": "crest",
+          "slug": "onboarding"
+        },
+        "mine": true,
+        "name": "Onboarding",
+        "rank": 1,
+        "team": "onboarding",
+        "thoughtful": 5,
+        "tied": false
+      },
+      {
+        "art": {
+          "kind": "image",
+          "redacted": true
+        },
+        "mine": false,
+        "name": "Query Performance",
+        "rank": 2,
+        "team": "query-performance",
+        "thoughtful": 1,
+        "tied": false
+      }
+    ]
+  },
+  "Who gave: onboarding, read as Bramble": {
+    "kind": "boards",
+    "onTheBoards": true,
+    "people": [
+      {
+        "face": {
+          "kind": "company-profile",
+          "redacted": true
+        },
+        "name": "Marlo Penhallow",
+        "person": "js72mwzt364mmv79snhkbby3k18gh12f",
+        "rank": 1,
+        "teams": [
+          "onboarding"
+        ],
+        "thoughtful": 3,
+        "tied": false,
+        "you": false
+      },
+      {
+        "face": {
+          "kind": "company-profile",
+          "redacted": true
+        },
+        "name": "Tamsin Okoro",
+        "person": "js73995bdb956zn7ca1myzyx618ggd1e",
+        "rank": 2,
+        "teams": [
+          "onboarding"
+        ],
+        "thoughtful": 2,
+        "tied": false,
+        "you": false
+      }
+    ],
+    "pinned": {
+      "me": {
+        "face": {
+          "kind": "company-profile",
+          "redacted": true
+        },
+        "name": "Bramble Achterberg",
+        "person": "js76nk28m0x2vrrqw0b0eha03n8ggpyg",
+        "rank": 3,
+        "teams": [
+          "query-performance"
+        ],
+        "thoughtful": 1,
+        "tied": false,
+        "you": true
+      },
+      "teams": [
+        {
+          "art": {
+            "kind": "image",
+            "redacted": true
+          },
+          "mine": true,
+          "name": "Query Performance",
+          "rank": 2,
+          "team": "query-performance",
+          "thoughtful": 1,
+          "tied": false
+        }
+      ]
+    },
+    "teams": [
+      {
+        "art": {
+          "kind": "crest",
+          "slug": "onboarding"
+        },
+        "mine": false,
+        "name": "Onboarding",
+        "rank": 1,
+        "team": "onboarding",
+        "thoughtful": 5,
+        "tied": false
+      },
+      {
+        "art": {
+          "kind": "image",
+          "redacted": true
+        },
+        "mine": true,
+        "name": "Query Performance",
+        "rank": 2,
+        "team": "query-performance",
+        "thoughtful": 1,
+        "tied": false
+      }
+    ]
+  }
+}

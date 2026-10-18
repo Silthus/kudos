@@ -7,7 +7,7 @@ import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aMember, aSession, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
-import type { AlbumRead } from "./album";
+import type { AlbumRead, ThoughtfulBoardsRead } from "./album";
 
 const minuteMs = 60_000;
 const alice = { user: "U_ALICE", name: "Alice Marchetti" };
@@ -60,6 +60,26 @@ describe("the album is private", () => {
 
     await expect(asBob.query(api.website.album.getAlbum, withAnotherMember)).rejects.toThrow(/member/);
   });
+
+  test("getThoughtfulBoards pins each signed-in member's own row, never another member's", async () => {
+    await thanks(alice, "Thanks for the careful review of the billing export", bob);
+    await thanks(bob, "Thanks for pairing on the stubborn cache invalidation", carol, dana);
+    await thanks(carol, "Thanks for the thorough onboarding notes you wrote", alice);
+
+    for (const person of [alice, bob, carol, dana]) {
+      const boards = await boardsOf(await signedIn(person));
+      expect(boards, `${person.name}'s own pinned row`).toMatchObject({ kind: "boards", pinned: { me: { name: person.name, you: true } } });
+      expect((boards as Extract<ThoughtfulBoardsRead, { kind: "boards" }>).people.filter(({ you }) => you).map(({ name }) => name), `${person.name} is the only you`).toEqual(person === dana ? [] : [person.name]);
+    }
+  });
+
+  test("getThoughtfulBoards rejects an argument that names another member", async () => {
+    await thanks(alice, "Thanks for the careful review of the billing export", bob);
+    const asBob = await signedIn(bob);
+    const withAnotherMember = { member: await memberOf(alice) } as unknown as Record<string, never>;
+
+    await expect(asBob.query(api.website.album.getThoughtfulBoards, withAnotherMember)).rejects.toThrow(/member/);
+  });
 });
 
 describe("AL40: getAlbum shows the member's face without reading the directory", () => {
@@ -78,22 +98,25 @@ describe("AL40: getAlbum shows the member's face without reading the directory",
 });
 
 describe("website reads pass one guard", () => {
-  test("getAlbum reads closed while the website flag is off, even with album on", async () => {
+  test("getAlbum and getThoughtfulBoards read closed while the website flag is off, even with album on", async () => {
     const asAlice = await signedIn(alice);
     await switchWebsite(t, postHog, false, "album");
 
     expect(await albumOf(asAlice)).toEqual({ kind: "closed" });
+    expect(await boardsOf(asAlice)).toEqual({ kind: "closed" });
   });
 
-  test("getAlbum reads signed out without a session", async () => {
+  test("getAlbum and getThoughtfulBoards read signed out without a session", async () => {
     expect(await albumOf(t)).toEqual({ kind: "signed-out" });
+    expect(await boardsOf(t)).toEqual({ kind: "signed-out" });
   });
 
-  test("getAlbum reads not-a-member for a former member with a live session", async () => {
+  test("getAlbum and getThoughtfulBoards read not-a-member for a former member with a live session", async () => {
     await aMember(t, juno.user, "not-a-member");
     const { asSignedIn } = await aSession(t, juno);
 
     expect(await albumOf(asSignedIn)).toEqual({ kind: "not-a-member" });
+    expect(await boardsOf(asSignedIn)).toEqual({ kind: "not-a-member" });
   });
 });
 
@@ -101,6 +124,10 @@ type Reader = Pick<Backend, "query">;
 
 function albumOf(reader: Reader): Promise<AlbumRead | { kind: string }> {
   return reader.query(api.website.album.getAlbum, {});
+}
+
+function boardsOf(reader: Reader): Promise<ThoughtfulBoardsRead | { kind: string }> {
+  return reader.query(api.website.album.getThoughtfulBoards, {});
 }
 
 async function packedPeopleIn(albums: ReadonlyArray<readonly [Person, AlbumRead | { kind: string }]>) {

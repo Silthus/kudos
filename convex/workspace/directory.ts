@@ -47,9 +47,15 @@ export async function isMember(ctx: QueryCtx, member: MemberId): Promise<boolean
   return (await ctx.db.get(member))?.kind === "member";
 }
 
-export async function nameAndPictureOf(ctx: QueryCtx, member: MemberId): Promise<{ name: string | undefined; picture: string | null }> {
+export type NameAndPicture = { name: string | undefined; picture: string | null };
+
+export async function nameAndPictureOf(ctx: QueryCtx, member: MemberId): Promise<NameAndPicture> {
+  return (await currentNameAndPictureOf(ctx, member)) ?? { name: undefined, picture: null };
+}
+
+export async function currentNameAndPictureOf(ctx: QueryCtx, member: MemberId): Promise<NameAndPicture | null> {
   const row = await ctx.db.get(member);
-  return row?.kind === "member" ? { name: row.name, picture: row.picture ?? null } : { name: undefined, picture: null };
+  return row?.kind === "member" ? { name: row.name, picture: row.picture ?? null } : null;
 }
 
 export async function timeZoneOf(ctx: QueryCtx, member: MemberId): Promise<string | null> {
