@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { schedule, scheduled } from "../../convex/unlocks/schedule";
 import { bookFixtures } from "./bookFixtures";
@@ -52,8 +52,9 @@ describe("the fixture build's nav climbs the unlock schedule", () => {
     ["member-at-level-1-with-the-book-ready", ["Profile", "Book: unlock ready. Open its crate", "Leaderboard, locked. Unlocks at level 2", "Quests, locked. Unlocks at level 3", "Skill tree, locked. Unlocks at level 5"]],
     ["member-with-every-nav-state", ["Profile", "Book", "Leaderboard: unlock ready. Open its crate", "Quests, locked. Unlocks at level 3", "Skill tree, locked. Unlocks at level 5"]],
     ["member-at-level-3-with-the-quests-ready", ["Profile", "Book", "Leaderboard", "Quests: unlock ready. Open its crate", "Skill tree, locked. Unlocks at level 5"]],
-  ])("%s", (fixture, entries) => {
+  ])("%s", async (fixture, entries) => {
     render(<Root fixture={fixture} />);
+    await screen.findByRole("main");
     expect(navEntryNames()).toEqual(entries);
   });
 });

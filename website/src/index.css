@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source not "./album";
 @import "@posthog/quill/tokens.css";
 @import "@posthog/quill/base.css";
 @import "@posthog/quill/primitives.css";
