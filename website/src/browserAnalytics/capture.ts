@@ -1,12 +1,10 @@
-import type { CaptureResult, PostHog, PostHogConfig } from "posthog-js/dist/module.full.no-external";
+import type { BeforeSendFn, PostHog, PostHogConfig } from "posthog-js/dist/module.full.no-external";
 import type { BrowserAnalytics } from "../../../convex/website/browserAnalytics";
 import { captureEveryPageview, pagePropertiesOf } from "./pageviews";
-import { reportableException } from "./reportableException";
-import { withoutSignInCode } from "./withoutSignInCode";
 
 export type Capture = Extract<BrowserAnalytics, { kind: "capture" }>;
 
-export type PostHogScript = { posthog: PostHog; scriptUrl: string };
+export type PostHogScript = { posthog: PostHog; sendable: BeforeSendFn };
 
 export type PostHogLoader = () => Promise<PostHogScript>;
 
@@ -39,9 +37,9 @@ export function browserAnalytics(load: PostHogLoader, onCapturing: CapturingChan
     const starting: Running = { capture: keyOf(capture) };
     running = starting;
     void load().then(
-      ({ posthog: sdk, scriptUrl }) => {
+      ({ posthog: sdk, sendable }) => {
         if (running !== starting) return;
-        const posthog = sdk.init(capture.token, optionsFor(capture, scriptUrl), `hedgehug-${++instances}`);
+        const posthog = sdk.init(capture.token, optionsFor(capture, sendable), `hedgehug-${++instances}`);
         posthog.opt_in_capturing({ captureEventName: false });
         posthog.register({ environment: capture.environment });
         starting.posthog = posthog;
@@ -91,7 +89,7 @@ function keyOf({ token, host, distinctId, environment }: Capture) {
   return JSON.stringify([token, host, distinctId, environment]);
 }
 
-export function optionsFor({ host, distinctId }: Capture, postHogScriptUrl: string): Partial<PostHogConfig> {
+export function optionsFor({ host, distinctId }: Capture, sendable: BeforeSendFn): Partial<PostHogConfig> {
   return {
     api_host: host,
     bootstrap: { distinctID: distinctId, isIdentifiedID: true },
@@ -113,16 +111,6 @@ export function optionsFor({ host, distinctId }: Capture, postHogScriptUrl: stri
     capture_dead_clicks: true,
     rageclick: true,
     capture_performance: { web_vitals: true, network_timing: false },
-    before_send: (event) => reportableException(sendable(event), postHogScriptUrl),
+    before_send: sendable,
   };
-}
-
-function sendable(event: CaptureResult | null): CaptureResult | null {
-  return withoutSignInCode(withoutPersonSet(event));
-}
-
-function withoutPersonSet(event: CaptureResult | null): CaptureResult | null {
-  if (event === null) return null;
-  const { $set: _surveySeenState, ...sendable } = event;
-  return sendable;
 }
