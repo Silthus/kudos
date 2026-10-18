@@ -155,7 +155,7 @@ describe("AL35: group quest draws obey group-quest whatever was launched", { tim
   test("after the launch, with group-quest off in the workspace decision but on for three Ants by their email, Monday's sweep tallies and draws nothing, also once it is on again mid-week, and the next Monday draws one", async () => {
     const t = await antsOpenedQuests(everyFlagBut(""));
     await sweepAt(t, lastTuesday);
-    await flagsFromPostHog(t, postHog, ...everyFlagBut(groupQuest, onForEmails(groupQuest, ...["U_ANN", "U_AL", "U_AMY"].map(emailOf))));
+    await previewedByThreeAnts(t);
     const jobsBefore = (await groupQuestJobsOf(t)).length;
 
     await sweepAt(t, mondaySweep);
@@ -169,6 +169,36 @@ describe("AL35: group quest draws obey group-quest whatever was launched", { tim
 
     await sweepAt(t, nextMondaySweep);
     expect((await groupQuestFacts(t)).quests.map(({ week }) => week)).toEqual(["2026-10-26"]);
+  });
+
+  test.each(["tallyParticipants", "drawGroupQuests"] as const)("a %s job queued while group-quest was on and run once it is off in the workspace decision, still on for three Ants by their email, draws nothing and marks the week passed", async (job) => {
+    const t = await antsOpenedQuests(everyFlagBut(""));
+    await sweepAt(t, lastTuesday);
+    const queued = { tallyParticipants: { workspace: "T1", week: thisWeek, members: 0, tally: [] }, drawGroupQuests: { workspace: "T1", week: thisWeek, members: ants.length, tally: [{ group: await antsOf(t), membersInside: ants.length, participants: await membersOf(t, "U_ANN", "U_AL", "U_AMY") }] } }[job];
+    await previewedByThreeAnts(t);
+
+    vi.setSystemTime(mondaySweep);
+    await t.mutation(makeFunctionReference<"mutation">(`quests/groupQuest:${job}`), queued);
+    await settle(t);
+
+    expect(await groupQuestFacts(t), "the group quest's facts after the queued job ran").toMatchObject({ weeks: [expect.objectContaining({ week: thisWeek })], quests: [] });
+    expect(groupQuestEvents()).toEqual([]);
+  });
+
+  test("a catch-up queued for a quest drawn while group-quest was on, run once it is off in the workspace decision, counts no contribution, even for Ants it is still on for by their email", async () => {
+    const t = await antsOpenedQuests(everyFlagBut(""));
+    await sweepAt(t, lastTuesday);
+    await sweepAt(t, mondaySweep);
+    await flagsFromPostHog(t, postHog, ...everyFlagBut(groupQuest, offForEveryone(groupQuest)));
+    vi.setSystemTime(tuesday);
+    await giveKudos(t, "U_ANN", "U_AL");
+    await previewedByThreeAnts(t);
+    const [drawn] = (await groupQuestFacts(t)).quests;
+
+    await t.mutation(makeFunctionReference<"mutation">("quests/groupQuest:catchUpContributions"), { quest: drawn!._id, cursor: null });
+    await settle(t);
+
+    expect((await groupQuestFacts(t)).contributions, "contributions the catch-up counted").toEqual([]);
   });
 });
 
@@ -245,6 +275,14 @@ async function antsOpenedQuests(flags: FlagDefinition[], turnOff?: () => void, s
   });
   await settle(t);
   return t;
+}
+
+function previewedByThreeAnts(t: Backend) {
+  return flagsFromPostHog(t, postHog, ...everyFlagBut(groupQuest, onForEmails(groupQuest, ...["U_ANN", "U_AL", "U_AMY"].map(emailOf))));
+}
+
+function membersOf(t: Backend, ...users: string[]) {
+  return t.run((ctx) => Promise.all(users.map((user) => memberOf(ctx, user))));
 }
 
 function profileOf(user: string) {
