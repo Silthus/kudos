@@ -57,23 +57,25 @@ function Browse({ album, place, onFollow }: { album: Album; place: Place; onFoll
   return (
     <>
       {mine !== undefined && <MyTeam team={mine} current={isCurrentTeam(place, mine)} onFollow={onFollow} />}
-      <section className="al-side-section">
-        <h2 className="al-side-heading">
-          <span>Teams</span>
-          <span>{others.length}</span>
-        </h2>
-        <TeamList teams={shown} place={place} onFollow={onFollow} />
-        {hidden > 0 && (
-          <button type="button" className="al-more" onClick={() => setShowingAll(true)}>
-            Show {hidden} more
-          </button>
-        )}
-        {showingAll && others.length > shownAtFirst && (
-          <button type="button" className="al-more" onClick={() => setShowingAll(false)}>
-            Show fewer
-          </button>
-        )}
-      </section>
+      {others.length > 0 && (
+        <section className="al-side-section">
+          <h2 className="al-side-heading">
+            <span>Teams</span>
+            <span>{others.length}</span>
+          </h2>
+          <TeamList teams={shown} place={place} onFollow={onFollow} />
+          {hidden > 0 && (
+            <button type="button" className="al-more" onClick={() => setShowingAll(true)}>
+              Show {hidden} more
+            </button>
+          )}
+          {showingAll && others.length > shownAtFirst && (
+            <button type="button" className="al-more" onClick={() => setShowingAll(false)}>
+              Show fewer
+            </button>
+          )}
+        </section>
+      )}
     </>
   );
 }

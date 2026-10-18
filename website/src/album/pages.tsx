@@ -75,7 +75,7 @@ function TeamPage({ album, team, home }: { album: Album; team: AlbumTeam | undef
   if (team === undefined && home)
     return (
       <Page tab="Your album" title="Your album">
-        Your team's page shows here once you're matched to a team on posthog.com. Every team is in the sidebar.
+        Your team's page shows here once you're matched to a team on posthog.com.{album.teams.length > 0 && " Every team is in the sidebar."}
       </Page>
     );
   if (team === undefined) return <NotFoundPage />;

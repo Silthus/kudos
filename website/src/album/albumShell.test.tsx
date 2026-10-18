@@ -208,6 +208,15 @@ describe("AL42: the sidebar", () => {
     expect(more.getByRole("link", { name: /^Milestones/ })).toHaveTextContent("6 medals");
   });
 
+  it("an album that holds no teams yet lists no Teams section, and its home says only how a team page arrives", async () => {
+    visit("/", { ...albumFixtures.newcomer, teams: [], people: [] });
+    const side = await sidebar();
+
+    expect(side.queryByRole("list", { name: "Teams" })).not.toBeInTheDocument();
+    expect(side.queryByRole("heading", { name: /^Teams/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Your album" }).nextElementSibling).toHaveTextContent(/^Your team's page shows here once you're matched to a team on posthog\.com\.$/);
+  });
+
   it("a member with no team of their own sees no team card", async () => {
     visit("/", albumFixtures.newcomer);
     expect((await sidebar()).queryByRole("region", { name: "Your team" })).not.toBeInTheDocument();
