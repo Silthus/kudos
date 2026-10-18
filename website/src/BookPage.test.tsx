@@ -211,16 +211,19 @@ describe("WS80 WS81: the fixture build's /book agrees with its member", () => {
     ["member-waiting-for-the-book", "Book"],
     ["member-with-the-book-ready", "Book"],
     ["member-with-the-book-opened", "Achievements"],
-  ])("%s shows %s", (fixture, title) => {
+  ])("%s shows %s", async (fixture, title) => {
     render(<Root fixture={fixture} />);
+    await screen.findByRole("main");
     expect(pageTitle()).toHaveTextContent(title);
   });
 
-  it("shows the locked page for a member waiting for the Book, and the crate for one whose Book is ready", () => {
+  it("shows the locked page for a member waiting for the Book, and the crate for one whose Book is ready", async () => {
     const waiting = render(<Root fixture="member-waiting-for-the-book" />);
+    await screen.findByRole("main");
     expect(main()).toHaveTextContent("Unlocks at level 1");
     waiting.unmount();
     render(<Root fixture="member-with-the-book-ready" />);
+    await screen.findByRole("main");
     expect(within(main()).getByRole("heading", { level: 1, name: "Book is ready" })).toBeInTheDocument();
   });
 });

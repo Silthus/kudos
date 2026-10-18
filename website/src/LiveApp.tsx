@@ -12,6 +12,7 @@ import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
 import type { ActivityRead, ActivityShown } from "./activityRead";
+import type { AlbumRead } from "./album/answer";
 import type { BoardAnswer } from "./boardRead";
 import type { BookShown } from "./bookRead";
 import type { CollectionShown } from "./collectionRead";
@@ -61,6 +62,7 @@ function LiveApp() {
       useCollection={(asking) => useLiveCollection(asking, unreachable)}
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
       useSettings={(asking) => useLiveSettings(asking, unreachable)}
+      useAlbum={albumNotReadYet}
       useProfileCard={useLiveProfileCard}
       useRecentKudos={useLiveRecentKudos}
       useActivityWatch={useLiveActivityWatch}
@@ -69,6 +71,8 @@ function LiveApp() {
     />
   );
 }
+
+const albumNotReadYet: AlbumRead = (asking) => (asking ? { kind: "off" } : undefined);
 
 function useLiveLeaderboard(period: Period | undefined, withGroupBoards: boolean, unreachable: boolean): BoardAnswer | undefined {
   const request = useMemo((): RequestForQueries => {

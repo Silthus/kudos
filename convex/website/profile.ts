@@ -47,6 +47,7 @@ export type MemberProfile = {
   settings: boolean;
   avatar?: Avatar | null;
   bookSpread?: true;
+  album?: true;
 };
 
 export type MyProfile = Denial | MemberProfile;
