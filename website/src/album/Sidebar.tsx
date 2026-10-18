@@ -154,7 +154,12 @@ function TeamList({ teams, place, onFollow }: { teams: AlbumTeam[]; place: Place
 }
 
 function TeamState({ team }: { team: AlbumTeam }) {
-  if (team.state === "ready") return <span className="al-team-ready">Ready to unlock</span>;
+  if (team.state === "ready")
+    return (
+      <span className="al-team-ready">
+        Ready<span className="al-unseen"> to unlock</span>
+      </span>
+    );
   if (team.state === "unlocked")
     return (
       <span className="al-tick" role="img" aria-label="Unlocked">

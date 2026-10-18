@@ -1,6 +1,6 @@
 .al-shell {
   --al-top-height: 3.5rem;
-  --al-side-width: 15rem;
+  --al-side-width: 16.5rem;
   --al-accent: #c94812;
   --al-accent-ink: #a33a0c;
   --al-accent-soft: color-mix(in oklab, var(--al-accent) 14%, transparent);
@@ -512,6 +512,15 @@
   white-space: nowrap;
 }
 
+.al-unseen {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .al-team-ready {
   flex-shrink: 0;
   border-radius: 999px;
@@ -704,7 +713,12 @@
   }
 
   .al-brand-word {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .al-xp {
