@@ -56,9 +56,16 @@ flowchart LR
   T14 --> T22
   T14 --> T23
   T14 --> T24
+  T26["26 Retired end state"]
+  T5 --> T26
+  T8 --> T26
+  T9 --> T26
+  T10 --> T26
+  T11 --> T26
+  T13 --> T26
 ```
 
-**Order.** The backend core loop (1 → 3 → 4 → 5/6 → 7 → 8) and the retirement fixes (9, no blockers) come first. The album shell (14) starts at once against fixtures, in parallel with 1. 2, 10 and 11 run beside the chain once their blockers land. 12 and 13 wait for the emojis. 15–24 start once 14 is on `main` and merge once the backend they show is. 25 waits for the rollout (AL66 step 7 and AL67). Backend: 1–13. UI: 14, 15, 17–25. Docs: 16.
+**Order.** The backend core loop (1 → 3 → 4 → 5/6 → 7 → 8) and the retirement fixes (9, no blockers) come first. The album shell (14) starts at once against fixtures, in parallel with 1. 2, 10 and 11 run beside the chain once their blockers land. 12 and 13 wait for the emojis. 15–24 start once 14 is on `main` and merge once the backend they show is. 25 waits for the rollout (AL66 step 7 and AL67). 26 proves the retired end state once the backend and the Slack moments are on `main`, and must be green before the rollout's step 4. Backend: 1–13, 26. UI: 14, 15, 17–25. Docs: 16.
 
 | # | Title | Starts after | Proof waits for | Flag | UI |
 |---|---|---|---|---|---|
@@ -87,6 +94,7 @@ flowchart LR
 | 23 | Leaderboard | 14 | 11 | `album` | UI |
 | 24 | The profile page | 14 | 7, 11 | `album` | UI |
 | 25 | Delete the old shell | AL66 step 7, AL67 | — | ends `album`'s off branch | UI |
+| 26 | The retired end state, proven | 5, 8, 9, 10, 11, 13 | — | `album`, `album-slack`, AL33's flags | |
 
 ---
 
@@ -94,7 +102,7 @@ flowchart LR
 
 **Starts after:** none. **Flag:** declares `album` (AL39). **Backend.**
 
-**What to build:** a giver who sends a thoughtful kudos to three people earns one thoughtful pack for each, at most one per person per giver's week; a second thoughtful kudos to one of them that week earns none; a short kudos and a hug earn none. Each grant writes its outcome (`new`, `held`, `waiting`, `nextWeek`), and the message's last page publishes `thoughtfulPacksGranted` once, which Analytics sends as `packs earned`. A new `Album` module holds it, with `album` declared and created, ADR-0009 landed with its decision record, the lexicon's **thoughtful pack** declared, and a first `getAlbum` read that answers `{ kind: "off" }` while `album` is off and, while on, the member, their level and their waiting packs.
+**What to build:** a giver who sends a thoughtful kudos to three people earns one thoughtful pack for each, at most one per person per giver's week; a second thoughtful kudos to one of them that week earns none; a short kudos and a hug earn none. Each grant writes its outcome (`new`, `held`, `waiting`, `nextWeek`), and the message's last page publishes `thoughtfulPacksGranted` once, which Analytics sends as `packs earned`. A new `Album` module holds it, with `album` declared and created, ADR-0009 landed with its decision record, the lexicon's **thoughtful pack** declared, the workspace's emoji name registry (AL25) with its level, milestone and company team reservations and each hype name allocated at its grant, and a first `getAlbum` read that answers `{ kind: "off" }` while `album` is off and, while on, the member, their level and their waiting packs.
 
 **Test seam:** signed Slack events through the router with `convex-test` (`transactionLimits: true`), PostHog stubbed at `fetch`, `getAlbum` with `aSignedInSession`.
 **Proof:** in the sandbox, signed kudos (one thoughtful to three people, a second thoughtful to one of them, one short) and `convex run website/album:getAlbum --identity …` show exactly three waiting packs; the project shows `packs earned` with `packs_earned = 3`, then one with `0` and `recipients = 1`.
@@ -103,6 +111,7 @@ flowchart LR
 - [ ] AL6: `packs earned` from `thoughtfulPacksGranted`; Analytics' allowlist invariant amended; the darkFeatures walk fires the recorder (E11); MS13's reservation noted as moved.
 - [ ] `album` declared and created; "the album is dark where album is off" with AL39's exemptions.
 - [ ] `getAlbum` v1 behind `memberQuery`; its entrance declared; "the album is private" started.
+- [ ] AL25's registry: reservations before any earn, the job after each company sync, hype names at the grant; "an earned emoji's name never moves".
 - [ ] `docs/adr/0009-the-album-is-collection-first.md` with its `coherence decide` record.
 
 ## 2. The album's history and its tallies
@@ -156,7 +165,7 @@ flowchart LR
 
 **Starts after:** 4. **Flag:** `album`. **Backend.**
 
-**What to build:** each company team is a page counting the member's album stickers of its matched people (the member excluded, unmatched people shown but not counted, nobody dropped from a big team). A complete page answers `ready`; the member's click unlocks its team sticker once, for good, storing the team's name, art and emoji name.
+**What to build:** each company team is a page counting the member's album stickers of its matched people (the member excluded, unmatched people shown but not counted, nobody dropped from a big team). A complete page answers `ready`; the member's click unlocks its team sticker once, for good, storing the team's name, art and its emoji name from ticket 1's registry.
 
 **Test seam:** website command `unlockTeamSticker` and `getAlbum` with `convex-test`, the company copy seeded as the sync writes it.
 **Proof:** in the sandbox, a synthetic member holding everyone on a seeded team reads `ready`, unlocks it, and still reads `unlocked` with its name and date after the team is removed from the copy.
@@ -178,23 +187,23 @@ flowchart LR
 
 **Starts after:** 7. **Flag:** `album`. **Backend.**
 
-**What to build:** each member's earned emojis (team, milestone at gold, levels 5–25, hype per person from their first thoughtful pack), derived from their causes, with names from the workspace's emoji name registry, public pictures, progress for locked ones, `seen` and `inSlack`. Team, milestone and level art is built as `/emoji/<name>.png`. Admins and owners get the shared list.
+**What to build:** each member's earned emojis (team, milestone at gold, levels 5–25, hype per person from their first thoughtful pack), derived from their causes, with names from ticket 1's registry, public pictures under catalogue IDs, progress for locked ones, `seen` and `inSlack`. Team, milestone and level art is built as `/emoji/<name>.png`. Admins and owners get the shared list.
 
 **Test seam:** `getAlbum`'s `emojis` and `markEmojisSeen` with `convex-test`; `emoji.list` stubbed at `fetch` through the existing custom emoji sync; the static file listing asserted from the website build.
-**Proof:** in the sandbox, a seeded team whose name slugs to an emoji the sandbox workspace already has reads `inSlack: true` after `syncCustomEmoji` runs, and another reads `false`; a synthetic member's emojis show a packed person's hype emoji with their face URL; `curl` of one `/emoji/<name>.png` answers a PNG under 128 KB.
+**Proof:** in the sandbox, a seeded team whose name slugs to an emoji the sandbox workspace already has reads `inSlack: true` after `syncCustomEmoji` runs, and another reads `false`; a synthetic member's emojis show a packed person's hype emoji with their face URL; `curl` of one `/emoji/team-<slug>.png` answers a PNG under 128 KB.
 
-- [ ] AL23–AL27, AL29, AL30, AL32's read; "an earned emoji follows its cause" and "an earned emoji's name never moves"; lexicon **earned emoji**, **hype emoji**; no Slack write and no new scope (AL28); the entrance declared.
+- [ ] AL23–AL27, AL29, AL30, AL32's read; "an earned emoji follows its cause"; lexicon **earned emoji**, **hype emoji**; no Slack write and no new scope (AL28); the entrance declared.
 
 ## 9. Retirements are safe
 
 **Starts after:** none. **Flag:** none new; makes AL33's flags safe to turn off. **Backend.**
 
-**What to build:** with `store` or `coins` off, a member's owned kudos emojis, custom ones included, keep giving kudos; with `group-quest` off, no group quest is drawn, tallied or caught up, launches recorded before included; with `unlocks` off, every shipped feature shows from level 1 and no level-up DM names one. One walk with `album` and `album-slack` on proves the end state.
+**What to build:** with `store` or `coins` off, a member's owned kudos emojis, custom ones included, keep giving kudos; with `group-quest` off, no group quest is drawn, tallied or caught up, launches recorded before included; with `unlocks` off, every shipped feature shows from level 1 and no level-up DM names one. The full end-state walk is ticket 26.
 
 **Test seam:** kudos with owned and custom kudos emojis through the router; the group quest sweep; level-ups through kudos; App Home through signed `app_home_opened`; all with `convex-test`.
 **Proof:** in the sandbox with `store` and `coins` off for one synthetic member, a kudos with their bought custom kudos emoji counts; App Home shows no coins, store, quests, Journey, skill tree, ladders or level unlocks with AL33's flags off for them.
 
-- [ ] AL34 along the whole call path, both Store invariants amended with a decision; AL35; AL36; AL37's walk; AL38.
+- [ ] AL34 along the whole call path, the three Store invariants amended with a decision; AL35; AL36; AL38.
 
 ## 10. Person and week reads
 
@@ -371,3 +380,14 @@ flowchart LR
 **Proof:** the sandbox browser proof that every old Slack link still lands, and a production check of five links after the deploy.
 
 - [ ] AL67, AL68; the queued-jobs check if any scheduled function changes.
+
+## 26. The retired end state, proven
+
+**Starts after:** 5, 8, 9, 10, 11, 13. **Flag:** `album`, `album-slack` and AL33's flags, read only. **Backend.**
+
+**What to build:** one walk proves that, with `album` and `album-slack` on and every retirement flag off, a member keeps everything the album needs (packs, the tray, stickers, team pages, hoggies, milestones, emojis, boards, person and week pages, the thread reply, the recap line, the weekly post) and App Home shows no coins, store, quests, Journey, skill tree, ladders or level unlocks.
+
+**Test seam:** a darkFeatures-style walk with `convex-test`: kudos and hugs through the signed Slack router, App Home through signed `app_home_opened`, every album read and command signed in, Slack and PostHog stubbed at `fetch`, beside the same walk with AL33's flags on.
+**Proof:** in the sandbox, a synthetic member with AL33's flags off for them only walks the loop end to end, and the PR lists each read's answer as equal or as the documented difference.
+
+- [ ] AL37; must be green before the rollout's step 4 (AL66).
