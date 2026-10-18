@@ -1,7 +1,7 @@
 import { gunzipSync } from "node:zlib";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { profileKeys } from "../../convex/analytics/person";
-import { browserAnalytics } from "./browserAnalytics/capture";
+import { browserAnalytics, type Capturer } from "./browserAnalytics/capture";
 
 type Sent = { url: string; events: { event: string; properties: Record<string, unknown>; $set?: unknown; $set_once?: Record<string, unknown> }[] };
 type SentException = { type: string; value: string; mechanism: { handled: boolean }; stacktrace?: { frames: { filename?: string; lineno?: number; function?: string }[] } };
@@ -91,6 +91,26 @@ describe("MS18 MS22: the pinned posthog-js sends only what the spec allows", () 
     window.history.pushState(null, "", "/quests");
     await flushed();
     expect(sent).toHaveLength(before);
+  });
+
+  it("the Feedback form's survey events carry no $set, though the pinned SDK adds one to each", { timeout: 60_000 }, async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36");
+    vi.stubGlobal("fetch", recordingFetch());
+    let capturer: Capturer | null = null;
+    const analytics = browserAnalytics(loadThePinnedSdk, (next) => (capturer = next));
+
+    analytics.follow({ ...capture, distinctId: "feedback-analytics-id" });
+    await vi.waitFor(() => expect(capturer).not.toBeNull());
+    capturer!.capture("survey shown", { $survey_id: "a-survey" });
+    capturer!.capture("survey sent", { $survey_id: "a-survey", $survey_response: "my own words", $survey_completed: true });
+    capturer!.capture("survey dismissed", { $survey_id: "a-survey" });
+    await flushed();
+    analytics.stop();
+
+    const events = sent.flatMap(({ events }) => events).filter(({ event }) => event.startsWith("survey "));
+    expect(events.map(({ event }) => event)).toEqual(["survey shown", "survey sent", "survey dismissed"]);
+    expect(events.every((event) => event.$set === undefined && !("$set" in event.properties))).toBe(true);
+    expect(events[1]!.properties.$survey_response).toBe("my own words");
   });
 });
 

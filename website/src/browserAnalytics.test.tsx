@@ -1,5 +1,6 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import axe from "axe-core";
 import { ConvexProvider, type ConvexReactClient } from "convex/react";
 import { getFunctionName, type FunctionReference } from "convex/server";
 import type { ReactNode } from "react";
@@ -320,6 +321,18 @@ describe("the browser captures only while told to", () => {
     expect(callsOf("captureException")).toHaveLength(1);
   });
 
+  it("the frame shows the Feedback control only while capturing", async () => {
+    renderLiveSite();
+    analyticsAnswers({ kind: "off" });
+    expect(screen.queryByRole("button", { name: "Feedback" })).not.toBeInTheDocument();
+
+    analyticsAnswers(ann);
+    expect(await screen.findByRole("button", { name: "Feedback" })).toBeInTheDocument();
+
+    analyticsAnswers({ kind: "signed-out" });
+    expect(screen.queryByRole("button", { name: "Feedback" })).not.toBeInTheDocument();
+  });
+
   it("the same capture answer again starts nothing new", async () => {
     renderLiveSite();
     analyticsAnswers(ann);
@@ -487,5 +500,118 @@ describe("no sign-in code leaves the browser", () => {
     expect(scrubbed.$set_once).toEqual({ $initial_current_url: "https://hedgehug.example/book?page=giving#teams", $initial_referrer: "https://hedgehug.example/book?page=giving#teams" });
     expect(scrubbed.timestamp).toBe(event.timestamp);
     expect(scrubbed.properties.page).toBe("book");
+  });
+});
+
+const feedbackSurvey = "01a14dfa-686c-0000-15fd-1e42871cb016";
+const feedbackQuestion = "ac5e3810-2b39-46a2-80d2-f8553b37dbac";
+
+function surveyEvents() {
+  return recorded.sent.filter(({ event }) => event.startsWith("survey ")).map(({ event, properties }) => ({ event, properties }));
+}
+
+async function openFeedback(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole("button", { name: "Feedback" }));
+  return screen.findByRole("textbox", { name: "What's confusing or missing here?" });
+}
+
+describe("MS35: a Feedback button", () => {
+  it("opening the form captures survey shown, and Send captures survey sent with the member's own words and thanks them", async () => {
+    const { user } = renderLiveSite();
+    analyticsAnswers(ann);
+    await capturing();
+
+    const answer = await openFeedback(user);
+    expect(surveyEvents()).toEqual([{ event: "survey shown", properties: expect.objectContaining({ $survey_id: feedbackSurvey }) }]);
+    await user.type(answer, "Where do I see who thanked me?");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    const sent = only(surveyEvents(), 1);
+    expect(sent.event).toBe("survey sent");
+    expect(sent.properties).toMatchObject({
+      $survey_id: feedbackSurvey,
+      $survey_response: "Where do I see who thanked me?",
+      [`$survey_response_${feedbackQuestion}`]: "Where do I see who thanked me?",
+      $survey_completed: true,
+      $survey_questions: [{ id: feedbackQuestion, question: "What's confusing or missing here?" }],
+      page: "home",
+    });
+    expect(sent.properties.$survey_submission_id).toEqual(expect.any(String));
+    expect(await screen.findByText("Thanks, we read every answer.")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    expect(surveyEvents().map(({ event }) => event)).toEqual(["survey shown", "survey sent"]);
+  });
+
+  it("closing the form unsent captures survey dismissed and sends nothing the member typed", async () => {
+    const { user } = renderLiveSite();
+    analyticsAnswers(ann);
+    await capturing();
+
+    await user.type(await openFeedback(user), "half a thought");
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "What's confusing or missing here?" })).not.toBeInTheDocument());
+
+    expect(surveyEvents()).toEqual([
+      { event: "survey shown", properties: expect.objectContaining({ $survey_id: feedbackSurvey }) },
+      { event: "survey dismissed", properties: expect.objectContaining({ $survey_id: feedbackSurvey }) },
+    ]);
+    expect(JSON.stringify(recorded.sent)).not.toContain("half a thought");
+  });
+
+  it("Send waits for words, and each opening is its own submission", async () => {
+    const { user } = renderLiveSite();
+    analyticsAnswers(ann);
+    await capturing();
+
+    const answer = await openFeedback(user);
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    await user.type(answer, "   ");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    expect(screen.getByRole("button", { name: "Send" })).toHaveAttribute("aria-disabled", "true");
+    expect(surveyEvents().map(({ event }) => event)).toEqual(["survey shown"]);
+    await user.type(answer, "first");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    await user.keyboard("{Escape}");
+    await user.type(await openFeedback(user), "second");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    const submissions = surveyEvents().filter(({ event }) => event === "survey sent").map(({ properties }) => properties.$survey_submission_id);
+    expect(submissions).toHaveLength(2);
+    expect(new Set(submissions).size).toBe(2);
+  });
+
+  it("a member can open, write, send and close it by keyboard alone, and focus returns to the control", async () => {
+    const { user } = renderLiveSite();
+    analyticsAnswers(ann);
+    const control = await screen.findByRole("button", { name: "Feedback" });
+
+    control.focus();
+    await user.keyboard("{Enter}");
+    const answer = await screen.findByRole("textbox", { name: "What's confusing or missing here?" });
+    await waitFor(() => expect(answer).toHaveFocus());
+    await user.keyboard("The Book is hard to find");
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Send" })).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(only(surveyEvents(), 1).properties.$survey_response).toBe("The Book is hard to find");
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(control).toHaveFocus());
+  });
+
+  it("the form sits outside every ph-no-capture block and passes axe's WCAG AA rules", async () => {
+    const { user } = renderLiveSite();
+    analyticsAnswers(ann);
+    await capturing();
+
+    const answer = await openFeedback(user);
+    const form = screen.getByRole("dialog", { name: "Feedback" });
+
+    expect(form.closest(".ph-no-capture")).toBeNull();
+    expect(screen.getByRole("button", { name: "Feedback" }).closest(".ph-no-capture")).toBeNull();
+    expect(answer.closest(".ph-no-capture")).toBeNull();
+    const results = await axe.run(form, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }, rules: { "color-contrast": { enabled: false } } });
+    expect(results.violations.map(({ id, help }) => `${id}: ${help}`)).toEqual([]);
   });
 });
