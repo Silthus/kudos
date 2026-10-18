@@ -2,7 +2,8 @@ import { IconCheck } from "@posthog/icons";
 import type { GettingStarted as Facts } from "./answer";
 import { gettingStartedSteps } from "./facts";
 
-export function GettingStarted({ facts }: { facts: Facts }) {
+export function GettingStarted({ facts }: { facts: Facts | null }) {
+  if (facts === null) return null;
   const done = gettingStartedSteps.filter(({ step }) => facts[step]).length;
   const next = gettingStartedSteps.find(({ step }) => !facts[step]);
   if (next === undefined) return null;

@@ -766,3 +766,47 @@ describe("WS200 WS214: /activity reads getActivity through the live shell", () =
     expect(readOnce).toHaveBeenCalledWith({ query: "website/activity:getActivity", args: { filter: "given", cursor: null, limit: 20 } });
   });
 });
+
+describe("AL39 AL40: the album shell reads getAlbum through the live shell", () => {
+  const albumV1 = {
+    kind: "album",
+    me: { name: "Juno Park", face: { kind: "initials", initials: "JP" }, person: "m-juno" },
+    level: { level: 6, xp: 1210, startsAt: 1000, nextAt: 1500 },
+    packs: [{ pack: "p-1", person: "m-ines", earnedAt: Date.parse("2026-10-17T09:00:00Z") }],
+    morePacks: false,
+  };
+
+  it("a member getMyProfile says album for gets the album from one getAlbum subscription, with what the read doesn't answer yet left empty", async () => {
+    preferWideScreen();
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
+    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? albumV1 : undefined));
+
+    renderLiveSite();
+
+    const bar = within((await screen.findAllByRole("banner"))[0]!);
+    expect(await bar.findByRole("link", { name: "Open your packs, 1 waiting" })).toBeInTheDocument();
+    expect(bar.getByText("290 XP to level 7")).toBeInTheDocument();
+    expect(bar.getByRole("link", { name: "Your profile, Juno Park" })).toBeInTheDocument();
+    expect(bar.getByRole("button", { name: "Your emojis, 0 earned" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Your album" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Getting started" })).not.toBeInTheDocument();
+    expect([...subscriptions].filter(({ query }) => query === "website/album:getAlbum")).toEqual([{ query: "website/album:getAlbum", args: {} }]);
+  });
+
+  it("while getAlbum answers off, the album waits, and a member without album never subscribes to getAlbum", async () => {
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
+    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { kind: "off" } : undefined));
+    const { unmount } = render(<Root convexUrl="https://happy-hog-123.convex.cloud" />);
+
+    expect(await screen.findByRole("main")).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
+    unmount();
+    watchedQueries.length = 0;
+
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryFeatureOpen);
+    renderLiveSite();
+
+    expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(watchedQueries).not.toContain("website/album:getAlbum");
+  });
+});

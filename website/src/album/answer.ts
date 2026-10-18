@@ -37,7 +37,7 @@ export type Album = {
   tray: TrayItem[];
   emojis: AlbumEmoji[];
   milestones: AlbumMilestone[];
-  gettingStarted: GettingStarted;
+  gettingStarted: GettingStarted | null;
 };
 
 export type AlbumAnswer = { kind: "off" } | Album;
