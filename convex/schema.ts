@@ -27,7 +27,7 @@ import { perkValidator } from "./progression/tree";
 import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator } from "./hoggies/records";
 import { teamPageCheckValidator, teamPageCompletionValidator } from "./stickers/completionRecords";
 import { stickerBackfillValidator, stickerValidator } from "./stickers/records";
-import { albumStickerValidator, emojiNameNumberValidator, emojiNameValidator, grantRecordValidator, grantToldValidator, thoughtfulPackValidator } from "./album/records";
+import { albumStickerValidator, emojiNameNumberValidator, emojiNameValidator, grantRecordValidator, grantToldValidator, thoughtfulPackValidator, trayItemValidator } from "./album/records";
 import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
 import { journeyActivationValidator, rewardValidator } from "./quests/journey";
@@ -515,7 +515,9 @@ export default defineSchema({
   thoughtfulPacks: defineTable(thoughtfulPackValidator)
     .index("by_giver_recipient_week", ["giver", "recipient", "week"])
     .index("by_giver_recipient_sticker", ["giver", "recipient", "holdsSticker"])
-    .index("by_giver_at", ["giver", "at"]),
+    .index("by_giver_opened_at", ["giver", "openedAt", "at"]),
+
+  trayItems: defineTable(trayItemValidator).index("by_member_put_in", ["member", "putInAt"]),
 
   grantRecords: defineTable(grantRecordValidator).index("by_message_recipient", ["message.workspace", "message.conversation", "message.message", "recipient"]),
 

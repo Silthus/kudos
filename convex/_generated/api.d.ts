@@ -31,6 +31,7 @@ import type * as album_earns from "../album/earns.js";
 import type * as album_emojiCatalogue from "../album/emojiCatalogue.js";
 import type * as album_emojiNames from "../album/emojiNames.js";
 import type * as album_flag from "../album/flag.js";
+import type * as album_opening from "../album/opening.js";
 import type * as album_packs from "../album/packs.js";
 import type * as album_records from "../album/records.js";
 import type * as album_standardEmojiNames from "../album/standardEmojiNames.js";
@@ -320,6 +321,7 @@ declare const fullApi: ApiFromModules<{
   "album/emojiCatalogue": typeof album_emojiCatalogue;
   "album/emojiNames": typeof album_emojiNames;
   "album/flag": typeof album_flag;
+  "album/opening": typeof album_opening;
   "album/packs": typeof album_packs;
   "album/records": typeof album_records;
   "album/standardEmojiNames": typeof album_standardEmojiNames;

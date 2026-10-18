@@ -1,5 +1,6 @@
 import { v, type Infer } from "convex/values";
 import { messageRefValidator } from "../engine/messageEvent";
+import { rarityValidator } from "../hoggies/catalogue";
 
 export const grantOutcomeValidator = v.union(v.literal("new"), v.literal("held"), v.literal("waiting"), v.literal("nextWeek"));
 
@@ -13,6 +14,7 @@ export const thoughtfulPackValidator = v.object({
   message: messageRefValidator,
   holdsSticker: v.boolean(),
   at: v.number(),
+  openedAt: v.optional(v.number()),
 });
 
 export const grantRecordValidator = v.object({
@@ -31,6 +33,13 @@ export const albumStickerValidator = v.object({
   pack: v.optional(v.id("thoughtfulPacks")),
   at: v.number(),
 });
+
+const trayItemFields = { member: v.id("members"), pack: v.id("thoughtfulPacks"), at: v.number(), putInAt: v.optional(v.number()) };
+
+export const trayItemValidator = v.union(
+  v.object({ ...trayItemFields, kind: v.literal("sticker"), person: v.id("members") }),
+  v.object({ ...trayItemFields, kind: v.literal("hoggie"), hoggie: v.string(), rarity: rarityValidator, isNew: v.boolean() }),
+);
 
 export const emojiNameValidator = v.object({ workspace: v.string(), emoji: v.string(), person: v.optional(v.id("members")), name: v.string() });
 
