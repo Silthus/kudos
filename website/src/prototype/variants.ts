@@ -1,5 +1,9 @@
-// PROTOTYPE (#625): radically different HedgeHug websites on today's routes, switched by ?variant=. Round 4 is 4a..4c (one site, three layouts per page), round 3 is 1..3 plus slack, round 2 is r2-1..r2-4, round 1 is r1-1..r1-5. Never merge to main.
+// PROTOTYPE (#625): radically different HedgeHug websites on today's routes, switched by ?variant=. Round 5 is 5 (the pick and mix), round 4 is 4a..4c (one site, three layouts per page), round 3 is 1..3 plus slack, round 2 is r2-1..r2-4, round 1 is r1-1..r1-5. Never merge to main.
 export const prototypeRounds = [
+  {
+    round: "Round 5",
+    variants: [{ key: "5", name: "Pick and mix" }],
+  },
   {
     round: "Round 4",
     variants: [

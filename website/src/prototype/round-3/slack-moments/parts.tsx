@@ -12,7 +12,7 @@ export type Reaction = { emoji: string; count: number; mine?: boolean };
 
 export const kudosEmoji = "hedgehug";
 
-const websiteVariants = prototypeRounds[1].variants.filter(({ key }) => key !== "slack");
+const websiteVariants = prototypeRounds[2].variants.filter(({ key }) => key !== "slack");
 
 export function slackHref(hash: string) {
   return `/?variant=slack#${hash}`;

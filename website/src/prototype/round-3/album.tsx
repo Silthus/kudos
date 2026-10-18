@@ -59,6 +59,7 @@ export type Album = {
   moments: Moment[];
   lastSlack: SlackEcho;
   lastOpening: PackOpening | null;
+  tray: PackOpening[];
 };
 
 export type Give = { kind: "packed"; pack: Pack; personIsNew: boolean } | { kind: "already-this-week"; person: string };
@@ -68,6 +69,7 @@ export type AlbumActions = {
   hug(person: string): void;
   openPack(id: string): PackOpening | null;
   forgetOpening(): void;
+  place(id: string): void;
   reset(): void;
 };
 
@@ -193,9 +195,9 @@ function boardOf(thoughtfulThisWeek: number): BoardRow[] {
   return rows.map((row, index) => ({ ...row, rank: index + 1 }));
 }
 
-type Inner = { cast: Cast; xp: number; people: Person[]; hoggies: Hoggie[]; packs: Pack[]; rolls: number; thoughtful: number; thoughtfulThisWeek: number; hugged: boolean; openedAPack: boolean; moments: Moment[]; lastSlack: SlackEcho; lastOpening: PackOpening | null };
+type Inner = { cast: Cast; trayed: boolean; tray: PackOpening[]; xp: number; people: Person[]; hoggies: Hoggie[]; packs: Pack[]; rolls: number; thoughtful: number; thoughtfulThisWeek: number; hugged: boolean; openedAPack: boolean; moments: Moment[]; lastSlack: SlackEcho; lastOpening: PackOpening | null };
 
-function initial(cast: Cast): Inner {
+function initial(cast: Cast, trayed: boolean): Inner {
   const people = peopleFromTeams(cast);
   const noor = people.find(({ key }) => key === "k:noor")!;
   const mei = people.find(({ key }) => key === "k:mei")!;
@@ -209,6 +211,8 @@ function initial(cast: Cast): Inner {
   tomas.stats = statsFor(tomas.key, null);
   return {
     cast,
+    trayed,
+    tray: [],
     xp: 1180,
     people,
     hoggies: startingHoggies,
@@ -256,13 +260,27 @@ function albumOf(inner: Inner): Album {
     moments: inner.moments,
     lastSlack: inner.lastSlack,
     lastOpening: inner.lastOpening,
+    tray: inner.tray,
   };
+}
+
+function collectPerson(people: Person[], { pack, person }: PackOpening, at: number): Person[] {
+  return people.map((entry) => (entry.key === person.key ? { ...entry, collectedAt: entry.collectedAt ?? at, stats: { ...entry.stats, kudosGiven: Math.max(1, entry.stats.kudosGiven), firstThankedAt: entry.stats.firstThankedAt ?? pack.earnedAt, bestMessage: entry.stats.bestMessage ?? pack.message } } : entry));
+}
+
+function addHoggie(hoggies: Hoggie[], { hoggie }: PackOpening, at: number): Hoggie[] {
+  return hoggies.map((entry) => (entry.hoggie === hoggie.hoggie ? { ...entry, count: entry.count + 1, firstAt: entry.firstAt ?? at } : entry));
+}
+
+function withTray(inner: Inner) {
+  const at = Date.now();
+  return { people: inner.tray.reduce((people, opening) => collectPerson(people, opening, at), inner.people), hoggies: inner.tray.reduce((hoggies, opening) => addHoggie(hoggies, opening, at), inner.hoggies) };
 }
 
 const AlbumContext = createContext<{ album: Album; actions: AlbumActions } | null>(null);
 
-export function AlbumProvider({ children, cast = roundThreeCast }: { children: ReactNode; cast?: Cast }) {
-  const [inner, setInner] = useState(() => initial(cast));
+export function AlbumProvider({ children, cast = roundThreeCast, trayed = false }: { children: ReactNode; cast?: Cast; trayed?: boolean }) {
+  const [inner, setInner] = useState(() => initial(cast, trayed));
 
   const giveThoughtfulKudos = useCallback(
     (key: string, message?: string): Give => {
@@ -270,7 +288,7 @@ export function AlbumProvider({ children, cast = roundThreeCast }: { children: R
       if (person === undefined) return { kind: "already-this-week", person: key };
       const words = message ?? kindWords[(hashOf(key) + inner.thoughtful) % kindWords.length]!;
       const base = { ...inner, xp: inner.xp + xpPerThoughtful, thoughtful: inner.thoughtful + 1, thoughtfulThisWeek: inner.thoughtfulThisWeek + 1 };
-      const personIsNew = person.collectedAt === null && !inner.packs.some((pack) => pack.person === key);
+      const personIsNew = person.collectedAt === null && !inner.packs.some((pack) => pack.person === key) && !inner.tray.some((opening) => opening.person.key === key);
       if (person.packedThisWeek) {
         setInner({ ...base, moments: [{ kind: "thoughtful-given", at: Date.now(), person: key, message: words, packed: false }, ...inner.moments], lastSlack: { kind: "thread-reply", at: Date.now(), person: key, message: words, packed: false, personIsNew: false } });
         return { kind: "already-this-week", person: key };
@@ -290,34 +308,44 @@ export function AlbumProvider({ children, cast = roundThreeCast }: { children: R
   const openPack = useCallback(
     (id: string): PackOpening | null => {
       const pack = inner.packs.find((entry) => entry.id === id);
-      const person = pack === undefined ? undefined : inner.people.find(({ key }) => key === pack.person);
+      const seen = withTray(inner);
+      const person = pack === undefined ? undefined : seen.people.find(({ key }) => key === pack.person);
       if (pack === undefined || person === undefined) return null;
       const isNew = person.collectedAt === null;
-      const rolled = rollHoggie(inner.hoggies, inner.rolls);
+      const rolled = rollHoggie(seen.hoggies, inner.rolls);
       const at = Date.now();
-      const people = inner.people.map((entry) => (entry.key === person.key ? { ...entry, collectedAt: entry.collectedAt ?? at, stats: { ...entry.stats, kudosGiven: Math.max(1, entry.stats.kudosGiven), firstThankedAt: entry.stats.firstThankedAt ?? pack.earnedAt, bestMessage: entry.stats.bestMessage ?? pack.message } } : entry));
-      const hoggies = inner.hoggies.map((entry) => (entry.hoggie === rolled.hoggie ? { ...entry, count: entry.count + 1, firstAt: entry.firstAt ?? at } : entry));
       const xpAfter = inner.xp + xpPerPack;
-      const teamsBefore = teamsOf(inner.people, inner.cast);
-      const teamsAfter = teamsOf(people, inner.cast);
+      const teamsBefore = teamsOf(seen.people, inner.cast);
       const opening: PackOpening = {
         pack,
         person: { key: person.key, name: person.name, face: person.face, isNew, teams: person.teams },
         hoggie: { hoggie: rolled.hoggie, name: rolled.name, rarity: rolled.rarity, isNew: rolled.count === 0, copy: rolled.count + 1 },
         xp: { gained: xpPerPack, before: inner.xp, after: xpAfter, levelBefore: levelOf(inner.xp), levelAfter: levelOf(xpAfter) },
-        teams: teamsAfter.filter(({ team }) => person.teams.includes(team)).map((team) => ({ team: team.team, name: team.name, held: team.held, total: team.total, justCompleted: team.complete && !teamsBefore.find(({ team: before }) => before === team.team)!.complete })),
+        teams: [],
       };
-      setInner({ ...inner, xp: xpAfter, people, hoggies, rolls: inner.rolls + 1, openedAPack: true, packs: inner.packs.filter((entry) => entry.id !== id), moments: [{ kind: "pack-opened", at, person: person.key, hoggie: rolled.hoggie, newPerson: isNew }, ...inner.moments], lastOpening: opening });
+      const teamsAfter = teamsOf(collectPerson(seen.people, opening, at), inner.cast);
+      opening.teams = teamsAfter.filter(({ team }) => person.teams.includes(team)).map((team) => ({ team: team.team, name: team.name, held: team.held, total: team.total, justCompleted: team.complete && !teamsBefore.find(({ team: before }) => before === team.team)!.complete }));
+      const opened = { ...inner, xp: xpAfter, rolls: inner.rolls + 1, openedAPack: true, packs: inner.packs.filter((entry) => entry.id !== id), moments: [{ kind: "pack-opened" as const, at, person: person.key, hoggie: rolled.hoggie, newPerson: isNew }, ...inner.moments] };
+      setInner(inner.trayed ? { ...opened, tray: [...inner.tray, opening] } : { ...opened, people: collectPerson(inner.people, opening, at), hoggies: addHoggie(inner.hoggies, opening, at), lastOpening: opening });
       return opening;
     },
     [inner],
   );
 
+  const place = useCallback((id: string) => {
+    setInner((current) => {
+      const opening = current.tray.find(({ pack }) => pack.id === id);
+      if (opening === undefined) return current;
+      const at = Date.now();
+      return { ...current, people: collectPerson(current.people, opening, at), hoggies: addHoggie(current.hoggies, opening, at), tray: current.tray.filter(({ pack }) => pack.id !== id), lastOpening: opening };
+    });
+  }, []);
+
   const forgetOpening = useCallback(() => setInner((current) => ({ ...current, lastOpening: null })), []);
 
-  const reset = useCallback(() => setInner((current) => initial(current.cast)), []);
+  const reset = useCallback(() => setInner((current) => initial(current.cast, current.trayed)), []);
 
-  const value = useMemo(() => ({ album: albumOf(inner), actions: { giveThoughtfulKudos, hug, openPack, forgetOpening, reset } }), [inner, giveThoughtfulKudos, hug, openPack, forgetOpening, reset]);
+  const value = useMemo(() => ({ album: albumOf(inner), actions: { giveThoughtfulKudos, hug, openPack, forgetOpening, place, reset } }), [inner, giveThoughtfulKudos, hug, openPack, forgetOpening, place, reset]);
   return <AlbumContext.Provider value={value}>{children}</AlbumContext.Provider>;
 }
 

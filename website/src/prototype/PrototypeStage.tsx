@@ -19,6 +19,7 @@ import { PocketBinder } from "./round-3/variant-3-pocket-binder/PocketBinder";
 import { SlackMoments } from "./round-3/slack-moments/SlackMoments";
 import { roundFourCast } from "./round-4/cast";
 import { RoundFour } from "./round-4/RoundFour";
+import { RoundFive } from "./round-5/RoundFive";
 import type { Layout } from "./round-4/layouts";
 import type { VariantKey } from "./variants";
 
@@ -27,6 +28,8 @@ const roundThree: ReadonlySet<VariantKey> = new Set(["1", "2", "3"]);
 const layoutOf = { "4a": "A", "4b": "B", "4c": "C" } as const satisfies Record<string, Layout>;
 
 type RoundFourKey = keyof typeof layoutOf;
+
+type LaterRoundKey = RoundFourKey | "5";
 
 function isRoundFour(variant: VariantKey): variant is RoundFourKey {
   return variant in layoutOf;
@@ -53,13 +56,18 @@ const variantOf = {
   "r1-3": RadicalPolish,
   "r1-4": CharacterSheet,
   "r1-5": CorkboardDesk,
-} satisfies Record<Exclude<VariantKey, RoundFourKey>, (props: VariantProps) => ReactNode>;
+} satisfies Record<Exclude<VariantKey, LaterRoundKey>, (props: VariantProps) => ReactNode>;
 
 export function PrototypeStage({ variant, ...props }: VariantProps & { variant: VariantKey }) {
   return (
     <div data-prototype-variant={variant} className="prototype-stage">
-      {isRoundFour(variant) ? (
-        <AlbumProvider cast={roundFourCast}>
+      {variant === "5" ? (
+        <AlbumProvider key="round-5" cast={roundFourCast} trayed>
+          <RoundFive {...props} />
+          <PretendSlack slackLink={false} />
+        </AlbumProvider>
+      ) : isRoundFour(variant) ? (
+        <AlbumProvider key="round-4" cast={roundFourCast}>
           <RoundFour layout={layoutOf[variant]} {...props} />
           <PretendSlack slackLink={false} />
         </AlbumProvider>
@@ -70,7 +78,7 @@ export function PrototypeStage({ variant, ...props }: VariantProps & { variant: 
   );
 }
 
-function EarlierRound({ variant, ...props }: VariantProps & { variant: Exclude<VariantKey, RoundFourKey> }) {
+function EarlierRound({ variant, ...props }: VariantProps & { variant: Exclude<VariantKey, LaterRoundKey> }) {
   const Variant = variantOf[variant];
   return (
     <>
