@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { aCutout, FakePostHogCom } from "../../testing/fakePostHogCom";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aMember, aSession, aSignedInSession, switchWebsite } from "../../testing/website";
-import { api } from "../_generated/api";
+import { api, internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
 import type { AlbumRead } from "./album";
 
@@ -18,6 +19,7 @@ const juno = { user: "U_JUNO", name: "Juno Park" };
 type Person = { user: string; name: string };
 
 let postHog: FakePostHog;
+let postHogCom: FakePostHogCom;
 let t: Backend;
 let messages = 0;
 
@@ -26,8 +28,9 @@ beforeEach(async () => {
   aDeploymentForWorkspace();
   postHog = new FakePostHog();
   const slack = new FakeSlack();
+  postHogCom = new FakePostHogCom();
   for (const person of [alice, bob, carol, dana]) slack.withMember(person.user, { real_name: person.name });
-  vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
+  vi.stubGlobal("fetch", routedFetch(postHog, (input, init) => (postHogCom.owns(new URL(input instanceof Request ? input.url : String(input))) ? postHogCom.fetch(input) : slack.fetch(input, init))));
   t = testBackend();
   await switchWebsite(t, postHog, true, "album");
 });
@@ -56,6 +59,21 @@ describe("the album is private", () => {
     const withAnotherMember = { member: await memberOf(alice) } as unknown as Record<string, never>;
 
     await expect(asBob.query(api.website.album.getAlbum, withAnotherMember)).rejects.toThrow(/member/);
+  });
+});
+
+describe("AL40: getAlbum shows the member's face without reading the directory", () => {
+  test("with team-pages on, a member matched on posthog.com shows their stored company face and a member matched to no profile their sign-in face", async () => {
+    await switchWebsite(t, postHog, true, "album", "team-pages");
+    postHogCom.withTeams({ slug: "lanterns", name: "Lanterns", profiles: [{ id: 7, firstName: "Alice", lastName: "Marchetti", colour: "teal", cutout: aCutout("alice") }] });
+    await thanks(alice, "Thanks for the careful review of the billing export", bob);
+    await t.action(internal.companyProfiles.sync.syncCompanyProfiles, {});
+    await settle(t);
+
+    const [aliceAlbum, bobAlbum] = [await albumOf(await signedIn(alice)), await albumOf(await signedIn(bob))];
+
+    expect(aliceAlbum).toMatchObject({ kind: "album", me: { face: { kind: "company-profile", image: expect.stringContaining("alice"), colour: expect.any(String) } } });
+    expect(bobAlbum).toMatchObject({ kind: "album", me: { face: { kind: "initials", initials: "BO" } } });
   });
 });
 

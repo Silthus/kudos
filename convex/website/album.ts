@@ -4,7 +4,7 @@ import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
-import { faceOf, nameless, type Face } from "./faces";
+import { nameless, storedFaceOf, type Face } from "./faces";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
 
 export type AlbumAnswer = {
@@ -24,7 +24,7 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
 });
 
 async function meIn(ctx: QueryCtx, me: VerifiedMember): Promise<AlbumAnswer["me"]> {
-  return { name: me.name ?? nameless, face: await faceOf(ctx, me), person: me.member };
+  return { name: me.name ?? nameless, face: await storedFaceOf(ctx, me), person: me.member };
 }
 
 async function levelOf(ctx: QueryCtx, member: MemberId): Promise<AlbumAnswer["level"]> {
