@@ -1,4 +1,4 @@
-import { internalMutation } from "../_generated/server";
+import { internalMutation, type QueryCtx } from "../_generated/server";
 import {
   achievementEarnedEventValidator,
   teamPagesCompletedEventValidator,
@@ -18,7 +18,10 @@ import {
   unlockOpenedEventValidator,
   unlockReadyEventValidator,
   unlocksLaunchedEventValidator,
+  type KudosGivenEvent,
 } from "../bus/events";
+import { earliestAwardFrom, type AwardId } from "../engine/awards";
+import type { MemberId } from "../workspace/directory";
 import { failuresLogged } from "./failures";
 import { record } from "./outbox";
 import {
@@ -45,9 +48,20 @@ import {
 export const recordKudosGiven = internalMutation({
   args: { event: kudosGivenEventValidator },
   handler: async (ctx, { event }): Promise<void> => {
-    await recordingFailuresLogged(event.type, () => record(ctx, event.workspace, projectKudosGiven(event)));
+    await recordingFailuresLogged(event.type, async () => record(ctx, event.workspace, projectKudosGiven(event, { newRecipients: await newRecipientsOf(ctx, event) })));
   },
 });
+
+async function newRecipientsOf(ctx: QueryCtx, { giver, awards }: KudosGivenEvent): Promise<number> {
+  let newRecipients = 0;
+  for (const { award, recipient } of awards) if (await isFirstFrom(ctx, giver, recipient, award)) newRecipients += 1;
+  return newRecipients;
+}
+
+async function isFirstFrom(ctx: QueryCtx, giver: MemberId, recipient: MemberId, award: AwardId): Promise<boolean> {
+  const earliest = await earliestAwardFrom(ctx, giver, recipient);
+  return earliest === null || earliest.award === award;
+}
 
 export const recordAttemptFailed = internalMutation({
   args: { event: attemptFailedEventValidator },
