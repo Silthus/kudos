@@ -1,0 +1,344 @@
+# Spec: build the collection-first core loop and the album website
+
+> **Settled on [#627](https://github.com/Silthus/kudos/issues/627) (2026-10-18) under the product owner's full-autonomy grant**, with a GPT-6.1 Sol review instead of a human acceptance (see "Review"). This file lives on the branch `docs/album` and is never merged. It is the build half of map [#624](https://github.com/Silthus/kudos/issues/624); the measurement half is `spec/measure.md` on `docs/measure` (rules `MS1`–`MS40`), whose dashboard judges every flag this spec widens.
+>
+> **Rule numbers.** Rules are cited as `AL1`–`AL72`. Measurement rules are cited as `MS13`, analytics rules as `E11`, collection rules as `CV7`.
+>
+> **Six stopping points.** 1 (AL1–AL22) is the core loop in the backend: thoughtful packs, the album's stickers, the tray, team pages and milestones. 2 (AL23–AL32) is earned emojis and how they reach Slack. 3 (AL33–AL38) makes the retirements safe. 4 (AL39–AL57) is the album website. 5 (AL58–AL63) is the Slack moments. 6 (AL64–AL72) is the rollout. 1, 2 and 3 come first; 4 starts at once against fixtures and wires to 1 and 2 as they land; 5 waits for 1 and 2; 6 waits for everything it widens.
+>
+> Sources: ticket #627 and the map's Decisions and Notes (the product owner's grant, 2026-10-18 19:12 UTC); the accepted prototype, `website/src/prototype/PROTOTYPE.md` on `prototype/website-redesign` at `0ac9e96d`, with its data in `round-3/album.tsx` and its Slack mocks in `round-3/slack-moments/`; the #625 handoff; `spec/measure.md`; the code on `main` at `f9488b49` (`convex/progression/gate.ts`, `progress.ts`, `levels.ts`; `convex/hoggies/drops.ts`, `crateKey.ts`, `waitingPacks.ts`, `catalogue.ts`; `convex/stickers/records.ts`, `teamPages.ts`; `convex/companyProfiles/matcher.ts`; `convex/achievements/ladders.ts`; `convex/store/inventory.ts`; `convex/quests/groupQuest.ts`; `convex/unlocks/schedule.ts`; `convex/feedback/replies.ts`; `convex/hugs/recap.ts`; `convex/leaderboard/mondayPost.ts`; `convex/slack/customEmoji.ts`; `convex/website/routes.ts`, `link.ts`, `hosting.ts`; `website/src/route.ts`, `Root.tsx`, `LiveApp.tsx`, `browserAnalytics/`, `privateBlocks.test.tsx`, `entryBundle.test.ts`; `slack-app/manifest.ts`); Slack's method pages for `admin.emoji.add`, `emoji.list`, `reactions.add` and the `Block Kit` image element, and Slack's help pages on custom emoji permissions.
+
+## Problem Statement
+
+HedgeHug today is a game with too many parts. A member who opens it meets coins, a store, a crate store, weekly quests, group quests, a Journey, a skill tree, levels that unlock features, seven achievement ladders and a Book with five chapters. The research on #629 and #630 found that most thank-yous in Slack give no reason, that thoughtful shout-outs are rare, and that the five-word rule barely tells kudos apart. Nothing in the game rewards the one thing the product exists for: thanking a colleague and saying why. Members collect people by being thanked as much as by thanking, so the collection doesn't ask anything of them.
+
+The product owner redrew the destination on 2026-10-18 (Q1–Q15 on the map) and accepted a calm album as the website (#625, round 6): "people are the collection; hoggies are the surprise". He then asked for the whole thing to be built and shipped to production: "Now lock it in and tell the conductor to build the whole thing and ship it to prod with full autonomy."
+
+## Solution
+
+**A thoughtful kudos earns a pack. The pack puts the person you thanked into your album and rolls a hoggie. The website is that album.**
+
+- **The loop.** Thank someone and say why, and you earn a pack for them, at most one per person per week. The first pack for a person holds their sticker; every pack holds a hoggie. You open packs on the website, the opened stickers and hoggies wait in a tray, and you put them in. People reach your album only through packs you earned by giving, plus the people you thanked before the album existed.
+- **Teams.** Each real small team from posthog.com is a page in your album. Collect everyone on it, then click to unlock its team sticker, which earns its team emoji.
+- **Earned emojis.** A team emoji per team sticker, a milestone emoji at each milestone's gold, a level emoji at levels 5, 10, 15, 20 and 25, and a hype emoji per person for your first thoughtful kudos to them. HedgeHug always shows the emoji's picture. Slack can only gain a custom emoji by a person's hand outside Enterprise Grid, so HedgeHug offers each one to add and says "use it in Slack" only once Slack has it (AL28–AL32).
+- **Calm.** Hugs stay quiet: 1 XP, no message, a Monday recap. Levels are status and unlock nothing. Coins, the store, the crate store, weekly and group quests, the Journey, the skill tree and the old ladders go dark behind flags, and nothing stored is deleted.
+- **The website** is the Team yearbook: `/` is your team's Class photo, a top bar with the XP bar, packs, the tray, the emoji popup, your profile and settings, Activity and the Leaderboard as icon buttons, and a sidebar of teams, `Hoggies` and `Milestones`. Every URL Slack sends today keeps landing.
+- **Slack** gets three moments: a thread reply after a thoughtful kudos, the Monday hug recap, and a weekly post of the top thoughtful kudos. Each names the emojis it unlocked. The app stays reactive.
+- **Dark first, widened one flag at a time**, each judged before and after on the activation dashboard (MS1–MS6), then the old shell is deleted.
+
+## User Stories
+
+**The loop**
+1. As a member, I want a thoughtful kudos to earn me a pack for the person I thanked, so that saying why is what the game rewards.
+2. As a member, I want at most one pack per person per week, so that thanking the same teammate all day doesn't flood my album.
+3. As a member, I want a short kudos to still count as a kudos with its XP, so that quick thanks stay welcome.
+4. As a member, I want my first pack for someone to hold their sticker, so that thanking someone new puts them in my album.
+5. As a member, I want every pack to hold a hoggie, so that thanking someone I already have still has a surprise.
+6. As a member, I want people to join my album only because I thanked them, so that the album shows who I appreciate, not who appreciated me.
+7. As a member who thanked people before the album existed, I want them in my album already, so that I don't start from nothing.
+8. As a member, I want packs to wait for me until I open them, so that I never lose one by not visiting.
+9. As a member, I want opened stickers and hoggies to wait in a tray until I put them in, so that putting them in is my moment.
+10. As a member, I want "Put them all in" to put hoggies in first and then one team page at a time, with the page a card completes last, so that the completion lands at the end.
+11. As a member, I want my tray to survive a reload or another device, so that nothing I opened disappears.
+12. As a member, I want each team page to show the real small team from posthog.com, so that the album matches how the company is organised.
+13. As a member, I want people I haven't collected to show as silhouettes, so that I know who is left.
+14. As a member, I want a complete team page to wait for my click before its team sticker unlocks, so that unlocking is a moment I choose.
+15. As a member, I want a team sticker I unlocked to stay unlocked when the team changes, so that nothing I earned is taken back.
+16. As a member, I want my own face on my own team without collecting myself, so that my team page can be completed.
+17. As a member, I want milestones for people collected, team pages completed, teams reached, hoggies found and thoughtful kudos given, so that the long game is visible.
+18. As a member, I want milestone steps that fit the real number of teams, so that every medal is reachable.
+19. As a member, I want my level shown as status, so that I can see my tenure without it gating anything.
+20. As a member, I want a hug to stay quiet, so that a reaction doesn't feel like a transaction.
+
+**Earned emojis**
+21. As a member, I want a team emoji when I unlock a team sticker, so that finishing a team gives me something to use in Slack.
+22. As a member, I want a milestone emoji at each milestone's gold, so that gold means something.
+23. As a member, I want a level emoji at levels 5, 10, 15, 20 and 25, so that levels give status I can show.
+24. As a member, I want a hype emoji for each person I thank thoughtfully for the first time, so that I can cheer them on.
+25. As a member, I want each new emoji to appear as a moment that never interrupts a pack, putting in or a sticker unlock, so that moments don't trip over each other.
+26. As a member, I want a popup of all my emojis, locked ones with how to unlock them and my progress, so that I know what to aim for.
+27. As a member, I want HedgeHug to say "use it in Slack" only when the emoji really exists in Slack, so that I'm never told something that isn't true.
+28. As a member, I want to add an emoji to Slack myself, with its picture and name ready, so that I can use it the same day.
+29. As the product owner, I want the build never to wait for a Slack admin action, so that the album ships whether or not anyone uploads an emoji.
+30. As a workspace admin, I want one list of the shared emojis (teams, milestones, levels) to add in one sitting, so that everyone's emojis work.
+
+**Retirements**
+31. As a member, I want coins, the store, the crate store, weekly and group quests, the Journey, the skill tree and the old achievements to go away, so that HedgeHug is calm.
+32. As a member, I want the kudos emojis I bought or earned to keep giving kudos after the store goes, so that nothing I own stops working.
+33. As the product owner, I want every retirement to be a flag turned off, with nothing stored deleted, so that I can turn anything back on.
+
+**The album website**
+34. As a member, I want `/` to be my team's Class photo, so that the album opens on the people closest to me.
+35. As a member, I want a top bar with my XP bar, my packs, my tray, my emojis, my profile and settings, so that everything I own is one click away.
+36. As a member, I want Activity and the Leaderboard as icon buttons that show their label on hover or focus, so that the deep dives don't crowd the album.
+37. As a member, I want a sidebar with search, my team first and the teams sorted by progress, then `Hoggies` and `Milestones`, so that I can find any page.
+38. As a member, I want a person's page to show our history: first thanked, kudos and hugs both ways, and the best message, so that the album is about real moments.
+39. As a member, I want pack opening with card flips, shine, rings and confetti sized to the moment, so that opening feels rewarding.
+40. As a member, I want the `Hoggies` page with its rarest-finds shelf, filters, sticky rarity strip and hoggie detail, so that the surprise has a home.
+41. As a member, I want `Milestones` with four medals per row and the gold emoji named, so that I see the next goal at a glance.
+42. As a member, I want Activity as a weekly edition, so that I can look back on a week.
+43. As a member, I want the Leaderboard to show people and teams side by side by thoughtful kudos this week, with my row and my team pinned, so that the board rewards saying why.
+44. As a member, I want my profile at `/book#me` with my level, rank, album at a glance, coolest finds and best milestones, so that I can see my standing.
+45. As a member, I want my settings inside the album, so that nothing is lost.
+46. As a member, I want every link HedgeHug ever sent me in Slack to still land somewhere sensible, so that old messages keep working.
+47. As a member on a phone, I want the album laid out for a phone, so that I can open packs anywhere.
+48. As a member, I want the album in light and dark, so that it follows my system.
+49. As a member who prefers reduced motion, I want every moment to reach its end state without motion, so that the album doesn't make me unwell.
+50. As a member, I want the album's pages to meet WCAG 2.2 AA in both themes and work by keyboard, so that everyone can use it.
+51. As a member, I want colleagues' words, faces and emojis kept out of replays, so that the album stays as private as today's site.
+
+**Slack moments**
+52. As a giver, I want a thread reply after a thoughtful kudos that says who is new in my album, what my pack holds and which emoji I unlocked, so that the moment is visible where it happened.
+53. As a giver, I want the reply to say when my next pack for that person comes, so that I know the weekly bound.
+54. As a member, I want the Monday hug recap to name the emojis I earned last week, so that the recap stays quiet but complete.
+55. As a member of the kudos channel, I want a weekly post of the top thoughtful kudos, so that the best thanks are seen.
+56. As a member, I want HedgeHug never to prompt me at moments, so that it stays reactive.
+
+**Rollout**
+57. As the product owner, I want every new piece behind a flag on in the sandbox first, so that I see it before anyone.
+58. As the conductor, I want a written order of widenings, each with its before and after window, so that each change is judged on its own.
+59. As the conductor, I want the old shell deleted only after the album has been live for everyone for a full window, so that rollback stays a flag.
+
+## Rules
+
+"`album` is on for a member" means the flag answers true in their member decision. "Thoughtful" means the giver's gate decision on the kudos message says thoughtful (`convex/progression/gate.ts` today: five or more words; the `thoughtful-ai` classifier stays dark). "The giver's week" is the Monday-start week `Progression` reckons for the giver (P17). Every new flag is a boolean declared through Analytics' flag seam with safe default `false` and is created in PostHog project 662840 at `environment = sandbox`, 100%, by the ticket that declares it, never by this spec.
+
+### Stopping point 1: the core loop in the backend
+
+#### Packs
+
+- **AL1. A thoughtful kudos earns a pack.** For every recipient of a thoughtful kudos message, the giver earns one **thoughtful pack** for that recipient in the giver's week, unless they already earned one for that recipient that week. A message to several recipients earns one pack per recipient. Hugs, non-thoughtful kudos and a giver thanking themselves earn none.
+- **AL2. One per giver, person and week, exactly.** A thoughtful pack is unique on (giver, recipient, the giver's week). A redelivered `kudosGiven`, two messages in one week, two subscribers racing and a message edited afterwards never make a second. An edit or a deletion of the kudos message never takes a pack back (awards are permanent, ADR-0001).
+- **AL3. Earned whatever the flags say.** Thoughtful packs are recorded from the first deploy, whatever `album` says, as stickers were (SB6) and as earnings are (ADR-0006's principle). `album` decides only what members are shown and can act on. A member the flag turns on for later finds the packs they earned.
+- **AL4. Out of the giving transaction.** Packs are granted by a new `kudosGiven` subscriber of the `Album` module, in scheduled mutations of at most 50 recipients each, each scheduling the next, never in the giving mutation, which is near Convex's range limit. One recipient costs at most three index ranges: the pack's uniqueness, the giver's sticker of the recipient, and the giver's earlier pack that already holds the recipient's sticker.
+- **AL5. What a pack holds.** A thoughtful pack holds the recipient's **sticker** when, at its grant, the giver holds no album sticker of them and no earlier pack of theirs holds it; otherwise it holds no sticker. Every thoughtful pack holds one hoggie, drawn when it is opened (AL8). The pack records at its grant whether it holds the sticker, so the answer never changes with the order packs are opened.
+- **AL6. The analytics names.** `kudos given` gains `packs_earned` (MS13): the number of the message's recipients for whom it earned the giver a pack, counted by Analytics' kudos subscriber in its own transaction from `Album`'s exported read, never in the giving transaction. `hoggie dropped` gains the crate kind `thoughtful` (MS13). Analytics only observes (E11).
+- **AL7. A pack has a crate key.** A thoughtful pack's crate key is `thoughtful:<the pack's stored ID>`, never a Slack ID, so `dropFor`'s deduplication and draw work unchanged.
+
+#### Opening, the tray and putting in
+
+- **AL8. Opening.** A member opens one of their own unopened thoughtful packs with a website command. In one mutation the open draws the hoggie through `Hoggies`' `dropFor` with crate kind `thoughtful` and `surface: website` (MS12), pays the pack bonus where `packs` is on, records the open, and moves the pack's sticker, if it holds one, and its hoggie into the member's **tray**. A second open of the same pack, a pack of someone else and an open while `album` is off change nothing and answer a fixed refusal.
+- **AL9. The pack bonus.** A thoughtful pack pays 15 XP and no coins, through the existing pack bonus (CV3, CV7) as band version 2's entry for the kind `thoughtful`. Coins never come from a thoughtful pack.
+- **AL10. The tray is stored.** The tray is the member's opened stickers and hoggies not yet put in, in opening order. It is read from the stored opens, so a reload or another device shows the same tray.
+- **AL11. Putting in.** A member puts one tray item in, or all of them, with a website command. Putting a sticker in records an **album sticker** `{ member, person, from: "pack", pack, at }`; putting a hoggie in marks it put in. Putting in an item twice, or an item not in the member's tray, changes nothing. "Put them all in" puts hoggies in first, then the stickers one team page at a time, each page's completing sticker last, in one mutation, and answers the order it used, so the website animates that order.
+- **AL12. A hoggie in the tray is already found.** `Hoggies` records the drop at the open, as today; the `Hoggies` page and every count read a hoggie from a thoughtful pack as found only once it is put in. `Hoggies` from older crates are found as they were.
+
+#### The album's stickers
+
+- **AL13. Collected only by giving.** A member's **album stickers** are the people they put in from thoughtful packs (AL11) and the people they gave a kudos award to before the album's history was taken (AL14). Being thanked never adds anyone. Today's Book stickers, recorded in both directions (SB1–SB6), stay stored and keep being recorded for the old shell until it is deleted; the album never reads them.
+- **AL14. History.** A one-off backfill, `startAlbumHistory`, pages one workspace's awards in award order, 50 per mutation, and records an album sticker `{ from: "history", at: the earliest award }` for every (giver, recipient) pair with an award decided before the backfill began. Its start instant is stored once; awards after it collect only through packs. Run twice, or racing a pack, it records each pair once (unique on member and person). It records no product event, as the sticker backfill doesn't (MS10).
+- **AL15. Your own face.** A member's own sticker is always in their own album. It needs no record and is never in a pack.
+- **AL16. `Album` stickers are permanent.** An album sticker is insert-only and kept when the person leaves the workspace or posthog.com.
+- **AL17. The analytics event.** Putting a sticker in publishes `stickerPutIn`, which Analytics projects as `album sticker collected` with the collector as subject and no property naming the person. History records nothing. `person collected` (MS10) keeps meaning today's Book stickers and is retired from the dashboard's Collecting row when the old shell is deleted.
+
+#### Team pages and team stickers
+
+- **AL18. Team pages are company teams.** A member's team pages are the company teams Company Profiles keeps from posthog.com, each with its matched people other than the member, held where the member holds their album sticker, and its unmatched people shown but not counted, as team pages count today (CV30), read through the matcher every reader uses. A page is complete when it counts at least one person and holds all of them. A team with more than six people shows them all; nobody is dropped.
+- **AL19. Unlocking a team sticker.** On a complete page, a website command `unlockTeamSticker(team)` records a **team sticker** `{ member, team, at }` once. On an incomplete page, an unknown team, a second click and while `album` is off it changes nothing and answers a fixed refusal. The page answers `ready` (complete, not unlocked), `unlocked` with its date, or its progress.
+- **AL20. A team sticker stays unlocked.** Someone joining the team, a lost match, the team leaving posthog.com or a renamed team never takes a team sticker back; its page reads unlocked with its date.
+
+#### `Milestones` and levels
+
+- **AL21. Five milestones.** The album has five **milestones**, each with bronze, silver, gold and diamond steps, counted from album facts and recorded insert-only per tier with its date the first time a count reaches it:
+  - *Faces in the album*, album stickers held: 1, 10, 25, 50.
+  - *Full pages*, team stickers unlocked: 1, 5, 15, and a diamond `D`.
+  - *Across the company*, distinct company teams with at least one album sticker: 3, 10, 25, and a diamond `D`.
+  - *Hoggie hunter*, distinct hoggies found: 10, 40, 100, and every hoggie in the catalogue version the album shows.
+  - *Kind words*, thoughtful kudos awards given: 1, 25, 100, 500.
+
+  `D` is fixed in the milestone catalogue when it is built: the largest multiple of 5 not above the number of company teams with at least two matched members on that day. The catalogue is versioned; a later change of the real team count changes no recorded tier. Each milestone's emblem is today's ladder art (`connections`, `team-spirit`, `old-friends`, `recognition`, `generosity`), and each tier has a name, as in the prototype.
+- **AL22. Levels are status.** XP and levels stay as `Progression` computes them (L2 at 20 XP, then `50·(L−1)·(L−2)`). In the album a level unlocks nothing; it shows as a status line with an XP bar. Levels 5, 10, 15, 20 and 25 earn level emojis (AL23).
+
+### Stopping point 2: earned emojis
+
+- **AL23. Four kinds, all earned.** An **earned emoji** is one of:
+  - a **team emoji**, earned by unlocking that team's sticker (AL19), named `:<slug of the team's name>:`;
+  - a **milestone emoji**, earned by reaching a milestone's gold (AL21), named `:<slug of the gold tier's name>:`;
+  - a **level emoji**, earned by reaching level 5, 10, 15, 20 or 25, named `:level-<n>:`; a jump past several earns each;
+  - a **hype emoji**, earned by the member's first thoughtful pack for a person (AL1), named `:<slug of the person's full name>-hype:`. History stickers earn none: thanking them thoughtfully once more earns it.
+
+  Nothing earns an emoji at random.
+- **AL24. Derived, never granted.** Whether a member has an earned emoji is derived on every read from what earns it: their team stickers, milestone tiers, level and thoughtful packs. No emoji is stored as granted, so none can drift from its cause.
+- **AL25. Slugs.** A slug is the name lower-cased, accents stripped, every run of characters outside `a–z` and `0–9` replaced by one hyphen and trimmed of hyphens, then cut to 80 characters. Two people whose hype names collide get `-2`, `-3` in the order their Slack IDs sort. The catalogue never names an emoji that Slack's standard set already uses.
+- **AL26. Seen.** Each earned emoji appears once as a moment. A website command `markEmojisSeen(ids)` records the member's seen emojis, insert-only; an emoji earned and not seen is one the next album visit shows. A member who already earned emojis before the album sees them as moments on their first visit.
+- **AL27. Art.** Team emojis use the team's crest art from the catalogue (`@posthog/brand` PNG exports), milestone emojis the gold tier's emblem, level emojis a level emblem drawn from the brand, and hype emojis the person's face (posthog.com cutout, else Slack picture) inside a hype frame. Team, milestone and level art is built as 128-pixel square PNGs under 128 KB, served by the website's static hosting at a fixed, unhashed path `/emoji/<name>.png`, so Slack can fetch it for `Block Kit` and a member can download it.
+
+#### How earned emojis reach Slack (the delivery decision)
+
+- **AL28. Slack can't be written to.** Slack's only API that creates a custom emoji, `admin.emoji.add`, needs an Enterprise org, an org-wide install and an admin's user token. The app is installed on one workspace (`org_deploy_enabled: false`) with a bot token, so HedgeHug never creates, renames or removes a Slack emoji, and requests no new scope.
+- **AL29. HedgeHug always shows the picture.** The website and every Slack moment show an earned emoji as its picture: an `<img>` on the website, a `Block Kit` `image` element in a `context` block in Slack. Slack never receives a bare `:name:` for an earned emoji that Slack doesn't have, since Slack would print the name as text.
+- **AL30. "In Slack" is read, not assumed.** An earned emoji is **in Slack** while the workspace's custom emoji copy (`Workspace`'s `customEmoji`, kept by `emoji.list` on `emoji_changed` and daily) holds its name. Only then does the website say "use it in Slack: react with it or put it in a kudos", and only then may a Slack moment write `:name:` beside the picture. A name already taken in Slack by someone else's emoji counts as in Slack, and the website says so ("`:workflows:` already exists in Slack").
+- **AL31. Adding it is the member's own action.** For an earned emoji not in Slack, the emoji popup offers **Add to Slack**: it downloads the picture as `<name>.png` and opens the workspace's custom emoji page with the name ready to copy. Slack lets any non-guest member add custom emoji unless an owner restricts it. Nothing waits for it: the emoji is earned and shown either way, and arrives "in Slack" when `emoji_changed` reports it. A hype emoji's picture is drawn in the browser from the face; where the face can't be drawn (a cross-origin picture without CORS), the download is the hype frame with the person's initials.
+- **AL32. The shared list.** The Settings page shows workspace admins and owners every team, milestone and level emoji of the catalogue with its name, picture, download and whether it is in Slack, so one admin can add the shared set in one sitting. Hype emojis aren't on it: each is added by someone who earned it.
+
+### Stopping point 3: making the retirements safe
+
+- **AL33. Retire means a flag off.** The retirements are the existing flags turned off in production: `crate-store`, `store`, `coins`, `group-quest`, `quests` (weekly quests and the Journey), `team-spirit`, `achievements` (the Book's ladders), `unlocks` (levels unlocking features) and `skill-tree` (sandbox only today). No new retire flag is added, no table is dropped, and no stored row is deleted or rewritten. `collection`, `packs`, `xp-levels`, `everyone-board`, `hugs`, `website` and `website-analytics` stay on; the album needs them.
+- **AL34. Owned kudos emojis keep working.** The owned kudos emoji parse hook stops depending on store visibility: every kudos emoji item a member owns (the starter, bought, tier-earned and custom ones) keeps giving kudos while `store` or `coins` is off. Earned emojis (AL23) are not kudos emojis; they decorate a message and give nothing.
+- **AL35. Dark means dark.** With `group-quest` off, no group quest is drawn, tallied or caught up, launches recorded before included (today `isDueToDraw` bypasses the flag). With `quests` off, no Journey step or weekly quest activates or finishes. With `unlocks` off, every shipped feature shows from level 1 and no level-up DM names a feature.
+- **AL36. Coins stay put.** While `coins` is off, coin balances stay stored and keep being credited as today (ADR-0006); nothing shows them. Coins are never converted or paid out.
+- **AL37. One walk proves the end state.** A darkFeatures-style walk with `album` and every flag of AL33 off, beside the same walk with them on, shows that the album's reads, the Slack moments and the analytics events lose nothing the album needs, and that App Home shows no coins, store, quests, Journey, skill tree, ladders or level unlocks.
+- **AL38. Queued jobs.** No retirement renames a scheduled function or changes its arguments. A ticket that does checks production's pending `_scheduled_functions` before merging.
+
+### Stopping point 4: the album website
+
+#### The flag and the shell
+
+- **AL39. One shell flag.** `album` is a boolean member-decision flag, safe default `false`, declared by `Album`. `getMyProfile` answers `album: true` only while it is on for the signed-in member, and the website renders the album shell then, today's shell otherwise. With `album` off, missing in PostHog or unread without the flags key, every website answer, every rendered page (DOM and CSS), every Slack call and every product event equals `main`, apart from the records AL3, AL14 and AL21 keep.
+- **AL40. `Album` reads.** Every album read is a `memberQuery` with the website's guard and answers only the signed-in member's own album: `getAlbum` (me, level, teams with their people and progress, the waiting packs, the tray, the earned emojis with seen and in-Slack, the milestones), `getAlbumPerson(person)` (AL46) and `getAlbumWeek(week)` (AL48). `getThoughtfulBoards` answers AL49. Each answers `{ kind: "off" }` while `album` is off for the member.
+- **AL41. `Album` commands.** `openThoughtfulPack(pack)`, `putIn(item)`, `putAllIn()`, `unlockTeamSticker(team)` and `markEmojisSeen(ids)` are website commands routed through the Commands registry (D17), each deciding `album` for the member in its own mutation and refusing while it is off.
+- **AL42. The frame.** A top bar with no tabs: the brand; a slim XP bar (`Level 6 · 290 XP to level 7`); the packs button with the waiting count; the tray; Activity and Leaderboard as icon buttons that show their label on hover and focus, the active one always labelled; the emoji button with the earned count; the member's face and name linking to `/book#me`; the settings cog. A sidebar: search for teams and people, the member's team first as a progress card, then teams by progress (complete-not-unlocked first, then most held), ten shown with "Show N more", then `Hoggies` and `Milestones`. A slim "`Getting started` · n of 4" strip on the home page while unfinished, derived from album facts with nothing stored: a hug given, a thoughtful kudos given, a pack opened, a team page complete.
+- **AL43. Routes.** `/` is the member's team page; `/book#teams/<team>` any team; `/book#people/<person>` a person; `/book#me` the profile; `/book#hoggies` and `/book#hoggies/<hoggie>` the `Hoggies` page and a hoggie's detail; `/book#milestones`; `/book#packs` opens the pack tray; `/activity`; `/leaderboard`; `/settings`. Hash routing stays inside `/book`, so the route list (SW10) gains no path.
+- **AL44. Every old URL lands.** With `album` on, the router maps every URL the backend builds today (the route list, `?period=`, `?panel=inventory`, `?section=`, `?crate=…`, `?quest=…`, `?filter=…`, `?perk=…`, `?page=…`, the `/sign-in` forms, and the Book hashes `#cover`, `#hoggies/<rarity>`, `#teams/<slug>`, `#achievements[/…]`) to an album page, canonicalising the address with `replaceState`: `/quests…` and `/skills…` to `/`; `/book`, `/book#cover` to `/`; `/book/earned` and `#achievements…` to `/book#milestones`; `/book/collection…` and `#hoggies/<rarity>` to `/book#hoggies` with that rarity filtered; `/?panel=inventory` to `/book#me`; `?crate=…` for a retired crate kind to the page without it; `/leaderboard?period=…` to `/leaderboard`. A contract test lists every URL the backend can build and asserts where each lands. Backend link builders don't change until the old shell is deleted.
+- **AL45. The team page** (round 4 layout A, Class photo): the team in one mounted photo, uncollected people as silhouettes, a "Left to right" caption; the seal ringed by one segment per person; "Collect the whole team" naming the one next step ("Open Omar's pack to complete Workflows", "Omar is in your tray: put the card in"); the ready state (grey but alive, a shimmer, a "Ready to unlock" ribbon and an "Unlock the Workflows sticker" action); the unlock moment (about 5 s: dim, lift, ink colouring, stamp, rays, foil, confetti, "Workflows sticker unlocked", the team emoji, the fly-back); the unlocked state (gold foil, "Unlocked <date>", the emoji).
+- **AL46. The person page:** your history with them (first thanked, kudos both ways, hugs both ways, your best message: the longest thoughtful kudos you gave them), their teams, and their hype emoji or "Give Omar a thoughtful kudos to unlock their hype emoji". `getAlbumPerson` reads the pair's awards through Engine's exported reads with the activity page's read budget (at most 700 recipients' worth of ranges).
+- **AL47. Packs:** the opening keeps round 3's binder flips (rip, the sticker flip, the hoggie glowing in its rarity colour, then flipping), a shine and a ring per turn, confetti sized to the moment, "New in your album" ribbons, the team bar ticking up, the XP bar counting up by the pack bonus, and "+ :name-hype: unlocked" for a first-time person. Opened items fly into the top-bar tray; the tray panel lists each with where it goes; each has "Put in" and the panel "Put them all in" (AL11's order); a put-in lifts, holds, flies on a curve to its glowing slot and lands with a press, a ring and sparkles, the counts ticking on landing; after a team's last sticker settles, its unlock action arrives.
+- **AL48. Activity** (round 4 layout B, `Weekly edition`): one issue per week of "This week in your album" (tallies, the kudos of the week, who you thanked, who thanked you, new faces, hoggies from packs, quiet hugs) with week tabs and sparklines, read by `getAlbumWeek` for one week at a time within the activity page's budget.
+- **AL49. Leaderboard** (round 4 layout C, Side by side): the people board (thoughtful kudos awards given this week, the leaderboard's week) and the team board (the same summed over each company team's matched members) side by side, the member's row and team pinned, and "Who gave" narrowing the people board to one team. `Show me on the leaderboards` still leaves a member off both. The profile and the top bar use the same numbers.
+- **AL50. `Hoggies`** (round 4 A's cards with B's organisation): the header, the rarest-finds shelf, the sticky "The collection" bar with All, Found, Still hidden and Spares and the rarity strip, field-guide plates with silhouettes and "×n", and the centred detail at `#hoggies/<hoggie>` with previous and next.
+- **AL51. `Milestones`:** one row per milestone with its emblem, what it counts in plain words, the next goal and four medals from bronze to diamond (earned in metal with dates, the next lit with a progress ring, later ones faint), and the emoji its gold gives. No "Collected" strip and no "just earned" band.
+- **AL52. Profile** (`/book#me`): your yearbook photo, name, team, level and XP bar, the last kind note someone sent you, your weekly rank and your team's rank (AL49's numbers), your album at a glance (people, your team, hoggies), coolest finds (rarest hoggies, newest people) and best milestones with the closest next one.
+- **AL53. Settings:** today's settings page inside the frame, plus AL32's shared emoji list for admins. A settings section for a retired feature hides while its flag is off, as today.
+- **AL54. Moments queue.** Emoji moments, the sticker unlock moment, pack opening and putting in never overlap: emoji moments wait until the others end, then play one at a time, each ending with the emoji flying into the emoji button.
+- **AL55. Phone, dark, reduced motion.** Every album page has a phone layout at 390 px wide with no sideways scroll (the sidebar becomes a drawer, the top bar keeps XP, packs, tray and emoji and folds the rest into a menu); every page renders in light and dark from theme tokens; with reduced motion every moment shows its end state with at most a 200 ms fade. All pages pass WCAG 2.2 AA contrast in both themes and are usable by keyboard alone.
+- **AL56. Privacy in replay.** Faces, earned emoji pictures and names, kudos text (best message, kudos of the week, last kind note) and Open in Slack links render inside `ph-no-capture` blocks, and MS27's totality test covers every album page, the tray, the emoji popup and the moments rendered from fixtures. The pageview seam (MS22) stays unchanged; album pages carry `page` and the hash as `spread`.
+- **AL57. Budget and policy.** The album's pages load in their own chunks so the entry bundle stays within its budget (340,000 gzip bytes), and the `Content-Security-Policy` stays as it is (`script-src 'self'`, `style-src 'self'`; images from the deployment, posthog.com's Cloudinary and Slack's picture hosts).
+
+### Stopping point 5: the Slack moments
+
+- **AL58. One flag for Slack.** `album-slack` is a boolean flag, safe default `false`, declared by `Feedback`. It is decided as the giver's member decision for the thread reply, the member's for the recap line, and the workspace decision for the weekly post, and applies only where `album` applies to the same subject (the workspace decision of `album` for the weekly post), so no Slack moment links to an album its reader can't open. With it off every Slack call equals `main`.
+- **AL59. The thread reply.** For a thoughtful kudos where `album-slack` applies to the giver, the giver's reply becomes one message in the kudos message's thread, public, posted where the giver's `kudos-reply` place is the channel (a DM where it is a DM, nothing where it is none). Per recipient it says one of: "<First> is new in your album" with each of their teams' progress (and "page complete!"); "A pack for thanking <First>": they're already in your album, so the pack holds a hoggie; or "Kudos counted. Your next pack for <First> comes next week." It names a hype emoji the pack unlocks with its picture (AL29) and a team page it would complete, offers "Open your pack" (to `/book#packs`) or "See <First>'s page", and keeps today's gains line. A non-thoughtful kudos keeps today's private reply.
+- **AL60. The Monday hug recap** stays a quiet DM at 9 am member-local time, as today, and gains one line where `album-slack` applies: the earned emojis the member got last week, as pictures with their names, or nothing when there are none.
+- **AL61. The weekly post.** Where `album-slack` applies to the workspace and the Monday post is set up (opt-in, channel, time zone), the Monday post's body becomes the week's top thoughtful kudos: up to three thoughtful kudos messages from public channels, ranked by the hugs they received, then by recipients, then newest, each with giver, recipients, its first 200 characters and its permalink, plus the team stickers unlocked across the workspace that week by count. A message from a private channel or a DM is never quoted. Nothing else is posted proactively.
+- **AL62. Reactive only.** HedgeHug posts nothing else unprompted: no moment prompts, no private digest (Q14, Q15).
+- **AL63. Settings and words.** Each moment respects its message setting (`kudos-reply`, `hugs-recap`, the Monday post's admin settings). Kudos text appears only in the weekly post, only from public channels, as the channel already showed it.
+
+### Stopping point 6: the rollout
+
+- **AL64. The flags.** New: `album` (AL39) and `album-slack` (AL58). Retired by turning off: AL33's list. Every flag change in production gets a project annotation at that instant naming the flag (MS6), and the conductor widens one flag at a time, only after the proofs of every ticket that flag depends on are green.
+- **AL65. Windows.** A **window** is the 7 days before a change and the 7 days after it on dashboard 2209148, read as MS1 (activation, per week of first event, members whose 7 days have passed), MS2 (weekly thoughtful givers beside enrolled members), MS3 (hugs per weekly active member, giver repeat rate), the Collecting row (MS15) and the Website row (MS29). A change is kept when no guardrail falls by more than a fifth and browser exceptions don't double; otherwise its flag goes back and the conductor records why on the map.
+- **AL66. The order.**
+  0. `website-analytics` to production (MS16; the grant covers it), so the album has a website baseline. Window 7 + 7.
+  1. Run `startAlbumHistory` in production and confirm it finished. No member sees a change.
+  2. `album` to production. Window 7 + 7.
+  3. `album-slack` to production (member and workspace decisions together). Window 7 + 7.
+  4. `crate-store` off, then `store` off, then `coins` off: one at a time, each with a 2-day watch of the guardrails and exceptions, and one 7-day window after `coins`.
+  5. `group-quest` off, then `quests` off (weekly quests and the Journey), each with a 2-day watch, one 7-day window after `quests`.
+  6. `team-spirit` off, then `achievements` off, then `unlocks` off, each with a 2-day watch, one 7-day window after `unlocks`.
+  7. `skill-tree` off in the sandbox (it was never on in production).
+  8. Delete the old shell (AL67).
+- **AL67. Deleting the old shell.** Once `album` has been on for everyone in production for 7 days after step 6's window with no rollback, a ticket deletes today's shell from the website (the HUD frame, the Book spread, Quests, the skill tree page, the crate store, the pack shelf and their tests), makes the album the only shell, moves the old-URL map into the router for good, points the backend's link builders at album routes, and removes `album` and `album-slack` reads only where their off branch is now unreachable code. It deletes no stored data, no table and no PostHog flag; flag cleanup is a later map.
+- **AL68. Rollback.** Before step 8, any step rolls back by turning its flag back; the album's records stay. After step 8, rolling back the shell is a code revert.
+- **AL69. The product owner's own hands.** Nothing in the rollout needs the product owner. Two optional to-dos are the product owner's: adding the shared emoji set from Settings (AL32) as a workspace admin, and saying whether the workspace is on Enterprise Grid, which would allow a later, opt-in `admin.emoji.add` path.
+- **AL70. Measurement first.** No widening starts before the dashboard's Measurement row (MS1–MS5) is live. Step 2's after-window is the first read of the new loop.
+- **AL71. The `Fable` pass.** A design pass on the album with `Fable` 5.1, which the product owner left open, is not part of this rollout; if it happens, it ships behind `album` before step 2 or as its own flag after step 8.
+- **AL72. What this replaces.** It supersedes ADR-0003 (two currencies) and the level schedule in ADR-0006 (levels unlocking features), and makes the Journey quest log of #626 and its ADR-0007/0008 drafts (never merged) moot. ADR-0001, ADR-0002, ADR-0004 and ADR-0005 stand.
+
+## Coherence
+
+- **Entrances.** `convex/website/WebsiteReads.spec.md` declares, each with trust `browser` and handler in `convex/website/album.ts`: `query getAlbum`, `query getAlbumPerson`, `query getAlbumWeek`, `query getThoughtfulBoards`, `mutation openThoughtfulPack`, `mutation putIn`, `mutation putAllIn`, `mutation unlockTeamSticker`, `mutation markEmojisSeen`. Each joins "website reads pass one guard" and "the public surface is exact". `website/Website.spec.md`'s `route GET /*` covers `/emoji/<name>.png`, a static file with no member data.
+- **Trust levels.** No new level. The new reads and commands cross `browser -> domain` like those beside them.
+- **New component.** `convex/album/Album.spec.md`: "`Album`: the collection-first core loop: thoughtful packs (AL1–AL7), opening and the tray (AL8–AL12), the album's stickers and their history (AL13–AL17), team pages and team stickers (AL18–AL20), milestones (AL21), earned emojis (AL23–AL27) and the `album` flag." Its invariants, each a totality oracle with `over:` and `via:`:
+  - "a thoughtful pack is earned once per giver, person and week": over a message to three recipients, a second message the same week, a redelivered `kudosGiven`, two subscribers in reverse order, a non-thoughtful kudos, a hug, an edit and a deletion afterwards, and the next week; kinds `storage, state`.
+  - "a pack's sticker is decided at its grant": over two packs for one new person opened in either order, a history sticker recorded between them, and a pack for someone already held; kinds `state`.
+  - "a tray item is put in once": over put in twice, put all in twice, an item of another member, a reload between; kinds `storage, state`.
+  - "people join the album only by giving": over kudos received from five people, a kudos given before the history began, a thoughtful kudos given after it, and the backfill run twice racing a pack, read through `getAlbum`; kinds `storage, state`.
+  - "a team sticker stays unlocked": over a team joined, a match lost, the team leaving posthog.com and a second click; kinds `storage, state`.
+  - "the album is private": every album read and command answers or changes only the signed-in member's own album, never one named in an argument; crossing `browser -> domain`, entrances the nine above; kinds `read`.
+  - "the album is dark where album is off": AL39's equality, over a walk of kudos, App Home and every website read in the four off states (off, missing, no flags key, sandbox-only in production) beside the same walk on `main`, apart from the records AL3, AL14 and AL21 keep and the flag's own exposure; kinds `state, output`.
+  - "an earned emoji follows its cause": over each kind earned, a level jump past two levels, a history sticker, a collided hype name, and a team that later changes; kinds `state`.
+- **Amended and new invariants elsewhere.**
+  - `convex/feedback/Feedback.spec.md`: "album moments are dark where album-slack is off" (AL58), kinds `state, output, message`; and "a weekly post quotes only public kudos" (AL61, AL63), kinds `message, output`.
+  - `convex/store/Store.spec.md`: the owned kudos emoji hook no longer requires store visibility (AL34), amending the invariant that names it.
+  - `convex/quests/Quests.spec.md`: group quest draws obey `group-quest` whatever was launched (AL35).
+  - `convex/analytics/Analytics.spec.md`: "only allowlisted properties leave the deployment" gains `packs_earned`, `album sticker collected` and the crate kind `thoughtful`; "analytics only observes" names the `stickerPutIn` recorder and the darkFeatures walk fires it (E11).
+  - `website/Website.spec.md`: "every URL Slack sends lands in the album" (AL44), kinds `output`; MS27's private blocks cover the album (AL56).
+  - `convex/website/WebsiteReads.spec.md`: "the route list is the paths the router serves" keeps holding: album routes are hashes under `/book`.
+- **Lexicon.** Declare, one at a time, with the ticket that first uses each: **thoughtful pack** (the pack a thoughtful kudos earns its giver, once per person and week), **album sticker** (a person in a member's album, put in from a thoughtful pack or brought by the album's history; not a Book sticker), **tray** (opened album stickers and hoggies not yet put in), **team sticker** (a complete team page's seal, unlocked by its member's click), **milestone** (one of the album's five counted goals with four tiers), **earned emoji** (a team, milestone, level or hype emoji a member earned, derived from its cause) and **hype emoji**. The existing **pack** concept gains the thoughtful kind; **sticker** keeps meaning a Book sticker; **card** keeps its cosmetic sense, so this spec never calls an album sticker a card.
+- **Journal.** Each 🤖 decision below is a `coherence decide` record committed with this file, citing the grant.
+
+## Implementation Decisions
+
+- **`Album`** (new, `convex/album/`) owns the thoughtful packs, their opens, the tray, the album stickers and the history backfill, team stickers, milestone tallies and tiers, the seen emojis, the `album` flag and the earned emoji catalogue, which it derives from Company Profiles' teams, its milestones, `Progression`'s level and its packs. It exports `packsEarnedBy(message)` for Analytics, `albumStickersOf(member)` and `teamPagesOf(member)` for the website reads, and publishes `stickerPutIn`. It reads other modules only through their exported functions.
+- **`Hoggies`** gains crate kind `thoughtful` in `crateKey`, `dropFor` and the pack bands (version 2: `thoughtful` 15 XP, 0 coins), and a found-only-when-put-in filter for thoughtful drops in its collection reads.
+- **`Progression`** is unchanged, apart from exporting the giver's week key it already computes.
+- **Store** drops the store-visibility condition from the owned kudos emoji hook (AL34). **Quests** makes group quest draws obey `group-quest` (AL35). **Unlocks** makes `unlocks` off show every shipped feature from level 1 with no feature named in level-up DMs, if it doesn't already.
+- **Analytics** gains `packs_earned`, the `thoughtful` crate kind and `album sticker collected`.
+- **`Feedback`** gains `album-slack`, the thread reply's album lines, the recap's emoji line; **Leaderboard** the weekly post's top thoughtful kudos; **Slack** renders the `Block Kit` image elements. Today's message settings decide where each goes.
+- **Website (Convex)** gains `convex/website/album.ts` with AL40's reads and AL41's commands, `album` on `getMyProfile`, and no change to the route list.
+- **Website (browser)** gains an album shell beside today's, chosen by `getMyProfile.album`, in its own chunk: the frame, the router's old-URL map, the pages, the pack opening, the tray and put-in flights, the emoji popup and moments, Add to Slack, the shared emoji list, and the phone, dark and reduced-motion layouts. It re-implements the prototype; it never imports `website/src/prototype/`.
+- **The fixture contract.** The album shell builds against typed fixtures of `getAlbum`'s answer before the backend lands. The answer's type is the prototype's `Album` (from `round-3/album.tsx`, trimmed to the decision-rich parts), owned by `convex/album/` as the read's validator:
+
+  ```ts
+  type AlbumAnswer = {
+    me: { name: string; face: Face; person: string; team: string | null };
+    level: { level: number; xp: number; startsAt: number; nextAt: number };
+    teams: { team: string; name: string; art: TeamArt; mine: boolean; people: string[]; held: number; total: number; state: "progress" | "ready" | "unlocked"; unlockedAt: number | null }[];
+    people: { person: string; name: string; face: Face; teams: string[]; held: boolean; packedThisWeek: boolean }[];
+    packs: { pack: string; person: string; earnedAt: number }[];          // waiting, oldest first, at most 50
+    morePacks: boolean;
+    tray: ({ item: string; kind: "sticker"; person: string } | { item: string; kind: "hoggie"; hoggie: string; rarity: Rarity; isNew: boolean })[];
+    emojis: { id: string; kind: "team" | "milestone" | "level" | "hype"; name: string; picture: string; earned: boolean; seen: boolean; inSlack: boolean; progress: { have: number; need: number } | null }[];
+    milestones: { id: string; count: number; tiers: { tier: "bronze" | "silver" | "gold" | "diamond"; at: number; name: string; earnedAt: number | null }[] }[];
+    gettingStarted: { hugged: boolean; thoughtful: boolean; opened: boolean; completed: boolean };
+  };
+  ```
+- **Schema.** New tables, all insert-only or append-only state: `thoughtfulPacks` (unique on giver, recipient, week; `holdsSticker`, `openedAt`), `trayItems` (per open, `putInAt`), `albumStickers` (unique on member, person; `from`), `albumHistory` (per workspace: start instant, cursor, done), `teamStickers` (unique on member, team), `milestoneTiers` (unique on member, milestone, tier), `milestoneTallies` (one per member), `emojisSeen` (unique on member, emoji). No existing table changes shape, apart from the optional `thoughtful` crate kind in the drop and band validators.
+
+## Testing Decisions
+
+- **Good tests** drive the system from the outside: kudos and hugs through the signed Slack event router with `convex-test`, website reads and commands signed in with `aSignedInSession`, Slack calls captured at `fetch`, PostHog stubbed at `fetch`, and the website rendered with Testing Library over `renderApp`'s injected reads. Never a table, never a component's internals. Fixtures use made-up people, made-up teams and distinctive made-up words.
+- **The core loop** (prior art: `convex/stickers/*.test.ts`, `convex/hoggies/drops.test.ts`, `convex/analytics/kudosGiven.test.ts`): AL2's uniqueness over every case its invariant names, with `transactionLimits: true` for a message to 100 recipients; AL5's sticker decision over open orders; AL11's put-in and "Put them all in" order; AL14's backfill run twice and racing a pack; AL18's team pages over a team of eight and an unmatched person; AL19 and AL20 over a changing team; AL21's tiers recorded once with their dates.
+- **Earned emojis** (prior art: `convex/slack/customEmoji` tests, `website/src/CustomEmoji` tests): each kind earned from its cause; a level jump; a slug collision; in Slack only after `emoji.list` names it; Add to Slack's download name; the shared list only for admins.
+- **Retirements** (prior art: `convex/analytics/darkFeatures.test.ts`, the "dark where off" walks): AL34 with `store` and `coins` off; AL35's group quest draws and `unlocks` off; AL37's end-state walk.
+- **The website** (prior art: `website/src/routeList.test.tsx`, `deepLinkTargets.test.tsx`, `App.test.tsx`, `accessibility.test.tsx`, `entryBundle.test.ts`, `privateBlocks.test.tsx`): the album only with `album: true` and today's DOM and CSS byte-equal otherwise; AL44's landing table over every URL the backend can build; each page's states from fixtures; the moment queue; keyboard paths; axe in light and dark; the entry budget; the private blocks over every album page.
+- **Slack moments** (prior art: `convex/feedback/replies` tests, `convex/hugs/recap` tests, `convex/leaderboard/mondayPost` tests): each reply variant; the recap line; the weekly post's ranking, public-only quoting and 200-character cut; every call equal to `main` with `album-slack` off.
+- **Proofs a real browser owes** (on the sandbox, in each UI ticket's PR, with a synthetic session as `kudos-browser-session-without-slack` describes): the page with real sandbox data in light and dark, at 1440×900 and 390×844, by keyboard, with reduced motion, and with the console free of CSP violations; for moments, a recording. A backend ticket proves itself with signed Slack-shaped requests to the sandbox and `convex run` reads.
+- Each gate proves its flag: off, unset and missing-key equal `main`.
+
+## Out of Scope
+
+- Slack App Home beyond its links landing in the album, and beyond what the retirements hide.
+- Creating custom emojis in Slack by any API (AL28).
+- The AI thoughtful classifier (`thoughtful-ai` stays dark).
+- Moment prompts and private digests (Q14, Q15).
+- Deleting stored data, tables or PostHog flags; deleting the code of retired backend features (coins, store, quests): a later map, if the metric agrees (Q5).
+- A Rewards module with one `openCrate` and Messaging following the bus (#626 Q10, Q12).
+- The maintainer's `Workspace` settings (#622).
+- A `Fable` design pass (AL71).
+
+## Decisions
+
+🤖 = settled by the spec worker under the product owner's full-autonomy grant of 2026-10-18 ("build the whole thing and ship it to prod with full autonomy"); 👤/👍 = the product owner's own, from the map.
+
+- 👤 Collection first, packs per thoughtful kudos once per giver, person and week, collect by giving, hugs quiet, level is status, earned emojis, the accepted round 6 design (map Q1–Q15, #625).
+- 🤖 **Emoji delivery: always the picture, "in Slack" only when Slack has it, added by a member's own hand.** Over an admin upload pack the build waits for, and over the Enterprise-only `admin.emoji.add`. Because Slack offers no other way to create an emoji from an app, and the build must never fake or wait on an admin action (AL28–AL32).
+- 🤖 **Packs are recorded whatever the flags say** (AL3), as stickers and earnings are. Over recording only where `album` is on. Because a member turned on later should find what they earned, and a recorder must not depend on a flag.
+- 🤖 **History counts only people you gave to** (AL14). Over grandfathering today's both-way stickers. Because Q3 says people are collected only by giving; nobody starts empty.
+- 🤖 **Hype emojis come only from packs**, not from history (AL23). Over backfilling every past thoughtful kudos. Because it gives a reason to thank again and avoids reading every past gate decision.
+- 🤖 **A thoughtful pack pays 15 XP, no coins**, through the existing pack bonus (AL9). Over no bonus. Because the accepted opening counts the XP bar up, and coins are retired.
+- 🤖 **Put in is stored; a hoggie counts as found only once put in** (AL10–AL12). Over a browser-only tray. Because the tray must survive a reload, and the counts tick on landing.
+- 🤖 **Team pages keep every person**; "at most 6" describes posthog.com's small teams, not a cap (AL18).
+- 🤖 **`Milestones` live in `Album`, not Achievements** (AL21). Over new ladders in the Achievements catalogue. Because `achievements` is retired (the old ladders go dark) and the album's milestones must not go with it.
+- 🤖 **Diamond steps for teams are fixed when the catalogue is built** from the real count (AL21). Over steps that follow the count. Because recorded tiers are permanent.
+- 🤖 **Earned emojis are derived, never granted** (AL24); only "seen" is stored.
+- 🤖 **Retire with today's flags turned off** (AL33), plus three code fixes so off is safe (AL34, AL35). Over new retire flags. Because each existing flag already proves "dark where off".
+- 🤖 **Two new flags, `album` and `album-slack`** (AL39, AL58). Over one flag. Because the website and Slack change different surfaces and get separate windows.
+- 🤖 **The thread reply is public in the thread** where the giver's `kudos-reply` place is the channel (AL59). Because Q4 named it the visible moment.
+- 🤖 **The weekly post replaces the Monday post's body** and keeps its settings (AL61). Over a second weekly post. Because Q15 allows one proactive post.
+- 🤖 **"`Getting started`" is derived from album facts**, not the Journey (AL42). Because the Journey is retired and the strip needs nothing stored.
+- 🤖 **The rollout order and windows** (AL64–AL66): core loop flags 7 + 7 days; retirements one at a time with 2-day watches and one window per group; the old shell goes after a full window.
+- 🤖 **`website-analytics` widens first** (AL66 step 0), under the grant, so the album has a website baseline.
+- 🤖 **The product owner's to-dos are optional** (AL69).
+
+## Review
+
+(Filled in after the GPT-6.1 Sol review.)
+
+## Further Notes
+
+**The product owner's words this spec builds on, verbatim** (2026-10-18, #625 thread): "Now lock it in and tell the conductor to build the whole thing and ship it to prod with full autonomy. I am afk now".
+
+**The ADR the first ticket lands** as `docs/adr/0009-the-album-is-collection-first.md`, superseding ADR-0003 and ADR-0006's schedule: "HedgeHug is collection first. A thoughtful kudos earns its giver a pack for the person thanked, once per person and week, which puts that person in the giver's album and rolls a hoggie. People are collected only by giving. Levels are status and unlock nothing. Coins, the store, quests, the Journey, the skill tree and the old ladders are retired behind their flags, with every stored record kept. We chose this over the game economy because nothing in it rewarded thanking someone and saying why (#629, #630), and the product owner accepted the album on #625." It records a `coherence decide` naming its path. The numbers 0007 and 0008 are skipped because #626's unmerged drafts used them.
+
+**Casting.** Build tickets run on Opus 5.5 (high); UI tickets may use `Fable` 5.1 only for complex design with substantial ambiguity. Reviews run on GPT-6.1 Sol (high).
