@@ -115,6 +115,8 @@ describe("O3: attempt failed", () => {
       ["attempt failed", false],
       ["kudos given", true],
       ["kudos received", true],
+      ["person collected", undefined],
+      ["person collected", undefined],
     ]);
     expect(events[0]!.distinct_id).toBe(events[1]!.distinct_id);
   });
