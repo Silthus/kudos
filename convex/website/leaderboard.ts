@@ -5,7 +5,7 @@ import { rankedBoardOf, type RankedRow, type Standing } from "../leaderboard/tot
 import { isOnTheBoards } from "../leaderboard/visibility";
 import { workspaceLink } from "../slack/workspaceLink";
 import { followTheClock } from "./clock";
-import { faceOf, teammateOf, type Face } from "./faces";
+import { signInFaceOf, teammateOf, type Face } from "./faces";
 import { memberQuery, type Denial } from "./memberQuery";
 import { leaderboardStateOf, unlockPathOf, type PageWaits } from "./unlockPath";
 
@@ -35,7 +35,7 @@ export const getLeaderboard = memberQuery({
     if (state.kind !== "open") return state;
     await followTheClock(ctx);
     const { rows, window, standing, improvement, peer } = await rankedBoardOf(ctx, me.workspace, me.user, period);
-    const myFace = await faceOf(ctx, me);
+    const myFace = signInFaceOf(me);
     return {
       kind: "board",
       period,

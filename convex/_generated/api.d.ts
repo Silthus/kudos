@@ -246,6 +246,7 @@ import type * as website_bookSpread from "../website/bookSpread.js";
 import type * as website_clock from "../website/clock.js";
 import type * as website_collection from "../website/collection.js";
 import type * as website_commands from "../website/commands.js";
+import type * as website_face from "../website/face.js";
 import type * as website_faces from "../website/faces.js";
 import type * as website_flag from "../website/flag.js";
 import type * as website_groupBoards from "../website/groupBoards.js";
@@ -522,6 +523,7 @@ declare const fullApi: ApiFromModules<{
   "website/clock": typeof website_clock;
   "website/collection": typeof website_collection;
   "website/commands": typeof website_commands;
+  "website/face": typeof website_face;
   "website/faces": typeof website_faces;
   "website/flag": typeof website_flag;
   "website/groupBoards": typeof website_groupBoards;

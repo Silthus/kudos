@@ -10,9 +10,13 @@ export type Face =
   | { kind: "initials"; initials: string };
 
 export async function faceOf(ctx: QueryCtx, me: VerifiedMember): Promise<Face> {
-  const initials = initialsOf(me);
   const companyFace = await ownCompanyFaceOf(ctx, me);
-  if (companyFace !== undefined) return { kind: "company-profile", ...companyFace, initials };
+  if (companyFace !== undefined) return { kind: "company-profile", ...companyFace, initials: initialsOf(me) };
+  return signInFaceOf(me);
+}
+
+export function signInFaceOf(me: VerifiedMember): Face {
+  const initials = initialsOf(me);
   if (me.image !== undefined) return { kind: "slack", image: me.image, initials };
   return { kind: "initials", initials };
 }

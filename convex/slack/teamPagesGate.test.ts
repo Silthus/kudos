@@ -193,9 +193,9 @@ describe("CV28: team pages are dark where team-pages is off, show only to the me
       { team: "lantern", mine: true, people: [] },
       { team: "hedgerow", mine: false, people: [alice.name, carol.name] },
     ]);
-    expect(answers.U_BOB!.profile).toMatchObject({ face: { kind: "initials" } });
-    expect(answers.U_CAROL!.profile).toMatchObject({ face: { kind: "company-profile", image: expect.stringContaining("carol") } });
-    expect(answers.U_DANA!.profile).toMatchObject({ face: { kind: "company-profile", image: expect.stringContaining("pat") } });
+    expect(answers.U_BOB!.face).toMatchObject({ kind: "initials" });
+    expect(answers.U_CAROL!.face).toMatchObject({ kind: "company-profile", image: expect.stringContaining("carol") });
+    expect(answers.U_DANA!.face).toMatchObject({ kind: "company-profile", image: expect.stringContaining("pat") });
     expect(answers.U_BOB!.settings).toMatchObject({ companyProfile: { mine: null } });
     expect(walk.links).toEqual([{ by: "admin", member: "<member U_DANA>", profile: patProfile.id }]);
     expect(answers.U_ALICE!.settings).toHaveProperty("admin");
@@ -365,6 +365,7 @@ async function onTheWebsite(person: Person) {
     collection: await read(asSignedIn.query(api.website.collection.getCollection, {})),
     book: await read(asSignedIn.query(api.website.book.getBook, {})),
     profile: await read(asSignedIn.query(api.website.profile.getMyProfile, {})),
+    face: await read(asSignedIn.query(api.website.face.getMyFace, {})),
     card: await read(asSignedIn.query(api.website.profileCard.getProfileCard, {})),
     quests: await read(asSignedIn.query(api.website.quests.getQuests, {})),
     settings: await read(asSignedIn.query(api.website.settings.getSettings, {})),

@@ -16,6 +16,7 @@ import { spotlightFixtures } from "./spotlightFixtures";
 import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
 
 const profileRead = vi.fn();
+const faceRead = vi.fn();
 const boardRead = vi.fn();
 const authActions = { signIn: vi.fn(), signOut: vi.fn() };
 const openFeatureCall = vi.fn();
@@ -45,7 +46,7 @@ vi.mock("convex/react", async (importOriginal) => ({
   ConvexReactClient: class {},
   useConvexAuth: () => ({ ...auth }),
   useConvexConnectionState: () => ({ ...socket }),
-  useQuery: () => profileRead(),
+  useQuery: (query: FunctionReference<"query">) => (getFunctionName(query) === "website/face:getMyFace" ? faceRead() : profileRead()),
   useMutation: (mutation: FunctionReference<"mutation">) => (getFunctionName(mutation) === "website/commands:buyPerk" ? buyPerkCall : openFeatureCall),
 }));
 
@@ -111,6 +112,7 @@ afterEach(() => {
   socket.isWebSocketConnected = true;
   auth.isLoading = false;
   profileRead.mockReset();
+  faceRead.mockReset();
   boardRead.mockReset();
   watchedQueries.length = 0;
   subscriptions.clear();
@@ -247,6 +249,51 @@ describe("WS20 WS36: the leaderboard read shows where the page stands, inside th
     boardAnswers(leaderboardFixtures.midBoard);
 
     expect(pageTitle()).toHaveTextContent("Ada Lindqvist leads the week.");
+  });
+});
+
+describe("WS21: the member's own face comes from getMyFace, beside the profile and the boards", () => {
+  const cutout = { kind: "company-profile", image: "https://res.cloudinary.com/posthog-test/image/upload/sam.png", colour: "#8567FF", initials: "SE" } as const;
+
+  function isOwn(row: HTMLElement) {
+    return within(row).queryByText("Sam Example") !== null;
+  }
+
+  function picturesOf(cutoutImage: string) {
+    return [...document.querySelectorAll("img")].filter((picture) => picture.getAttribute("src") === cutoutImage);
+  }
+
+  it("shows the face getMyFace answers in place of the profile's own picture on the home", () => {
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelOpen);
+    faceRead.mockReturnValue(cutout);
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+
+    expect(picturesOf(cutout.image).length).toBeGreaterThan(0);
+  });
+
+  it("puts that face on the member's own row of the board, and on no one else's", () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    profileRead.mockReturnValue(shellFixtures.memberWithTheBoard);
+    faceRead.mockReturnValue(cutout);
+    boardRead.mockReturnValue(leaderboardFixtures.midBoard);
+    renderLiveSite();
+
+    const rows = screen.getAllByRole("listitem");
+    const [ownRows, otherRows] = [rows.filter(isOwn), rows.filter((row) => !isOwn(row))];
+    const withCutout = (row: HTMLElement) => row.querySelector(`img[src="${cutout.image}"]`) !== null;
+    expect(ownRows.length).toBeGreaterThan(0);
+    expect(ownRows.every(withCutout)).toBe(true);
+    expect(otherRows.filter(withCutout)).toEqual([]);
+  });
+
+  it("keeps the profile's own picture while getMyFace answers a denial", () => {
+    profileRead.mockReturnValue(shellFixtures.memberWithEveryPanelOpen);
+    faceRead.mockReturnValue({ kind: "closed" });
+    boardRead.mockReturnValue(undefined);
+    renderLiveSite();
+
+    expect(screen.getAllByText("SE").length).toBeGreaterThan(0);
   });
 });
 

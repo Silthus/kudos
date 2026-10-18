@@ -78,10 +78,7 @@ async function aTeammate(user: string, name: string, { admin = false } = {}) {
     settings: () => caller.query(api.website.settings.getSettings, {}),
     sections: async () => (await t.query(internal.website.link.frontDoorLinksOf, { workspace: "T1", user }))?.sections,
     linkTeammate: (key: string, profile: number | "none" | null) => caller.mutation(api.website.commands.linkCompanyProfile, { member: key, profile }),
-    face: async () => {
-      const profile = await caller.query(api.website.profile.getMyProfile, {});
-      return profile.kind === "member" ? profile.face : profile;
-    },
+    face: () => caller.query(api.website.face.getMyFace, {}),
     link: (profile: number | null) => caller.mutation(api.website.commands.linkMyCompanyProfile, { profile }),
     leave: () => t.run((ctx) => ctx.db.patch(member, { kind: "not-a-member" })),
     rejoin: () => t.run((ctx) => ctx.db.patch(member, { kind: "member" })),

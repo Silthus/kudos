@@ -5,6 +5,8 @@ import { FakeSlack, httpStatus, networkFailure, type ScriptedAnswer } from "../.
 import { testBackend, type Backend } from "../../testing/slackBackend";
 import { aDeploymentForWorkspace, aMember, aSession, switchWebsite, type SignInIdentity } from "../../testing/website";
 import { api, internal } from "../_generated/api";
+import { countGiven } from "../leaderboard/totals";
+import type { MemberId } from "../workspace/directory";
 import { companyTeamsOf } from "./teams";
 
 const wren = { user: "U_WREN", name: "Wren Halloway", image: "https://avatars.slack-edge.com/wren.png" };
@@ -14,12 +16,14 @@ const analytics = { slug: "analytics", name: "Analytics", crest: aCutout("analyt
 const analyticsKept = { team: "analytics", name: "Analytics", crest: { kind: "image", url: "https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/analytics_crest.png" }, leads: [1], people: [1] };
 const wrensFace = { kind: "company-profile", image: "https://res.cloudinary.com/posthog-test/image/upload/c_limit,w_160,f_auto,q_auto/v1/wren.png", colour: "#8567FF", initials: "WH" };
 
+let postHog: FakePostHog;
 let postHogCom: FakePostHogCom;
 let t: Backend;
 
 beforeEach(async () => {
   aDeploymentForWorkspace();
-  const postHog = new FakePostHog();
+  vi.useFakeTimers({ now: new Date("2026-10-13T10:00:00Z") });
+  postHog = new FakePostHog();
   postHogCom = new FakePostHogCom();
   const slack = new FakeSlack();
   vi.stubGlobal("fetch", routedFetch(postHog, (input, init) => (postHogCom.owns(urlOf(input)) ? postHogCom.fetch(input) : slack.fetch(input, init))));
@@ -28,6 +32,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -48,9 +53,49 @@ function companyTeams() {
 async function faceOf(identity: SignInIdentity) {
   await aMember(t, identity.user);
   const { asSignedIn } = await aSession(t, identity);
-  const profile = await asSignedIn.query(api.website.profile.getMyProfile, {});
-  return profile.kind === "member" ? profile.face : profile;
+  return asSignedIn.query(api.website.face.getMyFace, {});
 }
+
+async function givesOnTheBoards(member: MemberId) {
+  const message = { workspace: "T1", conversation: "C1", message: "1" };
+  const group = await t.run(async (ctx) => {
+    const group = await ctx.db.insert("userGroups", { workspace: "T1", group: "S_ANTS", handle: "ants", name: "Ants", enabled: true, automatic: false, members: 1, asOf: 0, membersAsOf: 0 });
+    await ctx.db.insert("memberGroups", { workspace: "T1", member, groups: [group], primary: group });
+    await countGiven(ctx, { workspace: "T1", message, giver: member, awards: [{ giver: member, recipient: member, kudos: 1 }], day: "2026-10-13" });
+    return group;
+  });
+  const event = { type: "awardsAttributed" as const, workspace: "T1", message, giver: member, group, kudos: 1, day: "2026-10-13", at: Date.parse("2026-10-13T09:00:00Z"), awards: [] };
+  await t.mutation(internal.leaderboard.groupTotals.countAwardsAttributed, { event });
+}
+
+describe("website reads pass one guard", () => {
+  test("getMyFace reads signed out without a session", async () => {
+    expect(await t.query(api.website.face.getMyFace, {})).toEqual({ kind: "signed-out" });
+  });
+
+  test("getMyFace reads closed while the website flag is off", async () => {
+    await aMember(t, wren.user);
+    const { asSignedIn } = await aSession(t, wren);
+    await switchWebsite(t, postHog, false);
+
+    expect(await asSignedIn.query(api.website.face.getMyFace, {})).toEqual({ kind: "closed" });
+  });
+
+  test("getMyFace reads not-a-member for a former member with a live session", async () => {
+    await aMember(t, "U_GONE", "not-a-member");
+    const { asSignedIn } = await aSession(t, { user: "U_GONE" });
+
+    expect(await asSignedIn.query(api.website.face.getMyFace, {})).toEqual({ kind: "not-a-member" });
+  });
+
+  test("getMyFace rejects an argument that names another member", async () => {
+    await aMember(t, wren.user);
+    const { asSignedIn } = await aSession(t, wren);
+    const withAnotherMember = { user: "U_OTHER" } as unknown as Record<string, never>;
+
+    await expect(asSignedIn.query(api.website.face.getMyFace, withAnotherMember)).rejects.toThrow(/user/);
+  });
+});
 
 describe("WS21 V19 V21: a member's face is their company profile cutout on its colour", () => {
   test("a member whose Slack real name matches exactly one company profile reads its cutout on its colour", async () => {
@@ -58,6 +103,21 @@ describe("WS21 V19 V21: a member's face is their company profile cutout on its c
     await syncCompanyProfiles();
 
     expect(await faceOf(wren)).toEqual(wrensFace);
+  });
+
+  test("getMyProfile and the boards give the sign-in picture, so only getMyFace reads the company profiles", async () => {
+    await switchWebsite(t, postHog, true, "everyone-board", "groups");
+    postHogCom.withTeams({ slug: "analytics", profiles: [wrenOnTheTeamPage, oriel] });
+    await syncCompanyProfiles();
+    const member = await aMember(t, wren.user);
+    await givesOnTheBoards(member);
+    const { asSignedIn } = await aSession(t, wren);
+    const signInPicture = { kind: "slack", image: wren.image, initials: "WH" };
+
+    expect(await asSignedIn.query(api.website.face.getMyFace, {})).toEqual(wrensFace);
+    expect(await asSignedIn.query(api.website.profile.getMyProfile, {})).toMatchObject({ kind: "member", face: signInPicture });
+    expect(await asSignedIn.query(api.website.leaderboard.getLeaderboard, { period: "week" })).toMatchObject({ kind: "board", rows: [{ you: true, face: signInPicture }] });
+    expect(await asSignedIn.query(api.website.groupBoards.getGroupBoards, { period: "week" })).toMatchObject({ kind: "boards", myGroup: { rows: [{ you: true, face: signInPicture }] } });
   });
 
   test("a member matches whatever the case, accents and spacing of either name", async () => {
