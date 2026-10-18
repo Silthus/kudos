@@ -11,7 +11,7 @@ export type PersonStats = { firstThankedAt: number | null; kudosGiven: number; k
 
 export type Person = { key: string; name: string; face: Face; role: string | null; teams: string[]; lead: boolean; collectedAt: number | null; stats: PersonStats; packedThisWeek: boolean };
 
-export type Team = { team: string; name: string; art: TeamArt; mine: boolean; people: string[]; leads: string[]; held: number; total: number; complete: boolean; completedAt: number | null };
+export type Team = { team: string; name: string; art: TeamArt; mine: boolean; people: string[]; leads: string[]; held: number; total: number; complete: boolean; completedAt: number | null; claimedAt: number | null };
 
 export type Hoggie = { hoggie: string; name: string; rarity: Rarity; count: number; firstAt: number | null };
 
@@ -44,6 +44,10 @@ export type Moment =
 
 export type SlackEcho = { kind: "thread-reply"; at: number; person: string; message: string; packed: boolean; personIsNew: boolean } | null;
 
+export type EmojiSource = { kind: "team"; team: string } | { kind: "hype"; person: string } | { kind: "milestone"; milestone: string; emblem: LadderId } | { kind: "level"; level: number };
+
+export type Emoji = { id: string; name: string; label: string; howTo: string; unlocked: boolean; seen: boolean; progress: { have: number; need: number } | null; source: EmojiSource };
+
 export type Album = {
   me: { name: string; face: Face; key: string };
   level: Level;
@@ -60,6 +64,7 @@ export type Album = {
   lastSlack: SlackEcho;
   lastOpening: PackOpening | null;
   tray: PackOpening[];
+  emojis: Emoji[];
 };
 
 export type Give = { kind: "packed"; pack: Pack; personIsNew: boolean } | { kind: "already-this-week"; person: string };
@@ -70,6 +75,8 @@ export type AlbumActions = {
   openPack(id: string): PackOpening | null;
   forgetOpening(): void;
   place(id: string): void;
+  claimTeam(team: string): void;
+  markEmojisSeen(ids: string[]): void;
   reset(): void;
 };
 
@@ -128,13 +135,13 @@ function peopleFromTeams({ pages, collectedAt }: Cast): Person[] {
   return [...byKey.values()];
 }
 
-function teamsOf(people: Person[], { pages }: Cast): Team[] {
+function teamsOf(people: Person[], { pages }: Cast, claimed: Readonly<Record<string, number>> = {}): Team[] {
   return pages
     .map((page) => {
       const members = people.filter(({ teams }) => teams.includes(page.team));
       const held = members.filter(({ collectedAt }) => collectedAt !== null);
       const complete = members.length > 0 && held.length === members.length;
-      return { team: page.team, name: page.name, art: page.art, mine: page.mine, people: members.map(({ key }) => key), leads: page.leads, held: held.length, total: members.length, complete, completedAt: complete ? Math.max(...held.map(({ collectedAt }) => collectedAt!)) : null };
+      return { team: page.team, name: page.name, art: page.art, mine: page.mine, people: members.map(({ key }) => key), leads: page.leads, held: held.length, total: members.length, complete, completedAt: complete ? Math.max(...held.map(({ collectedAt }) => collectedAt!)) : null, claimedAt: complete ? (claimed[page.team] ?? null) : null };
     });
 }
 
@@ -195,7 +202,7 @@ function boardOf(thoughtfulThisWeek: number): BoardRow[] {
   return rows.map((row, index) => ({ ...row, rank: index + 1 }));
 }
 
-type Inner = { cast: Cast; trayed: boolean; tray: PackOpening[]; xp: number; people: Person[]; hoggies: Hoggie[]; packs: Pack[]; rolls: number; thoughtful: number; thoughtfulThisWeek: number; hugged: boolean; openedAPack: boolean; moments: Moment[]; lastSlack: SlackEcho; lastOpening: PackOpening | null };
+type Inner = { cast: Cast; trayed: boolean; tray: PackOpening[]; claimed: Record<string, number>; emojiSeen: string[]; xp: number; people: Person[]; hoggies: Hoggie[]; packs: Pack[]; rolls: number; thoughtful: number; thoughtfulThisWeek: number; hugged: boolean; openedAPack: boolean; moments: Moment[]; lastSlack: SlackEcho; lastOpening: PackOpening | null };
 
 function initial(cast: Cast, trayed: boolean): Inner {
   const people = peopleFromTeams(cast);
@@ -209,10 +216,13 @@ function initial(cast: Cast, trayed: boolean): Inner {
   const tomas = people.find(({ key }) => key === "k:tomas")!;
   tomas.collectedAt = null;
   tomas.stats = statsFor(tomas.key, null);
-  return {
+  omar.stats = { ...omar.stats, firstThankedAt: now - 3 * 3_600_000 };
+  const start: Inner = {
     cast,
     trayed,
     tray: [],
+    claimed: {},
+    emojiSeen: [],
     xp: 1180,
     people,
     hoggies: startingHoggies,
@@ -236,10 +246,43 @@ function initial(cast: Cast, trayed: boolean): Inner {
     lastSlack: null,
     lastOpening: null,
   };
+  const unlockedAtStart = emojisOf(start, teamsOf(people, cast)).filter(({ unlocked, source }) => unlocked && !(source.kind === "hype" && source.person === omar.key));
+  return { ...start, emojiSeen: unlockedAtStart.map(({ id }) => id) };
+}
+
+const emojiLevels = [5, 10, 15, 20, 25];
+
+function slugOf(text: string) {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function teamEmojiOf(team: Team): Omit<Emoji, "seen"> {
+  return { id: `team:${team.team}`, name: `:${slugOf(team.name)}:`, label: `${team.name} sticker`, howTo: `Collect all ${team.total} people on ${team.name}, then unlock the team sticker.`, unlocked: team.claimedAt !== null, progress: { have: team.held, need: team.total }, source: { kind: "team", team: team.team } };
+}
+
+function hypeEmojiOf(person: Person): Omit<Emoji, "seen"> {
+  const first = person.name.split(" ")[0]!;
+  return { id: `hype:${person.key}`, name: `:${slugOf(person.name)}-hype:`, label: `${first}'s hype`, howTo: `Give ${person.name} a thoughtful kudos for the first time.`, unlocked: person.stats.firstThankedAt !== null, progress: null, source: { kind: "hype", person: person.key } };
+}
+
+function milestoneEmojiOf(milestone: Milestone): Omit<Emoji, "seen"> {
+  const gold = milestone.tiers.find(({ tier }) => tier === "gold")!;
+  return { id: `milestone:${milestone.id}`, name: `:${slugOf(gold.name)}:`, label: gold.name, howTo: `Reach gold in ${milestone.name}: ${gold.at} ${milestone.counts}.`, unlocked: milestone.count >= gold.at, progress: { have: Math.min(milestone.count, gold.at), need: gold.at }, source: { kind: "milestone", milestone: milestone.id, emblem: milestone.emblem } };
+}
+
+function levelEmojiOf(level: number, xp: number): Omit<Emoji, "seen"> {
+  return { id: `level:${level}`, name: `:level-${level}:`, label: `Level ${level}`, howTo: `Reach level ${level}.`, unlocked: levelOf(xp) >= level, progress: { have: Math.min(xp, xpToReach(level)), need: xpToReach(level) }, source: { kind: "level", level } };
+}
+
+function emojisOf(inner: Inner, teams: Team[]): Emoji[] {
+  const seen = new Set(inner.emojiSeen);
+  const milestones = milestonesOf(inner.people, teams, inner.hoggies, inner.thoughtful);
+  const all = [...teams.map(teamEmojiOf), ...milestones.map(milestoneEmojiOf), ...emojiLevels.map((level) => levelEmojiOf(level, inner.xp)), ...inner.people.map(hypeEmojiOf)];
+  return all.map((emoji) => ({ ...emoji, seen: seen.has(emoji.id) }));
 }
 
 function albumOf(inner: Inner): Album {
-  const teams = teamsOf(inner.people, inner.cast);
+  const teams = teamsOf(inner.people, inner.cast, inner.claimed);
   return {
     me,
     level: levelAt(inner.xp),
@@ -261,6 +304,7 @@ function albumOf(inner: Inner): Album {
     lastSlack: inner.lastSlack,
     lastOpening: inner.lastOpening,
     tray: inner.tray,
+    emojis: emojisOf(inner, teams),
   };
 }
 
@@ -289,12 +333,13 @@ export function AlbumProvider({ children, cast = roundThreeCast, trayed = false 
       const words = message ?? kindWords[(hashOf(key) + inner.thoughtful) % kindWords.length]!;
       const base = { ...inner, xp: inner.xp + xpPerThoughtful, thoughtful: inner.thoughtful + 1, thoughtfulThisWeek: inner.thoughtfulThisWeek + 1 };
       const personIsNew = person.collectedAt === null && !inner.packs.some((pack) => pack.person === key) && !inner.tray.some((opening) => opening.person.key === key);
+      const thanked = inner.people.map((entry) => (entry.key === key ? { ...entry, stats: { ...entry.stats, firstThankedAt: entry.stats.firstThankedAt ?? Date.now() } } : entry));
       if (person.packedThisWeek) {
-        setInner({ ...base, moments: [{ kind: "thoughtful-given", at: Date.now(), person: key, message: words, packed: false }, ...inner.moments], lastSlack: { kind: "thread-reply", at: Date.now(), person: key, message: words, packed: false, personIsNew: false } });
+        setInner({ ...base, people: thanked, moments: [{ kind: "thoughtful-given", at: Date.now(), person: key, message: words, packed: false }, ...inner.moments], lastSlack: { kind: "thread-reply", at: Date.now(), person: key, message: words, packed: false, personIsNew: false } });
         return { kind: "already-this-week", person: key };
       }
       const pack: Pack = { id: `pack:${key}:${inner.thoughtful + 1}`, person: key, earnedAt: Date.now(), message: words };
-      const people = inner.people.map((entry) => (entry.key === key ? { ...entry, packedThisWeek: true, stats: { ...entry.stats, kudosGiven: entry.stats.kudosGiven + 1, bestMessage: entry.stats.bestMessage ?? words } } : entry));
+      const people = thanked.map((entry) => (entry.key === key ? { ...entry, packedThisWeek: true, stats: { ...entry.stats, kudosGiven: entry.stats.kudosGiven + 1, bestMessage: entry.stats.bestMessage ?? words } } : entry));
       setInner({ ...base, people, packs: [...inner.packs, pack], moments: [{ kind: "thoughtful-given", at: Date.now(), person: key, message: words, packed: true }, ...inner.moments], lastSlack: { kind: "thread-reply", at: Date.now(), person: key, message: words, packed: true, personIsNew } });
       return { kind: "packed", pack, personIsNew };
     },
@@ -341,11 +386,19 @@ export function AlbumProvider({ children, cast = roundThreeCast, trayed = false 
     });
   }, []);
 
+  const claimTeam = useCallback((team: string) => {
+    setInner((current) => (teamsOf(current.people, current.cast).some((entry) => entry.team === team && entry.complete) && current.claimed[team] === undefined ? { ...current, claimed: { ...current.claimed, [team]: Date.now() } } : current));
+  }, []);
+
+  const markEmojisSeen = useCallback((ids: string[]) => {
+    setInner((current) => ({ ...current, emojiSeen: [...new Set([...current.emojiSeen, ...ids])] }));
+  }, []);
+
   const forgetOpening = useCallback(() => setInner((current) => ({ ...current, lastOpening: null })), []);
 
   const reset = useCallback(() => setInner((current) => initial(current.cast, current.trayed)), []);
 
-  const value = useMemo(() => ({ album: albumOf(inner), actions: { giveThoughtfulKudos, hug, openPack, forgetOpening, place, reset } }), [inner, giveThoughtfulKudos, hug, openPack, forgetOpening, place, reset]);
+  const value = useMemo(() => ({ album: albumOf(inner), actions: { giveThoughtfulKudos, hug, openPack, forgetOpening, place, claimTeam, markEmojisSeen, reset } }), [inner, giveThoughtfulKudos, hug, openPack, forgetOpening, place, claimTeam, markEmojisSeen, reset]);
   return <AlbumContext.Provider value={value}>{children}</AlbumContext.Provider>;
 }
 
