@@ -165,8 +165,12 @@ function recognitionOf(recipient: MemberId, day: DayKey, earlier: ThoughtfulAwar
   };
 }
 
+export function givingWeekOf(day: DayKey): DayKey {
+  return weekOf(day).monday;
+}
+
 function sameWeek(one: DayKey, other: DayKey) {
-  return weekOf(one).monday === weekOf(other).monday;
+  return givingWeekOf(one) === givingWeekOf(other);
 }
 
 function withXpOf(state: MemberProgress, effects: EffectsRecord[]): MemberProgress {

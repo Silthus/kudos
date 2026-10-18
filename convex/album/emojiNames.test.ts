@@ -1,0 +1,154 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
+import { FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
+import { FakeSlack } from "../../testing/fakeSlack";
+import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { emoji, mention, section, text } from "../../testing/slackMessages";
+import { aDeploymentForWorkspace, switchWebsite } from "../../testing/website";
+import { internal } from "../_generated/api";
+import type { MemberId } from "../workspace/directory";
+import { emojiNameOf, slugOf, type EarnedEmojiId } from "./emojiNames";
+
+const minuteMs = 60_000;
+const why = "Thanks for the patient walkthrough of the ledger importer";
+const giver = { user: "U_GIVER", name: "Ines Holloway" };
+
+type Person = { user: string; name: string };
+
+let postHog: FakePostHog;
+let postHogCom: FakePostHogCom;
+let slack: FakeSlack;
+let t: Backend;
+let messages = 0;
+
+beforeEach(async () => {
+  vi.useFakeTimers({ now: new Date("2026-10-13T10:00:00Z") });
+  aDeploymentForWorkspace();
+  postHog = new FakePostHog();
+  postHogCom = new FakePostHogCom();
+  slack = new FakeSlack();
+  slack.withMember(giver.user, { real_name: giver.name });
+  vi.stubGlobal("fetch", routedFetch(postHog, (input, init) => (postHogCom.owns(new URL(input instanceof Request ? input.url : String(input))) ? postHogCom.fetch(input) : slack.fetch(input, init))));
+  t = testBackend();
+  await switchWebsite(t, postHog, true, "album");
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
+
+describe("an earned emoji's name never moves", () => {
+  test("the first thoughtful kudos reserves the level, milestone and company team names before it names the hype emoji of the person it thanked", async () => {
+    await companyTeams(team("lanterns", "Lanterns"), team("kites", "Kites"));
+    const wren = await aMember({ user: "U_WREN", name: "Wren Halloway" });
+
+    await thanks(wren);
+
+    expect(await namesOf("level:5", "level:10", "level:15", "level:20", "level:25")).toEqual(["level-5", "level-10", "level-15", "level-20", "level-25"]);
+    expect(await namesOf("milestone:people", "milestone:teams", "milestone:reach", "milestone:hoggies", "milestone:thoughtful")).toEqual(["full-of-friends", "most-of-the-company", "well-travelled", "hoarder", "heart-of-the-team"]);
+    expect(await namesOf("team:lanterns", "team:kites")).toEqual(["lanterns", "kites"]);
+    expect(await hypeNameOf(wren)).toBe("wren-halloway-hype");
+  });
+
+  test("before any thoughtful kudos nothing is named, and a short kudos names nothing", async () => {
+    await companyTeams(team("lanterns", "Lanterns"));
+    const wren = await aMember({ user: "U_WREN", name: "Wren Halloway" });
+
+    await thanks(wren, "ty");
+
+    expect(await namesOf("level:5", "team:lanterns")).toEqual([null, null]);
+    expect(await hypeNameOf(wren)).toBeNull();
+  });
+
+  test("two namesakes get the name and its first free number, and a namesake who joins and leaves after the first was named moves nothing", async () => {
+    const first = await aMember({ user: "U_SAM_1", name: "Sam Rivera" });
+    const second = await aMember({ user: "U_SAM_2", name: "Sam Rivera" });
+    await thanks(first);
+    await thanks(second);
+    const third = await aMember({ user: "U_SAM_3", name: "Sam Rivera" });
+    await memberChanged(t, "user_change", { id: "U_SAM_3", deleted: true, real_name: "Sam Rivera" });
+    await settle(t);
+    await thanks(first, "Thanks again for the calm handover of the pager");
+
+    expect([await hypeNameOf(first), await hypeNameOf(second), await hypeNameOf(third)]).toEqual(["sam-rivera-hype", "sam-rivera-2-hype", null]);
+  });
+
+  test("a rename keeps the name a person's hype emoji was given", async () => {
+    const wren = await aMember({ user: "U_WREN", name: "Wren Halloway" });
+    await thanks(wren);
+
+    await memberChanged(t, "user_change", { id: "U_WREN", real_name: "Wren Okafor", profile: { real_name: "Wren Okafor", display_name: "Wren Okafor" } });
+    await settle(t);
+    const namesake = await aMember({ user: "U_WREN_2", name: "Wren Halloway" });
+    await thanks(namesake);
+
+    expect([await hypeNameOf(wren), await hypeNameOf(namesake)]).toEqual(["wren-halloway-hype", "wren-halloway-2-hype"]);
+  });
+
+  test("a name with accents keeps its letters, and a name with no Latin letter becomes person-n-hype in registry order", async () => {
+    const zoe = await aMember({ user: "U_ZOE", name: "Zoë Ångström-Núñez" });
+    const lei = await aMember({ user: "U_LEI", name: "李雷" });
+    const mei = await aMember({ user: "U_MEI", name: "韩梅梅" });
+
+    await thanks(zoe, why, lei, mei);
+
+    expect([await hypeNameOf(zoe), await hypeNameOf(lei), await hypeNameOf(mei)]).toEqual(["zoe-angstrom-nunez-hype", "person-1-hype", "person-2-hype"]);
+  });
+
+  test("a team named like a milestone, like a standard emoji or with no Latin letter gets the first free name, and a team that appears later is reserved by the next sync", async () => {
+    await companyTeams(team("hoarders", "Hoarder"), team("rockets", "Rocket"), team("kanji", "数据"));
+    await thanks(await aMember({ user: "U_WREN", name: "Wren Halloway" }));
+
+    await companyTeams(team("hoarders", "Hoarder"), team("rockets", "Rocket"), team("kanji", "数据"), team("lanterns", "Lanterns"));
+    await companyTeams(team("lanterns", "Lantern Bearers"));
+
+    expect(await namesOf("team:hoarders", "team:rockets", "team:kanji", "team:lanterns")).toEqual(["hoarder-2", "rocket-2", "team-1", "lanterns"]);
+  });
+
+  test("a slug is lower-cased, accent-free, one hyphen per run of other characters, trimmed and at most 80 characters", () => {
+    expect(slugOf("  Ünïcode -- & Friends!! ")).toBe("unicode-friends");
+    expect(slugOf("a".repeat(79) + " b")).toBe("a".repeat(79));
+    expect(slugOf("中文")).toBe("");
+  });
+});
+
+function team(slug: string, name: string): TeamPage {
+  return { slug, name, profiles: [{ id: slug.length, firstName: "Pat", lastName: name, colour: "teal" }] };
+}
+
+async function companyTeams(...teams: TeamPage[]) {
+  postHogCom.withTeams(...teams);
+  await t.action(internal.companyProfiles.sync.syncCompanyProfiles, {});
+  await settle(t);
+}
+
+async function aMember(person: Person): Promise<MemberId> {
+  slack.withMember(person.user, { real_name: person.name, profile: { real_name: person.name, display_name: person.name } });
+  await memberChanged(t, "team_join", { id: person.user, real_name: person.name, profile: { real_name: person.name, display_name: person.name } });
+  await settle(t);
+  const row = await t.run((ctx) =>
+    ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", person.user))
+      .unique(),
+  );
+  return row!._id;
+}
+
+async function thanks(recipient: MemberId, words = why, ...others: MemberId[]) {
+  messages += 1;
+  vi.setSystemTime(Date.now() + minuteMs);
+  const users = await t.run(async (ctx) => Promise.all([recipient, ...others].map(async (member) => (await ctx.db.get(member))!.user)));
+  await post(t, [section(text(`${words} `), ...users.map((user) => mention(user)), emoji("taco"))], { user: giver.user, ts: `${Date.now() / 1000}.${String(messages).padStart(6, "0")}` });
+  await settle(t);
+}
+
+function namesOf(...emojis: EarnedEmojiId[]) {
+  return t.run(async (ctx) => Promise.all(emojis.map((id) => emojiNameOf(ctx, "T1", id))));
+}
+
+function hypeNameOf(person: MemberId) {
+  return t.run((ctx) => emojiNameOf(ctx, "T1", `hype:${person}`));
+}

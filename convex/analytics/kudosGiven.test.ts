@@ -287,6 +287,7 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
         "kudos given",
         "kudos received",
         "person collected",
+        "packs earned",
         "member welcomed",
         "level reached",
         "unlock made ready",

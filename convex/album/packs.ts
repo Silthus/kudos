@@ -1,0 +1,119 @@
+import { v } from "convex/values";
+import { internal } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
+import { publish } from "../bus/publish";
+import type { MessageRef } from "../engine/messageEvent";
+import { gateDecisionOf } from "../progression/gate";
+import { givingWeekOf } from "../progression/progress";
+import type { MemberId } from "../workspace/directory";
+import { nameHypeEmojiOf } from "./emojiNames";
+import type { GrantOutcome } from "./records";
+
+export const recipientsPerMutation = 50;
+export const mostWaitingPacksShown = 50;
+
+export type WaitingPack = { pack: Id<"thoughtfulPacks">; person: MemberId; earnedAt: number };
+
+export function earnsPacks(event: KudosGivenEvent): boolean {
+  return gateDecisionOf(event.annotations)?.thoughtful === true;
+}
+
+export const grantThoughtfulPacks = internalMutation({
+  args: { event: kudosGivenEventValidator, from: v.optional(v.number()) },
+  returns: v.null(),
+  handler: async (ctx, { event, from = 0 }) => {
+    const recipients = recipientsOf(event);
+    const next = from + recipientsPerMutation;
+    for (const recipient of recipients.slice(from, next)) await grantTo(ctx, event, recipient);
+    await tellOnceEveryoneIsGranted(ctx, event, recipients);
+    if (next < recipients.length) await ctx.scheduler.runAfter(0, internal.album.packs.grantThoughtfulPacks, { event, from: next });
+    return null;
+  },
+});
+
+export async function waitingPacksOf(ctx: QueryCtx, member: MemberId): Promise<{ packs: WaitingPack[]; more: boolean }> {
+  const oldestFirst = await ctx.db
+    .query("thoughtfulPacks")
+    .withIndex("by_giver_at", (q) => q.eq("giver", member))
+    .take(mostWaitingPacksShown + 1);
+  const packs = oldestFirst.slice(0, mostWaitingPacksShown).map(({ _id, recipient, at }) => ({ pack: _id, person: recipient, earnedAt: at }));
+  return { packs, more: oldestFirst.length > mostWaitingPacksShown };
+}
+
+function recipientsOf(event: KudosGivenEvent): MemberId[] {
+  return [...new Set(event.awards.map(({ recipient }) => recipient))].filter((recipient) => recipient !== event.giver);
+}
+
+async function grantTo(ctx: MutationCtx, event: KudosGivenEvent, recipient: MemberId) {
+  if ((await grantRecordOf(ctx, event.message, recipient)) !== null) return;
+  const outcome = await packFor(ctx, event, recipient);
+  await ctx.db.insert("grantRecords", { giver: event.giver, message: event.message, recipient, outcome });
+}
+
+async function packFor(ctx: MutationCtx, { workspace, giver, message, day, at }: KudosGivenEvent, recipient: MemberId): Promise<GrantOutcome> {
+  const week = givingWeekOf(day);
+  if (await packEarnedIn(ctx, giver, recipient, week)) return "nextWeek";
+  const outcome = await stickerOutcomeOf(ctx, giver, recipient);
+  await ctx.db.insert("thoughtfulPacks", { workspace, giver, recipient, week, message, holdsSticker: outcome === "new", at });
+  await nameHypeEmojiOf(ctx, workspace, recipient);
+  return outcome;
+}
+
+async function stickerOutcomeOf(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<Exclude<GrantOutcome, "nextWeek">> {
+  if (await inTheAlbumOf(ctx, giver, recipient)) return "held";
+  if (await stickerWaitingFor(ctx, giver, recipient)) return "waiting";
+  return "new";
+}
+
+async function packEarnedIn(ctx: QueryCtx, giver: MemberId, recipient: MemberId, week: string) {
+  const pack = await ctx.db
+    .query("thoughtfulPacks")
+    .withIndex("by_giver_recipient_week", (q) => q.eq("giver", giver).eq("recipient", recipient).eq("week", week))
+    .first();
+  return pack !== null;
+}
+
+async function inTheAlbumOf(ctx: QueryCtx, member: MemberId, person: MemberId) {
+  const sticker = await ctx.db
+    .query("albumStickers")
+    .withIndex("by_member_person", (q) => q.eq("member", member).eq("person", person))
+    .unique();
+  return sticker !== null;
+}
+
+async function stickerWaitingFor(ctx: QueryCtx, giver: MemberId, recipient: MemberId) {
+  const pack = await ctx.db
+    .query("thoughtfulPacks")
+    .withIndex("by_giver_recipient_sticker", (q) => q.eq("giver", giver).eq("recipient", recipient).eq("holdsSticker", true))
+    .first();
+  return pack !== null;
+}
+
+function grantRecordOf(ctx: QueryCtx, message: MessageRef, recipient: MemberId) {
+  return ctx.db
+    .query("grantRecords")
+    .withIndex("by_message_recipient", (q) => q.eq("message.workspace", message.workspace).eq("message.conversation", message.conversation).eq("message.message", message.message).eq("recipient", recipient))
+    .unique();
+}
+
+async function tellOnceEveryoneIsGranted(ctx: MutationCtx, event: KudosGivenEvent, recipients: MemberId[]) {
+  const records = await ctx.db
+    .query("grantRecords")
+    .withIndex("by_message_recipient", (q) => q.eq("message.workspace", event.message.workspace).eq("message.conversation", event.message.conversation).eq("message.message", event.message.message))
+    .collect();
+  if (records.length < recipients.length || (await toldAlready(ctx, event.message))) return;
+  await ctx.db.insert("grantsTold", { message: event.message });
+  const outcomeOf = new Map(records.map(({ recipient, outcome }) => [recipient, outcome]));
+  const outcomes = recipients.map((recipient) => ({ recipient, outcome: outcomeOf.get(recipient)! }));
+  await publish(ctx, { type: "thoughtfulPacksGranted", workspace: event.workspace, giver: event.giver, message: event.message, outcomes, at: event.at });
+}
+
+async function toldAlready(ctx: QueryCtx, message: MessageRef) {
+  const told = await ctx.db
+    .query("grantsTold")
+    .withIndex("by_message", (q) => q.eq("message.workspace", message.workspace).eq("message.conversation", message.conversation).eq("message.message", message.message))
+    .unique();
+  return told !== null;
+}

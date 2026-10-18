@@ -27,6 +27,7 @@ import { perkValidator } from "./progression/tree";
 import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator } from "./hoggies/records";
 import { teamPageCheckValidator, teamPageCompletionValidator } from "./stickers/completionRecords";
 import { stickerBackfillValidator, stickerValidator } from "./stickers/records";
+import { albumStickerValidator, emojiNameNumberValidator, emojiNameValidator, grantRecordValidator, grantToldValidator, thoughtfulPackValidator } from "./album/records";
 import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
 import { journeyActivationValidator, rewardValidator } from "./quests/journey";
@@ -510,6 +511,21 @@ export default defineSchema({
   stickers: defineTable(stickerValidator).index("by_member_person", ["member", "person"]).index("by_member_firstAt", ["member", "firstAt"]),
 
   stickerBackfills: defineTable(stickerBackfillValidator).index("by_workspace", ["workspace"]),
+
+  thoughtfulPacks: defineTable(thoughtfulPackValidator)
+    .index("by_giver_recipient_week", ["giver", "recipient", "week"])
+    .index("by_giver_recipient_sticker", ["giver", "recipient", "holdsSticker"])
+    .index("by_giver_at", ["giver", "at"]),
+
+  grantRecords: defineTable(grantRecordValidator).index("by_message_recipient", ["message.workspace", "message.conversation", "message.message", "recipient"]),
+
+  grantsTold: defineTable(grantToldValidator).index("by_message", ["message.workspace", "message.conversation", "message.message"]),
+
+  albumStickers: defineTable(albumStickerValidator).index("by_member_person", ["member", "person"]),
+
+  emojiNames: defineTable(emojiNameValidator).index("by_workspace_emoji", ["workspace", "emoji", "person"]).index("by_workspace_name", ["workspace", "name"]),
+
+  emojiNameNumbers: defineTable(emojiNameNumberValidator).index("by_workspace_stem", ["workspace", "stem"]),
 
   teamPageCompletions: defineTable(teamPageCompletionValidator).index("by_member_team", ["member", "team"]),
 
