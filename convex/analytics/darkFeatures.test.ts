@@ -99,7 +99,7 @@ describe("E9 E10: analytics sends exactly the facts the features stored, whateve
   test.each([everyFlagOff, flagsKeyMissing].map((setup) => [setup.name, setup] as const))("with %s, nothing from unlocks, quests or the board is stored or sent", async (_, setup) => {
     const { t } = await walk(setup, "on");
 
-    expect(new Set(productEvents().map(({ event }) => event))).toEqual(new Set(["app home opened", "member welcomed", "kudos given", "kudos received", "level reached", "command used"]));
+    expect(new Set(productEvents().map(({ event }) => event))).toEqual(new Set(["app home opened", "member welcomed", "kudos given", "kudos received", "person collected", "level reached", "command used"]));
     for (const table of darkFeatureTables) expect(await rowsOf(t, table), table).toEqual([]);
   });
 
@@ -119,6 +119,7 @@ describe("E9 E10: analytics sends exactly the facts the features stored, whateve
         "member welcomed",
         "kudos given",
         "kudos received",
+        "person collected",
         "level reached",
         "unlock made ready",
         "unlock opened",

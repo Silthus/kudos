@@ -240,6 +240,15 @@ export const teamPagesCompletedEventValidator = v.object({
 
 export type TeamPagesCompletedEvent = Infer<typeof teamPagesCompletedEventValidator>;
 
+export const stickersCollectedEventValidator = v.object({
+  type: v.literal("stickersCollected"),
+  workspace: v.string(),
+  stickers: v.array(v.object({ collector: v.id("members"), person: v.id("members"), firstAward: awardIdValidator, firstGiver: v.id("members") })),
+  at: v.number(),
+});
+
+export type StickersCollectedEvent = Infer<typeof stickersCollectedEventValidator>;
+
 export const crateBoughtEventValidator = v.object({ type: v.literal("crateBought"), workspace: v.string(), member: v.id("members"), crate: v.string(), price: v.number(), at: v.number() });
 
 export type CrateBoughtEvent = Infer<typeof crateBoughtEventValidator>;
@@ -281,7 +290,8 @@ export type DomainEvent =
   | HoggieDroppedEvent
   | CrateBoughtEvent
   | HugGivenEvent
-  | TeamPagesCompletedEvent;
+  | TeamPagesCompletedEvent
+  | StickersCollectedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];

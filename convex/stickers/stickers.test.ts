@@ -181,7 +181,7 @@ describe("SB1 SB2 SB4: every kudos gives stickers of the people in it", { timeou
     expect(await stickersOf(await withTheBookOpen(carol))).toEqual([await stickerOf(carol, alice, at)]);
   });
 
-  test("SB14 SB25: recording a sticker tells nobody, and its album check sends only team-spirit's exposure", async () => {
+  test("SB14 SB25 MS10: recording a sticker tells nobody, sends person collected for each sticker, and its album check sends only team-spirit's exposure", async () => {
     await stickerBookOn();
     await thanks(alice, bob);
     const [job] = await heldBackStickerJobs();
@@ -193,7 +193,9 @@ describe("SB1 SB2 SB4: every kudos gives stickers of the people in it", { timeou
     await settle(t);
 
     expect(slack.calls.slice(callsBefore)).toEqual([]);
-    expect(postHog.events().slice(eventsBefore).filter(({ event, properties }) => event !== "$feature_flag_called" || properties.$feature_flag !== "team-spirit")).toEqual([]);
+    const sent = postHog.events().slice(eventsBefore);
+    expect(sent.filter(({ event }) => event === "person collected").map(({ properties }) => properties.via)).toEqual(["gave", "received"]);
+    expect(sent.filter(({ event, properties }) => event !== "person collected" && (event !== "$feature_flag_called" || properties.$feature_flag !== "team-spirit"))).toEqual([]);
     expect(await stickersOf(await withTheBookOpen(bob))).toHaveLength(1);
   });
 });

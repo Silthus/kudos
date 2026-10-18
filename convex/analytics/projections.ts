@@ -15,6 +15,7 @@ import type {
   QuestOpenedEvent,
   QuestsDrawnEvent,
   QuestSwappedEvent,
+  StickersCollectedEvent,
   UnlockOpenedEvent,
   UnlockReadyEvent,
   UnlocksLaunchedEvent,
@@ -54,6 +55,7 @@ export type ProductEvent = {
     | "hug given"
     | "hugs recap sent"
     | "team page completed"
+    | "person collected"
     | "achievement earned"
     | "app home opened"
     | "command used"
@@ -235,6 +237,10 @@ export function projectHugGiven(event: HugGivenEvent): ProductEvent {
 
 export function projectTeamPagesCompleted({ member, teams, at, told }: TeamPagesCompletedEvent): ProductEvent[] {
   return teams.map(({ team, people }) => ({ event: "team page completed", subject: { member }, at, properties: { team, people, told } }));
+}
+
+export function projectPersonCollected({ stickers, at }: StickersCollectedEvent): ProductEvent[] {
+  return stickers.map(({ collector, firstGiver }) => ({ event: "person collected", subject: { member: collector }, at, properties: { via: firstGiver === collector ? "gave" : "received" } }));
 }
 
 export function projectPerkBought(event: PerkBoughtEvent): ProductEvent {

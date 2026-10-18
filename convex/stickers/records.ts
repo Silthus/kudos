@@ -20,7 +20,11 @@ export type HeldSticker = { person: MemberId; firstAward: AwardId; firstAt: numb
 
 export type Pair = { giver: MemberId; recipient: MemberId };
 
-export async function recordStickersOf(ctx: MutationCtx, { giver, recipient }: Pair): Promise<MemberId[]> {
+export type CollectedSticker = { collector: MemberId; person: MemberId; firstAward: AwardId; firstGiver: MemberId };
+
+type FirstAward = EarliestAward & { giver: MemberId };
+
+export async function recordStickersOf(ctx: MutationCtx, { giver, recipient }: Pair): Promise<CollectedSticker[]> {
   if (giver === recipient) return [];
   const missing = await stickersMissingOf(ctx, [
     { member: giver, person: recipient },
@@ -30,7 +34,7 @@ export async function recordStickersOf(ctx: MutationCtx, { giver, recipient }: P
   const first = await earliestAwardBetween(ctx, giver, recipient);
   if (first === null) return [];
   for (const owner of missing) await ctx.db.insert("stickers", { ...owner, firstAward: first.award, firstAt: first.at });
-  return missing.map(({ member }) => member);
+  return missing.map(({ member, person }) => ({ collector: member, person, firstAward: first.award, firstGiver: first.giver }));
 }
 
 export async function stickersNewestFirst(ctx: QueryCtx, member: MemberId): Promise<HeldSticker[]> {
@@ -58,8 +62,13 @@ async function holds(ctx: QueryCtx, { member, person }: Owner) {
   return sticker !== null;
 }
 
-async function earliestAwardBetween(ctx: QueryCtx, one: MemberId, other: MemberId): Promise<EarliestAward | null> {
-  const [given, received] = await Promise.all([earliestAwardFrom(ctx, one, other), earliestAwardFrom(ctx, other, one)]);
+async function earliestAwardBetween(ctx: QueryCtx, one: MemberId, other: MemberId): Promise<FirstAward | null> {
+  const [given, received] = await Promise.all([firstAwardFrom(ctx, one, other), firstAwardFrom(ctx, other, one)]);
   if (given === null || received === null) return given ?? received;
   return given.created <= received.created ? given : received;
+}
+
+async function firstAwardFrom(ctx: QueryCtx, giver: MemberId, recipient: MemberId): Promise<FirstAward | null> {
+  const earliest = await earliestAwardFrom(ctx, giver, recipient);
+  return earliest === null ? null : { ...earliest, giver };
 }

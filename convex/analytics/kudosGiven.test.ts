@@ -286,6 +286,7 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
       new Set([
         "kudos given",
         "kudos received",
+        "person collected",
         "member welcomed",
         "level reached",
         "unlock made ready",
