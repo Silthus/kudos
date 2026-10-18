@@ -42,6 +42,8 @@ export const albumHistoryValidator = v.object({
   startedAt: v.number(),
   phase: v.union(v.literal("kudos"), v.literal("hugs")),
   cursor: v.union(v.string(), v.null()),
+  hug: v.optional(v.id("hugs")),
+  hugPeopleAfter: v.optional(v.id("members")),
   done: v.boolean(),
 });
 

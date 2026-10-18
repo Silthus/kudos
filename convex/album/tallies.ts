@@ -5,7 +5,7 @@ import { hugGivenEventValidator, kudosGivenEventValidator } from "../bus/events"
 import type { DayKey } from "../engine/allowance";
 import { givenFactsOf, storedAnnotationsOf, type AwardId } from "../engine/awards";
 import type { Annotations, MessageRef } from "../engine/messageEvent";
-import { hugOf, hugPeoplePageOf, hugWithId, type Hug } from "../hugs/records";
+import { hugOf, hugPeopleAfter, hugWithId, type Hug } from "../hugs/records";
 import { hugsOnTheMessage } from "../hugs/weeks";
 import { gateDecisionOf, wordCountOf } from "../progression/gate";
 import { givingWeekOf } from "../progression/progress";
@@ -18,7 +18,7 @@ export const peopleListed = 12;
 
 export type KudosAward = { award: AwardId; message: MessageRef; giver: MemberId; recipient: MemberId; kudos: number; day: DayKey; at: number };
 
-export type KudosWords = { words: number; thoughtful: boolean; hugs: number };
+export type KudosWeight = { words: number; thoughtful: boolean; hugs: number };
 
 const pairTallyAnswer = pairTallyValidator.omit("member", "person");
 
@@ -52,9 +52,9 @@ export const tallyKudosGiven = internalMutation({
   returns: v.null(),
   handler: async (ctx, { event, from = 0 }) => {
     const next = from + awardsPerTally;
-    const words = await kudosWordsOf(ctx, event.message, event.annotations);
+    const weight = await kudosWeightOf(ctx, event.message, event.annotations);
     for (const { award, giver, recipient, kudos } of event.awards.slice(from, next)) {
-      await tallyAward(ctx, { award, message: event.message, giver, recipient, kudos, day: event.day, at: event.at }, words);
+      await tallyAward(ctx, { award, message: event.message, giver, recipient, kudos, day: event.day, at: event.at }, weight);
     }
     if (next < event.awards.length) await ctx.scheduler.runAfter(0, internal.album.tallies.tallyKudosGiven, { event, from: next });
     return null;
@@ -72,11 +72,11 @@ export const tallyHugGiven = internalMutation({
 });
 
 export const tallyHug = internalMutation({
-  args: { hug: v.id("hugs"), cursor: v.union(v.string(), v.null()) },
+  args: { hug: v.id("hugs"), after: v.id("members") },
   returns: v.null(),
-  handler: async (ctx, { hug, cursor }) => {
+  handler: async (ctx, { hug, after }) => {
     const found = await hugWithId(ctx, hug);
-    if (found !== null) await tallyHugFrom(ctx, found, cursor);
+    if (found !== null) await tallyHugFrom(ctx, found, after);
     return null;
   },
 });
@@ -103,15 +103,15 @@ export const weekTallyOf = internalQuery({
   },
 });
 
-export async function kudosWordsOf(ctx: QueryCtx, message: MessageRef, annotations: Annotations): Promise<KudosWords> {
+async function kudosWeightOf(ctx: QueryCtx, message: MessageRef, annotations: Annotations): Promise<KudosWeight> {
   return { words: wordCountOf(annotations) ?? 0, thoughtful: gateDecisionOf(annotations)?.thoughtful === true, hugs: await hugsOnTheMessage(ctx, message) };
 }
 
-export async function storedKudosWordsOf(ctx: QueryCtx, message: MessageRef): Promise<KudosWords> {
-  return kudosWordsOf(ctx, message, await storedAnnotationsOf(ctx, message));
+export async function storedKudosWeightOf(ctx: QueryCtx, message: MessageRef): Promise<KudosWeight> {
+  return kudosWeightOf(ctx, message, await storedAnnotationsOf(ctx, message));
 }
 
-export async function tallyAward(ctx: MutationCtx, award: KudosAward, { words, thoughtful, hugs }: KudosWords) {
+export async function tallyAward(ctx: MutationCtx, award: KudosAward, { words, thoughtful, hugs }: KudosWeight) {
   if (await isAwardTallied(ctx, award.award)) return;
   await ctx.db.insert("talliedAwards", { award: award.award });
   const { message, giver, recipient, kudos, day, at } = award;
@@ -123,24 +123,31 @@ export async function tallyAward(ctx: MutationCtx, award: KudosAward, { words, t
   await changeWeek(ctx, recipient, week, { kudosReceived: kudos, thoughtfulReceived: thoughtful ? 1 : 0, listed: { list: "thankedBy", person: giver }, pick, on: day });
 }
 
-async function tallyHugFrom(ctx: MutationCtx, hug: Hug, cursor: string | null) {
+export type HugPeopleTallied = { tallied: number; last: MemberId | null };
+
+export async function tallyHugPeople(ctx: MutationCtx, hug: Hug, after: MemberId | null, atMost: number): Promise<HugPeopleTallied> {
   const kudos = hug.onKudos ? await kudosOfTheWeekOf(ctx, hug) : null;
-  if (cursor === null) await tallyHugGiverSide(ctx, hug, kudos);
-  const { people, next } = await hugPeoplePageOf(ctx, hug, cursor, peoplePerHugTally);
+  if (after === null && kudos !== null) await changeWeek(ctx, kudos.giver, kudos.week, { pick: kudos.pick });
+  if (after === null) await tallyHugGiverSide(ctx, hug);
+  const { people, last } = await hugPeopleAfter(ctx, hug, after, atMost);
   for (const person of people) await tallyHugTo(ctx, hug, person, kudos);
-  if (next !== null) await ctx.scheduler.runAfter(0, internal.album.tallies.tallyHug, { hug: hug._id, cursor: next });
+  return { tallied: people.length, last };
+}
+
+async function tallyHugFrom(ctx: MutationCtx, hug: Hug, after: MemberId | null) {
+  const { last } = await tallyHugPeople(ctx, hug, after, peoplePerHugTally);
+  if (last !== null) await ctx.scheduler.runAfter(0, internal.album.tallies.tallyHug, { hug: hug._id, after: last });
 }
 
 async function kudosOfTheWeekOf(ctx: QueryCtx, hug: Hug): Promise<KudosOfTheWeek | null> {
   const message = { workspace: hug.workspace, conversation: hug.conversation, message: hug.message };
   const given = await givenFactsOf(ctx, message);
   if (given === null) return null;
-  const { words, hugs } = await storedKudosWordsOf(ctx, message);
+  const { words, hugs } = await storedKudosWeightOf(ctx, message);
   return { giver: given.giver, week: givingWeekOf(given.day), pick: { message, hugs, words, at: given.at } };
 }
 
-async function tallyHugGiverSide(ctx: MutationCtx, hug: Hug, kudos: KudosOfTheWeek | null) {
-  if (kudos !== null) await changeWeek(ctx, kudos.giver, kudos.week, { pick: kudos.pick });
+async function tallyHugGiverSide(ctx: MutationCtx, hug: Hug) {
   if (await isHugTallied(ctx, hug, hug.giver)) return;
   await ctx.db.insert("talliedHugs", { hug: hug._id, person: hug.giver });
   await changeWeek(ctx, hug.giver, givingWeekOf(hug.day), { hugsGiven: 1, on: hug.day });

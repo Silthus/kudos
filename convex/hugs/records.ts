@@ -2,14 +2,13 @@ import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { DayKey } from "../engine/allowance";
 import type { PaginationOptions, PaginationResult } from "convex/server";
-import type { Id } from "../_generated/dataModel";
-import { awardsOfMessage, decidedBelow, recipientsPageOf, type DecidedBelow } from "../engine/awards";
+import { awardsOfMessage, decidedBelow, recipientsAfter, recipientsPageOf, type DecidedBelow } from "../engine/awards";
 import type { MessageRef } from "../engine/messageEvent";
 import type { MemberId } from "../workspace/directory";
 
 export type Hug = Doc<"hugs">;
 
-export type HugId = Id<"hugs">;
+export type HugId = Doc<"hugs">["_id"];
 
 export type HugFor = { onKudos: true } | { onKudos: false; author: MemberId };
 
@@ -37,6 +36,14 @@ export async function hugPeoplePageOf(ctx: QueryCtx, hug: Hug, cursor: string | 
   if (hug.author !== undefined) return { people: [hug.author], next: null };
   const { page, isDone, continueCursor } = await recipientsPageOf(ctx, hug, { cursor, numItems });
   return { people: page, next: isDone ? null : continueCursor };
+}
+
+export type HugPeopleAfter = { people: MemberId[]; last: MemberId | null };
+
+export async function hugPeopleAfter(ctx: QueryCtx, hug: Hug, after: MemberId | null, atMost: number): Promise<HugPeopleAfter> {
+  if (hug.author !== undefined) return { people: after === null ? [hug.author] : [], last: null };
+  const people = await recipientsAfter(ctx, hug, after, atMost);
+  return { people, last: people.length < atMost ? null : people.at(-1)! };
 }
 
 export async function hugsGivenOn(ctx: QueryCtx, giver: MemberId, day: DayKey, atMost: number): Promise<number> {

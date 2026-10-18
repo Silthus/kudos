@@ -1,14 +1,15 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
+import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { awardsInWorkspace, type WorkspaceAward } from "../engine/awards";
-import { hugsInWorkspace } from "../hugs/records";
+import { hugsInWorkspace, hugWithId, type Hug } from "../hugs/records";
+import type { MemberId } from "../workspace/directory";
 import { recordHistorySticker } from "./stickers";
-import { storedKudosWordsOf, tallyAward, type KudosWords } from "./tallies";
+import { storedKudosWeightOf, tallyAward, tallyHugPeople, type KudosWeight } from "./tallies";
 import type { Doc } from "../_generated/dataModel";
 
 export const awardsPerHistoryPage = 50;
-export const hugsPerHistoryPage = 50;
+export const hugPeoplePerHistoryPage = 50;
 
 type AlbumHistory = Doc<"albumHistory">;
 
@@ -36,29 +37,47 @@ export const recordAlbumHistory = internalMutation({
   },
 });
 
-type Moved = Pick<AlbumHistory, "phase" | "cursor" | "done">;
+export const albumHistoryOf = internalQuery({
+  args: { workspace: v.string() },
+  returns: v.union(v.object({ startedAt: v.number(), done: v.boolean() }), v.null()),
+  handler: async (ctx, { workspace }) => {
+    const history = await historyOf(ctx, workspace);
+    return history === null ? null : { startedAt: history.startedAt, done: history.done };
+  },
+});
+
+type Moved = Pick<AlbumHistory, "phase" | "cursor" | "hug" | "hugPeopleAfter" | "done">;
 
 async function recordAwardsPage(ctx: MutationCtx, history: AlbumHistory): Promise<Moved> {
   const { page, continueCursor, isDone } = await awardsInWorkspace(ctx, history.workspace, { cursor: history.cursor, numItems: awardsPerHistoryPage });
   const wordsOf = wordsOfEachMessage(ctx);
   for (const award of page) {
-    if (award.created < history.startedAt) await recordHistorySticker(ctx, award.giver, award.recipient, award.at);
+    if (award.created < history._creationTime) await recordHistorySticker(ctx, award.giver, award.recipient, award.at);
     await tallyAward(ctx, award, await wordsOf(award));
   }
   return isDone ? { phase: "hugs", cursor: null, done: false } : { phase: "kudos", cursor: continueCursor, done: false };
 }
 
 async function tallyHugsPage(ctx: MutationCtx, history: AlbumHistory): Promise<Moved> {
-  const { page, continueCursor, isDone } = await hugsInWorkspace(ctx, history.workspace, { cursor: history.cursor, numItems: hugsPerHistoryPage });
-  for (const hug of page) await ctx.scheduler.runAfter(0, internal.album.tallies.tallyHug, { hug: hug._id, cursor: null });
-  return { phase: "hugs", cursor: continueCursor, done: isDone };
+  const unfinished = history.hug === undefined ? null : await hugWithId(ctx, history.hug);
+  if (unfinished !== null) return { ...(await tallyHugOnTheHistoryPage(ctx, unfinished, history.hugPeopleAfter ?? null)), cursor: history.cursor };
+  const { page, continueCursor, isDone } = await hugsInWorkspace(ctx, history.workspace, { cursor: history.cursor, numItems: 1 });
+  const [hug] = page;
+  if (hug === undefined) return { phase: "hugs", cursor: continueCursor, done: isDone };
+  const tallied = await tallyHugOnTheHistoryPage(ctx, hug, null);
+  return { ...tallied, cursor: continueCursor, done: isDone && tallied.hug === undefined };
+}
+
+async function tallyHugOnTheHistoryPage(ctx: MutationCtx, hug: Hug, after: MemberId | null): Promise<Omit<Moved, "cursor">> {
+  const { last } = await tallyHugPeople(ctx, hug, after, hugPeoplePerHistoryPage);
+  return last === null ? { phase: "hugs", hug: undefined, hugPeopleAfter: undefined, done: false } : { phase: "hugs", hug: hug._id, hugPeopleAfter: last, done: false };
 }
 
 function wordsOfEachMessage(ctx: QueryCtx) {
-  const known = new Map<string, KudosWords>();
+  const known = new Map<string, KudosWeight>();
   return async ({ message }: WorkspaceAward) => {
     const key = `${message.conversation}/${message.message}`;
-    if (!known.has(key)) known.set(key, await storedKudosWordsOf(ctx, message));
+    if (!known.has(key)) known.set(key, await storedKudosWeightOf(ctx, message));
     return known.get(key)!;
   };
 }

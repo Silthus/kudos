@@ -153,6 +153,17 @@ export async function recipientsPageOf(ctx: QueryCtx, { workspace, conversation,
   return { ...result, page: result.page.map(({ recipient }) => recipient) };
 }
 
+export async function recipientsAfter(ctx: QueryCtx, { workspace, conversation, message }: MessageRef, after: MemberId | null, atMost: number): Promise<MemberId[]> {
+  const awards = await ctx.db
+    .query("awards")
+    .withIndex("by_message_recipient", (q) => {
+      const ofTheMessage = q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message);
+      return after === null ? ofTheMessage : ofTheMessage.gt("recipient", after);
+    })
+    .take(atMost);
+  return awards.map(({ recipient }) => recipient);
+}
+
 export async function dayThankedBefore(ctx: QueryCtx, award: AwardId): Promise<DayKey | null> {
   const current = await ctx.db.get(award);
   if (current === null) return null;

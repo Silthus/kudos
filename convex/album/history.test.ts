@@ -4,7 +4,7 @@ import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
 import { post, react, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
-import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
+import { aDeploymentForWorkspace, aMember, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import type { HugGivenEvent, KudosGivenEvent } from "../bus/events";
 import type { MemberId } from "../workspace/directory";
@@ -89,6 +89,17 @@ describe("people join the album only by giving", { timeout: 60_000 }, () => {
     expect(await waitingPacksOf(alice)).toEqual([carol.name]);
   });
 
+  test("a kudos given after the history began but before its page ran collects only through its pack", async () => {
+    await beforeTheAlbum(() => thanks(alice, "ty", bob));
+    await t.mutation(internal.album.history.startAlbumHistory, { workspace: "T1" });
+
+    await thanks(alice, why, carol);
+
+    expect(await historyDone()).toBe(true);
+    expect(await peopleOf(alice)).toEqual([bob.name]);
+    expect(await waitingPacksOf(alice)).toEqual([carol.name]);
+  });
+
   test("the history run twice over a pair a pack already put in records each pair once", async () => {
     await beforeTheAlbum(async () => {
       await thanks(alice, why, bob, carol);
@@ -111,6 +122,21 @@ describe("people join the album only by giving", { timeout: 60_000 }, () => {
     await runTheHistory();
 
     expect((await peopleOf(alice)).toSorted()).toEqual(crowd.map(({ name }) => name).toSorted());
+  });
+});
+
+describe("AL40: getAlbum's people stay within Convex's limits", { timeout: 60_000 }, () => {
+  test("a member holding 501 people sees the first 500 and morePeople", async () => {
+    await thanks(alice, "ty", bob);
+    const [member, crowd] = [await memberOf(alice), await Promise.all(Array.from({ length: 501 }, (_, index) => aMember(t, `U_HELD_${index}`)))];
+    await t.run(async (ctx) => {
+      for (const person of crowd) await ctx.db.insert("albumStickers", { member, person, from: "history", at: Date.now() });
+    });
+
+    const { people, morePeople } = await albumOf(alice);
+
+    expect(people).toHaveLength(500);
+    expect(morePeople).toBe(true);
   });
 });
 
@@ -141,6 +167,23 @@ describe("the album's tallies count each award and hug once", { timeout: 120_000
     await settle(t);
 
     expect(await everyTally()).toEqual(kept);
+  });
+
+  test("the history is done only once every hug's people are tallied, a hug on a kudos to 60 people included", async () => {
+    const crowd = aCrowdOf(60);
+    await beforeTheAlbum(async () => {
+      const toTheCrowd = await thanks(alice, why, ...crowd);
+      await hugs(dana, alice, toTheCrowd);
+      await hugs(bob, alice, nextTs());
+    });
+
+    await t.mutation(internal.album.history.startAlbumHistory, { workspace: "T1" });
+    for (let page = 0; !(await historyDone()) && page < 20; page += 1) await t.mutation(internal.album.history.recordAlbumHistory, { workspace: "T1" });
+
+    expect(await historyDone()).toBe(true);
+    expect((await pairTally(dana, crowd[59]!))?.hugsGiven, "the hug's last person").toBe(1);
+    expect((await weekTally(dana))?.hugged).toMatchObject({ more: 48 });
+    expect((await pairTally(alice, bob))?.hugsReceived).toBe(1);
   });
 
   test("a message to 120 people is tallied in pages within Convex's limits", async () => {
@@ -288,6 +331,10 @@ async function tally(event: KudosGivenEvent | HugGivenEvent) {
   if (event.type === "kudosGiven") await t.mutation(internal.album.tallies.tallyKudosGiven, { event });
   else await t.mutation(internal.album.tallies.tallyHugGiven, { event });
   await settle(t);
+}
+
+async function historyDone() {
+  return (await t.query(internal.album.history.albumHistoryOf, { workspace: "T1" }))?.done === true;
 }
 
 async function runTheHistory() {

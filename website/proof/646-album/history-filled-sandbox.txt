@@ -1,0 +1,62 @@
+# Ticket 1's first cast (giver U0PRF645GVR), whose kudos were sent on 2026-10-18 before this branch's deploy at 22:27:59 UTC, so no tally subscriber ran for them: only startAlbumHistory (22:31:52) could fill these.
+pairTallyOf giver js72eyhyyzkyr1dd6v9wnn4m4x8ghyj2:
+{
+  "best": {
+    "at": 1792269743818,
+    "message": {
+      "conversation": "C0C9N9A4SE4",
+      "message": "1792269743.818000",
+      "workspace": "T0C3US298SH"
+    },
+    "words": 10
+  },
+  "firstThankedAt": 1792183339118,
+  "hugsGiven": 0,
+  "hugsReceived": 0,
+  "kudosGiven": 2,
+  "kudosReceived": 0
+}
+pairTallyOf giver js72z2z8xx07hxz3vfq5hw0ge18ghwdz:
+{
+  "best": {
+    "at": 1792183339118,
+    "message": {
+      "conversation": "C0C9N9A4SE4",
+      "message": "1792183339.118000",
+      "workspace": "T0C3US298SH"
+    },
+    "words": 9
+  },
+  "firstThankedAt": 1792183339118,
+  "hugsGiven": 0,
+  "hugsReceived": 0,
+  "kudosGiven": 2,
+  "kudosReceived": 0
+}
+pairTallyOf giver js7873j1z4hzx7jy2q3e9pbhdn8gg6yk:
+{
+  "best": {
+    "at": 1792183339118,
+    "message": {
+      "conversation": "C0C9N9A4SE4",
+      "message": "1792183339.118000",
+      "workspace": "T0C3US298SH"
+    },
+    "words": 9
+  },
+  "firstThankedAt": 1792183339118,
+  "hugsGiven": 0,
+  "hugsReceived": 0,
+  "kudosGiven": 1,
+  "kudosReceived": 0
+}
+albumStickers of the giver:
+{ "_creationTime": 1792362714634.8938, "_id": "h17zgb1sx5md0tcf2py5trwzzh8ghmpa", "at": 1792183339118, "from": "history", "member": "js761q0epg42s6vq7hcxf6arbn8ggevy", "person": "js7873j1z4hzx7jy2q3e9pbhdn8gg6yk" }
+{ "_creationTime": 1792362714634.892, "_id": "h17s801qwpgj48d1t0nqatsj998ghf3s", "at": 1792183339118, "from": "history", "member": "js761q0epg42s6vq7hcxf6arbn8ggevy", "person": "js72z2z8xx07hxz3vfq5hw0ge18ghwdz" }
+{ "_creationTime": 1792362714634.8901, "_id": "h17z6knm9fdrh1285r4m8dsm0s8gh2za", "at": 1792183339118, "from": "history", "member": "js761q0epg42s6vq7hcxf6arbn8ggevy", "person": "js72eyhyyzkyr1dd6v9wnn4m4x8ghyj2" }
+the giver's awards, each created before this branch was deployed (deploy 22:27:59 UTC = 1792362479000; history start 1792362712594):
+"_creationTime": 1792356148157.1553	"_id": "j97edt001y5e55pq2sc20zre9d8ggnew"
+"_creationTime": 1792356143859.978	"_id": "j978m6cwfndjebxxxcp7kgjp5d8ggdm5"
+"_creationTime": 1792356139578.9866	"_id": "j9718tgj98f6ngyqftdmsqbjwx8ghm1p"
+"_creationTime": 1792356139578.986	"_id": "j97edmzctg86y39pbwh9rvzc5n8gg6b2"
+"_creationTime": 1792356139578.9854	"_id": "j97f2r2d3hc60drtqqp79wzmw58ghr84"

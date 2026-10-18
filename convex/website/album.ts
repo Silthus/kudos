@@ -14,9 +14,12 @@ export type AlbumAnswer = {
   me: { name: string; face: Face; person: MemberId };
   level: { level: number; xp: number; startsAt: number; nextAt: number };
   people: AlbumPerson[];
+  morePeople: boolean;
   packs: WaitingPack[];
   morePacks: boolean;
 };
+
+export const mostPeopleShown = 500;
 
 export type AlbumPerson = { person: MemberId; name: string; face: Face; held: boolean };
 
@@ -25,7 +28,8 @@ export type AlbumRead = { kind: "off" } | AlbumAnswer;
 export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   if (!(await albumShownTo(ctx, me.member))) return { kind: "off" };
   const { packs, more } = await waitingPacksOf(ctx, me.member);
-  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), people: await peopleHeldBy(ctx, me), packs, morePacks: more };
+  const { people, morePeople } = await peopleHeldBy(ctx, me);
+  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), people, morePeople, packs, morePacks: more };
 });
 
 async function meIn(ctx: QueryCtx, me: VerifiedMember): Promise<AlbumAnswer["me"]> {
@@ -37,11 +41,12 @@ async function levelOf(ctx: QueryCtx, member: MemberId): Promise<AlbumAnswer["le
   return { level, xp, startsAt: xpToReach(level), nextAt: xpToReach(level + 1) };
 }
 
-async function peopleHeldBy(ctx: QueryCtx, me: VerifiedMember): Promise<AlbumPerson[]> {
+async function peopleHeldBy(ctx: QueryCtx, me: VerifiedMember): Promise<{ people: AlbumPerson[]; morePeople: boolean }> {
+  const { stickers, more } = await albumStickersOf(ctx, me.member, mostPeopleShown);
   const people: AlbumPerson[] = [];
-  for (const { person } of await albumStickersOf(ctx, me.member)) {
+  for (const { person } of stickers) {
     const { name, picture } = await nameAndPictureOf(ctx, person);
     people.push({ person, ...companyTeammateOf(name, picture, (await storedCompanyFaceOf(ctx, me.workspace, person)) ?? null), held: true });
   }
-  return people;
+  return { people, morePeople: more };
 }

@@ -279,14 +279,14 @@ describe("SR2 SR23: a hug is never an award", { timeout: 120_000 }, () => {
     await kudos(t, "U_CAROL", ["U_DANA"], slackTs(now.getTime() - hourMs + 2_000));
     await kudos(t, "U_DANA", ["U_BOB"], slackTs(now.getTime() - hourMs + 3_000));
     vi.setSystemTime(now);
-    const withoutHugs = await everythingStored(t, { except: writtenByAHug });
+    const withoutHugs = withoutTheAlbumsHugCounts(await everythingStored(t, { except: writtenByAHug }));
 
     await hug(t, { user: "U_BOB", itemUser: "U_ALICE" });
     await hug(t, { user: "U_DANA", itemUser: "U_BOB", ts: slackTs(now.getTime() - hourMs + 1_000) });
     await hug(t, { user: "U_ALICE", itemUser: "U_DANA", ts: slackTs(now.getTime() - 2 * hourMs) });
 
     expect(hugsGiven()).toHaveLength(3);
-    expect(await everythingStored(t, { except: writtenByAHug })).toEqual(withoutHugs);
+    expect(withoutTheAlbumsHugCounts(await everythingStored(t, { except: writtenByAHug }))).toEqual(withoutHugs);
   });
 });
 
@@ -311,7 +311,23 @@ async function workspace({ transactionLimits = false } = {}) {
 
 const everyFeature = ["hugs", "xp-levels", "unlocks", "quests", "skill-tree", "achievements", "coins", "crate-rewards", "website", "groups", "everyone-board", "activity"];
 
-const writtenByAHug: Array<keyof typeof schema.tables> = ["hugs", "hugPeople", "hugsReceived", "hugWeeks", "hugWeekMessages", "hugCounts", "talliedHugs", "pairTallies", "weekTallies", "weekPeople", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
+const writtenByAHug: Array<keyof typeof schema.tables> = ["hugs", "hugPeople", "hugsReceived", "hugWeeks", "hugWeekMessages", "hugCounts", "talliedHugs", "rewardRecords", "memberProgress", "slackReceipts", "analyticsIds", "flagExposures", "analyticsOutbox"];
+
+function withoutTheAlbumsHugCounts(rows: Array<Record<string, unknown>>) {
+  const thanked = (row: Record<string, unknown>) => row.kudosGiven !== 0 || row.kudosReceived !== 0;
+  return rows.flatMap((row) => {
+    if ("firstThankedAt" in row) {
+      const { hugsGiven, hugsReceived, ...kudos } = row;
+      return thanked(row) ? [kudos] : [];
+    }
+    if ("thankedBy" in row) {
+      const { hugsGiven, hugsReceived, hugged, huggedBy, kudosOfWeek, days, ...kudos } = row;
+      return thanked(row) ? [kudos] : [];
+    }
+    if ("list" in row) return row.list === "hugged" || row.list === "huggedBy" ? [] : [row];
+    return [row];
+  });
+}
 
 async function everyFeatureOn() {
   const t = await workspace();

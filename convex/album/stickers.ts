@@ -3,12 +3,12 @@ import type { MemberId } from "../workspace/directory";
 
 export type AlbumSticker = { person: MemberId; at: number };
 
-export async function albumStickersOf(ctx: QueryCtx, member: MemberId): Promise<AlbumSticker[]> {
+export async function albumStickersOf(ctx: QueryCtx, member: MemberId, atMost: number): Promise<{ stickers: AlbumSticker[]; more: boolean }> {
   const stickers = await ctx.db
     .query("albumStickers")
     .withIndex("by_member_person", (q) => q.eq("member", member))
-    .collect();
-  return stickers.map(({ person, at }) => ({ person, at }));
+    .take(atMost + 1);
+  return { stickers: stickers.slice(0, atMost).map(({ person, at }) => ({ person, at })), more: stickers.length > atMost };
 }
 
 export async function inTheAlbumOf(ctx: QueryCtx, member: MemberId, person: MemberId) {
