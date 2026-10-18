@@ -44,7 +44,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("ST8: every kudos emoji the giver owns counts while the store is visible to them", { timeout: 60_000 }, () => {
+describe("ST8 AL34: every kudos emoji the giver owns counts, whether the store and coins are shown to them or not", { timeout: 60_000 }, () => {
   test("Alice owns 🚀, and a message with a mention and 🚀 gives kudos that names it as one she owns", async () => {
     const t = await aliceAndCarolWhoOpenedCoins(storeShown, { owning: [rocket] });
 
@@ -86,19 +86,41 @@ describe("ST8: every kudos emoji the giver owns counts while the store is visibl
     expect(await kudosGivenEvents(t), "a kudos from an emoji its giver doesn't own").toHaveLength(before);
   });
 
-  test.each([
-    ["the store off", [...storeShown.slice(0, 3), offForEveryone("store")]],
-    ["coins off", [onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("coins"), onForEveryone("store")]],
-  ])("with %s, an owned emoji claims nothing", async (_, definitions) => {
-    const t = await aliceAndCarolWhoOpenedCoins(storeShown, { owning: [rocket] });
-    await flagsFromPostHog(t, postHog, ...definitions);
+  test.each(storeNotShown)("with %s, the starter and a bought, a tier's and a custom kudos emoji Alice owns still give kudos, and still for nobody else", async (_, definitions) => {
+    const t = await aliceOwningOneOfEachKind();
+    await flagsFromPostHog(t, postHog, ...definitions, onForEmails("custom-kudos-emoji", alicesEmail));
+
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["hedgehog", "rocket", "ribbon", "shipit"]);
+    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ ownedEmoji: ["hedgehog", "rocket", "ribbon", "shipit"], awards: [{ kudos: 4 }] });
+
     const before = (await kudosGivenEvents(t)).length;
+    await giveKudos(t, "U_BOB", ["U_ALICE"], saysWhy, ["hedgehog", "rocket", "ribbon", "shipit"]);
+    await giveKudos(t, "U_CAROL", ["U_ALICE"], saysWhy, ["rocket", "ribbon", "shipit"]);
+    expect(await kudosGivenEvents(t), "a kudos from an emoji its giver doesn't own").toHaveLength(before);
+  });
 
-    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["hedgehog", "rocket"]);
+  test.each(storeNotShown)("with %s, a custom kudos emoji Alice owns claims nothing while custom-kudos-emoji is off for her, and the rest of hers still count", async (_, definitions) => {
+    const t = await aliceOwningOneOfEachKind();
+    await flagsFromPostHog(t, postHog, ...definitions, offForEveryone("custom-kudos-emoji"));
 
-    expect(await kudosGivenEvents(t)).toHaveLength(before);
+    await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["hedgehog", "rocket", "ribbon", "shipit"]);
+
+    expect((await kudosGivenEvents(t)).at(-1)).toMatchObject({ ownedEmoji: ["hedgehog", "rocket", "ribbon"], awards: [{ kudos: 3 }] });
   });
 });
+
+const storeNotShown: Array<[string, FlagDefinition[]]> = [
+  ["the store off", [onForEveryone("xp-levels"), onForEveryone("unlocks"), onForEveryone("coins"), offForEveryone("store")]],
+  ["coins off", [onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("coins"), onForEveryone("store")]],
+  ["the store and coins off", [onForEveryone("xp-levels"), onForEveryone("unlocks"), offForEveryone("coins"), offForEveryone("store")]],
+  ["unlocks off", [onForEveryone("xp-levels"), offForEveryone("unlocks"), onForEveryone("coins"), onForEveryone("store")]],
+];
+
+async function aliceOwningOneOfEachKind() {
+  const t = await aliceAndCarolWhoOpenedCoins([...storeShown, onForEmails("custom-kudos-emoji", alicesEmail)], { owning: [rocket, ribbon, shipit] });
+  await t.run((ctx) => ctx.db.insert("customKudosEmoji", { workspace: "T1", name: "shipit", url: shipitArt, pickedAt: tuesday }));
+  return t;
+}
 
 describe("ST32 ST36: the store sells only the picked custom emoji, and owners keep theirs", { timeout: 60_000 }, () => {
   test("the Inventory tab lists every owned emoji, and its Store only the picked custom emoji", async () => {

@@ -4,7 +4,7 @@ import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { type FakePostHog, flagsKey, routedFetch, type FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { flagsFromPostHog, offForEveryone, onForEveryone, onInTheSandboxOnly, postHogDeciding, testBackendServing, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, onInTheSandboxOnly, postHogDeciding, testBackendServing, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, settle, settleInTimeOrder, type Backend } from "../../testing/slackBackend";
 import { blockActions, publishedHome, staleButtonOf, type BlockAction } from "../../testing/slackInteractions";
@@ -151,6 +151,84 @@ describe("GB29 GB36: turning a flag the group quest needs off hides it and rewri
   });
 });
 
+describe("AL35: group quest draws obey group-quest whatever was launched", { timeout: 120_000 }, () => {
+  test("after the launch, with group-quest off in the workspace decision but on for three Ants by their email, Monday's sweep tallies and draws nothing, also once it is on again mid-week, and the next Monday draws one", async () => {
+    const t = await antsOpenedQuests(everyFlagBut(""));
+    await sweepAt(t, lastTuesday);
+    await previewedByThreeAnts(t);
+    const jobsBefore = (await groupQuestJobsOf(t)).length;
+
+    await sweepAt(t, mondaySweep);
+    expect(await groupQuestFacts(t)).toMatchObject({ launches: [expect.anything()], quests: [] });
+    expect((await groupQuestJobsOf(t)).slice(jobsBefore)).toEqual([]);
+    expect(groupQuestEvents()).toEqual([]);
+
+    await everyFlagOn(t);
+    await sweepAt(t, wednesday);
+    expect((await groupQuestFacts(t)).quests).toEqual([]);
+
+    await sweepAt(t, nextMondaySweep);
+    expect((await groupQuestFacts(t)).quests.map(({ week }) => week)).toEqual(["2026-10-26"]);
+  });
+
+  test.each(["tallyParticipants", "drawGroupQuests"] as const)("a %s job queued while group-quest was on and run once it is off in the workspace decision, still on for three Ants by their email, draws nothing and marks the week passed", async (job) => {
+    const t = await antsOpenedQuests(everyFlagBut(""));
+    await sweepAt(t, lastTuesday);
+    const queued = { tallyParticipants: { workspace: "T1", week: thisWeek, members: 0, tally: [] }, drawGroupQuests: { workspace: "T1", week: thisWeek, members: ants.length, tally: [{ group: await antsOf(t), membersInside: ants.length, participants: await membersOf(t, "U_ANN", "U_AL", "U_AMY") }] } }[job];
+    await previewedByThreeAnts(t);
+
+    vi.setSystemTime(mondaySweep);
+    await t.mutation(makeFunctionReference<"mutation">(`quests/groupQuest:${job}`), queued);
+    await settle(t);
+
+    expect(await groupQuestFacts(t), "the group quest's facts after the queued job ran").toMatchObject({ weeks: [expect.objectContaining({ week: thisWeek })], quests: [] });
+    expect(groupQuestEvents()).toEqual([]);
+  });
+
+  test("a catch-up queued for a quest drawn while group-quest was on, run once it is off in the workspace decision, counts no contribution, even for Ants it is still on for by their email", async () => {
+    const t = await antsOpenedQuests(everyFlagBut(""));
+    await sweepAt(t, lastTuesday);
+    await sweepAt(t, mondaySweep);
+    await flagsFromPostHog(t, postHog, ...everyFlagBut(groupQuest, offForEveryone(groupQuest)));
+    vi.setSystemTime(tuesday);
+    await giveKudos(t, "U_ANN", "U_AL");
+    await previewedByThreeAnts(t);
+    const [drawn] = (await groupQuestFacts(t)).quests;
+
+    await t.mutation(makeFunctionReference<"mutation">("quests/groupQuest:catchUpContributions"), { quest: drawn!._id, cursor: null });
+    await settle(t);
+
+    expect((await groupQuestFacts(t)).contributions, "contributions the catch-up counted").toEqual([]);
+  });
+
+  test("a kudos that says why, given once group-quest is off in the workspace decision, counts no contribution to the week's quest drawn while it was on, even from an Ant it is still on for by their email", async () => {
+    const t = await antsOpenedQuests(everyFlagBut(""));
+    await sweepAt(t, lastTuesday);
+    await sweepAt(t, mondaySweep);
+    await previewedByThreeAnts(t);
+
+    vi.setSystemTime(tuesday);
+    await giveKudos(t, "U_ANN", "U_AL");
+
+    expect((await groupQuestFacts(t)).contributions, "contributions counted while group-quest is off in the workspace decision").toEqual([]);
+  });
+
+  test("a tally queued while group-quest was on draws nothing once a later sweep marked the week passed with it off, also when it is on again before the tally runs", async () => {
+    const t = await antsOpenedQuests(everyFlagBut(""));
+    await sweepAt(t, lastTuesday);
+    vi.setSystemTime(mondaySweep);
+    await t.mutation(sweepJob(), {});
+    await flagsFromPostHog(t, postHog, ...everyFlagBut(groupQuest, offForEveryone(groupQuest)));
+    vi.setSystemTime(mondaySweep + 60 * 60 * 1000);
+    await t.mutation(sweepJob(), {});
+    await everyFlagOn(t);
+
+    await settle(t);
+
+    expect((await groupQuestFacts(t)).quests, "quests drawn in a week a sweep marked passed").toEqual([]);
+  });
+});
+
 describe("GB29 O36: the group-quest exposure", { timeout: 120_000 }, () => {
   test("is sent once per member and value from App Home, on again included, and not where groups or quests is off, which leaves group-quest nothing to decide", async () => {
     const t = await antsOpenedQuests(everyFlagBut(""));
@@ -210,12 +288,12 @@ async function antsOpenedQuests(flags: FlagDefinition[], turnOff?: () => void, s
   turnOff?.();
   await setUp?.(t);
   await unlocksShippedBeforeAnyoneJoined(t);
-  for (const user of ants) slack.withMember(user, { profile: { display_name: user.slice(2) } });
+  for (const user of ants) slack.withMember(user, { profile: profileOf(user) });
   slack.withUserGroup("S_ANTS", { name: "Ants", users: ants });
   await t.action(internal.slack.userGroups.syncUserGroups, {});
   await settle(t);
   for (const user of ants) {
-    await memberChanged(t, "team_join", { id: user, profile: { display_name: user.slice(2) } });
+    await memberChanged(t, "team_join", { id: user, profile: profileOf(user) });
     await settle(t);
   }
   vi.setSystemTime(lastTuesday);
@@ -224,6 +302,22 @@ async function antsOpenedQuests(flags: FlagDefinition[], turnOff?: () => void, s
   });
   await settle(t);
   return t;
+}
+
+function previewedByThreeAnts(t: Backend) {
+  return flagsFromPostHog(t, postHog, ...everyFlagBut(groupQuest, onForEmails(groupQuest, ...["U_ANN", "U_AL", "U_AMY"].map(emailOf))));
+}
+
+function membersOf(t: Backend, ...users: string[]) {
+  return t.run((ctx) => Promise.all(users.map((user) => memberOf(ctx, user))));
+}
+
+function profileOf(user: string) {
+  return { display_name: user.slice(2), email: emailOf(user) };
+}
+
+function emailOf(user: string) {
+  return `${user.slice(2).toLowerCase()}@example.com`;
 }
 
 async function noGroupCounts(t: Backend) {
@@ -244,6 +338,11 @@ function groupQuestFacts(t: Backend) {
   }));
 }
 
+async function groupQuestJobsOf(t: Backend) {
+  const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return jobs.map(({ name }) => name).filter((name) => /groupQuest(\.js)?:(tallyParticipants|drawGroupQuests|catchUpContributions)$/.test(name));
+}
+
 function groupQuestEvents() {
   return postHog.productEvents().filter(({ properties }) => properties.kind === "group");
 }
@@ -261,10 +360,14 @@ async function meetTheGroupQuest(t: Backend, user: string) {
 async function sweepAt(t: Backend, at: number, sweeps = true) {
   vi.setSystemTime(at);
   if (!sweeps) return;
+  await t.mutation(sweepJob(), {});
+  await settle(t);
+}
+
+function sweepJob() {
   const job = crons.crons["draw each group's weekly group quest"];
   if (job === undefined) throw new Error("no cron job draws each group's weekly group quest");
-  await t.mutation(makeFunctionReference<"mutation">(job.name), {});
-  await settle(t);
+  return makeFunctionReference<"mutation">(job.name);
 }
 
 let sentMessages = 0;

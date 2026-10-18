@@ -127,14 +127,24 @@ describe("SW19 SW20 SW21 SW22: App Home is the website's front door while the we
     expect(linkButtonsIn(publishedHomeBlocks(slack, "U_ALICE")).map(({ url }) => url)).toEqual([`${siteUrl}/`, `${siteUrl}/leaderboard`]);
   });
 
-  test("from level 5 the level line names the skill points to spend", async () => {
-    const t = await workspace("xp-levels", "website");
+  test("from level 5 the level line names the skill points to spend while the skill tree ships", async () => {
+    const t = await workspace("xp-levels", "website", "skill-tree");
     await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
     await xpOf(t, "U_ALICE", 600);
 
     await openHome(t, "U_ALICE");
 
     expect(publishedHome(slack, "U_ALICE")).toContain("section: Level 5 · 400 XP to level 6 · 1 skill point to spend");
+  });
+
+  test("AL35: while the skill tree doesn't ship, the level line names no skill points", async () => {
+    const t = await workspace("xp-levels", "website");
+    await giveKudos(t, "U_ALICE", "U_BOB", saysWhy);
+    await xpOf(t, "U_ALICE", 600);
+
+    await openHome(t, "U_ALICE");
+
+    expect(publishedHome(slack, "U_ALICE")).toContain("section: Level 5 · 400 XP to level 6");
   });
 
   test("a remembered Leaderboard tab opens as Profile once the front door shows", async () => {
