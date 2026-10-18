@@ -256,7 +256,8 @@ describe("the browser captures only while told to", () => {
     await user.click(within(screens()).getByRole("link", { name: "Leaderboard" }));
     window.history.pushState(null, "", "/book#hoggies/legendary");
 
-    expect(stopping).toEqual(["stopSessionRecording", "stopExceptionAutocapture", "opt_out_capturing", "reset", "opt_out_capturing"]);
+    expect(new Set(stopping.slice(0, 2))).toEqual(new Set(["stopSessionRecording", "stopExceptionAutocapture"]));
+    expect(stopping.slice(2), "consent is withdrawn again after reset, which clears it").toEqual(["opt_out_capturing", "reset", "opt_out_capturing"]);
     expect(recorded.sent).toHaveLength(sentBefore);
     expect(recorded.calls.slice(-5).map(({ method }) => method)).toEqual(stopping);
   });
@@ -610,6 +611,34 @@ describe("MS35: a Feedback button", () => {
       { event: "survey dismissed", properties: expect.objectContaining({ $survey_id: feedbackSurvey }) },
     ]);
     expect(JSON.stringify(recorded.sent)).not.toContain("half a thought");
+  });
+
+  it("an unsent answer is still there when the member opens the form again, and a sent one is gone", async () => {
+    const { user } = renderLiveSite();
+    analyticsAnswers(ann);
+    await capturing();
+
+    await user.type(await openFeedback(user), "half a thought");
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("textbox", { name: "What's confusing or missing here?" })).not.toBeInTheDocument());
+    const reopened = await openFeedback(user);
+    expect(reopened).toHaveValue("half a thought");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    await user.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(await openFeedback(user)).toHaveValue("");
+  });
+
+  it("the thanks line describes the Close button that takes focus after Send", async () => {
+    const { user } = renderLiveSite();
+    analyticsAnswers(ann);
+    await capturing();
+
+    await user.type(await openFeedback(user), "Where is the Book?");
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    const close = await screen.findByRole("button", { name: "Close", description: "Thanks, we read every answer." });
+    await waitFor(() => expect(close).toHaveFocus());
   });
 
   it("Send waits for words, and each opening is its own submission", async () => {

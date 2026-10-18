@@ -10,6 +10,7 @@ const aboutTheSurvey = { $survey_id: survey.id };
 export function Feedback({ capturer }: { capturer: Capturer }) {
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
+  const [answer, setAnswer] = useState("");
 
   const changeOpen = (opening: boolean) => {
     if (opening) {
@@ -21,8 +22,9 @@ export function Feedback({ capturer }: { capturer: Capturer }) {
     setOpen(opening);
   };
 
-  const send = (answer: string) => {
-    capturer.capture("survey sent", answerProperties(answer));
+  const send = (words: string) => {
+    capturer.capture("survey sent", answerProperties(words));
+    setAnswer("");
     setSent(true);
   };
 
@@ -33,15 +35,14 @@ export function Feedback({ capturer }: { capturer: Capturer }) {
         <span className="max-sm:sr-only">Feedback</span>
       </PopoverTrigger>
       <PopoverContent aria-label="Feedback" align="end" className="w-80 max-w-[calc(100vw-2rem)]">
-        {sent ? <Thanks onClose={() => changeOpen(false)} /> : <AnswerForm onSend={send} />}
+        {sent ? <Thanks onClose={() => changeOpen(false)} /> : <AnswerForm answer={answer} onChange={setAnswer} onSend={send} />}
       </PopoverContent>
     </Popover>
   );
 }
 
-function AnswerForm({ onSend }: { onSend: (answer: string) => void }) {
+function AnswerForm({ answer, onChange, onSend }: { answer: string; onChange: (answer: string) => void; onSend: (words: string) => void }) {
   const fieldId = useId();
-  const [answer, setAnswer] = useState("");
   const words = answer.trim();
 
   const submit = (event: FormEvent) => {
@@ -54,7 +55,7 @@ function AnswerForm({ onSend }: { onSend: (answer: string) => void }) {
       <label htmlFor={fieldId} className="text-sm font-semibold">
         {survey.question.text}
       </label>
-      <Textarea id={fieldId} autoFocus rows={4} value={answer} onChange={(event) => setAnswer(event.target.value)} className="min-h-24 resize-y" />
+      <Textarea id={fieldId} autoFocus rows={4} value={answer} onChange={(event) => onChange(event.target.value)} className="min-h-24 resize-y" />
       <p className="text-xs text-muted-foreground">Your words go to the HedgeHug team with this visit's replay.</p>
       <Button type="submit" variant="primary" size="sm" className="self-end" disabled={words === ""}>
         Send
@@ -64,12 +65,13 @@ function AnswerForm({ onSend }: { onSend: (answer: string) => void }) {
 }
 
 function Thanks({ onClose }: { onClose: () => void }) {
+  const thanksId = useId();
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm font-semibold" role="status">
+      <p id={thanksId} className="text-sm font-semibold" role="status">
         Thanks, we read every answer.
       </p>
-      <Button variant="outline" size="sm" className="self-end" autoFocus onClick={onClose}>
+      <Button variant="outline" size="sm" className="self-end" autoFocus aria-describedby={thanksId} onClick={onClose}>
         Close
       </Button>
     </div>
