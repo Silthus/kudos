@@ -22,6 +22,8 @@ export const grantRecordValidator = v.object({
   outcome: grantOutcomeValidator,
 });
 
+export const thoughtfulTallyValidator = v.object({ workspace: v.string(), week: v.string(), giver: v.id("members"), awards: v.number() });
+
 export const grantToldValidator = v.object({ message: messageRefValidator });
 
 export const albumStickerValidator = v.object({
