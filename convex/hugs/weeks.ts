@@ -57,6 +57,10 @@ async function countHugOnTheMessage(ctx: MutationCtx, { workspace, conversation,
   else await ctx.db.patch(row._id, { hugs: row.hugs + 1 });
 }
 
+export async function hugsOnTheMessage(ctx: QueryCtx, message: MessageRef): Promise<number> {
+  return (await hugCountRow(ctx, message))?.hugs ?? 0;
+}
+
 function hugCountRow(ctx: QueryCtx, { workspace, conversation, message }: MessageRef) {
   return ctx.db
     .query("hugCounts")

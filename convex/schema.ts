@@ -27,7 +27,20 @@ import { perkValidator } from "./progression/tree";
 import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator } from "./hoggies/records";
 import { teamPageCheckValidator, teamPageCompletionValidator } from "./stickers/completionRecords";
 import { stickerBackfillValidator, stickerValidator } from "./stickers/records";
-import { albumStickerValidator, emojiNameNumberValidator, emojiNameValidator, grantRecordValidator, grantToldValidator, thoughtfulPackValidator } from "./album/records";
+import {
+  albumHistoryValidator,
+  albumStickerValidator,
+  emojiNameNumberValidator,
+  emojiNameValidator,
+  grantRecordValidator,
+  grantToldValidator,
+  pairTallyValidator,
+  talliedAwardValidator,
+  talliedHugValidator,
+  thoughtfulPackValidator,
+  weekPersonValidator,
+  weekTallyValidator,
+} from "./album/records";
 import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
 import { journeyActivationValidator, rewardValidator } from "./quests/journey";
@@ -529,6 +542,18 @@ export default defineSchema({
     .index("by_emoji", ["emoji", "person", "workspace"]),
 
   emojiNameNumbers: defineTable(emojiNameNumberValidator).index("by_workspace_stem", ["workspace", "stem"]),
+
+  albumHistory: defineTable(albumHistoryValidator).index("by_workspace", ["workspace"]),
+
+  pairTallies: defineTable(pairTallyValidator).index("by_member_person", ["member", "person"]),
+
+  weekTallies: defineTable(weekTallyValidator).index("by_member_week", ["member", "week"]),
+
+  weekPeople: defineTable(weekPersonValidator).index("by_member_week_list_person", ["member", "week", "list", "person"]),
+
+  talliedAwards: defineTable(talliedAwardValidator).index("by_award", ["award"]),
+
+  talliedHugs: defineTable(talliedHugValidator).index("by_hug_person", ["hug", "person"]),
 
   teamPageCompletions: defineTable(teamPageCompletionValidator).index("by_member_team", ["member", "team"]),
 

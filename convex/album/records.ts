@@ -35,3 +35,59 @@ export const albumStickerValidator = v.object({
 export const emojiNameValidator = v.object({ workspace: v.string(), emoji: v.string(), person: v.optional(v.id("members")), name: v.string() });
 
 export const emojiNameNumberValidator = v.object({ workspace: v.string(), stem: v.string(), last: v.number() });
+
+export const albumHistoryValidator = v.object({
+  workspace: v.string(),
+  startedAt: v.number(),
+  phase: v.union(v.literal("awards"), v.literal("hugs")),
+  cursor: v.union(v.string(), v.null()),
+  done: v.boolean(),
+});
+
+const kudosPickValidator = v.object({ message: messageRefValidator, words: v.number(), at: v.number() });
+
+export type KudosPick = Infer<typeof kudosPickValidator>;
+
+export const pairTallyValidator = v.object({
+  member: v.id("members"),
+  person: v.id("members"),
+  firstThankedAt: v.union(v.number(), v.null()),
+  kudosGiven: v.number(),
+  kudosReceived: v.number(),
+  hugsGiven: v.number(),
+  hugsReceived: v.number(),
+  best: v.union(kudosPickValidator, v.null()),
+});
+
+const peopleListValidator = v.object({ people: v.array(v.id("members")), more: v.number() });
+
+export const weekListValidator = v.union(v.literal("thanked"), v.literal("thankedBy"), v.literal("hugged"), v.literal("huggedBy"));
+
+export type WeekList = Infer<typeof weekListValidator>;
+
+const hugPickValidator = v.object({ message: messageRefValidator, hugs: v.number(), words: v.number(), at: v.number() });
+
+export type HugPick = Infer<typeof hugPickValidator>;
+
+export const weekTallyValidator = v.object({
+  member: v.id("members"),
+  week: v.string(),
+  kudosGiven: v.number(),
+  kudosReceived: v.number(),
+  thoughtfulGiven: v.number(),
+  thoughtfulReceived: v.number(),
+  hugsGiven: v.number(),
+  hugsReceived: v.number(),
+  thanked: peopleListValidator,
+  thankedBy: peopleListValidator,
+  hugged: peopleListValidator,
+  huggedBy: peopleListValidator,
+  kudosOfWeek: v.union(hugPickValidator, v.null()),
+  days: v.array(v.number()),
+});
+
+export const weekPersonValidator = v.object({ member: v.id("members"), week: v.string(), list: weekListValidator, person: v.id("members") });
+
+export const talliedAwardValidator = v.object({ award: v.id("awards") });
+
+export const talliedHugValidator = v.object({ hug: v.id("hugs"), person: v.id("members") });

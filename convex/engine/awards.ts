@@ -73,7 +73,7 @@ async function withStoredAnnotations(ctx: QueryCtx, awards: AwardRow[]): Promise
   return annotated;
 }
 
-async function storedAnnotationsOf(ctx: QueryCtx, { workspace, conversation, message }: AwardRow): Promise<Annotations> {
+export async function storedAnnotationsOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<Annotations> {
   const kudosMessage = await ctx.db
     .query("kudosMessages")
     .withIndex("by_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
@@ -89,12 +89,36 @@ export async function awardsGivenBefore(ctx: QueryCtx, before: number, page: Pag
   return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day }) => ({ award: _id, giver, recipient, kudos, day })) };
 }
 
-export async function awardsInWorkspace(ctx: QueryCtx, workspace: string, page: PaginationOptions): Promise<PaginationResult<GivenAward & { at: number }>> {
+export type WorkspaceAward = GivenAward & { message: MessageRef; at: number; created: number };
+
+export async function awardsInWorkspace(ctx: QueryCtx, workspace: string, page: PaginationOptions): Promise<PaginationResult<WorkspaceAward>> {
   const result = await ctx.db
     .query("awards")
     .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
     .paginate(page);
-  return { ...result, page: result.page.map(({ _id, giver, recipient, kudos, day, at }) => ({ award: _id, giver, recipient, kudos, day, at })) };
+  return {
+    ...result,
+    page: result.page.map(({ _id, _creationTime, conversation, message, giver, recipient, kudos, day, at }) => ({
+      award: _id,
+      message: { workspace, conversation, message },
+      giver,
+      recipient,
+      kudos,
+      day,
+      at,
+      created: _creationTime,
+    })),
+  };
+}
+
+export type GivenMessageFacts = { giver: MemberId; day: DayKey; at: number };
+
+export async function givenFactsOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<GivenMessageFacts | null> {
+  const award = await ctx.db
+    .query("awards")
+    .withIndex("by_message", (q) => q.eq("workspace", workspace).eq("conversation", conversation).eq("message", message))
+    .first();
+  return award === null ? null : { giver: award.giver, day: award.day, at: award.at };
 }
 
 export async function awardsOfMessage(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<Array<GivenAward & { at: number }>> {
