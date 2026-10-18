@@ -120,13 +120,24 @@ describe("AL49: the thoughtful boards rank thoughtful kudos awards given this we
     expect(pinnedOn(erins)).toEqual({ me: { name: erin.name, rank: null, thoughtful: 0, you: true }, teams: [{ team: "quills", rank: null, thoughtful: 0, mine: true }], onTheBoards: true });
   });
 
-  test("a thoughtful kudos given last week counts on last week's boards only, in the member's own week", async () => {
+  test("a thoughtful kudos given last week is off this week's boards", async () => {
     await thanks(alice, why, carol);
     vi.setSystemTime(tuesday.getTime() + 7 * dayMs);
     await thanks(bob, "Thanks for writing the thorough onboarding notes", carol);
 
     expect(peopleOn(await boardsOf(carol))).toEqual([{ name: bob.name, rank: 1, tied: false, thoughtful: 1, teams: ["lanterns"] }]);
     expect(teamsOn(await boardsOf(carol))).toEqual([{ team: "lanterns", name: "Lanterns", rank: 1, tied: false, thoughtful: 1, mine: false }]);
+  });
+
+  test("each award counts in its giver's own week and each reader reads their own week, so a reader ahead of UTC sees the new week while UTC is still on the old one", async () => {
+    for (const person of [alice, bob, carol]) await livesIn(person, "Pacific/Auckland");
+    vi.setSystemTime(new Date("2026-10-18T09:00:00Z"));
+    await thanks(alice, why, erin);
+    vi.setSystemTime(new Date("2026-10-18T12:00:00Z"));
+    await thanks(bob, "Thanks for writing the thorough onboarding notes", erin);
+
+    expect(peopleOn(await boardsOf(carol)).map(({ name }) => name), "a reader in Auckland, already on Monday").toEqual([bob.name]);
+    expect(peopleOn(await boardsOf(dana)).map(({ name }) => name), "a reader on UTC, still on Sunday").toEqual([alice.name]);
   });
 
   test("a message's grant run again and redelivered counts each award once", async () => {
@@ -276,6 +287,11 @@ async function thanks(giver: Person, words: string, ...recipients: Person[]) {
   await post(t, [section(text(`${words} `), ...recipients.map(({ user }) => mention(user)), emoji("taco"))], { user: giver.user, ts });
   await settle(t);
   return ts;
+}
+
+async function livesIn(person: Person, tz: string) {
+  await memberChanged(t, "user_change", { id: person.user, ...slackUserOf(person), tz });
+  await settle(t);
 }
 
 async function hugs(giver: Person, author: Person, ts: string) {
