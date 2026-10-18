@@ -2,8 +2,9 @@ import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
 import { vi } from "vitest";
-import { App } from "../App";
+import { App, type AppReads } from "../App";
 import type { ActivityRead, ActivityWatch } from "../activityRead";
+import type { AlbumRead } from "../album/answer";
 import type { BoardRead } from "../boardRead";
 import type { BookRead } from "../bookRead";
 import type { CollectionRead } from "../collectionRead";
@@ -38,9 +39,21 @@ const noSettings: SettingsRead = (asking) => (asking ? { kind: "not-found" } : u
 
 const noProfileCard: ProfileCardRead = (asking) => (asking ? { kind: "not-found" } : undefined);
 
+const noAlbum: AlbumRead = (asking) => (asking ? { kind: "off" } : undefined);
+
 type Commands = Partial<Pick<ShellActions, "openFeature" | "openQuestCrate" | "buyPerk" | "buyItem" | "buyCrate" | "openCrate" | "setBoardVisibility" | "setMessageSetting" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings" | "setAvatar" | "swapQuest">>;
 
+const noReads: AppReads = { useLeaderboard: noBoard, useQuests: noQuests, useBook: noBook, useCollection: noCollection, useSkillTree: noSkillTree, useProfileCard: noProfileCard, useRecentKudos: noRecentKudos, useActivityWatch: noActivity.watch, readActivity: noActivity.read, drawSpotlight: noSpotlight, useSettings: noSettings, useAlbum: noAlbum };
+
 export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBoard, commands: Commands = {}, readQuests: QuestsRead = noQuests, readBook: BookRead = noBook, readSkillTree: SkillTreeRead = noSkillTree, readProfileCard: ProfileCardRead = noProfileCard, readRecentKudos: RecentKudosRead = noRecentKudos, activity: ActivityReads = noActivity, drawSpotlight: SpotlightDraw = noSpotlight, readSettings: SettingsRead = noSettings, readCollection: CollectionRead = noCollection) {
+  return renderAppWith(visitor, { useLeaderboard: readLeaderboard, useQuests: readQuests, useBook: readBook, useSkillTree: readSkillTree, useProfileCard: readProfileCard, useRecentKudos: readRecentKudos, useActivityWatch: activity.watch, readActivity: activity.read, drawSpotlight, useSettings: readSettings, useCollection: readCollection, useAlbum: noAlbum }, commands);
+}
+
+export function renderAlbum(visitor: ShellState, readAlbum: AlbumRead, { settings = noSettings, commands = {} }: { settings?: SettingsRead; commands?: Commands } = {}) {
+  return renderAppWith(visitor, { ...noReads, useAlbum: readAlbum, useSettings: settings }, commands);
+}
+
+function renderAppWith(visitor: ShellState, reads: AppReads, commands: Commands) {
   const actions = { signIn: vi.fn(), signOut: vi.fn(), openFeature: vi.fn(commands.openFeature ?? (async () => ({ kind: "refused" }) as const)),
     openQuestCrate: vi.fn(commands.openQuestCrate ?? (async () => ({ kind: "refused" }) as const)),
     buyPerk: vi.fn(commands.buyPerk ?? (async () => ({ kind: "refused", reason: null }) as const)),
@@ -60,7 +73,7 @@ export function renderApp(visitor: ShellState, readLeaderboard: BoardRead = noBo
   const appFor = (state: ShellState) => (
     <StrictMode>
       <ShellBoundary>
-        <App visitor={state} actions={actions} useLeaderboard={readLeaderboard} useQuests={readQuests} useBook={readBook} useSkillTree={readSkillTree} useProfileCard={readProfileCard} useRecentKudos={readRecentKudos} useActivityWatch={activity.watch} readActivity={activity.read} drawSpotlight={drawSpotlight} useSettings={readSettings} useCollection={readCollection} />
+        <App visitor={state} actions={actions} {...reads} />
       </ShellBoundary>
     </StrictMode>
   );

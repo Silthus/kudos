@@ -97,7 +97,7 @@ export function PackLanding({ opened, shown, onRewardLanded, onDone }: PackLandi
 async function land(drop: Drop, ghost: RefObject<HTMLSpanElement | null>, stillWanted: () => boolean) {
   flipTheBookTo(drop.rarity);
   await wait(bookFlipsForMs);
-  const tile = await appears(`[data-hoggie="${drop.hoggie}"]`, tileSettlesForMs, tileLooksEveryMs);
+  const tile = await appears(`[data-hoggie="${drop.hoggie}"]`, tileSettlesForMs, tileLooksEveryMs, stillWanted);
   if (!stillWanted()) return;
   if (tile !== null) scrollIntoViewIfNeeded(tile);
   const target = tile?.querySelector<HTMLElement>("[data-coin]") ?? tile ?? theBookEntry();

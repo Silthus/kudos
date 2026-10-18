@@ -12,6 +12,8 @@ import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
 import type { ActivityRead, ActivityShown } from "./activityRead";
+import type { AlbumShown } from "./album/answer";
+import { albumOf } from "./album/liveAlbum";
 import type { BoardAnswer } from "./boardRead";
 import type { BookShown } from "./bookRead";
 import type { CollectionShown } from "./collectionRead";
@@ -61,6 +63,7 @@ function LiveApp() {
       useCollection={(asking) => useLiveCollection(asking, unreachable)}
       useSkillTree={(asking) => useLiveSkillTree(asking, unreachable)}
       useSettings={(asking) => useLiveSettings(asking, unreachable)}
+      useAlbum={(asking) => useLiveAlbum(asking, unreachable)}
       useProfileCard={useLiveProfileCard}
       useRecentKudos={useLiveRecentKudos}
       useActivityWatch={useLiveActivityWatch}
@@ -110,6 +113,14 @@ function useLiveQuests(asking: boolean, unreachable: boolean): QuestsShown | und
   if (quests instanceof Error) return { kind: "broken" };
   if (quests === undefined && unreachable) return { kind: "connecting" };
   return quests;
+}
+
+function useLiveAlbum(asking: boolean, unreachable: boolean): AlbumShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking ? { album: { query: api.website.album.getAlbum, args: {} } } : {}), [asking]);
+  const { album } = useQueries(request);
+  if (album instanceof Error) return { kind: "broken" };
+  if (album === undefined) return unreachable ? { kind: "connecting" } : undefined;
+  return albumOf(album);
 }
 
 function useLiveCollection(asking: boolean, unreachable: boolean): CollectionShown | undefined {

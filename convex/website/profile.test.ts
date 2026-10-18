@@ -15,6 +15,7 @@ const now = new Date("2026-10-13T10:00:00Z");
 const week = 7 * 24 * 60 * 60 * 1000;
 const juno = { user: "U_JUNO", name: "Juno Whitlock", image: "https://avatars.slack-edge.com/juno.png" };
 const bookSpread = "book-spread";
+const album = "album";
 
 let postHog: FakePostHog;
 let t: Backend;
@@ -369,23 +370,66 @@ describe("getMyProfile says bookSpread only while book-spread is on", () => {
     expect(await myProfile(asSignedIn)).toEqual({ kind: "closed" });
   });
 
-  async function aMemberServed(email: string | undefined, ...definitions: FlagDefinition[]) {
-    await serving(...definitions);
-    const member = await aMember(t, juno.user);
-    if (email !== undefined) await t.run((ctx) => ctx.db.patch(member, { email }));
-    return aSignedInSession(t, juno);
-  }
-
-  async function serving(...definitions: FlagDefinition[]) {
-    postHog.withFlags(onForEveryone("website"), ...definitions);
-    await t.action(components.posthog.lib.refreshFlagDefinitions, {});
-    await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
-  }
-
   function bookSpreadExposures() {
     return t.run(async (ctx) => (await ctx.db.query("flagExposures").collect()).filter(({ flag }) => flag === bookSpread));
   }
 });
+
+describe("AL39: getMyProfile says album only while album is on", () => {
+  test.each([
+    { case: "album is off", definitions: [offForEveryone(album)] },
+    { case: "PostHog has no album flag", definitions: [] },
+    { case: "album is on only in the sandbox and this is production", definitions: [onlyInTheSandbox(album)], environment: "production" },
+  ])("while $case, getMyProfile carries no album and otherwise equals the answer with it on", async ({ definitions, environment }) => {
+    const { asSignedIn } = await aMemberServed(undefined, onForEveryone(album));
+    const on = await myProfile(asSignedIn);
+
+    await serving(...definitions);
+    if (environment !== undefined) vi.stubEnv("KUDOS_ENVIRONMENT", environment);
+    const off = await myProfile(asSignedIn);
+
+    expect(on).toMatchObject({ kind: "member", album: true });
+    expect(off).not.toHaveProperty("album");
+    expect(off).toEqual(withoutAlbum(on));
+  });
+
+  test("while album is on in the sandbox, getMyProfile carries album true and sends no exposure", async () => {
+    const { asSignedIn } = await aMemberServed(undefined, onlyInTheSandbox(album));
+
+    expect(await myProfile(asSignedIn)).toMatchObject({ kind: "member", album: true });
+    expect(await t.run(async (ctx) => (await ctx.db.query("flagExposures").collect()).filter(({ flag }) => flag === album))).toEqual([]);
+  });
+
+  test("without the flags key the website reads closed, with no album, even while PostHog turned album on", async () => {
+    const { asSignedIn } = await aMemberServed(undefined, onForEveryone(album));
+    vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "");
+
+    expect(await myProfile(asSignedIn)).toEqual({ kind: "closed" });
+  });
+});
+
+function withoutAlbum(profile: Awaited<ReturnType<typeof myProfile>>) {
+  if (profile.kind !== "member") return profile;
+  const { album: _, ...rest } = profile;
+  return rest;
+}
+
+function onlyInTheSandbox(key: string): FlagDefinition {
+  return { key, filters: { groups: [{ properties: [{ key: "environment", type: "person", value: ["sandbox"], operator: "exact" }], rollout_percentage: 100 }] } };
+}
+
+async function aMemberServed(email: string | undefined, ...definitions: FlagDefinition[]) {
+  await serving(...definitions);
+  const member = await aMember(t, juno.user);
+  if (email !== undefined) await t.run((ctx) => ctx.db.patch(member, { email }));
+  return aSignedInSession(t, juno);
+}
+
+async function serving(...definitions: FlagDefinition[]) {
+  postHog.withFlags(onForEveryone("website"), ...definitions);
+  await t.action(components.posthog.lib.refreshFlagDefinitions, {});
+  await t.mutation(internal.website.flag.prepareWebsiteFlag, {});
+}
 
 function withoutBookSpread(profile: Awaited<ReturnType<typeof myProfile>>) {
   if (profile.kind !== "member") return profile;

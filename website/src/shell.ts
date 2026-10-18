@@ -196,6 +196,8 @@ const memberWithTheCrateStore: MemberProfile = { ...memberWithTheInventory, ...o
 
 const memberWithTheBookSpread: MemberProfile = { ...memberWithTheCrateStore, avatar: null, bookSpread: true };
 
+const memberWithTheAlbum: MemberProfile = { ...memberWithTheCrateStore, avatar: null, album: true };
+
 const memberWithCoinsBeforeTheStore: MemberProfile = { ...memberWithCoinsOpened, coins: 40 };
 
 const memberAcrossTheSheet: MemberProfile = {
@@ -308,6 +310,7 @@ export const shellFixtures = {
   memberShortOfCoins,
   memberWithTheCrateStore,
   memberWithTheBookSpread,
+  memberWithTheAlbum,
   memberWithPacks,
   memberWithCoinsBeforeTheStore,
   memberWithNothingShipped,
@@ -373,6 +376,7 @@ const fixturesByName: Record<string, ShellState> = {
   "member-short-of-coins": shellFixtures.memberShortOfCoins,
   "member-with-the-crate-store": shellFixtures.memberWithTheCrateStore,
   "member-with-the-book-spread": shellFixtures.memberWithTheBookSpread,
+  album: shellFixtures.memberWithTheAlbum,
   "member-with-packs": shellFixtures.memberWithPacks,
   "member-with-more-packs": shellFixtures.memberWithPacks,
   error: shellFixtures.error,

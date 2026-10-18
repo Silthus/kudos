@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { NavigateProvider } from "./AppLink";
 import { LevelUpAnnouncement, MomentAnnouncement } from "./crates/MomentAnnouncement";
 import { MomentsProvider, useCrateMoments, useMembersShown, type Flight, type Reveal } from "./crates/moments";
@@ -15,6 +15,7 @@ import { PacksProvider } from "./book/packs/PacksContext";
 import { waitingPacksOf } from "./book/packs/packs";
 import { usePackSession } from "./book/packs/usePackSession";
 import type { ActivityRead, ActivityShown, ActivityWatch } from "./activityRead";
+import type { AlbumRead } from "./album/answer";
 import type { BoardAnswer, BoardRead } from "./boardRead";
 import type { BookRead, BookShown } from "./bookRead";
 import type { CollectionRead, CollectionShown } from "./collectionRead";
@@ -56,9 +57,29 @@ import { rememberSignInStarted, useSignInOutcome, useSignInWhenAsked } from "./s
 
 export type AppReads = Omit<AppProps, "visitor" | "actions">;
 
-type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useCollection: CollectionRead; useSkillTree: SkillTreeRead; useProfileCard: ProfileCardRead; useRecentKudos: RecentKudosRead; useActivityWatch: ActivityWatch; readActivity: ActivityRead; drawSpotlight: SpotlightDraw; useSettings: SettingsRead };
+export type AppProps = { visitor: ShellState; actions: ShellActions; useLeaderboard: BoardRead; useQuests: QuestsRead; useBook: BookRead; useCollection: CollectionRead; useSkillTree: SkillTreeRead; useProfileCard: ProfileCardRead; useRecentKudos: RecentKudosRead; useActivityWatch: ActivityWatch; readActivity: ActivityRead; drawSpotlight: SpotlightDraw; useSettings: SettingsRead; useAlbum: AlbumRead };
 
-export function App({ visitor, actions, useLeaderboard, useQuests, useBook, useCollection, useSkillTree, useProfileCard, useRecentKudos, useActivityWatch, readActivity, drawSpotlight, useSettings }: AppProps) {
+const AlbumApp = lazy(() => import("./album/AlbumApp"));
+
+export function App(props: AppProps) {
+  const { visitor } = props;
+  if (visitor.kind !== "member" || visitor.album !== true) return <TodaysApp {...props} />;
+  return (
+    <Suspense fallback={<AlbumWaits />}>
+      <AlbumApp {...props} member={visitor} />
+    </Suspense>
+  );
+}
+
+export function AlbumWaits() {
+  return (
+    <main aria-busy="true" className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-6 md:px-6 md:pt-8">
+      <LoadingPage />
+    </main>
+  );
+}
+
+function TodaysApp({ visitor, actions, useLeaderboard, useQuests, useBook, useCollection, useSkillTree, useProfileCard, useRecentKudos, useActivityWatch, readActivity, drawSpotlight, useSettings }: AppProps) {
   const { route, navigate, choosePeriod, chooseFilter } = useRoute();
   const shown = useSignInOutcome(visitor);
   const member = shown.kind === "member" ? shown : undefined;
@@ -337,18 +358,18 @@ function SkillTreeAnswerPage({ member, skillTree, onBuyPerk, ...actions }: Skill
   return <SkillTreePage tree={skillTree} level={member.progression?.level} buyPerk={onBuyPerk} />;
 }
 
-type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings">;
+export type SettingsActions = Pick<ShellActions, "setMessageSetting" | "setBoardVisibility" | "pickPrimaryGroup" | "linkMyCompanyProfile" | "linkCompanyProfile" | "setWorkspaceSettings">;
 
-function SettingsAnswerPage({ settings, actions, ...answers }: { settings: SettingsShown | undefined; actions: SettingsActions; onSignIn: () => void; onSignOut: () => void }) {
+export function SettingsAnswerPage({ settings, actions, ...answers }: { settings: SettingsShown | undefined; actions: SettingsActions; onSignIn: () => void; onSignOut: () => void }) {
   if (settings === undefined) return <LoadingPage shape="column" />;
   if (settings.kind === "not-found") return <NotFoundPage />;
   if (settings.kind !== "settings") return <AnswerPage answer={settings} {...answers} />;
   return <SettingsPage settings={settings} actions={actions} />;
 }
 
-type NotAMember = Exclude<ShellState, { kind: "member" | "loading" }>;
+export type NotAMember = Exclude<ShellState, { kind: "member" | "loading" }>;
 
-function AnswerPage({ answer, onSignIn, onSignOut }: { answer: NotAMember; onSignIn: () => void; onSignOut: () => void }) {
+export function AnswerPage({ answer, onSignIn, onSignOut }: { answer: NotAMember; onSignIn: () => void; onSignOut: () => void }) {
   switch (answer.kind) {
     case "broken":
       return <ErrorPage focusWasOnPage={false} />;
