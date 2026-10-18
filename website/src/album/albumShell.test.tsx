@@ -1,7 +1,8 @@
-import { screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { act, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
 import type { MyAlbum } from "./answer";
+import type { SettingsRead, SettingsShown } from "../settingsRead";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum, renderApp } from "../test/renderApp";
@@ -27,6 +28,16 @@ async function topBar() {
 async function sidebar() {
   return within(await screen.findByRole("navigation", { name: "Album" }));
 }
+
+describe("the AlbumAnswer fixtures keep the contract the UI tickets build on", () => {
+  it("lists every fixture's waiting packs oldest first", () => {
+    for (const album of Object.values(albumFixtures)) {
+      const earned = album.packs.map(({ earnedAt }) => earnedAt);
+      expect(earned).toEqual(earned.toSorted((first, second) => first - second));
+    }
+    expect(albumFixtures.midway.packs.length).toBeGreaterThan(1);
+  });
+});
 
 describe("AL39: the album shell shows only while getMyProfile carries album", () => {
   it("a member the flag is on for gets the album's frame, not today's", async () => {
@@ -273,6 +284,37 @@ describe("AL43: every album route has its page", () => {
     const title = await screen.findByRole("heading", { level: 1, name: "Paper Moons" });
     expect(window.location.hash).toBe("#teams/paper-moons");
     await waitFor(() => expect(title).toHaveFocus());
+  });
+});
+
+describe("AL43: page changes the address didn't come from a link", () => {
+  it("Back into Settings while its read still loads moves focus to its title once it lands", async () => {
+    window.history.replaceState(null, "", "/settings");
+    window.history.pushState(null, "", "/");
+    let settings: SettingsShown | undefined;
+    const readSettings: SettingsRead = (asking) => (asking ? settings : undefined);
+    const { showVisitor } = renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: readSettings });
+    await screen.findByRole("heading", { level: 1, name: "Lanterns" });
+
+    act(() => window.history.back());
+    await waitFor(() => expect(screen.queryByRole("heading", { level: 1, name: "Lanterns" })).not.toBeInTheDocument());
+    settings = settingsFixtures.everything;
+    showVisitor(memberWithTheAlbum);
+
+    const title = await screen.findByRole("heading", { level: 1, name: "Settings" });
+    await waitFor(() => expect(title).toHaveFocus());
+  });
+
+  it("a page that fails to render shows the error page inside the album's frame, and the frame still leads elsewhere", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const broken = { kind: "settings" } as unknown as SettingsShown;
+    window.history.replaceState(null, "", "/settings");
+    const { user } = renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: (asking) => (asking ? broken : undefined) });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Something went wrong" })).toBeInTheDocument();
+    await user.click((await sidebar()).getByRole("link", { name: /^Lanterns/ }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Lanterns" })).toBeInTheDocument();
   });
 });
 

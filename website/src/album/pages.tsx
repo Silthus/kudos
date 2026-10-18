@@ -63,7 +63,7 @@ function Page({ tab, eyebrow, title, children }: { tab: string; eyebrow?: string
   return (
     <div className="al-page-body">
       {eyebrow !== undefined && <p className="al-eyebrow">{eyebrow}</p>}
-      <PageTitle tab={tab} size="display">
+      <PageTitle tab={tab} size="hero">
         {title}
       </PageTitle>
       <p className="al-lede">{children}</p>
@@ -97,7 +97,7 @@ function PersonPage({ album, person }: { album: Album; person: AlbumPerson }) {
   return (
     <div className="al-page-body">
       <p className="al-eyebrow">{person.held ? "In your album" : "Not in your album yet"}</p>
-      <PageTitle tab={person.name} size="display">
+      <PageTitle tab={person.name} size="hero">
         <span className="ph-no-capture">{person.name}</span>
       </PageTitle>
       {teams.length > 0 && (

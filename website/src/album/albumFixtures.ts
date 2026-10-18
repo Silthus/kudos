@@ -99,7 +99,7 @@ function albumOf({ mine = "lanterns", cast = castTeams, gettingStarted = { hugge
     packs: people
       .filter(({ held }) => !held)
       .slice(0, packs)
-      .map(({ person }, index) => ({ pack: `pack-${index + 1}`, person, earnedAt: now - (index + 1) * day })),
+      .map(({ person }, index, waiting) => ({ pack: `pack-${index + 1}`, person, earnedAt: now - (waiting.length - index) * day })),
     morePacks: false,
     tray: [],
     emojis,

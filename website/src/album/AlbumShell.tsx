@@ -2,7 +2,9 @@ import { IconLeave } from "@posthog/icons";
 import { Button } from "@posthog/quill";
 import type { ReactNode } from "react";
 import { useCapturing } from "../browserAnalytics/capturing";
+import { ErrorBoundary } from "../ErrorBoundary";
 import { Feedback } from "../Feedback";
+import { ErrorPage } from "../pages/ErrorPage";
 import { useTitleFocusAfterChange, useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { ThemeControl } from "../ThemeControl";
 import { useWideScreen } from "../useWideScreen";
@@ -18,7 +20,7 @@ export type AlbumShellProps = { album: Album; place: Place; settings: ReactNode;
 
 export function AlbumShell({ album, place, settings, busy, onSignOut }: AlbumShellProps) {
   const wide = useWideScreen();
-  useTitleFocusAfterChange(keyOf(place), { held: false });
+  useTitleFocusAfterChange(busy ? "loading" : keyOf(place), { held: false });
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell">
@@ -27,7 +29,9 @@ export function AlbumShell({ album, place, settings, busy, onSignOut }: AlbumShe
         <Sidebar album={album} place={place} wide={wide} footer={<Footer onSignOut={onSignOut} />} />
         <main className="al-main" aria-busy={busy || undefined}>
           {place.kind === "team" && place.team === null && <GettingStarted facts={album.gettingStarted} />}
-          <AlbumPage album={album} place={place} settings={settings} />
+          <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
+            <AlbumPage album={album} place={place} settings={settings} />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

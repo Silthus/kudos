@@ -29,6 +29,12 @@ export function placeOf(route: Route, hash: string): Place {
   }
 }
 
+const pageSections = new Set(["teams", "people", "me", "hoggies", "milestones", "packs"]);
+
+export function isAnAlbumHash(hash: string) {
+  return pageSections.has(hash.replace(/^#/, "").split("/", 1)[0]!);
+}
+
 function bookPlaceOf(hash: string): Place {
   const [section, key] = hash.replace(/^#/, "").split("/", 2).map(decoded);
   if (section === "teams" && key) return { kind: "team", team: key };

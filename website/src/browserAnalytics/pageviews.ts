@@ -1,3 +1,4 @@
+import { isAnAlbumHash } from "../album/place";
 import { routeOf } from "../route";
 import { onAddressChange } from "./addressChanges";
 
@@ -34,6 +35,6 @@ function addressOf(location: Location) {
 export function pagePropertiesOf(location: Pick<Location, "pathname" | "search" | "hash">): PageProperties {
   const route = routeOf(location);
   if (route.page !== "book") return { page: route.page };
-  const spread = route.spread === undefined ? {} : { spread: location.hash.replace(/^#/, "") };
+  const spread = route.spread === undefined && !isAnAlbumHash(location.hash) ? {} : { spread: location.hash.replace(/^#/, "") };
   return { page: route.page, book_page: route.bookPage, ...spread };
 }
