@@ -73,21 +73,26 @@ async function memberOf(user: string): Promise<MemberId> {
 async function storedAndMatchedFaces() {
   return t.run(async (ctx) => {
     const { matches } = await companyProfilesIn(ctx, "T1");
-    const members = await ctx.db.query("members").withIndex("by_user", (q) => q.eq("workspace", "T1")).collect();
+    const members = (await ctx.db.query("members").withIndex("by_user", (q) => q.eq("workspace", "T1")).collect()).filter(({ kind }) => kind === "member");
+    const profileOf = (member: MemberId) => matches.get(member)?.profile ?? null;
     const matched = Object.fromEntries(
-      members.filter(({ kind }) => kind === "member").map(({ _id }) => {
-        const profile = matches.get(_id)?.profile;
+      members.map(({ _id }) => {
+        const profile = profileOf(_id);
         return [_id, profile?.image === undefined ? null : { image: profile.image, colour: profile.colour }];
       }),
     );
-    const stored = Object.fromEntries((await ctx.db.query("companyFaces").withIndex("by_member", (q) => q.eq("workspace", "T1")).collect()).map(({ member, face }) => [member, face]));
-    return { stored, matched };
+    const matchedProfiles = Object.fromEntries(members.map(({ _id }) => [_id, profileOf(_id)?.profile ?? null]));
+    const rows = await ctx.db.query("companyFaces").withIndex("by_member", (q) => q.eq("workspace", "T1")).collect();
+    const stored = Object.fromEntries(rows.map(({ member, face }) => [member, face]));
+    const storedProfiles = Object.fromEntries(rows.map(({ member, profile }) => [member, profile ?? null]));
+    return { stored, matched, storedProfiles, matchedProfiles };
   });
 }
 
 async function expectStoredFacesToFollowTheMatcher() {
-  const { stored, matched } = await storedAndMatchedFaces();
-  expect(stored).toEqual(matched);
+  const { stored, matched, storedProfiles, matchedProfiles } = await storedAndMatchedFaces();
+  expect(stored, "the stored faces").toEqual(matched);
+  expect(storedProfiles, "the stored matched profiles").toEqual(matchedProfiles);
   return stored;
 }
 
@@ -108,6 +113,7 @@ describe("CV22: each member's stored company face follows the matcher through ev
     await asTwin.mutation(api.website.commands.linkMyCompanyProfile, { profile: 2 });
     await settle(t);
     expect((await expectStoredFacesToFollowTheMatcher())[twin]).toEqual({ image: cutoutOf("oriel"), colour: "#29DBBB" });
+    expect((await storedAndMatchedFaces()).storedProfiles[twin], "the twin's stored profile after their own link").toBe(2);
 
     await slackSays("team_join", "U_ADMIN", aMemberNamed("Ada Admin", { admin: true }));
     const { asSignedIn: asAdmin } = await aSignedInSession(t, { user: "U_ADMIN", name: "Ada Admin" });

@@ -78,7 +78,7 @@ const minuteMs = 60_000;
 const siteUrl = "https://kudos-site.test";
 const album = "album";
 const everyOtherFlag = ["xp-levels", "unlocks", "achievements", "collection", "crests", "crate-store", "crate-rewards", "coins", "store", "quests", "group-quest", "groups", "activity", "everyone-board", "profile-card", "hoggie-avatar", "message-settings", "custom-kudos-emoji", "monday-post", "skill-tree", "sticker-book", "team-pages", "team-spirit"];
-const albumTables = ["thoughtfulPacks", "grantRecords", "grantsTold", "albumStickers", "emojiNames", "emojiNameNumbers", "albumHistory", "pairTallies", "weekTallies", "weekPeople", "talliedAwards", "talliedHugs"] as const;
+const albumTables = ["thoughtfulPacks", "grantRecords", "grantsTold", "thoughtfulTallies", "albumStickers", "emojiNames", "emojiNameNumbers", "albumHistory", "pairTallies", "weekTallies", "weekPeople", "talliedAwards", "talliedHugs"] as const;
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
 const bob = { user: "U_BOB", name: "Bob Okafor", email: "bob@example.com" };
 const carol = { user: "U_CAROL", name: "Carol Diaz", email: "carol@example.com" };
@@ -123,7 +123,7 @@ const albumOff: Array<{ condition: string; flag: FlagDefinition[]; turnOff?: () 
 ];
 
 describe("AL39: the album is dark where album is off, shows only to the members it is on for, and nothing exposes it", { timeout: 180_000 }, () => {
-  test.each(albumOff)("$condition, a walk of kudos, App Home, a company sync and every website read leaves what the same walk leaves without the album, apart from the packs, grant records, emoji names and tallies it stores and the packs earned events it sends, and getAlbum answers off", async ({ flag, turnOff }) => {
+  test.each(albumOff)("$condition, a walk of kudos, App Home, a company sync and every website read leaves what the same walk leaves without the album, apart from the packs, grant records, thoughtful tallies, emoji names and the pair and week tallies it stores and the packs earned events it sends, and getAlbum and getThoughtfulBoards answer off", async ({ flag, turnOff }) => {
     theAlbum.removed = true;
     const withoutTheAlbum = await walkIn(await fourMembers(flag, turnOff));
     freshFakes();
@@ -137,6 +137,9 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(walk.albumRows.emojiNames.length).toBeGreaterThan(0);
     expect(withoutTheAlbum.albumRows.pairTallies).toEqual([]);
     expect(walk.albumRows.pairTallies.length).toBeGreaterThan(0);
+    expect(walk.albumRows.thoughtfulTallies).toEqual([expect.objectContaining({ awards: 2 }), expect.objectContaining({ awards: 1 })]);
+    expect(Object.values(walk.boards).every((answer) => !(answer as object).hasOwnProperty("people"))).toBe(true);
+    expect(Object.values(walk.boards)).toEqual(Object.values(withoutTheAlbum.boards));
     expect(packsEarnedIn(withoutTheAlbum)).toEqual([]);
     expect(packsEarnedIn(walk)).toEqual([
       { packs_earned: 2, recipients: 2 },
@@ -159,6 +162,7 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(on.albums.U_ALICE).toMatchObject({ kind: "album", me: { name: alice.name }, packs: [{ person: "<member U_BOB>" }, { person: "<member U_CAROL>" }], morePacks: false });
     expect(on.albums.U_BOB).toMatchObject({ kind: "album", packs: [{ person: "<member U_ALICE>" }] });
     expect(on.albums.U_CAROL).toMatchObject({ kind: "album", packs: [] });
+    expect(on.boards.U_CAROL).toMatchObject({ kind: "boards", people: [{ name: alice.name, thoughtful: 2, rank: 1 }, { name: bob.name, thoughtful: 1, rank: 2 }], teams: [{ team: "lanterns", thoughtful: 3, rank: 1 }] });
     expect(albumExposures(on)).toEqual([]);
     expect(albumDecisions.length).toBeGreaterThan(0);
     expect(albumDecisions.every(({ inAQuery }) => inAQuery)).toBe(true);
@@ -233,9 +237,11 @@ async function walkIn(backend: Backend) {
   for (const { user } of members) await openHome(user);
   const answers: Record<string, Awaited<ReturnType<typeof onTheWebsite>>> = {};
   const albums: Record<string, unknown> = {};
+  const boards: Record<string, unknown> = {};
   for (const member of members) {
     answers[member.user] = await onTheWebsite(member);
     albums[member.user] = withStableIds(await (await signedIn(member)).query(api.website.album.getAlbum, {}));
+    boards[member.user] = withStableIds(await (await signedIn(member)).query(api.website.album.getThoughtfulBoards, {}));
   }
   const seen = {
     homes: Object.fromEntries(members.map(({ user }) => [user, publishedHome(slack, user)])),
@@ -245,7 +251,7 @@ async function walkIn(backend: Backend) {
     productEvents: orderFree(withStableIds(postHog.productEvents().filter((event) => !isPacksEarned(event)).map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsWrittenApartFromTheAlbum(),
   };
-  return { seen, albums, albumRows: await albumRows(), postHogEvents: postHog.events() };
+  return { seen, albums, boards, albumRows: await albumRows(), postHogEvents: postHog.events() };
 }
 
 async function kudosOfTheWalk() {

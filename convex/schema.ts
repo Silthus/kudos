@@ -38,6 +38,7 @@ import {
   talliedAwardValidator,
   talliedHugValidator,
   thoughtfulPackValidator,
+  thoughtfulTallyValidator,
   weekPersonValidator,
   weekTallyValidator,
 } from "./album/records";
@@ -102,6 +103,7 @@ export default defineSchema({
     workspace: v.string(),
     member: v.id("members"),
     face: v.union(v.object({ image: v.string(), colour: v.string() }), v.null()),
+    profile: v.optional(v.number()),
   }).index("by_member", ["workspace", "member"]),
 
   companyProfileLinks: defineTable({
@@ -533,6 +535,8 @@ export default defineSchema({
   grantRecords: defineTable(grantRecordValidator).index("by_message_recipient", ["message.workspace", "message.conversation", "message.message", "recipient"]),
 
   grantsTold: defineTable(grantToldValidator).index("by_message", ["message.workspace", "message.conversation", "message.message"]),
+
+  thoughtfulTallies: defineTable(thoughtfulTallyValidator).index("by_workspace_week_giver", ["workspace", "week", "giver"]),
 
   albumStickers: defineTable(albumStickerValidator).index("by_member_person", ["member", "person"]),
 
