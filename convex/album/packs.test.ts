@@ -169,7 +169,12 @@ describe("a message's packs are told once", () => {
       { packs_earned: 1, recipients: 1 },
       { packs_earned: 120, recipients: 121 },
     ]);
-    expect(await packCountOf(alice)).toBe(121);
+    const album = await (await signedIn(alice)).query(api.website.album.getAlbum, {});
+    expect(album).toMatchObject({ kind: "album", morePacks: true });
+    const shown = "packs" in album ? album.packs.map(({ person }) => person) : [];
+    expect(shown).toHaveLength(50);
+    expect(shown[0]).toBe(await memberOf(bob));
+    expect(new Set(shown).size).toBe(50);
   });
 });
 
@@ -227,11 +232,6 @@ async function packsOf(person: Person) {
   const names = new Map<string, string>();
   for (const someone of [alice, bob, carol, dana]) names.set((await memberOrNullOf(someone)) ?? someone.user, someone.name);
   return album.packs.map(({ person: packed }) => names.get(packed) ?? packed);
-}
-
-async function packCountOf(person: Person) {
-  const member = await memberOf(person);
-  return t.run(async (ctx) => (await ctx.db.query("thoughtfulPacks").collect()).filter(({ giver }) => giver === member).length);
 }
 
 async function anAlbumStickerAsHistoryWillRecordIt(member: Person, person: Person) {

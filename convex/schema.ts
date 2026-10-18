@@ -523,7 +523,10 @@ export default defineSchema({
 
   albumStickers: defineTable(albumStickerValidator).index("by_member_person", ["member", "person"]),
 
-  emojiNames: defineTable(emojiNameValidator).index("by_workspace_emoji", ["workspace", "emoji", "person"]).index("by_workspace_name", ["workspace", "name"]),
+  emojiNames: defineTable(emojiNameValidator)
+    .index("by_workspace_emoji", ["workspace", "emoji", "person"])
+    .index("by_workspace_name", ["workspace", "name"])
+    .index("by_emoji", ["emoji", "person", "workspace"]),
 
   emojiNameNumbers: defineTable(emojiNameNumberValidator).index("by_workspace_stem", ["workspace", "stem"]),
 

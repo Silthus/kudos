@@ -5,7 +5,6 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import { kudosGivenEventValidator, type KudosGivenEvent } from "../bus/events";
 import { publish } from "../bus/publish";
 import type { MessageRef } from "../engine/messageEvent";
-import { gateDecisionOf } from "../progression/gate";
 import { givingWeekOf } from "../progression/progress";
 import type { MemberId } from "../workspace/directory";
 import { nameHypeEmojiOf } from "./emojiNames";
@@ -15,10 +14,6 @@ export const recipientsPerMutation = 50;
 export const mostWaitingPacksShown = 50;
 
 export type WaitingPack = { pack: Id<"thoughtfulPacks">; person: MemberId; earnedAt: number };
-
-export function earnsPacks(event: KudosGivenEvent): boolean {
-  return gateDecisionOf(event.annotations)?.thoughtful === true;
-}
 
 export const grantThoughtfulPacks = internalMutation({
   args: { event: kudosGivenEventValidator, from: v.optional(v.number()) },

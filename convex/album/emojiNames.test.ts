@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakePostHogCom, type TeamPage } from "../../testing/fakePostHogCom";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
+import { convexStops, memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, switchWebsite } from "../../testing/website";
 import { internal } from "../_generated/api";
 import type { MemberId } from "../workspace/directory";
-import { emojiNameOf, slugOf, type EarnedEmojiId } from "./emojiNames";
+import { emojiNameOf, type EarnedEmojiId } from "./emojiNames";
 
 const minuteMs = 60_000;
 const why = "Thanks for the patient walkthrough of the ledger importer";
@@ -75,6 +75,14 @@ describe("an earned emoji's name never moves", () => {
     expect([await hypeNameOf(first), await hypeNameOf(second), await hypeNameOf(third)]).toEqual(["sam-rivera-hype", "sam-rivera-2-hype", null]);
   });
 
+  test("a hype name is the slug of the person's full name, not their Slack display name", async () => {
+    const sam = await aMember({ user: "U_SAM", name: "Sam Rivera" }, "sam");
+
+    await thanks(sam);
+
+    expect(await hypeNameOf(sam)).toBe("sam-rivera-hype");
+  });
+
   test("a rename keeps the name a person's hype emoji was given", async () => {
     const wren = await aMember({ user: "U_WREN", name: "Wren Halloway" });
     await thanks(wren);
@@ -107,10 +115,25 @@ describe("an earned emoji's name never moves", () => {
     expect(await namesOf("team:hoarders", "team:rockets", "team:kanji", "team:lanterns")).toEqual(["hoarder-2", "rocket-2", "team-1", "lanterns"]);
   });
 
-  test("a slug is lower-cased, accent-free, one hyphen per run of other characters, trimmed and at most 80 characters", () => {
-    expect(slugOf("  Ünïcode -- & Friends!! ")).toBe("unicode-friends");
-    expect(slugOf("a".repeat(79) + " b")).toBe("a".repeat(79));
-    expect(slugOf("中文")).toBe("");
+  test("a team named like a hype emoji keeps its name when a first pack comes before the sync's reservation runs", async () => {
+    await thanks(await aMember({ user: "U_WREN", name: "Wren Halloway" }));
+    const sam = await aMember({ user: "U_SAM", name: "Sam Rivera" });
+    postHogCom.withTeams(team("sam-rivera-hype", "Sam Rivera Hype"));
+    await t.action(internal.companyProfiles.sync.syncCompanyProfiles, {});
+    await convexStops(t, "album/emojiNames:reserveTeamNamesAfterTheSync");
+
+    await thanks(sam);
+
+    expect([await hypeNameOf(sam), ...(await namesOf("team:sam-rivera-hype"))]).toEqual(["sam-rivera-2-hype", "sam-rivera-hype"]);
+  });
+
+  test("a hype name is lower-cased, accent-free, one hyphen per run of other characters, trimmed and cut to 80 characters before its suffix", async () => {
+    const friends = await aMember({ user: "U_FRIENDS", name: "  Ünïcode -- & Friends!! " });
+    const long = await aMember({ user: "U_LONG", name: `${"A".repeat(79)} B` });
+
+    await thanks(friends, why, long);
+
+    expect([await hypeNameOf(friends), await hypeNameOf(long)]).toEqual(["unicode-friends-hype", `${"a".repeat(79)}-hype`]);
   });
 });
 
@@ -124,9 +147,10 @@ async function companyTeams(...teams: TeamPage[]) {
   await settle(t);
 }
 
-async function aMember(person: Person): Promise<MemberId> {
-  slack.withMember(person.user, { real_name: person.name, profile: { real_name: person.name, display_name: person.name } });
-  await memberChanged(t, "team_join", { id: person.user, real_name: person.name, profile: { real_name: person.name, display_name: person.name } });
+async function aMember(person: Person, displayName = person.name): Promise<MemberId> {
+  const profile = { real_name: person.name, display_name: displayName };
+  slack.withMember(person.user, { real_name: person.name, profile });
+  await memberChanged(t, "team_join", { id: person.user, real_name: person.name, profile });
   await settle(t);
   const row = await t.run((ctx) =>
     ctx.db

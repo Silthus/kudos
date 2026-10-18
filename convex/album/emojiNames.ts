@@ -2,16 +2,17 @@ import { v } from "convex/values";
 import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { companyTeamsReplacedEventValidator } from "../bus/events";
 import { companyTeamsOf } from "../companyProfiles/teams";
-import { displayNameOf, type MemberId } from "../workspace/directory";
+import { displayNameOf, personFactsOf, type MemberId } from "../workspace/directory";
 import { emojiLevels, milestoneGoldNames } from "./emojiCatalogue";
 import { standardEmojiNames } from "./standardEmojiNames";
 
 export type EarnedEmojiId = `level:${number}` | `milestone:${string}` | `team:${string}` | `hype:${MemberId}`;
 
 const longestSlug = 80;
+const hypeSuffix = "-hype";
 const firstUse: EarnedEmojiId = `level:${emojiLevels[0]}`;
 
-export function slugOf(source: string): string {
+function slugOf(source: string): string {
   return source
     .normalize("NFKD")
     .replace(/\p{M}/gu, "")
@@ -27,18 +28,32 @@ export async function emojiNameOf(ctx: QueryCtx, workspace: string, emoji: Earne
 }
 
 export async function nameHypeEmojiOf(ctx: MutationCtx, workspace: string, person: MemberId): Promise<void> {
+  if ((await registeredAs(ctx, workspace, `hype:${person}`)) !== null) return;
   await reserveSharedNamesIn(ctx, workspace);
-  await allocate(ctx, workspace, `hype:${person}`, { slug: slugOf((await displayNameOf(ctx, person)) ?? ""), empty: "person", suffix: "-hype" });
+  await reserveTeamNamesShapedLikeHypes(ctx, workspace);
+  await allocate(ctx, workspace, `hype:${person}`, { slug: slugOf(await fullNameOf(ctx, person)), empty: "person", suffix: hypeSuffix });
 }
 
 export const reserveTeamNamesAfterTheSync = internalMutation({
   args: { event: companyTeamsReplacedEventValidator },
   returns: v.null(),
   handler: async (ctx) => {
-    for (const { workspace } of await ctx.db.query("workspaces").collect()) if ((await registeredAs(ctx, workspace, firstUse)) !== null) await reserveCompanyTeamNamesIn(ctx, workspace);
+    for (const workspace of await workspacesWithARegistry(ctx)) await reserveCompanyTeamNamesIn(ctx, workspace);
     return null;
   },
 });
+
+async function workspacesWithARegistry(ctx: QueryCtx): Promise<string[]> {
+  const firstUses = await ctx.db
+    .query("emojiNames")
+    .withIndex("by_emoji", (q) => q.eq("emoji", firstUse).eq("person", undefined))
+    .collect();
+  return firstUses.map(({ workspace }) => workspace);
+}
+
+async function fullNameOf(ctx: QueryCtx, person: MemberId): Promise<string> {
+  return (await personFactsOf(ctx, person))?.realName ?? (await displayNameOf(ctx, person)) ?? "";
+}
 
 async function reserveSharedNamesIn(ctx: MutationCtx, workspace: string) {
   if ((await registeredAs(ctx, workspace, firstUse)) !== null) return;
@@ -47,9 +62,13 @@ async function reserveSharedNamesIn(ctx: MutationCtx, workspace: string) {
   await reserveCompanyTeamNamesIn(ctx, workspace);
 }
 
-async function reserveCompanyTeamNamesIn(ctx: MutationCtx, workspace: string) {
+async function reserveCompanyTeamNamesIn(ctx: MutationCtx, workspace: string, only: (slug: string) => boolean = () => true) {
   const teams = (await companyTeamsOf(ctx)).toSorted((one, other) => one.team.localeCompare(other.team));
-  for (const { team, name } of teams) await allocate(ctx, workspace, `team:${team}`, { slug: slugOf(name), empty: "team", suffix: "" });
+  for (const { team, name } of teams) if (only(slugOf(name))) await allocate(ctx, workspace, `team:${team}`, { slug: slugOf(name), empty: "team", suffix: "" });
+}
+
+function reserveTeamNamesShapedLikeHypes(ctx: MutationCtx, workspace: string) {
+  return reserveCompanyTeamNamesIn(ctx, workspace, (slug) => slug.endsWith(hypeSuffix));
 }
 
 type NameShape = { slug: string; empty: string; suffix: string };

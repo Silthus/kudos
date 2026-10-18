@@ -27,6 +27,7 @@ import type * as activity_entries from "../activity/entries.js";
 import type * as activity_kudos from "../activity/kudos.js";
 import type * as activity_position from "../activity/position.js";
 import type * as activity_spotlight from "../activity/spotlight.js";
+import type * as album_earns from "../album/earns.js";
 import type * as album_emojiCatalogue from "../album/emojiCatalogue.js";
 import type * as album_emojiNames from "../album/emojiNames.js";
 import type * as album_flag from "../album/flag.js";
@@ -315,6 +316,7 @@ declare const fullApi: ApiFromModules<{
   "activity/kudos": typeof activity_kudos;
   "activity/position": typeof activity_position;
   "activity/spotlight": typeof activity_spotlight;
+  "album/earns": typeof album_earns;
   "album/emojiCatalogue": typeof album_emojiCatalogue;
   "album/emojiNames": typeof album_emojiNames;
   "album/flag": typeof album_flag;

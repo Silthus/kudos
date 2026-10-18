@@ -1,6 +1,5 @@
 import { albumShownTo } from "../album/flag";
 import { waitingPacksOf, type WaitingPack } from "../album/packs";
-import { companyProfileOf } from "../companyProfiles/matcher";
 import { xpToReach } from "../progression/levels";
 import { progressionHomeOf } from "../progression/progression";
 import type { QueryCtx } from "../_generated/server";
@@ -10,7 +9,7 @@ import { memberQuery, type VerifiedMember } from "./memberQuery";
 
 export type AlbumAnswer = {
   kind: "album";
-  me: { name: string; face: Face; person: MemberId; team: string | null };
+  me: { name: string; face: Face; person: MemberId };
   level: { level: number; xp: number; startsAt: number; nextAt: number };
   packs: WaitingPack[];
   morePacks: boolean;
@@ -25,8 +24,7 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
 });
 
 async function meIn(ctx: QueryCtx, me: VerifiedMember): Promise<AlbumAnswer["me"]> {
-  const match = await companyProfileOf(ctx, me.member);
-  return { name: me.name ?? nameless, face: await faceOf(ctx, me), person: me.member, team: match?.profile?.teams[0] ?? null };
+  return { name: me.name ?? nameless, face: await faceOf(ctx, me), person: me.member };
 }
 
 async function levelOf(ctx: QueryCtx, member: MemberId): Promise<AlbumAnswer["level"]> {

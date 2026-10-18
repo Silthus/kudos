@@ -6,14 +6,15 @@ const workspace = required("KUDOS_WORKSPACE");
 const channel = required("KUDOS_PUBLIC_CHANNEL");
 const secret = readFileSync(required("SLACK_SIGNING_SECRET_FILE"), "utf8").trim();
 const run = `${Date.now()}`;
+const cast = process.env.KUDOS_CAST ?? "";
 const dayMs = 86_400_000;
 
 type Person = { id: string; name: string };
 
-const giver: Person = { id: "U0PRF645GVR", name: "Imogen Quarry" };
-const fennel: Person = { id: "U0PRF645FNL", name: "Fennel Brook" };
-const juniper: Person = { id: "U0PRF645JNP", name: "Juniper Vale" };
-const rowan: Person = { id: "U0PRF645RWN", name: "Rowan Thistle" };
+const giver: Person = { id: `U0PRF645GVR${cast}`, name: "Imogen Quarry" };
+const fennel: Person = { id: `U0PRF645FNL${cast}`, name: "Fennel Brook" };
+const juniper: Person = { id: `U0PRF645JNP${cast}`, name: "Juniper Vale" };
+const rowan: Person = { id: `U0PRF645RWN${cast}`, name: "Rowan Thistle" };
 
 let sent = 0;
 

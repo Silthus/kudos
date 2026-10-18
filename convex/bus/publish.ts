@@ -2,7 +2,7 @@ import type { FunctionReference } from "convex/server";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { journeyStepOpenedBy } from "../quests/step";
-import { earnsPacks } from "../album/packs";
+import { earnsPacks } from "../album/earns";
 import type { DomainEvent } from "./events";
 
 type Subscriber<E extends DomainEvent> = FunctionReference<"mutation" | "action", "internal", { event: E }>;
