@@ -30,8 +30,9 @@ import { forgetSignInStarted } from "./signInAttempt";
 export function LiveShell({ client }: { client: ConvexReactClient }) {
   return (
     <ConvexAuthProvider client={client}>
-      <BrowserAnalytics />
-      <LiveApp />
+      <BrowserAnalytics>
+        <LiveApp />
+      </BrowserAnalytics>
     </ConvexAuthProvider>
   );
 }
