@@ -17,7 +17,7 @@ export const startAlbumHistory = internalMutation({
   returns: v.null(),
   handler: async (ctx, { workspace }) => {
     if ((await historyOf(ctx, workspace)) !== null) return null;
-    await ctx.db.insert("albumHistory", { workspace, startedAt: Date.now(), phase: "awards", cursor: null, done: false });
+    await ctx.db.insert("albumHistory", { workspace, startedAt: Date.now(), phase: "kudos", cursor: null, done: false });
     await ctx.scheduler.runAfter(0, internal.album.history.recordAlbumHistory, { workspace });
     return null;
   },
@@ -29,7 +29,7 @@ export const recordAlbumHistory = internalMutation({
   handler: async (ctx, { workspace }) => {
     const history = await historyOf(ctx, workspace);
     if (history === null || history.done) return null;
-    const moved = history.phase === "awards" ? await recordAwardsPage(ctx, history) : await tallyHugsPage(ctx, history);
+    const moved = history.phase === "kudos" ? await recordAwardsPage(ctx, history) : await tallyHugsPage(ctx, history);
     await ctx.db.patch(history._id, moved);
     if (!moved.done) await ctx.scheduler.runAfter(0, internal.album.history.recordAlbumHistory, { workspace });
     return null;
@@ -45,7 +45,7 @@ async function recordAwardsPage(ctx: MutationCtx, history: AlbumHistory): Promis
     if (award.created < history.startedAt) await recordHistorySticker(ctx, award.giver, award.recipient, award.at);
     await tallyAward(ctx, award, await wordsOf(award));
   }
-  return isDone ? { phase: "hugs", cursor: null, done: false } : { phase: "awards", cursor: continueCursor, done: false };
+  return isDone ? { phase: "hugs", cursor: null, done: false } : { phase: "kudos", cursor: continueCursor, done: false };
 }
 
 async function tallyHugsPage(ctx: MutationCtx, history: AlbumHistory): Promise<Moved> {

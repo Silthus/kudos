@@ -1,4 +1,5 @@
 import { v, type Infer } from "convex/values";
+import { awardIdValidator } from "../engine/awards";
 import { messageRefValidator } from "../engine/messageEvent";
 
 export const grantOutcomeValidator = v.union(v.literal("new"), v.literal("held"), v.literal("waiting"), v.literal("nextWeek"));
@@ -39,7 +40,7 @@ export const emojiNameNumberValidator = v.object({ workspace: v.string(), stem: 
 export const albumHistoryValidator = v.object({
   workspace: v.string(),
   startedAt: v.number(),
-  phase: v.union(v.literal("awards"), v.literal("hugs")),
+  phase: v.union(v.literal("kudos"), v.literal("hugs")),
   cursor: v.union(v.string(), v.null()),
   done: v.boolean(),
 });
@@ -88,6 +89,6 @@ export const weekTallyValidator = v.object({
 
 export const weekPersonValidator = v.object({ member: v.id("members"), week: v.string(), list: weekListValidator, person: v.id("members") });
 
-export const talliedAwardValidator = v.object({ award: v.id("awards") });
+export const talliedAwardValidator = v.object({ award: awardIdValidator });
 
 export const talliedHugValidator = v.object({ hug: v.id("hugs"), person: v.id("members") });

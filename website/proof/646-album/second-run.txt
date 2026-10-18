@@ -1,0 +1,5 @@
+Second `convex run album/history:startAlbumHistory '{"workspace":"T0C3US298SH"}'` on different-dog-467, 20 s later:
+cmp albumHistory before/after: identical (history-same)
+cmp every albumStickers row before/after: identical (stickers-same)
+cmp getAlbum --identity (Odile) before/after: identical (getAlbum-same)
+cmp Odile's three pair tallies and two week tallies before/after: identical (tallies-same)
