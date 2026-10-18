@@ -274,8 +274,13 @@ async function isDueToDraw(ctx: MutationCtx, workspace: string, week: WeekKey, n
     .query("groupQuestLaunches")
     .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
     .unique();
-  if (launch !== null) return launch.at < weekStartOf(week, undefined) && (await drawnWeekIn(ctx, workspace, week)) === null;
-  if (await groupQuestAppliesIn(ctx, workspace)) await ctx.db.insert("groupQuestLaunches", { workspace, at: now });
+  if (launch === null) {
+    if (await groupQuestAppliesIn(ctx, workspace)) await ctx.db.insert("groupQuestLaunches", { workspace, at: now });
+    return false;
+  }
+  if (launch.at >= weekStartOf(week, undefined) || (await drawnWeekIn(ctx, workspace, week)) !== null) return false;
+  if (await groupQuestAppliesIn(ctx, workspace)) return true;
+  await ctx.db.insert("groupQuestWeeks", { workspace, week, drawnAt: now });
   return false;
 }
 

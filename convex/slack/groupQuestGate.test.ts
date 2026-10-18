@@ -4,7 +4,7 @@ import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { type FakePostHog, flagsKey, routedFetch, type FlagDefinition } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { flagsFromPostHog, offForEveryone, onForEveryone, onInTheSandboxOnly, postHogDeciding, testBackendServing, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
+import { flagsFromPostHog, offForEveryone, onForEmails, onForEveryone, onInTheSandboxOnly, postHogDeciding, testBackendServing, unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { memberChanged, settle, settleInTimeOrder, type Backend } from "../../testing/slackBackend";
 import { blockActions, publishedHome, staleButtonOf, type BlockAction } from "../../testing/slackInteractions";
@@ -151,6 +151,27 @@ describe("GB29 GB36: turning a flag the group quest needs off hides it and rewri
   });
 });
 
+describe("AL35: group quest draws obey group-quest whatever was launched", { timeout: 120_000 }, () => {
+  test("after the launch, with group-quest off in the workspace decision but on for three Ants by their email, Monday's sweep tallies and draws nothing, also once it is on again mid-week, and the next Monday draws one", async () => {
+    const t = await antsOpenedQuests(everyFlagBut(""));
+    await sweepAt(t, lastTuesday);
+    await flagsFromPostHog(t, postHog, ...everyFlagBut(groupQuest, onForEmails(groupQuest, ...["U_ANN", "U_AL", "U_AMY"].map(emailOf))));
+    const jobsBefore = (await groupQuestJobsOf(t)).length;
+
+    await sweepAt(t, mondaySweep);
+    expect(await groupQuestFacts(t)).toMatchObject({ launches: [expect.anything()], quests: [] });
+    expect((await groupQuestJobsOf(t)).slice(jobsBefore)).toEqual([]);
+    expect(groupQuestEvents()).toEqual([]);
+
+    await everyFlagOn(t);
+    await sweepAt(t, wednesday);
+    expect((await groupQuestFacts(t)).quests).toEqual([]);
+
+    await sweepAt(t, nextMondaySweep);
+    expect((await groupQuestFacts(t)).quests.map(({ week }) => week)).toEqual(["2026-10-26"]);
+  });
+});
+
 describe("GB29 O36: the group-quest exposure", { timeout: 120_000 }, () => {
   test("is sent once per member and value from App Home, on again included, and not where groups or quests is off, which leaves group-quest nothing to decide", async () => {
     const t = await antsOpenedQuests(everyFlagBut(""));
@@ -210,12 +231,12 @@ async function antsOpenedQuests(flags: FlagDefinition[], turnOff?: () => void, s
   turnOff?.();
   await setUp?.(t);
   await unlocksShippedBeforeAnyoneJoined(t);
-  for (const user of ants) slack.withMember(user, { profile: { display_name: user.slice(2) } });
+  for (const user of ants) slack.withMember(user, { profile: profileOf(user) });
   slack.withUserGroup("S_ANTS", { name: "Ants", users: ants });
   await t.action(internal.slack.userGroups.syncUserGroups, {});
   await settle(t);
   for (const user of ants) {
-    await memberChanged(t, "team_join", { id: user, profile: { display_name: user.slice(2) } });
+    await memberChanged(t, "team_join", { id: user, profile: profileOf(user) });
     await settle(t);
   }
   vi.setSystemTime(lastTuesday);
@@ -224,6 +245,14 @@ async function antsOpenedQuests(flags: FlagDefinition[], turnOff?: () => void, s
   });
   await settle(t);
   return t;
+}
+
+function profileOf(user: string) {
+  return { display_name: user.slice(2), email: emailOf(user) };
+}
+
+function emailOf(user: string) {
+  return `${user.slice(2).toLowerCase()}@example.com`;
 }
 
 async function noGroupCounts(t: Backend) {
@@ -242,6 +271,11 @@ function groupQuestFacts(t: Backend) {
     pendingCrates: (await ctx.db.query("pendingCrates").collect()).filter(({ key }) => key.startsWith("group:")),
     crateOpenings: (await ctx.db.query("crateOpenings").collect()).filter(({ key }) => key.startsWith("group:")),
   }));
+}
+
+async function groupQuestJobsOf(t: Backend) {
+  const jobs = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
+  return jobs.map(({ name }) => name).filter((name) => /groupQuest(\.js)?:(tallyParticipants|drawGroupQuests|catchUpContributions)$/.test(name));
 }
 
 function groupQuestEvents() {

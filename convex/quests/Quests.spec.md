@@ -626,7 +626,7 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   kinds: state, output
   checklist: revalidated-permission dismissed: App Home, the stale Open, the kudos subscriber and the draw each read the member's predicate when they run, never a value stored while it was on
   checklist: legal-state-succession dismissed: turning a flag off writes nothing; quests, contributions, reward records and crate openings recorded while on stay as they were
-  checklist: resumption-coverage dismissed: a draw chain that runs while a flag is off counts no participant to whom it doesn't apply, and the week mark only records that the sweep ran
+  checklist: resumption-coverage dismissed: the sweep starts no draw chain while the group quest doesn't apply in the workspace decision, and the week mark only records that the sweep ran
   checklist: declared-target-coverage dismissed: the surfaces are the line, its Open, the waiting crate, the stale Open, the kudos subscriber and the draw, each covered by a case of the oracle
   checklist: separation-of-duties dismissed: the flags are switched in PostHog by the owner, outside this deployment
   checklist: supersession-safety dismissed: every flag is read fresh in the mutation that decides; nothing stored records a value except the exposure, which is per value
@@ -635,3 +635,16 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   checklist: destination-confinement dismissed: the decision only withholds lines and records; where App Home and the events go is unchanged
   checklist: redaction dismissed: the decision hides the whole group quest line and its crates rather than scrubbing content inside them
   checklist: circuit-breaker-policy dismissed: the flags are read from the PostHog component's cached definitions, never by calling PostHog per read
+- group quest draws obey group-quest whatever was launched: Once the group quest launched in a workspace, Monday's sweep starts a tally and a draw only while the group quest applies in the workspace decision; where it doesn't, even with `group-quest` on for some members by their email, the sweep records only that the week passed, so nothing is tallied, drawn or caught up that week, also once it is on again mid-week, and the next Monday draws as before (AL35).
+  over: a group of 4 who opened Quests, the launch, then `group-quest` off in the workspace decision and on for three of them by their email at Monday's sweep, on for everyone again that Wednesday and the next Monday, read through the group quest's stored facts, its scheduled tally, draw and catch-up jobs and its events
+  via: AL35: group quest draws obey group-quest whatever was launched
+  because: the album retires the group quest by turning `group-quest` off (AL33), and a launch recorded before must not keep it drawing for the members a person-level condition still names (AL35); a mid-week draw after the flag returned would move the week's participants under them (GB21)
+  kinds: state
+  checklist: revalidated-permission dismissed: the sweep reads the workspace decision when it runs, never the launch's stored value
+  checklist: legal-state-succession dismissed: the week mark is written once per workspace and week, read before the sweep writes it
+  checklist: supersession-safety dismissed: Convex serializes the sweep's read and write of a workspace's week mark
+  checklist: worker-fencing dismissed: no worker owns a group week; one hourly mutation decides each workspace's week
+  checklist: commit-ordered-effects dismissed: the sweep issues no external effect; tally jobs are scheduled in its transaction
+  checklist: resumption-coverage dismissed: a skipped week schedules no chain, so nothing resumes it
+  checklist: declared-target-coverage dismissed: the sweep is the one entrance that starts a tally, a draw and its catch-up
+  checklist: separation-of-duties dismissed: the flag is switched in PostHog by the owner, outside this deployment
