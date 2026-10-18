@@ -1,7 +1,11 @@
-import type { CaptureResult } from "posthog-js/dist/module.full.no-external";
+import type { CapturedNetworkRequest, CaptureResult } from "posthog-js/dist/module.full.no-external";
 
 export function withoutSignInCode(event: CaptureResult | null): CaptureResult | null {
   return event === null ? null : scrubbed(event);
+}
+
+export function replayRequestWithoutSignInCode(request: CapturedNetworkRequest): CapturedNetworkRequest {
+  return request.name === undefined ? request : { ...request, name: urlWithoutSignInCode(request.name) };
 }
 
 export function urlWithoutSignInCode(text: string): string {

@@ -310,7 +310,40 @@ describe("MS22: pageviews follow the address", () => {
   });
 });
 
+describe("nothing private reaches PostHog from the browser", () => {
+  it("replay records the member's sessions with every input masked, ph-no-capture blocked, and no network payloads, console logs, canvas or other frames", async () => {
+    renderLiveSite();
+    analyticsAnswers(ann);
+    await capturing();
+
+    expect(only(callsOf("init")).args[1]).toMatchObject({
+      disable_session_recording: false,
+      enable_recording_console_log: false,
+      capture_performance: { network_timing: false },
+      session_recording: {
+        blockClass: "ph-no-capture",
+        maskAllInputs: true,
+        recordHeaders: false,
+        recordBody: false,
+        captureCanvas: { recordCanvas: false },
+        recordCrossOriginIframes: false,
+      },
+    });
+  });
+});
+
 describe("no sign-in code leaves the browser", () => {
+  it("every replay URL loses the code and keeps everything else", async () => {
+    renderLiveSite();
+    analyticsAnswers(ann);
+    await capturing();
+    const { session_recording } = only(callsOf("init")).args[1] as { session_recording: { maskCapturedNetworkRequestFn: (request: { name: string; isInitial?: boolean }) => { name: string; isInitial?: boolean } } };
+
+    const masked = session_recording.maskCapturedNetworkRequestFn({ name: "https://hedgehug.example/book?code=SIGNIN-CODE-1234&page=giving#teams", isInitial: true });
+
+    expect(masked).toEqual({ name: "https://hedgehug.example/book?page=giving#teams", isInitial: true });
+  });
+
   it("the sign-in code in the address never reaches an event's URL properties", async () => {
     window.history.replaceState(null, "", "/?code=SIGNIN-CODE-1234&panel=inventory");
     renderLiveSite();
