@@ -60,6 +60,16 @@ describe("F1 F2: team_join and user_change keep a member's Slack profile in the 
     expect(await profileOf(t, "U_ANN")).toEqual(annStored);
   });
 
+  test("a newer user_change that changes nothing the directory keeps, like a status, leaves the member's row as it was", async () => {
+    const t = testBackend();
+    await memberChanged(t, "team_join", { id: "U_ANN", tz: "Europe/Berlin", profile: annsProfile }, { eventTs: earlierTs });
+    const before = await directoryRowOf(t, "U_ANN");
+
+    await memberChanged(t, "user_change", { id: "U_ANN", tz: "Europe/Berlin", profile: { ...annsProfile, status_text: "In a meeting", status_emoji: ":calendar:" } }, { eventTs: nowTs });
+
+    expect(await directoryRowOf(t, "U_ANN")).toEqual(before);
+  });
+
   test("a display name Slack leaves empty is not kept", async () => {
     const t = testBackend();
 

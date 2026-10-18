@@ -129,12 +129,25 @@ export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }:
     await ctx.db.insert("members", row);
     await reconcileUser(ctx, workspace, user, Date.now());
   } else if (!isOlder(asOf, existing.asOf)) {
-    await replace(ctx, existing, keepingNewerProfile(existing, row));
+    const next = keepingNewerProfile(existing, row);
+    if (changesNothingKept(existing, next)) return;
+    await replace(ctx, existing, next);
     await followMembersLater(ctx, [existing._id]);
   }
 }
 
 type MemberRow = WithoutSystemFields<Doc<"members">>;
+
+const fieldsNotKept = new Set(["_id", "_creationTime", "asOf"]);
+
+function changesNothingKept(existing: Doc<"members">, next: MemberRow) {
+  const [before, after] = [keptFieldsOf(existing), keptFieldsOf(next)];
+  return before.size === after.size && [...before].every(([field, value]) => after.get(field) === value);
+}
+
+function keptFieldsOf(row: MemberRow | Doc<"members">) {
+  return new Map(Object.entries(row).filter(([field, value]) => value !== undefined && !fieldsNotKept.has(field)));
+}
 
 function keepingNewerProfile(existing: Doc<"members">, row: MemberRow): MemberRow {
   if (existing.kind !== "member" || row.kind !== "member" || !isOlder(row.asOf ?? 0, existing.profileAsOf)) return row;
