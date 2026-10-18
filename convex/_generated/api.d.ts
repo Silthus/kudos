@@ -45,6 +45,7 @@ import type * as auth from "../auth.js";
 import type * as bus_events from "../bus/events.js";
 import type * as bus_publish from "../bus/publish.js";
 import type * as commands_commands from "../commands/commands.js";
+import type * as commands_surface from "../commands/surface.js";
 import type * as companyProfiles_admin from "../companyProfiles/admin.js";
 import type * as companyProfiles_faces from "../companyProfiles/faces.js";
 import type * as companyProfiles_flag from "../companyProfiles/flag.js";
@@ -325,6 +326,7 @@ declare const fullApi: ApiFromModules<{
   "bus/events": typeof bus_events;
   "bus/publish": typeof bus_publish;
   "commands/commands": typeof commands_commands;
+  "commands/surface": typeof commands_surface;
   "companyProfiles/admin": typeof companyProfiles_admin;
   "companyProfiles/faces": typeof companyProfiles_faces;
   "companyProfiles/flag": typeof companyProfiles_flag;
