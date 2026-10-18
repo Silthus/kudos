@@ -1,0 +1,8 @@
+PostHog project 662840, execute-sql, 2026-10-18:
+SELECT timestamp, properties.crate_kind, properties.surface, properties.rarity, properties.is_new, properties.pack_xp, properties.pack_coins
+FROM events WHERE event = 'hoggie dropped' ORDER BY timestamp DESC LIMIT 5
+
+timestamp                   | crate_kind | surface | rarity   | is_new | pack_xp | pack_coins
+2026-10-18T22:48:54.672000Z | thoughtful | website | uncommon | True   | 15.0    | 0.0
+2026-10-18T08:39:50.854000Z | unlock     | website | rare     | True   | 10.0    | 3.0
+2026-10-18T08:36:26.164000Z | unlock     | website | epic     | True   | 10.0    | 1.0
