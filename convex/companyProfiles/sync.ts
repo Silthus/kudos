@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { internalMutation } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
 import { normalisedName } from "./faces";
+import { keepCompanyFacesInEveryWorkspace } from "./storedFaces";
 
 const teamPages = "https://better-animal-d658c56969.strapiapp.com/api/teams";
 const cloudinaryImages = /^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.+\.png)$/;
@@ -72,6 +73,7 @@ export const replaceCompanyProfiles = internalMutation({
     for (const previous of await ctx.db.query("companyTeams").collect()) await ctx.db.delete(previous._id);
     for (const profile of profiles) await ctx.db.insert("companyProfiles", { ...profile, asOf });
     for (const team of teams) await ctx.db.insert("companyTeams", { ...team, asOf });
+    await keepCompanyFacesInEveryWorkspace(ctx);
   },
 });
 

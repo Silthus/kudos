@@ -1,6 +1,7 @@
 import { companyFaceOf, type CompanyFace } from "../companyProfiles/faces";
 import { teamPagesShownTo } from "../companyProfiles/flag";
 import { companyProfileOf } from "../companyProfiles/matcher";
+import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import type { QueryCtx } from "../_generated/server";
 import type { VerifiedMember } from "./memberQuery";
 
@@ -23,6 +24,8 @@ export function signInFaceOf(me: VerifiedMember): Face {
 
 async function ownCompanyFaceOf(ctx: QueryCtx, me: VerifiedMember): Promise<CompanyFace | undefined> {
   if (!(await teamPagesShownTo(ctx, me.member))) return companyFaceOf(ctx, realNameOf(me));
+  const stored = await storedCompanyFaceOf(ctx, me.workspace, me.member);
+  if (stored !== undefined) return stored ?? undefined;
   const profile = (await companyProfileOf(ctx, me.member))?.profile;
   return profile?.image === undefined ? undefined : { image: profile.image, colour: profile.colour };
 }

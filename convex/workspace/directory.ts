@@ -5,6 +5,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import type { ChatUserId } from "../engine/messageEvent";
 import { ReportableError } from "../analytics/exceptions";
 import { followMembersLater } from "../analytics/person";
+import { keepCompanyFaces } from "../companyProfiles/storedFaces";
 import { publish } from "../bus/publish";
 import { reconcileMember, reconcileUser } from "../groups/reconcile";
 import { memberProfileFieldNames, memberProfileFields, type MemberProfile } from "./memberProfile";
@@ -97,10 +98,14 @@ export const fillEntry = internalMutation({
 export const nameMembersWithoutName = internalMutation({
   args: { names: v.array(v.object({ workspace: v.string(), user: v.string(), name: v.string() })) },
   handler: async (ctx, { names }) => {
+    const named = new Set<string>();
     for (const { workspace, user, name } of names) {
       const row = await memberRow(ctx, workspace, user);
-      if (row?.kind === "member" && row.name === undefined) await ctx.db.patch(row._id, { name });
+      if (row?.kind !== "member" || row.name !== undefined) continue;
+      await ctx.db.patch(row._id, { name });
+      named.add(workspace);
     }
+    for (const workspace of named) await keepCompanyFaces(ctx, workspace);
   },
 });
 
@@ -108,13 +113,16 @@ export const fillProfiles = internalMutation({
   args: { profiles: v.array(v.object({ workspace: v.string(), user: v.string(), profile: v.object(memberProfileFields), asOf: v.number() })) },
   handler: async (ctx, { profiles }) => {
     const changed: MemberId[] = [];
+    const renamed = new Set<string>();
     for (const { workspace, user, profile, asOf } of profiles) {
       const row = await memberRow(ctx, workspace, user);
       if (row?.kind !== "member" || isOlder(asOf, row.asOf) || isOlder(asOf, row.profileAsOf) || !differsFrom(row, profile)) continue;
       await ctx.db.patch(row._id, { ...profile, profileAsOf: asOf });
       changed.push(row._id);
+      if (profile.realName !== undefined && profile.realName !== row.realName) renamed.add(workspace);
     }
     await followMembersLater(ctx, changed);
+    for (const workspace of renamed) await keepCompanyFaces(ctx, workspace);
   },
 });
 
@@ -128,11 +136,13 @@ export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }:
   if (existing === null) {
     await ctx.db.insert("members", row);
     await reconcileUser(ctx, workspace, user, Date.now());
+    await keepCompanyFaces(ctx, workspace);
   } else if (!isOlder(asOf, existing.asOf)) {
     const next = keepingNewerProfile(existing, row);
     if (changesNothingKept(existing, next)) return;
     await replace(ctx, existing, next);
     await followMembersLater(ctx, [existing._id]);
+    if (changesItsMatch(existing, next)) await keepCompanyFaces(ctx, workspace);
   }
 }
 
@@ -143,6 +153,10 @@ const fieldsNotKept = new Set(["_id", "_creationTime", "asOf"]);
 function changesNothingKept(existing: Doc<"members">, next: MemberRow) {
   const [before, after] = [keptFieldsOf(existing), keptFieldsOf(next)];
   return before.size === after.size && [...before].every(([field, value]) => after.get(field) === value);
+}
+
+function changesItsMatch(existing: Doc<"members">, next: MemberRow) {
+  return existing.kind !== next.kind || existing.name !== next.name || existing.realName !== next.realName;
 }
 
 function keptFieldsOf(row: MemberRow | Doc<"members">) {

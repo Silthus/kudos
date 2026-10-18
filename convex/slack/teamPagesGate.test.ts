@@ -94,7 +94,7 @@ const everyOtherFlag = [
   "hugs",
   "book-spread",
 ];
-const companyTables = ["companyProfiles", "companyTeams", "companyProfileLinks"] as const;
+const companyTables = ["companyProfiles", "companyTeams", "companyProfileLinks", "companyFaces"] as const;
 const exposureDelivery = ["analytics/drain:drain", "analytics/drain:recover", "analytics/person:identifyNewPeople"];
 const deliveringMore = ["analytics/drain:drain", "analytics/drain:recover"];
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };

@@ -48,3 +48,17 @@ The website's copy of posthog.com's public team pages, and the matcher for one m
   checklist: redaction dismissed: the answer carries posthog.com's public name, role, teams and cutout, never another member's Slack facts
   checklist: canonical-encoding declared as a profile is matched to at most one member, links first
   checklist: identity-continuity dismissed: the match is derived afresh on every read from the current members, links and the latest good sync, so no association outlives a member leaving or a profile leaving posthog.com
+- a member's stored company face follows the matcher: Every write that can change a match (a member joining, leaving or changing their name, the users.list backfill naming or renaming members, a new copy of posthog.com, and an own or admin link written or cleared) leaves each current member of the workspace with one stored company face equal to the face the matcher gives them, the cutout and colour of their matched profile or none, and no stored face for anyone else; getMyFace reads a member's stored face while team-pages is on for them, and the matcher's own answer only while no face is stored for them yet.
+  over: a team_join matching by name, a namesake joining, a rename, an own link, an admin link to none and cleared, a member leaving, a new copy of posthog.com changing a colour, a backfill giving a real name, a stored face getMyFace answers, and a member with no stored face yet
+  via: CV22: each member's stored company face follows the matcher through every change
+  refuted: linkMyCompanyProfile wrote the own link without keeping the stored faces -> the walk read the namesake's stored face as none where the matcher gave the own link's cutout (2026-10-18)
+  refuted: fillProfiles patched real names without keeping the stored faces -> the backfill test read no stored face where the matcher gave the cutout (2026-10-18)
+  because: the website's face read would otherwise build the whole workspace's matcher on every rerun of every open tab; a stored face that lags a change would show a member someone else's face or none (CV17)
+  crossing: posthog-com -> domain
+  entrances: none
+  kinds: read, identity
+  checklist: scoped-reads dismissed: getMyFace reads only the stored face of the member the website guard verified, by the workspace and member index
+  checklist: capability-authorization dismissed: the stored faces are written only by the directory, the sync and the two link commands, each behind its own guard; no caller names a member's face
+  checklist: redaction dismissed: a stored face holds only a public cutout URL and a colour
+  checklist: canonical-encoding declared as a member's stored company face follows the matcher
+  checklist: identity-continuity declared as a member's stored company face follows the matcher
