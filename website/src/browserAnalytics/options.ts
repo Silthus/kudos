@@ -3,14 +3,16 @@ import type { Capture } from "./capture";
 import { sendableFrom } from "./sendable";
 import { replayRequestWithoutSignInCode } from "./withoutSignInCode";
 
-export function optionsFor({ host, distinctId }: Capture, postHogScriptUrl: string): Partial<PostHogConfig> {
+export function optionsFor({ host, distinctId }: Capture, instance: string, postHogScriptUrl: string): Partial<PostHogConfig> {
   return {
     api_host: host,
     bootstrap: { distinctID: distinctId, isIdentifiedID: true },
     person_profiles: "identified_only",
     persistence: "localStorage",
     persistence_name: `hedgehug-${distinctId}`,
+    opt_out_capturing_by_default: true,
     opt_out_persistence_by_default: true,
+    consent_persistence_name: `${instance}-consent`,
     advanced_disable_feature_flags: true,
     disable_surveys: true,
     disable_session_recording: false,

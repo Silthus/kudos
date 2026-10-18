@@ -127,6 +127,47 @@ describe("MS18 MS22: the pinned posthog-js sends only what the spec allows", () 
   });
 });
 
+describe("the browser captures only while told to", { timeout: 60_000 }, () => {
+  it("MS20: after sign-out and a second member's capture answer, a click is captured once, by the second member's instance only", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    document.body.innerHTML = '<main><button type="button">Open the Book</button></main>';
+    remoteConfig = { autocapture_opt_out: false };
+    const { analytics } = startedCapturing();
+    await flushed();
+    analytics.follow({ kind: "signed-out" });
+    analytics.follow({ ...capture, distinctId: "second-member-analytics-id" });
+    await flushed();
+    sent.length = 0;
+
+    document.querySelector("button")!.click();
+    await flushed();
+    analytics.stop();
+
+    const clicks = sent.flatMap(({ events }) => events).filter(({ event }) => event === "$autocapture");
+    expect(clicks.map(({ properties }) => properties.distinct_id)).toEqual(["second-member-analytics-id"]);
+  });
+
+  it("MS18 MS20: the same member signing in again after sign-out and cleared site data is captured under their own ID only, with no identify", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    document.body.innerHTML = '<main><button type="button">Open the Book</button></main>';
+    remoteConfig = { autocapture_opt_out: false };
+    const { analytics } = startedCapturing();
+    await flushed();
+    analytics.follow({ kind: "signed-out" });
+    localStorage.clear();
+    analytics.follow(capture);
+    await flushed();
+
+    document.querySelector("button")!.click();
+    await flushed();
+    analytics.stop();
+
+    const events = sent.flatMap(({ events }) => events);
+    expect(events.filter(({ event }) => event === "$identify")).toEqual([]);
+    expect(new Set(events.map(({ properties }) => properties.distinct_id)), JSON.stringify(events.map(({ event, properties }) => [event, properties.distinct_id]))).toEqual(new Set([capture.distinctId]));
+  });
+});
+
 describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }, () => {
   it("MS21 MS26 MS27: the pinned recorder's replay snapshots hold no blocked words, no typed input, no console line and no sign-in code, though the project asks for console logs, payloads, canvas and unmasked inputs, and nothing is recorded after the stop", async () => {
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36");

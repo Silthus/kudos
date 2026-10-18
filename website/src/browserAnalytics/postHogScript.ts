@@ -5,5 +5,5 @@ import { optionsFor } from "./options";
 export const postHogScriptUrl = import.meta.url;
 
 export const postHogScript: PostHogScript = {
-  start: (capture: Capture, name: string) => posthog.init(capture.token, optionsFor(capture, postHogScriptUrl), name),
+  start: (capture: Capture, name: string) => posthog.init(capture.token, optionsFor(capture, name, postHogScriptUrl), name),
 };
