@@ -70,7 +70,7 @@ export const sweep = internalMutation({
 export const tallyParticipants = internalMutation({
   args: { workspace: v.string(), week: v.string(), after: v.optional(v.string()), members: v.number(), tally: tallyValidator },
   handler: async (ctx, { workspace, week, after, members, tally }): Promise<void> => {
-    if (!(await groupQuestAppliesIn(ctx, workspace))) return markWeekSwept(ctx, workspace, week);
+    if (!(await chainStillDraws(ctx, workspace, week))) return markWeekSwept(ctx, workspace, week);
     const page = await ctx.db
       .query("members")
       .withIndex("by_user", (q) => (after === undefined ? q.eq("workspace", workspace) : q.eq("workspace", workspace).gt("user", after)))
@@ -90,7 +90,7 @@ export const tallyParticipants = internalMutation({
 export const drawGroupQuests = internalMutation({
   args: { workspace: v.string(), week: v.string(), members: v.number(), tally: tallyValidator },
   handler: async (ctx, { workspace, week, members, tally }): Promise<void> => {
-    if (!(await groupQuestAppliesIn(ctx, workspace))) return markWeekSwept(ctx, workspace, week);
+    if (!(await chainStillDraws(ctx, workspace, week))) return markWeekSwept(ctx, workspace, week);
     const mode = await groupModeOf(ctx, workspace);
     for (const entry of tally.slice(0, groupsPerPage)) await drawFor(ctx, { workspace, week, members, mode }, entry);
     const rest = tally.slice(groupsPerPage);
@@ -193,7 +193,7 @@ async function contribute(ctx: MutationCtx, event: AwardsAttributedEvent) {
 async function groupQuestContributedToBy(ctx: QueryCtx, { group, giver, at, awards }: AwardsAttributedEvent): Promise<Doc<"groupQuests"> | null> {
   const drawn = group === null ? null : await groupQuestIn(ctx, group, groupWeekOf(at));
   if (drawn === null || !drawn.participants.includes(giver) || !doesGroupQuestAction(drawn.quest, drawn.group, awards)) return null;
-  return (await groupQuestAppliesTo(ctx, giver)) ? drawn : null;
+  return (await groupQuestAppliesIn(ctx, drawn.workspace)) && (await groupQuestAppliesTo(ctx, giver)) ? drawn : null;
 }
 
 function rewardedBy({ target }: Doc<"groupQuests">, before: MemberId[], contributor: MemberId): MemberId[] {
@@ -285,6 +285,10 @@ async function isDueToDraw(ctx: MutationCtx, workspace: string, week: WeekKey, n
   if (await groupQuestAppliesIn(ctx, workspace)) return true;
   await markWeekSwept(ctx, workspace, week);
   return false;
+}
+
+async function chainStillDraws(ctx: QueryCtx, workspace: string, week: WeekKey) {
+  return (await drawnWeekIn(ctx, workspace, week)) === null && (await groupQuestAppliesIn(ctx, workspace));
 }
 
 async function markWeekSwept(ctx: MutationCtx, workspace: string, week: WeekKey) {
