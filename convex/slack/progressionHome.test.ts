@@ -56,7 +56,8 @@ describe("P67: the Profile tab", () => {
     ["level 4 still leaves skill points out", 300, ["section fields: *Level*\n*4* | *XP to level 5*\n*300*"]],
     ["level 5 shows the first skill point, saved for the skill tree", 600, ["section fields: *Level*\n*5* | *XP to level 6*\n*400*", "section: You have *1 skill point* saved for the skill tree."]],
     ["level 7 shows every saved skill point", 1500, ["section fields: *Level*\n*7* | *XP to level 8*\n*600*", "section: You have *3 skill points* saved for the skill tree."]],
-  ])("P4: %s", async (_, xp, progress) => {
+  ])("P4: while the skill tree ships, %s", async (_, xp, progress) => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "skill-tree");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await withXp(t, "U_ALICE", xp);
@@ -64,6 +65,16 @@ describe("P67: the Profile tab", () => {
     await openHome(t, "U_ALICE");
 
     expect(progressionOf(publishedHome(slack, "U_ALICE"))).toEqual(progress);
+  });
+
+  test("P4 AL35: while the skill tree doesn't ship, level 7 shows no skill points", async () => {
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await withXp(t, "U_ALICE", 1500);
+
+    await openHome(t, "U_ALICE");
+
+    expect(progressionOf(publishedHome(slack, "U_ALICE"))).toEqual(["section fields: *Level*\n*7* | *XP to level 8*\n*600*"]);
   });
 });
 

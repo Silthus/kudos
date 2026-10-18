@@ -17,6 +17,7 @@ import { republish } from "../feedback/homes";
 import { notifyQuestFinished } from "../feedback/notify";
 import { gateDecisionOf } from "../progression/gate";
 import { rewardOf, rewardsKeyedFrom } from "../progression/rewards";
+import { storeVisibleTo } from "../store/visibility";
 import { openedAtOf } from "../unlocks/unlocks";
 import { chatUserOf, teammatesOf, type MemberId } from "../workspace/directory";
 import { crateOpeningOf, rewardKeyOf, rewardKeyPrefixOf, waitsUnopened } from "./crates";
@@ -153,7 +154,7 @@ async function advanceTwoDays(ctx: MutationCtx, event: KudosGivenEvent): Promise
 }
 
 async function advanceYourEmoji(ctx: MutationCtx, event: KudosGivenEvent): Promise<JourneyActivation | null> {
-  if (saysWhyWithOwnedEmoji(event)) {
+  if (saysWhyWithOwnedEmoji(event) && (await storeVisibleTo(ctx, event.giver))) {
     const yourEmoji = await activated(ctx, event.workspace, event.giver, "your-emoji", event.at, journey);
     return finishedOrNull(ctx, event.workspace, yourEmoji, Math.max(event.at, yourEmoji.activatedAt), event.message);
   }

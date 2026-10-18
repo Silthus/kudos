@@ -9,13 +9,6 @@ export async function storeVisibleTo(ctx: QueryCtx, member: MemberId): Promise<b
   return (await openedAtOf(ctx, member, "coins")) !== null && (await storeShownTo(ctx, member));
 }
 
-export async function storeVisibleAndExposedTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
-  if ((await openedAtOf(ctx, member, "coins")) === null || !(await coinsApplyTo(ctx, member))) return false;
-  const shown = await memberDecision(ctx, storeFlag, member);
-  await exposed(ctx, storeFlag, member, shown);
-  return shown;
-}
-
 export async function storeShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   return (await coinsApplyTo(ctx, member)) && (await memberDecision(ctx, storeFlag, member));
 }
