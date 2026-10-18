@@ -2,6 +2,7 @@ import type { FunctionReference } from "convex/server";
 import { internal } from "../_generated/api";
 import type { MutationCtx } from "../_generated/server";
 import { journeyStepOpenedBy } from "../quests/step";
+import { earnsPacks } from "../album/earns";
 import type { DomainEvent } from "./events";
 
 type Subscriber<E extends DomainEvent> = FunctionReference<"mutation" | "action", "internal", { event: E }>;
@@ -17,6 +18,7 @@ export const subscribers: Registry = {
     internal.leaderboard.totals.countKudosGiven,
     internal.groups.attribution.attributeKudosGiven,
     internal.stickers.stickers.recordStickers,
+    { subscriber: internal.album.packs.grantThoughtfulPacks, only: earnsPacks },
     internal.analytics.subscribers.recordKudosGiven,
   ],
   attemptFailed: [internal.analytics.subscribers.recordAttemptFailed],
@@ -53,6 +55,8 @@ export const subscribers: Registry = {
   hugGiven: [internal.hugs.people.payHugPeople, internal.analytics.subscribers.recordHugGiven],
   teamPagesCompleted: [internal.analytics.subscribers.recordTeamPagesCompleted],
   stickersCollected: [internal.analytics.subscribers.recordPersonCollected],
+  thoughtfulPacksGranted: [internal.analytics.subscribers.recordPacksEarned],
+  companyTeamsReplaced: [internal.album.emojiNames.reserveTeamNamesAfterTheSync],
 };
 
 export async function publish(ctx: MutationCtx, event: DomainEvent) {

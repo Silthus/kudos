@@ -2,6 +2,7 @@ import { v, type Infer } from "convex/values";
 import { internal } from "../_generated/api";
 import { internalMutation } from "../_generated/server";
 import { observedAction } from "../analytics/boundary";
+import { publish } from "../bus/publish";
 import { normalisedName } from "./faces";
 import { keepCompanyFacesInEveryWorkspaceLater } from "./storedFaces";
 
@@ -74,6 +75,7 @@ export const replaceCompanyProfiles = internalMutation({
     for (const profile of profiles) await ctx.db.insert("companyProfiles", { ...profile, asOf });
     for (const team of teams) await ctx.db.insert("companyTeams", { ...team, asOf });
     await keepCompanyFacesInEveryWorkspaceLater(ctx);
+    await publish(ctx, { type: "companyTeamsReplaced", at: asOf });
   },
 });
 
