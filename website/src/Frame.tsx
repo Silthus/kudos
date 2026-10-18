@@ -17,6 +17,8 @@ import { commandsOf, type Shell } from "./palette/commands";
 import { paletteShortcut, usePaletteShortcut } from "./palette/shortcut";
 import type { Screen } from "./route";
 import type { MemberProfile } from "./shell";
+import { useCapturing } from "./browserAnalytics/capturing";
+import { Feedback } from "./Feedback";
 import { CoinGlyph, SkillPointGlyph } from "./skills/glyphs";
 import { chipName, coinsToSpend } from "./skills/perkWords";
 import { useTheme } from "./theme";
@@ -27,6 +29,7 @@ type FrameProps = { member?: MemberProfile; ready?: ReadyCrate[]; readyElsewhere
 export function Frame({ member, ready = [], readyElsewhere = [], current, busy, revealing = false, notice, onSignOut, children }: FrameProps) {
   const palette = usePalette(member !== undefined && !revealing);
   const hud = useMeasuredHudHeight();
+  const capturer = useCapturing();
   return (
     <>
       <div className="hud-root flex min-h-screen flex-col" inert={revealing || palette.open} data-revealing={revealing || undefined}>
@@ -40,6 +43,7 @@ export function Frame({ member, ready = [], readyElsewhere = [], current, busy, 
               {member && member.coins !== null && <CoinsChip coins={member.coins} />}
               {member && <ReadyPill crates={ready} />}
               {member && <Avatar member={member} />}
+              {capturer && <Feedback capturer={capturer} />}
               <ThemeControl />
               {member && onSignOut && <SignOut onSignOut={onSignOut} />}
             </div>

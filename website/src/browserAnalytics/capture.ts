@@ -1,4 +1,4 @@
-import type { PostHog, PostHogConfig } from "posthog-js/dist/module.full.no-external";
+import type { CaptureResult, PostHog, PostHogConfig } from "posthog-js/dist/module.full.no-external";
 import type { BrowserAnalytics } from "../../../convex/website/browserAnalytics";
 import { captureEveryPageview } from "./pageviews";
 import { withoutSignInCode } from "./withoutSignInCode";
@@ -7,11 +7,15 @@ export type Capture = Extract<BrowserAnalytics, { kind: "capture" }>;
 
 export type PostHogLoader = () => Promise<PostHog>;
 
+export type Capturer = Pick<PostHog, "capture">;
+
+export type CapturingChange = (capturer: Capturer | null) => void;
+
 type Running = { capture: string; posthog?: PostHog; stopPageviews?: () => void };
 
 let instances = 0;
 
-export function browserAnalytics(load: PostHogLoader) {
+export function browserAnalytics(load: PostHogLoader, onCapturing: CapturingChange = () => undefined) {
   let running: Running | null = null;
 
   const stop = () => {
@@ -19,7 +23,9 @@ export function browserAnalytics(load: PostHogLoader) {
     const { posthog, stopPageviews } = running;
     running = null;
     stopPageviews?.();
-    if (posthog !== undefined) silence(posthog);
+    if (posthog === undefined) return;
+    onCapturing(null);
+    silence(posthog);
   };
 
   const start = (capture: Capture) => {
@@ -33,6 +39,7 @@ export function browserAnalytics(load: PostHogLoader) {
         posthog.register({ environment: capture.environment });
         starting.posthog = posthog;
         starting.stopPageviews = captureEveryPageview(posthog);
+        onCapturing(posthog);
       },
       () => {
         if (running === starting) running = null;
@@ -85,6 +92,16 @@ export function optionsFor({ host, distinctId }: Capture): Partial<PostHogConfig
     capture_dead_clicks: true,
     rageclick: true,
     capture_performance: { web_vitals: true, network_timing: false },
-    before_send: withoutSignInCode,
+    before_send: sendable,
   };
+}
+
+function sendable(event: CaptureResult | null): CaptureResult | null {
+  return withoutSignInCode(withoutPersonSet(event));
+}
+
+function withoutPersonSet(event: CaptureResult | null): CaptureResult | null {
+  if (event === null) return null;
+  const { $set: _surveySeenState, ...sendable } = event;
+  return sendable;
 }
