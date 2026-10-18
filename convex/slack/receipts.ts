@@ -80,7 +80,7 @@ export const receiveHomeClick = internalMutation({
     if (person?.kind !== "member") return;
     let refused: HomeRefusal | undefined;
     for (const command of offered) {
-      const outcome = await runCommand(ctx, receipt.workspace, person, command, `slack:${receipt.eventId}`);
+      const outcome = await runCommand(ctx, receipt.workspace, person, command, { surface: "slack", idempotencyKey: `slack:${receipt.eventId}` });
       if (outcome !== null && "perk" in outcome && conversation !== undefined) {
         const answeredIn = ephemeral === undefined ? { conversation } : { conversation: user, beside: { conversation, ...ephemeral } };
         await ctx.scheduler.runAfter(0, internal.slack.directMessages.deliverPurchaseReply, { member: person.member, workspace: receipt.workspace, ...answeredIn, outcome });

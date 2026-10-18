@@ -357,7 +357,7 @@ async function everyoneInTheWorkspace(flag: FlagDefinition[], { turnOff }: { tur
     namedIds.set(member, `<member ${person.user}>`);
     await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp: xpToReach(6), pointsSpent: 0 }));
     for (const level of [4, 5, 6]) await reachesLevel(t, member, level);
-    for (const feature of ["book", "leaderboard", "quests", "skillTree", "coins"] as const) await t.run((ctx) => openUnlock(ctx, member, feature));
+    for (const feature of ["book", "leaderboard", "quests", "skillTree", "coins"] as const) await t.run((ctx) => openUnlock(ctx, member, feature, "slack"));
   }
   await t.fetch("/slack/events", await signedRequest(userGroupEvent("subteam_created", ants)));
   await settleInTimeOrder(t);

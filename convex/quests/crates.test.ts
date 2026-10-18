@@ -101,7 +101,7 @@ describe("CR3 P92: opening a crate applies its held reward once", () => {
     const weekly = { kind: "weekly", week: "2026-10-12", slot: 0 } as const;
     await t.run((ctx) => recordReward(ctx, "T1", { member: alice, key: "weekly:2026-10-12:0", xp: 20, coins: 7, item: null, catalogueVersion: "1", at: finishedAt, held: true }));
 
-    expect(await t.run((ctx) => openQuestCrate(ctx, alice, weekly))).toBe("done");
+    expect(await t.run((ctx) => openQuestCrate(ctx, alice, weekly, "slack"))).toBe("done");
 
     expect(await t.run((ctx) => balanceOf(ctx, alice))).toBe(7);
     expect((await t.run((ctx) => crateOpeningOf(ctx, alice, "weekly:2026-10-12:0")))?.applied).toEqual({
@@ -175,7 +175,7 @@ function questsTurned(t: Backend, ...on: string[]) {
 }
 
 function open(t: Backend, member: MemberId) {
-  return t.run((ctx) => openQuestCrate(ctx, member, firstThanks));
+  return t.run((ctx) => openQuestCrate(ctx, member, firstThanks, "slack"));
 }
 
 async function journeyOf(t: Backend, member: MemberId) {

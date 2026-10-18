@@ -122,7 +122,7 @@ async function openedCratesIn(member: MemberId, week: string, crates: number) {
 }
 
 async function opensCrate(member: MemberId, quest: Quest) {
-  expect(await t.run((ctx) => openQuestCrate(ctx, member, quest))).toBe("done");
+  expect(await t.run((ctx) => openQuestCrate(ctx, member, quest, "slack"))).toBe("done");
 }
 
 async function swaps(member: MemberId, slot: number) {

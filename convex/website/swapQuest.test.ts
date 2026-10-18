@@ -248,7 +248,7 @@ describe("a website command is a D17 command", () => {
 
     expect(await swapQuest(asSignedIn)).toEqual({ kind: "swapped" });
 
-    expect(d17Calls().map(([, , , command, key]) => ({ command, key }))).toEqual([{ command: { type: "rerollQuest", quest: secondSlot }, key: `website:swapQuest:${member}:${thisWeek}:1` }]);
+    expect(d17Calls().map(([, , , command, origin]) => ({ command, origin }))).toEqual([{ command: { type: "rerollQuest", quest: secondSlot }, origin: { surface: "website", idempotencyKey: `website:swapQuest:${member}:${thisWeek}:1` } }]);
     const week = await weekOf(member);
     expect(week).toMatchObject({ swap: { slot: 1, replaced: "say-why-twice", swappedAt: now.getTime() }, swapAvailable: false });
     expect(publishedEvents()).toEqual([{ type: "questSwapped", workspace: "T1", member, week: thisWeek, replaced: "say-why-twice", swappedIn: week!.swap!.quest, at: now.getTime() }]);
