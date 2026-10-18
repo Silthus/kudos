@@ -56,7 +56,7 @@ function AnswerForm({ onSend }: { onSend: (answer: string) => void }) {
       </label>
       <Textarea id={fieldId} autoFocus rows={4} value={answer} onChange={(event) => setAnswer(event.target.value)} className="min-h-24 resize-y" />
       <p className="text-xs text-muted-foreground">Your words go to the HedgeHug team with this visit's replay.</p>
-      <Button type="submit" size="sm" className="self-end" disabled={words === ""}>
+      <Button type="submit" variant="primary" size="sm" className="self-end" disabled={words === ""}>
         Send
       </Button>
     </form>

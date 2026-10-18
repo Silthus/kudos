@@ -1,10 +1,10 @@
-import type { BeforeSendFn, PostHog, PostHogConfig } from "posthog-js/dist/module.full.no-external";
+import type { PostHog } from "posthog-js/dist/module.full.no-external";
 import type { BrowserAnalytics } from "../../../convex/website/browserAnalytics";
 import { captureEveryPageview, pagePropertiesOf } from "./pageviews";
 
 export type Capture = Extract<BrowserAnalytics, { kind: "capture" }>;
 
-export type PostHogScript = { posthog: PostHog; sendable: BeforeSendFn };
+export type PostHogScript = { start: (capture: Capture, name: string) => PostHog };
 
 export type PostHogLoader = () => Promise<PostHogScript>;
 
@@ -37,9 +37,9 @@ export function browserAnalytics(load: PostHogLoader, onCapturing: CapturingChan
     const starting: Running = { capture: keyOf(capture) };
     running = starting;
     void load().then(
-      ({ posthog: sdk, sendable }) => {
+      (script) => {
         if (running !== starting) return;
-        const posthog = sdk.init(capture.token, optionsFor(capture, sendable), `hedgehug-${++instances}`);
+        const posthog = script.start(capture, `hedgehug-${++instances}`);
         posthog.opt_in_capturing({ captureEventName: false });
         posthog.register({ environment: capture.environment });
         starting.posthog = posthog;
@@ -87,30 +87,4 @@ function silence(posthog: PostHog) {
 
 function keyOf({ token, host, distinctId, environment }: Capture) {
   return JSON.stringify([token, host, distinctId, environment]);
-}
-
-export function optionsFor({ host, distinctId }: Capture, sendable: BeforeSendFn): Partial<PostHogConfig> {
-  return {
-    api_host: host,
-    bootstrap: { distinctID: distinctId, isIdentifiedID: true },
-    person_profiles: "identified_only",
-    persistence: "localStorage",
-    persistence_name: `hedgehug-${distinctId}`,
-    opt_out_persistence_by_default: true,
-    advanced_disable_feature_flags: true,
-    disable_surveys: true,
-    disable_session_recording: true,
-    disable_external_dependency_loading: true,
-    capture_exceptions: { capture_unhandled_errors: true, capture_unhandled_rejections: true, capture_console_errors: false },
-    capture_pageview: false,
-    capture_pageleave: true,
-    autocapture: true,
-    mask_all_text: true,
-    mask_all_element_attributes: true,
-    enable_heatmaps: true,
-    capture_dead_clicks: true,
-    rageclick: true,
-    capture_performance: { web_vitals: true, network_timing: false },
-    before_send: sendable,
-  };
 }

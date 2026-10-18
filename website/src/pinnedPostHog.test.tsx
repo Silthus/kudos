@@ -9,6 +9,8 @@ type SentException = { type: string; value: string; mechanism: { handled: boolea
 const capture = { kind: "capture", token: "phc_the_project_token", host: "https://us.i.posthog.com", distinctId: "member-analytics-id", environment: "sandbox" } as const;
 
 const sent: Sent[] = [];
+const snapshots: unknown[] = [];
+let remoteConfig: Record<string, unknown> = {};
 
 async function bodyOf(body: unknown): Promise<string> {
   if (typeof body === "string") return body;
@@ -23,7 +25,8 @@ function recordingFetch() {
       const parsed = JSON.parse(await bodyOf(init?.body));
       sent.push({ url, events: Array.isArray(parsed) ? parsed : (parsed.batch ?? [parsed]) });
     }
-    return new Response(url.includes("/config") ? "{}" : '{"status":1}', { status: 200, headers: { "Content-Type": "application/json" } });
+    if (/\/s\//.test(url)) snapshots.push(decompressed(JSON.parse(await bodyOf(init?.body))));
+    return new Response(url.includes("/config") ? JSON.stringify(remoteConfig) : '{"status":1}', { status: 200, headers: { "Content-Type": "application/json" } });
   });
 }
 
@@ -56,6 +59,13 @@ function startedCapturing() {
   return { analytics, fetch };
 }
 
+function decompressed(value: unknown): unknown {
+  if (typeof value === "string" && value.startsWith("\x1f\x8b")) return decompressed(JSON.parse(gunzipSync(Buffer.from(value, "latin1")).toString("utf8")));
+  if (Array.isArray(value)) return value.map(decompressed);
+  if (value !== null && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, inner]) => [key, decompressed(inner)]));
+  return value;
+}
+
 function flushed() {
   return new Promise((resolve) => setTimeout(resolve, 4_000));
 }
@@ -64,6 +74,9 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   sent.length = 0;
+  snapshots.length = 0;
+  remoteConfig = {};
+  document.body.replaceChildren();
 });
 
 describe("MS18 MS22: the pinned posthog-js sends only what the spec allows", () => {
@@ -114,7 +127,42 @@ describe("MS18 MS22: the pinned posthog-js sends only what the spec allows", () 
   });
 });
 
-describe("nothing private reaches PostHog from the browser", () => {
+describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }, () => {
+  it("MS21 MS26 MS27: the pinned recorder's replay snapshots hold no blocked words, no typed input, no console line and no sign-in code, though the project asks for console logs, payloads, canvas and unmasked inputs, and nothing is recorded after the stop", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36");
+    remoteConfig = { sessionRecording: { endpoint: "/s/", consoleLogRecordingEnabled: true, recordCanvas: true, canvasFps: 4, networkPayloadCapture: { recordHeaders: true, recordBody: true }, masking: { maskAllInputs: false } } };
+    vi.stubGlobal("fetch", recordingFetch());
+    window.history.replaceState(null, "", "/activity?code=SIGNIN-CODE-1234");
+    document.body.innerHTML = '<main><h1>Your kudos story</h1><p class="ph-no-capture">BLOCKED-KUDOS-WORDS</p><input aria-label="Command" /></main>';
+    const analytics = browserAnalytics(loadThePinnedSdk);
+
+    analytics.follow(capture);
+    await flushed();
+    const input = document.querySelector("input")!;
+    input.value = "TYPED-SECRET";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    console.log("CONSOLE-SECRET");
+    window.history.pushState(null, "", "/book?code=SIGNIN-CODE-1234#teams");
+    await flushed();
+    analytics.follow({ kind: "signed-out" });
+    await flushed();
+    const recordedBeforeTheStop = snapshots.length;
+    input.value = "TYPED-AFTER-THE-STOP";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    window.history.pushState(null, "", "/quests");
+    await flushed();
+
+    const recorded = JSON.stringify(snapshots);
+    expect(snapshots.length, "the recorder sent snapshots").toBeGreaterThan(0);
+    expect(recorded, "the page was recorded").toContain("Your kudos story");
+    expect(recorded, "a ph-no-capture block's words").not.toContain("BLOCKED-KUDOS-WORDS");
+    expect(recorded, "a typed input's value").not.toContain("TYPED-SECRET");
+    expect(recorded, "a console line").not.toContain("CONSOLE-SECRET");
+    expect(recorded, "the sign-in code").not.toContain("SIGNIN-CODE-1234");
+    expect(recorded, "a replay URL keeps its path").toContain("/book");
+    expect(snapshots, "nothing recorded after the stop").toHaveLength(recordedBeforeTheStop);
+  });
+
   it("the pinned posthog-js sends an unhandled error, an unhandled rejection and an error the shell's error page reported once each, every message replaced by its type, frames kept and nothing private", { timeout: 60_000 }, async () => {
     window.history.replaceState(null, "", "/leaderboard");
     const { analytics } = startedCapturing();

@@ -1,6 +1,9 @@
 import posthog from "posthog-js/dist/module.full.no-external";
-import { sendableFrom } from "./sendable";
+import type { Capture, PostHogScript } from "./capture";
+import { optionsFor } from "./options";
 
 export const postHogScriptUrl = import.meta.url;
 
-export const postHogScript = { posthog, sendable: sendableFrom(postHogScriptUrl) };
+export const postHogScript: PostHogScript = {
+  start: (capture: Capture, name: string) => posthog.init(capture.token, optionsFor(capture, postHogScriptUrl), name),
+};
