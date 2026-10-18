@@ -693,8 +693,10 @@
 
 .al-chip {
   display: inline-flex;
+  max-width: 100%;
   min-height: 2rem;
   align-items: center;
+  overflow-wrap: anywhere;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--card);
