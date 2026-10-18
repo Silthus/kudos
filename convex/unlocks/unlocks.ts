@@ -3,6 +3,7 @@ import type { Doc } from "../_generated/dataModel";
 import { internalMutation, internalQuery, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { levelReachedEventValidator } from "../bus/events";
 import { publish } from "../bus/publish";
+import type { Surface } from "../commands/surface";
 import { decidedBelow, type DecidedBelow } from "../engine/awards";
 import { republish } from "../feedback/homes";
 import { dropFor } from "../hoggies/drops";
@@ -34,13 +35,13 @@ export const makeReady = internalMutation({
   },
 });
 
-export async function openUnlock(ctx: MutationCtx, member: MemberId, feature: Feature): Promise<"done" | "refused"> {
+export async function openUnlock(ctx: MutationCtx, member: MemberId, feature: Feature, surface: Surface): Promise<"done" | "refused"> {
   if (!(await unlocksShownTo(ctx, member))) return "refused";
   const { workspace } = await chatUserOf(ctx, member);
   if ((await stateOf(ctx, member, feature)) !== "ready") return "refused";
   const opening = { workspace, member, at: Date.now() };
   if (!(await storeOpening(ctx, opening, feature))) return "done";
-  await dropFor(ctx, member, featureCrateKeyOf(feature), opening.at);
+  await dropFor(ctx, member, featureCrateKeyOf(feature), opening.at, surface);
   await publishOpened(ctx, opening, feature);
   return "done";
 }

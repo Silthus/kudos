@@ -156,7 +156,7 @@ async function aliceAndBobWithCoins(crateStoreFlag: FlagDefinition[], turnOff?: 
     const member = await aMember(t, user);
     await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp: levelSix, pointsSpent: 0 }));
     await reachesLevel(t, member, 6);
-    for (const feature of ["book", "coins"] as const) await t.run((ctx) => openUnlock(ctx, member, feature));
+    for (const feature of ["book", "coins"] as const) await t.run((ctx) => openUnlock(ctx, member, feature, "slack"));
     await t.run((ctx) => recordReward(ctx, "T1", { member, key: "test:earned:120", xp: 0, coins: 120, item: null, catalogueVersion: "2", at: 0 }));
   }
   await settleInTimeOrder(t);

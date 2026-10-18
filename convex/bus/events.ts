@@ -10,6 +10,7 @@ import { questIdValidator } from "../quests/pool";
 import { journeyStepValidator, questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
 import { rarityValidator } from "../hoggies/catalogue";
+import { surfaceValidator } from "../commands/surface";
 import type { MemberId } from "../workspace/directory";
 
 export const awardValidator = v.object({ award: awardIdValidator, giver: v.id("members"), recipient: v.id("members"), kudos: v.number() });
@@ -221,6 +222,7 @@ export const hoggieDroppedEventValidator = v.object({
   copy: v.number(),
   at: v.number(),
   pack: v.optional(v.object({ xp: v.number(), coins: v.number() })),
+  surface: v.optional(surfaceValidator),
 });
 
 export type HoggieDroppedEvent = Infer<typeof hoggieDroppedEventValidator>;

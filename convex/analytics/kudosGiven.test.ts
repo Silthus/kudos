@@ -175,7 +175,7 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
   test("no PostHog request carries the message, a Slack or Convex ID, an emoji name or a time zone, and the profile rides only in $set of person events", async () => {
     const team = "T0QUOKKAWS";
     vi.stubEnv("POSTHOG_PERSONAL_API_KEY", flagsKey);
-    const t = await unlocksShippedBeforeAnyoneJoined(await flagsFromPostHog(testBackend(), postHog, ...["xp-levels", "unlocks", "quests"].map(onForEveryone)), team);
+    const t = await unlocksShippedBeforeAnyoneJoined(await flagsFromPostHog(testBackend(), postHog, ...["xp-levels", "unlocks", "quests", "collection"].map(onForEveryone)), team);
     const channel = "C0MARMALADE";
     const people = { giver: "U0ZEPHYRINE", recipient: "U0BARNABY77" };
     slack = new FakeSlack()
@@ -245,6 +245,7 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
         "quest drawn",
         "quest finished",
         "crate opened",
+        "hoggie dropped",
         "attempt failed",
         "app home opened",
         "command used",

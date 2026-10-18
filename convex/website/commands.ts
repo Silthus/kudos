@@ -75,7 +75,7 @@ export const openFeature = memberMutation({
   args: { feature: featureValidator },
   handler: async (ctx, me, person, { feature }): Promise<CommandAnswer> => {
     if (!(await launchesRecordedFor(ctx, me))) return refused;
-    await runCommand(ctx, me.workspace, person, { type: "openUnlock", feature }, `website:openFeature:${me.member}:${feature}`);
+    await runFromWebsite(ctx, me, person, { type: "openUnlock", feature }, `website:openFeature:${me.member}:${feature}`);
     if ((await stateOf(ctx, me.member, feature)) !== "open") return refused;
     await republish(ctx, me.member);
     const crate = featureCrateKeyOf(feature);
@@ -87,7 +87,7 @@ export const openQuestCrate = memberMutation({
   args: { quest: questValidator },
   handler: async (ctx, me, person, { quest }): Promise<CrateAnswer> => {
     if (!(await questsLaunchedFor(ctx, me))) return refused;
-    await runCommand(ctx, me.workspace, person, { type: "openQuestCrate", quest }, `website:openQuestCrate:${me.member}:${rewardKeyOf(quest)}`);
+    await runFromWebsite(ctx, me, person, { type: "openQuestCrate", quest }, `website:openQuestCrate:${me.member}:${rewardKeyOf(quest)}`);
     const opening = await crateOpeningOf(ctx, me.member, rewardKeyOf(quest));
     if (opening === null) return refused;
     await republish(ctx, me.member);
@@ -100,7 +100,7 @@ export const swapQuest = memberMutation({
   args: { quest: weeklyQuestValidator },
   handler: async (ctx, me, person, { quest }): Promise<SwapAnswer> => {
     if (!(await questsOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
-    await runCommand(ctx, me.workspace, person, { type: "rerollQuest", quest }, `website:swapQuest:${me.member}:${quest.week}:${quest.slot}`);
+    await runFromWebsite(ctx, me, person, { type: "rerollQuest", quest }, `website:swapQuest:${me.member}:${quest.week}:${quest.slot}`);
     if ((await swappedSlotIn(ctx, me.member, quest.week)) !== quest.slot) return refused;
     await republish(ctx, me.member);
     return { kind: "swapped" };
@@ -126,7 +126,7 @@ export const buyPerk = memberMutation({
   handler: async (ctx, me, person, { perk, request }): Promise<PurchaseAnswer> => {
     if (!isUuid(request)) throw new Error("A purchase's request must be a UUID.");
     if (!(await treeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refusedAtTheGate;
-    const outcome = await runCommand(ctx, me.workspace, person, { type: "buyPerk", perk }, `website:${me.member}:${request}`);
+    const outcome = await runFromWebsite(ctx, me, person, { type: "buyPerk", perk }, `website:${me.member}:${request}`);
     if (outcome === null || !("perk" in outcome)) return refusedAtTheGate;
     if (outcome.kind === "refused") return { kind: "refused", reason: purchaseRefusals[outcome.reason] };
     await republish(ctx, me.member);
@@ -144,7 +144,7 @@ export const buyItem = memberMutation({
     if (!isUuid(request)) throw new Error("A purchase's request must be a UUID.");
     if (item.length > longestItemId) throw new Error("A purchase's item is longer than any item ID.");
     if (!(await storeOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return itemRefusedAtTheGate;
-    const outcome = await runCommand(ctx, me.workspace, person, { type: "buyItem", item }, `website:${me.member}:${request}`);
+    const outcome = await runFromWebsite(ctx, me, person, { type: "buyItem", item }, `website:${me.member}:${request}`);
     if (outcome === null || !("item" in outcome)) return itemRefusedAtTheGate;
     if (outcome.kind === "refused") return { kind: "refused", reason: outcome.reason };
     await republish(ctx, me.member);
@@ -157,7 +157,7 @@ export const buyCrate = memberMutation({
   handler: async (ctx, me, person, { next }): Promise<CratePurchaseAnswer> => {
     if (!(await noLaunchWaitsFor(ctx, me))) return null;
     const before = await crateStoreOf(ctx, me.member);
-    const outcome = await runCommand(ctx, me.workspace, person, { type: "buyCrate", next }, `website:buyCrate:${me.member}:${next}`);
+    const outcome = await runFromWebsite(ctx, me, person, { type: "buyCrate", next }, `website:buyCrate:${me.member}:${next}`);
     if (outcome === null || !("crate" in outcome)) return null;
     if (outcome.kind === "refused") return { kind: "refused", reason: outcome.reason };
     if ((await crateStoreOf(ctx, me.member))?.next !== before?.next) await republish(ctx, me.member);
@@ -170,7 +170,7 @@ export const openCrate = memberMutation({
   handler: async (ctx, me, person, { crate }): Promise<CrateOpenAnswer> => {
     if (!(await noLaunchWaitsFor(ctx, me))) return refused;
     if (await packsShownTo(ctx, me.member)) return openPack(ctx, me, person, crate);
-    await runCommand(ctx, me.workspace, person, { type: "openCrate", crate }, openCrateKeyOf(me, crate));
+    await runFromWebsite(ctx, me, person, { type: "openCrate", crate }, openCrateKeyOf(me, crate));
     const drop = await openedCrateDropOf(ctx, me.member, crate);
     if (drop === null) return refused;
     await republish(ctx, me.member);
@@ -188,7 +188,7 @@ type PackRoute = {
 async function openPack(ctx: MutationCtx, me: VerifiedMember, person: HomeMember, crate: string): Promise<CrateOpenAnswer> {
   const route = packRouteOf(queryOnly(ctx), crate);
   if (route === null || !(await route.isOpenableBy(queryOnly(ctx), me))) return refused;
-  await runCommand(ctx, me.workspace, person, route.command, openCrateKeyOf(me, crate));
+  await runFromWebsite(ctx, me, person, route.command, openCrateKeyOf(me, crate));
   const opening = await route.openingOf(queryOnly(ctx), me);
   if (opening === null) return refused;
   await republish(ctx, me.member);
@@ -236,6 +236,10 @@ function boughtCrateRoute(crate: CrateKey): PackRoute {
   };
 }
 
+function runFromWebsite(ctx: MutationCtx, me: VerifiedMember, person: HomeMember, command: Command, idempotencyKey: string) {
+  return runCommand(ctx, me.workspace, person, command, { surface: "website", idempotencyKey });
+}
+
 function openCrateKeyOf(me: VerifiedMember, crate: string) {
   return `website:openCrate:${me.member}:${crate}`;
 }
@@ -245,7 +249,7 @@ export const setBoardVisibility = memberMutation({
   handler: async (ctx, me, person, { visible }): Promise<VisibilityAnswer> => {
     if (!(await boardOpenWithEveryLaunchRecorded(queryOnly(ctx), me))) return refused;
     const before = await isOnTheBoards(ctx, me.member);
-    await runCommand(ctx, me.workspace, person, { type: "setLeaderboardVisibility", visible }, `website:setBoardVisibility:${me.member}`);
+    await runFromWebsite(ctx, me, person, { type: "setLeaderboardVisibility", visible }, `website:setBoardVisibility:${me.member}`);
     const stored = await isOnTheBoards(ctx, me.member);
     if (stored !== before) await republish(ctx, me.member);
     return { kind: "set", visible: stored };
@@ -257,7 +261,7 @@ export const setAvatar = memberMutation({
   handler: async (ctx, me, person, { hoggie }): Promise<AvatarAnswer> => {
     if (!(await noLaunchWaitsFor(ctx, me))) return refused;
     const before = await avatarOf(ctx, me.member);
-    await runCommand(ctx, me.workspace, person, { type: "setAvatar", hoggie }, `website:setAvatar:${me.member}`);
+    await runFromWebsite(ctx, me, person, { type: "setAvatar", hoggie }, `website:setAvatar:${me.member}`);
     if (!(await avatarShownTo(ctx, me.member))) return refused;
     const after = await avatarOf(ctx, me.member);
     if (after?.hoggie !== before?.hoggie) await republish(ctx, me.member);
@@ -295,7 +299,7 @@ export const setMessageSetting = memberMutation({
   handler: async (ctx, me, person, { kind, place }): Promise<MessageSettingAnswer> => {
     if (!(await placeOfferedWithEveryLaunchRecorded(queryOnly(ctx), me, kind, place))) return refused;
     const before = await placeOf(ctx, me.member, kind);
-    await runCommand(ctx, me.workspace, person, { type: "setMessageSetting", kind, place }, `website:setMessageSetting:${me.member}:${kind}`);
+    await runFromWebsite(ctx, me, person, { type: "setMessageSetting", kind, place }, `website:setMessageSetting:${me.member}:${kind}`);
     const stored = await placeOf(ctx, me.member, kind);
     if (stored !== before) await republish(ctx, me.member);
     return stored === place ? { kind: "set", place } : refused;
@@ -305,7 +309,7 @@ export const setMessageSetting = memberMutation({
 export const linkMyCompanyProfile = memberMutation({
   args: { profile: v.union(v.number(), v.null()) },
   handler: async (ctx, me, person, { profile }): Promise<CompanyProfileLinkAnswer> => {
-    const outcome = await runCommand(ctx, me.workspace, person, { type: "linkMyCompanyProfile", profile }, `website:linkMyCompanyProfile:${me.member}`);
+    const outcome = await runFromWebsite(ctx, me, person, { type: "linkMyCompanyProfile", profile }, `website:linkMyCompanyProfile:${me.member}`);
     if (outcome === null || !("profile" in outcome)) return { kind: "refused", reason: null };
     return outcome.kind === "linked" ? { kind: "linked" } : { kind: "refused", reason: outcome.reason };
   },
@@ -315,7 +319,7 @@ export const linkCompanyProfile = memberMutation({
   args: { member: v.string(), profile: v.union(v.number(), v.literal("none"), v.null()) },
   handler: async (ctx, me, person, { member: key, profile }): Promise<AdminProfileLinkAnswer> => {
     const member = await teammateOfKey(ctx, me, key);
-    const outcome = await runCommand(ctx, me.workspace, person, { type: "linkCompanyProfile", member, profile }, `website:linkCompanyProfile:${me.member}`);
+    const outcome = await runFromWebsite(ctx, me, person, { type: "linkCompanyProfile", member, profile }, `website:linkCompanyProfile:${me.member}`);
     if (outcome === null || !("member" in outcome)) return { kind: "refused", reason: null };
     return outcome.kind === "linked" ? { kind: "linked" } : { kind: "refused", reason: outcome.reason };
   },
@@ -324,7 +328,7 @@ export const linkCompanyProfile = memberMutation({
 export const setWorkspaceSettings = memberMutation({
   args: { baseAllowance: v.number(), kudosEmoji: v.string(), hugBudget: v.number() },
   handler: async (ctx, me, person, settings): Promise<WorkspaceSettingsAnswer> => {
-    const outcome = await runCommand(ctx, me.workspace, person, { type: "setWorkspaceSettings", ...settings }, `website:setWorkspaceSettings:${me.member}`);
+    const outcome = await runFromWebsite(ctx, me, person, { type: "setWorkspaceSettings", ...settings }, `website:setWorkspaceSettings:${me.member}`);
     if (outcome === null || !("saved" in outcome)) return { kind: "refused", reason: null };
     return outcome.kind === "set" ? { kind: "set" } : { kind: "refused", reason: outcome.reason };
   },
@@ -335,7 +339,7 @@ export const pickPrimaryGroup = memberMutation({
   handler: async (ctx, me, person, { group }): Promise<GroupPickAnswer> => {
     if (!(await groupOfferedWithEveryLaunchRecorded(queryOnly(ctx), me, group))) return refused;
     const before = await primaryGroupOf(ctx, me.member);
-    await runCommand(ctx, me.workspace, person, { type: "pickPrimaryGroup", group, surface: "website" }, `website:pickPrimaryGroup:${me.member}`);
+    await runFromWebsite(ctx, me, person, { type: "pickPrimaryGroup", group, surface: "website" }, `website:pickPrimaryGroup:${me.member}`);
     const picked = await primaryGroupOf(ctx, me.member);
     if (picked?.group !== before?.group) await republish(ctx, me.member);
     return picked?.group === group ? { kind: "picked", group } : refused;
