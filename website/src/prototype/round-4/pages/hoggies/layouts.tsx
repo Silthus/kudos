@@ -1,12 +1,12 @@
 // PROTOTYPE (#625, round 4): three distinct layouts of the hoggies page. Never merge to main.
 import type { PageLayouts } from "../../layouts";
-
-function Placeholder({ layout }: { layout: string }) {
-  return <p style={{ padding: 32 }}>hoggies page, layout {layout}: being built.</p>;
-}
+import { DisplayCabinet } from "./DisplayCabinet";
+import { Dex } from "./Dex";
+import { FieldGuide } from "./FieldGuide";
+import "./hoggies.css";
 
 export const hoggieLayouts: PageLayouts = {
-  A: { name: "Layout A", Page: () => <Placeholder layout="A" /> },
-  B: { name: "Layout B", Page: () => <Placeholder layout="B" /> },
-  C: { name: "Layout C", Page: () => <Placeholder layout="C" /> },
+  A: { name: "Field guide", Page: FieldGuide },
+  B: { name: "Display cabinet", Page: DisplayCabinet },
+  C: { name: "Numbered dex", Page: Dex },
 };

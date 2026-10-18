@@ -87,7 +87,7 @@ function drawnFaceOf(name: string, index: number): Face {
 }
 
 function sizeOf(index: number) {
-  return 3 + ((index * index + index * 3 + 1) % 4);
+  return 3 + ((index * 7 + Math.floor(index / 3)) % 4);
 }
 
 const day = 86_400_000;

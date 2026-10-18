@@ -17,7 +17,9 @@ function stepped(current: VariantKey | null, by: number): VariantKey {
 }
 
 function shortKey(key: VariantKey) {
-  return key === "slack" ? "S" : key.replace(/^r\d-/, "").replace(/^4/, "").toUpperCase();
+  if (key === "slack") return "S";
+  if (/^4[a-c]$/.test(key)) return key.slice(1).toUpperCase();
+  return key.replace(/^r\d-/, "");
 }
 
 function typingIn(target: EventTarget | null) {

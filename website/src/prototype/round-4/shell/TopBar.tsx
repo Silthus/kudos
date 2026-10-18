@@ -1,30 +1,82 @@
 // PROTOTYPE (#625, round 4): the top bar: brand, XP bar, packs waiting, your name and the settings cog. Never merge to main.
+import { IconGear } from "@posthog/icons";
+import type { MouseEvent } from "react";
 import { AppLink } from "../../../AppLink";
+import { HedgehogSitting } from "../../../hoggies";
 import { MemberFace } from "../../art";
-import { useAlbum } from "../../round-3/album";
-import { packsHash, type Place } from "../address";
+import { levelAt, useAlbum } from "../../round-3/album";
+import type { Place } from "../address";
+import { openPacks, packsHrefHere } from "./history";
+import { useCountUp, useGain, useHeldXp } from "./motion";
 
-export function TopBar({ place }: { place: Place }) {
+export function TopBar({ place, chip, packsOpen }: { place: Place; chip: string; packsOpen: boolean }) {
   const { album } = useAlbum();
-  const here = place.kind === "team" && place.team === null ? "/" : window.location.pathname;
   return (
     <header className="r4-top">
       <AppLink href="/" className="r4-brand">
-        HedgeHug
+        <HedgehogSitting size={30} />
+        <span className="r4-brand-word">HedgeHug</span>
       </AppLink>
-      <span className="r4-xp">
-        Level {album.level.level} · <progress value={album.level.progress} max={1} /> {album.level.toNext} XP to {album.level.level + 1}
-      </span>
-      <AppLink href={`${here}${packsHash}`} className="r4-packs">
-        {album.packs.length} packs
-      </AppLink>
-      <span className="r4-me">
-        <MemberFace face={album.me.face} className="r4-me-face" />
-        {album.me.name}
-        <AppLink href="/settings" aria-label="Settings" className="r4-cog">
-          ⚙
-        </AppLink>
-      </span>
+      <XpBar xp={album.level.xp} />
+      <div className="r4-top-end">
+        <span className="r4-layout-chip" data-prototype-chip>
+          {chip}
+        </span>
+        <PacksButton waiting={album.packs.length} open={packsOpen} />
+        <span className="r4-me">
+          <MemberFace face={album.me.face} className="r4-me-face" />
+          <span className="r4-me-name">{album.me.name}</span>
+          <AppLink href="/settings" aria-label="Settings" className="r4-cog" aria-current={place.kind === "settings" ? "page" : undefined}>
+            <IconGear />
+          </AppLink>
+        </span>
+      </div>
     </header>
+  );
+}
+
+function XpBar({ xp }: { xp: number }) {
+  const held = useHeldXp();
+  const target = held ?? xp;
+  const shown = useCountUp(target);
+  const gain = useGain(target);
+  const level = levelAt(Math.round(shown));
+  const counting = Math.round(shown) !== target;
+  return (
+    <div className="r4-xp" data-counting={counting ? "" : undefined}>
+      <span className="r4-level">Level {level.level}</span>
+      <span className="r4-xp-track" aria-hidden="true">
+        <span className="r4-xp-fill" style={{ width: `${Math.max(3, level.progress * 100)}%` }} />
+      </span>
+      <span className="r4-xp-words">
+        {level.toNext} XP to level {level.level + 1}
+      </span>
+      {gain !== null && (
+        <span key={gain.key} className="r4-xp-gain" aria-hidden="true">
+          +{gain.amount} XP
+        </span>
+      )}
+    </div>
+  );
+}
+
+function PacksButton({ waiting, open }: { waiting: number; open: boolean }) {
+  const follow = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (!open) openPacks();
+  };
+  return (
+    <a href={packsHrefHere()} onClick={follow} className="r4-packs" data-waiting={waiting > 0 ? "" : undefined} aria-current={open ? "page" : undefined} aria-label={waiting === 0 ? "No packs waiting" : `Open your packs, ${waiting} waiting`}>
+      <span className="r4-packs-art" aria-hidden="true">
+        <span className="r4-packs-wrapper" />
+        <span className="r4-packs-wrapper" />
+        {waiting > 0 && <span className="r4-packs-count">{waiting}</span>}
+      </span>
+      <span className="r4-packs-words" aria-hidden="true">
+        <strong>{waiting === 0 ? "No packs" : waiting === 1 ? "1 pack" : `${waiting} packs`}</strong>
+        <span>{waiting === 0 ? "Say thanks to earn one" : "Ready to open"}</span>
+      </span>
+    </a>
   );
 }

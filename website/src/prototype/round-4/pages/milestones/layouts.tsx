@@ -1,12 +1,11 @@
 // PROTOTYPE (#625, round 4): three distinct layouts of the milestones page. Never merge to main.
 import type { PageLayouts } from "../../layouts";
-
-function Placeholder({ layout }: { layout: string }) {
-  return <p style={{ padding: 32 }}>milestones page, layout {layout}: being built.</p>;
-}
+import { LadderSpread } from "./LadderSpread";
+import { MedalCase } from "./MedalCase";
+import { MedalTimeline } from "./MedalTimeline";
 
 export const milestoneLayouts: PageLayouts = {
-  A: { name: "Layout A", Page: () => <Placeholder layout="A" /> },
-  B: { name: "Layout B", Page: () => <Placeholder layout="B" /> },
-  C: { name: "Layout C", Page: () => <Placeholder layout="C" /> },
+  A: { name: "Ladder spread", Page: LadderSpread },
+  B: { name: "Medal case", Page: MedalCase },
+  C: { name: "Medal timeline", Page: MedalTimeline },
 };

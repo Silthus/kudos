@@ -1,43 +1,177 @@
-// PROTOTYPE (#625, round 4): the sidebar: search, your team first, ten teams then "Show more", and the deep pages. Never merge to main.
-import { useState } from "react";
+// PROTOTYPE (#625, round 4): the sidebar: search, your team first, ten teams by progress then "Show more", and the deep pages. Never merge to main.
+import { IconCheck, IconChevronDown, IconCrown, IconPulse, IconRibbon, IconSearch } from "@posthog/icons";
+import { useState, type ReactNode } from "react";
 import { AppLink } from "../../../AppLink";
-import { useAlbum } from "../../round-3/album";
+import { HedgehogSitting } from "../../../hoggies";
+import { CrestArt } from "../../art";
+import { useAlbum, type Album, type Team } from "../../round-3/album";
 import { hrefOf, type Place } from "../address";
+import { myWeeklyRankOf } from "../pages/leaderboard/board";
 
 const shownAtFirst = 10;
+
+const weekMs = 7 * 86_400_000;
+
+type Found = { team: Team; matchedPerson: string | null };
 
 export function Sidebar({ place }: { place: Place }) {
   const { album } = useAlbum();
   const [search, setSearch] = useState("");
-  const [all, setAll] = useState(false);
-  const found = album.teams.filter(({ name }) => name.toLowerCase().includes(search.trim().toLowerCase()));
-  const shown = all || search !== "" ? found : found.slice(0, shownAtFirst);
+  const [showingAll, setShowingAll] = useState(false);
+  const [open, setOpen] = useState(false);
+  const mine = album.teams.find((team) => team.mine)!;
+  const searching = search.trim() !== "";
+  const found = foundTeams(album, search);
+  const shown = searching || showingAll ? found : withTheCurrentTeam(found.slice(0, shownAtFirst), found, place);
+  const hidden = found.length - shown.length;
+  const close = () => setOpen(false);
   return (
-    <nav className="r4-side" aria-label="Album">
-      <input type="search" placeholder="Search teams" value={search} onChange={(event) => setSearch(event.target.value)} />
-      <ul>
-        {shown.map(({ team, name, held, total, mine }) => (
-          <li key={team}>
-            <AppLink href={hrefOf({ kind: "team", team: mine ? null : team })} aria-current={place.kind === "team" && (place.team === team || (place.team === null && mine)) ? "page" : undefined}>
-              {name} {held}/{total}
-            </AppLink>
-          </li>
-        ))}
-      </ul>
-      {!all && search === "" && found.length > shownAtFirst && (
-        <button type="button" onClick={() => setAll(true)}>
-          Show {found.length - shownAtFirst} more
-        </button>
-      )}
-      <ul>
-        {(["hoggies", "milestones", "activity", "leaderboard"] as const).map((kind) => (
-          <li key={kind}>
-            <AppLink href={hrefOf({ kind })} aria-current={place.kind === kind ? "page" : undefined}>
-              {kind}
-            </AppLink>
-          </li>
-        ))}
-      </ul>
+    <nav className="r4-side" aria-label="Album" data-open={open ? "" : undefined}>
+      <button type="button" className="r4-side-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
+        Teams and pages
+        <IconChevronDown />
+      </button>
+      <div className="r4-side-panel">
+        <label className="r4-search">
+          <IconSearch className="r4-search-icon" />
+          <input type="search" placeholder="Search teams and people" aria-label="Search teams and people" value={search} onChange={(event) => setSearch(event.target.value)} />
+        </label>
+        {!searching && (
+          <section aria-labelledby="r4-side-mine">
+            <h2 id="r4-side-mine" className="r4-side-heading">
+              Your team
+            </h2>
+            <MyTeam team={mine} current={isCurrentTeam(place, mine)} onFollow={close} />
+          </section>
+        )}
+        <section aria-labelledby="r4-side-teams">
+          <h2 id="r4-side-teams" className="r4-side-heading">
+            <span>{searching ? "Matches" : "Teams"}</span>
+            <span>{searching ? found.length : album.teams.length - 1}</span>
+          </h2>
+          <ul className="r4-teams">
+            {shown.map(({ team, matchedPerson }) => (
+              <li key={team.team}>
+                <TeamRow team={team} matchedPerson={matchedPerson} current={isCurrentTeam(place, team)} onFollow={close} />
+              </li>
+            ))}
+          </ul>
+          {searching && found.length === 0 && <p className="r4-nothing">No team or person matches “{search.trim()}”.</p>}
+          {!searching && hidden > 0 && (
+            <button type="button" className="r4-more" onClick={() => setShowingAll(true)}>
+              Show {hidden} more
+            </button>
+          )}
+          {!searching && showingAll && (
+            <button type="button" className="r4-more" onClick={() => setShowingAll(false)}>
+              Show fewer
+            </button>
+          )}
+        </section>
+        <ul className="r4-pages" aria-label="More of your album">
+          {deepPagesOf(album).map(({ kind, label, icon, count }) => (
+            <li key={kind}>
+              <AppLink href={hrefOf({ kind })} className="r4-page" aria-current={place.kind === kind ? "page" : undefined} onFollow={close}>
+                <span className="r4-page-icon" aria-hidden="true">
+                  {icon}
+                </span>
+                <span>{label}</span>
+                <span className="r4-page-count">{count}</span>
+              </AppLink>
+            </li>
+          ))}
+        </ul>
+      </div>
     </nav>
   );
+}
+
+function foundTeams(album: Album, search: string): Found[] {
+  const words = search.trim().toLowerCase();
+  const others = album.teams.filter((team) => !team.mine).toSorted(byProgress);
+  if (words === "") return others.map((team) => ({ team, matchedPerson: null }));
+  return album.teams.flatMap((team): Found[] => {
+    if (team.name.toLowerCase().includes(words)) return [{ team, matchedPerson: null }];
+    const person = album.people.find(({ key, name }) => team.people.includes(key) && name.toLowerCase().includes(words));
+    return person === undefined ? [] : [{ team, matchedPerson: person.name }];
+  });
+}
+
+function byProgress(first: Team, second: Team) {
+  return second.held / second.total - first.held / first.total || first.name.localeCompare(second.name);
+}
+
+function withTheCurrentTeam(shown: Found[], found: Found[], place: Place) {
+  if (place.kind !== "team" || place.team === null || shown.some(({ team }) => team.team === place.team)) return shown;
+  const current = found.find(({ team }) => team.team === place.team);
+  return current === undefined ? shown : [...shown, current];
+}
+
+function isCurrentTeam(place: Place, team: Team) {
+  return place.kind === "team" && (place.team === team.team || (place.team === null && team.mine));
+}
+
+function teamHref(team: Team) {
+  return team.mine ? hrefOf({ kind: "team", team: null }) : hrefOf({ kind: "team", team: team.team });
+}
+
+function MyTeam({ team, current, onFollow }: { team: Team; current: boolean; onFollow: () => void }) {
+  const left = team.total - team.held;
+  return (
+    <AppLink href={teamHref(team)} className="r4-mine" aria-current={current ? "page" : undefined} data-complete={team.complete ? "" : undefined} onFollow={onFollow}>
+      <span className="r4-mine-crest">
+        <CrestArt art={team.art} size={40} />
+      </span>
+      <span className="r4-mine-name">{team.name}</span>
+      <span className="r4-mine-count">{team.complete ? "Complete" : `${team.held} of ${team.total} · ${left} to go`}</span>
+      <span className="r4-mine-bar" aria-hidden="true">
+        <span className="r4-mine-fill" style={{ width: `${(team.held / team.total) * 100}%` }} />
+      </span>
+    </AppLink>
+  );
+}
+
+function TeamRow({ team, matchedPerson, current, onFollow }: { team: Team; matchedPerson: string | null; current: boolean; onFollow: () => void }) {
+  return (
+    <AppLink href={teamHref(team)} className="r4-team" aria-current={current ? "page" : undefined} onFollow={onFollow}>
+      <span className="r4-team-crest">
+        <CrestArt art={team.art} size={22} />
+      </span>
+      <span className="r4-team-name">
+        <span>{team.name}</span>
+        {matchedPerson !== null && <span className="r4-team-match">{matchedPerson}</span>}
+      </span>
+      {team.complete ? (
+        <span className="r4-tick" role="img" aria-label="Complete">
+          <IconCheck />
+        </span>
+      ) : (
+        <Pips held={team.held} total={team.total} />
+      )}
+    </AppLink>
+  );
+}
+
+function Pips({ held, total }: { held: number; total: number }) {
+  return (
+    <span className="r4-pips" role="img" aria-label={`${held} of ${total} collected`}>
+      {Array.from({ length: total }, (_, index) => (
+        <span key={index} className="r4-pip" data-held={index < held ? "" : undefined} />
+      ))}
+    </span>
+  );
+}
+
+type DeepPage = { kind: "hoggies" | "milestones" | "activity" | "leaderboard"; label: string; icon: ReactNode; count: string };
+
+function deepPagesOf(album: Album): DeepPage[] {
+  const medals = album.milestones.flatMap(({ tiers }) => tiers).filter(({ earnedAt }) => earnedAt !== null).length;
+  const thisWeek = album.moments.filter(({ at }) => at > Date.now() - weekMs).length;
+  const rank = myWeeklyRankOf(album) ?? undefined;
+  return [
+    { kind: "hoggies", label: "Hoggies", icon: <HedgehogSitting size={20} />, count: `${album.hoggiesFound}/${album.hoggies.length}` },
+    { kind: "milestones", label: "Milestones", icon: <IconRibbon />, count: `${medals} medals` },
+    { kind: "activity", label: "Activity", icon: <IconPulse />, count: `${thisWeek} this week` },
+    { kind: "leaderboard", label: "Leaderboard", icon: <IconCrown />, count: rank === undefined ? "" : `#${rank}` },
+  ];
 }

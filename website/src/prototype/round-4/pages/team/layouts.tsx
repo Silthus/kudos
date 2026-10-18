@@ -1,12 +1,12 @@
 // PROTOTYPE (#625, round 4): three distinct layouts of the team page. Never merge to main.
 import type { PageLayouts } from "../../layouts";
-
-function Placeholder({ layout }: { layout: string }) {
-  return <p style={{ padding: 32 }}>team page, layout {layout}: being built.</p>;
-}
+import { ClassPhotoTeam } from "./ClassPhoto";
+import { RosterTeam } from "./Roster";
+import { SleeveTeam } from "./Sleeve";
+import "./team.css";
 
 export const teamLayouts: PageLayouts<{ team: string }> = {
-  A: { name: "Layout A", Page: () => <Placeholder layout="A" /> },
-  B: { name: "Layout B", Page: () => <Placeholder layout="B" /> },
-  C: { name: "Layout C", Page: () => <Placeholder layout="C" /> },
+  A: { name: "Class photo", Page: ClassPhotoTeam },
+  B: { name: "Card sleeve", Page: SleeveTeam },
+  C: { name: "Road roster", Page: RosterTeam },
 };
