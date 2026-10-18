@@ -43,7 +43,7 @@ import { coinsVisibleAndExposedTo } from "../wallet/visibility";
 import { balanceOf } from "../wallet/wallet";
 import { adminsPageIn, chatUserOf, lookup, type MemberFacts, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
-import { isOpened, whenOpened } from "./unlockFilter";
+import { isOpened, whenOpened, whenShipped } from "./unlockFilter";
 
 export const homeTabValidator = v.union(v.literal("profile"), v.literal("leaderboard"), v.literal("book"), v.literal("skillTree"), v.literal("inventory"), v.literal("settings"), v.literal("admin"));
 
@@ -204,7 +204,7 @@ async function shownTabOf(ctx: MutationCtx, viewer: Viewer, slices: Slices, { ta
   switch (tab) {
     case "profile":
       if (!slices.xp) return { tab, progression: null, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null, boughtCrates: null };
-      if (!slices.unlocks) return { tab, progression: { ...(await progressionHomeOf(ctx, viewer.member)), skillTreeTab: false, coins: null }, unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null, boughtCrates: null };
+      if (!slices.unlocks) return { tab, progression: await levelsOnlyProgressionOf(ctx, viewer.member), unlocks: null, quests: null, ...noGroupQuest, earlierCrates: null, journey: null, hoggies: null, boughtCrates: null };
       return {
         tab,
         progression: await toldProgressionOf(ctx, viewer.member, slices),
@@ -294,6 +294,11 @@ async function openedGroupQuestOf(ctx: MutationCtx, member: MemberId) {
 
 async function openedEarlierCratesOf(ctx: MutationCtx, member: MemberId) {
   return (await isOpened(ctx, member, "quests")) ? unopenedCratesOf(ctx, member, Date.now()) : null;
+}
+
+async function levelsOnlyProgressionOf(ctx: QueryCtx, member: MemberId): Promise<ToldProgression> {
+  const progression = await progressionHomeOf(ctx, member);
+  return { ...progression, skillPoints: await whenShipped(ctx, member, "skillTree", progression.skillPoints), skillTreeTab: false, coins: null };
 }
 
 async function toldProgressionOf(ctx: QueryCtx, member: MemberId, { skillTree: skillTreeTab, coins }: Slices): Promise<ToldProgression> {

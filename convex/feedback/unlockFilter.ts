@@ -13,6 +13,10 @@ export async function whenOpened<T>(ctx: QueryCtx, member: MemberId, feature: Fe
   return (await isOpened(ctx, member, feature)) ? told : null;
 }
 
+export async function whenShipped<T>(ctx: QueryCtx, member: MemberId, feature: Feature, told: T): Promise<T | null> {
+  return (await stateOf(ctx, member, feature)) === "unshipped" ? null : told;
+}
+
 export async function isOpened(ctx: QueryCtx, member: MemberId, feature: Feature) {
   return (await stateOf(ctx, member, feature)) === "open";
 }
