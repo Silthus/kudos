@@ -774,6 +774,8 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     level: { level: 6, xp: 1210, startsAt: 1000, nextAt: 1500 },
     packs: [{ pack: "p-1", person: "m-ines", earnedAt: Date.parse("2026-10-17T09:00:00Z") }],
     morePacks: false,
+    tray: [{ item: "t-1", kind: "sticker", person: "m-ines" }],
+    moreTray: false,
   };
 
   it("a member getMyProfile says album for gets the album from one getAlbum subscription, with what the read doesn't answer yet left empty", async () => {
@@ -788,6 +790,7 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     expect(bar.getByText("290 XP to level 7")).toBeInTheDocument();
     expect(bar.getByRole("link", { name: "Your profile, Juno Park" })).toBeInTheDocument();
     expect(bar.getByRole("button", { name: "Your emojis, 0 earned" })).toBeInTheDocument();
+    expect(bar.getByRole("button", { name: "Tray, 1 to put in" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Your album" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Getting started" })).not.toBeInTheDocument();
     expect([...subscriptions].filter(({ query }) => query === "website/album:getAlbum")).toEqual([{ query: "website/album:getAlbum", args: {} }]);

@@ -4,5 +4,5 @@ import type { MyAlbum } from "./answer";
 
 export function albumOf(answer: GetAlbumAnswer | Denial): MyAlbum {
   if (answer.kind !== "album") return answer;
-  return { teams: [], people: [], tray: [], emojis: [], milestones: [], gettingStarted: null, ...answer, me: { team: null, ...answer.me } };
+  return { teams: [], people: [], emojis: [], milestones: [], gettingStarted: null, ...answer, me: { team: null, ...answer.me } };
 }
