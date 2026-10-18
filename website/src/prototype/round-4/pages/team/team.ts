@@ -30,15 +30,21 @@ export function packFor(album: Album, person: Person): Pack | undefined {
   return album.packs.find((pack) => pack.person === person.key);
 }
 
+export function isInTray(album: Album, person: Person) {
+  return album.tray.some((opening) => opening.person.key === person.key);
+}
+
 export function teamsOfPerson(album: Album, person: Person): Team[] {
   return person.teams.flatMap((key) => album.teams.filter(({ team }) => team === key));
 }
 
-export type NextStep = { kind: "complete" } | { kind: "open-pack"; person: Person; completes: boolean } | { kind: "thank"; people: Person[]; completes: boolean };
+export type NextStep = { kind: "complete" } | { kind: "in-tray"; person: Person; completes: boolean } | { kind: "open-pack"; person: Person; completes: boolean } | { kind: "thank"; people: Person[]; completes: boolean };
 
 export function nextStepOf(album: Album, team: Team): NextStep {
   const missing = membersOf(album, team).filter((person) => !isCollected(person));
   if (missing.length === 0) return { kind: "complete" };
+  const trayed = missing.find((person) => isInTray(album, person));
+  if (trayed !== undefined) return { kind: "in-tray", person: trayed, completes: missing.length === 1 };
   const waiting = missing.find((person) => packFor(album, person) !== undefined);
   if (waiting !== undefined) return { kind: "open-pack", person: waiting, completes: missing.length === 1 };
   return { kind: "thank", people: missing, completes: missing.length === 1 };
@@ -46,6 +52,7 @@ export function nextStepOf(album: Album, team: Team): NextStep {
 
 export function nextStepWords(step: NextStep, team: Team) {
   if (step.kind === "complete") return `Every ${team.name} sticker is in your album.`;
+  if (step.kind === "in-tray") return step.completes ? `${firstNameOf(step.person.name)} is in your tray: put the card in from the top bar to complete ${team.name}.` : `${firstNameOf(step.person.name)} is in your tray: put the card in from the top bar.`;
   if (step.kind === "open-pack") return step.completes ? `Open ${firstNameOf(step.person.name)}'s pack to complete ${team.name}.` : `${firstNameOf(step.person.name)}'s pack is waiting: open it to add them.`;
   if (step.completes) return `Thank ${firstNameOf(step.people[0]!.name)} to complete ${team.name}.`;
   if (team.held === 0) return `Thank anyone on ${team.name} in Slack to start this page.`;
@@ -60,6 +67,7 @@ function namesToThank(people: Person[]) {
 
 export function howToCollect(album: Album, person: Person) {
   const first = firstNameOf(person.name);
+  if (isInTray(album, person)) return `${first}'s card is in your tray. Put it in from the top bar.`;
   if (packFor(album, person) !== undefined) return `${first}'s pack is waiting. Open it to add ${first} to your album.`;
   if (person.packedThisWeek) return `You thanked ${first} this week. Their next pack comes next week.`;
   return `Give ${first} a thoughtful kudos in Slack: thank them and say why. Their sticker comes in the pack.`;

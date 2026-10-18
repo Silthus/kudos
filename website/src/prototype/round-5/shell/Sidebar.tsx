@@ -1,16 +1,19 @@
 // PROTOTYPE (#625, round 5): the sidebar: search, your team first, ten teams by progress then "Show more", and the deep pages. Never merge to main.
 import { IconCheck, IconChevronDown, IconCrown, IconPulse, IconRibbon, IconSearch } from "@posthog/icons";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AppLink } from "../../../AppLink";
 import { HedgehogSitting } from "../../../hoggies";
 import { CrestArt } from "../../art";
 import { useAlbum, type Album, type Team } from "../../round-3/album";
 import { hrefOf, type Place } from "../address";
 import { myWeeklyRankOf } from "../../round-4/pages/leaderboard/board";
+import { useHeldHoggiesFound, useHoggieLandings } from "./trayState";
 
 const shownAtFirst = 10;
 
 const weekMs = 7 * 86_400_000;
+
+const landedFlashMs = 1600;
 
 type Found = { team: Team; matchedPerson: string | null };
 
@@ -68,19 +71,7 @@ export function Sidebar({ place }: { place: Place }) {
             </button>
           )}
         </section>
-        <ul className="r5-pages" aria-label="More of your album">
-          {deepPagesOf(album).map(({ kind, label, icon, count }) => (
-            <li key={kind}>
-              <AppLink href={hrefOf({ kind })} className="r5-page" aria-current={place.kind === kind ? "page" : undefined} onFollow={close}>
-                <span className="r5-page-icon" aria-hidden="true">
-                  {icon}
-                </span>
-                <span>{label}</span>
-                <span className="r5-page-count">{count}</span>
-              </AppLink>
-            </li>
-          ))}
-        </ul>
+        <DeepPages album={album} place={place} onFollow={close} />
       </div>
     </nav>
   );
@@ -115,10 +106,34 @@ function teamHref(team: Team) {
   return team.mine ? hrefOf({ kind: "team", team: null }) : hrefOf({ kind: "team", team: team.team });
 }
 
+function useFlashWhenItRises(value: number) {
+  const [flashing, setFlashing] = useState(false);
+  const before = useRef(value);
+  useEffect(() => {
+    const rose = value > before.current;
+    before.current = value;
+    if (!rose) return;
+    setFlashing(true);
+    const timer = window.setTimeout(() => setFlashing(false), landedFlashMs);
+    return () => window.clearTimeout(timer);
+  }, [value]);
+  return flashing ? "" : undefined;
+}
+
+function JustLanded() {
+  return (
+    <span className="r5-just-landed" aria-hidden="true">
+      +1
+    </span>
+  );
+}
+
 function MyTeam({ team, current, onFollow }: { team: Team; current: boolean; onFollow: () => void }) {
   const left = team.total - team.held;
+  const landed = useFlashWhenItRises(team.held);
   return (
-    <AppLink href={teamHref(team)} className="r5-mine" aria-current={current ? "page" : undefined} data-complete={team.complete ? "" : undefined} onFollow={onFollow}>
+    <AppLink href={teamHref(team)} className="r5-mine" aria-current={current ? "page" : undefined} data-complete={team.complete ? "" : undefined} data-landed={landed} onFollow={onFollow}>
+      {landed !== undefined && <JustLanded />}
       <span className="r5-mine-crest">
         <CrestArt art={team.art} size={40} />
       </span>
@@ -132,8 +147,10 @@ function MyTeam({ team, current, onFollow }: { team: Team; current: boolean; onF
 }
 
 function TeamRow({ team, matchedPerson, current, onFollow }: { team: Team; matchedPerson: string | null; current: boolean; onFollow: () => void }) {
+  const landed = useFlashWhenItRises(team.held);
   return (
-    <AppLink href={teamHref(team)} className="r5-team" aria-current={current ? "page" : undefined} onFollow={onFollow}>
+    <AppLink href={teamHref(team)} className="r5-team" aria-current={current ? "page" : undefined} data-landed={landed} onFollow={onFollow}>
+      {landed !== undefined && <JustLanded />}
       <span className="r5-team-crest">
         <CrestArt art={team.art} size={22} />
       </span>
@@ -164,12 +181,34 @@ function Pips({ held, total }: { held: number; total: number }) {
 
 type DeepPage = { kind: "hoggies" | "milestones" | "activity" | "leaderboard"; label: string; icon: ReactNode; count: string };
 
-function deepPagesOf(album: Album): DeepPage[] {
+function DeepPages({ album, place, onFollow }: { album: Album; place: Place; onFollow: () => void }) {
+  const hoggiesFound = useHeldHoggiesFound() ?? album.hoggiesFound;
+  const hoggieLanded = useFlashWhenItRises(useHoggieLandings());
+  return (
+    <ul className="r5-pages" aria-label="More of your album">
+      {deepPagesOf(album, hoggiesFound).map(({ kind, label, icon, count }) => (
+        <li key={kind}>
+          <AppLink href={hrefOf({ kind })} className="r5-page" data-side-page={kind} data-landed={kind === "hoggies" ? hoggieLanded : undefined} aria-current={place.kind === kind ? "page" : undefined} onFollow={onFollow}>
+            <span className="r5-page-icon" aria-hidden="true">
+              {icon}
+            </span>
+            <span>{label}</span>
+            <span key={count} className="r5-page-count">
+              {count}
+            </span>
+          </AppLink>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function deepPagesOf(album: Album, hoggiesFound: number): DeepPage[] {
   const medals = album.milestones.flatMap(({ tiers }) => tiers).filter(({ earnedAt }) => earnedAt !== null).length;
   const thisWeek = album.moments.filter(({ at }) => at > Date.now() - weekMs).length;
   const rank = myWeeklyRankOf(album) ?? undefined;
   return [
-    { kind: "hoggies", label: "Hoggies", icon: <HedgehogSitting size={20} />, count: `${album.hoggiesFound}/${album.hoggies.length}` },
+    { kind: "hoggies", label: "Hoggies", icon: <HedgehogSitting size={20} />, count: `${hoggiesFound}/${album.hoggies.length}` },
     { kind: "milestones", label: "Milestones", icon: <IconRibbon />, count: `${medals} medals` },
     { kind: "activity", label: "Activity", icon: <IconPulse />, count: `${thisWeek} this week` },
     { kind: "leaderboard", label: "Leaderboard", icon: <IconCrown />, count: rank === undefined ? "" : `#${rank}` },

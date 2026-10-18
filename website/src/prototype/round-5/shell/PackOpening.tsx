@@ -1,34 +1,31 @@
-// PROTOTYPE (#625, round 5): the pack opening, the pocket binder's card flips with more celebration. Never merge to main.
+// PROTOTYPE (#625, round 5): the pack opening, round 4's card flips and celebration, with the opened cards flying up into the top-bar tray. Never merge to main.
 import { IconX } from "@posthog/icons";
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { personOf, useAlbum, type Album, type AlbumActions, type Pack, type PackOpening as Opened } from "../../round-3/album";
-import { hrefOf } from "../address";
 import { CardBack, HoggieCard, PackWrapper, PersonCard, rarityWords, teamColourOf, type Tally } from "./Cards";
 import { ConfettiBurst, NewRibbon, RaritySparkles, ShineSweep, SoftRing } from "./Celebration";
-import { closePacks, replaceTo } from "./history";
+import { boxOf, fly } from "./Flights";
+import { closePacks } from "./history";
 import { firstNameOf, holdXpAt, releaseXp, usePrefersReducedMotion } from "./motion";
+import { keepOutOfTheTray, showInTheTray } from "./trayState";
 import "./opening.css";
 
 type Step = "sealed" | "stack" | "person" | "glow" | "hoggie" | "tucking";
 
-const glowMs = 1100;
+type AfterTuck = "next" | "close" | "put-all-in";
 
-const tuckMs = 650;
+const glowMs = 1100;
 
 const xpLandsAfterMs = 520;
 
 const sparklesOf = { common: 0, uncommon: 0, rare: 12, epic: 16, legendary: 22 } as const;
 
-export function PackOpening() {
+export function PackOpening({ onPutAllIn }: { onPutAllIn: () => void }) {
   const { album, actions } = useAlbum();
   const [active, setActive] = useState(() => album.packs[0]?.id ?? null);
   const [opened, setOpened] = useState<Opened[]>([]);
   const waiting = album.packs.filter(({ id }) => id !== active);
-  const finish = useCallback(() => {
-    const landing = landingOf(opened, album.teams.find(({ mine }) => mine)?.team);
-    if (landing === null) closePacks();
-    else replaceTo(landing);
-  }, [opened, album.teams]);
+  const finish = closePacks;
   useEscapeTo(finish);
   useEffect(() => releaseXp, []);
   const remember = useCallback((opening: Opened) => setOpened((list) => [...list, opening]), []);
@@ -44,7 +41,7 @@ export function PackOpening() {
         {active === null ? (
           <NoPacks openedAny={opened.length > 0} onDone={finish} />
         ) : (
-          <Opening key={active} album={album} actions={actions} packId={active} waitingAfter={waiting.length} onOpened={remember} onNext={waiting[0] === undefined ? null : () => setActive(waiting[0]!.id)} onDone={finish} />
+          <Opening key={active} album={album} actions={actions} packId={active} waitingAfter={waiting.length} onOpened={remember} onNext={waiting[0] === undefined ? null : () => setActive(waiting[0]!.id)} onDone={finish} onPutAllIn={onPutAllIn} />
         )}
       </div>
       {waiting.length > 0 && <UpNext album={album} waiting={waiting} onPick={setActive} />}
@@ -55,17 +52,6 @@ export function PackOpening() {
 function headWordsOf(openedCount: number, waitingCount: number) {
   const waiting = waitingCount === 0 ? "none left" : waitingCount === 1 ? "1 pack waiting" : `${waitingCount} packs waiting`;
   return openedCount === 0 ? waiting : `${openedCount} opened · ${waiting}`;
-}
-
-function landingOf(opened: Opened[], myTeam: string | undefined) {
-  const newest = opened.findLast(({ person }) => person.isNew);
-  const team = newest === undefined ? undefined : landingTeamOf(newest);
-  if (team !== undefined) return hrefOf({ kind: "team", team: team === myTeam ? null : team });
-  return opened.length === 0 ? null : hrefOf({ kind: "hoggies" });
-}
-
-function landingTeamOf(opening: Opened) {
-  return opening.teams.find(({ justCompleted }) => justCompleted)?.team ?? opening.teams[0]?.team ?? opening.person.teams[0]!;
 }
 
 function useEscapeTo(finish: () => void) {
@@ -99,30 +85,32 @@ function NoPacks({ openedAny, onDone }: { openedAny: boolean; onDone: () => void
   return (
     <div className="r5o-none">
       <h1 className="r5o-none-title">{openedAny ? "All packs opened" : "No packs waiting"}</h1>
-      <p>Thank someone in Slack and say why. Each thoughtful kudos earns a pack, one per person a week.</p>
+      <p>{openedAny ? "Your cards wait in the tray at the top. Click it to put them in." : "Thank someone in Slack and say why. Each thoughtful kudos earns a pack, one per person a week."}</p>
       <button type="button" className="r5o-button r5o-button-warm" onClick={onDone} autoFocus>
-        {openedAny ? "See them in your album" : "Back to the album"}
+        Back to the album
       </button>
     </div>
   );
 }
 
-type OpeningProps = { album: Album; actions: AlbumActions; packId: string; waitingAfter: number; onOpened: (opening: Opened) => void; onNext: (() => void) | null; onDone: () => void };
+type OpeningProps = { album: Album; actions: AlbumActions; packId: string; waitingAfter: number; onOpened: (opening: Opened) => void; onNext: (() => void) | null; onDone: () => void; onPutAllIn: () => void };
 
-function Opening({ album, actions, packId, waitingAfter, onOpened, onNext, onDone }: OpeningProps) {
+function Opening({ album, actions, packId, waitingAfter, onOpened, onNext, onDone, onPutAllIn }: OpeningProps) {
   const reduced = usePrefersReducedMotion();
+  const root = useRef<HTMLDivElement>(null);
   const [opening, setOpening] = useState<Opened | null>(null);
   const [step, setStep] = useState<Step>("sealed");
   const pack = album.packs.find(({ id }) => id === packId) ?? opening?.pack ?? null;
   useStepTimer(step === "glow", glowMs, () => setStep("hoggie"));
   useStepTimer(step === "person", xpLandsAfterMs, releaseXp);
-  useStepTimer(step === "tucking", reduced ? 0 : tuckMs, onDone);
+  useShownInTheTrayWhenGone(opening?.pack.id ?? null);
   if (pack === null) return null;
   const rip = () => {
     if (opening !== null) return;
     holdXpAt(album.level.xp);
     const opened = actions.openPack(pack.id);
     if (opened === null) return releaseXp();
+    keepOutOfTheTray(opened.pack.id);
     setOpening(opened);
     onOpened(opened);
     if (reduced) releaseXp();
@@ -132,15 +120,61 @@ function Opening({ album, actions, packId, waitingAfter, onOpened, onNext, onDon
     if (step === "stack") setStep("person");
     if (step === "person") setStep("glow");
   };
+  const tuck = (after: AfterTuck) => {
+    if (opening === null || step === "tucking") return;
+    const cards = cardsOf(album, opening);
+    setStep("tucking");
+    void gatherIntoTheTray(root.current, cards).then(() => {
+      showInTheTray(opening.pack.id);
+      if (after === "next" && onNext !== null) return onNext();
+      onDone();
+      if (after === "put-all-in") onPutAllIn();
+    });
+  };
   return (
-    <div className="r5o-opening" data-step={step}>
+    <div ref={root} className="r5o-opening" data-step={step}>
       {step === "sealed" || opening === null ? (
         <SealedPack album={album} pack={pack} onRip={rip} />
       ) : (
-        <Reveal album={album} opening={opening} step={step} reduced={reduced} waitingAfter={waitingAfter} onAdvance={advance} onTuck={() => setStep("tucking")} onNext={onNext} />
+        <Reveal album={album} opening={opening} step={step} reduced={reduced} waitingAfter={waitingAfter} onAdvance={advance} onTuck={tuck} hasNext={onNext !== null} />
       )}
     </div>
   );
+}
+
+function useShownInTheTrayWhenGone(packId: string | null) {
+  useEffect(() => {
+    if (packId === null) return;
+    return () => showInTheTray(packId);
+  }, [packId]);
+}
+
+function cardsOf(album: Album, opening: Opened): ReactNode[] {
+  const tally = tallyOf(album, opening);
+  const person = personOf(album, opening.person.key)!;
+  return [
+    <span key="person" className={`r5-flown-card ${tally?.justCompleted ? "r5o-gold" : ""}`}>
+      <PersonCard person={person} colour={teamColourOf(album, person.teams[0]!)} tally={tally} />
+    </span>,
+    <span key="hoggie" className="r5-flown-card">
+      <HoggieCard hoggie={opening.hoggie} copy={opening.hoggie.copy} />
+    </span>,
+  ];
+}
+
+async function gatherIntoTheTray(root: HTMLElement | null, cards: ReactNode[]) {
+  const tray = document.querySelector(".r5 .r5-tray-stack");
+  if (root === null || tray === null) return;
+  const to = boxOf(tray);
+  const faces = [...root.querySelectorAll<HTMLElement>(".r5o-flip-front")];
+  await Promise.all(faces.map((face, index) => fly({ content: cards[index], width: face.offsetWidth, height: face.offsetHeight, from: boxOf(face), to, arc: 70, durationMs: 720, delayMs: index * 120, spin: index === 0 ? -12 : 10 })));
+}
+
+function tallyOf(album: Album, opening: Opened): Tally | null {
+  const shownTeam = opening.teams.find(({ justCompleted }) => justCompleted) ?? opening.teams[0];
+  const teamArt = album.teams.find(({ team }) => team === shownTeam?.team)?.art;
+  if (shownTeam === undefined || teamArt === undefined) return null;
+  return { name: shownTeam.name, art: teamArt, held: shownTeam.held, total: shownTeam.total, justCompleted: shownTeam.justCompleted, ticking: opening.person.isNew };
 }
 
 function useStepTimer(running: boolean, afterMs: number, then: () => void) {
@@ -192,13 +226,11 @@ function SealedPack({ album, pack, onRip }: { album: Album; pack: Pack; onRip: (
   );
 }
 
-type RevealProps = { album: Album; opening: Opened; step: Step; reduced: boolean; waitingAfter: number; onAdvance: () => void; onTuck: () => void; onNext: (() => void) | null };
+type RevealProps = { album: Album; opening: Opened; step: Step; reduced: boolean; waitingAfter: number; onAdvance: () => void; onTuck: (after: AfterTuck) => void; hasNext: boolean };
 
-function Reveal({ album, opening, step, reduced, waitingAfter, onAdvance, onTuck, onNext }: RevealProps) {
+function Reveal({ album, opening, step, reduced, waitingAfter, onAdvance, onTuck, hasNext }: RevealProps) {
   const person = personOf(album, opening.person.key)!;
-  const shownTeam = opening.teams.find(({ justCompleted }) => justCompleted) ?? opening.teams[0];
-  const teamArt = album.teams.find(({ team }) => team === shownTeam?.team)?.art;
-  const tally: Tally | null = shownTeam === undefined || teamArt === undefined ? null : { name: shownTeam.name, art: teamArt, held: shownTeam.held, total: shownTeam.total, justCompleted: shownTeam.justCompleted, ticking: opening.person.isNew };
+  const tally = tallyOf(album, opening);
   const personUp = step !== "stack";
   const hoggieUp = step === "hoggie" || step === "tucking";
   const celebrating = !reduced;
@@ -252,7 +284,7 @@ function Reveal({ album, opening, step, reduced, waitingAfter, onAdvance, onTuck
           </button>
         )}
         {step === "glow" && <p className="r5o-caption-title r5o-glow-word">Something {rarityWords[opening.hoggie.rarity].toLowerCase()}…</p>}
-        {hoggieUp && <HoggieCaption opening={opening} waitingAfter={waitingAfter} tucking={step === "tucking"} onTuck={onTuck} onNext={onNext} />}
+        {hoggieUp && <HoggieCaption opening={opening} waitingAfter={waitingAfter} tucking={step === "tucking"} onTuck={onTuck} hasNext={hasNext} />}
       </div>
     </div>
   );
@@ -295,7 +327,7 @@ function PersonCaption({ opening, thanks }: { opening: Opened; thanks: number })
   );
 }
 
-function HoggieCaption({ opening, waitingAfter, tucking, onTuck, onNext }: { opening: Opened; waitingAfter: number; tucking: boolean; onTuck: () => void; onNext: (() => void) | null }) {
+function HoggieCaption({ opening, waitingAfter, tucking, onTuck, hasNext }: { opening: Opened; waitingAfter: number; tucking: boolean; onTuck: (after: AfterTuck) => void; hasNext: boolean }) {
   const levelled = opening.xp.levelAfter > opening.xp.levelBefore;
   return (
     <>
@@ -308,21 +340,27 @@ function HoggieCaption({ opening, waitingAfter, tucking, onTuck, onNext }: { ope
       </p>
       <p className="r5o-quiet">{levelled ? `+${opening.xp.gained} XP · Level ${opening.xp.levelAfter}, your level moved up.` : `+${opening.xp.gained} XP`}</p>
       <div className="r5o-caption-actions">
-        {onNext !== null ? (
+        {hasNext ? (
           <>
-            <button type="button" className="r5o-button r5o-button-warm" onClick={onNext} disabled={tucking} autoFocus>
+            <button type="button" className="r5o-button r5o-button-warm" onClick={() => onTuck("next")} disabled={tucking} autoFocus>
               Open next pack · {waitingAfter} left
             </button>
-            <button type="button" className="r5o-button r5o-button-quiet" onClick={onTuck} disabled={tucking}>
-              Put them in the album
+            <button type="button" className="r5o-button r5o-button-quiet" onClick={() => onTuck("close")} disabled={tucking}>
+              Done for now
             </button>
           </>
         ) : (
-          <button type="button" className="r5o-button r5o-button-warm" onClick={onTuck} disabled={tucking} autoFocus>
-            Put them in the album
-          </button>
+          <>
+            <button type="button" className="r5o-button r5o-button-warm" onClick={() => onTuck("put-all-in")} disabled={tucking} autoFocus>
+              Put them all in
+            </button>
+            <button type="button" className="r5o-button r5o-button-quiet" onClick={() => onTuck("close")} disabled={tucking}>
+              Leave them in the tray
+            </button>
+          </>
         )}
       </div>
+      <p className="r5o-quiet">These cards fly up to the tray at the top until you put them in.</p>
     </>
   );
 }

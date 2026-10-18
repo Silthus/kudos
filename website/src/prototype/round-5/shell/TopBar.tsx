@@ -1,15 +1,17 @@
-// PROTOTYPE (#625, round 5): the top bar: brand, XP bar, packs waiting, your name and the settings cog. Never merge to main.
+// PROTOTYPE (#625, round 5): the top bar: brand, XP bar, packs waiting, the tray of opened cards, your profile and the settings cog. Never merge to main.
 import { IconGear } from "@posthog/icons";
 import type { MouseEvent } from "react";
 import { AppLink } from "../../../AppLink";
 import { HedgehogSitting } from "../../../hoggies";
 import { MemberFace } from "../../art";
 import { levelAt, useAlbum } from "../../round-3/album";
-import type { Place } from "../address";
+import { hrefOf, type Place } from "../address";
 import { openPacks, packsHrefHere } from "./history";
 import { useCountUp, useGain, useHeldXp } from "./motion";
+import type { PutIn } from "./putIn";
+import { Tray } from "./Tray";
 
-export function TopBar({ place, chip, packsOpen }: { place: Place; chip: string; packsOpen: boolean }) {
+export function TopBar({ place, packsOpen, onPutIn }: { place: Place; packsOpen: boolean; onPutIn: PutIn }) {
   const { album } = useAlbum();
   return (
     <header className="r5-top">
@@ -19,13 +21,13 @@ export function TopBar({ place, chip, packsOpen }: { place: Place; chip: string;
       </AppLink>
       <XpBar xp={album.level.xp} />
       <div className="r5-top-end">
-        <span className="r5-layout-chip" data-prototype-chip>
-          {chip}
-        </span>
         <PacksButton waiting={album.packs.length} open={packsOpen} />
-        <span className="r5-me">
-          <MemberFace face={album.me.face} className="r5-me-face" />
-          <span className="r5-me-name">{album.me.name}</span>
+        <Tray onPutIn={onPutIn} />
+        <span className="r5-me-group">
+          <AppLink href={hrefOf({ kind: "profile" })} className="r5-me" aria-label={`Your profile, ${album.me.name}`} aria-current={place.kind === "profile" ? "page" : undefined}>
+            <MemberFace face={album.me.face} className="r5-me-face" />
+            <span className="r5-me-name">{album.me.name}</span>
+          </AppLink>
           <AppLink href="/settings" aria-label="Settings" className="r5-cog" aria-current={place.kind === "settings" ? "page" : undefined}>
             <IconGear />
           </AppLink>

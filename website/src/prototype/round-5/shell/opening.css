@@ -532,18 +532,12 @@
 }
 
 .r5 .r5o-reveal[data-step="tucking"] .r5o-slot {
-  transition:
-    transform 650ms cubic-bezier(0.5, 0, 0.7, 0.4),
-    opacity 650ms ease-in;
-  opacity: 0;
+  visibility: hidden;
 }
 
-.r5 .r5o-reveal[data-step="tucking"] .r5o-slot-person {
-  transform: translate(-620px, 60px) rotate(-16deg) scale(0.2);
-}
-
-.r5 .r5o-reveal[data-step="tucking"] .r5o-slot-hoggie {
-  transform: translate(-580px, 100px) rotate(-10deg) scale(0.2);
+.r5 .r5o-reveal[data-step="tucking"] .r5o-caption {
+  opacity: 0.5;
+  transition: opacity 200ms ease-out;
 }
 
 @keyframes r5o-rise {

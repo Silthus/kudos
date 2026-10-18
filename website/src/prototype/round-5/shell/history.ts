@@ -22,8 +22,17 @@ export function replaceTo(href: string) {
   tellTheApp();
 }
 
+let goingBack = false;
+
+function goBackOnce() {
+  if (goingBack) return;
+  goingBack = true;
+  window.addEventListener("popstate", () => (goingBack = false), { once: true });
+  window.history.back();
+}
+
 export function closePacks() {
   const state: unknown = window.history.state;
-  if (typeof state === "object" && state !== null && openedHere in state) return window.history.back();
+  if (typeof state === "object" && state !== null && openedHere in state) return goBackOnce();
   replaceTo(window.location.pathname);
 }

@@ -10,8 +10,10 @@ import { packsHash, placeOf, useHash, type Place } from "./address";
 import { HoggiesPage } from "./pages/hoggies/HoggiesPage";
 import { MilestonesPage } from "./pages/milestones/MilestonesPage";
 import { ProfilePage } from "./pages/profile/ProfilePage";
+import { FlightLayer } from "./shell/Flights";
 import { Journey } from "./shell/Journey";
 import { PackOpening } from "./shell/PackOpening";
+import { usePutIn } from "./shell/putIn";
 import { Sidebar } from "./shell/Sidebar";
 import { TopBar } from "./shell/TopBar";
 import "./shell/shell.css";
@@ -28,9 +30,10 @@ export function RoundFive({ route, todaysPage }: VariantProps) {
   const hash = useHash();
   const place = placeOf(route, hash);
   const packsOpen = hash === packsHash;
+  const putIn = usePutIn(place);
   return (
     <div className="r5">
-      <TopBar place={place} chip="Round 5 · pick and mix" packsOpen={packsOpen} />
+      <TopBar place={place} packsOpen={packsOpen} onPutIn={putIn} />
       <div className="r5-body">
         <Sidebar place={place} />
         <main className="r5-main">
@@ -38,7 +41,8 @@ export function RoundFive({ route, todaysPage }: VariantProps) {
           <PageOf place={place} settings={todaysPage} />
         </main>
       </div>
-      {packsOpen && <PackOpening />}
+      {packsOpen && <PackOpening onPutAllIn={() => putIn("all")} />}
+      <FlightLayer />
     </div>
   );
 }
