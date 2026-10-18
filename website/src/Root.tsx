@@ -1,14 +1,20 @@
 import { ConvexReactClient } from "convex/react";
-import { App } from "./App";
-import { fixtureReadsFor } from "./fixtureReads";
+import { lazy, Suspense } from "react";
 import { LiveShell } from "./LiveApp";
 import { ShellBoundary } from "./ShellBoundary";
-import { builtShell, fixtureActions, type ShellState } from "./shell";
+
+const FixtureApp = lazy(() => import("./FixtureApp"));
 
 export function Root({ fixture, convexUrl }: { fixture?: string; convexUrl?: string }) {
-  return <ShellBoundary>{fixture || !convexUrl ? <FixtureApp visitor={builtShell(fixture)} fixture={fixture} /> : <LiveShell client={new ConvexReactClient(convexUrl)} />}</ShellBoundary>;
-}
-
-function FixtureApp({ visitor, fixture }: { visitor: ShellState; fixture: string | undefined }) {
-  return <App visitor={visitor} actions={fixtureActions} {...fixtureReadsFor(visitor, fixture)} />;
+  return (
+    <ShellBoundary>
+      {fixture || !convexUrl ? (
+        <Suspense>
+          <FixtureApp fixture={fixture} />
+        </Suspense>
+      ) : (
+        <LiveShell client={new ConvexReactClient(convexUrl)} />
+      )}
+    </ShellBoundary>
+  );
 }

@@ -1,4 +1,4 @@
-import { act, render } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
 import { activityFixtures } from "./activityFixtures";
@@ -20,6 +20,7 @@ const pages: { path: string; fixtures: string[] }[] = [
   { path: "/book#hoggies/legendary", fixtures: ["member-with-the-book-spread"] },
   { path: "/book#teams", fixtures: ["member-with-the-book-spread"] },
   { path: "/settings", fixtures: ["member-with-settings"] },
+  ...["/", "/book#teams/paper-moons", "/book#people/ines-okafor", "/book#me", "/book#hoggies", "/book#milestones", "/book#packs", "/activity", "/leaderboard", "/settings"].map((path) => ({ path, fixtures: ["album"] })),
 ];
 
 const slackHost = /(?:^|[/.@])(?:[a-z0-9-]+\.)*(?:slack\.com|slack-edge\.com|gravatar\.com)\b/i;
@@ -47,12 +48,21 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
       it(`${path} for ${fixture}: every kudos word, Slack-shaped ID, Slack URL and emoji name sits inside a ph-no-capture block`, async () => {
         window.history.replaceState(null, "", path);
         const { container } = render(<Root fixture={fixture} />);
+        await (fixture === "album" ? screen.findByRole("navigation", { name: "Album" }) : screen.findByRole("main"));
         await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
 
         expect(exposedIn(container)).toEqual([]);
       });
     }
   }
+
+  it("AL56: an album page carries blocks around the member's face and name, so the album's walk is not vacuous", async () => {
+    window.history.replaceState(null, "", "/book#people/ines-okafor");
+    const { container } = render(<Root fixture="album" />);
+    await screen.findByRole("navigation", { name: "Album" });
+
+    expect([...container.querySelectorAll(".ph-no-capture")].map((block) => block.textContent)).toEqual(expect.arrayContaining(["SE", "Sam Example", "Ines Okafor"]));
+  });
 
   it("a page with private things in it carries blocks, so the walk is not vacuous", async () => {
     window.history.replaceState(null, "", "/activity");

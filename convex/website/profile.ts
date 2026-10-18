@@ -1,4 +1,5 @@
 import type { QueryCtx } from "../_generated/server";
+import { albumOnProfileOf } from "../album/flag";
 import { homeFacts } from "../engine/home";
 import { avatarShownOn, type Avatar } from "../hoggies/avatar";
 import { groupsShownTo } from "../groups/groups";
@@ -47,6 +48,7 @@ export type MemberProfile = {
   settings: boolean;
   avatar?: Avatar | null;
   bookSpread?: true;
+  album?: true;
 };
 
 export type MyProfile = Denial | MemberProfile;
@@ -77,6 +79,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
     settings: await settingsShownTo(ctx, me, leaderboard),
     ...(await avatarShownOn(ctx, me.member, me.member)),
     ...(await bookSpreadShownTo(ctx, me.member)),
+    ...(await albumOnProfileOf(ctx, me.member)),
   };
 });
 

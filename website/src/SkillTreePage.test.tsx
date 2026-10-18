@@ -344,8 +344,9 @@ describe("WS80 WS85: the fixture build's /skills agrees with its member", () => 
     ["member-with-the-board-ready", "Skill tree"],
     ["member-with-the-skill-tree-ready", "Skill tree"],
     ["member-with-every-feature-open", "Perks"],
-  ])("%s shows %s", (fixture, title) => {
+  ])("%s shows %s", async (fixture, title) => {
     render(<Root fixture={fixture} />);
+    await screen.findByRole("main");
     expect(pageTitle()).toHaveTextContent(title);
   });
 
@@ -353,8 +354,9 @@ describe("WS80 WS85: the fixture build's /skills agrees with its member", () => 
     ["member-with-every-feature-open", "2 skill points to spend"],
     ["member-with-one-skill-point", "1 skill point to spend"],
     ["member-with-no-skill-points-left", "No skill points to spend"],
-  ])("%s spends the points its HUD shows: %s", (fixture, points) => {
+  ])("%s spends the points its HUD shows: %s", async (fixture, points) => {
     render(<Root fixture={fixture} />);
+    await screen.findByRole("main");
     expect(main()).toHaveTextContent(points);
   });
 });
