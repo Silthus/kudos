@@ -6,9 +6,9 @@ import { openedAtOf, stateOf } from "../unlocks/unlocks";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { settingsOf } from "../workspace/settings";
 import { catalogue, isCustomItem, itemOf, kudosEmojiNameOf, starterItem, type CatalogueItem, type ItemId, type StoreItem, type TierItem } from "./catalogue";
-import { customItemsShownAndExposedTo, customItemsShownTo, customKudosEmojiShownAndExposedTo, customKudosEmojiShownTo, type CustomItems } from "./customKudosEmoji";
+import { customItemsShownAndExposedTo, customItemsShownTo, customKudosEmojiOnAndExposedFor, customKudosEmojiShownTo, type CustomItems } from "./customKudosEmoji";
 import type { CollectedItem } from "./rows";
-import { storeVisibleAndExposedTo, storeVisibleTo } from "./visibility";
+import { storeVisibleTo } from "./visibility";
 
 export type { StoreItem } from "./catalogue";
 
@@ -36,10 +36,10 @@ export async function visibleInventoryOf(ctx: QueryCtx, member: MemberId): Promi
 }
 
 async function kudosEmojiOwnedBy(ctx: MutationCtx, member: MemberId): Promise<string[]> {
-  if (!(await storeVisibleAndExposedTo(ctx, member))) return [];
-  const collected = await collectedBy(ctx, member);
-  const customShown = collected.some(({ item }) => isCustomItem(item)) && (await customKudosEmojiShownAndExposedTo(ctx, member));
-  const owned = [starterItem, ...collected.map(({ item }) => item).filter((item) => customShown || !isCustomItem(item))];
+  const starter = (await openedAtOf(ctx, member, "coins")) === null ? [] : [starterItem];
+  const collected = (await collectedBy(ctx, member)).map(({ item }) => item);
+  const customCount = collected.some(isCustomItem) && (await customKudosEmojiOnAndExposedFor(ctx, member));
+  const owned = [...starter, ...collected.filter((item) => customCount || !isCustomItem(item))];
   return owned.flatMap((item) => kudosEmojiNameOf(item) ?? []);
 }
 

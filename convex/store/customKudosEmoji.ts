@@ -35,10 +35,13 @@ export async function customKudosEmojiShownTo(ctx: QueryCtx, member: MemberId): 
 }
 
 export async function customKudosEmojiShownAndExposedTo(ctx: MutationCtx, member: MemberId): Promise<boolean> {
-  if (!(await storeShownAndExposedTo(ctx, member))) return false;
-  const shown = await memberDecision(ctx, customKudosEmojiFlag, member);
-  await exposed(ctx, customKudosEmojiFlag, member, shown);
-  return shown;
+  return (await storeShownAndExposedTo(ctx, member)) && (await customKudosEmojiOnAndExposedFor(ctx, member));
+}
+
+export async function customKudosEmojiOnAndExposedFor(ctx: MutationCtx, member: MemberId): Promise<boolean> {
+  const on = await memberDecision(ctx, customKudosEmojiFlag, member);
+  await exposed(ctx, customKudosEmojiFlag, member, on);
+  return on;
 }
 
 export async function customItemsShownTo(ctx: QueryCtx, member: MemberId): Promise<CustomItems> {
