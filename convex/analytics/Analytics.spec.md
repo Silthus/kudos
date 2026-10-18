@@ -101,6 +101,7 @@ Analytics: the only module that knows PostHog. It projects each kudosGiven domai
   via: E11: recording a product event writes only analytics' own rows and schedules only the drain and the identify job
   because: analytics stays on while a feature is dark (E9, E10), so a recording that published a domain event, sent an exposure or republished App Home could wake a dark feature or show it to a member (E11, P76, P78), and a member would see different Slack calls with capture on and off (O15)
   refuted: recordUnlockReady also republished the member's App Home after recording unlock made ready -> the test failed on its assertion that the re-run recordUnlockReady scheduled nothing but the drain, receiving slack/appHome:publishHome (2026-10-14)
+  refuted: recordPersonCollected also scheduled stickers/backfill:startStickerBackfill for the event's workspace after recording person collected -> the test failed on its assertion that the re-run recordPersonCollected scheduled nothing but the drain, receiving one job (2026-10-18)
   kinds: state, message
   checklist: revalidated-permission dismissed: recording acts for no member and grants nothing; each feature checks its own permission before it stores the fact a recording observes
   checklist: destination-confinement dismissed: a recording sends nothing itself; its only destination is the outbox row, which the drain posts to the configured POSTHOG_HOST's batch endpoint
