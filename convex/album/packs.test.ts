@@ -120,6 +120,25 @@ describe("a thoughtful pack is earned once per giver, person and week", () => {
   });
 });
 
+describe("AL4 AL5: each grant records its outcome", () => {
+  test("a first pack holds the person's sticker, a later week's pack finds it waiting, one for someone already in the album finds them held, and a second in a week makes none", async () => {
+    await thanks(alice, why, bob);
+    await thanks(alice, "Thanks again for pairing on the rollback", bob);
+    vi.setSystemTime(Date.now() + 7 * dayMs);
+    await thanks(alice, "Thanks for reviewing the quarterly runbook", bob);
+    await thanks(dana, "ty", carol);
+    await anAlbumStickerAsHistoryWillRecordIt(alice, carol);
+    await thanks(alice, "Thanks for the steady hand during the outage", carol);
+
+    expect(await grantOutcomesOf(alice)).toEqual([
+      [bob.name, "new"],
+      [bob.name, "nextWeek"],
+      [bob.name, "waiting"],
+      [carol.name, "held"],
+    ]);
+  });
+});
+
 describe("a message's packs are told once", () => {
   test("a thoughtful kudos to three people sends one packs earned with packs_earned 3, and a second to one of them one with 0 and recipients 1", async () => {
     await thanks(alice, why, bob, carol, dana);
@@ -213,6 +232,19 @@ async function packsOf(person: Person) {
 async function packCountOf(person: Person) {
   const member = await memberOf(person);
   return t.run(async (ctx) => (await ctx.db.query("thoughtfulPacks").collect()).filter(({ giver }) => giver === member).length);
+}
+
+async function anAlbumStickerAsHistoryWillRecordIt(member: Person, person: Person) {
+  const [memberId, personId] = [await memberOf(member), await memberOf(person)];
+  await t.run((ctx) => ctx.db.insert("albumStickers", { member: memberId, person: personId, from: "history", at: Date.now() }));
+}
+
+async function grantOutcomesOf(giver: Person) {
+  const member = await memberOf(giver);
+  const names = new Map<string, string>();
+  for (const someone of [alice, bob, carol, dana]) names.set((await memberOrNullOf(someone)) ?? someone.user, someone.name);
+  const records = await t.run(async (ctx) => (await ctx.db.query("grantRecords").collect()).filter((record) => record.giver === member));
+  return records.map(({ recipient, outcome }) => [names.get(recipient), outcome]);
 }
 
 function packsEarnedEvents() {

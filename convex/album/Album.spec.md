@@ -7,6 +7,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   over: a thoughtful kudos to three people, a second thoughtful kudos to one of them the same week, a short kudos, a short kudos back, a hug, the next week's thoughtful kudos to the same person, two messages whose grants run in reverse order and each again as a redelivered kudosGiven, and a message edited to two words and then deleted, read through getAlbum's waiting packs
   via: a thoughtful pack is earned once per giver, person and week
   because: the thoughtful bar is one pack per giver, person and week (AL1, AL2, map Q12): a redelivered kudosGiven, a second message or two grants racing that made a second pack would let a member farm one teammate for packs, and a pack taken back by an edit would break awards are permanent (ADR-0001)
+  refuted: packFor never found the week's earlier pack of the giver for that recipient -> 2 of 5 tests failed: a second thoughtful kudos the same week earned a fourth pack, and two messages' grants rerun in reverse order earned a second pack for the shared recipient (2026-10-18)
   kinds: storage, state
   checklist: scoped-reads dismissed: the invariant is about what is written, not which records a read returns; the album is private covers the read
   checklist: revalidated-permission dismissed: granting a pack needs no permission; the awards it follows were decided when they were given
@@ -27,6 +28,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   over: a thoughtful kudos to three people and a second to one of them, read as the `packs earned` events PostHog receives; a message to 121 people over three pages with every page held, its last page run first, then the whole message, then its last page again; and the album's dark walk, where Analytics' subscriber runs beside the grant
   via: a message's packs are told once
   because: the bus schedules each subscriber independently (`convex/bus/publish.ts`), so a consumer reading the packs at its own time could count a message before its grant ran (AL6, review finding 1): telling the message's outcomes once, after its last grant record, keeps `packs earned` exact, and a second publish from a retried page would count one message's packs twice
+  refuted: the grant published thoughtfulPacksGranted without reading the message's told marker -> 1 of 2 tests failed: the 121-person message's last page run again sent a second packs earned (2026-10-18)
   kinds: state, queue, message
   checklist: revalidated-permission dismissed: telling a message's packs needs no permission; the awards were decided when they were given
   checklist: destination-confinement dismissed: the fact goes only to the subscribers the bus registers; Analytics' outbox posts only to the configured POSTHOG_HOST
@@ -55,6 +57,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   because: the album shows whom a member has thanked and who is still left (AL40, user story 13): a read answering another member's packs would show that member's giving to anyone who asked
   crossing: browser -> domain
   entrances: query getAlbum
+  refuted: getAlbum's waiting packs read every giver's packs from the signed-in member's ID on, a gte instead of eq -> 1 of 2 tests failed: a member's getAlbum answered packs other members earned (2026-10-18)
   kinds: read
   checklist: scoped-reads declared as the album is private
   checklist: redaction dismissed: the read answers the member's own album whole or not at all; nothing inside it is scrubbed
@@ -62,6 +65,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   over: four members at level 5 with the Book, Leaderboard, Quests and skill tree open and every other flag on, each opening App Home before and after three kudos, two of which say why, then a company sync, then reading getCollection, getBook, getMyProfile, getProfileCard, getQuests, getSettings, getSkillTree, getActivity, getRecentKudos, getSpotlight, getLeaderboard, getGroupBoards and getAlbum, in each of the four off states beside the same walk with the album's subscribers removed and no album shown; `album` on for everyone as the positive control, beside the walk with it off, and for one member's email; off with the walk's packs stored and then on; every `album` decision, recorded with whether a query made it, and the decision itself without the flags key
   via: AL39: the album is dark where album is off, shows only to the members it is on for, and nothing exposes it
   because: production is live and the album ships dark behind `album` (AL39) until the conductor widens it one flag at a time (AL64–AL66): a changed answer, Slack call or event where it is off would show members a feature nobody turned on for them, and an exposure from a read would count members who never saw it; packs are recorded whatever the flag says (AL3), so turning it on needs no backfill
+  refuted: albumShownTo answered true for every member whatever album decided -> 5 of 7 tests failed: in all four off states getAlbum answered an album with packs, and with it on for one email only every other member's getAlbum answered theirs (2026-10-18)
   kinds: state, output
   checklist: revalidated-permission dismissed: getAlbum decides `album` for the signed-in member on every read, never from a stored value
   checklist: legal-state-succession dismissed: the flag decides only what is shown; packs, grant records and names are written the same whatever it says (AL3), so turning it off and on again changes no record
@@ -78,6 +82,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   over: the first thoughtful kudos reserving the level, milestone and company team names before the hype name of the person it thanked; no name before any thoughtful kudos and none from a short kudos; two namesakes, and a third who joins and leaves after both were named; a person renamed after their hype name was given, beside a namesake of the old name named later; a name with accents and two with no Latin letter; a team named like a milestone's gold, one named like a standard emoji, one with no Latin letter, a team the copy gains in a later sync and a team renamed in the sync after; and the slug's rules over spaces, symbols, accents, 80 characters and a name with no Latin letter
   via: an earned emoji's name never moves
   because: a member adds an earned emoji to Slack by hand under the name HedgeHug gives it (AL28, AL31), and a workspace admin adds the shared set once (AL32): a name recomputed from today's directory, or a shared name a hype emoji took first, would rename an emoji someone already uploaded and point it at another person or team (AL25, review finding 9)
+  refuted: allocate named an emoji again whenever it was asked, without reading whether the registry already named it -> 1 of 7 tests failed: the sync after a team was reserved wrote a second name for it, which the registry's unique read refused (2026-10-18)
   kinds: storage, state
   checklist: scoped-reads dismissed: the invariant is about what is written; no read of the registry answers a member yet
   checklist: revalidated-permission dismissed: naming an emoji needs no permission; it follows a grant or a sync
