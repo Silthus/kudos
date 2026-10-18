@@ -1,0 +1,36 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 50
+  },
+  "me": {
+    "face": {
+      "initials": "IQ",
+      "kind": "initials"
+    },
+    "name": "Imogen Quarry",
+    "person": "js761q0epg42s6vq7hcxf6arbn8ggevy",
+    "team": null
+  },
+  "morePacks": false,
+  "packs": [
+    {
+      "earnedAt": 1792183339118,
+      "pack": "hn7hfr7jfr7pcrmzn4arn5pqdd8ggch8",
+      "person": "js72eyhyyzkyr1dd6v9wnn4m4x8ghyj2"
+    },
+    {
+      "earnedAt": 1792183339118,
+      "pack": "hn7gqmbb5m90sk7swk54fctn618ghedd",
+      "person": "js72z2z8xx07hxz3vfq5hw0ge18ghwdz"
+    },
+    {
+      "earnedAt": 1792183339118,
+      "pack": "hn7psr0byftfq9q3hwkd4ehjen8ggqrb",
+      "person": "js7873j1z4hzx7jy2q3e9pbhdn8gg6yk"
+    }
+  ]
+}
