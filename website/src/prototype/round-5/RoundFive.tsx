@@ -1,15 +1,16 @@
-// PROTOTYPE (#625, round 5): Michael's pick and mix: team A, activity B, leaderboard C, merged hoggies and milestones, a profile, and packs that wait in the top bar. Never merge to main.
+// PROTOTYPE (#625, round 6): Michael's pick and mix: team A, activity B, leaderboard C, merged hoggies and milestones, a profile, packs that wait in the top bar, and emoji moments. Never merge to main.
 import type { ReactNode } from "react";
 import type { VariantProps } from "../PrototypeStage";
 import { useAlbum } from "../round-3/album";
 import { activityLayouts } from "../round-4/pages/activity/layouts";
 import { leaderboardLayouts } from "../round-4/pages/leaderboard/layouts";
-import { teamLayouts } from "../round-4/pages/team/layouts";
-import { personLayouts } from "../round-4/pages/team/personLayouts";
+import { teamLayouts } from "./pages/team/layouts";
+import { personLayouts } from "./pages/team/personLayouts";
 import { packsHash, placeOf, useHash, type Place } from "./address";
 import { HoggiesPage } from "./pages/hoggies/HoggiesPage";
 import { MilestonesPage } from "./pages/milestones/MilestonesPage";
 import { ProfilePage } from "./pages/profile/ProfilePage";
+import { EmojiMoments } from "./shell/EmojiMoments";
 import { FlightLayer } from "./shell/Flights";
 import { Journey } from "./shell/Journey";
 import { PackOpening } from "./shell/PackOpening";
@@ -42,6 +43,7 @@ export function RoundFive({ route, todaysPage }: VariantProps) {
         </main>
       </div>
       {packsOpen && <PackOpening onPutAllIn={() => putIn("all")} />}
+      <EmojiMoments />
       <FlightLayer />
     </div>
   );

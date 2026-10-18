@@ -1,26 +1,37 @@
-// PROTOTYPE (#625, round 5): every hoggie as a large field guide plate, grouped by rarity, behind the All / Found / Still hidden / Spares filters. Never merge to main.
+// PROTOTYPE (#625, round 6): every hoggie as a large field guide plate, grouped by rarity, under a sticky bar with the All / Found / Still hidden / Spares filters and the rarity strip. Never merge to main.
+import { useRef, type CSSProperties } from "react";
 import { HoggieArt } from "../../../art";
 import type { Album, Hoggie } from "../../../round-3/album";
 import { ProgressBar } from "./HoggieDetail";
-import { filterKeys, filters, hoggieLabel, isFound, keptBy, numberOf, rarityTint, rarityWords, shelfOf, shelvesOf, type Filter, type Rarity, type Shelf } from "./shelf";
+import { RarityStrip } from "./RarityStrip";
+import { filterKeys, filters, groupId, hoggieLabel, isFound, keptBy, numberOf, rarityTint, rarityWords, shelfOf, shelvesOf, type Filter, type Rarity, type Shelf } from "./shelf";
+import { topBarHeight, useHeightOf, useRarityUnderBar, useStuck } from "./stickyBar";
 
 type Choose = (hoggie: Hoggie) => void;
 
-export function groupId(rarity: Rarity) {
-  return `r5h-group-${rarity}`;
-}
+type Props = { album: Album; filter: Filter; onFilter: (filter: Filter) => void; onJump: (rarity: Rarity) => void; landed: ReadonlySet<string>; onChoose: Choose };
 
-type Props = { album: Album; filter: Filter; onFilter: (filter: Filter) => void; landed: ReadonlySet<string>; onChoose: Choose };
-
-export function Collection({ album, filter, onFilter, landed, onChoose }: Props) {
+export function Collection({ album, filter, onFilter, onJump, landed, onChoose }: Props) {
   const groups = shelvesOf(keptBy(filter, album.hoggies)).filter(({ hoggies }) => hoggies.length > 0);
+  const sentinel = useRef<HTMLSpanElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
+  const barHeight = useHeightOf(bar);
+  const stuck = useStuck(sentinel);
+  const current = useRarityUnderBar(
+    groups.map(({ rarity }) => rarity),
+    topBarHeight + barHeight,
+  );
   return (
-    <section className="r5h-collection" aria-labelledby="r5h-collection-title">
-      <div className="r5h-toolbar">
-        <h2 id="r5h-collection-title" className="r5h-toolbar-title">
-          The collection
-        </h2>
-        <FilterButtons album={album} filter={filter} onFilter={onFilter} />
+    <section className="r5h-collection" style={barHeightStyle(barHeight)} aria-labelledby="r5h-collection-title">
+      <span ref={sentinel} className="r5h-sentinel" aria-hidden="true" />
+      <div ref={bar} className={stuck ? "r5h-toolbar r5h-toolbar-stuck" : "r5h-toolbar"}>
+        <div className="r5h-toolbar-row">
+          <h2 id="r5h-collection-title" className="r5h-toolbar-title">
+            The collection
+          </h2>
+          <FilterButtons album={album} filter={filter} onFilter={onFilter} />
+        </div>
+        <RarityStrip shelves={shelvesOf(album.hoggies)} current={current} onJump={onJump} />
       </div>
       {groups.length === 0 && <p className="r5h-nothing">{filters[filter].none}</p>}
       {groups.map((group) => (
@@ -28,6 +39,10 @@ export function Collection({ album, filter, onFilter, landed, onChoose }: Props)
       ))}
     </section>
   );
+}
+
+function barHeightStyle(height: number) {
+  return (height > 0 ? { "--r5h-toolbar": `${height}px` } : {}) as CSSProperties;
 }
 
 function FilterButtons({ album, filter, onFilter }: { album: Album; filter: Filter; onFilter: (filter: Filter) => void }) {

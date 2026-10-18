@@ -339,23 +339,117 @@
   box-shadow: 0 0 0 2px var(--rarity);
 }
 
-.r5 .r5-landing-burst {
+.r5 .r5-beckon {
   position: absolute;
-  width: 0;
-  height: 0;
+  border-radius: 14px;
+  border: 2px dashed var(--r5-orange);
+  background: rgb(247 165 1 / 10%);
+  animation: r5-beckon 900ms ease-in-out infinite;
 }
 
-.r5 .r5-landing-burst .r5o-confetti {
-  top: 0;
-  left: 0;
+.r5 .r5-beckon[data-round] {
+  border-radius: 999px;
 }
 
-.r5 .r5-landing-burst .r5o-confetti-gold .r5o-confetto {
-  animation-delay: calc(80ms + var(--delay));
+@keyframes r5-beckon {
+  0%,
+  100% {
+    scale: 1;
+    opacity: 0.55;
+  }
+  50% {
+    scale: 1.06;
+    opacity: 1;
+  }
+}
+
+.r5 .r5-touchdown {
+  position: absolute;
+  display: grid;
+  place-items: center;
+}
+
+.r5 .r5-touchdown > * {
+  grid-area: 1 / 1;
+}
+
+.r5 .r5-touchdown-press {
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+  box-shadow: 0 0 0 0 rgb(35 37 29 / 0%);
+  animation: r5-press 520ms ease-out both;
+}
+
+.r5 .r5-touchdown[data-press="sticker"] .r5-touchdown-press {
+  border-radius: 999px;
+}
+
+@keyframes r5-press {
+  0% {
+    box-shadow:
+      inset 0 0 0 999px rgb(35 37 29 / 10%),
+      0 2px 0 rgb(35 37 29 / 18%);
+  }
+  100% {
+    box-shadow:
+      inset 0 0 0 999px rgb(35 37 29 / 0%),
+      0 0 0 rgb(35 37 29 / 0%);
+  }
+}
+
+.r5 .r5-touchdown-ring {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 3px var(--landing),
+    0 0 24px 6px color-mix(in srgb, var(--landing) 45%, transparent);
+  animation: r5-ring 900ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@keyframes r5-ring {
+  0% {
+    scale: 0.7;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    scale: 1.7;
+    opacity: 0;
+  }
+}
+
+.r5 .r5-touchdown-sparkle {
+  width: 9px;
+  height: 9px;
+  background: var(--landing);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: r5-sparkle 820ms var(--delay) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes r5-sparkle {
+  0% {
+    translate: 0 0;
+    scale: 0.2;
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+    scale: 1.2;
+  }
+  100% {
+    translate: var(--x) var(--y);
+    scale: 0.4;
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .r5 .r5-tray * {
+  .r5 .r5-tray *,
+  .r5 .r5-beckon {
     animation: none !important;
   }
 }

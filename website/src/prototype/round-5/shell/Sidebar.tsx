@@ -1,17 +1,14 @@
-// PROTOTYPE (#625, round 5): the sidebar: search, your team first, ten teams by progress then "Show more", and the deep pages. Never merge to main.
-import { IconCheck, IconChevronDown, IconCrown, IconPulse, IconRibbon, IconSearch } from "@posthog/icons";
+// PROTOTYPE (#625, round 6): the sidebar: search, your team first, ten teams by progress then "Show more", Hoggies and Milestones. Never merge to main.
+import { IconCheck, IconChevronDown, IconRibbon, IconSearch } from "@posthog/icons";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AppLink } from "../../../AppLink";
 import { HedgehogSitting } from "../../../hoggies";
 import { CrestArt } from "../../art";
 import { useAlbum, type Album, type Team } from "../../round-3/album";
 import { hrefOf, type Place } from "../address";
-import { myWeeklyRankOf } from "../../round-4/pages/leaderboard/board";
 import { useHeldHoggiesFound, useHoggieLandings } from "./trayState";
 
 const shownAtFirst = 10;
-
-const weekMs = 7 * 86_400_000;
 
 const landedFlashMs = 1600;
 
@@ -179,7 +176,7 @@ function Pips({ held, total }: { held: number; total: number }) {
   );
 }
 
-type DeepPage = { kind: "hoggies" | "milestones" | "activity" | "leaderboard"; label: string; icon: ReactNode; count: string };
+type DeepPage = { kind: "hoggies" | "milestones"; label: string; icon: ReactNode; count: string };
 
 function DeepPages({ album, place, onFollow }: { album: Album; place: Place; onFollow: () => void }) {
   const hoggiesFound = useHeldHoggiesFound() ?? album.hoggiesFound;
@@ -205,12 +202,8 @@ function DeepPages({ album, place, onFollow }: { album: Album; place: Place; onF
 
 function deepPagesOf(album: Album, hoggiesFound: number): DeepPage[] {
   const medals = album.milestones.flatMap(({ tiers }) => tiers).filter(({ earnedAt }) => earnedAt !== null).length;
-  const thisWeek = album.moments.filter(({ at }) => at > Date.now() - weekMs).length;
-  const rank = myWeeklyRankOf(album) ?? undefined;
   return [
     { kind: "hoggies", label: "Hoggies", icon: <HedgehogSitting size={20} />, count: `${hoggiesFound}/${album.hoggies.length}` },
     { kind: "milestones", label: "Milestones", icon: <IconRibbon />, count: `${medals} medals` },
-    { kind: "activity", label: "Activity", icon: <IconPulse />, count: `${thisWeek} this week` },
-    { kind: "leaderboard", label: "Leaderboard", icon: <IconCrown />, count: rank === undefined ? "" : `#${rank}` },
   ];
 }

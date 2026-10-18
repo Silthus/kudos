@@ -1,12 +1,12 @@
-// PROTOTYPE (#625, round 5): the hoggies page: B's header, rarest finds and rarity strip on top, B's filters and rarity groups, A's large plates and centred entry card. Never merge to main.
+// PROTOTYPE (#625, round 6): the hoggies page: B's header and rarest finds on top, then the collection under a sticky bar with the filters and the rarity strip, A's large plates and centred entry card. Never merge to main.
 import { useEffect, useState } from "react";
 import { useAlbum, type Album, type Hoggie } from "../../../round-3/album";
 import { useChosenHoggie } from "./chosen";
-import { Collection, groupId } from "./Collection";
+import { Collection } from "./Collection";
 import { Entry } from "./Entry";
 import { useJustLanded } from "./landing";
-import { Showcase, RarityStrip } from "./Showcase";
-import { foundIn, keptBy, shelfOf, shelvesOf, type Filter, type Rarity } from "./shelf";
+import { Showcase } from "./Showcase";
+import { foundIn, groupId, keptBy, shelfOf, type Filter, type Rarity } from "./shelf";
 import "./hoggies.css";
 
 export function HoggiesPage() {
@@ -20,8 +20,7 @@ export function HoggiesPage() {
     <article className="r5h" aria-labelledby="r5h-title">
       <Header album={album} />
       <Showcase album={album} onChoose={choose} />
-      <RarityStrip shelves={shelvesOf(album.hoggies)} onJump={jump} />
-      <Collection album={album} filter={filter} onFilter={setFilter} landed={landed} onChoose={choose} />
+      <Collection album={album} filter={filter} onFilter={setFilter} onJump={jump} landed={landed} onChoose={choose} />
       {chosen !== null && <Entry hoggie={chosen} album={album} steps={shown.includes(chosen) ? shown : album.hoggies} onStep={choose} onClose={close} />}
     </article>
   );

@@ -41,7 +41,7 @@ function trayLabelOf(waiting: number, progress: Progress | null) {
   return waiting === 1 ? "1 opened card to put in" : `${waiting} opened cards to put in`;
 }
 
-function useClosingFromOutside(open: boolean, root: RefObject<HTMLElement | null>, close: () => void) {
+export function useClosingFromOutside(open: boolean, root: RefObject<HTMLElement | null>, close: () => void) {
   const latest = useRef(close);
   latest.current = close;
   useEffect(() => {

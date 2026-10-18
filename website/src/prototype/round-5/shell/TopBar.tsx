@@ -1,4 +1,4 @@
-// PROTOTYPE (#625, round 5): the top bar: brand, XP bar, packs waiting, the tray of opened cards, your profile and the settings cog. Never merge to main.
+// PROTOTYPE (#625, round 6): the top bar: brand, XP bar, packs waiting, the tray of opened cards, Activity and Leaderboard icons, your emojis, your profile and the settings cog. Never merge to main.
 import { IconGear } from "@posthog/icons";
 import type { MouseEvent } from "react";
 import { AppLink } from "../../../AppLink";
@@ -6,7 +6,9 @@ import { HedgehogSitting } from "../../../hoggies";
 import { MemberFace } from "../../art";
 import { levelAt, useAlbum } from "../../round-3/album";
 import { hrefOf, type Place } from "../address";
+import { EmojiButton } from "./EmojiShelf";
 import { openPacks, packsHrefHere } from "./history";
+import { IconMenu } from "./IconMenu";
 import { useCountUp, useGain, useHeldXp } from "./motion";
 import type { PutIn } from "./putIn";
 import { Tray } from "./Tray";
@@ -23,6 +25,8 @@ export function TopBar({ place, packsOpen, onPutIn }: { place: Place; packsOpen:
       <div className="r5-top-end">
         <PacksButton waiting={album.packs.length} open={packsOpen} />
         <Tray onPutIn={onPutIn} />
+        <IconMenu place={place} />
+        <EmojiButton />
         <span className="r5-me-group">
           <AppLink href={hrefOf({ kind: "profile" })} className="r5-me" aria-label={`Your profile, ${album.me.name}`} aria-current={place.kind === "profile" ? "page" : undefined}>
             <MemberFace face={album.me.face} className="r5-me-face" />

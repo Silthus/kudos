@@ -1,4 +1,4 @@
-// PROTOTYPE (#625, round 5): the hoggie facts the hoggies page reads: rarity shelves, odds, numbers, dates and the filters. Never merge to main.
+// PROTOTYPE (#625, round 6): the hoggie facts the hoggies page reads: rarity shelves and their group anchors, odds, numbers, dates and the filters. Never merge to main.
 import type { CSSProperties } from "react";
 import { personOf, rarityWeights, type Album, type Hoggie } from "../../../round-3/album";
 
@@ -9,6 +9,10 @@ export type Shelf = { rarity: Rarity; hoggies: Hoggie[]; found: number; shareOfR
 export const rarityWords: Record<Rarity, string> = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", legendary: "Legendary" };
 
 const rarityRank: Record<Rarity, number> = { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 };
+
+export function groupId(rarity: Rarity) {
+  return `r5h-group-${rarity}`;
+}
 
 export function rarityTint(rarity: Rarity) {
   return { "--r5h-rarity": `var(--rarity-${rarity})` } as CSSProperties;

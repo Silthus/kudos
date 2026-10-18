@@ -1,8 +1,7 @@
-// PROTOTYPE (#625, round 5): the top of the hoggies page: your rarest finds lit on a shelf, a few notes beside it, and the rarity strip. Never merge to main.
+// PROTOTYPE (#625, round 6): the top of the hoggies page: your rarest finds lit on a shelf and a few notes beside it. Never merge to main.
 import { HoggieArt } from "../../../art";
 import type { Album, Hoggie } from "../../../round-3/album";
-import { ProgressBar } from "./HoggieDetail";
-import { copiesWords, foundIn, hoggieLabel, latestFind, mostCopies, rarestFinds, rarityTint, rarityWords, shortDateWords, type Rarity, type Shelf } from "./shelf";
+import { copiesWords, foundIn, hoggieLabel, latestFind, mostCopies, rarestFinds, rarityTint, rarityWords, shortDateWords } from "./shelf";
 
 const onDisplay = 5;
 
@@ -71,23 +70,5 @@ function NoteAbout({ hoggie, heading, detail, onChoose }: { hoggie: Hoggie; head
         <span className="r5h-quiet">{detail}</span>
       </span>
     </button>
-  );
-}
-
-export function RarityStrip({ shelves, onJump }: { shelves: Shelf[]; onJump: (rarity: Rarity) => void }) {
-  return (
-    <nav className="r5h-strip" aria-label="Found by rarity">
-      {shelves.map((shelf) => (
-        <button key={shelf.rarity} type="button" className="r5h-strip-part" style={{ ...rarityTint(shelf.rarity), flex: `${shelf.hoggies.length} 1 0` }} aria-label={`${rarityWords[shelf.rarity]}: ${shelf.found} of ${shelf.hoggies.length} found. Jump there`} onClick={() => onJump(shelf.rarity)}>
-          <ProgressBar part={shelf.found} whole={shelf.hoggies.length} />
-          <span className="r5h-strip-words">
-            <strong>{rarityWords[shelf.rarity]}</strong>
-            <span>
-              {shelf.found}/{shelf.hoggies.length}
-            </span>
-          </span>
-        </button>
-      ))}
-    </nav>
   );
 }

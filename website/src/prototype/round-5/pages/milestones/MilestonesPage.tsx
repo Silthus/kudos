@@ -1,23 +1,18 @@
-// PROTOTYPE (#625, round 5): the milestones page: what you've collected, then one row per milestone with its four medals climbing left to right. Never merge to main.
-import { useAlbum } from "../../../round-3/album";
+// PROTOTYPE (#625, round 6): the milestones page: one row per milestone with its four medals climbing left to right, and the emoji its gold medal unlocks. Never merge to main.
+import { useAlbum, type Album, type Emoji, type Milestone } from "../../../round-3/album";
 import { datedMilestones } from "../../../round-4/pages/milestones/dated";
-import { closestNextOf, earnedNewestFirst, tiersEarned, type NextUp } from "../../../round-4/pages/milestones/model";
+import { closestNextOf, tiersEarned, type NextUp } from "../../../round-4/pages/milestones/model";
 import { goalLabel } from "./climb";
-import { Collected } from "./Collected";
-import { JustEarned } from "./JustEarned";
 import { MilestoneRow } from "./MilestoneRow";
 import "./milestones.css";
 
 export function MilestonesPage() {
   const { album } = useAlbum();
   const milestones = datedMilestones(album);
-  const earned = earnedNewestFirst(milestones);
   const totals = tiersEarned(milestones);
   return (
     <div className="r5ms">
       <Head earned={totals.earned} total={totals.total} closest={closestNextOf(milestones)} />
-      <JustEarned earned={earned} />
-      <Collected earned={earned} total={totals.total} />
       <section aria-labelledby="r5ms-rows-title">
         <div className="r5ms-section-head">
           <h2 id="r5ms-rows-title" className="r5ms-section-title">
@@ -27,12 +22,16 @@ export function MilestonesPage() {
         </div>
         <ol className="r5ms-rows">
           {milestones.map((milestone) => (
-            <MilestoneRow key={milestone.id} milestone={milestone} />
+            <MilestoneRow key={milestone.id} milestone={milestone} goldEmoji={goldEmojiOf(album, milestone)} />
           ))}
         </ol>
       </section>
     </div>
   );
+}
+
+function goldEmojiOf(album: Album, milestone: Milestone): Emoji | null {
+  return album.emojis.find(({ source }) => source.kind === "milestone" && source.milestone === milestone.id) ?? null;
 }
 
 function Head({ earned, total, closest }: { earned: number; total: number; closest: NextUp | null }) {

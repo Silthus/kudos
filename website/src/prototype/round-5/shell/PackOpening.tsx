@@ -1,11 +1,13 @@
-// PROTOTYPE (#625, round 5): the pack opening, round 4's card flips and celebration, with the opened cards flying up into the top-bar tray. Never merge to main.
+// PROTOTYPE (#625, round 6): the pack opening, round 4's card flips and celebration, a hype emoji under a first-time person card, and the opened cards flying up into the top-bar tray. Never merge to main.
 import { IconX } from "@posthog/icons";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
-import { personOf, useAlbum, type Album, type AlbumActions, type Pack, type PackOpening as Opened } from "../../round-3/album";
+import { personOf, useAlbum, type Album, type AlbumActions, type Emoji, type Pack, type PackOpening as Opened } from "../../round-3/album";
 import { CardBack, HoggieCard, PackWrapper, PersonCard, rarityWords, teamColourOf, type Tally } from "./Cards";
 import { ConfettiBurst, NewRibbon, RaritySparkles, ShineSweep, SoftRing } from "./Celebration";
+import { hypeOwedFor } from "./emojis";
 import { boxOf, fly } from "./Flights";
 import { closePacks } from "./history";
+import { HypeReveal } from "./HypeReveal";
 import { firstNameOf, holdXpAt, releaseXp, usePrefersReducedMotion } from "./motion";
 import { keepOutOfTheTray, showInTheTray } from "./trayState";
 import "./opening.css";
@@ -100,7 +102,9 @@ function Opening({ album, actions, packId, waitingAfter, onOpened, onNext, onDon
   const root = useRef<HTMLDivElement>(null);
   const [opening, setOpening] = useState<Opened | null>(null);
   const [step, setStep] = useState<Step>("sealed");
+  const [hype, setHype] = useState<Emoji | null>(null);
   const pack = album.packs.find(({ id }) => id === packId) ?? opening?.pack ?? null;
+  useHypeSeenOnceShown(hype, step !== "sealed" && step !== "stack", actions);
   useStepTimer(step === "glow", glowMs, () => setStep("hoggie"));
   useStepTimer(step === "person", xpLandsAfterMs, releaseXp);
   useShownInTheTrayWhenGone(opening?.pack.id ?? null);
@@ -108,8 +112,10 @@ function Opening({ album, actions, packId, waitingAfter, onOpened, onNext, onDon
   const rip = () => {
     if (opening !== null) return;
     holdXpAt(album.level.xp);
+    const owedHype = hypeOwedFor(album, pack.person);
     const opened = actions.openPack(pack.id);
     if (opened === null) return releaseXp();
+    setHype(owedHype);
     keepOutOfTheTray(opened.pack.id);
     setOpening(opened);
     onOpened(opened);
@@ -136,10 +142,16 @@ function Opening({ album, actions, packId, waitingAfter, onOpened, onNext, onDon
       {step === "sealed" || opening === null ? (
         <SealedPack album={album} pack={pack} onRip={rip} />
       ) : (
-        <Reveal album={album} opening={opening} step={step} reduced={reduced} waitingAfter={waitingAfter} onAdvance={advance} onTuck={tuck} hasNext={onNext !== null} />
+        <Reveal album={album} opening={opening} hype={hype} step={step} reduced={reduced} waitingAfter={waitingAfter} onAdvance={advance} onTuck={tuck} hasNext={onNext !== null} />
       )}
     </div>
   );
+}
+
+function useHypeSeenOnceShown(hype: Emoji | null, shown: boolean, { markEmojisSeen }: AlbumActions) {
+  useEffect(() => {
+    if (hype !== null && shown) markEmojisSeen([hype.id]);
+  }, [hype, shown, markEmojisSeen]);
 }
 
 function useShownInTheTrayWhenGone(packId: string | null) {
@@ -226,9 +238,9 @@ function SealedPack({ album, pack, onRip }: { album: Album; pack: Pack; onRip: (
   );
 }
 
-type RevealProps = { album: Album; opening: Opened; step: Step; reduced: boolean; waitingAfter: number; onAdvance: () => void; onTuck: (after: AfterTuck) => void; hasNext: boolean };
+type RevealProps = { album: Album; opening: Opened; hype: Emoji | null; step: Step; reduced: boolean; waitingAfter: number; onAdvance: () => void; onTuck: (after: AfterTuck) => void; hasNext: boolean };
 
-function Reveal({ album, opening, step, reduced, waitingAfter, onAdvance, onTuck, hasNext }: RevealProps) {
+function Reveal({ album, opening, hype, step, reduced, waitingAfter, onAdvance, onTuck, hasNext }: RevealProps) {
   const person = personOf(album, opening.person.key)!;
   const tally = tallyOf(album, opening);
   const personUp = step !== "stack";
@@ -258,6 +270,7 @@ function Reveal({ album, opening, step, reduced, waitingAfter, onAdvance, onTuck
               {celebrating && personUp && <ShineSweep />}
             </span>
           </span>
+          {hype !== null && personUp && <HypeReveal album={album} emoji={hype} />}
         </button>
         <button type="button" className="r5o-slot r5o-slot-hoggie" data-rarity={opening.hoggie.rarity} data-glow={step === "glow" ? "" : undefined} data-up={hoggieUp ? "" : undefined} onClick={onAdvance} disabled={step !== "stack" && step !== "person"} aria-label={hoggieUp ? `${opening.hoggie.name}, ${rarityWords[opening.hoggie.rarity]}` : "The hoggie card, face down"} style={{ "--rarity": `var(--rarity-${opening.hoggie.rarity})` } as CSSProperties}>
           {celebrating && hoggieUp && sparkles > 0 && <span aria-hidden="true" className="r5o-burst" />}

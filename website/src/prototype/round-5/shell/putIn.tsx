@@ -1,10 +1,11 @@
-// PROTOTYPE (#625, round 5): putting opened cards in: each face flies from the top-bar tray to its slot on the team page, each hoggie to the sidebar. Never merge to main.
+// PROTOTYPE (#625, round 6): putting opened cards in, one deliberate card at a time: the slot beckons, the face lifts out of the tray and lands in it, then its hoggie presses into the Hoggies entry. Never merge to main.
 import { useCallback, useLayoutEffect, useRef, type CSSProperties } from "react";
 import { useNavigate } from "../../../AppLink";
 import { HoggieArt, MemberFace } from "../../art";
 import { useAlbum, type Album, type AlbumActions, type PackOpening } from "../../round-3/album";
 import { packsHash, type Place } from "../address";
-import { boxOf, burstAt, fly, motionReduced, type Box } from "./Flights";
+import { teamColourOf } from "./Cards";
+import { beckonAt, boxOf, fly, motionReduced, type Box } from "./Flights";
 import { closePacks } from "./history";
 import { planOf, teamPageHref, type Visit } from "./plan";
 import { finishPuttingIn, holdHoggiesFoundAt, hoggieLanded, isPuttingIn, keepOutOfTheTray, oneMorePutIn, releaseHoggiesFound, showInTheTray, startPuttingIn } from "./trayState";
@@ -24,6 +25,14 @@ export function usePutIn(place: Place): PutIn {
 }
 
 const hoggieFlightSize = 84;
+
+const faceFlightSize = 120;
+
+const beatMs = 350;
+
+const beckonMs = 480;
+
+const liftAndTravelMs = 1310;
 
 function pause(ms: number) {
   return new Promise<void>((resolve) => window.setTimeout(resolve, ms));
@@ -58,7 +67,7 @@ async function putIn(packIds: string[] | "all", live: () => Live) {
     const plan = planOf(album, openings, currentTeamOf(album, place));
     startPuttingIn(openings.length);
     holdHoggiesFoundAt(album.hoggiesFound);
-    await Promise.all(plan.hoggiesOnly.map((opening, index) => pause(index * 260).then(() => putInAHoggie(opening, live))));
+    for (const opening of plan.hoggiesOnly) await putInAHoggie(opening, live);
     for (const visit of plan.visits) await visitTeam(visit, live);
   } finally {
     releaseHoggiesFound();
@@ -74,53 +83,75 @@ function currentTeamOf(album: Album, place: Place) {
 async function visitTeam(visit: Visit, live: () => Live) {
   if (currentTeamOf(live().album, live().place) !== visit.team.team) {
     live().navigate(teamPageHref(visit.team));
-    await calmly(420, 300);
+    await calmly(520, 300);
   }
-  const hoggies: Promise<void>[] = [];
   for (const opening of visit.openings) {
-    const { hoggieLands } = await putInAFace(opening, live);
-    hoggies.push(hoggieLands);
-    await calmly(200, 500);
+    await putInAFace(opening, live);
+    await calmly(beatMs, 200);
+    await flyTheHoggie(opening);
+    await calmly(beatMs, 200);
   }
-  await Promise.all(hoggies);
-  if (!visit.completes) return calmly(500, 400);
-  await calmly(380, 0);
-  burstAt(document.querySelector(".r4t-a-seal"));
-  await calmly(2200, 900);
+  if (!visit.completes) return calmly(300, 300);
+  await beckonTheSeal();
 }
 
-async function putInAFace(opening: PackOpening, live: () => Live): Promise<{ hoggieLands: Promise<void> }> {
+async function beckonTheSeal() {
+  const stopBeckoning = beckonAt(document.querySelector(sealSelector), true);
+  await calmly(1200, 600);
+  stopBeckoning();
+}
+
+async function putInAFace(opening: PackOpening, live: () => Live) {
+  const slot = await soon(() => slotOf(opening.person.key));
+  if (slot !== null) {
+    showWhole(slot);
+    await nextFrame();
+    const stopBeckoning = beckonAt(slot);
+    await calmly(beckonMs, 0);
+    stopBeckoning();
+  }
   const from = trayBox();
   keepOutOfTheTray(opening.pack.id);
-  const hoggieLands = flyTheHoggie(opening, from, 180);
-  const sticker = await soon(() => document.querySelector<HTMLElement>(stickerOf(opening.person.key)));
-  if (sticker !== null) {
-    showWhole(sticker);
-    await fly({ content: <FlyingFace opening={opening} />, width: sticker.offsetWidth, height: sticker.offsetHeight, from, to: boxOf(sticker), arc: 110, durationMs: 780, peak: 150 });
+  if (slot !== null) {
+    const fading = fadeTheSilhouette(slot);
+    await fly({ content: <FlyingFace opening={opening} />, width: faceFlightSize, height: faceFlightSize, from, to: boxOf(slot), arc: 140, durationMs: 860, spin: 7, peak: 132, lift: true, landing: { colour: teamColourOf(live().album, opening.person.teams[0]!), sparkles: 10, press: "card" } });
+    fading.cancel();
   }
   live().actions.place(opening.pack.id);
   showInTheTray(opening.pack.id);
   oneMorePutIn();
-  return { hoggieLands };
 }
 
 async function putInAHoggie(opening: PackOpening, live: () => Live) {
   keepOutOfTheTray(opening.pack.id);
-  await flyTheHoggie(opening, trayBox(), 0);
+  await flyTheHoggie(opening);
   live().actions.place(opening.pack.id);
   live().actions.forgetOpening();
   showInTheTray(opening.pack.id);
   oneMorePutIn();
+  await calmly(beatMs, 200);
 }
 
-async function flyTheHoggie(opening: PackOpening, from: Box, delayMs: number) {
+async function flyTheHoggie(opening: PackOpening) {
   const target = hoggiesEntry();
-  if (target !== null) await fly({ content: <FlyingHoggie opening={opening} />, width: hoggieFlightSize, height: hoggieFlightSize, from, to: boxOf(target), arc: 70, durationMs: 760, delayMs, spin: 14, peak: 96 });
+  if (target !== null) {
+    const stopBeckoning = beckonAt(target, true);
+    await calmly(220, 0);
+    await fly({ content: <FlyingHoggie opening={opening} />, width: hoggieFlightSize, height: hoggieFlightSize, from: trayBox(), to: boxOf(target), arc: 90, durationMs: 780, spin: -10, peak: 104, lift: true, landing: { colour: `var(--rarity-${opening.hoggie.rarity})`, sparkles: 9, press: "sticker" } });
+    stopBeckoning();
+  }
   hoggieLanded(opening.hoggie.isNew);
 }
 
-function stickerOf(person: string) {
-  return `.r4t a[href$="#people/${person}"] .r4t-sticker`;
+function fadeTheSilhouette(slot: HTMLElement) {
+  return slot.animate([{ opacity: 1 }, { opacity: 1, offset: 0.55 }, { opacity: 0.15 }], { duration: motionReduced() ? 240 : liftAndTravelMs, fill: "forwards", easing: "ease-in" });
+}
+
+const sealSelector = ".r5-main :is(.r6t-a-seal, .r4t-a-seal, [data-r6-seal])";
+
+function slotOf(person: string) {
+  const link = `.r5-main a[href$="#people/${person}"]`;
+  return document.querySelector<HTMLElement>(`.r5-main [data-r6-slot="${person}"]`) ?? document.querySelector<HTMLElement>(`${link} :is(.r6t-sticker, .r4t-sticker)`) ?? document.querySelector<HTMLElement>(link);
 }
 
 function showWhole(element: HTMLElement) {
