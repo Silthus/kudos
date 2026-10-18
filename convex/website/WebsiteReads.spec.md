@@ -534,10 +534,11 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   kinds: read
   checklist: scoped-reads declared as website reads pass one guard
   checklist: redaction declared as the spotlight draws only public, said-why kudos of the member's workspace
-- a browser learns only its own analytics ID: getBrowserAnalytics reaches its handler only through memberQuery's guard, and answers capture with the project's public token, POSTHOG_HOST, the deployment's environment and the session's own member's analytics ID only while `website-analytics` is on for that member in their own decision, read without writing, they already have an analytics ID, and the deployment has POSTHOG_PROJECT_TOKEN and POSTHOG_HOST; it answers off otherwise, and the read creates nothing.
-  over: getBrowserAnalytics for a member the flag is on for, two members in turn, the flag on only for another member's email, the flag off, never created, without the flags key, a member without an analytics ID, without the project token, without POSTHOG_HOST, and an argument that names another member
+- a browser learns only its own analytics ID: getBrowserAnalytics reaches its handler only through memberQuery's guard, and answers capture with the project's public token, POSTHOG_HOST, the deployment's environment and the session's own member's analytics ID only while `website-analytics` is on for that member in their own decision, read without writing, they already have an analytics ID, and the deployment has POSTHOG_PROJECT_TOKEN and a POSTHOG_HOST that is a web URL; it answers off otherwise, and the read creates nothing.
+  over: getBrowserAnalytics for a member the flag is on for, two members in turn, the flag on only for another member's email, the flag off, never created, without the flags key, a member without an analytics ID, without the project token, without POSTHOG_HOST, a POSTHOG_HOST that isn't a URL, and an argument that names another member
   via: a browser learns only its own analytics ID
   refuted: getBrowserAnalytics skipped the website-analytics flag check -> the flag off, never created and on only for another member's email answered capture with the member's ID, 3 of 10 tests red (2026-10-18)
+  refuted: configuredHost took any non-empty POSTHOG_HOST -> a host that isn't a URL reached the browser in a capture answer, 1 of 11 tests red (2026-10-18)
   because: the browser sends events to PostHog under the ID it is given, so an ID from any other member would put one member's browsing on another's person, and a read that made an ID would write from a query; the flag keeps the browser half dark until the product owner widens it (MS16, MS17)
   crossing: browser -> domain
   entrances: query getBrowserAnalytics
@@ -547,10 +548,11 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   checklist: redaction dismissed: an off answer carries only its kind, never an ID
   checklist: canonical-encoding dismissed: the analytics ID is answered exactly as the analytics module stored it
   checklist: identity-continuity dismissed: each answer names the session's member as the directory knows them now; a later session for another member reads that member's own ID
-- the website runs only its own code: Every HTML response carries the policy header contentSecurityPolicy builds: `script-src 'self'`, `style-src 'self'` and every other directive as before, with `connect-src` widened only by POSTHOG_HOST's origin and, for PostHog's US or EU cloud, its assets host; without POSTHOG_HOST the policy is the one before browser analytics, and no policy sends violation reports.
-  over: contentSecurityPolicy without POSTHOG_HOST and with it empty, with PostHog's US host, its EU host and a host of its own, and GET / with POSTHOG_HOST set
+- the website runs only its own code: Every HTML response carries the policy header contentSecurityPolicy builds: `script-src 'self'`, `style-src 'self'` and every other directive as before, with `connect-src` widened only by POSTHOG_HOST's origin and, for PostHog's US or EU cloud, its assets host; without a POSTHOG_HOST that is a web URL the policy is the one before browser analytics, and no policy sends violation reports.
+  over: contentSecurityPolicy without POSTHOG_HOST and with it empty, with PostHog's US host, its EU host and a host of its own, and GET / with POSTHOG_HOST set and with a POSTHOG_HOST that isn't a URL
   via: the website runs only its own code
   refuted: contentSecurityPolicy dropped PostHog's assets host from connect-src -> the US and EU policies and the served header missed the assets host, 3 of 5 tests red (2026-10-18)
+  refuted: configuredHost took any non-empty POSTHOG_HOST -> an HTML response under a host that isn't a URL threw instead of carrying today's policy, 1 of 6 tests red (2026-10-18)
   because: the page must run only the deployment's own scripts and talk only to the deployment and PostHog, so adding analytics opens no door for injected code, and a violation report would leave the browser outside the flag with an unscrubbed URL (MS28, WS25)
   kinds: output
   checklist: destination-confinement declared as the website runs only its own code

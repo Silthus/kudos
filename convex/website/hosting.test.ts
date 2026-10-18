@@ -139,6 +139,15 @@ describe("the website runs only its own code", () => {
     expect(contentSecurityPolicy(deploymentUrl, "https://e.example.com/")).toBe(todaysPolicy.replace("wss://happy-hog-123.convex.cloud", "wss://happy-hog-123.convex.cloud https://e.example.com"));
   });
 
+  test("an HTML response under a POSTHOG_HOST that isn't a URL is served with today's policy", async () => {
+    vi.stubEnv("POSTHOG_HOST", "us.i.posthog.com");
+    const t = testBackend();
+
+    const response = await t.fetch("/", { method: "GET" });
+
+    expect(response.headers.get("Content-Security-Policy")).toBe(todaysPolicy);
+  });
+
   test("every HTML response carries the policy for the configured POSTHOG_HOST", async () => {
     vi.stubEnv("POSTHOG_HOST", "https://us.i.posthog.com");
     const t = testBackend();

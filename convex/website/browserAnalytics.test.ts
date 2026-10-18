@@ -107,6 +107,14 @@ describe("a browser learns only its own analytics ID", { timeout: 30_000 }, () =
     expect(await asAnn.query(api.website.browserAnalytics.getBrowserAnalytics, {})).toStrictEqual(off);
   });
 
+  test("a deployment whose POSTHOG_HOST isn't a URL reads off", async () => {
+    const t = await workspace();
+    const asAnn = await signedIn(t, ann);
+    vi.stubEnv("POSTHOG_HOST", "us.i.posthog.com");
+
+    expect(await asAnn.query(api.website.browserAnalytics.getBrowserAnalytics, {})).toStrictEqual(off);
+  });
+
   test("an argument that names another member is rejected", async () => {
     const t = await workspace();
     const asAnn = await signedIn(t, ann);

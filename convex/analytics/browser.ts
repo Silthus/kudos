@@ -19,5 +19,11 @@ export async function browserIdentityOf(ctx: QueryCtx, member: MemberId): Promis
 
 export function configuredHost(): string | null {
   const host = (process.env.POSTHOG_HOST ?? "").trim();
-  return host === "" ? null : host;
+  return isWebUrl(host) ? host : null;
+}
+
+function isWebUrl(text: string): boolean {
+  if (!URL.canParse(text)) return false;
+  const { protocol } = new URL(text);
+  return protocol === "https:" || protocol === "http:";
 }
