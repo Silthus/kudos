@@ -31,6 +31,7 @@ export function optionsFor({ host, distinctId }: Capture, instance: string, post
     capture_pageview: false,
     capture_pageleave: true,
     request_batching: false,
+    disable_compression: true,
     autocapture: true,
     mask_all_text: true,
     mask_all_element_attributes: true,

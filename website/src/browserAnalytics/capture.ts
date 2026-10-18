@@ -17,6 +17,8 @@ type Running = { capture: string; posthog?: PostHog; stopPageviews?: () => void 
 
 type Caught = { error: unknown; page: string };
 
+const thisPage = crypto.randomUUID();
+
 let instances = 0;
 
 export function browserAnalytics(load: PostHogLoader, onCapturing: CapturingChange = () => undefined) {
@@ -40,7 +42,7 @@ export function browserAnalytics(load: PostHogLoader, onCapturing: CapturingChan
     void load().then(
       (script) => {
         if (running !== starting) return;
-        const posthog = script.start(capture, `hedgehug-${++instances}`);
+        const posthog = script.start(capture, `hedgehug-${thisPage}-${++instances}`);
         posthog.opt_in_capturing({ captureEventName: false });
         posthog.register({ environment: capture.environment });
         starting.posthog = posthog;

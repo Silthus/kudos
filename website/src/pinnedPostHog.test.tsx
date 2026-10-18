@@ -9,6 +9,7 @@ type SentException = { type: string; value: string; mechanism: { handled: boolea
 const capture = { kind: "capture", token: "phc_the_project_token", host: "https://us.i.posthog.com", distinctId: "member-analytics-id", environment: "sandbox" } as const;
 
 const sent: Sent[] = [];
+const requested: string[] = [];
 const snapshots: unknown[] = [];
 let remoteConfig: Record<string, unknown> = {};
 
@@ -21,6 +22,7 @@ async function bodyOf(body: unknown): Promise<string> {
 function recordingFetch() {
   return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input instanceof Request ? input.url : input);
+    requested.push(new URL(url).pathname);
     if (/\/(e|i\/v0\/e|batch)\//.test(url)) {
       const parsed = JSON.parse(await bodyOf(init?.body));
       sent.push({ url, events: Array.isArray(parsed) ? parsed : (parsed.batch ?? [parsed]) });
@@ -50,6 +52,12 @@ class PromiseRejectionEvent extends Event {
   }
 }
 
+async function freshTab() {
+  vi.resetModules();
+  const { browserAnalytics: inAFreshTab } = await import("./browserAnalytics/capture");
+  return inAFreshTab(() => import("./browserAnalytics/postHogScript").then((script) => script.postHogScript));
+}
+
 function startedCapturing() {
   vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36");
   const fetch = recordingFetch();
@@ -74,6 +82,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   sent.length = 0;
+  requested.length = 0;
   snapshots.length = 0;
   remoteConfig = {};
   document.body.replaceChildren();
@@ -151,14 +160,50 @@ describe("the browser captures only while told to", { timeout: 60_000 }, () => {
     window.history.replaceState(null, "", "/leaderboard");
     const { analytics } = startedCapturing();
     await vi.waitFor(() => expect(sent.length).toBeGreaterThan(0), { timeout: 10_000 });
-    window.history.pushState(null, "", "/book");
-    await new Promise((resolve) => setTimeout(resolve, 100));
 
+    window.history.pushState(null, "", "/book");
     analytics.follow({ kind: "signed-out" });
-    const sentAtSignOut = sent.length;
+    const requestsAtSignOut = requested.length;
     await flushed();
 
-    expect(sent.slice(sentAtSignOut).flatMap(({ events }) => events.map(({ event }) => event))).toEqual([]);
+    expect(requested.slice(requestsAtSignOut)).toEqual([]);
+  });
+
+  it("MS20: no request leaves for PostHog after a sign-out right after a navigation, though PostHog offers gzip", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    remoteConfig = { supportedCompression: ["gzip-js"] };
+    const { analytics } = startedCapturing();
+    await vi.waitFor(() => expect(sent.length).toBeGreaterThan(0), { timeout: 10_000 });
+
+    window.history.pushState(null, "", "/book");
+    analytics.follow({ kind: "signed-out" });
+    const requestsAtSignOut = requested.length;
+    await flushed();
+
+    expect(requested.slice(requestsAtSignOut)).toEqual([]);
+  });
+
+  it("MS20: another tab's first instance never revives this tab's stopped one", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    document.body.innerHTML = '<main><button type="button">Open the Book</button></main>';
+    remoteConfig = { autocapture_opt_out: false };
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36");
+    vi.stubGlobal("fetch", recordingFetch());
+    const thisTab = await freshTab();
+    thisTab.follow(capture);
+    await flushed();
+    thisTab.follow({ kind: "signed-out" });
+    const other = await freshTab();
+    other.follow({ ...capture, distinctId: "other-tab-analytics-id" });
+    await flushed();
+    sent.length = 0;
+
+    document.querySelector("button")!.click();
+    await flushed();
+    other.stop();
+
+    const clicks = sent.flatMap(({ events }) => events).filter(({ event }) => event === "$autocapture");
+    expect(clicks.map(({ properties }) => properties.distinct_id)).toEqual(["other-tab-analytics-id"]);
   });
 
   it("MS18 MS20: the same member signing in again after sign-out and cleared site data is captured under their own ID only, with no identify", async () => {
