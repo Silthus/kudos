@@ -1,6 +1,6 @@
 # Planned implementation tickets: measure how members use HedgeHug
 
-> **Drafted on [#631](https://github.com/Silthus/kudos/issues/631) (2026-10-18), not yet published.** The conductor publishes them as `wayfinder:implement` tickets of map #624 once the product owner accepts, with native blocking edges, and adds the ship tickets. Rule numbers (`MS7`) refer to the [measurement spec](measure.md).
+> **Accepted on [#631](https://github.com/Silthus/kudos/issues/631) (2026-10-18), not yet published.** The conductor publishes them as `wayfinder:implement` tickets of map #624 once the product owner accepts, with native blocking edges, and adds the ship tickets. Rule numbers (`MS7`) refer to the [measurement spec](measure.md).
 
 Every ticket builds on `main`, is AFK and `tdd`-sized, is tested outside-in at the seam it names, has `pnpm gate` green, and proves itself as its "Proof" line says. No ticket puts a number from the project into the repository. A ticket that creates a PostHog object names it `HedgeHug: …` and links it in its PR.
 
@@ -105,7 +105,7 @@ flowchart LR
 
 **Blocked by:** 5.
 
-**What to build:** sessions of flagged members are recorded, with inputs masked and private things blocked as the product owner chose, no network payloads or console logs, and replay switched on in the project.
+**What to build:** sessions of flagged members are recorded, with inputs masked and private things blocked as masking A says (MS27), no network payloads or console logs, and replay switched on in the project.
 
 **Test seam:** the browser analytics module's posthog-js options, asserted on the recording fake; the block totality test from 5.
 **Proof:** a sandbox replay of the activity page and the spotlight shows every kudos message, Open in Slack link and face as an empty block, and the PR links it; the console shows no CSP violation while recording.

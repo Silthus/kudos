@@ -1,6 +1,6 @@
 # Spec: measure how members use HedgeHug
 
-> **Draft for [#631](https://github.com/Silthus/kudos/issues/631), parked for the product owner's acceptance.** This file lives on the branch `docs/measure` and is never merged. It is the measurement half of map [#624](https://github.com/Silthus/kudos/issues/624): it makes every later change in the map measurable, before the redesign ships.
+> **Accepted on [#631](https://github.com/Silthus/kudos/issues/631) (2026-10-18): the product owner said "Yes to all", accepting the spec, its 9 tickets, replay masking A and the backend events and dashboard without a flag.** This file lives on the branch `docs/measure` and is never merged. It is the measurement half of map [#624](https://github.com/Silthus/kudos/issues/624): it makes every later change in the map measurable, before the redesign ships.
 >
 > **Rule numbers.** Rules are cited as `MS1`–`MS40`. Analytics rules are cited as `O10`, `E11` and `F7`, as `convex/analytics/Analytics.spec.md` and the PostHog spec (#69) cite them. Collection rules are cited as `CV7`.
 >
@@ -23,7 +23,7 @@ In the product owner's words: "instrument everything we can on the website. Mayb
 - **The website in the browser.** For members the `website-analytics` flag is on for, the website sends pageviews and page leaves, including the Book's hash-routed spreads, autocapture, heatmaps, dead and rage clicks, web vitals, session replay and exceptions, under the same distinct id the backend uses. Kudos message text never leaves the browser. The page still runs only its own code, and talks only to the deployment and PostHog.
 - **Replay vision.** Two scanners watch website replays for friction and confusion, sized to the credit budget.
 - **Something cheaper.** A small "Feedback" button asks one question and lands the answer in PostHog beside the member's replay.
-- **Dark first.** The browser half ships behind `website-analytics`, on in the sandbox only, and widens when the product owner says so. The backend events and the dashboard change nothing a member sees, so they ship without a flag, as every product event before them did, and a recorder may not read a flag (E11). This reads the map's flag rule as covering what members see, and the park on #631 puts that reading to the product owner.
+- **Dark first.** The browser half ships behind `website-analytics`, on in the sandbox only, and widens when the product owner says so. The backend events and the dashboard change nothing a member sees, so they ship without a flag, as every product event before them did, and a recorder may not read a flag (E11). This reads the map's flag rule as covering what members see, and the product owner accepted that reading on #631.
 
 ## User Stories
 
@@ -123,7 +123,7 @@ In the product owner's words: "instrument everything we can on the website. Mayb
 #### Session replay and masking
 
 - **MS26. Replay is on.** Session replay records every session of a member the flag is on for, all inputs masked, network payloads and console logs off, canvas off. The project's settings switch session replay on, with the same authorised URLs.
-- **MS27. Private things are blocked.** Every element that carries kudos text or a Slack reference sits inside an element with `ph-no-capture`: kudos messages with their links and emoji (`KudosMessage`), Open in Slack links (permalinks hold channel and message IDs; today two `OpenInSlack` components), faces (Slack picture URLs hold team and user IDs; `Face`) and emoji shown by name or picture (`NamedEmoji`, `CustomEmoji`). Replay draws each as an empty block of the same size, and autocapture ignores clicks inside it. A test over every page rendered from fixtures guards it: every text node and attribute holding a fixture's kudos words, a Slack-shaped ID, a Slack host's URL or an emoji name sits inside such an element. Names, levels, hoggies and quests stay visible in replay: the project is internal to PostHog, and this is a deliberate exception for replay only. *(Pending the product owner's choice; see "Pending choice".)*
+- **MS27. Private things are blocked.** Every element that carries kudos text or a Slack reference sits inside an element with `ph-no-capture`: kudos messages with their links and emoji (`KudosMessage`), Open in Slack links (permalinks hold channel and message IDs; today two `OpenInSlack` components), faces (Slack picture URLs hold team and user IDs; `Face`) and emoji shown by name or picture (`NamedEmoji`, `CustomEmoji`). Replay draws each as an empty block of the same size, and autocapture ignores clicks inside it. A test over every page rendered from fixtures guards it: every text node and attribute holding a fixture's kudos words, a Slack-shaped ID, a Slack host's URL or an emoji name sits inside such an element. Names, levels, hoggies and quests stay visible in replay: the project is internal to PostHog, and this is a deliberate exception for replay only, which the product owner chose (masking A, see "Replay masking").
 
 #### The page's own policy
 
@@ -195,9 +195,9 @@ In the product owner's words: "instrument everything we can on the website. Mayb
 - Coins-spent events, which #630 asked for only if coins stay.
 - Widening `website-analytics` in production, which waits for the product owner.
 
-## Pending choice
+## Replay masking
 
-**Replay masking.** Session replay will show text written by other people. The project is internal to PostHog, so everyone in the organisation can open a replay.
+**Decided: A**, by the product owner on #631 (2026-10-18). The options as they were put: session replay will show text written by other people. The project is internal to PostHog, so everyone in the organisation can open a replay.
 Autocapture sends no text or attributes in every option (MS23), and inputs are always masked.
 - **A. Block kudos and Slack references, show names (recommended).** Kudos messages, Open in Slack links, faces and emoji are empty blocks in replay (MS27); names, levels, hoggies and quests stay readable. Replays and the scanners stay useful, colleagues' words stay private, and no Slack ID is recorded. Names in replay are a deliberate exception to "names leave only on the person".
 - **B. A, and mask all other text too.** Every text node is masked as well. Nothing written by or about a colleague is readable, but replays and the scanners lose most of what makes them useful.
@@ -209,7 +209,7 @@ A GPT-6.1 Sol review (high) of the first draft found 10 majors and 4 minors. All
 
 1. **Minor: not every crate open drops a hoggie.** A reveal with collection off and a repeated open publish no drop; MS11 now says the action counts fresh drops only.
 2. **Major: masking text left kudos links and emoji URLs in replay, and `ph-sensitive` doesn't scrub replay.** Private elements are now `ph-no-capture` blocks (MS27).
-3. **Major: names, permalinks and Slack picture URLs escaped the mask.** Open in Slack links, faces and emoji are blocked too, with a totality test over every page (MS27); visible names are an explicit, replay-only exception and part of the pending choice.
+3. **Major: names, permalinks and Slack picture URLs escaped the mask.** Open in Slack links, faces and emoji are blocked too, with a totality test over every page (MS27); visible names are an explicit, replay-only exception, which the product owner chose (masking A).
 4. **Major: browser exceptions could quote kudos text.** Messages are replaced by type names, as on the backend (MS24).
 5. **Major: a CSP `report-uri` would send reports outside the flag with unscrubbed URLs.** Dropped; the proof reads the console instead (MS28).
 6. **Major: `reset` alone doesn't stop capture.** Capture stops, then resets, whenever the read stops answering `capture` (MS20).
