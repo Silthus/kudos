@@ -89,17 +89,17 @@ describe("ST20 ST22 ST23: the store is dark wherever it isn't shown", { timeout:
     ["on but coins off", onWithoutCoins, { flagsKeySet: true, coinsNamed: false, silverEarned: true, tierTold: true }],
     ["on but xp-levels off", onWithoutXpLevels, { flagsKeySet: true, coinsNamed: false, silverEarned: false, tierTold: false }],
     ["on but unlocks off", onWithoutUnlocks, { flagsKeySet: true, coinsNamed: false, silverEarned: false, tierTold: false }],
-  ])("with store %s, the same walk shows nothing of the store anywhere, her owned emoji claim nothing, and a silver tier earned still grants its emoji", async (_, definitions, { flagsKeySet, coinsNamed, silverEarned, tierTold }) => {
+  ])("with store %s, the same walk shows nothing of the store anywhere, the kudos emoji she owns still give kudos, and a silver tier earned still grants its emoji", async (_, definitions, { flagsKeySet, coinsNamed, silverEarned, tierTold }) => {
     const t = await workspaceDeciding(...definitions);
     if (!flagsKeySet) vi.stubEnv("POSTHOG_PERSONAL_API_KEY", "");
 
     const { ownedKudos } = await walkEveryStorePath(t, "U_ALICE");
 
-    const told = slack.calls.flatMap(readCall);
+    const told = slack.calls.filter((call) => !isReactionTo(call, ownedKudos)).flatMap(readCall);
     expect(told.filter(namesTheStore)).toEqual([]);
     if (coinsNamed) expect(told).toEqual(expect.arrayContaining(["section: *Coins* is ready. It opens your wallet and the coin perks. [button: Open]", expect.stringMatching(/^Coins are open\. You already have \d+ 🪙\.$/)]));
     if (tierTold) expect(told.join("\n")).toContain(`${generousSoul}\n`);
-    expect(await kudosMessagesOf(t, "U_ALICE")).not.toContain(ownedKudos);
+    expect((await kudosMessagesOf(t, "U_ALICE")).includes(ownedKudos), "her kudos with the emoji she owns").toBe(silverEarned);
     expect(await goalsInActivityOf(t, "U_ALICE")).not.toContain(yourEmojiGoal);
     expect(await inventoryOf(t, "U_ALICE")).toBeNull();
     expect(await storeRowsOf(t, "U_ALICE")).toEqual({ collection: silverEarned ? [{ item: ribbon, source: "tier" }] : [], purchases: [], yourEmoji: [] });
@@ -120,7 +120,7 @@ describe("ST20 ST22 ST23: the store is dark wherever it isn't shown", { timeout:
     expect(whilePreviewed.collection).toEqual([{ item: ribbon, source: "tier" }]);
   });
 
-  test.each(["coins", "xp-levels", "unlocks"])("once Alice's store was shown and she owned a tier emoji, turning %s off hides it again: nothing names the store, inventoryOf answers null, her owned emoji claim nothing and a stale Buy writes nothing", async (off) => {
+  test.each(["coins", "xp-levels", "unlocks"])("once Alice's store was shown and she owned a tier emoji, turning %s off hides it again: nothing names the store, inventoryOf answers null, her owned emoji still give kudos and a stale Buy writes nothing", async (off) => {
     const t = await workspaceDeciding(...previewedByAlice);
     await walkEveryStorePath(t, "U_ALICE");
     const before = slack.calls.length;
@@ -133,8 +133,8 @@ describe("ST20 ST22 ST23: the store is dark wherever it isn't shown", { timeout:
     const published = vi.mocked(publish).mock.calls.length;
     await click(t, "U_ALICE", { type: "buyItem", item: "kudos-emoji-gem" });
 
-    expect(slack.calls.slice(before).flatMap(readCall).filter(namesTheStore)).toEqual([]);
-    expect(await kudosMessagesOf(t, "U_ALICE")).not.toContain(ownedKudos);
+    expect(slack.calls.slice(before).filter((call) => !isReactionTo(call, ownedKudos)).flatMap(readCall).filter(namesTheStore)).toEqual([]);
+    expect(await kudosMessagesOf(t, "U_ALICE")).toContain(ownedKudos);
     expect(await inventoryOf(t, "U_ALICE")).toBeNull();
     expect(await everythingStoredButExposures(t)).toEqual(stored);
     expect(eventsPublishedSince(published)).toEqual([]);
@@ -393,6 +393,10 @@ function readCall({ args }: SlackCall): string[] {
   const texts = [args.text, args.name, ...(Array.isArray(args.blocks) ? readBlocks(args.blocks as Block[]) : [])];
   const view = args.view as { blocks?: Block[] } | undefined;
   return [...texts, ...(view?.blocks === undefined ? [] : readBlocks(view.blocks))].filter((line): line is string => typeof line === "string");
+}
+
+function isReactionTo({ method, args }: SlackCall, message: string) {
+  return method === "reactions.add" && args.timestamp === message;
 }
 
 function withoutTimestamps(call: SlackCall) {

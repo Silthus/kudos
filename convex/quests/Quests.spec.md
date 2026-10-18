@@ -626,7 +626,7 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   kinds: state, output
   checklist: revalidated-permission dismissed: App Home, the stale Open, the kudos subscriber and the draw each read the member's predicate when they run, never a value stored while it was on
   checklist: legal-state-succession dismissed: turning a flag off writes nothing; quests, contributions, reward records and crate openings recorded while on stay as they were
-  checklist: resumption-coverage dismissed: a draw chain that runs while a flag is off counts no participant to whom it doesn't apply, and the week mark only records that the sweep ran
+  checklist: resumption-coverage dismissed: the sweep starts no draw chain while the group quest doesn't apply in the workspace decision, and the week mark only records that the sweep ran
   checklist: declared-target-coverage dismissed: the surfaces are the line, its Open, the waiting crate, the stale Open, the kudos subscriber and the draw, each covered by a case of the oracle
   checklist: separation-of-duties dismissed: the flags are switched in PostHog by the owner, outside this deployment
   checklist: supersession-safety dismissed: every flag is read fresh in the mutation that decides; nothing stored records a value except the exposure, which is per value
@@ -635,3 +635,19 @@ Quests: owns each member's quests and the Journey (P80 to P93, ADR-0004 as amend
   checklist: destination-confinement dismissed: the decision only withholds lines and records; where App Home and the events go is unchanged
   checklist: redaction dismissed: the decision hides the whole group quest line and its crates rather than scrubbing content inside them
   checklist: circuit-breaker-policy dismissed: the flags are read from the PostHog component's cached definitions, never by calling PostHog per read
+- group quest draws obey group-quest whatever was launched: Once the group quest launched in a workspace, Monday's sweep starts a tally and a draw only while the group quest applies in the workspace decision; where it doesn't, even with `group-quest` on for some members by their email, the sweep records only that the week passed, so nothing is tallied, drawn or caught up that week, also once it is on again mid-week, and the next Monday draws as before; a tally, draw or catch-up job queued while it applied and run once it doesn't reads the workspace decision again, so it draws and counts nothing, a tally or draw job also stops once a sweep marked the week passed, and either leaves only the week mark, and a kudos given while it doesn't apply in the workspace decision counts no contribution, even from a member it is on for by their email (AL35).
+  over: a group of 4 who opened Quests, the launch, then `group-quest` off in the workspace decision and on for three of them by their email at Monday's sweep, on for everyone again that Wednesday and the next Monday; a tally job and a draw job queued while it applied and a catch-up for a quest drawn while it applied, each run once it is off in the workspace decision and on for three by their email; a kudos that says why from one of the three then; and a tally queued while it applied that runs after a later sweep marked the week passed with it off and after it is on again; read through the group quest's stored facts, its scheduled tally, draw and catch-up jobs and its events
+  via: AL35: group quest draws obey group-quest whatever was launched
+  refuted: groupQuestContributedToBy in convex/quests/groupQuest.ts counted a contribution on the giver's own decision without the workspace decision -> 1 of 6 tests failed: a kudos from an Ant previewing by email counted toward the week's quest with group-quest off in the workspace decision (2026-10-18)
+  refuted: isDueToDraw in convex/quests/groupQuest.ts answered true again for every launched, undrawn week without reading groupQuestAppliesIn -> the test failed: Monday's sweep drew the group's quest for the three previewers with group-quest off in the workspace decision (2026-10-18)
+  refuted: drawGroupQuests in convex/quests/groupQuest.ts drew a queued tally without reading groupQuestAppliesIn again -> 1 of 4 tests failed: the queued draw stored the group's quest with group-quest off in the workspace decision (2026-10-18)
+  because: the album retires the group quest by turning `group-quest` off (AL33), and a launch recorded before must not keep it drawing for the members a person-level condition still names (AL35); a mid-week draw after the flag returned would move the week's participants under them (GB21)
+  kinds: state
+  checklist: revalidated-permission dismissed: the sweep and every queued tally, draw and catch-up job read the workspace decision when they run, never the launch's or the queue's stored value
+  checklist: legal-state-succession dismissed: the week mark is written once per workspace and week, read before the sweep writes it
+  checklist: supersession-safety dismissed: Convex serializes the sweep's read and write of a workspace's week mark
+  checklist: worker-fencing dismissed: no worker owns a group week; one hourly mutation decides each workspace's week
+  checklist: commit-ordered-effects dismissed: the sweep issues no external effect; tally jobs are scheduled in its transaction
+  checklist: resumption-coverage dismissed: a skipped week schedules no chain, and a chain queued before the flag turned off stops at its next job with the week mark
+  checklist: declared-target-coverage dismissed: the sweep is the one entrance that starts a tally, a draw and its catch-up
+  checklist: separation-of-duties dismissed: the flag is switched in PostHog by the owner, outside this deployment

@@ -36,7 +36,7 @@ import { deepLinkFrom, deepLinks, type DeepLink } from "./deepLinks";
 import { finishedQuestCrateOf, finishedWeeklyQuestCrateOf, perkOfferOf, purchaseReplyOf, readyCrateOf, tiersEarnedLines, type HomeAction } from "./home";
 import { skillPointsOf } from "./naming";
 import { settingsFooterFor, type SettingsFooter } from "./settingsFooter";
-import { isOpened, whenOpened } from "./unlockFilter";
+import { isOpened, whenOpened, whenShipped } from "./unlockFilter";
 
 export const completedTeamValidator = v.object({ team: v.string(), name: v.string(), crestEarned: v.boolean() });
 
@@ -177,10 +177,11 @@ async function stillToldOf(ctx: QueryCtx, workspace: string, member: MemberId, n
   if (isAboutQuests(notification)) return questsStillToldOf(ctx, workspace, member, notification);
   if (notification.kind === "tiers-earned") return tiersAndTeamsStillToldOf(ctx, workspace, member, notification);
   if (notification.kind === "coins-opened") return (await coinsVisibleTo(ctx, member)) ? notification : null;
-  if (!(await unlocksAppliedTo(ctx, member))) return { ...notification, ready: [] };
-  const ready = await stillReady(ctx, member, notification.ready);
+  const unlocksApply = await unlocksAppliedTo(ctx, member);
+  const ready = unlocksApply ? await stillReady(ctx, member, notification.ready) : [];
   if (notification.kind !== "level-reached" || notification.skillPoints === null) return { ...notification, ready };
-  return { ...notification, ready, skillPoints: await whenOpened(ctx, member, "skillTree", notification.skillPoints) };
+  const skillPointsTold = unlocksApply ? whenOpened : whenShipped;
+  return { ...notification, ready, skillPoints: await skillPointsTold(ctx, member, "skillTree", notification.skillPoints) };
 }
 
 type TiersEarnedNotification = Extract<Notification, { kind: "tiers-earned" }>;
