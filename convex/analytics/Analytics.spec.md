@@ -8,6 +8,7 @@ Analytics: the only module that knows PostHog. It projects each kudosGiven domai
   via: O10 F7: never sent, and the profile only on the person
   because: a kudos message stays between colleagues and analytics must not identify a member by itself (O10, O11); the owner asked for the profile on PostHog's person to filter and analyse by person and team (decision 15, d-84e4cabe, amending O10 with F7), so it may ride there and nowhere else; the public repo and the workspace's trust rule out any field forwarded by accident, and a projection that spread a domain object would send the emoji name, the message reference and the Convex IDs it carries
   refuted: the drain also spread a person event's profile into its own properties, beside its $set -> the test failed on its assertion that no request body, with person events' $set and $unset taken out, contains a member's real name (2026-10-14)
+  refuted: hoggie dropped also sent the member's Convex document ID as a member property -> the test failed on its assertion that no request body contains a stored Convex document ID (2026-10-18)
   kinds: message, storage
   checklist: scoped-reads dismissed: the outbox is read whole by the one drain, which serves no member; no population is restricted by scope
   checklist: destination-confinement dismissed: the drain posts only to the configured POSTHOG_HOST's batch endpoint, and no row or answer can redirect it
