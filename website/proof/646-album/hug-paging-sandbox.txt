@@ -13,7 +13,7 @@ poll 10: {"done":false,"startedAt":1792365710132}
 poll 11: {"done":true,"startedAt":1792365710132}
 { "_creationTime": 1792365710132.7483, "_id": "hs7wsxdryb5pbpb0230ezf13ex8gg7r6", "cursor": "…", "done": true, "phase": "hugs", "startedAt": 1792365710132, "workspace": "T0PRF646B" }
 Tamsin=js7dkvxm25bv0n2gb5x7x12wbs8gg14p Wren=js78cvmrpk3gz5yem1bya3r6bx8gg206 Crowd0=js7fnczts1x9haedvhe584ckp58gg5bm Crowd54=js7drgz8hzfn0gmgs7accvtj618gga27
-pairTallyOf Tamsin -> Proof Crowd 54 (the hug's last person):
+pairTallyOf Tamsin -> Proof Crowd 54 (one of the hugged people; NOT the last in index order, see README):
 {
   "best": null,
   "firstThankedAt": null,
