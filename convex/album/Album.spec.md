@@ -66,6 +66,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   via: AL39: the album is dark where album is off, shows only to the members it is on for, and nothing exposes it
   because: production is live and the album ships dark behind `album` (AL39) until the conductor widens it one flag at a time (AL64–AL66): a changed answer, Slack call or event where it is off would show members a feature nobody turned on for them, and an exposure from a read would count members who never saw it; packs are recorded whatever the flag says (AL3), so turning it on needs no backfill
   refuted: albumShownTo answered true for every member whatever album decided -> 5 of 7 tests failed: in all four off states getAlbum answered an album with packs, and with it on for one email only every other member's getAlbum answered theirs (2026-10-18)
+  refuted: albumOnProfileOf answered album true for every member whatever album decided -> 2 of 7 tests failed: with album on for one email only, every other member's getMyProfile carried album, and the on walk's profiles no longer matched (2026-10-18)
   kinds: state, output
   checklist: revalidated-permission dismissed: getAlbum decides `album` for the signed-in member on every read, never from a stored value
   checklist: legal-state-succession dismissed: the flag decides only what is shown; packs, grant records and names are written the same whatever it says (AL3), so turning it off and on again changes no record
