@@ -17,9 +17,10 @@ export function flyBetween(ghost: HTMLElement, to: DOMRect, ms: number): Promise
   return animation.finished.catch(() => undefined);
 }
 
-export async function appears(selector: string, withinMs: number, everyMs: number): Promise<HTMLElement | null> {
+export async function appears(selector: string, withinMs: number, everyMs: number, stillWanted: () => boolean): Promise<HTMLElement | null> {
   const deadline = Date.now() + withinMs;
   for (;;) {
+    if (!stillWanted()) return null;
     const found = document.querySelector<HTMLElement>(selector);
     if (found !== null || Date.now() >= deadline) return found;
     await wait(everyMs);
