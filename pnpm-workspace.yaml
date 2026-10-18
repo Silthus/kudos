@@ -1,6 +1,7 @@
 packages:
   - website
 allowBuilds:
+  core-js: false
   esbuild: false
 patchedDependencies:
   convex-test@0.0.61: patches/convex-test@0.0.61.patch

@@ -178,3 +178,52 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: commit-ordered-effects dismissed: the HUD moves only after the answer and only to the answer's from and to
   checklist: circuit-breaker-policy dismissed: no breaker is declared; one command is sent per tap
   checklist: declared-target-coverage dismissed: there is no fan-out; one key opens one pack
+- the browser captures only while told to: The browser analytics module imports posthog-js and calls it only after getBrowserAnalytics answers capture, starting it bootstrapped with that answer's analytics ID as an identified ID and never calling identify, alias or setPersonProperties; whenever the answer stops being capture (off, a denial, sign-out, the flag turning off, an error) it stops replay, opts out of capturing, resets and opts out again before anything else is sent, abandons an import still loading, and a later capture answer starts a fresh instance with that answer's ID.
+  over: the live shell over an answer loading, off, each denial and a failed read, a capture answer, sign-out, the flag turning off, the website closing and a failed read mid-session followed by navigation, an answer changing while posthog-js loads, a second member's capture answer after sign-out, and the same capture answer again
+  via: the browser captures only while told to
+  refuted: the module kept capturing when getBrowserAnalytics failed -> a failed read mid-session neither opted out nor reset, 1 of 10 tests red (2026-10-18)
+  because: a member the flag is off for must download nothing new and send nothing, and a shared browser must not be tracked as a member after they sign out (MS18, MS19, MS20)
+  kinds: output, identity
+  checklist: destination-confinement declared as the browser captures only while told to
+  checklist: redaction dismissed: the module sends no member data of its own; what PostHog may receive is guarded by nothing private reaches PostHog from the browser and no sign-in code leaves the browser
+  checklist: commit-ordered-effects dismissed: stopping happens synchronously before the next answer is followed, and a start applies only if no later answer came first
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; posthog-js owns its own retries
+  checklist: declared-target-coverage dismissed: there is no fan-out; one answer starts at most one instance
+  checklist: identity-continuity dismissed: each capture answer starts its own instance with that answer's ID and its own storage, so one member's state never carries into another's
+  checklist: capability-authorization dismissed: the module holds only the public project token getBrowserAnalytics answers, which grants nothing but sending events
+  checklist: canonical-encoding dismissed: the analytics ID is passed to posthog-js exactly as the read answered it
+- nothing private reaches PostHog from the browser: Every element that shows kudos words, a Slack permalink, a Slack picture or another Slack address, a Slack-shaped ID or an emoji by name sits inside an element with `ph-no-capture` (`KudosMessage`, both `Open in Slack` links, `MemberFace`, `CustomEmoji`, `EmojiName`, `SlackLink` and the inventory's emoji names), so replay draws it as an empty block and autocapture ignores clicks inside it; autocapture masks all element text and attributes.
+  over: every page rendered from the fixture app, `/`, `/activity` with each filter, `/leaderboard`, `/quests`, `/skills`, `/book`, `/book/collection`, two spread hashes and `/settings`, for the fixtures holding activity, the spotlight, recent kudos, teammates' Slack faces, custom emoji, the inventory, the Book and the crate store, every text node and every link, picture and label attribute
+  via: nothing private reaches PostHog from the browser
+  refuted: KudosMessage's words lost their ph-no-capture block -> kudos words lay outside every block on the home, activity and leaderboard pages, 10 of 20 tests red (2026-10-18)
+  because: kudos words are colleagues' private thanks and permalinks and Slack pictures hold channel, message, team and user IDs, so none of them may reach a replay or an event that everyone in the organisation can open; names, levels, hoggies and quests stay visible as the product owner chose (masking A, MS23, MS27)
+  kinds: output, message
+  checklist: destination-confinement dismissed: the blocks change only what posthog-js records, and posthog-js sends only where the browser captures only while told to lets it
+  checklist: redaction declared as nothing private reaches PostHog from the browser
+  checklist: commit-ordered-effects dismissed: a class on an element writes nothing
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
+  checklist: declared-target-coverage dismissed: there is no fan-out
+  checklist: message-authenticity dismissed: the blocks are markup the website renders; no message is received
+  checklist: input-validation dismissed: the walk checks rendered output, not input; KudosMessage's own rendering is guarded by a kudos message renders as text
+  checklist: retry-recognition dismissed: nothing is sent or retried by the blocks
+  checklist: duplicate-suppression dismissed: nothing is sent by the blocks
+  checklist: keyed-ordering dismissed: nothing is sent by the blocks
+  checklist: acknowledgment-barrier dismissed: nothing is sent by the blocks
+  checklist: retry-classification dismissed: nothing is sent by the blocks
+- no sign-in code leaves the browser: Before posthog-js sends an event, every URL in it, `$current_url`, `$referrer`, the first-visit person properties, the pageleave's and every stack frame's URL included, loses its `code` query parameter and keeps everything else.
+  over: the live shell opened at `/?code=…` and navigating to another address carrying a code, and an event holding every URL property, person property and stack frame URL with a sign-in code, a Date and a plain property
+  via: no sign-in code leaves the browser
+  refuted: the scrub left URLs inside lists, such as stack frames, untouched -> a stack frame kept the sign-in code, 1 of 2 tests red (2026-10-18)
+  because: the sign-in code from Slack redeems a session, so it must never sit in PostHog where anyone in the organisation can read it (MS21)
+  kinds: credential, output
+  checklist: destination-confinement dismissed: the scrub only removes; it sends nothing itself
+  checklist: redaction declared as no sign-in code leaves the browser
+  checklist: commit-ordered-effects dismissed: the scrub runs inside posthog-js's before_send, before any request is built
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
+  checklist: declared-target-coverage dismissed: there is no fan-out; one event in, one event out
+  checklist: capability-authorization dismissed: the scrub grants nothing; it removes the one credential an address can carry
+  checklist: revalidated-permission dismissed: no permission is checked here; the code is removed whatever it is
+  checklist: message-authenticity dismissed: the scrub reads events posthog-js built in this browser
+  checklist: encrypted-storage dismissed: nothing is stored; the code is dropped before the event leaves
+  checklist: key-rotation-compatibility dismissed: no key is involved; the parameter name `code` is Convex Auth's fixed one
+  checklist: separation-of-duties dismissed: one module scrubs and posthog-js sends; no duty is shared

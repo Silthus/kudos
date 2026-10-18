@@ -20,7 +20,7 @@ export function KudosMessage({ message, clamped }: { message: Message; clamped: 
 
 function WordsOf({ message, clamped }: { message: Words; clamped: boolean }) {
   return (
-    <p data-testid="kudos-message-words" className={`[overflow-wrap:anywhere] ${clamped ? "line-clamp-2" : ""}`}>
+    <p data-testid="kudos-message-words" className={`ph-no-capture [overflow-wrap:anywhere] ${clamped ? "line-clamp-2" : ""}`}>
       {message.segments.map((segment, index) => (
         <SegmentOf key={index} segment={segment} linked={!clamped} />
       ))}

@@ -113,6 +113,10 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   handler: setWorkspaceSettings in convex/website/commands.ts
   trust: browser
 
+- query getBrowserAnalytics: a browser asks whether, and as whom, the signed-in member's browser sends analytics, with no arguments
+  handler: getBrowserAnalytics in convex/website/browserAnalytics.ts
+  trust: browser
+
 ## invariants
 - the route list is the paths the router serves: The backend's route list holds exactly the paths the website's router serves, so a website link Slack shows never opens the not-found page, and a page that ships adds its path to both in one change.
   over: routeList in convex/website/routes.ts and servedPaths in website/src/route.ts, the list routeOf matches a path against
@@ -174,11 +178,11 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   checklist: canonical-encoding dismissed: function paths are compared as the module glob lists them, sorted; no identity is encoded
   checklist: identity-continuity dismissed: the surface carries no identity across a succession
 - website reads pass one guard: A website read checks the live session of the deployment's current workspace, then the directory, then the website flag: it answers signed-out without such a session and verifying, unverified or not-a-member until the directory knows the person as a member, each of them closed instead while the website flag is off in the workspace decision, answers closed to a verified member whose own decision of the website flag is off, and reaches its handler only with a verified member the flag is on for, taken from the session.
-  over: getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getMyFace for no session, the flag off, a former member, and an argument that names another member; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getGroupBoards for no session and the flag off; getQuests with the flag off, no session, a former member, and an argument that names another member; getBook with the website flag off, no session, a former member, and an argument that names another member; getCollection with the website flag off, no session, a former member, and an argument that names another member; getSkillTree with the flag off, no session, a former member, and an argument that names another member; getProfileCard with the website flag off, no session, a former member, and an argument that names another member; getActivity, getRecentKudos and getSpotlight with the website flag off and the activity flag on, no session, and a member user_change deactivates; getSettings with the website flag off and no session
+  over: getMyProfile for no session, a signed-out and an expired session, a session left over after SLACK_WORKSPACE_ID changes, an unknown person being verified, a failed verification, a member user_change deactivates, the flag off, never created, without its workspace key, switched off under an open session, and SLACK_WORKSPACE_ID unset; getMyFace for no session, the flag off, a former member, and an argument that names another member; getLeaderboard for no session, the flag off, a former member, a member, and an argument beside the period; getGroupBoards for no session and the flag off; getQuests with the flag off, no session, a former member, and an argument that names another member; getBook with the website flag off, no session, a former member, and an argument that names another member; getCollection with the website flag off, no session, a former member, and an argument that names another member; getSkillTree with the flag off, no session, a former member, and an argument that names another member; getProfileCard with the website flag off, no session, a former member, and an argument that names another member; getActivity, getRecentKudos and getSpotlight with the website flag off and the activity flag on, no session, and a member user_change deactivates; getSettings with the website flag off and no session; getBrowserAnalytics with the website flag off, no session, an unknown person being verified and a former member
   via: website reads pass one guard
   because: the shell is public and a JWT outlives sign-out and membership, so every read must recheck the live session, the workspace, the directory and the flag, or a closed site, a signed-out browser or a former member would read a member's kudos; the flag comes last because a member's own decision can open the site while the workspace decision keeps it closed, and anyone the directory doesn't know gets the workspace decision (WS3, WS9, WS11, WS14, F19, F27)
   crossing: browser -> domain
-  entrances: query getMyProfile, query getMyFace, query getLeaderboard, query getGroupBoards, query getQuests, query getSkillTree, query getBook, query getCollection, query getProfileCard, query getActivity, query getRecentKudos, query getSpotlight, query getSettings
+  entrances: query getMyProfile, query getMyFace, query getLeaderboard, query getGroupBoards, query getQuests, query getSkillTree, query getBook, query getCollection, query getProfileCard, query getActivity, query getRecentKudos, query getSpotlight, query getSettings, query getBrowserAnalytics
   refuted: memberQuery dropped the check that the session's workspace is the current SLACK_WORKSPACE_ID -> the leftover session after SLACK_WORKSPACE_ID changes read member instead of signed-out (2026-10-13)
   kinds: read, identity
   checklist: scoped-reads declared as website reads pass one guard
@@ -530,3 +534,27 @@ The website's signed-in reads, the sign-in callback, and the website links Slack
   kinds: read
   checklist: scoped-reads declared as website reads pass one guard
   checklist: redaction declared as the spotlight draws only public, said-why kudos of the member's workspace
+- a browser learns only its own analytics ID: getBrowserAnalytics reaches its handler only through memberQuery's guard, and answers capture with the project's public token, POSTHOG_HOST, the deployment's environment and the session's own member's analytics ID only while `website-analytics` is on for that member in their own decision, read without writing, they already have an analytics ID, and the deployment has POSTHOG_PROJECT_TOKEN and POSTHOG_HOST; it answers off otherwise, and the read creates nothing.
+  over: getBrowserAnalytics for a member the flag is on for, two members in turn, the flag on only for another member's email, the flag off, never created, without the flags key, a member without an analytics ID, without the project token, without POSTHOG_HOST, and an argument that names another member
+  via: a browser learns only its own analytics ID
+  refuted: getBrowserAnalytics skipped the website-analytics flag check -> the flag off, never created and on only for another member's email answered capture with the member's ID, 3 of 10 tests red (2026-10-18)
+  because: the browser sends events to PostHog under the ID it is given, so an ID from any other member would put one member's browsing on another's person, and a read that made an ID would write from a query; the flag keeps the browser half dark until the product owner widens it (MS16, MS17)
+  crossing: browser -> domain
+  entrances: query getBrowserAnalytics
+  kinds: read, identity
+  checklist: scoped-reads declared as website reads pass one guard
+  checklist: capability-authorization dismissed: the project token is PostHog's public ingestion key, which every browser that captures already holds; the read hands out no credential with more reach
+  checklist: redaction dismissed: an off answer carries only its kind, never an ID
+  checklist: canonical-encoding dismissed: the analytics ID is answered exactly as the analytics module stored it
+  checklist: identity-continuity dismissed: each answer names the session's member as the directory knows them now; a later session for another member reads that member's own ID
+- the website runs only its own code: Every HTML response carries the policy header contentSecurityPolicy builds: `script-src 'self'`, `style-src 'self'` and every other directive as before, with `connect-src` widened only by POSTHOG_HOST's origin and, for PostHog's US or EU cloud, its assets host; without POSTHOG_HOST the policy is the one before browser analytics, and no policy sends violation reports.
+  over: contentSecurityPolicy without POSTHOG_HOST and with it empty, with PostHog's US host, its EU host and a host of its own, and GET / with POSTHOG_HOST set
+  via: the website runs only its own code
+  refuted: contentSecurityPolicy dropped PostHog's assets host from connect-src -> the US and EU policies and the served header missed the assets host, 3 of 5 tests red (2026-10-18)
+  because: the page must run only the deployment's own scripts and talk only to the deployment and PostHog, so adding analytics opens no door for injected code, and a violation report would leave the browser outside the flag with an unscrubbed URL (MS28, WS25)
+  kinds: output
+  checklist: destination-confinement declared as the website runs only its own code
+  checklist: redaction dismissed: the policy names hosts, never a member or a secret
+  checklist: commit-ordered-effects dismissed: building the header writes nothing
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
+  checklist: declared-target-coverage dismissed: there is no fan-out; one header per HTML response

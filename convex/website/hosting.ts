@@ -1,6 +1,7 @@
 import { registerStaticRoutes } from "@convex-dev/static-hosting";
 import { httpActionGeneric, type GenericActionCtx, type GenericDataModel, type HttpRouter, type PublicHttpAction } from "convex/server";
 import { components } from "../_generated/api";
+import { configuredHost } from "../analytics/browser";
 
 type HttpHandler = (ctx: GenericActionCtx<GenericDataModel>, request: Request) => Promise<Response>;
 
@@ -21,7 +22,7 @@ function withWebsiteHeaders(staticFiles: PublicHttpAction) {
   return httpActionGeneric(async (ctx, request) => {
     const response = await serve(ctx, request);
     const headers = new Headers(response.headers);
-    if (isHtml(response)) headers.set("Content-Security-Policy", contentSecurityPolicy(process.env.CONVEX_CLOUD_URL));
+    if (isHtml(response)) headers.set("Content-Security-Policy", contentSecurityPolicy(process.env.CONVEX_CLOUD_URL, configuredHost() ?? undefined));
     else if (isBuiltAsset(request, response)) headers.set("Cache-Control", immutable);
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
   });
@@ -42,13 +43,14 @@ function isHtml(response: Response) {
   return response.headers.get("Content-Type")?.startsWith("text/html") ?? false;
 }
 
-export function contentSecurityPolicy(deploymentUrl: string | undefined) {
+export function contentSecurityPolicy(deploymentUrl: string | undefined, postHogHost: string | undefined) {
   const deployment = deploymentUrl ? [deploymentUrl, socketUrlOf(deploymentUrl)] : [];
+  const postHog = postHogHost ? postHogOriginsOf(postHogHost) : [];
   return [
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self'",
-    `connect-src ${["'self'", ...deployment].join(" ")}`,
+    `connect-src ${["'self'", ...deployment, ...postHog].join(" ")}`,
     `img-src 'self' ${slackPictures} ${companyProfileImages}`,
     "font-src 'self'",
     "object-src 'none'",
@@ -60,4 +62,12 @@ export function contentSecurityPolicy(deploymentUrl: string | undefined) {
 
 function socketUrlOf(deploymentUrl: string) {
   return deploymentUrl.replace(/^http/, "ws");
+}
+
+const postHogCloud = /^https:\/\/(us|eu)\.i\.posthog\.com$/;
+
+function postHogOriginsOf(host: string) {
+  const origin = new URL(host).origin;
+  const region = postHogCloud.exec(origin)?.[1];
+  return region === undefined ? [origin] : [origin, `https://${region}-assets.i.posthog.com`];
 }

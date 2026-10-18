@@ -52,7 +52,7 @@ function KudosEmojiSection({ inventory, kudosEmoji, coins, purchasing, heading }
           <IconEmoji aria-hidden="true" className="size-4 self-center text-muted-foreground" />
           Kudos emoji
         </h3>
-        <p className="text-xs text-muted-foreground">{`Each of your kudos emoji counts as a kudos, like :${kudosEmoji}:.`}</p>
+        <p className="ph-no-capture text-xs text-muted-foreground">{`Each of your kudos emoji counts as a kudos, like :${kudosEmoji}:.`}</p>
       </div>
       <ul aria-label="Yours" className="grid grid-cols-3 gap-2 sm:grid-cols-5">
         {yours.map((item) => (
@@ -73,7 +73,7 @@ function OwnedEmoji({ item }: { item: InventoryItem }) {
       <span className="flex flex-1 items-center justify-center">
         <ItemArt item={item} className="size-12 text-[2rem]" />
       </span>
-      <span className="w-full truncate text-xs font-medium">{item.name}</span>
+      <span className="ph-no-capture w-full truncate text-xs font-medium">{item.name}</span>
     </span>
   );
 }
@@ -90,7 +90,7 @@ function NotYoursYet({ items, coins, purchasing }: { items: InventoryItem[]; coi
             <span className="max-w-24 shrink-0">
               <ItemArt item={item} className="size-7 text-lg opacity-60" />
             </span>
-            <span className="min-w-0 flex-1 truncate text-sm font-medium">{item.name}</span>
+            <span className="ph-no-capture min-w-0 flex-1 truncate text-sm font-medium">{item.name}</span>
             {item.onSale && item.source.kind === "store" ? <BuyAction item={item} price={item.source.price} coins={coins} purchasing={purchasing} /> : <HowToGet source={item.source} />}
           </li>
         ))}
@@ -120,7 +120,7 @@ function BuyAction({ item, price, coins, purchasing }: { item: InventoryItem; pr
         className="tabular-nums"
       >
         {sending ? "Buying…" : `Buy for ${coinsText(price)}`}
-        <span className="sr-only">{`, ${item.name}`}</span>
+        <span className="ph-no-capture sr-only">{`, ${item.name}`}</span>
       </Button>
       {short > 0 && (
         <span id={hint} className="text-[11px] text-muted-foreground tabular-nums">

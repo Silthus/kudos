@@ -1,0 +1,99 @@
+import { act, render } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Root } from "./Root";
+import { activityFixtures } from "./activityFixtures";
+import { leaderboardFixtures } from "./leaderboardFixtures";
+import { recentKudosFixtures } from "./recentKudosFixtures";
+import { spotlightFixtures } from "./spotlightFixtures";
+import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
+
+const pages: { path: string; fixtures: string[] }[] = [
+  { path: "/", fixtures: ["member-with-every-feature-open", "member-with-custom-emoji", "member-with-the-board", "member-with-quests", "member-with-the-inventory"] },
+  { path: "/activity", fixtures: ["member-with-every-feature-open"] },
+  { path: "/activity?filter=received", fixtures: ["member-with-every-feature-open"] },
+  { path: "/activity?filter=given", fixtures: ["member-with-every-feature-open"] },
+  { path: "/leaderboard", fixtures: ["member-with-every-feature-open", "member-with-the-board"] },
+  { path: "/quests", fixtures: ["member-with-quests"] },
+  { path: "/skills", fixtures: ["member-with-every-feature-open"] },
+  { path: "/book", fixtures: ["member-with-the-book-opened"] },
+  { path: "/book/collection", fixtures: ["member-with-the-book-opened", "member-with-the-crate-store"] },
+  { path: "/book#hoggies/legendary", fixtures: ["member-with-the-book-spread"] },
+  { path: "/book#teams", fixtures: ["member-with-the-book-spread"] },
+  { path: "/settings", fixtures: ["member-with-settings"] },
+];
+
+const slackHost = /(?:^|[/.@])(?:[a-z0-9-]+\.)*(?:slack\.com|slack-edge\.com|gravatar\.com)\b/i;
+const slackShapedId = /\b[UWCGDT][A-Z0-9]{8,}\b/;
+const emojiName = /:[a-z0-9_+'-]+:/;
+const checkedAttributes = ["href", "src", "srcset", "alt", "title", "aria-label", "aria-description", "data-href"];
+
+const kudosWords = [...wordsIn([activityFixtures, recentKudosFixtures, spotlightFixtures, leaderboardFixtures])].filter((text) => text.trim().length >= 8);
+
+beforeEach(() => {
+  fakeSystemTheme(false);
+  preferWideScreen();
+});
+
+afterEach(() => vi.restoreAllMocks());
+
+describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }, () => {
+  it("the fixtures hold kudos words, Slack pictures and permalinks for the walk to find", () => {
+    expect(kudosWords.length).toBeGreaterThan(5);
+    expect(JSON.stringify([activityFixtures, spotlightFixtures])).toMatch(slackHost);
+  });
+
+  for (const { path, fixtures } of pages) {
+    for (const fixture of fixtures) {
+      it(`${path} for ${fixture}: every kudos word, Slack-shaped ID, Slack URL and emoji name sits inside a ph-no-capture block`, async () => {
+        window.history.replaceState(null, "", path);
+        const { container } = render(<Root fixture={fixture} />);
+        await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+        expect(exposedIn(container)).toEqual([]);
+      });
+    }
+  }
+
+  it("a page with private things in it carries blocks, so the walk is not vacuous", async () => {
+    window.history.replaceState(null, "", "/activity");
+    const { container } = render(<Root fixture="member-with-every-feature-open" />);
+    await act(() => new Promise((resolve) => setTimeout(resolve, 50)));
+
+    expect(container.querySelectorAll(".ph-no-capture").length).toBeGreaterThan(3);
+    expect([...container.querySelectorAll("a[href]")].some((link) => slackHost.test(link.getAttribute("href")!))).toBe(true);
+  });
+});
+
+function exposedIn(root: Element): string[] {
+  const exposed: string[] = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+    const text = node.textContent ?? "";
+    if (isPrivate(text) && !blocked(node.parentElement)) exposed.push(`text "${text}"`);
+  }
+  for (const element of root.querySelectorAll("*")) {
+    for (const name of checkedAttributes) {
+      const value = element.getAttribute(name);
+      if (value !== null && isPrivate(value) && !blocked(element)) exposed.push(`<${element.tagName.toLowerCase()} ${name}="${value}">`);
+    }
+  }
+  return exposed;
+}
+
+function isPrivate(text: string) {
+  return slackHost.test(text) || slackShapedId.test(text) || emojiName.test(text) || kudosWords.some((words) => text.includes(words.trim()));
+}
+
+function blocked(element: Element | null) {
+  return element?.closest(".ph-no-capture") != null;
+}
+
+function wordsIn(value: unknown, found = new Set<string>()): Set<string> {
+  if (Array.isArray(value)) value.forEach((item) => wordsIn(item, found));
+  else if (value !== null && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    if (record.kind === "text" && typeof record.text === "string" && !("segments" in record)) found.add(record.text);
+    Object.values(record).forEach((item) => wordsIn(item, found));
+  }
+  return found;
+}
