@@ -1,0 +1,5 @@
+# The Journey drives one quest log
+
+A member has one quest log, and the Journey has no screen or section of its own: its steps are quests in that log, beside the weekly quests and the group quest. Quests owns a read model, `questLogOf`, that combines them in one order (the Journey first, then the weekly unlock, this week's slots, the group quest and the crates still waiting), while the Journey keeps its rules (P88-P93) and its storage, so a step still becomes a quest when its feature opens and nothing migrates. We chose this over offering one step at a time, which would reopen P90 and the join (P91) and need a rule for members who already have several steps active, and over letting the Journey direct the weekly draw, which would reopen P80 and P81. The old shell keeps reading `getQuests` and `getMyProfile.journey` unchanged until it is deleted.
+
+Settled on [#626](https://github.com/Silthus/kudos/issues/626) (map #624); the architecture is `docs/architecture/quest-log.md` on `prototype/quest-log-architecture`. Coherence journal decision: `d-8b54102e`.

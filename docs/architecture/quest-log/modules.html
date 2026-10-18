@@ -1,0 +1,246 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{--font-sans:system-ui,-apple-system,"Segoe UI",sans-serif;--font-mono:ui-monospace,SFMono-Regular,Menlo,monospace;--radius:10px}
+body{margin:0;font-family:var(--font-sans)}
+.panel{position:relative;background:#fff;color:#0f172a;border-radius:var(--radius);padding:16px;font-size:12px}
+svg.wires{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;z-index:2}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.seg{display:flex;gap:3px;background:#e2e8f0;border-radius:7px;padding:3px}
+.seg button,.toggle{border:0;background:transparent;font:inherit;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:5px;color:#334155;cursor:pointer}
+.seg button[aria-pressed=true]{background:#0f172a;color:#fff}
+.toggle{background:#e2e8f0}
+.toggle[aria-pressed=true]{background:#0f172a;color:#fff}
+.row{display:flex;gap:14px;align-items:flex-start;position:relative;z-index:1}
+.gap{height:56px}
+.mod{flex:1;border:2px solid #334155;border-radius:8px;background:#f8fafc;min-width:0}
+.mod.newmod{border-color:#16a34a;background:#f0fdf4}
+.mod .seam{background:#0f172a;color:#fff;font-family:var(--font-mono);font-size:10.5px;padding:5px 8px;border-radius:6px 6px 0 0;line-height:1.35}
+.mod.newmod .seam{background:#14532d}
+.mod .seam.bottom{border-radius:0 0 6px 6px;font-size:10px}
+.mod .seam .tag{display:inline-block;background:#fff;color:#0f172a;border-radius:3px;padding:0 4px;margin-right:4px;font-family:var(--font-sans);font-weight:700;font-size:9.5px}
+.plus{color:#86efac;font-weight:700}
+.q{display:inline-block;font-family:var(--font-sans);font-size:9px;font-weight:700;background:#7c3aed;color:#fff;border-radius:3px;padding:0 3px;margin-left:3px;vertical-align:1px;text-decoration:none}
+.mod .name{font-weight:700;font-size:13px;padding:6px 8px 2px}
+.surf{display:inline-block;font-size:9.5px;font-weight:700;color:#b91c1c;background:#fee2e2;border-radius:3px;padding:0 4px;vertical-align:1px}
+.mod .name small{font-weight:500;color:#64748b;font-size:11px}
+.mod .impl{padding:4px 8px 8px;display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid #94a3b8;background:#f1f5f9;border-radius:5px;padding:3px 7px;line-height:1.3}
+.chip.new{background:#dcfce7;border-color:#16a34a}
+.chip.changed{background:#fef9c3;border-color:#ca8a04}
+.chip.fork{border:2px dotted #7c3aed;background:#f5f3ff}
+.chip.later,.mod.later{border:2px dashed #ea580c}
+.mod.later{background:#fff7ed}
+.mod.later .seam{background:#7c2d12}
+.f{display:inline-block;font-family:var(--font-sans);font-size:9px;font-weight:700;background:#ea580c;color:#fff;border-radius:3px;padding:0 3px;margin-left:3px;vertical-align:1px;text-decoration:none}
+.chip.cyc{border:2px dashed #dc2626;background:#fef2f2;color:#b91c1c;font-weight:600}
+.chip.stays{border:2px solid #dc2626}
+.rail{position:relative;z-index:1;background:#1e293b;color:#e2e8f0;border-radius:6px;padding:6px 10px;font-size:11px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rail b{color:#fff;font-size:12px}
+.rail .cyc{background:#fef2f2;color:#b91c1c;border:2px dashed #dc2626;border-radius:4px;padding:1px 6px;font-weight:600}
+.others{margin-top:18px;border-top:1px dashed #94a3b8;padding-top:10px}
+.others h4{margin:0 0 8px;font-size:12px;color:#334155}
+.others .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.mini{border:1.5px solid #94a3b8;border-radius:6px;background:#f8fafc;font-size:10.5px}
+.mini .s{background:#334155;color:#fff;font-family:var(--font-mono);font-size:9.5px;padding:3px 6px;border-radius:4px 4px 0 0;line-height:1.3}
+.mini b{display:block;padding:4px 6px 0;font-size:11.5px}
+.mini p{margin:0;padding:2px 6px 5px;color:#475569}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:11px;color:#334155;align-items:center}
+.legend i{display:inline-block;width:22px;height:0;border-top:2px solid;vertical-align:middle;margin-right:4px}
+.legend b.seamkey{background:#0f172a;color:#fff;padding:1px 6px;border-radius:3px;font-weight:600;margin-right:4px}
+.panel[data-view=today] .n{display:none}
+.panel[data-view=target] .x{display:none}
+.panel[data-view=removed] .x{background:#f8fafc;border:1px dashed #94a3b8;color:#94a3b8;text-decoration:line-through}
+.panel[data-view=removed] .x .q,.panel[data-view=removed] .x .f{text-decoration:none}
+.panel[data-view=removed] .seam .x{border:0;background:none;color:#94a3b8}
+.rail b{margin-left:70px}
+.panel:not([data-view=today]) .t{display:none}
+.panel[data-view=today] .nt{display:none}
+.panel[data-others=off] .others{display:none}
+</style></head><body>
+<div class="panel" id="v" data-view="target" data-others="off">
+<svg class="wires"></svg>
+
+<div class="controls">
+  <div class="seg" role="group" aria-label="View">
+    <button data-view-to="target" aria-pressed="true">Target</button>
+    <button data-view-to="removed" aria-pressed="false">Target + what it removes</button>
+    <button data-view-to="today" aria-pressed="false">Today</button>
+  </div>
+  <button class="toggle" data-others-toggle aria-pressed="false">Untouched modules and their seams</button>
+</div>
+
+<div class="row">
+  <div class="mod" id="web" style="flex:1">
+    <div class="seam"><span class="tag">seam</span><span class="n">getQuestLog <span class="plus">+</span></span><span class="x"> · getQuests · getMyProfile</span></div>
+    <div class="name">Website reads</div>
+    <div class="impl"><span class="chip new n" id="web-log">getQuestLog</span><span class="chip x" id="web-old">getQuests: builds the log itself</span></div>
+  </div>
+  <div class="mod" id="cmd" style="flex:0.75">
+    <div class="seam"><span class="tag">seam</span>runCommand</div>
+    <div class="name">Commands</div>
+    <div class="impl"><span class="chip" id="cmd-click">Open, Swap clicks</span></div>
+  </div>
+  <div class="mod" id="msg" style="flex:1.25">
+    <div class="seam" id="msg-seam"><span class="tag">seam</span>replies · notices · App Home</div>
+    <div class="name"><span class="nt">Messaging <small>Feedback today</small><span class="f">follow-up</span></span><span class="t">Feedback</span> <span class="surf">62 used outside</span></div>
+    <div class="impl"><span class="chip changed n">two lines name the new start</span><span class="chip cyc x">↺ called by 9 modules: republish, notify<span class="f">follow-up</span></span><span class="chip" id="msg-home">home.ts: App Home's quest lines</span></div>
+  </div>
+</div>
+<div class="gap"></div>
+<div class="row">
+  <div class="mod" id="quests" style="flex:1.7">
+    <div class="seam" id="q-top"><span class="tag">seam</span><span class="n">questLogOf <span class="plus">+</span> · </span>rerollQuest<span class="x"> · openQuestCrate</span></div>
+    <div class="name">Quests <small>what a member pursues</small> <span class="surf">61 used outside</span></div>
+    <div class="impl">
+      <span class="chip new n" style="flex-basis:100%;text-align:center" id="q-log">Quest log read model: one list, Journey order</span>
+      <span class="chip" id="q-journey">Journey: steps, join</span>
+      <span class="chip" id="q-weekly">Weekly: draw, swap</span>
+      <span class="chip" id="q-group">Group quest</span>
+      <span class="chip" id="q-slice">Slice predicate</span>
+      <span class="chip">Copy</span>
+      <span class="chip new n" id="q-earned">weeklyQuestsEarnedBy</span>
+      <span class="chip x" id="q-crates">Crates: keys, held, open<span class="f">follow-up</span></span>
+    </div>
+  </div>
+  <div class="mod later n" id="rew" style="flex:1">
+    <div class="seam" id="rew-seam"><span class="tag">seam</span>recordReward · openCrate · waitingCratesOf</div>
+    <div class="name">Rewards <small>what a member collects</small><span class="f">follow-up</span></div>
+    <div class="impl">
+      <span class="chip">reward records</span>
+      <span class="chip">crate openings, held rewards</span>
+      <span class="chip">quest, feature and bought crates</span>
+    </div>
+  </div>
+</div>
+<div class="gap" style="height:46px"></div>
+<div class="rail" id="bus"><b>Bus</b><span>publish(event) → every subscriber, in its own mutation</span><span class="cyc">↺ the registry imports Quests' step map</span></div>
+<div class="gap" style="height:46px"></div>
+<div class="row">
+  <div class="mod" id="unl">
+    <div class="seam" id="unl-seam"><span class="tag">seam</span>stateOf · openedAtOf · openUnlock<span class="n"> · readyByFor <span class="plus">+</span></span></div>
+    <div class="name">Unlocks <small>what a member sees</small> <span class="surf">28 used outside</span></div>
+    <div class="impl"><span class="chip x" id="unl-level">weekly quests ready at level 3, flag on</span><span class="chip new n" id="unl-journey">makeWeeklyReady: ready once the earlier Journey quests are done</span><span class="chip cyc">↺ imports questsFlag</span></div>
+  </div>
+  <div class="mod" id="prog">
+    <div class="seam" id="prog-seam"><span class="tag">seam</span><span class="x">recordReward · rewardOf · </span>applyGain</div>
+    <div class="name">Progression <small>what a member earns</small> <span class="surf">54 used outside</span></div>
+    <div class="impl"><span class="chip">XP, levels, skill points</span><span class="chip">effects records</span><span class="chip x">reward records<span class="f">follow-up</span></span></div>
+  </div>
+  <div class="mod" id="eng" style="flex:0.7">
+    <div class="seam"><span class="tag">seam</span>give(kudos)</div>
+    <div class="name">Engine <span class="surf">53</span></div>
+    <div class="impl"><span class="chip">kudos, awards, allowance</span></div>
+  </div>
+</div>
+
+<div class="others">
+  <h4>Untouched by this change. Top bar: its most used functions. "Used outside": how many of its exports other modules call.</h4>
+  <div class="grid">
+    <div class="mini"><div class="s">dropFor · openCrate · buyCrate · waitingCratesOf</div><b>Hoggies</b><p>36 used outside · a crate key over all 5 crate kinds · pub hoggieDropped</p></div>
+    <div class="mini"><div class="s">buyItem · owns · storeVisibleTo</div><b>Store</b><p>22 used outside · pub perkBought, itemBought</p></div>
+    <div class="mini"><div class="s">spend · credit · balanceOf</div><b>Wallet</b><p>12 used outside · coins a reward pays</p></div>
+    <div class="mini"><div class="s">ladders · bookAppliesIn · everyTierEarnedBy</div><b>Achievements</b><p>28 used outside · sub kudosGiven</p></div>
+    <div class="mini"><div class="s">board · periods · isOnTheBoards</div><b>Leaderboard</b><p>32 used outside · sub kudosGiven, awardsAttributed</p></div>
+    <div class="mini"><div class="s">groupsShownTo · primaryGroupOf</div><b>Groups</b><p>31 used outside · pub awardsAttributed</p></div>
+    <div class="mini"><div class="s">teamSpiritShownTo · albumsOf</div><b>Stickers</b><p>12 used outside · sub kudosGiven</p></div>
+    <div class="mini"><div class="s">giveHug · sweep</div><b>Hugs</b><p>10 used outside · sub hugGiven</p></div>
+    <div class="mini"><div class="s">chatUserOf · teammatesOf</div><b>Workspace</b><p>49 used outside · pub memberLeft, memberRejoined</p></div>
+    <div class="mini"><div class="s">welcomeNewMembers</div><b>Welcome</b><p>2 used outside · sub kudosGiven</p></div>
+    <div class="mini"><div class="s">activityOf · keyOf</div><b>Activity</b><p>7 used outside · reads awards and rewards</p></div>
+    <div class="mini"><div class="s">memberDecision · exposed</div><b>Analytics, flags</b><p>52 used outside · sub almost every event</p></div>
+  </div>
+</div>
+
+<div class="legend">
+<span><b class="seamkey">seam</b>a module's interface</span>
+<span><i style="border-color:#334155"></i>call through a seam</span>
+<span><i style="border-color:#15803d"></i>added</span>
+<span><i style="border-color:#94a3b8;border-top-style:dashed"></i>✕ removed</span>
+<span><i style="border-color:#dc2626"></i>leak that stays</span>
+<span><i style="border-color:#ea580c;border-top-style:dashed"></i>follow-up after this map</span>
+<span><span class="f" style="margin:0">follow-up</span> target of a later refactor</span>
+<span><span class="chip cyc" style="padding:0 5px">↺</span> cycle</span>
+</div>
+
+</div>
+<script>
+const kinds = {
+  ok: { color: "#334155", dash: "", width: 1.7 },
+  new: { color: "#15803d", dash: "", width: 2.2 },
+  leak: { color: "#dc2626", dash: "6 4", width: 2.2 },
+  stays: { color: "#dc2626", dash: "", width: 2.2 },
+  later: { color: "#ea580c", dash: "6 4", width: 2 },
+  removed: { color: "#94a3b8", dash: "4 4", width: 1.6, cross: true, strike: true },
+  bus: { color: "#475569", dash: "", width: 1.5 },
+};
+function anchorOf(el, side, at, root) {
+  const r = el.getBoundingClientRect(), b = root.getBoundingClientRect();
+  const x = r.left - b.left, y = r.top - b.top, f = at ?? 0.5;
+  if (side === "top") return { x: x + r.width * f, y, nx: 0, ny: -1 };
+  if (side === "bottom") return { x: x + r.width * f, y: y + r.height, nx: 0, ny: 1 };
+  if (side === "left") return { x, y: y + r.height * f, nx: -1, ny: 0 };
+  return { x: x + r.width, y: y + r.height * f, nx: 1, ny: 0 };
+}
+function svgEl(name, attributes) { const el = document.createElementNS("http://www.w3.org/2000/svg", name); for (const [k, v] of Object.entries(attributes)) el.setAttribute(k, v); return el; }
+function labelAt(svg, x, y, text, color, strike, anchor) {
+  const t = svgEl("text", { x, y, "text-anchor": anchor ?? "middle", "dominant-baseline": "middle", "font-size": "10", "font-weight": "600", fill: color });
+  if (strike) t.setAttribute("text-decoration", "line-through");
+  t.textContent = text; svg.appendChild(t);
+  const bb = t.getBBox();
+  svg.insertBefore(svgEl("rect", { x: bb.x - 3, y: bb.y - 1, width: bb.width + 6, height: bb.height + 2, rx: 3, fill: "#ffffff", opacity: "0.95" }), t);
+}
+function visible(el) { return el && el.getClientRects().length > 0; }
+function drawWires(root, wires) {
+  const svg = root.querySelector("svg.wires"), b = root.getBoundingClientRect();
+  svg.setAttribute("width", b.width); svg.setAttribute("height", b.height);
+  let defs = "<defs>";
+  for (const [k, { color }] of Object.entries(kinds)) defs += `<marker id="m-${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="${color}"/></marker>`;
+  svg.innerHTML = defs + "</defs>";
+  const view = root.dataset.view;
+  for (const w of wires) {
+    if (w.role === "n" && view === "today") continue;
+    if (w.role === "x" && view === "target") continue;
+    if (w.role === "t" && view !== "today") continue;
+    const kindName = w.role === "x" && view === "removed" ? "removed" : (view === "today" && w.todayKind) || w.kind || "ok";
+    const kind = kinds[kindName];
+    const from = root.querySelector("#" + w.from), to = root.querySelector("#" + w.to);
+    if (!visible(from) || !visible(to)) continue;
+    const a = anchorOf(from, w.fs ?? "bottom", w.fa, root), z = anchorOf(to, w.ts ?? "top", w.ta, root), bend = w.bend ?? 40;
+    if (w.ax === "from") z.x = a.x;
+    if (w.ax === "to") a.x = z.x;
+    const c1 = { x: a.x + a.nx * bend, y: a.y + a.ny * bend }, c2 = { x: z.x + z.nx * bend, y: z.y + z.ny * bend };
+    const path = svgEl("path", { d: `M${a.x},${a.y} C${c1.x},${c1.y} ${c2.x},${c2.y} ${z.x},${z.y}`, fill: "none", stroke: kind.color, "stroke-width": kind.width, "marker-end": `url(#m-${kindName})` });
+    if (kind.dash) path.setAttribute("stroke-dasharray", kind.dash);
+    svg.appendChild(path);
+    const point = (t) => { const u = 1 - t; return { x: u*u*u*a.x + 3*u*u*t*c1.x + 3*u*t*t*c2.x + t*t*t*z.x, y: u*u*u*a.y + 3*u*u*t*c1.y + 3*u*t*t*c2.y + t*t*t*z.y }; };
+    const lt = w.lt ?? 0.5, p = point(lt);
+    const label = (view === "today" && w.todayLabel) || w.label;
+    if (label) labelAt(svg, p.x + (w.lx ?? 0), p.y + (w.ly ?? 0), label, kind.color, kind.strike, w.anchor);
+    if (kind.cross) {
+      const q = point(w.xt ?? Math.min(lt + 0.25, 0.85));
+      svg.appendChild(svgEl("circle", { cx: q.x, cy: q.y, r: 7.5, fill: "#ffffff", stroke: "#64748b", "stroke-width": 1.5 }));
+      svg.appendChild(svgEl("path", { d: `M${q.x - 3.5},${q.y - 3.5}L${q.x + 3.5},${q.y + 3.5}M${q.x + 3.5},${q.y - 3.5}L${q.x - 3.5},${q.y + 3.5}`, stroke: "#475569", "stroke-width": 2 }));
+    }
+  }
+}
+function wire(rootId, wires) {
+  const root = document.getElementById(rootId);
+  const go = () => drawWires(root, wires);
+  go();
+  new ResizeObserver(go).observe(root);
+  for (const button of root.querySelectorAll("[data-view-to]")) button.addEventListener("click", () => {
+    root.dataset.view = button.dataset.viewTo;
+    for (const other of root.querySelectorAll("[data-view-to]")) other.setAttribute("aria-pressed", String(other === button));
+    go();
+  });
+  const others = root.querySelector("[data-others-toggle]");
+  others.addEventListener("click", () => {
+    const on = root.dataset.others !== "on";
+    root.dataset.others = on ? "on" : "off";
+    others.setAttribute("aria-pressed", String(on));
+    go();
+  });
+}
+
+wire("v", [{"from": "web", "fa": 0.1, "to": "q-top", "ta": 0.05, "kind": "new", "role": "n", "label": "questLogOf", "bend": 30, "lt": 0.25, "lx": 30}, {"from": "web-old", "fa": 0.55, "to": "q-journey", "ta": 0.6, "kind": "leak", "role": "x", "label": "30 symbols: goes with the old shell", "todayLabel": "30 symbols, 9 files", "bend": 50, "lt": 0.5, "lx": 80, "xt": 0.3}, {"from": "cmd-click", "fa": 0.3, "to": "q-top", "ta": 0.62, "kind": "ok", "label": "rerollQuest", "todayLabel": "rerollQuest, openQuestCrate", "bend": 30, "lt": 0.45}, {"from": "cmd", "fa": 0.85, "to": "rew-seam", "ta": 0.12, "kind": "later", "role": "n", "label": "openCrate", "bend": 40, "lt": 0.15, "anchor": "end", "lx": -8}, {"from": "msg-home", "fa": 0.3, "to": "q-group", "ta": 0.7, "kind": "stays", "todayKind": "leak", "label": "33 symbols: stays", "todayLabel": "33 symbols, 9 files", "bend": 60, "lt": 0.45}, {"from": "quests", "fs": "top", "fa": 0.96, "to": "msg", "ts": "bottom", "ta": 0.06, "kind": "leak", "role": "x", "label": "republish, notify", "bend": 20, "lt": 0.5, "anchor": "end", "lx": -8}, {"from": "quests", "fs": "right", "fa": 0.9, "to": "rew", "ts": "left", "ta": 0.9, "kind": "later", "role": "n", "label": "recordReward", "bend": 10, "ly": 12}, {"from": "q-journey", "fa": 0.12, "to": "unl-seam", "ta": 0.08, "kind": "ok", "label": "stateOf, openedAtOf", "bend": 110, "lt": 0.3, "anchor": "start", "lx": 6, "ly": -14}, {"from": "rew", "fa": 0.8, "to": "prog-seam", "ta": 0.8, "kind": "later", "role": "n", "label": "applyGain", "bend": 120, "lt": 0.8, "lx": 30}, {"from": "q-crates", "fa": 0.5, "to": "prog-seam", "ta": 0.4, "kind": "ok", "role": "t", "label": "recordReward, rewardOf", "bend": 120, "lt": 0.22, "anchor": "start", "lx": 28}, {"from": "quests", "fa": 0.62, "to": "bus", "ax": "from", "kind": "bus", "label": "pub questFinished", "bend": 15, "lt": 0.5, "anchor": "end", "lx": -5}, {"from": "q-earned", "fa": 0.5, "to": "bus", "ax": "from", "kind": "new", "role": "n", "label": "pub weeklyQuestsEarned", "bend": 15, "lt": 0.55, "anchor": "start", "lx": 5, "ly": 14}, {"from": "bus", "fs": "top", "to": "quests", "ts": "bottom", "ta": 0.78, "ax": "to", "kind": "bus", "label": "sub kudosGiven, unlockOpened", "bend": 15, "lt": 0.5, "anchor": "start", "lx": 4}, {"from": "unl", "fs": "top", "fa": 0.25, "to": "bus", "ts": "bottom", "ax": "from", "kind": "bus", "label": "pub unlockOpened", "bend": 15, "lt": 0.5, "anchor": "start", "lx": 4}, {"from": "bus", "fs": "bottom", "to": "unl", "ts": "top", "ta": 0.7, "ax": "to", "kind": "bus", "label": "sub levelReached", "bend": 15, "lt": 0.5, "anchor": "start", "lx": 4}, {"from": "bus", "fs": "bottom", "to": "unl", "ts": "top", "ta": 0.92, "ax": "to", "kind": "new", "role": "n", "label": "sub weeklyQuestsEarned", "bend": 15, "lt": 0.5, "anchor": "start", "lx": 4, "ly": 12}, {"from": "prog", "fs": "top", "fa": 0.3, "to": "bus", "ts": "bottom", "ax": "from", "kind": "bus", "label": "pub levelReached", "bend": 15, "lt": 0.5, "anchor": "start", "lx": 4}, {"from": "bus", "fs": "bottom", "to": "prog", "ts": "top", "ta": 0.85, "ax": "to", "kind": "bus", "label": "sub kudosGiven", "bend": 15, "lt": 0.5, "anchor": "start", "lx": 4, "ly": 12}, {"from": "eng", "fs": "top", "fa": 0.5, "to": "bus", "ts": "bottom", "ax": "from", "kind": "bus", "label": "pub kudosGiven", "bend": 15, "lt": 0.5, "anchor": "start", "lx": 4}, {"from": "bus", "fs": "right", "fa": 0.5, "to": "msg", "ts": "right", "ta": 0.85, "kind": "later", "role": "n", "label": "sub questFinished", "bend": 26, "lt": 0.12, "anchor": "end", "lx": -10, "ly": -16}]);
+</script>
+</body></html>
