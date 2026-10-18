@@ -157,7 +157,7 @@ function TeamState({ team }: { team: AlbumTeam }) {
   if (team.state === "ready")
     return (
       <span className="al-team-ready">
-        Ready<span className="al-unseen"> to unlock</span>
+        Ready <span className="al-unseen">to unlock</span>
       </span>
     );
   if (team.state === "unlocked")
