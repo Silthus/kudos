@@ -3,7 +3,7 @@ import { onAddressChange } from "./addressChanges";
 
 export type PageProperties = { page: string; book_page?: string; spread?: string };
 
-type Capturer = {
+type PageviewSink = {
   capture: (event: string, properties?: Record<string, unknown>) => unknown;
   register: (properties: Record<string, unknown>) => void;
   unregister: (property: string) => void;
@@ -11,7 +11,7 @@ type Capturer = {
 
 const bookOnly = ["book_page", "spread"] as const;
 
-export function captureEveryPageview(posthog: Capturer): () => void {
+export function captureEveryPageview(posthog: PageviewSink): () => void {
   let last: { address: string; properties: PageProperties } | null = null;
   const view = () => {
     const address = addressOf(window.location);

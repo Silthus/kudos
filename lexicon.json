@@ -714,7 +714,7 @@
     },
     {
       "name": "browser analytics",
-      "definition": "what the website sends to PostHog from the browser for a member website-analytics is on for: pageviews and page leaves, autocapture, heatmaps, dead and rage clicks and web vitals, under the member's own analytics ID"
+      "definition": "what the website sends to PostHog from the browser for a member website-analytics is on for: pageviews and page leaves, autocapture, heatmaps, dead and rage clicks, web vitals, session replay, browser errors and Feedback answers, under the member's own analytics ID"
     }
   ],
   "retired": [

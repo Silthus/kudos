@@ -1,5 +1,6 @@
 import type { PostHog } from "posthog-js/dist/module.full.no-external";
 import type { BrowserAnalytics } from "../../../convex/website/browserAnalytics";
+import type { Denial } from "../../../convex/website/memberQuery";
 import { captureEveryPageview, pagePropertiesOf } from "./pageviews";
 
 export type Capture = Extract<BrowserAnalytics, { kind: "capture" }>;
@@ -54,9 +55,9 @@ export function browserAnalytics(load: PostHogLoader, onCapturing: CapturingChan
   };
 
   return {
-    follow(answer: BrowserAnalytics | { kind: string } | Error | undefined) {
+    follow(answer: BrowserAnalytics | Denial | Error | undefined) {
       if (answer === undefined) return;
-      const capture = answer instanceof Error || answer.kind !== "capture" ? null : (answer as Capture);
+      const capture = answer instanceof Error || answer.kind !== "capture" ? null : answer;
       if (capture !== null && running?.capture === keyOf(capture)) return;
       const firstAnswerIsCapture = !answered && capture !== null;
       if (!firstAnswerIsCapture) held = [];
