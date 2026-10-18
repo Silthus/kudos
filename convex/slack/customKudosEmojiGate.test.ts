@@ -93,7 +93,7 @@ describe("ST35 O36: custom kudos emoji are dark wherever custom-kudos-emoji isn'
   test.each([
     ["store off", storeOffForAliceAndBob],
     ["coins off", coinsOffForAliceAndBob],
-  ])("with custom-kudos-emoji on but %s for Alice, Bob and the admin Erin, they see no picker and no custom item, her :shipit: claims nothing, their stale clicks pick and buy nothing, and no new custom-kudos-emoji exposure is sent for them", async (_, definitions) => {
+  ])("with custom-kudos-emoji on but %s for Alice, Bob and the admin Erin, they see no picker and no custom item, her :shipit: still gives kudos and Bob's doesn't, their stale clicks pick and buy nothing, and no new custom-kudos-emoji exposure is sent for them", async (_, definitions) => {
     const t = await workspaceDeciding(...onForEveryoneDeciding);
     await danaPicksAndAliceBuysShipit(t);
     const exposed = { alice: await exposuresOf(t, "U_ALICE"), bob: await exposuresOf(t, "U_BOB") };
@@ -105,10 +105,10 @@ describe("ST35 O36: custom kudos emoji are dark wherever custom-kudos-emoji isn'
 
     expect(["U_ALICE", "U_BOB", "U_ERIN"].flatMap((user) => slackCallsAbout(user, before)).flatMap(readCall).filter(namesCustomEmoji)).toEqual([]);
     expect(searched.U_ERIN).toEqual([]);
-    expect(claimed).toEqual([]);
+    expect(claimed).toMatchObject([{ kudosEmoji: "shipit", ownedEmoji: ["shipit"], awards: [{ kudos: 1 }] }]);
     expect(await customItemsInInventoryOf(t, "U_ALICE")).toBeNull();
     expect(await customItemsInInventoryOf(t, "U_BOB")).toBeNull();
-    expect(await storeStateOf(t)).toEqual(stored);
+    expect(withoutBalances(await storeStateOf(t)), "nothing picked, bought or spent; her kudos still credits coins").toEqual(withoutBalances(stored));
     expect({ alice: await exposuresOf(t, "U_ALICE"), bob: await exposuresOf(t, "U_BOB"), erin: await exposuresOf(t, "U_ERIN") }).toEqual({ ...exposed, erin: [] });
   });
 
@@ -314,6 +314,10 @@ function storeStateOf(t: Backend) {
     wallets: await ctx.db.query("wallets").collect(),
     coinSpends: await ctx.db.query("coinSpends").collect(),
   }));
+}
+
+function withoutBalances({ wallets: _, ...state }: Awaited<ReturnType<typeof storeStateOf>>) {
+  return state;
 }
 
 async function kudosGivenEvents(t: Backend): Promise<KudosGivenEvent[]> {

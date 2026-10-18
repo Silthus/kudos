@@ -70,6 +70,7 @@ export const sweep = internalMutation({
 export const tallyParticipants = internalMutation({
   args: { workspace: v.string(), week: v.string(), after: v.optional(v.string()), members: v.number(), tally: tallyValidator },
   handler: async (ctx, { workspace, week, after, members, tally }): Promise<void> => {
+    if (!(await chainStillDraws(ctx, workspace, week))) return markWeekSwept(ctx, workspace, week);
     const page = await ctx.db
       .query("members")
       .withIndex("by_user", (q) => (after === undefined ? q.eq("workspace", workspace) : q.eq("workspace", workspace).gt("user", after)))
@@ -89,11 +90,12 @@ export const tallyParticipants = internalMutation({
 export const drawGroupQuests = internalMutation({
   args: { workspace: v.string(), week: v.string(), members: v.number(), tally: tallyValidator },
   handler: async (ctx, { workspace, week, members, tally }): Promise<void> => {
+    if (!(await chainStillDraws(ctx, workspace, week))) return markWeekSwept(ctx, workspace, week);
     const mode = await groupModeOf(ctx, workspace);
     for (const entry of tally.slice(0, groupsPerPage)) await drawFor(ctx, { workspace, week, members, mode }, entry);
     const rest = tally.slice(groupsPerPage);
     if (rest.length > 0) await ctx.scheduler.runAfter(0, internal.quests.groupQuest.drawGroupQuests, { workspace, week, members, tally: rest });
-    else if ((await drawnWeekIn(ctx, workspace, week)) === null) await ctx.db.insert("groupQuestWeeks", { workspace, week, drawnAt: Date.now() });
+    else await markWeekSwept(ctx, workspace, week);
   },
 });
 
@@ -108,6 +110,7 @@ export const catchUpContributions = internalMutation({
   args: { quest: v.id("groupQuests"), cursor: v.union(v.string(), v.null()) },
   handler: async (ctx, { quest, cursor }): Promise<void> => {
     const drawn = (await ctx.db.get(quest))!;
+    if (!(await groupQuestAppliesIn(ctx, drawn.workspace))) return;
     const weekStart = weekStartOf(drawn.week, undefined);
     const { events, isDone, continueCursor } = await attributedToGroupPage(ctx, drawn.group, { from: weekStart, to: weekStart + weekMs }, cursor, attributionsPerCatchUp);
     for (const event of events) await contribute(ctx, event);
@@ -190,7 +193,7 @@ async function contribute(ctx: MutationCtx, event: AwardsAttributedEvent) {
 async function groupQuestContributedToBy(ctx: QueryCtx, { group, giver, at, awards }: AwardsAttributedEvent): Promise<Doc<"groupQuests"> | null> {
   const drawn = group === null ? null : await groupQuestIn(ctx, group, groupWeekOf(at));
   if (drawn === null || !drawn.participants.includes(giver) || !doesGroupQuestAction(drawn.quest, drawn.group, awards)) return null;
-  return (await groupQuestAppliesTo(ctx, giver)) ? drawn : null;
+  return (await groupQuestAppliesIn(ctx, drawn.workspace)) && (await groupQuestAppliesTo(ctx, giver)) ? drawn : null;
 }
 
 function rewardedBy({ target }: Doc<"groupQuests">, before: MemberId[], contributor: MemberId): MemberId[] {
@@ -274,9 +277,22 @@ async function isDueToDraw(ctx: MutationCtx, workspace: string, week: WeekKey, n
     .query("groupQuestLaunches")
     .withIndex("by_workspace", (q) => q.eq("workspace", workspace))
     .unique();
-  if (launch !== null) return launch.at < weekStartOf(week, undefined) && (await drawnWeekIn(ctx, workspace, week)) === null;
-  if (await groupQuestAppliesIn(ctx, workspace)) await ctx.db.insert("groupQuestLaunches", { workspace, at: now });
+  if (launch === null) {
+    if (await groupQuestAppliesIn(ctx, workspace)) await ctx.db.insert("groupQuestLaunches", { workspace, at: now });
+    return false;
+  }
+  if (launch.at >= weekStartOf(week, undefined) || (await drawnWeekIn(ctx, workspace, week)) !== null) return false;
+  if (await groupQuestAppliesIn(ctx, workspace)) return true;
+  await markWeekSwept(ctx, workspace, week);
   return false;
+}
+
+async function chainStillDraws(ctx: QueryCtx, workspace: string, week: WeekKey) {
+  return (await drawnWeekIn(ctx, workspace, week)) === null && (await groupQuestAppliesIn(ctx, workspace));
+}
+
+async function markWeekSwept(ctx: MutationCtx, workspace: string, week: WeekKey) {
+  if ((await drawnWeekIn(ctx, workspace, week)) === null) await ctx.db.insert("groupQuestWeeks", { workspace, week, drawnAt: Date.now() });
 }
 
 async function workspacesWithGroups(ctx: QueryCtx): Promise<string[]> {

@@ -5,8 +5,10 @@ import { flagsFromPostHog, offForEveryone, onForEveryone, onInTheSandboxOnly, po
 import { signedRequest, signingSecret } from "../../testing/signedSlack";
 import { settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { blockActions, buttonIn, publishedHome, readBlocks, type Block, type BlockAction } from "../../testing/slackInteractions";
-import { appHomeOpened, emoji, mention, messageEvent, section } from "../../testing/slackMessages";
+import { appHomeOpened, emoji, mention, messageEvent, section, text } from "../../testing/slackMessages";
 import { internal } from "../_generated/api";
+import { xpToReach } from "../progression/levels";
+import { balanceOf } from "../wallet/wallet";
 
 const now = new Date("2026-10-13T10:00:00Z");
 const firstMessageAt = now.getTime() + 1000;
@@ -143,6 +145,28 @@ describe("the unlocks slice is dark while unlocks is off", () => {
     expect(whileOff.filter(namesAnUnlock)).toEqual([]);
     expect(await unlockRows(t)).toEqual(stored);
     expect({ alice: publishedHome(slack, "U_ALICE"), bob: publishedHome(slack, "U_BOB") }).toEqual(shown);
+  });
+});
+
+describe("AL35 AL36: with every flag AL33 retires off, the Everyone board shows from level 1, no level-up DM names a feature, and coins stay put", () => {
+  test("a member at level 1 sees the Everyone board in App Home and the command, is told level 6 without a feature, keeps earning coins nothing shows, and App Home shows no coins, store, quests, Journey, skill tree, ladders or unlocks", async () => {
+    const t = await workspaceDeciding("sandbox", onForEveryone("xp-levels"), onForEveryone("everyone-board"), ...retiredByTheAlbum.map(offForEveryone));
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    const atLevelOne = await leaderboardCommand(t, "U_ALICE");
+    await openHome(t, "U_ALICE");
+    const homeAtLevelOne = publishedHome(slack, "U_ALICE");
+    const coinsAtLevelOne = await coinsOf(t, "U_ALICE");
+    await xpOf(t, "U_ALICE", xpToReach(6) - 1);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1, "thanks for untangling the release notes today");
+    await openHome(t, "U_ALICE");
+
+    expect(rowsOf(atLevelOne.text)).toEqual(["🥇 <@U_ALICE> · 1 kudos"]);
+    expect(homeAtLevelOne[0]).toBe(everyoneBoardTabs);
+    expect(dmsTo("U_ALICE").map((dm) => readDm(dm)[0])).toEqual(["🎉 You reached level 6!"]);
+    expect(dmsTo("U_ALICE").flatMap(readDm).filter(namesARetiredFeature)).toEqual([]);
+    expect(await coinsOf(t, "U_ALICE")).toBeGreaterThan(coinsAtLevelOne);
+    expect([...homeAtLevelOne, ...publishedHome(slack, "U_ALICE")].filter(namesARetiredFeature)).toEqual([]);
   });
 });
 
@@ -297,6 +321,22 @@ async function workspaceDeciding(environment: "sandbox" | "production", ...defin
   return flagsFromPostHog(t, postHog, ...definitions);
 }
 
+const retiredByTheAlbum = ["crate-store", "store", "coins", "group-quest", "quests", "team-spirit", "achievements", unlocks, "skill-tree"];
+
+function namesARetiredFeature(line: string) {
+  return namesAnUnlock(line) || /🪙|coin|store|inventory|quest|journey|skill|ladder|book|achievement|medal/i.test(line);
+}
+
+async function coinsOf(t: Backend, user: string) {
+  return t.run(async (ctx) => {
+    const member = await ctx.db
+      .query("members")
+      .withIndex("by_user", (q) => q.eq("workspace", "T1").eq("user", user))
+      .unique();
+    return balanceOf(ctx, member!._id);
+  });
+}
+
 function namesAnUnlock(line: string) {
   return /is ready|Next:|Open|opens at level/.test(line);
 }
@@ -368,9 +408,9 @@ async function xpOf(t: Backend, user: string, xp: number) {
   });
 }
 
-async function giveKudos(t: Backend, giver: string, recipient: string, kudos: number) {
+async function giveKudos(t: Backend, giver: string, recipient: string, kudos: number, saying?: string) {
   sentMessages += 1;
-  const blocks = [section(mention(recipient), ...Array.from({ length: kudos }, () => emoji("taco")))];
+  const blocks = [section(mention(recipient), ...(saying === undefined ? [] : [text(` ${saying} `)]), ...Array.from({ length: kudos }, () => emoji("taco")))];
   await t.fetch("/slack/events", await signedRequest(messageEvent(blocks, { user: giver, ts: `${now.getTime() / 1000 + sentMessages}.000100` })));
   await settle(t);
 }
