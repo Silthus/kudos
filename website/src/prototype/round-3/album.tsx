@@ -190,7 +190,13 @@ function initial(): Inner {
   const noor = people.find(({ key }) => key === "k:noor")!;
   const mei = people.find(({ key }) => key === "k:mei")!;
   const omar = people.find(({ key }) => key === "k:omar")!;
+  const hana = people.find(({ key }) => key === "k:hana")!;
   noor.packedThisWeek = true;
+  hana.collectedAt = now - 6 * day;
+  hana.stats = statsFor(hana.key, hana.collectedAt);
+  const tomas = people.find(({ key }) => key === "k:tomas")!;
+  tomas.collectedAt = null;
+  tomas.stats = statsFor(tomas.key, null);
   return {
     xp: 1180,
     people,
@@ -278,7 +284,7 @@ export function AlbumProvider({ children }: { children: ReactNode }) {
       const isNew = person.collectedAt === null;
       const rolled = rollHoggie(inner.hoggies, inner.rolls);
       const at = Date.now();
-      const people = inner.people.map((entry) => (entry.key === person.key && isNew ? { ...entry, collectedAt: at, stats: { ...entry.stats, firstThankedAt: entry.stats.firstThankedAt ?? pack.earnedAt } } : entry));
+      const people = inner.people.map((entry) => (entry.key === person.key ? { ...entry, collectedAt: entry.collectedAt ?? at, stats: { ...entry.stats, kudosGiven: Math.max(1, entry.stats.kudosGiven), firstThankedAt: entry.stats.firstThankedAt ?? pack.earnedAt, bestMessage: entry.stats.bestMessage ?? pack.message } } : entry));
       const hoggies = inner.hoggies.map((entry) => (entry.hoggie === rolled.hoggie ? { ...entry, count: entry.count + 1, firstAt: entry.firstAt ?? at } : entry));
       const xpAfter = inner.xp + xpPerPack;
       const teamsBefore = teamsOf(inner.people);
