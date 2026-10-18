@@ -145,13 +145,14 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(await decidedWithoutTheWebsite(dana)).toBe(false);
   });
 
-  test("with album on, the same walk shows each giver their waiting packs and changes no other answer, call, event or row, and exposes nothing", async () => {
+  test("with album on, the same walk shows each giver their waiting packs, getMyProfile says album, and it changes no other answer, call, event or row, and exposes nothing", async () => {
     const off = await walkIn(await fourMembers([offForEveryone(album)]));
     freshFakes();
 
     const on = await walkIn(await fourMembers([onForEveryone(album)]));
 
-    expect(on.seen).toEqual(off.seen);
+    expect(Object.values(on.seen.answers).map(({ profile }) => profile)).toEqual(members.map(() => expect.objectContaining({ kind: "member", album: true })));
+    expect(withoutAlbumOnTheProfiles(on.seen)).toEqual(off.seen);
     expect(on.albums.U_ALICE).toMatchObject({ kind: "album", me: { name: alice.name }, packs: [{ person: "<member U_BOB>" }, { person: "<member U_CAROL>" }], morePacks: false });
     expect(on.albums.U_BOB).toMatchObject({ kind: "album", packs: [{ person: "<member U_ALICE>" }] });
     expect(on.albums.U_CAROL).toMatchObject({ kind: "album", packs: [] });
@@ -165,6 +166,8 @@ describe("AL39: the album is dark where album is off, shows only to the members 
 
     expect(onForAlice.albums.U_ALICE).toMatchObject({ kind: "album", packs: [{ person: "<member U_BOB>" }, { person: "<member U_CAROL>" }] });
     expect([onForAlice.albums.U_BOB, onForAlice.albums.U_CAROL, onForAlice.albums.U_DANA]).toEqual([{ kind: "off" }, { kind: "off" }, { kind: "off" }]);
+    expect(onForAlice.seen.answers.U_ALICE!.profile).toMatchObject({ album: true });
+    expect([onForAlice.seen.answers.U_BOB!.profile, onForAlice.seen.answers.U_CAROL!.profile, onForAlice.seen.answers.U_DANA!.profile].map((profile) => "album" in (profile as object))).toEqual([false, false, false]);
     expect(albumExposures(onForAlice)).toEqual([]);
   });
   test("album off and then on shows each giver the packs they earned while it was off, as they were stored", async () => {
@@ -178,6 +181,17 @@ describe("AL39: the album is dark where album is off, shows only to the members 
     expect(await albumRows()).toEqual(storedWhileOff);
   });
 });
+
+function withoutAlbumOnTheProfiles<Seen extends { answers: Record<string, { profile: unknown }> }>(seen: Seen): Seen {
+  const answers = Object.fromEntries(Object.entries(seen.answers).map(([user, answer]) => [user, { ...answer, profile: withoutAlbum(answer.profile) }]));
+  return { ...seen, answers };
+}
+
+function withoutAlbum(profile: unknown) {
+  if (typeof profile !== "object" || profile === null || !("album" in profile)) return profile;
+  const { album: _, ...rest } = profile;
+  return rest;
+}
 
 function asTheTicketCreatesIt(): FlagDefinition {
   return { key: album, filters: { groups: [{ properties: [{ key: "environment", type: "person", value: ["sandbox"], operator: "exact" }], rollout_percentage: 100 }] } };
