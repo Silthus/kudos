@@ -22,7 +22,6 @@ export function browserAnalytics(load: PostHogLoader) {
   let held: Caught[] = [];
 
   const stop = () => {
-    held = [];
     if (running === null) return;
     const { posthog, stopPageviews } = running;
     running = null;
@@ -44,7 +43,7 @@ export function browserAnalytics(load: PostHogLoader) {
         for (const caught of held.splice(0)) report(posthog, caught);
       },
       () => {
-        if (running === starting) stop();
+        if (running === starting) running = null;
       },
     );
   };
@@ -54,14 +53,16 @@ export function browserAnalytics(load: PostHogLoader) {
       if (answer === undefined) return;
       const capture = answer instanceof Error || answer.kind !== "capture" ? null : (answer as Capture);
       if (capture !== null && running?.capture === keyOf(capture)) return;
-      if (answered || capture === null) stop();
+      const firstAnswerIsCapture = !answered && capture !== null;
+      if (!firstAnswerIsCapture) held = [];
       answered = true;
+      stop();
       if (capture !== null) start(capture);
     },
     report(error: unknown) {
       const caught = { error, page: pagePropertiesOf(window.location).page };
       if (running?.posthog !== undefined) report(running.posthog, caught);
-      else if (running !== null || !answered) held.push(caught);
+      else held.push(caught);
     },
     stop,
   };
