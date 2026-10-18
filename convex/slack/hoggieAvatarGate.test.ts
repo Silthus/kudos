@@ -166,7 +166,7 @@ async function aliceAndBobHoldingHoggies(flag: FlagDefinition[], turnOff?: () =>
     const member = await memberOf(person.user);
     await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp: xpToReach(4), pointsSpent: 0 }));
     await reachesLevel(t, member, 4);
-    await t.run((ctx) => openUnlock(ctx, member, "book"));
+    await t.run((ctx) => openUnlock(ctx, member, "book", "slack"));
     await holds(t, member, "banana", "rocket");
   }
   await serveTheWebsite(false);

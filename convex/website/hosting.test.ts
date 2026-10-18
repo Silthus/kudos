@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { signingSecret } from "../../testing/signedSlack";
 import { testBackend, type Backend } from "../../testing/slackBackend";
+import { contentSecurityPolicy } from "./hosting";
 
 const deploymentUrl = "https://happy-hog-123.convex.cloud";
 
@@ -100,5 +101,62 @@ describe("WS25: every HTML response carries the strict Content Security Policy h
 
     expect(response.status).toBe(404);
     expect(response.headers.get("Content-Security-Policy")).toBeNull();
+  });
+});
+
+const todaysPolicy = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self'",
+  `connect-src 'self' ${deploymentUrl} wss://happy-hog-123.convex.cloud`,
+  `img-src 'self' ${slackPictureHosts.join(" ")} https://res.cloudinary.com`,
+  "font-src 'self'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+
+describe("the website runs only its own code", () => {
+  test("without POSTHOG_HOST the policy is today's", () => {
+    expect(contentSecurityPolicy(deploymentUrl, undefined)).toBe(todaysPolicy);
+    expect(contentSecurityPolicy(deploymentUrl, "")).toBe(todaysPolicy);
+  });
+
+  test("PostHog's US host widens connect-src by the host and its assets host, and nothing else", () => {
+    expect(contentSecurityPolicy(deploymentUrl, "https://us.i.posthog.com")).toBe(
+      todaysPolicy.replace("wss://happy-hog-123.convex.cloud", "wss://happy-hog-123.convex.cloud https://us.i.posthog.com https://us-assets.i.posthog.com"),
+    );
+  });
+
+  test("PostHog's EU host widens connect-src by the host and its assets host", () => {
+    expect(contentSecurityPolicy(deploymentUrl, "https://eu.i.posthog.com")).toBe(
+      todaysPolicy.replace("wss://happy-hog-123.convex.cloud", "wss://happy-hog-123.convex.cloud https://eu.i.posthog.com https://eu-assets.i.posthog.com"),
+    );
+  });
+
+  test("a host of its own serves its own assets, so connect-src adds only that host", () => {
+    expect(contentSecurityPolicy(deploymentUrl, "https://e.example.com/")).toBe(todaysPolicy.replace("wss://happy-hog-123.convex.cloud", "wss://happy-hog-123.convex.cloud https://e.example.com"));
+  });
+
+  test("an HTML response under a POSTHOG_HOST that isn't a URL is served with today's policy", async () => {
+    vi.stubEnv("POSTHOG_HOST", "us.i.posthog.com");
+    const t = testBackend();
+
+    const response = await t.fetch("/", { method: "GET" });
+
+    expect(response.headers.get("Content-Security-Policy")).toBe(todaysPolicy);
+  });
+
+  test("every HTML response carries the policy for the configured POSTHOG_HOST", async () => {
+    vi.stubEnv("POSTHOG_HOST", "https://us.i.posthog.com");
+    const t = testBackend();
+
+    const response = await t.fetch("/", { method: "GET" });
+
+    expect(response.headers.get("Content-Security-Policy")).toBe(contentSecurityPolicy(deploymentUrl, "https://us.i.posthog.com"));
+    expect(cspOf(response).get("connect-src")).toEqual(["'self'", deploymentUrl, "wss://happy-hog-123.convex.cloud", "https://us.i.posthog.com", "https://us-assets.i.posthog.com"]);
+    expect(cspOf(response).has("report-uri")).toBe(false);
+    expect(cspOf(response).has("report-to")).toBe(false);
   });
 });

@@ -1,0 +1,303 @@
+import { gunzipSync } from "node:zlib";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { profileKeys } from "../../convex/analytics/person";
+import { browserAnalytics, type Capturer } from "./browserAnalytics/capture";
+
+type Sent = { url: string; events: { event: string; properties: Record<string, unknown>; $set?: unknown; $set_once?: Record<string, unknown> }[] };
+type SentException = { type: string; value: string; mechanism: { handled: boolean }; stacktrace?: { frames: { filename?: string; lineno?: number; function?: string }[] } };
+
+const capture = { kind: "capture", token: "phc_the_project_token", host: "https://us.i.posthog.com", distinctId: "member-analytics-id", environment: "sandbox" } as const;
+
+const sent: Sent[] = [];
+const requested: string[] = [];
+const snapshots: unknown[] = [];
+let remoteConfig: Record<string, unknown> = {};
+
+async function bodyOf(body: unknown): Promise<string> {
+  if (typeof body === "string") return body;
+  const bytes = new Uint8Array(body instanceof Blob ? await body.arrayBuffer() : (body as ArrayBuffer));
+  return bytes[0] === 0x1f && bytes[1] === 0x8b ? gunzipSync(bytes).toString("utf8") : new TextDecoder().decode(bytes);
+}
+
+function recordingFetch() {
+  return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input instanceof Request ? input.url : input);
+    requested.push(new URL(url).pathname);
+    if (/\/(e|i\/v0\/e|batch)\//.test(url)) {
+      const parsed = JSON.parse(await bodyOf(init?.body));
+      sent.push({ url, events: Array.isArray(parsed) ? parsed : (parsed.batch ?? [parsed]) });
+    }
+    if (/\/s\//.test(url)) snapshots.push(decompressed(JSON.parse(await bodyOf(init?.body))));
+    return new Response(url.includes("/config") ? JSON.stringify(remoteConfig) : '{"status":1}', { status: 200, headers: { "Content-Type": "application/json" } });
+  });
+}
+
+const loadThePinnedSdk = () => import("./browserAnalytics/postHogScript").then((script) => script.postHogScript);
+
+const privateWords = ["Thanks Ann for untangling the deploy", "U0123ABCD", "C0456EFGH", "SIGNIN-CODE-1234"];
+
+function privateError(how: string) {
+  return new TypeError(`${how}: ${privateWords[0]} with ${privateWords[1]} in ${privateWords[2]}, see https://hedgehug.example/?code=${privateWords[3]}`);
+}
+
+class PromiseRejectionEvent extends Event {
+  readonly reason: unknown;
+  readonly promise = Promise.resolve();
+  constructor(reason: unknown) {
+    super("unhandledrejection", { cancelable: true });
+    this.reason = reason;
+  }
+  get [Symbol.toStringTag]() {
+    return "PromiseRejectionEvent";
+  }
+}
+
+async function freshTab() {
+  vi.resetModules();
+  const { browserAnalytics: inAFreshTab } = await import("./browserAnalytics/capture");
+  return inAFreshTab(() => import("./browserAnalytics/postHogScript").then((script) => script.postHogScript));
+}
+
+function startedCapturing() {
+  vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36");
+  const fetch = recordingFetch();
+  vi.stubGlobal("fetch", fetch);
+  const analytics = browserAnalytics(loadThePinnedSdk);
+  analytics.follow(capture);
+  return { analytics, fetch };
+}
+
+function decompressed(value: unknown): unknown {
+  if (typeof value === "string" && value.startsWith("\x1f\x8b")) return decompressed(JSON.parse(gunzipSync(Buffer.from(value, "latin1")).toString("utf8")));
+  if (Array.isArray(value)) return value.map(decompressed);
+  if (value !== null && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, inner]) => [key, decompressed(inner)]));
+  return value;
+}
+
+function flushed() {
+  return new Promise((resolve) => setTimeout(resolve, 4_000));
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  sent.length = 0;
+  requested.length = 0;
+  snapshots.length = 0;
+  remoteConfig = {};
+  document.body.replaceChildren();
+});
+
+describe("MS18 MS22: the pinned posthog-js sends only what the spec allows", () => {
+  it("its request bodies carry no $set, first-visit $set_once only on the first event and never a property Analytics writes, no identify, flags or scripts, and one page leave per navigation", { timeout: 60_000 }, async () => {
+    window.history.replaceState(null, "", "/?code=SIGNIN-CODE-1234");
+    const { analytics, fetch } = startedCapturing();
+
+    await flushed();
+    window.history.pushState(null, "", "/leaderboard");
+    await flushed();
+
+    const events = sent.flatMap(({ events }) => events);
+    expect(events.map(({ event }) => event)).toEqual(["$pageview", "$pageleave", "$pageview"]);
+    expect(events.every((event) => event.$set === undefined && !("$set" in event.properties))).toBe(true);
+    const setOnce = events.map((event) => Object.keys(event.$set_once ?? {}));
+    expect(setOnce.slice(1)).toEqual([[], []]);
+    expect(setOnce[0]).toEqual(expect.arrayContaining(["$initial_current_url", "$initial_referrer"]));
+    expect(setOnce[0]!.filter((key) => (profileKeys as readonly string[]).includes(key))).toEqual([]);
+    expect(events.every(({ properties }) => properties.distinct_id === capture.distinctId && properties.environment === "sandbox")).toBe(true);
+    expect(JSON.stringify(sent)).not.toContain("SIGNIN-CODE-1234");
+    expect(fetch.mock.calls.map(([input]) => new URL(String(input)).pathname).filter((path) => /flags|decide|static/.test(path))).toEqual([]);
+
+    analytics.follow({ kind: "signed-out" });
+    const before = sent.length;
+    window.history.pushState(null, "", "/quests");
+    await flushed();
+    expect(sent).toHaveLength(before);
+  });
+
+  it("the Feedback form's survey events carry no $set, though the pinned SDK adds one to each", { timeout: 60_000 }, async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36");
+    vi.stubGlobal("fetch", recordingFetch());
+    let capturer: Capturer | null = null;
+    const analytics = browserAnalytics(loadThePinnedSdk, (next) => (capturer = next));
+
+    analytics.follow({ ...capture, distinctId: "feedback-analytics-id" });
+    await vi.waitFor(() => expect(capturer).not.toBeNull());
+    capturer!.capture("survey shown", { $survey_id: "a-survey" });
+    capturer!.capture("survey sent", { $survey_id: "a-survey", $survey_response: "my own words", $survey_completed: true });
+    capturer!.capture("survey dismissed", { $survey_id: "a-survey" });
+    await flushed();
+    analytics.stop();
+
+    const events = sent.flatMap(({ events }) => events).filter(({ event }) => event.startsWith("survey "));
+    expect(events.map(({ event }) => event)).toEqual(["survey shown", "survey sent", "survey dismissed"]);
+    expect(events.every((event) => event.$set === undefined && !("$set" in event.properties))).toBe(true);
+    expect(events[1]!.properties.$survey_response).toBe("my own words");
+  });
+});
+
+describe("the browser captures only while told to", { timeout: 60_000 }, () => {
+  it("MS20: after sign-out and a second member's capture answer, a click is captured once, by the second member's instance only", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    document.body.innerHTML = '<main><button type="button">Open the Book</button></main>';
+    remoteConfig = { autocapture_opt_out: false };
+    const { analytics } = startedCapturing();
+    await flushed();
+    analytics.follow({ kind: "signed-out" });
+    analytics.follow({ ...capture, distinctId: "second-member-analytics-id" });
+    await flushed();
+    sent.length = 0;
+
+    document.querySelector("button")!.click();
+    await flushed();
+    analytics.stop();
+
+    const clicks = sent.flatMap(({ events }) => events).filter(({ event }) => event === "$autocapture");
+    expect(clicks.map(({ properties }) => properties.distinct_id)).toEqual(["second-member-analytics-id"]);
+  });
+
+  it("MS20: no request leaves for PostHog after sign-out, though the member signed out right after a pageview", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    const { analytics } = startedCapturing();
+    await vi.waitFor(() => expect(sent.length).toBeGreaterThan(0), { timeout: 10_000 });
+
+    window.history.pushState(null, "", "/book");
+    analytics.follow({ kind: "signed-out" });
+    const requestsAtSignOut = requested.length;
+    await flushed();
+
+    expect(requested.slice(requestsAtSignOut)).toEqual([]);
+  });
+
+  it("MS20: no request leaves for PostHog after a sign-out right after a navigation, though PostHog offers gzip", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    remoteConfig = { supportedCompression: ["gzip-js"] };
+    const { analytics } = startedCapturing();
+    await vi.waitFor(() => expect(sent.length).toBeGreaterThan(0), { timeout: 10_000 });
+
+    window.history.pushState(null, "", "/book");
+    analytics.follow({ kind: "signed-out" });
+    const requestsAtSignOut = requested.length;
+    await flushed();
+
+    expect(requested.slice(requestsAtSignOut)).toEqual([]);
+  });
+
+  it("MS20: another tab's first instance never revives this tab's stopped one", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    document.body.innerHTML = '<main><button type="button">Open the Book</button></main>';
+    remoteConfig = { autocapture_opt_out: false };
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36");
+    vi.stubGlobal("fetch", recordingFetch());
+    const thisTab = await freshTab();
+    thisTab.follow(capture);
+    await flushed();
+    thisTab.follow({ kind: "signed-out" });
+    const other = await freshTab();
+    other.follow({ ...capture, distinctId: "other-tab-analytics-id" });
+    await flushed();
+    sent.length = 0;
+
+    document.querySelector("button")!.click();
+    await flushed();
+    other.stop();
+
+    const clicks = sent.flatMap(({ events }) => events).filter(({ event }) => event === "$autocapture");
+    expect(clicks.map(({ properties }) => properties.distinct_id)).toEqual(["other-tab-analytics-id"]);
+  });
+
+  it("MS18 MS20: the same member signing in again after sign-out and cleared site data is captured under their own ID only, with no identify", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    document.body.innerHTML = '<main><button type="button">Open the Book</button></main>';
+    remoteConfig = { autocapture_opt_out: false };
+    const { analytics } = startedCapturing();
+    await flushed();
+    analytics.follow({ kind: "signed-out" });
+    localStorage.clear();
+    analytics.follow(capture);
+    await flushed();
+
+    document.querySelector("button")!.click();
+    await flushed();
+    analytics.stop();
+
+    const events = sent.flatMap(({ events }) => events);
+    expect(events.filter(({ event }) => event === "$identify")).toEqual([]);
+    expect(new Set(events.map(({ properties }) => properties.distinct_id)), JSON.stringify(events.map(({ event, properties }) => [event, properties.distinct_id]))).toEqual(new Set([capture.distinctId]));
+  });
+});
+
+describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }, () => {
+  it("MS21 MS26 MS27: the pinned recorder's replay snapshots hold no blocked words, no typed input, no console line and no sign-in code, though the project asks for console logs, payloads, canvas and unmasked inputs, and nothing is recorded after the stop", async () => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36");
+    remoteConfig = { sessionRecording: { endpoint: "/s/", consoleLogRecordingEnabled: true, recordCanvas: true, canvasFps: 4, networkPayloadCapture: { recordHeaders: true, recordBody: true }, masking: { maskAllInputs: false } } };
+    vi.stubGlobal("fetch", recordingFetch());
+    window.history.replaceState(null, "", "/activity?code=SIGNIN-CODE-1234");
+    document.body.innerHTML = '<main><h1>Your kudos story</h1><p class="ph-no-capture">BLOCKED-KUDOS-WORDS</p><input aria-label="Command" /></main>';
+    const analytics = browserAnalytics(loadThePinnedSdk);
+
+    analytics.follow(capture);
+    await flushed();
+    const input = document.querySelector("input")!;
+    input.value = "TYPED-SECRET";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    console.log("CONSOLE-SECRET");
+    window.history.pushState(null, "", "/book?code=SIGNIN-CODE-1234#teams");
+    await flushed();
+    analytics.follow({ kind: "signed-out" });
+    await flushed();
+    const recordedBeforeTheStop = snapshots.length;
+    input.value = "TYPED-AFTER-THE-STOP";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    window.history.pushState(null, "", "/quests");
+    await flushed();
+
+    const recorded = JSON.stringify(snapshots);
+    expect(snapshots.length, "the recorder sent snapshots").toBeGreaterThan(0);
+    expect(recorded, "the page was recorded").toContain("Your kudos story");
+    expect(recorded, "a ph-no-capture block's words").not.toContain("BLOCKED-KUDOS-WORDS");
+    expect(recorded, "a typed input's value").not.toContain("TYPED-SECRET");
+    expect(recorded, "a console line").not.toContain("CONSOLE-SECRET");
+    expect(recorded, "the sign-in code").not.toContain("SIGNIN-CODE-1234");
+    expect(recorded, "a replay URL keeps its path").toContain("/book");
+    expect(snapshots, "nothing recorded after the stop").toHaveLength(recordedBeforeTheStop);
+  });
+
+  it("MS21: the pinned posthog-js's heatmap clicks keep their page but not the sign-in code in it", async () => {
+    window.history.replaceState(null, "", "/book?code=SIGNIN-CODE-1234&page=giving");
+    const { analytics } = startedCapturing();
+    await flushed();
+
+    document.body.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 40, clientY: 80 }));
+    await new Promise((resolve) => setTimeout(resolve, 6_000));
+    analytics.stop();
+
+    const heatmaps = sent.flatMap(({ events }) => events).filter(({ event }) => event === "$$heatmap");
+    expect(heatmaps.length, "a heatmap was sent").toBeGreaterThan(0);
+    expect(new Set(heatmaps.flatMap(({ properties }) => Object.keys(properties.$heatmap_data as object)))).toEqual(new Set(["http://localhost:3000/book?page=giving"]));
+    expect(JSON.stringify(sent)).not.toContain("SIGNIN-CODE-1234");
+  });
+
+  it("the pinned posthog-js sends an unhandled error, an unhandled rejection and an error the shell's error page reported once each, every message replaced by its type, frames kept and nothing private", { timeout: 60_000 }, async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    const { analytics } = startedCapturing();
+    await flushed();
+
+    const leftUnhandled = (event: ErrorEvent) => event.preventDefault();
+    window.addEventListener("error", leftUnhandled);
+    window.dispatchEvent(new ErrorEvent("error", { error: privateError("unhandled"), message: `Uncaught ${privateError("unhandled").message}`, cancelable: true }));
+    window.removeEventListener("error", leftUnhandled);
+    window.dispatchEvent(new PromiseRejectionEvent(privateError("rejected")));
+    analytics.report(privateError("caught"));
+    await flushed();
+
+    const exceptions = sent.flatMap(({ events }) => events).filter(({ event }) => event === "$exception");
+    const lists = exceptions.map(({ properties }) => properties.$exception_list as SentException[]);
+    expect(lists.map((list) => list.map(({ mechanism }) => mechanism.handled))).toEqual([[false], [false], [true]]);
+    expect(lists.flat().every(({ type, value }) => type === "TypeError" && value === "TypeError")).toBe(true);
+    expect(lists.flat().every(({ stacktrace }) => stacktrace!.frames.length > 0 && stacktrace!.frames.every(({ filename, lineno }) => filename && lineno))).toBe(true);
+    expect(exceptions.map(({ properties }) => properties.page)).toEqual(["leaderboard", "leaderboard", "leaderboard"]);
+    for (const word of privateWords) expect(JSON.stringify(sent), word).not.toContain(word);
+    analytics.stop();
+  });
+});

@@ -711,6 +711,10 @@
     {
       "name": "match",
       "definition": "The pairing of a workspace member with one posthog.com profile: by an admin link, else the member's own link, else a unique name match; a team page's people are the matched teammates"
+    },
+    {
+      "name": "browser analytics",
+      "definition": "what the website sends to PostHog from the browser for a member website-analytics is on for: pageviews and page leaves, autocapture, heatmaps, dead and rage clicks, web vitals, session replay, browser errors and Feedback answers, under the member's own analytics ID"
     }
   ],
   "retired": [

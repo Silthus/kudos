@@ -121,7 +121,7 @@ const stickerBookOff: Array<{ condition: string; flag: FlagDefinition[]; turnOff
 ];
 
 describe("SB15: the sticker book is dark where sticker-book is off, shows only to the members it is on for, and nothing exposes it", { timeout: 120_000 }, () => {
-  test.each(stickerBookOff)("$condition, a walk of kudos, App Home and every website read leaves what the same walk leaves without the sticker book, apart from the sticker records it stores and team-spirit's exposure", async ({ flag, turnOff }) => {
+  test.each(stickerBookOff)("$condition, a walk of kudos, App Home and every website read leaves what the same walk leaves without the sticker book, apart from the sticker records it stores, the person collected events they send and team-spirit's exposure", async ({ flag, turnOff }) => {
     theStickerBook.removed = true;
     const withoutTheStickerBook = await walkIn(await aliceBobAndCarolInAnts(flag, turnOff));
     freshFakes();
@@ -133,6 +133,8 @@ describe("SB15: the sticker book is dark where sticker-book is off, shows only t
     expect(JSON.stringify(walk.seen.answers)).not.toMatch(/"stickers"|"albums"/);
     expect(withoutTheStickerBook.stickers).toEqual([]);
     expect(walk.stickers).toHaveLength(8);
+    expect(personCollectedIn(withoutTheStickerBook)).toEqual([]);
+    expect(personCollectedIn(walk)).toHaveLength(walk.stickers.filter((sticker) => !isBetween(sticker, carol, dana)).length);
     expect(walk.stickers).toEqual(expect.arrayContaining([expect.objectContaining({ member: "<member U_CAROL>", person: "<member U_DANA>" }), expect.objectContaining({ member: "<member U_DANA>", person: "<member U_CAROL>" })]));
     expect(walk.backfills).toEqual([{ workspace: "T1", cursor: expect.any(String), isDone: true }]);
     expect(stickerBookDecisions.every(({ inAQuery }) => inAQuery)).toBe(true);
@@ -233,7 +235,7 @@ async function aliceBobAndCarolInAnts(flag: FlagDefinition[], turnOff?: () => vo
     namedIds.set(member, `<member ${person.user}>`);
     await t.run((ctx) => ctx.db.insert("memberProgress", { member, xp: xpToReach(5), pointsSpent: 0 }));
     for (const level of [4, 5]) await reachesLevel(t, member, level);
-    for (const feature of ["book", "leaderboard", "quests", "skillTree"] as const) await t.run((ctx) => openUnlock(ctx, member, feature));
+    for (const feature of ["book", "leaderboard", "quests", "skillTree"] as const) await t.run((ctx) => openUnlock(ctx, member, feature, "slack"));
   }
   await t.fetch("/slack/events", await signedRequest(userGroupEvent("subteam_created", ants)));
   await settleInTimeOrder(t);
@@ -260,7 +262,7 @@ async function walkIn(backend: Backend) {
     answers,
     slackCallsTo: Object.fromEntries(members.map(({ user }) => [user, slackCallsAbout(user)])),
     slackCalls: slack.calls.map((call) => JSON.stringify(call)).sort(),
-    productEvents: orderFree(withStableIds(postHog.productEvents().filter((event) => !isTeamSpiritsExposure(event)).map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
+    productEvents: orderFree(withStableIds(postHog.productEvents().filter((event) => !isTeamSpiritsExposure(event) && !isPersonCollected(event)).map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties })))),
     tables: await rowsWrittenApartFromStickers(),
   };
   return { seen, stickers: await storedStickerRecords(), backfills: await backfillRecords(), postHogEvents: postHog.events() };
@@ -377,7 +379,7 @@ async function rowsWrittenApartFromStickers() {
     const rows = {} as Record<TableName, Record<string, unknown>[]>;
     for (const table of Object.keys(schema.tables) as TableName[]) if (!(stickerTables as readonly string[]).includes(table)) rows[table] = await ctx.db.query(table).collect();
     rows.flagExposures = rows.flagExposures.filter(({ flag }) => flag !== teamSpirit);
-    rows.analyticsOutbox = rows.analyticsOutbox.filter((row) => !isTeamSpiritsExposure(row));
+    rows.analyticsOutbox = rows.analyticsOutbox.filter((row) => !isTeamSpiritsExposure(row) && !isPersonCollected(row));
     return rows;
   });
   const inContentOrder = Object.fromEntries(Object.entries(tables).map(([table, rows]) => [table, rows.toSorted((a, b) => contentOf(a).localeCompare(contentOf(b)))]));
@@ -390,6 +392,19 @@ function contentOf(row: Record<string, unknown>) {
 
 function isTeamSpiritsExposure({ event, properties }: { event?: unknown; properties?: unknown }) {
   return event === "$feature_flag_called" && (properties as Record<string, unknown>).$feature_flag === teamSpirit;
+}
+
+function isPersonCollected({ event }: { event?: unknown }) {
+  return event === "person collected";
+}
+
+function isBetween({ member, person }: { member: string; person: string }, one: Person, other: Person) {
+  const pair = new Set([`<member ${one.user}>`, `<member ${other.user}>`]);
+  return pair.has(member) && pair.has(person);
+}
+
+function personCollectedIn({ postHogEvents }: { postHogEvents: ReturnType<FakePostHog["events"]> }) {
+  return postHogEvents.filter(isPersonCollected);
 }
 
 async function storedStickerRecords() {

@@ -1,6 +1,7 @@
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
+import type { Surface } from "../commands/surface";
 import { decidedBelow, type DecidedBelow } from "../engine/awards";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { applyGain } from "../progression/progression";
@@ -23,7 +24,7 @@ export type CrestsShown = { crests: boolean };
 
 export type DroppedAt = { at: number; n: number; decided: number; drop: Drop };
 
-export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number): Promise<void> {
+export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKey, at: number, surface: Surface): Promise<void> {
   if ((await dropRecordOf(ctx, member, crate)) !== null || !(await hoggiesDropFor(ctx, member))) return;
   const { hoggie, rarity } = await drawOf({ secret: drawSecret(), member, crate, version: catalogue.version });
   const n = await countDrop(ctx, member);
@@ -33,7 +34,7 @@ export async function dropFor(ctx: MutationCtx, member: MemberId, crate: CrateKe
   const pack = await packPaidFor(ctx, workspace, member, crate, at);
   await ctx.db.insert("drops", { member, crate, hoggie, rarity, n, copy, catalogueVersion: catalogue.version, at, ...crest, ...(pack && { pack }) });
   if (crest.crest) await crestsShownFor(ctx, member);
-  await publish(ctx, { type: "hoggieDropped", workspace, member, crate, hoggie, rarity, copy, at, ...(pack && { pack: { xp: pack.xp, coins: pack.coins } }) });
+  await publish(ctx, { type: "hoggieDropped", workspace, member, crate, hoggie, rarity, copy, at, ...(pack && { pack: { xp: pack.xp, coins: pack.coins } }), surface });
 }
 
 async function packPaidFor(ctx: MutationCtx, workspace: string, member: MemberId, crate: CrateKey, at: number): Promise<AppliedReward | null> {

@@ -346,7 +346,7 @@ function levelReached(t: Backend, member: MemberId, level: number) {
 }
 
 function open(t: Backend, member: MemberId, feature: Feature) {
-  return t.run((ctx) => openUnlock(ctx, member, feature));
+  return t.run((ctx) => openUnlock(ctx, member, feature, "slack"));
 }
 
 function unlocksOf(t: Backend, member: MemberId) {

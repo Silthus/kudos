@@ -1,5 +1,6 @@
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { publish } from "../bus/publish";
+import type { Surface } from "../commands/surface";
 import { dropsAHoggie } from "../hoggies/crateKey";
 import { dropFor } from "../hoggies/drops";
 import { applyGain } from "../progression/progression";
@@ -12,7 +13,7 @@ import { crateOpened } from "./pendingCrates";
 import type { Quest } from "./step";
 import { poolQuestOf } from "./weekly";
 
-export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: Quest): Promise<"done" | "refused"> {
+export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: Quest, surface: Surface): Promise<"done" | "refused"> {
   const key = rewardKeyOf(quest);
   const reward = await rewardOf(ctx, member, key);
   if (reward === null || !(await questsLiveFor(ctx, member))) return "refused";
@@ -24,7 +25,7 @@ export async function openQuestCrate(ctx: MutationCtx, member: MemberId, quest: 
   const applied = await appliedAtOpen(ctx, workspace, reward, at);
   await ctx.db.insert("crateOpenings", { member, key, at, ...(applied && { applied }) });
   await crateOpened(ctx, member, key);
-  if (dropsAHoggie(key)) await dropFor(ctx, member, key, at);
+  if (dropsAHoggie(key)) await dropFor(ctx, member, key, at, surface);
   await publish(ctx, { type: "questOpened", workspace, member, quest, ...(await poolQuestNamed(ctx, member, quest)), at });
   return "done";
 }

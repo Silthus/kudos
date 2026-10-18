@@ -467,9 +467,9 @@ describe("GB23 P85: a group reward's crate waits for its member and opens once",
     const key = groupRewardKey(groups.Ants!, thisWeek);
     expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ crate: { key, opened: false } });
 
-    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate))).toBe("done");
-    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate))).toBe("done");
-    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A4!, crate))).toBe("refused");
+    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate, "slack"))).toBe("done");
+    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate, "slack"))).toBe("done");
+    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A4!, crate, "slack"))).toBe("refused");
     await settle(t);
 
     expect(await groupQuestOf(t, members.U_A1!)).toMatchObject({ crate: { key, opened: true } });
@@ -486,8 +486,8 @@ describe("CL6: a group quest's crate drops one hoggie", { timeout: 60_000 }, () 
     for (const [giver, recipient] of [["U_A1", "U_A2"], ["U_A2", "U_A3"], ["U_A3", "U_A1"]] as const) await gives(t, members[giver]!, members[recipient]!, tuesday);
     const crate = { kind: "group" as const, group: groups.Ants!, week: thisWeek };
 
-    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate))).toBe("done");
-    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate))).toBe("done");
+    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate, "slack"))).toBe("done");
+    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate, "slack"))).toBe("done");
     await settle(t);
 
     expect(await t.run((ctx) => ctx.db.query("drops").collect())).toEqual([expect.objectContaining({ member: members.U_A1!, crate: groupRewardKey(groups.Ants!, thisWeek), n: 1, copy: 1 })]);
@@ -539,7 +539,7 @@ describe("CV13: a pack pays its bonus once", { timeout: 60_000 }, () => {
     const { asSignedIn } = await aSignedInSession(t, { user: "U_A1" });
     const before = await t.run((ctx) => standingOf(ctx, members.U_A1!));
 
-    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate))).toBe("done");
+    expect(await t.run((ctx) => openQuestCrate(ctx, members.U_A1!, crate, "slack"))).toBe("done");
     const answer = await asSignedIn.mutation(api.website.commands.openQuestCrate, { quest: crate });
     const after = await t.run((ctx) => standingOf(ctx, members.U_A1!));
 

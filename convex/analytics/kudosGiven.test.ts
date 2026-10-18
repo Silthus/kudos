@@ -59,6 +59,8 @@ describe("O1 O2 O3: a kudos message that gives", () => {
           daily_allowance_left: 1,
           default_kudos_emoji: true,
           thoughtful: false,
+          word_count: 2,
+          new_recipients: 2,
         },
       },
       { event: "kudos received", properties: { ...shared, kudos: 1, retry: false } },
@@ -132,7 +134,10 @@ describe("E3: kudos given says whether the giver said why", () => {
     expect(kudosGivenProperties()).toMatchObject({ thoughtful: false });
   });
 
-  test("O10: only the boolean leaves the deployment, never the word count the gate read", async () => {
+});
+
+describe("MS7 MS8: kudos given counts the gate's words", () => {
+  test("word_count is the number of words the gate counted, and it leaves only as word_count, never with a word of the message", async () => {
     const t = testBackend();
 
     await post(t, [section(text("thanks for untangling the thirteen flaky deploy checks before the Friday release "), mention("U_BOB"), emoji("taco"))]);
@@ -140,11 +145,55 @@ describe("E3: kudos given says whether the giver said why", () => {
 
     const [decision] = await t.run(async (ctx) => (await ctx.db.query("kudosMessages").collect()).map((row) => row.annotations.gate));
     expect(decision).toEqual({ version: 1, thoughtful: true, words: 12 });
-    expect(kudosGivenProperties()).toMatchObject({ thoughtful: true });
-    expect(Object.values(kudosGivenProperties())).not.toContain(12);
+    const properties = kudosGivenProperties();
+    expect(properties).toMatchObject({ thoughtful: true, word_count: 12 });
+    expect(Object.entries(properties).filter(([, value]) => value === 12)).toEqual([["word_count", 12]]);
     const bodies = postHog.requests.map((request) => request.body).join("\n");
     expect(bodies).not.toMatch(/"(words|gate|version)"/);
     for (const word of ["untangling", "thirteen", "flaky", "deploy", "Friday", "release"]) expect(bodies).not.toContain(word);
+  });
+
+  test("a message whose annotations carry no word count leaves word_count out", async () => {
+    slack = new FakeSlack().withMember("U_ALICE");
+    vi.stubGlobal("fetch", routedFetch(postHog, slack.fetch));
+    const t = testBackend();
+    await post(t, [section(text("thanks for covering my on-call shift "), mention("U_DANA"), emoji("taco"))]);
+    await t.run(async (ctx) => {
+      for (const row of await ctx.db.query("kudosMessages").collect()) await ctx.db.patch(row._id, { annotations: { gate: { version: 1, thoughtful: true } } });
+    });
+    slack.withMember("U_DANA");
+
+    await settle(t);
+
+    expect(kudosGivenProperties()).toMatchObject({ thoughtful: true });
+    expect(kudosGivenProperties()).not.toHaveProperty("word_count");
+  });
+});
+
+describe("MS9: kudos given counts the recipients the giver had never thanked", () => {
+  const yesterday = "1760263200.000100";
+
+  test("a message to one old and two new recipients sends new_recipients 2, however late its event is recorded and however often Slack redelivers it", async () => {
+    slack.withMember("U_DANA");
+    const t = testBackend();
+    await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T1", baseAllowance: 10 }));
+    const toOldAndNew = messageEvent([section(mention("U_BOB"), mention("U_CAROL"), mention("U_DANA"), emoji("taco"))], { ts: "1760349600.000200" });
+
+    await post(t, [section(mention("U_CAROL"), mention("U_DANA"), emoji("taco"))], { user: "U_BOB", ts: yesterday });
+    await settle(t);
+    await post(t, [section(mention("U_BOB"), emoji("taco"))], { ts: "1760263201.000100" });
+    await settle(t);
+    await t.fetch("/slack/events", await signedRequest(toOldAndNew));
+    await post(t, [section(mention("U_CAROL"), emoji("taco"))], { ts: "1760349601.000300" });
+    await t.fetch("/slack/events", await signedRequest(toOldAndNew));
+    await settle(t);
+
+    expect(postHog.events().filter((event) => event.event === "kudos given").map(({ properties }) => [properties.recipients, properties.new_recipients])).toEqual([
+      [2, 2],
+      [1, 1],
+      [3, 2],
+      [1, 0],
+    ]);
   });
 });
 
@@ -175,7 +224,7 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
   test("no PostHog request carries the message, a Slack or Convex ID, an emoji name or a time zone, and the profile rides only in $set of person events", async () => {
     const team = "T0QUOKKAWS";
     vi.stubEnv("POSTHOG_PERSONAL_API_KEY", flagsKey);
-    const t = await unlocksShippedBeforeAnyoneJoined(await flagsFromPostHog(testBackend(), postHog, ...["xp-levels", "unlocks", "quests"].map(onForEveryone)), team);
+    const t = await unlocksShippedBeforeAnyoneJoined(await flagsFromPostHog(testBackend(), postHog, ...["xp-levels", "unlocks", "quests", "collection"].map(onForEveryone)), team);
     const channel = "C0MARMALADE";
     const people = { giver: "U0ZEPHYRINE", recipient: "U0BARNABY77" };
     slack = new FakeSlack()
@@ -237,6 +286,7 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
       new Set([
         "kudos given",
         "kudos received",
+        "person collected",
         "member welcomed",
         "level reached",
         "unlock made ready",
@@ -245,6 +295,7 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
         "quest drawn",
         "quest finished",
         "crate opened",
+        "hoggie dropped",
         "attempt failed",
         "app home opened",
         "command used",
@@ -269,6 +320,9 @@ describe("O10 F7: never sent, and the profile only on the person", () => {
       { email: "barnaby@example.com", name: "Barnaby Flintlock", display_name: "barns", slack_user_id: people.recipient, slack_team_id: team, is_admin: false, environment: "sandbox" },
     ]));
     expect(profiles.size).toBe(2);
+    const given = postHog.productEvents().filter((event) => event.event === "kudos given");
+    expect(new Set(given.map(({ properties }) => `${properties.word_count} ${properties.new_recipients}`)), "kudos given carries the gate's word count and its new recipients").toEqual(new Set(["11 1"]));
+    for (const { properties } of given) expect(Object.keys(properties).filter((name) => properties[name] === 11), "the word count leaves only as word_count").toEqual(["word_count"]);
     const stored = await everythingStored(t);
     const neverSent = [
       "Marmalade", "artichokeparty", "Pacific/Chatham", "America/St_Johns", "Chatham", "St_Johns",

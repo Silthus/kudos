@@ -9,6 +9,8 @@ import type { MyLeaderboard as MyEveryoneBoard } from "../../convex/website/lead
 import type { Denial } from "../../convex/website/memberQuery";
 import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
+import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
+import { ShellBoundary } from "./ShellBoundary";
 import type { ActivityRead, ActivityShown } from "./activityRead";
 import type { BoardAnswer } from "./boardRead";
 import type { BookShown } from "./bookRead";
@@ -29,7 +31,11 @@ import { forgetSignInStarted } from "./signInAttempt";
 export function LiveShell({ client }: { client: ConvexReactClient }) {
   return (
     <ConvexAuthProvider client={client}>
-      <LiveApp />
+      <BrowserAnalytics>
+        <ShellBoundary>
+          <LiveApp />
+        </ShellBoundary>
+      </BrowserAnalytics>
     </ConvexAuthProvider>
   );
 }

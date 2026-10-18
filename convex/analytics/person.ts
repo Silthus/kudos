@@ -20,7 +20,7 @@ export type PersonProfile = {
   environment: Environment;
 };
 
-const profileKeys = ["email", "name", "display_name", "title", "slack_user_id", "slack_team_id", "is_admin", "teams", "environment"] as const satisfies (keyof PersonProfile)[];
+export const profileKeys = ["email", "name", "display_name", "title", "slack_user_id", "slack_team_id", "is_admin", "teams", "environment"] as const satisfies (keyof PersonProfile)[];
 
 const personEvents: readonly string[] = ["$identify", "$set"];
 

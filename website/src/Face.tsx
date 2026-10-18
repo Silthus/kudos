@@ -11,7 +11,7 @@ function FaceImage({ face, className }: { face: Exclude<Face, { kind: "initials"
   if (failed) return <Initials initials={face.initials} className={className} />;
   const onColour: CSSProperties | undefined = face.kind === "company-profile" ? { backgroundColor: face.colour } : undefined;
   const fill = face.kind === "slack" ? "bg-muted object-cover" : "object-cover object-top";
-  return <img ref={picture} src={face.image} alt="" style={onColour} onError={onError} className={`shrink-0 rounded-full ${fill} ${className}`} />;
+  return <img ref={picture} src={face.image} alt="" style={onColour} onError={onError} className={`ph-no-capture shrink-0 rounded-full ${fill} ${className}`} />;
 }
 
 export function usePictureFailure() {
@@ -29,7 +29,7 @@ function alreadyFailed(image: HTMLImageElement) {
 
 function Initials({ initials, className }: { initials: string; className: string }) {
   return (
-    <span aria-hidden="true" className={`inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground ${className}`}>
+    <span aria-hidden="true" className={`ph-no-capture inline-flex shrink-0 items-center justify-center rounded-full border bg-muted text-xs font-semibold text-muted-foreground ${className}`}>
       {initials}
     </span>
   );

@@ -28,6 +28,7 @@ import type * as activity_kudos from "../activity/kudos.js";
 import type * as activity_position from "../activity/position.js";
 import type * as activity_spotlight from "../activity/spotlight.js";
 import type * as analytics_boundary from "../analytics/boundary.js";
+import type * as analytics_browser from "../analytics/browser.js";
 import type * as analytics_capture from "../analytics/capture.js";
 import type * as analytics_drain from "../analytics/drain.js";
 import type * as analytics_exceptions from "../analytics/exceptions.js";
@@ -44,6 +45,7 @@ import type * as auth from "../auth.js";
 import type * as bus_events from "../bus/events.js";
 import type * as bus_publish from "../bus/publish.js";
 import type * as commands_commands from "../commands/commands.js";
+import type * as commands_surface from "../commands/surface.js";
 import type * as companyProfiles_admin from "../companyProfiles/admin.js";
 import type * as companyProfiles_faces from "../companyProfiles/faces.js";
 import type * as companyProfiles_flag from "../companyProfiles/flag.js";
@@ -244,6 +246,7 @@ import type * as website_abandonedHandshakes from "../website/abandonedHandshake
 import type * as website_activity from "../website/activity.js";
 import type * as website_book from "../website/book.js";
 import type * as website_bookSpread from "../website/bookSpread.js";
+import type * as website_browserAnalytics from "../website/browserAnalytics.js";
 import type * as website_clock from "../website/clock.js";
 import type * as website_collection from "../website/collection.js";
 import type * as website_commands from "../website/commands.js";
@@ -306,6 +309,7 @@ declare const fullApi: ApiFromModules<{
   "activity/position": typeof activity_position;
   "activity/spotlight": typeof activity_spotlight;
   "analytics/boundary": typeof analytics_boundary;
+  "analytics/browser": typeof analytics_browser;
   "analytics/capture": typeof analytics_capture;
   "analytics/drain": typeof analytics_drain;
   "analytics/exceptions": typeof analytics_exceptions;
@@ -322,6 +326,7 @@ declare const fullApi: ApiFromModules<{
   "bus/events": typeof bus_events;
   "bus/publish": typeof bus_publish;
   "commands/commands": typeof commands_commands;
+  "commands/surface": typeof commands_surface;
   "companyProfiles/admin": typeof companyProfiles_admin;
   "companyProfiles/faces": typeof companyProfiles_faces;
   "companyProfiles/flag": typeof companyProfiles_flag;
@@ -522,6 +527,7 @@ declare const fullApi: ApiFromModules<{
   "website/activity": typeof website_activity;
   "website/book": typeof website_book;
   "website/bookSpread": typeof website_bookSpread;
+  "website/browserAnalytics": typeof website_browserAnalytics;
   "website/clock": typeof website_clock;
   "website/collection": typeof website_collection;
   "website/commands": typeof website_commands;

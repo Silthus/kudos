@@ -178,3 +178,63 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: commit-ordered-effects dismissed: the HUD moves only after the answer and only to the answer's from and to
   checklist: circuit-breaker-policy dismissed: no breaker is declared; one command is sent per tap
   checklist: declared-target-coverage dismissed: there is no fan-out; one key opens one pack
+- the browser captures only while told to: The browser analytics module imports posthog-js and calls it only after getBrowserAnalytics answers capture, starting it bootstrapped with that answer's analytics ID as an identified ID and never calling identify, alias or setPersonProperties; whenever the answer stops being capture (off, a denial, sign-out, the flag turning off, an error) it stops replay, opts out of capturing, resets and opts out again before anything else is sent, with every event sent uncompressed as it is captured so no request waits to leave after the stop, abandons an import still loading, and a later capture answer starts a fresh instance with that answer's ID and consent of its own, under a key no instance in another tab shares, that only an explicit opt-in grants, so a stopped instance never captures again, even with its site data cleared; the frame shows the `Feedback` control only while that instance captures. An error the shell's error page catches before posthog-js has started waits in the module, untouched, and is reported once, only when the first capture answer's instance starts; one caught while the answer is off, a denial or an error is dropped, and stays dropped when a capture answer follows.
+  over: the live shell over an answer loading, off, each denial and a failed read, a capture answer, sign-out, the flag turning off, the website closing and a failed read mid-session followed by navigation, an answer changing while posthog-js loads, a second member's capture answer after sign-out, sign-out right after a pageview and right after a navigation with PostHog offering gzip, another tab's first instance after this tab's sign-out, a click after sign-out and a second member's capture answer, and after sign-out, cleared site data and the same member's capture answer, on the pinned posthog-js, the same capture answer again, the `Feedback` control under an off answer, a capture answer and sign-out, and an error the error page caught while the answer loaded, was off, each denial or failed, followed by a capture answer
+  via: the browser captures only while told to
+  refuted: the module kept capturing when getBrowserAnalytics failed -> a failed read mid-session neither opted out nor reset, 1 of 10 tests red (2026-10-18)
+  refuted: the capture module stopped telling the shell it stopped capturing -> the `Feedback` control stayed in the header after sign-out, 1 of 11 tests red (2026-10-18)
+  refuted: every instance shared posthog-js's per-token consent key -> a later instance's opt-in revived a stopped one, which captured a click under its reset ID, 1 of 20 tests red (2026-10-18)
+  refuted: posthog-js treated a missing consent record as consent -> a stopped instance whose opt-out went with cleared site data captured a click under its reset ID, 1 of 21 tests red (2026-10-18)
+  refuted: posthog-js batched events for three seconds -> a pageview captured just before sign-out left for PostHog after the stop, 1 of 22 tests red (2026-10-18)
+  refuted: posthog-js gzipped each request asynchronously when PostHog offered it -> an event captured just before sign-out was sent after the stop, 1 of 24 tests red (2026-10-18)
+  refuted: every tab numbered its instances from hedgehug-1 -> another tab's first instance shared this tab's stopped instance's consent key and revived it, 1 of 24 tests red (2026-10-18)
+  refuted: the module kept an error caught while the answer was not capture and reported it when a capture answer followed -> each off, denial and failed-read case reported the error, 7 of 18 tests red (2026-10-18)
+  because: a member the flag is off for must download nothing new and send nothing, and a shared browser must not be tracked as a member after they sign out (MS18, MS19, MS20)
+  kinds: output, identity
+  checklist: destination-confinement declared as the browser captures only while told to
+  checklist: redaction dismissed: the module sends no member data of its own; what PostHog may receive is guarded by nothing private reaches PostHog from the browser and no sign-in code leaves the browser
+  checklist: commit-ordered-effects dismissed: stopping happens synchronously before the next answer is followed, and a start applies only if no later answer came first
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; posthog-js owns its own retries
+  checklist: declared-target-coverage dismissed: there is no fan-out; one answer starts at most one instance
+  checklist: identity-continuity dismissed: each capture answer starts its own instance with that answer's ID and its own storage, so one member's state never carries into another's
+  checklist: capability-authorization dismissed: the module holds only the public project token getBrowserAnalytics answers, which grants nothing but sending events
+  checklist: canonical-encoding dismissed: the analytics ID is passed to posthog-js exactly as the read answered it
+- nothing private reaches PostHog from the browser: Every element that shows kudos words, a Slack permalink, a Slack picture or another Slack address, a Slack-shaped ID or an emoji by name sits inside an element with `ph-no-capture` (`KudosMessage`, both `Open in Slack` links, `MemberFace`, `CustomEmoji`, `EmojiName`, `SlackLink` and the inventory's emoji names), so replay draws it as an empty block and autocapture ignores clicks inside it; autocapture masks all element text and attributes; and replay records a captured member's sessions blocking `ph-no-capture`, masking every input, and recording no network headers or bodies, console logs, canvas or cross-origin frames, whatever the project's own replay settings ask for. Before posthog-js sends an exception, whether the error page caught it, the page left it unhandled or a promise rejected unhandled, every exception in it, causes included, has its message replaced by its type name, keeping its frames' file, line and function and the route's `page`; an exception thrown inside posthog-js's own script is never sent.
+  over: every page rendered from the fixture app, `/`, `/activity` with each filter, `/leaderboard`, `/quests`, `/skills`, `/book`, `/book/collection`, two spread hashes and `/settings`, for the fixtures holding activity, the spotlight, recent kudos, teammates' Slack faces, custom emoji, the inventory, the Book and the crate store, every text node and every link, picture and label attribute; the replay options a capture answer starts posthog-js with; the pinned recorder's own snapshots of a page holding a blocked paragraph, a typed input and a console line, under project settings that ask for console logs, payloads, canvas and unmasked inputs; the live shell's error page catching an error full of kudos words, Slack-shaped IDs and a sign-in URL; an exception with a cause posthog-js captured by itself; one whose top frame is posthog-js's script; and the pinned posthog-js's own request bodies for an unhandled error, an unhandled rejection and a reported error
+  via: nothing private reaches PostHog from the browser
+  refuted: KudosMessage's words lost their ph-no-capture block -> kudos words lay outside every block on the home, activity and leaderboard pages, 10 of 20 tests red (2026-10-18)
+  refuted: replay's options set maskAllInputs to false -> the options no longer masked every input and the pinned recorder's snapshots held the typed value, 2 of 22 tests red (2026-10-18)
+  refuted: the exception scrub kept each exception's own message instead of its type name -> the caught error, the autocaptured one and the pinned posthog-js's bodies carried the private words, 3 of 24 tests red (2026-10-18)
+  because: kudos words are colleagues' private thanks and permalinks and Slack pictures hold channel, message, team and user IDs, so none of them may reach a replay or an event that everyone in the organisation can open, and an error's message can quote any of them; names, levels, hoggies and quests stay visible as the product owner chose (masking A, MS23, MS24, MS27)
+  kinds: output, message
+  checklist: destination-confinement dismissed: the blocks change only what posthog-js records, and posthog-js sends only where the browser captures only while told to lets it
+  checklist: redaction declared as nothing private reaches PostHog from the browser
+  checklist: commit-ordered-effects dismissed: a class on an element writes nothing
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
+  checklist: declared-target-coverage dismissed: there is no fan-out
+  checklist: message-authenticity dismissed: the blocks are markup the website renders; no message is received
+  checklist: input-validation dismissed: the walk checks rendered output, not input; KudosMessage's own rendering is guarded by a kudos message renders as text
+  checklist: retry-recognition dismissed: nothing is sent or retried by the blocks
+  checklist: duplicate-suppression dismissed: nothing is sent by the blocks
+  checklist: keyed-ordering dismissed: nothing is sent by the blocks
+  checklist: acknowledgment-barrier dismissed: nothing is sent by the blocks
+  checklist: retry-classification dismissed: nothing is sent by the blocks
+- no sign-in code leaves the browser: Before posthog-js sends an event, every URL in it, `$current_url`, `$referrer`, the first-visit person properties, the pageleave's, every stack frame's URL and the URL a heatmap is keyed by included, loses its `code` query parameter and keeps everything else, and every URL replay records passes the same scrub.
+  over: the live shell opened at `/?code=…` and navigating to another address carrying a code, an event holding every URL property, person property and stack frame URL with a sign-in code, a Date and a plain property, a heatmap keyed by a URL with a sign-in code beside one keyed by the same page without it, and a replay URL with a sign-in code, a query parameter and a hash given to the replay options' URL mask
+  via: no sign-in code leaves the browser
+  refuted: the scrub left URLs inside lists, such as stack frames, untouched -> a stack frame kept the sign-in code, 1 of 2 tests red (2026-10-18)
+  refuted: replay's URL mask passed each recorded URL through unchanged -> a replay URL kept the sign-in code, 1 of 3 tests red (2026-10-18)
+  refuted: the scrub kept every object key as it was -> a heatmap stayed keyed by the URL with the sign-in code, 1 of 4 tests red (2026-10-18)
+  because: the sign-in code from Slack redeems a session, so it must never sit in PostHog where anyone in the organisation can read it (MS21)
+  kinds: credential, output
+  checklist: destination-confinement dismissed: the scrub only removes; it sends nothing itself
+  checklist: redaction declared as no sign-in code leaves the browser
+  checklist: commit-ordered-effects dismissed: the scrub runs inside posthog-js's before_send, before any request is built
+  checklist: circuit-breaker-policy dismissed: no breaker is declared; nothing is called
+  checklist: declared-target-coverage dismissed: there is no fan-out; one event in, one event out
+  checklist: capability-authorization dismissed: the scrub grants nothing; it removes the one credential an address can carry
+  checklist: revalidated-permission dismissed: no permission is checked here; the code is removed whatever it is
+  checklist: message-authenticity dismissed: the scrub reads events posthog-js built in this browser
+  checklist: encrypted-storage dismissed: nothing is stored; the code is dropped before the event leaves
+  checklist: key-rotation-compatibility dismissed: no key is involved; the parameter name `code` is Convex Auth's fixed one
+  checklist: separation-of-duties dismissed: one module scrubs and posthog-js sends; no duty is shared

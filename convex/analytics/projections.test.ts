@@ -44,6 +44,8 @@ function kudosGiven(overrides: Partial<KudosGivenEvent> = {}): KudosGivenEvent {
   return kudosGivenEvent(alice, bob, { annotations: { note: "thanks for the quokka migration" }, at, ...overrides });
 }
 
+const firstThanks = { newRecipients: 1 };
+
 describe("O3: kudos given", () => {
   test.each<[string, Partial<KudosGivenEvent>, Record<string, unknown>]>([
     ["one recipient, one kudos", {}, { recipients: 1, kudos_per_recipient: 1, kudos_total: 1, daily_allowance_left: 2 }],
@@ -59,19 +61,21 @@ describe("O3: kudos given", () => {
     ["E3: a gate decision that says why", { annotations: { gate: { version: 1, thoughtful: true, words: 7 } } }, { thoughtful: true }],
     ["E3: a gate decision that doesn't say why", { annotations: { gate: { version: 1, thoughtful: false, words: 2 } } }, { thoughtful: false }],
     ["E3: no gate decision", { annotations: { note: "thanks for the quokka migration" } }, { thoughtful: false }],
+    ["MS7: the gate's word count", { annotations: { gate: { version: 1, thoughtful: true, words: 7 } } }, { word_count: 7 }],
+    ["MS9: the recipients the giver had never thanked", {}, { new_recipients: 1 }],
   ])("%s", (_, overrides, expected) => {
-    const [given] = projectKudosGiven(kudosGiven(overrides));
+    const [given] = projectKudosGiven(kudosGiven(overrides), firstThanks);
 
     expect(given).toMatchObject({ event: "kudos given", subject: { member: alice }, at, properties: expected });
   });
 
-  test("O11 E3: kudos given lists exactly O3's properties and thoughtful, never the gate's word count", () => {
-    const [given] = projectKudosGiven(kudosGiven({ annotations: { gate: { version: 1, thoughtful: true, words: 7 } } }));
+  test("O11 E3 MS8: kudos given lists exactly O3's properties, thoughtful, word_count and new_recipients, and the word count only as word_count", () => {
+    const [given] = projectKudosGiven(kudosGiven({ annotations: { gate: { version: 1, thoughtful: true, words: 7 } } }), firstThanks);
 
     expect(Object.keys(given!.properties).sort()).toEqual(
-      ["daily_allowance_left", "daily_allowance_opening", "default_kudos_emoji", "in_thread", "kudos_per_recipient", "kudos_total", "recipients", "retry", "skipped_mentions", "thoughtful"].sort(),
+      ["daily_allowance_left", "daily_allowance_opening", "default_kudos_emoji", "in_thread", "kudos_per_recipient", "kudos_total", "new_recipients", "recipients", "retry", "skipped_mentions", "thoughtful", "word_count"].sort(),
     );
-    expect(Object.values(given!.properties)).not.toContain(7);
+    expect(Object.entries(given!.properties).filter(([, value]) => value === 7)).toEqual([["word_count", 7]]);
   });
 });
 
@@ -79,7 +83,7 @@ describe("O3: kudos received", () => {
   test("one per award, on the recipient, with its kudos and whether the attempt was a retry", () => {
     const event = kudosGiven({ awards: [{ award: awardId(bob), giver: alice, recipient: bob, kudos: 2 }, { award: awardId(carol), giver: alice, recipient: carol, kudos: 2 }], retry: true });
 
-    expect(projectKudosGiven(event).slice(1)).toEqual([
+    expect(projectKudosGiven(event, firstThanks).slice(1)).toEqual([
       { event: "kudos received", subject: { member: bob }, at, properties: { kudos: 2, retry: true } },
       { event: "kudos received", subject: { member: carol }, at, properties: { kudos: 2, retry: true } },
     ]);

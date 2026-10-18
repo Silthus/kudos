@@ -15,6 +15,7 @@ import type {
   QuestOpenedEvent,
   QuestsDrawnEvent,
   QuestSwappedEvent,
+  StickersCollectedEvent,
   UnlockOpenedEvent,
   UnlockReadyEvent,
   UnlocksLaunchedEvent,
@@ -24,7 +25,7 @@ import type { KudosCommandResult } from "../feedback/kudosCommand";
 import type { Period } from "../leaderboard/periods";
 import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
 import type { Feature } from "../unlocks/feature";
-import { gateDecisionOf } from "../progression/gate";
+import { gateDecisionOf, wordCountOf } from "../progression/gate";
 import { crateKindOf } from "../hoggies/crateKey";
 import { defaultKudosEmoji } from "../workspace/settings";
 import type { MemberId } from "../workspace/directory";
@@ -54,6 +55,7 @@ export type ProductEvent = {
     | "hug given"
     | "hugs recap sent"
     | "team page completed"
+    | "person collected"
     | "achievement earned"
     | "app home opened"
     | "command used"
@@ -104,12 +106,15 @@ const commandResultNames: Record<KudosCommandResult, string> = {
   "direct-message": "direct message",
 };
 
-export function projectKudosGiven(event: KudosGivenEvent): ProductEvent[] {
-  return [kudosGiven(event), ...event.awards.map((award) => kudosReceived(event, award))];
+export type GivingHistory = { newRecipients: number };
+
+export function projectKudosGiven(event: KudosGivenEvent, history: GivingHistory): ProductEvent[] {
+  return [kudosGiven(event, history), ...event.awards.map((award) => kudosReceived(event, award))];
 }
 
-function kudosGiven(event: KudosGivenEvent): ProductEvent {
+function kudosGiven(event: KudosGivenEvent, { newRecipients }: GivingHistory): ProductEvent {
   const kudosPerRecipient = event.awards[0]?.kudos ?? 0;
+  const wordCount = wordCountOf(event.annotations);
   return {
     event: "kudos given",
     subject: { member: event.giver },
@@ -125,6 +130,8 @@ function kudosGiven(event: KudosGivenEvent): ProductEvent {
       daily_allowance_left: event.allowance.dailyLeft,
       default_kudos_emoji: event.kudosEmoji === defaultKudosEmoji(),
       thoughtful: gateDecisionOf(event.annotations)?.thoughtful === true,
+      ...(wordCount !== null && { word_count: wordCount }),
+      new_recipients: newRecipients,
     },
   };
 }
@@ -221,7 +228,7 @@ export function projectJourneyStepActivated(event: JourneyStepActivatedEvent): P
 }
 
 export function projectHoggieDropped(event: HoggieDroppedEvent): ProductEvent {
-  return { event: "hoggie dropped", subject: { member: event.member }, at: event.at, properties: { rarity: event.rarity, is_new: event.copy === 1, crate_kind: crateKindOf(event.crate), ...(event.pack && { pack_xp: event.pack.xp, pack_coins: event.pack.coins }) } };
+  return { event: "hoggie dropped", subject: { member: event.member }, at: event.at, properties: { rarity: event.rarity, is_new: event.copy === 1, crate_kind: crateKindOf(event.crate), ...(event.pack && { pack_xp: event.pack.xp, pack_coins: event.pack.coins }), ...(event.surface && { surface: event.surface }) } };
 }
 
 export function projectHugGiven(event: HugGivenEvent): ProductEvent {
@@ -230,6 +237,10 @@ export function projectHugGiven(event: HugGivenEvent): ProductEvent {
 
 export function projectTeamPagesCompleted({ member, teams, at, told }: TeamPagesCompletedEvent): ProductEvent[] {
   return teams.map(({ team, people }) => ({ event: "team page completed", subject: { member }, at, properties: { team, people, told } }));
+}
+
+export function projectPersonCollected({ stickers, at }: StickersCollectedEvent): ProductEvent[] {
+  return stickers.map(({ collector, firstGiver }) => ({ event: "person collected", subject: { member: collector }, at, properties: { via: firstGiver === collector ? "gave" : "received" } }));
 }
 
 export function projectPerkBought(event: PerkBoughtEvent): ProductEvent {

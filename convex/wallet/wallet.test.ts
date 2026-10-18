@@ -201,7 +201,7 @@ function rewardOf(ctx: MutationCtx, member: MemberId, key: string, coins: number
 }
 
 function openCrateOf(t: Backend, member: MemberId, slot: number) {
-  return t.run((ctx) => openQuestCrate(ctx, member, { kind: "weekly", week: "2026-10-12", slot }));
+  return t.run((ctx) => openQuestCrate(ctx, member, { kind: "weekly", week: "2026-10-12", slot }, "slack"));
 }
 
 function spendOf(t: Backend, member: MemberId, coins: number) {

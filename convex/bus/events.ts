@@ -10,6 +10,7 @@ import { questIdValidator } from "../quests/pool";
 import { journeyStepValidator, questValidator } from "../quests/step";
 import { featureValidator } from "../unlocks/feature";
 import { rarityValidator } from "../hoggies/catalogue";
+import { surfaceValidator } from "../commands/surface";
 import type { MemberId } from "../workspace/directory";
 
 export const awardValidator = v.object({ award: awardIdValidator, giver: v.id("members"), recipient: v.id("members"), kudos: v.number() });
@@ -221,6 +222,7 @@ export const hoggieDroppedEventValidator = v.object({
   copy: v.number(),
   at: v.number(),
   pack: v.optional(v.object({ xp: v.number(), coins: v.number() })),
+  surface: v.optional(surfaceValidator),
 });
 
 export type HoggieDroppedEvent = Infer<typeof hoggieDroppedEventValidator>;
@@ -237,6 +239,15 @@ export const teamPagesCompletedEventValidator = v.object({
 });
 
 export type TeamPagesCompletedEvent = Infer<typeof teamPagesCompletedEventValidator>;
+
+export const stickersCollectedEventValidator = v.object({
+  type: v.literal("stickersCollected"),
+  workspace: v.string(),
+  stickers: v.array(v.object({ collector: v.id("members"), person: v.id("members"), firstAward: awardIdValidator, firstGiver: v.id("members") })),
+  at: v.number(),
+});
+
+export type StickersCollectedEvent = Infer<typeof stickersCollectedEventValidator>;
 
 export const crateBoughtEventValidator = v.object({ type: v.literal("crateBought"), workspace: v.string(), member: v.id("members"), crate: v.string(), price: v.number(), at: v.number() });
 
@@ -279,7 +290,8 @@ export type DomainEvent =
   | HoggieDroppedEvent
   | CrateBoughtEvent
   | HugGivenEvent
-  | TeamPagesCompletedEvent;
+  | TeamPagesCompletedEvent
+  | StickersCollectedEvent;
 
 export function membersNamedIn(event: KudosGivenEvent): MemberId[] {
   return [...new Set([event.giver, ...event.awards.map((award) => award.recipient)])];
