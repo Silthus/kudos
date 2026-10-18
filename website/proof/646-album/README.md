@@ -11,3 +11,12 @@ Branch `album/2` at `b40217b6`, merged with `origin/main` at `3f4fd068` in a thr
 7. A second `startAlbumHistory` is a no-op start and changed nothing: `second-run.txt` (the history record, every album sticker, getAlbum and the five tallies byte-identical). Re-paging is proven by the tests, not here.
 
 Run: `KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> KUDOS_PUBLIC_CHANNEL=<channel> SLACK_SIGNING_SECRET_FILE=<600 file> bun website/proof/646-album/drive.mts`
+
+## The round 1 fixes, live (`273bdf9f` merged with `origin/main`, `origin/album/11` and `origin/album/3` in a throwaway tree, deployed 23:20:44 UTC)
+
+The fixes rewrote the history's hug phase (one hug a mutation, at most 50 of its people, a bigger hug carried to the next mutation through its last person, `done` only when no hug is left), so it ran again on the real backend, in a second synthetic workspace `T0PRF646B` with no history record (`drive-hug-paging.mts`, output `drive-hug-paging-output.txt`):
+
+- 57 synthetic members joined; Wren Alder gave one thoughtful kudos to 55 of them, and Tamsin Reed hugged it, so the hug reaches 55 people, more than one page.
+- `albumHistoryOf` answered nothing before the start, `done: false` for ten polls, then `done: true`. The stored record carries no leftover `hug` or `hugPeopleAfter` (`hug-paging-sandbox.txt`).
+- Tamsin's pair tally with Proof Crowd 54, the hug's last person, holds `hugsGiven: 1`, and her week of 2026-10-19 lists 12 hugged people with 43 more: all 55 were counted before `done`.
+- Wren holds 55 history stickers, and no `album/history` or `album/tallies` job failed after the deploy.
