@@ -2,7 +2,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { chatUserOf, type MemberId } from "../workspace/directory";
 import { companyFaceOfProfile, type CompanyFace } from "./faces";
 import { companyProfilesIn, publicNameOf, type CompanyProfile, type CompanyProfiles, type MatchedBy } from "./matcher";
-import { keepCompanyFaces } from "./storedFaces";
+import { keepCompanyFacesLater } from "./storedFaces";
 import { companyTeamsOf } from "./teams";
 
 export type ProfileChoice = { profile: number; name: string; role: string | null; teams: string[]; face: CompanyFace | null };
@@ -34,7 +34,7 @@ export async function linkMyCompanyProfile(ctx: MutationCtx, member: MemberId, p
   if (profile === null && link !== null) await ctx.db.delete(link._id);
   else if (profile !== null && link === null) await ctx.db.insert("companyProfileLinks", { workspace, member, profile, by: "self", setBy: member, at: Date.now() });
   else if (profile !== null && link !== null && link.profile !== profile) await ctx.db.patch(link._id, { profile, at: Date.now() });
-  await keepCompanyFaces(ctx, workspace);
+  await keepCompanyFacesLater(ctx, workspace);
   return { kind: "linked", profile };
 }
 

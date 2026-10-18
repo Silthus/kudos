@@ -58,6 +58,7 @@ function later() {
 async function slackSays(type: "team_join" | "user_change", user: string, fields: Record<string, unknown>) {
   later();
   await memberChanged(t, type, { id: user, ...fields });
+  await settle(t);
 }
 
 function aMemberNamed(realName: string, { admin = false } = {}) {
@@ -105,6 +106,7 @@ describe("CV22: each member's stored company face follows the matcher through ev
     const twin = await memberOf("U_TWIN");
     const { asSignedIn: asTwin } = await aSignedInSession(t, { user: "U_TWIN", name: "Wren Other" });
     await asTwin.mutation(api.website.commands.linkMyCompanyProfile, { profile: 2 });
+    await settle(t);
     expect((await expectStoredFacesToFollowTheMatcher())[twin]).toEqual({ image: cutoutOf("oriel"), colour: "#29DBBB" });
 
     await slackSays("team_join", "U_ADMIN", aMemberNamed("Ada Admin", { admin: true }));
@@ -112,8 +114,10 @@ describe("CV22: each member's stored company face follows the matcher through ev
     const admin = await memberOf("U_ADMIN");
     const wrensKey = await seenKeyOf(admin, `member:${wren}`);
     expect(await asAdmin.mutation(api.website.commands.linkCompanyProfile, { member: wrensKey, profile: "none" })).toEqual({ kind: "linked" });
+    await settle(t);
     expect((await expectStoredFacesToFollowTheMatcher())[wren]).toBeNull();
     expect(await asAdmin.mutation(api.website.commands.linkCompanyProfile, { member: wrensKey, profile: null })).toEqual({ kind: "linked" });
+    await settle(t);
     expect((await expectStoredFacesToFollowTheMatcher())[wren]).toEqual({ image: cutoutOf("wren"), colour: "#8567FF" });
 
     await slackSays("user_change", "U_TWIN", { ...aMemberNamed("Wren Other"), deleted: true });
@@ -123,6 +127,17 @@ describe("CV22: each member's stored company face follows the matcher through ev
     expect((await expectStoredFacesToFollowTheMatcher())[wren]).toEqual({ image: cutoutOf("wren"), colour: "#29DBBB" });
   });
 
+  test("a join records the member in its own transaction, and their face is kept in a job after it", async () => {
+    later();
+    await memberChanged(t, "team_join", { id: "U_WREN", ...aMemberNamed("Wren Halloway") });
+    const wren = await memberOf("U_WREN");
+    expect((await storedAndMatchedFaces()).stored).toEqual({});
+
+    await settle(t);
+
+    expect((await expectStoredFacesToFollowTheMatcher())[wren]).toEqual({ image: cutoutOf("wren"), colour: "#8567FF" });
+  });
+
   test("the users.list backfill's real names reach the stored faces", async () => {
     await slackSays("team_join", "U_WREN", { profile: {} });
     const wren = await memberOf("U_WREN");
@@ -130,6 +145,7 @@ describe("CV22: each member's stored company face follows the matcher through ev
 
     slack.withMember("U_WREN", { real_name: "Wren Halloway", profile: { real_name: "Wren Halloway" } });
     await t.action(internal.slack.directory.fillMemberProfiles, {});
+    await settle(t);
 
     expect((await expectStoredFacesToFollowTheMatcher())[wren]).toEqual({ image: cutoutOf("wren"), colour: "#8567FF" });
   });

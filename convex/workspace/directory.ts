@@ -5,7 +5,7 @@ import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated
 import type { ChatUserId } from "../engine/messageEvent";
 import { ReportableError } from "../analytics/exceptions";
 import { followMembersLater } from "../analytics/person";
-import { keepCompanyFaces } from "../companyProfiles/storedFaces";
+import { keepCompanyFacesLater } from "../companyProfiles/storedFaces";
 import { publish } from "../bus/publish";
 import { reconcileMember, reconcileUser } from "../groups/reconcile";
 import { memberProfileFieldNames, memberProfileFields, type MemberProfile } from "./memberProfile";
@@ -105,7 +105,7 @@ export const nameMembersWithoutName = internalMutation({
       await ctx.db.patch(row._id, { name });
       named.add(workspace);
     }
-    for (const workspace of named) await keepCompanyFaces(ctx, workspace);
+    for (const workspace of named) await keepCompanyFacesLater(ctx, workspace);
   },
 });
 
@@ -122,7 +122,7 @@ export const fillProfiles = internalMutation({
       if (profile.realName !== undefined && profile.realName !== row.realName) renamed.add(workspace);
     }
     await followMembersLater(ctx, changed);
-    for (const workspace of renamed) await keepCompanyFaces(ctx, workspace);
+    for (const workspace of renamed) await keepCompanyFacesLater(ctx, workspace);
   },
 });
 
@@ -136,13 +136,13 @@ export async function record(ctx: MutationCtx, { workspace, user, entry, asOf }:
   if (existing === null) {
     await ctx.db.insert("members", row);
     await reconcileUser(ctx, workspace, user, Date.now());
-    await keepCompanyFaces(ctx, workspace);
+    await keepCompanyFacesLater(ctx, workspace);
   } else if (!isOlder(asOf, existing.asOf)) {
     const next = keepingNewerProfile(existing, row);
     if (changesNothingKept(existing, next)) return;
     await replace(ctx, existing, next);
     await followMembersLater(ctx, [existing._id]);
-    if (changesItsMatch(existing, next)) await keepCompanyFaces(ctx, workspace);
+    if (changesItsMatch(existing, next)) await keepCompanyFacesLater(ctx, workspace);
   }
 }
 

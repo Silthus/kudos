@@ -13,7 +13,7 @@ export async function storedCompanyFaceOf(ctx: QueryCtx, workspace: string, memb
   return row?.face;
 }
 
-export async function keepCompanyFaces(ctx: MutationCtx, workspace: string) {
+async function keepCompanyFaces(ctx: MutationCtx, workspace: string) {
   const matched = await matchedFacesIn(ctx, workspace);
   const stored = await ctx.db
     .query("companyFaces")
@@ -37,8 +37,12 @@ export const keepCompanyFacesIn = internalMutation({
   },
 });
 
+export async function keepCompanyFacesLater(ctx: MutationCtx, workspace: string) {
+  await ctx.scheduler.runAfter(0, internal.companyProfiles.storedFaces.keepCompanyFacesIn, { workspace });
+}
+
 export async function keepCompanyFacesInEveryWorkspaceLater(ctx: MutationCtx) {
-  for (const workspace of await workspacesWithFacesToKeep(ctx)) await ctx.scheduler.runAfter(0, internal.companyProfiles.storedFaces.keepCompanyFacesIn, { workspace });
+  for (const workspace of await workspacesWithFacesToKeep(ctx)) await keepCompanyFacesLater(ctx, workspace);
 }
 
 async function workspacesWithFacesToKeep(ctx: QueryCtx) {
