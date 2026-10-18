@@ -5,5 +5,5 @@ import { emojiCharacters } from "./emojiCharacters.ts";
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), emojiCharacters()],
-  build: { modulePreload: { polyfill: false } },
+  build: { modulePreload: { polyfill: false }, sourcemap: true },
 });

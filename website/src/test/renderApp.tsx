@@ -13,7 +13,7 @@ import type { RecentKudosRead } from "../recentKudosRead";
 import type { SettingsRead } from "../settingsRead";
 import type { SkillTreeRead } from "../skillTreeRead";
 import type { SpotlightDraw } from "../spotlightRead";
-import { ShellBoundary } from "../Root";
+import { ShellBoundary } from "../ShellBoundary";
 import type { ShellActions, ShellState } from "../shell";
 
 const noBoard: BoardRead = (period) => (period === undefined ? undefined : { kind: "not-found" });

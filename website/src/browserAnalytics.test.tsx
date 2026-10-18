@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
 import { shellFixtures } from "./shell";
 import { withoutSignInCode } from "./browserAnalytics/withoutSignInCode";
+import { postHogScriptUrl } from "./browserAnalytics/postHogScript";
 import type { CaptureResult } from "posthog-js/dist/module.full.no-external";
 import { fakeSystemTheme } from "./test/systemTheme";
 
@@ -26,19 +27,26 @@ function fakePostHog(token: string, config: Config, name: string) {
   let capturing = true;
   const call = (method: string, ...args: unknown[]) => recorded.calls.push({ instance: name, method, args });
   call("init", token, config);
+  const send = (event: string, properties: Record<string, unknown>) => {
+    if (!capturing) return;
+    const wouldSend = {
+      uuid: `event-${recorded.sent.length}`,
+      event,
+      properties: { $current_url: window.location.href, $referrer: document.referrer, ...registered, ...properties },
+      $set_once: { $initial_current_url: window.location.href, $initial_referrer: "$direct" },
+      timestamp: new Date(),
+    } as unknown as CaptureResult;
+    const result = config.before_send(wouldSend);
+    if (result !== null) recorded.sent.push({ instance: name, event: result.event, properties: result.properties, $set_once: result.$set_once });
+  };
   return {
     capture(event: string, properties: Record<string, unknown> = {}) {
       call("capture", event, properties);
-      if (!capturing) return;
-      const wouldSend = {
-        uuid: `event-${recorded.sent.length}`,
-        event,
-        properties: { $current_url: window.location.href, $referrer: document.referrer, ...registered, ...properties },
-        $set_once: { $initial_current_url: window.location.href, $initial_referrer: "$direct" },
-        timestamp: new Date(),
-      } as unknown as CaptureResult;
-      const result = config.before_send(wouldSend);
-      if (result !== null) recorded.sent.push({ instance: name, event: result.event, properties: result.properties, $set_once: result.$set_once });
+      send(event, properties);
+    },
+    captureException(error: Error, properties: Record<string, unknown> = {}) {
+      call("captureException", error, properties);
+      send("$exception", { ...properties, ...exceptionPropertiesOf(error) });
     },
     register: (properties: Record<string, unknown>) => (call("register", properties), Object.assign(registered, properties)),
     unregister: (property: string) => (call("unregister", property), delete registered[property]),
@@ -46,10 +54,16 @@ function fakePostHog(token: string, config: Config, name: string) {
     opt_out_capturing: () => (call("opt_out_capturing"), (capturing = false)),
     reset: () => call("reset"),
     stopSessionRecording: () => call("stopSessionRecording"),
+    stopExceptionAutocapture: () => call("stopExceptionAutocapture"),
     identify: (...args: unknown[]) => call("identify", ...args),
     alias: (...args: unknown[]) => call("alias", ...args),
     setPersonProperties: (...args: unknown[]) => call("setPersonProperties", ...args),
   };
+}
+
+function exceptionPropertiesOf(error: Error) {
+  const frames = [{ filename: window.location.href, abs_path: window.location.href, function: "renderPage", lineno: 12, colno: 7, in_app: true, platform: "web:javascript" }];
+  return { $exception_list: [{ type: error.name, value: error.message, mechanism: { type: "generic", handled: true }, stacktrace: { type: "raw", frames } }], $exception_level: "error" };
 }
 
 const answers = new Map<string, unknown>();
@@ -120,6 +134,47 @@ function sentEvents() {
 
 const screens = () => screen.getByRole("navigation", { name: "Screens" });
 
+const privateWords = ["Thanks Ann for untangling the deploy", "U0123ABCD", "C0456EFGH", "SIGNIN-CODE-1234"];
+
+function privateError() {
+  return new TypeError(`${privateWords[0]} with ${privateWords[1]} in ${privateWords[2]}, see https://hedgehug.example/?code=${privateWords[3]}`);
+}
+
+function aPageThrows(error: Error) {
+  answers.set("website/profile:getMyProfile", error);
+  act(() => listeners.forEach((notify) => notify()));
+}
+
+function errorPage() {
+  return screen.findByRole("heading", { level: 1, name: "Something went wrong" });
+}
+
+function settled() {
+  return new Promise((resolve) => setTimeout(resolve, 20));
+}
+
+function beforeSendOfTheStartedSdk() {
+  return (only(callsOf("init")).args[1] as Config).before_send;
+}
+
+function autocapturedException(frames: Record<string, unknown>[]) {
+  return {
+    uuid: "event-autocaptured",
+    event: "$exception",
+    properties: {
+      $exception_list: [
+        { type: "Error", value: `Uncaught ${privateWords[0]}`, mechanism: { type: "onunhandledrejection", handled: false }, stacktrace: { type: "raw", frames } },
+        { type: "RangeError", value: `caused by ${privateWords[1]}`, mechanism: { type: "chained", source: "cause" }, stacktrace: { type: "raw", frames } },
+      ],
+      $exception_level: "error",
+      page: "home",
+    },
+    timestamp: new Date("2026-10-18T10:00:00Z"),
+  } as unknown as CaptureResult;
+}
+
+const ownFrame = { filename: "https://hedgehug.example/assets/index-abc.js", function: "giveKudos", lineno: 3, colno: 41, in_app: true };
+
 beforeEach(() => {
   fakeSystemTheme(false);
   vi.resetModules();
@@ -178,6 +233,7 @@ describe("the browser captures only while told to", () => {
       enable_heatmaps: true,
       capture_dead_clicks: true,
       capture_performance: { web_vitals: true, network_timing: false },
+      capture_exceptions: { capture_unhandled_errors: true, capture_unhandled_rejections: true, capture_console_errors: false },
     });
     expect(only(callsOf("register")).args[0]).toEqual({ environment: "sandbox" });
     expect([...callsOf("identify"), ...callsOf("alias"), ...callsOf("setPersonProperties")]).toEqual([]);
@@ -195,13 +251,13 @@ describe("the browser captures only while told to", () => {
     const sentBefore = recorded.sent.length;
 
     analyticsAnswers(next);
-    const stopping = recorded.calls.slice(-4).map(({ method }) => method);
+    const stopping = recorded.calls.slice(-5).map(({ method }) => method);
     await user.click(within(screens()).getByRole("link", { name: "Leaderboard" }));
     window.history.pushState(null, "", "/book#hoggies/legendary");
 
-    expect(stopping).toEqual(["stopSessionRecording", "opt_out_capturing", "reset", "opt_out_capturing"]);
+    expect(stopping).toEqual(["stopSessionRecording", "stopExceptionAutocapture", "opt_out_capturing", "reset", "opt_out_capturing"]);
     expect(recorded.sent).toHaveLength(sentBefore);
-    expect(recorded.calls.slice(-4).map(({ method }) => method)).toEqual(stopping);
+    expect(recorded.calls.slice(-5).map(({ method }) => method)).toEqual(stopping);
   });
 
   it("an answer that changes while posthog-js is still loading abandons the import", async () => {
@@ -229,6 +285,41 @@ describe("the browser captures only while told to", () => {
     expect(recorded.sent.filter(({ instance }) => instance === second.instance).map(({ event }) => event)).toEqual(["$pageview"]);
   });
 
+  it.each([
+    ["answers off", { kind: "off" }],
+    ...denials.map((denial) => [`answers ${denial.kind}`, denial] as [string, unknown]),
+    ["fails", new Error("Server Error")],
+  ])("an error the shell's error page catches while the read %s is never reported, even when capture starts later", async (_, answer) => {
+    renderLiveSite();
+    analyticsAnswers(answer);
+    aPageThrows(privateError());
+    await errorPage();
+
+    analyticsAnswers(ann);
+    await capturing();
+    await settled();
+
+    expect(callsOf("captureException")).toEqual([]);
+    expect(recorded.sent.map(({ event }) => event)).not.toContain("$exception");
+  });
+
+  it("an error the shell's error page catches while the read still loads waits, untouched, and is reported once capture starts", async () => {
+    renderLiveSite();
+    const error = privateError();
+    aPageThrows(error);
+    await errorPage();
+    await settled();
+    expect(recorded.imports).toBe(0);
+    expect(recorded.calls).toEqual([]);
+
+    analyticsAnswers(ann);
+    await capturing();
+
+    await waitFor(() => expect(callsOf("captureException").map(({ args }) => args)).toEqual([[error, { page: "home" }]]));
+    await settled();
+    expect(callsOf("captureException")).toHaveLength(1);
+  });
+
   it("the same capture answer again starts nothing new", async () => {
     renderLiveSite();
     analyticsAnswers(ann);
@@ -239,6 +330,23 @@ describe("the browser captures only while told to", () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(callsOf("init")).toHaveLength(1);
     expect(recorded.sent.map(({ event }) => event)).toEqual(["$pageview"]);
+  });
+});
+
+describe("MS24: the shell's error page reports what it caught", () => {
+  it("an error a page throws while capturing is reported once, with the route's page, and the error page shows", async () => {
+    const { user } = renderLiveSite();
+    analyticsAnswers(ann);
+    await capturing();
+    await user.click(within(screens()).getByRole("link", { name: "Leaderboard" }));
+    const error = privateError();
+
+    aPageThrows(error);
+
+    expect(await errorPage()).toBeInTheDocument();
+    await settled();
+    expect(callsOf("captureException").map(({ args }) => args)).toEqual([[error, { page: "leaderboard" }]]);
+    expect(recorded.sent.filter(({ event }) => event === "$exception")).toHaveLength(1);
   });
 });
 
@@ -294,6 +402,49 @@ describe("MS22: pageviews follow the address", () => {
     act(() => window.dispatchEvent(new PopStateEvent("popstate")));
 
     expect(sentEvents()).toEqual([{ event: "$pageview", page: "leaderboard", book_page: undefined, spread: undefined }]);
+  });
+});
+
+describe("nothing private reaches PostHog from the browser", () => {
+  it("an error the shell's error page caught, full of kudos words, Slack IDs and a sign-in URL, is sent as its type alone, with its frames free of the code", async () => {
+    window.history.replaceState(null, "", `/?code=${privateWords[3]}&panel=inventory`);
+    renderLiveSite();
+    analyticsAnswers(ann);
+    await capturing();
+
+    aPageThrows(privateError());
+    await errorPage();
+
+    const exception = only(recorded.sent.filter(({ event }) => event === "$exception"));
+    expect(exception.properties.$exception_list).toEqual([expect.objectContaining({ type: "TypeError", value: "TypeError" })]);
+    expect(exception.properties.page).toBe("home");
+    expect(JSON.stringify(exception.properties.$exception_list)).toContain("http://localhost:3000/?panel=inventory");
+    for (const word of privateWords) expect(JSON.stringify(recorded.sent), word).not.toContain(word);
+  });
+
+  it("an exception posthog-js captures by itself, causes included, keeps its types, frames and page and loses every message", async () => {
+    renderLiveSite();
+    analyticsAnswers(ann);
+    await capturing();
+
+    const sent = beforeSendOfTheStartedSdk()(autocapturedException([ownFrame]))!;
+
+    expect(sent.properties.$exception_list).toEqual([
+      { type: "Error", value: "Error", mechanism: { type: "onunhandledrejection", handled: false }, stacktrace: { type: "raw", frames: [ownFrame] } },
+      { type: "RangeError", value: "RangeError", mechanism: { type: "chained", source: "cause" }, stacktrace: { type: "raw", frames: [ownFrame] } },
+    ]);
+    expect(sent.properties.page).toBe("home");
+    for (const word of privateWords) expect(JSON.stringify(sent), word).not.toContain(word);
+  });
+
+  it("an exception thrown inside posthog-js's own script is never sent back to PostHog", async () => {
+    renderLiveSite();
+    analyticsAnswers(ann);
+    await capturing();
+    const beforeSend = beforeSendOfTheStartedSdk();
+
+    expect(beforeSend(autocapturedException([ownFrame, { ...ownFrame, filename: postHogScriptUrl, function: "Kr" }]))).toBeNull();
+    expect(beforeSend(autocapturedException([{ ...ownFrame, filename: postHogScriptUrl, function: "Kr" }, ownFrame]))).not.toBeNull();
   });
 });
 
