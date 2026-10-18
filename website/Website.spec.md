@@ -182,6 +182,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   over: the live shell over an answer loading, off, each denial and a failed read, a capture answer, sign-out, the flag turning off, the website closing and a failed read mid-session followed by navigation, an answer changing while posthog-js loads, a second member's capture answer after sign-out, the same capture answer again, and an error the error page caught while the answer loaded, was off, each denial or failed, followed by a capture answer
   via: the browser captures only while told to
   refuted: the module kept capturing when getBrowserAnalytics failed -> a failed read mid-session neither opted out nor reset, 1 of 10 tests red (2026-10-18)
+  refuted: the module kept an error caught while the answer was not capture and reported it when a capture answer followed -> each off, denial and failed-read case reported the error, 7 of 18 tests red (2026-10-18)
   because: a member the flag is off for must download nothing new and send nothing, and a shared browser must not be tracked as a member after they sign out (MS18, MS19, MS20)
   kinds: output, identity
   checklist: destination-confinement declared as the browser captures only while told to
@@ -196,6 +197,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   over: every page rendered from the fixture app, `/`, `/activity` with each filter, `/leaderboard`, `/quests`, `/skills`, `/book`, `/book/collection`, two spread hashes and `/settings`, for the fixtures holding activity, the spotlight, recent kudos, teammates' Slack faces, custom emoji, the inventory, the Book and the crate store, every text node and every link, picture and label attribute; the live shell's error page catching an error full of kudos words, Slack-shaped IDs and a sign-in URL; an exception with a cause posthog-js captured by itself; one whose top frame is posthog-js's script; and the pinned posthog-js's own request bodies for an unhandled error, an unhandled rejection and a reported error
   via: nothing private reaches PostHog from the browser
   refuted: KudosMessage's words lost their ph-no-capture block -> kudos words lay outside every block on the home, activity and leaderboard pages, 10 of 20 tests red (2026-10-18)
+  refuted: the exception scrub kept each exception's own message instead of its type name -> the caught error, the autocaptured one and the pinned posthog-js's bodies carried the private words, 3 of 24 tests red (2026-10-18)
   because: kudos words are colleagues' private thanks and permalinks and Slack pictures hold channel, message, team and user IDs, so none of them may reach a replay or an event that everyone in the organisation can open, and an error's message can quote any of them; names, levels, hoggies and quests stay visible as the product owner chose (masking A, MS23, MS24, MS27)
   kinds: output, message
   checklist: destination-confinement dismissed: the blocks change only what posthog-js records, and posthog-js sends only where the browser captures only while told to lets it
