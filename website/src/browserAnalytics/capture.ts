@@ -1,7 +1,7 @@
 import type { PostHog, PostHogConfig } from "posthog-js/dist/module.full.no-external";
 import type { BrowserAnalytics } from "../../../convex/website/browserAnalytics";
 import { captureEveryPageview } from "./pageviews";
-import { withoutSignInCode } from "./withoutSignInCode";
+import { replayRequestWithoutSignInCode, withoutSignInCode } from "./withoutSignInCode";
 
 export type Capture = Extract<BrowserAnalytics, { kind: "capture" }>;
 
@@ -73,7 +73,17 @@ export function optionsFor({ host, distinctId }: Capture): Partial<PostHogConfig
     opt_out_persistence_by_default: true,
     advanced_disable_feature_flags: true,
     disable_surveys: true,
-    disable_session_recording: true,
+    disable_session_recording: false,
+    enable_recording_console_log: false,
+    session_recording: {
+      blockClass: "ph-no-capture",
+      maskAllInputs: true,
+      recordHeaders: false,
+      recordBody: false,
+      captureCanvas: { recordCanvas: false },
+      recordCrossOriginIframes: false,
+      maskCapturedNetworkRequestFn: replayRequestWithoutSignInCode,
+    },
     disable_external_dependency_loading: true,
     capture_exceptions: false,
     capture_pageview: false,
