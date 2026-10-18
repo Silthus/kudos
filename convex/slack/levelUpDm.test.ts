@@ -53,7 +53,8 @@ describe("P63: the level-up DM", () => {
     ["level 4 names no skill points", 290, "🎉 You reached level 4!\nLevel 5 is 300 XP away."],
     ["level 5 names the first skill point, saved for the skill tree", 590, "🎉 You reached level 5! You have 1 skill point saved for the skill tree.\nLevel 6 is 400 XP away."],
     ["level 6 names every saved skill point", 990, "🎉 You reached level 6! You have 2 skill points saved for the skill tree.\nLevel 7 is 500 XP away."],
-  ])("P4: %s", async (_, xp, text) => {
+  ])("P4: while the skill tree ships, %s", async (_, xp, text) => {
+    flagsOnForEveryone(slack.fetch, "xp-levels", "skill-tree");
     const t = await workspaceWithAllowance(10);
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
     await withXp(t, "U_ALICE", xp);
@@ -61,6 +62,16 @@ describe("P63: the level-up DM", () => {
     await giveKudos(t, "U_ALICE", "U_BOB", 1);
 
     expect(levelUpDms().filter(({ channel }) => channel === "U_ALICE").map((dm) => dm.text)).toEqual([text]);
+  });
+
+  test("P4 AL35: while the skill tree doesn't ship, level 6 names no skill points", async () => {
+    const t = await workspaceWithAllowance(10);
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+    await withXp(t, "U_ALICE", 990);
+
+    await giveKudos(t, "U_ALICE", "U_BOB", 1);
+
+    expect(levelUpDms().filter(({ channel }) => channel === "U_ALICE").map((dm) => dm.text)).toEqual(["🎉 You reached level 6!\nLevel 7 is 500 XP away."]);
   });
 
   test("a recipient who reaches a level gets the DM, and a giver who stays on their level gets none", async () => {

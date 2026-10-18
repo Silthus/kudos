@@ -188,7 +188,7 @@ describe("ST8 limits: the owned kudos emoji hook reads a fixed handful per messa
   });
 });
 
-describe("ST8 ST9 ST22: an owned kudos emoji counts only for its owner and only where the store is visible", { timeout: 30_000 }, () => {
+describe("ST8 ST9 ST22 AL34: an owned kudos emoji counts only for its owner, whether the store is shown to them or not", { timeout: 30_000 }, () => {
   test("🦔 in someone else's message counts for nobody", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await coinsOpenedBy(t, "U_ALICE");
@@ -204,22 +204,22 @@ describe("ST8 ST9 ST22: an owned kudos emoji counts only for its owner and only 
     expect(given[0]!.ownedEmoji ?? []).toEqual([]);
   });
 
-  test("the same message from a member who opened Coins but isn't shown the store is no kudos", async () => {
+  test("the same message from a member who opened Coins but isn't shown the store is a kudos", async () => {
     const t = await workspaceDeciding(...previewedByAlice);
     await coinsOpenedBy(t, "U_CAROL");
     vi.setSystemTime(tuesday + dayMs);
-    const before = successRepliesTo("U_CAROL").length;
+    const kudosBefore = (await kudosGivenEvents(t)).length;
 
     await giveKudos(t, "U_CAROL", ["U_BOB"], saysWhy, ["hedgehog"]);
 
-    expect(successRepliesTo("U_CAROL")).toHaveLength(before);
+    expect((await kudosGivenEvents(t)).slice(kudosBefore)).toMatchObject([{ ownedEmoji: ["hedgehog"], awards: [{ kudos: 1 }] }]);
   });
 
   test.each([
-    ["store off", storeOff],
-    ["store not created", storeNotCreated],
-    ["coins off", coinsOff],
-  ])("with %s, the previewer sees nothing of the inventory, and 🦔 is no kudos", async (_, definitions) => {
+    ["store off", storeOff, ["hedgehog"]],
+    ["store not created", storeNotCreated, ["hedgehog"]],
+    ["coins off", coinsOff, []],
+  ])("with %s, the previewer sees nothing of the inventory, and 🦔 is a kudos once she opened Coins", async (_, definitions, claimed) => {
     const t = await workspaceDeciding(...definitions);
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy);
     await openHome(t, "U_ALICE");
@@ -231,7 +231,7 @@ describe("ST8 ST9 ST22: an owned kudos emoji counts only for its owner and only 
     await giveKudos(t, "U_ALICE", ["U_BOB"], saysWhy, ["hedgehog"]);
 
     expect(slackCallsAbout("U_ALICE").flatMap(readCall).filter(namesTheInventory)).toEqual([]);
-    expect(await kudosGivenEvents(t)).toHaveLength(kudosBefore);
+    expect((await kudosGivenEvents(t)).slice(kudosBefore).map(({ ownedEmoji }) => ownedEmoji)).toEqual(claimed.length === 0 ? [] : [claimed]);
   });
 });
 
