@@ -7,6 +7,7 @@ import { publish } from "../bus/publish";
 import type { MessageRef } from "../engine/messageEvent";
 import { givingWeekOf } from "../progression/progress";
 import type { MemberId } from "../workspace/directory";
+import { countThoughtfulAwards } from "./boards";
 import { nameHypeEmojiOf } from "./emojiNames";
 import type { GrantOutcome } from "./records";
 
@@ -21,7 +22,9 @@ export const grantThoughtfulPacks = internalMutation({
   handler: async (ctx, { event, from = 0 }) => {
     const recipients = recipientsOf(event);
     const next = from + recipientsPerMutation;
-    for (const recipient of recipients.slice(from, next)) await grantTo(ctx, event, recipient);
+    let granted = 0;
+    for (const recipient of recipients.slice(from, next)) if (await grantTo(ctx, event, recipient)) granted += 1;
+    await countThoughtfulAwards(ctx, event, granted);
     await tellOnceEveryoneIsGranted(ctx, event, recipients);
     if (next < recipients.length) await ctx.scheduler.runAfter(0, internal.album.packs.grantThoughtfulPacks, { event, from: next });
     return null;
@@ -41,10 +44,11 @@ function recipientsOf(event: KudosGivenEvent): MemberId[] {
   return [...new Set(event.awards.map(({ recipient }) => recipient))].filter((recipient) => recipient !== event.giver);
 }
 
-async function grantTo(ctx: MutationCtx, event: KudosGivenEvent, recipient: MemberId) {
-  if ((await grantRecordOf(ctx, event.message, recipient)) !== null) return;
+async function grantTo(ctx: MutationCtx, event: KudosGivenEvent, recipient: MemberId): Promise<boolean> {
+  if ((await grantRecordOf(ctx, event.message, recipient)) !== null) return false;
   const outcome = await packFor(ctx, event, recipient);
   await ctx.db.insert("grantRecords", { giver: event.giver, message: event.message, recipient, outcome });
+  return true;
 }
 
 async function packFor(ctx: MutationCtx, { workspace, giver, message, day, at }: KudosGivenEvent, recipient: MemberId): Promise<GrantOutcome> {
