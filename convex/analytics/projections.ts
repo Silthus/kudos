@@ -24,7 +24,7 @@ import type { KudosCommandResult } from "../feedback/kudosCommand";
 import type { Period } from "../leaderboard/periods";
 import type { MessageKind, MessagePlace } from "../messageSettings/kinds";
 import type { Feature } from "../unlocks/feature";
-import { gateDecisionOf } from "../progression/gate";
+import { gateDecisionOf, wordCountOf } from "../progression/gate";
 import { crateKindOf } from "../hoggies/crateKey";
 import { defaultKudosEmoji } from "../workspace/settings";
 import type { MemberId } from "../workspace/directory";
@@ -104,12 +104,15 @@ const commandResultNames: Record<KudosCommandResult, string> = {
   "direct-message": "direct message",
 };
 
-export function projectKudosGiven(event: KudosGivenEvent): ProductEvent[] {
-  return [kudosGiven(event), ...event.awards.map((award) => kudosReceived(event, award))];
+export type GivingHistory = { newRecipients: number };
+
+export function projectKudosGiven(event: KudosGivenEvent, history: GivingHistory): ProductEvent[] {
+  return [kudosGiven(event, history), ...event.awards.map((award) => kudosReceived(event, award))];
 }
 
-function kudosGiven(event: KudosGivenEvent): ProductEvent {
+function kudosGiven(event: KudosGivenEvent, { newRecipients }: GivingHistory): ProductEvent {
   const kudosPerRecipient = event.awards[0]?.kudos ?? 0;
+  const wordCount = wordCountOf(event.annotations);
   return {
     event: "kudos given",
     subject: { member: event.giver },
@@ -125,6 +128,8 @@ function kudosGiven(event: KudosGivenEvent): ProductEvent {
       daily_allowance_left: event.allowance.dailyLeft,
       default_kudos_emoji: event.kudosEmoji === defaultKudosEmoji(),
       thoughtful: gateDecisionOf(event.annotations)?.thoughtful === true,
+      ...(wordCount !== null && { word_count: wordCount }),
+      new_recipients: newRecipients,
     },
   };
 }
