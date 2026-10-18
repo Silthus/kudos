@@ -32,6 +32,7 @@ import { buyItem } from "../store/buying";
 import { setCustomKudosEmoji } from "../store/customKudosEmoji";
 import type { ItemPurchaseOutcome } from "../store/rows";
 import { xpLevelsShownTo } from "../progression/xpLevels";
+import type { Surface } from "./surface";
 import { featureValidator } from "../unlocks/feature";
 import { openUnlock } from "../unlocks/unlocks";
 import type { MemberId } from "../workspace/directory";
@@ -65,6 +66,8 @@ export const commandValidator = v.union(
 
 export type Command = Infer<typeof commandValidator>;
 
+export type CommandOrigin = { surface: Surface; idempotencyKey: string };
+
 export type CommandOutcome = PurchaseOutcome | ItemPurchaseOutcome | CratePurchaseOutcome | SelfLinkOutcome | AdminLinkOutcome | WorkspaceSettingsOutcome | null;
 
 const websiteOnly: ReadonlySet<Command["type"]> = new Set(["linkMyCompanyProfile", "linkCompanyProfile", "setWorkspaceSettings"]);
@@ -83,7 +86,7 @@ export async function commandsOfferedTo(ctx: QueryCtx, member: MemberId, command
   return commands.filter((command) => !setsAvatar(command));
 }
 
-export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, idempotencyKey: string): Promise<CommandOutcome> {
+export async function runCommand(ctx: MutationCtx, workspace: string, person: HomeMember, command: Command, { surface, idempotencyKey }: CommandOrigin): Promise<CommandOutcome> {
   const { member } = person;
   switch (command.type) {
     case "showHomeTab": {
@@ -112,10 +115,10 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
       await setAnnouncementChannel(ctx, workspace, person, command.channel);
       return null;
     case "openUnlock":
-      await openUnlock(ctx, member, command.feature);
+      await openUnlock(ctx, member, command.feature, surface);
       return null;
     case "openQuestCrate":
-      await openQuestCrate(ctx, member, command.quest);
+      await openQuestCrate(ctx, member, command.quest, surface);
       return null;
     case "rerollQuest":
       await rerollQuest(ctx, member, command.quest);
@@ -143,7 +146,7 @@ export async function runCommand(ctx: MutationCtx, workspace: string, person: Ho
     case "buyCrate":
       return buyCrate(ctx, member, command.next, Date.now());
     case "openCrate":
-      await openCrate(ctx, member, command.crate, Date.now());
+      await openCrate(ctx, member, command.crate, Date.now(), surface);
       return null;
     case "setAvatar":
       await setAvatar(ctx, member, command.hoggie);

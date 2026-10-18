@@ -304,7 +304,7 @@ describe("CL20: a crate drops at most one hoggie", () => {
       drop,
     });
     expect(publishedEvents().map(({ type }) => type)).toEqual(["xpRecorded", "hoggieDropped", "questOpened"]);
-    expect(publishedEvents()[1]).toEqual({ type: "hoggieDropped", workspace: "T1", member, crate: "journey:first-thanks", hoggie: drop.hoggie, rarity: drop.rarity, copy: 1, at: now.getTime() });
+    expect(publishedEvents()[1]).toEqual({ type: "hoggieDropped", workspace: "T1", member, crate: "journey:first-thanks", hoggie: drop.hoggie, rarity: drop.rarity, copy: 1, at: now.getTime(), surface: "website" });
   });
 });
 

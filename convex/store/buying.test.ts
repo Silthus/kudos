@@ -125,7 +125,7 @@ async function buyItem(t: Backend, member: MemberId, item: string, key: string) 
   return t.run(async (ctx) => {
     const person = await lookup(ctx, "T1", (await ctx.db.get(member))!.user);
     if (person?.kind !== "member") throw new Error("not a member");
-    return runCommand(ctx, "T1", person, { type: "buyItem", item }, key);
+    return runCommand(ctx, "T1", person, { type: "buyItem", item }, { surface: "slack", idempotencyKey: key });
   });
 }
 

@@ -12,5 +12,5 @@ export async function reachesLevel(t: Backend, member: Id<"members">, level: num
 }
 
 export async function opens(t: Backend, member: Id<"members">, feature: Feature) {
-  expect(await t.run((ctx) => openUnlock(ctx, member, feature))).toBe("done");
+  expect(await t.run((ctx) => openUnlock(ctx, member, feature, "slack"))).toBe("done");
 }
