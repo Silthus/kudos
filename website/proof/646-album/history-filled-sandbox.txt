@@ -1,5 +1,5 @@
-# Ticket 1's first cast (giver U0PRF645GVR), whose kudos were sent on 2026-10-18 before this branch's deploy at 22:27:59 UTC, so no tally subscriber ran for them: only startAlbumHistory (22:31:52) could fill these.
-pairTallyOf giver js72eyhyyzkyr1dd6v9wnn4m4x8ghyj2:
+# Ticket 1's first cast (giver U0PRF645GVR = js761q0epg42s6vq7hcxf6arbn8ggevy, Imogen Quarry; Fennel Brook, Juniper Vale and Rowan Thistle as named below), whose kudos were sent on 2026-10-18 before this branch's deploy at 22:27:59 UTC, so no tally subscriber ran for them: only startAlbumHistory (22:31:52) could fill these.
+pairTallyOf giver js72eyhyyzkyr1dd6v9wnn4m4x8ghyj2 (Fennel Brook: two thoughtful kudos):
 {
   "best": {
     "at": 1792269743818,
@@ -16,7 +16,7 @@ pairTallyOf giver js72eyhyyzkyr1dd6v9wnn4m4x8ghyj2:
   "kudosGiven": 2,
   "kudosReceived": 0
 }
-pairTallyOf giver js72z2z8xx07hxz3vfq5hw0ge18ghwdz:
+pairTallyOf giver js72z2z8xx07hxz3vfq5hw0ge18ghwdz (Juniper Vale: one thoughtful kudos at 1792183339.118000, and the `ty` at 1792356148.113000, which best passes over):
 {
   "best": {
     "at": 1792183339118,
@@ -33,7 +33,7 @@ pairTallyOf giver js72z2z8xx07hxz3vfq5hw0ge18ghwdz:
   "kudosGiven": 2,
   "kudosReceived": 0
 }
-pairTallyOf giver js7873j1z4hzx7jy2q3e9pbhdn8gg6yk:
+pairTallyOf giver js7873j1z4hzx7jy2q3e9pbhdn8gg6yk (Rowan Thistle: one thoughtful kudos):
 {
   "best": {
     "at": 1792183339118,
