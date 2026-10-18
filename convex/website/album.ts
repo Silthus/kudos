@@ -7,6 +7,8 @@ import { progressionHomeOf } from "../progression/progression";
 import type { QueryCtx } from "../_generated/server";
 import type { MemberId } from "../workspace/directory";
 import { nameless, storedFaceOf, type Face } from "./faces";
+import { appliedShownTo } from "./commands";
+import { noLaunchWaitsFor } from "./flag";
 import { memberMutation } from "./memberMutation";
 import { memberQuery, type VerifiedMember } from "./memberQuery";
 
@@ -34,10 +36,14 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
 export const openThoughtfulPack = memberMutation({
   args: { pack: v.id("thoughtfulPacks") },
   handler: async (ctx, me, _person, { pack }): Promise<OpenAnswer> => {
-    const opening = (await albumShownTo(ctx, me.member)) ? await openPack(ctx, me.member, pack, Date.now()) : null;
-    return opening === null ? { kind: "refused" } : { kind: "opened", ...opening };
+    const opening = (await opensPacks(ctx, me)) ? await openPack(ctx, me.member, pack, Date.now()) : null;
+    return opening === null ? { kind: "refused" } : { kind: "opened", items: opening.items, applied: await appliedShownTo(ctx, me, opening.applied) };
   },
 });
+
+async function opensPacks(ctx: QueryCtx, me: VerifiedMember) {
+  return (await albumShownTo(ctx, me.member)) && (await noLaunchWaitsFor(ctx, me));
+}
 
 async function meIn(ctx: QueryCtx, me: VerifiedMember): Promise<AlbumAnswer["me"]> {
   return { name: me.name ?? nameless, face: await storedFaceOf(ctx, me), person: me.member };

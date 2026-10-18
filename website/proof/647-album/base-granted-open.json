@@ -1,0 +1,33 @@
+{
+  "applied": {
+    "coins": 0,
+    "from": {
+      "coins": 46,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 50
+    },
+    "to": {
+      "coins": 46,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 65
+    },
+    "xp": 15
+  },
+  "items": [
+    {
+      "item": "jn7wz4tnxsagfcpv25xnhk9vc98gg6d4",
+      "kind": "sticker",
+      "person": "js7fk9jrbcgxn5sg9nh1959q518gg238"
+    },
+    {
+      "hoggie": "float",
+      "isNew": true,
+      "item": "jn7mm5n144rwbeh22pp98rppns8ggv11",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    }
+  ],
+  "kind": "opened"
+}

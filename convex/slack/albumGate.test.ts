@@ -17,7 +17,7 @@ import schema from "../schema";
 import { openUnlock } from "../unlocks/unlocks";
 
 const theAlbum = vi.hoisted(() => ({ removed: false }));
-const albumDecisions = vi.hoisted(() => [] as Array<{ by: string; inAQuery: boolean }>);
+const albumDecisions = vi.hoisted(() => [] as Array<{ by: string }>);
 
 vi.mock("../album/flag", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../album/flag")>();
@@ -41,8 +41,8 @@ vi.mock("../analytics/flags", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../analytics/flags")>();
   const recorded = <F extends (...args: never[]) => unknown>(by: string, decide: F) =>
     ((...args: Parameters<F>) => {
-      const [ctx, read] = args as unknown as [object, { key: string }];
-      if (read.key === "album") albumDecisions.push({ by, inAQuery: !("scheduler" in ctx) });
+      const [, read] = args as unknown as [object, { key: string }];
+      if (read.key === "album") albumDecisions.push({ by });
       return decide(...args);
     }) as F;
   return {

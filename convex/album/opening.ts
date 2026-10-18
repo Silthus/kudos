@@ -20,9 +20,10 @@ export async function openThoughtfulPack(ctx: MutationCtx, member: MemberId, pac
   if (waiting?.giver !== member || waiting.openedAt !== undefined || !(await hoggiesShownTo(ctx, member))) return null;
   const crate = crateKeyOf(pack);
   await dropFor(ctx, member, crate, at, "website");
+  const drop = await dropOf(ctx, member, crate);
+  if (drop === null) return null;
   await ctx.db.patch(pack, { openedAt: at });
-  const items = await intoTheTray(ctx, waiting, (await dropOf(ctx, member, crate))!, at);
-  return { items, applied: await packOf(ctx, member, crate) };
+  return { items: await intoTheTray(ctx, waiting, drop, at), applied: await packOf(ctx, member, crate) };
 }
 
 export async function trayOf(ctx: QueryCtx, member: MemberId): Promise<{ tray: TrayItem[]; more: boolean }> {

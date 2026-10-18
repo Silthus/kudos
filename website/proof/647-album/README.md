@@ -10,3 +10,12 @@ Branch `album/3` at `9758acb6` (main merged in), hand-deployed at 22:47 UTC on 2
 6. PostHog project 662840: `posthog-hoggie-dropped.txt`, `hoggie dropped` with `crate_kind: thoughtful`, `surface: website`, `pack_xp: 15`, `pack_coins: 0`.
 
 Run: `KUDOS_SITE=https://different-dog-467.convex.site KUDOS_WORKSPACE=<sandbox team> KUDOS_PUBLIC_CHANNEL=<channel> SLACK_SIGNING_SECRET_FILE=<600 file> bun website/proof/647-album/drive.mts`
+
+## Cross-version: a pack the base code granted, opened by this branch
+
+Ticket 1's second-cast giver from `website/proof/645-album/` holds three packs the base code (`main` before this branch) granted on the sandbox at about 20:24 UTC, before this branch's 22:47 deploy.
+
+7. `getAlbum` through this branch lists all three as waiting: they carry no `openedAt`, and the new index `by_giver_opened_at` finds them (`base-granted-getAlbum-before.json`).
+8. `openThoughtfulPack` on the first answered `opened` with the sticker and the hoggie and 15 XP (`base-granted-open.json`); `getAlbum` then shows two waiting and the two tray items (`base-granted-getAlbum-after.json`); the stored pack now has `openedAt`.
+
+The reverse direction is an accepted failure: once a pack is opened, the base schema refuses its `openedAt`, so rolling the code back after an open needs this branch's validators kept. Production stores no opened pack while `album` is off there.

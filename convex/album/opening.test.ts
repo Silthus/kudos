@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { FakeSlack } from "../../testing/fakeSlack";
+import { unlocksShippedBeforeAnyoneJoined } from "../../testing/flags";
 import { memberChanged, post, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { emoji, mention, section, text } from "../../testing/slackMessages";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
@@ -8,6 +9,7 @@ import { api } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { catalogue } from "../hoggies/catalogue";
 import { drawOf } from "../hoggies/draw";
+import { recordReward } from "../progression/progression";
 import schema from "../schema";
 import type { AlbumAnswer, AlbumRead } from "../website/album";
 import type { MemberId } from "../workspace/directory";
@@ -156,6 +158,18 @@ describe("AL9: a thoughtful pack pays 15 XP and no coins", () => {
     expect((await albumOf(asAlice)).level.xp).toBe(before + 15);
   });
 
+  test("while coins and skill points aren't shown to the member, the answer shows none of them, as the website's other opens do", async () => {
+    await thanks(alice, why, bob);
+    const member = await memberOf(alice);
+    await t.run((ctx) => recordReward(ctx, "T1", { member, key: "test:earned:120", xp: 0, coins: 120, item: null, catalogueVersion: "2", at: 0 }));
+    const asAlice = await signedIn(alice);
+    const [forBob] = await waitingPacksOf(asAlice);
+
+    const opened = await open(asAlice, forBob!);
+
+    expect(opened).toMatchObject({ kind: "opened", applied: { xp: 15, coins: 0, from: { coins: 0, skillPoints: 0 }, to: { coins: 0, skillPoints: 0 } } });
+  });
+
   test("with packs off, the open still fills the tray and pays nothing", async () => {
     await switchWebsite(t, postHog, true, "album", "collection");
     await thanks(alice, why, bob);
@@ -254,6 +268,39 @@ describe("website commands pass one guard", () => {
   });
 });
 
+describe("a website command never launches unlocks", () => {
+  test("WS62 P77: with xp-levels and unlocks on and no unlocks launch recorded, opening a pack answers refused and launches nothing", async () => {
+    await thanks(alice, why, bob);
+    const asAlice = await signedIn(alice);
+    const [forBob] = await waitingPacksOf(asAlice);
+    await switchWebsite(t, postHog, true, ...albumOpen, "xp-levels", "unlocks");
+    await settle(t);
+    const before = await everythingWritten();
+
+    expect(await open(asAlice, forBob!)).toEqual({ kind: "refused" });
+    await settle(t);
+
+    expect(await everythingWritten()).toEqual(before);
+    expect(before.tables.unlockLaunches).toEqual([]);
+  });
+
+  test("WS62 P91: with quests on and no Journey launch, opening a pack answers refused and doesn't launch the Journey", async () => {
+    await unlocksShippedBeforeAnyoneJoined(t);
+    await thanks(alice, why, bob);
+    const asAlice = await signedIn(alice);
+    const [forBob] = await waitingPacksOf(asAlice);
+    await switchWebsite(t, postHog, true, ...albumOpen, "xp-levels", "unlocks", "quests");
+    await settle(t);
+    const before = await everythingWritten();
+
+    expect(await open(asAlice, forBob!)).toEqual({ kind: "refused" });
+    await settle(t);
+
+    expect(await everythingWritten()).toEqual(before);
+    expect(before.tables.journeyLaunches).toEqual([]);
+  });
+});
+
 const names = new Map<string, string>();
 
 async function thanks(giver: Person, words: string, ...recipients: Person[]) {
@@ -335,4 +382,8 @@ function everyTable() {
     for (const table of Object.keys(schema.tables) as Array<keyof typeof schema.tables>) rows[table] = await ctx.db.query(table).collect();
     return rows;
   });
+}
+
+async function everythingWritten() {
+  return { tables: await everyTable(), scheduled: await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect()) };
 }
