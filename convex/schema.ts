@@ -27,7 +27,7 @@ import { perkValidator } from "./progression/tree";
 import { boughtCrateValidator, dropTallyValidator, dropValidator, hoggieAvatarValidator, hoggieTallyValidator } from "./hoggies/records";
 import { teamPageCheckValidator, teamPageCompletionValidator } from "./stickers/completionRecords";
 import { stickerBackfillValidator, stickerValidator } from "./stickers/records";
-import { albumStickerValidator, emojiNameNumberValidator, emojiNameValidator, grantRecordValidator, grantToldValidator, thoughtfulPackValidator, trayItemValidator } from "./album/records";
+import { albumStickerValidator, emojiNameNumberValidator, emojiNameValidator, grantRecordValidator, grantToldValidator, thoughtfulPackValidator, thoughtfulTallyValidator, trayItemValidator } from "./album/records";
 import { crateOpeningValidator, pendingCrateValidator } from "./quests/crates";
 import { groupFeasibleBecauseValidator, groupQuestIdValidator } from "./quests/groupPool";
 import { journeyActivationValidator, rewardValidator } from "./quests/journey";
@@ -89,6 +89,7 @@ export default defineSchema({
     workspace: v.string(),
     member: v.id("members"),
     face: v.union(v.object({ image: v.string(), colour: v.string() }), v.null()),
+    profile: v.optional(v.number()),
   }).index("by_member", ["workspace", "member"]),
 
   companyProfileLinks: defineTable({
@@ -522,6 +523,8 @@ export default defineSchema({
   grantRecords: defineTable(grantRecordValidator).index("by_message_recipient", ["message.workspace", "message.conversation", "message.message", "recipient"]),
 
   grantsTold: defineTable(grantToldValidator).index("by_message", ["message.workspace", "message.conversation", "message.message"]),
+
+  thoughtfulTallies: defineTable(thoughtfulTallyValidator).index("by_workspace_week_giver", ["workspace", "week", "giver"]),
 
   albumStickers: defineTable(albumStickerValidator).index("by_member_person", ["member", "person"]),
 
