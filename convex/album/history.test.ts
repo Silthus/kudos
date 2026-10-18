@@ -90,10 +90,15 @@ describe("people join the album only by giving", { timeout: 60_000 }, () => {
   });
 
   test("a kudos given after the history began but before its page ran collects only through its pack", async () => {
-    await beforeTheAlbum(() => thanks(alice, "ty", bob));
+    await beforeTheAlbum(async () => {
+      await thanks(alice, "ty", bob);
+      await thanks(carol, "ty", bob);
+    });
     await t.mutation(internal.album.history.startAlbumHistory, { workspace: "T1" });
 
-    await thanks(alice, why, carol);
+    await post(t, [section(text(`${why} `), mention(carol.user), emoji("taco"))], { user: alice.user, ts: nextTs() });
+    expect(await historyDone(), "the award exists before the history's first page").toBe(false);
+    await settle(t);
 
     expect(await historyDone()).toBe(true);
     expect(await peopleOf(alice)).toEqual([bob.name]);
