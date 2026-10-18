@@ -1,12 +1,21 @@
-// PROTOTYPE (#625): radically different HedgeHug websites on today's routes, switched by ?variant=. Round 2 is 1..4, round 1 stays at r1-1..r1-5. Never merge to main.
+// PROTOTYPE (#625): radically different HedgeHug websites on today's routes, switched by ?variant=. Round 3 is 1..3 plus slack, round 2 is r2-1..r2-4, round 1 is r1-1..r1-5. Never merge to main.
 export const prototypeRounds = [
+  {
+    round: "Round 3",
+    variants: [
+      { key: "1", name: "Sticker album" },
+      { key: "2", name: "Team yearbook" },
+      { key: "3", name: "Pocket binder" },
+      { key: "slack", name: "Slack moments" },
+    ],
+  },
   {
     round: "Round 2",
     variants: [
-      { key: "1", name: "Meadow realm" },
-      { key: "2", name: "World map" },
-      { key: "3", name: "Sky island" },
-      { key: "4", name: "Guild hall" },
+      { key: "r2-1", name: "Meadow realm" },
+      { key: "r2-2", name: "World map" },
+      { key: "r2-3", name: "Sky island" },
+      { key: "r2-4", name: "Guild hall" },
     ],
   },
   {

@@ -11,7 +11,14 @@ import { MeadowRealm } from "./round-2/variant-1-meadow-realm/MeadowRealm";
 import { WorldMap } from "./round-2/variant-2-world-map/WorldMap";
 import { SkyIsland } from "./round-2/variant-3-sky-island/SkyIsland";
 import { GuildHall } from "./round-2/variant-4-guild-hall/GuildHall";
+import { PretendSlack } from "./round-3/PretendSlack";
+import { StickerAlbum } from "./round-3/variant-1-sticker-album/StickerAlbum";
+import { TeamYearbook } from "./round-3/variant-2-team-yearbook/TeamYearbook";
+import { PocketBinder } from "./round-3/variant-3-pocket-binder/PocketBinder";
+import { SlackMoments } from "./round-3/slack-moments/SlackMoments";
 import type { VariantKey } from "./variants";
+
+const roundThree: ReadonlySet<VariantKey> = new Set(["1", "2", "3"]);
 
 export type VariantProps = {
   route: Route;
@@ -21,10 +28,14 @@ export type VariantProps = {
 };
 
 const variantOf = {
-  "1": MeadowRealm,
-  "2": WorldMap,
-  "3": SkyIsland,
-  "4": GuildHall,
+  "1": StickerAlbum,
+  "2": TeamYearbook,
+  "3": PocketBinder,
+  slack: SlackMoments,
+  "r2-1": MeadowRealm,
+  "r2-2": WorldMap,
+  "r2-3": SkyIsland,
+  "r2-4": GuildHall,
   "r1-1": GameHud,
   "r1-2": TheBook,
   "r1-3": RadicalPolish,
@@ -37,6 +48,7 @@ export function PrototypeStage({ variant, ...props }: VariantProps & { variant: 
   return (
     <div data-prototype-variant={variant} className="prototype-stage">
       <Variant {...props} />
+      {roundThree.has(variant) && <PretendSlack />}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { ErrorPage } from "./pages/ErrorPage";
 import { builtShell, fixtureActions, type ShellState } from "./shell";
 import { PrototypeBar } from "./prototype/PrototypeBar";
 import { WorldProvider } from "./prototype/world";
+import { AlbumProvider } from "./prototype/round-3/album";
 
 export function Root({ fixture, convexUrl }: { fixture?: string; convexUrl?: string }) {
   return <ShellBoundary>{fixture || !convexUrl ? <FixtureApp visitor={builtShell(fixture)} fixture={fixture} /> : <LiveShell client={new ConvexReactClient(convexUrl)} />}</ShellBoundary>;
@@ -17,8 +18,10 @@ export function Root({ fixture, convexUrl }: { fixture?: string; convexUrl?: str
 function FixtureApp({ visitor, fixture }: { visitor: ShellState; fixture: string | undefined }) {
   return (
     <WorldProvider>
+      <AlbumProvider>
       <App visitor={visitor} actions={fixtureActions} {...fixtureReadsFor(visitor, fixture)} />
       <PrototypeBar />
+      </AlbumProvider>
     </WorldProvider>
   );
 }

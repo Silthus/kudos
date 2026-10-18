@@ -16,6 +16,10 @@ function stepped(current: VariantKey | null, by: number): VariantKey {
   return prototypeVariants[index === -1 && by < 0 ? prototypeVariants.length - 1 : index === -1 ? 0 : next]!.key;
 }
 
+function shortKey(key: VariantKey) {
+  return key === "slack" ? "S" : key.replace(/^r\d-/, "");
+}
+
 function typingIn(target: EventTarget | null) {
   return target instanceof HTMLElement && (target.matches("input, textarea, select") || target.isContentEditable);
 }
@@ -52,12 +56,12 @@ export function PrototypeBar() {
           <span style={{ fontSize: 10, opacity: 0.7, textTransform: "uppercase" }}>{round.replace("Round ", "R")}</span>
           {variants.map(({ key, name: variantName }) => (
             <BarButton key={key} label={`${round}, variant ${key}: ${variantName}`} pressed={key === current} onClick={() => goTo(key)}>
-              {key.replace("r1-", "")}
+              {shortKey(key)}
             </BarButton>
           ))}
         </span>
       ))}
-      <span style={{ minWidth: 150, textAlign: "center", padding: "0 6px", display: window.innerWidth < 560 ? "none" : undefined }}>{current === null ? name : `${round} · ${current.replace("r1-", "")} · ${name}`}</span>
+      <span style={{ minWidth: 150, textAlign: "center", padding: "0 6px", display: window.innerWidth < 560 ? "none" : undefined }}>{current === null ? name : `${round} · ${shortKey(current)} · ${name}`}</span>
       <BarButton label="Today's site" pressed={current === null} onClick={() => goTo(null)}>
         0
       </BarButton>
