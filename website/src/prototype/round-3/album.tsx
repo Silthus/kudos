@@ -98,10 +98,20 @@ function statsFor(key: string, collectedAt: number | null): PersonStats {
   return { firstThankedAt: collectedAt, kudosGiven: 1 + (n % 6), kudosReceived: n % 5, hugsGiven: 2 + (n % 11), hugsReceived: 1 + ((n * 7) % 9), bestMessage: kindWords[n % kindWords.length]! };
 }
 
-function peopleFromTeams(): Person[] {
-  const collectedAt = new Map(teamStickers.map(({ key, firstAt }) => [key, firstAt]));
+export type CastPerson = { key: string; name: string; face: Face; role: string | null; lead: boolean };
+
+export type CastPage = { team: string; name: string; art: TeamArt; mine: boolean; leads: string[]; people: CastPerson[] };
+
+export type Cast = { pages: CastPage[]; collectedAt: ReadonlyMap<string, number> };
+
+const roundThreeCast: Cast = {
+  pages: teamPages.filter(({ listed }) => listed).map(({ team, name, art, mine, leads, people }) => ({ team, name, art, mine, leads, people: people.map(({ key, name: personName, face, role, lead }) => ({ key, name: personName, face, role, lead })) })),
+  collectedAt: new Map(teamStickers.map(({ key, firstAt }) => [key, firstAt])),
+};
+
+function peopleFromTeams({ pages, collectedAt }: Cast): Person[] {
   const byKey = new Map<string, Person>();
-  for (const page of teamPages.filter(({ listed }) => listed)) {
+  for (const page of pages) {
     for (const person of page.people) {
       const known = byKey.get(person.key);
       if (known !== undefined) {
@@ -116,9 +126,8 @@ function peopleFromTeams(): Person[] {
   return [...byKey.values()];
 }
 
-function teamsOf(people: Person[]): Team[] {
-  return teamPages
-    .filter(({ listed }) => listed)
+function teamsOf(people: Person[], { pages }: Cast): Team[] {
+  return pages
     .map((page) => {
       const members = people.filter(({ teams }) => teams.includes(page.team));
       const held = members.filter(({ collectedAt }) => collectedAt !== null);
@@ -166,10 +175,11 @@ function milestonesOf(people: Person[], teams: Team[], hoggies: Hoggie[], though
   const completed = teams.filter(({ complete }) => complete).length;
   const found = hoggies.filter(({ count }) => count > 0).length;
   const teamsTouched = teams.filter(({ held }) => held > 0).length;
+  const many = teams.length > 10;
   return [
     milestoneOf("people", "Faces in the album", "people collected", "connections", collected, [1, 10, 25, 50], ["First face", "Familiar faces", "Full of friends", "Everyone's album"]),
-    milestoneOf("teams", "Full pages", "team pages completed", "team-spirit", completed, [1, 3, 5, 7], ["First full page", "Three teams strong", "Most of the company", "Every page"]),
-    milestoneOf("reach", "Across the company", "teams you've thanked someone in", "old-friends", teamsTouched, [2, 4, 6, 7], ["Next door", "Bridge builder", "Well travelled", "All hands"]),
+    milestoneOf("teams", "Full pages", "team pages completed", "team-spirit", completed, many ? [1, 5, 15, teams.length] : [1, 3, 5, 7], ["First full page", "Three teams strong", "Most of the company", "Every page"]),
+    milestoneOf("reach", "Across the company", "teams you've thanked someone in", "old-friends", teamsTouched, many ? [3, 10, 25, teams.length] : [2, 4, 6, 7], ["Next door", "Bridge builder", "Well travelled", "All hands"]),
     milestoneOf("hoggies", "Hoggie hunter", "hoggies found", "recognition", found, [10, 40, 100, 151], ["Curious", "Collector", "Hoarder", "Completionist"]),
     milestoneOf("thoughtful", "Kind words", "thoughtful kudos given", "generosity", thoughtful, [1, 25, 100, 500], ["First thank-you", "Generous soul", "Heart of the team", "Patron of praise"]),
   ];
@@ -183,10 +193,10 @@ function boardOf(thoughtfulThisWeek: number): BoardRow[] {
   return rows.map((row, index) => ({ ...row, rank: index + 1 }));
 }
 
-type Inner = { xp: number; people: Person[]; hoggies: Hoggie[]; packs: Pack[]; rolls: number; thoughtful: number; thoughtfulThisWeek: number; hugged: boolean; openedAPack: boolean; moments: Moment[]; lastSlack: SlackEcho; lastOpening: PackOpening | null };
+type Inner = { cast: Cast; xp: number; people: Person[]; hoggies: Hoggie[]; packs: Pack[]; rolls: number; thoughtful: number; thoughtfulThisWeek: number; hugged: boolean; openedAPack: boolean; moments: Moment[]; lastSlack: SlackEcho; lastOpening: PackOpening | null };
 
-function initial(): Inner {
-  const people = peopleFromTeams();
+function initial(cast: Cast): Inner {
+  const people = peopleFromTeams(cast);
   const noor = people.find(({ key }) => key === "k:noor")!;
   const mei = people.find(({ key }) => key === "k:mei")!;
   const omar = people.find(({ key }) => key === "k:omar")!;
@@ -198,6 +208,7 @@ function initial(): Inner {
   tomas.collectedAt = null;
   tomas.stats = statsFor(tomas.key, null);
   return {
+    cast,
     xp: 1180,
     people,
     hoggies: startingHoggies,
@@ -224,7 +235,7 @@ function initial(): Inner {
 }
 
 function albumOf(inner: Inner): Album {
-  const teams = teamsOf(inner.people);
+  const teams = teamsOf(inner.people, inner.cast);
   return {
     me,
     level: levelAt(inner.xp),
@@ -250,8 +261,8 @@ function albumOf(inner: Inner): Album {
 
 const AlbumContext = createContext<{ album: Album; actions: AlbumActions } | null>(null);
 
-export function AlbumProvider({ children }: { children: ReactNode }) {
-  const [inner, setInner] = useState(initial);
+export function AlbumProvider({ children, cast = roundThreeCast }: { children: ReactNode; cast?: Cast }) {
+  const [inner, setInner] = useState(() => initial(cast));
 
   const giveThoughtfulKudos = useCallback(
     (key: string, message?: string): Give => {
@@ -287,8 +298,8 @@ export function AlbumProvider({ children }: { children: ReactNode }) {
       const people = inner.people.map((entry) => (entry.key === person.key ? { ...entry, collectedAt: entry.collectedAt ?? at, stats: { ...entry.stats, kudosGiven: Math.max(1, entry.stats.kudosGiven), firstThankedAt: entry.stats.firstThankedAt ?? pack.earnedAt, bestMessage: entry.stats.bestMessage ?? pack.message } } : entry));
       const hoggies = inner.hoggies.map((entry) => (entry.hoggie === rolled.hoggie ? { ...entry, count: entry.count + 1, firstAt: entry.firstAt ?? at } : entry));
       const xpAfter = inner.xp + xpPerPack;
-      const teamsBefore = teamsOf(inner.people);
-      const teamsAfter = teamsOf(people);
+      const teamsBefore = teamsOf(inner.people, inner.cast);
+      const teamsAfter = teamsOf(people, inner.cast);
       const opening: PackOpening = {
         pack,
         person: { key: person.key, name: person.name, face: person.face, isNew, teams: person.teams },
@@ -304,7 +315,7 @@ export function AlbumProvider({ children }: { children: ReactNode }) {
 
   const forgetOpening = useCallback(() => setInner((current) => ({ ...current, lastOpening: null })), []);
 
-  const reset = useCallback(() => setInner(initial()), []);
+  const reset = useCallback(() => setInner((current) => initial(current.cast)), []);
 
   const value = useMemo(() => ({ album: albumOf(inner), actions: { giveThoughtfulKudos, hug, openPack, forgetOpening, reset } }), [inner, giveThoughtfulKudos, hug, openPack, forgetOpening, reset]);
   return <AlbumContext.Provider value={value}>{children}</AlbumContext.Provider>;

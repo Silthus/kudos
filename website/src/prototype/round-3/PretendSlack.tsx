@@ -3,7 +3,7 @@ import { useState } from "react";
 import { AppLink } from "../../AppLink";
 import { useAlbum } from "./album";
 
-export function PretendSlack() {
+export function PretendSlack({ slackLink = true }: { slackLink?: boolean }) {
   const { album, actions } = useAlbum();
   const [open, setOpen] = useState(false);
   const [person, setPerson] = useState("k:priya");
@@ -41,9 +41,11 @@ export function PretendSlack() {
             <PretendButton onClick={hug}>Hug</PretendButton>
           </div>
           {said !== null && <p style={{ margin: 0, opacity: 0.9 }}>{said}</p>}
-          <AppLink href="/?variant=slack" style={{ color: "#f7a501" }}>
-            See it in Slack →
-          </AppLink>
+          {slackLink && (
+            <AppLink href="/?variant=slack" style={{ color: "#f7a501" }}>
+              See it in Slack →
+            </AppLink>
+          )}
           <button type="button" onClick={actions.reset} style={{ all: "unset", cursor: "pointer", opacity: 0.6, fontSize: 12 }}>
             Reset the album
           </button>

@@ -11,14 +11,26 @@ import { MeadowRealm } from "./round-2/variant-1-meadow-realm/MeadowRealm";
 import { WorldMap } from "./round-2/variant-2-world-map/WorldMap";
 import { SkyIsland } from "./round-2/variant-3-sky-island/SkyIsland";
 import { GuildHall } from "./round-2/variant-4-guild-hall/GuildHall";
+import { AlbumProvider } from "./round-3/album";
 import { PretendSlack } from "./round-3/PretendSlack";
 import { StickerAlbum } from "./round-3/variant-1-sticker-album/StickerAlbum";
 import { TeamYearbook } from "./round-3/variant-2-team-yearbook/TeamYearbook";
 import { PocketBinder } from "./round-3/variant-3-pocket-binder/PocketBinder";
 import { SlackMoments } from "./round-3/slack-moments/SlackMoments";
+import { roundFourCast } from "./round-4/cast";
+import { RoundFour } from "./round-4/RoundFour";
+import type { Layout } from "./round-4/layouts";
 import type { VariantKey } from "./variants";
 
 const roundThree: ReadonlySet<VariantKey> = new Set(["1", "2", "3"]);
+
+const layoutOf = { "4a": "A", "4b": "B", "4c": "C" } as const satisfies Record<string, Layout>;
+
+type RoundFourKey = keyof typeof layoutOf;
+
+function isRoundFour(variant: VariantKey): variant is RoundFourKey {
+  return variant in layoutOf;
+}
 
 export type VariantProps = {
   route: Route;
@@ -41,14 +53,29 @@ const variantOf = {
   "r1-3": RadicalPolish,
   "r1-4": CharacterSheet,
   "r1-5": CorkboardDesk,
-} satisfies Record<VariantKey, (props: VariantProps) => ReactNode>;
+} satisfies Record<Exclude<VariantKey, RoundFourKey>, (props: VariantProps) => ReactNode>;
 
 export function PrototypeStage({ variant, ...props }: VariantProps & { variant: VariantKey }) {
-  const Variant = variantOf[variant];
   return (
     <div data-prototype-variant={variant} className="prototype-stage">
+      {isRoundFour(variant) ? (
+        <AlbumProvider cast={roundFourCast}>
+          <RoundFour layout={layoutOf[variant]} {...props} />
+          <PretendSlack slackLink={false} />
+        </AlbumProvider>
+      ) : (
+        <EarlierRound variant={variant} {...props} />
+      )}
+    </div>
+  );
+}
+
+function EarlierRound({ variant, ...props }: VariantProps & { variant: Exclude<VariantKey, RoundFourKey> }) {
+  const Variant = variantOf[variant];
+  return (
+    <>
       <Variant {...props} />
       {roundThree.has(variant) && <PretendSlack />}
-    </div>
+    </>
   );
 }
