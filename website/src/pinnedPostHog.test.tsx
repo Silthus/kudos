@@ -147,6 +147,20 @@ describe("the browser captures only while told to", { timeout: 60_000 }, () => {
     expect(clicks.map(({ properties }) => properties.distinct_id)).toEqual(["second-member-analytics-id"]);
   });
 
+  it("MS20: no request leaves for PostHog after sign-out, though the member signed out right after a pageview", async () => {
+    window.history.replaceState(null, "", "/leaderboard");
+    const { analytics } = startedCapturing();
+    await vi.waitFor(() => expect(sent.length).toBeGreaterThan(0), { timeout: 10_000 });
+    window.history.pushState(null, "", "/book");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    analytics.follow({ kind: "signed-out" });
+    const sentAtSignOut = sent.length;
+    await flushed();
+
+    expect(sent.slice(sentAtSignOut).flatMap(({ events }) => events.map(({ event }) => event))).toEqual([]);
+  });
+
   it("MS18 MS20: the same member signing in again after sign-out and cleared site data is captured under their own ID only, with no identify", async () => {
     window.history.replaceState(null, "", "/leaderboard");
     document.body.innerHTML = '<main><button type="button">Open the Book</button></main>';

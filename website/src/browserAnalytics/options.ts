@@ -30,6 +30,7 @@ export function optionsFor({ host, distinctId }: Capture, instance: string, post
     capture_exceptions: { capture_unhandled_errors: true, capture_unhandled_rejections: true, capture_console_errors: false },
     capture_pageview: false,
     capture_pageleave: true,
+    request_batching: false,
     autocapture: true,
     mask_all_text: true,
     mask_all_element_attributes: true,
