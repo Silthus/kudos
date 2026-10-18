@@ -182,6 +182,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   over: the live shell over an answer loading, off, each denial and a failed read, a capture answer, sign-out, the flag turning off, the website closing and a failed read mid-session followed by navigation, an answer changing while posthog-js loads, a second member's capture answer after sign-out, the same capture answer again, and the `Feedback` control under an off answer, a capture answer and sign-out
   via: the browser captures only while told to
   refuted: the module kept capturing when getBrowserAnalytics failed -> a failed read mid-session neither opted out nor reset, 1 of 10 tests red (2026-10-18)
+  refuted: the capture module stopped telling the shell it stopped capturing -> the Feedback control stayed in the header after sign-out, 1 of 11 tests red (2026-10-18)
   because: a member the flag is off for must download nothing new and send nothing, and a shared browser must not be tracked as a member after they sign out (MS18, MS19, MS20)
   kinds: output, identity
   checklist: destination-confinement declared as the browser captures only while told to
