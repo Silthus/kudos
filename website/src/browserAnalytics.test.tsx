@@ -405,6 +405,19 @@ describe("MS22: pageviews follow the address", () => {
     ]);
   });
 
+  it("AL56: each album page under /book sends its own pageview with the hash as its spread", async () => {
+    renderLiveSite();
+    analyticsAnswers(ann);
+    await capturing();
+
+    for (const address of ["/book#me", "/book#people/ines-okafor", "/book#milestones", "/book#packs", "/book#hoggies/hedgehog-sitting", "/book#teams/paper-moons"]) act(() => window.history.pushState(null, "", address));
+
+    expect(sentEvents().filter(({ event }) => event === "$pageview")).toEqual([
+      { event: "$pageview", page: "home", book_page: undefined, spread: undefined },
+      ...["me", "people/ines-okafor", "milestones", "packs", "hoggies/hedgehog-sitting", "teams/paper-moons"].map((spread) => ({ event: "$pageview", page: "book", book_page: "overview", spread })),
+    ]);
+  });
+
   it("a replaceState that only canonicalises the same route, or the same address again, sends nothing", async () => {
     window.history.replaceState(null, "", "/leaderboard?period=week");
     renderLiveSite();

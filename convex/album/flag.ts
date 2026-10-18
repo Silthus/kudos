@@ -7,3 +7,9 @@ export const albumFlag = { key: "album", safeDefault: false, values: [false, tru
 export function albumShownTo(ctx: QueryCtx, member: MemberId): Promise<boolean> {
   return memberDecisionWithoutWriting(ctx, albumFlag, member);
 }
+
+export type AlbumShown = { album?: true };
+
+export async function albumOnProfileOf(ctx: QueryCtx, member: MemberId): Promise<AlbumShown> {
+  return (await albumShownTo(ctx, member)) ? { album: true } : {};
+}
