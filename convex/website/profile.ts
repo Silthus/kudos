@@ -9,7 +9,7 @@ import { workspaceLink } from "../slack/workspaceLink";
 import { visibleWalletOf } from "../wallet/wallet";
 import { bookSpreadShownTo } from "./bookSpread";
 import { followTheClock } from "./clock";
-import { faceOf, type Face } from "./faces";
+import { signInFaceOf, type Face } from "./faces";
 import { inventoryShownTo, type MemberInventory } from "./inventory";
 import { memberQuery, type Denial, type VerifiedMember } from "./memberQuery";
 import { journeyStepsOf, type JourneyStep } from "./quests";
@@ -60,7 +60,7 @@ export const getMyProfile = memberQuery(async (ctx, me): Promise<MemberProfile |
   return {
     kind: "member",
     ...(me.name !== undefined && { name: me.name }),
-    face: await faceOf(ctx, me),
+    face: signInFaceOf(me),
     kudosEmoji: facts.kudosEmoji,
     allowance: { left: facts.left, base: facts.base, refillsAt: facts.refillsAt },
     thisWeek: { given: facts.givenWeek, received: facts.receivedWeek },

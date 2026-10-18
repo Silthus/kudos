@@ -4,7 +4,7 @@ import type { GroupsBoard } from "../leaderboard/groupsBoard";
 import { periodValidator } from "../leaderboard/periods";
 import type { Standing } from "../leaderboard/totals";
 import { followTheClock } from "./clock";
-import { faceOf } from "./faces";
+import { signInFaceOf } from "./faces";
 import { leaderboardRowOf, type LeaderboardRow } from "./leaderboard";
 import { memberQuery, type Denial } from "./memberQuery";
 import { leaderboardStateOf, unlockPathOf } from "./unlockPath";
@@ -25,7 +25,7 @@ export const getGroupBoards = memberQuery({
     if ((await leaderboardStateOf(ctx, me, await unlockPathOf(ctx, me))).kind !== "open") return hidden;
     await followTheClock(ctx);
     const { groups, myGroup } = await groupBoardsOf(ctx, me.workspace, me.user, period);
-    const myFace = await faceOf(ctx, me);
+    const myFace = signInFaceOf(me);
     return {
       kind: "boards",
       groups: groups === null || groups.rows.length === 0 ? null : groups,

@@ -22,14 +22,14 @@ The website's copy of posthog.com's public team pages, and the matcher for one m
   checklist: declared-target-coverage dismissed: the sync fans out to no targets; it reads every page pageCount declares, which the oracle covers
   checklist: completion-evidence dismissed: nothing waits on the sync's completion; a failed read logs its code and the old rows stay
 - a face needs exactly one company profile: While `team-pages` is off for them, a member reads a company profile face only when exactly one company profile's normalised first and last name equals the member's normalised Slack real name and that profile has a cutout; two, none, or one without a cutout fall back to the Slack picture, then initials.
-  over: getMyProfile for a member whose name matches one profile, two profiles, two people of whom only one has a cutout, none, and a profile whose cutout isn't a Cloudinary PNG
+  over: getMyFace for a member whose name matches one profile, two profiles, two people of whom only one has a cutout, none, and a profile whose cutout isn't a Cloudinary PNG
   via: WS21 V19 V21: without exactly one company profile the face falls back
   because: names are the only key posthog.com shares; with two people of one name, picking either would show a member someone else's face (WS21, V21)
   crossing: posthog-com -> domain
   entrances: none
   refuted: companyFaceOf took the first of two profiles with the member's name instead of falling back -> the two-profiles test read a company face instead of the Slack picture (2026-10-13)
   kinds: read, identity
-  checklist: scoped-reads dismissed: the face is read only inside getMyProfile, whose website reads pass one guard invariant scopes it to the session's own member
+  checklist: scoped-reads dismissed: the face is read only inside getMyFace, whose website reads pass one guard invariant scopes it to the session's own member
   checklist: capability-authorization dismissed: no credential is accepted; the member and their name come from the live session the website guard checked
   checklist: redaction dismissed: the face carries only a public cutout URL and a colour, never a name or another member's facts
   checklist: canonical-encoding declared as a face needs exactly one company profile

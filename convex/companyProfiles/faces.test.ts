@@ -48,8 +48,7 @@ function companyTeams() {
 async function faceOf(identity: SignInIdentity) {
   await aMember(t, identity.user);
   const { asSignedIn } = await aSession(t, identity);
-  const profile = await asSignedIn.query(api.website.profile.getMyProfile, {});
-  return profile.kind === "member" ? profile.face : profile;
+  return asSignedIn.query(api.website.face.getMyFace, {});
 }
 
 describe("WS21 V19 V21: a member's face is their company profile cutout on its colour", () => {
@@ -58,6 +57,17 @@ describe("WS21 V19 V21: a member's face is their company profile cutout on its c
     await syncCompanyProfiles();
 
     expect(await faceOf(wren)).toEqual(wrensFace);
+  });
+
+  test("getMyProfile and the boards give the sign-in picture, so only getMyFace reads the company profiles", async () => {
+    postHogCom.withTeams({ slug: "analytics", profiles: [wrenOnTheTeamPage, oriel] });
+    await syncCompanyProfiles();
+    await aMember(t, wren.user);
+    const { asSignedIn } = await aSession(t, wren);
+    const signInPicture = { kind: "slack", image: wren.image, initials: "WH" };
+
+    expect(await asSignedIn.query(api.website.face.getMyFace, {})).toEqual(wrensFace);
+    expect(await asSignedIn.query(api.website.profile.getMyProfile, {})).toMatchObject({ kind: "member", face: signInPicture });
   });
 
   test("a member matches whatever the case, accents and spacing of either name", async () => {

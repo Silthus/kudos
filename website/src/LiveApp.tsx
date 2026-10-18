@@ -6,6 +6,7 @@ import type { FunctionArgs, FunctionReference, FunctionReturnType } from "convex
 import { api } from "../../convex/_generated/api";
 import type { MyGroupBoards } from "../../convex/website/groupBoards";
 import type { MyLeaderboard as MyEveryoneBoard } from "../../convex/website/leaderboard";
+import type { Denial } from "../../convex/website/memberQuery";
 import type { MyProfile } from "../../convex/website/profile";
 import { App } from "./App";
 import type { ActivityRead, ActivityShown } from "./activityRead";
@@ -22,7 +23,7 @@ import type { SettingsShown } from "./settingsRead";
 import type { SkillTreeShown } from "./skillTreeRead";
 import type { ActivityFilter } from "./route";
 import type { SpotlightDraw } from "./spotlightRead";
-import type { Period, ShellActions, Visitor } from "./shell";
+import type { Face, Leaderboard, LeaderboardRow, Period, ShellActions, Visitor } from "./shell";
 import { forgetSignInStarted } from "./signInAttempt";
 
 export function LiveShell({ client }: { client: ConvexReactClient }) {
@@ -39,15 +40,16 @@ function LiveApp() {
   const redemptionFailed = useCodeRedemptionFailed(isLoading);
   const unreachable = useSocketUnreachable();
   const profile = useQuery(api.website.profile.getMyProfile, {});
+  const ownFace = ownFaceIn(useQuery(api.website.face.getMyFace, {}));
   const actions = useLiveActions(() => setSignInFailed(true));
   const readActivity = useLiveActivityRead();
   const drawSpotlight = useLiveSpotlight();
   if (signInFailed) throw new Error("The sign-in didn't start.");
   return (
     <App
-      visitor={visitorOf({ authLoading: isLoading, redemptionFailed, unreachable, profile })}
+      visitor={visitorOf({ authLoading: isLoading, redemptionFailed, unreachable, profile: withOwnFace(profile, ownFace) })}
       actions={actions}
-      useLeaderboard={(period, withGroupBoards) => useLiveLeaderboard(period, withGroupBoards, unreachable)}
+      useLeaderboard={(period, withGroupBoards) => withOwnRowFace(useLiveLeaderboard(period, withGroupBoards, unreachable), ownFace)}
       useQuests={(asking) => useLiveQuests(asking, unreachable)}
       useBook={(asking) => useLiveBook(asking, unreachable)}
       useCollection={(asking) => useLiveCollection(asking, unreachable)}
@@ -78,6 +80,23 @@ function useLiveLeaderboard(period: Period | undefined, withGroupBoards: boolean
 }
 
 const noGroupBoards = { groups: null, myGroup: null };
+
+const faceKinds = new Set<string>(["company-profile", "slack", "initials"] satisfies Face["kind"][]);
+
+function ownFaceIn(answer: Face | Denial | undefined): Face | undefined {
+  return answer !== undefined && faceKinds.has(answer.kind) ? (answer as Face) : undefined;
+}
+
+function withOwnFace(profile: MyProfile | undefined, face: Face | undefined): MyProfile | undefined {
+  return profile?.kind === "member" && face !== undefined ? { ...profile, face } : profile;
+}
+
+function withOwnRowFace(answer: BoardAnswer | undefined, face: Face | undefined): BoardAnswer | undefined {
+  if (answer?.kind !== "board" || face === undefined) return answer;
+  const ownRowsWith = (rows: LeaderboardRow[]) => rows.map((row) => (row.you ? { ...row, face } : row));
+  const board: Leaderboard = { ...answer, rows: ownRowsWith(answer.rows) };
+  return answer.myGroup === null ? board : { ...board, myGroup: { ...answer.myGroup, rows: ownRowsWith(answer.myGroup.rows) } };
+}
 
 function useLiveQuests(asking: boolean, unreachable: boolean): QuestsShown | undefined {
   const request = useMemo((): RequestForQueries => (asking ? { quests: { query: api.website.quests.getQuests, args: {} } } : {}), [asking]);
