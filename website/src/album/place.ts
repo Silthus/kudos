@@ -1,30 +1,36 @@
-import type { Route } from "../route";
+import { rarestFirst } from "../book/spread/spreads";
+import type { Rarity } from "../crates/drops";
+import type { BookPageId, Route, SettingsSection } from "../route";
 
 export type Place =
   | { kind: "team"; team: string | null }
   | { kind: "person"; person: string }
   | { kind: "profile" }
-  | { kind: "hoggies"; hoggie: string | null }
+  | { kind: "hoggies"; hoggie: string | null; rarity?: Rarity }
   | { kind: "milestones" }
   | { kind: "packs" }
   | { kind: "activity" }
   | { kind: "leaderboard" }
-  | { kind: "settings" }
+  | { kind: "settings"; section?: SettingsSection }
   | { kind: "elsewhere" };
 
 export const home: Place = { kind: "team", team: null };
 
-export function placeOf(route: Route, hash: string): Place {
+export function placeOf(route: Route, hash: string, landingState: unknown): Place {
   switch (route.page) {
     case "home":
-      return home;
+      return route.panel === "inventory" ? { kind: "profile" } : home;
     case "book":
-      return bookPlaceOf(hash);
+      return albumPlaceIn(hash, landingState) ?? spreadPlaceIn(hash) ?? bookPagePlaceOf(route.bookPage);
     case "activity":
     case "leaderboard":
-    case "settings":
       return { kind: route.page };
-    default:
+    case "settings":
+      return route.section === undefined ? { kind: "settings" } : { kind: "settings", section: route.section };
+    case "quests":
+    case "skills":
+      return home;
+    case "not-found":
       return { kind: "elsewhere" };
   }
 }
@@ -35,15 +41,46 @@ export function isAnAlbumHash(hash: string) {
   return pageSections.has(hash.replace(/^#/, "").split("/", 1)[0]!);
 }
 
-function bookPlaceOf(hash: string): Place {
+function albumPlaceIn(hash: string, landingState: unknown): Place | undefined {
   const [section, key] = hash.replace(/^#/, "").split("/", 2).map(decoded);
   if (section === "teams" && key) return { kind: "team", team: key };
   if (section === "people" && key) return { kind: "person", person: key };
   if (section === "me") return { kind: "profile" };
-  if (section === "hoggies") return { kind: "hoggies", hoggie: key || null };
+  if (section === "hoggies") return hoggiesPlaceOf(key || null, landingState);
   if (section === "milestones") return { kind: "milestones" };
   if (section === "packs") return { kind: "packs" };
-  return home;
+  return undefined;
+}
+
+function hoggiesPlaceOf(key: string | null, landingState: unknown): Place {
+  const rarity = rarityIn(key) ?? (key === null ? filteredRarityIn(landingState) : undefined);
+  if (rarity !== undefined) return { kind: "hoggies", hoggie: null, rarity };
+  return { kind: "hoggies", hoggie: key };
+}
+
+function rarityIn(asked: unknown): Rarity | undefined {
+  return rarestFirst.find((rarity) => rarity === asked);
+}
+
+function filteredRarityIn(landingState: unknown): Rarity | undefined {
+  return typeof landingState === "object" && landingState !== null && "rarity" in landingState ? rarityIn(landingState.rarity) : undefined;
+}
+
+export function landingStateOf(place: Place): { rarity: Rarity } | null {
+  return place.kind === "hoggies" && place.rarity !== undefined ? { rarity: place.rarity } : null;
+}
+
+function spreadPlaceIn(hash: string): Place | undefined {
+  const section = hash.replace(/^#/, "").split("/", 1)[0];
+  if (section === "cover" || section === "teams") return home;
+  if (section === "achievements") return { kind: "milestones" };
+  return undefined;
+}
+
+function bookPagePlaceOf(bookPage: BookPageId): Place {
+  if (bookPage === "overview") return home;
+  if (bookPage === "collection") return { kind: "hoggies", hoggie: null };
+  return { kind: "milestones" };
 }
 
 function decoded(segment: string) {
@@ -67,6 +104,8 @@ export function hrefOf(place: Place): string {
     case "milestones":
     case "packs":
       return `/book#${place.kind}`;
+    case "settings":
+      return place.section === undefined ? "/settings" : `/settings?section=${place.section}`;
     case "elsewhere":
       return "/";
     default:

@@ -25,7 +25,7 @@ export function AlbumPage({ album, place, settings }: PageProps) {
     case "hoggies":
       return (
         <Page tab="Hoggies" title="Hoggies">
-          Every hoggie you've found, and the ones still hidden.
+          {place.rarity === undefined ? "Every hoggie you've found, and the ones still hidden." : `Showing ${place.rarity} hoggies.`}
         </Page>
       );
     case "milestones":
