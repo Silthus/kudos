@@ -49,6 +49,7 @@ import type * as companyProfiles_faces from "../companyProfiles/faces.js";
 import type * as companyProfiles_flag from "../companyProfiles/flag.js";
 import type * as companyProfiles_links from "../companyProfiles/links.js";
 import type * as companyProfiles_matcher from "../companyProfiles/matcher.js";
+import type * as companyProfiles_storedFaces from "../companyProfiles/storedFaces.js";
 import type * as companyProfiles_sync from "../companyProfiles/sync.js";
 import type * as companyProfiles_teams from "../companyProfiles/teams.js";
 import type * as crons from "../crons.js";
@@ -326,6 +327,7 @@ declare const fullApi: ApiFromModules<{
   "companyProfiles/flag": typeof companyProfiles_flag;
   "companyProfiles/links": typeof companyProfiles_links;
   "companyProfiles/matcher": typeof companyProfiles_matcher;
+  "companyProfiles/storedFaces": typeof companyProfiles_storedFaces;
   "companyProfiles/sync": typeof companyProfiles_sync;
   "companyProfiles/teams": typeof companyProfiles_teams;
   crons: typeof crons;

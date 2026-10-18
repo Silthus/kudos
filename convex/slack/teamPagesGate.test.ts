@@ -94,7 +94,8 @@ const everyOtherFlag = [
   "hugs",
   "book-spread",
 ];
-const companyTables = ["companyProfiles", "companyTeams", "companyProfileLinks"] as const;
+const companyTables = ["companyProfiles", "companyTeams", "companyProfileLinks", "companyFaces"] as const;
+const companyJobs = ["companyProfiles/storedFaces:keepCompanyFacesIn"];
 const exposureDelivery = ["analytics/drain:drain", "analytics/drain:recover", "analytics/person:identifyNewPeople"];
 const deliveringMore = ["analytics/drain:drain", "analytics/drain:recover"];
 const alice = { user: "U_ALICE", name: "Alice Moreau", email: "alice@example.com" };
@@ -455,7 +456,7 @@ async function rowsWrittenApartFromTheCompanyRows() {
 
 async function jobsInContentOrder({ delivering }: { delivering: boolean }) {
   const scheduled = await t.run((ctx) => ctx.db.system.query("_scheduled_functions").collect());
-  const jobs = scheduled.filter(({ name }) => delivering === exposureDelivery.includes(name)).map(({ name, args, scheduledTime, state }) => ({ name, args, scheduledTime, state: state.kind }));
+  const jobs = scheduled.filter(({ name }) => !companyJobs.includes(name) && delivering === exposureDelivery.includes(name)).map(({ name, args, scheduledTime, state }) => ({ name, args, scheduledTime, state: state.kind }));
   return withStableIds(jobs.toSorted((a, b) => contentOf(a).localeCompare(contentOf(b))));
 }
 

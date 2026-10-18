@@ -2,6 +2,7 @@ import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { peopleIn, personFactsOf, type MemberId } from "../workspace/directory";
 import { byName, choicesFrom, type ProfileChoice } from "./links";
 import { companyProfilesIn, currentProfiles, type MatchedBy } from "./matcher";
+import { keepCompanyFacesLater } from "./storedFaces";
 
 export type MemberMatch = { member: MemberId; name: string; profile: number | null; by: MatchedBy | null };
 
@@ -39,6 +40,7 @@ export async function linkCompanyProfile(ctx: MutationCtx, workspace: string, ca
   const link = await adminLinkOf(ctx, workspace, member);
   if (profile === null) {
     if (link !== null) await ctx.db.delete(link._id);
+    await keepCompanyFacesLater(ctx, workspace);
     return { kind: "linked", member };
   }
   const linked = profile === "none" ? null : profile;
@@ -46,6 +48,7 @@ export async function linkCompanyProfile(ctx: MutationCtx, workspace: string, ca
   const change = { profile: linked, setBy: caller.member, at: Date.now() };
   if (link === null) await ctx.db.insert("companyProfileLinks", { workspace, member, by: "admin", ...change });
   else if (link.profile !== linked) await ctx.db.patch(link._id, change);
+  await keepCompanyFacesLater(ctx, workspace);
   return { kind: "linked", member };
 }
 

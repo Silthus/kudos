@@ -84,6 +84,12 @@ export default defineSchema({
     asOf: v.number(),
   }).index("by_team", ["team"]),
 
+  companyFaces: defineTable({
+    workspace: v.string(),
+    member: v.id("members"),
+    face: v.union(v.object({ image: v.string(), colour: v.string() }), v.null()),
+  }).index("by_member", ["workspace", "member"]),
+
   companyProfileLinks: defineTable({
     workspace: v.string(),
     member: v.id("members"),
