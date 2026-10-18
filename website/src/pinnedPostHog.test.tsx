@@ -163,6 +163,21 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     expect(snapshots, "nothing recorded after the stop").toHaveLength(recordedBeforeTheStop);
   });
 
+  it("MS21: the pinned posthog-js's heatmap clicks keep their page but not the sign-in code in it", async () => {
+    window.history.replaceState(null, "", "/book?code=SIGNIN-CODE-1234&page=giving");
+    const { analytics } = startedCapturing();
+    await flushed();
+
+    document.body.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 40, clientY: 80 }));
+    await new Promise((resolve) => setTimeout(resolve, 6_000));
+    analytics.stop();
+
+    const heatmaps = sent.flatMap(({ events }) => events).filter(({ event }) => event === "$$heatmap");
+    expect(heatmaps.length, "a heatmap was sent").toBeGreaterThan(0);
+    expect(new Set(heatmaps.flatMap(({ properties }) => Object.keys(properties.$heatmap_data as object)))).toEqual(new Set(["http://localhost:3000/book?page=giving"]));
+    expect(JSON.stringify(sent)).not.toContain("SIGNIN-CODE-1234");
+  });
+
   it("the pinned posthog-js sends an unhandled error, an unhandled rejection and an error the shell's error page reported once each, every message replaced by its type, frames kept and nothing private", { timeout: 60_000 }, async () => {
     window.history.replaceState(null, "", "/leaderboard");
     const { analytics } = startedCapturing();

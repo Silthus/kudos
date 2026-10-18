@@ -214,11 +214,12 @@ The browser package, the signed-in surface where a member sees their kudos besid
   checklist: keyed-ordering dismissed: nothing is sent by the blocks
   checklist: acknowledgment-barrier dismissed: nothing is sent by the blocks
   checklist: retry-classification dismissed: nothing is sent by the blocks
-- no sign-in code leaves the browser: Before posthog-js sends an event, every URL in it, `$current_url`, `$referrer`, the first-visit person properties, the pageleave's and every stack frame's URL included, loses its `code` query parameter and keeps everything else, and every URL replay records passes the same scrub.
-  over: the live shell opened at `/?code=…` and navigating to another address carrying a code, an event holding every URL property, person property and stack frame URL with a sign-in code, a Date and a plain property, and a replay URL with a sign-in code, a query parameter and a hash given to the replay options' URL mask
+- no sign-in code leaves the browser: Before posthog-js sends an event, every URL in it, `$current_url`, `$referrer`, the first-visit person properties, the pageleave's, every stack frame's URL and the URL a heatmap is keyed by included, loses its `code` query parameter and keeps everything else, and every URL replay records passes the same scrub.
+  over: the live shell opened at `/?code=…` and navigating to another address carrying a code, an event holding every URL property, person property and stack frame URL with a sign-in code, a Date and a plain property, a heatmap keyed by a URL with a sign-in code beside one keyed by the same page without it, and a replay URL with a sign-in code, a query parameter and a hash given to the replay options' URL mask
   via: no sign-in code leaves the browser
   refuted: the scrub left URLs inside lists, such as stack frames, untouched -> a stack frame kept the sign-in code, 1 of 2 tests red (2026-10-18)
   refuted: replay's URL mask passed each recorded URL through unchanged -> a replay URL kept the sign-in code, 1 of 3 tests red (2026-10-18)
+  refuted: the scrub kept every object key as it was -> a heatmap stayed keyed by the URL with the sign-in code, 1 of 4 tests red (2026-10-18)
   because: the sign-in code from Slack redeems a session, so it must never sit in PostHog where anyone in the organisation can read it (MS21)
   kinds: credential, output
   checklist: destination-confinement dismissed: the scrub only removes; it sends nothing itself

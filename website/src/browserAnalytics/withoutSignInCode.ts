@@ -23,8 +23,21 @@ export function urlWithoutSignInCode(text: string): string {
 function scrubbed<Value>(value: Value): Value {
   if (typeof value === "string") return urlWithoutSignInCode(value) as Value;
   if (Array.isArray(value)) return value.map(scrubbed) as Value;
-  if (isPlainObject(value)) return Object.fromEntries(Object.entries(value).map(([key, inner]) => [key, scrubbed(inner)])) as Value;
+  if (isPlainObject(value)) return scrubbedEntries(value) as Value;
   return value;
+}
+
+function scrubbedEntries(value: Record<string, unknown>): Record<string, unknown> {
+  const entries: Record<string, unknown> = {};
+  for (const [key, inner] of Object.entries(value)) {
+    const scrubbedKey = urlWithoutSignInCode(key);
+    entries[scrubbedKey] = mergedWith(entries[scrubbedKey], scrubbed(inner));
+  }
+  return entries;
+}
+
+function mergedWith(earlier: unknown, later: unknown): unknown {
+  return Array.isArray(earlier) && Array.isArray(later) ? [...earlier, ...later] : later;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

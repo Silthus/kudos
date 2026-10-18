@@ -532,6 +532,28 @@ describe("no sign-in code leaves the browser", () => {
     expect(scrubbed.timestamp).toBe(event.timestamp);
     expect(scrubbed.properties.page).toBe("book");
   });
+
+  it("a heatmap keyed by a URL with the code is keyed by the URL without it, its clicks kept and merged with the same page's", () => {
+    const click = (x: number) => ({ x, y: 80, target_fixed: false, type: "click" });
+    const event = {
+      uuid: "event-2",
+      event: "$$heatmap",
+      properties: {
+        $heatmap_data: {
+          "https://hedgehug.example/book?code=SIGNIN-CODE-1234&page=giving": [click(1)],
+          "https://hedgehug.example/book?page=giving": [click(2)],
+          "https://hedgehug.example/leaderboard": [click(3)],
+        },
+      },
+    } as unknown as CaptureResult;
+
+    const scrubbed = withoutSignInCode(event)!;
+
+    expect(scrubbed.properties.$heatmap_data).toEqual({
+      "https://hedgehug.example/book?page=giving": [click(1), click(2)],
+      "https://hedgehug.example/leaderboard": [click(3)],
+    });
+  });
 });
 
 const feedbackSurvey = "01a14dfa-686c-0000-15fd-1e42871cb016";
