@@ -55,6 +55,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   over: four givers' thoughtful kudos, two of them by one giver to overlapping people, beside kudos received, a short kudos to three people and a hug; two company teams tied on their members' awards and a third nobody gave for; the member's own row and team pinned with awards and without; a thoughtful kudos given last week; a message's grant run again and redelivered; Who gave narrowed to one team; an unmatched giver who links their own profile; stored company faces and Slack pictures; read through getThoughtfulBoards
   via: AL49: the thoughtful boards rank thoughtful kudos awards given this week
   because: the boards rank people and teams by thoughtful kudos given, the bar the album rewards (AL49, user story 43): a retried or redelivered grant page that counted its awards again would rank a giver above what they gave, and counting kudos received, short kudos or hugs would reward something other than saying why
+  refuted: the grant's page counted every recipient it saw, including those whose grant record an earlier run of the message had already written -> 1 of 8 tests failed: a message's grant run again and redelivered ranked its giver above the 2 awards they gave (2026-10-18)
   kinds: state
   checklist: revalidated-permission dismissed: counting an award needs no permission, since the awards were decided when they were given, and the read decides `album` for the signed-in member on every read
   checklist: separation-of-duties dismissed: no approval policy
@@ -67,6 +68,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   over: a member who turned the setting off on the website after a thoughtful kudos to two people, beside two givers on the boards, read by that member and by another
   via: AL49: a member who left the boards is on neither thoughtful board
   because: leaving the boards is the member's own choice (G22, AL49): a board that still listed them, or a team total that still counted them, would show the giving they asked to keep private
+  refuted: the boards kept every giver of the week whatever their Show me on the leaderboards setting said -> 1 of 1 tests failed: the people board still listed the member who left (2026-10-18)
   kinds: state
   checklist: revalidated-permission dismissed: the setting is read on every board read, in the query that answers it
   checklist: separation-of-duties dismissed: no approval policy applies to a member leaving or rejoining the boards
@@ -82,6 +84,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   crossing: browser -> domain
   entrances: query getAlbum, query getThoughtfulBoards
   refuted: getAlbum's waiting packs read every giver's packs from the signed-in member's ID on, a gte instead of eq -> 1 of 2 tests failed: a member's getAlbum answered packs other members earned (2026-10-18)
+  refuted: getThoughtfulBoards pinned the board's first row as the member's own, whoever it belonged to -> 1 of 4 tests failed: a member's pinned row named another member (2026-10-18)
   kinds: read
   checklist: scoped-reads declared as the album is private
   checklist: redaction dismissed: the read answers the member's own album whole or not at all; nothing inside it is scrubbed
@@ -90,6 +93,7 @@ Album: the collection-first core loop of the album spec (AL1–AL73, `spec/album
   via: AL39: the album is dark where album is off, shows only to the members it is on for, and nothing exposes it
   because: production is live and the album ships dark behind `album` (AL39) until the conductor widens it one flag at a time (AL64–AL66): a changed answer, Slack call or event where it is off would show members a feature nobody turned on for them, and an exposure from a read would count members who never saw it; packs are recorded whatever the flag says (AL3), so turning it on needs no backfill
   refuted: albumShownTo answered true for every member whatever album decided -> 5 of 7 tests failed: in all four off states getAlbum answered an album with packs, and with it on for one email only every other member's getAlbum answered theirs (2026-10-18)
+  refuted: getThoughtfulBoards answered the boards without deciding album for the member -> 3 of 7 tests failed: in three off states getThoughtfulBoards answered its boards (2026-10-18)
   kinds: state, output
   checklist: revalidated-permission dismissed: getAlbum decides `album` for the signed-in member on every read, never from a stored value
   checklist: legal-state-succession dismissed: the flag decides only what is shown; packs, grant records and names are written the same whatever it says (AL3), so turning it off and on again changes no record

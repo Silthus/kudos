@@ -53,6 +53,7 @@ The website's copy of posthog.com's public team pages, and the matcher for one m
   via: CV22: each member's stored company face follows the matcher through every change
   refuted: linkMyCompanyProfile wrote the own link without keeping the stored faces -> the walk read the namesake's stored face as none where the matcher gave the own link's cutout (2026-10-18)
   refuted: fillProfiles patched real names without keeping the stored faces -> the backfill test read no stored face where the matcher gave the cutout (2026-10-18)
+  refuted: the face job stored each member's face without the profile ID the matcher gave them -> 4 of 4 tests failed: the stored matched profiles differed from the matcher's (2026-10-18)
   because: the website's face read, and the album's thoughtful boards reading each giver's company teams, would otherwise build the whole workspace's matcher on every rerun of every open tab; a stored face or profile that lags a change would show a member someone else's face or none (CV17), or count their thoughtful kudos for another member's teams
   crossing: posthog-com -> domain
   entrances: none
