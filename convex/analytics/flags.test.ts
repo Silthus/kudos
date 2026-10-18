@@ -93,6 +93,20 @@ describe("O33: a flag answers its value for the subject", () => {
     expect(await workspaceDecisionInMutation(t, layoutFlag)).toBe("compact");
   });
 
+  test("one function reads the cached definitions once, however many flags it decides", async () => {
+    const t = testBackend();
+    const alice = await aMember(t);
+    await definitionsFromPostHog(t, onForEveryone("everyone-board"), variantForEveryone("board-layout", "compact"));
+
+    const decided = await t.run(async (ctx) => {
+      const reads = vi.spyOn(ctx, "runQuery");
+      const answers = [await memberDecision(ctx, boardFlag, alice), await workspaceDecision(ctx, layoutFlag, "T1"), await memberDecision(ctx, layoutFlag, alice)];
+      return { answers, definitionReads: reads.mock.calls.length };
+    });
+
+    expect(decided).toEqual({ answers: [true, "compact", "compact"], definitionReads: 1 });
+  });
+
   test("O34: a flag on in the sandbox only is on in the sandbox and answers its safe default in production", async () => {
     const t = testBackend();
     const alice = await aMember(t);

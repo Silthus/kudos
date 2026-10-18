@@ -71,12 +71,25 @@ async function evaluated<V extends FlagValue>(ctx: QueryCtx | MutationCtx, read:
   try {
     const subject = await subjectOf();
     if (subject === null) return read.safeDefault;
-    const value = await postHog.getFeatureFlag(ctx, { key: read.key, distinctId: subject.distinctId, personProperties: personPropertiesOf(subject) });
+    const value = await postHog.getFeatureFlag(readingDefinitionsOnce(ctx), { key: read.key, distinctId: subject.distinctId, personProperties: personPropertiesOf(subject) });
     return declaredValue(read, value);
   } catch {
     console.warn("analytics.flag_not_evaluated", { flag: read.key });
     return read.safeDefault;
   }
+}
+
+type DefinitionsReader = Parameters<PostHog["getFeatureFlag"]>[0];
+
+const definitionsReaders = new WeakMap<QueryCtx, DefinitionsReader>();
+
+function readingDefinitionsOnce(ctx: QueryCtx): DefinitionsReader {
+  const known = definitionsReaders.get(ctx);
+  if (known !== undefined) return known;
+  let definitions: Promise<unknown> | undefined;
+  const reader: DefinitionsReader = { runQuery: (reference, args) => (definitions ??= ctx.runQuery(reference, args)) };
+  definitionsReaders.set(ctx, reader);
+  return reader;
 }
 
 export async function exposed<V extends FlagValue>(ctx: MutationCtx, read: Flag<V>, member: MemberId, value: NoInfer<V>): Promise<void> {
