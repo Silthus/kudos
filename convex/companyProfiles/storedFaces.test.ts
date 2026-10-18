@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { FakePostHog, routedFetch } from "../../testing/fakePostHog";
 import { aCutout, FakePostHogCom, type TeamPageProfile } from "../../testing/fakePostHogCom";
 import { FakeSlack } from "../../testing/fakeSlack";
-import { memberChanged, testBackend, type Backend } from "../../testing/slackBackend";
+import { memberChanged, settle, testBackend, type Backend } from "../../testing/slackBackend";
 import { aDeploymentForWorkspace, aSignedInSession, switchWebsite } from "../../testing/website";
 import { api, internal } from "../_generated/api";
 import { seenKeyOf } from "../website/seen";
@@ -48,6 +48,7 @@ function urlOf(input: string | URL | Request) {
 async function onPostHogCom(...people: TeamPageProfile[]) {
   postHogCom.withTeams({ slug: "analytics", name: "Analytics", profiles: people });
   await t.action(internal.companyProfiles.sync.syncCompanyProfiles, {});
+  await settle(t);
 }
 
 function later() {
@@ -131,6 +132,40 @@ describe("CV22: each member's stored company face follows the matcher through ev
     await t.action(internal.slack.directory.fillMemberProfiles, {});
 
     expect((await expectStoredFacesToFollowTheMatcher())[wren]).toEqual({ image: cutoutOf("wren"), colour: "#8567FF" });
+  });
+});
+
+describe("CV22: each member's stored company face follows the matcher through every change", { timeout: 60_000 }, () => {
+  test("a new copy of posthog.com keeps the stored faces of a workspace the directory knows without a workspaces row", async () => {
+    await t.run(async (ctx) => {
+      const row = await ctx.db.query("workspaces").first();
+      await ctx.db.delete(row!._id);
+    });
+    await slackSays("team_join", "U_WREN", aMemberNamed("Wren Halloway"));
+    const wren = await memberOf("U_WREN");
+    expect(await t.run((ctx) => ctx.db.query("workspaces").collect())).toEqual([]);
+
+    await onPostHogCom({ ...wrenProfile, colour: "teal" }, orielProfile);
+
+    expect((await expectStoredFacesToFollowTheMatcher())[wren]).toEqual({ image: cutoutOf("wren"), colour: "#29DBBB" });
+  });
+});
+
+describe("a new copy of posthog.com stays within Convex's transaction limits", { timeout: 300_000 }, () => {
+  test("six workspaces of 3,000 members each have their faces stored after a sync, each workspace in a transaction of its own", async () => {
+    t = testBackend({ transactionLimits: true });
+    const workspaces = ["T1", "T2", "T3", "T4", "T5", "T6"];
+    for (const workspace of workspaces) {
+      await t.run(async (ctx) => {
+        await ctx.db.insert("workspaces", { workspace });
+        for (let n = 0; n < 3000; n += 1) await ctx.db.insert("members", { workspace, user: `U${n}`, kind: "member", asOf: 0, name: `Person ${n}`, realName: n === 0 ? "Wren Halloway" : `Person ${n}` });
+      });
+    }
+
+    await onPostHogCom(wrenProfile, orielProfile);
+
+    const stored = await t.run(async (ctx) => Promise.all(workspaces.map(async (workspace) => (await ctx.db.query("companyFaces").withIndex("by_member", (q) => q.eq("workspace", workspace)).collect()).length)));
+    expect(stored).toEqual(workspaces.map(() => 3000));
   });
 });
 

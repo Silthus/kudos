@@ -1,4 +1,6 @@
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { v } from "convex/values";
+import { internal } from "../_generated/api";
+import { internalMutation, type MutationCtx, type QueryCtx } from "../_generated/server";
 import { memberRowsIn, type MemberId } from "../workspace/directory";
 import type { CompanyFace } from "./faces";
 import { companyProfilesIn } from "./matcher";
@@ -26,9 +28,30 @@ export async function keepCompanyFaces(ctx: MutationCtx, workspace: string) {
   for (const [member, face] of matched) await ctx.db.insert("companyFaces", { workspace, member, face });
 }
 
-export async function keepCompanyFacesInEveryWorkspace(ctx: MutationCtx) {
+export const keepCompanyFacesIn = internalMutation({
+  args: { workspace: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { workspace }) => {
+    await keepCompanyFaces(ctx, workspace);
+    return null;
+  },
+});
+
+export async function keepCompanyFacesInEveryWorkspaceLater(ctx: MutationCtx) {
+  for (const workspace of await workspacesWithFacesToKeep(ctx)) await ctx.scheduler.runAfter(0, internal.companyProfiles.storedFaces.keepCompanyFacesIn, { workspace });
+}
+
+async function workspacesWithFacesToKeep(ctx: QueryCtx) {
   const workspaces = new Set((await ctx.db.query("workspaces").collect()).map(({ workspace }) => workspace));
-  for (const workspace of workspaces) await keepCompanyFaces(ctx, workspace);
+  for (let row = await firstFaceAfter(ctx, ""); row !== null; row = await firstFaceAfter(ctx, row.workspace)) workspaces.add(row.workspace);
+  return workspaces;
+}
+
+function firstFaceAfter(ctx: QueryCtx, workspace: string) {
+  return ctx.db
+    .query("companyFaces")
+    .withIndex("by_member", (q) => q.gt("workspace", workspace))
+    .first();
 }
 
 async function matchedFacesIn(ctx: QueryCtx, workspace: string): Promise<Map<MemberId, CompanyFace | null>> {
