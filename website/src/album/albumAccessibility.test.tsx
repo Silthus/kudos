@@ -16,8 +16,7 @@ import { fixedWeek, fixtureWeeks, weekFixtures } from "./weekFixtures";
 const memberWithTheAlbum: MemberProfile = { ...shellFixtures.memberWithEveryFeatureOpen, album: true };
 
 const pages: { path: string; album?: MyAlbum; boards?: BoardsShown; week?: WeekShown; hoggies?: HoggiesShown }[] = [
-  { path: "/" },
-  { path: "/", album: albumFixtures.newcomer },
+  { path: "/book#teams/lanterns" },
   { path: "/book#teams/kettle-works" },
   { path: "/book#teams/quiet-harbour" },
   { path: "/book#teams/salt-and-sparrow" },

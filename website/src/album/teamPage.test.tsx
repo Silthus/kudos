@@ -47,8 +47,8 @@ function withTheTray(album: Album, person: string): Album {
 }
 
 describe("AL45: the team page is the team's class photo", () => {
-  it("/ shows the member's own team in one mounted photo: collected people by face, the rest as silhouettes, the unmatched shown and never counted, and a Left to right caption in the same order", async () => {
-    visit("/");
+  it("the member's own team page is one mounted photo: collected people by face, the rest as silhouettes, the unmatched shown and never counted, and a Left to right caption in the same order", async () => {
+    visit("/book#teams/lanterns");
 
     expect(await screen.findByRole("heading", { level: 1, name: "Lanterns" })).toBeInTheDocument();
     const shown = await photo();
@@ -66,7 +66,7 @@ describe("AL45: the team page is the team's class photo", () => {
   });
 
   it("the seal is ringed by one segment per person to collect, filled for each one in the album", async () => {
-    visit("/");
+    visit("/book#teams/lanterns");
 
     const seal = await screen.findByRole("img", { name: "Lanterns sticker, 4 of 5" });
     expect(seal.querySelectorAll("[data-segment]")).toHaveLength(5);
@@ -89,8 +89,8 @@ describe("AL45: the team page is the team's class photo", () => {
 
 describe("AL45: Collect the whole team names the one next step", () => {
   it.each([
-    { path: "/", album: midway, step: "Open Juno's pack to complete Lanterns." },
-    { path: "/", album: withTheTray(midway, "juno-park"), step: "Juno is in your tray: put the card in to complete Lanterns." },
+    { path: "/book#teams/lanterns", album: midway, step: "Open Juno's pack to complete Lanterns." },
+    { path: "/book#teams/lanterns", album: withTheTray(midway, "juno-park"), step: "Juno is in your tray: put the card in to complete Lanterns." },
     { path: "/book#teams/tin-orchard", album: midway, step: "Give Cass a thoughtful kudos to complete Tin Orchard." },
     { path: "/book#teams/salt-and-sparrow", album: midway, step: "Give Ivo, Mara and Teo a thoughtful kudos to complete Salt and Sparrow." },
     { path: "/book#teams/copper-kite", album: midway, step: "Give anyone on Copper Kite a thoughtful kudos to start this page." },
@@ -107,7 +107,7 @@ describe("AL45: Collect the whole team names the one next step", () => {
     const lanterns = midway.teams.find(({ team }) => team === "lanterns")!;
     const four = { ...lanterns, held: 1 };
     const album: Album = { ...midway, packs: [], teams: midway.teams.map((team) => (team.team === "lanterns" ? four : team)), people: midway.people.map((person) => (person.teams.includes("lanterns") && person.person !== "ines-okafor" ? { ...person, held: false } : person)) };
-    visit("/", { album });
+    visit("/book#teams/lanterns", { album });
 
     expect((await goal()).getByText("Give Bram, Oona and 2 more a thoughtful kudos to complete Lanterns.")).toBeInTheDocument();
   });
@@ -303,7 +303,7 @@ describe("AL46: the person page", () => {
       .getAllByRole("link")
       .map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       ["Kettle Works3 of 3", "/book#teams/kettle-works"],
-      ["Lanterns4 of 5", "/"],
+      ["Lanterns4 of 5", "/book#teams/lanterns"],
     ]);
     expect(screen.getByText(":ines-okafor-hype:")).toBeInTheDocument();
     expect(screen.getByText("Unlocked by your first thoughtful kudos to Ines")).toBeInTheDocument();
@@ -348,7 +348,7 @@ describe("AL46: the person page", () => {
 
   it("a team page never asks for a person", async () => {
     const asked: boolean[] = [];
-    visit("/", {
+    visit("/book#teams/lanterns", {
       people: (asking) => {
         asked.push(asking);
         return undefined;

@@ -21,15 +21,14 @@ import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 export default function AlbumApp({ member, actions, useAlbum, useSettings, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies }: AppProps & { member: MemberProfile }) {
   const { route, navigate, replaceAddress } = useRoute();
   const place = placeOf(route, window.location.hash, window.history.state);
-  useCanonicalAddress(place, replaceAddress);
   const album = useAlbum(true);
+  useCanonicalAddressOnceShown(place, album?.kind === "album", replaceAddress);
   const onSettings = place.kind === "settings";
   const settings = useSettings(onSettings);
   const onLeaderboard = place.kind === "leaderboard";
   const onProfile = place.kind === "profile";
   const boards = useThoughtfulBoards(onLeaderboard || onProfile);
-  const onOverview = place.kind === "team" && place.team === null && album?.kind === "album" && myTeamOf(album) === undefined;
-  const profile = useAlbumProfile(onProfile || onOverview);
+  const profile = useAlbumProfile(onProfile);
   const onHoggies = place.kind === "hoggies";
   const hoggies = useAlbumHoggies(onProfile || onHoggies);
   const onPerson = place.kind === "person";
@@ -67,7 +66,6 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
         person={<PersonAnswerPage shown={person} album={album} {...answers} />}
         profile={<ProfileAnswerPage album={album} profile={profile} boards={boards} hoggies={hoggies} {...answers} />}
         hoggies={<HoggiesAnswerPage shown={hoggies} place={place.kind === "hoggies" ? place : { hoggie: null }} address={hoggieAddress} {...answers} />}
-        newest={profile?.kind === "profile" ? profile.newest : null}
         openThoughtfulPack={actions.openThoughtfulPack}
         unlockTeamSticker={actions.unlockTeamSticker}
         putIn={actions.putIn}
@@ -77,10 +75,10 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
   );
 }
 
-function useCanonicalAddress(place: Place, replaceAddress: (href: string, state: unknown) => void) {
+function useCanonicalAddressOnceShown(place: Place, shown: boolean, replaceAddress: (href: string, state: unknown) => void) {
   const canonical = keepingSignInCode(hrefOf(place));
   const landingState = landingStateOf(place);
   useEffect(() => {
-    if (canonical !== currentAddress()) replaceAddress(canonical, landingState);
+    if (shown && canonical !== currentAddress()) replaceAddress(canonical, landingState);
   });
 }

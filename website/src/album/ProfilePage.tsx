@@ -14,7 +14,7 @@ import type { Album, AlbumHoggies, AlbumLevel, AlbumProfile, AlbumTeam, BoardsSh
 import { levelShareOf, myTeamOf, xpToNextOf } from "./facts";
 import { countedWords, emblemOf, milestoneNameOf, progressWords, tierWordOf } from "./milestones";
 import { rarityWordOf } from "./opening";
-import { hrefOf } from "./place";
+import { findYourselfHref, hrefOf } from "./place";
 import { bestMedalsOf, closestNextOf, highestEarnedOf, peopleGlanceOf, rankWords, rarestShown, shareOf, standingOf, teamFootnoteOf, teamRankWords, type BestMedal, type NextMedal, type Standing } from "./profile";
 import { dateOf } from "./teamPage";
 import "./team.css";
@@ -60,6 +60,7 @@ function ProfilePage({ album, profile, standing, hoggies }: { album: Album; prof
         <Entry album={album} team={team} note={profile.note} />
         <Rank standing={standing} />
       </div>
+      {team === undefined && <FindYourTeam />}
       <Glance album={album} team={team} hoggies={hoggies} />
       <Finds album={album} newest={profile.newest} hoggies={hoggies} />
       <BestMilestones album={album} />
@@ -87,7 +88,7 @@ function Entry({ album, team, note }: { album: Album; team: AlbumTeam | undefine
           <span className="ph-no-capture">{album.me.name}</span>
         </PageTitle>
         {team !== undefined && (
-          <AppLink href={hrefOf({ kind: "team", team: null })} className="al-person-team al-profile-team">
+          <AppLink href={hrefOf({ kind: "team", team: team.team })} className="al-person-team al-profile-team">
             <TeamCrest art={team.art} size={32} name={team.name} collected={team.held > 0} />
             <strong>{team.name}</strong>
             {team.total > 0 && (
@@ -104,6 +105,17 @@ function Entry({ album, team, note }: { album: Album; team: AlbumTeam | undefine
         {note !== null && <Note note={note} />}
       </div>
     </div>
+  );
+}
+
+function FindYourTeam() {
+  return (
+    <Section title="Find your team">
+      <div className="al-profile-find">
+        <p className="al-lede">Your team's page joins your album once you're matched to your profile on posthog.com.</p>
+        <MoreLink href={findYourselfHref}>Find yourself on posthog.com</MoreLink>
+      </div>
+    </Section>
   );
 }
 
@@ -229,7 +241,7 @@ function Glance({ album, team, hoggies }: { album: Album; team: AlbumTeam | unde
     <Section title="Your album at a glance">
       <ul className="al-profile-glance">
         <Tile href={hrefOf({ kind: "milestones" })} label="People in your album" held={people.held} total={people.total} footnote={`${people.unlocked} of ${people.teams} team stickers unlocked`} />
-        {team !== undefined && <Tile href={hrefOf({ kind: "team", team: null })} label={`Your team, ${team.name}`} held={team.held} total={team.total} footnote={teamFootnoteOf(team)} art={<TeamCrest art={team.art} size={44} name={team.name} collected={team.held > 0} />} />}
+        {team !== undefined && <Tile href={hrefOf({ kind: "team", team: team.team })} label={`Your team, ${team.name}`} held={team.held} total={team.total} footnote={teamFootnoteOf(team)} art={<TeamCrest art={team.art} size={44} name={team.name} collected={team.held > 0} />} />}
         {hoggies !== null && <Tile href={hrefOf({ kind: "hoggies", hoggie: null })} label="Hoggies found" held={hoggies.found} total={hoggies.total} footnote={`${hoggies.total - hoggies.found} still hiding in packs`} />}
       </ul>
     </Section>
