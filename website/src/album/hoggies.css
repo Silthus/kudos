@@ -364,7 +364,7 @@ button.al-hoggies-note .al-hoggie-art {
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
-  scroll-margin-top: calc(var(--al-top-height) + 9rem);
+  scroll-margin-top: calc(var(--al-hoggies-line, var(--al-top-height)) + 0.75rem);
 }
 
 .al-hoggies-group-head {
@@ -619,10 +619,6 @@ button.al-hoggies-note .al-hoggie-art {
     margin: 0;
     border: 1px solid var(--border);
     border-radius: 1rem;
-  }
-
-  .al-hoggies-group {
-    scroll-margin-top: var(--al-top-height);
   }
 
   .al-hoggies-group-head {
