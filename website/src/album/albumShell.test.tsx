@@ -66,39 +66,19 @@ describe("the AlbumAnswer fixtures keep the contract the UI tickets build on", (
   });
 });
 
-describe("AL39: the album shell shows only while getMyProfile carries album", () => {
-  it("a member the flag is on for gets the album's frame, not today's", async () => {
-    visit("/");
+describe("AL67: the album is the only shell", () => {
+  it("a member gets the album's frame whatever getMyProfile says about the album", async () => {
+    visit("/", albumFixtures.midway, shellFixtures.memberWithEveryFeatureOpen);
 
     expect(await screen.findByRole("navigation", { name: "Album" })).toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Screens" })).not.toBeInTheDocument();
   });
 
-  it("a member without the flag keeps today's shell and the album is never asked for", async () => {
-    window.history.replaceState(null, "", "/");
-    const asked: boolean[] = [];
-    renderAlbum(shellFixtures.memberWithEveryFeatureOpen, (asking) => {
-      asked.push(asking);
-      return asking ? albumFixtures.midway : undefined;
-    });
-
-    expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
-    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
-    expect(asked.every((asking) => !asking)).toBe(true);
-  });
-
-  it("today's renderApp, which injects no album read, renders today's shell as before", async () => {
-    window.history.replaceState(null, "", "/");
-    renderApp(shellFixtures.memberWithEveryFeatureOpen);
-
-    expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
-    expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
-  });
-
-  it("while getAlbum answers off for a member the profile still says album for, the album waits instead of showing", async () => {
+  it("while getAlbum answers off, the member reads that the website isn't open here, never another shell", async () => {
     visit("/", { kind: "off" });
 
-    expect(await screen.findByRole("main")).toHaveAttribute("aria-busy", "true");
+    expect(await screen.findByRole("heading", { level: 1, name: "Not open yet" })).toBeInTheDocument();
+    expect(screen.getByRole("main")).not.toHaveAttribute("aria-busy");
     expect(screen.queryByRole("navigation", { name: "Album" })).not.toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Screens" })).not.toBeInTheDocument();
   });
