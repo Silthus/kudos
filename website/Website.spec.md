@@ -179,6 +179,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
   over: a ready page visited, its seal pressed twice before the answer, pressed by keyboard, pressed while Put them all in waits for its answer and while its cards fly in, the packs button while an unlock waits for its answer, a refusal, an unreachable server, a refusal followed by getAlbum reading unlocked, and the moment played through, under reduced motion and with getAlbum still answering ready
   via: AL45: a team sticker unlocks only on the member's own click
   refuted: UnlockButton started the unlock in an effect as soon as a ready page rendered -> a visit to a ready page sent unlockTeamSticker unasked and played the moment, 5 of 7 tests red (2026-10-19)
+  refuted: Seal rendered the unlock button for every page not yet unlocked -> a page still being collected offered the unlock as a button, 2 of 16 tests red (2026-10-19)
   because: an unlock is for good, so it starts only from the member's own act, never from a visit or a link (VA26), and the moment is the payoff of a complete page (AL19, AL45, AL54, #627, #661)
   kinds: output
   checklist: destination-confinement dismissed: the page sends only unlockTeamSticker, once per press, for the team the page shows, and nothing on arrival
@@ -189,6 +190,7 @@ The browser package, the signed-in surface where a member sees their kudos besid
 - an unlocked team page says which team emoji the member got and how to use it: While the album shell shows an unlocked team page whose team emoji getAlbum answers, a line under the class photo shows the emoji's picture and says "You got the `:{name}:` team emoji."; while Slack has it (AL30), it says to use it in Slack, reacting with it and putting it in the kudos the member gives; while Slack doesn't, it never says the emoji is usable, says it isn't in Slack yet, and offers `Add to Slack`, a link that opens Slack's custom emoji page in a new tab and saves the emoji's picture as `{name}.png`, the team emblem in its place when the picture is served from another host, which a browser won't save (AL31).
   over: an unlocked page whose emoji Slack has, one whose emoji Slack doesn't have, and one whose picture comes from another host
   via: AL45: an unlocked page says plainly what the member got
+  refuted: teamEmojiUseWords said Use it in Slack whether or not Slack had the emoji -> the page called an emoji Slack lacks usable, 1 of 3 tests red (2026-10-19)
   because: a member who unlocks a team sticker should know at once what they got and what to do with it, and HedgeHug never claims an emoji works in Slack before Slack has it (AL30, AL31, #696)
   kinds: output
   checklist: destination-confinement dismissed: the line sends no command; `Add to Slack` only opens Slack's own page and saves a picture this site serves
