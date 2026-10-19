@@ -44,6 +44,7 @@ export type Album = {
   moreEmojis: boolean;
   sharedEmojis: SharedEmoji[] | null;
   emojiPage: string | null;
+  emojiWizard: boolean;
   milestones: AlbumMilestone[];
   gettingStarted: GettingStarted | null;
 };

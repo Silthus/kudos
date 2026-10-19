@@ -2,7 +2,8 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type 
 import { prefersReducedMotion } from "../reducedMotion";
 import type { Album, AlbumEmoji, SeenReply } from "./answer";
 import { EmojiPicture } from "./EmojiPicture";
-import { addItToSlackWords, momentsOwedOf, useItInSlackWords, whyWords } from "./emojiShelf";
+import { addItToSlackWords, findItInSlackWords, momentsOwedOf, useItInSlackWords, whyWords } from "./emojiShelf";
+import { useEmojiWizardOn } from "./findInSlack";
 import { keepFocusIn } from "./focusTrap";
 import "./emoji.css";
 
@@ -56,6 +57,7 @@ type EmojiMomentProps = { moments: EmojiMoments; emojiButton: RefObject<HTMLButt
 export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
   const { playing: emoji, position, inThisBatch, take, skipTheRest } = moments;
   const described = useId();
+  const wizardOn = useEmojiWizardOn();
   const [flying, setFlying] = useState(false);
   const [reduced] = useState(prefersReducedMotion);
   const dialog = useRef<HTMLDivElement>(null);
@@ -95,7 +97,7 @@ export function EmojiMoment({ moments, emojiButton }: EmojiMomentProps) {
           {whyWords(emoji)}
         </p>
         <p id={`${described}-use`} className="al-emoji-moment-use">
-          {emoji.inSlack ? useItInSlackWords : addItToSlackWords}
+          {emoji.inSlack ? useItInSlackWords : wizardOn ? findItInSlackWords : addItToSlackWords}
         </p>
         <div className="al-emoji-moment-actions">
           <button type="button" className="al-emoji-moment-take" onClick={flyIn}>

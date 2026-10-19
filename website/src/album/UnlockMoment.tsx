@@ -3,6 +3,7 @@ import { prefersReducedMotion } from "../reducedMotion";
 import { TeamEmojiPicture } from "./TeamEmojiPicture";
 import type { AlbumEmoji, AlbumTeam, TeamSticker } from "./answer";
 import { SealArt } from "./Seal";
+import { useEmojiWizardOn } from "./findInSlack";
 import { dateOf, newTeamEmojiWords } from "./teamPage";
 import "./moment.css";
 
@@ -19,6 +20,7 @@ const momentSealSize = 264;
 type UnlockMomentProps = { sticker: TeamSticker; collected: number; emoji: AlbumEmoji | undefined; onDone: () => void };
 
 export function UnlockMoment({ sticker, collected, emoji, onDone }: UnlockMomentProps) {
+  const wizardOn = useEmojiWizardOn();
   const [reduced] = useState(prefersReducedMotion);
   const [phase, setPhaseNow] = useState<Phase>(reduced ? "emoji" : "lift");
   const setPhase = useCallback((next: Phase) => setPhaseNow((current) => (phases.indexOf(next) > phases.indexOf(current) ? next : current)), []);
@@ -88,7 +90,7 @@ export function UnlockMoment({ sticker, collected, emoji, onDone }: UnlockMoment
                   </span>
                   <span className="al-unlock-emoji-words">
                     <code>:{emoji?.name ?? sticker.emoji}:</code>
-                    <span>{newTeamEmojiWords(emoji)}</span>
+                    <span>{newTeamEmojiWords(emoji, wizardOn)}</span>
                   </span>
                 </div>
                 <div className="al-unlock-continue">

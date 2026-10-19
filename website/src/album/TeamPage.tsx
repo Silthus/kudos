@@ -4,7 +4,7 @@ import { TeamCrest } from "../crates/TeamCrest";
 import { TeamEmojiPicture } from "./TeamEmojiPicture";
 import { MemberFace } from "../Face";
 import { PageTitle } from "../PageTitle";
-import { AddToSlackButton } from "./AddToSlackButton";
+import { NotInSlack, useEmojiWizardOn } from "./findInSlack";
 import type { Album, AlbumEmoji, AlbumTeam } from "./answer";
 import { plural } from "./facts";
 import { hrefOf } from "./place";
@@ -151,9 +151,9 @@ function TeamEmojiLine({ team, emoji, emojiPage }: { team: AlbumTeam; emoji: Alb
         <TeamEmojiPicture art={team.art} name={team.name} emoji={emoji} size={32} />
       </span>
       <p>
-        You got the <code>:{emoji.name}:</code> team emoji. {teamEmojiUseWords(emoji)}
+        You got the <code>:{emoji.name}:</code> team emoji. {teamEmojiUseWords(emoji, useEmojiWizardOn())}
       </p>
-      {!emoji.inSlack && <AddToSlackButton emoji={emoji} emojiPage={emojiPage} />}
+      {!emoji.inSlack && <NotInSlack emoji={emoji} emojiPage={emojiPage} />}
     </div>
   );
 }

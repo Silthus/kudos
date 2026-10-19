@@ -7,6 +7,7 @@ import { useLinkTargetOnceLanded } from "../linkTarget";
 import { useTitleFocusOnArrival } from "../pageFocus";
 import { currentAddress, keepingSignInCode, returnAddressOf, useRoute } from "../route";
 import type { MemberProfile } from "../shell";
+import type { Album } from "./answer";
 import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
 import { myTeamOf } from "./facts";
@@ -16,11 +17,13 @@ import { HoggiesAnswerPage, isWaitingForTheHoggies } from "./Hoggies";
 import { LeaderboardAnswerPage } from "./Leaderboard";
 import { isWaitingForThePerson, PersonAnswerPage } from "./PersonPage";
 import { SharedEmojis } from "./SharedEmojis";
+import { AppEmojiSection } from "../settings/AppEmojiList";
+import { EmojiWizardHost } from "./findInSlack";
 import { isWaitingForTheProfile, ProfileAnswerPage } from "./ProfilePage";
 import { hrefOf, landingStateOf, placeOf, type Place } from "./place";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
-export default function AlbumApp({ member, actions, useAlbum, useSettings, useEmojiMappings, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies }: AppProps & { member: MemberProfile }) {
+export default function AlbumApp({ member, actions, useAlbum, useSettings, useEmojiMappings, useSlackEmojiMatches, useAppEmojis, useThoughtfulBoards, useAlbumWeek, useAlbumPerson, useAlbumProfile, useAlbumHoggies }: AppProps & { member: MemberProfile }) {
   const { route, navigate, replaceAddress } = useRoute();
   const place = placeOf(route, window.location.hash, window.history.state);
   const album = useAlbum(true);
@@ -58,11 +61,12 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useEm
     );
   return (
     <NavigateProvider value={arriveAt}>
+      <EmojiWizardHost on={album.emojiWizard} emojiPage={album.emojiPage} useSlackEmojiMatches={useSlackEmojiMatches} mapMyEmoji={actions.mapMyEmoji}>
       <AlbumShell
         album={album}
         place={place}
         busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards.shown)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person)) || (onProfile && isWaitingForTheProfile({ profile, boards: boards.shown, hoggies })) || (onHoggies && isWaitingForTheHoggies(hoggies))}
-        settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} withThemeAndSignOut albumSections={album.sharedEmojis !== null && <SharedEmojis emojis={album.sharedEmojis} emojiPage={album.emojiPage} />} {...answers} />}
+        settings={<SettingsAnswerPage settings={settings} actions={actions} useEmojiMappings={useEmojiMappings} withThemeAndSignOut albumSections={<AlbumSettingsSections album={album} useAppEmojis={useAppEmojis} useSlackEmojiMatches={useSlackEmojiMatches} mapSlackEmoji={actions.mapSlackEmoji} />} {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} teams={album.teams} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
         person={<PersonAnswerPage shown={person} album={album} {...answers} />}
@@ -74,7 +78,19 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useEm
         putAllIn={actions.putAllIn}
         markEmojisSeen={actions.markEmojisSeen}
       />
+      </EmojiWizardHost>
     </NavigateProvider>
+  );
+}
+
+type AlbumSettingsSectionsProps = { album: Album; useAppEmojis: AppProps["useAppEmojis"]; useSlackEmojiMatches: AppProps["useSlackEmojiMatches"]; mapSlackEmoji: AppProps["actions"]["mapSlackEmoji"] };
+
+function AlbumSettingsSections({ album, useAppEmojis, useSlackEmojiMatches, mapSlackEmoji }: AlbumSettingsSectionsProps) {
+  return (
+    <>
+      <AppEmojiSection useAppEmojis={useAppEmojis} useSlackEmojiMatches={useSlackEmojiMatches} mapSlackEmoji={mapSlackEmoji} />
+      {album.sharedEmojis !== null && <SharedEmojis emojis={album.sharedEmojis} emojiPage={album.emojiPage} />}
+    </>
   );
 }
 

@@ -56,6 +56,8 @@ export function fixtureReadsFor(visitor: ShellState, fixture?: string): AppReads
     drawSpotlight: fixtureSpotlight,
     useSettings: fixture === "album-maintainer" ? fixtureMaintainerSettings : fixtureSettings,
     useEmojiMappings: (asking) => (asking ? emojiMappingsFixtures.workspace : undefined),
+    useSlackEmojiMatches: (near) => (near === null ? undefined : { kind: "matches", matches: emojiMappingsFixtures.workspace.emoji.slice(0, 6).map(({ name, image, mapping }) => ({ name, image, free: mapping === null })) }),
+    useAppEmojis: (asking) => (asking ? { kind: "off" } : undefined),
     useAlbum: fixture === withoutATeam ? fixedAlbum(albumFixtures.teamless) : fixture === withNewEmojis ? fixedAlbum(albumFixtures.newEmojis) : fixture === asAnAdmin ? fixedAlbum(albumFixtures.admin) : fixtureAlbum,
     useThoughtfulBoards: fixture === withoutATeam ? fixedBoards(boardsFixtures.teamless) : fixtureBoards,
     useAlbumPerson: fixturePeople,

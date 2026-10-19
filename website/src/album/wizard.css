@@ -1,0 +1,171 @@
+.al-wizard-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklab, #000 45%, transparent);
+  padding: 1rem;
+}
+
+.al-wizard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  width: min(32rem, 100%);
+  max-height: min(40rem, calc(100vh - 2rem));
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--card);
+  padding: 1.25rem;
+  color: var(--foreground);
+  box-shadow: 0 1.5rem 3rem color-mix(in oklab, #000 30%, transparent);
+}
+
+.al-wizard-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.al-wizard-words {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.al-wizard-title {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+.al-wizard-hint,
+.al-wizard-quiet {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.al-wizard-close {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.al-wizard-close:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.al-wizard-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.al-wizard-search input {
+  height: 2.5rem;
+  border: 1px solid var(--muted-foreground);
+  border-radius: 0.5rem;
+  background: var(--card);
+  padding: 0 0.75rem;
+  color: var(--foreground);
+  font: inherit;
+  font-weight: 400;
+}
+
+.al-wizard-matches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.al-wizard-match {
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--card);
+  padding: 0.375rem 0.5rem;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.al-wizard-match:hover:not(:disabled) {
+  border-color: var(--foreground);
+  background: var(--muted);
+}
+
+.al-wizard-match:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.al-wizard-match img {
+  flex: none;
+  object-fit: contain;
+}
+
+.al-wizard-match code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.al-wizard-in-use {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.al-wizard-none,
+.al-wizard-done {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.al-wizard-none p,
+.al-wizard-done p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.al-wizard-problem {
+  margin: 0;
+  color: var(--destructive, #b42318);
+  font-size: 0.8125rem;
+}
+
+.al-wizard-none .al-add-to-slack-said {
+  padding-left: 0;
+}

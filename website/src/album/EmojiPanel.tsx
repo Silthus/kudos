@@ -2,8 +2,8 @@ import { IconSearch } from "@posthog/icons";
 import { useId, useState } from "react";
 import { AppLink } from "../AppLink";
 import type { Album, AlbumEmoji } from "./answer";
-import { AddToSlackButton } from "./AddToSlackButton";
 import { EmojiPicture } from "./EmojiPicture";
+import { NotInSlack } from "./findInSlack";
 import { howToUnlockWords, isReadyToUnlock, matchesSearch, shareOf, shelvesOf, teamOf, useItInSlackWords, whyWords, type Shelf } from "./emojiShelf";
 import { hrefOf } from "./place";
 import "./emoji.css";
@@ -101,8 +101,8 @@ function EarnedEmoji({ emoji, emojiPage }: { emoji: AlbumEmoji; emojiPage: strin
   );
 }
 
-export function SlackStatus({ emoji, emojiPage }: { emoji: Pick<AlbumEmoji, "kind" | "name" | "picture" | "from" | "inSlack">; emojiPage: string | null }) {
-  if (!emoji.inSlack) return <AddToSlackButton emoji={emoji} emojiPage={emojiPage} />;
+export function SlackStatus({ emoji, emojiPage }: { emoji: Pick<AlbumEmoji, "id" | "kind" | "name" | "picture" | "from" | "inSlack">; emojiPage: string | null }) {
+  if (!emoji.inSlack) return <NotInSlack emoji={emoji} emojiPage={emojiPage} />;
   return (
     <span className="al-emoji-in-slack" title={useItInSlackWords}>
       In Slack

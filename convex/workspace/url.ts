@@ -7,6 +7,11 @@ export async function workspaceUrlOf(ctx: QueryCtx, workspace: string): Promise<
   return (await workspaceRow(ctx, workspace))?.url ?? null;
 }
 
+export async function customEmojiPageOf(ctx: QueryCtx, workspace: string): Promise<string | null> {
+  const url = await workspaceUrlOf(ctx, workspace);
+  return url === null ? null : `${url}customize/emoji`;
+}
+
 export async function claimWorkspaceUrlRequest(ctx: MutationCtx, workspace: string): Promise<boolean> {
   const row = await workspaceRow(ctx, workspace);
   if (row?.url !== undefined || isPending(row?.urlRequestedAt)) return false;

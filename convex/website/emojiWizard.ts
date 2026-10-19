@@ -5,6 +5,7 @@ import { emojiWizardShownTo } from "../album/flag";
 import type { EmojiMapper } from "../album/records";
 import type { QueryCtx } from "../_generated/server";
 import { nameAndPictureOf } from "../workspace/directory";
+import { customEmojiPageOf } from "../workspace/url";
 import { workspaceSettingsShownTo } from "../workspace/workspaceSettings";
 import type { ShownTarget } from "./emojiMappings";
 import { memberMutation } from "./memberMutation";
@@ -19,7 +20,7 @@ export type EmojiMappedBy = { by: EmojiMapper["as"]; name: string };
 
 export type AppEmoji = { key: string; kind: AppEmojiKind; name: string; from: string; picture: string; holders: number; slack: { image: string; setBy: EmojiMappedBy | null } | null; place: ShownTarget };
 
-export type AppEmojis = { kind: "app-emojis"; emojis: AppEmoji[] };
+export type AppEmojis = { kind: "app-emojis"; emojis: AppEmoji[]; emojiPage: string | null };
 
 export type AppEmojisRead = { kind: "off" } | AppEmojis;
 
@@ -51,7 +52,7 @@ export const getAppEmojis = memberQuery(async (ctx, me): Promise<AppEmojisRead> 
     if (place === null) continue;
     emojis.push({ key: `${place.kind}:${"person" in place ? place.person : emoji.slice(emoji.indexOf(":") + 1)}`, kind, name, from, picture, holders, place, slack: slack === null ? null : { image: slack.image, setBy: slack.mappedBy === null ? null : await mappedByOf(ctx, slack.mappedBy) } });
   }
-  return { kind: "app-emojis", emojis };
+  return { kind: "app-emojis", emojis, emojiPage: await customEmojiPageOf(ctx, me.workspace) };
 });
 
 async function shownPlaceOf(me: VerifiedMember, target: ReturnType<typeof targetOf>): Promise<ShownTarget | null> {
