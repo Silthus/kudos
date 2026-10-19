@@ -43,13 +43,17 @@ export function isAnAlbumHash(hash: string) {
 
 function albumPlaceIn(hash: string, landingState: unknown): Place | undefined {
   const [section, key] = hash.replace(/^#/, "").split("/", 2).map(decoded);
-  if (section === "teams" && key) return { kind: "team", team: key };
+  if (section === "teams" && key) return isARetiredGroupAlbum(key) ? home : { kind: "team", team: key };
   if (section === "people" && key) return { kind: "person", person: key };
   if (section === "me") return { kind: "profile" };
   if (section === "hoggies") return hoggiesPlaceOf(key || null, landingState);
   if (section === "milestones") return { kind: "milestones" };
   if (section === "packs") return { kind: "packs" };
   return undefined;
+}
+
+function isARetiredGroupAlbum(team: string) {
+  return team.startsWith("group:");
 }
 
 function hoggiesPlaceOf(key: string | null, landingState: unknown): Place {

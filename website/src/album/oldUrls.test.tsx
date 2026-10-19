@@ -6,6 +6,7 @@ import { routeList, signInEntry, urlOf, type Page } from "../../../convex/websit
 import { activityHref } from "../route";
 import { bookHref, categories } from "../book/categories";
 import { rarestFirst, spreadHrefOf, type Spread } from "../book/spread/spreads";
+import { groupSlugOf } from "../book/spread/teamPages";
 import { pagePropertiesOf } from "../browserAnalytics/pageviews";
 import type { Rarity } from "../crates/drops";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
@@ -124,6 +125,7 @@ const everySpread: Spread[] = [
   ...rarestFirst.map((rarity) => ({ kind: "hoggies", rarity }) as const),
   { kind: "teams" },
   { kind: "team", team: "paper-moons" },
+  { kind: "team", team: groupSlugOf("S0123456789") },
   { kind: "achievements", category: "all" },
   ...categories.map(({ id }) => ({ kind: "achievements", category: id }) as const),
 ];
@@ -136,7 +138,7 @@ function albumPageForSpread(spread: Spread): Landing {
     case "hoggies":
       return { ...hoggies, rarity: spread.rarity };
     case "team":
-      return { address: "/book#teams/paper-moons", title: "Paper Moons" };
+      return spread.team === "paper-moons" ? { address: "/book#teams/paper-moons", title: "Paper Moons" } : home;
     case "achievements":
       return milestones;
   }
@@ -170,9 +172,7 @@ describe("AL44: every URL Slack sends lands in the album", () => {
     visit(link);
     await expectToLand(landing);
   });
-});
 
-describe("AL44: every address the website itself built lands in the album", () => {
   it.each(["received", "given"] as const)("/activity?filter=%s", async (filter) => {
     visit(activityHref(filter));
     await expectToLand(activity);
@@ -193,6 +193,7 @@ describe("AL44: every address the website itself built lands in the album", () =
     ["/book/collection?crate=store#teams/paper-moons", { address: "/book#teams/paper-moons", title: "Paper Moons" }],
     ["/book?page=giving#achievements/crowd", milestones],
     ["/sign-in/book#achievements/crowd", milestones],
+    ["/book/collection#teams/group:S0123456789", home],
   ] as const)("%s", async (link, landing) => {
     visit(link);
     await expectToLand(landing);
@@ -226,6 +227,19 @@ describe("AL44: how a landing changes the address", () => {
     await waitFor(() => expect(screen.queryByText("Showing legendary hoggies.")).not.toBeInTheDocument());
     act(() => window.history.back());
     expect(await screen.findByText("Showing legendary hoggies.")).toBeInTheDocument();
+  });
+
+  it("?section= lands on its heading once the album has arrived, when Settings answered first", async () => {
+    window.history.replaceState(null, "", "/sign-in/settings?section=messages");
+    let albumArrived = false;
+    const { showVisitor } = renderAlbum(memberWithTheAlbum, (asking) => (asking && albumArrived ? albumFixtures.midway : undefined), { settings: fixedSettings(settingsFixtures.everything) });
+    await waitFor(() => expect(addressNow()).toBe("/settings?section=messages"));
+
+    albumArrived = true;
+    showVisitor({ ...memberWithTheAlbum });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "Messages" })).toHaveFocus());
   });
 
   it("?section= lands on that settings section's heading, as it does today", async () => {

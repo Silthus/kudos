@@ -17,7 +17,7 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings }: App
   const album = useAlbum(true);
   const onSettings = place.kind === "settings";
   const settings = useSettings(onSettings);
-  useLinkTargetOnceLanded(route, { quest: false, perk: false, crate: false, panel: false, section: onSettings && settings?.kind === "settings" });
+  useLinkTargetOnceLanded(route, { quest: false, perk: false, crate: false, panel: false, section: album?.kind === "album" && onSettings && settings?.kind === "settings" });
   const expectArrival = useTitleFocusOnArrival();
   const arriveAt = useCallback(
     (href: string) => {
