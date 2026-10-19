@@ -6,7 +6,7 @@ import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { aWideScreenThatNarrows, fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { contrast, contrastOnTint, type Mode } from "../test/themeContrast";
-import { albumFixtures, fixedAlbum } from "./albumFixtures";
+import { albumFixtures, fixedAlbum, fixturePackOpeningOf } from "./albumFixtures";
 import type { BoardsShown, MyAlbum } from "./answer";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
 
@@ -44,7 +44,7 @@ async function violationsIn(container: Element) {
 
 function visit(path: string, album: MyAlbum = albumFixtures.midway, boards: BoardsShown = boardsFixtures.week) {
   window.history.replaceState(null, "", path);
-  return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boards) });
+  return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boards), commands: { openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack) } });
 }
 
 describe("AL55: every album page passes axe in light and dark, wide and on a phone", () => {
@@ -77,6 +77,33 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
       expect(await violationsIn(container)).toEqual([]);
     }, 60_000);
 
+    for (const wide of [true, false]) {
+      it(`the pack opening passes axe at every beat in ${dark ? "dark" : "light"}, ${wide ? "wide" : "on a phone"}`, async () => {
+        fakeSystemTheme(dark);
+        if (wide) preferWideScreen();
+        else aWideScreenThatNarrows().narrow();
+        const { user, container } = visit("/");
+        await user.click(await screen.findByRole("button", { name: "Open your packs, 2 waiting" }));
+        expect(await violationsIn(container)).toEqual([]);
+
+        await user.click(screen.getByRole("button", { name: "Rip open the pack for thanking Juno Park" }));
+        for (const turn of ["Turn the first card", "Next card"]) {
+          await user.click(await screen.findByRole("button", { name: turn }));
+          expect(await violationsIn(container)).toEqual([]);
+        }
+        await user.click(screen.getByRole("button", { name: "Skip" }));
+        expect(await violationsIn(container)).toEqual([]);
+      }, 60_000);
+    }
+
+    it(`with no pack waiting, the opening passes axe in ${dark ? "dark" : "light"}`, async () => {
+      fakeSystemTheme(dark);
+      preferWideScreen();
+      const { user, container } = visit("/", albumFixtures.newcomer);
+      await user.click(await screen.findByRole("button", { name: "No packs waiting" }));
+
+      expect(await violationsIn(container)).toEqual([]);
+    }, 30_000);
     it(`the Leaderboard narrowed to one team passes axe in ${dark ? "dark" : "light"}`, async () => {
       fakeSystemTheme(dark);
       preferWideScreen();
@@ -145,6 +172,16 @@ describe("AL55: the album's own colours meet WCAG 2.2 AA in both themes", () => 
       expect(contrastOnTint(mode, "muted-foreground", "al-accent-soft", { backdrop: "card" })).toBeGreaterThanOrEqual(4.5);
       expect(contrast(mode, "al-count-ink", "al-accent-ink")).toBeGreaterThanOrEqual(4.5);
       expect(contrast(mode, "al-done-ink", "al-done")).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it(`the pack opening's text reaches 4.5:1 in ${mode}`, () => {
+      expect(contrast(mode, "al-card-frame-ink", "al-card-frame")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-count-ink", "al-accent")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-gold-ink", "al-gold")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-ribbon-ink", "al-ribbon")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-card-back-ink", "al-card-back")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-accent-ink", "background")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "foreground", "card")).toBeGreaterThanOrEqual(4.5);
     });
 
     it(`bars, pips and step rings reach 3:1 in ${mode}`, () => {

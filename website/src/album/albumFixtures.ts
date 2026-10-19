@@ -1,4 +1,4 @@
-import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, GettingStarted, MyAlbum } from "./answer";
+import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, GettingStarted, MyAlbum, PackOpenAnswer } from "./answer";
 
 const day = 86_400_000;
 
@@ -120,4 +120,24 @@ export const albumFixtures = {
 
 export function fixedAlbum(answer: MyAlbum): AlbumRead {
   return (asking) => (asking ? answer : undefined);
+}
+
+const fixtureHoggies = [
+  { hoggie: "coffee-run", rarity: "rare", isNew: true },
+  { hoggie: "banana", rarity: "common", isNew: false },
+] as const;
+
+export function fixturePackOpeningOf(pack: string): PackOpenAnswer {
+  const index = albumFixtures.midway.packs.findIndex((waiting) => waiting.pack === pack);
+  const waiting = albumFixtures.midway.packs[index];
+  if (waiting === undefined) return { kind: "refused" };
+  const { xp, level } = albumFixtures.midway.level;
+  return {
+    kind: "opened",
+    items: [
+      { item: `${pack}:sticker`, kind: "sticker", person: waiting.person },
+      { item: `${pack}:hoggie`, kind: "hoggie", ...fixtureHoggies[index % fixtureHoggies.length]! },
+    ],
+    applied: { xp: 15, coins: 0, from: { xp, level, coins: 0, skillPoints: 0 }, to: { xp: xp + 15, level, coins: 0, skillPoints: 0 } },
+  };
 }

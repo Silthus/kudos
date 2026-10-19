@@ -1,0 +1,48 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 50
+  },
+  "me": {
+    "face": {
+      "initials": "MH",
+      "kind": "initials"
+    },
+    "name": "Maren Holt",
+    "person": "js72pdwxp7r5bzcca1awg4pzq58gkmrt"
+  },
+  "morePacks": false,
+  "morePeople": false,
+  "moreTray": false,
+  "packs": [],
+  "people": [],
+  "tray": [
+    {
+      "item": "jn7se6g50ckvvb2509ysap24kn8gj6bq",
+      "kind": "sticker",
+      "person": "js71p84pt2gjky2drq3rw3rzyn8gjar0"
+    },
+    {
+      "hoggie": "ipad",
+      "isNew": true,
+      "item": "jn7vt9w2zqwavmtsgj3hmj3ysd8gja0e",
+      "kind": "hoggie",
+      "rarity": "common"
+    },
+    {
+      "item": "jn7n4sjr8yz71f47259vgjf2ex8gkh1f",
+      "kind": "sticker",
+      "person": "js736jhdqt24thqm7sx69phct58gk96s"
+    },
+    {
+      "hoggie": "workflows",
+      "isNew": true,
+      "item": "jn7htqbtmvtrh725snjm5ek5z18gkgbf",
+      "kind": "hoggie",
+      "rarity": "common"
+    }
+  ]
+}

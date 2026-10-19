@@ -48,6 +48,7 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
         settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         onSignOut={actions.signOut}
+        openThoughtfulPack={actions.openThoughtfulPack}
       />
     </NavigateProvider>
   );
