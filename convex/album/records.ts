@@ -62,6 +62,8 @@ export const milestoneTierRecordValidator = v.object({ member: v.id("members"), 
 
 export const emojiNameValidator = v.object({ workspace: v.string(), emoji: v.string(), person: v.optional(v.id("members")), name: v.string() });
 
+export const seenEmojiValidator = v.object({ member: v.id("members"), emoji: v.string(), at: v.number() });
+
 export const emojiNameNumberValidator = v.object({ workspace: v.string(), stem: v.string(), last: v.number() });
 
 export const albumHistoryValidator = v.object({
