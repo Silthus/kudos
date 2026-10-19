@@ -735,6 +735,14 @@
     {
       "name": "milestone",
       "definition": "One of the album's five counted goals, Faces in the album, Full pages, Across the company, Hoggie hunter and Kind words, each with bronze, silver, gold and diamond steps counted from album facts; each tier is recorded once per member with the date its count first reached it and never taken back (AL21). Not a Book ladder, whose earned tiers retire with achievements."
+    },
+    {
+      "name": "earned emoji",
+      "definition": "A team, milestone, level or hype emoji a member earned, derived on every read from what earns it: a team sticker, a milestone's gold tier, a level of 5, 10, 15, 20 or 25, or a first thoughtful pack for a person (AL23, AL24). Its ID never changes; its name lives in the workspace's emoji name registry, and it is in Slack only while the workspace's custom emoji copy holds that name (AL25, AL30). Not a kudos emoji: it decorates a message and gives nothing."
+    },
+    {
+      "name": "hype emoji",
+      "definition": "The earned emoji a member gets for a person with their first thoughtful pack for that person, named from the person's full name with -hype (AL23, AL25). Its picture is the person's face as the directory holds it, their posthog.com cutout, else their Slack picture, else the hype emblem (AL27). A sticker the album's history brought earns none; thanking that person thoughtfully once more does."
     }
   ],
   "retired": [

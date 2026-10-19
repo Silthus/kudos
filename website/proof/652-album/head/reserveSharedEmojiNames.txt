@@ -1,0 +1,5 @@
+emojiNames rows before: 393
+$ convex run album/emojiNames:reserveSharedEmojiNames {"workspace":"<sandbox team>"}
+exit 0 output: <none: the mutation returns null>
+emojiNames rows after: 393
+Mon Oct 19 08:06:35 UTC 2026

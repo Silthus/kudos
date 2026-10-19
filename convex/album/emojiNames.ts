@@ -43,6 +43,15 @@ export const reserveTeamNamesAfterTheSync = internalMutation({
   },
 });
 
+export const reserveSharedEmojiNames = internalMutation({
+  args: { workspace: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { workspace }) => {
+    await reserveSharedNamesIn(ctx, workspace);
+    return null;
+  },
+});
+
 async function workspacesWithARegistry(ctx: QueryCtx): Promise<string[]> {
   const firstUses = await ctx.db
     .query("emojiNames")
