@@ -1,0 +1,61 @@
+{
+  "applied": {
+    "coins": 0,
+    "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 37
+    },
+    "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 52
+    },
+    "xp": 15
+  },
+  "items": [
+    {
+      "item": "jn7wje3j9x6shn02ddbzpxvtt98gjet5",
+      "kind": "sticker",
+      "person": "js79zdca22vdg9a7dqjfx6593d8gkmcj"
+    },
+    {
+      "hoggie": "megaphone",
+      "isNew": true,
+      "item": "jn7vm3tmfqwydewnkvsntjy2fd8gjzd2",
+      "kind": "hoggie",
+      "rarity": "common"
+    }
+  ],
+  "kind": "opened"
+}
+{
+  "applied": {
+    "coins": 0,
+    "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 52
+    },
+    "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 67
+    },
+    "xp": 15
+  },
+  "items": [
+    {
+      "hoggie": "robot",
+      "isNew": true,
+      "item": "jn7tf2qppqz5z160kjtxreyw7n8gjf5x",
+      "kind": "hoggie",
+      "rarity": "rare"
+    }
+  ],
+  "kind": "opened"
+}

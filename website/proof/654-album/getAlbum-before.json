@@ -1,0 +1,34 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 37
+  },
+  "me": {
+    "face": {
+      "initials": "MT",
+      "kind": "initials"
+    },
+    "name": "Marlowe Tansy",
+    "person": "js78rkrwqwwjsv10kvpvk4qy858gjyhz"
+  },
+  "morePacks": false,
+  "morePeople": false,
+  "moreTray": false,
+  "packs": [
+    {
+      "earnedAt": 1791774152926,
+      "pack": "hn7k5c1z5q1384840rvzzt458x8gjzsx",
+      "person": "js79zdca22vdg9a7dqjfx6593d8gkmcj"
+    },
+    {
+      "earnedAt": 1792378957232,
+      "pack": "hn7vy1fvak16sf738p6180wp1h8gk80v",
+      "person": "js79zdca22vdg9a7dqjfx6593d8gkmcj"
+    }
+  ],
+  "people": [],
+  "tray": []
+}
