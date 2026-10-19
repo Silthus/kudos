@@ -837,6 +837,22 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     expect(within(side.getByRole("list", { name: "People" })).getByRole("link", { name: "Ines Okafor" })).toBeInTheDocument();
   });
 
+  it("AL18: the member's team page counts the held people getAlbum's team pages name, and none on another team", async () => {
+    preferWideScreen();
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
+    const face = { kind: "initials", initials: "XX" };
+    const people = ["m-ines", "m-omar", "m-pia"].map((person) => ({ person, name: person, face, held: true }));
+    const lanterns = { team: "lanterns", name: "Lanterns", art: null, mine: true, people: ["m-ines", "m-omar", "m-sol"], unmatched: [], held: 2, total: 3, state: "progress", unlockedAt: null };
+    const comets = { ...lanterns, team: "comets", name: "Comets", mine: false, people: ["m-pia"], held: 1, total: 1, state: "ready" };
+    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, teams: [lanterns, comets], people } : undefined));
+    window.history.replaceState(null, "", "/");
+
+    renderLiveSite();
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Lanterns" })).toBeInTheDocument();
+    expect(screen.getByText("2 of 3 collected. 2 people in your album.")).toBeInTheDocument();
+  });
+
   it("AL47: ripping a pack sends its one openThoughtfulPack over HTTP with the session's token, never through the socket's queue", async () => {
     preferWideScreen();
     profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });

@@ -3,7 +3,7 @@ import { storedHoldersIn } from "../companyProfiles/storedFaces";
 import { companyTeamsOf, type CompanyTeam, type TeamCrestArt } from "../companyProfiles/teams";
 import type { MemberId } from "../workspace/directory";
 import { peopleHeldBy } from "./stickers";
-import type { TeamSticker } from "./teamStickers";
+import type { TeamSticker } from "./records";
 
 export type TeamState = "progress" | "ready" | "unlocked";
 

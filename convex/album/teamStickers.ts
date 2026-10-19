@@ -1,9 +1,7 @@
 import type { MutationCtx } from "../_generated/server";
-import type { TeamCrestArt } from "../companyProfiles/teams";
 import { teamEmojiNameOf } from "./emojiNames";
+import type { TeamSticker } from "./records";
 import { teamPagesOf, type PageOwner } from "./teamPages";
-
-export type TeamSticker = { team: string; name: string; art: TeamCrestArt; emoji: string; at: number };
 
 export async function unlockTeamStickerOf(ctx: MutationCtx, owner: PageOwner, team: string, at: number): Promise<TeamSticker | null> {
   const page = (await teamPagesOf(ctx, owner)).find((page) => page.team === team);

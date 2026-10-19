@@ -48,6 +48,8 @@ export const teamArtValidator = v.union(v.object({ kind: v.literal("crest"), slu
 
 export const teamStickerValidator = v.object({ member: v.id("members"), team: v.string(), at: v.number(), name: v.string(), art: teamArtValidator, emoji: v.string() });
 
+export type TeamSticker = Omit<Infer<typeof teamStickerValidator>, "member">;
+
 export const emojiNameValidator = v.object({ workspace: v.string(), emoji: v.string(), person: v.optional(v.id("members")), name: v.string() });
 
 export const emojiNameNumberValidator = v.object({ workspace: v.string(), stem: v.string(), last: v.number() });

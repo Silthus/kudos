@@ -137,7 +137,7 @@ describe("AL19: unlocking a team sticker", { timeout: 60_000 }, () => {
 });
 
 describe("a team sticker stays unlocked", { timeout: 60_000 }, () => {
-  test("a team joined, a match lost and the team leaving posthog.com never take the sticker back or change how it shows, and a second click unlocks nothing", async () => {
+  test("a team joined and given a new name and crest under its slug, a match lost and the team leaving posthog.com never take the sticker back or change how it shows, and a second click unlocks nothing", async () => {
     await theCompanyCopyHolds({ slug: "otters", name: "Otters", crest: ottersCrest, profiles: profilesOf(...otters) });
     await aliceCollects(...otters);
     const asAlice = await signedIn(alice);
@@ -145,8 +145,8 @@ describe("a team sticker stays unlocked", { timeout: 60_000 }, () => {
     const unlocked = await teamNamed(asAlice, "otters");
     const shown = { team: unlocked.team, name: unlocked.name, art: unlocked.art, state: "unlocked", unlockedAt: unlocked.unlockedAt };
 
-    await theCompanyCopyHolds({ slug: "otters", name: "Otters", crest: ottersCrest, profiles: profilesOf(...otters, newcomer) });
-    expect(await teamNamed(asAlice, "otters"), "a newcomer joined the team").toMatchObject({ ...shown, held: 3, total: 4 });
+    await theCompanyCopyHolds({ slug: "otters", name: "Otters United", crest: aCutout("otters-crest-redrawn"), profiles: profilesOf(...otters, newcomer) });
+    expect(await teamNamed(asAlice, "otters"), "a newcomer joined the team, renamed with a redrawn crest").toMatchObject({ ...shown, held: 3, total: 4 });
 
     await memberChanged(t, "user_change", slackUser(otters[0]!.user, "Someone Else Entirely"));
     await settle(t);
