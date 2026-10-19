@@ -66,6 +66,9 @@ export function PackOpening({ album, openThoughtfulPack, trayTarget, onHold, onO
 
   useEffect(() => () => window.clearTimeout(landing.current), []);
   useUnderTheTopBar(dialog, trayTarget);
+  useLayoutEffect(() => {
+    if (flying) dialog.current?.focus();
+  }, [flying]);
   useEffect(() => {
     if (ended) onHold({ level: null });
   }, [ended, onHold]);

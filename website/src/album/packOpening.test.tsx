@@ -332,6 +332,18 @@ describe("AL55: focus stays inside the pack opening", () => {
     await user.tab();
     expect(close).toHaveFocus();
   });
+
+  it("while the cards fly and every control waits, the dialog itself holds focus", async () => {
+    const { user } = visit(albumFixtures.midway, async () => opened(stickerAndHoggie("juno-park")));
+    const dialog = await openThePacks(user);
+    await user.click(dialog.getByRole("button", { name: "Rip open the pack for thanking Juno Park" }));
+    await user.click(await dialog.findByRole("button", { name: "Skip" }));
+
+    await user.click(dialog.getByRole("button", { name: "Open next pack · 1 left" }));
+
+    expect(screen.getByRole("dialog", { name: "Open your packs" })).toHaveAttribute("data-step", "flying");
+    expect(screen.getByRole("dialog", { name: "Open your packs" })).toHaveFocus();
+  });
 });
 
 describe("VA27: a click turns one beat, and Escape or Skip jumps to the end", () => {
