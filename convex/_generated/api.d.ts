@@ -43,6 +43,7 @@ import type * as album_standardEmojiNames from "../album/standardEmojiNames.js";
 import type * as album_stickers from "../album/stickers.js";
 import type * as album_tallies from "../album/tallies.js";
 import type * as album_teamPages from "../album/teamPages.js";
+import type * as album_teamStickers from "../album/teamStickers.js";
 import type * as album_weekIssue from "../album/weekIssue.js";
 import type * as analytics_boundary from "../analytics/boundary.js";
 import type * as analytics_browser from "../analytics/browser.js";
@@ -343,6 +344,7 @@ declare const fullApi: ApiFromModules<{
   "album/stickers": typeof album_stickers;
   "album/tallies": typeof album_tallies;
   "album/teamPages": typeof album_teamPages;
+  "album/teamStickers": typeof album_teamStickers;
   "album/weekIssue": typeof album_weekIssue;
   "analytics/boundary": typeof analytics_boundary;
   "analytics/browser": typeof analytics_browser;

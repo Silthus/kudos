@@ -5,7 +5,11 @@ import { albumHoggiesOf, type AlbumHoggies } from "../album/hoggies";
 import { openThoughtfulPack as openPack, trayOf, type Opening, type TrayItem } from "../album/opening";
 import { waitingPacksOf, type WaitingPack } from "../album/packs";
 import { putEveryItemIn, putItemIn, type PutIn } from "../album/putIn";
+import type { TeamSticker } from "../album/records";
 import { albumStickersOf } from "../album/stickers";
+import { teamPagesOf, type TeamPage } from "../album/teamPages";
+import { unlockTeamStickerOf } from "../album/teamStickers";
+import { currentProfiles, publicNameOf } from "../companyProfiles/matcher";
 import { storedCompanyFaceOf } from "../companyProfiles/storedFaces";
 import { hoggiesShownTo } from "../hoggies/flag";
 import { xpToReach } from "../progression/levels";
@@ -24,6 +28,7 @@ export type AlbumAnswer = {
   kind: "album";
   me: { name: string; face: Face; person: MemberId };
   level: { level: number; xp: number; startsAt: number; nextAt: number };
+  teams: AlbumTeam[];
   people: AlbumPerson[];
   morePeople: boolean;
   packs: WaitingPack[];
@@ -34,11 +39,15 @@ export type AlbumAnswer = {
 
 export const mostPeopleShown = 500;
 
+export type AlbumTeam = Omit<TeamPage, "unmatched"> & { unmatched: string[] };
+
 export type AlbumPerson = { person: MemberId; name: string; face: Face; held: boolean };
 
 export type AlbumRead = { kind: "off" } | AlbumAnswer;
 
 export type OpenAnswer = ({ kind: "opened" } & Opening) | { kind: "refused" };
+
+export type UnlockAnswer = { kind: "unlocked"; sticker: TeamSticker } | { kind: "refused" };
 
 export type PutInAnswer = { kind: "placed"; item: TrayItem } | { kind: "refused" };
 
@@ -71,8 +80,14 @@ export const getAlbum = memberQuery(async (ctx, me): Promise<AlbumRead> => {
   const { packs, more: morePacks } = await packsToOpenOf(ctx, me);
   const { people, morePeople } = await peopleHeldBy(ctx, me);
   const { tray, more: moreTray } = await trayOf(ctx, me.member);
-  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), people, morePeople, packs, morePacks, tray, moreTray };
+  return { kind: "album", me: await meIn(ctx, me), level: await levelOf(ctx, me.member), teams: await teamsOf(ctx, me), people, morePeople, packs, morePacks, tray, moreTray };
 });
+
+async function teamsOf(ctx: QueryCtx, me: VerifiedMember): Promise<AlbumTeam[]> {
+  const pages = await teamPagesOf(ctx, me);
+  const named = new Map((await currentProfiles(ctx)).map((profile) => [profile.profile, publicNameOf(profile)]));
+  return pages.map(({ unmatched, ...page }) => ({ ...page, unmatched: unmatched.flatMap((profile) => named.get(profile) ?? []) }));
+}
 
 async function packsToOpenOf(ctx: QueryCtx, me: VerifiedMember) {
   return (await noLaunchWaitsFor(ctx, me)) ? waitingPacksOf(ctx, me.member) : { packs: [], more: false };
@@ -101,6 +116,14 @@ export const putIn = memberMutation({
 export const putAllIn = memberMutation({
   args: {},
   handler: async (ctx, me): Promise<PutAllInAnswer> => ((await albumShownTo(ctx, me.member)) ? { kind: "placed", ...(await putEveryItemIn(ctx, me, Date.now())) } : { kind: "refused" }),
+});
+
+export const unlockTeamSticker = memberMutation({
+  args: { team: v.string() },
+  handler: async (ctx, me, _person, { team }): Promise<UnlockAnswer> => {
+    const sticker = (await albumShownTo(ctx, me.member)) ? await unlockTeamStickerOf(ctx, me, team, Date.now()) : null;
+    return sticker === null ? { kind: "refused" } : { kind: "unlocked", sticker };
+  },
 });
 
 export const getAlbumHoggies = memberQuery(async (ctx, me): Promise<AlbumHoggiesRead> => ((await albumHoggiesShownTo(ctx, me.member)) ? { kind: "hoggies", ...(await albumHoggiesOf(ctx, me.member)) } : { kind: "off" }));

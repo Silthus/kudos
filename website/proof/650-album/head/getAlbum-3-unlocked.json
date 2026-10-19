@@ -1,0 +1,26 @@
+{
+  "kind": "album",
+  "me": {
+    "person": "js76rwhvz5y3bgx11c37r9qjc18gjth0"
+  },
+  "otherTeams": 57,
+  "packs": [],
+  "teams": [
+    {
+      "art": null,
+      "held": 2,
+      "mine": true,
+      "name": "Quillwrights B",
+      "people": [
+        "js73p5gc3gx81kkmsqdzr8j6q58gjy05",
+        "js7df50sjf3ggxanckyadn6eqh8gjmg9"
+      ],
+      "state": "unlocked",
+      "team": "proof-650-quillwrightsb",
+      "total": 2,
+      "unlockedAt": 1792382108895,
+      "unmatched": []
+    }
+  ],
+  "tray": []
+}

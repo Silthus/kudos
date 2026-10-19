@@ -1,0 +1,66 @@
+{
+  "applied": {
+    "coins": 0,
+    "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 20
+    },
+    "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 35
+    },
+    "xp": 15
+  },
+  "items": [
+    {
+      "item": "jn7thcqakmm7cp0drraeaxbqnd8gjy1e",
+      "kind": "sticker",
+      "person": "js77hxh6fxeje6f9gz595xqt858gktxd"
+    },
+    {
+      "hoggie": "coffee-run",
+      "isNew": true,
+      "item": "jn7nwrcwhj3h169x9d96xgzmeh8gkj6z",
+      "kind": "hoggie",
+      "rarity": "common"
+    }
+  ],
+  "kind": "opened"
+}
+{
+  "applied": {
+    "coins": 0,
+    "from": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 35
+    },
+    "to": {
+      "coins": 0,
+      "level": 2,
+      "skillPoints": 0,
+      "xp": 50
+    },
+    "xp": 15
+  },
+  "items": [
+    {
+      "item": "jn7t9k8v2vjq1jyhxf9h00cbzh8gj9xm",
+      "kind": "sticker",
+      "person": "js71tqx3dy8jy4aq0b528ywfwd8gkmcq"
+    },
+    {
+      "hoggie": "tourist",
+      "isNew": true,
+      "item": "jn7hrm9m9eh3wprr7wpa3akcz18gk5re",
+      "kind": "hoggie",
+      "rarity": "uncommon"
+    }
+  ],
+  "kind": "opened"
+}
