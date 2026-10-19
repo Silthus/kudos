@@ -1,13 +1,13 @@
-import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, GettingStarted, MyAlbum, PackOpenAnswer, PutAllInAnswer, PutInAnswer, TrayItem } from "./answer";
+import type { Album, AlbumEmoji, AlbumMilestone, AlbumPerson, AlbumRead, AlbumTeam, GettingStarted, MyAlbum, PackOpenAnswer, PersonPage, PersonRead, PutAllInAnswer, PutInAnswer, TrayItem, UnlockAnswer } from "./answer";
 
 const day = 86_400_000;
 
 const now = Date.parse("2026-10-18T10:00:00Z");
 
-type CastTeam = { team: string; name: string; crest: string; people: string[]; held: number; state?: AlbumTeam["state"] };
+type CastTeam = { team: string; name: string; crest: string; people: string[]; held: number; state?: AlbumTeam["state"]; unmatched?: string[] };
 
 const castTeams: CastTeam[] = [
-  { team: "lanterns", name: "Lanterns", crest: "workflows", people: ["ines-okafor", "bram-teller", "oona-vasquez", "tomas-reyne", "juno-park"], held: 4 },
+  { team: "lanterns", name: "Lanterns", crest: "workflows", people: ["ines-okafor", "bram-teller", "oona-vasquez", "tomas-reyne", "juno-park"], held: 4, unmatched: ["Hal Corwin"] },
   { team: "kettle-works", name: "Kettle Works", crest: "experiments", people: ["wren-alder", "ines-okafor", "milo-strand"], held: 3, state: "ready" },
   { team: "quiet-harbour", name: "Quiet Harbour", crest: "support", people: ["perrin-holt", "ada-quill"], held: 2, state: "unlocked" },
   { team: "paper-moons", name: "Paper Moons", crest: "growth", people: ["fen-marlowe", "kit-sorrel", "lys-amber", "rook-dale"], held: 3 },
@@ -37,12 +37,13 @@ function initialsOf(person: string) {
 }
 
 function teamsOf(cast: CastTeam[], mine: string | null): AlbumTeam[] {
-  return cast.map(({ team, name, crest, people, held, state }) => ({
+  return cast.map(({ team, name, crest, people, held, state, unmatched = [] }) => ({
     team,
     name,
     art: { kind: "crest", slug: crest },
     mine: team === mine,
     people,
+    unmatched,
     held,
     total: people.length,
     state: state ?? "progress",
@@ -148,6 +149,43 @@ export function fixturePackOpeningOf(pack: string): PackOpenAnswer {
     ],
     applied: { xp: 15, coins: 0, from: { xp, level, coins: 0, skillPoints: 0 }, to: { xp: xp + 15, level, coins: 0, skillPoints: 0 } },
   };
+}
+
+export function fixtureUnlockOf(album: Album, team: string): UnlockAnswer {
+  const page = album.teams.find((listed) => listed.team === team);
+  if (page?.state !== "ready") return { kind: "refused" };
+  return { kind: "unlocked", sticker: { team, name: page.name, art: page.art, emoji: team, at: now } };
+}
+
+const bestWords = "Thanks for staying late to untangle the migration, the whole launch went out on time because of you.";
+
+export function fixturePersonOf(album: Album, person: string): PersonPage | { kind: "no-person" } {
+  const listed = album.people.find((someone) => someone.person === person);
+  if (listed === undefined) return { kind: "no-person" };
+  const index = album.people.indexOf(listed);
+  const thanked = listed.held || index % 3 === 0;
+  return {
+    kind: "person",
+    person,
+    name: listed.name,
+    face: listed.face,
+    held: listed.held,
+    firstThankedAt: thanked ? now - (40 + index) * day : null,
+    kudosGiven: thanked ? 1 + (index % 4) : 0,
+    kudosReceived: index % 3,
+    hugsGiven: index % 5,
+    hugsReceived: (index + 2) % 4,
+    best: listed.held && index % 2 === 0 ? { message: { kind: "text", segments: [{ kind: "text", text: bestWords }], edited: false }, permalink: "https://example.slack.com/archives/C1/p1", at: now - 12 * day } : null,
+    teams: album.teams
+      .filter(({ team }) => listed.teams.includes(team))
+      .map(({ team, name, art }) => ({ team, name, art }))
+      .toSorted((one, other) => one.name.localeCompare(other.name)),
+    hype: { earned: album.emojis.some(({ id, earned }) => earned && id === `hype:${person}`), name: `${person}-hype` },
+  };
+}
+
+export function fixedPeople(album: Album): PersonRead {
+  return (asking, person) => (asking && person !== null ? fixturePersonOf(album, person) : undefined);
 }
 
 export function fixturePutInOf(item: string): PutInAnswer {

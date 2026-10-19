@@ -118,6 +118,13 @@ describe("AL46: getAlbumPerson reads one person's page from its pair tally", { t
     for (const person of [elsewhere, bot, gone]) expect(await (await signedIn(alice)).query(api.website.album.getAlbumPerson, { person })).toEqual({ kind: "no-person" });
   });
 
+  test("a person page address naming no document of members, an ID of another table or words, answers no-person", async () => {
+    await thanks(alice, "ty", bob);
+    const workspace = await t.run((ctx) => ctx.db.insert("workspaces", { workspace: "T9", kudosEmoji: "taco", baseAllowance: 5 }));
+
+    for (const person of [workspace, "ines-okafor", ""]) expect(await (await signedIn(alice)).query(api.website.album.getAlbumPerson, { person })).toEqual({ kind: "no-person" });
+  });
+
   test("a pair with 300 kudos reads within Convex's limits", async () => {
     for (let kudos = 0; kudos < 150; kudos += 1) await thanks(alice, kudos % 2 === 0 ? why : "ty", bob);
     for (let kudos = 0; kudos < 150; kudos += 1) await thanks(bob, "ty", alice);

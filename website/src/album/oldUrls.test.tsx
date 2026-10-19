@@ -13,7 +13,7 @@ import { fixedSettings, settingsFixtures } from "../settingsFixtures";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum, renderApp } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
-import { albumFixtures, fixedAlbum } from "./albumFixtures";
+import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
 import { fixtureWeeks } from "./weekFixtures";
 
@@ -38,7 +38,7 @@ beforeEach(() => {
 
 function visit(address: string) {
   window.history.replaceState(null, "", address);
-  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks() });
+  return renderAlbum(memberWithTheAlbum, fixedAlbum(albumFixtures.midway), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: fixedPeople(albumFixtures.midway) });
 }
 
 function addressNow() {

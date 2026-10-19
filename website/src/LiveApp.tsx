@@ -13,7 +13,7 @@ import { App } from "./App";
 import { BrowserAnalytics } from "./browserAnalytics/BrowserAnalytics";
 import { ShellBoundary } from "./ShellBoundary";
 import type { ActivityRead, ActivityShown } from "./activityRead";
-import type { AlbumShown, BoardsShown, WeekShown } from "./album/answer";
+import type { AlbumShown, BoardsShown, PersonShown, WeekShown } from "./album/answer";
 import { albumOf } from "./album/liveAlbum";
 import type { BoardAnswer } from "./boardRead";
 import type { BookShown } from "./bookRead";
@@ -66,6 +66,7 @@ function LiveApp() {
       useSettings={(asking) => useLiveSettings(asking, unreachable)}
       useAlbum={(asking) => useLiveAlbum(asking, unreachable)}
       useThoughtfulBoards={(asking) => useLiveThoughtfulBoards(asking, unreachable)}
+      useAlbumPerson={(asking, person) => useLiveAlbumPerson(asking, person, unreachable)}
       useAlbumWeek={(asking, week) => useLiveAlbumWeek(asking, week, unreachable)}
       useProfileCard={useLiveProfileCard}
       useRecentKudos={useLiveRecentKudos}
@@ -132,6 +133,14 @@ function useLiveThoughtfulBoards(asking: boolean, unreachable: boolean): BoardsS
   if (boards instanceof Error) return { kind: "broken" };
   if (boards === undefined) return unreachable ? { kind: "connecting" } : undefined;
   return boards;
+}
+
+function useLiveAlbumPerson(asking: boolean, person: string | null, unreachable: boolean): PersonShown | undefined {
+  const request = useMemo((): RequestForQueries => (asking && person !== null ? { person: { query: api.website.album.getAlbumPerson, args: { person } } } : {}), [asking, person]);
+  const { person: answer } = useQueries(request);
+  if (answer instanceof Error) return { kind: "broken" };
+  if (answer === undefined) return unreachable ? { kind: "connecting" } : undefined;
+  return answer;
 }
 
 function useLiveAlbumWeek(asking: boolean, week: string | undefined, unreachable: boolean): WeekShown | undefined {
@@ -232,6 +241,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
   const setWorkspaceSettings = useSentOnce(api.website.commands.setWorkspaceSettings);
   const setAvatar = useSentOnce(api.website.commands.setAvatar);
   const openThoughtfulPack = useSentOnce(api.website.album.openThoughtfulPack);
+  const unlockTeamSticker = useSentOnce(api.website.album.unlockTeamSticker);
   const putIn = useSentOnce(api.website.album.putIn);
   const putAllIn = useSentOnce(api.website.album.putAllIn);
   return useMemo(
@@ -251,6 +261,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
       setWorkspaceSettings: (settings) => answerWithin(commandAnswerBudgetMs, setWorkspaceSettings(settings)),
       setAvatar: (hoggie) => answerWithin(commandAnswerBudgetMs, setAvatar({ hoggie })),
       openThoughtfulPack: (pack) => answerWithin(commandAnswerBudgetMs, openThoughtfulPack({ pack: pack as Id<"thoughtfulPacks"> })),
+      unlockTeamSticker: (team) => answerWithin(commandAnswerBudgetMs, unlockTeamSticker({ team })),
       putIn: (item) => answerWithin(commandAnswerBudgetMs, putIn({ item: item as Id<"trayItems"> })),
       putAllIn: () => answerWithin(commandAnswerBudgetMs, putAllIn({})),
       signIn: (returnTo) =>
@@ -260,7 +271,7 @@ function useLiveActions(onSignInFailure: () => void): ShellActions {
         }),
       signOut: () => void signOut(),
     }),
-    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setAvatar, openThoughtfulPack, putIn, putAllIn, onSignInFailure],
+    [signIn, signOut, openFeature, openQuestCrate, buyPerk, buyItem, buyCrate, openCrate, swapQuest, setBoardVisibility, setMessageSetting, pickPrimaryGroup, linkMyCompanyProfile, linkCompanyProfile, setWorkspaceSettings, setAvatar, openThoughtfulPack, unlockTeamSticker, putIn, putAllIn, onSignInFailure],
   );
 }
 

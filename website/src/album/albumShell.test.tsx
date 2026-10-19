@@ -1,6 +1,6 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { albumFixtures, fixedAlbum } from "./albumFixtures";
+import { albumFixtures, fixedAlbum, fixedPeople } from "./albumFixtures";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
 import { fixtureWeeks } from "./weekFixtures";
 import type { MyAlbum } from "./answer";
@@ -19,7 +19,7 @@ beforeEach(() => {
 
 function visit(path: string, album: MyAlbum = albumFixtures.midway, visitor: MemberProfile = memberWithTheAlbum) {
   window.history.replaceState(null, "", path);
-  return renderAlbum(visitor, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks() });
+  return renderAlbum(visitor, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boardsFixtures.week), weeks: fixtureWeeks(), people: album.kind === "album" ? fixedPeople(album) : undefined });
 }
 
 async function topBar() {

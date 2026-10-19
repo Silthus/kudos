@@ -11,10 +11,11 @@ import { ActivityAnswerPage } from "./Activity";
 import { AlbumShell } from "./AlbumShell";
 import { myTeamOf } from "./facts";
 import { isWaitingForTheBoards, LeaderboardAnswerPage } from "./Leaderboard";
+import { isWaitingForThePerson, PersonAnswerPage } from "./PersonPage";
 import { hrefOf, landingStateOf, placeOf, type Place } from "./place";
 import { isWaitingForTheWeek, useWeekEdition } from "./weekEdition";
 
-export default function AlbumApp({ member, actions, useAlbum, useSettings, useThoughtfulBoards, useAlbumWeek }: AppProps & { member: MemberProfile }) {
+export default function AlbumApp({ member, actions, useAlbum, useSettings, useThoughtfulBoards, useAlbumWeek, useAlbumPerson }: AppProps & { member: MemberProfile }) {
   const { route, navigate, replaceAddress } = useRoute();
   const place = placeOf(route, window.location.hash, window.history.state);
   useCanonicalAddress(place, replaceAddress);
@@ -23,6 +24,8 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
   const settings = useSettings(onSettings);
   const onLeaderboard = place.kind === "leaderboard";
   const boards = useThoughtfulBoards(onLeaderboard);
+  const onPerson = place.kind === "person";
+  const person = useAlbumPerson(onPerson, place.kind === "person" ? place.person : null);
   const onActivity = place.kind === "activity";
   const edition = useWeekEdition(useAlbumWeek, onActivity);
   useLinkTargetOnceLanded(route, { quest: false, perk: false, crate: false, panel: false, section: album?.kind === "album" && onSettings && settings?.kind === "settings" });
@@ -48,12 +51,14 @@ export default function AlbumApp({ member, actions, useAlbum, useSettings, useTh
       <AlbumShell
         album={album}
         place={place}
-        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards)) || (onActivity && isWaitingForTheWeek(edition))}
+        busy={(onSettings && settings === undefined) || (onLeaderboard && isWaitingForTheBoards(boards)) || (onActivity && isWaitingForTheWeek(edition)) || (onPerson && isWaitingForThePerson(person))}
         settings={<SettingsAnswerPage settings={settings} actions={actions} {...answers} />}
         leaderboard={<LeaderboardAnswerPage boards={boards} homeTeam={myTeamOf(album)?.team ?? null} {...answers} />}
         activity={<ActivityAnswerPage edition={edition} me={album.me.person} {...answers} />}
+        person={<PersonAnswerPage shown={person} album={album} {...answers} />}
         onSignOut={actions.signOut}
         openThoughtfulPack={actions.openThoughtfulPack}
+        unlockTeamSticker={actions.unlockTeamSticker}
         putIn={actions.putIn}
         putAllIn={actions.putAllIn}
       />

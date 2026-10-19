@@ -20,12 +20,14 @@ export async function storedCompanyMatchOf(ctx: QueryCtx, workspace: string, mem
   return row === null ? undefined : { face: row.face, profile: row.profile ?? null };
 }
 
-export async function storedHoldersIn(ctx: QueryCtx, workspace: string): Promise<Map<number, MemberId>> {
+export type StoredHolder = { member: MemberId; face: CompanyFace | null };
+
+export async function storedHoldersIn(ctx: QueryCtx, workspace: string): Promise<Map<number, StoredHolder>> {
   const rows = await ctx.db
     .query("companyFaces")
     .withIndex("by_member", (q) => q.eq("workspace", workspace))
     .collect();
-  return new Map(rows.flatMap(({ profile, member }) => (profile === undefined ? [] : [[profile, member] as const])));
+  return new Map(rows.flatMap(({ profile, member, face }) => (profile === undefined ? [] : [[profile, { member, face }] as const])));
 }
 
 async function keepCompanyFaces(ctx: MutationCtx, workspace: string) {

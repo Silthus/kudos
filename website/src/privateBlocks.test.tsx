@@ -3,11 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Root } from "./Root";
 import { activityFixtures } from "./activityFixtures";
+import { albumFixtures, fixturePersonOf } from "./album/albumFixtures";
 import { weekFixtures } from "./album/weekFixtures";
 import { leaderboardFixtures } from "./leaderboardFixtures";
 import { recentKudosFixtures } from "./recentKudosFixtures";
 import { spotlightFixtures } from "./spotlightFixtures";
-import { fakeSystemTheme, preferWideScreen } from "./test/systemTheme";
+import { fakeSystemTheme, preferReducedMotion, preferWideScreen } from "./test/systemTheme";
 
 const pages: { path: string; fixtures: string[] }[] = [
   { path: "/", fixtures: ["member-with-every-feature-open", "member-with-custom-emoji", "member-with-the-board", "member-with-quests", "member-with-the-inventory"] },
@@ -22,7 +23,7 @@ const pages: { path: string; fixtures: string[] }[] = [
   { path: "/book#hoggies/legendary", fixtures: ["member-with-the-book-spread"] },
   { path: "/book#teams", fixtures: ["member-with-the-book-spread"] },
   { path: "/settings", fixtures: ["member-with-settings"] },
-  ...["/", "/book#teams/paper-moons", "/book#people/ines-okafor", "/book#me", "/book#hoggies", "/book#milestones", "/book#packs", "/activity", "/leaderboard", "/settings"].map((path) => ({ path, fixtures: ["album"] })),
+  ...["/", "/book#teams/paper-moons", "/book#teams/kettle-works", "/book#teams/quiet-harbour", "/book#people/ines-okafor", "/book#people/juno-park", "/book#me", "/book#hoggies", "/book#milestones", "/book#packs", "/activity", "/leaderboard", "/settings"].map((path) => ({ path, fixtures: ["album"] })),
 ];
 
 const slackHost = /(?:^|[/.@])(?:[a-z0-9-]+\.)*(?:slack\.com|slack-edge\.com|gravatar\.com)\b/i;
@@ -30,7 +31,7 @@ const slackShapedId = /\b[UWCGDT][A-Z0-9]{8,}\b/;
 const emojiName = /:[a-z0-9_+'-]+:/;
 const checkedAttributes = ["href", "src", "srcset", "alt", "title", "aria-label", "aria-description", "data-href"];
 
-const kudosWords = [...wordsIn([activityFixtures, recentKudosFixtures, spotlightFixtures, leaderboardFixtures, weekFixtures])].filter((text) => text.trim().length >= 8);
+const kudosWords = [...wordsIn([activityFixtures, recentKudosFixtures, spotlightFixtures, leaderboardFixtures, weekFixtures, fixturePersonOf(albumFixtures.midway, "ines-okafor")])].filter((text) => text.trim().length >= 8);
 
 beforeEach(() => {
   fakeSystemTheme(false);
@@ -64,6 +65,29 @@ describe("nothing private reaches PostHog from the browser", { timeout: 60_000 }
     await screen.findByRole("navigation", { name: "Album" });
 
     expect([...container.querySelectorAll(".ph-no-capture")].map((block) => block.textContent)).toEqual(expect.arrayContaining(["SE", "Sam Example", "Ines Okafor"]));
+  });
+
+  it("AL56: a person page keeps your best message to them and its Slack link in blocks, so its walk is not vacuous", async () => {
+    window.history.replaceState(null, "", "/book#people/ines-okafor");
+    const { container } = render(<Root fixture="album" />);
+    await screen.findByText(/^Your best message to/);
+
+    const words = container.querySelector("[data-testid='kudos-message-words']");
+    expect(words?.closest(".ph-no-capture")).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Open in Slack/ }).closest(".ph-no-capture")).not.toBeNull();
+    expect(exposedIn(container)).toEqual([]);
+  });
+
+  it("AL56: the unlock moment from the fixture build keeps the team emoji's name and picture in blocks", async () => {
+    preferReducedMotion();
+    window.history.replaceState(null, "", "/book#teams/kettle-works");
+    const { container } = render(<Root fixture="album" />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Unlock the Kettle Works sticker" }));
+    await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" });
+
+    expect(exposedIn(container)).toEqual([]);
+    expect(screen.getByText(":kettle-works:").closest(".ph-no-capture")).not.toBeNull();
   });
 
   it("AL56: the pack opening, sealed and opened from the fixture build, keeps every face, name and Slack picture in blocks", async () => {

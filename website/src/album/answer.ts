@@ -10,7 +10,7 @@ export type AlbumLevel = { level: number; xp: number; startsAt: number; nextAt: 
 
 export type TeamState = "progress" | "ready" | "unlocked";
 
-export type AlbumTeam = { team: string; name: string; art: TeamArt; mine: boolean; people: string[]; held: number; total: number; state: TeamState; unlockedAt: number | null };
+export type AlbumTeam = { team: string; name: string; art: TeamArt; mine: boolean; people: string[]; unmatched: string[]; held: number; total: number; state: TeamState; unlockedAt: number | null };
 
 export type AlbumPerson = { person: string; name: string; face: Face; teams: string[]; held: boolean; packedThisWeek: boolean };
 
@@ -107,3 +107,33 @@ export type AlbumWeek = { kind: "week"; week: string; weeks: WeekTab[]; issue: W
 export type WeekShown = AlbumWeek | { kind: "off" } | Denial | { kind: "connecting" } | { kind: "broken" };
 
 export type WeekRead = (asking: boolean, week: string | undefined) => WeekShown | undefined;
+
+export type TeamSticker = { team: string; name: string; art: TeamArt; emoji: string; at: number };
+
+export type UnlockAnswer = { kind: "unlocked"; sticker: TeamSticker } | { kind: "refused" };
+
+export type UnlockReply = UnlockAnswer | Denial;
+
+export type PersonTeam = { team: string; name: string; art: TeamArt };
+
+export type AlbumKudos = { message: Message; permalink: string | null; at: number };
+
+export type PersonPage = {
+  kind: "person";
+  person: string;
+  name: string;
+  face: Face;
+  held: boolean;
+  firstThankedAt: number | null;
+  kudosGiven: number;
+  kudosReceived: number;
+  hugsGiven: number;
+  hugsReceived: number;
+  best: AlbumKudos | null;
+  teams: PersonTeam[];
+  hype: { earned: boolean; name: string | null };
+};
+
+export type PersonShown = PersonPage | { kind: "off" } | { kind: "no-person" } | Denial | { kind: "connecting" } | { kind: "broken" };
+
+export type PersonRead = (asking: boolean, person: string | null) => PersonShown | undefined;

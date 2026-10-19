@@ -875,7 +875,52 @@ describe("AL39 AL40: the album shell reads getAlbum through the live shell", () 
     renderLiveSite();
 
     expect(await screen.findByRole("heading", { level: 1, name: "Lanterns" })).toBeInTheDocument();
-    expect(screen.getByText("2 of 3 collected. 2 people in your album.")).toBeInTheDocument();
+    expect(screen.getByText("2 of 3 in your album. Collect all 3 to unlock the Lanterns sticker.")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Lanterns sticker, 2 of 3" })).toBeInTheDocument();
+  });
+
+  it("AL45: the class photo names the people getAlbum lists as not held yet, as silhouettes", async () => {
+    preferWideScreen();
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
+    const people = [
+      { person: "m-ines", name: "Ines Okafor", face: { kind: "initials", initials: "IO" }, held: true },
+      { person: "m-omar", name: "Omar Siddiqui", face: { kind: "initials", initials: "OS" }, held: false },
+    ];
+    const lanterns = { team: "lanterns", name: "Lanterns", art: null, mine: true, people: ["m-ines", "m-omar"], unmatched: [], held: 1, total: 2, state: "progress", unlockedAt: null };
+    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, teams: [lanterns], people } : undefined));
+    window.history.replaceState(null, "", "/");
+
+    renderLiveSite();
+
+    expect(await screen.findByRole("link", { name: "Omar Siddiqui Not in your album yet" })).toHaveAttribute("href", "/book#people/m-omar");
+    expect(screen.getByText("Give Omar a thoughtful kudos to complete Lanterns.")).toBeInTheDocument();
+  });
+
+  it("AL46: a person page subscribes to getAlbumPerson for the person in its address, and only there", async () => {
+    preferWideScreen();
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
+    const omar = { kind: "person", person: "m-omar", name: "Omar Siddiqui", face: { kind: "initials", initials: "OS" }, held: true, firstThankedAt: null, kudosGiven: 2, kudosReceived: 1, hugsGiven: 0, hugsReceived: 3, best: null, teams: [], hype: { earned: false, name: "omar-siddiqui-hype" } };
+    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? albumV1 : query === "website/album:getAlbumPerson" ? omar : undefined));
+    window.history.replaceState(null, "", "/book#people/m-omar");
+
+    renderLiveSite();
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Omar Siddiqui" })).toBeInTheDocument();
+    expect([...subscriptions].filter(({ query }) => query === "website/album:getAlbumPerson")).toEqual([{ query: "website/album:getAlbumPerson", args: { person: "m-omar" } }]);
+  });
+
+  it("AL45: unlocking a team sticker sends its one unlockTeamSticker over HTTP with the session's token, never through the socket's queue", async () => {
+    preferWideScreen();
+    profileRead.mockReturnValue({ ...shellFixtures.memberWithEveryFeatureOpen, album: true });
+    const comets = { team: "comets", name: "Comets", art: null, mine: false, people: ["m-pia"], unmatched: [], held: 1, total: 1, state: "ready", unlockedAt: null };
+    boardRead.mockImplementation((query: string) => (query === "website/album:getAlbum" ? { ...albumV1, teams: [comets], people: [{ person: "m-pia", name: "Pia Lund", face: { kind: "initials", initials: "PL" }, held: true }] } : undefined));
+    sentOverHttp.mockReturnValue(new Promise(() => undefined));
+    window.history.replaceState(null, "", "/book#teams/comets");
+    const { user } = renderLiveSite();
+
+    await user.click(await screen.findByRole("button", { name: "Unlock the Comets sticker" }));
+
+    expect(sentOverHttp).toHaveBeenCalledExactlyOnceWith({ address: "https://happy-hog-123.convex.cloud", token: "the-session-jwt", mutation: "website/album:unlockTeamSticker", args: { team: "comets" } });
   });
 
   it("AL47: ripping a pack sends its one openThoughtfulPack over HTTP with the session's token, never through the socket's queue", async () => {

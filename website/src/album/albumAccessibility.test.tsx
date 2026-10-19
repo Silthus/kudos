@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 import { fixedSettings, settingsFixtures } from "../settingsFixtures";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
-import { aWideScreenThatNarrows, fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
+import { aWideScreenThatNarrows, fakeSystemTheme, preferReducedMotion, preferWideScreen } from "../test/systemTheme";
 import { contrast, contrastOnTint, type Mode } from "../test/themeContrast";
-import { albumFixtures, fixedAlbum, fixturePackOpeningOf, fixturePutAllIn } from "./albumFixtures";
+import { albumFixtures, fixedAlbum, fixedPeople, fixturePackOpeningOf, fixturePutAllIn, fixtureUnlockOf } from "./albumFixtures";
 import type { BoardsShown, MyAlbum, WeekShown } from "./answer";
 import { boardsFixtures, fixedBoards } from "./boardsFixtures";
 import { fixedWeek, fixtureWeeks, weekFixtures } from "./weekFixtures";
@@ -18,7 +18,9 @@ const pages: { path: string; album?: MyAlbum; boards?: BoardsShown; week?: WeekS
   { path: "/", album: albumFixtures.newcomer },
   { path: "/book#teams/kettle-works" },
   { path: "/book#teams/quiet-harbour" },
+  { path: "/book#teams/salt-and-sparrow" },
   { path: "/book#people/ines-okafor" },
+  { path: "/book#people/juno-park" },
   { path: "/book#me" },
   { path: "/book#hoggies" },
   { path: "/book#milestones" },
@@ -57,7 +59,7 @@ async function violationsIn(container: Element) {
 
 function visit(path: string, album: MyAlbum = albumFixtures.midway, boards: BoardsShown = boardsFixtures.week, week?: WeekShown) {
   window.history.replaceState(null, "", path);
-  return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boards), weeks: week === undefined ? fixtureWeeks() : fixedWeek(week), commands: { openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack) } });
+  return renderAlbum(memberWithTheAlbum, fixedAlbum(album), { settings: fixedSettings(settingsFixtures.everything), boards: fixedBoards(boards), weeks: week === undefined ? fixtureWeeks() : fixedWeek(week), people: album.kind === "album" ? fixedPeople(album) : undefined, commands: { openThoughtfulPack: async (pack) => fixturePackOpeningOf(pack), unlockTeamSticker: async (team) => (album.kind === "album" ? fixtureUnlockOf(album, team) : { kind: "refused" }) } });
 }
 
 describe("AL55: every album page passes axe in light and dark, wide and on a phone", () => {
@@ -138,6 +140,22 @@ describe("AL55: every album page passes axe in light and dark, wide and on a pho
 
       expect(await violationsIn(container)).toEqual([]);
     }, 30_000);
+    for (const reduced of [false, true]) {
+      it(`the unlock moment passes axe in ${dark ? "dark" : "light"}${reduced ? " with reduced motion" : ""}, and a ready page's unlock is reached by keyboard`, async () => {
+        fakeSystemTheme(dark);
+        preferWideScreen();
+        if (reduced) preferReducedMotion();
+        const { user, container } = visit("/book#teams/kettle-works");
+        const unlock = await screen.findByRole("button", { name: "Unlock the Kettle Works sticker" });
+
+        unlock.focus();
+        await user.keyboard("{Enter}");
+        const moment = await screen.findByRole("dialog", { name: "Kettle Works sticker unlocked" });
+        expect(await violationsIn(container)).toEqual([]);
+        await within(moment).findByRole("button", { name: "Put it on the page" }, { timeout: 5_000 });
+        expect(await violationsIn(container)).toEqual([]);
+      }, 30_000);
+    }
     it(`the Leaderboard narrowed to one team passes axe in ${dark ? "dark" : "light"}`, async () => {
       fakeSystemTheme(dark);
       preferWideScreen();
@@ -216,6 +234,23 @@ describe("AL55: the album's own colours meet WCAG 2.2 AA in both themes", () => 
       expect(contrast(mode, "al-card-back-ink", "al-card-back")).toBeGreaterThanOrEqual(4.5);
       expect(contrast(mode, "al-accent-ink", "background")).toBeGreaterThanOrEqual(4.5);
       expect(contrast(mode, "foreground", "card")).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it(`the team and person pages' text reaches 4.5:1 in ${mode}`, () => {
+      expect(contrast(mode, "foreground", "al-paper")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "muted-foreground", "al-paper")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-silhouette-ink", "al-silhouette")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-silhouette-ink", "al-silhouette-back")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-foil-ink", "background")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-ready-ink", "al-ready")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "foreground", "al-ready")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "muted-foreground", "al-ready")).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(mode, "al-accent-ink", "al-ready")).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it(`the seal's ring and the ready page's edge reach 3:1 in ${mode}`, () => {
+      expect(contrast(mode, "al-accent", "card")).toBeGreaterThanOrEqual(3);
+      expect(contrast(mode, "al-ready-edge", "background")).toBeGreaterThanOrEqual(3);
     });
 
     it(`the tray's text reaches 4.5:1 in ${mode}`, () => {

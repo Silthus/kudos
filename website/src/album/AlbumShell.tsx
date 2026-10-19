@@ -8,25 +8,39 @@ import { ErrorPage } from "../pages/ErrorPage";
 import { useTitleFocusAfterChange, useTitleFocusWhenTheFocusedElementGoes } from "../pageFocus";
 import { ThemeControl } from "../ThemeControl";
 import { useWideScreen } from "../useWideScreen";
-import type { Album, PackOpenReply } from "./answer";
+import type { Album, PackOpenReply, UnlockReply } from "./answer";
 import { GettingStarted } from "./GettingStarted";
 import { PackOpening, useHeld } from "./PackOpening";
 import { AlbumPage } from "./pages";
 import { keyOf, type Place } from "./place";
 import { PutInFlights } from "./PutInFlights";
 import { Sidebar } from "./Sidebar";
+import { teamEmojiOf } from "./teamPage";
 import { TopBar } from "./TopBar";
+import { UnlockMoment } from "./UnlockMoment";
 import { usePuttingIn, type PutInCommands } from "./usePuttingIn";
+import { useTeamUnlock } from "./useTeamUnlock";
 import "./album.css";
 
-export type AlbumShellProps = { album: Album; place: Place; settings: ReactNode; leaderboard: ReactNode; activity: ReactNode; busy: boolean; onSignOut: () => void; openThoughtfulPack: (pack: string) => Promise<PackOpenReply> } & PutInCommands;
+export type AlbumShellProps = {
+  album: Album;
+  place: Place;
+  settings: ReactNode;
+  leaderboard: ReactNode;
+  activity: ReactNode;
+  person: ReactNode;
+  busy: boolean;
+  onSignOut: () => void;
+  openThoughtfulPack: (pack: string) => Promise<PackOpenReply>;
+  unlockTeamSticker: (team: string) => Promise<UnlockReply>;
+} & PutInCommands;
 
-export function AlbumShell({ album: answered, place, settings, leaderboard, activity, busy, onSignOut, openThoughtfulPack, putIn, putAllIn }: AlbumShellProps) {
+export function AlbumShell({ album: answered, place, settings, leaderboard, activity, person, busy, onSignOut, openThoughtfulPack, putIn, putAllIn, unlockTeamSticker }: AlbumShellProps) {
   const wide = useWideScreen();
   const { opening, open, close, packsButton, album: unopened, rememberOpened } = usePackOpening(answered);
   const trayButton = useRef<HTMLButtonElement>(null);
   const puttingIn = usePuttingIn(unopened, { putIn, putAllIn }, trayButton);
-  const { album } = puttingIn;
+  const { album, unlocking, moment, finish } = useTeamUnlock(puttingIn.album, unlockTeamSticker, { waits: puttingIn.busy });
   const { held, hold, release } = useHeld();
   const closeOpening = useCallback(() => {
     release();
@@ -36,27 +50,39 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
     closeOpening();
     puttingIn.putAllIn();
   };
+  const playing = opening || moment !== null;
+  const awaitingAMoment = playing || unlocking.sending !== null;
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place), { held: false });
+  useGoalFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell">
-      <TopBar album={album} place={place} wide={wide} held={held} moving={opening} inert={opening} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} tray={puttingIn} />
+      <TopBar album={album} place={place} wide={wide} held={held} moving={opening} inert={awaitingAMoment} onOpenPacks={open} packsButton={packsButton} trayButton={trayButton} tray={puttingIn} />
       {opening && <PackOpening album={album} openThoughtfulPack={openThoughtfulPack} trayTarget={trayButton} onHold={hold} onOpened={rememberOpened} onClose={closeOpening} onPutAllIn={putEverythingIn} />}
+      {moment !== null && <UnlockMoment sticker={moment} collected={album.teams.find(({ team }) => team === moment.team)?.total ?? 0} emoji={teamEmojiOf(album, moment.team)} onDone={finish} />}
       <PutInFlights album={album} flights={puttingIn.flights} touchdowns={puttingIn.touchdowns} />
       <p role="status" aria-label="Putting in" className="al-sr">
         {puttingIn.said}
       </p>
-      <div className="al-body" inert={opening}>
+      <div className="al-body" inert={playing}>
         <Sidebar album={album} place={place} wide={wide} footer={<Footer onSignOut={onSignOut} />} />
         <main className="al-main" aria-busy={busy || undefined}>
           {place.kind === "team" && place.team === null && <GettingStarted facts={album.gettingStarted} />}
           <ErrorBoundary key={keyOf(place)} fallback={(failure) => <ErrorPage {...failure} />}>
-            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} />
+            <AlbumPage album={album} place={place} settings={settings} leaderboard={leaderboard} activity={activity} person={person} unlocking={unlocking} />
           </ErrorBoundary>
         </main>
       </div>
     </div>
   );
+}
+
+function useGoalFocusAfterTheMoment(playing: boolean) {
+  const wasPlaying = useRef(false);
+  useEffect(() => {
+    if (wasPlaying.current && !playing) document.querySelector<HTMLElement>("main [data-al-goal] h2")?.focus();
+    wasPlaying.current = playing;
+  }, [playing]);
 }
 
 function usePackOpening(answered: Album) {

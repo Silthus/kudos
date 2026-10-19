@@ -1,0 +1,129 @@
+{
+ "kind": "album",
+ "me": "Rosalind ThackerayB",
+ "teams": [
+  {
+   "art": null,
+   "held": 0,
+   "mine": false,
+   "name": "Lamplighters B",
+   "people": [],
+   "state": "unlocked",
+   "team": "proof-661-lamplightersb",
+   "total": 0,
+   "unlockedAt": 1792389486383,
+   "unmatched": []
+  },
+  {
+   "art": null,
+   "held": 0,
+   "mine": false,
+   "name": "Lamplighters C",
+   "people": [
+    "js77dkzg7rsr4hgfm15fsy087h8gkq83",
+    "js75mcxxj70r9v4az6rccr3vp58gkkwt",
+    "js7fhpvsar4hnqxtg26prkfve58gkkn3",
+    "js72ynf9fe0ab2pafrx60jkvgx8gj0wv"
+   ],
+   "state": "progress",
+   "team": "proof-661-lamplightersc",
+   "total": 4,
+   "unlockedAt": null,
+   "unmatched": []
+  },
+  {
+   "art": null,
+   "held": 0,
+   "mine": false,
+   "name": "Lamplighters D",
+   "people": [
+    "js7939phqvscf0dcab8fs39g9d8gj468",
+    "js71qfa847688qcn308bm1v65d8gjex8",
+    "js70hbgf0kv5hmhjh55pk2zhc98gjx6f",
+    "js76n7fb5pq15rx4mcmpz1ghtx8gjk93"
+   ],
+   "state": "progress",
+   "team": "proof-661-lamplightersd",
+   "total": 4,
+   "unlockedAt": null,
+   "unmatched": []
+  }
+ ],
+ "peopleOnTheseTeams": [
+  {
+   "face": {
+    "initials": "RT",
+    "kind": "initials"
+   },
+   "held": false,
+   "name": "Rosalind ThackerayC",
+   "person": "js77dkzg7rsr4hgfm15fsy087h8gkq83"
+  },
+  {
+   "face": {
+    "initials": "FA",
+    "kind": "initials"
+   },
+   "held": false,
+   "name": "Fenwick AshdownC",
+   "person": "js75mcxxj70r9v4az6rccr3vp58gkkwt"
+  },
+  {
+   "face": {
+    "initials": "MB",
+    "kind": "initials"
+   },
+   "held": false,
+   "name": "Marigold BrightwaterC",
+   "person": "js7fhpvsar4hnqxtg26prkfve58gkkn3"
+  },
+  {
+   "face": {
+    "initials": "CH",
+    "kind": "initials"
+   },
+   "held": false,
+   "name": "Caspian HollowayC",
+   "person": "js72ynf9fe0ab2pafrx60jkvgx8gj0wv"
+  },
+  {
+   "face": {
+    "initials": "RT",
+    "kind": "initials"
+   },
+   "held": false,
+   "name": "Rosalind ThackerayD",
+   "person": "js7939phqvscf0dcab8fs39g9d8gj468"
+  },
+  {
+   "face": {
+    "initials": "FA",
+    "kind": "initials"
+   },
+   "held": false,
+   "name": "Fenwick AshdownD",
+   "person": "js71qfa847688qcn308bm1v65d8gjex8"
+  },
+  {
+   "face": {
+    "initials": "MB",
+    "kind": "initials"
+   },
+   "held": false,
+   "name": "Marigold BrightwaterD",
+   "person": "js70hbgf0kv5hmhjh55pk2zhc98gjx6f"
+  },
+  {
+   "face": {
+    "initials": "CH",
+    "kind": "initials"
+   },
+   "held": false,
+   "name": "Caspian HollowayD",
+   "person": "js76n7fb5pq15rx4mcmpz1ghtx8gjk93"
+  }
+ ],
+ "packs": [],
+ "tray": [],
+ "otherTeams": 57
+}

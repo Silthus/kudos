@@ -1,0 +1,1 @@
+{  "items": [    {      "hoggie": "desk-wizard",      "isNew": true,      "item": "jn7v9tec4xnztccmq1zm5jzmkh8gkkyf",      "kind": "hoggie",      "rarity": "rare"    },    {      "hoggie": "surfer",      "isNew": true,      "item": "jn7mm659kv93y12xy6g5vrf0418gja05",      "kind": "hoggie",      "rar

@@ -1,5 +1,6 @@
 import type { QueryCtx } from "../_generated/server";
-import { storedHoldersIn } from "../companyProfiles/storedFaces";
+import type { CompanyFace } from "../companyProfiles/faces";
+import { storedHoldersIn, type StoredHolder } from "../companyProfiles/storedFaces";
 import { companyTeamsOf, type CompanyTeam, type TeamCrestArt } from "../companyProfiles/teams";
 import type { MemberId } from "../workspace/directory";
 import { peopleHeldBy } from "./stickers";
@@ -22,7 +23,15 @@ export type TeamPage = {
 
 export type PageOwner = { workspace: string; member: MemberId };
 
-export async function teamPagesOf(ctx: QueryCtx, { workspace, member }: PageOwner): Promise<TeamPage[]> {
+export type StoredMatch = { profile: number; face: CompanyFace | null };
+
+export type TeamPagesAndPeople = { pages: TeamPage[]; held: Set<MemberId>; matchOf: Map<MemberId, StoredMatch> };
+
+export async function teamPagesOf(ctx: QueryCtx, owner: PageOwner): Promise<TeamPage[]> {
+  return (await teamPagesAndPeopleOf(ctx, owner)).pages;
+}
+
+export async function teamPagesAndPeopleOf(ctx: QueryCtx, { workspace, member }: PageOwner): Promise<TeamPagesAndPeople> {
   const holders = await storedHoldersIn(ctx, workspace);
   const held = await peopleHeldBy(ctx, member);
   const unlocked = await teamStickersOf(ctx, member);
@@ -30,7 +39,7 @@ export async function teamPagesOf(ctx: QueryCtx, { workspace, member }: PageOwne
   const onPostHogCom = new Set(teams.map(({ team }) => team));
   const listed = teams.map((team) => pageOf(team, member, holders, held, unlocked.get(team.team)));
   const gone = [...unlocked.values()].filter(({ team }) => !onPostHogCom.has(team)).map(goneTeamPageOf);
-  return [...listed, ...gone].sort(inSidebarOrder);
+  return { pages: [...listed, ...gone].sort(inSidebarOrder), held, matchOf: new Map([...holders].map(([profile, { member, face }]) => [member, { profile, face }])) };
 }
 
 async function teamStickersOf(ctx: QueryCtx, member: MemberId): Promise<Map<string, TeamSticker>> {
@@ -45,8 +54,8 @@ export function isComplete({ held, total }: Pick<TeamPage, "held" | "total">) {
   return total > 0 && held === total;
 }
 
-function pageOf({ team, name, crest, people }: CompanyTeam, member: MemberId, holders: Map<number, MemberId>, held: Set<MemberId>, sticker: TeamSticker | undefined): TeamPage {
-  const matched = people.flatMap((profile) => holders.get(profile) ?? []);
+function pageOf({ team, name, crest, people }: CompanyTeam, member: MemberId, holders: Map<number, StoredHolder>, held: Set<MemberId>, sticker: TeamSticker | undefined): TeamPage {
+  const matched = people.flatMap((profile) => holders.get(profile)?.member ?? []);
   const others = matched.filter((person) => person !== member);
   const counted = { held: others.filter((person) => held.has(person)).length, total: others.length };
   const page = { team, name, art: crest, mine: matched.includes(member), people: others, unmatched: people.filter((profile) => !holders.has(profile)), ...counted };
