@@ -1,6 +1,5 @@
 import type { QueryCtx } from "../_generated/server";
-import { storedAnnotationsOf } from "../engine/awards";
-import type { MessageRef } from "../engine/messageEvent";
+import { newestReceivedBy, storedAnnotationsOf, type NewestReceived } from "../engine/awards";
 import { gateDecisionOf } from "../progression/gate";
 import type { MemberId } from "../workspace/directory";
 import { albumStickersOf, type AlbumSticker } from "./stickers";
@@ -9,17 +8,11 @@ export const kudosSearchedForAKindNote = 50;
 
 export const newestPeopleShown = 4;
 
-export type KindNote = { giver: MemberId; message: MessageRef; at: number };
+export type KindNote = NewestReceived;
 
 export async function lastKindNoteTo(ctx: QueryCtx, member: MemberId): Promise<KindNote | null> {
-  const received = await ctx.db
-    .query("awards")
-    .withIndex("by_recipient_at", (q) => q.eq("recipient", member))
-    .order("desc")
-    .take(kudosSearchedForAKindNote);
-  for (const { giver, workspace, conversation, message, at } of received) {
-    const ref = { workspace, conversation, message };
-    if (gateDecisionOf(await storedAnnotationsOf(ctx, ref))?.thoughtful === true) return { giver, message: ref, at };
+  for (const award of await newestReceivedBy(ctx, member, kudosSearchedForAKindNote)) {
+    if (gateDecisionOf(await storedAnnotationsOf(ctx, award.message))?.thoughtful === true) return award;
   }
   return null;
 }

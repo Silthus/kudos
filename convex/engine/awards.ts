@@ -111,6 +111,17 @@ export async function awardsInWorkspace(ctx: QueryCtx, workspace: string, page: 
   };
 }
 
+export type NewestReceived = { giver: MemberId; message: MessageRef; at: number };
+
+export async function newestReceivedBy(ctx: QueryCtx, recipient: MemberId, atMost: number): Promise<NewestReceived[]> {
+  const received = await ctx.db
+    .query("awards")
+    .withIndex("by_recipient_at", (q) => q.eq("recipient", recipient))
+    .order("desc")
+    .take(atMost);
+  return received.map(({ giver, workspace, conversation, message, at }) => ({ giver, message: { workspace, conversation, message }, at }));
+}
+
 export type GivenMessageFacts = { giver: MemberId; day: DayKey; at: number };
 
 export async function givenFactsOf(ctx: QueryCtx, { workspace, conversation, message }: MessageRef): Promise<GivenMessageFacts | null> {
