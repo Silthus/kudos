@@ -83,6 +83,10 @@ export type HoggiesFound = { hoggies: { hoggie: string; rarity: Rarity }[]; more
 
 export type KudosOfTheWeek = { giver: WeekPerson; message: Message; permalink: string | null; at: number; hugs: number };
 
+export type WeekKudos = { people: WeekPerson[]; morePeople: number; message: Message; at: number };
+
+export type WeekKudosList = { kudos: WeekKudos[]; more: boolean };
+
 export type WeekIssue = {
   kudosGiven: number;
   kudosReceived: number;
@@ -99,6 +103,8 @@ export type WeekIssue = {
   huggedBy: PeopleListed;
   newFaces: PeopleListed;
   hoggies: HoggiesFound;
+  given: WeekKudosList;
+  received: WeekKudosList;
 };
 
 export type WeekTab = { week: string; days: number[] };
