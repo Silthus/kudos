@@ -174,33 +174,6 @@
   color: var(--foreground);
 }
 
-.al-ms-emoji {
-  margin-top: 0.375rem;
-  color: var(--al-quiet);
-  font-size: 0.8125rem;
-}
-
-.al-ms-emoji code {
-  display: inline-block;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  border-radius: 0.375rem;
-  background: var(--muted);
-  padding: 0.0625rem 0.375rem;
-  color: var(--foreground);
-  font-family: inherit;
-  font-weight: 700;
-}
-
-.al-ms-emoji[data-unlocked] {
-  color: var(--foreground);
-}
-
-.al-ms-emoji[data-unlocked] code {
-  background: var(--al-ms-warm);
-  box-shadow: inset 0 0 0 1px var(--al-ms-amber);
-}
-
 .al-ms-climb {
   position: relative;
 }
@@ -273,6 +246,83 @@
   color: var(--al-quiet);
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
+}
+
+.al-ms-medal-words {
+  display: contents;
+}
+
+.al-ms-emoji {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0.5rem 0 0;
+  border-top: 1px dashed var(--border);
+  padding-top: 0.5rem;
+}
+
+.al-ms-emoji img {
+  width: 2rem;
+  height: 2rem;
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+.al-ms-emoji figcaption {
+  display: flex;
+  max-width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.al-ms-emoji code {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  border-radius: 0.375rem;
+  background: var(--muted);
+  padding: 0.0625rem 0.375rem;
+  color: var(--al-quiet);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.al-ms-emoji-says {
+  color: var(--al-quiet);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.al-ms-emoji[data-earned] img {
+  filter: none;
+  opacity: 1;
+}
+
+.al-ms-emoji[data-earned] code {
+  background: var(--al-ms-warm);
+  box-shadow: inset 0 0 0 1px var(--al-ms-amber);
+  color: var(--foreground);
+}
+
+.al-ms-emoji[data-earned] .al-ms-emoji-says {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.al-ms-emoji .al-add-to-slack {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.5rem;
+  background: var(--al-accent-ink);
+  padding: 0.25rem 0.5rem;
+  color: var(--al-count-ink);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .al-ms-medal[data-step="next"] {

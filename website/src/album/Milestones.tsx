@@ -1,9 +1,10 @@
 import { useId, type CSSProperties } from "react";
 import { LadderEmblem } from "../book/LadderEmblem";
 import { PageTitle } from "../PageTitle";
+import { AddToSlack } from "./AddToSlack";
 import type { Album, AlbumMilestone } from "./answer";
 import { medalsOf } from "./facts";
-import { climbedShareOf, emblemOf, goalOf, goldEmojiOf, medalsInAll, milestoneNameOf, nextGoalOf, stepOf, tierWordOf, unitOf, type MedalStep } from "./milestones";
+import { climbedShareOf, emblemOf, goalOf, isEarned, medalsInAll, milestoneNameOf, nextGoalOf, stepOf, tierEmojiOf, tierWordOf, unitOf, type MedalStep, type TierEmoji } from "./milestones";
 import { closestNextOf, highestEarnedOf, type NextMedal } from "./profile";
 import { dateOf } from "./teamPage";
 import "./milestones.css";
@@ -75,7 +76,6 @@ function MilestoneRow({ album, milestone }: { album: Album; milestone: AlbumMile
   const name = milestoneNameOf(milestone.id);
   const ladder = emblemOf(milestone.id);
   const next = nextGoalOf(milestone);
-  const gold = goldEmojiOf(album, milestone);
   return (
     <li className="al-ms-row" aria-labelledby={nameId}>
       <div className="al-ms-plaque">
@@ -90,17 +90,13 @@ function MilestoneRow({ album, milestone }: { album: Album; milestone: AlbumMile
           <p className="al-ms-goal" data-done={next === null ? "" : undefined}>
             {next === null ? "Every medal earned" : `${next.toGo} to go for ${next.tier.name}`}
           </p>
-          <p className="al-ms-emoji" data-unlocked={gold.unlocked ? "" : undefined}>
-            {gold.unlocked ? "Gold unlocked " : "Gold unlocks "}
-            <code className="ph-no-capture">{`:${gold.name}:`}</code>
-          </p>
         </div>
       </div>
       <div className="al-ms-climb" style={{ "--al-ms-climbed": climbedShareOf(milestone) } as CSSProperties}>
         <span className="al-ms-rail" aria-hidden="true" />
         <ol className="al-ms-medals" aria-label={`${name} medals, bronze to diamond`}>
           {milestone.tiers.map((tier) => (
-            <Medal key={tier.tier} milestone={milestone} tier={tier} step={stepOf(milestone, tier)} ladder={ladder} />
+            <Medal key={tier.tier} milestone={milestone} tier={tier} step={stepOf(milestone, tier)} ladder={ladder} emoji={tierEmojiOf(album, milestone, tier)} />
           ))}
         </ol>
       </div>
@@ -110,7 +106,8 @@ function MilestoneRow({ album, milestone }: { album: Album; milestone: AlbumMile
 
 type Tier = AlbumMilestone["tiers"][number];
 
-function Medal({ milestone, tier, step, ladder }: { milestone: AlbumMilestone; tier: Tier; step: MedalStep; ladder: ReturnType<typeof emblemOf> }) {
+function Medal({ milestone, tier, step, ladder, emoji }: { milestone: AlbumMilestone; tier: Tier; step: MedalStep; ladder: ReturnType<typeof emblemOf>; emoji: TierEmoji }) {
+  const note = noteOf(milestone, tier, step);
   return (
     <li className="al-ms-medal" data-step={step}>
       {step === "next" && <span className="al-ms-tag">Next</span>}
@@ -118,9 +115,12 @@ function Medal({ milestone, tier, step, ladder }: { milestone: AlbumMilestone; t
         {step === "next" && <ProgressRing milestone={milestone} tier={tier} />}
         <LadderEmblem ladder={ladder} best={tier.tier} size={60} />
       </span>
-      <span className="al-ms-metal">{tierWordOf(tier.tier)}</span>
-      <span className="al-ms-medal-name">{tier.name}</span>
-      <span className="al-ms-note">{noteOf(milestone, tier, step)}</span>
+      <span className="al-ms-medal-words">
+        <span className="al-ms-metal">{tierWordOf(tier.tier)}</span>
+        <span className="al-ms-medal-name">{tier.name}</span>
+        {note !== null && <span className="al-ms-note">{note}</span>}
+      </span>
+      <MedalEmoji tier={tier} emoji={emoji} />
     </li>
   );
 }
@@ -128,7 +128,31 @@ function Medal({ milestone, tier, step, ladder }: { milestone: AlbumMilestone; t
 function noteOf(milestone: AlbumMilestone, tier: Tier, step: MedalStep) {
   if (step === "earned") return dateOf(tier.earnedAt!);
   if (step === "next") return `${Math.min(milestone.count, tier.at)} of ${tier.at}`;
-  return `At ${tier.at}`;
+  return null;
+}
+
+function MedalEmoji({ tier, emoji: { name, picture, answered } }: { tier: Tier; emoji: TierEmoji }) {
+  const earned = isEarned(tier);
+  return (
+    <figure className="al-ms-emoji ph-no-capture" data-earned={earned ? "" : undefined}>
+      <img src={picture} alt="" width={32} height={32} loading="lazy" decoding="async" />
+      <figcaption>
+        <code>{`:${name}:`}</code>
+        <EmojiSays earned={earned} at={tier.at} answered={answered} />
+      </figcaption>
+    </figure>
+  );
+}
+
+function EmojiSays({ earned, at, answered }: { earned: boolean; at: number; answered: TierEmoji["answered"] }) {
+  if (!earned) return <span className="al-ms-emoji-says">{`Unlocks at ${at}`}</span>;
+  if (answered === null) return null;
+  if (answered.inSlack) return <span className="al-ms-emoji-says">In Slack</span>;
+  return (
+    <span className="al-ms-emoji-says">
+      <AddToSlack emoji={answered} />
+    </span>
+  );
 }
 
 const ringRadius = 46;
