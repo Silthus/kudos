@@ -1,0 +1,34 @@
+{
+  "kind": "album",
+  "level": {
+    "level": 2,
+    "nextAt": 100,
+    "startsAt": 20,
+    "xp": 20
+  },
+  "me": {
+    "face": {
+      "initials": "IV",
+      "kind": "initials"
+    },
+    "name": "Ilsabet Varga",
+    "person": "js76zhcz25fm37qzw9855xk5558gjsyt"
+  },
+  "morePacks": false,
+  "morePeople": false,
+  "moreTray": false,
+  "packs": [
+    {
+      "earnedAt": 1792378187771,
+      "pack": "hn7sp491wed5nfqapes0qrr12x8gkv84",
+      "person": "js70bsq6ss6cq5y49phcxjdt058gk46e"
+    },
+    {
+      "earnedAt": 1792378187771,
+      "pack": "hn7ywcd56t9g49hcsqxx5c2zeh8gjd6j",
+      "person": "js7cmxe3af0n7ny05nkqe4znrh8gj586"
+    }
+  ],
+  "people": [],
+  "tray": []
+}
