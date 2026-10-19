@@ -1,5 +1,6 @@
 import { Button } from "@posthog/quill";
 import { useMemo, useRef, useState } from "react";
+import { mostRandomEmojis } from "../../../convex/album/emojiClasses";
 import type { EmojiMappingsRead } from "../emojiMappingsRead";
 import { Panel } from "../home/Panel";
 import type { EmojiMappingReply, EmojiMappings, EmojiPlaceChoice, ShellActions, ShownMappingTarget } from "../shell";
@@ -58,18 +59,18 @@ function EmojiMapping({ mappings, mapSlackEmoji }: { mappings: EmojiMappings; ma
   const [search, setSearchNow] = useState("");
   const [filter, setFilterNow] = useState<Filter>("all");
   const [editing, setEditing] = useState<string | null>(null);
-  const [kept, setKept] = useState<string | null>(null);
+  const [kept, setKept] = useState<ReadonlySet<string>>(new Set());
   const [shown, setShown] = useState(emojiShownAtMost);
   const narrowTo = <Value,>(set: (value: Value) => void) => (value: Value) => {
     set(value);
-    setKept(null);
+    setKept(new Set());
     setShown(emojiShownAtMost);
   };
   const setSearch = narrowTo(setSearchNow);
   const setFilter = narrowTo(setFilterNow);
   const names = useMemo(() => namesOf(mappings), [mappings]);
   const searchable = useMemo(() => mappings.emoji.map((emoji) => ({ emoji, text: searchTextOf(emoji.name) })), [mappings.emoji]);
-  const found = searchable.filter(({ emoji, text }) => emoji.name === kept || (isShownBy(filter, emoji) && isFoundBy(text, search))).map(({ emoji }) => emoji);
+  const found = searchable.filter(({ emoji, text }) => kept.has(emoji.name) || (isShownBy(filter, emoji) && isFoundBy(text, search))).map(({ emoji }) => emoji);
   const more = found.length - shown;
   return (
     <Panel id="emoji-mapping" label={sectionLabel}>
@@ -92,7 +93,7 @@ function EmojiMapping({ mappings, mapSlackEmoji }: { mappings: EmojiMappings; ma
       ) : (
         <ul aria-label="Slack emojis" className="ph-no-capture max-h-[36rem] divide-y overflow-y-auto rounded-lg border">
           {found.slice(0, shown).map((emoji) => (
-            <EmojiRow key={emoji.name} emoji={emoji} mappings={mappings} names={names} editing={editing === emoji.name} onEdit={setEditing} onSaved={setKept} mapSlackEmoji={mapSlackEmoji} />
+            <EmojiRow key={emoji.name} emoji={emoji} mappings={mappings} names={names} editing={editing === emoji.name} onEdit={setEditing} onSaved={(name) => setKept((names) => new Set(names).add(name))} mapSlackEmoji={mapSlackEmoji} />
           ))}
         </ul>
       )}
@@ -161,8 +162,9 @@ type PlaceEditorProps = { name: string; current: EmojiPlaceChoice; mappings: Emo
 function PlaceEditor({ name, current, mappings, names, onSave, onCancel }: PlaceEditorProps) {
   const [draft, setDraft] = useState<Draft>(() => draftOf(current));
   const asked = placeOfDraft(draft);
-  const savable = asked !== null && keyOf(asked) !== keyOf(current);
-  const displaced = savable ? displacedBy(asked, current, name, mappings, names) : null;
+  const randomFull = asked?.kind === "random" && current.kind !== "random" && mappings.emoji.filter(({ mapping }) => mapping?.kind === "random").length >= mostRandomEmojis;
+  const savable = asked !== null && keyOf(asked) !== keyOf(current) && !randomFull;
+  const notes = randomFull ? [`Random drops hold at most ${mostRandomEmojis} emojis. Unmap one first.`] : savable ? displacedBy(asked, current, name, mappings, names) : [];
   return (
     <div role="group" aria-label={`:${name}:'s place`} className="flex flex-col gap-3 rounded-lg border bg-background p-3">
       <label className="flex flex-col gap-1 text-sm font-medium">
@@ -179,7 +181,11 @@ function PlaceEditor({ name, current, mappings, names, onSave, onCancel }: Place
       {draft.kind === "milestone" && <Choice label="Milestone" placeholder="Pick a milestone" value={draft.milestone} options={mappings.milestones.map(({ milestone, name: milestoneName }) => [milestone, milestoneName])} onChange={(milestone) => setDraft({ ...draft, milestone })} />}
       {draft.kind === "level" && <Choice label="Level" placeholder="Pick a level" value={draft.level} options={mappings.levels.map((level) => [String(level), `Level ${level}`])} onChange={(level) => setDraft({ ...draft, level })} />}
       {draft.kind === "hype" && <PersonPicker people={mappings.people} picked={draft.person} onPick={(person) => setDraft({ ...draft, person })} />}
-      {displaced !== null && <p className="text-sm text-muted-foreground">{displaced}</p>}
+      {notes.map((note) => (
+        <p key={note} className="text-sm text-muted-foreground">
+          {note}
+        </p>
+      ))}
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="primary" size="sm" disabled={!savable} onClick={() => asked !== null && savable && onSave(asked)}>
           Save
@@ -270,11 +276,16 @@ function placeOfDraft({ kind, team, milestone, level, person }: Draft): EmojiPla
   }
 }
 
-function displacedBy(asked: EmojiPlaceChoice, current: EmojiPlaceChoice, name: string, { emoji }: EmojiMappings, names: Names): string | null {
-  if (isEarnedPlace(current) && !isEarnedPlace(asked)) return `The ${wordsOf(current, names).shown} leaves Slack until Slack has an emoji of its new name.`;
-  if (!isEarnedPlace(asked)) return null;
-  const holder = emoji.find((each) => each.name !== name && each.mapping !== null && keyOf(each.mapping) === keyOf(asked));
-  return holder === undefined ? null : `:${holder.name}: holds it now and becomes unmapped.`;
+function displacedBy(asked: EmojiPlaceChoice, current: EmojiPlaceChoice, name: string, { emoji }: EmojiMappings, names: Names): string[] {
+  const notes: string[] = [];
+  if (isEarnedPlace(current)) notes.push(`${capitalized(wordsOf(current, names).told)} leaves Slack until Slack has an emoji of its new name.`);
+  const holder = isEarnedPlace(asked) ? emoji.find((each) => each.name !== name && each.mapping !== null && keyOf(each.mapping) === keyOf(asked)) : undefined;
+  if (holder !== undefined) notes.push(`:${holder.name}: holds it now and becomes unmapped.`);
+  return notes;
+}
+
+function capitalized(words: string): string {
+  return `${words.charAt(0).toUpperCase()}${words.slice(1)}`;
 }
 
 function isEarnedPlace(place: EmojiPlaceChoice): boolean {

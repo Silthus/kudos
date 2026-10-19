@@ -10,6 +10,8 @@ export { mostRandomEmojis };
 
 export const randomEmojiChance = 0.1;
 
+export const mostRandomEmojisShown = 200;
+
 export type RandomEmojiId = `random:${string}`;
 
 export type HeldRandomEmoji = { id: RandomEmojiId; name: string; image: string };
@@ -18,8 +20,8 @@ export async function dropRandomEmojiFrom(ctx: MutationCtx, member: MemberId, pa
   const { chance, pick } = await emojiRollOf({ secret: drawSecret(), member, crate });
   if (chance >= randomEmojiChance) return;
   const { workspace } = await chatUserOf(ctx, member);
-  const held = new Set((await dropsOf(ctx, member)).map(({ name }) => name));
-  const offered = (await randomEmojiNamesIn(ctx, workspace)).filter((name) => !held.has(name));
+  const offered: string[] = [];
+  for (const name of await randomEmojiNamesIn(ctx, workspace)) if (!(await holdsRandomEmoji(ctx, member, name))) offered.push(name);
   const name = offered[Math.floor(pick * offered.length)];
   if (name === undefined || (await customEmojiImageOf(ctx, workspace, name)) === undefined) return;
   await ctx.db.insert("randomEmojiDrops", { member, name, pack, at });
@@ -46,5 +48,5 @@ function dropsOf(ctx: QueryCtx, member: MemberId) {
   return ctx.db
     .query("randomEmojiDrops")
     .withIndex("by_member_name", (q) => q.eq("member", member))
-    .take(mostRandomEmojis);
+    .take(mostRandomEmojisShown);
 }

@@ -189,6 +189,27 @@ describe("the maintainer maps Slack emojis to earned emojis in Settings", { time
     await user.click(rowOf("otters").getByRole("button", { name: "Change :otters:" }));
     await user.selectOptions(rowOf("otters").getByRole("combobox", { name: "Map to" }), "Not mapped");
     expect(rowOf("otters").getByText("The Otters team emoji leaves Slack until Slack has an emoji of its new name.")).toBeInTheDocument();
+    await user.selectOptions(rowOf("otters").getByRole("combobox", { name: "Map to" }), "A level");
+    await user.selectOptions(rowOf("otters").getByRole("combobox", { name: "Level" }), "Level 10");
+    expect(rowOf("otters").getByText("The Otters team emoji leaves Slack until Slack has an emoji of its new name.")).toBeInTheDocument();
+    expect(rowOf("otters").getByText(":level-10: holds it now and becomes unmapped.")).toBeInTheDocument();
+    await user.click(rowOf("otters").getByRole("button", { name: "Cancel" }));
+
+    await user.click(rowOf("omar-haddad-hype").getByRole("button", { name: "Change :omar-haddad-hype:" }));
+    await user.selectOptions(rowOf("omar-haddad-hype").getByRole("combobox", { name: "Map to" }), "Not mapped");
+    expect(rowOf("omar-haddad-hype").getByText("Omar Haddad's hype emoji leaves Slack until Slack has an emoji of its new name.")).toBeInTheDocument();
+  });
+
+  it("keeps Save off for a 101st random drop and says why", async () => {
+    const moreDrops = Array.from({ length: 99 }, (_, index) => ({ name: `zebra-${index}`, image: shipitPicture, mapping: { kind: "random" as const } }));
+    const full = { ...emojiMappingsFixtures.workspace, emoji: [...emojiMappingsFixtures.workspace.emoji, ...moreDrops] };
+    const { user } = await showSettings({ mappings: full });
+
+    await user.click(rowOf("shipit").getByRole("button", { name: "Change :shipit:" }));
+    await user.selectOptions(rowOf("shipit").getByRole("combobox", { name: "Map to" }), "Random drops");
+
+    expect(rowOf("shipit").getByText("Random drops hold at most 100 emojis. Unmap one first.")).toBeInTheDocument();
+    expect(rowOf("shipit").getByRole("button", { name: "Save" })).toHaveAttribute("aria-disabled", "true");
   });
 
   it("shows 50 more rows at a time, so every emoji a search finds can be reached", async () => {

@@ -267,6 +267,25 @@ describe("AL23: a random emoji drops from a thoughtful pack", { timeout: 90_000 
     expect(await randomEmojisOf(asAlice)).toEqual([{ id: "random:party-parrot", kind: "random", name: "party-parrot", picture: slackPicture("party-parrot"), earned: true, seen: true, inSlack: true, progress: null }]);
     expect((await albumOf(asAlice)).sharedEmojis).toBeNull();
   });
+
+  test("a member who already holds more drops than the pool's limit, after the pool changed, keeps every drop and never gets one twice", async () => {
+    const held = Array.from({ length: mostRandomEmojis + 1 }, (_, index) => `old-${String(index).padStart(3, "0")}`);
+    await slackHas(...held, "fresh");
+    const member = await memberOf(alice);
+    await aliceCollects(otters[0]!);
+    const pack = await t.run(async (ctx) => (await ctx.db.query("thoughtfulPacks").first())!._id);
+    await t.run(async (ctx) => {
+      for (const name of held) await ctx.db.insert("randomEmojiDrops", { member, name, pack, at: Date.now() });
+      await ctx.db.insert("emojiClasses", { workspace: "T1", name: held.at(-1)!, class: "random" });
+    });
+
+    theRoll.next = { chance: 0, pick: 0 };
+    await aliceCollects(otters[1]!);
+
+    const drops = await t.run(async (ctx) => (await ctx.db.query("randomEmojiDrops").collect()).map(({ name }) => name));
+    expect(drops.filter((name) => name === held.at(-1)), "the held drop beyond the limit is not dropped again").toHaveLength(1);
+    expect(await randomEmojisOf(await signedIn(alice))).toHaveLength(held.length);
+  });
 });
 
 describe("only the maintainer maps Slack emojis", { timeout: 90_000 }, () => {
