@@ -13,14 +13,17 @@ import { earnedEmojisOf, levelShareOf, plural, xpToNextOf } from "./facts";
 import type { Held } from "./PackOpening";
 import { home, hrefOf, type Place } from "./place";
 import { TrayPanel } from "./TrayPanel";
-import { usePopover, type Popover } from "./usePopover";
+import type { Popover } from "./usePopover";
 
 export type TrayActions = { busy: boolean; trouble: string | null; putIn: (item: string) => void; putAllIn: () => void };
 
-type TopBarProps = { album: Album; place: Place; wide: boolean; held: Held; moving: boolean; inert: boolean; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null>; emojiButton: RefObject<HTMLButtonElement | null>; tray: TrayActions };
+export type TopBarPopups = "tray" | "emojis" | "menu";
 
-export function TopBar({ album, place, wide, held, moving, inert, onOpenPacks, packsButton, trayButton, emojiButton, tray }: TopBarProps) {
-  const popover = usePopover<"tray" | "emojis" | "menu">();
+type TopBarPopover = Popover<TopBarPopups>;
+
+type TopBarProps = { album: Album; place: Place; wide: boolean; popover: TopBarPopover; justUnlocked: string[]; held: Held; moving: boolean; inert: boolean; onOpenPacks: () => void; packsButton: RefObject<HTMLButtonElement | null>; trayButton: RefObject<HTMLButtonElement | null>; emojiButton: RefObject<HTMLButtonElement | null>; tray: TrayActions };
+
+export function TopBar({ album, place, wide, popover, justUnlocked, held, moving, inert, onOpenPacks, packsButton, trayButton, emojiButton, tray }: TopBarProps) {
   useTrayOpenOnThePacksPage(place, popover);
   return (
     <header className="al-top" inert={inert}>
@@ -33,7 +36,7 @@ export function TopBar({ album, place, wide, held, moving, inert, onOpenPacks, p
         <PacksButton waiting={album.packs.length} more={album.morePacks} current={place.kind === "packs"} button={packsButton} waitsForPuttingIn={tray.busy} onOpen={onOpenPacks} />
         <TrayButton album={album} items={held.tray ?? album.tray.length} popover={popover} button={trayButton} tray={tray} />
         {wide && <PageLinks place={place} />}
-        <EmojiButton album={album} popover={popover} button={emojiButton} />
+        <EmojiButton album={album} popover={popover} button={emojiButton} justUnlocked={justUnlocked} />
         <FeedbackButton />
         {wide ? <MeAndSettings album={album} place={place} /> : <Menu album={album} place={place} popover={popover} />}
       </div>
@@ -57,7 +60,7 @@ function XpBar({ level: settled, moving }: { level: AlbumLevel; moving: boolean 
   );
 }
 
-function useTrayOpenOnThePacksPage(place: Place, popover: Popover<"tray" | "emojis" | "menu">) {
+function useTrayOpenOnThePacksPage(place: Place, popover: TopBarPopover) {
   const onThePacksPage = place.kind === "packs";
   const { show } = popover;
   useEffect(() => {
@@ -86,7 +89,7 @@ function PacksButton({ waiting, more, current, button, waitsForPuttingIn, onOpen
   );
 }
 
-type TrayButtonProps = { album: Album; items: number; popover: Popover<"tray" | "emojis" | "menu">; button: RefObject<HTMLButtonElement | null>; tray: TrayActions };
+type TrayButtonProps = { album: Album; items: number; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; tray: TrayActions };
 
 function TrayButton({ album, items, popover, button, tray }: TrayButtonProps) {
   const putting = (send: () => void) => {
@@ -121,10 +124,10 @@ function trayLabelOf(items: number, busy: boolean) {
   return items === 0 ? "Tray, nothing to put in" : `Tray, ${items} to put in`;
 }
 
-function EmojiButton({ album, popover, button }: { album: Album; popover: Popover<"tray" | "emojis" | "menu">; button: RefObject<HTMLButtonElement | null> }) {
+function EmojiButton({ album, popover, button, justUnlocked }: { album: Album; popover: TopBarPopover; button: RefObject<HTMLButtonElement | null>; justUnlocked: string[] }) {
   const earned = earnedEmojisOf(album);
   return (
-    <PopoverButton name="emojis" popover={popover} button={button} label={`Your emojis, ${earned} earned`} panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={<EmojiPanel album={album} onFollow={popover.close} />}>
+    <PopoverButton name="emojis" popover={popover} button={button} label={`Your emojis, ${earned} earned`} panelLabel="Your emojis" className="al-emojis" panelClassName="al-emoji-popover" content={<EmojiPanel album={album} justUnlocked={justUnlocked} onFollow={popover.close} />}>
       <IconEmoji />
       <span className="al-emojis-count" aria-hidden="true">
         {earned}
@@ -134,7 +137,7 @@ function EmojiButton({ album, popover, button }: { album: Album; popover: Popove
   );
 }
 
-type PopoverButtonProps = { name: "tray" | "emojis" | "menu"; popover: Popover<"tray" | "emojis" | "menu">; label: string; panelLabel: string; className: string; panelClassName?: string; content: ReactNode; children: ReactNode; button?: RefObject<HTMLButtonElement | null>; busy?: boolean };
+type PopoverButtonProps = { name: TopBarPopups; popover: TopBarPopover; label: string; panelLabel: string; className: string; panelClassName?: string; content: ReactNode; children: ReactNode; button?: RefObject<HTMLButtonElement | null>; busy?: boolean };
 
 function PopoverButton({ name, popover, label, panelLabel, className, panelClassName, content, children, button, busy = false }: PopoverButtonProps) {
   const panel = useId();
@@ -204,7 +207,7 @@ function MeAndSettings({ album, place, onFollow }: { album: Album; place: Place;
   );
 }
 
-function Menu({ album, place, popover }: { album: Album; place: Place; popover: Popover<"tray" | "emojis" | "menu"> }) {
+function Menu({ album, place, popover }: { album: Album; place: Place; popover: TopBarPopover }) {
   const close = popover.close;
   return (
     <PopoverButton

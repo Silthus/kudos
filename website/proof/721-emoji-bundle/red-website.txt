@@ -1,0 +1,20 @@
+     × #721: several waiting emojis open as one bundle showing each one's picture, its name and what it came from, and only taking it sends markEmojisSeen, once, for all of them 5031ms
+     × #721: an emoji in Slack says to use it there; one Slack doesn't have yet says it's coming to Slack, with no download and no Add to Slack 5044ms
+     × #721: past five waiting, the bundle shows five and +N more, which marks every waiting emoji seen and opens the emoji popup 5041ms
+     × #721: taking a bundle of five marks only those five, and the rest come next as one more bundle 5042ms
+     × the moment takes focus itself and names its emojis, so a keystroke can't take it unread 5034ms
+     × while more packs wait than getAlbum lists, every hype emoji waits, since its pack may be one of them 5034ms
+     × Escape takes the bundle like its button, and a refused or unreachable markEmojisSeen still closes it 5041ms
+     × #721: with motion, taking the bundle flies its emojis into the emoji button and only then sends markEmojisSeen 5033ms
+     × AL54: no moment plays while a pack opening is open; it waits until the opening closes 6295ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  |website| src/album/emojis.test.tsx > AL26: an earned emoji is marked seen only once its moment has shown > #721: several waiting emojis open as one bundle showing each one's picture, its name and what it came from, and only taking it sends markEmojisSeen, once, for all of them
+ FAIL  |website| src/album/emojis.test.tsx > AL26: an earned emoji is marked seen only once its moment has shown > #721: an emoji in Slack says to use it there; one Slack doesn't have yet says it's coming to Slack, with no download and no Add to Slack
+ FAIL  |website| src/album/emojis.test.tsx > AL26: an earned emoji is marked seen only once its moment has shown > #721: past five waiting, the bundle shows five and +N more, which marks every waiting emoji seen and opens the emoji popup
+ FAIL  |website| src/album/emojis.test.tsx > AL26: an earned emoji is marked seen only once its moment has shown > #721: taking a bundle of five marks only those five, and the rest come next as one more bundle
+ FAIL  |website| src/album/emojis.test.tsx > AL26: an earned emoji is marked seen only once its moment has shown > the moment takes focus itself and names its emojis, so a keystroke can't take it unread
+ FAIL  |website| src/album/emojis.test.tsx > AL26: an earned emoji is marked seen only once its moment has shown > while more packs wait than getAlbum lists, every hype emoji waits, since its pack may be one of them
+ FAIL  |website| src/album/emojis.test.tsx > AL26: an earned emoji is marked seen only once its moment has shown > Escape takes the bundle like its button, and a refused or unreachable markEmojisSeen still closes it
+ FAIL  |website| src/album/emojis.test.tsx > AL26: an earned emoji is marked seen only once its moment has shown > #721: with motion, taking the bundle flies its emojis into the emoji button and only then sends markEmojisSeen
+ FAIL  |website| src/album/emojis.test.tsx > AL26: an earned emoji is marked seen only once its moment has shown > AL54: no moment plays while a pack opening is open; it waits until the opening closes
+      Tests  9 failed | 4 passed | 15 skipped (28)
