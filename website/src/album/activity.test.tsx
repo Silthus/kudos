@@ -165,6 +165,17 @@ describe("AL48: Activity is the weekly edition, one issue per week", { timeout: 
     expect(tallies(await issue())[0]).toBe("people you thanked | 21 | 23 kudos, 21 said why");
   });
 
+  it("quotes a kudos's words unless they were edited or are no longer readable", async () => {
+    const [plain] = weekFixtures.full.issue!.received.kudos;
+    const edited = { ...plain!, at: plain!.at - 1, message: { kind: "text" as const, segments: [{ kind: "text" as const, text: "Thanks again, edited" }], edited: true } };
+    const gone = { ...plain!, at: plain!.at - 2, message: { kind: "unavailable" as const, reason: "deleted" as const } };
+    visit(fixedWeek({ ...weekFixtures.full, issue: { ...weekFixtures.full.issue!, received: { kudos: [plain!, edited, gone], more: false } } }));
+
+    await issue();
+    const quotes = section("Said to you").getAllByRole("listitem").map((line: HTMLElement) => line.querySelector("blockquote")!.hasAttribute("data-quoted"));
+    expect(quotes).toEqual([true, false, false]);
+  });
+
   it("a list that lists no kudos still says when more came than an issue lists", async () => {
     visit(fixedWeek({ ...weekFixtures.full, issue: { ...weekFixtures.full.issue!, given: { kudos: [], more: true } } }));
 
