@@ -101,9 +101,7 @@ describe("AL45: Collect the whole team names the one next step", () => {
 
     expect((await goal()).getByText("Give anyone on Salt and Sparrow a thoughtful kudos to start this page.")).toBeInTheDocument();
   });
-});
 
-describe("AL45: a complete page is ready to unlock", () => {
   it("the grey sticker carries a Ready to unlock ribbon, and the page asks to unlock it", async () => {
     visit("/book#teams/kettle-works");
 
@@ -149,9 +147,7 @@ describe("AL45: a team sticker unlocks only on the member's own click", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("Couldn't reach HedgeHug. Try again.");
     expect((await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" })).toBeEnabled();
   });
-});
 
-describe("AL45: the unlock moment", () => {
   it("dims the page, lifts the sticker, colours it, names it and its team emoji, then flies it back to an unlocked page, in about five seconds", async () => {
     visit("/book#teams/kettle-works", { album: { ...midway, emojis: [...midway.emojis, kettleWorksEmoji] } });
     const unlock = (await goal()).getByRole("button", { name: "Unlock the Kettle Works sticker" });
