@@ -95,6 +95,14 @@ export async function adminsPageIn(ctx: QueryCtx, workspace: string, cursor: str
   return { admins, continueCursor: isDone ? null : continueCursor };
 }
 
+export async function membersPageIn(ctx: QueryCtx, workspace: string, cursor: string | null, numItems: number) {
+  const { page, isDone, continueCursor } = await ctx.db
+    .query("members")
+    .withIndex("by_user", (q) => q.eq("workspace", workspace))
+    .paginate({ cursor, numItems });
+  return { members: page.map(({ _id }) => _id), continueCursor: isDone ? null : continueCursor };
+}
+
 export const directoryRecordArgs = { workspace: v.string(), user: v.string(), entry: directoryEntryValidator, asOf: v.number() };
 
 export type DirectoryRecord = ObjectType<typeof directoryRecordArgs>;

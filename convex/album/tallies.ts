@@ -11,6 +11,7 @@ import { hugsOnTheMessage } from "../hugs/weeks";
 import { gateDecisionOf, wordCountOf } from "../progression/gate";
 import { givingWeekOf } from "../progression/progress";
 import { timeZoneOf, type MemberId } from "../workspace/directory";
+import { recordMilestonesOf } from "./milestones";
 import { pairTallyValidator, weekTallyValidator, type HoggieFound, type HugPick, type KudosPick, type WeekList } from "./records";
 
 export const awardsPerTally = 50;
@@ -66,6 +67,7 @@ export const tallyKudosGiven = internalMutation({
     for (const { award, giver, recipient, kudos } of event.awards.slice(from, next)) {
       await tallyAward(ctx, { award, message: event.message, giver, recipient, kudos, day: event.day, at: event.at }, weight);
     }
+    if (weight.thoughtful) await recordMilestonesOf(ctx, { workspace: event.workspace, member: event.giver }, Date.now());
     if (next < event.awards.length) await ctx.scheduler.runAfter(0, internal.album.tallies.tallyKudosGiven, { event, from: next });
     return null;
   },
