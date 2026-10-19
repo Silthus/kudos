@@ -54,7 +54,7 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   const playing = opening || moment !== null;
   const awaitingAMoment = playing || unlocking.sending !== null;
   useTitleFocusAfterChange(busy ? "loading" : keyOf(place), { held: false });
-  useGoalFocusAfterTheMoment(moment !== null);
+  useUnlockedFocusAfterTheMoment(moment !== null);
   useTitleFocusWhenTheFocusedElementGoes();
   return (
     <div className="al-shell">
@@ -78,10 +78,10 @@ export function AlbumShell({ album: answered, place, settings, leaderboard, acti
   );
 }
 
-function useGoalFocusAfterTheMoment(playing: boolean) {
+function useUnlockedFocusAfterTheMoment(playing: boolean) {
   const wasPlaying = useRef(false);
   useEffect(() => {
-    if (wasPlaying.current && !playing) document.querySelector<HTMLElement>("main [data-al-goal] h2")?.focus();
+    if (wasPlaying.current && !playing) document.querySelector<HTMLElement>("main [data-al-unlocked]")?.focus();
     wasPlaying.current = playing;
   }, [playing]);
 }

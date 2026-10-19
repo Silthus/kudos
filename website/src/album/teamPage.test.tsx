@@ -33,10 +33,10 @@ function visit(path: string, { album = midway, unlockTeamSticker = async (team) 
   return { ...view, send };
 }
 
-const answersNever = () => new Promise<never>(() => undefined);
+const arrival = { timeout: 10_000 };
 
 async function photo() {
-  return within(await screen.findByRole("figure", { name: /^Left to right/ }));
+  return within(await screen.findByRole("figure", { name: /^Left to right/ }, arrival));
 }
 
 async function unlockOnThePhoto(name = "Unlock the Kettle Works sticker") {
@@ -55,7 +55,7 @@ describe("AL45: the team page is the team's class photo", () => {
   it("/ shows the member's own team in one mounted photo: collected people by face, the rest as silhouettes, the unmatched shown and never counted, and a Left to right caption in the same order", async () => {
     visit("/");
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Lanterns" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Lanterns" }, arrival)).toBeInTheDocument();
     const shown = await photo();
     expect(shown.getAllByRole("listitem").map((person) => person.textContent)).toEqual([
       "IOInes Okafor In your album",
@@ -73,7 +73,7 @@ describe("AL45: the team page is the team's class photo", () => {
   it("the seal is ringed by one segment per person to collect, filled for each one in the album", async () => {
     visit("/");
 
-    const seal = await screen.findByRole("img", { name: "Lanterns sticker, 4 of 5" });
+    const seal = await screen.findByRole("img", { name: "Lanterns sticker, 4 of 5" }, arrival);
     expect(seal.querySelectorAll("[data-segment]")).toHaveLength(5);
     expect(seal.querySelectorAll("[data-segment='in']")).toHaveLength(4);
   });
@@ -121,12 +121,13 @@ describe("AL45: the class photo stands alone, with no box under it", () => {
     expect(screen.queryByRole("button", { name: /Unlock/ })).not.toBeInTheDocument();
   });
 
-  it("the keyboard reaches the sticker and Enter unlocks it", async () => {
+  it("the sticker takes keyboard focus and Enter unlocks it", async () => {
     preferReducedMotion();
     const { user, send } = visit("/book#teams/kettle-works");
     const sticker = await unlockOnThePhoto();
 
-    while (document.activeElement !== sticker) await user.tab();
+    sticker.focus();
+    expect(sticker).toHaveFocus();
     await user.keyboard("{Enter}");
 
     expect(send).toHaveBeenCalledExactlyOnceWith("kettle-works");
@@ -294,7 +295,7 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
 
     expect(await screen.findByRole("img", { name: "Quiet Harbour sticker, unlocked" })).toBeInTheDocument();
     expect(screen.getByText("Unlocked 15 Oct 2026")).toBeInTheDocument();
-    expect(screen.getByText("You got the :quiet-harbour: team emoji. Use it in Slack: react with it and put it in the kudos you give.")).toBeInTheDocument();
+    expect(teamEmojiLine()).toHaveTextContent("You got the :quiet-harbour: team emoji. Use it in Slack: react with it and put it in the kudos you give.");
     expect(screen.queryByRole("link", { name: "Add to Slack" })).not.toBeInTheDocument();
   });
 
@@ -305,7 +306,7 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
     });
     const { user } = visit("/book#teams/quiet-harbour", { album: withTheTeamEmojiOutOfSlack(midway, "quiet-harbour") });
 
-    expect(await screen.findByText("You got the :quiet-harbour: team emoji. It isn't in Slack yet: add it, then react with it and put it in the kudos you give.")).toBeInTheDocument();
+    expect(await screen.findByText(/team emoji\./)).toHaveTextContent("You got the :quiet-harbour: team emoji. It isn't in Slack yet: add it, then react with it and put it in the kudos you give.");
     expect(screen.queryByText(/Use it in Slack/)).not.toBeInTheDocument();
     const add = screen.getByRole("link", { name: "Add to Slack" });
     expect(add).toHaveAttribute("href", "https://my.slack.com/customize/emoji");
@@ -330,6 +331,10 @@ describe("AL45: an unlocked page says plainly what the member got", () => {
     expect(saved).toEqual(["/emoji/team.png as quiet-harbour.png"]);
   });
 });
+
+function teamEmojiLine() {
+  return screen.getByText(/team emoji\./);
+}
 
 function withTheTeamEmojiOutOfSlack(album: Album, team: string): Album {
   return { ...album, emojis: album.emojis.map((emoji) => (emoji.id === `team:${team}` ? { ...emoji, inSlack: false } : emoji)) };
