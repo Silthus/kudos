@@ -79,21 +79,6 @@ describe("AL11 AL17: putting a tray item in", () => {
     expect(JSON.stringify(collected[0]!.properties)).not.toContain(await memberOf(bob));
     expect(JSON.stringify(collected[0]!.properties)).not.toContain(bob.user);
   });
-
-  test("with album off, putting in answers the fixed refusal and changes no table", async () => {
-    await thanks(alice, why, bob);
-    const asAlice = await signedIn(alice);
-    const [sticker] = await openEvery(asAlice);
-    await switchWebsite(t, postHog, true, "collection", "packs");
-    await settle(t);
-    const before = await everyTable();
-
-    expect(await putIn(asAlice, sticker!.item)).toEqual({ kind: "refused" });
-    expect(await putAllIn(asAlice)).toEqual({ kind: "refused" });
-    await settle(t);
-
-    expect(await everyTable()).toEqual(before);
-  });
 });
 
 describe("a tray item is put in once", { timeout: 120_000 }, () => {
@@ -228,6 +213,23 @@ describe("the album is private", () => {
     expect(await everyTable()).toEqual(before);
     expect(await putAllIn(asBob)).toEqual({ kind: "placed", items: [...hoggiesIn(bobsItems), ...stickersIn(bobsItems)], more: false });
     expect((await albumOf(asAlice)).tray).toEqual(alicesItems);
+  });
+});
+
+describe("AL39: the album is dark where album is off, shows only to the members it is on for, and nothing exposes it", () => {
+  test("turned off after a member opened their packs, putting in answers the fixed refusal and changes no table", async () => {
+    await thanks(alice, why, bob);
+    const asAlice = await signedIn(alice);
+    const [sticker] = await openEvery(asAlice);
+    await switchWebsite(t, postHog, true, "collection", "packs");
+    await settle(t);
+    const before = await everyTable();
+
+    expect(await putIn(asAlice, sticker!.item)).toEqual({ kind: "refused" });
+    expect(await putAllIn(asAlice)).toEqual({ kind: "refused" });
+    await settle(t);
+
+    expect(await everyTable()).toEqual(before);
   });
 });
 
