@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
@@ -77,6 +77,19 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
       "Rank 3, tied: Quiet Harbour Who gave 4 thoughtful kudos",
       "Rank 5: Salt and Sparrow Who gave 2 thoughtful kudos",
       "Rank 6: Brass Tidings Who gave 1 thoughtful kudos",
+    ]);
+  });
+
+  it("folds the teams with nothing yet into one row after the ranked teams, opened and closed again on demand", async () => {
+    const { user } = visit();
+
+    const teams = await board("Teams");
+    const more = teams.getByRole("button", { name: "7 more teams with nothing yet" });
+    expect(more).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(more);
+
+    expect(rowsOf(teams).slice(6)).toEqual([
       "Not ranked: Amber Ledger Who gave 0 thoughtful kudos",
       "Not ranked: Copper Kite Who gave 0 thoughtful kudos",
       "Not ranked: Glass Meadow Who gave 0 thoughtful kudos",
@@ -85,6 +98,13 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
       "Not ranked: Velvet Signal Who gave 0 thoughtful kudos",
       "Not ranked: Willow Desk Who gave 0 thoughtful kudos",
     ]);
+    const fewer = teams.getByRole("button", { name: "Hide the 7 teams with nothing yet" });
+    expect(fewer).toHaveAttribute("aria-expanded", "true");
+    expect(fewer, "focus stays on the toggle").toHaveFocus();
+
+    await user.click(fewer);
+
+    expect(rowsOf(teams)).toHaveLength(6);
   });
 
   it("a member without a team still sees every team on the team board, and it says how to find theirs", async () => {
@@ -93,6 +113,8 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
 
     const teams = await board("Teams");
     expect(teams.getByText("No team has said thanks with a why yet this week.")).toBeInTheDocument();
+    expect(teams.queryAllByRole("listitem"), "a quiet board starts folded").toHaveLength(0);
+    fireEvent.click(teams.getByRole("button", { name: `${albumFixtures.teamless.teams.length} more teams with nothing yet` }));
     expect(rowsOf(teams)).toHaveLength(albumFixtures.teamless.teams.length);
     expect(rowsOf(teams)[0]).toBe("Not ranked: Amber Ledger Who gave 0 thoughtful kudos");
     expect(teams.queryByText("Your team")).not.toBeInTheDocument();
@@ -195,7 +217,8 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     const teams = await board("Teams");
     expect(teams.getByText("No team has said thanks with a why yet this week.")).toBeInTheDocument();
     expect(teams.getByText("Lanterns hasn't given one yet. Tin Orchard hasn't given one yet.")).toBeInTheDocument();
-    expect(rowsOf(teams).slice(0, 3)).toEqual(["Not ranked: Lanterns Your team Who gave 0 thoughtful kudos", "Not ranked: Tin Orchard Your team Who gave 0 thoughtful kudos", "Not ranked: Amber Ledger Who gave 0 thoughtful kudos"]);
+    expect(rowsOf(teams), "the member's own teams stay listed while the rest fold").toEqual(["Not ranked: Lanterns Your team Who gave 0 thoughtful kudos", "Not ranked: Tin Orchard Your team Who gave 0 thoughtful kudos"]);
+    expect(teams.getByRole("button", { name: /more teams with nothing yet$/ })).toHaveAttribute("aria-expanded", "false");
     expect(teams.queryByRole("link", { name: "Find yourself on posthog.com" })).not.toBeInTheDocument();
   });
 
@@ -336,6 +359,28 @@ describe("AL49: the Leaderboard shows people and teams side by side by thoughtfu
     await user.click(people.getByRole("button", { name: "Show everyone" }));
 
     expect(rowsOf(await board("People"))).toHaveLength(2);
+  });
+
+  it("Show everyone after the picked team folded away in another period returns focus to the fold", async () => {
+    const { user } = visitWith(boardsByPeriod({ week: boardsFixtures.week, "last-week": boardsFixtures.lastWeek }));
+
+    await user.click((await board("Teams")).getByRole("button", { name: "Who gave in Kettle Works" }));
+    await user.click(periodSwitch().getByRole("button", { name: "Last week" }));
+    await user.click((await board("People")).getByRole("button", { name: "Show everyone" }));
+
+    expect((await board("Teams")).getByRole("button", { name: /more teams with nothing yet$/ })).toHaveFocus();
+  });
+
+  it("names one folded team in the singular", async () => {
+    const onTheBoard = new Set(boardsFixtures.week.teams.map(({ team }) => team));
+    const unscored = albumFixtures.midway.teams.filter(({ team }) => !onTheBoard.has(team));
+    const rankedAllButOne = unscored.slice(0, -1).map(({ team, name, art }, index) => ({ team, name, art, thoughtful: 1, mine: false, rank: 7 + index, tied: false }));
+    const { user } = visit({ ...boardsFixtures.week, teams: [...boardsFixtures.week.teams, ...rankedAllButOne] });
+
+    const teams = await board("Teams");
+    await user.click(teams.getByRole("button", { name: "1 more team with nothing yet" }));
+
+    expect(teams.getByRole("button", { name: "Hide the 1 team with nothing yet" })).toHaveAttribute("aria-expanded", "true");
   });
 
   it("keeps the boards on screen, marked busy, while a picked period loads", async () => {

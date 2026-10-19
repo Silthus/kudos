@@ -1,4 +1,4 @@
-import { useCallback, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useId, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
 import { AnswerPage } from "../App";
 import { AppLink } from "../AppLink";
 import { TeamCrest } from "../crates/TeamCrest";
@@ -17,14 +17,16 @@ export function LeaderboardAnswerPage({ boards: { shown, shownPeriod, period, lo
   return <LeaderboardPage boards={shown} teamRows={teamRowsOf(shown, teams)} shownPeriod={shownPeriod} period={period} loading={loading} onChoosePeriod={choose} homeTeam={homeTeam} />;
 }
 
-function teamRowsOf(boards: ThoughtfulBoards, albumTeams: AlbumTeam[]): BoardTeam[] {
+type TeamRows = { listed: BoardTeam[]; unscored: BoardTeam[] };
+
+function teamRowsOf(boards: ThoughtfulBoards, albumTeams: AlbumTeam[]): TeamRows {
   const listed = [...boards.teams, ...boards.pinned.teams.filter(({ rank }) => rank === null)];
   const onTheBoard = new Set(listed.map(({ team }) => team));
   const unscored = albumTeams
     .filter(({ team }) => !onTheBoard.has(team))
     .toSorted((first, second) => first.name.localeCompare(second.name))
     .map(({ team, name, art }): BoardTeam => ({ team, name, art, thoughtful: 0, mine: false, rank: null, tied: false }));
-  return [...listed, ...unscored];
+  return { listed, unscored };
 }
 
 type PeriodWords = { label: string; span: string; past: boolean };
@@ -42,16 +44,17 @@ const quietOffers: Record<BoardPeriod, BoardPeriod | null> = { week: "last-week"
 
 type TeamsByKey = Map<string, BoardTeam>;
 
-type LeaderboardPageProps = { boards: ThoughtfulBoards; teamRows: BoardTeam[]; shownPeriod: BoardPeriod; period: BoardPeriod; loading: boolean; onChoosePeriod: (period: BoardPeriod) => void; homeTeam: string | null };
+type LeaderboardPageProps = { boards: ThoughtfulBoards; teamRows: TeamRows; shownPeriod: BoardPeriod; period: BoardPeriod; loading: boolean; onChoosePeriod: (period: BoardPeriod) => void; homeTeam: string | null };
 
 function LeaderboardPage({ boards, teamRows, shownPeriod, period, loading, onChoosePeriod, homeTeam }: LeaderboardPageProps) {
   const [picked, setPicked] = useState<BoardTeam | null>(null);
   const pickButtons = useRef(new Map<string, HTMLButtonElement>());
+  const foldToggle = useRef<HTMLButtonElement>(null);
   const showEveryone = () => {
-    if (picked !== null) pickButtons.current.get(picked.team)?.focus();
+    if (picked !== null) (pickButtons.current.get(picked.team) ?? foldToggle.current)?.focus();
     setPicked(null);
   };
-  const teams: TeamsByKey = new Map(teamRows.map((team) => [team.team, team]));
+  const teams: TeamsByKey = new Map([...teamRows.listed, ...teamRows.unscored].map((team) => [team.team, team]));
   const pickedTeam = picked === null ? undefined : (teams.get(picked.team) ?? picked);
   const words = periodWords[shownPeriod];
   const periodButtons = useRef(new Map<BoardPeriod, HTMLButtonElement>());
@@ -72,7 +75,7 @@ function LeaderboardPage({ boards, teamRows, shownPeriod, period, loading, onCho
       </header>
       <div className="al-boards" aria-busy={loading || undefined}>
         <PeopleBoard boards={boards} words={words} offer={quietOffers[shownPeriod]} onChoosePeriod={chooseFromTheOffer} teams={teams} picked={pickedTeam} onShowEveryone={showEveryone} />
-        <TeamBoard boards={boards} rows={teamRows} words={words} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked?.team ?? null} onPick={(team) => setPicked(team.team === picked?.team ? null : team)} />
+        <TeamBoard boards={boards} rows={teamRows} foldToggle={foldToggle} words={words} homeTeam={homeTeam} pickButtons={pickButtons.current} picked={picked?.team ?? null} onPick={(team) => setPicked(team.team === picked?.team ? null : team)} />
       </div>
       <section className="al-board-foot" aria-label="How it counts">
         <p>Only thoughtful kudos count: thank-yous that say why. Hugs, XP, levels and your album never rank anyone. A team scores what its people gave.</p>
@@ -119,10 +122,12 @@ function PeopleBoard({ boards, words, offer, onChoosePeriod, teams, picked, onSh
   );
 }
 
-type TeamBoardProps = { boards: ThoughtfulBoards; rows: BoardTeam[]; words: PeriodWords; homeTeam: string | null; pickButtons: Map<string, HTMLButtonElement>; picked: string | null; onPick: (team: BoardTeam) => void };
+type TeamBoardProps = { boards: ThoughtfulBoards; rows: TeamRows; foldToggle: Ref<HTMLButtonElement>; words: PeriodWords; homeTeam: string | null; pickButtons: Map<string, HTMLButtonElement>; picked: string | null; onPick: (team: BoardTeam) => void };
 
-function TeamBoard({ boards, rows, words, homeTeam, pickButtons, picked, onPick }: TeamBoardProps) {
-  const pinned = rows.find(({ mine, team }) => mine && team === homeTeam) ?? rows.find(({ mine }) => mine);
+function TeamBoard({ boards, rows: { listed, unscored }, foldToggle, words, homeTeam, pickButtons, picked, onPick }: TeamBoardProps) {
+  const [showingUnscored, setShowingUnscored] = useState(false);
+  const rows = showingUnscored ? [...listed, ...unscored] : listed;
+  const pinned = listed.find(({ mine, team }) => mine && team === homeTeam) ?? listed.find(({ mine }) => mine);
   const { clearance, pinnedRef } = usePinnedClearance();
   return (
     <Board title="Teams" story={<TeamStory boards={boards} words={words} />}>
@@ -133,7 +138,17 @@ function TeamBoard({ boards, rows, words, homeTeam, pickButtons, picked, onPick 
           ))}
         </ol>
       )}
+      {unscored.length > 0 && <UnscoredTeamsToggle ref={foldToggle} count={unscored.length} showing={showingUnscored} onToggle={() => setShowingUnscored(!showingUnscored)} />}
     </Board>
+  );
+}
+
+function UnscoredTeamsToggle({ ref, count, showing, onToggle }: { ref: Ref<HTMLButtonElement>; count: number; showing: boolean; onToggle: () => void }) {
+  const teams = count === 1 ? "team" : "teams";
+  return (
+    <button ref={ref} type="button" className="al-board-more" aria-expanded={showing} onClick={onToggle}>
+      {showing ? `Hide the ${count} ${teams} with nothing yet` : `${count} more ${teams} with nothing yet`}
+    </button>
   );
 }
 
