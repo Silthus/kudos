@@ -45,12 +45,12 @@ describe("AL57: the album loads in its own chunk", () => {
 });
 
 describe("AL27: earned emoji art is built as static PNGs under fixed catalogue paths", () => {
-  test("the build holds one picture for every team crest, milestone and level of the catalogue, beside the team and hype emblems, each at its fixed unhashed path", { timeout: buildTimeout }, async () => {
+  test("the build holds one picture for every team crest, milestone tier and level of the catalogue, beside the team and hype emblems, each at its fixed unhashed path", { timeout: buildTimeout }, async () => {
     const { emojiPictures } = await productionBuild();
 
     const expected = [
       ...hoggieCatalogue.crests.map(({ crest }) => `/emoji/team-${crest}.png`),
-      ...milestoneCatalogue.milestones.map(({ id }) => `/emoji/milestone-${id}.png`),
+      ...milestoneCatalogue.milestones.flatMap(({ id, steps }) => steps.map(({ tier }) => `/emoji/milestone-${id}-${tier}.png`)),
       ...["5", "10", "15", "20", "25"].map((level) => `/emoji/level-${level}.png`),
       "/emoji/team.png",
       "/emoji/hype.png",

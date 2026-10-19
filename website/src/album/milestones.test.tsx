@@ -1,9 +1,10 @@
 import { screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { shellFixtures, type MemberProfile } from "../shell";
 import { renderAlbum } from "../test/renderApp";
 import { fakeSystemTheme, preferWideScreen } from "../test/systemTheme";
 import { albumFixtures, fixedAlbum } from "./albumFixtures";
+import answeredBefore707 from "./milestonesAnsweredBefore707.json";
 import type { Album, AlbumEmoji, AlbumMilestone } from "./answer";
 
 const arrival = 10_000;
@@ -26,8 +27,44 @@ async function rowOf(name: string) {
   return within(await screen.findByRole("listitem", { name }, { timeout: arrival }));
 }
 
-function medalsIn(row: ReturnType<typeof within>): [string | null, string | null][] {
-  return row.getAllByRole("listitem").map((medal: HTMLElement) => [medal.getAttribute("data-step"), medal.textContent]);
+function medalsIn(row: ReturnType<typeof within>): HTMLElement[] {
+  return row.getAllByRole("listitem");
+}
+
+function medalWordsIn(row: ReturnType<typeof within>): [string | null, string | null][] {
+  return medalsIn(row).map((medal) => [medal.getAttribute("data-step"), textOutsideTheEmoji(medal)]);
+}
+
+function textOutsideTheEmoji(medal: HTMLElement) {
+  return [...medal.children].filter((part) => part.tagName !== "FIGURE").map((part) => part.textContent).join("");
+}
+
+function emojisUnder(row: ReturnType<typeof within>) {
+  return medalsIn(row).map((medal) => {
+    const emoji = within(medal).getByRole("figure");
+    return { picture: emoji.querySelector("img")?.getAttribute("src"), name: within(emoji).getByText(/^:.+:$/).textContent, earned: emoji.hasAttribute("data-earned"), says: emoji.querySelector(".al-ms-emoji-says")?.textContent };
+  });
+}
+
+function withEmoji(album: Album, emoji: AlbumEmoji): Album {
+  return { ...album, emojis: [...album.emojis.filter(({ id }) => id !== emoji.id), emoji] };
+}
+
+function withoutMilestoneEmojis(album: Album): Album {
+  return { ...album, emojis: album.emojis.filter(({ kind }) => kind !== "milestone") };
+}
+
+function answeredBeforeEveryTier(album: Album): Album {
+  const { emojis, milestones } = answeredBefore707 as Pick<Album, "emojis" | "milestones">;
+  return { ...album, emojis: [...withoutMilestoneEmojis(album).emojis, ...emojis], milestones };
+}
+
+function savedPictures() {
+  const saved: { href: string; download: string }[] = [];
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+    if (this.download !== "") saved.push({ href: this.getAttribute("href") ?? "", download: this.download });
+  });
+  return saved;
 }
 
 function withMilestone(album: Album, milestone: AlbumMilestone): Album {
@@ -38,7 +75,7 @@ const day = 86_400_000;
 
 const now = Date.parse("2026-10-18T10:00:00Z");
 
-describe("AL51: Milestones shows one row per milestone with its four medals", { timeout: 60_000 }, () => {
+describe("AL51: Milestones shows one row per milestone with its four medals and the emoji each one unlocks", { timeout: 60_000 }, () => {
   it("lists the five milestones in the catalogue's order, each saying what it counts in plain words and the next goal", async () => {
     visit();
 
@@ -60,35 +97,25 @@ describe("AL51: Milestones shows one row per milestone with its four medals", { 
 
     const faces = await rowOf("Faces in the album");
     expect(faces.getByRole("list", { name: "Faces in the album medals, bronze to diamond" })).toBeInTheDocument();
-    expect(medalsIn(faces)).toEqual([
+    expect(medalWordsIn(faces)).toEqual([
       ["earned", "BronzeFirst face28 Sept 2026"],
       ["earned", "SilverFamiliar faces16 Oct 2026"],
       ["next", "NextGoldFull of friends12 of 25"],
-      ["later", "DiamondEveryone's albumAt 50"],
+      ["later", "DiamondEveryone's album"],
     ]);
     expect(faces.getByRole("progressbar", { name: "Full of friends" })).toHaveAttribute("aria-valuenow", "12");
     expect(faces.getByRole("progressbar", { name: "Full of friends" })).toHaveAttribute("aria-valuemax", "25");
   });
 
-  it("names the emoji each milestone's gold gives, as the album's earned emojis name it once they carry it", async () => {
-    const goldEmoji: AlbumEmoji = { id: "milestone:people", kind: "milestone", name: "full-of-friends-2", picture: "/emoji/milestone-people.png", earned: false, seen: false, inSlack: false, progress: { have: 12, need: 25 } };
-    visit({ ...midway, emojis: [...midway.emojis, goldEmoji] });
-
-    expect((await rowOf("Faces in the album")).getByText(":full-of-friends-2:").parentElement).toHaveTextContent("Gold unlocks :full-of-friends-2:");
-    expect((await rowOf("Kind words")).getByText(":heart-of-the-team:").parentElement).toHaveTextContent("Gold unlocks :heart-of-the-team:");
-  });
-
-  it("says the gold emoji is unlocked once gold is earned, and a milestone with every medal says so with nothing lit", async () => {
+  it("a milestone with every medal says so with nothing lit", async () => {
     const tiersAllEarned = midway.milestones.find(({ id }) => id === "thoughtful")!.tiers.map((tier) => ({ ...tier, earnedAt: now - day }));
     visit(withMilestone(midway, { id: "thoughtful", count: 512, tiers: tiersAllEarned }));
 
     const kind = await rowOf("Kind words");
-    expect(kind.getByText(":heart-of-the-team:").parentElement).toHaveTextContent("Gold unlocked :heart-of-the-team:");
     expect(kind.getByText("Every medal earned")).toBeInTheDocument();
-    expect(medalsIn(kind).map(([step]) => step)).toEqual(["earned", "earned", "earned", "earned"]);
+    expect(medalsIn(kind).map((medal) => medal.getAttribute("data-step"))).toEqual(["earned", "earned", "earned", "earned"]);
     expect(kind.queryByRole("progressbar")).not.toBeInTheDocument();
   });
-
   it("heads the page with the medals earned of all twenty and the closest next medal, with no Collected strip and no just-earned band", async () => {
     visit();
 
@@ -103,7 +130,7 @@ describe("AL51: Milestones shows one row per milestone with its four medals", { 
     visit(albumFixtures.newcomer);
 
     const faces = await rowOf("Faces in the album");
-    expect(medalsIn(faces).map(([step]) => step)).toEqual(["next", "later", "later", "later"]);
+    expect(medalsIn(faces).map((medal) => medal.getAttribute("data-step"))).toEqual(["next", "later", "later", "later"]);
     expect(faces.getByText("1 to go for First face")).toBeInTheDocument();
     expect(screen.getByText("of 20 medals").parentElement).toHaveTextContent("0 of 20 medals");
   });
@@ -112,5 +139,62 @@ describe("AL51: Milestones shows one row per milestone with its four medals", { 
     visit({ ...midway, milestones: [] });
 
     expect(await screen.findByText("Your milestones show here once your album starts filling.", undefined, { timeout: arrival })).toBeInTheDocument();
+  });
+  it("#707: under every medal, shows its tier's emoji picture and name, earned tiers in colour and locked tiers greyed out with the step that unlocks them", async () => {
+    visit();
+
+    expect(emojisUnder(await rowOf("Faces in the album"))).toEqual([
+      { picture: "/emoji/milestone-people-bronze.png", name: ":first-face:", earned: true, says: "In Slack" },
+      { picture: "/emoji/milestone-people-silver.png", name: ":familiar-faces:", earned: true, says: "Add to Slack" },
+      { picture: "/emoji/milestone-people-gold.png", name: ":full-of-friends:", earned: false, says: "Unlocks at 25" },
+      { picture: "/emoji/milestone-people-diamond.png", name: ":everyone-s-album:", earned: false, says: "Unlocks at 50" },
+    ]);
+  });
+
+  it("#707: names each emoji as the album's earned emojis name it, so a name the registry numbered shows numbered", async () => {
+    const numbered: AlbumEmoji = { id: "milestone:people:gold", kind: "milestone", name: "full-of-friends-2", picture: "/emoji/milestone-people-gold.png", earned: false, seen: false, inSlack: false, progress: { have: 12, need: 25 } };
+    visit(withEmoji(midway, numbered));
+
+    expect(emojisUnder(await rowOf("Faces in the album"))[2]).toMatchObject({ name: ":full-of-friends-2:", says: "Unlocks at 25" });
+  });
+
+  it("#707: before the album answers a tier's emoji, shows the tier's picture under the slug of its name and offers nothing to add", async () => {
+    visit(withoutMilestoneEmojis(midway));
+
+    const faces = await rowOf("Faces in the album");
+    expect(emojisUnder(faces)[1]).toEqual({ picture: "/emoji/milestone-people-silver.png", name: ":familiar-faces:", earned: true, says: "" });
+    expect(faces.queryByRole("link", { name: "Add to Slack" })).not.toBeInTheDocument();
+  });
+
+  it("#707: getAlbum's answer as the code before #707 built it, gold only under milestone:<id>, still shows every medal's own picture under its tier's slug and offers nothing to add", async () => {
+    visit(answeredBeforeEveryTier(midway));
+
+    const faces = await rowOf("Faces in the album");
+    expect(emojisUnder(faces)).toEqual([
+      { picture: "/emoji/milestone-people-bronze.png", name: ":first-face:", earned: true, says: "" },
+      { picture: "/emoji/milestone-people-silver.png", name: ":familiar-faces:", earned: true, says: "" },
+      { picture: "/emoji/milestone-people-gold.png", name: ":full-of-friends:", earned: false, says: "Unlocks at 25" },
+      { picture: "/emoji/milestone-people-diamond.png", name: ":everyone-s-album:", earned: false, says: "Unlocks at 50" },
+    ]);
+    expect(screen.queryByRole("link", { name: "Add to Slack" })).not.toBeInTheDocument();
+  });
+
+  it("#707, AL31: an earned emoji Slack doesn't have offers Add to Slack, which saves its picture as <name>.png and opens Slack's custom emoji page", async () => {
+    const saved = savedPictures();
+    const { user } = visit();
+
+    const add = (await rowOf("Faces in the album")).getByRole("link", { name: "Add to Slack" });
+    expect(add).toHaveAttribute("href", "https://my.slack.com/customize/emoji");
+    expect(add).toHaveAttribute("target", "_blank");
+    await user.click(add);
+
+    expect(saved).toEqual([{ href: "/emoji/milestone-people-silver.png", download: "familiar-faces.png" }]);
+  });
+
+  it("#707, AL30: a locked emoji never says it is in Slack or offers to add it, even where Slack already has its name", async () => {
+    const gold: AlbumEmoji = { id: "milestone:people:gold", kind: "milestone", name: "full-of-friends", picture: "/emoji/milestone-people-gold.png", earned: false, seen: false, inSlack: true, progress: { have: 12, need: 25 } };
+    visit(withEmoji(midway, gold));
+
+    expect(emojisUnder(await rowOf("Faces in the album"))[2]).toMatchObject({ earned: false, says: "Unlocks at 25" });
   });
 });
