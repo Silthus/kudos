@@ -1,0 +1,5 @@
+ Test Files  335 passed (335)
+      Tests  6595 passed (6595)
+lacking: enforcement 0, refutation 6, kinds 0, checklist 0, because 0; unfilled placeholders 0; 0 problems; latest run 2026-10-19T08:21:51.211Z (1775 runs)
+0 rejected names, 0 unknown nouns (1423 files), 191 in records
+exit 0

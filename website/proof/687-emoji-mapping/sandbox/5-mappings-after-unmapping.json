@@ -1,0 +1,18 @@
+[
+ {
+  "image": "https://a.slack-edge.com/production-standard-emoji-assets/14.0/apple-large/1f6a8.png",
+  "mapping": {
+   "kind": "team",
+   "team": "proof-696-beaconsa"
+  },
+  "name": "beacons-a"
+ },
+ {
+  "image": "https://emoji.slack-edge.com/T0C3US298SH/piggy/b7762ee8cd.png",
+  "mapping": {
+   "kind": "team",
+   "team": "proof-652-inslacka"
+  },
+  "name": "piggy"
+ }
+]
